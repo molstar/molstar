@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Jason Pattle <jpattle.exscientia.co.uk>
  */
 
 import { Loci } from '../../../mol-model/loci';
@@ -17,8 +18,25 @@ import { Vec3 } from '../../../mol-math/linear-algebra';
 const B = ButtonsType;
 const M = ModifiersKeys;
 const Trigger = Binding.Trigger;
+const Key = Binding.TriggerKey;
 
-const DefaultFocusLociBindings = {
+export const DefaultClickResetCameraOnEmpty = Binding([
+    Trigger(B.Flag.Primary, M.create()),
+    Trigger(B.Flag.Secondary, M.create()),
+    Trigger(B.Flag.Primary, M.create({ control: true }))
+], 'Reset camera focus', 'Click on nothing using ${triggers}');
+export const DefaultClickResetCameraOnEmptySelectMode = Binding([
+    Trigger(B.Flag.Secondary, M.create()),
+    Trigger(B.Flag.Primary, M.create({ control: true }))
+], 'Reset camera focus', 'Click on nothing using ${triggers}');
+
+type FocusLociBindings = {
+    clickCenterFocus: Binding
+    clickCenterFocusSelectMode: Binding
+    clickResetCameraOnEmpty?: Binding
+    clickResetCameraOnEmptySelectMode?: Binding
+}
+export const DefaultFocusLociBindings: FocusLociBindings = {
     clickCenterFocus: Binding([
         Trigger(B.Flag.Primary, M.create()),
         Trigger(B.Flag.Secondary, M.create()),
@@ -28,6 +46,8 @@ const DefaultFocusLociBindings = {
         Trigger(B.Flag.Secondary, M.create()),
         Trigger(B.Flag.Primary, M.create({ control: true }))
     ], 'Camera center and focus', 'Click element using ${triggers}'),
+    clickResetCameraOnEmpty: DefaultClickResetCameraOnEmpty,
+    clickResetCameraOnEmptySelectMode: DefaultClickResetCameraOnEmptySelectMode,
 };
 const FocusLociParams = {
     minRadius: PD.Numeric(8, { min: 1, max: 50, step: 1 }),
@@ -50,12 +70,16 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
                     ? this.params.bindings.clickCenterFocusSelectMode
                     : this.params.bindings.clickCenterFocus;
 
-                if (Binding.match(binding, button, modifiers)) {
-                    if (Loci.isEmpty(current.loci)) {
-                        PluginCommands.Camera.Reset(this.ctx, { });
-                        return;
-                    }
+                const resetBinding = this.ctx.selectionMode
+                    ? (this.params.bindings.clickResetCameraOnEmptySelectMode ?? DefaultClickResetCameraOnEmptySelectMode)
+                    : (this.params.bindings.clickResetCameraOnEmpty ?? DefaultClickResetCameraOnEmpty);
 
+                if (Loci.isEmpty(current.loci) && Binding.match(resetBinding, button, modifiers)) {
+                    PluginCommands.Camera.Reset(this.ctx, { });
+                    return;
+                }
+
+                if (Binding.match(binding, button, modifiers)) {
                     const loci = Loci.normalize(current.loci, this.ctx.managers.interactivity.props.granularity);
                     this.ctx.managers.camera.focusLoci(loci, this.params);
                 }
@@ -127,4 +151,79 @@ export const CameraAxisHelper = PluginBehavior.create<{}>({
     },
     params: () => ({}),
     display: { name: 'Camera Axis Helper' }
+});
+
+const DefaultCameraControlsBindings = {
+    keySpinAnimation: Binding([Key('I')], 'Spin Animation', 'Press ${triggers}'),
+    keyRockAnimation: Binding([Key('O')], 'Rock Animation', 'Press ${triggers}'),
+    keyToggleFlyMode: Binding([Key('Space', M.create({ shift: true }))], 'Toggle Fly Mode', 'Press ${triggers}'),
+    keyResetView: Binding([Key('T')], 'Reset View', 'Press ${triggers}'),
+};
+const CameraControlsParams = {
+    bindings: PD.Value(DefaultCameraControlsBindings, { isHidden: true }),
+};
+type CameraControlsProps = PD.Values<typeof CameraControlsParams>
+
+export const CameraControls = PluginBehavior.create<CameraControlsProps>({
+    name: 'camera-controls',
+    category: 'interaction',
+    ctor: class extends PluginBehavior.Handler<CameraControlsProps> {
+        register(): void {
+            this.subscribeObservable(this.ctx.behaviors.interaction.key, ({ code, key, modifiers }) => {
+                if (!this.ctx.canvas3d) return;
+
+                // include defaults for backwards state compatibility
+                const b = { ...DefaultCameraControlsBindings, ...this.params.bindings };
+                const p = this.ctx.canvas3d.props.trackball;
+
+                if (Binding.matchKey(b.keySpinAnimation, code, modifiers, key)) {
+                    const name = p.animate.name !== 'spin' ? 'spin' : 'off';
+                    if (name === 'off') {
+                        this.ctx.canvas3d.setProps({
+                            trackball: { animate: { name, params: {} } }
+                        });
+                    } else {
+                        this.ctx.canvas3d.setProps({
+                            trackball: { animate: {
+                                name, params: { speed: 1 } }
+                            }
+                        });
+                    }
+                }
+
+                if (Binding.matchKey(b.keyRockAnimation, code, modifiers, key)) {
+                    const name = p.animate.name !== 'rock' ? 'rock' : 'off';
+                    if (name === 'off') {
+                        this.ctx.canvas3d.setProps({
+                            trackball: { animate: { name, params: {} } }
+                        });
+                    } else {
+                        this.ctx.canvas3d.setProps({
+                            trackball: { animate: {
+                                name, params: { speed: 0.3, angle: 10 } }
+                            }
+                        });
+                    }
+                }
+
+                if (Binding.matchKey(b.keyToggleFlyMode, code, modifiers, key)) {
+                    const flyMode = !p.flyMode;
+
+                    this.ctx.canvas3d.setProps({
+                        trackball: { flyMode }
+                    });
+
+                    if (this.ctx.canvas3dContext?.canvas) {
+                        this.ctx.canvas3dContext.canvas.style.cursor = flyMode ? 'crosshair' : 'unset';
+                    }
+                }
+
+                if (Binding.matchKey(b.keyResetView, code, modifiers, key)) {
+                    PluginCommands.Camera.Reset(this.ctx, {});
+                }
+            });
+        }
+    },
+    params: () => CameraControlsParams,
+    display: { name: 'Camera Controls on Canvas' }
 });

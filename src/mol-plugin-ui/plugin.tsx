@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -10,7 +10,7 @@ import * as React from 'react';
 import { formatTime } from '../mol-util';
 import { LogEntry } from '../mol-util/log-entry';
 import { PluginReactContext, PluginUIComponent } from './base';
-import { AnimationViewportControls, DefaultStructureTools, LociLabels, StateSnapshotViewportControls, TrajectoryViewportControls, SelectionViewportControls } from './controls';
+import { AnimationViewportControls, DefaultStructureTools, LociLabels, StateSnapshotViewportControls, TrajectoryViewportControls, SelectionViewportControls, ViewportSnapshotDescription } from './controls';
 import { LeftPanelControls } from './left-panel';
 import { SequenceView } from './sequence';
 import { BackgroundTaskProgress, OverlayTaskProgress } from './task';
@@ -23,12 +23,46 @@ import { Asset } from '../mol-util/assets';
 import { BehaviorSubject } from 'rxjs';
 import { useBehavior } from './hooks/use-behavior';
 
-export class Plugin extends React.Component<{ plugin: PluginUIContext, children?: any }, {}> {
-    render() {
-        return <PluginReactContext.Provider value={this.props.plugin}>
+export function Plugin({ plugin }: { plugin: PluginUIContext }) {
+    if (plugin.isInitialized) {
+        return <PluginReactContext.Provider value={plugin}>
             <Layout />
         </PluginReactContext.Provider>;
     }
+
+    return <PluginInitWrapper plugin={plugin} />;
+}
+
+type LoadState =
+    | { kind: 'initialized' }
+    | { kind: 'pending' }
+    | { kind: 'error', message: string }
+
+function PluginInitWrapper({ plugin }: { plugin: PluginUIContext }) {
+    const [state, setState] = React.useState<LoadState>({ kind: 'pending' });
+    React.useEffect(() => {
+        setState({ kind: 'pending' });
+        let mounted = true;
+
+        plugin.initialized.then(() => {
+            if (mounted) setState({ kind: 'initialized' });
+        }).catch(err => {
+            if (mounted) setState({ kind: 'error', message: `${err}` });
+        });
+
+        return () => { mounted = false; };
+    }, [plugin]);
+
+    if (state.kind === 'pending') return null;
+    if (state.kind === 'error') {
+        return <div className='msp-plugin'>
+            <div className='msp-plugin-init-error'>Initialization error: {state.message}</div>
+        </div>;
+    }
+
+    return <PluginReactContext.Provider value={plugin}>
+        <Layout />
+    </PluginReactContext.Provider>;
 }
 
 export class PluginContextContainer extends React.Component<{ plugin: PluginUIContext, children?: any }> {
@@ -134,18 +168,38 @@ class Layout extends PluginUIComponent {
     };
 
     private showDragOverlay = new BehaviorSubject(false);
-    onDragEnter = () => this.showDragOverlay.next(true);
+    onDragEnter = (ev: React.DragEvent<HTMLDivElement>) => {
+        let hasFile = false;
+        if (ev.dataTransfer.items) {
+            for (let i = 0; i < ev.dataTransfer.items.length; i++) {
+                if (ev.dataTransfer.items[i].kind !== 'file') continue;
+                hasFile = true;
+                break;
+            }
+        } else {
+            for (let i = 0; i < ev.dataTransfer.files.length; i++) {
+                if (!ev.dataTransfer.files[i]) continue;
+                hasFile = true;
+                break;
+            }
+        }
+
+        if (hasFile) {
+            this.showDragOverlay.next(true);
+        }
+    };
 
     render() {
         const layout = this.plugin.layout.state;
         const controls = this.plugin.spec.components?.controls || {};
         const viewport = this.plugin.spec.components?.viewport?.view || DefaultViewport;
+        const sequenceView = this.plugin.spec.components?.sequenceViewer?.view || SequenceView;
 
         return <div className='msp-plugin'>
             <div className={this.layoutClassName} onDragEnter={this.onDragEnter}>
                 <div className={this.layoutVisibilityClassName}>
                     {this.region('main', viewport)}
-                    {layout.showControls && controls.top !== 'none' && this.region('top', controls.top || SequenceView)}
+                    {layout.showControls && controls.top !== 'none' && this.region('top', controls.top || sequenceView)}
                     {layout.showControls && controls.left !== 'none' && this.region('left', controls.left || LeftPanelControls)}
                     {layout.showControls && controls.right !== 'none' && this.region('right', controls.right || ControlsWrapper)}
                     {layout.showControls && controls.bottom !== 'none' && this.region('bottom', controls.bottom || Log)}
@@ -177,20 +231,7 @@ function dropFiles(ev: React.DragEvent<HTMLDivElement>, plugin: PluginUIContext,
         }
     }
 
-    const sessions = files.filter(f => {
-        const fn = f.name.toLowerCase();
-        return fn.endsWith('.molx') || fn.endsWith('.molj');
-    });
-
-    if (sessions.length > 0) {
-        PluginCommands.State.Snapshots.OpenFile(plugin, { file: sessions[0] });
-    } else {
-        plugin.runTask(plugin.state.data.applyAction(OpenFiles, {
-            files: files.map(f => Asset.File(f)),
-            format: { name: 'auto', params: {} },
-            visuals: true
-        }));
-    }
+    plugin.managers.dragAndDrop.handle(files);
 }
 
 function DragOverlay({ plugin, showDragOverlay }: { plugin: PluginUIContext, showDragOverlay: BehaviorSubject<boolean> }) {
@@ -233,6 +274,7 @@ export class DefaultViewport extends PluginUIComponent {
                 <AnimationViewportControls />
                 <TrajectoryViewportControls />
                 <StateSnapshotViewportControls />
+                <ViewportSnapshotDescription />
             </div>
             <SelectionViewportControls />
             <VPControls />

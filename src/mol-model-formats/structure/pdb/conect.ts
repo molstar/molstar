@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -20,14 +20,16 @@ export function parseConect(lines: Tokens, lineStart: number, lineEnd: number, s
     const conn_type_id: string[] = [];
 
     const ptnr1_label_asym_id: string[] = [];
-    const ptnr1_label_seq_id: number[] = [];
     const ptnr1_auth_seq_id: number[] = [];
     const ptnr1_label_atom_id: string[] = [];
+    const ptnr1_label_alt_id: string[] = [];
+    const ptnr1_PDB_ins_code: string[] = [];
 
     const ptnr2_label_asym_id: string[] = [];
-    const ptnr2_label_seq_id: number[] = [];
     const ptnr2_auth_seq_id: number[] = [];
     const ptnr2_label_atom_id: string[] = [];
+    const ptnr2_label_alt_id: string[] = [];
+    const ptnr2_PDB_ins_code: string[] = [];
 
     const pos = [11, 16, 21, 26];
 
@@ -58,13 +60,15 @@ export function parseConect(lines: Tokens, lineStart: number, lineEnd: number, s
 
             ptnr1_label_asym_id.push(sites.label_asym_id!.str(idxA));
             ptnr1_auth_seq_id.push(sites.auth_seq_id!.int(idxA));
-            ptnr1_label_seq_id.push(sites.label_seq_id!.int(idxA));
             ptnr1_label_atom_id.push(sites.label_atom_id!.str(idxA));
+            ptnr1_label_alt_id.push(sites.label_alt_id!.str(idxA));
+            ptnr1_PDB_ins_code.push(sites.pdbx_PDB_ins_code!.str(idxA));
 
             ptnr2_label_asym_id.push(sites.label_asym_id!.str(idxB));
             ptnr2_auth_seq_id.push(sites.auth_seq_id!.int(idxB));
-            ptnr2_label_seq_id.push(sites.label_seq_id!.int(idxB));
             ptnr2_label_atom_id.push(sites.label_atom_id!.str(idxB));
+            ptnr2_label_alt_id.push(sites.label_alt_id!.str(idxB));
+            ptnr2_PDB_ins_code.push(sites.pdbx_PDB_ins_code!.str(idxB));
 
             k += 1;
         }
@@ -76,13 +80,15 @@ export function parseConect(lines: Tokens, lineStart: number, lineEnd: number, s
 
         ptnr1_label_asym_id: CifField.ofStrings(ptnr1_label_asym_id),
         ptnr1_auth_seq_id: CifField.ofNumbers(ptnr1_auth_seq_id),
-        ptnr1_label_seq_id: CifField.ofNumbers(ptnr1_label_seq_id),
         ptnr1_label_atom_id: CifField.ofStrings(ptnr1_label_atom_id),
+        pdbx_ptnr1_label_alt_id: CifField.ofStrings(ptnr1_label_alt_id),
+        pdbx_ptnr1_PDB_ins_code: CifField.ofStrings(ptnr1_PDB_ins_code),
 
         ptnr2_label_asym_id: CifField.ofStrings(ptnr2_label_asym_id),
-        ptnr2_label_seq_id: CifField.ofNumbers(ptnr2_label_seq_id),
         ptnr2_auth_seq_id: CifField.ofNumbers(ptnr2_auth_seq_id),
         ptnr2_label_atom_id: CifField.ofStrings(ptnr2_label_atom_id),
+        pdbx_ptnr2_label_alt_id: CifField.ofStrings(ptnr2_label_alt_id),
+        pdbx_ptnr2_PDB_ins_code: CifField.ofStrings(ptnr2_PDB_ins_code),
     };
 
     return CifCategory.ofFields('struct_conn', struct_conn);

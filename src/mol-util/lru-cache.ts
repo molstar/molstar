@@ -1,6 +1,6 @@
 
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-23 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * Adapted from LiteMol.
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -52,5 +52,14 @@ namespace LRUCache {
         }
         cache.entries.addLast(entry(key, data));
         return removed;
+    }
+
+    export function remove<T>(cache: LRUCache<T>, key: string) {
+        for (let e = cache.entries.first; e; e = e.next) {
+            if (e.value.key === key) {
+                cache.entries.remove(e);
+                break;
+            }
+        }
     }
 }

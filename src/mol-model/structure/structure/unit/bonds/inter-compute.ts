@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2022 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2023 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -243,6 +243,9 @@ function computeInterUnitBonds(structure: Structure, props?: Partial<InterBondCo
         ...p,
         validUnit: (props && props.validUnit) || (u => Unit.isAtomic(u)),
         validUnitPair: (props && props.validUnitPair) || ((s, a, b) => {
+            const isValidPair = Structure.validUnitPair(s, a, b);
+            if (!isValidPair) return false;
+
             const mtA = a.model.atomicHierarchy.derived.residue.moleculeType;
             const mtB = b.model.atomicHierarchy.derived.residue.moleculeType;
             const notWater = (
@@ -250,25 +253,40 @@ function computeInterUnitBonds(structure: Structure, props?: Partial<InterBondCo
                 (!Unit.isAtomic(b) || mtB[b.residueIndex[b.elements[0]]] !== MoleculeType.Water)
             );
 
-            const sameModel = a.model === b.model;
-            const notIonA = (!Unit.isAtomic(a) || mtA[a.residueIndex[a.elements[0]]] !== MoleculeType.Ion) || (sameModel && hasStructConnRecord(a));
-            const notIonB = (!Unit.isAtomic(b) || mtB[b.residueIndex[b.elements[0]]] !== MoleculeType.Ion) || (sameModel && hasStructConnRecord(b));
+            const notIonA = (!Unit.isAtomic(a) || mtA[a.residueIndex[a.elements[0]]] !== MoleculeType.Ion);
+            const notIonB = (!Unit.isAtomic(b) || mtB[b.residueIndex[b.elements[0]]] !== MoleculeType.Ion);
             const notIon = notIonA && notIonB;
-            return Structure.validUnitPair(s, a, b) && (notWater || !p.ignoreWater) && (notIon || !p.ignoreIon);
+
+            const check = (notWater || !p.ignoreWater) && (notIon || !p.ignoreIon);
+            if (!check) {
+                // In case both units have a struct conn record, ignore other criteria
+                return hasCommonStructConnRecord(a, b);
+            }
+            return true;
         }),
     });
 }
 
-function hasStructConnRecord(unit: Unit) {
-    if (!Unit.isAtomic(unit)) return false;
+function hasCommonStructConnRecord(unitA: Unit, unitB: Unit) {
+    if (unitA.model !== unitB.model || !Unit.isAtomic(unitA) || !Unit.isAtomic(unitB)) return false;
+    const structConn = StructConn.Provider.get(unitA.model);
+    if (!structConn) return false;
 
-    const elements = unit.elements;
-    const structConn = StructConn.Provider.get(unit.model);
-    if (structConn) {
-        for (let i = 0, _i = elements.length; i < _i; i++) {
-            if (structConn.byAtomIndex.get(elements[i])) {
-                return true;
-            }
+    const smaller = unitA.elements.length < unitB.elements.length ? unitA : unitB;
+    const bigger = unitA.elements.length >= unitB.elements.length ? unitA : unitB;
+
+    const { elements: xs } = smaller;
+    const { elements: ys } = bigger;
+    const { indexOf } = SortedArray;
+
+    for (let i = 0, _i = xs.length; i < _i; i++) {
+        const aI = xs[i];
+        const entries = structConn.byAtomIndex.get(aI);
+        if (!entries?.length) continue;
+
+        for (const e of entries) {
+            const bI = e.partnerA.atomIndex === aI ? e.partnerB.atomIndex : e.partnerA.atomIndex;
+            if (indexOf(ys, bI) >= 0) return true;
         }
     }
     return false;

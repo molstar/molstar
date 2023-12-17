@@ -4,18 +4,19 @@ export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
-// Generated on 2023-01-15T10:00:07-08:00
+export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };
+export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
+// Generated on 2023-12-02T13:19:10-08:00
 
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
-  ID: string;
-  String: string;
-  Boolean: boolean;
-  Int: number;
-  Float: number;
-  Date: any;
-  ObjectScalar: any;
-  UNREPRESENTABLE: any;
+  ID: { input: string; output: string; }
+  String: { input: string; output: string; }
+  Boolean: { input: boolean; output: boolean; }
+  Int: { input: number; output: number; }
+  Float: { input: number; output: number; }
+  Date: { input: any; output: any; }
+  ObjectScalar: { input: any; output: any; }
 };
 
 export type AuditAuthor = {
@@ -26,7 +27,7 @@ export type AuditAuthor = {
    * 0000-0002-6681-547X
    *
    */
-  readonly identifier_ORCID?: Maybe<Scalars['String']>;
+  readonly identifier_ORCID?: Maybe<Scalars['String']['output']>;
   /**
    * The name of an author of this data block. If there are multiple
    *  authors, _audit_author.name is looped with _audit_author.address.
@@ -37,12 +38,12 @@ export type AuditAuthor = {
    * Jones, T.J., Bleary, Percival R., O'Neil, F.K., Van den Bossche, G., Yang, D.-L., Simonov, Yu.A
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * This data item defines the order of the author's name in the
    *  list of audit authors.
    */
-  readonly pdbx_ordinal: Scalars['Int'];
+  readonly pdbx_ordinal: Scalars['Int']['output'];
 };
 
 export type Cell = {
@@ -54,39 +55,39 @@ export type Cell = {
    *  This data item is provided for compatibility with the original
    *  Protein Data Bank format, and only for that purpose.
    */
-  readonly Z_PDB?: Maybe<Scalars['Int']>;
+  readonly Z_PDB?: Maybe<Scalars['Int']['output']>;
   /** Unit-cell angle alpha of the reported structure in degrees. */
-  readonly angle_alpha?: Maybe<Scalars['Float']>;
+  readonly angle_alpha?: Maybe<Scalars['Float']['output']>;
   /** Unit-cell angle beta of the reported structure in degrees. */
-  readonly angle_beta?: Maybe<Scalars['Float']>;
+  readonly angle_beta?: Maybe<Scalars['Float']['output']>;
   /** Unit-cell angle gamma of the reported structure in degrees. */
-  readonly angle_gamma?: Maybe<Scalars['Float']>;
+  readonly angle_gamma?: Maybe<Scalars['Float']['output']>;
   /**
    * The number of the formula units in the unit cell as specified
    *  by _chemical_formula.structural, _chemical_formula.moiety or
    *  _chemical_formula.sum.
    */
-  readonly formula_units_Z?: Maybe<Scalars['Int']>;
+  readonly formula_units_Z?: Maybe<Scalars['Int']['output']>;
   /**
    * Unit-cell length a corresponding to the structure reported in
    * angstroms.
    */
-  readonly length_a?: Maybe<Scalars['Float']>;
+  readonly length_a?: Maybe<Scalars['Float']['output']>;
   /**
    * Unit-cell length b corresponding to the structure reported in
    *  angstroms.
    */
-  readonly length_b?: Maybe<Scalars['Float']>;
+  readonly length_b?: Maybe<Scalars['Float']['output']>;
   /**
    * Unit-cell length c corresponding to the structure reported in
    * angstroms.
    */
-  readonly length_c?: Maybe<Scalars['Float']>;
+  readonly length_c?: Maybe<Scalars['Float']['output']>;
   /**
    * To further identify unique axis if necessary.  E.g., P 21 with
    *  an unique C axis will have 'C' in this field.
    */
-  readonly pdbx_unique_axis?: Maybe<Scalars['String']>;
+  readonly pdbx_unique_axis?: Maybe<Scalars['String']['output']>;
   /**
    * Cell volume V in angstroms cubed.
    *
@@ -100,7 +101,7 @@ export type Cell = {
    *  beta  = _cell.angle_beta
    *  gamma = _cell.angle_gamma
    */
-  readonly volume?: Maybe<Scalars['Float']>;
+  readonly volume?: Maybe<Scalars['Float']['output']>;
 };
 
 export type ChemComp = {
@@ -128,7 +129,7 @@ export type ChemComp = {
    * C18 H19 N7 O8 S
    *
    */
-  readonly formula?: Maybe<Scalars['String']>;
+  readonly formula?: Maybe<Scalars['String']['output']>;
   /**
    * Formula mass of the chemical component.
    *
@@ -136,7 +137,7 @@ export type ChemComp = {
    * null, null
    *
    */
-  readonly formula_weight?: Maybe<Scalars['Float']>;
+  readonly formula_weight?: Maybe<Scalars['Float']['output']>;
   /**
    * The value of _chem_comp.id must uniquely identify each item in
    *  the CHEM_COMP list.
@@ -151,7 +152,7 @@ export type ChemComp = {
    * ALA, VAL, DG, C
    *
    */
-  readonly id: Scalars['String'];
+  readonly id: Scalars['String']['output'];
   /**
    * The identifier for the parent component of the nonstandard
    *  component. May be be a comma separated list if this component
@@ -160,7 +161,7 @@ export type ChemComp = {
    *  Items in this indirectly point to _chem_comp.id in
    *  the CHEM_COMP category.
    */
-  readonly mon_nstd_parent_comp_id?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly mon_nstd_parent_comp_id?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /**
    * The full name of the component.
    *
@@ -168,7 +169,7 @@ export type ChemComp = {
    * alanine, valine, adenine, cytosine
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * For standard polymer components, the one-letter code for
    *  the component.   For non-standard polymer components, the
@@ -182,7 +183,7 @@ export type ChemComp = {
    * A, B, R, N, D, C, Q, E, Z, G, H, I, L, K, M, F, P, S, T, W, Y, V, U, O, X
    *
    */
-  readonly one_letter_code?: Maybe<Scalars['String']>;
+  readonly one_letter_code?: Maybe<Scalars['String']['output']>;
   /**
    * A preliminary classification used by PDB to indicate
    *  that the chemistry of this component while described
@@ -190,16 +191,16 @@ export type ChemComp = {
    *  tools may not be able to process this component
    *  definition.
    */
-  readonly pdbx_ambiguous_flag?: Maybe<Scalars['String']>;
+  readonly pdbx_ambiguous_flag?: Maybe<Scalars['String']['output']>;
   /**
    * The net integer charge assigned to this component. This is the
    *  formal charge assignment normally found in chemical diagrams.
    */
-  readonly pdbx_formal_charge?: Maybe<Scalars['Int']>;
+  readonly pdbx_formal_charge?: Maybe<Scalars['Int']['output']>;
   /** Date component was added to database. */
-  readonly pdbx_initial_date?: Maybe<Scalars['Date']>;
+  readonly pdbx_initial_date?: Maybe<Scalars['Date']['output']>;
   /** Date component was last modified. */
-  readonly pdbx_modified_date?: Maybe<Scalars['Date']>;
+  readonly pdbx_modified_date?: Maybe<Scalars['Date']['output']>;
   /**
    * This data item identifies the deposition site that processed
    *  this chemical component defintion.
@@ -208,7 +209,7 @@ export type ChemComp = {
    * EBI, PDBC, PDBE, PDBJ, RCSB
    *
    */
-  readonly pdbx_processing_site?: Maybe<Scalars['String']>;
+  readonly pdbx_processing_site?: Maybe<Scalars['String']['output']>;
   /**
    * This data item holds the current release status for the component.
    *
@@ -216,7 +217,7 @@ export type ChemComp = {
    * DEL, HOLD, HPUB, OBS, REF_ONLY, REL
    *
    */
-  readonly pdbx_release_status?: Maybe<Scalars['String']>;
+  readonly pdbx_release_status?: Maybe<Scalars['String']['output']>;
   /**
    * Identifies the _chem_comp.id of the component that
    *  has replaced this component.
@@ -225,7 +226,7 @@ export type ChemComp = {
    * q11, tvx
    *
    */
-  readonly pdbx_replaced_by?: Maybe<Scalars['String']>;
+  readonly pdbx_replaced_by?: Maybe<Scalars['String']['output']>;
   /**
    * Identifies the _chem_comp.id's of the components
    *  which have been replaced by this component.
@@ -235,7 +236,7 @@ export type ChemComp = {
    * q11, tvx,atv
    *
    */
-  readonly pdbx_replaces?: Maybe<Scalars['String']>;
+  readonly pdbx_replaces?: Maybe<Scalars['String']['output']>;
   /**
    * The list of subcomponents contained in this component.
    *
@@ -243,7 +244,7 @@ export type ChemComp = {
    * TSM DPH HIS CHF EMR
    *
    */
-  readonly pdbx_subcomponent_list?: Maybe<Scalars['String']>;
+  readonly pdbx_subcomponent_list?: Maybe<Scalars['String']['output']>;
   /**
    * For standard polymer components, the common three-letter code for
    *  the component.   Non-standard polymer components and non-polymer
@@ -257,7 +258,7 @@ export type ChemComp = {
    * ALA, ARG, ASN, ASP, ASX, CYS, GLN, GLU, GLY, GLX, HIS, ILE, LEU, LYS, MET, PHE, PRO, SER, THR, TRP, TYR, VAL, 1MA, 5MC, OMC, 1MG, 2MG, M2G, 7MG, 0MG, H2U, 5MU, PSU, ACE, FOR, HOH, UNK
    *
    */
-  readonly three_letter_code?: Maybe<Scalars['String']>;
+  readonly three_letter_code?: Maybe<Scalars['String']['output']>;
   /**
    * For standard polymer components, the type of the monomer.
    *  Note that monomers that will form polymers are of three types:
@@ -268,7 +269,7 @@ export type ChemComp = {
    * D-beta-peptide, C-gamma linking, D-gamma-peptide, C-delta linking, D-peptide COOH carboxy terminus, D-peptide NH3 amino terminus, D-peptide linking, D-saccharide, D-saccharide, alpha linking, D-saccharide, beta linking, DNA OH 3 prime terminus, DNA OH 5 prime terminus, DNA linking, L-DNA linking, L-RNA linking, L-beta-peptide, C-gamma linking, L-gamma-peptide, C-delta linking, L-peptide COOH carboxy terminus, L-peptide NH3 amino terminus, L-peptide linking, L-saccharide, L-saccharide, alpha linking, L-saccharide, beta linking, RNA OH 3 prime terminus, RNA OH 5 prime terminus, RNA linking, non-polymer, other, peptide linking, peptide-like, saccharide
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type Citation = {
@@ -276,7 +277,7 @@ export type Citation = {
    * The International Standard Book Number (ISBN) code assigned to
    *  the book cited; relevant for books or book chapters.
    */
-  readonly book_id_ISBN?: Maybe<Scalars['String']>;
+  readonly book_id_ISBN?: Maybe<Scalars['String']['output']>;
   /**
    * The name of the publisher of the citation; relevant
    *  for books or book chapters.
@@ -285,7 +286,7 @@ export type Citation = {
    * John Wiley and Sons
    *
    */
-  readonly book_publisher?: Maybe<Scalars['String']>;
+  readonly book_publisher?: Maybe<Scalars['String']['output']>;
   /**
    * The location of the publisher of the citation; relevant
    *  for books or book chapters.
@@ -294,12 +295,12 @@ export type Citation = {
    * London
    *
    */
-  readonly book_publisher_city?: Maybe<Scalars['String']>;
+  readonly book_publisher_city?: Maybe<Scalars['String']['output']>;
   /**
    * The title of the book in which the citation appeared; relevant
    *  for books or book chapters.
    */
-  readonly book_title?: Maybe<Scalars['String']>;
+  readonly book_title?: Maybe<Scalars['String']['output']>;
   /**
    * _citation.coordinate_linkage states whether this citation
    *  is concerned with precisely the set of coordinates given in the
@@ -312,12 +313,12 @@ export type Citation = {
    * n, no, y, yes
    *
    */
-  readonly coordinate_linkage?: Maybe<Scalars['String']>;
+  readonly coordinate_linkage?: Maybe<Scalars['String']['output']>;
   /**
    * The country/region of publication; relevant for books
    *  and book chapters.
    */
-  readonly country?: Maybe<Scalars['String']>;
+  readonly country?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _citation.id must uniquely identify a record in the
    *  CITATION list.
@@ -333,7 +334,7 @@ export type Citation = {
    * primary, 1, 2
    *
    */
-  readonly id: Scalars['String'];
+  readonly id: Scalars['String']['output'];
   /**
    * Abbreviated name of the cited journal as given in the
    *  Chemical Abstracts Service Source Index.
@@ -342,7 +343,7 @@ export type Citation = {
    * J.Mol.Biol., J. Mol. Biol.
    *
    */
-  readonly journal_abbrev?: Maybe<Scalars['String']>;
+  readonly journal_abbrev?: Maybe<Scalars['String']['output']>;
   /**
    * Full name of the cited journal; relevant for journal articles.
    *
@@ -350,14 +351,14 @@ export type Citation = {
    * Journal of Molecular Biology
    *
    */
-  readonly journal_full?: Maybe<Scalars['String']>;
+  readonly journal_full?: Maybe<Scalars['String']['output']>;
   /**
    * The American Society for Testing and Materials (ASTM) code
    *  assigned to the journal cited (also referred to as the CODEN
    *  designator of the Chemical Abstracts Service); relevant for
    *  journal articles.
    */
-  readonly journal_id_ASTM?: Maybe<Scalars['String']>;
+  readonly journal_id_ASTM?: Maybe<Scalars['String']['output']>;
   /**
    * The Cambridge Structural Database (CSD) code assigned to the
    *  journal cited; relevant for journal articles. This is also the
@@ -367,12 +368,12 @@ export type Citation = {
    * 0070
    *
    */
-  readonly journal_id_CSD?: Maybe<Scalars['String']>;
+  readonly journal_id_CSD?: Maybe<Scalars['String']['output']>;
   /**
    * The International Standard Serial Number (ISSN) code assigned to
    *  the journal cited; relevant for journal articles.
    */
-  readonly journal_id_ISSN?: Maybe<Scalars['String']>;
+  readonly journal_id_ISSN?: Maybe<Scalars['String']['output']>;
   /**
    * Issue number of the journal cited; relevant for journal
    *  articles.
@@ -381,7 +382,7 @@ export type Citation = {
    * 2
    *
    */
-  readonly journal_issue?: Maybe<Scalars['String']>;
+  readonly journal_issue?: Maybe<Scalars['String']['output']>;
   /**
    * Volume number of the journal cited; relevant for journal
    *  articles.
@@ -390,7 +391,7 @@ export type Citation = {
    * 174
    *
    */
-  readonly journal_volume?: Maybe<Scalars['String']>;
+  readonly journal_volume?: Maybe<Scalars['String']['output']>;
   /**
    * Language in which the cited article is written.
    *
@@ -398,17 +399,17 @@ export type Citation = {
    * German
    *
    */
-  readonly language?: Maybe<Scalars['String']>;
+  readonly language?: Maybe<Scalars['String']['output']>;
   /**
    * The first page of the citation; relevant for journal
    *  articles, books and book chapters.
    */
-  readonly page_first?: Maybe<Scalars['String']>;
+  readonly page_first?: Maybe<Scalars['String']['output']>;
   /**
    * The last page of the citation; relevant for journal
    *  articles, books and book chapters.
    */
-  readonly page_last?: Maybe<Scalars['String']>;
+  readonly page_last?: Maybe<Scalars['String']['output']>;
   /**
    * Document Object Identifier used by doi.org to uniquely
    *  specify bibliographic entry.
@@ -417,12 +418,12 @@ export type Citation = {
    * 10.2345/S1384107697000225
    *
    */
-  readonly pdbx_database_id_DOI?: Maybe<Scalars['String']>;
+  readonly pdbx_database_id_DOI?: Maybe<Scalars['String']['output']>;
   /**
    * Ascession number used by PubMed to categorize a specific
    *  bibliographic entry.
    */
-  readonly pdbx_database_id_PubMed?: Maybe<Scalars['Int']>;
+  readonly pdbx_database_id_PubMed?: Maybe<Scalars['Int']['output']>;
   /**
    * Names of the authors of the citation; relevant for journal
    *  articles, books and book chapters.  Names are separated by vertical bars.
@@ -430,7 +431,7 @@ export type Citation = {
    *  The family name(s), followed by a comma and including any
    *  dynastic components, precedes the first name(s) or initial(s).
    */
-  readonly rcsb_authors?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly rcsb_authors?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /**
    * Flag to indicate a primary citation.
    *
@@ -438,7 +439,7 @@ export type Citation = {
    * N, Y
    *
    */
-  readonly rcsb_is_primary?: Maybe<Scalars['String']>;
+  readonly rcsb_is_primary?: Maybe<Scalars['String']['output']>;
   /**
    * Normalized journal abbreviation.
    *
@@ -446,7 +447,7 @@ export type Citation = {
    * Nat Struct Mol Biol
    *
    */
-  readonly rcsb_journal_abbrev?: Maybe<Scalars['String']>;
+  readonly rcsb_journal_abbrev?: Maybe<Scalars['String']['output']>;
   /**
    * The title of the citation; relevant for journal articles, books
    *  and book chapters.
@@ -456,7 +457,7 @@ export type Citation = {
    *                                   at 2.35 Angstroms resolution.
    *
    */
-  readonly title?: Maybe<Scalars['String']>;
+  readonly title?: Maybe<Scalars['String']['output']>;
   /**
    * Flag to indicate that this citation will not be published.
    *
@@ -464,31 +465,37 @@ export type Citation = {
    * N, Y
    *
    */
-  readonly unpublished_flag?: Maybe<Scalars['String']>;
+  readonly unpublished_flag?: Maybe<Scalars['String']['output']>;
   /**
    * The year of the citation; relevant for journal articles, books
    *  and book chapters.
    */
-  readonly year?: Maybe<Scalars['Int']>;
+  readonly year?: Maybe<Scalars['Int']['output']>;
 };
 
 export type ClustersMembers = {
   /** Internal chain ID used in mmCIF files to uniquely identify structural elements in the asymmetric unit. */
-  readonly asym_id: Scalars['String'];
+  readonly asym_id: Scalars['String']['output'];
   /** Optional list of operator ids (pdbx_struct_oper_list.id) as appears in pdbx_struct_assembly_gen.oper_expression. One operator id per operand in the expression (most cases have only 1 operator). If it's not given then identity operator is assumed. */
-  readonly pdbx_struct_oper_list_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly pdbx_struct_oper_list_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
 };
 
 export type CoreAssembly = {
-  /** Get PDB entry that includes this assembly. */
+  /** Get a list of branched entity instances (sugars) that constitute this assembly. */
+  readonly branched_entity_instances?: Maybe<ReadonlyArray<Maybe<CoreBranchedEntityInstance>>>;
+  /** Get entry that includes this assembly. */
   readonly entry?: Maybe<CoreEntry>;
-  /** Get all pairwise polymer interfaces for this PDB assembly. */
+  /** Get all pairwise polymer interfaces for this assembly. */
   readonly interfaces?: Maybe<ReadonlyArray<Maybe<CoreInterface>>>;
+  /** Get a list of non-polymer entity instances (ligands) that constitute this assembly. */
+  readonly nonpolymer_entity_instances?: Maybe<ReadonlyArray<Maybe<CoreNonpolymerEntityInstance>>>;
   readonly pdbx_struct_assembly?: Maybe<PdbxStructAssembly>;
   readonly pdbx_struct_assembly_auth_evidence?: Maybe<ReadonlyArray<Maybe<PdbxStructAssemblyAuthEvidence>>>;
   readonly pdbx_struct_assembly_gen?: Maybe<ReadonlyArray<Maybe<PdbxStructAssemblyGen>>>;
   readonly pdbx_struct_assembly_prop?: Maybe<ReadonlyArray<Maybe<PdbxStructAssemblyProp>>>;
   readonly pdbx_struct_oper_list?: Maybe<ReadonlyArray<Maybe<PdbxStructOperList>>>;
+  /** Get a list of polymer entity instances (chains) that constitute this assembly. */
+  readonly polymer_entity_instances?: Maybe<ReadonlyArray<Maybe<CorePolymerEntityInstance>>>;
   readonly rcsb_assembly_container_identifiers: RcsbAssemblyContainerIdentifiers;
   readonly rcsb_assembly_info?: Maybe<RcsbAssemblyInfo>;
   /**
@@ -499,12 +506,12 @@ export type CoreAssembly = {
    * 1KIP-1
    *
    */
-  readonly rcsb_id: Scalars['String'];
+  readonly rcsb_id: Scalars['String']['output'];
   readonly rcsb_latest_revision?: Maybe<RcsbLatestRevision>;
   readonly rcsb_struct_symmetry?: Maybe<ReadonlyArray<Maybe<RcsbStructSymmetry>>>;
   readonly rcsb_struct_symmetry_lineage?: Maybe<ReadonlyArray<Maybe<RcsbStructSymmetryLineage>>>;
   /** The title and version of software package used for symmetry calculations. */
-  readonly rcsb_struct_symmetry_provenance_code?: Maybe<Scalars['String']>;
+  readonly rcsb_struct_symmetry_provenance_code?: Maybe<Scalars['String']['output']>;
 };
 
 export type CoreBranchedEntity = {
@@ -512,7 +519,7 @@ export type CoreBranchedEntity = {
   readonly branched_entity_instances?: Maybe<ReadonlyArray<Maybe<CoreBranchedEntityInstance>>>;
   /** Get all unique monomers described in this branched entity. */
   readonly chem_comp_monomers?: Maybe<ReadonlyArray<Maybe<CoreChemComp>>>;
-  /** Get PDB entry that contains this branched entity. */
+  /** Get entry that contains this branched entity. */
   readonly entry?: Maybe<CoreEntry>;
   readonly pdbx_entity_branch?: Maybe<PdbxEntityBranch>;
   readonly pdbx_entity_branch_descriptor?: Maybe<ReadonlyArray<Maybe<PdbxEntityBranchDescriptor>>>;
@@ -534,7 +541,7 @@ export type CoreBranchedEntity = {
    * 2HYV_2
    *
    */
-  readonly rcsb_id: Scalars['String'];
+  readonly rcsb_id: Scalars['String']['output'];
   readonly rcsb_latest_revision?: Maybe<RcsbLatestRevision>;
 };
 
@@ -555,7 +562,7 @@ export type CoreBranchedEntityInstance = {
    * 1KIP.A
    *
    */
-  readonly rcsb_id: Scalars['String'];
+  readonly rcsb_id: Scalars['String']['output'];
   readonly rcsb_latest_revision?: Maybe<RcsbLatestRevision>;
   readonly rcsb_ligand_neighbors?: Maybe<ReadonlyArray<Maybe<RcsbLigandNeighbors>>>;
   readonly struct_asym?: Maybe<StructAsym>;
@@ -600,7 +607,7 @@ export type CoreChemComp = {
    * ATP, PRD_000010
    *
    */
-  readonly rcsb_id: Scalars['String'];
+  readonly rcsb_id: Scalars['String']['output'];
   readonly rcsb_schema_container_identifiers?: Maybe<ReadonlyArray<Maybe<RcsbSchemaContainerIdentifiers>>>;
 };
 
@@ -612,30 +619,30 @@ export type CoreDrugbank = {
 
 export type CoreEntityAlignmentsAlignedRegions = {
   /** Aligned region length */
-  readonly length: Scalars['Int'];
+  readonly length: Scalars['Int']['output'];
   /** Entity seqeunce start position */
-  readonly query_begin: Scalars['Int'];
+  readonly query_begin: Scalars['Int']['output'];
   /** NCBI sequence start position */
-  readonly target_begin: Scalars['Int'];
+  readonly target_begin: Scalars['Int']['output'];
 };
 
 export type CoreEntityAlignmentsCoreEntityIdentifiers = {
-  readonly entity_id: Scalars['String'];
-  readonly entry_id: Scalars['String'];
+  readonly entity_id: Scalars['String']['output'];
+  readonly entry_id: Scalars['String']['output'];
 };
 
 export type CoreEntityAlignmentsScores = {
-  readonly query_coverage: Scalars['Int'];
-  readonly query_length: Scalars['Int'];
-  readonly target_coverage: Scalars['Int'];
-  readonly target_length: Scalars['Int'];
+  readonly query_coverage: Scalars['Int']['output'];
+  readonly query_length: Scalars['Int']['output'];
+  readonly target_coverage: Scalars['Int']['output'];
+  readonly target_length: Scalars['Int']['output'];
 };
 
 export type CoreEntry = {
-  /** Get all assemblies for this PDB entry. */
+  /** Get all assemblies for this entry. */
   readonly assemblies?: Maybe<ReadonlyArray<Maybe<CoreAssembly>>>;
   readonly audit_author?: Maybe<ReadonlyArray<Maybe<AuditAuthor>>>;
-  /** Get all branched entities for this PDB entry. */
+  /** Get all branched entities for this entry. */
   readonly branched_entities?: Maybe<ReadonlyArray<Maybe<CoreBranchedEntity>>>;
   readonly cell?: Maybe<Cell>;
   readonly citation?: Maybe<ReadonlyArray<Maybe<Citation>>>;
@@ -665,13 +672,13 @@ export type CoreEntry = {
   readonly em_staining?: Maybe<ReadonlyArray<Maybe<EmStaining>>>;
   readonly em_vitrification?: Maybe<ReadonlyArray<Maybe<EmVitrification>>>;
   readonly entry?: Maybe<Entry>;
-  /** Get all groups for this PDB entry. */
+  /** Get all groups for this entry. */
   readonly entry_groups?: Maybe<ReadonlyArray<Maybe<GroupEntry>>>;
   readonly exptl?: Maybe<ReadonlyArray<Maybe<Exptl>>>;
   readonly exptl_crystal?: Maybe<ReadonlyArray<Maybe<ExptlCrystal>>>;
   readonly exptl_crystal_grow?: Maybe<ReadonlyArray<Maybe<ExptlCrystalGrow>>>;
   readonly ma_data?: Maybe<ReadonlyArray<Maybe<MaData>>>;
-  /** Get all non-polymer (non-solvent) entities for this PDB entry. */
+  /** Get all non-polymer (non-solvent) entities for this entry. */
   readonly nonpolymer_entities?: Maybe<ReadonlyArray<Maybe<CoreNonpolymerEntity>>>;
   readonly pdbx_SG_project?: Maybe<ReadonlyArray<Maybe<PdbxSgProject>>>;
   readonly pdbx_audit_revision_category?: Maybe<ReadonlyArray<Maybe<PdbxAuditRevisionCategory>>>;
@@ -684,6 +691,7 @@ export type CoreEntry = {
   readonly pdbx_database_related?: Maybe<ReadonlyArray<Maybe<PdbxDatabaseRelated>>>;
   readonly pdbx_database_status?: Maybe<PdbxDatabaseStatus>;
   readonly pdbx_deposit_group?: Maybe<ReadonlyArray<Maybe<PdbxDepositGroup>>>;
+  readonly pdbx_initial_refinement_model?: Maybe<ReadonlyArray<Maybe<PdbxInitialRefinementModel>>>;
   readonly pdbx_molecule_features?: Maybe<ReadonlyArray<Maybe<PdbxMoleculeFeatures>>>;
   readonly pdbx_nmr_details?: Maybe<PdbxNmrDetails>;
   readonly pdbx_nmr_ensemble?: Maybe<PdbxNmrEnsemble>;
@@ -694,6 +702,7 @@ export type CoreEntry = {
   readonly pdbx_nmr_sample_details?: Maybe<ReadonlyArray<Maybe<PdbxNmrSampleDetails>>>;
   readonly pdbx_nmr_software?: Maybe<ReadonlyArray<Maybe<PdbxNmrSoftware>>>;
   readonly pdbx_nmr_spectrometer?: Maybe<ReadonlyArray<Maybe<PdbxNmrSpectrometer>>>;
+  readonly pdbx_reflns_twin?: Maybe<ReadonlyArray<Maybe<PdbxReflnsTwin>>>;
   readonly pdbx_related_exp_data_set?: Maybe<ReadonlyArray<Maybe<PdbxRelatedExpDataSet>>>;
   readonly pdbx_serial_crystallography_data_reduction?: Maybe<ReadonlyArray<Maybe<PdbxSerialCrystallographyDataReduction>>>;
   readonly pdbx_serial_crystallography_measurement?: Maybe<ReadonlyArray<Maybe<PdbxSerialCrystallographyMeasurement>>>;
@@ -702,8 +711,7 @@ export type CoreEntry = {
   readonly pdbx_serial_crystallography_sample_delivery_injection?: Maybe<ReadonlyArray<Maybe<PdbxSerialCrystallographySampleDeliveryInjection>>>;
   readonly pdbx_soln_scatter?: Maybe<ReadonlyArray<Maybe<PdbxSolnScatter>>>;
   readonly pdbx_soln_scatter_model?: Maybe<ReadonlyArray<Maybe<PdbxSolnScatterModel>>>;
-  readonly pdbx_vrpt_summary?: Maybe<PdbxVrptSummary>;
-  /** Get all polymer entities for this PDB entry. */
+  /** Get all polymer entities for this entry. */
   readonly polymer_entities?: Maybe<ReadonlyArray<Maybe<CorePolymerEntity>>>;
   /** Get literature information from PubMed database. */
   readonly pubmed?: Maybe<CorePubmed>;
@@ -723,7 +731,7 @@ export type CoreEntry = {
    * 1KIP
    *
    */
-  readonly rcsb_id: Scalars['String'];
+  readonly rcsb_id: Scalars['String']['output'];
   readonly rcsb_ma_qa_metric_global?: Maybe<ReadonlyArray<Maybe<RcsbMaQaMetricGlobal>>>;
   readonly rcsb_primary_citation?: Maybe<RcsbPrimaryCitation>;
   readonly refine?: Maybe<ReadonlyArray<Maybe<Refine>>>;
@@ -739,17 +747,17 @@ export type CoreEntry = {
 };
 
 export type CoreInterface = {
-  readonly rcsb_id: Scalars['String'];
+  readonly rcsb_id: Scalars['String']['output'];
   readonly rcsb_interface_container_identifiers: RcsbInterfaceContainerIdentifiers;
   readonly rcsb_interface_info?: Maybe<RcsbInterfaceInfo>;
   /** List of operations for each interface partner. */
-  readonly rcsb_interface_operator: ReadonlyArray<Maybe<ReadonlyArray<Maybe<ReadonlyArray<Maybe<Scalars['String']>>>>>>;
+  readonly rcsb_interface_operator: ReadonlyArray<Maybe<ReadonlyArray<Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>>>>;
   readonly rcsb_interface_partner: ReadonlyArray<Maybe<RcsbInterfacePartner>>;
   readonly rcsb_latest_revision?: Maybe<RcsbLatestRevision>;
 };
 
 export type CoreNonpolymerEntity = {
-  /** Get PDB entry that contains this non-polymer entity. */
+  /** Get entry that contains this non-polymer entity. */
   readonly entry?: Maybe<CoreEntry>;
   /** Get a non-polymer chemical components described in this molecular entity. */
   readonly nonpolymer_comp?: Maybe<CoreChemComp>;
@@ -766,7 +774,7 @@ export type CoreNonpolymerEntity = {
    * 6EL3_1
    *
    */
-  readonly rcsb_id: Scalars['String'];
+  readonly rcsb_id: Scalars['String']['output'];
   readonly rcsb_latest_revision?: Maybe<RcsbLatestRevision>;
   readonly rcsb_nonpolymer_entity?: Maybe<RcsbNonpolymerEntity>;
   readonly rcsb_nonpolymer_entity_annotation?: Maybe<ReadonlyArray<Maybe<RcsbNonpolymerEntityAnnotation>>>;
@@ -789,7 +797,7 @@ export type CoreNonpolymerEntityInstance = {
    * 1KIP.A
    *
    */
-  readonly rcsb_id: Scalars['String'];
+  readonly rcsb_id: Scalars['String']['output'];
   readonly rcsb_latest_revision?: Maybe<RcsbLatestRevision>;
   readonly rcsb_nonpolymer_entity_instance_container_identifiers?: Maybe<RcsbNonpolymerEntityInstanceContainerIdentifiers>;
   readonly rcsb_nonpolymer_instance_annotation?: Maybe<ReadonlyArray<Maybe<RcsbNonpolymerInstanceAnnotation>>>;
@@ -803,7 +811,7 @@ export type CoreNonpolymerEntityInstance = {
 
 export type CorePfam = {
   /** Accession number of Pfam entry. */
-  readonly rcsb_id: Scalars['String'];
+  readonly rcsb_id: Scalars['String']['output'];
   /**
    * The unique accession code of protein families and domains in the Pfam database.
    *
@@ -811,11 +819,11 @@ export type CorePfam = {
    * PF00621, PF00637, PF00656
    *
    */
-  readonly rcsb_pfam_accession: Scalars['String'];
+  readonly rcsb_pfam_accession: Scalars['String']['output'];
   /** Details of the Pfam clan to which the entity belongs. */
-  readonly rcsb_pfam_clan_id?: Maybe<Scalars['String']>;
+  readonly rcsb_pfam_clan_id?: Maybe<Scalars['String']['output']>;
   /** Textual description of the family. */
-  readonly rcsb_pfam_comment?: Maybe<Scalars['String']>;
+  readonly rcsb_pfam_comment?: Maybe<Scalars['String']['output']>;
   readonly rcsb_pfam_container_identifiers: RcsbPfamContainerIdentifiers;
   /**
    * A human-readable name of protein families and domains.
@@ -824,7 +832,7 @@ export type CorePfam = {
    * Lectin like domain, Cell division control protein 24, OB domain 2, Protein of unknown function (DUF722)
    *
    */
-  readonly rcsb_pfam_description?: Maybe<Scalars['String']>;
+  readonly rcsb_pfam_description?: Maybe<Scalars['String']['output']>;
   /**
    * The unique identifier of protein families and domains in the Pfam database.
    *
@@ -832,7 +840,7 @@ export type CorePfam = {
    * RhoGEF, Clathrin, Peptidase_C14
    *
    */
-  readonly rcsb_pfam_identifier?: Maybe<Scalars['String']>;
+  readonly rcsb_pfam_identifier?: Maybe<Scalars['String']['output']>;
   /**
    * Pfam-A is the manually curated portion of the Pfam database.
    *
@@ -840,7 +848,7 @@ export type CorePfam = {
    * Pfam-A
    *
    */
-  readonly rcsb_pfam_provenance_code?: Maybe<Scalars['String']>;
+  readonly rcsb_pfam_provenance_code?: Maybe<Scalars['String']['output']>;
   /**
    * Pfam entries are classified into six different categories, depending on the length and nature of the sequence regions included in the entry: family, domain, repeats, motifs, coiled-coil, and disordered.
    *
@@ -848,7 +856,7 @@ export type CorePfam = {
    * Family, Domain, Repeat, Motif, Disordered, Coiled-coil
    *
    */
-  readonly rcsb_pfam_seed_source?: Maybe<Scalars['String']>;
+  readonly rcsb_pfam_seed_source?: Maybe<Scalars['String']['output']>;
 };
 
 export type CorePolymerEntity = {
@@ -859,12 +867,12 @@ export type CorePolymerEntity = {
   readonly entity_poly?: Maybe<EntityPoly>;
   readonly entity_src_gen?: Maybe<ReadonlyArray<Maybe<EntitySrcGen>>>;
   readonly entity_src_nat?: Maybe<ReadonlyArray<Maybe<EntitySrcNat>>>;
-  /** Get PDB entry that contains this molecular entity. */
+  /** Get entry that contains this molecular entity. */
   readonly entry?: Maybe<CoreEntry>;
   readonly pdbx_entity_src_syn?: Maybe<ReadonlyArray<Maybe<PdbxEntitySrcSyn>>>;
   /** Get all unique Pfam annotations associated with this molecular entity. */
   readonly pfams?: Maybe<ReadonlyArray<Maybe<CorePfam>>>;
-  /** Get all groups for this PDB entity. */
+  /** Get all groups for this entity. */
   readonly polymer_entity_groups?: Maybe<ReadonlyArray<Maybe<GroupPolymerEntity>>>;
   /** Get all unique polymer instances (chains) for this molecular entity. */
   readonly polymer_entity_instances?: Maybe<ReadonlyArray<Maybe<CorePolymerEntityInstance>>>;
@@ -884,7 +892,7 @@ export type CorePolymerEntity = {
    * 6EL3_1
    *
    */
-  readonly rcsb_id: Scalars['String'];
+  readonly rcsb_id: Scalars['String']['output'];
   readonly rcsb_latest_revision?: Maybe<RcsbLatestRevision>;
   /** Members of the membrane protein classification lineage. */
   readonly rcsb_membrane_lineage?: Maybe<ReadonlyArray<Maybe<RcsbMembraneLineage>>>;
@@ -895,7 +903,7 @@ export type CorePolymerEntity = {
    * Mpstruc, Homology
    *
    */
-  readonly rcsb_membrane_lineage_provenance_code?: Maybe<Scalars['String']>;
+  readonly rcsb_membrane_lineage_provenance_code?: Maybe<Scalars['String']['output']>;
   readonly rcsb_polymer_entity?: Maybe<RcsbPolymerEntity>;
   readonly rcsb_polymer_entity_align?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityAlign>>>;
   readonly rcsb_polymer_entity_annotation?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityAnnotation>>>;
@@ -924,7 +932,7 @@ export type CorePolymerEntityInstance = {
    * 1KIP.A
    *
    */
-  readonly rcsb_id: Scalars['String'];
+  readonly rcsb_id: Scalars['String']['output'];
   readonly rcsb_latest_revision?: Maybe<RcsbLatestRevision>;
   readonly rcsb_ligand_neighbors?: Maybe<ReadonlyArray<Maybe<RcsbLigandNeighbors>>>;
   readonly rcsb_polymer_entity_instance_container_identifiers?: Maybe<RcsbPolymerEntityInstanceContainerIdentifiers>;
@@ -937,33 +945,33 @@ export type CorePolymerEntityInstance = {
 
 export type CorePubmed = {
   /** Unique integer value assigned to each PubMed record. */
-  readonly rcsb_id?: Maybe<Scalars['String']>;
+  readonly rcsb_id?: Maybe<Scalars['String']['output']>;
   /** A concise, accurate and factual mini-version of the paper contents. */
-  readonly rcsb_pubmed_abstract_text?: Maybe<Scalars['String']>;
+  readonly rcsb_pubmed_abstract_text?: Maybe<Scalars['String']['output']>;
   /** The institution(s) that the author is affiliated with. Multiple affiliations per author are allowed. */
-  readonly rcsb_pubmed_affiliation_info?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly rcsb_pubmed_affiliation_info?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** Unique integer value assigned to each PubMed Central record. */
-  readonly rcsb_pubmed_central_id?: Maybe<Scalars['String']>;
+  readonly rcsb_pubmed_central_id?: Maybe<Scalars['String']['output']>;
   readonly rcsb_pubmed_container_identifiers: RcsbPubmedContainerIdentifiers;
   /** Persistent identifier used to provide a link to an article location on the Internet. */
-  readonly rcsb_pubmed_doi?: Maybe<Scalars['String']>;
+  readonly rcsb_pubmed_doi?: Maybe<Scalars['String']['output']>;
   /** NLM controlled vocabulary, Medical Subject Headings (MeSH), is used to characterize the content of the articles represented by MEDLINE citations. */
-  readonly rcsb_pubmed_mesh_descriptors?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly rcsb_pubmed_mesh_descriptors?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** Members of the MeSH classification lineage. */
   readonly rcsb_pubmed_mesh_descriptors_lineage?: Maybe<ReadonlyArray<Maybe<RcsbPubmedMeshDescriptorsLineage>>>;
 };
 
 export type CoreUniprot = {
   /** Primary accession number of a given UniProtKB entry. */
-  readonly rcsb_id?: Maybe<Scalars['String']>;
+  readonly rcsb_id?: Maybe<Scalars['String']['output']>;
   /** List of UniProtKB accession numbers where original accession numbers are retained as ‘secondary’ accession numbers. */
-  readonly rcsb_uniprot_accession?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly rcsb_uniprot_accession?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** UniProt pairwise sequence alignments. */
   readonly rcsb_uniprot_alignments?: Maybe<RcsbUniprotAlignments>;
   readonly rcsb_uniprot_annotation?: Maybe<ReadonlyArray<Maybe<RcsbUniprotAnnotation>>>;
   readonly rcsb_uniprot_container_identifiers: RcsbUniprotContainerIdentifiers;
   /** A list of unique identifiers (former IDs), often containing biologically relevant information. */
-  readonly rcsb_uniprot_entry_name?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly rcsb_uniprot_entry_name?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   readonly rcsb_uniprot_external_reference?: Maybe<ReadonlyArray<Maybe<RcsbUniprotExternalReference>>>;
   readonly rcsb_uniprot_feature?: Maybe<ReadonlyArray<Maybe<RcsbUniprotFeature>>>;
   /** Keywords constitute a controlled vocabulary that summarises the content of a UniProtKB entry. */
@@ -979,7 +987,7 @@ export type CurrentEntry = {
    * 1KIP
    *
    */
-  readonly rcsb_id: Scalars['String'];
+  readonly rcsb_id: Scalars['String']['output'];
   readonly rcsb_repository_holdings_current?: Maybe<RcsbRepositoryHoldingsCurrent>;
   readonly rcsb_repository_holdings_current_entry_container_identifiers?: Maybe<RcsbRepositoryHoldingsCurrentEntryContainerIdentifiers>;
 };
@@ -989,22 +997,22 @@ export type Diffrn = {
    * The mean hydrostatic pressure in kilopascals at which the
    *  intensities were measured.
    */
-  readonly ambient_pressure?: Maybe<Scalars['Float']>;
+  readonly ambient_pressure?: Maybe<Scalars['Float']['output']>;
   /**
    * The mean temperature in kelvins at which the intensities were
    *  measured.
    */
-  readonly ambient_temp?: Maybe<Scalars['Float']>;
+  readonly ambient_temp?: Maybe<Scalars['Float']['output']>;
   /**
    * A description of special aspects of temperature control during
    *  data collection.
    */
-  readonly ambient_temp_details?: Maybe<Scalars['String']>;
+  readonly ambient_temp_details?: Maybe<Scalars['String']['output']>;
   /**
    * This data item is a pointer to _exptl_crystal.id in the
    *  EXPTL_CRYSTAL category.
    */
-  readonly crystal_id?: Maybe<Scalars['String']>;
+  readonly crystal_id?: Maybe<Scalars['String']['output']>;
   /**
    * The physical device used to support the crystal during data
    *  collection.
@@ -1013,18 +1021,18 @@ export type Diffrn = {
    * glass capillary, quartz capillary, fiber, metal loop
    *
    */
-  readonly crystal_support?: Maybe<Scalars['String']>;
+  readonly crystal_support?: Maybe<Scalars['String']['output']>;
   /**
    * Special details of the diffraction measurement process. Should
    *  include information about source instability, crystal motion,
    *  degradation and so on.
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * This data item uniquely identifies a set of diffraction
    *  data.
    */
-  readonly id: Scalars['String'];
+  readonly id: Scalars['String']['output'];
   /**
    * Y/N if using serial crystallography experiment in which multiple crystals contribute to each diffraction frame in the experiment.
    *
@@ -1032,12 +1040,12 @@ export type Diffrn = {
    * Y, N
    *
    */
-  readonly pdbx_serial_crystal_experiment?: Maybe<Scalars['String']>;
+  readonly pdbx_serial_crystal_experiment?: Maybe<Scalars['String']['output']>;
 };
 
 export type DiffrnDetector = {
   /** A description of special aspects of the radiation detector. */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * The general class of the radiation detector.
    *
@@ -1045,12 +1053,12 @@ export type DiffrnDetector = {
    * photographic film, scintillation counter, CCD plate, BF~3~ counter
    *
    */
-  readonly detector?: Maybe<Scalars['String']>;
+  readonly detector?: Maybe<Scalars['String']['output']>;
   /**
    * This data item is a pointer to _diffrn.id in the DIFFRN
    *  category.
    */
-  readonly diffrn_id: Scalars['String'];
+  readonly diffrn_id: Scalars['String']['output'];
   /**
    * The date of data collection.
    *
@@ -1058,9 +1066,9 @@ export type DiffrnDetector = {
    * 1996-12-25
    *
    */
-  readonly pdbx_collection_date?: Maybe<Scalars['Date']>;
+  readonly pdbx_collection_date?: Maybe<Scalars['Date']['output']>;
   /** The operating frequency of the detector (Hz) used in data collection. */
-  readonly pdbx_frequency?: Maybe<Scalars['Float']>;
+  readonly pdbx_frequency?: Maybe<Scalars['Float']['output']>;
   /**
    * The make, model or name of the detector device used.
    *
@@ -1068,7 +1076,7 @@ export type DiffrnDetector = {
    * DECTRIS PILATUS 12M, RAYONIX MX-325
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type DiffrnRadiation = {
@@ -1079,12 +1087,12 @@ export type DiffrnRadiation = {
    * 0.3 mm double-pinhole, 0.5 mm, focusing mirrors
    *
    */
-  readonly collimation?: Maybe<Scalars['String']>;
+  readonly collimation?: Maybe<Scalars['String']['output']>;
   /**
    * This data item is a pointer to _diffrn.id in the DIFFRN
    *  category.
    */
-  readonly diffrn_id: Scalars['String'];
+  readonly diffrn_id: Scalars['String']['output'];
   /**
    * The method used to obtain monochromatic radiation. If a mono-
    *  chromator crystal is used, the material and the indices of the
@@ -1094,7 +1102,7 @@ export type DiffrnRadiation = {
    * Zr filter, Ge 220, none, equatorial mounted graphite
    *
    */
-  readonly monochromator?: Maybe<Scalars['String']>;
+  readonly monochromator?: Maybe<Scalars['String']['output']>;
   /**
    * SINGLE WAVELENGTH, LAUE, or MAD.
    *
@@ -1102,7 +1110,7 @@ export type DiffrnRadiation = {
    * SINGLE WAVELENGTH, MONOCHROMATIC, LAUE, MAD, OTHER
    *
    */
-  readonly pdbx_diffrn_protocol?: Maybe<Scalars['String']>;
+  readonly pdbx_diffrn_protocol?: Maybe<Scalars['String']['output']>;
   /**
    * Monochromatic or Laue.
    *
@@ -1110,7 +1118,7 @@ export type DiffrnRadiation = {
    * L, M
    *
    */
-  readonly pdbx_monochromatic_or_laue_m_l?: Maybe<Scalars['String']>;
+  readonly pdbx_monochromatic_or_laue_m_l?: Maybe<Scalars['String']['output']>;
   /**
    * The radiation scattering type for this diffraction data set.
    *
@@ -1118,11 +1126,11 @@ export type DiffrnRadiation = {
    * electron, neutron, x-ray
    *
    */
-  readonly pdbx_scattering_type?: Maybe<Scalars['String']>;
+  readonly pdbx_scattering_type?: Maybe<Scalars['String']['output']>;
   /** Wavelength of radiation. */
-  readonly pdbx_wavelength?: Maybe<Scalars['String']>;
+  readonly pdbx_wavelength?: Maybe<Scalars['String']['output']>;
   /** Comma separated list of wavelengths or wavelength range. */
-  readonly pdbx_wavelength_list?: Maybe<Scalars['String']>;
+  readonly pdbx_wavelength_list?: Maybe<Scalars['String']['output']>;
   /**
    * The nature of the radiation. This is typically a description
    *  of the X-ray wavelength in Siegbahn notation.
@@ -1131,22 +1139,22 @@ export type DiffrnRadiation = {
    * CuK\a, Cu K\a~1~, Cu K-L~2,3~, white-beam
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
   /**
    * This data item is a pointer to _diffrn_radiation_wavelength.id
    *  in the DIFFRN_RADIATION_WAVELENGTH category.
    */
-  readonly wavelength_id?: Maybe<Scalars['String']>;
+  readonly wavelength_id?: Maybe<Scalars['String']['output']>;
 };
 
 export type DiffrnSource = {
   /** A description of special aspects of the radiation source used. */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * This data item is a pointer to _diffrn.id in the DIFFRN
    *  category.
    */
-  readonly diffrn_id: Scalars['String'];
+  readonly diffrn_id: Scalars['String']['output'];
   /**
    * Synchrotron beamline.
    *
@@ -1154,7 +1162,7 @@ export type DiffrnSource = {
    * 17-ID-1, 19-ID
    *
    */
-  readonly pdbx_synchrotron_beamline?: Maybe<Scalars['String']>;
+  readonly pdbx_synchrotron_beamline?: Maybe<Scalars['String']['output']>;
   /**
    * Synchrotron site.
    *
@@ -1162,9 +1170,9 @@ export type DiffrnSource = {
    * APS, NSLS-II
    *
    */
-  readonly pdbx_synchrotron_site?: Maybe<Scalars['String']>;
+  readonly pdbx_synchrotron_site?: Maybe<Scalars['String']['output']>;
   /** Wavelength of radiation. */
-  readonly pdbx_wavelength?: Maybe<Scalars['String']>;
+  readonly pdbx_wavelength?: Maybe<Scalars['String']['output']>;
   /**
    * Comma separated list of wavelengths or wavelength range.
    *
@@ -1172,7 +1180,7 @@ export type DiffrnSource = {
    * 0.987 or 0.987, 0.988, 1.0 or 0.99-1.5
    *
    */
-  readonly pdbx_wavelength_list?: Maybe<Scalars['String']>;
+  readonly pdbx_wavelength_list?: Maybe<Scalars['String']['output']>;
   /**
    * The general class of the radiation source.
    *
@@ -1180,7 +1188,7 @@ export type DiffrnSource = {
    * sealed X-ray tube, nuclear reactor, spallation source, electron microscope, rotating-anode X-ray tube, synchrotron
    *
    */
-  readonly source?: Maybe<Scalars['String']>;
+  readonly source?: Maybe<Scalars['String']['output']>;
   /**
    * The make, model or name of the source of radiation.
    *
@@ -1188,21 +1196,21 @@ export type DiffrnSource = {
    * NSLS beamline X8C, Rigaku RU200
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type DrugbankContainerIdentifiers = {
   /** The DrugBank accession code */
-  readonly drugbank_id: Scalars['String'];
+  readonly drugbank_id: Scalars['String']['output'];
 };
 
 export type DrugbankInfo = {
   /** The DrugBank drug affected organisms. */
-  readonly affected_organisms?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly affected_organisms?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** The Anatomical Therapeutic Chemical Classification System (ATC) codes. */
-  readonly atc_codes?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly atc_codes?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** DrugBank drug brand names. */
-  readonly brand_names?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly brand_names?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /**
    * The DrugBank assigned Chemical Abstracts Service identifier.
    *
@@ -1210,15 +1218,15 @@ export type DrugbankInfo = {
    * 56-65-5
    *
    */
-  readonly cas_number?: Maybe<Scalars['String']>;
+  readonly cas_number?: Maybe<Scalars['String']['output']>;
   /** The DrugBank drug description. */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /** The DrugBank drug categories. */
-  readonly drug_categories?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly drug_categories?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** The DrugBank drug drug groups. */
-  readonly drug_groups?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly drug_groups?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** The DrugBank accession code */
-  readonly drugbank_id: Scalars['String'];
+  readonly drugbank_id: Scalars['String']['output'];
   /**
    * The DrugBank drug indication.
    *
@@ -1226,7 +1234,7 @@ export type DrugbankInfo = {
    * For nutritional supplementation, also for treating dietary shortage or imbalance
    *
    */
-  readonly indication?: Maybe<Scalars['String']>;
+  readonly indication?: Maybe<Scalars['String']['output']>;
   /**
    * The DrugBank drug mechanism of actions.
    *
@@ -1234,9 +1242,9 @@ export type DrugbankInfo = {
    * ATP is able to store and transport chemical energy within cells.
    *
    */
-  readonly mechanism_of_action?: Maybe<Scalars['String']>;
+  readonly mechanism_of_action?: Maybe<Scalars['String']['output']>;
   /** The DrugBank drug name. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * The DrugBank drug pharmacology.
    *
@@ -1244,23 +1252,23 @@ export type DrugbankInfo = {
    * Adenosine triphosphate (ATP) is the nucleotide known in biochemistry as the "molecular currency" of intracellular energy transfer; that is, ATP is able to store and transport chemical energy within cells. ATP also plays an important role in the synthesis of nucleic acids. The total quantity of ATP in the human body is about 0.1 mole. The energy used by human cells requires the hydrolysis of 200 to 300 moles of ATP daily. This means that each ATP molecule is recycled 2000 to 3000 times during a single day. ATP cannot be stored, hence its consumption must closely follow its synthesis.
    *
    */
-  readonly pharmacology?: Maybe<Scalars['String']>;
+  readonly pharmacology?: Maybe<Scalars['String']['output']>;
   /** DrugBank drug name synonyms. */
-  readonly synonyms?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly synonyms?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
 };
 
 export type DrugbankTarget = {
   /** The type of target interaction. */
-  readonly interaction_type?: Maybe<Scalars['String']>;
+  readonly interaction_type?: Maybe<Scalars['String']['output']>;
   /** The target name. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _drugbank_target.ordinal distinguishes
    *  related examples for each chemical component.
    */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
   /** The organism common name. */
-  readonly organism_common_name?: Maybe<Scalars['String']>;
+  readonly organism_common_name?: Maybe<Scalars['String']['output']>;
   /**
    * The reference identifier code for the target interaction reference.
    *
@@ -1268,7 +1276,7 @@ export type DrugbankTarget = {
    * Q9HD40
    *
    */
-  readonly reference_database_accession_code?: Maybe<Scalars['String']>;
+  readonly reference_database_accession_code?: Maybe<Scalars['String']['output']>;
   /**
    * The reference database name for the target interaction.
    *
@@ -1276,7 +1284,7 @@ export type DrugbankTarget = {
    * UniProt
    *
    */
-  readonly reference_database_name?: Maybe<Scalars['String']>;
+  readonly reference_database_name?: Maybe<Scalars['String']['output']>;
   /**
    * Target sequence expressed as string of one-letter amino acid codes.
    *
@@ -1284,26 +1292,44 @@ export type DrugbankTarget = {
    * MAKQRSG...
    *
    */
-  readonly seq_one_letter_code?: Maybe<Scalars['String']>;
+  readonly seq_one_letter_code?: Maybe<Scalars['String']['output']>;
   /** The actions of the target interaction. */
-  readonly target_actions?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly target_actions?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
 };
 
 export type Em2dCrystalEntity = {
   /** Unit-cell angle gamma in degrees. */
-  readonly angle_gamma?: Maybe<Scalars['Float']>;
+  readonly angle_gamma?: Maybe<Scalars['Float']['output']>;
   /** Length used to sample the reciprocal lattice lines in the c-direction. */
-  readonly c_sampling_length?: Maybe<Scalars['Float']>;
-  /** Unique key for the 2d_crystal_entity category. */
-  readonly id: Scalars['String'];
+  readonly c_sampling_length?: Maybe<Scalars['Float']['output']>;
+  /** PRIMARY KEY */
+  readonly id: Scalars['String']['output'];
   /** pointer to _em_image_processing.id in the EM_IMAGE_PROCESSING category. */
-  readonly image_processing_id: Scalars['String'];
-  /** Unit-cell length a in angstroms. */
-  readonly length_a?: Maybe<Scalars['Float']>;
-  /** Unit-cell length b in angstroms. */
-  readonly length_b?: Maybe<Scalars['Float']>;
-  /** Thickness of 2D crystal */
-  readonly length_c?: Maybe<Scalars['Float']>;
+  readonly image_processing_id: Scalars['String']['output'];
+  /**
+   * Unit-cell length a in angstroms.
+   *
+   * Examples:
+   * null
+   *
+   */
+  readonly length_a?: Maybe<Scalars['Float']['output']>;
+  /**
+   * Unit-cell length b in angstroms.
+   *
+   * Examples:
+   * null
+   *
+   */
+  readonly length_b?: Maybe<Scalars['Float']['output']>;
+  /**
+   * Thickness of 2D crystal
+   *
+   * Examples:
+   * null
+   *
+   */
+  readonly length_c?: Maybe<Scalars['Float']['output']>;
   /**
    * There are 17 plane groups classified as oblique, rectangular, square, and hexagonal.
    *  To describe the symmetry of 2D crystals of biological molecules,
@@ -1317,26 +1343,62 @@ export type Em2dCrystalEntity = {
    * C 1 2, C 2 2 2, P 1, P 1 2, P 1 21, P 2, P 2 2 2, P 2 2 21, P 2 21 21, P 3, P 3 1 2, P 3 2 1, P 4, P 4 2 2, P 4 21 2, P 6, P 6 2 2
    *
    */
-  readonly space_group_name_H_M?: Maybe<Scalars['String']>;
+  readonly space_group_name_H_M?: Maybe<Scalars['String']['output']>;
 };
 
 export type Em3dCrystalEntity = {
-  /** Unit-cell angle alpha in degrees. */
-  readonly angle_alpha?: Maybe<Scalars['Float']>;
-  /** Unit-cell angle beta in degrees. */
-  readonly angle_beta?: Maybe<Scalars['Float']>;
-  /** Unit-cell angle gamma in degrees. */
-  readonly angle_gamma?: Maybe<Scalars['Float']>;
-  /** Unique key for the em_3d_crystal_entity category. */
-  readonly id: Scalars['String'];
+  /**
+   * Unit-cell angle alpha in degrees.
+   *
+   * Examples:
+   * null
+   *
+   */
+  readonly angle_alpha?: Maybe<Scalars['Float']['output']>;
+  /**
+   * Unit-cell angle beta in degrees.
+   *
+   * Examples:
+   * null
+   *
+   */
+  readonly angle_beta?: Maybe<Scalars['Float']['output']>;
+  /**
+   * Unit-cell angle gamma in degrees.
+   *
+   * Examples:
+   * null
+   *
+   */
+  readonly angle_gamma?: Maybe<Scalars['Float']['output']>;
+  /** PRIMARY KEY */
+  readonly id: Scalars['String']['output'];
   /** pointer to _em_image_processing.id in the EM_IMAGE_PROCESSING category. */
-  readonly image_processing_id: Scalars['String'];
-  /** Unit-cell length a in angstroms. */
-  readonly length_a?: Maybe<Scalars['Float']>;
-  /** Unit-cell length b in angstroms. */
-  readonly length_b?: Maybe<Scalars['Float']>;
-  /** Unit-cell length c in angstroms. */
-  readonly length_c?: Maybe<Scalars['Float']>;
+  readonly image_processing_id: Scalars['String']['output'];
+  /**
+   * Unit-cell length a in angstroms.
+   *
+   * Examples:
+   * null
+   *
+   */
+  readonly length_a?: Maybe<Scalars['Float']['output']>;
+  /**
+   * Unit-cell length b in angstroms.
+   *
+   * Examples:
+   * null
+   *
+   */
+  readonly length_b?: Maybe<Scalars['Float']['output']>;
+  /**
+   * Unit-cell length c in angstroms.
+   *
+   * Examples:
+   * null
+   *
+   */
+  readonly length_c?: Maybe<Scalars['Float']['output']>;
   /**
    * Space group name.
    *
@@ -1344,9 +1406,9 @@ export type Em3dCrystalEntity = {
    * P 1, P 21 21 2, I 4, H 3
    *
    */
-  readonly space_group_name?: Maybe<Scalars['String']>;
+  readonly space_group_name?: Maybe<Scalars['String']['output']>;
   /** Space group number. */
-  readonly space_group_num?: Maybe<Scalars['Int']>;
+  readonly space_group_num?: Maybe<Scalars['Int']['output']>;
 };
 
 export type Em3dFitting = {
@@ -1359,20 +1421,20 @@ export type Em3dFitting = {
    * Initial local fitting was done using Chimera and then NMFF was used for flexible fitting.
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _em_3d_fitting.id must uniquely identify
    *  a fitting procedure of atomic coordinates
    *  into 3dem reconstructed map volume.
    */
-  readonly id: Scalars['String'];
+  readonly id: Scalars['String']['output'];
   /**
    * The method used to fit atomic coordinates
    *  into the 3dem reconstructed map.
    */
-  readonly method?: Maybe<Scalars['String']>;
+  readonly method?: Maybe<Scalars['String']['output']>;
   /** The overall B (temperature factor) value for the 3d-em volume. */
-  readonly overall_b_value?: Maybe<Scalars['Float']>;
+  readonly overall_b_value?: Maybe<Scalars['Float']['output']>;
   /**
    * The refinement protocol used.
    *
@@ -1380,7 +1442,7 @@ export type Em3dFitting = {
    * AB INITIO MODEL, BACKBONE TRACE, FLEXIBLE FIT, OTHER, RIGID BODY FIT
    *
    */
-  readonly ref_protocol?: Maybe<Scalars['String']>;
+  readonly ref_protocol?: Maybe<Scalars['String']['output']>;
   /**
    * A flag to indicate whether fitting was carried out in real
    *  or reciprocal refinement space.
@@ -1389,7 +1451,7 @@ export type Em3dFitting = {
    * REAL, RECIPROCAL
    *
    */
-  readonly ref_space?: Maybe<Scalars['String']>;
+  readonly ref_space?: Maybe<Scalars['String']['output']>;
   /**
    * The measure used to assess quality of fit of the atomic coordinates in the
    *  3DEM map volume.
@@ -1398,7 +1460,7 @@ export type Em3dFitting = {
    * Cross-correlation coefficient
    *
    */
-  readonly target_criteria?: Maybe<Scalars['String']>;
+  readonly target_criteria?: Maybe<Scalars['String']['output']>;
 };
 
 export type Em3dFittingList = {
@@ -1406,40 +1468,50 @@ export type Em3dFittingList = {
    * The value of _em_3d_fitting_list.3d_fitting_id is a pointer
    *  to  _em_3d_fitting.id in the 3d_fitting category
    */
-  readonly _3d_fitting_id: Scalars['String'];
-  /** Details about the model used in fitting. */
-  readonly details?: Maybe<Scalars['String']>;
-  /** This data item is a unique identifier. */
-  readonly id: Scalars['String'];
+  readonly _3d_fitting_id: Scalars['String']['output'];
+  /**
+   * Details about the model used in fitting.
+   *
+   * Examples:
+   * The initial model consisted of the complete biological assembly for PDB entry 2GTL.
+   *
+   */
+  readonly details?: Maybe<Scalars['String']['output']>;
+  /** PRIMARY KEY */
+  readonly id: Scalars['String']['output'];
   /**
    * The ID of the biopolymer chain used for fitting, e.g., A.  Please note that
    * only one chain can be specified per instance.  If all chains of a particular
    * structure have been used for fitting, this field can be left blank.
+   *
+   * Examples:
+   * The ID of the biopolymer chain used for fitting, e.g., A. Please note that only one chain can be specified per instance. If all chains of a particular structure have been used for fitting, this field can be left blank.
+   *
    */
-  readonly pdb_chain_id?: Maybe<Scalars['String']>;
-  /** The molecular entities represented in this fitting description. */
-  readonly pdb_chain_residue_range?: Maybe<Scalars['String']>;
+  readonly pdb_chain_id?: Maybe<Scalars['String']['output']>;
+  /** Residue range for the identified chain. */
+  readonly pdb_chain_residue_range?: Maybe<Scalars['String']['output']>;
   /**
    * The PDB code for the entry used in fitting.
    *
    * Examples:
-   * PDB entry 1EHZ
+   * 1EHZ
    *
    */
-  readonly pdb_entry_id?: Maybe<Scalars['String']>;
+  readonly pdb_entry_id?: Maybe<Scalars['String']['output']>;
 };
 
 export type Em3dReconstruction = {
   /**
-   * The actual pixel size of projection set of images.
+   * The actual pixel size of the projection set of images in Angstroms.
    *
    * Examples:
    * null, null
    *
    */
-  readonly actual_pixel_size?: Maybe<Scalars['Float']>;
-  /** The algorithm used project from 2D orientations to 3D map. */
-  readonly algorithm?: Maybe<Scalars['String']>;
+  readonly actual_pixel_size?: Maybe<Scalars['Float']['output']>;
+  /** The reconstruction algorithm/technique used to generate the map. */
+  readonly algorithm?: Maybe<Scalars['String']['output']>;
   /**
    * Any additional details used in the 3d reconstruction.
    *
@@ -1447,14 +1519,11 @@ export type Em3dReconstruction = {
    * a modified version of SPIDER program was used for the reconstruction
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
-  /**
-   * The value of _em_3d_reconstruction.id must
-   *  uniquely identify the 3d reconstruction.
-   */
-  readonly id: Scalars['String'];
+  readonly details?: Maybe<Scalars['String']['output']>;
+  /** PRIMARY KEY */
+  readonly id: Scalars['String']['output'];
   /** Foreign key to the EM_IMAGE_PROCESSING category */
-  readonly image_processing_id: Scalars['String'];
+  readonly image_processing_id: Scalars['String']['output'];
   /**
    * The magnification calibration method for the 3d reconstruction.
    *
@@ -1462,7 +1531,7 @@ export type Em3dReconstruction = {
    * TMV images
    *
    */
-  readonly magnification_calibration?: Maybe<Scalars['String']>;
+  readonly magnification_calibration?: Maybe<Scalars['String']['output']>;
   /**
    * The algorithm method used for the 3d-reconstruction.
    *
@@ -1470,39 +1539,35 @@ export type Em3dReconstruction = {
    * cross-common lines, polar Fourier transform (PFT)
    *
    */
-  readonly method?: Maybe<Scalars['String']>;
+  readonly method?: Maybe<Scalars['String']['output']>;
   /**
-   * The nominal pixel size of the projection set of images.
+   * The nominal pixel size of the projection set of images in Angstroms.
    *
    * Examples:
    * null, null
    *
    */
-  readonly nominal_pixel_size?: Maybe<Scalars['Float']>;
-  /**
-   * This item was correspondence to two type of em dataset
-   *  processing_emDataSet_singleParticle.numClassAverages
-   *  processing_emDataSet_icosahedral.numClassAverages
-   */
-  readonly num_class_averages?: Maybe<Scalars['Int']>;
+  readonly nominal_pixel_size?: Maybe<Scalars['Float']['output']>;
+  /** The number of classes used in the final 3d reconstruction */
+  readonly num_class_averages?: Maybe<Scalars['Int']['output']>;
   /** The number of 2D projections or 3D subtomograms used in the 3d reconstruction */
-  readonly num_particles?: Maybe<Scalars['Int']>;
+  readonly num_particles?: Maybe<Scalars['Int']['output']>;
   /**
-   * type of refinement performed in order to determine map resolution
+   * Indicates details on how the half-map used for resolution determination (usually by FSC) have been generated.
    *
    * Allowable values:
    * HALF-MAPS REFINED AGAINST SAME DATA, HALF-MAPS REFINED INDEPENDENTLY, HALF-MAPS REFINED INDEPENDENTLY WITH FREQUENCY RANGE OMITTED, HALF-MAPS REFINED WITH FREQUENCY RANGE OMITTED, OTHER
    *
    */
-  readonly refinement_type?: Maybe<Scalars['String']>;
+  readonly refinement_type?: Maybe<Scalars['String']['output']>;
   /**
-   * The final resolution (in angstroms)of the 3D reconstruction.
+   * The final resolution (in angstroms) of the 3D reconstruction.
    *
    * Examples:
    * null, null
    *
    */
-  readonly resolution?: Maybe<Scalars['Float']>;
+  readonly resolution?: Maybe<Scalars['Float']['output']>;
   /**
    * The  method used to determine the final resolution
    *  of the 3d reconstruction.
@@ -1515,7 +1580,7 @@ export type Em3dReconstruction = {
    * FSC at 0.5 cut-off
    *
    */
-  readonly resolution_method?: Maybe<Scalars['String']>;
+  readonly resolution_method?: Maybe<Scalars['String']['output']>;
   /**
    * The type of symmetry applied to the reconstruction
    *
@@ -1523,7 +1588,7 @@ export type Em3dReconstruction = {
    * 2D CRYSTAL, 3D CRYSTAL, HELICAL, POINT
    *
    */
-  readonly symmetry_type?: Maybe<Scalars['String']>;
+  readonly symmetry_type?: Maybe<Scalars['String']['output']>;
 };
 
 export type EmCtfCorrection = {
@@ -1534,22 +1599,27 @@ export type EmCtfCorrection = {
    * CTF amplitude correction was performed following 3D reconstruction
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /** Foreign key to the EM_IMAGE_PROCESSING category */
-  readonly em_image_processing_id?: Maybe<Scalars['String']>;
-  /** Primary key */
-  readonly id: Scalars['String'];
+  readonly em_image_processing_id?: Maybe<Scalars['String']['output']>;
+  /** PRIMARY KEY */
+  readonly id: Scalars['String']['output'];
   /** Type of CTF correction applied */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type EmDiffraction = {
-  /** TODO */
-  readonly camera_length?: Maybe<Scalars['Float']>;
-  /** Primary key */
-  readonly id: Scalars['String'];
+  /**
+   * The camera length (in millimeters). The camera length is the
+   *  product of the objective focal length and the combined magnification
+   *  of the intermediate and projector lenses when the microscope is
+   *  operated in the diffraction mode.
+   */
+  readonly camera_length?: Maybe<Scalars['Float']['output']>;
+  /** PRIMARY KEY */
+  readonly id: Scalars['String']['output'];
   /** Foreign key to the EM_IMAGING category */
-  readonly imaging_id?: Maybe<Scalars['String']>;
+  readonly imaging_id?: Maybe<Scalars['String']['output']>;
   /**
    * Comma-separated list of tilt angles (in degrees) used in the electron diffraction experiment.
    *
@@ -1557,12 +1627,12 @@ export type EmDiffraction = {
    * 20,40,50,55
    *
    */
-  readonly tilt_angle_list?: Maybe<Scalars['String']>;
+  readonly tilt_angle_list?: Maybe<Scalars['String']['output']>;
 };
 
 export type EmDiffractionShell = {
   /** Pointer to EM CRYSTALLOGRAPHY STATS */
-  readonly em_diffraction_stats_id?: Maybe<Scalars['String']>;
+  readonly em_diffraction_stats_id?: Maybe<Scalars['String']['output']>;
   /**
    * Completeness of the structure factor data within this resolution shell, in percent
    *
@@ -1570,7 +1640,7 @@ export type EmDiffractionShell = {
    * null
    *
    */
-  readonly fourier_space_coverage?: Maybe<Scalars['Float']>;
+  readonly fourier_space_coverage?: Maybe<Scalars['Float']['output']>;
   /**
    * High resolution limit for this shell (angstroms)
    *
@@ -1578,9 +1648,9 @@ export type EmDiffractionShell = {
    * null
    *
    */
-  readonly high_resolution?: Maybe<Scalars['Float']>;
-  /** Unique identifier for the category em_diffraction_shell */
-  readonly id: Scalars['String'];
+  readonly high_resolution?: Maybe<Scalars['Float']['output']>;
+  /** PRIMARY KEY */
+  readonly id: Scalars['String']['output'];
   /**
    * Low resolution limit for this shell (angstroms)
    *
@@ -1588,7 +1658,7 @@ export type EmDiffractionShell = {
    * null
    *
    */
-  readonly low_resolution?: Maybe<Scalars['Float']>;
+  readonly low_resolution?: Maybe<Scalars['Float']['output']>;
   /**
    * Multiplicity (average number of measurements) for the structure factors in this resolution shell
    *
@@ -1596,9 +1666,9 @@ export type EmDiffractionShell = {
    * null
    *
    */
-  readonly multiplicity?: Maybe<Scalars['Float']>;
+  readonly multiplicity?: Maybe<Scalars['Float']['output']>;
   /** Number of measured structure factors in this resolution shell */
-  readonly num_structure_factors?: Maybe<Scalars['Int']>;
+  readonly num_structure_factors?: Maybe<Scalars['Int']['output']>;
   /**
    * Phase residual for this resolution shell, in degrees
    *
@@ -1606,7 +1676,7 @@ export type EmDiffractionShell = {
    * null
    *
    */
-  readonly phase_residual?: Maybe<Scalars['Float']>;
+  readonly phase_residual?: Maybe<Scalars['Float']['output']>;
 };
 
 export type EmDiffractionStats = {
@@ -1617,7 +1687,7 @@ export type EmDiffractionStats = {
    * Phases were obtained from micrograph images of the 2D crystals
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * Completeness of the structure factor data within the defined space group
    *  at the reported resolution (percent).
@@ -1626,7 +1696,7 @@ export type EmDiffractionStats = {
    * null
    *
    */
-  readonly fourier_space_coverage?: Maybe<Scalars['Float']>;
+  readonly fourier_space_coverage?: Maybe<Scalars['Float']['output']>;
   /**
    * High resolution limit of the structure factor data, in angstroms
    *
@@ -1634,15 +1704,15 @@ export type EmDiffractionStats = {
    * null
    *
    */
-  readonly high_resolution?: Maybe<Scalars['Float']>;
-  /** Identifier for this category */
-  readonly id: Scalars['String'];
+  readonly high_resolution?: Maybe<Scalars['Float']['output']>;
+  /** PRIMARY KEY */
+  readonly id: Scalars['String']['output'];
   /** Pointer to _em_image_processing.id */
-  readonly image_processing_id?: Maybe<Scalars['String']>;
+  readonly image_processing_id?: Maybe<Scalars['String']['output']>;
   /** Total number of diffraction intensities measured (before averaging) */
-  readonly num_intensities_measured?: Maybe<Scalars['Int']>;
+  readonly num_intensities_measured?: Maybe<Scalars['Int']['output']>;
   /** Number of structure factors obtained (merged amplitudes + phases) */
-  readonly num_structure_factors?: Maybe<Scalars['Int']>;
+  readonly num_structure_factors?: Maybe<Scalars['Int']['output']>;
   /**
    * Overall phase error in degrees
    *
@@ -1650,7 +1720,7 @@ export type EmDiffractionStats = {
    * null
    *
    */
-  readonly overall_phase_error?: Maybe<Scalars['Float']>;
+  readonly overall_phase_error?: Maybe<Scalars['Float']['output']>;
   /**
    * Overall phase residual in degrees
    *
@@ -1658,7 +1728,7 @@ export type EmDiffractionStats = {
    * null
    *
    */
-  readonly overall_phase_residual?: Maybe<Scalars['Float']>;
+  readonly overall_phase_residual?: Maybe<Scalars['Float']['output']>;
   /**
    * Criteria used to reject phases
    *
@@ -1666,7 +1736,7 @@ export type EmDiffractionStats = {
    * Structure factors with phase errors higher than 20 degrees were omitted from refinement
    *
    */
-  readonly phase_error_rejection_criteria?: Maybe<Scalars['String']>;
+  readonly phase_error_rejection_criteria?: Maybe<Scalars['String']['output']>;
   /**
    * Rmerge value (percent)
    *
@@ -1674,7 +1744,7 @@ export type EmDiffractionStats = {
    * null
    *
    */
-  readonly r_merge?: Maybe<Scalars['Float']>;
+  readonly r_merge?: Maybe<Scalars['Float']['output']>;
   /**
    * Rsym value (percent)
    *
@@ -1682,7 +1752,7 @@ export type EmDiffractionStats = {
    * null
    *
    */
-  readonly r_sym?: Maybe<Scalars['Float']>;
+  readonly r_sym?: Maybe<Scalars['Float']['output']>;
 };
 
 export type EmEmbedding = {
@@ -1696,9 +1766,9 @@ export type EmEmbedding = {
    *   was then blotted, air dried, and frozen in LN2.
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
-  /** This data item is the primary key of the category. */
-  readonly id: Scalars['String'];
+  readonly details?: Maybe<Scalars['String']['output']>;
+  /** PRIMARY KEY */
+  readonly id: Scalars['String']['output'];
   /**
    * The embedding  material.
    *
@@ -1706,54 +1776,52 @@ export type EmEmbedding = {
    * tannin and glucose
    *
    */
-  readonly material?: Maybe<Scalars['String']>;
-  /** Foreign key relationship to the EMD SPECIMEN category */
-  readonly specimen_id?: Maybe<Scalars['String']>;
+  readonly material?: Maybe<Scalars['String']['output']>;
+  /** Foreign key relationship to the EM SPECIMEN category */
+  readonly specimen_id?: Maybe<Scalars['String']['output']>;
 };
 
 export type EmEntityAssembly = {
   /**
-   * Additional details about the component.
+   * Additional details about the sample or sample subcomponent.
    *
    * Examples:
    * Fab fragment generated by proteolytic cleavage of LA2 IgG antibody.
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * macromolecules associated with this component, if defined
    *  as comma separated list of entity ids (integers).
    */
-  readonly entity_id_list?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly entity_id_list?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
+  /** PRIMARY KEY */
+  readonly id: Scalars['String']['output'];
   /**
-   * The value of _em_entity_assembly.id identifies
-   *  one component of the complex.
-   */
-  readonly id: Scalars['String'];
-  /**
-   * Name of this component in the observed assembly.
+   * The name of the sample or sample subcomponent.
    *
    * Examples:
    * Ternary complex of alpha-tubulin with tubulin folding cofactors TBCE and TBCB, 80S Ribosome bound to emetine, messenger RNA, initiation factor 2, GroEL, antibody Fab fragment
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /** oligomeric details */
-  readonly oligomeric_details?: Maybe<Scalars['String']>;
+  readonly oligomeric_details?: Maybe<Scalars['String']['output']>;
   /**
    * The parent of this assembly.
    *  This data item is an internal category pointer to _em_entity_assembly.id.
    *  By convention, the full assembly (top of hierarchy) is assigned parent id 0 (zero).
    */
-  readonly parent_id?: Maybe<Scalars['Int']>;
+  readonly parent_id?: Maybe<Scalars['Int']['output']>;
   /**
-   * The assembly type.
+   * The type of source (e.g., natural source) for the component (sample or sample
+   * subcomponent)
    *
    * Allowable values:
    * MULTIPLE SOURCES, NATURAL, RECOMBINANT, SYNTHETIC
    *
    */
-  readonly source?: Maybe<Scalars['String']>;
+  readonly source?: Maybe<Scalars['String']['output']>;
   /**
    * Alternative name of the component.
    *
@@ -1761,12 +1829,9 @@ export type EmEntityAssembly = {
    * FADV-1
    *
    */
-  readonly synonym?: Maybe<Scalars['String']>;
-  /**
-   * A description of types of components of the
-   *  assembly of the biological structure.
-   */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly synonym?: Maybe<Scalars['String']['output']>;
+  /** The general type of the sample or sample subcomponent. */
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type EmExperiment = {
@@ -1777,11 +1842,11 @@ export type EmExperiment = {
    * 2D ARRAY, 3D ARRAY, CELL, FILAMENT, HELICAL ARRAY, PARTICLE, TISSUE
    *
    */
-  readonly aggregation_state?: Maybe<Scalars['String']>;
+  readonly aggregation_state?: Maybe<Scalars['String']['output']>;
   /** Foreign key to the EM_ENTITY_ASSEMBLY category */
-  readonly entity_assembly_id?: Maybe<Scalars['String']>;
-  /** Placeholder ID. */
-  readonly id?: Maybe<Scalars['String']>;
+  readonly entity_assembly_id?: Maybe<Scalars['String']['output']>;
+  /** PRIMARY KEY */
+  readonly id?: Maybe<Scalars['String']['output']>;
   /**
    * The reconstruction method used in the EM experiment.
    *
@@ -1789,18 +1854,18 @@ export type EmExperiment = {
    * CRYSTALLOGRAPHY, HELICAL, SINGLE PARTICLE, SUBTOMOGRAM AVERAGING, TOMOGRAPHY
    *
    */
-  readonly reconstruction_method?: Maybe<Scalars['String']>;
+  readonly reconstruction_method?: Maybe<Scalars['String']['output']>;
 };
 
 export type EmHelicalEntity = {
   /**
-   * The angular rotation per helical subunit in degrees.
+   * The angular rotation per helical subunit in degrees. Negative values indicate left-handed helices; positive values indicate right handed helices.
    *
    * Examples:
    * null
    *
    */
-  readonly angular_rotation_per_subunit?: Maybe<Scalars['Float']>;
+  readonly angular_rotation_per_subunit?: Maybe<Scalars['Float']['output']>;
   /**
    * The axial rise per subunit in the helical assembly.
    *
@@ -1808,7 +1873,7 @@ export type EmHelicalEntity = {
    * null
    *
    */
-  readonly axial_rise_per_subunit?: Maybe<Scalars['Float']>;
+  readonly axial_rise_per_subunit?: Maybe<Scalars['Float']['output']>;
   /**
    * Symmetry of the helical axis, either cyclic (Cn) or dihedral (Dn), where n>=1.
    *
@@ -1816,7 +1881,7 @@ export type EmHelicalEntity = {
    * C1, D2, C7
    *
    */
-  readonly axial_symmetry?: Maybe<Scalars['String']>;
+  readonly axial_symmetry?: Maybe<Scalars['String']['output']>;
   /**
    * Any other details regarding the helical assembly
    *
@@ -1824,18 +1889,11 @@ export type EmHelicalEntity = {
    * Dihedral symmetry
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
-  /**
-   * The value of _em_helical_entity.id must uniquely identify
-   *  a set of the filament parameters for this assembly component.
-   */
-  readonly id: Scalars['String'];
-  /**
-   * The value of _em_helical_entity.reconstruction_id identifies a particular reconstruction.
-   *
-   *  This data item is a pointer to _em_image_processing.id.
-   */
-  readonly image_processing_id: Scalars['String'];
+  readonly details?: Maybe<Scalars['String']['output']>;
+  /** PRIMARY KEY */
+  readonly id: Scalars['String']['output'];
+  /** This data item is a pointer to _em_image_processing.id. */
+  readonly image_processing_id: Scalars['String']['output'];
 };
 
 export type EmImageRecording = {
@@ -1846,7 +1904,7 @@ export type EmImageRecording = {
    * null
    *
    */
-  readonly average_exposure_time?: Maybe<Scalars['Float']>;
+  readonly average_exposure_time?: Maybe<Scalars['Float']['output']>;
   /**
    * The electron dose received by the specimen per image (electrons per square angstrom).
    *
@@ -1854,7 +1912,7 @@ export type EmImageRecording = {
    * null
    *
    */
-  readonly avg_electron_dose_per_image?: Maybe<Scalars['Float']>;
+  readonly avg_electron_dose_per_image?: Maybe<Scalars['Float']['output']>;
   /**
    * Any additional details about image recording.
    *
@@ -1862,7 +1920,7 @@ export type EmImageRecording = {
    * Images were collected in movie-mode at 17 frames per second
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * The detector mode used during image recording.
    *
@@ -1870,60 +1928,57 @@ export type EmImageRecording = {
    * COUNTING, INTEGRATING, OTHER, SUPER-RESOLUTION
    *
    */
-  readonly detector_mode?: Maybe<Scalars['String']>;
+  readonly detector_mode?: Maybe<Scalars['String']['output']>;
   /**
    * The detector type used for recording images.
-   *  Usually film or CCD camera.
+   *  Usually film , CCD camera or direct electron detector.
    */
-  readonly film_or_detector_model?: Maybe<Scalars['String']>;
-  /**
-   * The item _em_image_recording.id uniquely identifies
-   *  a set of recorded images.
-   */
-  readonly id: Scalars['String'];
+  readonly film_or_detector_model?: Maybe<Scalars['String']['output']>;
+  /** PRIMARY KEY */
+  readonly id: Scalars['String']['output'];
   /** This data item the id of the microscopy settings used in the imaging. */
-  readonly imaging_id: Scalars['String'];
+  readonly imaging_id: Scalars['String']['output'];
   /** The number of diffraction images collected. */
-  readonly num_diffraction_images?: Maybe<Scalars['Int']>;
+  readonly num_diffraction_images?: Maybe<Scalars['Int']['output']>;
   /** Number of grids in the microscopy session */
-  readonly num_grids_imaged?: Maybe<Scalars['Int']>;
+  readonly num_grids_imaged?: Maybe<Scalars['Int']['output']>;
   /** The number of micrograph images collected. */
-  readonly num_real_images?: Maybe<Scalars['Int']>;
+  readonly num_real_images?: Maybe<Scalars['Int']['output']>;
 };
 
 export type EmImaging = {
   /** A value of accelerating voltage (in kV) used for imaging. */
-  readonly accelerating_voltage?: Maybe<Scalars['Int']>;
+  readonly accelerating_voltage?: Maybe<Scalars['Int']['output']>;
   /**
-   * microscope alignment procedure
+   * The type of procedure used to align the microscope electron beam.
    *
    * Allowable values:
    * BASIC, COMA FREE, NONE, OTHER, ZEMLIN TABLEAU
    *
    */
-  readonly alignment_procedure?: Maybe<Scalars['String']>;
+  readonly alignment_procedure?: Maybe<Scalars['String']['output']>;
   /** astigmatism */
-  readonly astigmatism?: Maybe<Scalars['String']>;
+  readonly astigmatism?: Maybe<Scalars['String']['output']>;
   /**
    * The open diameter of the c2 condenser lens,
    *  in microns.
    */
-  readonly c2_aperture_diameter?: Maybe<Scalars['Float']>;
+  readonly c2_aperture_diameter?: Maybe<Scalars['Float']['output']>;
   /**
-   * The maximum defocus value of the objective lens (in nanometers) used
-   *  to obtain the recorded images.
+   * The maximum calibrated defocus value of the objective lens (in nanometers) used
+   *  to obtain the recorded images. Negative values refer to overfocus.
    */
-  readonly calibrated_defocus_max?: Maybe<Scalars['Float']>;
+  readonly calibrated_defocus_max?: Maybe<Scalars['Float']['output']>;
   /**
-   * The minimum defocus value of the objective lens (in nanometers) used
-   *  to obtain the recorded images.
+   * The minimum calibrated defocus value of the objective lens (in nanometers) used
+   *  to obtain the recorded images. Negative values refer to overfocus.
    */
-  readonly calibrated_defocus_min?: Maybe<Scalars['Float']>;
+  readonly calibrated_defocus_min?: Maybe<Scalars['Float']['output']>;
   /**
    * The magnification value obtained for a known standard just
    *  prior to, during or just after the imaging experiment.
    */
-  readonly calibrated_magnification?: Maybe<Scalars['Int']>;
+  readonly calibrated_magnification?: Maybe<Scalars['Int']['output']>;
   /**
    * Cryogen type used to maintain the specimen stage temperature during imaging
    *  in the microscope.
@@ -1932,7 +1987,7 @@ export type EmImaging = {
    * HELIUM, NITROGEN
    *
    */
-  readonly cryogen?: Maybe<Scalars['String']>;
+  readonly cryogen?: Maybe<Scalars['String']['output']>;
   /**
    * Date (YYYY-MM-DD) of imaging experiment or the date at which
    *  a series of experiments began.
@@ -1941,7 +1996,7 @@ export type EmImaging = {
    * 2001-05-08
    *
    */
-  readonly date?: Maybe<Scalars['Date']>;
+  readonly date?: Maybe<Scalars['Date']['output']>;
   /**
    * Any additional imaging details.
    *
@@ -1949,23 +2004,20 @@ export type EmImaging = {
    * Preliminary grid screening was performed manually.
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * The camera length (in millimeters). The camera length is the
    *  product of the objective focal length and the combined magnification
    *  of the intermediate and projector lenses when the microscope is
    *  operated in the diffraction mode.
    */
-  readonly detector_distance?: Maybe<Scalars['Float']>;
+  readonly detector_distance?: Maybe<Scalars['Float']['output']>;
   /** electron beam tilt params */
-  readonly electron_beam_tilt_params?: Maybe<Scalars['String']>;
+  readonly electron_beam_tilt_params?: Maybe<Scalars['String']['output']>;
   /** The source of electrons. The electron gun. */
-  readonly electron_source?: Maybe<Scalars['String']>;
-  /**
-   * The value of _em_imaging.id must uniquely identify
-   *  each imaging experiment.
-   */
-  readonly id: Scalars['String'];
+  readonly electron_source?: Maybe<Scalars['String']['output']>;
+  /** PRIMARY KEY */
+  readonly id: Scalars['String']['output'];
   /**
    * The mode of illumination.
    *
@@ -1973,15 +2025,15 @@ export type EmImaging = {
    * FLOOD BEAM, OTHER, SPOT SCAN
    *
    */
-  readonly illumination_mode?: Maybe<Scalars['String']>;
+  readonly illumination_mode?: Maybe<Scalars['String']['output']>;
   /**
    * The name of the model of microscope.
    *
    * Allowable values:
-   * FEI MORGAGNI, FEI POLARA 300, FEI TALOS ARCTICA, FEI TECNAI 10, FEI TECNAI 12, FEI TECNAI 20, FEI TECNAI ARCTICA, FEI TECNAI F20, FEI TECNAI F30, FEI TECNAI SPHERA, FEI TECNAI SPIRIT, FEI TITAN, FEI TITAN KRIOS, FEI/PHILIPS CM10, FEI/PHILIPS CM12, FEI/PHILIPS CM120T, FEI/PHILIPS CM200FEG, FEI/PHILIPS CM200FEG/SOPHIE, FEI/PHILIPS CM200FEG/ST, FEI/PHILIPS CM200FEG/UT, FEI/PHILIPS CM200T, FEI/PHILIPS CM300FEG/HE, FEI/PHILIPS CM300FEG/ST, FEI/PHILIPS CM300FEG/T, FEI/PHILIPS EM400, FEI/PHILIPS EM420, HITACHI EF2000, HITACHI EF3000, HITACHI H-9500SD, HITACHI H3000 UHVEM, HITACHI H7600, HITACHI HF2000, HITACHI HF3000, JEOL 1000EES, JEOL 100B, JEOL 100CX, JEOL 1010, JEOL 1200, JEOL 1200EX, JEOL 1200EXII, JEOL 1230, JEOL 1400, JEOL 2000EX, JEOL 2000EXII, JEOL 2010, JEOL 2010F, JEOL 2010HC, JEOL 2010HT, JEOL 2010UHR, JEOL 2011, JEOL 2100, JEOL 2100F, JEOL 2200FS, JEOL 2200FSC, JEOL 3000SFF, JEOL 3100FEF, JEOL 3100FFC, JEOL 3200FS, JEOL 3200FSC, JEOL 4000, JEOL 4000EX, JEOL CRYO ARM 200, JEOL CRYO ARM 300, JEOL KYOTO-3000SFF, SIEMENS SULEIKA, TFS GLACIOS, TFS KRIOS, TFS TALOS, TFS TALOS F200C, TFS TALOS L120C, TFS TUNDRA, ZEISS LEO912, ZEISS LIBRA120PLUS
+   * FEI MORGAGNI, FEI POLARA 300, FEI TALOS ARCTICA, FEI TECNAI 10, FEI TECNAI 12, FEI TECNAI 20, FEI TECNAI ARCTICA, FEI TECNAI F20, FEI TECNAI F30, FEI TECNAI SPHERA, FEI TECNAI SPIRIT, FEI TITAN, FEI TITAN KRIOS, FEI/PHILIPS CM10, FEI/PHILIPS CM12, FEI/PHILIPS CM120T, FEI/PHILIPS CM200FEG, FEI/PHILIPS CM200FEG/SOPHIE, FEI/PHILIPS CM200FEG/ST, FEI/PHILIPS CM200FEG/UT, FEI/PHILIPS CM200T, FEI/PHILIPS CM300FEG/HE, FEI/PHILIPS CM300FEG/ST, FEI/PHILIPS CM300FEG/T, FEI/PHILIPS EM400, FEI/PHILIPS EM420, HITACHI EF2000, HITACHI EF3000, HITACHI H-9500SD, HITACHI H3000 UHVEM, HITACHI H7600, HITACHI HF2000, HITACHI HF3000, JEOL 1000EES, JEOL 100B, JEOL 100CX, JEOL 1010, JEOL 1200, JEOL 1200EX, JEOL 1200EXII, JEOL 1230, JEOL 1400, JEOL 1400/HR + YPS FEG, JEOL 2000EX, JEOL 2000EXII, JEOL 2010, JEOL 2010F, JEOL 2010HC, JEOL 2010HT, JEOL 2010UHR, JEOL 2011, JEOL 2100, JEOL 2100F, JEOL 2200FS, JEOL 2200FSC, JEOL 3000SFF, JEOL 3100FEF, JEOL 3100FFC, JEOL 3200FS, JEOL 3200FSC, JEOL 4000, JEOL 4000EX, JEOL CRYO ARM 200, JEOL CRYO ARM 300, JEOL KYOTO-3000SFF, SIEMENS SULEIKA, TFS GLACIOS, TFS KRIOS, TFS TALOS, TFS TALOS F200C, TFS TALOS L120C, TFS TUNDRA, ZEISS LEO912, ZEISS LIBRA120PLUS
    *
    */
-  readonly microscope_model?: Maybe<Scalars['String']>;
+  readonly microscope_model?: Maybe<Scalars['String']['output']>;
   /**
    * The mode of imaging.
    *
@@ -1989,7 +2041,7 @@ export type EmImaging = {
    * BRIGHT FIELD, DARK FIELD, DIFFRACTION, OTHER
    *
    */
-  readonly mode?: Maybe<Scalars['String']>;
+  readonly mode?: Maybe<Scalars['String']['output']>;
   /**
    * The spherical aberration coefficient (Cs) in millimeters,
    *  of the objective lens.
@@ -1998,31 +2050,31 @@ export type EmImaging = {
    * null
    *
    */
-  readonly nominal_cs?: Maybe<Scalars['Float']>;
+  readonly nominal_cs?: Maybe<Scalars['Float']['output']>;
   /**
    * The maximum defocus value of the objective lens (in nanometers) used
-   *  to obtain the recorded images.
+   *  to obtain the recorded images. Negative values refer to overfocus.
    */
-  readonly nominal_defocus_max?: Maybe<Scalars['Float']>;
+  readonly nominal_defocus_max?: Maybe<Scalars['Float']['output']>;
   /**
    * The minimum defocus value of the objective lens (in nanometers) used
-   *  to obtain the recorded images.
+   *  to obtain the recorded images. Negative values refer to overfocus.
    */
-  readonly nominal_defocus_min?: Maybe<Scalars['Float']>;
+  readonly nominal_defocus_min?: Maybe<Scalars['Float']['output']>;
   /** The magnification indicated by the microscope readout. */
-  readonly nominal_magnification?: Maybe<Scalars['Int']>;
+  readonly nominal_magnification?: Maybe<Scalars['Int']['output']>;
   /**
    * The specimen temperature maximum (kelvin) for the duration
    *  of imaging.
    */
-  readonly recording_temperature_maximum?: Maybe<Scalars['Float']>;
+  readonly recording_temperature_maximum?: Maybe<Scalars['Float']['output']>;
   /**
    * The specimen temperature minimum (kelvin) for the duration
    *  of imaging.
    */
-  readonly recording_temperature_minimum?: Maybe<Scalars['Float']>;
-  /** residual tilt of the electron beam */
-  readonly residual_tilt?: Maybe<Scalars['Float']>;
+  readonly recording_temperature_minimum?: Maybe<Scalars['Float']['output']>;
+  /** Residual tilt of the electron beam (in miliradians) */
+  readonly residual_tilt?: Maybe<Scalars['Float']['output']>;
   /**
    * The name of the model of specimen holder used during imaging.
    *
@@ -2030,7 +2082,7 @@ export type EmImaging = {
    * FEI TITAN KRIOS AUTOGRID HOLDER, FISCHIONE 2550, FISCHIONE INSTRUMENTS DUAL AXIS TOMOGRAPHY HOLDER, GATAN 626 SINGLE TILT LIQUID NITROGEN CRYO TRANSFER HOLDER, GATAN 910 MULTI-SPECIMEN SINGLE TILT CRYO TRANSFER HOLDER, GATAN 914 HIGH TILT LIQUID NITROGEN CRYO TRANSFER TOMOGRAPHY HOLDER, GATAN 915 DOUBLE TILT LIQUID NITROGEN CRYO TRANSFER HOLDER, GATAN CHDT 3504 DOUBLE TILT HIGH RESOLUTION NITROGEN COOLING HOLDER, GATAN CT3500 SINGLE TILT LIQUID NITROGEN CRYO TRANSFER HOLDER, GATAN CT3500TR SINGLE TILT ROTATION LIQUID NITROGEN CRYO TRANSFER HOLDER, GATAN ELSA 698 SINGLE TILT LIQUID NITROGEN CRYO TRANSFER HOLDER, GATAN HC 3500 SINGLE TILT HEATING/NITROGEN COOLING HOLDER, GATAN HCHDT 3010 DOUBLE TILT HIGH RESOLUTION HELIUM COOLING HOLDER, GATAN HCHST 3008 SINGLE TILT HIGH RESOLUTION HELIUM COOLING HOLDER, GATAN HELIUM, GATAN LIQUID NITROGEN, GATAN UHRST 3500 SINGLE TILT ULTRA HIGH RESOLUTION NITROGEN COOLING HOLDER, GATAN ULTDT ULTRA LOW TEMPERATURE DOUBLE TILT HELIUM COOLING HOLDER, GATAN ULTST ULTRA LOW TEMPERATURE SINGLE TILT HELIUM COOLING HOLDER, HOME BUILD, JEOL, JEOL 3200FSC CRYOHOLDER, JEOL CRYOSPECPORTER, OTHER, PHILIPS ROTATION HOLDER, SIDE ENTRY, EUCENTRIC
    *
    */
-  readonly specimen_holder_model?: Maybe<Scalars['String']>;
+  readonly specimen_holder_model?: Maybe<Scalars['String']['output']>;
   /**
    * The type of specimen holder used during imaging.
    *
@@ -2038,51 +2090,52 @@ export type EmImaging = {
    * cryo
    *
    */
-  readonly specimen_holder_type?: Maybe<Scalars['String']>;
+  readonly specimen_holder_type?: Maybe<Scalars['String']['output']>;
   /** Foreign key to the EM_SPECIMEN category */
-  readonly specimen_id?: Maybe<Scalars['String']>;
+  readonly specimen_id?: Maybe<Scalars['String']['output']>;
   /**
    * The mean specimen stage temperature (in kelvin) during imaging
    *  in the microscope.
    */
-  readonly temperature?: Maybe<Scalars['Float']>;
+  readonly temperature?: Maybe<Scalars['Float']['output']>;
   /**
    * The maximum angle at which the specimen was tilted to obtain
    *  recorded images.
    */
-  readonly tilt_angle_max?: Maybe<Scalars['Float']>;
+  readonly tilt_angle_max?: Maybe<Scalars['Float']['output']>;
   /**
    * The minimum angle at which the specimen was tilted to obtain
    *  recorded images.
    */
-  readonly tilt_angle_min?: Maybe<Scalars['Float']>;
+  readonly tilt_angle_min?: Maybe<Scalars['Float']['output']>;
 };
 
 export type EmParticleSelection = {
   /**
-   * Any additional details used for selecting particles
+   * Additional detail such as description of filters used, if selection was
+   * manual or automated, and/or template details.
    *
    * Examples:
    * negative monitor contrast facilitated particle picking
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
-  /** Ordinal identifier */
-  readonly id: Scalars['String'];
+  readonly details?: Maybe<Scalars['String']['output']>;
+  /** PRIMARY KEY */
+  readonly id: Scalars['String']['output'];
   /**
    * The value of _em_particle_selection.image_processing_id points to
    *  the EM_IMAGE_PROCESSING category.
    */
-  readonly image_processing_id: Scalars['String'];
+  readonly image_processing_id: Scalars['String']['output'];
   /** The number of particles selected from the projection set of images. */
-  readonly num_particles_selected?: Maybe<Scalars['Int']>;
+  readonly num_particles_selected?: Maybe<Scalars['Int']['output']>;
 };
 
 export type EmSingleParticleEntity = {
-  /** Unique category label. */
-  readonly id: Scalars['Int'];
+  /** PRIMARY KEY */
+  readonly id: Scalars['Int']['output'];
   /** pointer to _em_image_processing.id. */
-  readonly image_processing_id: Scalars['String'];
+  readonly image_processing_id: Scalars['String']['output'];
   /**
    * Point symmetry symbol, either Cn, Dn, T, O, or I
    *
@@ -2090,7 +2143,7 @@ export type EmSingleParticleEntity = {
    * C1, C5, C4
    *
    */
-  readonly point_symmetry?: Maybe<Scalars['String']>;
+  readonly point_symmetry?: Maybe<Scalars['String']['output']>;
 };
 
 export type EmSoftware = {
@@ -2098,10 +2151,10 @@ export type EmSoftware = {
    * The purpose of the software.
    *
    * Allowable values:
-   * CLASSIFICATION, CRYSTALLOGRAPHY MERGING, CTF CORRECTION, DIFFRACTION INDEXING, FINAL EULER ASSIGNMENT, IMAGE ACQUISITION, INITIAL EULER ASSIGNMENT, LATTICE DISTORTION CORRECTION, LAYERLINE INDEXING, MASKING, MODEL FITTING, MODEL REFINEMENT, MOLECULAR REPLACEMENT, OTHER, PARTICLE SELECTION, RECONSTRUCTION, SERIES ALIGNMENT, SYMMETRY DETERMINATION, VOLUME SELECTION
+   * CLASSIFICATION, CRYSTALLOGRAPHY MERGING, CTF CORRECTION, DIFFRACTION INDEXING, EWALD SPHERE CORRECTION, FINAL EULER ASSIGNMENT, IMAGE ACQUISITION, INITIAL EULER ASSIGNMENT, LATTICE DISTORTION CORRECTION, LAYERLINE INDEXING, MASKING, MODEL FITTING, MODEL REFINEMENT, MOLECULAR REPLACEMENT, OTHER, PARTICLE SELECTION, RECONSTRUCTION, SERIES ALIGNMENT, SYMMETRY DETERMINATION, VOLUME SELECTION
    *
    */
-  readonly category?: Maybe<Scalars['String']>;
+  readonly category?: Maybe<Scalars['String']['output']>;
   /**
    * Details about the software used.
    *
@@ -2109,15 +2162,15 @@ export type EmSoftware = {
    * EMAN2 e2boxer.py was used to automatically select particle images.
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /** pointer to _em_3d_fitting.id in the EM_3D_FITTING category. */
-  readonly fitting_id?: Maybe<Scalars['String']>;
-  /** Unique identifier for each software description. */
-  readonly id: Scalars['String'];
+  readonly fitting_id?: Maybe<Scalars['String']['output']>;
+  /** PRIMARY KEY */
+  readonly id: Scalars['String']['output'];
   /** pointer to _em_image_processing.id in the EM_IMAGE_PROCESSING category. */
-  readonly image_processing_id?: Maybe<Scalars['String']>;
+  readonly image_processing_id?: Maybe<Scalars['String']['output']>;
   /** pointer to _em_imaging.id in the EM_IMAGING category. */
-  readonly imaging_id?: Maybe<Scalars['String']>;
+  readonly imaging_id?: Maybe<Scalars['String']['output']>;
   /**
    * The name of the software package used, e.g., RELION.  Depositors are strongly
    *   encouraged to provide a value in this field.
@@ -2126,7 +2179,7 @@ export type EmSoftware = {
    * EMAN, Imagic, Spider, Bsoft, UCSF-Chimera
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * The version of the software.
    *
@@ -2134,7 +2187,7 @@ export type EmSoftware = {
    * 9.03, 2.1
    *
    */
-  readonly version?: Maybe<Scalars['String']>;
+  readonly version?: Maybe<Scalars['String']['output']>;
 };
 
 export type EmSpecimen = {
@@ -2146,7 +2199,7 @@ export type EmSpecimen = {
    * null
    *
    */
-  readonly concentration?: Maybe<Scalars['Float']>;
+  readonly concentration?: Maybe<Scalars['Float']['output']>;
   /**
    * A description of any additional details of the specimen preparation.
    *
@@ -2154,7 +2207,7 @@ export type EmSpecimen = {
    * This sample was monodisperse., Au was deposited at a 30 degree angle to 15 nm thickness., Colloidal gold particles were deposited by dipping into dilute solution., The specimen was frozen at high pressure using the bal-tec hpm 010 instrument., The embedded sample was sectioned at 100 K to 50 nm final thickness.
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * 'YES' indicates that the specimen has been embedded.
    *
@@ -2162,14 +2215,11 @@ export type EmSpecimen = {
    * NO, YES
    *
    */
-  readonly embedding_applied?: Maybe<Scalars['String']>;
+  readonly embedding_applied?: Maybe<Scalars['String']['output']>;
   /** Pointer to _em_experiment.id. */
-  readonly experiment_id: Scalars['String'];
-  /**
-   * The item  _em_specimen.id uniquely identifies a specimen along with
-   *  its preparation methods.
-   */
-  readonly id: Scalars['String'];
+  readonly experiment_id: Scalars['String']['output'];
+  /** PRIMARY KEY */
+  readonly id: Scalars['String']['output'];
   /**
    * 'YES' indicates that the specimen has been shadowed.
    *
@@ -2177,7 +2227,7 @@ export type EmSpecimen = {
    * NO, YES
    *
    */
-  readonly shadowing_applied?: Maybe<Scalars['String']>;
+  readonly shadowing_applied?: Maybe<Scalars['String']['output']>;
   /**
    * 'YES' indicates that the specimen has been stained.
    *
@@ -2185,7 +2235,7 @@ export type EmSpecimen = {
    * NO, YES
    *
    */
-  readonly staining_applied?: Maybe<Scalars['String']>;
+  readonly staining_applied?: Maybe<Scalars['String']['output']>;
   /**
    * 'YES' indicates that the specimen was vitrified by cryopreservation.
    *
@@ -2193,7 +2243,7 @@ export type EmSpecimen = {
    * NO, YES
    *
    */
-  readonly vitrification_applied?: Maybe<Scalars['String']>;
+  readonly vitrification_applied?: Maybe<Scalars['String']['output']>;
 };
 
 export type EmStaining = {
@@ -2205,9 +2255,9 @@ export type EmStaining = {
    *   and uranyl-formate stain.
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
-  /** This data item is the primary key of the category. */
-  readonly id: Scalars['String'];
+  readonly details?: Maybe<Scalars['String']['output']>;
+  /** PRIMARY KEY */
+  readonly id: Scalars['String']['output'];
   /**
    * The staining  material.
    *
@@ -2215,9 +2265,9 @@ export type EmStaining = {
    * Uranyl Acetate
    *
    */
-  readonly material?: Maybe<Scalars['String']>;
-  /** Foreign key relationship to the EMD SPECIMEN category */
-  readonly specimen_id?: Maybe<Scalars['String']>;
+  readonly material?: Maybe<Scalars['String']['output']>;
+  /** Foreign key relationship to the EM SPECIMEN category */
+  readonly specimen_id?: Maybe<Scalars['String']['output']>;
   /**
    * type of staining
    *
@@ -2225,12 +2275,12 @@ export type EmStaining = {
    * NEGATIVE, NONE, POSITIVE
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type EmVitrification = {
   /** The temperature (in kelvin) of the sample just prior to vitrification. */
-  readonly chamber_temperature?: Maybe<Scalars['Float']>;
+  readonly chamber_temperature?: Maybe<Scalars['Float']['output']>;
   /**
    * This is the name of the cryogen.
    *
@@ -2238,7 +2288,7 @@ export type EmVitrification = {
    * ETHANE, ETHANE-PROPANE, FREON 12, FREON 22, HELIUM, METHANE, NITROGEN, OTHER, PROPANE
    *
    */
-  readonly cryogen_name?: Maybe<Scalars['String']>;
+  readonly cryogen_name?: Maybe<Scalars['String']['output']>;
   /**
    * Any additional details relating to vitrification.
    *
@@ -2246,22 +2296,22 @@ export type EmVitrification = {
    * Vitrification carried out in argon atmosphere.
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
-  /** The humidity (%) in the vicinity of the vitrification process. */
-  readonly humidity?: Maybe<Scalars['Float']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
-   * The value of _em_vitrification.id must uniquely identify
-   *  the vitrification procedure.
+   * Relative humidity (%) of air surrounding the specimen just prior to
+   * vitrification.
    */
-  readonly id: Scalars['String'];
+  readonly humidity?: Maybe<Scalars['Float']['output']>;
+  /** PRIMARY KEY */
+  readonly id: Scalars['String']['output'];
   /**
    * The type of instrument used in the vitrification process.
    *
    * Allowable values:
-   * EMS-002 RAPID IMMERSION FREEZER, FEI VITROBOT MARK I, FEI VITROBOT MARK II, FEI VITROBOT MARK III, FEI VITROBOT MARK IV, GATAN CRYOPLUNGE 3, HOMEMADE PLUNGER, LEICA EM CPC, LEICA EM GP, LEICA KF80, LEICA PLUNGER, REICHERT-JUNG PLUNGER, SPOTITON, ZEISS PLUNGE FREEZER CRYOBOX
+   * CRYOSOL VITROJET, EMS-002 RAPID IMMERSION FREEZER, FEI VITROBOT MARK I, FEI VITROBOT MARK II, FEI VITROBOT MARK III, FEI VITROBOT MARK IV, GATAN CRYOPLUNGE 3, HOMEMADE PLUNGER, LEICA EM CPC, LEICA EM GP, LEICA KF80, LEICA PLUNGER, REICHERT-JUNG PLUNGER, SPOTITON, ZEISS PLUNGE FREEZER CRYOBOX
    *
    */
-  readonly instrument?: Maybe<Scalars['String']>;
+  readonly instrument?: Maybe<Scalars['String']['output']>;
   /**
    * The procedure for vitrification.
    *
@@ -2269,14 +2319,14 @@ export type EmVitrification = {
    * plunge freezing
    *
    */
-  readonly method?: Maybe<Scalars['String']>;
+  readonly method?: Maybe<Scalars['String']['output']>;
   /** This data item is a pointer to _em_specimen.id */
-  readonly specimen_id: Scalars['String'];
+  readonly specimen_id: Scalars['String']['output'];
   /**
    * The vitrification temperature (in kelvin), e.g.,
    *   temperature of the plunge instrument cryogen bath.
    */
-  readonly temp?: Maybe<Scalars['Float']>;
+  readonly temp?: Maybe<Scalars['Float']['output']>;
   /**
    * The length of time after an event effecting the sample that
    *  vitrification was induced and a description of the event.
@@ -2285,7 +2335,7 @@ export type EmVitrification = {
    * plunge 30 msec after spraying with effector
    *
    */
-  readonly time_resolved_state?: Maybe<Scalars['String']>;
+  readonly time_resolved_state?: Maybe<Scalars['String']['output']>;
 };
 
 export type EntityPoly = {
@@ -2298,7 +2348,7 @@ export type EntityPoly = {
    * n, no, y, yes
    *
    */
-  readonly nstd_linkage?: Maybe<Scalars['String']>;
+  readonly nstd_linkage?: Maybe<Scalars['String']['output']>;
   /**
    * A flag to indicate whether the polymer contains at least
    *  one monomer that is not considered standard.
@@ -2307,7 +2357,7 @@ export type EntityPoly = {
    * n, no, y, yes
    *
    */
-  readonly nstd_monomer?: Maybe<Scalars['String']>;
+  readonly nstd_monomer?: Maybe<Scalars['String']['output']>;
   /**
    * Sequence of protein or nucleic acid polymer in standard one-letter
    *                codes of amino acids or nucleotides. Non-standard amino
@@ -2360,24 +2410,28 @@ export type EntityPoly = {
    * HHHH(MSE)AKQRSG or AUCGGAAU, (MSE)SHHWGYGKHNGPEHWHKDFPIAKGERQSPVDIDTHTAKYDPSLKPLSVSYDQATSLRILNNGAAFNVEFD
    *
    */
-  readonly pdbx_seq_one_letter_code?: Maybe<Scalars['String']>;
+  readonly pdbx_seq_one_letter_code?: Maybe<Scalars['String']['output']>;
   /**
    * Canonical sequence of protein or nucleic acid polymer in standard
-   *  one-letter codes of amino acids or nucleotides,
-   *  corresponding to the sequence in
-   *  _entity_poly.pdbx_seq_one_letter_code. Non-standard
-   *  amino acids/nucleotides are represented by the codes of
-   *  their parents if parent is specified in
-   *  _chem_comp.mon_nstd_parent_comp_id, or by letter 'X' if
-   *  parent is not specified. Deoxynucleotides are
-   *  represented by their canonical one-letter codes of A,
-   *  C, G, or T.
+   *                one-letter codes of amino acids or nucleotides,
+   *                corresponding to the sequence in
+   *                _entity_poly.pdbx_seq_one_letter_code. Non-standard
+   *                amino acids/nucleotides are represented by the codes of
+   *                their parents if parent is specified in
+   *                _chem_comp.mon_nstd_parent_comp_id, or by letter 'X' if
+   *                parent is not specified. Deoxynucleotides are
+   *                represented by their canonical one-letter codes of A,
+   *                C, G, or T.
+   *
+   *                For modifications with several parent amino acids,
+   * 	       all corresponding parent amino acid codes will be listed
+   * 	       (ex. chromophores).
    *
    * Examples:
    * MSHHWGYGKHNGPEHWHKDFPIAKGERQSPVDIDTHTAKYDPSLKPLSVSYDQATSLRILNNGAAFNVEFD
    *
    */
-  readonly pdbx_seq_one_letter_code_can?: Maybe<Scalars['String']>;
+  readonly pdbx_seq_one_letter_code_can?: Maybe<Scalars['String']['output']>;
   /**
    * Evidence for the assignment of the polymer sequence.
    *
@@ -2385,7 +2439,7 @@ export type EntityPoly = {
    * depositor provided, derived from coordinates
    *
    */
-  readonly pdbx_sequence_evidence_code?: Maybe<Scalars['String']>;
+  readonly pdbx_sequence_evidence_code?: Maybe<Scalars['String']['output']>;
   /**
    * The PDB strand/chain id(s) corresponding to this polymer entity.
    *
@@ -2393,7 +2447,7 @@ export type EntityPoly = {
    * A,B, A, B, A,B,C
    *
    */
-  readonly pdbx_strand_id?: Maybe<Scalars['String']>;
+  readonly pdbx_strand_id?: Maybe<Scalars['String']['output']>;
   /**
    * For Structural Genomics entries, the sequence's target identifier registered at the TargetTrack database.
    *
@@ -2401,16 +2455,16 @@ export type EntityPoly = {
    * JCSG-11211, 356560
    *
    */
-  readonly pdbx_target_identifier?: Maybe<Scalars['String']>;
+  readonly pdbx_target_identifier?: Maybe<Scalars['String']['output']>;
   /**
    * Number of regions in the sample sequence identified as expression tags, linkers, or
    *  cloning artifacts.
    */
-  readonly rcsb_artifact_monomer_count?: Maybe<Scalars['Int']>;
+  readonly rcsb_artifact_monomer_count?: Maybe<Scalars['Int']['output']>;
   /** Number of monomer conflicts relative to the reference sequence. */
-  readonly rcsb_conflict_count?: Maybe<Scalars['Int']>;
+  readonly rcsb_conflict_count?: Maybe<Scalars['Int']['output']>;
   /** Number of monomer deletions relative to the reference sequence. */
-  readonly rcsb_deletion_count?: Maybe<Scalars['Int']>;
+  readonly rcsb_deletion_count?: Maybe<Scalars['Int']['output']>;
   /**
    * A coarse-grained polymer entity type.
    *
@@ -2418,19 +2472,19 @@ export type EntityPoly = {
    * DNA, NA-hybrid, Other, Protein, RNA
    *
    */
-  readonly rcsb_entity_polymer_type?: Maybe<Scalars['String']>;
+  readonly rcsb_entity_polymer_type?: Maybe<Scalars['String']['output']>;
   /** Number of monomer insertions relative to the reference sequence. */
-  readonly rcsb_insertion_count?: Maybe<Scalars['Int']>;
+  readonly rcsb_insertion_count?: Maybe<Scalars['Int']['output']>;
   /** Number of engineered mutations engineered in the sample sequence. */
-  readonly rcsb_mutation_count?: Maybe<Scalars['Int']>;
+  readonly rcsb_mutation_count?: Maybe<Scalars['Int']['output']>;
   /** Number of non-standard monomers in the sample sequence. */
-  readonly rcsb_non_std_monomer_count?: Maybe<Scalars['Int']>;
+  readonly rcsb_non_std_monomer_count?: Maybe<Scalars['Int']['output']>;
   /** Unique list of non-standard monomer chemical component identifiers in the sample sequence. */
-  readonly rcsb_non_std_monomers?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly rcsb_non_std_monomers?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** For polymer BIRD molecules the BIRD identifier for the entity. */
-  readonly rcsb_prd_id?: Maybe<Scalars['String']>;
+  readonly rcsb_prd_id?: Maybe<Scalars['String']['output']>;
   /** The monomer length of the sample sequence. */
-  readonly rcsb_sample_sequence_length?: Maybe<Scalars['Int']>;
+  readonly rcsb_sample_sequence_length?: Maybe<Scalars['Int']['output']>;
   /**
    * The type of the polymer.
    *
@@ -2438,7 +2492,7 @@ export type EntityPoly = {
    * cyclic-pseudo-peptide, other, peptide nucleic acid, polydeoxyribonucleotide, polydeoxyribonucleotide/polyribonucleotide hybrid, polypeptide(D), polypeptide(L), polyribonucleotide
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type EntitySrcGen = {
@@ -2447,7 +2501,7 @@ export type EntitySrcGen = {
    *  should be extracted from a local list of expression
    *  systems.
    */
-  readonly expression_system_id?: Maybe<Scalars['String']>;
+  readonly expression_system_id?: Maybe<Scalars['String']['output']>;
   /**
    * The common name of the natural organism from which the gene was
    *  obtained.
@@ -2456,12 +2510,12 @@ export type EntitySrcGen = {
    * man, yeast, bacteria
    *
    */
-  readonly gene_src_common_name?: Maybe<Scalars['String']>;
+  readonly gene_src_common_name?: Maybe<Scalars['String']['output']>;
   /**
    * A description of special aspects of the natural organism from
    *  which the gene was obtained.
    */
-  readonly gene_src_details?: Maybe<Scalars['String']>;
+  readonly gene_src_details?: Maybe<Scalars['String']['output']>;
   /**
    * The genus of the natural organism from which the gene was
    *  obtained.
@@ -2470,7 +2524,7 @@ export type EntitySrcGen = {
    * Homo, Saccharomyces, Escherichia
    *
    */
-  readonly gene_src_genus?: Maybe<Scalars['String']>;
+  readonly gene_src_genus?: Maybe<Scalars['String']['output']>;
   /**
    * The species of the natural organism from which the gene was
    *  obtained.
@@ -2479,7 +2533,7 @@ export type EntitySrcGen = {
    * sapiens, cerevisiae, coli
    *
    */
-  readonly gene_src_species?: Maybe<Scalars['String']>;
+  readonly gene_src_species?: Maybe<Scalars['String']['output']>;
   /**
    * The strain of the natural organism from which the gene was
    *  obtained, if relevant.
@@ -2488,7 +2542,7 @@ export type EntitySrcGen = {
    * DH5a, BMH 71-18
    *
    */
-  readonly gene_src_strain?: Maybe<Scalars['String']>;
+  readonly gene_src_strain?: Maybe<Scalars['String']['output']>;
   /**
    * The tissue of the natural organism from which the gene was
    *  obtained.
@@ -2497,7 +2551,7 @@ export type EntitySrcGen = {
    * heart, liver, eye lens
    *
    */
-  readonly gene_src_tissue?: Maybe<Scalars['String']>;
+  readonly gene_src_tissue?: Maybe<Scalars['String']['output']>;
   /**
    * The subcellular fraction of the tissue of the natural organism
    *  from which the gene was obtained.
@@ -2506,7 +2560,7 @@ export type EntitySrcGen = {
    * mitochondria, nucleus, membrane
    *
    */
-  readonly gene_src_tissue_fraction?: Maybe<Scalars['String']>;
+  readonly gene_src_tissue_fraction?: Maybe<Scalars['String']['output']>;
   /**
    * The common name of the organism that served as host for the
    *  production of the entity.  Where full details of the protein
@@ -2518,14 +2572,14 @@ export type EntitySrcGen = {
    * yeast, bacteria
    *
    */
-  readonly host_org_common_name?: Maybe<Scalars['String']>;
+  readonly host_org_common_name?: Maybe<Scalars['String']['output']>;
   /**
    * A description of special aspects of the organism that served as
    *  host for the production of the entity. Where full details of
    *  the protein production are available it would be expected that
    *  this item would derived from _entity_src_gen_express.host_org_details
    */
-  readonly host_org_details?: Maybe<Scalars['String']>;
+  readonly host_org_details?: Maybe<Scalars['String']['output']>;
   /**
    * The genus of the organism that served as host for the production
    *  of the entity.
@@ -2534,7 +2588,7 @@ export type EntitySrcGen = {
    * Saccharomyces, Escherichia
    *
    */
-  readonly host_org_genus?: Maybe<Scalars['String']>;
+  readonly host_org_genus?: Maybe<Scalars['String']['output']>;
   /**
    * The species of the organism that served as host for the
    *  production of the entity.
@@ -2543,7 +2597,7 @@ export type EntitySrcGen = {
    * cerevisiae, coli
    *
    */
-  readonly host_org_species?: Maybe<Scalars['String']>;
+  readonly host_org_species?: Maybe<Scalars['String']['output']>;
   /**
    * This data item identifies cases in which an alternative source
    *  modeled.
@@ -2552,23 +2606,23 @@ export type EntitySrcGen = {
    * model, sample
    *
    */
-  readonly pdbx_alt_source_flag?: Maybe<Scalars['String']>;
+  readonly pdbx_alt_source_flag?: Maybe<Scalars['String']['output']>;
   /**
    * The beginning polymer sequence position for the polymer section corresponding
    *  to this source.
    *
    *  A reference to the sequence position in the entity_poly category.
    */
-  readonly pdbx_beg_seq_num?: Maybe<Scalars['Int']>;
+  readonly pdbx_beg_seq_num?: Maybe<Scalars['Int']['output']>;
   /** Information on the source which is not given elsewhere. */
-  readonly pdbx_description?: Maybe<Scalars['String']>;
+  readonly pdbx_description?: Maybe<Scalars['String']['output']>;
   /**
    * The ending polymer sequence position for the polymer section corresponding
    *  to this source.
    *
    *  A reference to the sequence position in the entity_poly category.
    */
-  readonly pdbx_end_seq_num?: Maybe<Scalars['Int']>;
+  readonly pdbx_end_seq_num?: Maybe<Scalars['Int']['output']>;
   /**
    * American Type Culture Collection tissue culture number.
    *
@@ -2576,7 +2630,7 @@ export type EntitySrcGen = {
    * 6051
    *
    */
-  readonly pdbx_gene_src_atcc?: Maybe<Scalars['String']>;
+  readonly pdbx_gene_src_atcc?: Maybe<Scalars['String']['output']>;
   /**
    * Cell type.
    *
@@ -2584,7 +2638,7 @@ export type EntitySrcGen = {
    * ENDOTHELIAL
    *
    */
-  readonly pdbx_gene_src_cell?: Maybe<Scalars['String']>;
+  readonly pdbx_gene_src_cell?: Maybe<Scalars['String']['output']>;
   /**
    * The specific line of cells.
    *
@@ -2592,7 +2646,7 @@ export type EntitySrcGen = {
    * HELA CELLS
    *
    */
-  readonly pdbx_gene_src_cell_line?: Maybe<Scalars['String']>;
+  readonly pdbx_gene_src_cell_line?: Maybe<Scalars['String']['output']>;
   /**
    * Identifies the location inside (or outside) the cell.
    *
@@ -2600,7 +2654,7 @@ export type EntitySrcGen = {
    * CYTOPLASM, NUCLEUS
    *
    */
-  readonly pdbx_gene_src_cellular_location?: Maybe<Scalars['String']>;
+  readonly pdbx_gene_src_cellular_location?: Maybe<Scalars['String']['output']>;
   /**
    * A domain or fragment of the molecule.
    *
@@ -2608,9 +2662,9 @@ export type EntitySrcGen = {
    * CYTOPLASM, NUCLEUS
    *
    */
-  readonly pdbx_gene_src_fragment?: Maybe<Scalars['String']>;
+  readonly pdbx_gene_src_fragment?: Maybe<Scalars['String']['output']>;
   /** Identifies the gene. */
-  readonly pdbx_gene_src_gene?: Maybe<Scalars['String']>;
+  readonly pdbx_gene_src_gene?: Maybe<Scalars['String']['output']>;
   /**
    * NCBI Taxonomy identifier for the gene source organism.
    *
@@ -2624,7 +2678,7 @@ export type EntitySrcGen = {
    *  Benson DA, Karsch-Mizrachi I, Lipman DJ, Ostell J, Rapp BA,
    *  Wheeler DL (2000). GenBank. Nucleic Acids Res 2000 Jan 1;28(1):15-18.
    */
-  readonly pdbx_gene_src_ncbi_taxonomy_id?: Maybe<Scalars['String']>;
+  readonly pdbx_gene_src_ncbi_taxonomy_id?: Maybe<Scalars['String']['output']>;
   /**
    * Organized group of tissues that carries on a specialized function.
    *
@@ -2632,7 +2686,7 @@ export type EntitySrcGen = {
    * KIDNEY, LIVER, PANCREAS
    *
    */
-  readonly pdbx_gene_src_organ?: Maybe<Scalars['String']>;
+  readonly pdbx_gene_src_organ?: Maybe<Scalars['String']['output']>;
   /**
    * Organized structure within cell.
    *
@@ -2640,7 +2694,7 @@ export type EntitySrcGen = {
    * MITOCHONDRIA
    *
    */
-  readonly pdbx_gene_src_organelle?: Maybe<Scalars['String']>;
+  readonly pdbx_gene_src_organelle?: Maybe<Scalars['String']['output']>;
   /**
    * Scientific name of the organism.
    *
@@ -2648,7 +2702,7 @@ export type EntitySrcGen = {
    * Homo sapiens, Saccharomyces Cerevisiae
    *
    */
-  readonly pdbx_gene_src_scientific_name?: Maybe<Scalars['String']>;
+  readonly pdbx_gene_src_scientific_name?: Maybe<Scalars['String']['output']>;
   /**
    * Identifies the variant.
    *
@@ -2656,14 +2710,14 @@ export type EntitySrcGen = {
    * DELTAH1DELTATRP
    *
    */
-  readonly pdbx_gene_src_variant?: Maybe<Scalars['String']>;
+  readonly pdbx_gene_src_variant?: Maybe<Scalars['String']['output']>;
   /**
    * Americal Tissue Culture Collection of the expression system. Where
    *  full details of the protein production are available it would
    *  be expected that this item  would be derived from
    *  _entity_src_gen_express.host_org_culture_collection
    */
-  readonly pdbx_host_org_atcc?: Maybe<Scalars['String']>;
+  readonly pdbx_host_org_atcc?: Maybe<Scalars['String']['output']>;
   /**
    * Cell type from which the gene is derived. Where
    *  entity.target_id is provided this should be derived from
@@ -2673,7 +2727,7 @@ export type EntitySrcGen = {
    * ENDOTHELIAL
    *
    */
-  readonly pdbx_host_org_cell?: Maybe<Scalars['String']>;
+  readonly pdbx_host_org_cell?: Maybe<Scalars['String']['output']>;
   /**
    * A specific line of cells used as the expression system. Where
    *  full details of the protein production are available it would
@@ -2684,7 +2738,7 @@ export type EntitySrcGen = {
    * HELA
    *
    */
-  readonly pdbx_host_org_cell_line?: Maybe<Scalars['String']>;
+  readonly pdbx_host_org_cell_line?: Maybe<Scalars['String']['output']>;
   /**
    * Identifies the location inside (or outside) the cell which
    *  expressed the molecule.
@@ -2693,14 +2747,14 @@ export type EntitySrcGen = {
    * CYTOPLASM, NUCLEUS
    *
    */
-  readonly pdbx_host_org_cellular_location?: Maybe<Scalars['String']>;
+  readonly pdbx_host_org_cellular_location?: Maybe<Scalars['String']['output']>;
   /**
    * Culture collection of the expression system. Where
    *  full details of the protein production are available it would
    *  be expected that this item  would be derived somehwere, but
    *  exactly where is not clear.
    */
-  readonly pdbx_host_org_culture_collection?: Maybe<Scalars['String']>;
+  readonly pdbx_host_org_culture_collection?: Maybe<Scalars['String']['output']>;
   /**
    * Specific gene which expressed the molecule.
    *
@@ -2708,7 +2762,7 @@ export type EntitySrcGen = {
    * HIV-1 POL, GLNS7, U1A (2-98, Y31H, Q36R)
    *
    */
-  readonly pdbx_host_org_gene?: Maybe<Scalars['String']>;
+  readonly pdbx_host_org_gene?: Maybe<Scalars['String']['output']>;
   /**
    * NCBI Taxonomy identifier for the expression system organism.
    *
@@ -2722,7 +2776,7 @@ export type EntitySrcGen = {
    *  Benson DA, Karsch-Mizrachi I, Lipman DJ, Ostell J, Rapp BA,
    *  Wheeler DL (2000). GenBank. Nucleic Acids Res 2000 Jan 1;28(1):15-18.
    */
-  readonly pdbx_host_org_ncbi_taxonomy_id?: Maybe<Scalars['String']>;
+  readonly pdbx_host_org_ncbi_taxonomy_id?: Maybe<Scalars['String']['output']>;
   /**
    * Specific organ which expressed the molecule.
    *
@@ -2730,7 +2784,7 @@ export type EntitySrcGen = {
    * KIDNEY
    *
    */
-  readonly pdbx_host_org_organ?: Maybe<Scalars['String']>;
+  readonly pdbx_host_org_organ?: Maybe<Scalars['String']['output']>;
   /**
    * Specific organelle which expressed the molecule.
    *
@@ -2738,7 +2792,7 @@ export type EntitySrcGen = {
    * MITOCHONDRIA
    *
    */
-  readonly pdbx_host_org_organelle?: Maybe<Scalars['String']>;
+  readonly pdbx_host_org_organelle?: Maybe<Scalars['String']['output']>;
   /**
    * The scientific name of the organism that served as host for the
    *  production of the entity. Where full details of the protein
@@ -2750,7 +2804,7 @@ export type EntitySrcGen = {
    * ESCHERICHIA COLI, SACCHAROMYCES CEREVISIAE
    *
    */
-  readonly pdbx_host_org_scientific_name?: Maybe<Scalars['String']>;
+  readonly pdbx_host_org_scientific_name?: Maybe<Scalars['String']['output']>;
   /**
    * The strain of the organism in which the entity was
    * expressed.
@@ -2759,7 +2813,7 @@ export type EntitySrcGen = {
    * AR120
    *
    */
-  readonly pdbx_host_org_strain?: Maybe<Scalars['String']>;
+  readonly pdbx_host_org_strain?: Maybe<Scalars['String']['output']>;
   /**
    * The specific tissue which expressed the molecule. Where full details
    *  of the protein production are available it would be expected that this
@@ -2769,7 +2823,7 @@ export type EntitySrcGen = {
    * heart, liver, eye lens
    *
    */
-  readonly pdbx_host_org_tissue?: Maybe<Scalars['String']>;
+  readonly pdbx_host_org_tissue?: Maybe<Scalars['String']['output']>;
   /**
    * The fraction of the tissue which expressed the
    * molecule.
@@ -2778,7 +2832,7 @@ export type EntitySrcGen = {
    * mitochondria, nucleus, membrane
    *
    */
-  readonly pdbx_host_org_tissue_fraction?: Maybe<Scalars['String']>;
+  readonly pdbx_host_org_tissue_fraction?: Maybe<Scalars['String']['output']>;
   /**
    * Variant of the organism used as the expression system. Where
    *  full details of the protein production are available it would
@@ -2790,7 +2844,7 @@ export type EntitySrcGen = {
    * TRP-LAC, LAMBDA DE3
    *
    */
-  readonly pdbx_host_org_variant?: Maybe<Scalars['String']>;
+  readonly pdbx_host_org_variant?: Maybe<Scalars['String']['output']>;
   /**
    * Identifies the vector used. Where full details of the protein
    *  production are available it would be expected that this item
@@ -2800,7 +2854,7 @@ export type EntitySrcGen = {
    * PBIT36, PET15B, PUC18
    *
    */
-  readonly pdbx_host_org_vector?: Maybe<Scalars['String']>;
+  readonly pdbx_host_org_vector?: Maybe<Scalars['String']['output']>;
   /**
    * Identifies the type of vector used (plasmid, virus, or cosmid).
    *  Where full details of the protein production are available it
@@ -2811,7 +2865,7 @@ export type EntitySrcGen = {
    * COSMID, PLASMID
    *
    */
-  readonly pdbx_host_org_vector_type?: Maybe<Scalars['String']>;
+  readonly pdbx_host_org_vector_type?: Maybe<Scalars['String']['output']>;
   /**
    * This data item povides additional information about the sequence type.
    *
@@ -2819,9 +2873,9 @@ export type EntitySrcGen = {
    * Biological sequence, C-terminal tag, Linker, N-terminal tag
    *
    */
-  readonly pdbx_seq_type?: Maybe<Scalars['String']>;
+  readonly pdbx_seq_type?: Maybe<Scalars['String']['output']>;
   /** This data item is an ordinal identifier for entity_src_gen data records. */
-  readonly pdbx_src_id: Scalars['Int'];
+  readonly pdbx_src_id: Scalars['Int']['output'];
   /**
    * A description of special aspects of the plasmid that produced the
    *  entity in the host organism. Where full details of the protein
@@ -2829,7 +2883,7 @@ export type EntitySrcGen = {
    *  would be derived from _pdbx_construct.details of the construct
    *  pointed to from _entity_src_gen_express.plasmid_id.
    */
-  readonly plasmid_details?: Maybe<Scalars['String']>;
+  readonly plasmid_details?: Maybe<Scalars['String']['output']>;
   /**
    * The name of the plasmid that produced the entity in the host
    *  organism. Where full details of the protein production are available
@@ -2841,7 +2895,7 @@ export type EntitySrcGen = {
    * pET3C, pT123sab
    *
    */
-  readonly plasmid_name?: Maybe<Scalars['String']>;
+  readonly plasmid_name?: Maybe<Scalars['String']['output']>;
 };
 
 export type EntitySrcNat = {
@@ -2853,12 +2907,12 @@ export type EntitySrcNat = {
    * man, yeast, bacteria
    *
    */
-  readonly common_name?: Maybe<Scalars['String']>;
+  readonly common_name?: Maybe<Scalars['String']['output']>;
   /**
    * A description of special aspects of the organism from which the
    *  entity was isolated.
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * The genus of the organism from which the entity was isolated.
    *
@@ -2866,7 +2920,7 @@ export type EntitySrcNat = {
    * Homo, Saccharomyces, Escherichia
    *
    */
-  readonly genus?: Maybe<Scalars['String']>;
+  readonly genus?: Maybe<Scalars['String']['output']>;
   /**
    * This data item identifies cases in which an alternative source
    *  modeled.
@@ -2875,7 +2929,7 @@ export type EntitySrcNat = {
    * model, sample
    *
    */
-  readonly pdbx_alt_source_flag?: Maybe<Scalars['String']>;
+  readonly pdbx_alt_source_flag?: Maybe<Scalars['String']['output']>;
   /**
    * Americal Tissue Culture Collection number.
    *
@@ -2883,14 +2937,14 @@ export type EntitySrcNat = {
    * 6051
    *
    */
-  readonly pdbx_atcc?: Maybe<Scalars['String']>;
+  readonly pdbx_atcc?: Maybe<Scalars['String']['output']>;
   /**
    * The beginning polymer sequence position for the polymer section corresponding
    *  to this source.
    *
    *  A reference to the sequence position in the entity_poly category.
    */
-  readonly pdbx_beg_seq_num?: Maybe<Scalars['Int']>;
+  readonly pdbx_beg_seq_num?: Maybe<Scalars['Int']['output']>;
   /**
    * A particular cell type.
    *
@@ -2898,7 +2952,7 @@ export type EntitySrcNat = {
    * BHK-21
    *
    */
-  readonly pdbx_cell?: Maybe<Scalars['String']>;
+  readonly pdbx_cell?: Maybe<Scalars['String']['output']>;
   /**
    * The specific line of cells.
    *
@@ -2906,18 +2960,18 @@ export type EntitySrcNat = {
    * HELA
    *
    */
-  readonly pdbx_cell_line?: Maybe<Scalars['String']>;
+  readonly pdbx_cell_line?: Maybe<Scalars['String']['output']>;
   /** Identifies the location inside (or outside) the cell. */
-  readonly pdbx_cellular_location?: Maybe<Scalars['String']>;
+  readonly pdbx_cellular_location?: Maybe<Scalars['String']['output']>;
   /**
    * The ending polymer sequence position for the polymer section corresponding
    *  to this source.
    *
    *  A reference to the sequence position in the entity_poly category.
    */
-  readonly pdbx_end_seq_num?: Maybe<Scalars['Int']>;
+  readonly pdbx_end_seq_num?: Maybe<Scalars['Int']['output']>;
   /** A domain or fragment of the molecule. */
-  readonly pdbx_fragment?: Maybe<Scalars['String']>;
+  readonly pdbx_fragment?: Maybe<Scalars['String']['output']>;
   /**
    * NCBI Taxonomy identifier for the source organism.
    *
@@ -2931,7 +2985,7 @@ export type EntitySrcNat = {
    *  Benson DA, Karsch-Mizrachi I, Lipman DJ, Ostell J, Rapp BA,
    *  Wheeler DL (2000). GenBank. Nucleic Acids Res 2000 Jan 1;28(1):15-18.
    */
-  readonly pdbx_ncbi_taxonomy_id?: Maybe<Scalars['String']>;
+  readonly pdbx_ncbi_taxonomy_id?: Maybe<Scalars['String']['output']>;
   /**
    * Organized group of tissues that carries on a specialized function.
    *
@@ -2939,7 +2993,7 @@ export type EntitySrcNat = {
    * KIDNEY
    *
    */
-  readonly pdbx_organ?: Maybe<Scalars['String']>;
+  readonly pdbx_organ?: Maybe<Scalars['String']['output']>;
   /**
    * Organized structure within cell.
    *
@@ -2947,7 +3001,7 @@ export type EntitySrcNat = {
    * MITOCHONDRIA
    *
    */
-  readonly pdbx_organelle?: Maybe<Scalars['String']>;
+  readonly pdbx_organelle?: Maybe<Scalars['String']['output']>;
   /**
    * Scientific name of the organism of the natural source.
    *
@@ -2955,7 +3009,7 @@ export type EntitySrcNat = {
    * Bos taurus, BOS TAURUS, SUS SCROFA, ASPERGILLUS ORYZAE
    *
    */
-  readonly pdbx_organism_scientific?: Maybe<Scalars['String']>;
+  readonly pdbx_organism_scientific?: Maybe<Scalars['String']['output']>;
   /**
    * Details about the plasmid.
    *
@@ -2963,7 +3017,7 @@ export type EntitySrcNat = {
    * PLC28 DERIVATIVE
    *
    */
-  readonly pdbx_plasmid_details?: Maybe<Scalars['String']>;
+  readonly pdbx_plasmid_details?: Maybe<Scalars['String']['output']>;
   /**
    * The plasmid containing the gene.
    *
@@ -2971,7 +3025,7 @@ export type EntitySrcNat = {
    * pB322
    *
    */
-  readonly pdbx_plasmid_name?: Maybe<Scalars['String']>;
+  readonly pdbx_plasmid_name?: Maybe<Scalars['String']['output']>;
   /**
    * Identifies the secretion from which the molecule was isolated.
    *
@@ -2979,11 +3033,11 @@ export type EntitySrcNat = {
    * saliva, urine, venom
    *
    */
-  readonly pdbx_secretion?: Maybe<Scalars['String']>;
+  readonly pdbx_secretion?: Maybe<Scalars['String']['output']>;
   /** This data item is an ordinal identifier for entity_src_nat data records. */
-  readonly pdbx_src_id: Scalars['Int'];
+  readonly pdbx_src_id: Scalars['Int']['output'];
   /** Identifies the variant. */
-  readonly pdbx_variant?: Maybe<Scalars['String']>;
+  readonly pdbx_variant?: Maybe<Scalars['String']['output']>;
   /**
    * The species of the organism from which the entity was isolated.
    *
@@ -2991,7 +3045,7 @@ export type EntitySrcNat = {
    * sapiens, cerevisiae, coli
    *
    */
-  readonly species?: Maybe<Scalars['String']>;
+  readonly species?: Maybe<Scalars['String']['output']>;
   /**
    * The strain of the organism from which the entity was isolated.
    *
@@ -2999,7 +3053,7 @@ export type EntitySrcNat = {
    * DH5a, BMH 71-18
    *
    */
-  readonly strain?: Maybe<Scalars['String']>;
+  readonly strain?: Maybe<Scalars['String']['output']>;
   /**
    * The tissue of the organism from which the entity was isolated.
    *
@@ -3007,7 +3061,7 @@ export type EntitySrcNat = {
    * heart, liver, eye lens
    *
    */
-  readonly tissue?: Maybe<Scalars['String']>;
+  readonly tissue?: Maybe<Scalars['String']['output']>;
   /**
    * The subcellular fraction of the tissue of the organism from
    *  which the entity was isolated.
@@ -3016,7 +3070,7 @@ export type EntitySrcNat = {
    * mitochondria, nucleus, membrane
    *
    */
-  readonly tissue_fraction?: Maybe<Scalars['String']>;
+  readonly tissue_fraction?: Maybe<Scalars['String']['output']>;
 };
 
 export type Entry = {
@@ -3026,9 +3080,9 @@ export type Entry = {
    *  Note that this item need not be a number; it can be any unique
    *  identifier.
    */
-  readonly id: Scalars['String'];
+  readonly id: Scalars['String']['output'];
   /** An identifier for the model collection associated with the entry. */
-  readonly ma_collection_id?: Maybe<Scalars['String']>;
+  readonly ma_collection_id?: Maybe<Scalars['String']['output']>;
 };
 
 export type Exptl = {
@@ -3036,12 +3090,12 @@ export type Exptl = {
    * The total number of crystals used in the  measurement of
    *  intensities.
    */
-  readonly crystals_number?: Maybe<Scalars['Int']>;
+  readonly crystals_number?: Maybe<Scalars['Int']['output']>;
   /**
    * Any special information about the experimental work prior to the
    *  intensity measurement. See also _exptl_crystal.preparation.
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * The method used in the experiment.
    *
@@ -3049,7 +3103,7 @@ export type Exptl = {
    * ELECTRON CRYSTALLOGRAPHY, ELECTRON MICROSCOPY, EPR, FIBER DIFFRACTION, FLUORESCENCE TRANSFER, INFRARED SPECTROSCOPY, NEUTRON DIFFRACTION, POWDER DIFFRACTION, SOLID-STATE NMR, SOLUTION NMR, SOLUTION SCATTERING, THEORETICAL MODEL, X-RAY DIFFRACTION
    *
    */
-  readonly method: Scalars['String'];
+  readonly method: Scalars['String']['output'];
   /**
    * A description of special aspects of the experimental method.
    *
@@ -3057,7 +3111,7 @@ export type Exptl = {
    * 29 structures, minimized average structure
    *
    */
-  readonly method_details?: Maybe<Scalars['String']>;
+  readonly method_details?: Maybe<Scalars['String']['output']>;
 };
 
 export type ExptlCrystal = {
@@ -3068,7 +3122,7 @@ export type ExptlCrystal = {
    * dark green
    *
    */
-  readonly colour?: Maybe<Scalars['String']>;
+  readonly colour?: Maybe<Scalars['String']['output']>;
   /**
    * The density of the crystal, expressed as the ratio of the
    *  volume of the asymmetric unit to the molecular mass of a
@@ -3080,13 +3134,13 @@ export type ExptlCrystal = {
    * null
    *
    */
-  readonly density_Matthews?: Maybe<Scalars['Float']>;
+  readonly density_Matthews?: Maybe<Scalars['Float']['output']>;
   /**
    * Density values measured using standard chemical and physical
    *  methods. The units are megagrams per cubic metre (grams per
    *  cubic centimetre).
    */
-  readonly density_meas?: Maybe<Scalars['Float']>;
+  readonly density_meas?: Maybe<Scalars['Float']['output']>;
   /**
    * Density value P calculated from the crystal cell and contents,
    *  expressed as per cent solvent.
@@ -3105,7 +3159,7 @@ export type ExptlCrystal = {
    *          where 0.74 is an assumed value for the partial specific
    *          volume of the molecule
    */
-  readonly density_percent_sol?: Maybe<Scalars['Float']>;
+  readonly density_percent_sol?: Maybe<Scalars['Float']['output']>;
   /**
    * A description of the quality and habit of the crystal.
    *  The crystal dimensions should not normally be reported here;
@@ -3114,7 +3168,7 @@ export type ExptlCrystal = {
    *  data items in the EXPTL_CRYSTAL_FACE category to describe the
    *  relationship between individual faces.
    */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _exptl_crystal.id must uniquely identify a record in
    *  the EXPTL_CRYSTAL list.
@@ -3122,15 +3176,25 @@ export type ExptlCrystal = {
    *  Note that this item need not be a number; it can be any unique
    *  identifier.
    */
-  readonly id: Scalars['String'];
+  readonly id: Scalars['String']['output'];
   /**
-   * The of the distribution of mis-orientation angles specified in degrees
-   * of all the unit cells in the crystal. Lower mosaicity indicates better
-   * ordered crystals.
+   * Isotropic approximation of the distribution of mis-orientation angles
+   * specified in degrees of all the mosaic domain blocks in the crystal,
+   * represented as a standard deviation. Here, a mosaic block is a set of
+   * contiguous unit cells assumed to be perfectly aligned. Lower mosaicity
+   * indicates better ordered crystals. See for example:
+   *
+   * Nave, C. (1998). Acta Cryst. D54, 848-853.
+   *
+   * Note that many software packages estimate the mosaic rotation distribution
+   * differently and may combine several physical properties of the experiment
+   * into a single mosaic term. This term will help fit the modeled spots
+   * to the observed spots without necessarily being directly related to the
+   * physics of the crystal itself.
    */
-  readonly pdbx_mosaicity?: Maybe<Scalars['Float']>;
+  readonly pdbx_mosaicity?: Maybe<Scalars['Float']['output']>;
   /** The uncertainty in the mosaicity estimate for the crystal. */
-  readonly pdbx_mosaicity_esd?: Maybe<Scalars['Float']>;
+  readonly pdbx_mosaicity_esd?: Maybe<Scalars['Float']['output']>;
   /**
    * Details of crystal growth and preparation of the crystal (e.g.
    *  mounting) prior to the intensity measurements.
@@ -3139,7 +3203,7 @@ export type ExptlCrystal = {
    * mounted in an argon-filled quartz capillary
    *
    */
-  readonly preparation?: Maybe<Scalars['String']>;
+  readonly preparation?: Maybe<Scalars['String']['output']>;
 };
 
 export type ExptlCrystalGrow = {
@@ -3147,7 +3211,7 @@ export type ExptlCrystalGrow = {
    * This data item is a pointer to _exptl_crystal.id in the
    *  EXPTL_CRYSTAL category.
    */
-  readonly crystal_id: Scalars['String'];
+  readonly crystal_id: Scalars['String']['output'];
   /**
    * A description of special aspects of the crystal growth.
    *
@@ -3167,7 +3231,7 @@ export type ExptlCrystalGrow = {
    *                                   crystallization occurred at all.
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * The method used to grow the crystals.
    *
@@ -3175,7 +3239,7 @@ export type ExptlCrystalGrow = {
    * MICROBATCH, VAPOR DIFFUSION, HANGING DROP
    *
    */
-  readonly method?: Maybe<Scalars['String']>;
+  readonly method?: Maybe<Scalars['String']['output']>;
   /**
    * The pH at which the crystal was grown. If more than one pH was
    *  employed during the crystallization process, the final pH should
@@ -3186,7 +3250,7 @@ export type ExptlCrystalGrow = {
    * null, null, null
    *
    */
-  readonly pH?: Maybe<Scalars['Float']>;
+  readonly pH?: Maybe<Scalars['Float']['output']>;
   /**
    * Text description of crystal growth procedure.
    *
@@ -3194,7 +3258,7 @@ export type ExptlCrystalGrow = {
    * PEG 4000, potassium phosphate, magnesium chloride, cacodylate
    *
    */
-  readonly pdbx_details?: Maybe<Scalars['String']>;
+  readonly pdbx_details?: Maybe<Scalars['String']['output']>;
   /**
    * The range of pH values at which the crystal was grown.   Used when
    *  a point estimate of pH is not appropriate.
@@ -3203,7 +3267,7 @@ export type ExptlCrystalGrow = {
    * 5.6 - 6.4
    *
    */
-  readonly pdbx_pH_range?: Maybe<Scalars['String']>;
+  readonly pdbx_pH_range?: Maybe<Scalars['String']['output']>;
   /**
    * The temperature in kelvins at which the crystal was grown.
    *  If more than one temperature was employed during the
@@ -3211,18 +3275,18 @@ export type ExptlCrystalGrow = {
    *  here and the protocol  involving multiple temperatures should be
    *  described in _exptl_crystal_grow.details.
    */
-  readonly temp?: Maybe<Scalars['Float']>;
+  readonly temp?: Maybe<Scalars['Float']['output']>;
   /**
    * A description of special aspects of temperature control during
    *  crystal growth.
    */
-  readonly temp_details?: Maybe<Scalars['String']>;
+  readonly temp_details?: Maybe<Scalars['String']['output']>;
 };
 
 export type GeneName = {
   /** Allowable values: PRIMARY, SYNONYM, ORDERED_LOCUS, ORF. */
-  readonly type?: Maybe<Scalars['String']>;
-  readonly value?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
+  readonly value?: Maybe<Scalars['String']['output']>;
 };
 
 export type GroupEntry = {
@@ -3234,14 +3298,14 @@ export type GroupEntry = {
   readonly rcsb_group_related?: Maybe<ReadonlyArray<Maybe<RcsbGroupRelated>>>;
   readonly rcsb_group_statistics?: Maybe<RcsbGroupStatistics>;
   /** A unique textual identifier for a group */
-  readonly rcsb_id: Scalars['String'];
+  readonly rcsb_id: Scalars['String']['output'];
 };
 
 export type GroupMembersAlignmentScores = {
-  readonly query_coverage: Scalars['Int'];
-  readonly query_length: Scalars['Int'];
-  readonly target_coverage: Scalars['Int'];
-  readonly target_length: Scalars['Int'];
+  readonly query_coverage: Scalars['Int']['output'];
+  readonly query_length: Scalars['Int']['output'];
+  readonly target_coverage: Scalars['Int']['output'];
+  readonly target_length: Scalars['Int']['output'];
 };
 
 export type GroupPolymerEntity = {
@@ -3253,7 +3317,7 @@ export type GroupPolymerEntity = {
   readonly rcsb_group_related?: Maybe<ReadonlyArray<Maybe<RcsbGroupRelated>>>;
   readonly rcsb_group_statistics?: Maybe<RcsbGroupStatistics>;
   /** A unique textual identifier for a group */
-  readonly rcsb_id: Scalars['String'];
+  readonly rcsb_id: Scalars['String']['output'];
   readonly rcsb_polymer_entity_group_members_rankings?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityGroupMembersRankings>>>;
   readonly rcsb_polymer_entity_group_sequence_alignment?: Maybe<RcsbPolymerEntityGroupSequenceAlignment>;
 };
@@ -3262,7 +3326,7 @@ export type GroupProvenance = {
   readonly rcsb_group_aggregation_method?: Maybe<RcsbGroupAggregationMethod>;
   readonly rcsb_group_provenance_container_identifiers?: Maybe<RcsbGroupProvenanceContainerIdentifiers>;
   /** A unique textual identifier for a group provenance */
-  readonly rcsb_id?: Maybe<Scalars['String']>;
+  readonly rcsb_id?: Maybe<Scalars['String']['output']>;
 };
 
 export type InterfacePartnerFeatureAdditionalProperties = {
@@ -3273,18 +3337,18 @@ export type InterfacePartnerFeatureAdditionalProperties = {
    * TO_BE_DEFINED
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /** The value(s) of the additional property. */
-  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['ObjectScalar']>>>;
+  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['ObjectScalar']['output']>>>;
 };
 
 export type InterfacePartnerFeatureFeaturePositions = {
   /** An identifier for the monomer at which this segment of the feature begins. */
-  readonly beg_seq_id: Scalars['Int'];
+  readonly beg_seq_id: Scalars['Int']['output'];
   /** An identifier for the monomer at which this segment of the feature ends. */
-  readonly end_seq_id?: Maybe<Scalars['Int']>;
+  readonly end_seq_id?: Maybe<Scalars['Int']['output']>;
   /** The value(s) of the feature over the monomer segment. */
-  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['Float']>>>;
+  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['Float']['output']>>>;
 };
 
 export type MaData = {
@@ -3292,14 +3356,14 @@ export type MaData = {
    * The type of data held in the dataset.
    *
    * Allowable values:
-   * coevolution MSA, input structure, model coordinates, other, polymeric template library, spatial restraints, target, target-template alignment, template structure
+   * coevolution MSA, input structure, model coordinates, other, polymeric template library, reference database, spatial restraints, target, target-template alignment, template structure
    *
    */
-  readonly content_type?: Maybe<Scalars['String']>;
+  readonly content_type?: Maybe<Scalars['String']['output']>;
   /** Details for other content types. */
-  readonly content_type_other_details?: Maybe<Scalars['String']>;
+  readonly content_type_other_details?: Maybe<Scalars['String']['output']>;
   /** A unique identifier for the data. */
-  readonly id: Scalars['Int'];
+  readonly id: Scalars['Int']['output'];
   /**
    * An author-given name for the content held in the dataset.
    *
@@ -3307,18 +3371,18 @@ export type MaData = {
    * NMR NOE Distances, Target Template Alignment, Coevolution Data
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
 };
 
 export type MethodDetails = {
   /** A description of special aspects of the clustering process */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /** Defines the name of the description associated with the clustering process */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /** Defines the type of the description associated with the clustering process */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
   /** Defines the value associated with the clustering process */
-  readonly value?: Maybe<Scalars['Float']>;
+  readonly value?: Maybe<Scalars['Float']['output']>;
 };
 
 export type PdbxAuditRevisionCategory = {
@@ -3329,7 +3393,7 @@ export type PdbxAuditRevisionCategory = {
    * audit_author, citation
    *
    */
-  readonly category?: Maybe<Scalars['String']>;
+  readonly category?: Maybe<Scalars['String']['output']>;
   /**
    * The type of file that the pdbx_audit_revision_history record refers to.
    *
@@ -3337,11 +3401,11 @@ export type PdbxAuditRevisionCategory = {
    * Chemical component, NMR restraints, NMR shifts, Structure factors, Structure model
    *
    */
-  readonly data_content_type: Scalars['String'];
+  readonly data_content_type: Scalars['String']['output'];
   /** A unique identifier for the pdbx_audit_revision_category record. */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
   /** A pointer to  _pdbx_audit_revision_history.ordinal */
-  readonly revision_ordinal: Scalars['Int'];
+  readonly revision_ordinal: Scalars['Int']['output'];
 };
 
 export type PdbxAuditRevisionDetails = {
@@ -3352,13 +3416,13 @@ export type PdbxAuditRevisionDetails = {
    * Chemical component, NMR restraints, NMR shifts, Structure factors, Structure model
    *
    */
-  readonly data_content_type: Scalars['String'];
+  readonly data_content_type: Scalars['String']['output'];
   /** Additional details describing the revision. */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /** Further details describing the revision. */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /** A unique identifier for the pdbx_audit_revision_details record. */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
   /**
    * The provider of the revision.
    *
@@ -3366,9 +3430,9 @@ export type PdbxAuditRevisionDetails = {
    * author, repository
    *
    */
-  readonly provider?: Maybe<Scalars['String']>;
+  readonly provider?: Maybe<Scalars['String']['output']>;
   /** A pointer to  _pdbx_audit_revision_history.ordinal */
-  readonly revision_ordinal: Scalars['Int'];
+  readonly revision_ordinal: Scalars['Int']['output'];
   /**
    * A type classification of the revision
    *
@@ -3376,7 +3440,7 @@ export type PdbxAuditRevisionDetails = {
    * Coordinate replacement, Initial release, Obsolete, Remediation
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxAuditRevisionGroup = {
@@ -3387,7 +3451,7 @@ export type PdbxAuditRevisionGroup = {
    * Chemical component, NMR restraints, NMR shifts, Structure factors, Structure model
    *
    */
-  readonly data_content_type: Scalars['String'];
+  readonly data_content_type: Scalars['String']['output'];
   /**
    * The collection of categories updated with this revision.
    *
@@ -3395,11 +3459,11 @@ export type PdbxAuditRevisionGroup = {
    * Advisory, Atomic model, Author supporting evidence, Data collection, Data processing, Database references, Derived calculations, Experimental data, Experimental preparation, Initial release, Non-polymer description, Other, Polymer sequence, Refinement description, Source and taxonomy, Structure summary, Version format compliance
    *
    */
-  readonly group?: Maybe<Scalars['String']>;
+  readonly group?: Maybe<Scalars['String']['output']>;
   /** A unique identifier for the pdbx_audit_revision_group record. */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
   /** A pointer to  _pdbx_audit_revision_history.ordinal */
-  readonly revision_ordinal: Scalars['Int'];
+  readonly revision_ordinal: Scalars['Int']['output'];
 };
 
 export type PdbxAuditRevisionHistory = {
@@ -3410,13 +3474,13 @@ export type PdbxAuditRevisionHistory = {
    * Chemical component, NMR restraints, NMR shifts, Structure factors, Structure model
    *
    */
-  readonly data_content_type: Scalars['String'];
+  readonly data_content_type: Scalars['String']['output'];
   /** The major version number of deposition release. */
-  readonly major_revision?: Maybe<Scalars['Int']>;
+  readonly major_revision?: Maybe<Scalars['Int']['output']>;
   /** The minor version number of deposition release. */
-  readonly minor_revision?: Maybe<Scalars['Int']>;
+  readonly minor_revision?: Maybe<Scalars['Int']['output']>;
   /** A unique identifier for the pdbx_audit_revision_history record. */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
   /**
    * The release date of the revision
    *
@@ -3424,7 +3488,7 @@ export type PdbxAuditRevisionHistory = {
    * 2017-03-08
    *
    */
-  readonly revision_date?: Maybe<Scalars['Date']>;
+  readonly revision_date?: Maybe<Scalars['Date']['output']>;
 };
 
 export type PdbxAuditRevisionItem = {
@@ -3435,7 +3499,7 @@ export type PdbxAuditRevisionItem = {
    * Chemical component, NMR restraints, NMR shifts, Structure factors, Structure model
    *
    */
-  readonly data_content_type: Scalars['String'];
+  readonly data_content_type: Scalars['String']['output'];
   /**
    * A high level explanation the author has provided for submitting a revision.
    *
@@ -3443,11 +3507,11 @@ export type PdbxAuditRevisionItem = {
    * _atom_site.type_symbol
    *
    */
-  readonly item?: Maybe<Scalars['String']>;
+  readonly item?: Maybe<Scalars['String']['output']>;
   /** A unique identifier for the pdbx_audit_revision_item record. */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
   /** A pointer to  _pdbx_audit_revision_history.ordinal */
-  readonly revision_ordinal: Scalars['Int'];
+  readonly revision_ordinal: Scalars['Int']['output'];
 };
 
 export type PdbxAuditSupport = {
@@ -3455,7 +3519,7 @@ export type PdbxAuditSupport = {
    * The country/region providing the funding support for the entry.
    *  Funding information is optionally provided for entries after June 2016.
    */
-  readonly country?: Maybe<Scalars['String']>;
+  readonly country?: Maybe<Scalars['String']['output']>;
   /**
    * The name of the organization providing funding support for the
    *  entry. Funding information is optionally provided for entries
@@ -3465,11 +3529,11 @@ export type PdbxAuditSupport = {
    * National Institutes of Health, Wellcome Trust, National Institutes of Health/National Institute of General Medical Sciences
    *
    */
-  readonly funding_organization?: Maybe<Scalars['String']>;
+  readonly funding_organization?: Maybe<Scalars['String']['output']>;
   /** The grant number associated with this source of support. */
-  readonly grant_number?: Maybe<Scalars['String']>;
+  readonly grant_number?: Maybe<Scalars['String']['output']>;
   /** A unique sequential integer identifier for each source of support for this entry. */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
 };
 
 export type PdbxChemCompAudit = {
@@ -3477,17 +3541,17 @@ export type PdbxChemCompAudit = {
    * The action associated with this audit record.
    *
    * Allowable values:
-   * Create component, Initial release, Modify aromatic_flag, Modify atom id, Modify charge, Modify component atom id, Modify component comp_id, Modify coordinates, Modify descriptor, Modify formal charge, Modify formula, Modify identifier, Modify internal type, Modify leaving atom flag, Modify linking type, Modify model coordinates code, Modify name, Modify one letter code, Modify parent residue, Modify processing site, Modify subcomponent list, Modify synonyms, Modify value order, Obsolete component, Other modification
+   * Create component, Initial release, Modify aromatic_flag, Modify atom id, Modify backbone, Modify charge, Modify component atom id, Modify component comp_id, Modify coordinates, Modify descriptor, Modify formal charge, Modify formula, Modify identifier, Modify internal type, Modify leaving atom flag, Modify linking type, Modify model coordinates code, Modify name, Modify one letter code, Modify parent residue, Modify processing site, Modify subcomponent list, Modify synonyms, Modify value order, Obsolete component, Other modification
    *
    */
-  readonly action_type?: Maybe<Scalars['String']>;
+  readonly action_type?: Maybe<Scalars['String']['output']>;
   /**
    * This data item is a pointer to _chem_comp.id in the CHEM_COMP
    *  category.
    */
-  readonly comp_id?: Maybe<Scalars['String']>;
+  readonly comp_id?: Maybe<Scalars['String']['output']>;
   /** The date associated with this audit record. */
-  readonly date?: Maybe<Scalars['Date']>;
+  readonly date?: Maybe<Scalars['Date']['output']>;
   /**
    * Additional details decribing this change.
    *
@@ -3495,12 +3559,12 @@ export type PdbxChemCompAudit = {
    * Added C14 as a leaving atom.
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * This data item is an ordinal index for the
    *  PDBX_CHEM_COMP_AUDIT category.
    */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
 };
 
 export type PdbxChemCompDescriptor = {
@@ -3508,12 +3572,12 @@ export type PdbxChemCompDescriptor = {
    * This data item is a pointer to _chem_comp.id in the CHEM_COMP
    *  category.
    */
-  readonly comp_id: Scalars['String'];
+  readonly comp_id: Scalars['String']['output'];
   /**
    * This data item contains the descriptor value for this
    *  component.
    */
-  readonly descriptor?: Maybe<Scalars['String']>;
+  readonly descriptor?: Maybe<Scalars['String']['output']>;
   /**
    * This data item contains the name of the program
    *  or library used to compute the descriptor.
@@ -3522,12 +3586,12 @@ export type PdbxChemCompDescriptor = {
    * OPENEYE, CACTVS, DAYLIGHT, OTHER
    *
    */
-  readonly program: Scalars['String'];
+  readonly program: Scalars['String']['output'];
   /**
    * This data item contains the version of the program
    *  or library used to compute the descriptor.
    */
-  readonly program_version: Scalars['String'];
+  readonly program_version: Scalars['String']['output'];
   /**
    * This data item contains the descriptor type.
    *
@@ -3535,7 +3599,7 @@ export type PdbxChemCompDescriptor = {
    * InChI, InChIKey, InChI_CHARGE, InChI_FIXEDH, InChI_ISOTOPE, InChI_MAIN, InChI_MAIN_CONNECT, InChI_MAIN_FORMULA, InChI_MAIN_HATOM, InChI_RECONNECT, InChI_STEREO, SMILES, SMILES_CANNONICAL, SMILES_CANONICAL
    *
    */
-  readonly type: Scalars['String'];
+  readonly type: Scalars['String']['output'];
 };
 
 export type PdbxChemCompFeature = {
@@ -3546,7 +3610,7 @@ export type PdbxChemCompFeature = {
    * ABC, ATP
    *
    */
-  readonly comp_id: Scalars['String'];
+  readonly comp_id: Scalars['String']['output'];
   /**
    * The information source for the component feature.
    *
@@ -3554,7 +3618,7 @@ export type PdbxChemCompFeature = {
    * PDB, CHEBI, DRUGBANK, PUBCHEM
    *
    */
-  readonly source: Scalars['String'];
+  readonly source: Scalars['String']['output'];
   /**
    * The component feature type.
    *
@@ -3562,9 +3626,9 @@ export type PdbxChemCompFeature = {
    * CARBOHYDRATE ANOMER, CARBOHYDRATE ISOMER, CARBOHYDRATE PRIMARY CARBONYL GROUP, CARBOHYDRATE RING
    *
    */
-  readonly type: Scalars['String'];
+  readonly type: Scalars['String']['output'];
   /** The component feature value. */
-  readonly value: Scalars['String'];
+  readonly value: Scalars['String']['output'];
 };
 
 export type PdbxChemCompIdentifier = {
@@ -3572,12 +3636,12 @@ export type PdbxChemCompIdentifier = {
    * This data item is a pointer to _chem_comp.id in the CHEM_COMP
    *  category.
    */
-  readonly comp_id: Scalars['String'];
+  readonly comp_id: Scalars['String']['output'];
   /**
    * This data item contains the identifier value for this
    *  component.
    */
-  readonly identifier?: Maybe<Scalars['String']>;
+  readonly identifier?: Maybe<Scalars['String']['output']>;
   /**
    * This data item contains the name of the program
    *  or library used to compute the identifier.
@@ -3586,12 +3650,12 @@ export type PdbxChemCompIdentifier = {
    * OPENEYE, DAYLIGHT, ACD, AUTONOM, PUBCHEM_CID, PUBCHEM_SID, OTHER, NONE
    *
    */
-  readonly program: Scalars['String'];
+  readonly program: Scalars['String']['output'];
   /**
    * This data item contains the version of the program
    *  or library used to compute the identifier.
    */
-  readonly program_version: Scalars['String'];
+  readonly program_version: Scalars['String']['output'];
   /**
    * This data item contains the identifier type.
    *
@@ -3599,7 +3663,7 @@ export type PdbxChemCompIdentifier = {
    * CAS REGISTRY NUMBER, COMMON NAME, CONDENSED IUPAC CARB SYMBOL, CONDENSED IUPAC CARBOHYDRATE SYMBOL, IUPAC CARB SYMBOL, IUPAC CARBOHYDRATE SYMBOL, MDL Identifier, PUBCHEM Identifier, SNFG CARB SYMBOL, SNFG CARBOHYDRATE SYMBOL, SYNONYM, SYSTEMATIC NAME
    *
    */
-  readonly type: Scalars['String'];
+  readonly type: Scalars['String']['output'];
 };
 
 export type PdbxDatabasePdbObsSpr = {
@@ -3610,9 +3674,9 @@ export type PdbxDatabasePdbObsSpr = {
    * 1997-03-30
    *
    */
-  readonly date?: Maybe<Scalars['Date']>;
+  readonly date?: Maybe<Scalars['Date']['output']>;
   /** Details related to the replaced or replacing entry. */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * Identifier for the type of obsolete entry to be added to this entry.
    *
@@ -3620,7 +3684,7 @@ export type PdbxDatabasePdbObsSpr = {
    * OBSLTE, SPRSDE
    *
    */
-  readonly id?: Maybe<Scalars['String']>;
+  readonly id?: Maybe<Scalars['String']['output']>;
   /**
    * The new PDB identifier for the replaced entry.
    *
@@ -3628,7 +3692,7 @@ export type PdbxDatabasePdbObsSpr = {
    * 2ABC
    *
    */
-  readonly pdb_id: Scalars['String'];
+  readonly pdb_id: Scalars['String']['output'];
   /**
    * The PDB identifier for the replaced (OLD) entry/entries.
    *
@@ -3636,7 +3700,7 @@ export type PdbxDatabasePdbObsSpr = {
    * 3ABC
    *
    */
-  readonly replace_pdb_id: Scalars['String'];
+  readonly replace_pdb_id: Scalars['String']['output'];
 };
 
 export type PdbxDatabaseRelated = {
@@ -3644,10 +3708,10 @@ export type PdbxDatabaseRelated = {
    * The identifying content type of the related entry.
    *
    * Allowable values:
-   * associated EM volume, associated NMR restraints, associated SAS data, associated structure factors, complete structure, derivative structure, ensemble, minimized average structure, native structure, other, other EM volume, protein target sequence and/or protocol data, re-refinement, representative structure, split, unspecified
+   * associated EM volume, associated NMR restraints, associated SAS data, associated structure factors, complete structure, consensus EM volume, derivative structure, ensemble, focused EM volume, minimized average structure, native structure, other, other EM volume, protein target sequence and/or protocol data, re-refinement, representative structure, split, unspecified
    *
    */
-  readonly content_type: Scalars['String'];
+  readonly content_type: Scalars['String']['output'];
   /**
    * The identifying code in the related database.
    *
@@ -3655,7 +3719,7 @@ export type PdbxDatabaseRelated = {
    * 1ABC, BDL001
    *
    */
-  readonly db_id: Scalars['String'];
+  readonly db_id: Scalars['String']['output'];
   /**
    * The name of the database containing the related entry.
    *
@@ -3669,7 +3733,7 @@ export type PdbxDatabaseRelated = {
    * SASBDB - Small Angle Scattering Biological Data Bank
    *
    */
-  readonly db_name: Scalars['String'];
+  readonly db_name: Scalars['String']['output'];
   /**
    * A description of the related entry.
    *
@@ -3677,7 +3741,7 @@ export type PdbxDatabaseRelated = {
    * 1ABC contains the same protein complexed with Netropsin.
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxDatabaseStatus = {
@@ -3689,7 +3753,7 @@ export type PdbxDatabaseStatus = {
    * N, Y
    *
    */
-  readonly SG_entry?: Maybe<Scalars['String']>;
+  readonly SG_entry?: Maybe<Scalars['String']['output']>;
   /**
    * The site where the file was deposited.
    *
@@ -3697,7 +3761,7 @@ export type PdbxDatabaseStatus = {
    * BMRB, BNL, NDB, PDBC, PDBE, PDBJ, RCSB
    *
    */
-  readonly deposit_site?: Maybe<Scalars['String']>;
+  readonly deposit_site?: Maybe<Scalars['String']['output']>;
   /**
    * The methods development category in which this
    *  entry has been placed.
@@ -3706,7 +3770,7 @@ export type PdbxDatabaseStatus = {
    * CAPRI, CASD-NMR, CASP, D3R, FoldIt, GPCR Dock, RNA-Puzzles
    *
    */
-  readonly methods_development_category?: Maybe<Scalars['String']>;
+  readonly methods_development_category?: Maybe<Scalars['String']['output']>;
   /**
    * A flag indicating that the entry is compatible with the PDB format.
    *
@@ -3717,7 +3781,7 @@ export type PdbxDatabaseStatus = {
    * N, Y
    *
    */
-  readonly pdb_format_compatible?: Maybe<Scalars['String']>;
+  readonly pdb_format_compatible?: Maybe<Scalars['String']['output']>;
   /**
    * The site where the file was deposited.
    *
@@ -3725,7 +3789,7 @@ export type PdbxDatabaseStatus = {
    * BNL, NDB, PDBC, PDBE, PDBJ, RCSB
    *
    */
-  readonly process_site?: Maybe<Scalars['String']>;
+  readonly process_site?: Maybe<Scalars['String']['output']>;
   /**
    * The date of initial deposition.  (The first message for
    *  deposition has been received.)
@@ -3734,7 +3798,7 @@ export type PdbxDatabaseStatus = {
    * 1983-02-21
    *
    */
-  readonly recvd_initial_deposition_date?: Maybe<Scalars['Date']>;
+  readonly recvd_initial_deposition_date?: Maybe<Scalars['Date']['output']>;
   /**
    * Code for status of file.
    *
@@ -3742,7 +3806,7 @@ export type PdbxDatabaseStatus = {
    * AUCO, AUTH, BIB, DEL, HOLD, HPUB, OBS, POLC, PROC, REFI, REL, REPL, REV, RMVD, TRSF, UPD, WAIT, WDRN
    *
    */
-  readonly status_code?: Maybe<Scalars['String']>;
+  readonly status_code?: Maybe<Scalars['String']['output']>;
   /**
    * Code for status of chemical shift data file.
    *
@@ -3750,7 +3814,7 @@ export type PdbxDatabaseStatus = {
    * AUCO, AUTH, HOLD, HPUB, OBS, POLC, PROC, REL, REPL, RMVD, WAIT, WDRN
    *
    */
-  readonly status_code_cs?: Maybe<Scalars['String']>;
+  readonly status_code_cs?: Maybe<Scalars['String']['output']>;
   /**
    * Code for status of NMR constraints file.
    *
@@ -3758,7 +3822,7 @@ export type PdbxDatabaseStatus = {
    * AUCO, AUTH, HOLD, HPUB, OBS, POLC, PROC, REL, REPL, RMVD, WAIT, WDRN
    *
    */
-  readonly status_code_mr?: Maybe<Scalars['String']>;
+  readonly status_code_mr?: Maybe<Scalars['String']['output']>;
   /**
    * Code for status of structure factor file.
    *
@@ -3766,12 +3830,12 @@ export type PdbxDatabaseStatus = {
    * AUTH, HOLD, HPUB, OBS, POLC, PROC, REL, REPL, RMVD, WAIT, WDRN
    *
    */
-  readonly status_code_sf?: Maybe<Scalars['String']>;
+  readonly status_code_sf?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxDepositGroup = {
   /** A description of the contents of entries in the collection. */
-  readonly group_description?: Maybe<Scalars['String']>;
+  readonly group_description?: Maybe<Scalars['String']['output']>;
   /**
    * A unique identifier for a group of entries deposited as a collection.
    *
@@ -3779,9 +3843,9 @@ export type PdbxDepositGroup = {
    * G_1002119, G_1002043
    *
    */
-  readonly group_id: Scalars['String'];
+  readonly group_id: Scalars['String']['output'];
   /** A title to describe the group of entries deposited in the collection. */
-  readonly group_title?: Maybe<Scalars['String']>;
+  readonly group_title?: Maybe<Scalars['String']['output']>;
   /**
    * Text to describe a grouping of entries in multiple collections
    *
@@ -3789,12 +3853,12 @@ export type PdbxDepositGroup = {
    * changed state, ground state, undefined
    *
    */
-  readonly group_type?: Maybe<Scalars['String']>;
+  readonly group_type?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxEntityBranch = {
   /** Number of constituent chemical components in the branched entity. */
-  readonly rcsb_branched_component_count?: Maybe<Scalars['Int']>;
+  readonly rcsb_branched_component_count?: Maybe<Scalars['Int']['output']>;
   /**
    * The type of this branched oligosaccharide.
    *
@@ -3802,7 +3866,7 @@ export type PdbxEntityBranch = {
    * oligosaccharide
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxEntityBranchDescriptor = {
@@ -3810,7 +3874,7 @@ export type PdbxEntityBranchDescriptor = {
    * This data item contains the descriptor value for this
    *  entity.
    */
-  readonly descriptor?: Maybe<Scalars['String']>;
+  readonly descriptor?: Maybe<Scalars['String']['output']>;
   /**
    * This data item contains the name of the program
    *  or library used to compute the descriptor.
@@ -3819,12 +3883,12 @@ export type PdbxEntityBranchDescriptor = {
    * PDB-CARE, OTHER, GEMS
    *
    */
-  readonly program?: Maybe<Scalars['String']>;
+  readonly program?: Maybe<Scalars['String']['output']>;
   /**
    * This data item contains the version of the program
    *  or library used to compute the descriptor.
    */
-  readonly program_version?: Maybe<Scalars['String']>;
+  readonly program_version?: Maybe<Scalars['String']['output']>;
   /**
    * This data item contains the descriptor type.
    *
@@ -3832,18 +3896,18 @@ export type PdbxEntityBranchDescriptor = {
    * Glycam Condensed Core Sequence, Glycam Condensed Sequence, LINUCS, WURCS
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxEntityNonpoly = {
   /** This data item is a pointer to _chem_comp.id in the CHEM_COMP category. */
-  readonly comp_id?: Maybe<Scalars['String']>;
+  readonly comp_id?: Maybe<Scalars['String']['output']>;
   /** This data item is a pointer to _entity.id in the ENTITY category. */
-  readonly entity_id: Scalars['String'];
+  readonly entity_id: Scalars['String']['output'];
   /** A name for the non-polymer entity */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /** For non-polymer BIRD molecules the BIRD identifier for the entity. */
-  readonly rcsb_prd_id?: Maybe<Scalars['String']>;
+  readonly rcsb_prd_id?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxEntitySrcSyn = {
@@ -3855,7 +3919,7 @@ export type PdbxEntitySrcSyn = {
    * This sequence occurs naturally in humans.
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * NCBI Taxonomy identifier of the organism from which the sequence of
    *  the synthetic entity was derived.
@@ -3870,7 +3934,7 @@ export type PdbxEntitySrcSyn = {
    *  Benson DA, Karsch-Mizrachi I, Lipman DJ, Ostell J, Rapp BA,
    *  Wheeler DL (2000). GenBank. Nucleic Acids Res 2000 Jan 1;28(1):15-18.
    */
-  readonly ncbi_taxonomy_id?: Maybe<Scalars['String']>;
+  readonly ncbi_taxonomy_id?: Maybe<Scalars['String']['output']>;
   /**
    * The common name of the organism from which the sequence of
    *  the synthetic entity was derived.
@@ -3879,7 +3943,7 @@ export type PdbxEntitySrcSyn = {
    * house mouse
    *
    */
-  readonly organism_common_name?: Maybe<Scalars['String']>;
+  readonly organism_common_name?: Maybe<Scalars['String']['output']>;
   /**
    * The scientific name of the organism from which the sequence of
    *  the synthetic entity was derived.
@@ -3888,7 +3952,7 @@ export type PdbxEntitySrcSyn = {
    * synthetic construct, Mus musculus
    *
    */
-  readonly organism_scientific?: Maybe<Scalars['String']>;
+  readonly organism_scientific?: Maybe<Scalars['String']['output']>;
   /**
    * This data item identifies cases in which an alternative source
    *  modeled.
@@ -3897,23 +3961,23 @@ export type PdbxEntitySrcSyn = {
    * model, sample
    *
    */
-  readonly pdbx_alt_source_flag?: Maybe<Scalars['String']>;
+  readonly pdbx_alt_source_flag?: Maybe<Scalars['String']['output']>;
   /**
    * The beginning polymer sequence position for the polymer section corresponding
    *  to this source.
    *
    *  A reference to the sequence position in the entity_poly category.
    */
-  readonly pdbx_beg_seq_num?: Maybe<Scalars['Int']>;
+  readonly pdbx_beg_seq_num?: Maybe<Scalars['Int']['output']>;
   /**
    * The ending polymer sequence position for the polymer section corresponding
    *  to this source.
    *
    *  A reference to the sequence position in the entity_poly category.
    */
-  readonly pdbx_end_seq_num?: Maybe<Scalars['Int']>;
+  readonly pdbx_end_seq_num?: Maybe<Scalars['Int']['output']>;
   /** This data item is an ordinal identifier for pdbx_entity_src_syn data records. */
-  readonly pdbx_src_id: Scalars['Int'];
+  readonly pdbx_src_id: Scalars['Int']['output'];
 };
 
 export type PdbxFamilyPrdAudit = {
@@ -3924,7 +3988,7 @@ export type PdbxFamilyPrdAudit = {
    * Add PRD, Create family, Initial release, Modify annotation, Modify citation, Modify family classification, Modify family name, Modify feature, Modify molecule details, Modify related structures, Modify sequence, Modify synonyms, Obsolete family, Obsolete familyt, Other modification, Remove PRD
    *
    */
-  readonly action_type: Scalars['String'];
+  readonly action_type: Scalars['String']['output'];
   /**
    * The initials of the annotator creating of modifying the family.
    *
@@ -3932,9 +3996,9 @@ export type PdbxFamilyPrdAudit = {
    * JO, SJ, KB
    *
    */
-  readonly annotator?: Maybe<Scalars['String']>;
+  readonly annotator?: Maybe<Scalars['String']['output']>;
   /** The date associated with this audit record. */
-  readonly date: Scalars['Date'];
+  readonly date: Scalars['Date']['output'];
   /**
    * Additional details decribing this change.
    *
@@ -3942,12 +4006,12 @@ export type PdbxFamilyPrdAudit = {
    * Revise molecule sequence.
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * This data item is a pointer to _pdbx_reference_molecule_family.family_prd_id in the
    * 	       pdbx_reference_molecule category.
    */
-  readonly family_prd_id: Scalars['String'];
+  readonly family_prd_id: Scalars['String']['output'];
   /**
    * An identifier for the wwPDB site creating or modifying the family.
    *
@@ -3955,7 +4019,37 @@ export type PdbxFamilyPrdAudit = {
    * RCSB, PDBE, PDBJ, BMRB, PDBC
    *
    */
-  readonly processing_site?: Maybe<Scalars['String']>;
+  readonly processing_site?: Maybe<Scalars['String']['output']>;
+};
+
+export type PdbxInitialRefinementModel = {
+  /**
+   * This item identifies an accession code of the resource where the initial model
+   *  is used
+   */
+  readonly accession_code?: Maybe<Scalars['String']['output']>;
+  /** A description of special aspects of the initial model */
+  readonly details?: Maybe<Scalars['String']['output']>;
+  /** A comma separated list of entities reflecting the initial model used for refinement */
+  readonly entity_id_list?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
+  /** A unique identifier for the starting model record. */
+  readonly id: Scalars['Int']['output'];
+  /**
+   * This item identifies the resource of initial model used for refinement
+   *
+   * Allowable values:
+   * AlphaFold, ITasser, ModelArchive, Modeller, Other, PDB, PDB-Dev, RoseTTAFold, SwissModel
+   *
+   */
+  readonly source_name?: Maybe<Scalars['String']['output']>;
+  /**
+   * This item describes the type of the initial model was generated
+   *
+   * Allowable values:
+   * experimental model, in silico model, integrative model, other
+   *
+   */
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxMoleculeFeatures = {
@@ -3966,9 +4060,9 @@ export type PdbxMoleculeFeatures = {
    * Antagonist, Anthelmintic, Antibiotic, Antibiotic, Anthelmintic, Antibiotic, Antimicrobial, Antibiotic, Antineoplastic, Anticancer, Anticoagulant, Anticoagulant, Antithrombotic, Antifungal, Antigen, Antiinflammatory, Antimicrobial, Antimicrobial, Antiparasitic, Antibiotic, Antimicrobial, Antiretroviral, Antimicrobial, Antitumor, Antineoplastic, Antiparasitic, Antiretroviral, Antithrombotic, Antitumor, Antiviral, CASPASE inhibitor, Chaperone binding, Drug delivery, Enzyme inhibitor, Glycan component, Growth factor, Immunosuppressant, Inducer, Inhibitor, Lantibiotic, Metabolism, Metal transport, Nutrient, Oxidation-reduction, Protein binding, Receptor, Substrate analog, Synthetic opioid, Thrombin inhibitor, Thrombin inhibitor, Trypsin inhibitor, Toxin, Transition state mimetic, Transport activator, Trypsin inhibitor, Unknown, Water retention
    *
    */
-  readonly class?: Maybe<Scalars['String']>;
+  readonly class?: Maybe<Scalars['String']['output']>;
   /** Additional details describing the molecule. */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * A name of the molecule.
    *
@@ -3976,12 +4070,12 @@ export type PdbxMoleculeFeatures = {
    * thiostrepton
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _pdbx_molecule_features.prd_id is the accession code for this
    *  reference molecule.
    */
-  readonly prd_id: Scalars['String'];
+  readonly prd_id: Scalars['String']['output'];
   /**
    * Defines the structural classification of the molecule.
    *
@@ -3989,7 +4083,7 @@ export type PdbxMoleculeFeatures = {
    * Amino acid, Aminoglycoside, Ansamycin, Anthracycline, Anthraquinone, Chalkophore, Chalkophore, Polypeptide, Chromophore, Cyclic depsipeptide, Cyclic lipopeptide, Cyclic peptide, Glycopeptide, Heterocyclic, Imino sugar, Keto acid, Lipoglycopeptide, Lipopeptide, Macrolide, Non-polymer, Nucleoside, Oligopeptide, Oligosaccharide, Peptaibol, Peptide-like, Polycyclic, Polypeptide, Polysaccharide, Quinolone, Siderophore, Thiolactone, Thiopeptide, Unknown
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxNmrDetails = {
@@ -4000,7 +4094,7 @@ export type PdbxNmrDetails = {
    * This structure was determined using standard 2D homonuclear techniques., The structure was determined using triple-resonance NMR spectroscopy.
    *
    */
-  readonly text?: Maybe<Scalars['String']>;
+  readonly text?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxNmrEnsemble = {
@@ -4012,7 +4106,7 @@ export type PdbxNmrEnsemble = {
    * null
    *
    */
-  readonly average_constraint_violations_per_residue?: Maybe<Scalars['Int']>;
+  readonly average_constraint_violations_per_residue?: Maybe<Scalars['Int']['output']>;
   /**
    * The average number of constraints per residue for the ensemble
    *
@@ -4020,7 +4114,7 @@ export type PdbxNmrEnsemble = {
    * null
    *
    */
-  readonly average_constraints_per_residue?: Maybe<Scalars['Int']>;
+  readonly average_constraints_per_residue?: Maybe<Scalars['Int']['output']>;
   /**
    * The average distance restraint violation for the ensemble.
    *
@@ -4028,7 +4122,7 @@ export type PdbxNmrEnsemble = {
    * null
    *
    */
-  readonly average_distance_constraint_violation?: Maybe<Scalars['Float']>;
+  readonly average_distance_constraint_violation?: Maybe<Scalars['Float']['output']>;
   /**
    * The average torsion angle constraint violation for the ensemble.
    *
@@ -4036,7 +4130,7 @@ export type PdbxNmrEnsemble = {
    * null
    *
    */
-  readonly average_torsion_angle_constraint_violation?: Maybe<Scalars['Float']>;
+  readonly average_torsion_angle_constraint_violation?: Maybe<Scalars['Float']['output']>;
   /**
    * By highlighting the appropriate choice(s), describe how the submitted
    * conformer (models) were selected.
@@ -4047,11 +4141,11 @@ export type PdbxNmrEnsemble = {
    *     constraint violations.
    *
    */
-  readonly conformer_selection_criteria?: Maybe<Scalars['String']>;
+  readonly conformer_selection_criteria?: Maybe<Scalars['String']['output']>;
   /** The total number of conformer (models) that were calculated in the final round. */
-  readonly conformers_calculated_total_number?: Maybe<Scalars['Int']>;
+  readonly conformers_calculated_total_number?: Maybe<Scalars['Int']['output']>;
   /** The number of conformer (models) that are submitted for the ensemble. */
-  readonly conformers_submitted_total_number?: Maybe<Scalars['Int']>;
+  readonly conformers_submitted_total_number?: Maybe<Scalars['Int']['output']>;
   /**
    * Describe the method used to calculate the distance constraint violation statistics,
    *  i.e. are they calculated over all the distance constraints or calculated for
@@ -4061,7 +4155,7 @@ export type PdbxNmrEnsemble = {
    * Statistics were calculated over all of the distance constraints., Statistics were calculated for violations only
    *
    */
-  readonly distance_constraint_violation_method?: Maybe<Scalars['String']>;
+  readonly distance_constraint_violation_method?: Maybe<Scalars['String']['output']>;
   /**
    * The maximum distance constraint violation for the ensemble.
    *
@@ -4069,7 +4163,7 @@ export type PdbxNmrEnsemble = {
    * null
    *
    */
-  readonly maximum_distance_constraint_violation?: Maybe<Scalars['Float']>;
+  readonly maximum_distance_constraint_violation?: Maybe<Scalars['Float']['output']>;
   /**
    * The maximum lower distance constraint violation for the ensemble.
    *
@@ -4077,9 +4171,9 @@ export type PdbxNmrEnsemble = {
    * null
    *
    */
-  readonly maximum_lower_distance_constraint_violation?: Maybe<Scalars['Float']>;
+  readonly maximum_lower_distance_constraint_violation?: Maybe<Scalars['Float']['output']>;
   /** The maximum torsion angle constraint violation for the ensemble. */
-  readonly maximum_torsion_angle_constraint_violation?: Maybe<Scalars['Float']>;
+  readonly maximum_torsion_angle_constraint_violation?: Maybe<Scalars['Float']['output']>;
   /**
    * The maximum upper distance constraint violation for the ensemble.
    *
@@ -4087,9 +4181,9 @@ export type PdbxNmrEnsemble = {
    * null
    *
    */
-  readonly maximum_upper_distance_constraint_violation?: Maybe<Scalars['Float']>;
+  readonly maximum_upper_distance_constraint_violation?: Maybe<Scalars['Float']['output']>;
   /** The number of the conformer identified as most representative. */
-  readonly representative_conformer?: Maybe<Scalars['Int']>;
+  readonly representative_conformer?: Maybe<Scalars['Int']['output']>;
   /**
    * This item describes the method used to calculate the torsion angle constraint violation statistics.
    * i.e. are the entered values based on all torsion angle or calculated for violations only?
@@ -4098,7 +4192,7 @@ export type PdbxNmrEnsemble = {
    * Statistics were calculated over all the torsion angle constraints., Statistics were calculated for torsion angle constraints violations only.
    *
    */
-  readonly torsion_angle_constraint_violation_method?: Maybe<Scalars['String']>;
+  readonly torsion_angle_constraint_violation_method?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxNmrExptl = {
@@ -4109,7 +4203,7 @@ export type PdbxNmrExptl = {
    * 1, 2, 3
    *
    */
-  readonly conditions_id: Scalars['String'];
+  readonly conditions_id: Scalars['String']['output'];
   /**
    * A numerical ID for each experiment.
    *
@@ -4117,7 +4211,7 @@ export type PdbxNmrExptl = {
    * 1, 2, 3
    *
    */
-  readonly experiment_id: Scalars['String'];
+  readonly experiment_id: Scalars['String']['output'];
   /**
    * Physical state of the sample either anisotropic or isotropic.
    *
@@ -4125,7 +4219,7 @@ export type PdbxNmrExptl = {
    * anisotropic, isotropic
    *
    */
-  readonly sample_state?: Maybe<Scalars['String']>;
+  readonly sample_state?: Maybe<Scalars['String']['output']>;
   /**
    * The solution_id from the Experimental Sample to identify the sample
    *  that these conditions refer to.
@@ -4137,9 +4231,9 @@ export type PdbxNmrExptl = {
    * 1, 2, 3
    *
    */
-  readonly solution_id: Scalars['String'];
+  readonly solution_id: Scalars['String']['output'];
   /** Pointer to '_pdbx_nmr_spectrometer.spectrometer_id' */
-  readonly spectrometer_id?: Maybe<Scalars['Int']>;
+  readonly spectrometer_id?: Maybe<Scalars['Int']['output']>;
   /**
    * The type of NMR experiment.
    *
@@ -4147,7 +4241,7 @@ export type PdbxNmrExptl = {
    * 2D NOESY, 3D_15N-separated_NOESY, 3D_13C-separated_NOESY, 4D_13C-separated_NOESY, 4D_13C/15N-separated_NOESY, 3D_15N-separated_ROESY, 3D_13C-separated_ROESY, HNCA-J, HNHA, DQF-COSY, P-COSY, PE-COSY, E-COSY
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxNmrExptlSampleConditions = {
@@ -4158,7 +4252,7 @@ export type PdbxNmrExptlSampleConditions = {
    * 1, 2, 3
    *
    */
-  readonly conditions_id: Scalars['String'];
+  readonly conditions_id: Scalars['String']['output'];
   /**
    * General details describing conditions of both the sample and the environment
    * during measurements.
@@ -4167,12 +4261,12 @@ export type PdbxNmrExptlSampleConditions = {
    * The high salinity of the sample may have contributed to overheating of the sample during experiments with long saturation periods like the TOCSY experiments.
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * The ionic strength at which the NMR data were collected -in lieu of
    *  this enter the concentration and identity of the salt in the sample.
    */
-  readonly ionic_strength?: Maybe<Scalars['String']>;
+  readonly ionic_strength?: Maybe<Scalars['String']['output']>;
   /**
    * Estimate of the standard error for the value for the sample ionic strength.
    *
@@ -4180,7 +4274,7 @@ export type PdbxNmrExptlSampleConditions = {
    * null
    *
    */
-  readonly ionic_strength_err?: Maybe<Scalars['Float']>;
+  readonly ionic_strength_err?: Maybe<Scalars['Float']['output']>;
   /**
    * Units for the value of the sample condition ionic strength..
    *
@@ -4188,7 +4282,7 @@ export type PdbxNmrExptlSampleConditions = {
    * M, Not defined, mM
    *
    */
-  readonly ionic_strength_units?: Maybe<Scalars['String']>;
+  readonly ionic_strength_units?: Maybe<Scalars['String']['output']>;
   /**
    * A descriptive label that uniquely identifies this set of sample conditions.
    *
@@ -4196,7 +4290,7 @@ export type PdbxNmrExptlSampleConditions = {
    * conditions_1
    *
    */
-  readonly label?: Maybe<Scalars['String']>;
+  readonly label?: Maybe<Scalars['String']['output']>;
   /**
    * The pH at which the NMR data were collected.
    *
@@ -4204,7 +4298,7 @@ export type PdbxNmrExptlSampleConditions = {
    * null, null
    *
    */
-  readonly pH?: Maybe<Scalars['String']>;
+  readonly pH?: Maybe<Scalars['String']['output']>;
   /**
    * Estimate of the standard error for the value for the sample pH.
    *
@@ -4212,7 +4306,7 @@ export type PdbxNmrExptlSampleConditions = {
    * null
    *
    */
-  readonly pH_err?: Maybe<Scalars['Float']>;
+  readonly pH_err?: Maybe<Scalars['Float']['output']>;
   /**
    * Units for the value of the sample condition pH.
    *
@@ -4220,7 +4314,7 @@ export type PdbxNmrExptlSampleConditions = {
    * Not defined, pD, pH, pH*
    *
    */
-  readonly pH_units?: Maybe<Scalars['String']>;
+  readonly pH_units?: Maybe<Scalars['String']['output']>;
   /**
    * The pressure at which NMR data were collected.
    *
@@ -4228,7 +4322,7 @@ export type PdbxNmrExptlSampleConditions = {
    * 1, ambient, 1atm
    *
    */
-  readonly pressure?: Maybe<Scalars['String']>;
+  readonly pressure?: Maybe<Scalars['String']['output']>;
   /**
    * Estimate of the standard error for the value for the sample pressure.
    *
@@ -4236,7 +4330,7 @@ export type PdbxNmrExptlSampleConditions = {
    * null
    *
    */
-  readonly pressure_err?: Maybe<Scalars['Float']>;
+  readonly pressure_err?: Maybe<Scalars['Float']['output']>;
   /**
    * The units of pressure at which NMR data were collected.
    *
@@ -4244,12 +4338,12 @@ export type PdbxNmrExptlSampleConditions = {
    * Pa, atm, Torr
    *
    */
-  readonly pressure_units?: Maybe<Scalars['String']>;
+  readonly pressure_units?: Maybe<Scalars['String']['output']>;
   /**
    * The temperature (in kelvin) at which NMR data were
    *  collected.
    */
-  readonly temperature?: Maybe<Scalars['String']>;
+  readonly temperature?: Maybe<Scalars['String']['output']>;
   /**
    * Estimate of the standard error for the value for the sample temperature.
    *
@@ -4257,7 +4351,7 @@ export type PdbxNmrExptlSampleConditions = {
    * null
    *
    */
-  readonly temperature_err?: Maybe<Scalars['Float']>;
+  readonly temperature_err?: Maybe<Scalars['Float']['output']>;
   /**
    * Units for the value of the sample condition temperature.
    *
@@ -4265,7 +4359,7 @@ export type PdbxNmrExptlSampleConditions = {
    * C, K, Not defined
    *
    */
-  readonly temperature_units?: Maybe<Scalars['String']>;
+  readonly temperature_units?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxNmrRefine = {
@@ -4279,7 +4373,7 @@ export type PdbxNmrRefine = {
    * from hydrogen bonds.
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * The method used to determine the structure.
    *
@@ -4291,9 +4385,9 @@ export type PdbxNmrRefine = {
    *   torsion angle dynamics
    *
    */
-  readonly method?: Maybe<Scalars['String']>;
+  readonly method?: Maybe<Scalars['String']['output']>;
   /** Pointer to _software.ordinal */
-  readonly software_ordinal: Scalars['Int'];
+  readonly software_ordinal: Scalars['Int']['output'];
 };
 
 export type PdbxNmrRepresentative = {
@@ -4305,7 +4399,7 @@ export type PdbxNmrRepresentative = {
    * 15
    *
    */
-  readonly conformer_id?: Maybe<Scalars['String']>;
+  readonly conformer_id?: Maybe<Scalars['String']['output']>;
   /**
    * By highlighting the appropriate choice(s), describe the criteria used to
    * select this structure as a representative structure, or if an average
@@ -4318,7 +4412,7 @@ export type PdbxNmrRepresentative = {
    * A minimized average structure was calculated.
    *
    */
-  readonly selection_criteria?: Maybe<Scalars['String']>;
+  readonly selection_criteria?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxNmrSampleDetails = {
@@ -4341,7 +4435,7 @@ export type PdbxNmrSampleDetails = {
    * 2mM Ribonuclease  U-15N,13C; 50mM phosphate buffer NA; 90% H2O, 10% D2O
    *
    */
-  readonly contents?: Maybe<Scalars['String']>;
+  readonly contents?: Maybe<Scalars['String']['output']>;
   /**
    * Brief description of the sample providing additional information not captured by other items in the category.
    *
@@ -4349,7 +4443,7 @@ export type PdbxNmrSampleDetails = {
    * The added glycerol was used to raise the viscosity of the solution to 1.05 poisson.
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * A value that uniquely identifies this sample from the other samples listed
    * in the entry.
@@ -4358,7 +4452,7 @@ export type PdbxNmrSampleDetails = {
    * 15N_sample
    *
    */
-  readonly label?: Maybe<Scalars['String']>;
+  readonly label?: Maybe<Scalars['String']['output']>;
   /**
    * The name (number) of the sample.
    *
@@ -4366,7 +4460,7 @@ export type PdbxNmrSampleDetails = {
    * 1, 2, 3
    *
    */
-  readonly solution_id: Scalars['String'];
+  readonly solution_id: Scalars['String']['output'];
   /**
    * The solvent system used for this sample.
    *
@@ -4374,7 +4468,7 @@ export type PdbxNmrSampleDetails = {
    * 90% H2O, 10% D2O
    *
    */
-  readonly solvent_system?: Maybe<Scalars['String']>;
+  readonly solvent_system?: Maybe<Scalars['String']['output']>;
   /**
    * A descriptive term for the sample that defines the general physical properties
    * of the sample.
@@ -4383,7 +4477,7 @@ export type PdbxNmrSampleDetails = {
    * bicelle, emulsion, fiber, fibrous protein, filamentous virus, gel solid, gel solution, liposome, lyophilized powder, membrane, micelle, oriented membrane film, polycrystalline powder, reverse micelle, single crystal, solid, solution
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxNmrSoftware = {
@@ -4395,7 +4489,7 @@ export type PdbxNmrSoftware = {
    * Brunger, Guentert
    *
    */
-  readonly authors?: Maybe<Scalars['String']>;
+  readonly authors?: Maybe<Scalars['String']['output']>;
   /**
    * The purpose of the software.
    *
@@ -4403,7 +4497,7 @@ export type PdbxNmrSoftware = {
    * collection, processing, data analysis, structure solution, refinement, iterative matrix relaxation
    *
    */
-  readonly classification?: Maybe<Scalars['String']>;
+  readonly classification?: Maybe<Scalars['String']['output']>;
   /**
    * The name of the software used for the task.
    *
@@ -4411,9 +4505,9 @@ export type PdbxNmrSoftware = {
    * ANSIG, AURELIA, AZARA, CHARMM, CoMAND, CORMA, DIANA, DYANA, DSPACE, DISGEO, DGII, DISMAN, DINOSAUR, DISCOVER, FELIX, FT_NMR, GROMOS, IRMA, MARDIGRAS, NMRPipe, SA, UXNMR, VNMR, X-PLOR, XWINNMR
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /** An ordinal index for this category */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
   /**
    * The version of the software.
    *
@@ -4421,14 +4515,14 @@ export type PdbxNmrSoftware = {
    * 940501.3, 2.1
    *
    */
-  readonly version?: Maybe<Scalars['String']>;
+  readonly version?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxNmrSpectrometer = {
   /** A text description of the NMR spectrometer. */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /** The field strength in MHz of the spectrometer */
-  readonly field_strength?: Maybe<Scalars['Float']>;
+  readonly field_strength?: Maybe<Scalars['Float']['output']>;
   /**
    * The name of the manufacturer of the spectrometer.
    *
@@ -4436,7 +4530,7 @@ export type PdbxNmrSpectrometer = {
    * Varian, Bruker, JEOL, GE
    *
    */
-  readonly manufacturer?: Maybe<Scalars['String']>;
+  readonly manufacturer?: Maybe<Scalars['String']['output']>;
   /**
    * The model of the NMR spectrometer.
    *
@@ -4444,7 +4538,7 @@ export type PdbxNmrSpectrometer = {
    * AVANCE, AVANCE II, AVANCE III, AVANCE III HD, WH, WM, AM, AMX, DMX, DRX, MSL, OMEGA, OMEGA PSG, GX, GSX, A, AL, EC, EX, LA, ECP, VXRS, UNITY, UNITYPLUS, INOVA
    *
    */
-  readonly model?: Maybe<Scalars['String']>;
+  readonly model?: Maybe<Scalars['String']['output']>;
   /**
    * Assign a numerical ID to each instrument.
    *
@@ -4452,7 +4546,7 @@ export type PdbxNmrSpectrometer = {
    * 1, 2, 3
    *
    */
-  readonly spectrometer_id: Scalars['String'];
+  readonly spectrometer_id: Scalars['String']['output'];
   /**
    * Select the instrument manufacturer(s) and the model(s) of the NMR(s)
    * used for this work.
@@ -4461,7 +4555,7 @@ export type PdbxNmrSpectrometer = {
    * Bruker WH, Bruker WM, Bruker AM, Bruker AMX, Bruker DMX, Bruker DRX, Bruker MSL, Bruker AVANCE, GE Omega, GE Omega PSG, JEOL GX, JEOL GSX, JEOL A, JEOL AL, JEOL EC, JEOL EX, JEOL LA, JEOL ECP, Varian VXRS, Varian UNITY, Varian UNITYplus, Varian INOVA, other
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxPrdAudit = {
@@ -4472,7 +4566,7 @@ export type PdbxPrdAudit = {
    * Create molecule, Initial release, Modify audit, Modify class, Modify linkage, Modify molecule name, Modify representation, Modify sequence, Modify taxonomy organism, Modify type, Obsolete molecule, Other modification
    *
    */
-  readonly action_type: Scalars['String'];
+  readonly action_type: Scalars['String']['output'];
   /**
    * The initials of the annotator creating of modifying the molecule.
    *
@@ -4480,9 +4574,9 @@ export type PdbxPrdAudit = {
    * JO, SJ, KB
    *
    */
-  readonly annotator?: Maybe<Scalars['String']>;
+  readonly annotator?: Maybe<Scalars['String']['output']>;
   /** The date associated with this audit record. */
-  readonly date: Scalars['Date'];
+  readonly date: Scalars['Date']['output'];
   /**
    * Additional details decribing this change.
    *
@@ -4490,12 +4584,12 @@ export type PdbxPrdAudit = {
    * Revise molecule sequence.
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * This data item is a pointer to _pdbx_reference_molecule.prd_id in the
    * 	       pdbx_reference_molecule category.
    */
-  readonly prd_id: Scalars['String'];
+  readonly prd_id: Scalars['String']['output'];
   /**
    * An identifier for the wwPDB site creating or modifying the molecule.
    *
@@ -4503,24 +4597,24 @@ export type PdbxPrdAudit = {
    * BMRB, PDBC, PDBE, PDBJ, RCSB
    *
    */
-  readonly processing_site?: Maybe<Scalars['String']>;
+  readonly processing_site?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxReferenceEntityList = {
   /** The component number of this entity within the molecule. */
-  readonly component_id: Scalars['Int'];
+  readonly component_id: Scalars['Int']['output'];
   /** Additional details about this entity. */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _pdbx_reference_entity_list.prd_id is a reference
    *  _pdbx_reference_molecule.prd_id in the PDBX_REFERENCE_MOLECULE category.
    */
-  readonly prd_id: Scalars['String'];
+  readonly prd_id: Scalars['String']['output'];
   /**
    * The value of _pdbx_reference_entity_list.ref_entity_id is a unique identifier
    *  the a constituent entity within this reference molecule.
    */
-  readonly ref_entity_id: Scalars['String'];
+  readonly ref_entity_id: Scalars['String']['output'];
   /**
    * Defines the polymer characteristic of the entity.
    *
@@ -4528,24 +4622,24 @@ export type PdbxReferenceEntityList = {
    * branched, non-polymer, polymer, polymer-like
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxReferenceEntityPoly = {
   /** The database code for this source information */
-  readonly db_code?: Maybe<Scalars['String']>;
+  readonly db_code?: Maybe<Scalars['String']['output']>;
   /** The database name for this source information */
-  readonly db_name?: Maybe<Scalars['String']>;
+  readonly db_name?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _pdbx_reference_entity_poly.prd_id is a reference
    * 	       _pdbx_reference_entity_list.prd_id in the  PDBX_REFERENCE_ENTITY_LIST category.
    */
-  readonly prd_id: Scalars['String'];
+  readonly prd_id: Scalars['String']['output'];
   /**
    * The value of _pdbx_reference_entity_poly.ref_entity_id is a reference
    *  to _pdbx_reference_entity_list.ref_entity_id in PDBX_REFERENCE_ENTITY_LIST category.
    */
-  readonly ref_entity_id: Scalars['String'];
+  readonly ref_entity_id: Scalars['String']['output'];
   /**
    * The type of the polymer.
    *
@@ -4553,7 +4647,7 @@ export type PdbxReferenceEntityPoly = {
    * nucleic-acid-like, oligosaccharide, peptide-like, polysaccharide-like
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxReferenceEntityPolyLink = {
@@ -4561,12 +4655,12 @@ export type PdbxReferenceEntityPolyLink = {
    * The atom identifier/name in the first of the two components making
    *  the linkage.
    */
-  readonly atom_id_1?: Maybe<Scalars['String']>;
+  readonly atom_id_1?: Maybe<Scalars['String']['output']>;
   /**
    * The atom identifier/name in the second of the two components making
    *  the linkage.
    */
-  readonly atom_id_2?: Maybe<Scalars['String']>;
+  readonly atom_id_2?: Maybe<Scalars['String']['output']>;
   /**
    * The component identifier in the first of the two components making the
    *  linkage.
@@ -4574,7 +4668,7 @@ export type PdbxReferenceEntityPolyLink = {
    *  This data item is a pointer to _pdbx_reference_entity_poly_seq.mon_id
    *  in the PDBX_REFERENCE_ENTITY_POLY_SEQ category.
    */
-  readonly comp_id_1?: Maybe<Scalars['String']>;
+  readonly comp_id_1?: Maybe<Scalars['String']['output']>;
   /**
    * The component identifier in the second of the two components making the
    *  linkage.
@@ -4582,9 +4676,9 @@ export type PdbxReferenceEntityPolyLink = {
    *  This data item is a pointer to _pdbx_reference_entity_poly_seq.mon_id
    *  in the PDBX_REFERENCE_ENTITY_POLY_SEQ category.
    */
-  readonly comp_id_2?: Maybe<Scalars['String']>;
+  readonly comp_id_2?: Maybe<Scalars['String']['output']>;
   /** The entity component identifier entity containing the linkage. */
-  readonly component_id: Scalars['Int'];
+  readonly component_id: Scalars['Int']['output'];
   /**
    * For a polymer entity, the sequence number in the first of
    *  the two components making the linkage.
@@ -4592,7 +4686,7 @@ export type PdbxReferenceEntityPolyLink = {
    *  This data item is a pointer to _pdbx_reference_entity_poly_seq.num
    *  in the PDBX_REFERENCE_ENTITY_POLY_SEQ category.
    */
-  readonly entity_seq_num_1?: Maybe<Scalars['Int']>;
+  readonly entity_seq_num_1?: Maybe<Scalars['Int']['output']>;
   /**
    * For a polymer entity, the sequence number in the second of
    *  the two components making the linkage.
@@ -4600,24 +4694,24 @@ export type PdbxReferenceEntityPolyLink = {
    *  This data item is a pointer to _pdbx_reference_entity_poly_seq.num
    *  in the PDBX_REFERENCE_ENTITY_POLY_SEQ category.
    */
-  readonly entity_seq_num_2?: Maybe<Scalars['Int']>;
+  readonly entity_seq_num_2?: Maybe<Scalars['Int']['output']>;
   /**
    * The value of _pdbx_reference_entity_poly_link.link_id uniquely identifies
    *  a linkage within a polymer entity.
    */
-  readonly link_id: Scalars['Int'];
+  readonly link_id: Scalars['Int']['output'];
   /**
    * The value of _pdbx_reference_entity_poly_link.prd_id is a reference
    *  _pdbx_reference_entity_list.prd_id in the PDBX_REFERENCE_ENTITY_POLY category.
    */
-  readonly prd_id: Scalars['String'];
+  readonly prd_id: Scalars['String']['output'];
   /**
    * The reference entity id of the polymer entity containing the linkage.
    *
    *  This data item is a pointer to _pdbx_reference_entity_poly.ref_entity_id
    *  in the PDBX_REFERENCE_ENTITY_POLY category.
    */
-  readonly ref_entity_id: Scalars['String'];
+  readonly ref_entity_id: Scalars['String']['output'];
   /**
    * The bond order target for the non-standard linkage.
    *
@@ -4625,7 +4719,7 @@ export type PdbxReferenceEntityPolyLink = {
    * arom, delo, doub, pi, poly, quad, sing, trip
    *
    */
-  readonly value_order?: Maybe<Scalars['String']>;
+  readonly value_order?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxReferenceEntityPolySeq = {
@@ -4636,9 +4730,9 @@ export type PdbxReferenceEntityPolySeq = {
    * N, Y
    *
    */
-  readonly hetero: Scalars['String'];
+  readonly hetero: Scalars['String']['output'];
   /** This data item is the chemical component identifier of monomer. */
-  readonly mon_id: Scalars['String'];
+  readonly mon_id: Scalars['String']['output'];
   /**
    * The value of _pdbx_reference_entity_poly_seq.num must uniquely and sequentially
    *  identify a record in the PDBX_REFERENCE_ENTITY_POLY_SEQ list.
@@ -4646,7 +4740,7 @@ export type PdbxReferenceEntityPolySeq = {
    *  This value is conforms to author numbering conventions and does not map directly
    *  to the numbering conventions used for _entity_poly_seq.num.
    */
-  readonly num: Scalars['Int'];
+  readonly num: Scalars['Int']['output'];
   /**
    * A flag to indicate that this monomer is observed in the instance example.
    *
@@ -4654,19 +4748,19 @@ export type PdbxReferenceEntityPolySeq = {
    * N, Y
    *
    */
-  readonly observed?: Maybe<Scalars['String']>;
+  readonly observed?: Maybe<Scalars['String']['output']>;
   /** This data item is the chemical component identifier for the parent component corresponding to this monomer. */
-  readonly parent_mon_id?: Maybe<Scalars['String']>;
+  readonly parent_mon_id?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _pdbx_reference_entity_poly_seq.prd_id is a reference
    * 	       _pdbx_reference_entity_poly.prd_id in the  PDBX_REFERENCE_ENTITY_POLY category.
    */
-  readonly prd_id: Scalars['String'];
+  readonly prd_id: Scalars['String']['output'];
   /**
    * The value of _pdbx_reference_entity_poly_seq.ref_entity_id is a reference
    *  to _pdbx_reference_entity_poly.ref_entity_id in PDBX_REFERENCE_ENTITY_POLY category.
    */
-  readonly ref_entity_id: Scalars['String'];
+  readonly ref_entity_id: Scalars['String']['output'];
 };
 
 export type PdbxReferenceEntitySequence = {
@@ -4677,19 +4771,19 @@ export type PdbxReferenceEntitySequence = {
    * N, Y
    *
    */
-  readonly NRP_flag?: Maybe<Scalars['String']>;
+  readonly NRP_flag?: Maybe<Scalars['String']['output']>;
   /** The one-letter-code sequence for this entity.  Non-standard monomers are represented as 'X'. */
-  readonly one_letter_codes?: Maybe<Scalars['String']>;
+  readonly one_letter_codes?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _pdbx_reference_entity_sequence.prd_id is a reference
    * 	       _pdbx_reference_entity_list.prd_id in the  PDBX_REFERENCE_ENTITY_LIST category.
    */
-  readonly prd_id: Scalars['String'];
+  readonly prd_id: Scalars['String']['output'];
   /**
    * The value of _pdbx_reference_entity_sequence.ref_entity_id is a reference
    *  to _pdbx_reference_entity_list.ref_entity_id in PDBX_REFERENCE_ENTITY_LIST category.
    */
-  readonly ref_entity_id: Scalars['String'];
+  readonly ref_entity_id: Scalars['String']['output'];
   /**
    * The monomer type for the sequence.
    *
@@ -4697,21 +4791,21 @@ export type PdbxReferenceEntitySequence = {
    * peptide-like, saccharide
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxReferenceEntitySrcNat = {
   /** The Americal Tissue Culture Collection code for organism from which the entity was isolated. */
-  readonly atcc?: Maybe<Scalars['String']>;
+  readonly atcc?: Maybe<Scalars['String']['output']>;
   /** The database code for this source information */
-  readonly db_code?: Maybe<Scalars['String']>;
+  readonly db_code?: Maybe<Scalars['String']['output']>;
   /** The database name for this source information */
-  readonly db_name?: Maybe<Scalars['String']>;
+  readonly db_name?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _pdbx_reference_entity_src_nat.ordinal distinguishes
    * 	       source details for this entity.
    */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
   /**
    * The scientific name of the organism from which the entity was isolated.
    *
@@ -4719,23 +4813,23 @@ export type PdbxReferenceEntitySrcNat = {
    * Mus musculus
    *
    */
-  readonly organism_scientific?: Maybe<Scalars['String']>;
+  readonly organism_scientific?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _pdbx_reference_entity_src_nat.prd_id is a reference
    * 	       _pdbx_reference_entity_list.prd_id in the  PDBX_REFERENCE_ENTITY_LIST category.
    */
-  readonly prd_id: Scalars['String'];
+  readonly prd_id: Scalars['String']['output'];
   /**
    * The value of _pdbx_reference_entity_src_nat.ref_entity_id is a reference
    *  to _pdbx_reference_entity_list.ref_entity_id in PDBX_REFERENCE_ENTITY_LIST category.
    */
-  readonly ref_entity_id: Scalars['String'];
+  readonly ref_entity_id: Scalars['String']['output'];
   /** The data source for this information. */
-  readonly source?: Maybe<Scalars['String']>;
+  readonly source?: Maybe<Scalars['String']['output']>;
   /** A identifier within the data source for this information. */
-  readonly source_id?: Maybe<Scalars['String']>;
+  readonly source_id?: Maybe<Scalars['String']['output']>;
   /** The NCBI TaxId of the organism from which the entity was isolated. */
-  readonly taxid?: Maybe<Scalars['String']>;
+  readonly taxid?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxReferenceMolecule = {
@@ -4747,7 +4841,7 @@ export type PdbxReferenceMolecule = {
    * 0Z3, CD9
    *
    */
-  readonly chem_comp_id?: Maybe<Scalars['String']>;
+  readonly chem_comp_id?: Maybe<Scalars['String']['output']>;
   /**
    * Broadly defines the function of the entity.
    *
@@ -4755,13 +4849,13 @@ export type PdbxReferenceMolecule = {
    * Antagonist, Anthelmintic, Antibiotic, Antibiotic, Anthelmintic, Antibiotic, Antimicrobial, Antibiotic, Antineoplastic, Anticancer, Anticoagulant, Anticoagulant, Antithrombotic, Antifungal, Antigen, Antiinflammatory, Antimicrobial, Antimicrobial, Antiparasitic, Antibiotic, Antimicrobial, Antiretroviral, Antimicrobial, Antitumor, Antineoplastic, Antiparasitic, Antiretroviral, Antithrombotic, Antitumor, Antiviral, CASPASE inhibitor, Chaperone binding, Drug delivery, Enzyme inhibitor, Glycan component, Growth factor, Immunosuppressant, Inducer, Inhibitor, Lantibiotic, Metabolism, Metal transport, Nutrient, Oxidation-reduction, Protein binding, Receptor, Substrate analog, Synthetic opioid, Thrombin inhibitor, Thrombin inhibitor, Trypsin inhibitor, Toxin, Transition state mimetic, Transport activator, Trypsin inhibitor, Unknown, Water retention
    *
    */
-  readonly class?: Maybe<Scalars['String']>;
+  readonly class?: Maybe<Scalars['String']['output']>;
   /** Evidence for the assignment of _pdbx_reference_molecule.class */
-  readonly class_evidence_code?: Maybe<Scalars['String']>;
+  readonly class_evidence_code?: Maybe<Scalars['String']['output']>;
   /** Special details about this molecule. */
-  readonly compound_details?: Maybe<Scalars['String']>;
+  readonly compound_details?: Maybe<Scalars['String']['output']>;
   /** Description of this molecule. */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /**
    * The formula for the reference entity. Formulae are written
    *  according to the rules:
@@ -4785,9 +4879,9 @@ export type PdbxReferenceMolecule = {
    * C18 H19 N7 O8 S
    *
    */
-  readonly formula?: Maybe<Scalars['String']>;
+  readonly formula?: Maybe<Scalars['String']['output']>;
   /** Formula mass in daltons of the entity. */
-  readonly formula_weight?: Maybe<Scalars['Float']>;
+  readonly formula_weight?: Maybe<Scalars['Float']['output']>;
   /**
    * A name of the entity.
    *
@@ -4795,7 +4889,7 @@ export type PdbxReferenceMolecule = {
    * thiostrepton
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _pdbx_reference_molecule.prd_id is the unique identifier
    *  for the reference molecule in this family.
@@ -4809,7 +4903,7 @@ export type PdbxReferenceMolecule = {
    * PRD_000001, PRD_0000010
    *
    */
-  readonly prd_id: Scalars['String'];
+  readonly prd_id: Scalars['String']['output'];
   /**
    * Defines the current PDB release status for this molecule definition.
    *
@@ -4817,15 +4911,15 @@ export type PdbxReferenceMolecule = {
    * HOLD, OBS, REL, WAIT
    *
    */
-  readonly release_status?: Maybe<Scalars['String']>;
+  readonly release_status?: Maybe<Scalars['String']['output']>;
   /** Assigns the identifier of the reference molecule that has replaced this molecule. */
-  readonly replaced_by?: Maybe<Scalars['String']>;
+  readonly replaced_by?: Maybe<Scalars['String']['output']>;
   /**
    * Assigns the identifier for the reference molecule which have been replaced
    *  by this reference molecule.
    *  Multiple molecule identifier codes should be separated by commas.
    */
-  readonly replaces?: Maybe<Scalars['String']>;
+  readonly replaces?: Maybe<Scalars['String']['output']>;
   /**
    * Defines how this entity is represented in PDB data files.
    *
@@ -4833,9 +4927,9 @@ export type PdbxReferenceMolecule = {
    * branched, polymer, single molecule
    *
    */
-  readonly represent_as?: Maybe<Scalars['String']>;
+  readonly represent_as?: Maybe<Scalars['String']['output']>;
   /** The PDB accession code for the entry containing a representative example of this molecule. */
-  readonly representative_PDB_id_code?: Maybe<Scalars['String']>;
+  readonly representative_PDB_id_code?: Maybe<Scalars['String']['output']>;
   /**
    * Defines the structural classification of the entity.
    *
@@ -4843,9 +4937,9 @@ export type PdbxReferenceMolecule = {
    * Amino acid, Aminoglycoside, Ansamycin, Anthracycline, Anthraquinone, Chalkophore, Chalkophore, Polypeptide, Chromophore, Cyclic depsipeptide, Cyclic lipopeptide, Cyclic peptide, Glycopeptide, Heterocyclic, Imino sugar, Keto acid, Lipoglycopeptide, Lipopeptide, Macrolide, Non-polymer, Nucleoside, Oligopeptide, Oligosaccharide, Peptaibol, Peptide-like, Polycyclic, Polypeptide, Polysaccharide, Quinolone, Siderophore, Thiolactone, Thiopeptide, Unknown
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
   /** Evidence for the assignment of _pdbx_reference_molecule.type */
-  readonly type_evidence_code?: Maybe<Scalars['String']>;
+  readonly type_evidence_code?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxReferenceMoleculeAnnotation = {
@@ -4853,14 +4947,14 @@ export type PdbxReferenceMoleculeAnnotation = {
    * The value of _pdbx_reference_molecule_annotation.family_prd_id is a reference to
    *  _pdbx_reference_molecule_list.family_prd_id in category PDBX_REFERENCE_MOLECULE_FAMILY_LIST.
    */
-  readonly family_prd_id: Scalars['String'];
+  readonly family_prd_id: Scalars['String']['output'];
   /** This data item distinguishes anotations for this entity. */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
   /**
    * This data item is a pointer to _pdbx_reference_molecule.prd_id in the
    *  PDB_REFERENCE_MOLECULE category.
    */
-  readonly prd_id?: Maybe<Scalars['String']>;
+  readonly prd_id?: Maybe<Scalars['String']['output']>;
   /**
    * The source of the annoation for this entity.
    *
@@ -4868,7 +4962,7 @@ export type PdbxReferenceMoleculeAnnotation = {
    * depositor provided, from UniProt Entry P200311
    *
    */
-  readonly source?: Maybe<Scalars['String']>;
+  readonly source?: Maybe<Scalars['String']['output']>;
   /**
    * Text describing the annotation for this entity.
    *
@@ -4876,7 +4970,7 @@ export type PdbxReferenceMoleculeAnnotation = {
    * antigen binding, glucose transporter activity
    *
    */
-  readonly text?: Maybe<Scalars['String']>;
+  readonly text?: Maybe<Scalars['String']['output']>;
   /**
    * Type of annotation for this entity.
    *
@@ -4884,7 +4978,7 @@ export type PdbxReferenceMoleculeAnnotation = {
    * Function, Use, Pharmacology, Mechanism_of_Action, Biological_Activity, Inhibitor_Class, Therapeutic_Category, Research_Use, Other_annotation
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxReferenceMoleculeDetails = {
@@ -4892,18 +4986,18 @@ export type PdbxReferenceMoleculeDetails = {
    * The value of _pdbx_reference_molecule_details.family_prd_id is a reference to
    *  _pdbx_reference_molecule_list.family_prd_id' in category PDBX_REFERENCE_MOLECULE_FAMILY.
    */
-  readonly family_prd_id: Scalars['String'];
+  readonly family_prd_id: Scalars['String']['output'];
   /**
    * The value of _pdbx_reference_molecule_details.ordinal is an ordinal that
    *  distinguishes each descriptive text for this entity.
    */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
   /** A data source of this information (e.g. PubMed, Merck Index) */
-  readonly source?: Maybe<Scalars['String']>;
+  readonly source?: Maybe<Scalars['String']['output']>;
   /** A identifier within the data source for this information. */
-  readonly source_id?: Maybe<Scalars['String']>;
+  readonly source_id?: Maybe<Scalars['String']['output']>;
   /** The text of the description of special aspects of the entity. */
-  readonly text?: Maybe<Scalars['String']>;
+  readonly text?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxReferenceMoleculeFamily = {
@@ -4916,7 +5010,7 @@ export type PdbxReferenceMoleculeFamily = {
    *
    *  The ID has the template form FAM_dddddd (e.g. FAM_000001)
    */
-  readonly family_prd_id: Scalars['String'];
+  readonly family_prd_id: Scalars['String']['output'];
   /**
    * The entity family name.
    *
@@ -4924,7 +5018,7 @@ export type PdbxReferenceMoleculeFamily = {
    * actinomycin, adriamycin
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * Assigns the current PDB release status for this family.
    *
@@ -4932,14 +5026,14 @@ export type PdbxReferenceMoleculeFamily = {
    * HOLD, OBS, REL, WAIT
    *
    */
-  readonly release_status?: Maybe<Scalars['String']>;
+  readonly release_status?: Maybe<Scalars['String']['output']>;
   /** Assigns the identifier of the family that has replaced this component. */
-  readonly replaced_by?: Maybe<Scalars['String']>;
+  readonly replaced_by?: Maybe<Scalars['String']['output']>;
   /**
    * Assigns the identifier for the family which have been replaced by this family.
    *  Multiple family identifier codes should be separated by commas.
    */
-  readonly replaces?: Maybe<Scalars['String']>;
+  readonly replaces?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxReferenceMoleculeFeatures = {
@@ -4947,17 +5041,17 @@ export type PdbxReferenceMoleculeFeatures = {
    * The value of _pdbx_reference_molecule_features.family_prd_id is a reference to
    *  _pdbx_reference_molecule_list.family_prd_id in category PDBX_REFERENCE_MOLECULE_FAMILY_LIST.
    */
-  readonly family_prd_id: Scalars['String'];
+  readonly family_prd_id: Scalars['String']['output'];
   /**
    * The value of _pdbx_reference_molecule_features.ordinal distinguishes
    * 	       each feature for this entity.
    */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
   /**
    * The value of _pdbx_reference_molecule_features.prd_id is a reference
    * 	       _pdbx_reference_molecule.prd_id in the  PDBX_REFERENCE_MOLECULE category.
    */
-  readonly prd_id: Scalars['String'];
+  readonly prd_id: Scalars['String']['output'];
   /**
    * The information source for the component feature.
    *
@@ -4965,12 +5059,12 @@ export type PdbxReferenceMoleculeFeatures = {
    * PDB, CHEBI, DRUGBANK, PUBCHEM
    *
    */
-  readonly source?: Maybe<Scalars['String']>;
+  readonly source?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _pdbx_reference_molecule_features.source_ordinal provides
    * 	       the priority order of features from a particular source or database.
    */
-  readonly source_ordinal?: Maybe<Scalars['Int']>;
+  readonly source_ordinal?: Maybe<Scalars['Int']['output']>;
   /**
    * The entity feature type.
    *
@@ -4978,9 +5072,9 @@ export type PdbxReferenceMoleculeFeatures = {
    * FUNCTION, ENZYME INHIBITED, STRUCTURE IMAGE URL
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
   /** The entity feature value. */
-  readonly value?: Maybe<Scalars['String']>;
+  readonly value?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxReferenceMoleculeList = {
@@ -4988,7 +5082,7 @@ export type PdbxReferenceMoleculeList = {
    * The value of _pdbx_reference_molecule_list.family_prd_id is a reference to
    *  _pdbx_reference_molecule_family.family_prd_id' in category PDBX_REFERENCE_MOLECULE_FAMILY.
    */
-  readonly family_prd_id: Scalars['String'];
+  readonly family_prd_id: Scalars['String']['output'];
   /**
    * The value of _pdbx_reference_molecule_list.prd_id is the unique identifier
    *  for the reference molecule in this family.
@@ -4998,12 +5092,12 @@ export type PdbxReferenceMoleculeList = {
    *
    *  The ID has the template form PRD_dddddd (e.g. PRD_000001)
    */
-  readonly prd_id: Scalars['String'];
+  readonly prd_id: Scalars['String']['output'];
 };
 
 export type PdbxReferenceMoleculeRelatedStructures = {
   /** A link to related reference information in the citation category. */
-  readonly citation_id?: Maybe<Scalars['String']>;
+  readonly citation_id?: Maybe<Scalars['String']['output']>;
   /**
    * The database accession code for the related structure reference.
    *
@@ -5011,7 +5105,7 @@ export type PdbxReferenceMoleculeRelatedStructures = {
    * 143108
    *
    */
-  readonly db_accession?: Maybe<Scalars['String']>;
+  readonly db_accession?: Maybe<Scalars['String']['output']>;
   /**
    * The database identifier code for the related structure reference.
    *
@@ -5019,7 +5113,7 @@ export type PdbxReferenceMoleculeRelatedStructures = {
    * QEFHUE
    *
    */
-  readonly db_code?: Maybe<Scalars['String']>;
+  readonly db_code?: Maybe<Scalars['String']['output']>;
   /**
    * The database name for the related structure reference.
    *
@@ -5027,12 +5121,12 @@ export type PdbxReferenceMoleculeRelatedStructures = {
    * CCDC
    *
    */
-  readonly db_name?: Maybe<Scalars['String']>;
+  readonly db_name?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _pdbx_reference_molecule_related_structures.family_prd_id is a reference to
    *  _pdbx_reference_molecule_list.family_prd_id in category PDBX_REFERENCE_MOLECULE_FAMILY_LIST.
    */
-  readonly family_prd_id: Scalars['String'];
+  readonly family_prd_id: Scalars['String']['output'];
   /**
    * The formula for the reference entity. Formulae are written
    *  according to the rules:
@@ -5056,7 +5150,7 @@ export type PdbxReferenceMoleculeRelatedStructures = {
    * C18 H19 N7 O8 S
    *
    */
-  readonly formula?: Maybe<Scalars['String']>;
+  readonly formula?: Maybe<Scalars['String']['output']>;
   /**
    * The chemical name for the structure entry in the related database
    *
@@ -5064,12 +5158,12 @@ export type PdbxReferenceMoleculeRelatedStructures = {
    * actinomycn
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _pdbx_reference_molecule_related_structures.ordinal distinguishes
    *  related structural data for each entity.
    */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
 };
 
 export type PdbxReferenceMoleculeSynonyms = {
@@ -5077,7 +5171,7 @@ export type PdbxReferenceMoleculeSynonyms = {
    * The value of _pdbx_reference_molecule_synonyms.family_prd_id is a reference to
    *  _pdbx_reference_molecule_list.family_prd_id in category PDBX_REFERENCE_MOLECULE_FAMILY_LIST.
    */
-  readonly family_prd_id: Scalars['String'];
+  readonly family_prd_id: Scalars['String']['output'];
   /**
    * A synonym name for the entity.
    *
@@ -5085,17 +5179,17 @@ export type PdbxReferenceMoleculeSynonyms = {
    * thiostrepton
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _pdbx_reference_molecule_synonyms.ordinal is an ordinal
    * 	       to distinguish synonyms for this entity.
    */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
   /**
    * The value of _pdbx_reference_molecule_synonyms.prd_id is a reference
    * 	       _pdbx_reference_molecule.prd_id in the  PDBX_REFERENCE_MOLECULE category.
    */
-  readonly prd_id: Scalars['String'];
+  readonly prd_id: Scalars['String']['output'];
   /**
    * The source of this synonym name for the entity.
    *
@@ -5103,7 +5197,76 @@ export type PdbxReferenceMoleculeSynonyms = {
    * CAS
    *
    */
-  readonly source?: Maybe<Scalars['String']>;
+  readonly source?: Maybe<Scalars['String']['output']>;
+};
+
+export type PdbxReflnsTwin = {
+  /**
+   * The crystal identifier.  A reference to
+   *  _exptl_crystal.id in category EXPTL_CRYSTAL.
+   */
+  readonly crystal_id: Scalars['String']['output'];
+  /**
+   * The diffraction data set identifier.  A reference to
+   *  _diffrn.id in category DIFFRN.
+   */
+  readonly diffrn_id: Scalars['String']['output'];
+  /** An identifier for the twin domain. */
+  readonly domain_id?: Maybe<Scalars['String']['output']>;
+  /**
+   * The twin fraction or twin factor represents a quantitative parameter for the
+   * crystal twinning.  The value 0 represents no twinning, < 0.5 partial twinning,
+   *  = 0.5 for perfect twinning.
+   */
+  readonly fraction?: Maybe<Scalars['Float']['output']>;
+  /**
+   * The possible merohedral or hemihedral twinning operators for different
+   * point groups are:
+   *
+   * True point group  	Twin operation  	hkl related to
+   * 3                      	2 along a,b             h,-h-k,-l
+   *                        	2 along a*,b*           h+k,-k,-l
+   *                         2 along c               -h,-k,l
+   * 4                       2 along a,b,a*,b*       h,-k,-l
+   * 6                       2 along a,b,a*,b*       h,-h-k,-l
+   * 321                     2 along a*,b*,c         -h,-k,l
+   * 312                     2 along a,b,c           -h,-k,l
+   * 23                      4 along a,b,c            k,-h,l
+   *
+   * References:
+   *  Yeates, T.O. (1997) Methods in Enzymology 276, 344-358. Detecting and
+   *  Overcoming Crystal Twinning.
+   *
+   *  and information from the following on-line sites:
+   *
+   *    CNS site http://cns.csb.yale.edu/v1.1/
+   *    CCP4 site http://www.ccp4.ac.uk/dist/html/detwin.html
+   *    SHELX site http://shelx.uni-ac.gwdg.de/~rherbst/twin.html
+   *
+   * Examples:
+   * h,-h-k,-l, h+k,-k,-l, -h,-k,l, h,-k,-l, h,-h-k,-l, -h,-k,l, k,-h,l
+   *
+   */
+  readonly operator: Scalars['String']['output'];
+  /**
+   * There are two types of twinning: merohedral or hemihedral
+   *                                  non-merohedral or epitaxial
+   *
+   * For merohedral twinning the diffraction patterns from the different domains are
+   * completely superimposable.   Hemihedral twinning is a special case of merohedral
+   * twinning. It only involves two distinct domains.  Pseudo-merohedral twinning is
+   * a subclass merohedral twinning in which lattice is coincidentally superimposable.
+   *
+   * In the case of non-merohedral or epitaxial twinning  the reciprocal
+   * lattices do not superimpose exactly. In this case the  diffraction pattern
+   * consists of two (or more) interpenetrating lattices, which can in principle
+   * be separated.
+   *
+   * Allowable values:
+   * epitaxial, hemihedral, merohedral, non-merohedral, pseudo-merohedral, tetartohedral
+   *
+   */
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxRelatedExpDataSet = {
@@ -5114,7 +5277,7 @@ export type PdbxRelatedExpDataSet = {
    * 10.000/10002/image_data/cif
    *
    */
-  readonly data_reference?: Maybe<Scalars['String']>;
+  readonly data_reference?: Maybe<Scalars['String']['output']>;
   /**
    * The type of the experimenatal data set.
    *
@@ -5122,12 +5285,12 @@ export type PdbxRelatedExpDataSet = {
    * diffraction image data, NMR free induction decay data
    *
    */
-  readonly data_set_type?: Maybe<Scalars['String']>;
+  readonly data_set_type?: Maybe<Scalars['String']['output']>;
   /**
    * Additional details describing the content of the related data set and its application to
    *  the current investigation.
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * A DOI reference to the metadata decribing the related data set.
    *
@@ -5135,7 +5298,7 @@ export type PdbxRelatedExpDataSet = {
    * 10.000/10002/image_data/txt
    *
    */
-  readonly metadata_reference?: Maybe<Scalars['String']>;
+  readonly metadata_reference?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxSgProject = {
@@ -5143,10 +5306,10 @@ export type PdbxSgProject = {
    * The value identifies the full name of center.
    *
    * Allowable values:
-   * Accelerated Technologies Center for Gene to 3D Structure, Assembly, Dynamics and Evolution of Cell-Cell and Cell-Matrix Adhesions, Atoms-to-Animals: The Immune Function Network, Bacterial targets at IGS-CNRS, France, Berkeley Structural Genomics Center, Center for Eukaryotic Structural Genomics, Center for High-Throughput Structural Biology, Center for Membrane Proteins of Infectious Diseases, Center for Structural Genomics of Infectious Diseases, Center for Structures of Membrane Proteins, Center for the X-ray Structure Determination of Human Transporters, Chaperone-Enabled Studies of Epigenetic Regulation Enzymes, Enzyme Discovery for Natural Product Biosynthesis, GPCR Network, Integrated Center for Structure and Function Innovation, Israel Structural Proteomics Center, Joint Center for Structural Genomics, Marseilles Structural Genomics Program @ AFMB, Medical Structural Genomics of Pathogenic Protozoa, Membrane Protein Structural Biology Consortium, Membrane Protein Structures by Solution NMR, Midwest Center for Macromolecular Research, Midwest Center for Structural Genomics, Mitochondrial Protein Partnership, Montreal-Kingston Bacterial Structural Genomics Initiative, Mycobacterium Tuberculosis Structural Proteomics Project, New York Consortium on Membrane Protein Structure, New York SGX Research Center for Structural Genomics, New York Structural GenomiX Research Consortium, New York Structural Genomics Research Consortium, Northeast Structural Genomics Consortium, Nucleocytoplasmic Transport: a Target for Cellular Control, Ontario Centre for Structural Proteomics, Oxford Protein Production Facility, Paris-Sud Yeast Structural Genomics, Partnership for Nuclear Receptor Signaling Code Biology, Partnership for Stem Cell Biology, Partnership for T-Cell Biology, Program for the Characterization of Secreted Effector Proteins, Protein Structure Factory, RIKEN Structural Genomics/Proteomics Initiative, Scottish Structural Proteomics Facility, Seattle Structural Genomics Center for Infectious Disease, South Africa Structural Targets Annotation Database, Southeast Collaboratory for Structural Genomics, Structural Genomics Consortium, Structural Genomics Consortium for Research on Gene Expression, Structural Genomics of Pathogenic Protozoa Consortium, Structural Proteomics in Europe, Structural Proteomics in Europe 2, Structure 2 Function Project, Structure, Dynamics and Activation Mechanisms of Chemokine Receptors, Structure-Function Analysis of Polymorphic CDI Toxin-Immunity Protein Complexes, Structure-Function Studies of Tight Junction Membrane Proteins, Structures of Mtb Proteins Conferring Susceptibility to Known Mtb Inhibitors, TB Structural Genomics Consortium, Transcontinental EM Initiative for Membrane Protein Structure, Transmembrane Protein Center
+   * Accelerated Technologies Center for Gene to 3D Structure, Assembly, Dynamics and Evolution of Cell-Cell and Cell-Matrix Adhesions, Atoms-to-Animals: The Immune Function Network, Bacterial targets at IGS-CNRS, France, Berkeley Structural Genomics Center, Center for Eukaryotic Structural Genomics, Center for High-Throughput Structural Biology, Center for Membrane Proteins of Infectious Diseases, Center for Structural Biology of Infectious Diseases, Center for Structural Genomics of Infectious Diseases, Center for Structures of Membrane Proteins, Center for the X-ray Structure Determination of Human Transporters, Chaperone-Enabled Studies of Epigenetic Regulation Enzymes, Enzyme Discovery for Natural Product Biosynthesis, GPCR Network, Integrated Center for Structure and Function Innovation, Israel Structural Proteomics Center, Joint Center for Structural Genomics, Marseilles Structural Genomics Program @ AFMB, Medical Structural Genomics of Pathogenic Protozoa, Membrane Protein Structural Biology Consortium, Membrane Protein Structures by Solution NMR, Midwest Center for Macromolecular Research, Midwest Center for Structural Genomics, Mitochondrial Protein Partnership, Montreal-Kingston Bacterial Structural Genomics Initiative, Mycobacterium Tuberculosis Structural Proteomics Project, New York Consortium on Membrane Protein Structure, New York SGX Research Center for Structural Genomics, New York Structural GenomiX Research Consortium, New York Structural Genomics Research Consortium, Northeast Structural Genomics Consortium, Nucleocytoplasmic Transport: a Target for Cellular Control, Ontario Centre for Structural Proteomics, Oxford Protein Production Facility, Paris-Sud Yeast Structural Genomics, Partnership for Nuclear Receptor Signaling Code Biology, Partnership for Stem Cell Biology, Partnership for T-Cell Biology, Program for the Characterization of Secreted Effector Proteins, Protein Structure Factory, RIKEN Structural Genomics/Proteomics Initiative, Scottish Structural Proteomics Facility, Seattle Structural Genomics Center for Infectious Disease, South Africa Structural Targets Annotation Database, Southeast Collaboratory for Structural Genomics, Structural Genomics Consortium, Structural Genomics Consortium for Research on Gene Expression, Structural Genomics of Pathogenic Protozoa Consortium, Structural Proteomics in Europe, Structural Proteomics in Europe 2, Structure 2 Function Project, Structure, Dynamics and Activation Mechanisms of Chemokine Receptors, Structure-Function Analysis of Polymorphic CDI Toxin-Immunity Protein Complexes, Structure-Function Studies of Tight Junction Membrane Proteins, Structures of Mtb Proteins Conferring Susceptibility to Known Mtb Inhibitors, TB Structural Genomics Consortium, Transcontinental EM Initiative for Membrane Protein Structure, Transmembrane Protein Center
    *
    */
-  readonly full_name_of_center?: Maybe<Scalars['String']>;
+  readonly full_name_of_center?: Maybe<Scalars['String']['output']>;
   /**
    * A unique integer identifier for this center
    *
@@ -5154,15 +5317,15 @@ export type PdbxSgProject = {
    * 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
    *
    */
-  readonly id: Scalars['Int'];
+  readonly id: Scalars['Int']['output'];
   /**
    * The value identifies the full name of center.
    *
    * Allowable values:
-   * ATCG3D, BIGS, BSGC, BSGI, CEBS, CELLMAT, CESG, CHSAM, CHTSB, CSGID, CSMP, GPCR, IFN, ISFI, ISPC, JCSG, MCMR, MCSG, MPID, MPP, MPSBC, MPSbyNMR, MSGP, MSGPP, MTBI, NESG, NHRs, NPCXstals, NYCOMPS, NYSGRC, NYSGXRC, NatPro, OCSP, OPPF, PCSEP, PSF, RSGI, S2F, SASTAD, SECSG, SGC, SGCGES, SGPP, SPINE, SPINE-2, SSGCID, SSPF, STEMCELL, TBSGC, TCELL, TEMIMPS, TJMP, TMPC, TransportPDB, UC4CDI, XMTB, YSG
+   * ATCG3D, BIGS, BSGC, BSGI, CEBS, CELLMAT, CESG, CHSAM, CHTSB, CSBID, CSGID, CSMP, GPCR, IFN, ISFI, ISPC, JCSG, MCMR, MCSG, MPID, MPP, MPSBC, MPSbyNMR, MSGP, MSGPP, MTBI, NESG, NHRs, NPCXstals, NYCOMPS, NYSGRC, NYSGXRC, NatPro, OCSP, OPPF, PCSEP, PSF, RSGI, S2F, SASTAD, SECSG, SGC, SGCGES, SGPP, SPINE, SPINE-2, SSGCID, SSPF, STEMCELL, TBSGC, TCELL, TEMIMPS, TJMP, TMPC, TransportPDB, UC4CDI, XMTB, YSG
    *
    */
-  readonly initial_of_center?: Maybe<Scalars['String']>;
+  readonly initial_of_center?: Maybe<Scalars['String']['output']>;
   /**
    * The value identifies the Structural Genomics project.
    *
@@ -5170,7 +5333,7 @@ export type PdbxSgProject = {
    * Enzyme Function Initiative, NIAID, National Institute of Allergy and Infectious Diseases, NPPSFA, National Project on Protein Structural and Functional Analyses, PSI, Protein Structure Initiative, PSI:Biology
    *
    */
-  readonly project_name?: Maybe<Scalars['String']>;
+  readonly project_name?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxSerialCrystallographyDataReduction = {
@@ -5179,7 +5342,7 @@ export type PdbxSerialCrystallographyDataReduction = {
    *  continuous stream, the total number of frames collected
    *  in which the crystal was hit.
    */
-  readonly crystal_hits?: Maybe<Scalars['Int']>;
+  readonly crystal_hits?: Maybe<Scalars['Int']['output']>;
   /**
    * The data item is a pointer to _diffrn.id in the DIFFRN
    *  category.
@@ -5188,49 +5351,58 @@ export type PdbxSerialCrystallographyDataReduction = {
    * 1
    *
    */
-  readonly diffrn_id: Scalars['String'];
+  readonly diffrn_id: Scalars['String']['output'];
   /**
    * For experiments in which samples are provided in a
    *  continuous stream, the total number of frames collected
    *  in which a droplet was hit.
    */
-  readonly droplet_hits?: Maybe<Scalars['Int']>;
+  readonly droplet_hits?: Maybe<Scalars['Int']['output']>;
   /**
    * For experiments in which samples are provided in a
    *  continuous stream, the total number of data frames collected
    *  in which the sample was hit.
    */
-  readonly frame_hits?: Maybe<Scalars['Int']>;
+  readonly frame_hits?: Maybe<Scalars['Int']['output']>;
   /**
    * For experiments in which samples are provided in a
    *  continuous stream, the total number of data frames collected
    *  that contained a "hit" but failed to index.
    */
-  readonly frames_failed_index?: Maybe<Scalars['Int']>;
+  readonly frames_failed_index?: Maybe<Scalars['Int']['output']>;
   /**
    * For experiments in which samples are provided in a
    *  continuous stream, the total number of data frames collected
    *  that were indexed.
    */
-  readonly frames_indexed?: Maybe<Scalars['Int']>;
+  readonly frames_indexed?: Maybe<Scalars['Int']['output']>;
   /**
    * The total number of data frames collected for this
    *  data set.
    */
-  readonly frames_total?: Maybe<Scalars['Int']>;
+  readonly frames_total?: Maybe<Scalars['Int']['output']>;
   /**
    * For experiments in which samples are provided in a
    *  continuous stream, the total number of lattices indexed.
    */
-  readonly lattices_indexed?: Maybe<Scalars['Int']>;
+  readonly lattices_indexed?: Maybe<Scalars['Int']['output']>;
+  /**
+   * For experiments in which samples are provided in a
+   *             continuous stream, the total number of crystal lattices
+   *             that were merged in the final dataset.  Can be
+   *             less than frames_indexed depending on filtering during merging or
+   * 	    can be more than frames_indexed if there are multiple lattices.
+   * 	    per frame.
+   */
+  readonly lattices_merged?: Maybe<Scalars['Int']['output']>;
   /** For FEL experiments, the number of pulse events in the dataset. */
-  readonly xfel_pulse_events?: Maybe<Scalars['Int']>;
+  readonly xfel_pulse_events?: Maybe<Scalars['Int']['output']>;
   /**
    * For FEL experiments, in which data collection was performed
    * 	       in batches, indicates which subset of the data collected
    *                were used in producing this dataset.
    */
-  readonly xfel_run_numbers?: Maybe<Scalars['String']>;
+  readonly xfel_run_numbers?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxSerialCrystallographyMeasurement = {
@@ -5241,7 +5413,7 @@ export type PdbxSerialCrystallographyMeasurement = {
    * null
    *
    */
-  readonly collection_time_total?: Maybe<Scalars['Float']>;
+  readonly collection_time_total?: Maybe<Scalars['Float']['output']>;
   /**
    * The collimation or type of focusing optics applied to the radiation.
    *
@@ -5249,7 +5421,7 @@ export type PdbxSerialCrystallographyMeasurement = {
    * Kirkpatrick-Baez mirrors, Beryllium compound refractive lenses, Fresnel zone plates
    *
    */
-  readonly collimation?: Maybe<Scalars['String']>;
+  readonly collimation?: Maybe<Scalars['String']['output']>;
   /**
    * The data item is a pointer to _diffrn.id in the DIFFRN
    *  category.
@@ -5258,29 +5430,29 @@ export type PdbxSerialCrystallographyMeasurement = {
    * 1
    *
    */
-  readonly diffrn_id: Scalars['String'];
+  readonly diffrn_id: Scalars['String']['output'];
   /**
    * The focal spot size of the beam
    *  impinging on the sample (micrometres squared).
    */
-  readonly focal_spot_size?: Maybe<Scalars['Float']>;
+  readonly focal_spot_size?: Maybe<Scalars['Float']['output']>;
   /** The photons per pulse measured in  (tera photons (10^(12)^)/pulse units). */
-  readonly photons_per_pulse?: Maybe<Scalars['Float']>;
+  readonly photons_per_pulse?: Maybe<Scalars['Float']['output']>;
   /**
    * The average duration (femtoseconds)
    * 	       of the pulse energy measured at the sample.
    */
-  readonly pulse_duration?: Maybe<Scalars['Float']>;
+  readonly pulse_duration?: Maybe<Scalars['Float']['output']>;
   /** The energy/pulse of the X-ray pulse impacting the sample measured in microjoules. */
-  readonly pulse_energy?: Maybe<Scalars['Float']>;
+  readonly pulse_energy?: Maybe<Scalars['Float']['output']>;
   /** The photon energy of the X-ray pulse measured in KeV. */
-  readonly pulse_photon_energy?: Maybe<Scalars['Float']>;
+  readonly pulse_photon_energy?: Maybe<Scalars['Float']['output']>;
   /** The distance from source to the sample along the optical axis (metres). */
-  readonly source_distance?: Maybe<Scalars['Float']>;
+  readonly source_distance?: Maybe<Scalars['Float']['output']>;
   /** The dimension of the source beam measured at the source (micrometres squared). */
-  readonly source_size?: Maybe<Scalars['Float']>;
+  readonly source_size?: Maybe<Scalars['Float']['output']>;
   /** For FEL experiments, the pulse repetition rate measured in cycles per seconds. */
-  readonly xfel_pulse_repetition_rate?: Maybe<Scalars['Float']>;
+  readonly xfel_pulse_repetition_rate?: Maybe<Scalars['Float']['output']>;
 };
 
 export type PdbxSerialCrystallographySampleDelivery = {
@@ -5292,7 +5464,7 @@ export type PdbxSerialCrystallographySampleDelivery = {
    * fixed target, electrospin, MESH, CoMESH, gas dynamic virtual nozzle, LCP injector, addressable microarray
    *
    */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /**
    * The data item is a pointer to _diffrn.id in the DIFFRN
    *  category.
@@ -5301,7 +5473,7 @@ export type PdbxSerialCrystallographySampleDelivery = {
    * 1
    *
    */
-  readonly diffrn_id: Scalars['String'];
+  readonly diffrn_id: Scalars['String']['output'];
   /**
    * The description of the mechanism by which the specimen in placed in the path
    *  of the source.
@@ -5310,16 +5482,16 @@ export type PdbxSerialCrystallographySampleDelivery = {
    * fixed target, injection
    *
    */
-  readonly method?: Maybe<Scalars['String']>;
+  readonly method?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxSerialCrystallographySampleDeliveryFixedTarget = {
   /** The number of crystals per dropplet or pore in fixed target */
-  readonly crystals_per_unit?: Maybe<Scalars['Int']>;
+  readonly crystals_per_unit?: Maybe<Scalars['Int']['output']>;
   /** For a fixed target sample, a description of sample preparation */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /** Any details pertinent to the fixed sample target */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * The data item is a pointer to _diffrn.id in the DIFFRN
    *  category.
@@ -5328,7 +5500,7 @@ export type PdbxSerialCrystallographySampleDeliveryFixedTarget = {
    * 1
    *
    */
-  readonly diffrn_id: Scalars['String'];
+  readonly diffrn_id: Scalars['String']['output'];
   /**
    * Device used to control movement of the fixed sample
    *
@@ -5336,7 +5508,7 @@ export type PdbxSerialCrystallographySampleDeliveryFixedTarget = {
    * DMC-4080
    *
    */
-  readonly motion_control?: Maybe<Scalars['String']>;
+  readonly motion_control?: Maybe<Scalars['String']['output']>;
   /**
    * Method to prevent dehydration of sample
    *
@@ -5344,7 +5516,7 @@ export type PdbxSerialCrystallographySampleDeliveryFixedTarget = {
    * seal, humidifed gas, flash freezing
    *
    */
-  readonly sample_dehydration_prevention?: Maybe<Scalars['String']>;
+  readonly sample_dehydration_prevention?: Maybe<Scalars['String']['output']>;
   /**
    * For a fixed target sample, mechanism to hold sample in the beam
    *
@@ -5352,14 +5524,14 @@ export type PdbxSerialCrystallographySampleDeliveryFixedTarget = {
    * mesh, loop, grid
    *
    */
-  readonly sample_holding?: Maybe<Scalars['String']>;
+  readonly sample_holding?: Maybe<Scalars['String']['output']>;
   /** The sample solution content and concentration */
-  readonly sample_solvent?: Maybe<Scalars['String']>;
+  readonly sample_solvent?: Maybe<Scalars['String']['output']>;
   /**
    * Size of pore in grid supporting sample. Diameter or length in micrometres,
    *  e.g. pore diameter
    */
-  readonly sample_unit_size?: Maybe<Scalars['Float']>;
+  readonly sample_unit_size?: Maybe<Scalars['Float']['output']>;
   /**
    * Type of base holding the support
    *
@@ -5367,11 +5539,11 @@ export type PdbxSerialCrystallographySampleDeliveryFixedTarget = {
    * goniometer
    *
    */
-  readonly support_base?: Maybe<Scalars['String']>;
+  readonly support_base?: Maybe<Scalars['String']['output']>;
   /** Velocity of sample horizontally relative to a perpendicular beam in millimetres/second */
-  readonly velocity_horizontal?: Maybe<Scalars['Float']>;
+  readonly velocity_horizontal?: Maybe<Scalars['Float']['output']>;
   /** Velocity of sample vertically relative to a perpendicular beam in millimetres/second */
-  readonly velocity_vertical?: Maybe<Scalars['Float']>;
+  readonly velocity_vertical?: Maybe<Scalars['Float']['output']>;
 };
 
 export type PdbxSerialCrystallographySampleDeliveryInjection = {
@@ -5384,14 +5556,14 @@ export type PdbxSerialCrystallographySampleDeliveryInjection = {
    * LCP, grease, liquid
    *
    */
-  readonly carrier_solvent?: Maybe<Scalars['String']>;
+  readonly carrier_solvent?: Maybe<Scalars['String']['output']>;
   /**
    * For continuous sample flow experiments, the concentration of
    *  crystals in the solution being injected.
    *
    *  The concentration is measured in million crystals/ml.
    */
-  readonly crystal_concentration?: Maybe<Scalars['Float']>;
+  readonly crystal_concentration?: Maybe<Scalars['Float']['output']>;
   /**
    * For continuous sample flow experiments, a description of the injector used
    *  to move the sample into the beam.
@@ -5400,7 +5572,7 @@ export type PdbxSerialCrystallographySampleDeliveryInjection = {
    * microextrusion injector
    *
    */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /**
    * The data item is a pointer to _diffrn.id in the DIFFRN
    *  category.
@@ -5409,19 +5581,19 @@ export type PdbxSerialCrystallographySampleDeliveryInjection = {
    * 1
    *
    */
-  readonly diffrn_id: Scalars['String'];
+  readonly diffrn_id: Scalars['String']['output'];
   /** The size of filter in micrometres in filtering crystals */
-  readonly filter_size?: Maybe<Scalars['Float']>;
+  readonly filter_size?: Maybe<Scalars['Float']['output']>;
   /**
    * For continuous sample flow experiments, the flow rate of
    *  solution being injected  measured in ul/min.
    */
-  readonly flow_rate?: Maybe<Scalars['Float']>;
+  readonly flow_rate?: Maybe<Scalars['Float']['output']>;
   /**
    * For continuous sample flow experiments, the diameter of the
    *  injector in micrometres.
    */
-  readonly injector_diameter?: Maybe<Scalars['Float']>;
+  readonly injector_diameter?: Maybe<Scalars['Float']['output']>;
   /**
    * The type of nozzle to deliver and focus sample jet
    *
@@ -5429,20 +5601,20 @@ export type PdbxSerialCrystallographySampleDeliveryInjection = {
    * gas, GDVN
    *
    */
-  readonly injector_nozzle?: Maybe<Scalars['String']>;
+  readonly injector_nozzle?: Maybe<Scalars['String']['output']>;
   /**
    * For continuous sample flow experiments, the mean pressure
    *  in kilopascals at which the sample is injected into the beam.
    */
-  readonly injector_pressure?: Maybe<Scalars['Float']>;
+  readonly injector_pressure?: Maybe<Scalars['Float']['output']>;
   /**
    * For continuous sample flow experiments, the temperature in
    *  Kelvins of the speciman injected. This may be different from
    *  the temperature of the sample.
    */
-  readonly injector_temperature?: Maybe<Scalars['Float']>;
+  readonly injector_temperature?: Maybe<Scalars['Float']['output']>;
   /** Diameter in micrometres of jet stream of sample delivery */
-  readonly jet_diameter?: Maybe<Scalars['Float']>;
+  readonly jet_diameter?: Maybe<Scalars['Float']['output']>;
   /**
    * Sample deliver driving force, e.g. Gas, Electronic Potential
    *
@@ -5450,7 +5622,7 @@ export type PdbxSerialCrystallographySampleDeliveryInjection = {
    * syringe, gas, electronic potential
    *
    */
-  readonly power_by?: Maybe<Scalars['String']>;
+  readonly power_by?: Maybe<Scalars['String']['output']>;
   /**
    * Details of crystal growth and preparation of the crystals
    *
@@ -5458,7 +5630,7 @@ export type PdbxSerialCrystallographySampleDeliveryInjection = {
    * Crystals transfered to carrier solvent at room temperature
    *
    */
-  readonly preparation?: Maybe<Scalars['String']>;
+  readonly preparation?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxSolnScatter = {
@@ -5470,7 +5642,7 @@ export type PdbxSolnScatter = {
    * acetic acid
    *
    */
-  readonly buffer_name?: Maybe<Scalars['String']>;
+  readonly buffer_name?: Maybe<Scalars['String']['output']>;
   /**
    * The concentration range (mg/mL) of the complex in the
    *  sample used in the solution scattering experiment to
@@ -5480,7 +5652,7 @@ export type PdbxSolnScatter = {
    * 0.7 - 14
    *
    */
-  readonly concentration_range?: Maybe<Scalars['String']>;
+  readonly concentration_range?: Maybe<Scalars['String']['output']>;
   /**
    * A list of the software used in the data analysis
    *
@@ -5488,7 +5660,7 @@ export type PdbxSolnScatter = {
    * SCTPL5 GNOM
    *
    */
-  readonly data_analysis_software_list?: Maybe<Scalars['String']>;
+  readonly data_analysis_software_list?: Maybe<Scalars['String']['output']>;
   /**
    * A list of the software used in the data reduction
    *
@@ -5496,20 +5668,20 @@ export type PdbxSolnScatter = {
    * OTOKO
    *
    */
-  readonly data_reduction_software_list?: Maybe<Scalars['String']>;
+  readonly data_reduction_software_list?: Maybe<Scalars['String']['output']>;
   /**
    * The particular radiation detector. In general this will be a
    *   manufacturer, description, model number or some combination of
    *   these.
    */
-  readonly detector_specific?: Maybe<Scalars['String']>;
+  readonly detector_specific?: Maybe<Scalars['String']['output']>;
   /** The general class of the radiation detector. */
-  readonly detector_type?: Maybe<Scalars['String']>;
+  readonly detector_type?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _pdbx_soln_scatter.id must
    *  uniquely identify the sample in the category PDBX_SOLN_SCATTER
    */
-  readonly id: Scalars['String'];
+  readonly id: Scalars['String']['output'];
   /**
    * The maximum mean radius of structural elongation of the sample.
    *  In a given solute-solvent contrast, the radius of gyration
@@ -5547,7 +5719,7 @@ export type PdbxSolnScatter = {
    *  intensity at zero angle [I(Q).Q]_Q->0 is obtained from
    *     ln[I(Q).Q] = ln[l(Q).(Q)]_Q->0 - ((R_XS)^2Q^2)/2
    */
-  readonly max_mean_cross_sectional_radii_gyration?: Maybe<Scalars['Float']>;
+  readonly max_mean_cross_sectional_radii_gyration?: Maybe<Scalars['Float']['output']>;
   /**
    * The estimated standard deviation for the
    * minimum mean radius of structural elongation of the sample.
@@ -5586,7 +5758,7 @@ export type PdbxSolnScatter = {
    * intensity at zero angle [I(Q).Q]_Q->0 is obtained from
    *    ln[I(Q).Q] = ln[l(Q).(Q)]_Q->0 - ((R_XS)^2Q^2)/2
    */
-  readonly max_mean_cross_sectional_radii_gyration_esd?: Maybe<Scalars['Float']>;
+  readonly max_mean_cross_sectional_radii_gyration_esd?: Maybe<Scalars['Float']['output']>;
   /**
    * The mean radius of structural elongation of the sample.
    *  In a given solute-solvent contrast, the radius of gyration
@@ -5625,7 +5797,7 @@ export type PdbxSolnScatter = {
    *
    *     ln[I(Q).Q] = ln[l(Q).(Q)]_Q->0 - ((R_XS)^2Q^2)/2
    */
-  readonly mean_guiner_radius?: Maybe<Scalars['Float']>;
+  readonly mean_guiner_radius?: Maybe<Scalars['Float']['output']>;
   /**
    * The estimated standard deviation for the
    *  mean radius of structural elongation of the sample.
@@ -5664,7 +5836,7 @@ export type PdbxSolnScatter = {
    *  intensity at zero angle [I(Q).Q]_Q->0 is obtained from
    *     ln[I(Q).Q] = ln[l(Q).(Q)]_Q->0 - ((R_XS)^2Q^2)/2
    */
-  readonly mean_guiner_radius_esd?: Maybe<Scalars['Float']>;
+  readonly mean_guiner_radius_esd?: Maybe<Scalars['Float']['output']>;
   /**
    * The minimum mean radius of structural elongation of the sample.
    * In a given solute-solvent contrast, the radius of gyration
@@ -5702,7 +5874,7 @@ export type PdbxSolnScatter = {
    * intensity at zero angle [I(Q).Q]_Q->0 is obtained from
    *    ln[I(Q).Q] = ln[l(Q).(Q)]_Q->0 - ((R_XS)^2Q^2)/2
    */
-  readonly min_mean_cross_sectional_radii_gyration?: Maybe<Scalars['Float']>;
+  readonly min_mean_cross_sectional_radii_gyration?: Maybe<Scalars['Float']['output']>;
   /**
    * The estimated standard deviation for the
    * minimum mean radius of structural elongation of the sample.
@@ -5742,9 +5914,9 @@ export type PdbxSolnScatter = {
    *
    *    ln[I(Q).Q] = ln[l(Q).(Q)]_Q->0 - ((R_XS)^2Q^2)/2
    */
-  readonly min_mean_cross_sectional_radii_gyration_esd?: Maybe<Scalars['Float']>;
+  readonly min_mean_cross_sectional_radii_gyration_esd?: Maybe<Scalars['Float']['output']>;
   /** The number of time frame solution scattering images used. */
-  readonly num_time_frames?: Maybe<Scalars['Int']>;
+  readonly num_time_frames?: Maybe<Scalars['Int']['output']>;
   /**
    * The length (or range) of the protein sample under study.
    * If the solution structure is approximated as an elongated elliptical
@@ -5756,13 +5928,13 @@ export type PdbxSolnScatter = {
    *
    *   L = pi I(0) / [ I(Q).Q]_Q->0
    */
-  readonly protein_length?: Maybe<Scalars['String']>;
+  readonly protein_length?: Maybe<Scalars['String']['output']>;
   /** The pH value of the buffered sample. */
-  readonly sample_pH?: Maybe<Scalars['Float']>;
+  readonly sample_pH?: Maybe<Scalars['Float']['output']>;
   /** The beamline name used for the experiment */
-  readonly source_beamline?: Maybe<Scalars['String']>;
+  readonly source_beamline?: Maybe<Scalars['String']['output']>;
   /** The instrumentation used on the beamline */
-  readonly source_beamline_instrument?: Maybe<Scalars['String']>;
+  readonly source_beamline_instrument?: Maybe<Scalars['String']['output']>;
   /**
    * The general class of the radiation source.
    *
@@ -5770,14 +5942,14 @@ export type PdbxSolnScatter = {
    * neutron source, synchrotron
    *
    */
-  readonly source_class?: Maybe<Scalars['String']>;
+  readonly source_class?: Maybe<Scalars['String']['output']>;
   /** The make, model, name or beamline of the source of radiation. */
-  readonly source_type?: Maybe<Scalars['String']>;
+  readonly source_type?: Maybe<Scalars['String']['output']>;
   /**
    * The temperature in kelvins at which the experiment
    *  was conducted
    */
-  readonly temperature?: Maybe<Scalars['Float']>;
+  readonly temperature?: Maybe<Scalars['Float']['output']>;
   /**
    * The type of solution scattering experiment carried out
    *
@@ -5785,7 +5957,7 @@ export type PdbxSolnScatter = {
    * modelling, neutron, x-ray
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxSolnScatterModel = {
@@ -5803,7 +5975,7 @@ export type PdbxSolnScatterModel = {
    *    extending to 1.4 nm-1.
    *
    */
-  readonly conformer_selection_criteria?: Maybe<Scalars['String']>;
+  readonly conformer_selection_criteria?: Maybe<Scalars['String']['output']>;
   /**
    * A description of any additional details concerning the experiment.
    *
@@ -5826,7 +5998,7 @@ export type PdbxSolnScatterModel = {
    *     the neutron curves but now using unhydrated models.
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * A list of the entries used to fit the model
    *  to the scattering data
@@ -5835,12 +6007,12 @@ export type PdbxSolnScatterModel = {
    * PDB CODE 1HFI, 1HCC, 1HFH, 1VCC
    *
    */
-  readonly entry_fitting_list?: Maybe<Scalars['String']>;
+  readonly entry_fitting_list?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _pdbx_soln_scatter_model.id must
    *  uniquely identify the sample in the category PDBX_SOLN_SCATTER_MODEL
    */
-  readonly id: Scalars['String'];
+  readonly id: Scalars['String']['output'];
   /**
    * A description of the methods used in the modelling
    *
@@ -5848,15 +6020,15 @@ export type PdbxSolnScatterModel = {
    * Constrained scattering fitting of homology models
    *
    */
-  readonly method?: Maybe<Scalars['String']>;
+  readonly method?: Maybe<Scalars['String']['output']>;
   /** The number of model conformers calculated. */
-  readonly num_conformers_calculated?: Maybe<Scalars['Int']>;
+  readonly num_conformers_calculated?: Maybe<Scalars['Int']['output']>;
   /** The number of model conformers submitted in the entry */
-  readonly num_conformers_submitted?: Maybe<Scalars['Int']>;
+  readonly num_conformers_submitted?: Maybe<Scalars['Int']['output']>;
   /** The index of the representative conformer among the submitted conformers for the entry */
-  readonly representative_conformer?: Maybe<Scalars['Int']>;
+  readonly representative_conformer?: Maybe<Scalars['Int']['output']>;
   /** This data item is a pointer to  _pdbx_soln_scatter.id in the  PDBX_SOLN_SCATTER category. */
-  readonly scatter_id: Scalars['String'];
+  readonly scatter_id: Scalars['String']['output'];
   /**
    * A list of the software authors
    *
@@ -5864,7 +6036,7 @@ export type PdbxSolnScatterModel = {
    * MSI
    *
    */
-  readonly software_author_list?: Maybe<Scalars['String']>;
+  readonly software_author_list?: Maybe<Scalars['String']['output']>;
   /**
    * A list of the software used in the modeeling
    *
@@ -5872,30 +6044,34 @@ export type PdbxSolnScatterModel = {
    * INSIGHT II, HOMOLOGY, DISCOVERY, BIOPOLYMER, DELPHI
    *
    */
-  readonly software_list?: Maybe<Scalars['String']>;
+  readonly software_list?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxStructAssembly = {
   /**
    * A description of special aspects of the macromolecular assembly.
    *
+   *                In the PDB, 'representative helical assembly', 'complete point assembly',
+   * 	       'complete icosahedral assembly', 'software_defined_assembly', 'author_defined_assembly',
+   * 	       and 'author_and_software_defined_assembly' are considered "biologically relevant assemblies.
+   *
    * Examples:
    * The icosahedral virus particle.
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _pdbx_struct_assembly.id must uniquely identify a record in
    *  the PDBX_STRUCT_ASSEMBLY list.
    */
-  readonly id: Scalars['String'];
+  readonly id: Scalars['String']['output'];
   /**
    * Provides details of the method used to determine or
    *  compute the assembly.
    */
-  readonly method_details?: Maybe<Scalars['String']>;
+  readonly method_details?: Maybe<Scalars['String']['output']>;
   /** The number of polymer molecules in the assembly. */
-  readonly oligomeric_count?: Maybe<Scalars['Int']>;
+  readonly oligomeric_count?: Maybe<Scalars['Int']['output']>;
   /**
    * Provides the details of the oligomeric state of the assembly.
    *
@@ -5903,7 +6079,7 @@ export type PdbxStructAssembly = {
    * monomer, octameric, tetradecameric, eicosameric, 21-meric, 60-meric, 180-meric, helical
    *
    */
-  readonly oligomeric_details?: Maybe<Scalars['String']>;
+  readonly oligomeric_details?: Maybe<Scalars['String']['output']>;
   /**
    * Candidate macromolecular assembly.
    *
@@ -5919,7 +6095,7 @@ export type PdbxStructAssembly = {
    * N, Y
    *
    */
-  readonly rcsb_candidate_assembly?: Maybe<Scalars['String']>;
+  readonly rcsb_candidate_assembly?: Maybe<Scalars['String']['output']>;
   /**
    * A filtered description of the macromolecular assembly.
    *
@@ -5927,12 +6103,12 @@ export type PdbxStructAssembly = {
    * author_and_software_defined_assembly, author_defined_assembly, software_defined_assembly
    *
    */
-  readonly rcsb_details?: Maybe<Scalars['String']>;
+  readonly rcsb_details?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxStructAssemblyAuthEvidence = {
   /** This item references an assembly in pdbx_struct_assembly */
-  readonly assembly_id: Scalars['String'];
+  readonly assembly_id: Scalars['String']['output'];
   /**
    * Provides any additional information regarding the evidence of this assembly
    *
@@ -5940,7 +6116,7 @@ export type PdbxStructAssemblyAuthEvidence = {
    * Homology to bacteriorhodopsin, Helical filament was observed by negative staining and Cryo-EM
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * Provides the experimental method to determine the state of this assembly
    *
@@ -5948,9 +6124,9 @@ export type PdbxStructAssemblyAuthEvidence = {
    * NMR Distance Restraints, NMR relaxation study, SAXS, assay for oligomerization, cross-linking, electron microscopy, equilibrium centrifugation, fluorescence resonance energy transfer, gel filtration, homology, immunoprecipitation, isothermal titration calorimetry, light scattering, mass spectrometry, microscopy, native gel electrophoresis, none, scanning transmission electron microscopy, surface plasmon resonance
    *
    */
-  readonly experimental_support?: Maybe<Scalars['String']>;
+  readonly experimental_support?: Maybe<Scalars['String']['output']>;
   /** Identifies a unique record in pdbx_struct_assembly_auth_evidence. */
-  readonly id: Scalars['String'];
+  readonly id: Scalars['String']['output'];
 };
 
 export type PdbxStructAssemblyGen = {
@@ -5958,14 +6134,14 @@ export type PdbxStructAssemblyGen = {
    * This data item is a pointer to _pdbx_struct_assembly.id in the
    *  PDBX_STRUCT_ASSEMBLY category.
    */
-  readonly assembly_id?: Maybe<Scalars['String']>;
+  readonly assembly_id?: Maybe<Scalars['String']['output']>;
   /**
    * This data item is a pointer to _struct_asym.id in
    *  the STRUCT_ASYM category.
    *
    *  This item may be expressed as a comma separated list of identifiers.
    */
-  readonly asym_id_list?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly asym_id_list?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /**
    * Identifies the operation of collection of operations
    *  from category PDBX_STRUCT_OPER_LIST.
@@ -5984,19 +6160,19 @@ export type PdbxStructAssemblyGen = {
    * (1), (1,2,5), (1-60), (1-60)(61)
    *
    */
-  readonly oper_expression?: Maybe<Scalars['String']>;
+  readonly oper_expression?: Maybe<Scalars['String']['output']>;
   /**
    * This data item is an ordinal index for the
    *  PDBX_STRUCT_ASSEMBLY category.
    */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
 };
 
 export type PdbxStructAssemblyProp = {
   /** The identifier for the assembly used in category PDBX_STRUCT_ASSEMBLY. */
-  readonly assembly_id?: Maybe<Scalars['String']>;
+  readonly assembly_id?: Maybe<Scalars['String']['output']>;
   /** The identifier for the assembly used in category PDBX_STRUCT_ASSEMBLY. */
-  readonly biol_id: Scalars['String'];
+  readonly biol_id: Scalars['String']['output'];
   /**
    * The property type for the assembly.
    *
@@ -6004,9 +6180,9 @@ export type PdbxStructAssemblyProp = {
    * ABSA (A^2), MORE, SSA (A^2)
    *
    */
-  readonly type: Scalars['String'];
+  readonly type: Scalars['String']['output'];
   /** The value of the assembly property. */
-  readonly value?: Maybe<Scalars['String']>;
+  readonly value?: Maybe<Scalars['String']['output']>;
 };
 
 export type PdbxStructOperList = {
@@ -6014,52 +6190,52 @@ export type PdbxStructOperList = {
    * This identifier code must uniquely identify a
    *  record in the PDBX_STRUCT_OPER_LIST list.
    */
-  readonly id: Scalars['String'];
+  readonly id: Scalars['String']['output'];
   /**
    * The [1][1] element of the 3x3 matrix component of the
    *  transformation operation.
    */
-  readonly matrix_1_1?: Maybe<Scalars['Float']>;
+  readonly matrix_1_1?: Maybe<Scalars['Float']['output']>;
   /**
    * The [1][2] element of the 3x3 matrix component of the
    *  transformation operation.
    */
-  readonly matrix_1_2?: Maybe<Scalars['Float']>;
+  readonly matrix_1_2?: Maybe<Scalars['Float']['output']>;
   /**
    * The [1][3] element of the 3x3 matrix component of the
    *  transformation operation.
    */
-  readonly matrix_1_3?: Maybe<Scalars['Float']>;
+  readonly matrix_1_3?: Maybe<Scalars['Float']['output']>;
   /**
    * The [2][1] element of the 3x3 matrix component of the
    *  transformation operation.
    */
-  readonly matrix_2_1?: Maybe<Scalars['Float']>;
+  readonly matrix_2_1?: Maybe<Scalars['Float']['output']>;
   /**
    * The [2][2] element of the 3x3 matrix component of the
    *  transformation operation.
    */
-  readonly matrix_2_2?: Maybe<Scalars['Float']>;
+  readonly matrix_2_2?: Maybe<Scalars['Float']['output']>;
   /**
    * The [2][3] element of the 3x3 matrix component of the
    *  transformation operation.
    */
-  readonly matrix_2_3?: Maybe<Scalars['Float']>;
+  readonly matrix_2_3?: Maybe<Scalars['Float']['output']>;
   /**
    * The [3][1] element of the 3x3 matrix component of the
    *  transformation operation.
    */
-  readonly matrix_3_1?: Maybe<Scalars['Float']>;
+  readonly matrix_3_1?: Maybe<Scalars['Float']['output']>;
   /**
    * The [3][2] element of the 3x3 matrix component of the
    *  transformation operation.
    */
-  readonly matrix_3_2?: Maybe<Scalars['Float']>;
+  readonly matrix_3_2?: Maybe<Scalars['Float']['output']>;
   /**
    * The [3][3] element of the 3x3 matrix component of the
    *  transformation operation.
    */
-  readonly matrix_3_3?: Maybe<Scalars['Float']>;
+  readonly matrix_3_3?: Maybe<Scalars['Float']['output']>;
   /**
    * A descriptive name for the transformation operation.
    *
@@ -6067,7 +6243,7 @@ export type PdbxStructOperList = {
    * 1_555, two-fold rotation
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * The symmetry operation corresponding to the transformation operation.
    *
@@ -6075,7 +6251,7 @@ export type PdbxStructOperList = {
    * x,y,z, x+1/2,y,-z
    *
    */
-  readonly symmetry_operation?: Maybe<Scalars['String']>;
+  readonly symmetry_operation?: Maybe<Scalars['String']['output']>;
   /**
    * A code to indicate the type of operator.
    *
@@ -6083,22 +6259,22 @@ export type PdbxStructOperList = {
    * 2D crystal symmetry operation, 3D crystal symmetry operation, build 2D crystal asymmetric unit, build 3D crystal asymmetric unit, build helical asymmetric unit, build point asymmetric unit, crystal symmetry operation, helical symmetry operation, identity operation, point symmetry operation, transform to 2D crystal frame, transform to 3D crystal frame, transform to crystal frame, transform to helical frame, transform to point frame
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
   /**
    * The [1] element of the three-element vector component of the
    *  transformation operation.
    */
-  readonly vector_1?: Maybe<Scalars['Float']>;
+  readonly vector_1?: Maybe<Scalars['Float']['output']>;
   /**
    * The [2] element of the three-element vector component of the
    *  transformation operation.
    */
-  readonly vector_2?: Maybe<Scalars['Float']>;
+  readonly vector_2?: Maybe<Scalars['Float']['output']>;
   /**
    * The [3] element of the three-element vector component of the
    *  transformation operation.
    */
-  readonly vector_3?: Maybe<Scalars['Float']>;
+  readonly vector_3?: Maybe<Scalars['Float']['output']>;
 };
 
 export type PdbxStructSpecialSymmetry = {
@@ -6108,777 +6284,58 @@ export type PdbxStructSpecialSymmetry = {
    * This data item is a pointer to _atom_site.pdbx_PDB_model_num in the
    * ATOM_SITE category.
    */
-  readonly PDB_model_num?: Maybe<Scalars['Int']>;
+  readonly PDB_model_num?: Maybe<Scalars['Int']['output']>;
   /**
    * Part of the identifier for the molecular component.
    *
    *  This data item is a pointer to _atom_site.auth_seq_id in the
    *  ATOM_SITE category.
    */
-  readonly auth_seq_id?: Maybe<Scalars['String']>;
+  readonly auth_seq_id?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _pdbx_struct_special_symmetry.id must uniquely identify
    *  each item in the PDBX_STRUCT_SPECIAL_SYMMETRY list.
    *
    *  This is an integer serial number.
    */
-  readonly id: Scalars['Int'];
+  readonly id: Scalars['Int']['output'];
   /**
    * Part of the identifier for the molecular component.
    *
    *  This data item is a pointer to _atom_site.label_asym_id in the
    *  ATOM_SITE category.
    */
-  readonly label_asym_id?: Maybe<Scalars['String']>;
+  readonly label_asym_id?: Maybe<Scalars['String']['output']>;
   /**
    * Part of the identifier for the molecular component.
    *
    *  This data item is a pointer to _atom_site.label_comp_id in the
    *  ATOM_SITE category.
    */
-  readonly label_comp_id?: Maybe<Scalars['String']>;
-};
-
-export type PdbxVrptSummary = {
-  /**
-   * String for B_factor_type either "PARTIAL" or "FULL".
-   *
-   * Allowable values:
-   * FULL, PARTIAL
-   *
-   */
-  readonly B_factor_type?: Maybe<Scalars['String']>;
-  /**
-   * REFMAC scaling parameter as reported in log output line starting 'bulk solvent: scale'.
-   * Example:            X-ray entry specific, obtained in the eds step from REFMAC calculation.
-   */
-  readonly Babinet_b?: Maybe<Scalars['Float']>;
-  /**
-   * REFMAC scaling parameter as reported in log output line starting 'bulk solvent: scale'.
-   * Example:            X-ray entry specific, obtained in the eds step from REFMAC calculation.
-   */
-  readonly Babinet_k?: Maybe<Scalars['Float']>;
-  /**
-   * The string "yes".
-   *
-   * Allowable values:
-   * yes
-   *
-   */
-  readonly CA_ONLY?: Maybe<Scalars['String']>;
-  /**
-   * The overall R-factor from a DCC recalculation of an electron density map.
-   * Example:            Currently value is rounded to 2 decimal places.
-   * X-ray entry specific, obtained from the DCC program.
-   */
-  readonly DCC_R?: Maybe<Scalars['Float']>;
-  /** Either a decimal number or the string "NotAvailable". */
-  readonly DCC_Rfree?: Maybe<Scalars['Float']>;
-  /**
-   * The pdbx_vrpt_software used by DCC to perform the recaluclation of the electron density maps.
-   * &#160;Currently one of "CNS", "REFMAC" or "PHENIX".
-   *  Example:            X-ray entry specific, obtained from the DCC program.
-   */
-  readonly DCC_refinement_program?: Maybe<Scalars['String']>;
-  /**
-   * The overall R factor from the EDS REFMAC calculation (no free set is used in this).
-   * Example:            Currently value is rounded to 2 decimal places.
-   * X-ray entry specific, obtained in the eds step from REFMAC calculation.
-   */
-  readonly EDS_R?: Maybe<Scalars['Float']>;
-  /**
-   * The data high resolution diffraction limit, in Angstroms, found in the input structure factor file.
-   * Example:            X-ray entry specific, obtained in the eds step.
-   */
-  readonly EDS_resolution?: Maybe<Scalars['Float']>;
-  /**
-   * The data low resolution diffraction limit, in Angstroms, found in the input structure factor file.
-   * Example:            X-ray entry specific, obtained in the eds step.
-   */
-  readonly EDS_resolution_low?: Maybe<Scalars['Float']>;
-  /**
-   * Date in yyyy-mm-dd format when map was deposited to the EMDB.
-   * Reports produced by the validation server or during the initial deposition process should not have this item.
-   * If there is a difficulty parsing the item then "unknown" will be given.
-   */
-  readonly EMDB_deposition_date?: Maybe<Scalars['Date']>;
-  /** Either a decimal number or the string "NotAvailable". */
-  readonly EMDB_resolution?: Maybe<Scalars['Float']>;
-  /**
-   * Fo,Fc correlation: The difference between the observed structure factors (Fo) and the
-   * calculated structure factors (Fc) measures the correlation between the PDB_model_num and the i
-   * experimental data.
-   * Example:            X-ray entry specific, obtained in the eds step from REFMAC calculation.
-   */
-  readonly Fo_Fc_correlation?: Maybe<Scalars['Float']>;
-  /**
-   * Each reflection has an intensity (I) and an uncertainty in measurement
-   * (sigma(I)), so I/sigma(I) is the signal-to-noise ratio. This
-   * ratio decreases at higher resolution. <I/sigma(I)> is the mean of individual I/sigma(I)
-   * values. Value for outer resolution shell is given in parentheses. In case
-   * structure factor amplitudes are deposited, Xtriage estimates the intensities
-   * first and then calculates this metric. When intensities are available in the
-   * deposited file, these are converted to amplitudes and then back to intensity
-   * estimate before calculating the metric.
-   * Example            X-ray entry specific, calculated by Phenix Xtriage program.
-   */
-  readonly I_over_sigma?: Maybe<Scalars['String']>;
-  /** Either a decimal number or the string "NotAvailable". */
-  readonly PDB_R?: Maybe<Scalars['Float']>;
-  /** Either a decimal number or the string "NotAvailable". */
-  readonly PDB_Rfree?: Maybe<Scalars['Float']>;
-  /**
-   * Date in yyyy-mm-dd format when structure was deposited to the PDB.
-   * Obtained from mmCIF table _database_PDB_rev item _database_PDB_rev.date_original
-   * Reports produced by the validation server or during the initial deposition process should not have this item.
-   * If there is a difficulty parsing the item then "unknown" will be given.
-   */
-  readonly PDB_deposition_date?: Maybe<Scalars['Date']>;
-  /** Either a decimal number or the string "NotAvailable". */
-  readonly PDB_resolution?: Maybe<Scalars['Float']>;
-  /** Either a decimal number or the string "NotAvailable". */
-  readonly PDB_resolution_low?: Maybe<Scalars['Float']>;
-  /**
-   * Date in yyyy-mm-dd format when the structure was last revised by PDB.
-   * Obtained from mmCIF table _database_PDB_rev item _database_PDB_rev.date
-   * Reports produced by the validation server or during the initial depositon process should not have this item.
-   * If there is a difficulty parsing the item then "unknown" will be given.
-   */
-  readonly PDB_revision_date?: Maybe<Scalars['Date']>;
-  /**
-   * The last highest number that appears in mmCIF item _database_PDB_rev.num.
-   * Data items in the DATABASE_PDB_REV category record details about the history of the data block as archived by the Protein Data Bank (PDB).
-   * If the input mmCIF coordinate file lacks the information then a value of -1 is supplied.
-   */
-  readonly PDB_revision_number?: Maybe<Scalars['Float']>;
-  /**
-   * The MolProbity conformer-match quality parameter for RNA structures.
-   * Low values are worse.
-   * Example:           Specific to structures that contain RNA polymers.
-   */
-  readonly RNA_suiteness?: Maybe<Scalars['Float']>;
-  /**
-   * Result of absolute likelihood based Wilson scaling,
-   * The anisotropic B value of the data is determined using a likelihood based approach.
-   * The resulting B tensor is reported, the 3 diagonal values are given first, followed
-   * by the 3 off diagonal values.
-   * A large spread in (especially the diagonal) values indicates anisotropy.
-   * Example:            X-ray entry specific, calculated by Phenix Xtriage program.
-   */
-  readonly Wilson_B_aniso?: Maybe<Scalars['String']>;
-  /**
-   * An estimate of the overall B-value of the structure, calculated from the diffraction data.
-   * Units Angstroms squared.
-   * It serves as an indicator of the degree of order in the crystal and the value is usually
-   * not hugely different from the average B-value calculated from the model.
-   * Example:            X-ray entry specific, calculated by Phenix Xtriage program.
-   */
-  readonly Wilson_B_estimate?: Maybe<Scalars['Float']>;
-  /**
-   * Structures are judged in comparison to previously deposited PDB entries.
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
-   * that are equal or poorer than this structure in terms of a quality indicator.
-   * Percentile ranks range from 0 (the worst) to 100 (the best).
-   */
-  readonly absolute_percentile_DCC_Rfree?: Maybe<Scalars['Float']>;
-  /**
-   * Structures are judged in comparison to previously deposited PDB entries.
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
-   * that are equal or poorer than this structure in terms of a quality indicator.
-   * Percentile ranks range from 0 (the worst) to 100 (the best).
-   */
-  readonly absolute_percentile_RNA_suiteness?: Maybe<Scalars['Float']>;
-  /**
-   * Structures are judged in comparison to previously deposited PDB entries.
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
-   * that are equal or poorer than this structure in terms of a quality indicator.
-   * Percentile ranks range from 0 (the worst) to 100 (the best).
-   */
-  readonly absolute_percentile_clashscore?: Maybe<Scalars['Float']>;
-  /**
-   * Structures are judged in comparison to previously deposited PDB entries.
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
-   * that are equal or poorer than this structure in terms of a quality indicator.
-   * Percentile ranks range from 0 (the worst) to 100 (the best).
-   */
-  readonly absolute_percentile_percent_RSRZ_outliers?: Maybe<Scalars['Float']>;
-  /**
-   * Structures are judged in comparison to previously deposited PDB entries.
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
-   * that are equal or poorer than this structure in terms of a quality indicator.
-   * Percentile ranks range from 0 (the worst) to 100 (the best).
-   */
-  readonly absolute_percentile_percent_ramachandran_outliers?: Maybe<Scalars['Float']>;
-  /**
-   * Structures are judged in comparison to previously deposited PDB entries.
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
-   * that are equal or poorer than this structure in terms of a quality indicator.
-   * Percentile ranks range from 0 (the worst) to 100 (the best).
-   */
-  readonly absolute_percentile_percent_rotamer_outliers?: Maybe<Scalars['Float']>;
-  /**
-   * The number of acentric reflections that Xtriage identifies as outliers on the basis
-   * of Wilson statistics. Note that if pseudo translational symmetry is present,
-   * a large number of 'outliers' will be present.
-   * Example:            X-ray entry specific, calculated by Phenix Xtriage program.
-   */
-  readonly acentric_outliers?: Maybe<Scalars['Int']>;
-  /**
-   * The overall root mean square of the Z-score for deviations of bond angles in comparison to
-   * "standard geometry" made using the MolProbity dangle program.
-   * Standard geometry parameters are taken from Engh and Huber (2001) and Parkinson et al. (1996).
-   * This value is for all chains in the structure.
-   */
-  readonly angles_RMSZ?: Maybe<Scalars['Float']>;
-  /** The proportion of all non hydrogen atoms within density. */
-  readonly atom_inclusion_all_atoms?: Maybe<Scalars['Float']>;
-  /** The proportion of backbone atoms within density. */
-  readonly atom_inclusion_backbone?: Maybe<Scalars['Float']>;
-  /**
-   * The steps that were attempted by the validation pipeline software.
-   * A step typically involves running a 3rd party validation tool, for instance "mogul"
-   * Each step that was successfully completed will result in a pdbx_vrpt_software element in the pdbx_vrpt_sotfware_notused list.
-   */
-  readonly attempted_validation_steps?: Maybe<Scalars['String']>;
-  /** The resolution from the intersection of the author provided fsc and the indicator curve halfbit. */
-  readonly author_provided_fsc_resolution_by_cutoff_halfbit?: Maybe<Scalars['Float']>;
-  /** The resolution from the intersection of the author provided fsc and the indicator curve onebit. */
-  readonly author_provided_fsc_resolution_by_cutoff_onebit?: Maybe<Scalars['Float']>;
-  /** The resolution from the intersection of the author provided fsc and the indicator curve 0.5. */
-  readonly author_provided_fsc_resolution_by_cutoff_pt_5?: Maybe<Scalars['Float']>;
-  /** The resolution from the intersection of the author provided fsc and the indicator curve 0.143. */
-  readonly author_provided_fsc_resolution_by_cutoff_pt_143?: Maybe<Scalars['Float']>;
-  /** The resolution from the intersection of the author provided fsc and the indicator curve 0.333. */
-  readonly author_provided_fsc_resolution_by_cutoff_pt_333?: Maybe<Scalars['Float']>;
-  /** The resolution from the intersection of the author provided fsc and the indicator curve threesigma. */
-  readonly author_provided_fsc_resolution_by_cutoff_threesigma?: Maybe<Scalars['Float']>;
-  /**
-   * The overall root mean square of the Z-score for deviations of bond lengths in comparison to
-   * "standard geometry" made using the MolProbity dangle program.
-   * Standard geometry parameters are taken from Engh and Huber (2001) and Parkinson et al. (1996).
-   * This value is for all chains in the structure.
-   */
-  readonly bonds_RMSZ?: Maybe<Scalars['Float']>;
-  /**
-   * REFMAC scaling parameter as reported in log output line starting
-   * 'Partial structure    1: scale.'
-   * Example:            X-ray entry specific, obtained in the eds step from REFMAC calculation.
-   */
-  readonly bulk_solvent_b?: Maybe<Scalars['Float']>;
-  /**
-   * REFMAC scaling parameter as reported in log output line starting
-   * 'Partial structure    1: scale.'
-   * Example:            X-ray entry specific, obtained in the eds step from REFMAC calculation.
-   */
-  readonly bulk_solvent_k?: Maybe<Scalars['Float']>;
-  /** The resolution from the intersection of the fsc curve generated by from the provided halfmaps and the indicator curve halfbit. */
-  readonly calculated_fsc_resolution_by_cutoff_halfbit?: Maybe<Scalars['Float']>;
-  /** The resolution from the intersection of the fsc curve generated by from the provided halfmaps and the indicator curve onebit. */
-  readonly calculated_fsc_resolution_by_cutoff_onebit?: Maybe<Scalars['Float']>;
-  /** The resolution from the intersection of the fsc curve generated by from the provided halfmaps and the indicator curve 0.5. */
-  readonly calculated_fsc_resolution_by_cutoff_pt_5?: Maybe<Scalars['Float']>;
-  /** The resolution from the intersection of the fsc curve generated by from the provided halfmaps and the indicator curve 0.143. */
-  readonly calculated_fsc_resolution_by_cutoff_pt_143?: Maybe<Scalars['Float']>;
-  /** The resolution from the intersection of the fsc curve generated by from the provided halfmaps and the indicator curve 0.333. */
-  readonly calculated_fsc_resolution_by_cutoff_pt_333?: Maybe<Scalars['Float']>;
-  /** The resolution from the intersection of the fsc curve generated by from the provided halfmaps and the indicator curve threesigma. */
-  readonly calculated_fsc_resolution_by_cutoff_threesigma?: Maybe<Scalars['Float']>;
-  /**
-   * The version of CCP4 suite pdbx_vrpt_sotfware_notused used in the analysis.
-   * Example:            X-ray entry specific, obtained from the eds step.
-   */
-  readonly ccp4version?: Maybe<Scalars['String']>;
-  /**
-   * The number of centric reflections that Xtriage identifies as outliers.
-   * Example:            X-ray entry specific, calculated by Phenix Xtriage program.
-   */
-  readonly centric_outliers?: Maybe<Scalars['Float']>;
-  /**
-   * Overall completeness of the chemical shift assignments for the well-defined
-   * regions of the structure.
-   */
-  readonly chemical_shift_completeness?: Maybe<Scalars['Float']>;
-  /**
-   * Overall completeness of the chemical shift assignments for the full
-   * macromolecule or complex as suggested by the molecular description of an entry
-   * (whether some portion of it is modelled or not).
-   */
-  readonly chemical_shift_completeness_full_length?: Maybe<Scalars['Float']>;
-  /**
-   * The filename for the input chemical shifts file given to the validation pipeline.
-   * Not reported for runs at the annotation or release stage.
-   */
-  readonly chemical_shifts_input_filename?: Maybe<Scalars['String']>;
-  /**
-   * This score is derived from the number of pairs of atoms in the PDB_model_num that are unusually close to each other.
-   * It is calculated by the MolProbity pdbx_vrpt_software and expressed as the number or such clashes per thousand atoms.
-   * For structures determined by NMR the clashscore value here will only consider label_atom_id pairs in the
-   * well-defined (core) residues from ensemble analysis.
-   */
-  readonly clashscore?: Maybe<Scalars['Float']>;
-  /** Only given for structures determined by NMR. The MolProbity pdbx_vrpt_clashes score for all label_atom_id pairs. */
-  readonly clashscore_full_length?: Maybe<Scalars['Float']>;
-  /** The recommended contour level for the primary map of this deposition. */
-  readonly contour_level_primary_map?: Maybe<Scalars['String']>;
-  /**
-   * The filename for the input mmCIF coordinate file given to the validation pipeline.
-   * Not reported for runs at the annotation or release stage.
-   */
-  readonly coordinates_input_filename?: Maybe<Scalars['String']>;
-  /**
-   * Diagnostic message from the wrapper of Cyrange software which identifies the
-   * well-defined cores (domains) of NMR protein structures.
-   */
-  readonly cyrange_error?: Maybe<Scalars['String']>;
-  /** Total number of well-defined cores (domains) identified by Cyrange */
-  readonly cyrange_number_of_domains?: Maybe<Scalars['Int']>;
-  /** Reference for the Cyrange software. */
-  readonly cyrange_version?: Maybe<Scalars['String']>;
-  /**
-   * The ratio (Bmax &#8209; Bmin) / Bmean where Bmax, Bmin and Bmean are computed from the B-values
-   * associated with the principal axes of the anisotropic thermal ellipsoid.
-   * This ratio is usually less than 0.5; for only 1% of PDB entries it is more than 1.0 (Read et al., 2011).
-   * Example:            X-ray entry specific, obtained from the Xtriage program.
-   */
-  readonly data_anisotropy?: Maybe<Scalars['Float']>;
-  /** A percentage, Normally percent proportion of the total number. Between 0% and 100%. */
-  readonly data_completeness?: Maybe<Scalars['Float']>;
-  /**
-   * An identifier for the map
-   * For released or annotated structures this will be the EMDB ID EMD-\d{4-5} eg "EMD-1001", "EMD-12325"
-   */
-  readonly emdb_id?: Maybe<Scalars['String']>;
-  /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
-   * the attribute "relative-percentile-DCC_Rfree".
-   * Note that the "high_resol_relative_percentile_DCC_Rfree" value is numerically smaller than the
-   * corresponding low-* value.
-   * Example:            X-ray entry specific, produced by the percentiles step of the validation pipeline software.
-   */
-  readonly high_resol_relative_percentile_DCC_Rfree?: Maybe<Scalars['Float']>;
-  /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
-   * the attribute "relative-percentile-RNAsuiteness".
-   * Note that the "high_resol_relative_percentile_RNA_suiteness" value is numerically smaller than the
-   * corresponding low value.
-   * Example:            Specific to entries that contain RNA polymers (and have a RNA_suiteness attribute),
-   * and have been determined by X-ray crystallography.
-   * Produced by the percentiles step of the validation pipeline software.
-   */
-  readonly high_resol_relative_percentile_RNA_suiteness?: Maybe<Scalars['Float']>;
-  /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
-   * the attribute "relative-percentile-clashscore".
-   * Note that the "high_resol_relative_percentile_clashscore" value is numerically smaller than the
-   * corresponding low value.
-   * Example:            Specific to that have a clashscore attribute and have been determined by X-ray crystallography.
-   * Produced by the percentiles step of the validation pipeline software.
-   */
-  readonly high_resol_relative_percentile_clashscore?: Maybe<Scalars['Float']>;
-  /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
-   * the attribute "relative-percentile-percent-RSRZ-outliers".
-   * Note that the "high_resol_relative_percentile_percent_RSRZ_outliers" value is numerically smaller than the
-   * corresponding low-* value.
-   * Example:            X-ray entry specific, produced by the percentiles step of the validation pipeline software.
-   */
-  readonly high_resol_relative_percentile_percent_RSRZ_outliers?: Maybe<Scalars['Float']>;
-  /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
-   * the attribute "relative-percentile-percent-rama-outliers".
-   * Note that the "high_resol_relative_percentile_percent_ramachandran_outliers" value is numerically smaller than the
-   * corresponding low value.
-   * Example:            Specific to structures that have a percent_ramachandran_outliers attribute and have been determined by X-ray crystallography.
-   * Produced by the percentiles step of the validation pipeline software.
-   */
-  readonly high_resol_relative_percentile_percent_ramachandran_outliers?: Maybe<Scalars['Float']>;
-  /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
-   * the attribute "relative-percentile-percent-rota-outliers".
-   * Note that the "high_resol_relative_percentile_percent_rotamer_outliers" value is numerically smaller than the
-   * corresponding low value.
-   * Example:            Specific to that have a percent_rotamer_outliers attribute and have been determined by X-ray crystallography.
-   * Produced by the percentiles step of the validation pipeline software.
-   */
-  readonly high_resol_relative_percentile_percent_rotamer_outliers?: Maybe<Scalars['Float']>;
-  /**
-   * The string "yes".
-   *
-   * Allowable values:
-   * yes
-   *
-   */
-  readonly ligands_for_buster_report?: Maybe<Scalars['String']>;
-  /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
-   * the attribute "relative-percentile-DCC_Rfree".
-   * Note that the "low_resol_relative_percentile_DCC_Rfree" value is numerically greater than the
-   * corresponding high value.
-   * Example:            X-ray entry specific, produced by the percentiles step of the validation pipeline software.
-   */
-  readonly low_resol_relative_percentile_DCC_Rfree?: Maybe<Scalars['Float']>;
-  /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
-   * the attribute "relative-percentile-RNAsuiteness".
-   * Note that the "low_resol_relative_percentile_RNA_suiteness" value is numerically greater than the
-   * corresponding high value.
-   * Example:            Specific to entries that contain RNA polymers (and have a RNA_suiteness attribute),
-   * and have been determined by X-ray crystallography.
-   * Produced by the percentiles step of the validation pipeline software.
-   */
-  readonly low_resol_relative_percentile_RNA_suiteness?: Maybe<Scalars['Float']>;
-  /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
-   * the attribute "relative-percentile-clashscore".
-   * Note that the "low_resol_relative_percentile_clashscore" value is numerically greater than the
-   * corresponding high value.
-   * Example:            Specific to that have a clashscore attribute and have been determined by X-ray crystallography.
-   * Produced by the percentiles step of the validation pipeline software.
-   */
-  readonly low_resol_relative_percentile_clashscore?: Maybe<Scalars['Float']>;
-  /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
-   * the attribute "relative-percentile-percent-RSRZ-outliers".
-   * Note that the "low_resol_relative_percentile_percent_RSRZ_outliers" value is numerically greater than the
-   * corresponding high value.
-   * Example:            X-ray entry specific, produced by the percentiles step of the validation pipeline software.
-   */
-  readonly low_resol_relative_percentile_percent_RSRZ_outliers?: Maybe<Scalars['Float']>;
-  /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
-   * the attribute "relative-percentile-percent-rama-outliers".
-   * Note that the "low_resol_relative_percentile_percent_ramachandran_outliers" value is numerically greater than the
-   * corresponding high value.
-   * Example:            Specific to that have a percent_ramachandran_outliers attribute and have been determined by X-ray crystallography.
-   * Produced by the percentiles step of the validation pipeline software.
-   */
-  readonly low_resol_relative_percentile_percent_ramachandran_outliers?: Maybe<Scalars['Float']>;
-  /**
-   * The resolution bin limit in Angstroms for PDB depositions used in the comparison when calculating
-   * the attribute "relative-percentile-percent-rota-outliers".
-   * Note that the "low_resol_relative_percentile_percent_rotamer_outliers" value is numerically greater than the
-   * corresponding high value.
-   * Example:            Specific to that have a percent_rotamer_outliers attribute and have been determined by X-ray crystallography.
-   * Produced by the percentiles step of the validation pipeline software.
-   */
-  readonly low_resol_relative_percentile_percent_rotamer_outliers?: Maybe<Scalars['Float']>;
-  /**
-   * For each Cyrange well-defined core ("cyrange_domain") the id of the PDB_model_num which is most
-   * similar to other models as measured by pairwise RMSDs over the domain.
-   * For the whole entry ("Entry"), the medoid PDB_model_num of the largest core is taken as an overall
-   * representative of the structure.
-   */
-  readonly medoid_model?: Maybe<Scalars['Int']>;
-  /**
-   * A flag indicating if all models in the NMR ensemble contain the exact
-   * same atoms ("True") or if the models differ in this respect ("False").
-   */
-  readonly nmr_models_consistency_flag?: Maybe<Scalars['String']>;
-  /** Diagnostic message from the wrapper of NMRClust software which clusters NMR models. */
-  readonly nmrclust_error?: Maybe<Scalars['String']>;
-  /** Total number of clusters in the NMR ensemble identified by NMRClust. */
-  readonly nmrclust_number_of_clusters?: Maybe<Scalars['Int']>;
-  /**
-   * Number of models analysed by NMRClust - should in almost all cases be the
-   * same as the number of models in the NMR ensemble.
-   */
-  readonly nmrclust_number_of_models?: Maybe<Scalars['Int']>;
-  /** Number of models that do not belong to any cluster as deemed by NMRClust. */
-  readonly nmrclust_number_of_outliers?: Maybe<Scalars['Int']>;
-  /** Overall representative PDB_model_num of the NMR ensemble as identified by NMRClust. */
-  readonly nmrclust_representative_model?: Maybe<Scalars['Int']>;
-  /** Reference for the NMRClust software. */
-  readonly nmrclust_version?: Maybe<Scalars['String']>;
-  /**
-   * The string "yes".
-   *
-   * Allowable values:
-   * yes
-   *
-   */
-  readonly no_ligands_for_buster_report?: Maybe<Scalars['String']>;
-  /**
-   * The string "yes".
-   *
-   * Allowable values:
-   * yes
-   *
-   */
-  readonly no_ligands_for_mogul?: Maybe<Scalars['String']>;
-  /**
-   * Will be set to "true" if no property was found to do percentile analysis on.
-   * Please note that currently due to a bug that this attribute is "true" erronously for NMR structures.
-   */
-  readonly no_percentile_property?: Maybe<Scalars['String']>;
-  /**
-   * This is the number of hydrogen atoms added and optimized by the MolProbity reduce pdbx_vrpt_software as part of the
-   * all-atom clashscore.
-   */
-  readonly num_H_reduce?: Maybe<Scalars['Float']>;
-  /**
-   * The number of PDB depositions used in the comparison when calculating the attribute
-   * "absolute-percentile-DCC_Rfree".
-   * Example:            X-ray entry specific, produced by the percentiles step of the validation pipeline software.
-   */
-  readonly num_PDBids_absolute_percentile_DCC_Rfree?: Maybe<Scalars['Int']>;
-  /**
-   * The number of PDB depositions used in the comparison when calculating the attribute
-   * "absolute-percentile-RNAsuiteness".
-   * Example:            Specific to entries that contain RNA polymers (and have a RNA_suiteness attribute).
-   * Produced by the percentiles step of the validation pipeline software.
-   */
-  readonly num_PDBids_absolute_percentile_RNA_suiteness?: Maybe<Scalars['Int']>;
-  /**
-   * The number of PDB depositions used in the comparison when calculating the attribute
-   * "absolute-percentile-clashscore"
-   * Example:             Produced by the percentiles step of the validation pipeline software.
-   */
-  readonly num_PDBids_absolute_percentile_clashscore?: Maybe<Scalars['Int']>;
-  /**
-   * The number of PDB depositions used in the comparison when calculating the attribute
-   * "absolute-percentile-percent-RSRZ-outliers".
-   * Example:            X-ray entry specific, produced by the percentiles step of the validation pipeline software.
-   */
-  readonly num_PDBids_absolute_percentile_percent_RSRZ_outliers?: Maybe<Scalars['Int']>;
-  /**
-   * The number of PDB depositions used in the comparison when calculating the attribute
-   * "absolute-percentile-percent-rama-outliers"
-   * Example:            Produced by the percentiles step of the validation pipeline software.
-   */
-  readonly num_PDBids_absolute_percentile_percent_ramachandran_outliers?: Maybe<Scalars['Int']>;
-  /**
-   * The number of PDB depositions used in the comparison when calculating the attribute
-   * "absolute-percentile-percent-rota-outliers"
-   * Example:             Produced by the percentiles step of the validation pipeline software.
-   */
-  readonly num_PDBids_absolute_percentile_percent_rotamer_outliers?: Maybe<Scalars['Int']>;
-  /**
-   * The number of PDB depositions used in the comparison when calculating the attribute
-   * "relative-percentile-DCC_Rfree".
-   * Example:            X-ray entry specific, produced by the percentiles step of the validation pipeline software.
-   */
-  readonly num_PDBids_relative_percentile_DCC_Rfree?: Maybe<Scalars['Int']>;
-  /**
-   * The number of PDB depositions used in the comparison when calculating the attribute
-   * "relative-percentile-RNAsuiteness".
-   * Example:            Specific to entries that contain RNA polymers (and have a RNA_suiteness attribute).
-   * Produced by the percentiles step of the validation pipeline software.
-   */
-  readonly num_PDBids_relative_percentile_RNA_suiteness?: Maybe<Scalars['Int']>;
-  /**
-   * The number of PDB depositions used in the comparison when calculating the attribute
-   * "relative-percentile-clashscore"
-   * Example:            Produced by the percentiles step of the validation pipeline software.
-   */
-  readonly num_PDBids_relative_percentile_clashscore?: Maybe<Scalars['Int']>;
-  /**
-   * The number of PDB depositions used in the comparison when calculating the attribute
-   * "relative-percentile-percent-RSRZ-outliers".
-   * Example:            X-ray entry specific, produced by the percentiles step of the validation pipeline software.
-   */
-  readonly num_PDBids_relative_percentile_percent_RSRZ_outliers?: Maybe<Scalars['Int']>;
-  /**
-   * The number of PDB depositions used in the comparison when calculating the attribute
-   * "relative-percentile-percent-rama-outliers"
-   * Example:            Produced by the percentiles step of the validation pipeline software.
-   */
-  readonly num_PDBids_relative_percentile_percent_ramachandran_outliers?: Maybe<Scalars['Int']>;
-  /**
-   * The number of PDB depositions used in the comparison when calculating the attribute
-   * "relative-percentile-percent-rota-outliers"
-   * Example:            Produced by the percentiles step of the validation pipeline software.
-   */
-  readonly num_PDBids_relative_percentile_percent_rotamer_outliers?: Maybe<Scalars['Int']>;
-  /**
-   * The number of bond angless compared to "standard geometry" made using the MolProbity dangle program.
-   * Standard geometry parameters are taken from Engh and Huber (2001) and Parkinson et al. (1996).
-   * This value is for all chains in the structure.
-   */
-  readonly num_angles_RMSZ?: Maybe<Scalars['Int']>;
-  /**
-   * The number of bond lengths compared to "standard geometry" made using the MolProbity dangle program.
-   * Standard geometry parameters are taken from Engh and Huber (2001) and Parkinson et al. (1996).
-   * This value is for all chains in the structure.
-   */
-  readonly num_bonds_RMSZ?: Maybe<Scalars['Int']>;
-  /**
-   * The number of reflections in the free set as defined in the input structure factor file supplied to the validation pipeline.
-   * example:            X-ray entry specific, obtained from the DCC program.
-   */
-  readonly num_free_reflections?: Maybe<Scalars['Int']>;
-  /**
-   * The number of Miller Indices reported by the Xtriage program. This should be the same as the
-   * number of _refln in the input structure factor file.
-   * Example:            X-ray entry specific, calculated by Phenix Xtriage program.
-   */
-  readonly num_miller_indices?: Maybe<Scalars['Int']>;
-  /** Reference for the PANAV software. */
-  readonly panav_version?: Maybe<Scalars['String']>;
-  /** A percentage, Normally percent proportion of the total number. Between 0% and 100%. */
-  readonly percent_RSRZ_outliers?: Maybe<Scalars['Float']>;
-  /** A percentage, Normally percent proportion of the total number. Between 0% and 100%. */
-  readonly percent_free_reflections?: Maybe<Scalars['Float']>;
-  /** A percentage, Normally percent proportion of the total number. Between 0% and 100%. */
-  readonly percent_ramachandran_outliers?: Maybe<Scalars['Float']>;
-  /** A percentage, Normally percent proportion of the total number. Between 0% and 100%. */
-  readonly percent_ramachandran_outliers_full_length?: Maybe<Scalars['Float']>;
-  /** A percentage, Normally percent proportion of the total number. Between 0% and 100%. */
-  readonly percent_rotamer_outliers?: Maybe<Scalars['Float']>;
-  /** A percentage, Normally percent proportion of the total number. Between 0% and 100%. */
-  readonly percent_rotamer_outliers_full_length?: Maybe<Scalars['Float']>;
-  /**
-   * The percentile bins that this structure would contribute to in a recalculation of
-   * percentile. The string is a comma separated list.
-   * Example: An X-ray entry with a resolution of 1.8 Angstroms,
-   * that would contribute to bins all structures, what ever bin 1.8 Angstrom resolution is in and
-   * the all xray bin.
-   * Example #2: An EM entry that would contribute to all and em structures bins.
-   * Example #3: A NMR entry hat would contribute to all and nmr structures bins.
-   */
-  readonly percentilebins?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
-  /**
-   * Comma separated list of the _entity.id's for the molecular entities that are present in the structure
-   * and have _entity_poly.type indicating that they are protein, RNA or DNA: that is in the list
-   * 'polypeptide(L)', 'polypeptide(D)', 'polyribonucleotide, 'polydeoxyribonucleotide'  or
-   * 'polydeoxyribonucleotide/polyribonucleotide hybrid'.
-   * Normally the entity.id's are integer numbers but not necessarily so.
-   * Example
-   */
-  readonly protein_DNA_RNA_entities?: Maybe<Scalars['String']>;
-  /** Version and reference of the RCI software */
-  readonly rci_version?: Maybe<Scalars['String']>;
-  /**
-   * The filename for the input mmCIF format reflection file given to the validation pipeline.
-   * Not reported for runs at the annotation or release stage.
-   */
-  readonly reflections_input_filename?: Maybe<Scalars['String']>;
-  /**
-   * Version of the REFMAC pdbx_vrpt_software used in the EDS step.
-   * Example:           X-ray entry specific, obtained in the eds step from REFMAC calculation.
-   */
-  readonly refmac_version?: Maybe<Scalars['String']>;
-  /**
-   * Structures are judged in comparison to previously deposited PDB entries.
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
-   * that are equal or poorer than this structure in terms of a quality indicator.
-   * Percentile ranks range from 0 (the worst) to 100 (the best).
-   */
-  readonly relative_percentile_DCC_Rfree?: Maybe<Scalars['Float']>;
-  /**
-   * Structures are judged in comparison to previously deposited PDB entries.
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
-   * that are equal or poorer than this structure in terms of a quality indicator.
-   * Percentile ranks range from 0 (the worst) to 100 (the best).
-   */
-  readonly relative_percentile_RNA_suiteness?: Maybe<Scalars['Float']>;
-  /**
-   * Structures are judged in comparison to previously deposited PDB entries.
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
-   * that are equal or poorer than this structure in terms of a quality indicator.
-   * Percentile ranks range from 0 (the worst) to 100 (the best).
-   */
-  readonly relative_percentile_clashscore?: Maybe<Scalars['Float']>;
-  /**
-   * Structures are judged in comparison to previously deposited PDB entries.
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
-   * that are equal or poorer than this structure in terms of a quality indicator.
-   * Percentile ranks range from 0 (the worst) to 100 (the best).
-   */
-  readonly relative_percentile_percent_RSRZ_outliers?: Maybe<Scalars['Float']>;
-  /**
-   * Structures are judged in comparison to previously deposited PDB entries.
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
-   * that are equal or poorer than this structure in terms of a quality indicator.
-   * Percentile ranks range from 0 (the worst) to 100 (the best).
-   */
-  readonly relative_percentile_percent_ramachandran_outliers?: Maybe<Scalars['Float']>;
-  /**
-   * Structures are judged in comparison to previously deposited PDB entries.
-   * The comparison is carried out by calculation of the percentile rank, i.e. the percentage of entries
-   * that are equal or poorer than this structure in terms of a quality indicator.
-   * Percentile ranks range from 0 (the worst) to 100 (the best).
-   */
-  readonly relative_percentile_percent_rotamer_outliers?: Maybe<Scalars['Float']>;
-  /**
-   * The date, time and time-zone that the validation XML file was created.
-   * The string will be formatted like "Feb  7, 2017 -- 12:32 pm GMT".
-   */
-  readonly report_creation_date?: Maybe<Scalars['String']>;
-  /**
-   * The data high resolution diffraction limit, in Angstroms, obtained from cif item
-   * _reflns.d_resolution_high.
-   * X-ray entry specific.
-   */
-  readonly resol_high_from_reflectionsfile?: Maybe<Scalars['Float']>;
-  /**
-   * The data low resolution diffraction limit, in Angstroms, obtained from cif item
-   * _reflns.d_resolution_low.
-   * X-ray entry specific.
-   */
-  readonly resol_low_from_reflectionsfile?: Maybe<Scalars['Float']>;
-  /**
-   * This is a comma separated list of the residue types whose bond lengths and bond angles have
-   * not been checked against "standard geometry" using the MolProbity dangle program.
-   * Standard geometry parameters are taken from Engh and Huber (2001) and Parkinson et al. (1996)
-   */
-  readonly restypes_notchecked_for_bond_angle_geometry?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
-  /**
-   * Version of the software for chemical shift outlier detection - currently
-   * same as revision number of the validation pipeline.
-   */
-  readonly shiftchecker_version?: Maybe<Scalars['String']>;
-  /**
-   * A sentence giving the result of Xtriage&#8217;s analysis on translational NCS.
-   * Example: largest off-origin peak in the Patterson function is 8.82% of the height of the origin peak. No significant pseudotranslation is detected."
-   * X-ray entry specific, obtained from the Xtriage program.
-   */
-  readonly trans_NSC?: Maybe<Scalars['String']>;
-  /**
-   * Padilla and Yeates twinning parameter <|L|>.
-   * Theoretical values is 0.5 in the untwinned case, and 0.375 in the perfectly twinned case.
-   * Example:            X-ray entry specific, obtained from the Xtriage program.
-   */
-  readonly twin_L?: Maybe<Scalars['Float']>;
-  /**
-   * Padilla and Yeates twinning parameter <|L**2|>.
-   * Theoretical values is 0.333 in the untwinned case, and 0.2 in the perfectly twinned case.
-   * Example:            X-ray entry specific, obtained from the Xtriage program.
-   */
-  readonly twin_L2?: Maybe<Scalars['Float']>;
-  /**
-   * Estimated twinning fraction for operators as identified by Xtriage. A semicolon separated
-   * list of operators with fractions is givens
-   * Example:            X-ray entry specific, obtained from the Xtriage program.
-   */
-  readonly twin_fraction?: Maybe<Scalars['String']>;
-  /**
-   * The mmCIF item names of the _refln columns used as input to the Xtriage program.
-   * Example            X-ray entry specific, calculated by Phenix Xtriage program.
-   */
-  readonly xtriage_input_columns?: Maybe<Scalars['String']>;
+  readonly label_comp_id?: Maybe<Scalars['String']['output']>;
 };
 
 /** Query root */
 export type Query = {
   /** Get a list of assemblies given the list of ASSEMBLY IDs. Here an ASSEMBLY ID is a compound identifier that includes entry_id and assembly_id separated by '-', e.g. 1XXX-1. */
   readonly assemblies?: Maybe<ReadonlyArray<Maybe<CoreAssembly>>>;
-  /** Get an assembly given the PDB ID and ASSEMBLY ID. Here ASSEMBLY ID is '1', '2', '3', etc. or 'deposited' for deposited coordinates. */
+  /** Get an assembly given the ENTRY ID and ASSEMBLY ID. Here ASSEMBLY ID is '1', '2', '3', etc. or 'deposited' for deposited coordinates. */
   readonly assembly?: Maybe<CoreAssembly>;
-  /** Get a list of PDB branched entities given a list of ENTITY IDs. Here ENTITY ID is a compound identifier that includes entry_id and entity_id separated by '_', e.g. 1XXX_1. Note that the ENTRY ID part must be upper case. */
+  /** Get a list of branched entities given a list of ENTITY IDs. Here ENTITY ID is a compound identifier that includes entry_id and entity_id separated by '_', e.g. 1XXX_1. Note that the ENTRY ID part must be upper case. */
   readonly branched_entities?: Maybe<ReadonlyArray<Maybe<CoreBranchedEntity>>>;
-  /** Get a PDB branched entity, given the PDB ID and ENTITY ID. Here ENTITY ID is a '1', '2', '3', etc. */
+  /** Get a branched entity, given the ENTRY ID and ENTITY ID. Here ENTITY ID is a '1', '2', '3', etc. */
   readonly branched_entity?: Maybe<CoreBranchedEntity>;
-  /** Get a PDB branched entity instance (chain), given the PDB ID and ENTITY INSTANCE ID. Here ENTITY INSTANCE ID identifies structural element in the asymmetric unit, e.g. 'A', 'B', etc. */
+  /** Get a branched entity instance (chain), given the ENTRY ID and ENTITY INSTANCE ID. Here ENTITY INSTANCE ID identifies structural element in the asymmetric unit, e.g. 'A', 'B', etc. */
   readonly branched_entity_instance?: Maybe<CoreBranchedEntityInstance>;
-  /** Get a list of PDB branched entity instances (chains), given the list of ENTITY INSTANCE IDs. Here ENTITY INSTANCE ID identifies structural element in the asymmetric unit, e.g. 'A', 'B', etc. */
+  /** Get a list of branched entity instances (chains), given the list of ENTITY INSTANCE IDs. Here ENTITY INSTANCE ID identifies structural element in the asymmetric unit, e.g. 'A', 'B', etc. */
   readonly branched_entity_instances?: Maybe<ReadonlyArray<Maybe<CoreBranchedEntityInstance>>>;
   /** Get a chemical component given the CHEMICAL COMPONENT ID, e.g. 'CFF', 'HEM', 'FE'.For nucleic acid polymer entities, use the one-letter code for the base. */
   readonly chem_comp?: Maybe<CoreChemComp>;
   /** Get a list of chemical components given the list of CHEMICAL COMPONENT ID, e.g. 'CFF', 'HEM', 'FE'.For nucleic acid polymer entities, use the one-letter code for the base. */
   readonly chem_comps?: Maybe<ReadonlyArray<Maybe<CoreChemComp>>>;
-  /** Get a list of PDB entries given a list of PDB IDs. */
+  /** Get a list of entries given a list of IDs. */
   readonly entries?: Maybe<ReadonlyArray<Maybe<CoreEntry>>>;
-  /** Get PDB entry given the PDB id. */
+  /** Get entry given the id. */
   readonly entry?: Maybe<CoreEntry>;
   /** Given a group ID get a group object formed by aggregating individual structures that share a degree of similarity */
   readonly entry_group?: Maybe<GroupEntry>;
@@ -6886,29 +6343,29 @@ export type Query = {
   readonly entry_groups?: Maybe<ReadonlyArray<Maybe<GroupEntry>>>;
   /** Given a group provenance ID get an object that describes aggregation method used to create groups */
   readonly group_provenance?: Maybe<GroupProvenance>;
-  /** Get a pairwise polymeric interface given the PDB ID, ASSEMBLY ID and INTERFACE ID. */
+  /** Get a pairwise polymeric interface given the ENTRY ID, ASSEMBLY ID and INTERFACE ID. */
   readonly interface?: Maybe<CoreInterface>;
   /** Get a list of pairwise polymeric interfaces given a list of INTERFACE IDs. Here INTERFACE ID is a compound identifier that includes entry_id, assembly_id and interface_id e.g. 1XXX-1.1. Note that the ENTRY ID part must be upper case. */
   readonly interfaces?: Maybe<ReadonlyArray<Maybe<CoreInterface>>>;
-  /** Get a list of PDB non-polymer entities given a list of ENTITY IDs. Here ENTITY ID is a compound identifier that includes entry_id and entity_id separated by '_', e.g. 1XXX_1. Note that the ENTRY ID part must be upper case. */
+  /** Get a list of non-polymer entities given a list of ENTITY IDs. Here ENTITY ID is a compound identifier that includes entry_id and entity_id separated by '_', e.g. 1XXX_1. Note that the ENTRY ID part must be upper case. */
   readonly nonpolymer_entities?: Maybe<ReadonlyArray<Maybe<CoreNonpolymerEntity>>>;
-  /** Get a PDB non-polymer entity, given the PDB ID and ENTITY ID. Here ENTITY ID is a '1', '2', '3', etc. */
+  /** Get a non-polymer entity, given the ENTRY ID and ENTITY ID. Here ENTITY ID is a '1', '2', '3', etc. */
   readonly nonpolymer_entity?: Maybe<CoreNonpolymerEntity>;
-  /** Get a PDB non-polymer entity instance (chain), given the PDB ID and ENTITY INSTANCE ID. Here ENTITY INSTANCE ID identifies structural element in the asymmetric unit, e.g. 'A', 'B', etc. */
+  /** Get a non-polymer entity instance (chain), given the ENTRY ID and ENTITY INSTANCE ID. Here ENTITY INSTANCE ID identifies structural element in the asymmetric unit, e.g. 'A', 'B', etc. */
   readonly nonpolymer_entity_instance?: Maybe<CoreNonpolymerEntityInstance>;
-  /** Get a list of PDB non-polymer entity instances (chains), given the list of ENTITY INSTANCE IDs. Here ENTITY INSTANCE ID identifies structural element in the asymmetric unit, e.g. 'A', 'B', etc. */
+  /** Get a list of non-polymer entity instances (chains), given the list of ENTITY INSTANCE IDs. Here ENTITY INSTANCE ID identifies structural element in the asymmetric unit, e.g. 'A', 'B', etc. */
   readonly nonpolymer_entity_instances?: Maybe<ReadonlyArray<Maybe<CoreNonpolymerEntityInstance>>>;
-  /** Get a list of PDB polymer entities given a list of ENTITY IDs. Here ENTITY ID is a compound identifier that includes entry_id and entity_id separated by '_', e.g. 1XXX_1. Note that the ENTRY ID part must be upper case. */
+  /** Get a list of polymer entities given a list of ENTITY IDs. Here ENTITY ID is a compound identifier that includes entry_id and entity_id separated by '_', e.g. 1XXX_1. Note that the ENTRY ID part must be upper case. */
   readonly polymer_entities?: Maybe<ReadonlyArray<Maybe<CorePolymerEntity>>>;
-  /** Get a PDB polymer entity, given the PDB ID and ENTITY ID. Here ENTITY ID is a '1', '2', '3', etc. */
+  /** Get a polymer entity, given the ENTRY ID and ENTITY ID. Here ENTITY ID is a '1', '2', '3', etc. */
   readonly polymer_entity?: Maybe<CorePolymerEntity>;
   /** Given a group ID get a group object formed by aggregating polymer entities that share a degree of similarity */
   readonly polymer_entity_group?: Maybe<GroupPolymerEntity>;
   /** Given a list of group IDs get a list of group objects formed by aggregating polymer entities that share a degree of similarity */
   readonly polymer_entity_groups?: Maybe<ReadonlyArray<Maybe<GroupPolymerEntity>>>;
-  /** Get a PDB polymer entity instance (chain), given the PDB ID and ENTITY INSTANCE ID. Here ENTITY INSTANCE ID identifies structural element in the asymmetric unit, e.g. 'A', 'B', etc. */
+  /** Get a polymer entity instance (chain), given the ENTRY ID and ENTITY INSTANCE ID. Here ENTITY INSTANCE ID identifies structural element in the asymmetric unit, e.g. 'A', 'B', etc. */
   readonly polymer_entity_instance?: Maybe<CorePolymerEntityInstance>;
-  /** Get a list of PDB polymer entity instances (chains), given the list of ENTITY INSTANCE IDs. Here ENTITY INSTANCE ID identifies structural element in the asymmetric unit, e.g. 'A', 'B', etc. */
+  /** Get a list of polymer entity instances (chains), given the list of ENTITY INSTANCE IDs. Here ENTITY INSTANCE ID identifies structural element in the asymmetric unit, e.g. 'A', 'B', etc. */
   readonly polymer_entity_instances?: Maybe<ReadonlyArray<Maybe<CorePolymerEntityInstance>>>;
   /** Get literature information from PubMed database given the PubMed identifier. */
   readonly pubmed?: Maybe<CorePubmed>;
@@ -6919,172 +6376,172 @@ export type Query = {
 
 /** Query root */
 export type QueryAssembliesArgs = {
-  assembly_ids: ReadonlyArray<InputMaybe<Scalars['String']>>;
+  assembly_ids: ReadonlyArray<InputMaybe<Scalars['String']['input']>>;
 };
 
 
 /** Query root */
 export type QueryAssemblyArgs = {
-  assembly_id: Scalars['String'];
-  entry_id: Scalars['String'];
+  assembly_id: Scalars['String']['input'];
+  entry_id: Scalars['String']['input'];
 };
 
 
 /** Query root */
 export type QueryBranched_EntitiesArgs = {
-  entity_ids: ReadonlyArray<Scalars['String']>;
+  entity_ids: ReadonlyArray<Scalars['String']['input']>;
 };
 
 
 /** Query root */
 export type QueryBranched_EntityArgs = {
-  entity_id: Scalars['String'];
-  entry_id: Scalars['String'];
+  entity_id: Scalars['String']['input'];
+  entry_id: Scalars['String']['input'];
 };
 
 
 /** Query root */
 export type QueryBranched_Entity_InstanceArgs = {
-  asym_id: Scalars['String'];
-  entry_id: Scalars['String'];
+  asym_id: Scalars['String']['input'];
+  entry_id: Scalars['String']['input'];
 };
 
 
 /** Query root */
 export type QueryBranched_Entity_InstancesArgs = {
-  instance_ids: ReadonlyArray<InputMaybe<Scalars['String']>>;
+  instance_ids: ReadonlyArray<InputMaybe<Scalars['String']['input']>>;
 };
 
 
 /** Query root */
 export type QueryChem_CompArgs = {
-  comp_id: Scalars['String'];
+  comp_id: Scalars['String']['input'];
 };
 
 
 /** Query root */
 export type QueryChem_CompsArgs = {
-  comp_ids: ReadonlyArray<InputMaybe<Scalars['String']>>;
+  comp_ids: ReadonlyArray<InputMaybe<Scalars['String']['input']>>;
 };
 
 
 /** Query root */
 export type QueryEntriesArgs = {
-  entry_ids: ReadonlyArray<Scalars['String']>;
+  entry_ids: ReadonlyArray<Scalars['String']['input']>;
 };
 
 
 /** Query root */
 export type QueryEntryArgs = {
-  entry_id: Scalars['String'];
+  entry_id: Scalars['String']['input'];
 };
 
 
 /** Query root */
 export type QueryEntry_GroupArgs = {
-  group_id: Scalars['String'];
+  group_id: Scalars['String']['input'];
 };
 
 
 /** Query root */
 export type QueryEntry_GroupsArgs = {
-  group_ids: ReadonlyArray<InputMaybe<Scalars['String']>>;
+  group_ids: ReadonlyArray<InputMaybe<Scalars['String']['input']>>;
 };
 
 
 /** Query root */
 export type QueryGroup_ProvenanceArgs = {
-  group_provenance_id: Scalars['String'];
+  group_provenance_id: Scalars['String']['input'];
 };
 
 
 /** Query root */
 export type QueryInterfaceArgs = {
-  assembly_id: Scalars['String'];
-  entry_id: Scalars['String'];
-  interface_id: Scalars['String'];
+  assembly_id: Scalars['String']['input'];
+  entry_id: Scalars['String']['input'];
+  interface_id: Scalars['String']['input'];
 };
 
 
 /** Query root */
 export type QueryInterfacesArgs = {
-  interface_ids: ReadonlyArray<Scalars['String']>;
+  interface_ids: ReadonlyArray<Scalars['String']['input']>;
 };
 
 
 /** Query root */
 export type QueryNonpolymer_EntitiesArgs = {
-  entity_ids: ReadonlyArray<Scalars['String']>;
+  entity_ids: ReadonlyArray<Scalars['String']['input']>;
 };
 
 
 /** Query root */
 export type QueryNonpolymer_EntityArgs = {
-  entity_id: Scalars['String'];
-  entry_id: Scalars['String'];
+  entity_id: Scalars['String']['input'];
+  entry_id: Scalars['String']['input'];
 };
 
 
 /** Query root */
 export type QueryNonpolymer_Entity_InstanceArgs = {
-  asym_id: Scalars['String'];
-  entry_id: Scalars['String'];
+  asym_id: Scalars['String']['input'];
+  entry_id: Scalars['String']['input'];
 };
 
 
 /** Query root */
 export type QueryNonpolymer_Entity_InstancesArgs = {
-  instance_ids: ReadonlyArray<InputMaybe<Scalars['String']>>;
+  instance_ids: ReadonlyArray<InputMaybe<Scalars['String']['input']>>;
 };
 
 
 /** Query root */
 export type QueryPolymer_EntitiesArgs = {
-  entity_ids: ReadonlyArray<Scalars['String']>;
+  entity_ids: ReadonlyArray<Scalars['String']['input']>;
 };
 
 
 /** Query root */
 export type QueryPolymer_EntityArgs = {
-  entity_id: Scalars['String'];
-  entry_id: Scalars['String'];
+  entity_id: Scalars['String']['input'];
+  entry_id: Scalars['String']['input'];
 };
 
 
 /** Query root */
 export type QueryPolymer_Entity_GroupArgs = {
-  group_id: Scalars['String'];
+  group_id: Scalars['String']['input'];
 };
 
 
 /** Query root */
 export type QueryPolymer_Entity_GroupsArgs = {
-  group_ids: ReadonlyArray<InputMaybe<Scalars['String']>>;
+  group_ids: ReadonlyArray<InputMaybe<Scalars['String']['input']>>;
 };
 
 
 /** Query root */
 export type QueryPolymer_Entity_InstanceArgs = {
-  asym_id: Scalars['String'];
-  entry_id: Scalars['String'];
+  asym_id: Scalars['String']['input'];
+  entry_id: Scalars['String']['input'];
 };
 
 
 /** Query root */
 export type QueryPolymer_Entity_InstancesArgs = {
-  instance_ids: ReadonlyArray<InputMaybe<Scalars['String']>>;
+  instance_ids: ReadonlyArray<InputMaybe<Scalars['String']['input']>>;
 };
 
 
 /** Query root */
 export type QueryPubmedArgs = {
-  pubmed_id: Scalars['Int'];
+  pubmed_id: Scalars['Int']['input'];
 };
 
 
 /** Query root */
 export type QueryUniprotArgs = {
-  uniprot_id: Scalars['String'];
+  uniprot_id: Scalars['String']['input'];
 };
 
 export type RcsbAccessionInfo = {
@@ -7095,7 +6552,7 @@ export type RcsbAccessionInfo = {
    * 2020-07-11, 2013-10-01
    *
    */
-  readonly deposit_date?: Maybe<Scalars['Date']>;
+  readonly deposit_date?: Maybe<Scalars['Date']['output']>;
   /**
    * A code indicating the current availibility of experimental data in the repository.
    *
@@ -7103,7 +6560,7 @@ export type RcsbAccessionInfo = {
    * N, Y
    *
    */
-  readonly has_released_experimental_data?: Maybe<Scalars['String']>;
+  readonly has_released_experimental_data?: Maybe<Scalars['String']['output']>;
   /**
    * The entry initial release date.
    *
@@ -7111,11 +6568,11 @@ export type RcsbAccessionInfo = {
    * 2020-01-10, 2018-01-23
    *
    */
-  readonly initial_release_date?: Maybe<Scalars['Date']>;
+  readonly initial_release_date?: Maybe<Scalars['Date']['output']>;
   /** The latest entry major revision number. */
-  readonly major_revision?: Maybe<Scalars['Int']>;
+  readonly major_revision?: Maybe<Scalars['Int']['output']>;
   /** The latest entry minor revision number. */
-  readonly minor_revision?: Maybe<Scalars['Int']>;
+  readonly minor_revision?: Maybe<Scalars['Int']['output']>;
   /**
    * The latest entry revision date.
    *
@@ -7123,15 +6580,15 @@ export type RcsbAccessionInfo = {
    * 2020-02-11, 2018-10-23
    *
    */
-  readonly revision_date?: Maybe<Scalars['Date']>;
+  readonly revision_date?: Maybe<Scalars['Date']['output']>;
   /**
    * The release status for the entry.
    *
    * Allowable values:
-   * AUCO, AUTH, HOLD, HPUB', POLC, PROC, REFI, REL, REPL, WAIT, WDRN
+   * AUCO, AUTH, HOLD, HPUB, POLC, PROC, REFI, REL, REPL, WAIT, WDRN
    *
    */
-  readonly status_code?: Maybe<Scalars['String']>;
+  readonly status_code?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbAssemblyContainerIdentifiers = {
@@ -7142,11 +6599,11 @@ export type RcsbAssemblyContainerIdentifiers = {
    * 1, 5
    *
    */
-  readonly assembly_id: Scalars['String'];
+  readonly assembly_id: Scalars['String']['output'];
   /** Entry identifier for the container. */
-  readonly entry_id: Scalars['String'];
+  readonly entry_id: Scalars['String']['output'];
   /** List of binary interface Ids within the assembly (it points to interface id collection). */
-  readonly interface_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly interface_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /**
    * A unique identifier for each object in this assembly container formed by
    *  a dash separated concatenation of entry and assembly identifiers.
@@ -7155,23 +6612,23 @@ export type RcsbAssemblyContainerIdentifiers = {
    * 1KIP-1
    *
    */
-  readonly rcsb_id?: Maybe<Scalars['String']>;
+  readonly rcsb_id?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbAssemblyInfo = {
   /** Entity identifier for the container. */
-  readonly assembly_id?: Maybe<Scalars['String']>;
+  readonly assembly_id?: Maybe<Scalars['String']['output']>;
   /** The assembly non-hydrogen atomic coordinate count. */
-  readonly atom_count?: Maybe<Scalars['Int']>;
+  readonly atom_count?: Maybe<Scalars['Int']['output']>;
   /** The assembly non-hydrogen branched entity atomic coordinate count. */
-  readonly branched_atom_count?: Maybe<Scalars['Int']>;
+  readonly branched_atom_count?: Maybe<Scalars['Int']['output']>;
   /** The number of distinct branched entities in the generated assembly. */
-  readonly branched_entity_count?: Maybe<Scalars['Int']>;
+  readonly branched_entity_count?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of branched instances in the generated assembly data set.
    *  This is the total count of branched entity instances generated in the assembly coordinate data.
    */
-  readonly branched_entity_instance_count?: Maybe<Scalars['Int']>;
+  readonly branched_entity_instance_count?: Maybe<Scalars['Int']['output']>;
   /**
    * The PDB entry accession code.
    *
@@ -7179,15 +6636,15 @@ export type RcsbAssemblyInfo = {
    * 1KIP
    *
    */
-  readonly entry_id: Scalars['String'];
+  readonly entry_id: Scalars['String']['output'];
   /** The assembly hydrogen atomic coordinate count. */
-  readonly hydrogen_atom_count?: Maybe<Scalars['Int']>;
+  readonly hydrogen_atom_count?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of modeled polymer monomers in the assembly coordinate data.
    *  This is the total count of monomers with reported coordinate data for all polymer
    *  entity instances in the generated assembly coordinate data.
    */
-  readonly modeled_polymer_monomer_count?: Maybe<Scalars['Int']>;
+  readonly modeled_polymer_monomer_count?: Maybe<Scalars['Int']['output']>;
   /**
    * Nucleic acid polymer entity type categories describing the generated assembly.
    *
@@ -7195,36 +6652,36 @@ export type RcsbAssemblyInfo = {
    * DNA (only), DNA/RNA (only), NA-hybrid (only), Other, RNA (only)
    *
    */
-  readonly na_polymer_entity_types?: Maybe<Scalars['String']>;
+  readonly na_polymer_entity_types?: Maybe<Scalars['String']['output']>;
   /** The assembly non-hydrogen non-polymer entity atomic coordinate count. */
-  readonly nonpolymer_atom_count?: Maybe<Scalars['Int']>;
+  readonly nonpolymer_atom_count?: Maybe<Scalars['Int']['output']>;
   /** The number of distinct non-polymer entities in the generated assembly exclusive of solvent. */
-  readonly nonpolymer_entity_count?: Maybe<Scalars['Int']>;
+  readonly nonpolymer_entity_count?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of non-polymer instances in the generated assembly data set exclusive of solvent.
    *  This is the total count of non-polymer entity instances generated in the assembly coordinate data.
    */
-  readonly nonpolymer_entity_instance_count?: Maybe<Scalars['Int']>;
+  readonly nonpolymer_entity_instance_count?: Maybe<Scalars['Int']['output']>;
   /** Number of heterologous (both binding sites are different) interface entities */
-  readonly num_heterologous_interface_entities?: Maybe<Scalars['Int']>;
+  readonly num_heterologous_interface_entities?: Maybe<Scalars['Int']['output']>;
   /** Number of heteromeric (both partners are different polymeric entities) interface entities */
-  readonly num_heteromeric_interface_entities?: Maybe<Scalars['Int']>;
+  readonly num_heteromeric_interface_entities?: Maybe<Scalars['Int']['output']>;
   /** Number of homomeric (both partners are the same polymeric entity) interface entities */
-  readonly num_homomeric_interface_entities?: Maybe<Scalars['Int']>;
+  readonly num_homomeric_interface_entities?: Maybe<Scalars['Int']['output']>;
   /** Number of polymer-polymer interface entities, grouping equivalent interfaces at the entity level (i.e. same entity_ids on either side, with similar but not identical binding sites) */
-  readonly num_interface_entities?: Maybe<Scalars['Int']>;
+  readonly num_interface_entities?: Maybe<Scalars['Int']['output']>;
   /** Number of geometrically equivalent (i.e. same asym_ids on either side) polymer-polymer interfaces in the assembly */
-  readonly num_interfaces?: Maybe<Scalars['Int']>;
+  readonly num_interfaces?: Maybe<Scalars['Int']['output']>;
   /** Number of isologous (both binding sites are same, i.e. interface is symmetric) interface entities */
-  readonly num_isologous_interface_entities?: Maybe<Scalars['Int']>;
+  readonly num_isologous_interface_entities?: Maybe<Scalars['Int']['output']>;
   /** Number of nucleic acid-nucleic acid interface entities */
-  readonly num_na_interface_entities?: Maybe<Scalars['Int']>;
+  readonly num_na_interface_entities?: Maybe<Scalars['Int']['output']>;
   /** Number of protein-nucleic acid interface entities */
-  readonly num_prot_na_interface_entities?: Maybe<Scalars['Int']>;
+  readonly num_prot_na_interface_entities?: Maybe<Scalars['Int']['output']>;
   /** Number of protein-protein interface entities */
-  readonly num_protein_interface_entities?: Maybe<Scalars['Int']>;
+  readonly num_protein_interface_entities?: Maybe<Scalars['Int']['output']>;
   /** The assembly non-hydrogen polymer entity atomic coordinate count. */
-  readonly polymer_atom_count?: Maybe<Scalars['Int']>;
+  readonly polymer_atom_count?: Maybe<Scalars['Int']['output']>;
   /**
    * Categories describing the polymer entity composition for the generated assembly.
    *
@@ -7232,55 +6689,55 @@ export type RcsbAssemblyInfo = {
    * DNA, DNA/RNA, NA-hybrid, NA/oligosaccharide, RNA, heteromeric protein, homomeric protein, oligosaccharide, other, other type composition, other type pair, protein/NA, protein/NA/oligosaccharide, protein/oligosaccharide
    *
    */
-  readonly polymer_composition?: Maybe<Scalars['String']>;
+  readonly polymer_composition?: Maybe<Scalars['String']['output']>;
   /** The number of distinct polymer entities in the generated assembly. */
-  readonly polymer_entity_count?: Maybe<Scalars['Int']>;
+  readonly polymer_entity_count?: Maybe<Scalars['Int']['output']>;
   /** The number of distinct DNA polymer entities in the generated assembly. */
-  readonly polymer_entity_count_DNA?: Maybe<Scalars['Int']>;
+  readonly polymer_entity_count_DNA?: Maybe<Scalars['Int']['output']>;
   /** The number of distinct RNA polymer entities in the generated assembly. */
-  readonly polymer_entity_count_RNA?: Maybe<Scalars['Int']>;
+  readonly polymer_entity_count_RNA?: Maybe<Scalars['Int']['output']>;
   /** The number of distinct nucleic acid polymer entities (DNA or RNA) in the generated assembly. */
-  readonly polymer_entity_count_nucleic_acid?: Maybe<Scalars['Int']>;
+  readonly polymer_entity_count_nucleic_acid?: Maybe<Scalars['Int']['output']>;
   /** The number of distinct hybrid nucleic acid polymer entities in the generated assembly. */
-  readonly polymer_entity_count_nucleic_acid_hybrid?: Maybe<Scalars['Int']>;
+  readonly polymer_entity_count_nucleic_acid_hybrid?: Maybe<Scalars['Int']['output']>;
   /** The number of distinct protein polymer entities in the generated assembly. */
-  readonly polymer_entity_count_protein?: Maybe<Scalars['Int']>;
+  readonly polymer_entity_count_protein?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of polymer instances in the generated assembly data set.
    *  This is the total count of polymer entity instances generated in the assembly coordinate data.
    */
-  readonly polymer_entity_instance_count?: Maybe<Scalars['Int']>;
+  readonly polymer_entity_instance_count?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of DNA polymer instances in the generated assembly data set.
    *  This is the total count of DNA polymer entity instances generated in the assembly coordinate data.
    */
-  readonly polymer_entity_instance_count_DNA?: Maybe<Scalars['Int']>;
+  readonly polymer_entity_instance_count_DNA?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of RNA polymer instances in the generated assembly data set.
    *  This is the total count of RNA polymer entity instances generated in the assembly coordinate data.
    */
-  readonly polymer_entity_instance_count_RNA?: Maybe<Scalars['Int']>;
+  readonly polymer_entity_instance_count_RNA?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of nucleic acid polymer instances in the generated assembly data set.
    *  This is the total count of nucleic acid polymer entity instances generated in the assembly coordinate data.
    */
-  readonly polymer_entity_instance_count_nucleic_acid?: Maybe<Scalars['Int']>;
+  readonly polymer_entity_instance_count_nucleic_acid?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of hybrid nucleic acide polymer instances in the generated assembly data set.
    *  This is the total count of hybrid nucleic acid polymer entity instances generated in the assembly coordinate data.
    */
-  readonly polymer_entity_instance_count_nucleic_acid_hybrid?: Maybe<Scalars['Int']>;
+  readonly polymer_entity_instance_count_nucleic_acid_hybrid?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of protein polymer instances in the generated assembly data set.
    *  This is the total count of protein polymer entity instances generated in the assembly coordinate data.
    */
-  readonly polymer_entity_instance_count_protein?: Maybe<Scalars['Int']>;
+  readonly polymer_entity_instance_count_protein?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of polymer monomers in sample entity instances comprising the assembly data set.
    *  This is the total count of monomers for all polymer entity instances
    *  in the generated assembly coordinate data.
    */
-  readonly polymer_monomer_count?: Maybe<Scalars['Int']>;
+  readonly polymer_monomer_count?: Maybe<Scalars['Int']['output']>;
   /**
    * Selected polymer entity type categories describing the generated assembly.
    *
@@ -7288,26 +6745,26 @@ export type RcsbAssemblyInfo = {
    * Nucleic acid (only), Other, Protein (only), Protein/NA
    *
    */
-  readonly selected_polymer_entity_types?: Maybe<Scalars['String']>;
+  readonly selected_polymer_entity_types?: Maybe<Scalars['String']['output']>;
   /** The assembly non-hydrogen solvent atomic coordinate count. */
-  readonly solvent_atom_count?: Maybe<Scalars['Int']>;
+  readonly solvent_atom_count?: Maybe<Scalars['Int']['output']>;
   /** The number of distinct solvent entities in the generated assembly. */
-  readonly solvent_entity_count?: Maybe<Scalars['Int']>;
+  readonly solvent_entity_count?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of solvent instances in the generated assembly data set.
    *  This is the total count of solvent entity instances generated in the assembly coordinate data.
    */
-  readonly solvent_entity_instance_count?: Maybe<Scalars['Int']>;
+  readonly solvent_entity_instance_count?: Maybe<Scalars['Int']['output']>;
   /** Total buried surface area calculated as the sum of buried surface areas over all interfaces */
-  readonly total_assembly_buried_surface_area?: Maybe<Scalars['Float']>;
+  readonly total_assembly_buried_surface_area?: Maybe<Scalars['Float']['output']>;
   /** Total number of interfacing residues in the assembly, calculated as the sum of interfacing residues over all interfaces */
-  readonly total_number_interface_residues?: Maybe<Scalars['Int']>;
+  readonly total_number_interface_residues?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of unmodeled polymer monomers in the assembly coordinate data. This is
    *  the total count of monomers with unreported coordinate data for all polymer
    *  entity instances in the generated assembly coordinate data.
    */
-  readonly unmodeled_polymer_monomer_count?: Maybe<Scalars['Int']>;
+  readonly unmodeled_polymer_monomer_count?: Maybe<Scalars['Int']['output']>;
 };
 
 export type RcsbBindingAffinity = {
@@ -7318,9 +6775,9 @@ export type RcsbBindingAffinity = {
    * 0WE, SPE, CL
    *
    */
-  readonly comp_id: Scalars['String'];
+  readonly comp_id: Scalars['String']['output'];
   /** Link to external resource referencing the data. */
-  readonly link: Scalars['String'];
+  readonly link: Scalars['String']['output'];
   /**
    * The resource name for the related binding affinity reference.
    *
@@ -7328,7 +6785,7 @@ export type RcsbBindingAffinity = {
    * PDBBind, Binding MOAD, BindingDB
    *
    */
-  readonly provenance_code: Scalars['String'];
+  readonly provenance_code: Scalars['String']['output'];
   /**
    * Data point provided by BindingDB. Percent identity between PDB sequence and reference sequence.
    *
@@ -7336,7 +6793,7 @@ export type RcsbBindingAffinity = {
    * null, null, null
    *
    */
-  readonly reference_sequence_identity?: Maybe<Scalars['Int']>;
+  readonly reference_sequence_identity?: Maybe<Scalars['Int']['output']>;
   /**
    * Binding affinity symbol indicating approximate or precise strength of the binding.
    *
@@ -7344,7 +6801,7 @@ export type RcsbBindingAffinity = {
    * ~, =, >, <, >=, <=
    *
    */
-  readonly symbol?: Maybe<Scalars['String']>;
+  readonly symbol?: Maybe<Scalars['String']['output']>;
   /**
    * Binding affinity measurement given in one of the following types:  The concentration constants: IC50: the concentration of ligand that reduces enzyme activity by 50%;  EC50: the concentration of compound that generates a half-maximal response;  The binding constant:  Kd: dissociation constant;  Ka: association constant;  Ki: enzyme inhibition constant;  The thermodynamic parameters:  delta G: Gibbs free energy of binding (for association reaction);  delta H: change in enthalpy associated with a chemical reaction;  delta S: change in entropy associated with a chemical reaction.
    *
@@ -7352,7 +6809,7 @@ export type RcsbBindingAffinity = {
    * IC50, EC50, Kd, Ka, Ki, &Delta;G, &Delta;H, -T&Delta;S
    *
    */
-  readonly type: Scalars['String'];
+  readonly type: Scalars['String']['output'];
   /**
    * Binding affinity unit.  Dissociation constant Kd is normally in molar units (or millimolar , micromolar, nanomolar, etc).  Association constant Ka is normally expressed in inverse molar units (e.g. M-1).
    *
@@ -7360,9 +6817,9 @@ export type RcsbBindingAffinity = {
    * nM, kJ/mol
    *
    */
-  readonly unit: Scalars['String'];
+  readonly unit: Scalars['String']['output'];
   /** Binding affinity value between a ligand and its target molecule. */
-  readonly value: Scalars['Float'];
+  readonly value: Scalars['Float']['output'];
 };
 
 export type RcsbBirdCitation = {
@@ -7374,7 +6831,7 @@ export type RcsbBirdCitation = {
    * 1, 2
    *
    */
-  readonly id: Scalars['String'];
+  readonly id: Scalars['String']['output'];
   /**
    * Abbreviated name of the cited journal as given in the
    *  Chemical Abstracts Service Source Index.
@@ -7383,7 +6840,7 @@ export type RcsbBirdCitation = {
    * J.Mol.Biol., J. Mol. Biol.
    *
    */
-  readonly journal_abbrev?: Maybe<Scalars['String']>;
+  readonly journal_abbrev?: Maybe<Scalars['String']['output']>;
   /**
    * Volume number of the journal cited; relevant for journal
    *  articles.
@@ -7392,17 +6849,17 @@ export type RcsbBirdCitation = {
    * 174
    *
    */
-  readonly journal_volume?: Maybe<Scalars['String']>;
+  readonly journal_volume?: Maybe<Scalars['String']['output']>;
   /**
    * The first page of the rcsb_bird_citation; relevant for journal
    *  articles, books and book chapters.
    */
-  readonly page_first?: Maybe<Scalars['String']>;
+  readonly page_first?: Maybe<Scalars['String']['output']>;
   /**
    * The last page of the rcsb_bird_citation; relevant for journal
    *  articles, books and book chapters.
    */
-  readonly page_last?: Maybe<Scalars['String']>;
+  readonly page_last?: Maybe<Scalars['String']['output']>;
   /**
    * Document Object Identifier used by doi.org to uniquely
    *  specify bibliographic entry.
@@ -7411,12 +6868,12 @@ export type RcsbBirdCitation = {
    * 10.2345/S1384107697000225
    *
    */
-  readonly pdbx_database_id_DOI?: Maybe<Scalars['String']>;
+  readonly pdbx_database_id_DOI?: Maybe<Scalars['String']['output']>;
   /**
    * Ascession number used by PubMed to categorize a specific
    *  bibliographic entry.
    */
-  readonly pdbx_database_id_PubMed?: Maybe<Scalars['Int']>;
+  readonly pdbx_database_id_PubMed?: Maybe<Scalars['Int']['output']>;
   /**
    * Names of the authors of the citation; relevant for journal
    *  articles, books and book chapters.  Names are separated by vertical bars.
@@ -7424,7 +6881,7 @@ export type RcsbBirdCitation = {
    *  The family name(s), followed by a comma and including any
    *  dynastic components, precedes the first name(s) or initial(s).
    */
-  readonly rcsb_authors?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly rcsb_authors?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /**
    * The title of the rcsb_bird_citation; relevant for journal articles, books
    *  and book chapters.
@@ -7434,17 +6891,17 @@ export type RcsbBirdCitation = {
    *                                   at 2.35 Angstroms resolution.
    *
    */
-  readonly title?: Maybe<Scalars['String']>;
+  readonly title?: Maybe<Scalars['String']['output']>;
   /**
    * The year of the rcsb_bird_citation; relevant for journal articles, books
    *  and book chapters.
    */
-  readonly year?: Maybe<Scalars['Int']>;
+  readonly year?: Maybe<Scalars['Int']['output']>;
 };
 
 export type RcsbBranchedEntity = {
   /** A description of special aspects of the branched entity. */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * Formula mass (KDa) of the branched entity.
    *
@@ -7452,7 +6909,7 @@ export type RcsbBranchedEntity = {
    * null, null
    *
    */
-  readonly formula_weight?: Maybe<Scalars['Float']>;
+  readonly formula_weight?: Maybe<Scalars['Float']['output']>;
   /**
    * A description of the branched entity.
    *
@@ -7460,14 +6917,14 @@ export type RcsbBranchedEntity = {
    * alpha-D-glucopyranose-(1-6)-beta-D-glucopyranose, beta-D-xylopyranose-(1-4)-beta-D-xylopyranose
    *
    */
-  readonly pdbx_description?: Maybe<Scalars['String']>;
+  readonly pdbx_description?: Maybe<Scalars['String']['output']>;
   /** The number of molecules of the branched entity in the entry. */
-  readonly pdbx_number_of_molecules?: Maybe<Scalars['Int']>;
+  readonly pdbx_number_of_molecules?: Maybe<Scalars['Int']['output']>;
 };
 
 export type RcsbBranchedEntityAnnotation = {
   /** An identifier for the annotation. */
-  readonly annotation_id?: Maybe<Scalars['String']>;
+  readonly annotation_id?: Maybe<Scalars['String']['output']>;
   readonly annotation_lineage?: Maybe<ReadonlyArray<Maybe<RcsbBranchedEntityAnnotationAnnotationLineage>>>;
   /**
    * Identifies the version of the annotation assignment.
@@ -7476,11 +6933,11 @@ export type RcsbBranchedEntityAnnotation = {
    * V4_0_2
    *
    */
-  readonly assignment_version?: Maybe<Scalars['String']>;
+  readonly assignment_version?: Maybe<Scalars['String']['output']>;
   /** A description for the annotation. */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /** A name for the annotation. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * Code identifying the individual, organization or program that
    *  assigned the annotation.
@@ -7489,27 +6946,27 @@ export type RcsbBranchedEntityAnnotation = {
    * PDB
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   /** A type or category of the annotation. */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbBranchedEntityAnnotationAnnotationLineage = {
   /** Members of the annotation lineage as parent lineage depth (1-N) */
-  readonly depth?: Maybe<Scalars['Int']>;
+  readonly depth?: Maybe<Scalars['Int']['output']>;
   /** Members of the annotation lineage as parent class identifiers. */
-  readonly id?: Maybe<Scalars['String']>;
+  readonly id?: Maybe<Scalars['String']['output']>;
   /** Members of the annotation lineage as parent class names. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbBranchedEntityContainerIdentifiers = {
   /** Instance identifiers corresponding to copies of the entity in this container. */
-  readonly asym_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly asym_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** Author instance identifiers corresponding to copies of the entity in this container. */
-  readonly auth_asym_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly auth_asym_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** Unique list of monomer chemical component identifiers in the entity in this container. */
-  readonly chem_comp_monomers?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly chem_comp_monomers?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /**
    * The chemical reference definition identifier for the entity in this container.
    *
@@ -7517,7 +6974,7 @@ export type RcsbBranchedEntityContainerIdentifiers = {
    * PRD_000010
    *
    */
-  readonly chem_ref_def_id?: Maybe<Scalars['String']>;
+  readonly chem_ref_def_id?: Maybe<Scalars['String']['output']>;
   /**
    * Entity identifier for the container.
    *
@@ -7525,7 +6982,7 @@ export type RcsbBranchedEntityContainerIdentifiers = {
    * 1, 2
    *
    */
-  readonly entity_id: Scalars['String'];
+  readonly entity_id: Scalars['String']['output'];
   /**
    * Entry identifier for the container.
    *
@@ -7533,7 +6990,7 @@ export type RcsbBranchedEntityContainerIdentifiers = {
    * 1B5F, 2HYV
    *
    */
-  readonly entry_id: Scalars['String'];
+  readonly entry_id: Scalars['String']['output'];
   /**
    * The BIRD identifier for the entity in this container.
    *
@@ -7541,7 +6998,7 @@ export type RcsbBranchedEntityContainerIdentifiers = {
    * PRD_000010
    *
    */
-  readonly prd_id?: Maybe<Scalars['String']>;
+  readonly prd_id?: Maybe<Scalars['String']['output']>;
   /**
    * A unique identifier for each object in this entity container formed by
    *  an underscore separated concatenation of entry and entity identifiers.
@@ -7550,7 +7007,7 @@ export type RcsbBranchedEntityContainerIdentifiers = {
    * 2HYV_2
    *
    */
-  readonly rcsb_id?: Maybe<Scalars['String']>;
+  readonly rcsb_id?: Maybe<Scalars['String']['output']>;
   readonly reference_identifiers?: Maybe<ReadonlyArray<Maybe<RcsbBranchedEntityContainerIdentifiersReferenceIdentifiers>>>;
 };
 
@@ -7562,7 +7019,7 @@ export type RcsbBranchedEntityContainerIdentifiersReferenceIdentifiers = {
    * PDB, RCSB
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   /**
    * Reference resource accession code
    *
@@ -7570,7 +7027,7 @@ export type RcsbBranchedEntityContainerIdentifiersReferenceIdentifiers = {
    * G07411ON, G42666HT
    *
    */
-  readonly resource_accession?: Maybe<Scalars['String']>;
+  readonly resource_accession?: Maybe<Scalars['String']['output']>;
   /**
    * Reference resource name
    *
@@ -7578,7 +7035,7 @@ export type RcsbBranchedEntityContainerIdentifiersReferenceIdentifiers = {
    * GlyCosmos, GlyGen, GlyTouCan
    *
    */
-  readonly resource_name?: Maybe<Scalars['String']>;
+  readonly resource_name?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbBranchedEntityFeature = {
@@ -7590,14 +7047,14 @@ export type RcsbBranchedEntityFeature = {
    * V4_0_2
    *
    */
-  readonly assignment_version?: Maybe<Scalars['String']>;
+  readonly assignment_version?: Maybe<Scalars['String']['output']>;
   /** A description for the feature. */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /** An identifier for the feature. */
-  readonly feature_id?: Maybe<Scalars['String']>;
+  readonly feature_id?: Maybe<Scalars['String']['output']>;
   readonly feature_positions?: Maybe<ReadonlyArray<Maybe<RcsbBranchedEntityFeatureFeaturePositions>>>;
   /** A name for the feature. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * Code identifying the individual, organization or program that
    *  assigned the feature.
@@ -7606,7 +7063,7 @@ export type RcsbBranchedEntityFeature = {
    * PDB
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   /**
    * Code residue coordinate system for the assigned feature.
    *
@@ -7614,7 +7071,7 @@ export type RcsbBranchedEntityFeature = {
    * PDB entity
    *
    */
-  readonly reference_scheme?: Maybe<Scalars['String']>;
+  readonly reference_scheme?: Maybe<Scalars['String']['output']>;
   /**
    * A type or category of the feature.
    *
@@ -7622,14 +7079,14 @@ export type RcsbBranchedEntityFeature = {
    * mutation
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbBranchedEntityFeatureAdditionalProperties = {
   /** The additional property name. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /** The value(s) of the additional property. */
-  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['ObjectScalar']>>>;
+  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['ObjectScalar']['output']>>>;
 };
 
 export type RcsbBranchedEntityFeatureFeaturePositions = {
@@ -7640,11 +7097,11 @@ export type RcsbBranchedEntityFeatureFeaturePositions = {
    * NAG, MAN
    *
    */
-  readonly beg_comp_id?: Maybe<Scalars['String']>;
+  readonly beg_comp_id?: Maybe<Scalars['String']['output']>;
   /** An identifier for the leading monomer position of the feature. */
-  readonly beg_seq_id: Scalars['Int'];
+  readonly beg_seq_id: Scalars['Int']['output'];
   /** An identifier for the leading monomer position of the feature. */
-  readonly end_seq_id?: Maybe<Scalars['Int']>;
+  readonly end_seq_id?: Maybe<Scalars['Int']['output']>;
   /**
    * The value for the feature at this monomer.
    *
@@ -7652,12 +7109,12 @@ export type RcsbBranchedEntityFeatureFeaturePositions = {
    * null, null
    *
    */
-  readonly value?: Maybe<Scalars['Float']>;
+  readonly value?: Maybe<Scalars['Float']['output']>;
 };
 
 export type RcsbBranchedEntityFeatureSummary = {
   /** The feature count. */
-  readonly count?: Maybe<Scalars['Int']>;
+  readonly count?: Maybe<Scalars['Int']['output']>;
   /**
    * The fractional feature coverage relative to the full branched entity.
    *
@@ -7665,9 +7122,9 @@ export type RcsbBranchedEntityFeatureSummary = {
    * null, null
    *
    */
-  readonly coverage?: Maybe<Scalars['Float']>;
+  readonly coverage?: Maybe<Scalars['Float']['output']>;
   /** The maximum feature length. */
-  readonly maximum_length?: Maybe<Scalars['Int']>;
+  readonly maximum_length?: Maybe<Scalars['Int']['output']>;
   /**
    * The maximum feature value.
    *
@@ -7675,9 +7132,9 @@ export type RcsbBranchedEntityFeatureSummary = {
    * null, null
    *
    */
-  readonly maximum_value?: Maybe<Scalars['Float']>;
+  readonly maximum_value?: Maybe<Scalars['Float']['output']>;
   /** The minimum feature length. */
-  readonly minimum_length?: Maybe<Scalars['Int']>;
+  readonly minimum_length?: Maybe<Scalars['Int']['output']>;
   /**
    * The minimum feature value.
    *
@@ -7685,7 +7142,7 @@ export type RcsbBranchedEntityFeatureSummary = {
    * null, null
    *
    */
-  readonly minimum_value?: Maybe<Scalars['Float']>;
+  readonly minimum_value?: Maybe<Scalars['Float']['output']>;
   /**
    * Type or category of the feature.
    *
@@ -7693,18 +7150,18 @@ export type RcsbBranchedEntityFeatureSummary = {
    * mutation
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbBranchedEntityInstanceContainerIdentifiers = {
   /** Instance identifier for this container. */
-  readonly asym_id: Scalars['String'];
+  readonly asym_id: Scalars['String']['output'];
   /** Author instance identifier for this container. */
-  readonly auth_asym_id?: Maybe<Scalars['String']>;
+  readonly auth_asym_id?: Maybe<Scalars['String']['output']>;
   /** Entity identifier for the container. */
-  readonly entity_id?: Maybe<Scalars['String']>;
+  readonly entity_id?: Maybe<Scalars['String']['output']>;
   /** Entry identifier for the container. */
-  readonly entry_id: Scalars['String'];
+  readonly entry_id: Scalars['String']['output'];
   /**
    * A unique identifier for each object in this entity instance container formed by
    *  an 'dot' (.) separated concatenation of entry and entity instance identifiers.
@@ -7713,12 +7170,12 @@ export type RcsbBranchedEntityInstanceContainerIdentifiers = {
    * 1KIP.A
    *
    */
-  readonly rcsb_id?: Maybe<Scalars['String']>;
+  readonly rcsb_id?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbBranchedEntityKeywords = {
   /** Keywords describing this branched entity. */
-  readonly text?: Maybe<Scalars['String']>;
+  readonly text?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbBranchedEntityNameCom = {
@@ -7729,19 +7186,19 @@ export type RcsbBranchedEntityNameCom = {
    * HIV protease monomer, hemoglobin alpha chain
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbBranchedEntityNameSys = {
   /** The systematic name for the branched entity. */
-  readonly name: Scalars['String'];
+  readonly name: Scalars['String']['output'];
   /** The system used to generate the systematic name of the branched entity. */
-  readonly system?: Maybe<Scalars['String']>;
+  readonly system?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbBranchedInstanceAnnotation = {
   /** An identifier for the annotation. */
-  readonly annotation_id?: Maybe<Scalars['String']>;
+  readonly annotation_id?: Maybe<Scalars['String']['output']>;
   readonly annotation_lineage?: Maybe<ReadonlyArray<Maybe<RcsbBranchedInstanceAnnotationAnnotationLineage>>>;
   /**
    * Identifies the version of the annotation assignment.
@@ -7750,7 +7207,7 @@ export type RcsbBranchedInstanceAnnotation = {
    * V4_0_2
    *
    */
-  readonly assignment_version?: Maybe<Scalars['String']>;
+  readonly assignment_version?: Maybe<Scalars['String']['output']>;
   /**
    * Chemical component identifier.
    *
@@ -7758,13 +7215,13 @@ export type RcsbBranchedInstanceAnnotation = {
    * ATP
    *
    */
-  readonly comp_id?: Maybe<Scalars['String']>;
+  readonly comp_id?: Maybe<Scalars['String']['output']>;
   /** A description for the annotation. */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /** A name for the annotation. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /** Ordinal identifier for this category */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
   /**
    * Code identifying the individual, organization or program that
    *  assigned the annotation.
@@ -7773,7 +7230,7 @@ export type RcsbBranchedInstanceAnnotation = {
    * PDB
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   /**
    * A type or category of the annotation.
    *
@@ -7781,16 +7238,16 @@ export type RcsbBranchedInstanceAnnotation = {
    * CATH, SCOP
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbBranchedInstanceAnnotationAnnotationLineage = {
   /** Members of the annotation lineage as parent lineage depth (1-N) */
-  readonly depth?: Maybe<Scalars['Int']>;
+  readonly depth?: Maybe<Scalars['Int']['output']>;
   /** Members of the annotation lineage as parent class identifiers. */
-  readonly id?: Maybe<Scalars['String']>;
+  readonly id?: Maybe<Scalars['String']['output']>;
   /** Members of the annotation lineage as parent class names. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbBranchedInstanceFeature = {
@@ -7802,17 +7259,17 @@ export type RcsbBranchedInstanceFeature = {
    * V4_0_2
    *
    */
-  readonly assignment_version?: Maybe<Scalars['String']>;
+  readonly assignment_version?: Maybe<Scalars['String']['output']>;
   /** A description for the feature. */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /** An identifier for the feature. */
-  readonly feature_id?: Maybe<Scalars['String']>;
+  readonly feature_id?: Maybe<Scalars['String']['output']>;
   readonly feature_positions?: Maybe<ReadonlyArray<Maybe<RcsbBranchedInstanceFeatureFeaturePositions>>>;
   readonly feature_value?: Maybe<ReadonlyArray<Maybe<RcsbBranchedInstanceFeatureFeatureValue>>>;
   /** A name for the feature. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /** Ordinal identifier for this category */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
   /**
    * Code identifying the individual, organization or program that
    *  assigned the feature.
@@ -7821,7 +7278,7 @@ export type RcsbBranchedInstanceFeature = {
    * PDB
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   /**
    * Code residue coordinate system for the assigned feature.
    *
@@ -7829,7 +7286,7 @@ export type RcsbBranchedInstanceFeature = {
    * PDB entity, PDB entry
    *
    */
-  readonly reference_scheme?: Maybe<Scalars['String']>;
+  readonly reference_scheme?: Maybe<Scalars['String']['output']>;
   /**
    * A type or category of the feature.
    *
@@ -7837,7 +7294,7 @@ export type RcsbBranchedInstanceFeature = {
    * BINDING_SITE, CATH, ECOD, MOGUL_ANGLE_OUTLIER, MOGUL_BOND_OUTLIER, RSCC_OUTLIER, RSRZ_OUTLIER, SCOP, STEREO_OUTLIER, UNOBSERVED_ATOM_XYZ, UNOBSERVED_RESIDUE_XYZ, ZERO_OCCUPANCY_ATOM_XYZ, ZERO_OCCUPANCY_RESIDUE_XYZ
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbBranchedInstanceFeatureAdditionalProperties = {
@@ -7848,9 +7305,9 @@ export type RcsbBranchedInstanceFeatureAdditionalProperties = {
    * bond_distance, bond_angle
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /** The value(s) of the additional property. */
-  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['ObjectScalar']>>>;
+  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['ObjectScalar']['output']>>>;
 };
 
 export type RcsbBranchedInstanceFeatureFeaturePositions = {
@@ -7861,11 +7318,11 @@ export type RcsbBranchedInstanceFeatureFeaturePositions = {
    * NAG, MAN
    *
    */
-  readonly beg_comp_id?: Maybe<Scalars['String']>;
+  readonly beg_comp_id?: Maybe<Scalars['String']['output']>;
   /** An identifier for the leading monomer feature position. */
-  readonly beg_seq_id: Scalars['Int'];
+  readonly beg_seq_id: Scalars['Int']['output'];
   /** An identifier for the terminal monomer feature position. */
-  readonly end_seq_id?: Maybe<Scalars['Int']>;
+  readonly end_seq_id?: Maybe<Scalars['Int']['output']>;
   /**
    * The value of the feature at the monomer position.
    *
@@ -7873,9 +7330,9 @@ export type RcsbBranchedInstanceFeatureFeaturePositions = {
    * null, null
    *
    */
-  readonly value?: Maybe<Scalars['Float']>;
+  readonly value?: Maybe<Scalars['Float']['output']>;
   /** The value(s) of the feature at the monomer position. */
-  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['Float']>>>;
+  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['Float']['output']>>>;
 };
 
 export type RcsbBranchedInstanceFeatureFeatureValue = {
@@ -7886,7 +7343,7 @@ export type RcsbBranchedInstanceFeatureFeatureValue = {
    * ATP,, STN
    *
    */
-  readonly comp_id?: Maybe<Scalars['String']>;
+  readonly comp_id?: Maybe<Scalars['String']['output']>;
   /**
    * Specific details about the feature.
    *
@@ -7894,7 +7351,7 @@ export type RcsbBranchedInstanceFeatureFeatureValue = {
    * C1,C2, C1,C2,C3
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * The reference value of the feature.
    *
@@ -7902,7 +7359,7 @@ export type RcsbBranchedInstanceFeatureFeatureValue = {
    * null, null
    *
    */
-  readonly reference?: Maybe<Scalars['Float']>;
+  readonly reference?: Maybe<Scalars['Float']['output']>;
   /**
    * The reported value of the feature.
    *
@@ -7910,7 +7367,7 @@ export type RcsbBranchedInstanceFeatureFeatureValue = {
    * null, null
    *
    */
-  readonly reported?: Maybe<Scalars['Float']>;
+  readonly reported?: Maybe<Scalars['Float']['output']>;
   /**
    * The estimated uncertainty of the reported feature value.
    *
@@ -7918,7 +7375,7 @@ export type RcsbBranchedInstanceFeatureFeatureValue = {
    * null, null
    *
    */
-  readonly uncertainty_estimate?: Maybe<Scalars['Float']>;
+  readonly uncertainty_estimate?: Maybe<Scalars['Float']['output']>;
   /**
    * The type of estimated uncertainty for the reported feature value.
    *
@@ -7926,12 +7383,12 @@ export type RcsbBranchedInstanceFeatureFeatureValue = {
    * Z-Score
    *
    */
-  readonly uncertainty_estimate_type?: Maybe<Scalars['String']>;
+  readonly uncertainty_estimate_type?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbBranchedInstanceFeatureSummary = {
   /** The feature count. */
-  readonly count?: Maybe<Scalars['Int']>;
+  readonly count?: Maybe<Scalars['Int']['output']>;
   /**
    * The fractional feature coverage relative to the full branched entity.
    *
@@ -7939,9 +7396,9 @@ export type RcsbBranchedInstanceFeatureSummary = {
    * null, null
    *
    */
-  readonly coverage?: Maybe<Scalars['Float']>;
+  readonly coverage?: Maybe<Scalars['Float']['output']>;
   /** The maximum feature length. */
-  readonly maximum_length?: Maybe<Scalars['Int']>;
+  readonly maximum_length?: Maybe<Scalars['Int']['output']>;
   /**
    * The maximum feature value.
    *
@@ -7949,9 +7406,9 @@ export type RcsbBranchedInstanceFeatureSummary = {
    * null, null
    *
    */
-  readonly maximum_value?: Maybe<Scalars['Float']>;
+  readonly maximum_value?: Maybe<Scalars['Float']['output']>;
   /** The minimum feature length. */
-  readonly minimum_length?: Maybe<Scalars['Int']>;
+  readonly minimum_length?: Maybe<Scalars['Int']['output']>;
   /**
    * The minimum feature value.
    *
@@ -7959,7 +7416,7 @@ export type RcsbBranchedInstanceFeatureSummary = {
    * null, null
    *
    */
-  readonly minimum_value?: Maybe<Scalars['Float']>;
+  readonly minimum_value?: Maybe<Scalars['Float']['output']>;
   /**
    * Type or category of the feature.
    *
@@ -7967,7 +7424,7 @@ export type RcsbBranchedInstanceFeatureSummary = {
    * BINDING_SITE, CATH, MOGUL_ANGLE_OUTLIER, MOGUL_BOND_OUTLIER, RSCC_OUTLIER, RSRZ_OUTLIER, SCOP, STEREO_OUTLIER, UNOBSERVED_ATOM_XYZ, UNOBSERVED_RESIDUE_XYZ, ZERO_OCCUPANCY_ATOM_XYZ, ZERO_OCCUPANCY_RESIDUE_XYZ
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbBranchedStructConn = {
@@ -7980,7 +7437,7 @@ export type RcsbBranchedStructConn = {
    * covalent bond, hydrogen bond, ionic interaction, metal coordination, mismatched base pairs
    *
    */
-  readonly connect_type?: Maybe<Scalars['String']>;
+  readonly connect_type?: Maybe<Scalars['String']['output']>;
   /**
    * A description of special details of the connection.
    *
@@ -7988,16 +7445,16 @@ export type RcsbBranchedStructConn = {
    * Watson-Crick base pair
    *
    */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /** Distance value for this contact. */
-  readonly dist_value?: Maybe<Scalars['Float']>;
+  readonly dist_value?: Maybe<Scalars['Float']['output']>;
   /** The value of _rcsb_branched_struct_conn.id is an identifier for connection. */
-  readonly id?: Maybe<Scalars['String']>;
+  readonly id?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _rcsb_branched_struct_conn.id must uniquely identify a record in
    *  the rcsb_branched_struct_conn list.
    */
-  readonly ordinal_id: Scalars['Int'];
+  readonly ordinal_id: Scalars['Int']['output'];
   /**
    * The chemical or structural role of the interaction
    *
@@ -8005,7 +7462,7 @@ export type RcsbBranchedStructConn = {
    * C-Mannosylation, N-Glycosylation, O-Glycosylation
    *
    */
-  readonly role?: Maybe<Scalars['String']>;
+  readonly role?: Maybe<Scalars['String']['output']>;
   /**
    * The chemical bond order associated with the specified atoms in
    *  this contact.
@@ -8014,7 +7471,7 @@ export type RcsbBranchedStructConn = {
    * doub, quad, sing, trip
    *
    */
-  readonly value_order?: Maybe<Scalars['String']>;
+  readonly value_order?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbBranchedStructConnConnectPartner = {
@@ -8025,7 +7482,7 @@ export type RcsbBranchedStructConnConnectPartner = {
    *  This data item is a pointer to _atom_site.label_alt_id in the
    *  ATOM_SITE category.
    */
-  readonly label_alt_id?: Maybe<Scalars['String']>;
+  readonly label_alt_id?: Maybe<Scalars['String']['output']>;
   /**
    * A component of the identifier for the partner in the structure
    *  connection.
@@ -8033,7 +7490,7 @@ export type RcsbBranchedStructConnConnectPartner = {
    *  This data item is a pointer to _atom_site.label_asym_id in the
    *  ATOM_SITE category.
    */
-  readonly label_asym_id: Scalars['String'];
+  readonly label_asym_id: Scalars['String']['output'];
   /**
    * A component of the identifier for the partner in the structure
    *  connection.
@@ -8041,7 +7498,7 @@ export type RcsbBranchedStructConnConnectPartner = {
    *  This data item is a pointer to _chem_comp_atom.atom_id in the
    *  CHEM_COMP_ATOM category.
    */
-  readonly label_atom_id?: Maybe<Scalars['String']>;
+  readonly label_atom_id?: Maybe<Scalars['String']['output']>;
   /**
    * A component of the identifier for the partner in the structure
    *  connection.
@@ -8049,7 +7506,7 @@ export type RcsbBranchedStructConnConnectPartner = {
    *  This data item is a pointer to _atom_site.label_comp_id in the
    *  ATOM_SITE category.
    */
-  readonly label_comp_id: Scalars['String'];
+  readonly label_comp_id: Scalars['String']['output'];
   /**
    * A component of the identifier for the partner in the structure
    *  connection.
@@ -8057,7 +7514,7 @@ export type RcsbBranchedStructConnConnectPartner = {
    *  This data item is a pointer to _atom_site.label_seq_id in the
    *  ATOM_SITE category.
    */
-  readonly label_seq_id?: Maybe<Scalars['Int']>;
+  readonly label_seq_id?: Maybe<Scalars['Int']['output']>;
   /**
    * Describes the symmetry operation that should be applied to the
    *  atom set specified by _rcsb_branched_struct_conn.connect_partner_label* to generate the
@@ -8067,7 +7524,7 @@ export type RcsbBranchedStructConnConnectPartner = {
    * 1_555, 7_645
    *
    */
-  readonly symmetry?: Maybe<Scalars['String']>;
+  readonly symmetry?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbBranchedStructConnConnectTarget = {
@@ -8078,7 +7535,7 @@ export type RcsbBranchedStructConnConnectTarget = {
    *  This data item is a pointer to _atom_site.auth_asym_id in the
    *  ATOM_SITE category.
    */
-  readonly auth_asym_id?: Maybe<Scalars['String']>;
+  readonly auth_asym_id?: Maybe<Scalars['String']['output']>;
   /**
    * A component of the identifier for the target of the structure
    *  connection.
@@ -8086,7 +7543,7 @@ export type RcsbBranchedStructConnConnectTarget = {
    *  This data item is a pointer to _atom_site.auth_seq_id in the
    *  ATOM_SITE category.
    */
-  readonly auth_seq_id?: Maybe<Scalars['String']>;
+  readonly auth_seq_id?: Maybe<Scalars['String']['output']>;
   /**
    * A component of the identifier for the target of the structure
    *  connection.
@@ -8094,7 +7551,7 @@ export type RcsbBranchedStructConnConnectTarget = {
    *  This data item is a pointer to _atom_site.label_alt_id in the
    *  ATOM_SITE category.
    */
-  readonly label_alt_id?: Maybe<Scalars['String']>;
+  readonly label_alt_id?: Maybe<Scalars['String']['output']>;
   /**
    * A component of the identifier for the target of the structure
    *  connection.
@@ -8102,7 +7559,7 @@ export type RcsbBranchedStructConnConnectTarget = {
    *  This data item is a pointer to _atom_site.label_asym_id in the
    *  ATOM_SITE category.
    */
-  readonly label_asym_id: Scalars['String'];
+  readonly label_asym_id: Scalars['String']['output'];
   /**
    * A component of the identifier for the target of the structure
    *  connection.
@@ -8110,7 +7567,7 @@ export type RcsbBranchedStructConnConnectTarget = {
    *  This data item is a pointer to _atom_site.label_atom_id in the
    *  ATOM_SITE category.
    */
-  readonly label_atom_id?: Maybe<Scalars['String']>;
+  readonly label_atom_id?: Maybe<Scalars['String']['output']>;
   /**
    * A component of the identifier for the target of the structure
    *  connection.
@@ -8118,7 +7575,7 @@ export type RcsbBranchedStructConnConnectTarget = {
    *  This data item is a pointer to _atom_site.label_comp_id in the
    *  ATOM_SITE category.
    */
-  readonly label_comp_id: Scalars['String'];
+  readonly label_comp_id: Scalars['String']['output'];
   /**
    * A component of the identifier for the target of the structure
    *  connection.
@@ -8126,7 +7583,7 @@ export type RcsbBranchedStructConnConnectTarget = {
    *  This data item is a pointer to _atom_site.connect_target_label_seq_id in the
    *  ATOM_SITE category.
    */
-  readonly label_seq_id?: Maybe<Scalars['Int']>;
+  readonly label_seq_id?: Maybe<Scalars['Int']['output']>;
   /**
    * Describes the symmetry operation that should be applied to the
    *  atom set specified by _rcsb_branched_struct_conn.label* to generate the
@@ -8136,12 +7593,12 @@ export type RcsbBranchedStructConnConnectTarget = {
    * 1_555, 7_645
    *
    */
-  readonly symmetry?: Maybe<Scalars['String']>;
+  readonly symmetry?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbChemCompAnnotation = {
   /** An identifier for the annotation. */
-  readonly annotation_id?: Maybe<Scalars['String']>;
+  readonly annotation_id?: Maybe<Scalars['String']['output']>;
   readonly annotation_lineage?: Maybe<ReadonlyArray<Maybe<RcsbChemCompAnnotationAnnotationLineage>>>;
   /**
    * Identifies the version of the annotation assignment.
@@ -8150,11 +7607,11 @@ export type RcsbChemCompAnnotation = {
    * V4_0_2
    *
    */
-  readonly assignment_version?: Maybe<Scalars['String']>;
+  readonly assignment_version?: Maybe<Scalars['String']['output']>;
   /** A description for the annotation. */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /** A name for the annotation. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * Code identifying the individual, organization or program that
    *  assigned the annotation.
@@ -8163,7 +7620,7 @@ export type RcsbChemCompAnnotation = {
    * RESID, UniProt, PDB
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   /**
    * A type or category of the annotation.
    *
@@ -8171,16 +7628,16 @@ export type RcsbChemCompAnnotation = {
    * ATC, Carbohydrate Anomer, Carbohydrate Isomer, Carbohydrate Primary Carbonyl Group, Carbohydrate Ring, Generating Enzyme, Modification Type, PSI-MOD
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbChemCompAnnotationAnnotationLineage = {
   /** Members of the annotation lineage as parent lineage depth (1-N) */
-  readonly depth?: Maybe<Scalars['Int']>;
+  readonly depth?: Maybe<Scalars['Int']['output']>;
   /** Members of the annotation lineage as parent class identifiers. */
-  readonly id?: Maybe<Scalars['String']>;
+  readonly id?: Maybe<Scalars['String']['output']>;
   /** Members of the annotation lineage as parent class names. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbChemCompContainerIdentifiers = {
@@ -8188,7 +7645,7 @@ export type RcsbChemCompContainerIdentifiers = {
    * The Anatomical Therapeutic Chemical (ATC) Classification System identifiers corresponding
    *  to the chemical component.
    */
-  readonly atc_codes?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly atc_codes?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /**
    * The chemical component identifier.
    *
@@ -8196,7 +7653,7 @@ export type RcsbChemCompContainerIdentifiers = {
    * ATP, STI
    *
    */
-  readonly comp_id: Scalars['String'];
+  readonly comp_id: Scalars['String']['output'];
   /**
    * The DrugBank identifier corresponding to the chemical component.
    *
@@ -8204,7 +7661,7 @@ export type RcsbChemCompContainerIdentifiers = {
    * DB00781, DB15263
    *
    */
-  readonly drugbank_id?: Maybe<Scalars['String']>;
+  readonly drugbank_id?: Maybe<Scalars['String']['output']>;
   /**
    * The BIRD definition identifier.
    *
@@ -8212,7 +7669,7 @@ export type RcsbChemCompContainerIdentifiers = {
    * PRD_000010
    *
    */
-  readonly prd_id?: Maybe<Scalars['String']>;
+  readonly prd_id?: Maybe<Scalars['String']['output']>;
   /**
    * A unique identifier for the chemical definition in this container.
    *
@@ -8220,9 +7677,9 @@ export type RcsbChemCompContainerIdentifiers = {
    * ATP, PRD_000010
    *
    */
-  readonly rcsb_id?: Maybe<Scalars['String']>;
+  readonly rcsb_id?: Maybe<Scalars['String']['output']>;
   /** The list of subcomponents contained in this component. */
-  readonly subcomponent_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly subcomponent_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
 };
 
 export type RcsbChemCompDescriptor = {
@@ -8237,7 +7694,7 @@ export type RcsbChemCompDescriptor = {
    * InChI=1S/C3H6FO6P/c4-1-2(3(5)6)10-11(7,8)9/h2H,1H2,(H,5,6)(H2,7,8,9)/t2-/m0/s1
    *
    */
-  readonly InChI?: Maybe<Scalars['String']>;
+  readonly InChI?: Maybe<Scalars['String']['output']>;
   /**
    * Standard IUPAC International Chemical Identifier (InChI) descriptor key
    *  for the chemical component
@@ -8250,7 +7707,7 @@ export type RcsbChemCompDescriptor = {
    * BNOCDEBUFVJMQI-REOHCLBHSA-N
    *
    */
-  readonly InChIKey?: Maybe<Scalars['String']>;
+  readonly InChIKey?: Maybe<Scalars['String']['output']>;
   /**
    * Simplified molecular-input line-entry system (SMILES) descriptor for the chemical component.
    *
@@ -8265,7 +7722,7 @@ export type RcsbChemCompDescriptor = {
    * OC(=O)[CH](CF)O[P](O)(O)=O
    *
    */
-  readonly SMILES?: Maybe<Scalars['String']>;
+  readonly SMILES?: Maybe<Scalars['String']['output']>;
   /**
    * Simplified molecular-input line-entry system (SMILES) descriptor for the chemical
    *  component including stereochemical features.
@@ -8282,24 +7739,24 @@ export type RcsbChemCompDescriptor = {
    * OC(=O)[C@H](CF)O[P](O)(O)=O
    *
    */
-  readonly SMILES_stereo?: Maybe<Scalars['String']>;
+  readonly SMILES_stereo?: Maybe<Scalars['String']['output']>;
   /** The chemical component identifier. */
-  readonly comp_id: Scalars['String'];
+  readonly comp_id: Scalars['String']['output'];
 };
 
 export type RcsbChemCompInfo = {
   /** Chemical component total atom count */
-  readonly atom_count?: Maybe<Scalars['Int']>;
+  readonly atom_count?: Maybe<Scalars['Int']['output']>;
   /** Chemical component chiral atom count */
-  readonly atom_count_chiral?: Maybe<Scalars['Int']>;
+  readonly atom_count_chiral?: Maybe<Scalars['Int']['output']>;
   /** Chemical component heavy atom count */
-  readonly atom_count_heavy?: Maybe<Scalars['Int']>;
+  readonly atom_count_heavy?: Maybe<Scalars['Int']['output']>;
   /** Chemical component total bond count */
-  readonly bond_count?: Maybe<Scalars['Int']>;
+  readonly bond_count?: Maybe<Scalars['Int']['output']>;
   /** Chemical component aromatic bond count */
-  readonly bond_count_aromatic?: Maybe<Scalars['Int']>;
+  readonly bond_count_aromatic?: Maybe<Scalars['Int']['output']>;
   /** The chemical component identifier. */
-  readonly comp_id: Scalars['String'];
+  readonly comp_id: Scalars['String']['output'];
   /**
    * The date the chemical definition was first deposited in the PDB repository.
    *
@@ -8307,7 +7764,7 @@ export type RcsbChemCompInfo = {
    * 2016-09-11
    *
    */
-  readonly initial_deposition_date?: Maybe<Scalars['Date']>;
+  readonly initial_deposition_date?: Maybe<Scalars['Date']['output']>;
   /**
    * The initial date the chemical definition was released in the PDB repository.
    *
@@ -8315,7 +7772,7 @@ export type RcsbChemCompInfo = {
    * 2016-09-11
    *
    */
-  readonly initial_release_date?: Maybe<Scalars['Date']>;
+  readonly initial_release_date?: Maybe<Scalars['Date']['output']>;
   /**
    * The release status of the chemical definition.
    *
@@ -8323,7 +7780,7 @@ export type RcsbChemCompInfo = {
    * DEL, HOLD, HPUB, OBS, REF_ONLY, REL
    *
    */
-  readonly release_status?: Maybe<Scalars['String']>;
+  readonly release_status?: Maybe<Scalars['String']['output']>;
   /**
    * The date of last revision of the chemical definition.
    *
@@ -8331,7 +7788,7 @@ export type RcsbChemCompInfo = {
    * 2016-10-12
    *
    */
-  readonly revision_date?: Maybe<Scalars['Date']>;
+  readonly revision_date?: Maybe<Scalars['Date']['output']>;
 };
 
 export type RcsbChemCompRelated = {
@@ -8339,12 +7796,12 @@ export type RcsbChemCompRelated = {
    * The value of _rcsb_chem_comp_related.comp_id is a reference to
    *  a chemical component definition.
    */
-  readonly comp_id: Scalars['String'];
+  readonly comp_id: Scalars['String']['output'];
   /**
    * The value of _rcsb_chem_comp_related.ordinal distinguishes
    *  related examples for each chemical component.
    */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
   /**
    * The method used to establish the resource correspondence.
    *
@@ -8352,7 +7809,7 @@ export type RcsbChemCompRelated = {
    * assigned by DrugBank resource, assigned by PDB, assigned by PubChem resource, matching ChEMBL ID in Pharos, matching InChIKey in DrugBank, matching InChIKey in PubChem, matching InChIKey-prefix in DrugBank, matching by RESID resource
    *
    */
-  readonly related_mapping_method?: Maybe<Scalars['String']>;
+  readonly related_mapping_method?: Maybe<Scalars['String']['output']>;
   /**
    * The resource identifier code for the related chemical reference.
    *
@@ -8360,20 +7817,20 @@ export type RcsbChemCompRelated = {
    * 124832
    *
    */
-  readonly resource_accession_code?: Maybe<Scalars['String']>;
+  readonly resource_accession_code?: Maybe<Scalars['String']['output']>;
   /**
    * The resource name for the related chemical reference.
    *
    * Allowable values:
-   * CAS, CCDC/CSD, ChEBI, ChEMBL, DrugBank, Pharos, PubChem, RESID
+   * CAS, CCDC/CSD, COD, ChEBI, ChEMBL, DrugBank, Pharos, PubChem, RESID
    *
    */
-  readonly resource_name?: Maybe<Scalars['String']>;
+  readonly resource_name?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbChemCompSynonyms = {
   /** The chemical component to which this synonym applies. */
-  readonly comp_id: Scalars['String'];
+  readonly comp_id: Scalars['String']['output'];
   /**
    * The synonym of this particular chemical component.
    *
@@ -8381,12 +7838,12 @@ export type RcsbChemCompSynonyms = {
    * Ursonic acid, Talotrexin, 4-oxodecanedioic acid
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * This data item is an ordinal index for the
    *  RCSB_CHEM_COMP_SYNONYMS category.
    */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
   /**
    * The provenance of this synonym.
    *
@@ -8394,7 +7851,7 @@ export type RcsbChemCompSynonyms = {
    * ACDLabs, Author, ChEBI, ChEMBL, DrugBank, GMML, Lexichem, OpenEye OEToolkits, OpenEye/Lexichem, PDB Reference Data, PDB Reference Data (Preferred), PDB-CARE, PubChem, RESID
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   /**
    * This data item contains the synonym type.
    *
@@ -8402,7 +7859,7 @@ export type RcsbChemCompSynonyms = {
    * Brand Name, Common Name, Condensed IUPAC Carbohydrate Symbol, IUPAC Carbohydrate Symbol, Preferred Common Name, Preferred Name, Preferred Synonym, SNFG Carbohydrate Symbol, Synonym, Systematic Name
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbChemCompTarget = {
@@ -8410,16 +7867,16 @@ export type RcsbChemCompTarget = {
    * The value of _rcsb_chem_comp_target.comp_id is a reference to
    *  a chemical component definition.
    */
-  readonly comp_id: Scalars['String'];
+  readonly comp_id: Scalars['String']['output'];
   /** The type of target interaction. */
-  readonly interaction_type?: Maybe<Scalars['String']>;
+  readonly interaction_type?: Maybe<Scalars['String']['output']>;
   /** The chemical component target name. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _rcsb_chem_comp_target.ordinal distinguishes
    *  related examples for each chemical component.
    */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
   /**
    * A code indicating the provenance of the target interaction assignment
    *
@@ -8427,7 +7884,7 @@ export type RcsbChemCompTarget = {
    * DrugBank, PDB Primary Data
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   /**
    * The reference identifier code for the target interaction reference.
    *
@@ -8435,7 +7892,7 @@ export type RcsbChemCompTarget = {
    * Q9HD40
    *
    */
-  readonly reference_database_accession_code?: Maybe<Scalars['String']>;
+  readonly reference_database_accession_code?: Maybe<Scalars['String']['output']>;
   /**
    * The reference database name for the target interaction.
    *
@@ -8443,29 +7900,29 @@ export type RcsbChemCompTarget = {
    * UniProt
    *
    */
-  readonly reference_database_name?: Maybe<Scalars['String']>;
+  readonly reference_database_name?: Maybe<Scalars['String']['output']>;
   /** The mechanism of action of the chemical component - target interaction. */
-  readonly target_actions?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly target_actions?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
 };
 
 export type RcsbClusterFlexibility = {
   /** Average RMSD refer to average pairwise RMSD (Root Mean Square Deviation of C-alpha atoms) between structures in the cluster (95% sequence identity) where a given entity belongs. */
-  readonly avg_rmsd?: Maybe<Scalars['Float']>;
+  readonly avg_rmsd?: Maybe<Scalars['Float']['output']>;
   /** Structural flexibility in the cluster (95% sequence identity) where a given entity belongs. */
-  readonly label?: Maybe<Scalars['String']>;
+  readonly label?: Maybe<Scalars['String']['output']>;
   /** Link to the associated PDBFlex database entry. */
-  readonly link?: Maybe<Scalars['String']>;
+  readonly link?: Maybe<Scalars['String']['output']>;
   /** Maximal RMSD refer to maximal pairwise RMSD (Root Mean Square Deviation of C-alpha atoms) between structures in the cluster (95% sequence identity) where a given entity belongs. */
-  readonly max_rmsd?: Maybe<Scalars['Float']>;
+  readonly max_rmsd?: Maybe<Scalars['Float']['output']>;
   /** Allowable values: PDBFlex. */
-  readonly provenance_code?: Maybe<Scalars['String']>;
+  readonly provenance_code?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbClusterMembership = {
   /** Identifier for a cluster at the specified level of sequence identity within the cluster data set. */
-  readonly cluster_id?: Maybe<Scalars['Int']>;
+  readonly cluster_id?: Maybe<Scalars['Int']['output']>;
   /** Sequence identity expressed as an integer percent value. */
-  readonly identity?: Maybe<Scalars['Int']>;
+  readonly identity?: Maybe<Scalars['Int']['output']>;
 };
 
 export type RcsbCompModelProvenance = {
@@ -8476,7 +7933,7 @@ export type RcsbCompModelProvenance = {
    * AF-P60325-F1, ma-bak-cepc-0019
    *
    */
-  readonly entry_id: Scalars['String'];
+  readonly entry_id: Scalars['String']['output'];
   /**
    * Source database for the computed structure model.
    *
@@ -8484,13 +7941,13 @@ export type RcsbCompModelProvenance = {
    * AlphaFoldDB, ModelArchive
    *
    */
-  readonly source_db?: Maybe<Scalars['String']>;
+  readonly source_db?: Maybe<Scalars['String']['output']>;
   /** Source filename for the computed structure model. */
-  readonly source_filename?: Maybe<Scalars['String']>;
+  readonly source_filename?: Maybe<Scalars['String']['output']>;
   /** Source URL for computed structure model predicted aligned error (PAE) json file. */
-  readonly source_pae_url?: Maybe<Scalars['String']>;
+  readonly source_pae_url?: Maybe<Scalars['String']['output']>;
   /** Source URL for computed structure model file. */
-  readonly source_url?: Maybe<Scalars['String']>;
+  readonly source_url?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbEntityHostOrganism = {
@@ -8500,16 +7957,16 @@ export type RcsbEntityHostOrganism = {
    *
    *  A reference to the sequence position in the entity_poly category.
    */
-  readonly beg_seq_num?: Maybe<Scalars['Int']>;
+  readonly beg_seq_num?: Maybe<Scalars['Int']['output']>;
   /** The common name of the host organism */
-  readonly common_name?: Maybe<Scalars['String']>;
+  readonly common_name?: Maybe<Scalars['String']['output']>;
   /**
    * The ending polymer sequence position for the polymer section corresponding
    *  to this host organism.
    *
    *  A reference to the sequence position in the entity_poly category.
    */
-  readonly end_seq_num?: Maybe<Scalars['Int']>;
+  readonly end_seq_num?: Maybe<Scalars['Int']['output']>;
   /**
    * Common names associated with this taxonomy code obtained from NCBI Taxonomy Database.
    *
@@ -8530,7 +7987,7 @@ export type RcsbEntityHostOrganism = {
    * GenBank. Nucleic Acids Res. 2009 Jan;37(Database issue):D26-31.
    * Epub 2008 Oct 21.
    */
-  readonly ncbi_common_names?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly ncbi_common_names?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /**
    * The parent scientific name in the NCBI taxonomy hierarchy (depth=1) associated with this taxonomy code.
    *
@@ -8549,7 +8006,7 @@ export type RcsbEntityHostOrganism = {
    * GenBank. Nucleic Acids Res. 2009 Jan;37(Database issue):D26-31.
    * Epub 2008 Oct 21.
    */
-  readonly ncbi_parent_scientific_name?: Maybe<Scalars['String']>;
+  readonly ncbi_parent_scientific_name?: Maybe<Scalars['String']['output']>;
   /**
    * The scientific name associated with this taxonomy code aggregated by the NCBI Taxonomy Database.
    *
@@ -8571,7 +8028,7 @@ export type RcsbEntityHostOrganism = {
    * GenBank. Nucleic Acids Res. 2009 Jan;37(Database issue):D26-31.
    * Epub 2008 Oct 21.
    */
-  readonly ncbi_scientific_name?: Maybe<Scalars['String']>;
+  readonly ncbi_scientific_name?: Maybe<Scalars['String']['output']>;
   /**
    * NCBI Taxonomy identifier for the host organism.
    *
@@ -8586,25 +8043,25 @@ export type RcsbEntityHostOrganism = {
    *  Benson DA, Karsch-Mizrachi I, Lipman DJ, Ostell J, Rapp BA,
    *  Wheeler DL (2000). GenBank. Nucleic Acids Res 2000 Jan 1;28(1):15-18.
    */
-  readonly ncbi_taxonomy_id?: Maybe<Scalars['Int']>;
+  readonly ncbi_taxonomy_id?: Maybe<Scalars['Int']['output']>;
   /** An identifier for an entity segment. */
-  readonly pdbx_src_id: Scalars['String'];
+  readonly pdbx_src_id: Scalars['String']['output'];
   /**
    * A code indicating the provenance of the host organism.
    *
    * Allowable values:
-   * PDB Primary Data
+   * PDB Primary Data, Primary Data
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   /** The scientific name of the host organism */
-  readonly scientific_name?: Maybe<Scalars['String']>;
+  readonly scientific_name?: Maybe<Scalars['String']['output']>;
   readonly taxonomy_lineage?: Maybe<ReadonlyArray<Maybe<RcsbEntityHostOrganismTaxonomyLineage>>>;
 };
 
 export type RcsbEntityHostOrganismTaxonomyLineage = {
   /** Members of the NCBI Taxonomy lineage as parent taxonomy lineage depth (1-N) */
-  readonly depth?: Maybe<Scalars['Int']>;
+  readonly depth?: Maybe<Scalars['Int']['output']>;
   /**
    * Members of the NCBI Taxonomy lineage as parent taxonomy idcodes.
    *
@@ -8612,7 +8069,7 @@ export type RcsbEntityHostOrganismTaxonomyLineage = {
    * 469008, 10469
    *
    */
-  readonly id?: Maybe<Scalars['String']>;
+  readonly id?: Maybe<Scalars['String']['output']>;
   /**
    * Members of the NCBI Taxonomy lineage as parent taxonomy names.
    *
@@ -8620,7 +8077,7 @@ export type RcsbEntityHostOrganismTaxonomyLineage = {
    * Escherichia coli BL21(DE3), Baculovirus
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbEntitySourceOrganism = {
@@ -8630,16 +8087,16 @@ export type RcsbEntitySourceOrganism = {
    *
    *  A reference to the sequence position in the entity_poly category.
    */
-  readonly beg_seq_num?: Maybe<Scalars['Int']>;
+  readonly beg_seq_num?: Maybe<Scalars['Int']['output']>;
   /** The common name for the source organism assigned by the PDB depositor. */
-  readonly common_name?: Maybe<Scalars['String']>;
+  readonly common_name?: Maybe<Scalars['String']['output']>;
   /**
    * The ending polymer sequence position for the polymer section corresponding
    *  to this source.
    *
    *  A reference to the sequence position in the entity_poly category.
    */
-  readonly end_seq_num?: Maybe<Scalars['Int']>;
+  readonly end_seq_num?: Maybe<Scalars['Int']['output']>;
   /**
    * Common names associated with this taxonomy code aggregated by the NCBI Taxonomy Database.
    *
@@ -8660,7 +8117,7 @@ export type RcsbEntitySourceOrganism = {
    * GenBank. Nucleic Acids Res. 2009 Jan;37(Database issue):D26-31.
    * Epub 2008 Oct 21.
    */
-  readonly ncbi_common_names?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly ncbi_common_names?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /**
    * A parent scientific name in the NCBI taxonomy hierarchy of the source organism assigned by the PDB depositor.
    *   For cellular organism this corresponds to a superkingdom (e.g., Archaea, Bacteria, Eukaryota).  For viruses this
@@ -8686,7 +8143,7 @@ export type RcsbEntitySourceOrganism = {
    * Archaea, Bacteria, Eukaryota, Adnaviria, Bicaudaviridae, Clavaviridae, Duplodnaviria
    *
    */
-  readonly ncbi_parent_scientific_name?: Maybe<Scalars['String']>;
+  readonly ncbi_parent_scientific_name?: Maybe<Scalars['String']['output']>;
   /**
    * The scientific name associated with this taxonomy code aggregated by the NCBI Taxonomy Database.
    *
@@ -8708,7 +8165,7 @@ export type RcsbEntitySourceOrganism = {
    * GenBank. Nucleic Acids Res. 2009 Jan;37(Database issue):D26-31.
    * Epub 2008 Oct 21.
    */
-  readonly ncbi_scientific_name?: Maybe<Scalars['String']>;
+  readonly ncbi_scientific_name?: Maybe<Scalars['String']['output']>;
   /**
    * NCBI Taxonomy identifier for the gene source organism assigned by the PDB depositor.
    *
@@ -8722,20 +8179,22 @@ export type RcsbEntitySourceOrganism = {
    *  Benson DA, Karsch-Mizrachi I, Lipman DJ, Ostell J, Rapp BA,
    *  Wheeler DL (2000). GenBank. Nucleic Acids Res 2000 Jan 1;28(1):15-18.
    */
-  readonly ncbi_taxonomy_id?: Maybe<Scalars['Int']>;
+  readonly ncbi_taxonomy_id?: Maybe<Scalars['Int']['output']>;
   /** An identifier for the entity segment. */
-  readonly pdbx_src_id: Scalars['String'];
+  readonly pdbx_src_id: Scalars['String']['output'];
   /**
-   * A code indicating the provenance of the source organism details for the entity
+   * Reference to the provenance of the source organism details for the entity.
+   *  Primary data indicates information obtained from the same source as the structural model.
+   *  UniProt and NCBI are provided as alternate sources of provenance for organism details.
    *
    * Allowable values:
-   * PDB Primary Data, UniProt
+   * NCBI, PDB Primary Data, Primary Data, UniProt
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   readonly rcsb_gene_name?: Maybe<ReadonlyArray<Maybe<RcsbEntitySourceOrganismRcsbGeneName>>>;
   /** The scientific name of the source organism assigned by the PDB depositor. */
-  readonly scientific_name?: Maybe<Scalars['String']>;
+  readonly scientific_name?: Maybe<Scalars['String']['output']>;
   /**
    * The source type for the entity
    *
@@ -8743,7 +8202,7 @@ export type RcsbEntitySourceOrganism = {
    * genetically engineered, natural, synthetic
    *
    */
-  readonly source_type?: Maybe<Scalars['String']>;
+  readonly source_type?: Maybe<Scalars['String']['output']>;
   readonly taxonomy_lineage?: Maybe<ReadonlyArray<Maybe<RcsbEntitySourceOrganismTaxonomyLineage>>>;
 };
 
@@ -8752,10 +8211,10 @@ export type RcsbEntitySourceOrganismRcsbGeneName = {
    * A code indicating the provenance of the source organism details for the entity
    *
    * Allowable values:
-   * PDB Primary Data, UniProt
+   * NCBI, PDB Primary Data, Primary Data, UniProt
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   /**
    * Gene name.
    *
@@ -8763,12 +8222,12 @@ export type RcsbEntitySourceOrganismRcsbGeneName = {
    * lacA, hemH
    *
    */
-  readonly value?: Maybe<Scalars['String']>;
+  readonly value?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbEntitySourceOrganismTaxonomyLineage = {
   /** Members of the NCBI Taxonomy lineage as parent taxonomy lineage depth (1-N) */
-  readonly depth?: Maybe<Scalars['Int']>;
+  readonly depth?: Maybe<Scalars['Int']['output']>;
   /**
    * Members of the NCBI Taxonomy lineage as parent taxonomy idcodes.
    *
@@ -8776,7 +8235,7 @@ export type RcsbEntitySourceOrganismTaxonomyLineage = {
    * 9606, 10090
    *
    */
-  readonly id?: Maybe<Scalars['String']>;
+  readonly id?: Maybe<Scalars['String']['output']>;
   /**
    * Memebers of the NCBI Taxonomy lineage as parent taxonomy names.
    *
@@ -8784,21 +8243,21 @@ export type RcsbEntitySourceOrganismTaxonomyLineage = {
    * Homo sapiens, Mus musculus
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbEntryContainerIdentifiers = {
   /** List of identifiers for assemblies generated from the entry. */
-  readonly assembly_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly assembly_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** List of identifiers for the branched entity constituents for the entry. */
-  readonly branched_entity_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly branched_entity_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /**
    * List of EMDB identifiers for the 3D electron microscopy density maps
    *  used in the production of the structure model.
    */
-  readonly emdb_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly emdb_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** List of identifiers or the entity constituents for the entry. */
-  readonly entity_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly entity_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /**
    * Entry identifier for the container.
    *
@@ -8806,15 +8265,15 @@ export type RcsbEntryContainerIdentifiers = {
    * 4HHB, AF_AFP60325F1, MA_MABAKCEPC0019
    *
    */
-  readonly entry_id: Scalars['String'];
+  readonly entry_id: Scalars['String']['output'];
   /** List of PDB model identifiers for the entry. */
-  readonly model_ids?: Maybe<ReadonlyArray<Maybe<Scalars['Int']>>>;
+  readonly model_ids?: Maybe<ReadonlyArray<Maybe<Scalars['Int']['output']>>>;
   /** List of identifiers for the non-polymer entity constituents for the entry. */
-  readonly non_polymer_entity_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly non_polymer_entity_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** List of identifiers for the polymer entity constituents for the entry. */
-  readonly polymer_entity_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly polymer_entity_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** Unique integer value assigned to each PubMed record. */
-  readonly pubmed_id?: Maybe<Scalars['Int']>;
+  readonly pubmed_id?: Maybe<Scalars['Int']['output']>;
   /**
    * A unique identifier for each object in this entry container.
    *
@@ -8822,14 +8281,14 @@ export type RcsbEntryContainerIdentifiers = {
    * 1KIP
    *
    */
-  readonly rcsb_id?: Maybe<Scalars['String']>;
+  readonly rcsb_id?: Maybe<Scalars['String']['output']>;
   /**
    * List of EMDB identifiers for the 3D electron microscopy density maps
    *  related to the structure model.
    */
-  readonly related_emdb_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly related_emdb_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** List of identifiers for the solvent/water entity constituents for the entry. */
-  readonly water_entity_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly water_entity_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
 };
 
 export type RcsbEntryGroupMembership = {
@@ -8840,7 +8299,7 @@ export type RcsbEntryGroupMembership = {
    * matching_deposit_group_id
    *
    */
-  readonly aggregation_method: Scalars['String'];
+  readonly aggregation_method: Scalars['String']['output'];
   /**
    * A unique identifier for a group of entries
    *
@@ -8848,14 +8307,14 @@ export type RcsbEntryGroupMembership = {
    * G_1001001
    *
    */
-  readonly group_id: Scalars['String'];
+  readonly group_id: Scalars['String']['output'];
 };
 
 export type RcsbEntryInfo = {
   /** The number of assemblies defined for this entry including the deposited assembly. */
-  readonly assembly_count?: Maybe<Scalars['Int']>;
+  readonly assembly_count?: Maybe<Scalars['Int']['output']>;
   /** The number of distinct branched entities in the structure entry. */
-  readonly branched_entity_count?: Maybe<Scalars['Int']>;
+  readonly branched_entity_count?: Maybe<Scalars['Int']['output']>;
   /**
    * The maximum molecular mass (KDa) of a branched entity in the deposited structure entry.
    *
@@ -8863,7 +8322,7 @@ export type RcsbEntryInfo = {
    * null, null
    *
    */
-  readonly branched_molecular_weight_maximum?: Maybe<Scalars['Float']>;
+  readonly branched_molecular_weight_maximum?: Maybe<Scalars['Float']['output']>;
   /**
    * The minimum molecular mass (KDa) of a branched entity in the deposited structure entry.
    *
@@ -8871,56 +8330,56 @@ export type RcsbEntryInfo = {
    * null, null
    *
    */
-  readonly branched_molecular_weight_minimum?: Maybe<Scalars['Float']>;
+  readonly branched_molecular_weight_minimum?: Maybe<Scalars['Float']['output']>;
   /** The number of cis-peptide linkages per deposited structure model. */
-  readonly cis_peptide_count?: Maybe<Scalars['Int']>;
+  readonly cis_peptide_count?: Maybe<Scalars['Int']['output']>;
   /** The number of heavy atom coordinates records per deposited structure model. */
-  readonly deposited_atom_count?: Maybe<Scalars['Int']>;
+  readonly deposited_atom_count?: Maybe<Scalars['Int']['output']>;
   /** The number of hydrogen atom coordinates records per deposited structure model. */
-  readonly deposited_hydrogen_atom_count?: Maybe<Scalars['Int']>;
+  readonly deposited_hydrogen_atom_count?: Maybe<Scalars['Int']['output']>;
   /** The number of model structures deposited. */
-  readonly deposited_model_count?: Maybe<Scalars['Int']>;
+  readonly deposited_model_count?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of modeled polymer monomers in the deposited coordinate data.
    *  This is the total count of monomers with reported coordinate data for all polymer
    *  entity instances in the deposited coordinate data.
    */
-  readonly deposited_modeled_polymer_monomer_count?: Maybe<Scalars['Int']>;
+  readonly deposited_modeled_polymer_monomer_count?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of non-polymer instances in the deposited data set.
    *  This is the total count of non-polymer entity instances reported
    *  per deposited structure model.
    */
-  readonly deposited_nonpolymer_entity_instance_count?: Maybe<Scalars['Int']>;
+  readonly deposited_nonpolymer_entity_instance_count?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of polymer instances in the deposited data set.
    *  This is the total count of polymer entity instances reported
    *  per deposited structure model.
    */
-  readonly deposited_polymer_entity_instance_count?: Maybe<Scalars['Int']>;
+  readonly deposited_polymer_entity_instance_count?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of polymer monomers in sample entity instances in the deposited data set.
    *  This is the total count of monomers for all polymer entity instances reported
    *  per deposited structure model.
    */
-  readonly deposited_polymer_monomer_count?: Maybe<Scalars['Int']>;
+  readonly deposited_polymer_monomer_count?: Maybe<Scalars['Int']['output']>;
   /** The number of heavy solvent atom coordinates records per deposited structure model. */
-  readonly deposited_solvent_atom_count?: Maybe<Scalars['Int']>;
+  readonly deposited_solvent_atom_count?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of unmodeled polymer monomers in the deposited coordinate data. This is
    *  the total count of monomers with unreported coordinate data for all polymer
    *  entity instances per deposited structure model.
    */
-  readonly deposited_unmodeled_polymer_monomer_count?: Maybe<Scalars['Int']>;
+  readonly deposited_unmodeled_polymer_monomer_count?: Maybe<Scalars['Int']['output']>;
   /** The maximum radiation wavelength in angstroms. */
-  readonly diffrn_radiation_wavelength_maximum?: Maybe<Scalars['Float']>;
+  readonly diffrn_radiation_wavelength_maximum?: Maybe<Scalars['Float']['output']>;
   /** The minimum radiation wavelength in angstroms. */
-  readonly diffrn_radiation_wavelength_minimum?: Maybe<Scalars['Float']>;
+  readonly diffrn_radiation_wavelength_minimum?: Maybe<Scalars['Float']['output']>;
   readonly diffrn_resolution_high?: Maybe<RcsbEntryInfoDiffrnResolutionHigh>;
   /** The number of disulfide bonds per deposited structure model. */
-  readonly disulfide_bond_count?: Maybe<Scalars['Int']>;
+  readonly disulfide_bond_count?: Maybe<Scalars['Int']['output']>;
   /** The number of distinct polymer, non-polymer, branched molecular, and solvent entities per deposited structure model. */
-  readonly entity_count?: Maybe<Scalars['Int']>;
+  readonly entity_count?: Maybe<Scalars['Int']['output']>;
   /**
    * The category of experimental method(s) used to determine the structure entry.
    *
@@ -8928,13 +8387,13 @@ export type RcsbEntryInfo = {
    * EM, Multiple methods, NMR, Neutron, Other, X-ray
    *
    */
-  readonly experimental_method?: Maybe<Scalars['String']>;
+  readonly experimental_method?: Maybe<Scalars['String']['output']>;
   /** The number of experimental methods contributing data to the structure determination. */
-  readonly experimental_method_count?: Maybe<Scalars['Int']>;
+  readonly experimental_method_count?: Maybe<Scalars['Int']['output']>;
   /** The number of intermolecular covalent bonds. */
-  readonly inter_mol_covalent_bond_count?: Maybe<Scalars['Int']>;
+  readonly inter_mol_covalent_bond_count?: Maybe<Scalars['Int']['output']>;
   /** The number of intermolecular metalic bonds. */
-  readonly inter_mol_metalic_bond_count?: Maybe<Scalars['Int']>;
+  readonly inter_mol_metalic_bond_count?: Maybe<Scalars['Int']['output']>;
   /**
    * The molecular mass (KDa) of polymer and non-polymer entities (exclusive of solvent) in the deposited structure entry.
    *
@@ -8942,7 +8401,7 @@ export type RcsbEntryInfo = {
    * null, null
    *
    */
-  readonly molecular_weight?: Maybe<Scalars['Float']>;
+  readonly molecular_weight?: Maybe<Scalars['Float']['output']>;
   /**
    * Nucleic acid polymer entity type categories describing the entry.
    *
@@ -8950,7 +8409,7 @@ export type RcsbEntryInfo = {
    * DNA (only), DNA/RNA (only), NA-hybrid (only), Other, RNA (only)
    *
    */
-  readonly na_polymer_entity_types?: Maybe<Scalars['String']>;
+  readonly na_polymer_entity_types?: Maybe<Scalars['String']['output']>;
   /**
    * This data item identifies secondary structure
    *  features of nucleic acids in the entry.
@@ -8959,11 +8418,11 @@ export type RcsbEntryInfo = {
    * a-form double helix, b-form double helix, bulge loop, double helix, four-way junction, hairpin loop, internal loop, mismatched base pair, other right-handed double helix, parallel strands, quadruple helix, tetraloop, three-way junction, triple helix, two-way junction, z-form double helix
    *
    */
-  readonly ndb_struct_conf_na_feature_combined?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly ndb_struct_conf_na_feature_combined?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** Bound nonpolymer components in this entry. */
-  readonly nonpolymer_bound_components?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly nonpolymer_bound_components?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** The number of distinct non-polymer entities in the structure entry exclusive of solvent. */
-  readonly nonpolymer_entity_count?: Maybe<Scalars['Int']>;
+  readonly nonpolymer_entity_count?: Maybe<Scalars['Int']['output']>;
   /**
    * The maximum molecular mass (KDa) of a non-polymer entity in the deposited structure entry.
    *
@@ -8971,7 +8430,7 @@ export type RcsbEntryInfo = {
    * null, null
    *
    */
-  readonly nonpolymer_molecular_weight_maximum?: Maybe<Scalars['Float']>;
+  readonly nonpolymer_molecular_weight_maximum?: Maybe<Scalars['Float']['output']>;
   /**
    * The minimum molecular mass (KDa) of a non-polymer entity in the deposited structure entry.
    *
@@ -8979,7 +8438,7 @@ export type RcsbEntryInfo = {
    * null, null
    *
    */
-  readonly nonpolymer_molecular_weight_minimum?: Maybe<Scalars['Float']>;
+  readonly nonpolymer_molecular_weight_minimum?: Maybe<Scalars['Float']['output']>;
   /**
    * Categories describing the polymer entity composition for the entry.
    *
@@ -8987,21 +8446,21 @@ export type RcsbEntryInfo = {
    * DNA, DNA/RNA, NA-hybrid, NA/oligosaccharide, RNA, heteromeric protein, homomeric protein, oligosaccharide, other, other type composition, other type pair, protein/NA, protein/NA/oligosaccharide, protein/oligosaccharide
    *
    */
-  readonly polymer_composition?: Maybe<Scalars['String']>;
+  readonly polymer_composition?: Maybe<Scalars['String']['output']>;
   /** The number of distinct polymer entities in the structure entry. */
-  readonly polymer_entity_count?: Maybe<Scalars['Int']>;
+  readonly polymer_entity_count?: Maybe<Scalars['Int']['output']>;
   /** The number of distinct DNA polymer entities. */
-  readonly polymer_entity_count_DNA?: Maybe<Scalars['Int']>;
+  readonly polymer_entity_count_DNA?: Maybe<Scalars['Int']['output']>;
   /** The number of distinct RNA polymer entities. */
-  readonly polymer_entity_count_RNA?: Maybe<Scalars['Int']>;
+  readonly polymer_entity_count_RNA?: Maybe<Scalars['Int']['output']>;
   /** The number of distinct nucleic acid polymer entities (DNA or RNA). */
-  readonly polymer_entity_count_nucleic_acid?: Maybe<Scalars['Int']>;
+  readonly polymer_entity_count_nucleic_acid?: Maybe<Scalars['Int']['output']>;
   /** The number of distinct hybrid nucleic acid polymer entities. */
-  readonly polymer_entity_count_nucleic_acid_hybrid?: Maybe<Scalars['Int']>;
+  readonly polymer_entity_count_nucleic_acid_hybrid?: Maybe<Scalars['Int']['output']>;
   /** The number of distinct protein polymer entities. */
-  readonly polymer_entity_count_protein?: Maybe<Scalars['Int']>;
+  readonly polymer_entity_count_protein?: Maybe<Scalars['Int']['output']>;
   /** The number of distinct taxonomies represented among the polymer entities in the entry. */
-  readonly polymer_entity_taxonomy_count?: Maybe<Scalars['Int']>;
+  readonly polymer_entity_taxonomy_count?: Maybe<Scalars['Int']['output']>;
   /**
    * The maximum molecular mass (KDa) of a polymer entity in the deposited structure entry.
    *
@@ -9009,7 +8468,7 @@ export type RcsbEntryInfo = {
    * null, null
    *
    */
-  readonly polymer_molecular_weight_maximum?: Maybe<Scalars['Float']>;
+  readonly polymer_molecular_weight_maximum?: Maybe<Scalars['Float']['output']>;
   /**
    * The minimum molecular mass (KDa) of a polymer entity in the deposited structure entry.
    *
@@ -9017,13 +8476,24 @@ export type RcsbEntryInfo = {
    * null, null
    *
    */
-  readonly polymer_molecular_weight_minimum?: Maybe<Scalars['Float']>;
+  readonly polymer_molecular_weight_minimum?: Maybe<Scalars['Float']['output']>;
   /** The maximum monomer count of a polymer entity per deposited structure model. */
-  readonly polymer_monomer_count_maximum?: Maybe<Scalars['Int']>;
+  readonly polymer_monomer_count_maximum?: Maybe<Scalars['Int']['output']>;
   /** The minimum monomer count of a polymer entity per deposited structure model. */
-  readonly polymer_monomer_count_minimum?: Maybe<Scalars['Int']>;
-  /** Combined estimates of experimental resolution contributing to the refined structural model. */
-  readonly resolution_combined?: Maybe<ReadonlyArray<Maybe<Scalars['Float']>>>;
+  readonly polymer_monomer_count_minimum?: Maybe<Scalars['Int']['output']>;
+  /**
+   * Combined estimates of experimental resolution contributing to the refined structural model.
+   *  Resolution reported in "refine.ls_d_res_high" is used for X-RAY DIFFRACTION, FIBER DIFFRACTION,
+   *  POWDER DIFFRACTION, ELECTRON CRYSTALLOGRAPHY, and NEUTRON DIFFRACTION as identified in
+   *  "refine.pdbx_refine_id".
+   *  Resolution reported in "em_3d_reconstruction.resolution" is used for ELECTRON MICROSCOPY.
+   *  The best value corresponding to "em_3d_reconstruction.resolution_method" == "FSC 0.143 CUT-OFF"
+   *  is used, if available. If not, the best "em_3d_reconstruction.resolution" value is used.
+   *  For structures that are not obtained from diffraction-based methods, the resolution values in
+   *  "refine.ls_d_res_high" are ignored.
+   *  Multiple values are reported only if multiple methods are used in the structure determination.
+   */
+  readonly resolution_combined?: Maybe<ReadonlyArray<Maybe<Scalars['Float']['output']>>>;
   /**
    * Selected polymer entity type categories describing the entry.
    *
@@ -9031,11 +8501,11 @@ export type RcsbEntryInfo = {
    * Nucleic acid (only), Oligosaccharide (only), Other, Protein (only), Protein/NA, Protein/Oligosaccharide
    *
    */
-  readonly selected_polymer_entity_types?: Maybe<Scalars['String']>;
+  readonly selected_polymer_entity_types?: Maybe<Scalars['String']['output']>;
   /** Combined list of software programs names reported in connection with the production of this entry. */
-  readonly software_programs_combined?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly software_programs_combined?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** The number of distinct solvent entities per deposited structure model. */
-  readonly solvent_entity_count?: Maybe<Scalars['Int']>;
+  readonly solvent_entity_count?: Maybe<Scalars['Int']['output']>;
   /**
    * Indicates if the structure was determined using experimental or computational methods.
    *
@@ -9043,14 +8513,14 @@ export type RcsbEntryInfo = {
    * computational, experimental
    *
    */
-  readonly structure_determination_methodology: Scalars['String'];
+  readonly structure_determination_methodology: Scalars['String']['output'];
   /**
    * Indicates the priority of the value in _rcsb_entry_info.structure_determination_methodology.
    *  The lower the number the higher the priority.
    *  Priority values for "experimental" structures is currently set to 10 and
    *  the values for "computational" structures is set to 100.
    */
-  readonly structure_determination_methodology_priority?: Maybe<Scalars['Int']>;
+  readonly structure_determination_methodology_priority?: Maybe<Scalars['Int']['output']>;
 };
 
 export type RcsbEntryInfoDiffrnResolutionHigh = {
@@ -9061,29 +8531,29 @@ export type RcsbEntryInfoDiffrnResolutionHigh = {
    * Depositor assigned, From refinement resolution cutoff, From the high resolution shell
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   /** The high resolution limit of data collection. */
-  readonly value?: Maybe<Scalars['Float']>;
+  readonly value?: Maybe<Scalars['Float']['output']>;
 };
 
 export type RcsbExternalReferences = {
   /** ID (accession) from external resource linked to this entry. */
-  readonly id: Scalars['String'];
+  readonly id: Scalars['String']['output'];
   /** Link to this entry in external resource. */
-  readonly link: Scalars['String'];
+  readonly link: Scalars['String']['output'];
   /**
    * Internal identifier for external resource.
    *
    * Allowable values:
-   * OLDERADO, BMRB, NDB, SB GRID, PROTEIN DIFFRACTION, EM DATA RESOURCE
+   * OLDERADO, BMRB, NDB, NAKB, SB GRID, PROTEIN DIFFRACTION, EM DATA RESOURCE
    *
    */
-  readonly type: Scalars['String'];
+  readonly type: Scalars['String']['output'];
 };
 
 export type RcsbGenomicLineage = {
   /** Classification hierarchy depth. */
-  readonly depth?: Maybe<Scalars['Int']>;
+  readonly depth?: Maybe<Scalars['Int']['output']>;
   /**
    * Automatically assigned ID that uniquely identifies taxonomy, chromosome or gene in the Genome Location Browser.
    *
@@ -9091,7 +8561,7 @@ export type RcsbGenomicLineage = {
    * 9606, 568815441, 414325
    *
    */
-  readonly id?: Maybe<Scalars['String']>;
+  readonly id?: Maybe<Scalars['String']['output']>;
   /**
    * A human-readable term name.
    *
@@ -9099,12 +8569,12 @@ export type RcsbGenomicLineage = {
    * Homo sapiens, 8, defensin beta 103A
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbGroupAccessionInfo = {
   /** Identifies the version of the groups solution */
-  readonly version: Scalars['Int'];
+  readonly version: Scalars['Int']['output'];
 };
 
 export type RcsbGroupAggregationMethod = {
@@ -9118,7 +8588,7 @@ export type RcsbGroupAggregationMethod = {
    * sequence_identity, matching_uniprot_accession, matching_deposit_group_id
    *
    */
-  readonly type: Scalars['String'];
+  readonly type: Scalars['String']['output'];
 };
 
 export type RcsbGroupAggregationMethodMethod = {
@@ -9131,7 +8601,7 @@ export type RcsbGroupAggregationMethodMethod = {
    * mmseqs2, matching_reference_identity
    *
    */
-  readonly name: Scalars['String'];
+  readonly name: Scalars['String']['output'];
   /**
    * The version of the software.
    *
@@ -9139,7 +8609,7 @@ export type RcsbGroupAggregationMethodMethod = {
    * v1.0, 3.1-2, unknown
    *
    */
-  readonly version?: Maybe<Scalars['String']>;
+  readonly version?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbGroupAggregationMethodSimilarityCriteria = {
@@ -9150,14 +8620,14 @@ export type RcsbGroupAggregationMethodSimilarityCriteria = {
    * rmsd, sequence_identity
    *
    */
-  readonly similarity_function?: Maybe<Scalars['String']>;
+  readonly similarity_function?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbGroupContainerIdentifiers = {
   /** A unique textual identifier for a group */
-  readonly group_id: Scalars['String'];
+  readonly group_id: Scalars['String']['output'];
   /** Member identifiers representing a group */
-  readonly group_member_ids: ReadonlyArray<Maybe<Scalars['String']>>;
+  readonly group_member_ids: ReadonlyArray<Maybe<Scalars['String']['output']>>;
   /**
    * A unique group provenance identifier
    *
@@ -9165,14 +8635,14 @@ export type RcsbGroupContainerIdentifiers = {
    * provenance_sequence_identity, provenance_matching_uniprot_accession, provenance_matching_deposit_group_id
    *
    */
-  readonly group_provenance_id: Scalars['String'];
+  readonly group_provenance_id: Scalars['String']['output'];
   /** Member identifiers representing a higher level in the groping hierarchy that has parent-child relationship */
-  readonly parent_member_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly parent_member_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
 };
 
 export type RcsbGroupInfo = {
-  readonly group_description?: Maybe<Scalars['String']>;
-  readonly group_members_count: Scalars['Int'];
+  readonly group_description?: Maybe<Scalars['String']['output']>;
+  readonly group_members_count: Scalars['Int']['output'];
   /**
    * Granularity of group members identifiers
    *
@@ -9180,8 +8650,8 @@ export type RcsbGroupInfo = {
    * assembly, entry, polymer_entity, polymer_entity_instance
    *
    */
-  readonly group_members_granularity: Scalars['String'];
-  readonly group_name?: Maybe<Scalars['String']>;
+  readonly group_members_granularity: Scalars['String']['output'];
+  readonly group_name?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbGroupProvenanceContainerIdentifiers = {
@@ -9192,7 +8662,7 @@ export type RcsbGroupProvenanceContainerIdentifiers = {
    * provenance_sequence_identity, provenance_matching_uniprot_accession, provenance_matching_deposit_group_id
    *
    */
-  readonly group_provenance_id: Scalars['String'];
+  readonly group_provenance_id: Scalars['String']['output'];
 };
 
 export type RcsbGroupRelated = {
@@ -9203,7 +8673,7 @@ export type RcsbGroupRelated = {
    * P69905
    *
    */
-  readonly resource_accession_code?: Maybe<Scalars['String']>;
+  readonly resource_accession_code?: Maybe<Scalars['String']['output']>;
   /**
    * Defines the type of the resource describing related references
    *
@@ -9211,23 +8681,23 @@ export type RcsbGroupRelated = {
    * UniProt
    *
    */
-  readonly resource_name?: Maybe<Scalars['String']>;
+  readonly resource_name?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbGroupStatistics = {
   /** The desired lower limit for the similarity between two members that belong to the same group */
-  readonly similarity_cutoff?: Maybe<Scalars['Float']>;
+  readonly similarity_cutoff?: Maybe<Scalars['Float']['output']>;
   /** Similarity score between two most similar group members */
-  readonly similarity_score_max?: Maybe<Scalars['Float']>;
+  readonly similarity_score_max?: Maybe<Scalars['Float']['output']>;
   /** Similarity score between two least similar group members */
-  readonly similarity_score_min?: Maybe<Scalars['Float']>;
+  readonly similarity_score_min?: Maybe<Scalars['Float']['output']>;
 };
 
 export type RcsbInterfaceContainerIdentifiers = {
   /** This item references an assembly in pdbx_struct_assembly */
-  readonly assembly_id: Scalars['String'];
+  readonly assembly_id: Scalars['String']['output'];
   /** Entry identifier for the container. */
-  readonly entry_id: Scalars['String'];
+  readonly entry_id: Scalars['String']['output'];
   /**
    * Identifier for NCS-equivalent interfaces within the assembly (same entity_ids on both sides)
    *
@@ -9235,7 +8705,7 @@ export type RcsbInterfaceContainerIdentifiers = {
    * 1, 2
    *
    */
-  readonly interface_entity_id?: Maybe<Scalars['String']>;
+  readonly interface_entity_id?: Maybe<Scalars['String']['output']>;
   /**
    * Identifier for the geometrically equivalent (same asym_ids on either side) interfaces within the assembly
    *
@@ -9243,7 +8713,7 @@ export type RcsbInterfaceContainerIdentifiers = {
    * 1, 2
    *
    */
-  readonly interface_id: Scalars['String'];
+  readonly interface_id: Scalars['String']['output'];
   /**
    * Unique identifier for the document
    *
@@ -9251,22 +8721,22 @@ export type RcsbInterfaceContainerIdentifiers = {
    * 2UZI-1.A.B?1
    *
    */
-  readonly rcsb_id: Scalars['String'];
+  readonly rcsb_id: Scalars['String']['output'];
 };
 
 export type RcsbInterfaceInfo = {
   /** Total interface buried surface area */
-  readonly interface_area?: Maybe<Scalars['Float']>;
+  readonly interface_area?: Maybe<Scalars['Float']['output']>;
   /** Allowable values: homo, hetero. */
-  readonly interface_character?: Maybe<Scalars['String']>;
+  readonly interface_character?: Maybe<Scalars['String']['output']>;
   /** Number of core interface residues, defined as those that bury >90% accessible surface area with respect to the unbound state */
-  readonly num_core_interface_residues?: Maybe<Scalars['Int']>;
+  readonly num_core_interface_residues?: Maybe<Scalars['Int']['output']>;
   /** Number of interface residues, defined as those with burial fraction > 0 */
-  readonly num_interface_residues?: Maybe<Scalars['Int']>;
+  readonly num_interface_residues?: Maybe<Scalars['Int']['output']>;
   /** Allowable values: Nucleic acid (only), Protein (only), Protein/NA. */
-  readonly polymer_composition?: Maybe<Scalars['String']>;
+  readonly polymer_composition?: Maybe<Scalars['String']['output']>;
   /** The Jaccard score (intersection over union) of interface contacts in homomeric interfaces, comparing contact sets left-right vs right-left. High values indicate isologous (symmetric) interfaces, with value=1 if perfectly symmetric (e.g. crystallographic symmetry) */
-  readonly self_jaccard_contact_score?: Maybe<Scalars['Float']>;
+  readonly self_jaccard_contact_score?: Maybe<Scalars['Float']['output']>;
 };
 
 export type RcsbInterfacePartner = {
@@ -9283,14 +8753,14 @@ export type RcsbInterfacePartnerInterfacePartnerFeature = {
    * V4_0_2
    *
    */
-  readonly assignment_version?: Maybe<Scalars['String']>;
+  readonly assignment_version?: Maybe<Scalars['String']['output']>;
   /** A description for the feature. */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /** An identifier for the feature. */
-  readonly feature_id?: Maybe<Scalars['String']>;
+  readonly feature_id?: Maybe<Scalars['String']['output']>;
   readonly feature_positions?: Maybe<ReadonlyArray<Maybe<InterfacePartnerFeatureFeaturePositions>>>;
   /** A name for the feature. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * Code identifying the individual, organization or program that assigned the feature.
    *
@@ -9298,7 +8768,7 @@ export type RcsbInterfacePartnerInterfacePartnerFeature = {
    * NACCESS
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   /**
    * A type or category of the feature.
    *
@@ -9306,28 +8776,28 @@ export type RcsbInterfacePartnerInterfacePartnerFeature = {
    * ASA_UNBOUND, ASA_BOUND
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbInterfacePartnerInterfacePartnerIdentifier = {
   /** Instance identifier for this container. */
-  readonly asym_id: Scalars['String'];
+  readonly asym_id: Scalars['String']['output'];
   /** Polymer entity identifier for the container. */
-  readonly entity_id: Scalars['String'];
+  readonly entity_id: Scalars['String']['output'];
 };
 
 export type RcsbLatestRevision = {
   /** The major version number of the latest revision. */
-  readonly major_revision?: Maybe<Scalars['Int']>;
+  readonly major_revision?: Maybe<Scalars['Int']['output']>;
   /** The minor version number of the latest revision. */
-  readonly minor_revision?: Maybe<Scalars['Int']>;
+  readonly minor_revision?: Maybe<Scalars['Int']['output']>;
   /** The release date of the latest revision item. */
-  readonly revision_date?: Maybe<Scalars['Date']>;
+  readonly revision_date?: Maybe<Scalars['Date']['output']>;
 };
 
 export type RcsbLigandNeighbors = {
   /** Alternate conformer identifier for the target instance. */
-  readonly alt_id?: Maybe<Scalars['String']>;
+  readonly alt_id?: Maybe<Scalars['String']['output']>;
   /**
    * The atom identifier for the target instance.
    *
@@ -9335,15 +8805,15 @@ export type RcsbLigandNeighbors = {
    * O1, N1, C1
    *
    */
-  readonly atom_id?: Maybe<Scalars['String']>;
+  readonly atom_id?: Maybe<Scalars['String']['output']>;
   /** The author residue index for the target instance. */
-  readonly auth_seq_id?: Maybe<Scalars['Int']>;
+  readonly auth_seq_id?: Maybe<Scalars['Int']['output']>;
   /** Component identifier for the target instance. */
-  readonly comp_id?: Maybe<Scalars['String']>;
+  readonly comp_id?: Maybe<Scalars['String']['output']>;
   /** Distance value for this ligand interaction. */
-  readonly distance?: Maybe<Scalars['Float']>;
+  readonly distance?: Maybe<Scalars['Float']['output']>;
   /** Alternate conformer identifier for the ligand interaction. */
-  readonly ligand_alt_id?: Maybe<Scalars['String']>;
+  readonly ligand_alt_id?: Maybe<Scalars['String']['output']>;
   /**
    * The entity instance identifier for the ligand interaction.
    *
@@ -9351,7 +8821,7 @@ export type RcsbLigandNeighbors = {
    * A, B
    *
    */
-  readonly ligand_asym_id?: Maybe<Scalars['String']>;
+  readonly ligand_asym_id?: Maybe<Scalars['String']['output']>;
   /**
    * The atom identifier for the ligand interaction.
    *
@@ -9359,7 +8829,7 @@ export type RcsbLigandNeighbors = {
    * OG, OE1, CD1
    *
    */
-  readonly ligand_atom_id?: Maybe<Scalars['String']>;
+  readonly ligand_atom_id?: Maybe<Scalars['String']['output']>;
   /**
    * The chemical component identifier for the ligand interaction.
    *
@@ -9367,7 +8837,7 @@ export type RcsbLigandNeighbors = {
    * ASN, TRP, SER
    *
    */
-  readonly ligand_comp_id?: Maybe<Scalars['String']>;
+  readonly ligand_comp_id?: Maybe<Scalars['String']['output']>;
   /**
    * The entity identifier for the ligand of interaction.
    *
@@ -9375,7 +8845,7 @@ export type RcsbLigandNeighbors = {
    * 1, 2
    *
    */
-  readonly ligand_entity_id?: Maybe<Scalars['String']>;
+  readonly ligand_entity_id?: Maybe<Scalars['String']['output']>;
   /**
    * A flag to indicate the nature of the ligand interaction is covalent or metal-coordination.
    *
@@ -9383,17 +8853,17 @@ export type RcsbLigandNeighbors = {
    * N, Y
    *
    */
-  readonly ligand_is_bound?: Maybe<Scalars['String']>;
+  readonly ligand_is_bound?: Maybe<Scalars['String']['output']>;
   /** Model identifier for the ligand interaction. */
-  readonly ligand_model_id?: Maybe<Scalars['Int']>;
+  readonly ligand_model_id?: Maybe<Scalars['Int']['output']>;
   /** The sequence position for the target instance. */
-  readonly seq_id?: Maybe<Scalars['Int']>;
+  readonly seq_id?: Maybe<Scalars['Int']['output']>;
 };
 
 export type RcsbMaQaMetricGlobal = {
   readonly ma_qa_metric_global?: Maybe<ReadonlyArray<Maybe<RcsbMaQaMetricGlobalMaQaMetricGlobal>>>;
   /** The model identifier. */
-  readonly model_id: Scalars['Int'];
+  readonly model_id: Scalars['Int']['output'];
 };
 
 export type RcsbMaQaMetricGlobalMaQaMetricGlobal = {
@@ -9404,7 +8874,7 @@ export type RcsbMaQaMetricGlobalMaQaMetricGlobal = {
    * confidence score predicting accuracy according to the CA-only Local Distance Difference Test (lDDT-CA) in [0,100]
    *
    */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /**
    * Name of the global QA metric.
    *
@@ -9412,7 +8882,7 @@ export type RcsbMaQaMetricGlobalMaQaMetricGlobal = {
    * pLDDT
    *
    */
-  readonly name: Scalars['String'];
+  readonly name: Scalars['String']['output'];
   /**
    * The type of global QA metric.
    *
@@ -9420,9 +8890,9 @@ export type RcsbMaQaMetricGlobalMaQaMetricGlobal = {
    * PAE, contact probability, distance, energy, ipTM, normalized score, other, pLDDT, pLDDT all-atom, pLDDT all-atom in [0,1], pLDDT in [0,1], pTM, zscore
    *
    */
-  readonly type: Scalars['String'];
+  readonly type: Scalars['String']['output'];
   /** Details for other type of global QA metric. */
-  readonly type_other_details?: Maybe<Scalars['String']>;
+  readonly type_other_details?: Maybe<Scalars['String']['output']>;
   /**
    * Value of the global QA metric.
    *
@@ -9430,12 +8900,12 @@ export type RcsbMaQaMetricGlobalMaQaMetricGlobal = {
    * null
    *
    */
-  readonly value: Scalars['Float'];
+  readonly value: Scalars['Float']['output'];
 };
 
 export type RcsbMembraneLineage = {
   /** Hierarchy depth. */
-  readonly depth?: Maybe<Scalars['Int']>;
+  readonly depth?: Maybe<Scalars['Int']['output']>;
   /**
    * Automatically assigned ID for membrane classification term in the Membrane Protein Browser.
    *
@@ -9443,25 +8913,25 @@ export type RcsbMembraneLineage = {
    * MONOTOPIC MEMBRANE PROTEINS.Oxidases.Monoamine Oxidase A
    *
    */
-  readonly id?: Maybe<Scalars['String']>;
+  readonly id?: Maybe<Scalars['String']['output']>;
   /** Membrane protein classification term. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbNonpolymerEntity = {
   /** A description of special aspects of the entity. */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /** Formula mass (KDa) of the entity. */
-  readonly formula_weight?: Maybe<Scalars['Float']>;
+  readonly formula_weight?: Maybe<Scalars['Float']['output']>;
   /** A description of the nonpolymer entity. */
-  readonly pdbx_description?: Maybe<Scalars['String']>;
+  readonly pdbx_description?: Maybe<Scalars['String']['output']>;
   /** The number of molecules of the nonpolymer entity in the entry. */
-  readonly pdbx_number_of_molecules?: Maybe<Scalars['Int']>;
+  readonly pdbx_number_of_molecules?: Maybe<Scalars['Int']['output']>;
 };
 
 export type RcsbNonpolymerEntityAnnotation = {
   /** An identifier for the annotation. */
-  readonly annotation_id?: Maybe<Scalars['String']>;
+  readonly annotation_id?: Maybe<Scalars['String']['output']>;
   readonly annotation_lineage?: Maybe<ReadonlyArray<Maybe<RcsbNonpolymerEntityAnnotationAnnotationLineage>>>;
   /**
    * Identifies the version of the annotation assignment.
@@ -9470,7 +8940,7 @@ export type RcsbNonpolymerEntityAnnotation = {
    * V4_0_2
    *
    */
-  readonly assignment_version?: Maybe<Scalars['String']>;
+  readonly assignment_version?: Maybe<Scalars['String']['output']>;
   /**
    * Non-polymer(ligand) chemical component identifier for the entity.
    *
@@ -9478,11 +8948,11 @@ export type RcsbNonpolymerEntityAnnotation = {
    * GTP, STN
    *
    */
-  readonly comp_id?: Maybe<Scalars['String']>;
+  readonly comp_id?: Maybe<Scalars['String']['output']>;
   /** A description for the annotation. */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /** A name for the annotation. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * Code identifying the individual, organization or program that
    *  assigned the annotation.
@@ -9491,7 +8961,7 @@ export type RcsbNonpolymerEntityAnnotation = {
    * PDB
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   /**
    * A type or category of the annotation.
    *
@@ -9499,23 +8969,23 @@ export type RcsbNonpolymerEntityAnnotation = {
    * SUBJECT_OF_INVESTIGATION
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbNonpolymerEntityAnnotationAnnotationLineage = {
   /** Members of the annotation lineage as parent lineage depth (1-N) */
-  readonly depth?: Maybe<Scalars['Int']>;
+  readonly depth?: Maybe<Scalars['Int']['output']>;
   /** Members of the annotation lineage as parent class identifiers. */
-  readonly id?: Maybe<Scalars['String']>;
+  readonly id?: Maybe<Scalars['String']['output']>;
   /** Members of the annotation lineage as parent class names. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbNonpolymerEntityContainerIdentifiers = {
   /** Instance identifiers corresponding to copies of the entity in this container. */
-  readonly asym_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly asym_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** Author instance identifiers corresponding to copies of the entity in this container. */
-  readonly auth_asym_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly auth_asym_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /**
    * The chemical reference definition identifier for the entity in this container.
    *
@@ -9523,7 +8993,7 @@ export type RcsbNonpolymerEntityContainerIdentifiers = {
    * PRD_000010
    *
    */
-  readonly chem_ref_def_id?: Maybe<Scalars['String']>;
+  readonly chem_ref_def_id?: Maybe<Scalars['String']['output']>;
   /**
    * Entity identifier for the container.
    *
@@ -9531,7 +9001,7 @@ export type RcsbNonpolymerEntityContainerIdentifiers = {
    * 1, 2
    *
    */
-  readonly entity_id: Scalars['String'];
+  readonly entity_id: Scalars['String']['output'];
   /**
    * Entry identifier for the container.
    *
@@ -9539,7 +9009,7 @@ export type RcsbNonpolymerEntityContainerIdentifiers = {
    * 4HHB, 1KIP
    *
    */
-  readonly entry_id: Scalars['String'];
+  readonly entry_id: Scalars['String']['output'];
   /**
    * Non-polymer(ligand) chemical component identifier for the entity in this container.
    *
@@ -9547,7 +9017,7 @@ export type RcsbNonpolymerEntityContainerIdentifiers = {
    * GTP, STN
    *
    */
-  readonly nonpolymer_comp_id?: Maybe<Scalars['String']>;
+  readonly nonpolymer_comp_id?: Maybe<Scalars['String']['output']>;
   /**
    * The BIRD identifier for the entity in this container.
    *
@@ -9555,7 +9025,7 @@ export type RcsbNonpolymerEntityContainerIdentifiers = {
    * PRD_000010
    *
    */
-  readonly prd_id?: Maybe<Scalars['String']>;
+  readonly prd_id?: Maybe<Scalars['String']['output']>;
   /**
    * A unique identifier for each object in this entity container formed by
    *  an underscore separated concatenation of entry and entity identifiers.
@@ -9564,7 +9034,7 @@ export type RcsbNonpolymerEntityContainerIdentifiers = {
    * 6EL3_1
    *
    */
-  readonly rcsb_id?: Maybe<Scalars['String']>;
+  readonly rcsb_id?: Maybe<Scalars['String']['output']>;
   /**
    * Source of the reference database assignment
    *
@@ -9572,9 +9042,9 @@ export type RcsbNonpolymerEntityContainerIdentifiers = {
    * PDB, RCSB
    *
    */
-  readonly reference_chemical_identifiers_provenance_source?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly reference_chemical_identifiers_provenance_source?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** Reference resource accession code */
-  readonly reference_chemical_identifiers_resource_accession?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly reference_chemical_identifiers_resource_accession?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /**
    * Reference resource name
    *
@@ -9582,7 +9052,7 @@ export type RcsbNonpolymerEntityContainerIdentifiers = {
    * ChEBI, ChEMBL, DrugBank, PubChem
    *
    */
-  readonly reference_chemical_identifiers_resource_name?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly reference_chemical_identifiers_resource_name?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
 };
 
 export type RcsbNonpolymerEntityFeature = {
@@ -9594,7 +9064,7 @@ export type RcsbNonpolymerEntityFeature = {
    * V4_0_2
    *
    */
-  readonly assignment_version?: Maybe<Scalars['String']>;
+  readonly assignment_version?: Maybe<Scalars['String']['output']>;
   /**
    * Non-polymer(ligand) chemical component identifier for the entity.
    *
@@ -9602,13 +9072,13 @@ export type RcsbNonpolymerEntityFeature = {
    * GTP, STN
    *
    */
-  readonly comp_id?: Maybe<Scalars['String']>;
+  readonly comp_id?: Maybe<Scalars['String']['output']>;
   /** A description for the feature. */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /** An identifier for the feature. */
-  readonly feature_id?: Maybe<Scalars['String']>;
+  readonly feature_id?: Maybe<Scalars['String']['output']>;
   /** A name for the feature. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * Code identifying the individual, organization or program that
    *  assigned the feature.
@@ -9617,7 +9087,7 @@ export type RcsbNonpolymerEntityFeature = {
    * PDB
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   /**
    * A type or category of the feature.
    *
@@ -9625,16 +9095,16 @@ export type RcsbNonpolymerEntityFeature = {
    * SUBJECT_OF_INVESTIGATION
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
   /** The feature value. */
-  readonly value?: Maybe<Scalars['Float']>;
+  readonly value?: Maybe<Scalars['Float']['output']>;
 };
 
 export type RcsbNonpolymerEntityFeatureAdditionalProperties = {
   /** The additional property name. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /** The value(s) of the additional property. */
-  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['ObjectScalar']>>>;
+  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['ObjectScalar']['output']>>>;
 };
 
 export type RcsbNonpolymerEntityFeatureSummary = {
@@ -9645,11 +9115,11 @@ export type RcsbNonpolymerEntityFeatureSummary = {
    * GTP, STN
    *
    */
-  readonly comp_id?: Maybe<Scalars['String']>;
+  readonly comp_id?: Maybe<Scalars['String']['output']>;
   /** The feature count. */
-  readonly count?: Maybe<Scalars['Int']>;
+  readonly count?: Maybe<Scalars['Int']['output']>;
   /** The maximum feature length. */
-  readonly maximum_length?: Maybe<Scalars['Int']>;
+  readonly maximum_length?: Maybe<Scalars['Int']['output']>;
   /**
    * The maximum feature value.
    *
@@ -9657,9 +9127,9 @@ export type RcsbNonpolymerEntityFeatureSummary = {
    * null, null
    *
    */
-  readonly maximum_value?: Maybe<Scalars['Float']>;
+  readonly maximum_value?: Maybe<Scalars['Float']['output']>;
   /** The minimum feature length. */
-  readonly minimum_length?: Maybe<Scalars['Int']>;
+  readonly minimum_length?: Maybe<Scalars['Int']['output']>;
   /**
    * The minimum feature value.
    *
@@ -9667,7 +9137,7 @@ export type RcsbNonpolymerEntityFeatureSummary = {
    * null, null
    *
    */
-  readonly minimum_value?: Maybe<Scalars['Float']>;
+  readonly minimum_value?: Maybe<Scalars['Float']['output']>;
   /**
    * Type or category of the feature.
    *
@@ -9675,22 +9145,22 @@ export type RcsbNonpolymerEntityFeatureSummary = {
    * SUBJECT_OF_INVESTIGATION
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbNonpolymerEntityInstanceContainerIdentifiers = {
   /** Instance identifier for this container. */
-  readonly asym_id: Scalars['String'];
+  readonly asym_id: Scalars['String']['output'];
   /** Author instance identifier for this container. */
-  readonly auth_asym_id?: Maybe<Scalars['String']>;
+  readonly auth_asym_id?: Maybe<Scalars['String']['output']>;
   /** Residue number for non-polymer entity instance. */
-  readonly auth_seq_id?: Maybe<Scalars['String']>;
+  readonly auth_seq_id?: Maybe<Scalars['String']['output']>;
   /** Component identifier for non-polymer entity instance. */
-  readonly comp_id?: Maybe<Scalars['String']>;
+  readonly comp_id?: Maybe<Scalars['String']['output']>;
   /** Entity identifier for the container. */
-  readonly entity_id?: Maybe<Scalars['String']>;
+  readonly entity_id?: Maybe<Scalars['String']['output']>;
   /** Entry identifier for the container. */
-  readonly entry_id: Scalars['String'];
+  readonly entry_id: Scalars['String']['output'];
   /**
    * A unique identifier for each object in this entity instance container formed by
    *  an 'dot' (.) separated concatenation of entry and entity instance identifiers.
@@ -9699,22 +9169,22 @@ export type RcsbNonpolymerEntityInstanceContainerIdentifiers = {
    * 1KIP.A
    *
    */
-  readonly rcsb_id?: Maybe<Scalars['String']>;
+  readonly rcsb_id?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbNonpolymerEntityKeywords = {
   /** Keywords describing this non-polymer entity. */
-  readonly text?: Maybe<Scalars['String']>;
+  readonly text?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbNonpolymerEntityNameCom = {
   /** A common name for the nonpolymer entity. */
-  readonly name: Scalars['String'];
+  readonly name: Scalars['String']['output'];
 };
 
 export type RcsbNonpolymerInstanceAnnotation = {
   /** An identifier for the annotation. */
-  readonly annotation_id?: Maybe<Scalars['String']>;
+  readonly annotation_id?: Maybe<Scalars['String']['output']>;
   readonly annotation_lineage?: Maybe<ReadonlyArray<Maybe<RcsbNonpolymerInstanceAnnotationAnnotationLineage>>>;
   /**
    * Identifies the version of the annotation assignment.
@@ -9723,7 +9193,7 @@ export type RcsbNonpolymerInstanceAnnotation = {
    * V4_0_2
    *
    */
-  readonly assignment_version?: Maybe<Scalars['String']>;
+  readonly assignment_version?: Maybe<Scalars['String']['output']>;
   /**
    * Chemical component identifier.
    *
@@ -9731,13 +9201,13 @@ export type RcsbNonpolymerInstanceAnnotation = {
    * ATP
    *
    */
-  readonly comp_id?: Maybe<Scalars['String']>;
+  readonly comp_id?: Maybe<Scalars['String']['output']>;
   /** A description for the annotation. */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /** A name for the annotation. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /** Ordinal identifier for this category */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
   /**
    * Code identifying the individual, organization or program that
    *  assigned the annotation.
@@ -9746,7 +9216,7 @@ export type RcsbNonpolymerInstanceAnnotation = {
    * PDB
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   /**
    * A type or category of the annotation.
    *
@@ -9754,16 +9224,16 @@ export type RcsbNonpolymerInstanceAnnotation = {
    * HAS_COVALENT_LINKAGE, HAS_METAL_COORDINATION_LINKAGE
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbNonpolymerInstanceAnnotationAnnotationLineage = {
   /** Members of the annotation lineage as parent lineage depth (1-N) */
-  readonly depth?: Maybe<Scalars['Int']>;
+  readonly depth?: Maybe<Scalars['Int']['output']>;
   /** Members of the annotation lineage as parent class identifiers. */
-  readonly id?: Maybe<Scalars['String']>;
+  readonly id?: Maybe<Scalars['String']['output']>;
   /** Members of the annotation lineage as parent class names. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbNonpolymerInstanceFeature = {
@@ -9775,18 +9245,18 @@ export type RcsbNonpolymerInstanceFeature = {
    * V4_0_2
    *
    */
-  readonly assignment_version?: Maybe<Scalars['String']>;
+  readonly assignment_version?: Maybe<Scalars['String']['output']>;
   /** Component identifier for non-polymer entity instance. */
-  readonly comp_id?: Maybe<Scalars['String']>;
+  readonly comp_id?: Maybe<Scalars['String']['output']>;
   /** A description for the feature. */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /** An identifier for the feature. */
-  readonly feature_id?: Maybe<Scalars['String']>;
+  readonly feature_id?: Maybe<Scalars['String']['output']>;
   readonly feature_value?: Maybe<ReadonlyArray<Maybe<RcsbNonpolymerInstanceFeatureFeatureValue>>>;
   /** A name for the feature. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /** Ordinal identifier for this category */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
   /**
    * Code identifying the individual, organization or program that
    *  assigned the feature.
@@ -9795,7 +9265,7 @@ export type RcsbNonpolymerInstanceFeature = {
    * PDB
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   /**
    * A type or category of the feature.
    *
@@ -9803,7 +9273,7 @@ export type RcsbNonpolymerInstanceFeature = {
    * HAS_COVALENT_LINKAGE, HAS_METAL_COORDINATION_LINKAGE, MOGUL_ANGLE_OUTLIER, MOGUL_BOND_OUTLIER, RSCC_OUTLIER, RSRZ_OUTLIER, STEREO_OUTLIER
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbNonpolymerInstanceFeatureAdditionalProperties = {
@@ -9814,9 +9284,9 @@ export type RcsbNonpolymerInstanceFeatureAdditionalProperties = {
    * bond_distance, bond_angle
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /** The value(s) of the additional property. */
-  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['ObjectScalar']>>>;
+  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['ObjectScalar']['output']>>>;
 };
 
 export type RcsbNonpolymerInstanceFeatureFeatureValue = {
@@ -9827,7 +9297,7 @@ export type RcsbNonpolymerInstanceFeatureFeatureValue = {
    * ATP,, STN
    *
    */
-  readonly comp_id?: Maybe<Scalars['String']>;
+  readonly comp_id?: Maybe<Scalars['String']['output']>;
   /**
    * Specific details about the feature.
    *
@@ -9835,7 +9305,7 @@ export type RcsbNonpolymerInstanceFeatureFeatureValue = {
    * C1,C2, C1,C2,C3
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * The reference value of the feature.
    *
@@ -9843,7 +9313,7 @@ export type RcsbNonpolymerInstanceFeatureFeatureValue = {
    * null, null
    *
    */
-  readonly reference?: Maybe<Scalars['Float']>;
+  readonly reference?: Maybe<Scalars['Float']['output']>;
   /**
    * The reported value of the feature.
    *
@@ -9851,7 +9321,7 @@ export type RcsbNonpolymerInstanceFeatureFeatureValue = {
    * null, null
    *
    */
-  readonly reported?: Maybe<Scalars['Float']>;
+  readonly reported?: Maybe<Scalars['Float']['output']>;
   /**
    * The estimated uncertainty of the reported feature value.
    *
@@ -9859,7 +9329,7 @@ export type RcsbNonpolymerInstanceFeatureFeatureValue = {
    * null, null
    *
    */
-  readonly uncertainty_estimate?: Maybe<Scalars['Float']>;
+  readonly uncertainty_estimate?: Maybe<Scalars['Float']['output']>;
   /**
    * The type of estimated uncertainty for the reported feature value.
    *
@@ -9867,16 +9337,16 @@ export type RcsbNonpolymerInstanceFeatureFeatureValue = {
    * Z-Score
    *
    */
-  readonly uncertainty_estimate_type?: Maybe<Scalars['String']>;
+  readonly uncertainty_estimate_type?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbNonpolymerInstanceFeatureSummary = {
   /** Component identifier for non-polymer entity instance. */
-  readonly comp_id?: Maybe<Scalars['String']>;
+  readonly comp_id?: Maybe<Scalars['String']['output']>;
   /** The feature count. */
-  readonly count?: Maybe<Scalars['Int']>;
+  readonly count?: Maybe<Scalars['Int']['output']>;
   /** The maximum feature length. */
-  readonly maximum_length?: Maybe<Scalars['Int']>;
+  readonly maximum_length?: Maybe<Scalars['Int']['output']>;
   /**
    * The maximum feature value.
    *
@@ -9884,9 +9354,9 @@ export type RcsbNonpolymerInstanceFeatureSummary = {
    * null, null
    *
    */
-  readonly maximum_value?: Maybe<Scalars['Float']>;
+  readonly maximum_value?: Maybe<Scalars['Float']['output']>;
   /** The minimum feature length. */
-  readonly minimum_length?: Maybe<Scalars['Int']>;
+  readonly minimum_length?: Maybe<Scalars['Int']['output']>;
   /**
    * The minimum feature value.
    *
@@ -9894,7 +9364,7 @@ export type RcsbNonpolymerInstanceFeatureSummary = {
    * null, null
    *
    */
-  readonly minimum_value?: Maybe<Scalars['Float']>;
+  readonly minimum_value?: Maybe<Scalars['Float']['output']>;
   /**
    * Type or category of the feature.
    *
@@ -9902,7 +9372,7 @@ export type RcsbNonpolymerInstanceFeatureSummary = {
    * HAS_COVALENT_LINKAGE, HAS_METAL_COORDINATION_LINKAGE, MOGUL_ANGLE_OUTLIER, MOGUL_BOND_OUTLIER, RSCC_OUTLIER, RSRZ_OUTLIER, STEREO_OUTLIER
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbNonpolymerInstanceValidationScore = {
@@ -9913,7 +9383,7 @@ export type RcsbNonpolymerInstanceValidationScore = {
    * null, null
    *
    */
-  readonly RSCC?: Maybe<Scalars['Float']>;
+  readonly RSCC?: Maybe<Scalars['Float']['output']>;
   /**
    * The real space R-value (RSR) for the non-polymer entity instance.
    *
@@ -9921,9 +9391,9 @@ export type RcsbNonpolymerInstanceValidationScore = {
    * null, null
    *
    */
-  readonly RSR?: Maybe<Scalars['Float']>;
+  readonly RSR?: Maybe<Scalars['Float']['output']>;
   /** Alternate conformer identifier for the non-polymer entity instance. */
-  readonly alt_id?: Maybe<Scalars['String']>;
+  readonly alt_id?: Maybe<Scalars['String']['output']>;
   /**
    * The average heavy atom occupancy for coordinate records for the non-polymer entity instance.
    *
@@ -9931,7 +9401,7 @@ export type RcsbNonpolymerInstanceValidationScore = {
    * null, null
    *
    */
-  readonly average_occupancy?: Maybe<Scalars['Float']>;
+  readonly average_occupancy?: Maybe<Scalars['Float']['output']>;
   /**
    * The reported fraction of atomic coordinate records for the non-polymer entity instance.
    *
@@ -9939,9 +9409,9 @@ export type RcsbNonpolymerInstanceValidationScore = {
    * null, null
    *
    */
-  readonly completeness?: Maybe<Scalars['Float']>;
+  readonly completeness?: Maybe<Scalars['Float']['output']>;
   /** The number of intermolecular MolProbity clashes cacluated for reported atomic coordinate records. */
-  readonly intermolecular_clashes?: Maybe<Scalars['Int']>;
+  readonly intermolecular_clashes?: Maybe<Scalars['Int']['output']>;
   /**
    * This molecular instance is ranked as the best quality instance of this nonpolymer entity.
    *
@@ -9949,7 +9419,7 @@ export type RcsbNonpolymerInstanceValidationScore = {
    * N, Y
    *
    */
-  readonly is_best_instance?: Maybe<Scalars['String']>;
+  readonly is_best_instance?: Maybe<Scalars['String']['output']>;
   /**
    * This molecular entity is identified as the subject of the current study.
    *
@@ -9957,7 +9427,7 @@ export type RcsbNonpolymerInstanceValidationScore = {
    * N, Y
    *
    */
-  readonly is_subject_of_investigation?: Maybe<Scalars['String']>;
+  readonly is_subject_of_investigation?: Maybe<Scalars['String']['output']>;
   /**
    * The provenance for the selection of the molecular entity identified as the subject of the current study.
    *
@@ -9965,13 +9435,13 @@ export type RcsbNonpolymerInstanceValidationScore = {
    * Author, RCSB
    *
    */
-  readonly is_subject_of_investigation_provenance?: Maybe<Scalars['String']>;
+  readonly is_subject_of_investigation_provenance?: Maybe<Scalars['String']['output']>;
   /**
    * Number of bond angle outliers obtained from a CCDC Mogul survey of bond angles  in the CSD small
    *    molecule crystal structure database. Outliers are defined as bond angles that have a Z-score
    *    less than -2 or greater than 2.
    */
-  readonly mogul_angle_outliers?: Maybe<Scalars['Int']>;
+  readonly mogul_angle_outliers?: Maybe<Scalars['Int']['output']>;
   /**
    * The root-mean-square value of the Z-scores of bond angles for the residue in degrees
    * obtained from a CCDC Mogul survey of bond angles in the CSD small molecule crystal structure database.
@@ -9980,13 +9450,13 @@ export type RcsbNonpolymerInstanceValidationScore = {
    * null, null
    *
    */
-  readonly mogul_angles_RMSZ?: Maybe<Scalars['Float']>;
+  readonly mogul_angles_RMSZ?: Maybe<Scalars['Float']['output']>;
   /**
    * Number of bond distance outliers obtained from a CCDC Mogul survey of bond lengths in the CSD small
    *    molecule crystal structure database.  Outliers are defined as bond distances that have a Z-score
    *    less than -2 or greater than 2.
    */
-  readonly mogul_bond_outliers?: Maybe<Scalars['Int']>;
+  readonly mogul_bond_outliers?: Maybe<Scalars['Int']['output']>;
   /**
    * The root-mean-square value of the Z-scores of bond lengths for the residue in Angstroms
    * obtained from a CCDC Mogul survey of bond lengths in the CSD small molecule crystal structure database.
@@ -9995,7 +9465,7 @@ export type RcsbNonpolymerInstanceValidationScore = {
    * null, null
    *
    */
-  readonly mogul_bonds_RMSZ?: Maybe<Scalars['Float']>;
+  readonly mogul_bonds_RMSZ?: Maybe<Scalars['Float']['output']>;
   /**
    * The ranking of the model fit score component.
    *
@@ -10003,7 +9473,7 @@ export type RcsbNonpolymerInstanceValidationScore = {
    * null, null
    *
    */
-  readonly ranking_model_fit?: Maybe<Scalars['Float']>;
+  readonly ranking_model_fit?: Maybe<Scalars['Float']['output']>;
   /**
    * The ranking of the model geometry score component.
    *
@@ -10011,7 +9481,7 @@ export type RcsbNonpolymerInstanceValidationScore = {
    * null, null
    *
    */
-  readonly ranking_model_geometry?: Maybe<Scalars['Float']>;
+  readonly ranking_model_geometry?: Maybe<Scalars['Float']['output']>;
   /**
    * The value of the model fit score component.
    *
@@ -10019,7 +9489,7 @@ export type RcsbNonpolymerInstanceValidationScore = {
    * null, null
    *
    */
-  readonly score_model_fit?: Maybe<Scalars['Float']>;
+  readonly score_model_fit?: Maybe<Scalars['Float']['output']>;
   /**
    * The value of the model geometry score component.
    *
@@ -10027,9 +9497,9 @@ export type RcsbNonpolymerInstanceValidationScore = {
    * null, null
    *
    */
-  readonly score_model_geometry?: Maybe<Scalars['Float']>;
+  readonly score_model_geometry?: Maybe<Scalars['Float']['output']>;
   /** Number of stereochemical/chirality errors. */
-  readonly stereo_outliers?: Maybe<Scalars['Int']>;
+  readonly stereo_outliers?: Maybe<Scalars['Int']['output']>;
   /**
    * Score type.
    *
@@ -10037,7 +9507,7 @@ export type RcsbNonpolymerInstanceValidationScore = {
    * RCSB_LIGAND_QUALITY_SCORE_2021
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbNonpolymerStructConn = {
@@ -10050,7 +9520,7 @@ export type RcsbNonpolymerStructConn = {
    * covalent bond, disulfide bridge, hydrogen bond, ionic interaction, metal coordination, mismatched base pairs
    *
    */
-  readonly connect_type?: Maybe<Scalars['String']>;
+  readonly connect_type?: Maybe<Scalars['String']['output']>;
   /**
    * A description of special details of the connection.
    *
@@ -10058,21 +9528,21 @@ export type RcsbNonpolymerStructConn = {
    * Watson-Crick base pair
    *
    */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /** Distance value for this contact. */
-  readonly dist_value?: Maybe<Scalars['Float']>;
+  readonly dist_value?: Maybe<Scalars['Float']['output']>;
   /**
    * The value of _rcsb_nonpolymer_struct_conn.id is an identifier for connection.
    *
    *  Note that this item need not be a number; it can be any unique
    *  identifier.
    */
-  readonly id?: Maybe<Scalars['String']>;
+  readonly id?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _rcsb_nonpolymer_struct_conn.id must uniquely identify a record in
    *  the rcsb_nonpolymer_struct_conn list.
    */
-  readonly ordinal_id: Scalars['Int'];
+  readonly ordinal_id: Scalars['Int']['output'];
   /**
    * The chemical or structural role of the interaction
    *
@@ -10080,7 +9550,7 @@ export type RcsbNonpolymerStructConn = {
    * C-Mannosylation, N-Glycosylation, O-Glycosylation, S-Glycosylation
    *
    */
-  readonly role?: Maybe<Scalars['String']>;
+  readonly role?: Maybe<Scalars['String']['output']>;
   /**
    * The chemical bond order associated with the specified atoms in
    *  this contact.
@@ -10089,7 +9559,7 @@ export type RcsbNonpolymerStructConn = {
    * doub, quad, sing, trip
    *
    */
-  readonly value_order?: Maybe<Scalars['String']>;
+  readonly value_order?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbNonpolymerStructConnConnectPartner = {
@@ -10100,7 +9570,7 @@ export type RcsbNonpolymerStructConnConnectPartner = {
    *  This data item is a pointer to _atom_site.label_alt_id in the
    *  ATOM_SITE category.
    */
-  readonly label_alt_id?: Maybe<Scalars['String']>;
+  readonly label_alt_id?: Maybe<Scalars['String']['output']>;
   /**
    * A component of the identifier for the partner in the structure
    *  connection.
@@ -10108,7 +9578,7 @@ export type RcsbNonpolymerStructConnConnectPartner = {
    *  This data item is a pointer to _atom_site.label_asym_id in the
    *  ATOM_SITE category.
    */
-  readonly label_asym_id: Scalars['String'];
+  readonly label_asym_id: Scalars['String']['output'];
   /**
    * A component of the identifier for the partner in the structure
    *  connection.
@@ -10116,7 +9586,7 @@ export type RcsbNonpolymerStructConnConnectPartner = {
    *  This data item is a pointer to _chem_comp_atom.atom_id in the
    *  CHEM_COMP_ATOM category.
    */
-  readonly label_atom_id?: Maybe<Scalars['String']>;
+  readonly label_atom_id?: Maybe<Scalars['String']['output']>;
   /**
    * A component of the identifier for the partner in the structure
    *  connection.
@@ -10124,7 +9594,7 @@ export type RcsbNonpolymerStructConnConnectPartner = {
    *  This data item is a pointer to _atom_site.label_comp_id in the
    *  ATOM_SITE category.
    */
-  readonly label_comp_id: Scalars['String'];
+  readonly label_comp_id: Scalars['String']['output'];
   /**
    * A component of the identifier for the partner in the structure
    *  connection.
@@ -10132,7 +9602,7 @@ export type RcsbNonpolymerStructConnConnectPartner = {
    *  This data item is a pointer to _atom_site.label_seq_id in the
    *  ATOM_SITE category.
    */
-  readonly label_seq_id?: Maybe<Scalars['Int']>;
+  readonly label_seq_id?: Maybe<Scalars['Int']['output']>;
   /**
    * Describes the symmetry operation that should be applied to the
    *  atom set specified by _rcsb_nonpolymer_struct_conn.connect_partner_label* to generate the
@@ -10142,7 +9612,7 @@ export type RcsbNonpolymerStructConnConnectPartner = {
    * 1_555, 7_645
    *
    */
-  readonly symmetry?: Maybe<Scalars['String']>;
+  readonly symmetry?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbNonpolymerStructConnConnectTarget = {
@@ -10153,7 +9623,7 @@ export type RcsbNonpolymerStructConnConnectTarget = {
    *  This data item is a pointer to _atom_site.auth_asym_id in the
    *  ATOM_SITE category.
    */
-  readonly auth_asym_id?: Maybe<Scalars['String']>;
+  readonly auth_asym_id?: Maybe<Scalars['String']['output']>;
   /**
    * A component of the identifier for the target of the structure
    *  connection.
@@ -10161,7 +9631,7 @@ export type RcsbNonpolymerStructConnConnectTarget = {
    *  This data item is a pointer to _atom_site.auth_seq_id in the
    *  ATOM_SITE category.
    */
-  readonly auth_seq_id?: Maybe<Scalars['String']>;
+  readonly auth_seq_id?: Maybe<Scalars['String']['output']>;
   /**
    * A component of the identifier for the target of the structure
    *  connection.
@@ -10169,7 +9639,7 @@ export type RcsbNonpolymerStructConnConnectTarget = {
    *  This data item is a pointer to _atom_site.label_alt_id in the
    *  ATOM_SITE category.
    */
-  readonly label_alt_id?: Maybe<Scalars['String']>;
+  readonly label_alt_id?: Maybe<Scalars['String']['output']>;
   /**
    * A component of the identifier for the target of the structure
    *  connection.
@@ -10177,7 +9647,7 @@ export type RcsbNonpolymerStructConnConnectTarget = {
    *  This data item is a pointer to _atom_site.label_asym_id in the
    *  ATOM_SITE category.
    */
-  readonly label_asym_id: Scalars['String'];
+  readonly label_asym_id: Scalars['String']['output'];
   /**
    * A component of the identifier for the target of the structure
    *  connection.
@@ -10185,7 +9655,7 @@ export type RcsbNonpolymerStructConnConnectTarget = {
    *  This data item is a pointer to _atom_site.label_atom_id in the
    *  ATOM_SITE category.
    */
-  readonly label_atom_id?: Maybe<Scalars['String']>;
+  readonly label_atom_id?: Maybe<Scalars['String']['output']>;
   /**
    * A component of the identifier for the target of the structure
    *  connection.
@@ -10193,7 +9663,7 @@ export type RcsbNonpolymerStructConnConnectTarget = {
    *  This data item is a pointer to _atom_site.label_comp_id in the
    *  ATOM_SITE category.
    */
-  readonly label_comp_id: Scalars['String'];
+  readonly label_comp_id: Scalars['String']['output'];
   /**
    * A component of the identifier for the target of the structure
    *  connection.
@@ -10201,7 +9671,7 @@ export type RcsbNonpolymerStructConnConnectTarget = {
    *  This data item is a pointer to _atom_site.connect_target_label_seq_id in the
    *  ATOM_SITE category.
    */
-  readonly label_seq_id?: Maybe<Scalars['Int']>;
+  readonly label_seq_id?: Maybe<Scalars['Int']['output']>;
   /**
    * Describes the symmetry operation that should be applied to the
    *  atom set specified by _rcsb_nonpolymer_struct_conn.label* to generate the
@@ -10211,17 +9681,17 @@ export type RcsbNonpolymerStructConnConnectTarget = {
    * 1_555, 7_645
    *
    */
-  readonly symmetry?: Maybe<Scalars['String']>;
+  readonly symmetry?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbPfamContainerIdentifiers = {
   /** Accession number of Pfam entry. */
-  readonly pfam_id?: Maybe<Scalars['String']>;
+  readonly pfam_id?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbPolymerEntity = {
   /** A description of special aspects of the entity. */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * Formula mass (KDa) of the entity.
    *
@@ -10229,7 +9699,7 @@ export type RcsbPolymerEntity = {
    * null, null
    *
    */
-  readonly formula_weight?: Maybe<Scalars['Float']>;
+  readonly formula_weight?: Maybe<Scalars['Float']['output']>;
   /**
    * A description of the polymer entity.
    *
@@ -10237,7 +9707,7 @@ export type RcsbPolymerEntity = {
    * Green fluorescent protein, 23S ribosomal RNA, NAD-dependent protein deacylase sirtuin-5, mitochondrial
    *
    */
-  readonly pdbx_description?: Maybe<Scalars['String']>;
+  readonly pdbx_description?: Maybe<Scalars['String']['output']>;
   /**
    * Enzyme Commission (EC) number(s)
    *
@@ -10245,7 +9715,7 @@ export type RcsbPolymerEntity = {
    * 2.7.7.7
    *
    */
-  readonly pdbx_ec?: Maybe<Scalars['String']>;
+  readonly pdbx_ec?: Maybe<Scalars['String']['output']>;
   /**
    * Polymer entity fragment description(s).
    *
@@ -10253,7 +9723,7 @@ export type RcsbPolymerEntity = {
    * KLENOW FRAGMENT, REPLICASE OPERATOR HAIRPIN, C-TERMINAL DOMAIN
    *
    */
-  readonly pdbx_fragment?: Maybe<Scalars['String']>;
+  readonly pdbx_fragment?: Maybe<Scalars['String']['output']>;
   /**
    * Details about any polymer entity mutation(s).
    *
@@ -10261,9 +9731,9 @@ export type RcsbPolymerEntity = {
    * Y31H, DEL(298-323)
    *
    */
-  readonly pdbx_mutation?: Maybe<Scalars['String']>;
+  readonly pdbx_mutation?: Maybe<Scalars['String']['output']>;
   /** The number of molecules of the entity in the entry. */
-  readonly pdbx_number_of_molecules?: Maybe<Scalars['Int']>;
+  readonly pdbx_number_of_molecules?: Maybe<Scalars['Int']['output']>;
   readonly rcsb_ec_lineage?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityRcsbEcLineage>>>;
   readonly rcsb_enzyme_class_combined?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityRcsbEnzymeClassCombined>>>;
   readonly rcsb_macromolecular_names_combined?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityRcsbMacromolecularNamesCombined>>>;
@@ -10274,15 +9744,15 @@ export type RcsbPolymerEntity = {
    * N, Y
    *
    */
-  readonly rcsb_multiple_source_flag?: Maybe<Scalars['String']>;
+  readonly rcsb_multiple_source_flag?: Maybe<Scalars['String']['output']>;
   readonly rcsb_polymer_name_combined?: Maybe<RcsbPolymerEntityRcsbPolymerNameCombined>;
   /**
    * The number of biological sources for the polymer entity. Multiple source contributions
    *  may come from the same organism (taxonomy).
    */
-  readonly rcsb_source_part_count?: Maybe<Scalars['Int']>;
+  readonly rcsb_source_part_count?: Maybe<Scalars['Int']['output']>;
   /** The number of distinct source taxonomies for the polymer entity. Commonly used to identify chimeric polymers. */
-  readonly rcsb_source_taxonomy_count?: Maybe<Scalars['Int']>;
+  readonly rcsb_source_taxonomy_count?: Maybe<Scalars['Int']['output']>;
   /**
    * The method by which the sample for the polymer entity was produced.
    *  Entities isolated directly from natural sources (tissues, soil
@@ -10295,7 +9765,7 @@ export type RcsbPolymerEntity = {
    * man, nat, syn
    *
    */
-  readonly src_method?: Maybe<Scalars['String']>;
+  readonly src_method?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbPolymerEntityAlign = {
@@ -10308,7 +9778,7 @@ export type RcsbPolymerEntityAlign = {
    * PDB, SIFTS, RCSB
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   /**
    * Reference sequence accession code.
    *
@@ -10316,7 +9786,7 @@ export type RcsbPolymerEntityAlign = {
    * Q9HD40
    *
    */
-  readonly reference_database_accession?: Maybe<Scalars['String']>;
+  readonly reference_database_accession?: Maybe<Scalars['String']['output']>;
   /**
    * Reference sequence isoform identifier.
    *
@@ -10324,7 +9794,7 @@ export type RcsbPolymerEntityAlign = {
    * P01116-2
    *
    */
-  readonly reference_database_isoform?: Maybe<Scalars['String']>;
+  readonly reference_database_isoform?: Maybe<Scalars['String']['output']>;
   /**
    * Reference sequence database name.
    *
@@ -10332,21 +9802,22 @@ export type RcsbPolymerEntityAlign = {
    * EMBL, GenBank, NDB, NORINE, PDB, PIR, PRF, RefSeq, UniProt
    *
    */
-  readonly reference_database_name?: Maybe<Scalars['String']>;
+  readonly reference_database_name?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbPolymerEntityAlignAlignedRegions = {
   /** An identifier for the monomer in the entity sequence at which this segment of the alignment begins. */
-  readonly entity_beg_seq_id?: Maybe<Scalars['Int']>;
+  readonly entity_beg_seq_id?: Maybe<Scalars['Int']['output']>;
   /** An length of the this segment of the alignment. */
-  readonly length?: Maybe<Scalars['Int']>;
+  readonly length?: Maybe<Scalars['Int']['output']>;
   /** An identifier for the monomer in the reference sequence at which this segment of the alignment begins. */
-  readonly ref_beg_seq_id?: Maybe<Scalars['Int']>;
+  readonly ref_beg_seq_id?: Maybe<Scalars['Int']['output']>;
 };
 
 export type RcsbPolymerEntityAnnotation = {
+  readonly additional_properties?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityAnnotationAdditionalProperties>>>;
   /** An identifier for the annotation. */
-  readonly annotation_id?: Maybe<Scalars['String']>;
+  readonly annotation_id?: Maybe<Scalars['String']['output']>;
   readonly annotation_lineage?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityAnnotationAnnotationLineage>>>;
   /**
    * Identifies the version of the annotation assignment.
@@ -10355,11 +9826,11 @@ export type RcsbPolymerEntityAnnotation = {
    * V4_0_2
    *
    */
-  readonly assignment_version?: Maybe<Scalars['String']>;
+  readonly assignment_version?: Maybe<Scalars['String']['output']>;
   /** A description for the annotation. */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /** A name for the annotation. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * Code identifying the individual, organization or program that
    *  assigned the annotation.
@@ -10368,35 +9839,48 @@ export type RcsbPolymerEntityAnnotation = {
    * PDB, UniProt
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   /**
    * A type or category of the annotation.
    *
    * Allowable values:
-   * GO, GlyCosmos, GlyGen, InterPro, MemProtMD, OPM, PDBTM, Pfam, mpstruc
+   * CARD, GO, GlyCosmos, GlyGen, InterPro, MemProtMD, OPM, PDBTM, Pfam, mpstruc
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
+};
+
+export type RcsbPolymerEntityAnnotationAdditionalProperties = {
+  /**
+   * The additional property name.
+   *
+   * Allowable values:
+   * CARD_ARO_CATEGORY, CARD_ARO_CVTERM_ID, CARD_ARO_DRUG_CLASS, CARD_ARO_RESISTANCE_MECHANISM
+   *
+   */
+  readonly name?: Maybe<Scalars['String']['output']>;
+  /** The value(s) of the additional property. */
+  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['ObjectScalar']['output']>>>;
 };
 
 export type RcsbPolymerEntityAnnotationAnnotationLineage = {
   /** Members of the annotation lineage as parent lineage depth (1-N) */
-  readonly depth?: Maybe<Scalars['Int']>;
+  readonly depth?: Maybe<Scalars['Int']['output']>;
   /** Members of the annotation lineage as parent class identifiers. */
-  readonly id?: Maybe<Scalars['String']>;
+  readonly id?: Maybe<Scalars['String']['output']>;
   /** Members of the annotation lineage as parent class names. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbPolymerEntityContainerIdentifiers = {
   /** Instance identifiers corresponding to copies of the entity in this container. */
-  readonly asym_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly asym_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** Author instance identifiers corresponding to copies of the entity in this container. */
-  readonly auth_asym_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly auth_asym_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** Unique list of monomer chemical component identifiers in the polymer entity in this container. */
-  readonly chem_comp_monomers?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly chem_comp_monomers?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** Unique list of non-standard monomer chemical component identifiers in the polymer entity in this container. */
-  readonly chem_comp_nstd_monomers?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly chem_comp_nstd_monomers?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /**
    * The chemical reference definition identifier for the entity in this container.
    *
@@ -10404,7 +9888,7 @@ export type RcsbPolymerEntityContainerIdentifiers = {
    * PRD_000010
    *
    */
-  readonly chem_ref_def_id?: Maybe<Scalars['String']>;
+  readonly chem_ref_def_id?: Maybe<Scalars['String']['output']>;
   /**
    * Entity identifier for the container.
    *
@@ -10412,7 +9896,7 @@ export type RcsbPolymerEntityContainerIdentifiers = {
    * 1, 2
    *
    */
-  readonly entity_id: Scalars['String'];
+  readonly entity_id: Scalars['String']['output'];
   /**
    * Entry identifier for the container.
    *
@@ -10420,7 +9904,7 @@ export type RcsbPolymerEntityContainerIdentifiers = {
    * 4HHB, 1KIP
    *
    */
-  readonly entry_id: Scalars['String'];
+  readonly entry_id: Scalars['String']['output'];
   /**
    * The BIRD identifier for the entity in this container.
    *
@@ -10428,7 +9912,7 @@ export type RcsbPolymerEntityContainerIdentifiers = {
    * PRD_000010
    *
    */
-  readonly prd_id?: Maybe<Scalars['String']>;
+  readonly prd_id?: Maybe<Scalars['String']['output']>;
   /**
    * A unique identifier for each object in this entity container formed by
    *  an underscore separated concatenation of entry and entity identifiers.
@@ -10437,9 +9921,9 @@ export type RcsbPolymerEntityContainerIdentifiers = {
    * 6EL3_1
    *
    */
-  readonly rcsb_id?: Maybe<Scalars['String']>;
+  readonly rcsb_id?: Maybe<Scalars['String']['output']>;
   readonly reference_sequence_identifiers?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityContainerIdentifiersReferenceSequenceIdentifiers>>>;
-  readonly uniprot_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly uniprot_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
 };
 
 export type RcsbPolymerEntityContainerIdentifiersReferenceSequenceIdentifiers = {
@@ -10450,7 +9934,7 @@ export type RcsbPolymerEntityContainerIdentifiersReferenceSequenceIdentifiers = 
    * P01116, 55771382
    *
    */
-  readonly database_accession?: Maybe<Scalars['String']>;
+  readonly database_accession?: Maybe<Scalars['String']['output']>;
   /**
    * Reference database identifier for the sequence isoform
    *
@@ -10458,7 +9942,7 @@ export type RcsbPolymerEntityContainerIdentifiersReferenceSequenceIdentifiers = 
    * P01116-2
    *
    */
-  readonly database_isoform?: Maybe<Scalars['String']>;
+  readonly database_isoform?: Maybe<Scalars['String']['output']>;
   /**
    * Reference database name
    *
@@ -10466,7 +9950,15 @@ export type RcsbPolymerEntityContainerIdentifiersReferenceSequenceIdentifiers = 
    * EMBL, GenBank, NDB, NORINE, PDB, PIR, PRF, RefSeq, UniProt
    *
    */
-  readonly database_name?: Maybe<Scalars['String']>;
+  readonly database_name?: Maybe<Scalars['String']['output']>;
+  /**
+   * Indicates what fraction of this polymer entity sequence is covered by the reference sequence.
+   *
+   * Examples:
+   * null, null
+   *
+   */
+  readonly entity_sequence_coverage?: Maybe<Scalars['Float']['output']>;
   /**
    * Source of the reference database assignment
    *
@@ -10474,7 +9966,15 @@ export type RcsbPolymerEntityContainerIdentifiersReferenceSequenceIdentifiers = 
    * PDB, RCSB, SIFTS, UniProt
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
+  /**
+   * Indicates what fraction of the reference sequence is covered by this polymer entity sequence.
+   *
+   * Examples:
+   * null, null
+   *
+   */
+  readonly reference_sequence_coverage?: Maybe<Scalars['Float']['output']>;
 };
 
 export type RcsbPolymerEntityFeature = {
@@ -10486,14 +9986,14 @@ export type RcsbPolymerEntityFeature = {
    * V4_0_2
    *
    */
-  readonly assignment_version?: Maybe<Scalars['String']>;
+  readonly assignment_version?: Maybe<Scalars['String']['output']>;
   /** A description for the feature. */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /** An identifier for the feature. */
-  readonly feature_id?: Maybe<Scalars['String']>;
+  readonly feature_id?: Maybe<Scalars['String']['output']>;
   readonly feature_positions?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityFeatureFeaturePositions>>>;
   /** A name for the feature. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * Code identifying the individual, organization or program that
    *  assigned the feature.
@@ -10502,7 +10002,7 @@ export type RcsbPolymerEntityFeature = {
    * PDB
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   /**
    * Code residue coordinate system for the assigned feature.
    *
@@ -10510,7 +10010,7 @@ export type RcsbPolymerEntityFeature = {
    * NCBI, PDB entity, UniProt
    *
    */
-  readonly reference_scheme?: Maybe<Scalars['String']>;
+  readonly reference_scheme?: Maybe<Scalars['String']['output']>;
   /**
    * A type or category of the feature.
    *
@@ -10518,7 +10018,7 @@ export type RcsbPolymerEntityFeature = {
    * CARD_MODEL, IMGT_ANTIBODY_DESCRIPTION, IMGT_ANTIBODY_DOMAIN_NAME, IMGT_ANTIBODY_GENE_ALLELE_NAME, IMGT_ANTIBODY_ORGANISM_NAME, IMGT_ANTIBODY_PROTEIN_NAME, IMGT_ANTIBODY_RECEPTOR_DESCRIPTION, IMGT_ANTIBODY_RECEPTOR_TYPE, Pfam, SABDAB_ANTIBODY_ANTIGEN_NAME, SABDAB_ANTIBODY_NAME, SABDAB_ANTIBODY_TARGET, artifact, modified_monomer, mutation, hydropathy, disorder, disorder_binding
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbPolymerEntityFeatureAdditionalProperties = {
@@ -10529,9 +10029,9 @@ export type RcsbPolymerEntityFeatureAdditionalProperties = {
    * CARD_MODEL_DESCRIPTION, CARD_MODEL_ORGANISM, PARENT_COMP_ID
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /** The value(s) of the additional property. */
-  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['ObjectScalar']>>>;
+  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['ObjectScalar']['output']>>>;
 };
 
 export type RcsbPolymerEntityFeatureFeaturePositions = {
@@ -10542,11 +10042,11 @@ export type RcsbPolymerEntityFeatureFeaturePositions = {
    * TRP, VAL
    *
    */
-  readonly beg_comp_id?: Maybe<Scalars['String']>;
+  readonly beg_comp_id?: Maybe<Scalars['String']['output']>;
   /** An identifier for the monomer at which this segment of the feature begins. */
-  readonly beg_seq_id: Scalars['Int'];
+  readonly beg_seq_id: Scalars['Int']['output'];
   /** An identifier for the monomer at which this segment of the feature ends. */
-  readonly end_seq_id?: Maybe<Scalars['Int']>;
+  readonly end_seq_id?: Maybe<Scalars['Int']['output']>;
   /**
    * The value for the feature over this monomer segment.
    *
@@ -10554,14 +10054,14 @@ export type RcsbPolymerEntityFeatureFeaturePositions = {
    * null, null
    *
    */
-  readonly value?: Maybe<Scalars['Float']>;
+  readonly value?: Maybe<Scalars['Float']['output']>;
   /** The value(s) for the feature over this monomer segment. */
-  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['Float']>>>;
+  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['Float']['output']>>>;
 };
 
 export type RcsbPolymerEntityFeatureSummary = {
   /** The feature count. */
-  readonly count?: Maybe<Scalars['Int']>;
+  readonly count?: Maybe<Scalars['Int']['output']>;
   /**
    * The fractional feature coverage relative to the full entity sequence.
    *  For instance, the fraction of features such as mutations, artifacts or modified monomers
@@ -10571,9 +10071,9 @@ export type RcsbPolymerEntityFeatureSummary = {
    * null, null
    *
    */
-  readonly coverage?: Maybe<Scalars['Float']>;
+  readonly coverage?: Maybe<Scalars['Float']['output']>;
   /** The maximum feature length. */
-  readonly maximum_length?: Maybe<Scalars['Int']>;
+  readonly maximum_length?: Maybe<Scalars['Int']['output']>;
   /**
    * The maximum feature value.
    *
@@ -10581,9 +10081,9 @@ export type RcsbPolymerEntityFeatureSummary = {
    * null, null
    *
    */
-  readonly maximum_value?: Maybe<Scalars['Float']>;
+  readonly maximum_value?: Maybe<Scalars['Float']['output']>;
   /** The minimum feature length. */
-  readonly minimum_length?: Maybe<Scalars['Int']>;
+  readonly minimum_length?: Maybe<Scalars['Int']['output']>;
   /**
    * The minimum feature value.
    *
@@ -10591,7 +10091,7 @@ export type RcsbPolymerEntityFeatureSummary = {
    * null, null
    *
    */
-  readonly minimum_value?: Maybe<Scalars['Float']>;
+  readonly minimum_value?: Maybe<Scalars['Float']['output']>;
   /**
    * Type or category of the feature.
    *
@@ -10599,7 +10099,7 @@ export type RcsbPolymerEntityFeatureSummary = {
    * CARD_MODEL, IMGT_ANTIBODY_DESCRIPTION, IMGT_ANTIBODY_DOMAIN_NAME, IMGT_ANTIBODY_GENE_ALLELE_NAME, IMGT_ANTIBODY_ORGANISM_NAME, IMGT_ANTIBODY_PROTEIN_NAME, IMGT_ANTIBODY_RECEPTOR_DESCRIPTION, IMGT_ANTIBODY_RECEPTOR_TYPE, Pfam, SABDAB_ANTIBODY_ANTIGEN_NAME, SABDAB_ANTIBODY_NAME, SABDAB_ANTIBODY_TARGET, artifact, modified_monomer, mutation
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbPolymerEntityGroupMembersRankings = {
@@ -10611,15 +10111,15 @@ export type RcsbPolymerEntityGroupMembersRankings = {
    * coverage
    *
    */
-  readonly ranking_criteria_type: Scalars['String'];
+  readonly ranking_criteria_type: Scalars['String']['output'];
 };
 
 export type RcsbPolymerEntityGroupMembersRankingsGroupMembers = {
-  readonly member_id: Scalars['String'];
+  readonly member_id: Scalars['String']['output'];
   /** Quantifies the criteria used for ranking */
-  readonly original_score?: Maybe<Scalars['Float']>;
+  readonly original_score?: Maybe<Scalars['Float']['output']>;
   /** Reflects a relationship between group members such that, for any two members the first is ranked higher (smaller rank value) than the second */
-  readonly rank: Scalars['Int'];
+  readonly rank: Scalars['Int']['output'];
 };
 
 export type RcsbPolymerEntityGroupMembership = {
@@ -10630,7 +10130,8 @@ export type RcsbPolymerEntityGroupMembership = {
    * sequence_identity, matching_uniprot_accession
    *
    */
-  readonly aggregation_method: Scalars['String'];
+  readonly aggregation_method: Scalars['String']['output'];
+  readonly aligned_regions?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityGroupMembershipAlignedRegions>>>;
   /**
    * A unique identifier for a group of entities
    *
@@ -10638,9 +10139,18 @@ export type RcsbPolymerEntityGroupMembership = {
    * 1_100, P00003
    *
    */
-  readonly group_id: Scalars['String'];
+  readonly group_id: Scalars['String']['output'];
   /** Degree of similarity expressed as a floating-point number */
-  readonly similarity_cutoff?: Maybe<Scalars['Float']>;
+  readonly similarity_cutoff?: Maybe<Scalars['Float']['output']>;
+};
+
+export type RcsbPolymerEntityGroupMembershipAlignedRegions = {
+  /** An identifier for the monomer in the entity sequence at which this segment of the alignment begins. */
+  readonly entity_beg_seq_id?: Maybe<Scalars['Int']['output']>;
+  /** An length of the this segment of the alignment. */
+  readonly length?: Maybe<Scalars['Int']['output']>;
+  /** An identifier for the monomer in the reference sequence at which this segment of the alignment begins. */
+  readonly ref_beg_seq_id?: Maybe<Scalars['Int']['output']>;
 };
 
 export type RcsbPolymerEntityGroupSequenceAlignment = {
@@ -10652,24 +10162,24 @@ export type RcsbPolymerEntityGroupSequenceAlignment = {
 
 export type RcsbPolymerEntityGroupSequenceAlignmentAbstractReference = {
   /** Abstract reference length */
-  readonly length: Scalars['Int'];
+  readonly length: Scalars['Int']['output'];
   /** Sequence that represents the abstract reference */
-  readonly sequence?: Maybe<Scalars['String']>;
+  readonly sequence?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbPolymerEntityGroupSequenceAlignmentGroupMembersAlignment = {
   /** Alignment region encoded as a triplet [query_begin, target_begin, length] */
-  readonly aligned_regions: ReadonlyArray<Maybe<ReadonlyArray<Maybe<Scalars['Int']>>>>;
-  readonly member_id: Scalars['String'];
+  readonly aligned_regions: ReadonlyArray<Maybe<ReadonlyArray<Maybe<Scalars['Int']['output']>>>>;
+  readonly member_id: Scalars['String']['output'];
   /** Alignment scores */
   readonly scores: GroupMembersAlignmentScores;
 };
 
 export type RcsbPolymerEntityInstanceContainerIdentifiers = {
   /** Instance identifier for this container. */
-  readonly asym_id: Scalars['String'];
+  readonly asym_id: Scalars['String']['output'];
   /** Author instance identifier for this container. */
-  readonly auth_asym_id?: Maybe<Scalars['String']>;
+  readonly auth_asym_id?: Maybe<Scalars['String']['output']>;
   /**
    * Residue index mappings between author provided and entity polymer sequence positions.
    *
@@ -10677,11 +10187,11 @@ export type RcsbPolymerEntityInstanceContainerIdentifiers = {
    *  The array indices correspond to the indices (1-based) of the deposited sample
    *  sequence (entity_poly_seq). Unmodelled residues are represented with a "?" value.
    */
-  readonly auth_to_entity_poly_seq_mapping?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly auth_to_entity_poly_seq_mapping?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** Entity identifier for the container. */
-  readonly entity_id?: Maybe<Scalars['String']>;
+  readonly entity_id?: Maybe<Scalars['String']['output']>;
   /** Entry identifier for the container. */
-  readonly entry_id: Scalars['String'];
+  readonly entry_id: Scalars['String']['output'];
   /**
    * A unique identifier for each object in this entity instance container formed by
    *  an 'dot' (.) separated concatenation of entry and entity instance identifiers.
@@ -10690,12 +10200,12 @@ export type RcsbPolymerEntityInstanceContainerIdentifiers = {
    * 1KIP.A
    *
    */
-  readonly rcsb_id?: Maybe<Scalars['String']>;
+  readonly rcsb_id?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbPolymerEntityKeywords = {
   /** Keywords describing this polymer entity. */
-  readonly text?: Maybe<Scalars['String']>;
+  readonly text?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbPolymerEntityNameCom = {
@@ -10706,12 +10216,12 @@ export type RcsbPolymerEntityNameCom = {
    * HIV protease monomer, hemoglobin alpha chain
    *
    */
-  readonly name: Scalars['String'];
+  readonly name: Scalars['String']['output'];
 };
 
 export type RcsbPolymerEntityNameSys = {
   /** The systematic name for the polymer entity. */
-  readonly name: Scalars['String'];
+  readonly name: Scalars['String']['output'];
   /**
    * The system used to generate the systematic name of the polymer entity.
    *
@@ -10719,12 +10229,12 @@ export type RcsbPolymerEntityNameSys = {
    * Chemical Abstracts conventions
    *
    */
-  readonly system?: Maybe<Scalars['String']>;
+  readonly system?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbPolymerEntityRcsbEcLineage = {
   /** Members of the enzyme classification lineage as parent classification hierarchy depth (1-N). */
-  readonly depth?: Maybe<Scalars['Int']>;
+  readonly depth?: Maybe<Scalars['Int']['output']>;
   /**
    * Members of the enzyme classification lineage as parent classification codes.
    *
@@ -10732,7 +10242,7 @@ export type RcsbPolymerEntityRcsbEcLineage = {
    * 2, 2.7.1.153
    *
    */
-  readonly id?: Maybe<Scalars['String']>;
+  readonly id?: Maybe<Scalars['String']['output']>;
   /**
    * Members of the enzyme classification lineage as parent classification names.
    *
@@ -10740,14 +10250,14 @@ export type RcsbPolymerEntityRcsbEcLineage = {
    * Transferases, phosphatidylinositol-4,5-bisphosphate 3-kinase
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbPolymerEntityRcsbEnzymeClassCombined = {
   /** The enzyme classification hierarchy depth (1-N). */
-  readonly depth?: Maybe<Scalars['Int']>;
+  readonly depth?: Maybe<Scalars['Int']['output']>;
   /** Combined list of enzyme class assignments. */
-  readonly ec?: Maybe<Scalars['String']>;
+  readonly ec?: Maybe<Scalars['String']['output']>;
   /**
    * Combined list of enzyme class associated provenance sources.
    *
@@ -10755,7 +10265,7 @@ export type RcsbPolymerEntityRcsbEnzymeClassCombined = {
    * PDB Primary Data, UniProt
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbPolymerEntityRcsbMacromolecularNamesCombined = {
@@ -10766,13 +10276,13 @@ export type RcsbPolymerEntityRcsbMacromolecularNamesCombined = {
    * Lysozyme C, Plasmid recombination enzyme, Pyruvate carboxylase
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * Combined list of macromolecular names associated provenance code.
    *
    *  ECO (https://github.com/evidenceontology/evidenceontology)
    */
-  readonly provenance_code?: Maybe<Scalars['String']>;
+  readonly provenance_code?: Maybe<Scalars['String']['output']>;
   /**
    * Combined list of macromolecular names associated name source.
    *
@@ -10780,19 +10290,19 @@ export type RcsbPolymerEntityRcsbMacromolecularNamesCombined = {
    * PDB Preferred Name, PDB Synonym
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbPolymerEntityRcsbPolymerNameCombined = {
   /** Protein name annotated by the UniProtKB or macromolecular name assigned by the PDB */
-  readonly names?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly names?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** Allowable values: PDB Preferred Name, PDB Description, UniProt Name. */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbPolymerInstanceAnnotation = {
   /** An identifier for the annotation. */
-  readonly annotation_id?: Maybe<Scalars['String']>;
+  readonly annotation_id?: Maybe<Scalars['String']['output']>;
   readonly annotation_lineage?: Maybe<ReadonlyArray<Maybe<RcsbPolymerInstanceAnnotationAnnotationLineage>>>;
   /**
    * Identifies the version of the annotation assignment.
@@ -10801,13 +10311,13 @@ export type RcsbPolymerInstanceAnnotation = {
    * V4_0_2
    *
    */
-  readonly assignment_version?: Maybe<Scalars['String']>;
+  readonly assignment_version?: Maybe<Scalars['String']['output']>;
   /** A description for the annotation. */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /** A name for the annotation. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /** Ordinal identifier for this category */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
   /**
    * Code identifying the individual, organization or program that
    *  assigned the annotation.
@@ -10816,7 +10326,7 @@ export type RcsbPolymerInstanceAnnotation = {
    * PDB
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   /**
    * A type or category of the annotation.
    *
@@ -10824,16 +10334,16 @@ export type RcsbPolymerInstanceAnnotation = {
    * CATH, ECOD, SCOP, SCOP2
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbPolymerInstanceAnnotationAnnotationLineage = {
   /** Members of the annotation lineage as parent lineage depth (1-N) */
-  readonly depth?: Maybe<Scalars['Int']>;
+  readonly depth?: Maybe<Scalars['Int']['output']>;
   /** Members of the annotation lineage as parent class identifiers. */
-  readonly id?: Maybe<Scalars['String']>;
+  readonly id?: Maybe<Scalars['String']['output']>;
   /** Members of the annotation lineage as parent class names. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbPolymerInstanceFeature = {
@@ -10845,16 +10355,16 @@ export type RcsbPolymerInstanceFeature = {
    * V4_0_2
    *
    */
-  readonly assignment_version?: Maybe<Scalars['String']>;
+  readonly assignment_version?: Maybe<Scalars['String']['output']>;
   /** A description for the feature. */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /** An identifier for the feature. */
-  readonly feature_id?: Maybe<Scalars['String']>;
+  readonly feature_id?: Maybe<Scalars['String']['output']>;
   readonly feature_positions?: Maybe<ReadonlyArray<Maybe<RcsbPolymerInstanceFeatureFeaturePositions>>>;
   /** A name for the feature. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /** Ordinal identifier for this category */
-  readonly ordinal: Scalars['Int'];
+  readonly ordinal: Scalars['Int']['output'];
   /**
    * Code identifying the individual, organization or program that
    *  assigned the feature.
@@ -10863,7 +10373,7 @@ export type RcsbPolymerInstanceFeature = {
    * CATH, SCOP
    *
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   /**
    * Code residue coordinate system for the assigned feature.
    *
@@ -10871,7 +10381,7 @@ export type RcsbPolymerInstanceFeature = {
    * NCBI, PDB entity, PDB entry, UniProt
    *
    */
-  readonly reference_scheme?: Maybe<Scalars['String']>;
+  readonly reference_scheme?: Maybe<Scalars['String']['output']>;
   /**
    * A type or category of the feature.
    *
@@ -10879,7 +10389,7 @@ export type RcsbPolymerInstanceFeature = {
    * ANGLE_OUTLIER, BEND, BINDING_SITE, BOND_OUTLIER, C-MANNOSYLATION_SITE, CATH, CIS-PEPTIDE, ECOD, HELIX_P, HELX_LH_PP_P, HELX_RH_3T_P, HELX_RH_AL_P, HELX_RH_PI_P, MA_QA_METRIC_LOCAL_TYPE_CONTACT_PROBABILITY, MA_QA_METRIC_LOCAL_TYPE_DISTANCE, MA_QA_METRIC_LOCAL_TYPE_ENERGY, MA_QA_METRIC_LOCAL_TYPE_IPTM, MA_QA_METRIC_LOCAL_TYPE_NORMALIZED_SCORE, MA_QA_METRIC_LOCAL_TYPE_OTHER, MA_QA_METRIC_LOCAL_TYPE_PAE, MA_QA_METRIC_LOCAL_TYPE_PLDDT, MA_QA_METRIC_LOCAL_TYPE_PLDDT_ALL-ATOM, MA_QA_METRIC_LOCAL_TYPE_PLDDT_ALL-ATOM_[0,1], MA_QA_METRIC_LOCAL_TYPE_PLDDT_[0,1], MA_QA_METRIC_LOCAL_TYPE_PTM, MA_QA_METRIC_LOCAL_TYPE_ZSCORE, MEMBRANE_SEGMENT, MOGUL_ANGLE_OUTLIER, MOGUL_BOND_OUTLIER, N-GLYCOSYLATION_SITE, O-GLYCOSYLATION_SITE, RAMACHANDRAN_OUTLIER, ROTAMER_OUTLIER, RSCC_OUTLIER, RSRZ_OUTLIER, S-GLYCOSYLATION_SITE, SABDAB_ANTIBODY_HEAVY_CHAIN_SUBCLASS, SABDAB_ANTIBODY_LIGHT_CHAIN_SUBCLASS, SABDAB_ANTIBODY_LIGHT_CHAIN_TYPE, SCOP, SCOP2B_SUPERFAMILY, SCOP2_FAMILY, SCOP2_SUPERFAMILY, SHEET, STEREO_OUTLIER, STRN, TURN_TY1_P, UNASSIGNED_SEC_STRUCT, UNOBSERVED_ATOM_XYZ, UNOBSERVED_RESIDUE_XYZ, ZERO_OCCUPANCY_ATOM_XYZ, ZERO_OCCUPANCY_RESIDUE_XYZ, ASA
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbPolymerInstanceFeatureAdditionalProperties = {
@@ -10890,9 +10400,9 @@ export type RcsbPolymerInstanceFeatureAdditionalProperties = {
    * CATH_DOMAIN_ID, CATH_NAME, ECOD_DOMAIN_ID, ECOD_FAMILY_NAME, MODELCIF_MODEL_ID, OMEGA_ANGLE, PARTNER_ASYM_ID, PARTNER_BOND_DISTANCE, PARTNER_COMP_ID, SCOP2_DOMAIN_ID, SCOP2_FAMILY_ID, SCOP2_FAMILY_NAME, SCOP2_SUPERFAMILY_ID, SCOP2_SUPERFAMILY_NAME, SCOP_DOMAIN_ID, SCOP_NAME, SCOP_SUN_ID, SHEET_SENSE
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /** The value(s) of the additional property. */
-  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['ObjectScalar']>>>;
+  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['ObjectScalar']['output']>>>;
 };
 
 export type RcsbPolymerInstanceFeatureFeaturePositions = {
@@ -10903,11 +10413,11 @@ export type RcsbPolymerInstanceFeatureFeaturePositions = {
    * TRP, VAL
    *
    */
-  readonly beg_comp_id?: Maybe<Scalars['String']>;
+  readonly beg_comp_id?: Maybe<Scalars['String']['output']>;
   /** An identifier for the monomer at which this segment of the feature begins. */
-  readonly beg_seq_id: Scalars['Int'];
+  readonly beg_seq_id: Scalars['Int']['output'];
   /** An identifier for the monomer at which this segment of the feature ends. */
-  readonly end_seq_id?: Maybe<Scalars['Int']>;
+  readonly end_seq_id?: Maybe<Scalars['Int']['output']>;
   /**
    * The value of the feature over the monomer segment.
    *
@@ -10915,14 +10425,14 @@ export type RcsbPolymerInstanceFeatureFeaturePositions = {
    * null, null
    *
    */
-  readonly value?: Maybe<Scalars['Float']>;
+  readonly value?: Maybe<Scalars['Float']['output']>;
   /** The value(s) of the feature over the monomer segment. */
-  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['Float']>>>;
+  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['Float']['output']>>>;
 };
 
 export type RcsbPolymerInstanceFeatureSummary = {
   /** The feature count per polymer chain. */
-  readonly count?: Maybe<Scalars['Int']>;
+  readonly count?: Maybe<Scalars['Int']['output']>;
   /**
    * The fractional feature coverage relative to the full entity sequence.
    *  For instance, the fraction of features such as CATH or SCOP domains, secondary structure elements,
@@ -10932,9 +10442,9 @@ export type RcsbPolymerInstanceFeatureSummary = {
    * null, null
    *
    */
-  readonly coverage?: Maybe<Scalars['Float']>;
+  readonly coverage?: Maybe<Scalars['Float']['output']>;
   /** The maximum feature length. */
-  readonly maximum_length?: Maybe<Scalars['Int']>;
+  readonly maximum_length?: Maybe<Scalars['Int']['output']>;
   /**
    * The maximum feature value.
    *
@@ -10942,9 +10452,9 @@ export type RcsbPolymerInstanceFeatureSummary = {
    * null, null
    *
    */
-  readonly maximum_value?: Maybe<Scalars['Float']>;
+  readonly maximum_value?: Maybe<Scalars['Float']['output']>;
   /** The minimum feature length. */
-  readonly minimum_length?: Maybe<Scalars['Int']>;
+  readonly minimum_length?: Maybe<Scalars['Int']['output']>;
   /**
    * The minimum feature value.
    *
@@ -10952,7 +10462,7 @@ export type RcsbPolymerInstanceFeatureSummary = {
    * null, null
    *
    */
-  readonly minimum_value?: Maybe<Scalars['Float']>;
+  readonly minimum_value?: Maybe<Scalars['Float']['output']>;
   /**
    * Type or category of the feature.
    *
@@ -10960,7 +10470,7 @@ export type RcsbPolymerInstanceFeatureSummary = {
    * ANGLE_OUTLIER, BEND, BINDING_SITE, BOND_OUTLIER, C-MANNOSYLATION_SITE, CATH, CIS-PEPTIDE, ECOD, HELIX_P, HELX_LH_PP_P, HELX_RH_3T_P, HELX_RH_AL_P, HELX_RH_PI_P, MA_QA_METRIC_LOCAL_TYPE_CONTACT_PROBABILITY, MA_QA_METRIC_LOCAL_TYPE_DISTANCE, MA_QA_METRIC_LOCAL_TYPE_ENERGY, MA_QA_METRIC_LOCAL_TYPE_IPTM, MA_QA_METRIC_LOCAL_TYPE_NORMALIZED_SCORE, MA_QA_METRIC_LOCAL_TYPE_OTHER, MA_QA_METRIC_LOCAL_TYPE_PAE, MA_QA_METRIC_LOCAL_TYPE_PLDDT, MA_QA_METRIC_LOCAL_TYPE_PLDDT_ALL-ATOM, MA_QA_METRIC_LOCAL_TYPE_PLDDT_ALL-ATOM_[0,1], MA_QA_METRIC_LOCAL_TYPE_PLDDT_[0,1], MA_QA_METRIC_LOCAL_TYPE_PTM, MA_QA_METRIC_LOCAL_TYPE_ZSCORE, MEMBRANE_SEGMENT, MOGUL_ANGLE_OUTLIER, MOGUL_BOND_OUTLIER, N-GLYCOSYLATION_SITE, O-GLYCOSYLATION_SITE, RAMACHANDRAN_OUTLIER, ROTAMER_OUTLIER, RSCC_OUTLIER, RSRZ_OUTLIER, S-GLYCOSYLATION_SITE, SABDAB_ANTIBODY_HEAVY_CHAIN_SUBCLASS, SABDAB_ANTIBODY_LIGHT_CHAIN_SUBCLASS, SABDAB_ANTIBODY_LIGHT_CHAIN_TYPE, SCOP, SCOP2B_SUPERFAMILY, SCOP2_FAMILY, SCOP2_SUPERFAMILY, SHEET, STEREO_OUTLIER, STRN, TURN_TY1_P, UNASSIGNED_SEC_STRUCT, UNOBSERVED_ATOM_XYZ, UNOBSERVED_RESIDUE_XYZ, ZERO_OCCUPANCY_ATOM_XYZ, ZERO_OCCUPANCY_RESIDUE_XYZ
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbPolymerStructConn = {
@@ -10973,7 +10483,7 @@ export type RcsbPolymerStructConn = {
    * covalent bond, covalent modification of a nucleotide base, covalent modification of a nucleotide phosphate, covalent modification of a nucleotide sugar, covalent residue modification, disulfide bridge, hydrogen bond, ionic interaction, metal coordination, mismatched base pairs
    *
    */
-  readonly connect_type?: Maybe<Scalars['String']>;
+  readonly connect_type?: Maybe<Scalars['String']['output']>;
   /**
    * A description of special details of the connection.
    *
@@ -10981,21 +10491,21 @@ export type RcsbPolymerStructConn = {
    * Watson-Crick base pair
    *
    */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /** Distance value for this contact. */
-  readonly dist_value?: Maybe<Scalars['Float']>;
+  readonly dist_value?: Maybe<Scalars['Float']['output']>;
   /**
    * The value of _rcsb_polymer_struct_conn.id is an identifier for connection.
    *
    *  Note that this item need not be a number; it can be any unique
    *  identifier.
    */
-  readonly id?: Maybe<Scalars['String']>;
+  readonly id?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _rcsb_polymer_struct_conn.id must uniquely identify a record in
    *  the rcsb_polymer_struct_conn list.
    */
-  readonly ordinal_id: Scalars['Int'];
+  readonly ordinal_id: Scalars['Int']['output'];
   /**
    * The chemical or structural role of the interaction
    *
@@ -11003,7 +10513,7 @@ export type RcsbPolymerStructConn = {
    * C-Mannosylation, N-Glycosylation, O-Glycosylation, S-Glycosylation
    *
    */
-  readonly role?: Maybe<Scalars['String']>;
+  readonly role?: Maybe<Scalars['String']['output']>;
   /**
    * The chemical bond order associated with the specified atoms in
    *  this contact.
@@ -11012,7 +10522,7 @@ export type RcsbPolymerStructConn = {
    * doub, quad, sing, trip
    *
    */
-  readonly value_order?: Maybe<Scalars['String']>;
+  readonly value_order?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbPolymerStructConnConnectPartner = {
@@ -11023,7 +10533,7 @@ export type RcsbPolymerStructConnConnectPartner = {
    *  This data item is a pointer to _atom_site.label_alt_id in the
    *  ATOM_SITE category.
    */
-  readonly label_alt_id?: Maybe<Scalars['String']>;
+  readonly label_alt_id?: Maybe<Scalars['String']['output']>;
   /**
    * A component of the identifier for the partner in the structure
    *  connection.
@@ -11031,7 +10541,7 @@ export type RcsbPolymerStructConnConnectPartner = {
    *  This data item is a pointer to _atom_site.label_asym_id in the
    *  ATOM_SITE category.
    */
-  readonly label_asym_id: Scalars['String'];
+  readonly label_asym_id: Scalars['String']['output'];
   /**
    * A component of the identifier for the partner in the structure
    *  connection.
@@ -11039,7 +10549,7 @@ export type RcsbPolymerStructConnConnectPartner = {
    *  This data item is a pointer to _chem_comp_atom.atom_id in the
    *  CHEM_COMP_ATOM category.
    */
-  readonly label_atom_id?: Maybe<Scalars['String']>;
+  readonly label_atom_id?: Maybe<Scalars['String']['output']>;
   /**
    * A component of the identifier for the partner in the structure
    *  connection.
@@ -11047,7 +10557,7 @@ export type RcsbPolymerStructConnConnectPartner = {
    *  This data item is a pointer to _atom_site.label_comp_id in the
    *  ATOM_SITE category.
    */
-  readonly label_comp_id: Scalars['String'];
+  readonly label_comp_id: Scalars['String']['output'];
   /**
    * A component of the identifier for the partner in the structure
    *  connection.
@@ -11055,7 +10565,7 @@ export type RcsbPolymerStructConnConnectPartner = {
    *  This data item is a pointer to _atom_site.label_seq_id in the
    *  ATOM_SITE category.
    */
-  readonly label_seq_id?: Maybe<Scalars['Int']>;
+  readonly label_seq_id?: Maybe<Scalars['Int']['output']>;
   /**
    * Describes the symmetry operation that should be applied to the
    *  atom set specified by _rcsb_polymer_struct_conn.connect_partner_label* to generate the
@@ -11065,7 +10575,7 @@ export type RcsbPolymerStructConnConnectPartner = {
    * 1_555, 7_645
    *
    */
-  readonly symmetry?: Maybe<Scalars['String']>;
+  readonly symmetry?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbPolymerStructConnConnectTarget = {
@@ -11076,7 +10586,7 @@ export type RcsbPolymerStructConnConnectTarget = {
    *  This data item is a pointer to _atom_site.auth_asym_id in the
    *  ATOM_SITE category.
    */
-  readonly auth_asym_id?: Maybe<Scalars['String']>;
+  readonly auth_asym_id?: Maybe<Scalars['String']['output']>;
   /**
    * A component of the identifier for the target of the structure
    *  connection.
@@ -11084,7 +10594,7 @@ export type RcsbPolymerStructConnConnectTarget = {
    *  This data item is a pointer to _atom_site.auth_seq_id in the
    *  ATOM_SITE category.
    */
-  readonly auth_seq_id?: Maybe<Scalars['String']>;
+  readonly auth_seq_id?: Maybe<Scalars['String']['output']>;
   /**
    * A component of the identifier for the target of the structure
    *  connection.
@@ -11092,7 +10602,7 @@ export type RcsbPolymerStructConnConnectTarget = {
    *  This data item is a pointer to _atom_site.label_alt_id in the
    *  ATOM_SITE category.
    */
-  readonly label_alt_id?: Maybe<Scalars['String']>;
+  readonly label_alt_id?: Maybe<Scalars['String']['output']>;
   /**
    * A component of the identifier for the target of the structure
    *  connection.
@@ -11100,7 +10610,7 @@ export type RcsbPolymerStructConnConnectTarget = {
    *  This data item is a pointer to _atom_site.label_asym_id in the
    *  ATOM_SITE category.
    */
-  readonly label_asym_id: Scalars['String'];
+  readonly label_asym_id: Scalars['String']['output'];
   /**
    * A component of the identifier for the target of the structure
    *  connection.
@@ -11108,7 +10618,7 @@ export type RcsbPolymerStructConnConnectTarget = {
    *  This data item is a pointer to _atom_site.label_atom_id in the
    *  ATOM_SITE category.
    */
-  readonly label_atom_id?: Maybe<Scalars['String']>;
+  readonly label_atom_id?: Maybe<Scalars['String']['output']>;
   /**
    * A component of the identifier for the target of the structure
    *  connection.
@@ -11116,7 +10626,7 @@ export type RcsbPolymerStructConnConnectTarget = {
    *  This data item is a pointer to _atom_site.label_comp_id in the
    *  ATOM_SITE category.
    */
-  readonly label_comp_id: Scalars['String'];
+  readonly label_comp_id: Scalars['String']['output'];
   /**
    * A component of the identifier for the target of the structure
    *  connection.
@@ -11124,7 +10634,7 @@ export type RcsbPolymerStructConnConnectTarget = {
    *  This data item is a pointer to _atom_site.connect_target_label_seq_id in the
    *  ATOM_SITE category.
    */
-  readonly label_seq_id?: Maybe<Scalars['Int']>;
+  readonly label_seq_id?: Maybe<Scalars['Int']['output']>;
   /**
    * Describes the symmetry operation that should be applied to the
    *  atom set specified by _rcsb_polymer_struct_conn.label* to generate the
@@ -11134,7 +10644,7 @@ export type RcsbPolymerStructConnConnectTarget = {
    * 1_555, 7_645
    *
    */
-  readonly symmetry?: Maybe<Scalars['String']>;
+  readonly symmetry?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbPrimaryCitation = {
@@ -11142,7 +10652,7 @@ export type RcsbPrimaryCitation = {
    * The International Standard Book Number (ISBN) code assigned to
    *  the book cited; relevant for books or book chapters.
    */
-  readonly book_id_ISBN?: Maybe<Scalars['String']>;
+  readonly book_id_ISBN?: Maybe<Scalars['String']['output']>;
   /**
    * The name of the publisher of the citation; relevant
    *  for books or book chapters.
@@ -11151,7 +10661,7 @@ export type RcsbPrimaryCitation = {
    * John Wiley and Sons
    *
    */
-  readonly book_publisher?: Maybe<Scalars['String']>;
+  readonly book_publisher?: Maybe<Scalars['String']['output']>;
   /**
    * The location of the publisher of the citation; relevant
    *  for books or book chapters.
@@ -11160,12 +10670,12 @@ export type RcsbPrimaryCitation = {
    * London
    *
    */
-  readonly book_publisher_city?: Maybe<Scalars['String']>;
+  readonly book_publisher_city?: Maybe<Scalars['String']['output']>;
   /**
    * The title of the book in which the citation appeared; relevant
    *  for books or book chapters.
    */
-  readonly book_title?: Maybe<Scalars['String']>;
+  readonly book_title?: Maybe<Scalars['String']['output']>;
   /**
    * _rcsb_primary_citation.coordinate_linkage states whether this citation
    *  is concerned with precisely the set of coordinates given in the
@@ -11178,12 +10688,12 @@ export type RcsbPrimaryCitation = {
    * n, no, y, yes
    *
    */
-  readonly coordinate_linkage?: Maybe<Scalars['String']>;
+  readonly coordinate_linkage?: Maybe<Scalars['String']['output']>;
   /**
    * The country/region of publication; relevant for books
    *  and book chapters.
    */
-  readonly country?: Maybe<Scalars['String']>;
+  readonly country?: Maybe<Scalars['String']['output']>;
   /**
    * The value of _rcsb_primary_citation.id must uniquely identify a record in the
    *  CITATION list.
@@ -11199,7 +10709,7 @@ export type RcsbPrimaryCitation = {
    * primary
    *
    */
-  readonly id: Scalars['String'];
+  readonly id: Scalars['String']['output'];
   /**
    * Abbreviated name of the cited journal as given in the
    *  Chemical Abstracts Service Source Index.
@@ -11208,14 +10718,14 @@ export type RcsbPrimaryCitation = {
    * J.Mol.Biol., J. Mol. Biol.
    *
    */
-  readonly journal_abbrev?: Maybe<Scalars['String']>;
+  readonly journal_abbrev?: Maybe<Scalars['String']['output']>;
   /**
    * The American Society for Testing and Materials (ASTM) code
    *  assigned to the journal cited (also referred to as the CODEN
    *  designator of the Chemical Abstracts Service); relevant for
    *  journal articles.
    */
-  readonly journal_id_ASTM?: Maybe<Scalars['String']>;
+  readonly journal_id_ASTM?: Maybe<Scalars['String']['output']>;
   /**
    * The Cambridge Structural Database (CSD) code assigned to the
    *  journal cited; relevant for journal articles. This is also the
@@ -11225,12 +10735,12 @@ export type RcsbPrimaryCitation = {
    * 0070
    *
    */
-  readonly journal_id_CSD?: Maybe<Scalars['String']>;
+  readonly journal_id_CSD?: Maybe<Scalars['String']['output']>;
   /**
    * The International Standard Serial Number (ISSN) code assigned to
    *  the journal cited; relevant for journal articles.
    */
-  readonly journal_id_ISSN?: Maybe<Scalars['String']>;
+  readonly journal_id_ISSN?: Maybe<Scalars['String']['output']>;
   /**
    * Issue number of the journal cited; relevant for journal
    *  articles.
@@ -11239,7 +10749,7 @@ export type RcsbPrimaryCitation = {
    * 2
    *
    */
-  readonly journal_issue?: Maybe<Scalars['String']>;
+  readonly journal_issue?: Maybe<Scalars['String']['output']>;
   /**
    * Volume number of the journal cited; relevant for journal
    *  articles.
@@ -11248,7 +10758,7 @@ export type RcsbPrimaryCitation = {
    * 174
    *
    */
-  readonly journal_volume?: Maybe<Scalars['String']>;
+  readonly journal_volume?: Maybe<Scalars['String']['output']>;
   /**
    * Language in which the cited article is written.
    *
@@ -11256,17 +10766,17 @@ export type RcsbPrimaryCitation = {
    * German
    *
    */
-  readonly language?: Maybe<Scalars['String']>;
+  readonly language?: Maybe<Scalars['String']['output']>;
   /**
    * The first page of the citation; relevant for journal
    *  articles, books and book chapters.
    */
-  readonly page_first?: Maybe<Scalars['String']>;
+  readonly page_first?: Maybe<Scalars['String']['output']>;
   /**
    * The last page of the citation; relevant for journal
    *  articles, books and book chapters.
    */
-  readonly page_last?: Maybe<Scalars['String']>;
+  readonly page_last?: Maybe<Scalars['String']['output']>;
   /**
    * Document Object Identifier used by doi.org to uniquely
    *  specify bibliographic entry.
@@ -11275,14 +10785,14 @@ export type RcsbPrimaryCitation = {
    * 10.2345/S1384107697000225
    *
    */
-  readonly pdbx_database_id_DOI?: Maybe<Scalars['String']>;
+  readonly pdbx_database_id_DOI?: Maybe<Scalars['String']['output']>;
   /**
    * Ascession number used by PubMed to categorize a specific
    *  bibliographic entry.
    */
-  readonly pdbx_database_id_PubMed?: Maybe<Scalars['Int']>;
+  readonly pdbx_database_id_PubMed?: Maybe<Scalars['Int']['output']>;
   /** The Open Researcher and Contributor ID (ORCID) identifiers for the citation authors. */
-  readonly rcsb_ORCID_identifiers?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly rcsb_ORCID_identifiers?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /**
    * Names of the authors of the citation; relevant for journal
    *  articles, books and book chapters.  Names are separated by vertical bars.
@@ -11290,7 +10800,7 @@ export type RcsbPrimaryCitation = {
    *  The family name(s), followed by a comma and including any
    *  dynastic components, precedes the first name(s) or initial(s).
    */
-  readonly rcsb_authors?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly rcsb_authors?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /**
    * Normalized journal abbreviation.
    *
@@ -11298,7 +10808,7 @@ export type RcsbPrimaryCitation = {
    * Nat Struct Mol Biol
    *
    */
-  readonly rcsb_journal_abbrev?: Maybe<Scalars['String']>;
+  readonly rcsb_journal_abbrev?: Maybe<Scalars['String']['output']>;
   /**
    * The title of the citation; relevant for journal articles, books
    *  and book chapters.
@@ -11308,12 +10818,12 @@ export type RcsbPrimaryCitation = {
    *                                   at 2.35 Angstroms resolution.
    *
    */
-  readonly title?: Maybe<Scalars['String']>;
+  readonly title?: Maybe<Scalars['String']['output']>;
   /**
    * The year of the citation; relevant for journal articles, books
    *  and book chapters.
    */
-  readonly year?: Maybe<Scalars['Int']>;
+  readonly year?: Maybe<Scalars['Int']['output']>;
 };
 
 export type RcsbPubmedContainerIdentifiers = {
@@ -11324,12 +10834,12 @@ export type RcsbPubmedContainerIdentifiers = {
    * null
    *
    */
-  readonly pubmed_id?: Maybe<Scalars['Int']>;
+  readonly pubmed_id?: Maybe<Scalars['Int']['output']>;
 };
 
 export type RcsbPubmedMeshDescriptorsLineage = {
   /** Hierarchy depth. */
-  readonly depth?: Maybe<Scalars['Int']>;
+  readonly depth?: Maybe<Scalars['Int']['output']>;
   /**
    * Identifier for MeSH classification term.
    *
@@ -11337,7 +10847,7 @@ export type RcsbPubmedMeshDescriptorsLineage = {
    * E01.370.225.500.388, H01.181
    *
    */
-  readonly id?: Maybe<Scalars['String']>;
+  readonly id?: Maybe<Scalars['String']['output']>;
   /**
    * MeSH classification term.
    *
@@ -11345,7 +10855,7 @@ export type RcsbPubmedMeshDescriptorsLineage = {
    * Chemistry, Mammals, Therapeutic Uses
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbRelatedTargetReferences = {
@@ -11357,7 +10867,7 @@ export type RcsbRelatedTargetReferences = {
    * ChEMBL, DrugBank, Pharos
    *
    */
-  readonly related_resource_name?: Maybe<Scalars['String']>;
+  readonly related_resource_name?: Maybe<Scalars['String']['output']>;
   /**
    * The version of the target data resource.
    *
@@ -11365,9 +10875,9 @@ export type RcsbRelatedTargetReferences = {
    * 6.11.0
    *
    */
-  readonly related_resource_version?: Maybe<Scalars['String']>;
+  readonly related_resource_version?: Maybe<Scalars['String']['output']>;
   /** An identifier for the target sequence in the related data resource. */
-  readonly related_target_id?: Maybe<Scalars['String']>;
+  readonly related_target_id?: Maybe<Scalars['String']['output']>;
   /**
    * NCBI Taxonomy identifier for the target organism.
    *
@@ -11381,16 +10891,16 @@ export type RcsbRelatedTargetReferences = {
    *  Benson DA, Karsch-Mizrachi I, Lipman DJ, Ostell J, Rapp BA,
    *  Wheeler DL (2000). GenBank. Nucleic Acids Res 2000 Jan 1;28(1):15-18.
    */
-  readonly target_taxonomy_id?: Maybe<Scalars['Int']>;
+  readonly target_taxonomy_id?: Maybe<Scalars['Int']['output']>;
 };
 
 export type RcsbRelatedTargetReferencesAlignedTarget = {
   /** The position of the monomer in the entity sequence at which the alignment begins. */
-  readonly entity_beg_seq_id?: Maybe<Scalars['Int']>;
+  readonly entity_beg_seq_id?: Maybe<Scalars['Int']['output']>;
   /** The length of the alignment. */
-  readonly length?: Maybe<Scalars['Int']>;
+  readonly length?: Maybe<Scalars['Int']['output']>;
   /** The position of the monomer in the target sequence at which the alignment begins. */
-  readonly target_beg_seq_id?: Maybe<Scalars['Int']>;
+  readonly target_beg_seq_id?: Maybe<Scalars['Int']['output']>;
 };
 
 export type RcsbRepositoryHoldingsCurrent = {
@@ -11401,12 +10911,12 @@ export type RcsbRepositoryHoldingsCurrent = {
    * 2fo-fc Map, Combined NMR data (NEF), Combined NMR data (NMR-STAR), FASTA sequence, Map Coefficients, NMR chemical shifts, NMR restraints V1, NMR restraints V2, assembly PDB, assembly mmCIF, entry PDB, entry PDB bundle, entry PDBML, entry mmCIF, fo-fc Map, structure factors, validation data mmCIF, validation report, validation slider image
    *
    */
-  readonly repository_content_types?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly repository_content_types?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
 };
 
 export type RcsbRepositoryHoldingsCurrentEntryContainerIdentifiers = {
   /** The assembly id codes. */
-  readonly assembly_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly assembly_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /**
    * The PDB entry accession code.
    *
@@ -11414,7 +10924,7 @@ export type RcsbRepositoryHoldingsCurrentEntryContainerIdentifiers = {
    * 1KIP
    *
    */
-  readonly entry_id: Scalars['String'];
+  readonly entry_id: Scalars['String']['output'];
   /**
    * The RCSB entry identifier.
    *
@@ -11422,7 +10932,7 @@ export type RcsbRepositoryHoldingsCurrentEntryContainerIdentifiers = {
    * 1KIP
    *
    */
-  readonly rcsb_id?: Maybe<Scalars['String']>;
+  readonly rcsb_id?: Maybe<Scalars['String']['output']>;
   /**
    * Identifier for the current data exchange status record.
    *
@@ -11430,16 +10940,16 @@ export type RcsbRepositoryHoldingsCurrentEntryContainerIdentifiers = {
    * 2018_23
    *
    */
-  readonly update_id?: Maybe<Scalars['String']>;
+  readonly update_id?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbSchemaContainerIdentifiers = {
   /** Collection name associated with the data in the container. */
-  readonly collection_name: Scalars['String'];
+  readonly collection_name: Scalars['String']['output'];
   /** Version string for the schema and collection. */
-  readonly collection_schema_version?: Maybe<Scalars['String']>;
+  readonly collection_schema_version?: Maybe<Scalars['String']['output']>;
   /** Schema name associated with the data in the container. */
-  readonly schema_name: Scalars['String'];
+  readonly schema_name: Scalars['String']['output'];
 };
 
 export type RcsbStructSymmetry = {
@@ -11452,7 +10962,7 @@ export type RcsbStructSymmetry = {
    * Global Symmetry, Pseudo Symmetry, Local Symmetry
    *
    */
-  readonly kind: Scalars['String'];
+  readonly kind: Scalars['String']['output'];
   /**
    * Oligomeric state refers to a composition of polymeric subunits in quaternary structure. Quaternary structure may be composed either exclusively of several copies of identical subunits, in which case they are termed homo-oligomers, or alternatively by at least one copy of different subunits (hetero-oligomers). Quaternary structure composed of a single subunit is denoted as 'Monomer'.
    *
@@ -11460,11 +10970,11 @@ export type RcsbStructSymmetry = {
    * Monomer, Homo 2-mer, Hetero 3-mer
    *
    */
-  readonly oligomeric_state: Scalars['String'];
+  readonly oligomeric_state: Scalars['String']['output'];
   /** The orientation of the principal rotation (symmetry) axis. */
   readonly rotation_axes?: Maybe<ReadonlyArray<Maybe<RcsbStructSymmetryRotationAxes>>>;
   /** Each type of different subunits is assigned a latter. The number of equivalent subunits is added as a coefficient after each letter (except 1 which is not added explicitly). */
-  readonly stoichiometry: ReadonlyArray<Maybe<Scalars['String']>>;
+  readonly stoichiometry: ReadonlyArray<Maybe<Scalars['String']['output']>>;
   /**
    * Symmetry symbol refers to point group or helical symmetry of identical polymeric subunits in Schönflies notation. Contains point group symbol (e.g., C2, C5, D2, T, O, I) or H for helical symmetry.
    *
@@ -11472,7 +10982,7 @@ export type RcsbStructSymmetry = {
    * C1, D3, H
    *
    */
-  readonly symbol: Scalars['String'];
+  readonly symbol: Scalars['String']['output'];
   /**
    * Symmetry type refers to point group or helical symmetry of identical polymeric subunits. Contains point group types (e.g. Cyclic, Dihedral) or Helical for helical symmetry.
    *
@@ -11480,19 +10990,19 @@ export type RcsbStructSymmetry = {
    * Asymmetric, Cyclic, Dihedral, Tetrahedral, Octahedral, Icosahedral, Helical
    *
    */
-  readonly type: Scalars['String'];
+  readonly type: Scalars['String']['output'];
 };
 
 export type RcsbStructSymmetryClusters = {
   /** Average RMSD between members of a given cluster. */
-  readonly avg_rmsd?: Maybe<Scalars['Float']>;
+  readonly avg_rmsd?: Maybe<Scalars['Float']['output']>;
   /** Subunits that belong to the cluster, identified by asym_id and optionally by assembly operator id(s). */
   readonly members: ReadonlyArray<Maybe<ClustersMembers>>;
 };
 
 export type RcsbStructSymmetryLineage = {
   /** Hierarchy depth. */
-  readonly depth?: Maybe<Scalars['Int']>;
+  readonly depth?: Maybe<Scalars['Int']['output']>;
   /**
    * Automatically assigned ID to uniquely identify the symmetry term in the Protein Symmetry Browser.
    *
@@ -11500,7 +11010,7 @@ export type RcsbStructSymmetryLineage = {
    * Global Symmetry.Cyclic.C2.Homo 2-mer
    *
    */
-  readonly id?: Maybe<Scalars['String']>;
+  readonly id?: Maybe<Scalars['String']['output']>;
   /**
    * A human-readable term describing protein symmetry.
    *
@@ -11508,16 +11018,16 @@ export type RcsbStructSymmetryLineage = {
    * Asymmetric, Global Symmetry, C1, Hetero 3-mer
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbStructSymmetryRotationAxes = {
   /** coordinate */
-  readonly end: ReadonlyArray<Maybe<Scalars['Float']>>;
+  readonly end: ReadonlyArray<Maybe<Scalars['Float']['output']>>;
   /** The number of times (order of rotation) that a subunit can be repeated by a rotation operation, being transformed into a new state indistinguishable from its starting state. */
-  readonly order?: Maybe<Scalars['Int']>;
+  readonly order?: Maybe<Scalars['Int']['output']>;
   /** coordinate */
-  readonly start: ReadonlyArray<Maybe<Scalars['Float']>>;
+  readonly start: ReadonlyArray<Maybe<Scalars['Float']['output']>>;
 };
 
 export type RcsbTargetCofactors = {
@@ -11528,7 +11038,7 @@ export type RcsbTargetCofactors = {
    * null
    *
    */
-  readonly binding_assay_value?: Maybe<Scalars['Float']>;
+  readonly binding_assay_value?: Maybe<Scalars['Float']['output']>;
   /**
    * The type of measurement or value determined by the assay.
    *
@@ -11536,7 +11046,7 @@ export type RcsbTargetCofactors = {
    * pAC50, pEC50, pIC50, pKd, pKi
    *
    */
-  readonly binding_assay_value_type?: Maybe<Scalars['String']>;
+  readonly binding_assay_value_type?: Maybe<Scalars['String']['output']>;
   /**
    * Standard IUPAC International Chemical Identifier (InChI) descriptor key
    *  for the cofactor.
@@ -11549,7 +11059,7 @@ export type RcsbTargetCofactors = {
    * BNOCDEBUFVJMQI-REOHCLBHSA-N
    *
    */
-  readonly cofactor_InChIKey?: Maybe<Scalars['String']>;
+  readonly cofactor_InChIKey?: Maybe<Scalars['String']['output']>;
   /**
    * Simplified molecular-input line-entry system (SMILES) descriptor for the cofactor.
    *
@@ -11564,7 +11074,7 @@ export type RcsbTargetCofactors = {
    * OC(=O)[CH](CF)O[P](O)(O)=O
    *
    */
-  readonly cofactor_SMILES?: Maybe<Scalars['String']>;
+  readonly cofactor_SMILES?: Maybe<Scalars['String']['output']>;
   /**
    * The chemical component definition identifier for the cofactor.
    *
@@ -11572,7 +11082,7 @@ export type RcsbTargetCofactors = {
    * 0Z3, CD9
    *
    */
-  readonly cofactor_chem_comp_id?: Maybe<Scalars['String']>;
+  readonly cofactor_chem_comp_id?: Maybe<Scalars['String']['output']>;
   /**
    * The cofactor description.
    *
@@ -11581,7 +11091,7 @@ export type RcsbTargetCofactors = {
    *   but can be converted to active vitamin K2, menaquinone, after alkylation in vivo.
    *
    */
-  readonly cofactor_description?: Maybe<Scalars['String']>;
+  readonly cofactor_description?: Maybe<Scalars['String']['output']>;
   /**
    * The cofactor name.
    *
@@ -11589,7 +11099,7 @@ export type RcsbTargetCofactors = {
    * Menadione
    *
    */
-  readonly cofactor_name?: Maybe<Scalars['String']>;
+  readonly cofactor_name?: Maybe<Scalars['String']['output']>;
   /**
    * The BIRD definition identifier for the cofactor.
    *
@@ -11597,7 +11107,7 @@ export type RcsbTargetCofactors = {
    * PRD_000010
    *
    */
-  readonly cofactor_prd_id?: Maybe<Scalars['String']>;
+  readonly cofactor_prd_id?: Maybe<Scalars['String']['output']>;
   /**
    * Identifier for the cofactor assigned by the resource.
    *
@@ -11605,7 +11115,7 @@ export type RcsbTargetCofactors = {
    * CHEMBL1987, DB00170
    *
    */
-  readonly cofactor_resource_id?: Maybe<Scalars['String']>;
+  readonly cofactor_resource_id?: Maybe<Scalars['String']['output']>;
   /**
    * Mechanism of action describes the biochemical interaction through which the
    *  cofactor produces a pharmacological effect.
@@ -11616,7 +11126,7 @@ export type RcsbTargetCofactors = {
    * C, protein S, protein Zv and a growth-arrest-specific factor (Gas6).
    *
    */
-  readonly mechanism_of_action?: Maybe<Scalars['String']>;
+  readonly mechanism_of_action?: Maybe<Scalars['String']['output']>;
   /**
    * A flag to indicate the cofactor is a structural neighbor of this
    *  entity.
@@ -11625,11 +11135,11 @@ export type RcsbTargetCofactors = {
    * N, Y
    *
    */
-  readonly neighbor_flag?: Maybe<Scalars['String']>;
+  readonly neighbor_flag?: Maybe<Scalars['String']['output']>;
   /** Patent numbers reporting the pharmacology or activity data. */
-  readonly patent_nos?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly patent_nos?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /** PubMed identifiers for literature supporting the pharmacology or activity data. */
-  readonly pubmed_ids?: Maybe<ReadonlyArray<Maybe<Scalars['Int']>>>;
+  readonly pubmed_ids?: Maybe<ReadonlyArray<Maybe<Scalars['Int']['output']>>>;
   /**
    * Resource providing target and cofactor data.
    *
@@ -11637,7 +11147,7 @@ export type RcsbTargetCofactors = {
    * ChEMBL, DrugBank, Pharos
    *
    */
-  readonly resource_name?: Maybe<Scalars['String']>;
+  readonly resource_name?: Maybe<Scalars['String']['output']>;
   /**
    * Version of the information distributed by the data resource.
    *
@@ -11645,7 +11155,7 @@ export type RcsbTargetCofactors = {
    * V4_0_2
    *
    */
-  readonly resource_version?: Maybe<Scalars['String']>;
+  readonly resource_version?: Maybe<Scalars['String']['output']>;
   /**
    * Identifier for the target assigned by the resource.
    *
@@ -11653,12 +11163,12 @@ export type RcsbTargetCofactors = {
    * P00734, CHEMBL2242
    *
    */
-  readonly target_resource_id?: Maybe<Scalars['String']>;
+  readonly target_resource_id?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbTargetNeighbors = {
   /** Alternate conformer identifier for the non-polymer entity instance. */
-  readonly alt_id?: Maybe<Scalars['String']>;
+  readonly alt_id?: Maybe<Scalars['String']['output']>;
   /**
    * The atom identifier for the non-polymer entity instance.
    *
@@ -11666,11 +11176,11 @@ export type RcsbTargetNeighbors = {
    * O1, N1, C1
    *
    */
-  readonly atom_id?: Maybe<Scalars['String']>;
+  readonly atom_id?: Maybe<Scalars['String']['output']>;
   /** Component identifier for the non-polymer entity instance. */
-  readonly comp_id?: Maybe<Scalars['String']>;
+  readonly comp_id?: Maybe<Scalars['String']['output']>;
   /** Distance value for this target interaction. */
-  readonly distance?: Maybe<Scalars['Float']>;
+  readonly distance?: Maybe<Scalars['Float']['output']>;
   /**
    * The entity instance identifier for the target of interaction.
    *
@@ -11678,7 +11188,7 @@ export type RcsbTargetNeighbors = {
    * A, B
    *
    */
-  readonly target_asym_id?: Maybe<Scalars['String']>;
+  readonly target_asym_id?: Maybe<Scalars['String']['output']>;
   /**
    * The atom identifier for the target of interaction.
    *
@@ -11686,9 +11196,9 @@ export type RcsbTargetNeighbors = {
    * OG, OE1, CD1
    *
    */
-  readonly target_atom_id?: Maybe<Scalars['String']>;
+  readonly target_atom_id?: Maybe<Scalars['String']['output']>;
   /** The author residue index for the target of interaction. */
-  readonly target_auth_seq_id?: Maybe<Scalars['Int']>;
+  readonly target_auth_seq_id?: Maybe<Scalars['Int']['output']>;
   /**
    * The chemical component identifier for the target of interaction.
    *
@@ -11696,7 +11206,7 @@ export type RcsbTargetNeighbors = {
    * ASN, TRP, SER
    *
    */
-  readonly target_comp_id?: Maybe<Scalars['String']>;
+  readonly target_comp_id?: Maybe<Scalars['String']['output']>;
   /**
    * The entity identifier for the target of interaction.
    *
@@ -11704,7 +11214,7 @@ export type RcsbTargetNeighbors = {
    * 1, 2
    *
    */
-  readonly target_entity_id?: Maybe<Scalars['String']>;
+  readonly target_entity_id?: Maybe<Scalars['String']['output']>;
   /**
    * A flag to indicate the nature of the target interaction is covalent or metal-coordination.
    *
@@ -11712,11 +11222,11 @@ export type RcsbTargetNeighbors = {
    * N, Y
    *
    */
-  readonly target_is_bound?: Maybe<Scalars['String']>;
+  readonly target_is_bound?: Maybe<Scalars['String']['output']>;
   /** Model identifier for the target of interaction. */
-  readonly target_model_id?: Maybe<Scalars['Int']>;
+  readonly target_model_id?: Maybe<Scalars['Int']['output']>;
   /** The sequence position for the target of interaction. */
-  readonly target_seq_id?: Maybe<Scalars['Int']>;
+  readonly target_seq_id?: Maybe<Scalars['Int']['output']>;
 };
 
 export type RcsbUniprotAlignments = {
@@ -11734,80 +11244,94 @@ export type RcsbUniprotAlignmentsCoreEntityAlignments = {
 };
 
 export type RcsbUniprotAnnotation = {
+  readonly additional_properties?: Maybe<ReadonlyArray<Maybe<RcsbUniprotAnnotationAdditionalProperties>>>;
   /** An identifier for the annotation. */
-  readonly annotation_id?: Maybe<Scalars['String']>;
+  readonly annotation_id?: Maybe<Scalars['String']['output']>;
   readonly annotation_lineage?: Maybe<ReadonlyArray<Maybe<RcsbUniprotAnnotationAnnotationLineage>>>;
   /** Identifies the version of the annotation assignment. */
-  readonly assignment_version?: Maybe<Scalars['String']>;
+  readonly assignment_version?: Maybe<Scalars['String']['output']>;
   /** A description for the annotation. */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /** A name for the annotation. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * Code identifying the individual, organization or program that
    *  assigned the annotation.
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   /**
    * A type or category of the annotation.
    *
    * Allowable values:
-   * disease, phenotype
+   * disease, phenotype, GO, InterPro
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
+};
+
+export type RcsbUniprotAnnotationAdditionalProperties = {
+  /**
+   * The additional property name
+   *
+   * Allowable values:
+   * INTERPRO_TYPE
+   *
+   */
+  readonly name?: Maybe<Scalars['String']['output']>;
+  /** The value(s) of the additional property */
+  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['ObjectScalar']['output']>>>;
 };
 
 export type RcsbUniprotAnnotationAnnotationLineage = {
   /** Members of the annotation lineage as parent lineage depth (1-N) */
-  readonly depth?: Maybe<Scalars['Int']>;
+  readonly depth?: Maybe<Scalars['Int']['output']>;
   /** Members of the annotation lineage as parent class identifiers. */
-  readonly id?: Maybe<Scalars['String']>;
+  readonly id?: Maybe<Scalars['String']['output']>;
   /** Members of the annotation lineage as parent class names. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbUniprotContainerIdentifiers = {
   readonly reference_sequence_identifiers?: Maybe<ReadonlyArray<Maybe<RcsbUniprotContainerIdentifiersReferenceSequenceIdentifiers>>>;
   /** Primary accession number of a given UniProtKB entry. */
-  readonly uniprot_id?: Maybe<Scalars['String']>;
+  readonly uniprot_id?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbUniprotContainerIdentifiersReferenceSequenceIdentifiers = {
   /** Reference database accession code */
-  readonly database_accession?: Maybe<Scalars['String']>;
+  readonly database_accession?: Maybe<Scalars['String']['output']>;
   /** Reference database identifier for the sequence isoform */
-  readonly database_isoform?: Maybe<Scalars['String']>;
+  readonly database_isoform?: Maybe<Scalars['String']['output']>;
   /** Reference database name */
-  readonly database_name?: Maybe<Scalars['String']>;
+  readonly database_name?: Maybe<Scalars['String']['output']>;
   /** Source of the reference database assignment */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbUniprotExternalReference = {
-  readonly provenance_source?: Maybe<Scalars['String']>;
-  readonly reference_id?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
+  readonly reference_id?: Maybe<Scalars['String']['output']>;
   /** Allowable values: IMPC, GTEX, PHAROS. */
-  readonly reference_name?: Maybe<Scalars['String']>;
+  readonly reference_name?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbUniprotFeature = {
   /** Identifies the version of the feature assignment. */
-  readonly assignment_version?: Maybe<Scalars['String']>;
+  readonly assignment_version?: Maybe<Scalars['String']['output']>;
   /** A description for the feature. */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /** An identifier for the feature. */
-  readonly feature_id?: Maybe<Scalars['String']>;
+  readonly feature_id?: Maybe<Scalars['String']['output']>;
   readonly feature_positions?: Maybe<ReadonlyArray<Maybe<RcsbUniprotFeatureFeaturePositions>>>;
   /** A name for the feature. */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * Code identifying the individual, organization or program that
    *  assigned the feature.
    */
-  readonly provenance_source?: Maybe<Scalars['String']>;
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
   /** Code residue coordinate system for the assigned feature. */
-  readonly reference_scheme?: Maybe<Scalars['String']>;
+  readonly reference_scheme?: Maybe<Scalars['String']['output']>;
   /**
    * A type or category of the feature.
    *
@@ -11815,18 +11339,20 @@ export type RcsbUniprotFeature = {
    * ACTIVE_SITE, BINDING_SITE, CALCIUM_BINDING_REGION, CHAIN, COMPOSITIONALLY_BIASED_REGION, CROSS_LINK, DNA_BINDING_REGION, DOMAIN, GLYCOSYLATION_SITE, INITIATOR_METHIONINE, LIPID_MOIETY_BINDING_REGION, METAL_ION_BINDING_SITE, MODIFIED_RESIDUE, MUTAGENESIS_SITE, NON_CONSECUTIVE_RESIDUES, NON_TERMINAL_RESIDUE, NUCLEOTIDE_PHOSPHATE_BINDING_REGION, PEPTIDE, PROPEPTIDE, REGION_OF_INTEREST, REPEAT, NON_STANDARD_AMINO_ACID, SEQUENCE_CONFLICT, SEQUENCE_VARIANT, SHORT_SEQUENCE_MOTIF, SIGNAL_PEPTIDE, SITE, SPLICE_VARIANT, TOPOLOGICAL_DOMAIN, TRANSIT_PEPTIDE, TRANSMEMBRANE_REGION, UNSURE_RESIDUE, ZINC_FINGER_REGION, INTRAMEMBRANE_REGION
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbUniprotFeatureFeaturePositions = {
   /** An identifier for the monomer(s) corresponding to the feature assignment. */
-  readonly beg_comp_id?: Maybe<Scalars['String']>;
+  readonly beg_comp_id?: Maybe<Scalars['String']['output']>;
   /** An identifier for the monomer at which this segment of the feature begins. */
-  readonly beg_seq_id: Scalars['Int'];
+  readonly beg_seq_id: Scalars['Int']['output'];
   /** An identifier for the monomer at which this segment of the feature ends. */
-  readonly end_seq_id?: Maybe<Scalars['Int']>;
+  readonly end_seq_id?: Maybe<Scalars['Int']['output']>;
   /** The value for the feature over this monomer segment. */
-  readonly value?: Maybe<Scalars['Float']>;
+  readonly value?: Maybe<Scalars['Float']['output']>;
+  /** The value(s) for the feature over this monomer segment. */
+  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['Float']['output']>>>;
 };
 
 export type RcsbUniprotKeyword = {
@@ -11837,7 +11363,7 @@ export type RcsbUniprotKeyword = {
    * KW-0275, KW-0597
    *
    */
-  readonly id?: Maybe<Scalars['String']>;
+  readonly id?: Maybe<Scalars['String']['output']>;
   /**
    * Human-readable keyword term.
    *
@@ -11845,7 +11371,7 @@ export type RcsbUniprotKeyword = {
    * Lipid metabolism, Phosphoprotein, Fatty acid biosynthesis
    *
    */
-  readonly value?: Maybe<Scalars['String']>;
+  readonly value?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbUniprotProtein = {
@@ -11856,22 +11382,22 @@ export type RcsbUniprotProtein = {
   readonly gene?: Maybe<ReadonlyArray<Maybe<RcsbUniprotProteinGene>>>;
   readonly name?: Maybe<RcsbUniprotProteinName>;
   /** Protein sequence data for canonical protein sequence. */
-  readonly sequence?: Maybe<Scalars['String']>;
+  readonly sequence?: Maybe<Scalars['String']['output']>;
   /** Taxonomy information on the organism that is the source of the protein sequence. */
   readonly source_organism?: Maybe<RcsbUniprotProteinSourceOrganism>;
 };
 
 export type RcsbUniprotProteinEc = {
-  readonly number?: Maybe<Scalars['String']>;
+  readonly number?: Maybe<Scalars['String']['output']>;
   /** Historical record of the data attribute. */
-  readonly provenance_code?: Maybe<Scalars['String']>;
+  readonly provenance_code?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbUniprotProteinFunction = {
   /** General function(s) of a protein. */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /** Historical record of the data attribute. */
-  readonly provenance_code?: Maybe<Scalars['String']>;
+  readonly provenance_code?: Maybe<Scalars['String']['output']>;
 };
 
 export type RcsbUniprotProteinGene = {
@@ -11880,7 +11406,7 @@ export type RcsbUniprotProteinGene = {
 
 export type RcsbUniprotProteinName = {
   /** Historical record of the data attribute. */
-  readonly provenance_code: Scalars['String'];
+  readonly provenance_code: Scalars['String']['output'];
   /**
    * Name that allows to unambiguously identify a protein.
    *
@@ -11888,16 +11414,16 @@ export type RcsbUniprotProteinName = {
    * Hemoglobin alpha
    *
    */
-  readonly value: Scalars['String'];
+  readonly value: Scalars['String']['output'];
 };
 
 export type RcsbUniprotProteinSourceOrganism = {
   /** Historical record of the data attribute. */
-  readonly provenance_code: Scalars['String'];
+  readonly provenance_code: Scalars['String']['output'];
   /** The scientific name of the organism in which a protein occurs. */
-  readonly scientific_name: Scalars['String'];
+  readonly scientific_name: Scalars['String']['output'];
   /** NCBI Taxonomy identifier for the organism in which a protein occurs. */
-  readonly taxonomy_id?: Maybe<Scalars['Int']>;
+  readonly taxonomy_id?: Maybe<Scalars['Int']['output']>;
 };
 
 export type Refine = {
@@ -11905,53 +11431,53 @@ export type Refine = {
    * The maximum isotropic displacement parameter (B value)
    *  found in the coordinate set.
    */
-  readonly B_iso_max?: Maybe<Scalars['Float']>;
+  readonly B_iso_max?: Maybe<Scalars['Float']['output']>;
   /**
    * The mean isotropic displacement parameter (B value)
    *  for the coordinate set.
    */
-  readonly B_iso_mean?: Maybe<Scalars['Float']>;
+  readonly B_iso_mean?: Maybe<Scalars['Float']['output']>;
   /**
    * The minimum isotropic displacement parameter (B value)
    *  found in the coordinate set.
    */
-  readonly B_iso_min?: Maybe<Scalars['Float']>;
+  readonly B_iso_min?: Maybe<Scalars['Float']['output']>;
   /**
    * The [1][1] element of the matrix that defines the overall
    *  anisotropic displacement model if one was refined for this
    *  structure.
    */
-  readonly aniso_B_1_1?: Maybe<Scalars['Float']>;
+  readonly aniso_B_1_1?: Maybe<Scalars['Float']['output']>;
   /**
    * The [1][2] element of the matrix that defines the overall
    *  anisotropic displacement model if one was refined for this
    *  structure.
    */
-  readonly aniso_B_1_2?: Maybe<Scalars['Float']>;
+  readonly aniso_B_1_2?: Maybe<Scalars['Float']['output']>;
   /**
    * The [1][3] element of the matrix that defines the overall
    *  anisotropic displacement model if one was refined for this
    *  structure.
    */
-  readonly aniso_B_1_3?: Maybe<Scalars['Float']>;
+  readonly aniso_B_1_3?: Maybe<Scalars['Float']['output']>;
   /**
    * The [2][2] element of the matrix that defines the overall
    *  anisotropic displacement model if one was refined for this
    *  structure.
    */
-  readonly aniso_B_2_2?: Maybe<Scalars['Float']>;
+  readonly aniso_B_2_2?: Maybe<Scalars['Float']['output']>;
   /**
    * The [2][3] element of the matrix that defines the overall
    *  anisotropic displacement model if one was refined for this
    *  structure.
    */
-  readonly aniso_B_2_3?: Maybe<Scalars['Float']>;
+  readonly aniso_B_2_3?: Maybe<Scalars['Float']['output']>;
   /**
    * The [3][3] element of the matrix that defines the overall
    *  anisotropic displacement model if one was refined for this
    *  structure.
    */
-  readonly aniso_B_3_3?: Maybe<Scalars['Float']>;
+  readonly aniso_B_3_3?: Maybe<Scalars['Float']['output']>;
   /**
    * The correlation coefficient between the observed and
    *              calculated structure factors for reflections included in
@@ -11970,7 +11496,7 @@ export type Refine = {
    *
    *              summation is over reflections included in the refinement
    */
-  readonly correlation_coeff_Fo_to_Fc?: Maybe<Scalars['Float']>;
+  readonly correlation_coeff_Fo_to_Fc?: Maybe<Scalars['Float']['output']>;
   /**
    * The correlation coefficient between the observed and
    *              calculated structure factors for reflections not included
@@ -11990,7 +11516,7 @@ export type Refine = {
    *               summation is over reflections not included
    *               in the refinement (free reflections)
    */
-  readonly correlation_coeff_Fo_to_Fc_free?: Maybe<Scalars['Float']>;
+  readonly correlation_coeff_Fo_to_Fc_free?: Maybe<Scalars['Float']['output']>;
   /**
    * Description of special aspects of the refinement process.
    *
@@ -11998,7 +11524,7 @@ export type Refine = {
    * HYDROGENS HAVE BEEN ADDED IN THE RIDING POSITIONS
    *
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * Residual factor R for reflections that satisfy the resolution
    *  limits established by _refine.ls_d_res_high and
@@ -12018,18 +11544,18 @@ export type Refine = {
    *
    *  sum is taken over the specified reflections
    */
-  readonly ls_R_factor_R_free?: Maybe<Scalars['Float']>;
+  readonly ls_R_factor_R_free?: Maybe<Scalars['Float']['output']>;
   /**
    * The estimated error in _refine.ls_R_factor_R_free.
    *  The method used to estimate the error is described in the
    *  item _refine.ls_R_factor_R_free_error_details.
    */
-  readonly ls_R_factor_R_free_error?: Maybe<Scalars['Float']>;
+  readonly ls_R_factor_R_free_error?: Maybe<Scalars['Float']['output']>;
   /**
    * Special aspects of the method used to estimated the error in
    *  _refine.ls_R_factor_R_free.
    */
-  readonly ls_R_factor_R_free_error_details?: Maybe<Scalars['String']>;
+  readonly ls_R_factor_R_free_error_details?: Maybe<Scalars['String']['output']>;
   /**
    * Residual factor R for reflections that satisfy the resolution
    *  limits established by _refine.ls_d_res_high and
@@ -12060,7 +11586,7 @@ export type Refine = {
    *
    *  sum is taken over the specified reflections
    */
-  readonly ls_R_factor_R_work?: Maybe<Scalars['Float']>;
+  readonly ls_R_factor_R_work?: Maybe<Scalars['Float']['output']>;
   /**
    * Residual factor R for all reflections that satisfy the resolution
    *  limits established by _refine.ls_d_res_high and
@@ -12075,7 +11601,7 @@ export type Refine = {
    *
    *  sum is taken over the specified reflections
    */
-  readonly ls_R_factor_all?: Maybe<Scalars['Float']>;
+  readonly ls_R_factor_all?: Maybe<Scalars['Float']['output']>;
   /**
    * Residual factor R for reflections that satisfy the resolution
    *  limits established by _refine.ls_d_res_high and
@@ -12102,19 +11628,19 @@ export type Refine = {
    *
    *  sum is taken over the specified reflections
    */
-  readonly ls_R_factor_obs?: Maybe<Scalars['Float']>;
+  readonly ls_R_factor_obs?: Maybe<Scalars['Float']['output']>;
   /**
    * The smallest value for the interplanar spacings for the
    *  reflection data used in the refinement in angstroms. This is
    *  called the highest resolution.
    */
-  readonly ls_d_res_high?: Maybe<Scalars['Float']>;
+  readonly ls_d_res_high?: Maybe<Scalars['Float']['output']>;
   /**
    * The largest value for the interplanar spacings for
    *  the reflection data used in the refinement in angstroms.
    *  This is called the lowest resolution.
    */
-  readonly ls_d_res_low?: Maybe<Scalars['Float']>;
+  readonly ls_d_res_low?: Maybe<Scalars['Float']['output']>;
   /**
    * Type of matrix used to accumulate the least-squares derivatives.
    *
@@ -12122,7 +11648,7 @@ export type Refine = {
    * atomblock, diagonal, full, fullcycle, sparse, userblock
    *
    */
-  readonly ls_matrix_type?: Maybe<Scalars['String']>;
+  readonly ls_matrix_type?: Maybe<Scalars['String']['output']>;
   /**
    * The number of parameters refined in the least-squares process.
    *  If possible, this number should include some contribution from
@@ -12134,7 +11660,7 @@ export type Refine = {
    *  to this number, and to the goodness-of-fit calculation,
    *  difficult to assess.
    */
-  readonly ls_number_parameters?: Maybe<Scalars['Int']>;
+  readonly ls_number_parameters?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of reflections that satisfy the resolution limits
    *  established by _refine.ls_d_res_high and _refine.ls_d_res_low
@@ -12145,7 +11671,7 @@ export type Refine = {
    *  Details of how reflections were assigned to the working and
    *  test sets are given in _reflns.R_free_details.
    */
-  readonly ls_number_reflns_R_free?: Maybe<Scalars['Int']>;
+  readonly ls_number_reflns_R_free?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of reflections that satisfy the resolution limits
    *  established by _refine.ls_d_res_high and _refine.ls_d_res_low
@@ -12156,19 +11682,19 @@ export type Refine = {
    *  Details of how reflections were assigned to the working and
    *  test sets are given in _reflns.R_free_details.
    */
-  readonly ls_number_reflns_R_work?: Maybe<Scalars['Int']>;
+  readonly ls_number_reflns_R_work?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of reflections that satisfy the resolution limits
    *  established by _refine.ls_d_res_high and _refine.ls_d_res_low.
    */
-  readonly ls_number_reflns_all?: Maybe<Scalars['Int']>;
+  readonly ls_number_reflns_all?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of reflections that satisfy the resolution limits
    *  established by _refine.ls_d_res_high and _refine.ls_d_res_low
    *  and the observation limit established by
    *  _reflns.observed_criterion.
    */
-  readonly ls_number_reflns_obs?: Maybe<Scalars['Int']>;
+  readonly ls_number_reflns_obs?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of restrained parameters. These are parameters which
    *  are not directly dependent on another refined parameter.
@@ -12178,7 +11704,7 @@ export type Refine = {
    *  A general description of refinement constraints may appear in
    *  _refine.details.
    */
-  readonly ls_number_restraints?: Maybe<Scalars['Int']>;
+  readonly ls_number_restraints?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of reflections that satisfy the resolution limits
    *  established by _refine.ls_d_res_high and _refine.ls_d_res_low
@@ -12189,7 +11715,7 @@ export type Refine = {
    *  expressed as a percentage of the number of geometrically
    *  observable reflections that satisfy the resolution limits.
    */
-  readonly ls_percent_reflns_R_free?: Maybe<Scalars['Float']>;
+  readonly ls_percent_reflns_R_free?: Maybe<Scalars['Float']['output']>;
   /**
    * The number of reflections that satisfy the resolution limits
    *  established by _refine.ls_d_res_high and _refine.ls_d_res_low
@@ -12198,7 +11724,7 @@ export type Refine = {
    *  number of geometrically observable reflections that satisfy
    *  the resolution limits.
    */
-  readonly ls_percent_reflns_obs?: Maybe<Scalars['Float']>;
+  readonly ls_percent_reflns_obs?: Maybe<Scalars['Float']['output']>;
   /**
    * The ratio of the total number of observations of the
    *  reflections that satisfy the resolution limits established by
@@ -12206,7 +11732,7 @@ export type Refine = {
    *  of crystallographically unique reflections that satisfy the
    *  same limits.
    */
-  readonly ls_redundancy_reflns_all?: Maybe<Scalars['Float']>;
+  readonly ls_redundancy_reflns_all?: Maybe<Scalars['Float']['output']>;
   /**
    * The ratio of the total number of observations of the
    *  reflections that satisfy the resolution limits established by
@@ -12215,7 +11741,7 @@ export type Refine = {
    *  the number of crystallographically unique reflections that
    *  satisfy the same limits.
    */
-  readonly ls_redundancy_reflns_obs?: Maybe<Scalars['Float']>;
+  readonly ls_redundancy_reflns_obs?: Maybe<Scalars['Float']['output']>;
   /**
    * Weighted residual factor wR for reflections that satisfy the
    *  resolution limits established by _refine.ls_d_res_high and
@@ -12238,7 +11764,7 @@ export type Refine = {
    *
    *  sum is taken over the specified reflections
    */
-  readonly ls_wR_factor_R_free?: Maybe<Scalars['Float']>;
+  readonly ls_wR_factor_R_free?: Maybe<Scalars['Float']['output']>;
   /**
    * Weighted residual factor wR for reflections that satisfy the
    *  resolution limits established by _refine.ls_d_res_high and
@@ -12261,11 +11787,11 @@ export type Refine = {
    *
    *  sum is taken over the specified reflections
    */
-  readonly ls_wR_factor_R_work?: Maybe<Scalars['Float']>;
+  readonly ls_wR_factor_R_work?: Maybe<Scalars['Float']['output']>;
   /** The maximum value for occupancy found in the coordinate set. */
-  readonly occupancy_max?: Maybe<Scalars['Float']>;
+  readonly occupancy_max?: Maybe<Scalars['Float']['output']>;
   /** The minimum value for occupancy found in the coordinate set. */
-  readonly occupancy_min?: Maybe<Scalars['Float']>;
+  readonly occupancy_min?: Maybe<Scalars['Float']['output']>;
   /**
    * Average figure of merit of phases of reflections not included
    *  in the refinement.
@@ -12293,7 +11819,7 @@ export type Refine = {
    *  Ref: Murshudov, G. N., Vagin, A. A. & Dodson, E. J. (1997).
    *       Acta Cryst. D53, 240-255.
    */
-  readonly overall_FOM_free_R_set?: Maybe<Scalars['Float']>;
+  readonly overall_FOM_free_R_set?: Maybe<Scalars['Float']['output']>;
   /**
    * Average figure of merit of phases of reflections included in
    *  the refinement.
@@ -12321,7 +11847,7 @@ export type Refine = {
    *  Ref: Murshudov, G. N., Vagin, A. A. & Dodson, E. J. (1997).
    *       Acta Cryst. D53, 240-255.
    */
-  readonly overall_FOM_work_R_set?: Maybe<Scalars['Float']>;
+  readonly overall_FOM_work_R_set?: Maybe<Scalars['Float']['output']>;
   /**
    * The overall standard uncertainty (estimated standard deviation)
    *            of the displacement parameters based on a maximum-likelihood
@@ -12368,7 +11894,7 @@ export type Refine = {
    *
    *                http://www.ccp4.ac.uk/newsletters/newsletter33/murshudov.html
    */
-  readonly overall_SU_B?: Maybe<Scalars['Float']>;
+  readonly overall_SU_B?: Maybe<Scalars['Float']['output']>;
   /**
    * The overall standard uncertainty (estimated standard deviation)
    *            of the positional parameters based on a maximum likelihood
@@ -12415,7 +11941,7 @@ export type Refine = {
    *
    *                http://www.ccp4.ac.uk/newsletters/newsletter33/murshudov.html
    */
-  readonly overall_SU_ML?: Maybe<Scalars['Float']>;
+  readonly overall_SU_ML?: Maybe<Scalars['Float']['output']>;
   /**
    * The overall standard uncertainty (estimated standard deviation)
    *  of the displacement parameters based on the crystallographic
@@ -12448,7 +11974,7 @@ export type Refine = {
    *
    *      http://www.ccp4.ac.uk/newsletters/newsletter33/murshudov.html
    */
-  readonly overall_SU_R_Cruickshank_DPI?: Maybe<Scalars['Float']>;
+  readonly overall_SU_R_Cruickshank_DPI?: Maybe<Scalars['Float']['output']>;
   /**
    * The overall standard uncertainty (estimated standard deviation)
    *  of the displacement parameters based on the free R value.
@@ -12480,7 +12006,7 @@ export type Refine = {
    *
    *      http://www.ccp4.ac.uk/newsletters/newsletter33/murshudov.html
    */
-  readonly overall_SU_R_free?: Maybe<Scalars['Float']>;
+  readonly overall_SU_R_free?: Maybe<Scalars['Float']['output']>;
   /**
    * Details of the manner in which the cross validation
    *  reflections were selected.
@@ -12489,7 +12015,7 @@ export type Refine = {
    * Random selection
    *
    */
-  readonly pdbx_R_Free_selection_details?: Maybe<Scalars['String']>;
+  readonly pdbx_R_Free_selection_details?: Maybe<Scalars['String']['output']>;
   /**
    * A flag for TLS refinements identifying the type of atomic displacement parameters stored
    *  in _atom_site.B_iso_or_equiv.
@@ -12498,7 +12024,7 @@ export type Refine = {
    * LIKELY RESIDUAL, UNVERIFIED
    *
    */
-  readonly pdbx_TLS_residual_ADP_flag?: Maybe<Scalars['String']>;
+  readonly pdbx_TLS_residual_ADP_flag?: Maybe<Scalars['String']['output']>;
   /**
    * Average Fourier Shell Correlation (avgFSC) between model and
    *  observed structure factors for reflections not included in refinement.
@@ -12534,7 +12060,7 @@ export type Refine = {
    *        and contrast loss in single-particle electron cryomicroscopy.
    *        Journal of Molecular Biology. 2003;333(4):721-745, equation (A6).
    */
-  readonly pdbx_average_fsc_free?: Maybe<Scalars['Float']>;
+  readonly pdbx_average_fsc_free?: Maybe<Scalars['Float']['output']>;
   /**
    * Overall average Fourier Shell Correlation (avgFSC) between model and
    *  observed structure factors for all reflections.
@@ -12570,7 +12096,7 @@ export type Refine = {
    *        and contrast loss in single-particle electron cryomicroscopy.
    *        Journal of Molecular Biology. 2003;333(4):721-745, equation (A6).
    */
-  readonly pdbx_average_fsc_overall?: Maybe<Scalars['Float']>;
+  readonly pdbx_average_fsc_overall?: Maybe<Scalars['Float']['output']>;
   /**
    * Average Fourier Shell Correlation (avgFSC) between model and
    *  observed structure factors for reflections included in refinement.
@@ -12606,9 +12132,9 @@ export type Refine = {
    *        and contrast loss in single-particle electron cryomicroscopy.
    *        Journal of Molecular Biology. 2003;333(4):721-745, equation (A6).
    */
-  readonly pdbx_average_fsc_work?: Maybe<Scalars['Float']>;
+  readonly pdbx_average_fsc_work?: Maybe<Scalars['Float']['output']>;
   /** Value of F at "high end" of data cutoff. */
-  readonly pdbx_data_cutoff_high_absF?: Maybe<Scalars['Float']>;
+  readonly pdbx_data_cutoff_high_absF?: Maybe<Scalars['Float']['output']>;
   /**
    * Value of RMS |F| used as high data cutoff.
    *
@@ -12616,7 +12142,7 @@ export type Refine = {
    * null
    *
    */
-  readonly pdbx_data_cutoff_high_rms_absF?: Maybe<Scalars['Float']>;
+  readonly pdbx_data_cutoff_high_rms_absF?: Maybe<Scalars['Float']['output']>;
   /**
    * Value of F at "low end" of data cutoff.
    *
@@ -12624,13 +12150,13 @@ export type Refine = {
    * null
    *
    */
-  readonly pdbx_data_cutoff_low_absF?: Maybe<Scalars['Float']>;
+  readonly pdbx_data_cutoff_low_absF?: Maybe<Scalars['Float']['output']>;
   /**
    * An identifier for the diffraction data set used in this refinement.
    *
    *  Multiple diffraction data sets specified as a comma separated list.
    */
-  readonly pdbx_diffrn_id?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly pdbx_diffrn_id?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /**
    * Whether the structure was refined with indvidual
    * isotropic, anisotropic or overall temperature factor.
@@ -12639,7 +12165,7 @@ export type Refine = {
    * Isotropic, Overall
    *
    */
-  readonly pdbx_isotropic_thermal_model?: Maybe<Scalars['String']>;
+  readonly pdbx_isotropic_thermal_model?: Maybe<Scalars['String']['output']>;
   /**
    * Whether the cross validataion method was used through
    * out or only at the end.
@@ -12648,13 +12174,13 @@ export type Refine = {
    * FREE R-VALUE
    *
    */
-  readonly pdbx_ls_cross_valid_method?: Maybe<Scalars['String']>;
+  readonly pdbx_ls_cross_valid_method?: Maybe<Scalars['String']['output']>;
   /** Data cutoff (SIGMA(F)) */
-  readonly pdbx_ls_sigma_F?: Maybe<Scalars['Float']>;
+  readonly pdbx_ls_sigma_F?: Maybe<Scalars['Float']['output']>;
   /** Data cutoff (SIGMA(F^2)) */
-  readonly pdbx_ls_sigma_Fsqd?: Maybe<Scalars['Float']>;
+  readonly pdbx_ls_sigma_Fsqd?: Maybe<Scalars['Float']['output']>;
   /** Data cutoff (SIGMA(I)) */
-  readonly pdbx_ls_sigma_I?: Maybe<Scalars['Float']>;
+  readonly pdbx_ls_sigma_I?: Maybe<Scalars['Float']['output']>;
   /**
    * Method(s) used to determine the structure.
    *
@@ -12662,14 +12188,14 @@ export type Refine = {
    * AB INITIO PHASING, DM, ISAS, ISIR, ISIRAS, MAD, MIR, MIRAS, MR, SIR, SIRAS
    *
    */
-  readonly pdbx_method_to_determine_struct?: Maybe<Scalars['String']>;
+  readonly pdbx_method_to_determine_struct?: Maybe<Scalars['String']['output']>;
   /**
    * Overall estimated standard uncertainties of positional
    *  parameters based on R value.
    */
-  readonly pdbx_overall_ESU_R?: Maybe<Scalars['Float']>;
+  readonly pdbx_overall_ESU_R?: Maybe<Scalars['Float']['output']>;
   /** Overall estimated standard uncertainties of positional parameters based on R free value. */
-  readonly pdbx_overall_ESU_R_Free?: Maybe<Scalars['Float']>;
+  readonly pdbx_overall_ESU_R_Free?: Maybe<Scalars['Float']['output']>;
   /**
    * The overall standard uncertainty (estimated standard deviation)
    *  of the displacement parameters based on the crystallographic
@@ -12678,7 +12204,7 @@ export type Refine = {
    *
    *  Ref: Blow, D (2002) Acta Cryst. D58, 792-797
    */
-  readonly pdbx_overall_SU_R_Blow_DPI?: Maybe<Scalars['Float']>;
+  readonly pdbx_overall_SU_R_Blow_DPI?: Maybe<Scalars['Float']['output']>;
   /**
    * The overall standard uncertainty (estimated standard deviation)
    *  of the displacement parameters based on the crystallographic
@@ -12687,7 +12213,7 @@ export type Refine = {
    *
    *  Ref: Blow, D (2002) Acta Cryst. D58, 792-797
    */
-  readonly pdbx_overall_SU_R_free_Blow_DPI?: Maybe<Scalars['Float']>;
+  readonly pdbx_overall_SU_R_free_Blow_DPI?: Maybe<Scalars['Float']['output']>;
   /**
    * The overall standard uncertainty (estimated standard deviation)
    *  of the displacement parameters based on the crystallographic
@@ -12696,7 +12222,7 @@ export type Refine = {
    *
    *  Ref: Cruickshank, D. W. J. (1999). Acta Cryst. D55, 583-601.
    */
-  readonly pdbx_overall_SU_R_free_Cruickshank_DPI?: Maybe<Scalars['Float']>;
+  readonly pdbx_overall_SU_R_free_Cruickshank_DPI?: Maybe<Scalars['Float']['output']>;
   /**
    * The overall phase error for all reflections after refinement using
    *  the current refinement target.
@@ -12705,19 +12231,19 @@ export type Refine = {
    * null
    *
    */
-  readonly pdbx_overall_phase_error?: Maybe<Scalars['Float']>;
+  readonly pdbx_overall_phase_error?: Maybe<Scalars['Float']['output']>;
   /**
    * This data item uniquely identifies a refinement within an entry.
    *  _refine.pdbx_refine_id can be used to distinguish the results of
    *  joint refinements.
    */
-  readonly pdbx_refine_id: Scalars['String'];
+  readonly pdbx_refine_id: Scalars['String']['output'];
   /** For bulk solvent mask calculation, the amount that the ionic radii of atoms, which can be ions, are increased used. */
-  readonly pdbx_solvent_ion_probe_radii?: Maybe<Scalars['Float']>;
+  readonly pdbx_solvent_ion_probe_radii?: Maybe<Scalars['Float']['output']>;
   /** For bulk solvent mask calculation, amount mask is shrunk after taking away atoms with new radii and a constant value assigned to this new region. */
-  readonly pdbx_solvent_shrinkage_radii?: Maybe<Scalars['Float']>;
+  readonly pdbx_solvent_shrinkage_radii?: Maybe<Scalars['Float']['output']>;
   /** For bulk solvent mask calculation, the value by which the vdw radii of non-ion atoms (like carbon) are increased and used. */
-  readonly pdbx_solvent_vdw_probe_radii?: Maybe<Scalars['Float']>;
+  readonly pdbx_solvent_vdw_probe_radii?: Maybe<Scalars['Float']['output']>;
   /**
    * Starting model for refinement.  Starting model for
    *  molecular replacement should refer to a previous
@@ -12727,16 +12253,16 @@ export type Refine = {
    * 1XYZ, 2XYZ, BDL001
    *
    */
-  readonly pdbx_starting_model?: Maybe<Scalars['String']>;
+  readonly pdbx_starting_model?: Maybe<Scalars['String']['output']>;
   /**
    * Special case of stereochemistry target values used
    * in SHELXL refinement.
    */
-  readonly pdbx_stereochem_target_val_spec_case?: Maybe<Scalars['String']>;
+  readonly pdbx_stereochem_target_val_spec_case?: Maybe<Scalars['String']['output']>;
   /** Stereochemistry target values used in refinement. */
-  readonly pdbx_stereochemistry_target_values?: Maybe<Scalars['String']>;
+  readonly pdbx_stereochemistry_target_values?: Maybe<Scalars['String']['output']>;
   /** Special aspects of the solvent model used during refinement. */
-  readonly solvent_model_details?: Maybe<Scalars['String']>;
+  readonly solvent_model_details?: Maybe<Scalars['String']['output']>;
   /**
    * The value of the BSOL solvent-model parameter describing
    *  the average isotropic displacement parameter of disordered
@@ -12754,7 +12280,7 @@ export type Refine = {
    *
    *  Ref: Tronrud, D. E. (1997). Methods Enzymol. 277, 243-268.
    */
-  readonly solvent_model_param_bsol?: Maybe<Scalars['Float']>;
+  readonly solvent_model_param_bsol?: Maybe<Scalars['Float']['output']>;
   /**
    * The value of the KSOL solvent-model parameter describing
    *  the ratio of the electron density in the bulk solvent to the
@@ -12772,7 +12298,7 @@ export type Refine = {
    *
    *  Ref: Tronrud, D. E. (1997). Methods Enzymol. 277, 243-268.
    */
-  readonly solvent_model_param_ksol?: Maybe<Scalars['Float']>;
+  readonly solvent_model_param_ksol?: Maybe<Scalars['Float']['output']>;
 };
 
 export type RefineAnalyze = {
@@ -12785,7 +12311,7 @@ export type RefineAnalyze = {
    *  dans la determination des structures cristallines. Acta
    *  Cryst. 5, 802-810.
    */
-  readonly Luzzati_coordinate_error_free?: Maybe<Scalars['Float']>;
+  readonly Luzzati_coordinate_error_free?: Maybe<Scalars['Float']['output']>;
   /**
    * The estimated coordinate error obtained from the plot of
    *  the R value versus sin(theta)/lambda for reflections classified
@@ -12795,7 +12321,7 @@ export type RefineAnalyze = {
    *  dans la determination des structures cristallines. Acta
    *  Cryst. 5, 802-810.
    */
-  readonly Luzzati_coordinate_error_obs?: Maybe<Scalars['Float']>;
+  readonly Luzzati_coordinate_error_obs?: Maybe<Scalars['Float']['output']>;
   /**
    * The value of the low-resolution cutoff used in constructing the
    *  Luzzati plot for reflections treated as a test set during
@@ -12805,7 +12331,7 @@ export type RefineAnalyze = {
    *  dans la determination des structures cristallines. Acta
    *  Cryst. 5, 802-810.
    */
-  readonly Luzzati_d_res_low_free?: Maybe<Scalars['Float']>;
+  readonly Luzzati_d_res_low_free?: Maybe<Scalars['Float']['output']>;
   /**
    * The value of the low-resolution cutoff used in
    *  constructing the Luzzati plot for reflections classified as
@@ -12815,7 +12341,7 @@ export type RefineAnalyze = {
    *  dans la determination des structures cristallines. Acta
    *  Cryst. 5, 802-810.
    */
-  readonly Luzzati_d_res_low_obs?: Maybe<Scalars['Float']>;
+  readonly Luzzati_d_res_low_obs?: Maybe<Scalars['Float']['output']>;
   /**
    * The value of sigma~a~ used in constructing the Luzzati plot for
    *  the reflections treated as a test set during refinement.
@@ -12826,7 +12352,7 @@ export type RefineAnalyze = {
    *  dans la determination des structures cristallines. Acta
    *  Cryst. 5, 802-810.
    */
-  readonly Luzzati_sigma_a_free?: Maybe<Scalars['Float']>;
+  readonly Luzzati_sigma_a_free?: Maybe<Scalars['Float']['output']>;
   /**
    * The value of sigma~a~ used in constructing the Luzzati plot for
    *  reflections classified as observed. Details of the
@@ -12837,30 +12363,30 @@ export type RefineAnalyze = {
    *  dans la determination des structures cristallines. Acta
    *  Cryst. 5, 802-810.
    */
-  readonly Luzzati_sigma_a_obs?: Maybe<Scalars['Float']>;
+  readonly Luzzati_sigma_a_obs?: Maybe<Scalars['Float']['output']>;
   /**
    * The number of discretely disordered residues in the refined
    *  model.
    */
-  readonly number_disordered_residues?: Maybe<Scalars['Float']>;
+  readonly number_disordered_residues?: Maybe<Scalars['Float']['output']>;
   /**
    * The sum of the occupancies of the hydrogen atoms in the refined
    *  model.
    */
-  readonly occupancy_sum_hydrogen?: Maybe<Scalars['Float']>;
+  readonly occupancy_sum_hydrogen?: Maybe<Scalars['Float']['output']>;
   /**
    * The sum of the occupancies of the non-hydrogen atoms in the
    *   refined model.
    */
-  readonly occupancy_sum_non_hydrogen?: Maybe<Scalars['Float']>;
+  readonly occupancy_sum_non_hydrogen?: Maybe<Scalars['Float']['output']>;
   /** record the high resolution for calculating Luzzati statistics. */
-  readonly pdbx_Luzzati_d_res_high_obs?: Maybe<Scalars['Float']>;
+  readonly pdbx_Luzzati_d_res_high_obs?: Maybe<Scalars['Float']['output']>;
   /**
    * This data item uniquely identifies a refinement within an entry.
    *  _refine_analyze.pdbx_refine_id can be used to distinguish the results
    *  of joint refinements.
    */
-  readonly pdbx_refine_id: Scalars['String'];
+  readonly pdbx_refine_id: Scalars['String']['output'];
 };
 
 export type RefineHist = {
@@ -12871,47 +12397,47 @@ export type RefineHist = {
    *  Note that this item need not be a number; it can be any unique
    *  identifier.
    */
-  readonly cycle_id: Scalars['String'];
+  readonly cycle_id: Scalars['String']['output'];
   /**
    * The lowest value for the interplanar spacings for the
    *  reflection data for this cycle of refinement. This is called
    *  the highest resolution.
    */
-  readonly d_res_high?: Maybe<Scalars['Float']>;
+  readonly d_res_high?: Maybe<Scalars['Float']['output']>;
   /**
    * The highest value for the interplanar spacings for the
    *  reflection data for this cycle of refinement. This is
    *  called the lowest resolution.
    */
-  readonly d_res_low?: Maybe<Scalars['Float']>;
+  readonly d_res_low?: Maybe<Scalars['Float']['output']>;
   /**
    * The number of solvent atoms that were included in the model at
    *  this cycle of the refinement.
    */
-  readonly number_atoms_solvent?: Maybe<Scalars['Int']>;
+  readonly number_atoms_solvent?: Maybe<Scalars['Int']['output']>;
   /**
    * The total number of atoms that were included in the model at
    *  this cycle of the refinement.
    */
-  readonly number_atoms_total?: Maybe<Scalars['Int']>;
+  readonly number_atoms_total?: Maybe<Scalars['Int']['output']>;
   /** Mean isotropic B-value for ligand molecules included in refinement. */
-  readonly pdbx_B_iso_mean_ligand?: Maybe<Scalars['Float']>;
+  readonly pdbx_B_iso_mean_ligand?: Maybe<Scalars['Float']['output']>;
   /** Mean isotropic B-value for solvent molecules included in refinement. */
-  readonly pdbx_B_iso_mean_solvent?: Maybe<Scalars['Float']>;
+  readonly pdbx_B_iso_mean_solvent?: Maybe<Scalars['Float']['output']>;
   /** Number of ligand atoms included in refinement */
-  readonly pdbx_number_atoms_ligand?: Maybe<Scalars['Int']>;
+  readonly pdbx_number_atoms_ligand?: Maybe<Scalars['Int']['output']>;
   /** Number of nucleic atoms included in refinement */
-  readonly pdbx_number_atoms_nucleic_acid?: Maybe<Scalars['Int']>;
+  readonly pdbx_number_atoms_nucleic_acid?: Maybe<Scalars['Int']['output']>;
   /** Number of protein atoms included in refinement */
-  readonly pdbx_number_atoms_protein?: Maybe<Scalars['Int']>;
+  readonly pdbx_number_atoms_protein?: Maybe<Scalars['Int']['output']>;
   /** Total number of polymer residues included in refinement. */
-  readonly pdbx_number_residues_total?: Maybe<Scalars['Int']>;
+  readonly pdbx_number_residues_total?: Maybe<Scalars['Int']['output']>;
   /**
    * This data item uniquely identifies a refinement within an entry.
    *  _refine_hist.pdbx_refine_id can be used to distinguish the results
    *  of joint refinements.
    */
-  readonly pdbx_refine_id: Scalars['String'];
+  readonly pdbx_refine_id: Scalars['String']['output'];
 };
 
 export type RefineLsRestr = {
@@ -12922,24 +12448,24 @@ export type RefineLsRestr = {
    *  bond distances may deviate by 0.018 \%A (r.m.s.) from ideal
    *  values in the current model.
    */
-  readonly dev_ideal?: Maybe<Scalars['Float']>;
+  readonly dev_ideal?: Maybe<Scalars['Float']['output']>;
   /**
    * For the given parameter type, the target root-mean-square
    *  deviation between the ideal values used as restraints in the
    *  least-squares refinement and the values obtained by refinement.
    */
-  readonly dev_ideal_target?: Maybe<Scalars['Float']>;
+  readonly dev_ideal_target?: Maybe<Scalars['Float']['output']>;
   /**
    * The number of parameters of this type subjected to restraint in
    *  least-squares refinement.
    */
-  readonly number?: Maybe<Scalars['Int']>;
+  readonly number?: Maybe<Scalars['Int']['output']>;
   /**
    * This data item uniquely identifies a refinement within an entry.
    *  _refine_ls_restr.pdbx_refine_id can be used to distinguish the results
    *  of joint refinements.
    */
-  readonly pdbx_refine_id: Scalars['String'];
+  readonly pdbx_refine_id: Scalars['String']['output'];
   /**
    * The functional form of the restraint function used in the least-squares
    *  refinement.
@@ -12948,7 +12474,7 @@ export type RefineLsRestr = {
    * SINUSOIDAL, HARMONIC, SEMIHARMONIC
    *
    */
-  readonly pdbx_restraint_function?: Maybe<Scalars['String']>;
+  readonly pdbx_restraint_function?: Maybe<Scalars['String']['output']>;
   /**
    * The type of the parameter being restrained.
    *  Explicit sets of data values are provided for the programs
@@ -12962,12 +12488,12 @@ export type RefineLsRestr = {
    * p_bond_d, p_angle_d, p_planar_d, p_xhbond_d, p_xhangle_d, p_hydrog_d, p_special_d, p_planar, p_chiral, p_singtor_nbd, p_multtor_nbd, p_xyhbond_nbd, p_xhyhbond_nbd, p_special_tor, p_planar_tor, p_staggered_tor, p_orthonormal_tor, p_mcbond_it, p_mcangle_it, p_scbond_it, p_scangle_it, p_xhbond_it, p_xhangle_it, p_special_it, RESTRAIN_Distances < 2.12, RESTRAIN_Distances 2.12 < D < 2.625, RESTRAIN_Distances > 2.625, RESTRAIN_Peptide Planes, RESTRAIN_Ring and other planes, RESTRAIN_rms diffs for Uiso atoms at dist 1.2-1.4, RESTRAIN_rms diffs for Uiso atoms at dist 1.4-1.6, RESTRAIN_rms diffs for Uiso atoms at dist 1.8-2.0, RESTRAIN_rms diffs for Uiso atoms at dist 2.0-2.2, RESTRAIN_rms diffs for Uiso atoms at dist 2.2-2.4, RESTRAIN_rms diffs for Uiso atoms at dist >2.4
    *
    */
-  readonly type: Scalars['String'];
+  readonly type: Scalars['String']['output'];
   /**
    * The weighting value applied to this type of restraint in
    *  the least-squares refinement.
    */
-  readonly weight?: Maybe<Scalars['Float']>;
+  readonly weight?: Maybe<Scalars['Float']['output']>;
 };
 
 export type Reflns = {
@@ -12975,7 +12501,7 @@ export type Reflns = {
    * The value of the overall isotropic displacement parameter
    *  estimated from the slope of the Wilson plot.
    */
-  readonly B_iso_Wilson_estimate?: Maybe<Scalars['Float']>;
+  readonly B_iso_Wilson_estimate?: Maybe<Scalars['Float']['output']>;
   /**
    * A description of the method by which a subset of reflections was
    *  selected for exclusion from refinement so as to be used in the
@@ -12989,7 +12515,7 @@ export type Reflns = {
    *                                   calculation of a 'free' R factor.
    *
    */
-  readonly R_free_details?: Maybe<Scalars['String']>;
+  readonly R_free_details?: Maybe<Scalars['String']['output']>;
   /**
    * Residual factor Rmerge for all reflections that satisfy the
    *  resolution limits established by _reflns.d_resolution_high
@@ -13006,7 +12532,7 @@ export type Reflns = {
    *  sum~i~ is taken over all reflections
    *  sum~j~ is taken over all observations of each reflection
    */
-  readonly Rmerge_F_all?: Maybe<Scalars['Float']>;
+  readonly Rmerge_F_all?: Maybe<Scalars['Float']['output']>;
   /**
    * Residual factor Rmerge for reflections that satisfy the
    *  resolution limits established by _reflns.d_resolution_high
@@ -13024,17 +12550,17 @@ export type Reflns = {
    *  sum~i~ is taken over all reflections
    *  sum~j~ is taken over all observations of each reflection
    */
-  readonly Rmerge_F_obs?: Maybe<Scalars['Float']>;
+  readonly Rmerge_F_obs?: Maybe<Scalars['Float']['output']>;
   /**
    * The smallest value in angstroms for the interplanar spacings
    *  for the reflection data. This is called the highest resolution.
    */
-  readonly d_resolution_high?: Maybe<Scalars['Float']>;
+  readonly d_resolution_high?: Maybe<Scalars['Float']['output']>;
   /**
    * The largest value in angstroms for the interplanar spacings
    *  for the reflection data. This is called the lowest resolution.
    */
-  readonly d_resolution_low?: Maybe<Scalars['Float']>;
+  readonly d_resolution_low?: Maybe<Scalars['Float']['output']>;
   /**
    * A description of special aspects of the data-reduction
    *  procedures.
@@ -13044,7 +12570,7 @@ export type Reflns = {
    *                                   reflections with I > sig(I).
    *
    */
-  readonly data_reduction_details?: Maybe<Scalars['String']>;
+  readonly data_reduction_details?: Maybe<Scalars['String']['output']>;
   /**
    * The method used for data reduction.
    *
@@ -13060,42 +12586,42 @@ export type Reflns = {
    *                                   Scaling used spherical harmonic coefficients.
    *
    */
-  readonly data_reduction_method?: Maybe<Scalars['String']>;
+  readonly data_reduction_method?: Maybe<Scalars['String']['output']>;
   /**
    * A description of reflection data not covered by other data
    *  names. This should include details of the Friedel pairs.
    */
-  readonly details?: Maybe<Scalars['String']>;
+  readonly details?: Maybe<Scalars['String']['output']>;
   /**
    * Maximum value of the Miller index h for the reflection data. This
    *  need not have the same value as _diffrn_reflns.limit_h_max.
    */
-  readonly limit_h_max?: Maybe<Scalars['Int']>;
+  readonly limit_h_max?: Maybe<Scalars['Int']['output']>;
   /**
    * Minimum value of the Miller index h for the reflection data. This
    *  need not have the same value as _diffrn_reflns.limit_h_min.
    */
-  readonly limit_h_min?: Maybe<Scalars['Int']>;
+  readonly limit_h_min?: Maybe<Scalars['Int']['output']>;
   /**
    * Maximum value of the Miller index k for the reflection data. This
    *  need not have the same value as _diffrn_reflns.limit_k_max.
    */
-  readonly limit_k_max?: Maybe<Scalars['Int']>;
+  readonly limit_k_max?: Maybe<Scalars['Int']['output']>;
   /**
    * Minimum value of the Miller index k for the reflection data. This
    *  need not have the same value as _diffrn_reflns.limit_k_min.
    */
-  readonly limit_k_min?: Maybe<Scalars['Int']>;
+  readonly limit_k_min?: Maybe<Scalars['Int']['output']>;
   /**
    * Maximum value of the Miller index l for the reflection data. This
    *  need not have the same value as _diffrn_reflns.limit_l_max.
    */
-  readonly limit_l_max?: Maybe<Scalars['Int']>;
+  readonly limit_l_max?: Maybe<Scalars['Int']['output']>;
   /**
    * Minimum value of the Miller index l for the reflection data. This
    *  need not have the same value as _diffrn_reflns.limit_l_min.
    */
-  readonly limit_l_min?: Maybe<Scalars['Int']>;
+  readonly limit_l_min?: Maybe<Scalars['Int']['output']>;
   /**
    * The total number of reflections in the REFLN list (not the
    *  DIFFRN_REFLN list). This number may contain Friedel-equivalent
@@ -13103,14 +12629,14 @@ export type Reflns = {
    *  procedures used. The item _reflns.details describes the
    *  reflection data.
    */
-  readonly number_all?: Maybe<Scalars['Int']>;
+  readonly number_all?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of reflections in the REFLN list (not the DIFFRN_REFLN
    *  list) classified as observed (see _reflns.observed_criterion).
    *  This number may contain Friedel-equivalent reflections according
    *  to the nature of the structure and the procedures used.
    */
-  readonly number_obs?: Maybe<Scalars['Int']>;
+  readonly number_obs?: Maybe<Scalars['Int']['output']>;
   /**
    * The criterion used to classify a reflection as 'observed'. This
    *  criterion is usually expressed in terms of a sigma(I) or
@@ -13120,37 +12646,37 @@ export type Reflns = {
    * >2sigma(I)
    *
    */
-  readonly observed_criterion?: Maybe<Scalars['String']>;
+  readonly observed_criterion?: Maybe<Scalars['String']['output']>;
   /**
    * The criterion used to classify a reflection as 'observed'
    *  expressed as an upper limit for the value of F.
    */
-  readonly observed_criterion_F_max?: Maybe<Scalars['Float']>;
+  readonly observed_criterion_F_max?: Maybe<Scalars['Float']['output']>;
   /**
    * The criterion used to classify a reflection as 'observed'
    *  expressed as a lower limit for the value of F.
    */
-  readonly observed_criterion_F_min?: Maybe<Scalars['Float']>;
+  readonly observed_criterion_F_min?: Maybe<Scalars['Float']['output']>;
   /**
    * The criterion used to classify a reflection as 'observed'
    *  expressed as an upper limit for the value of I.
    */
-  readonly observed_criterion_I_max?: Maybe<Scalars['Float']>;
+  readonly observed_criterion_I_max?: Maybe<Scalars['Float']['output']>;
   /**
    * The criterion used to classify a reflection as 'observed'
    *  expressed as a lower limit for the value of I.
    */
-  readonly observed_criterion_I_min?: Maybe<Scalars['Float']>;
+  readonly observed_criterion_I_min?: Maybe<Scalars['Float']['output']>;
   /**
    * The criterion used to classify a reflection as 'observed'
    *  expressed as a multiple of the value of sigma(F).
    */
-  readonly observed_criterion_sigma_F?: Maybe<Scalars['Float']>;
+  readonly observed_criterion_sigma_F?: Maybe<Scalars['Float']['output']>;
   /**
    * The criterion used to classify a reflection as 'observed'
    *  expressed as a multiple of the value of sigma(I).
    */
-  readonly observed_criterion_sigma_I?: Maybe<Scalars['Float']>;
+  readonly observed_criterion_sigma_I?: Maybe<Scalars['Float']['output']>;
   /**
    * The Pearson's correlation coefficient expressed as a decimal value
    *               between the average intensities from randomly selected
@@ -13158,7 +12684,7 @@ export type Reflns = {
    *
    * 	      Ref: Karplus & Diederichs (2012), Science 336, 1030-33
    */
-  readonly pdbx_CC_half?: Maybe<Scalars['Float']>;
+  readonly pdbx_CC_half?: Maybe<Scalars['Float']['output']>;
   /**
    * R split measures the agreement between the sets of intensities created by merging
    *               odd- and even-numbered images  from the overall data.
@@ -13166,12 +12692,12 @@ export type Reflns = {
    * 	      Ref: T. A. White, R. A. Kirian, A. V. Martin, A. Aquila, K. Nass, A. Barty
    *               and H. N. Chapman (2012), J. Appl. Cryst. 45, 335-341
    */
-  readonly pdbx_R_split?: Maybe<Scalars['Float']>;
+  readonly pdbx_R_split?: Maybe<Scalars['Float']['output']>;
   /**
    * The R value for merging intensities satisfying the observed
    *  criteria in this data set.
    */
-  readonly pdbx_Rmerge_I_obs?: Maybe<Scalars['Float']>;
+  readonly pdbx_Rmerge_I_obs?: Maybe<Scalars['Float']['output']>;
   /**
    * The precision-indicating merging R factor value Rpim,
    *  for merging all intensities in this data set.
@@ -13195,7 +12721,7 @@ export type Reflns = {
    *       30, 203-205.
    *       Weiss, M. S. (2001). J. Appl. Cryst. 34, 130-135.
    */
-  readonly pdbx_Rpim_I_all?: Maybe<Scalars['Float']>;
+  readonly pdbx_Rpim_I_all?: Maybe<Scalars['Float']['output']>;
   /**
    * The redundancy-independent merging R factor value Rrim,
    *               also denoted Rmeas, for merging all intensities in this
@@ -13220,7 +12746,7 @@ export type Reflns = {
    *                    30, 203-205.
    *                    Weiss, M. S. (2001). J. Appl. Cryst. 34, 130-135.
    */
-  readonly pdbx_Rrim_I_all?: Maybe<Scalars['Float']>;
+  readonly pdbx_Rrim_I_all?: Maybe<Scalars['Float']['output']>;
   /**
    * The R sym value as a decimal number.
    *
@@ -13228,33 +12754,33 @@ export type Reflns = {
    * null
    *
    */
-  readonly pdbx_Rsym_value?: Maybe<Scalars['Float']>;
+  readonly pdbx_Rsym_value?: Maybe<Scalars['Float']['output']>;
   /** Overall  Chi-squared statistic. */
-  readonly pdbx_chi_squared?: Maybe<Scalars['Float']>;
+  readonly pdbx_chi_squared?: Maybe<Scalars['Float']['output']>;
   /**
    * An identifier for the diffraction data set for this set of summary statistics.
    *
    *  Multiple diffraction data sets entered as a comma separated list.
    */
-  readonly pdbx_diffrn_id?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly pdbx_diffrn_id?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /**
    * The ratio of the average intensity to the average uncertainty,
    *  <I>/<sigma(I)>.
    */
-  readonly pdbx_netI_over_av_sigmaI?: Maybe<Scalars['Float']>;
+  readonly pdbx_netI_over_av_sigmaI?: Maybe<Scalars['Float']['output']>;
   /**
    * The mean of the ratio of the intensities to their
    *  standard uncertainties, <I/sigma(I)>.
    */
-  readonly pdbx_netI_over_sigmaI?: Maybe<Scalars['Float']>;
+  readonly pdbx_netI_over_sigmaI?: Maybe<Scalars['Float']['output']>;
   /** Total number of measured reflections. */
-  readonly pdbx_number_measured_all?: Maybe<Scalars['Int']>;
+  readonly pdbx_number_measured_all?: Maybe<Scalars['Int']['output']>;
   /** An ordinal identifier for this set of reflection statistics. */
-  readonly pdbx_ordinal: Scalars['Int'];
+  readonly pdbx_ordinal: Scalars['Int']['output'];
   /** Overall redundancy for this data set. */
-  readonly pdbx_redundancy?: Maybe<Scalars['Float']>;
+  readonly pdbx_redundancy?: Maybe<Scalars['Float']['output']>;
   /** Number of reflections rejected in scaling operations. */
-  readonly pdbx_scaling_rejects?: Maybe<Scalars['Int']>;
+  readonly pdbx_scaling_rejects?: Maybe<Scalars['Int']['output']>;
   /**
    * The percentage of geometrically possible reflections represented
    *  by reflections that satisfy the resolution limits established
@@ -13262,7 +12788,7 @@ export type Reflns = {
    *  the observation limit established by
    *  _reflns.observed_criterion.
    */
-  readonly percent_possible_obs?: Maybe<Scalars['Float']>;
+  readonly percent_possible_obs?: Maybe<Scalars['Float']['output']>;
   /**
    * The value of _reflns.phase_calculation_details describes a
    *  special details about calculation of phases in _refln.phase_calc.
@@ -13271,7 +12797,7 @@ export type Reflns = {
    * From model, NCS averaging, Solvent flipping, Solvent flattening, Multiple crystal averaging, Multiple phase modification, Other phase modification
    *
    */
-  readonly phase_calculation_details?: Maybe<Scalars['String']>;
+  readonly phase_calculation_details?: Maybe<Scalars['String']['output']>;
 };
 
 export type ReflnsShell = {
@@ -13291,7 +12817,7 @@ export type ReflnsShell = {
    *  sum~i~ is taken over all reflections
    *  sum~j~ is taken over all observations of each reflection
    */
-  readonly Rmerge_F_all?: Maybe<Scalars['Float']>;
+  readonly Rmerge_F_all?: Maybe<Scalars['Float']['output']>;
   /**
    * Residual factor Rmerge for reflections that satisfy the
    *  resolution limits established by _reflns_shell.d_res_high and
@@ -13309,7 +12835,7 @@ export type ReflnsShell = {
    *  sum~i~ is taken over all reflections
    *  sum~j~ is taken over all observations of each reflection
    */
-  readonly Rmerge_F_obs?: Maybe<Scalars['Float']>;
+  readonly Rmerge_F_obs?: Maybe<Scalars['Float']['output']>;
   /**
    * The value of Rmerge(I) for all reflections in a given shell.
    *
@@ -13324,7 +12850,7 @@ export type ReflnsShell = {
    *  sum~i~ is taken over all reflections
    *  sum~j~ is taken over all observations of each reflection
    */
-  readonly Rmerge_I_all?: Maybe<Scalars['Float']>;
+  readonly Rmerge_I_all?: Maybe<Scalars['Float']['output']>;
   /**
    * The value of Rmerge(I) for reflections classified as 'observed'
    *  (see _reflns.observed_criterion) in a given shell.
@@ -13340,25 +12866,25 @@ export type ReflnsShell = {
    *  sum~i~ is taken over all reflections
    *  sum~j~ is taken over all observations of each reflection
    */
-  readonly Rmerge_I_obs?: Maybe<Scalars['Float']>;
+  readonly Rmerge_I_obs?: Maybe<Scalars['Float']['output']>;
   /**
    * The smallest value in angstroms for the interplanar spacings
    *  for the reflections in this shell. This is called the highest
    *  resolution.
    */
-  readonly d_res_high?: Maybe<Scalars['Float']>;
+  readonly d_res_high?: Maybe<Scalars['Float']['output']>;
   /**
    * The highest value in angstroms for the interplanar spacings
    *  for the reflections in this shell. This is called the lowest
    *  resolution.
    */
-  readonly d_res_low?: Maybe<Scalars['Float']>;
+  readonly d_res_low?: Maybe<Scalars['Float']['output']>;
   /**
    * The ratio of the mean of the intensities of all reflections
    *  in this shell to the mean of the standard uncertainties of the
    *  intensities of all reflections in this shell.
    */
-  readonly meanI_over_sigI_all?: Maybe<Scalars['Float']>;
+  readonly meanI_over_sigI_all?: Maybe<Scalars['Float']['output']>;
   /**
    * The ratio of the mean of the intensities of the reflections
    *  classified as 'observed' (see _reflns.observed_criterion) in
@@ -13366,40 +12892,40 @@ export type ReflnsShell = {
    *  intensities of the 'observed' reflections in this
    *  shell.
    */
-  readonly meanI_over_sigI_obs?: Maybe<Scalars['Float']>;
+  readonly meanI_over_sigI_obs?: Maybe<Scalars['Float']['output']>;
   /**
    * The ratio of the mean of the intensities of all reflections
    *  in this shell to the mean of the standard uncertainties of the
    *  intensities of all reflections in this shell.
    */
-  readonly meanI_over_uI_all?: Maybe<Scalars['Float']>;
+  readonly meanI_over_uI_all?: Maybe<Scalars['Float']['output']>;
   /**
    * The total number of reflections measured for this
    *  shell.
    */
-  readonly number_measured_all?: Maybe<Scalars['Int']>;
+  readonly number_measured_all?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of reflections classified as 'observed'
    *  (see _reflns.observed_criterion) for this
    *  shell.
    */
-  readonly number_measured_obs?: Maybe<Scalars['Int']>;
+  readonly number_measured_obs?: Maybe<Scalars['Int']['output']>;
   /**
    * The number of unique reflections it is possible to measure in
    *  this shell.
    */
-  readonly number_possible?: Maybe<Scalars['Int']>;
+  readonly number_possible?: Maybe<Scalars['Int']['output']>;
   /**
    * The total number of measured reflections which are symmetry-
    *  unique after merging for this shell.
    */
-  readonly number_unique_all?: Maybe<Scalars['Int']>;
+  readonly number_unique_all?: Maybe<Scalars['Int']['output']>;
   /**
    * The total number of measured reflections classified as 'observed'
    *  (see _reflns.observed_criterion) which are symmetry-unique
    *  after merging for this shell.
    */
-  readonly number_unique_obs?: Maybe<Scalars['Int']>;
+  readonly number_unique_obs?: Maybe<Scalars['Int']['output']>;
   /**
    * The Pearson's correlation coefficient expressed as a decimal value
    *               between the average intensities from randomly selected
@@ -13407,7 +12933,7 @@ export type ReflnsShell = {
    *
    * 	      Ref: Karplus & Diederichs (2012), Science 336, 1030-33
    */
-  readonly pdbx_CC_half?: Maybe<Scalars['Float']>;
+  readonly pdbx_CC_half?: Maybe<Scalars['Float']['output']>;
   /**
    * R split measures the agreement between the sets of intensities created by merging
    *               odd- and even-numbered images from the data within the resolution shell.
@@ -13415,7 +12941,7 @@ export type ReflnsShell = {
    * 	      Ref: T. A. White, R. A. Kirian, A. V. Martin, A. Aquila, K. Nass,
    * 	      A. Barty and H. N. Chapman (2012), J. Appl. Cryst. 45, 335-341
    */
-  readonly pdbx_R_split?: Maybe<Scalars['Float']>;
+  readonly pdbx_R_split?: Maybe<Scalars['Float']['output']>;
   /**
    * The precision-indicating merging R factor value Rpim,
    *  for merging all intensities in a given shell.
@@ -13439,7 +12965,7 @@ export type ReflnsShell = {
    *       30, 203-205.
    *       Weiss, M. S. (2001). J. Appl. Cryst. 34, 130-135.
    */
-  readonly pdbx_Rpim_I_all?: Maybe<Scalars['Float']>;
+  readonly pdbx_Rpim_I_all?: Maybe<Scalars['Float']['output']>;
   /**
    * The redundancy-independent merging R factor value Rrim,
    *               also denoted Rmeas, for merging all intensities in a
@@ -13464,17 +12990,17 @@ export type ReflnsShell = {
    *                    30, 203-205.
    *                    Weiss, M. S. (2001). J. Appl. Cryst. 34, 130-135.
    */
-  readonly pdbx_Rrim_I_all?: Maybe<Scalars['Float']>;
+  readonly pdbx_Rrim_I_all?: Maybe<Scalars['Float']['output']>;
   /** R sym value in percent. */
-  readonly pdbx_Rsym_value?: Maybe<Scalars['Float']>;
+  readonly pdbx_Rsym_value?: Maybe<Scalars['Float']['output']>;
   /** Chi-squared statistic for this resolution shell. */
-  readonly pdbx_chi_squared?: Maybe<Scalars['Float']>;
+  readonly pdbx_chi_squared?: Maybe<Scalars['Float']['output']>;
   /**
    * An identifier for the diffraction data set corresponding to this resolution shell.
    *
    *  Multiple diffraction data sets specified as a comma separated list.
    */
-  readonly pdbx_diffrn_id?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  readonly pdbx_diffrn_id?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
   /**
    * The mean of the ratio of the intensities to their
    *  standard uncertainties of all reflections in the
@@ -13482,7 +13008,7 @@ export type ReflnsShell = {
    *
    *  _reflns_shell.pdbx_netI_over_sigmaI_all =  <I/sigma(I)>
    */
-  readonly pdbx_netI_over_sigmaI_all?: Maybe<Scalars['Float']>;
+  readonly pdbx_netI_over_sigmaI_all?: Maybe<Scalars['Float']['output']>;
   /**
    * The mean of the ratio of the intensities to their
    *  standard uncertainties of observed reflections
@@ -13490,29 +13016,29 @@ export type ReflnsShell = {
    *
    *  _reflns_shell.pdbx_netI_over_sigmaI_obs =  <I/sigma(I)>
    */
-  readonly pdbx_netI_over_sigmaI_obs?: Maybe<Scalars['Float']>;
+  readonly pdbx_netI_over_sigmaI_obs?: Maybe<Scalars['Float']['output']>;
   /** An ordinal identifier for this resolution shell. */
-  readonly pdbx_ordinal: Scalars['Int'];
+  readonly pdbx_ordinal: Scalars['Int']['output'];
   /** Redundancy for the current shell. */
-  readonly pdbx_redundancy?: Maybe<Scalars['Float']>;
+  readonly pdbx_redundancy?: Maybe<Scalars['Float']['output']>;
   /**
    * The number of rejected reflections in the resolution
    *  shell.  Reflections may be rejected from scaling
    *  by setting the observation criterion,
    *  _reflns.observed_criterion.
    */
-  readonly pdbx_rejects?: Maybe<Scalars['Int']>;
+  readonly pdbx_rejects?: Maybe<Scalars['Int']['output']>;
   /**
    * The percentage of geometrically possible reflections represented
    *  by all reflections measured for this shell.
    */
-  readonly percent_possible_all?: Maybe<Scalars['Float']>;
+  readonly percent_possible_all?: Maybe<Scalars['Float']['output']>;
   /**
    * The percentage of geometrically possible reflections represented
    *  by reflections classified as 'observed' (see
    *  _reflns.observed_criterion) for this shell.
    */
-  readonly percent_possible_obs?: Maybe<Scalars['Float']>;
+  readonly percent_possible_obs?: Maybe<Scalars['Float']['output']>;
 };
 
 export type Software = {
@@ -13520,7 +13046,7 @@ export type Software = {
    * This data item is a pointer to _citation.id in the CITATION
    *  category.
    */
-  readonly citation_id?: Maybe<Scalars['String']>;
+  readonly citation_id?: Maybe<Scalars['String']['output']>;
   /**
    * The classification of the program according to its
    *  major function.
@@ -13529,7 +13055,7 @@ export type Software = {
    * data collection, data reduction, phasing, model building, refinement, validation, other
    *
    */
-  readonly classification?: Maybe<Scalars['String']>;
+  readonly classification?: Maybe<Scalars['String']['output']>;
   /**
    * The recognized contact author of the software. This could be
    *  the original author, someone who has modified the code or
@@ -13540,7 +13066,7 @@ export type Software = {
    * T. Alwyn Jones, Axel Brunger
    *
    */
-  readonly contact_author?: Maybe<Scalars['String']>;
+  readonly contact_author?: Maybe<Scalars['String']['output']>;
   /**
    * The e-mail address of the person specified in
    *  _software.contact_author.
@@ -13549,7 +13075,7 @@ export type Software = {
    * bourne@sdsc.edu
    *
    */
-  readonly contact_author_email?: Maybe<Scalars['String']>;
+  readonly contact_author_email?: Maybe<Scalars['String']['output']>;
   /**
    * The date the software was released.
    *
@@ -13557,7 +13083,7 @@ export type Software = {
    * 1991-10-01, 1990-04-30
    *
    */
-  readonly date?: Maybe<Scalars['String']>;
+  readonly date?: Maybe<Scalars['String']['output']>;
   /**
    * Description of the software.
    *
@@ -13565,7 +13091,7 @@ export type Software = {
    * Uses method of restrained least squares
    *
    */
-  readonly description?: Maybe<Scalars['String']>;
+  readonly description?: Maybe<Scalars['String']['output']>;
   /**
    * The major computing language in which the software is
    *  coded.
@@ -13574,7 +13100,7 @@ export type Software = {
    * Ada, Awk, Basic, C, C++, C/C++, Fortran, Fortran 77, Fortran 90, Fortran_77, Java, Java & Fortran, Other, Pascal, Perl, Python, Python/C++, Tcl, assembler, csh, ksh, sh
    *
    */
-  readonly language?: Maybe<Scalars['String']>;
+  readonly language?: Maybe<Scalars['String']['output']>;
   /**
    * The URL for an Internet address at which
    *  details of the software can be found.
@@ -13583,7 +13109,7 @@ export type Software = {
    * http://rosebud.sdsc.edu/projects/pb/IUCr/software.html, ftp://ftp.sdsc.edu/pub/sdsc/biology/
    *
    */
-  readonly location?: Maybe<Scalars['String']>;
+  readonly location?: Maybe<Scalars['String']['output']>;
   /**
    * The name of the software.
    *
@@ -13591,7 +13117,7 @@ export type Software = {
    * Merlot, O, Xengen, X-plor
    *
    */
-  readonly name?: Maybe<Scalars['String']>;
+  readonly name?: Maybe<Scalars['String']['output']>;
   /**
    * The name of the operating system under which the software
    *  runs.
@@ -13600,9 +13126,9 @@ export type Software = {
    * Ultrix, OpenVMS, DOS, Windows 95, Windows NT, Irix, HPUX, DEC Unix
    *
    */
-  readonly os?: Maybe<Scalars['String']>;
+  readonly os?: Maybe<Scalars['String']['output']>;
   /** An ordinal index for this category */
-  readonly pdbx_ordinal: Scalars['Int'];
+  readonly pdbx_ordinal: Scalars['Int']['output'];
   /**
    * The classification of the software according to the most
    *  common types.
@@ -13611,7 +13137,7 @@ export type Software = {
    * filter, jiffy, library, other, package, program
    *
    */
-  readonly type?: Maybe<Scalars['String']>;
+  readonly type?: Maybe<Scalars['String']['output']>;
   /**
    * The version of the software.
    *
@@ -13619,7 +13145,7 @@ export type Software = {
    * v1.0, beta, 3.1-2, unknown
    *
    */
-  readonly version?: Maybe<Scalars['String']>;
+  readonly version?: Maybe<Scalars['String']['output']>;
 };
 
 export type Struct = {
@@ -13631,7 +13157,7 @@ export type Struct = {
    * N, Y
    *
    */
-  readonly pdbx_CASP_flag?: Maybe<Scalars['String']>;
+  readonly pdbx_CASP_flag?: Maybe<Scalars['String']['output']>;
   /**
    * An automatically generated descriptor for an NDB structure or
    *  the unstructured content of the PDB COMPND record.
@@ -13640,7 +13166,7 @@ export type Struct = {
    * Cytochrome b5, Regulatory protein RecX, Uridine kinase (E.C.2.7.1.48)
    *
    */
-  readonly pdbx_descriptor?: Maybe<Scalars['String']>;
+  readonly pdbx_descriptor?: Maybe<Scalars['String']['output']>;
   /**
    * Text description of the methodology which produced this
    *  model structure.
@@ -13650,7 +13176,7 @@ export type Struct = {
    * starting from PDB structure ID 1ABC.
    *
    */
-  readonly pdbx_model_details?: Maybe<Scalars['String']>;
+  readonly pdbx_model_details?: Maybe<Scalars['String']['output']>;
   /**
    * A description of the type of structure model.
    *
@@ -13658,7 +13184,7 @@ export type Struct = {
    * MINIMIZED AVERAGE
    *
    */
-  readonly pdbx_model_type_details?: Maybe<Scalars['String']>;
+  readonly pdbx_model_type_details?: Maybe<Scalars['String']['output']>;
   /**
    * A title for the data block. The author should attempt to convey
    *  the essence of the structure archived in the CIF in the title,
@@ -13668,7 +13194,7 @@ export type Struct = {
    * T4 lysozyme mutant - S32A, Rhinovirus 16 polymerase elongation complex (r1_form), Crystal structure of the OXA-10 W154A mutant at pH 9.0, Mutant structure of Thermus thermophilus HB8 uridine-cytidine kinase, Crystal structure of xylanase from Trichoderma longibrachiatum
    *
    */
-  readonly title?: Maybe<Scalars['String']>;
+  readonly title?: Maybe<Scalars['String']['output']>;
 };
 
 export type StructAsym = {
@@ -13680,17 +13206,17 @@ export type StructAsym = {
    * 1ABC
    *
    */
-  readonly pdbx_PDB_id?: Maybe<Scalars['String']>;
+  readonly pdbx_PDB_id?: Maybe<Scalars['String']['output']>;
   /**
    * This data item is a pointer to _atom_site.ndb_alias_strand_id the
    *  ATOM_SITE category.
    */
-  readonly pdbx_alt_id?: Maybe<Scalars['String']>;
+  readonly pdbx_alt_id?: Maybe<Scalars['String']['output']>;
   /**
    * This data item gives the order of the structural elements in the
    *  ATOM_SITE category.
    */
-  readonly pdbx_order?: Maybe<Scalars['Int']>;
+  readonly pdbx_order?: Maybe<Scalars['Int']['output']>;
   /**
    * This data item describes the general type of the structural elements
    *  in the ATOM_SITE category.
@@ -13699,7 +13225,7 @@ export type StructAsym = {
    * ATOMN, ATOMP, ATOMS, HETAC, HETAD, HETAI, HETAIN, HETAS, HETIC
    *
    */
-  readonly pdbx_type?: Maybe<Scalars['String']>;
+  readonly pdbx_type?: Maybe<Scalars['String']['output']>;
 };
 
 export type StructKeywords = {
@@ -13710,7 +13236,7 @@ export type StructKeywords = {
    * DNA, RNA, T-RNA, DNA/RNA, RIBOZYME, PROTEIN/DNA, PROTEIN/RNA, PEPTIDE NUCLEIC ACID, PEPTIDE NUCLEIC ACID/DNA, DNA-BINDING PROTEIN, RNA-BINDING PROTEIN
    *
    */
-  readonly pdbx_keywords?: Maybe<Scalars['String']>;
+  readonly pdbx_keywords?: Maybe<Scalars['String']['output']>;
   /**
    * Keywords describing this structure.
    *
@@ -13718,7 +13244,7 @@ export type StructKeywords = {
    * Inhibitor, Complex, Isomerase..., serine protease, inhibited complex, high-resolution refinement
    *
    */
-  readonly text?: Maybe<Scalars['String']>;
+  readonly text?: Maybe<Scalars['String']['output']>;
 };
 
 export type Symmetry = {
@@ -13726,7 +13252,7 @@ export type Symmetry = {
    * Space-group number from International Tables for Crystallography
    *  Vol. A (2002).
    */
-  readonly Int_Tables_number?: Maybe<Scalars['Int']>;
+  readonly Int_Tables_number?: Maybe<Scalars['Int']['output']>;
   /**
    * The cell settings for this space-group symmetry.
    *
@@ -13734,7 +13260,7 @@ export type Symmetry = {
    * cubic, hexagonal, monoclinic, orthorhombic, rhombohedral, tetragonal, triclinic, trigonal
    *
    */
-  readonly cell_setting?: Maybe<Scalars['String']>;
+  readonly cell_setting?: Maybe<Scalars['String']['output']>;
   /**
    * Used for PDB space group:
    *
@@ -13754,7 +13280,7 @@ export type Symmetry = {
    *            'H 3 2'    (instead of R 3 2 -hexagonal)
    *
    */
-  readonly pdbx_full_space_group_name_H_M?: Maybe<Scalars['String']>;
+  readonly pdbx_full_space_group_name_H_M?: Maybe<Scalars['String']['output']>;
   /**
    * Hermann-Mauguin space-group symbol. Note that the
    *  Hermann-Mauguin symbol does not necessarily contain complete
@@ -13772,7 +13298,7 @@ export type Symmetry = {
    * A 1, A 1 2 1, A 2, B 1 1 2, B 2, B 2 21 2, C 2, C 1 2 1, C 21, C 1 21 1, C 2(A 112), C 2 2 2, C 2 2 21, C 4 21 2, F 2 2 2, F 2 3, F 4 2 2, F 4 3 2, F 41 3 2, I 1 2 1, I 1 21 1, I 2, I 2 2 2, I 2 3, I 21, I 21 3, I 21 21 21, I 4, I 4 2 2, I 4 3 2, I 41, I 41/a, I 41 2 2, I 41 3 2, P 1, P 1-, P 2, P 1 2 1, P 1 1 2, P 2 2 2, P 2 3, P 2 2 21, P 2 21 21, P 21, P 1 21 1, P 1 21/c 1, P 1 1 21, P 21(C), P 21 2 21, P 21 3, P 21 21 2, P 21 21 2 A, P 21 21 21, P 3, P 3 1 2, P 3 2 1, P 31, P 31 1 2, P 31 2 1, P 32, P 32 1 2, P 32 2 1, P 4, P 4 2 2, P 4 3 2, P 4 21 2, P 41, P 41 2 2, P 41 3 2, P 41 21 2, P 42, P 42 2 2, P 42 3 2, P 42 21 2, P 43, P 43 2 2, P 43 3 2, P 43 21 2, P 6, P 6 2 2, P 61, P 61 2 2, P 62, P 62 2 2, P 63, P 63 2 2, P 64, P 64 2 2, P 65, P 65 2 2, H 3, R 3, H 3 2, R 3 2
    *
    */
-  readonly space_group_name_H_M?: Maybe<Scalars['String']>;
+  readonly space_group_name_H_M?: Maybe<Scalars['String']['output']>;
   /**
    * Space-group symbol as described by Hall (1981). This symbol
    *  gives the space-group setting explicitly. Leave spaces between
@@ -13785,12 +13311,12 @@ export type Symmetry = {
    * -P 2ac 2n, -R 3 2", P 61 2 2 (0 0 -1)
    *
    */
-  readonly space_group_name_Hall?: Maybe<Scalars['String']>;
+  readonly space_group_name_Hall?: Maybe<Scalars['String']['output']>;
 };
 
 export type AssemblySymmetryQueryVariables = Exact<{
-  assembly_id: Scalars['String'];
-  entry_id: Scalars['String'];
+  assembly_id: Scalars['String']['input'];
+  entry_id: Scalars['String']['input'];
 }>;
 
 

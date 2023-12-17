@@ -23,6 +23,7 @@ import { Quat } from './quat';
 import { degToRad } from '../../misc';
 import { NumberArray } from '../../../mol-util/type-helpers';
 import { Mat3 } from './mat3';
+import { Euler } from './euler';
 
 interface Mat4 extends Array<number> { [d: number]: number, '@type': 'mat4', length: 16 }
 interface ReadonlyMat4 extends Array<number> { readonly [d: number]: number, '@type': 'mat4', length: 16 }
@@ -124,7 +125,7 @@ namespace Mat4 {
         return a[4 * j + i];
     }
 
-    export function toArray(a: Mat4, out: NumberArray, offset: number) {
+    export function toArray<T extends NumberArray>(a: Mat4, out: T, offset: number) {
         out[offset + 0] = a[0];
         out[offset + 1] = a[1];
         out[offset + 2] = a[2];
@@ -717,6 +718,82 @@ namespace Mat4 {
         return out;
     }
 
+    export function compose(out: Mat4, position: Vec3, quaternion: Quat, scale: Vec3) {
+        const [x, y, z, w] = quaternion;
+        const x2 = x + x,	y2 = y + y, z2 = z + z;
+        const xx = x * x2, xy = x * y2, xz = x * z2;
+        const yy = y * y2, yz = y * z2, zz = z * z2;
+        const wx = w * x2, wy = w * y2, wz = w * z2;
+
+        const [sx, sy, sz] = scale;
+
+        out[0] = (1 - (yy + zz)) * sx;
+        out[1] = (xy + wz) * sx;
+        out[2] = (xz - wy) * sx;
+        out[3] = 0;
+
+        out[4] = (xy - wz) * sy;
+        out[5] = (1 - (xx + zz)) * sy;
+        out[6] = (yz + wx) * sy;
+        out[7] = 0;
+
+        out[8] = (xz + wy) * sz;
+        out[9] = (yz - wx) * sz;
+        out[10] = (1 - (xx + yy)) * sz;
+        out[11] = 0;
+
+        out[12] = position[0];
+        out[13] = position[1];
+        out[14] = position[2];
+        out[15] = 1;
+
+        return out;
+    }
+
+    const _v3 = [0, 0, 0] as unknown as Vec3;
+    const _m4 = zero();
+    export function decompose(m: Mat4, position: Vec3, quaternion: Quat, scale: Vec3) {
+
+        let sx = Vec3.magnitude(Vec3.set(_v3, m[0], m[1], m[2]));
+        const sy = Vec3.magnitude(Vec3.set(_v3, m[4], m[5], m[6]));
+        const sz = Vec3.magnitude(Vec3.set(_v3, m[8], m[9], m[10]));
+
+        // if determine is negative, we need to invert one scale
+        const det = determinant(m);
+        if (det < 0) sx = -sx;
+
+        position[0] = m[12];
+        position[1] = m[13];
+        position[2] = m[14];
+
+        // scale the rotation part
+        copy(_m4, m);
+
+        const invSX = 1 / sx;
+        const invSY = 1 / sy;
+        const invSZ = 1 / sz;
+
+        _m4[0] *= invSX;
+        _m4[1] *= invSX;
+        _m4[2] *= invSX;
+
+        _m4[4] *= invSY;
+        _m4[5] *= invSY;
+        _m4[6] *= invSY;
+
+        _m4[8] *= invSZ;
+        _m4[9] *= invSZ;
+        _m4[10] *= invSZ;
+
+        getRotation(quaternion, _m4);
+
+        scale[0] = sx;
+        scale[1] = sy;
+        scale[2] = sz;
+
+        return m;
+    }
+
     export function makeTable(m: Mat4) {
         let ret = '';
         for (let i = 0; i < 4; i++) {
@@ -843,6 +920,94 @@ namespace Mat4 {
         out[10] = 1 - xx - yy;
         out[11] = 0;
 
+        out[12] = 0;
+        out[13] = 0;
+        out[14] = 0;
+        out[15] = 1;
+
+        return out;
+    }
+
+    export function fromEuler(out: Mat4, euler: Euler, order: Euler.Order) {
+        const x = euler[0], y = euler[1], z = euler[2];
+        const a = Math.cos(x), b = Math.sin(x);
+        const c = Math.cos(y), d = Math.sin(y);
+        const e = Math.cos(z), f = Math.sin(z);
+
+        if (order === 'XYZ') {
+            const ae = a * e, af = a * f, be = b * e, bf = b * f;
+            out[0] = c * e;
+            out[4] = - c * f;
+            out[8] = d;
+            out[1] = af + be * d;
+            out[5] = ae - bf * d;
+            out[9] = - b * c;
+            out[2] = bf - ae * d;
+            out[6] = be + af * d;
+            out[10] = a * c;
+        } else if (order === 'YXZ') {
+            const ce = c * e, cf = c * f, de = d * e, df = d * f;
+            out[0] = ce + df * b;
+            out[4] = de * b - cf;
+            out[8] = a * d;
+            out[1] = a * f;
+            out[5] = a * e;
+            out[9] = - b;
+            out[2] = cf * b - de;
+            out[6] = df + ce * b;
+            out[10] = a * c;
+        } else if (order === 'ZXY') {
+            const ce = c * e, cf = c * f, de = d * e, df = d * f;
+            out[0] = ce - df * b;
+            out[4] = - a * f;
+            out[8] = de + cf * b;
+            out[1] = cf + de * b;
+            out[5] = a * e;
+            out[9] = df - ce * b;
+            out[2] = - a * d;
+            out[6] = b;
+            out[10] = a * c;
+        } else if (order === 'ZYX') {
+            const ae = a * e, af = a * f, be = b * e, bf = b * f;
+            out[0] = c * e;
+            out[4] = be * d - af;
+            out[8] = ae * d + bf;
+            out[1] = c * f;
+            out[5] = bf * d + ae;
+            out[9] = af * d - be;
+            out[2] = - d;
+            out[6] = b * c;
+            out[10] = a * c;
+        } else if (order === 'YZX') {
+            const ac = a * c, ad = a * d, bc = b * c, bd = b * d;
+            out[0] = c * e;
+            out[4] = bd - ac * f;
+            out[8] = bc * f + ad;
+            out[1] = f;
+            out[5] = a * e;
+            out[9] = - b * e;
+            out[2] = - d * e;
+            out[6] = ad * f + bc;
+            out[10] = ac - bd * f;
+        } else if (order === 'XZY') {
+            const ac = a * c, ad = a * d, bc = b * c, bd = b * d;
+            out[0] = c * e;
+            out[4] = - f;
+            out[8] = d * e;
+            out[1] = ac * f + bd;
+            out[5] = a * e;
+            out[9] = ad * f - bc;
+            out[2] = bc * f - ad;
+            out[6] = b * e;
+            out[10] = bd * f + ac;
+        }
+
+        // bottom row
+        out[3] = 0;
+        out[7] = 0;
+        out[11] = 0;
+
+        // last column
         out[12] = 0;
         out[13] = 0;
         out[14] = 0;
@@ -1068,9 +1233,9 @@ namespace Mat4 {
         return Math.sqrt(Math.max(scaleXSq, scaleYSq, scaleZSq));
     }
 
-    const xAxis = [1, 0, 0] as Vec3;
-    const yAxis = [0, 1, 0] as Vec3;
-    const zAxis = [0, 0, 1] as Vec3;
+    const xAxis = [1, 0, 0] as unknown as Vec3;
+    const yAxis = [0, 1, 0] as unknown as Vec3;
+    const zAxis = [0, 0, 1] as unknown as Vec3;
 
     /** Rotation matrix for 90deg around x-axis */
     export const rotX90: ReadonlyMat4 = fromRotation(zero(), degToRad(90), xAxis);

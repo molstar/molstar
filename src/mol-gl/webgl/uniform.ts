@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -18,6 +18,9 @@ export type UniformKindValue = {
     'v2': Vec2; 'v2[]': number[]
     'v3': Vec3; 'v3[]': number[]
     'v4': Vec4; 'v4[]': number[]
+    'iv2': Vec2; 'iv2[]': number[]
+    'iv3': Vec3; 'iv3[]': number[]
+    'iv4': Vec4; 'iv4[]': number[]
     'm3': Mat3; 'm3[]': number[]
     'm4': Mat4; 'm4[]': number[]
     't': number; 't[]': number[]
@@ -36,6 +39,9 @@ export function getUniformType(gl: GLRenderingContext, kind: UniformKind) {
         case 'v2': case 'v2[]': return gl.FLOAT_VEC2;
         case 'v3': case 'v3[]': return gl.FLOAT_VEC3;
         case 'v4': case 'v4[]': return gl.FLOAT_VEC4;
+        case 'iv2': case 'iv2[]': return gl.INT_VEC2;
+        case 'iv3': case 'iv3[]': return gl.INT_VEC3;
+        case 'iv4': case 'iv4[]': return gl.INT_VEC4;
         case 'm3': case 'm3[]': return gl.FLOAT_MAT3;
         case 'm4': case 'm4[]': return gl.FLOAT_MAT4;
         default: console.error(`unknown uniform kind '${kind}'`);
@@ -56,6 +62,9 @@ function uniform1iv(gl: GLRenderingContext, location: number, value: any) { gl.u
 function uniform2fv(gl: GLRenderingContext, location: number, value: any) { gl.uniform2fv(location, value); }
 function uniform3fv(gl: GLRenderingContext, location: number, value: any) { gl.uniform3fv(location, value); }
 function uniform4fv(gl: GLRenderingContext, location: number, value: any) { gl.uniform4fv(location, value); }
+function uniform2iv(gl: GLRenderingContext, location: number, value: any) { gl.uniform2iv(location, value); }
+function uniform3iv(gl: GLRenderingContext, location: number, value: any) { gl.uniform3iv(location, value); }
+function uniform4iv(gl: GLRenderingContext, location: number, value: any) { gl.uniform4iv(location, value); }
 function uniformMatrix3fv(gl: GLRenderingContext, location: number, value: any) { gl.uniformMatrix3fv(location, false, value); }
 function uniformMatrix4fv(gl: GLRenderingContext, location: number, value: any) { gl.uniformMatrix4fv(location, false, value); }
 
@@ -68,6 +77,9 @@ function getUniformSetter(kind: UniformKind): UniformSetter {
         case 'v2': case 'v2[]': return uniform2fv;
         case 'v3': case 'v3[]': return uniform3fv;
         case 'v4': case 'v4[]': return uniform4fv;
+        case 'iv2': case 'iv2[]': return uniform2iv;
+        case 'iv3': case 'iv3[]': return uniform3iv;
+        case 'iv4': case 'iv4[]': return uniform4iv;
         case 'm3': case 'm3[]': return uniformMatrix3fv;
         case 'm4': case 'm4[]': return uniformMatrix4fv;
     }

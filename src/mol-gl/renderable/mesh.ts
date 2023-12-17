@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -22,7 +22,7 @@ export const MeshSchema = {
     uDoubleSided: UniformSpec('b', 'material'),
     dFlipSided: DefineSpec('boolean'),
     dIgnoreLight: DefineSpec('boolean'),
-    dXrayShaded: DefineSpec('boolean'),
+    dXrayShaded: DefineSpec('string', ['off', 'on', 'inverted']),
     dTransparentBackfaces: DefineSpec('string', ['off', 'on', 'opaque']),
     uBumpFrequency: UniformSpec('f', 'material'),
     uBumpAmplitude: UniformSpec('f', 'material'),

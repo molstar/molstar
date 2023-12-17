@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -112,7 +112,11 @@ export namespace Model {
                 ...model,
                 id: UUID.create22(),
                 modelNum: i,
-                atomicConformation: Coordinates.getAtomicConformation(f, model.atomicConformation.atomId, srcIndexArray),
+                atomicConformation: Coordinates.getAtomicConformation(f, {
+                    atomId: model.atomicConformation.atomId,
+                    occupancy: model.atomicConformation.occupancy,
+                    B_iso_or_equiv: model.atomicConformation.B_iso_or_equiv
+                }, srcIndexArray),
                 // TODO: add support for supplying sphere and gaussian coordinates in addition to atomic coordinates?
                 // coarseConformation: coarse.conformation,
                 customProperties: new CustomProperties(),

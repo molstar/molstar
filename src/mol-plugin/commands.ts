@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { Camera } from '../mol-canvas3d/camera';
@@ -10,7 +11,7 @@ import { PluginCommand } from './command';
 import { StateTransform, State, StateAction } from '../mol-state';
 import { Canvas3DProps } from '../mol-canvas3d/canvas3d';
 import { PluginLayoutStateProps } from './layout';
-import { StructureElement } from '../mol-model/structure';
+import { Structure, StructureElement } from '../mol-model/structure';
 import { PluginState } from './state';
 import { PluginToast } from './util/toast';
 import { Vec3 } from '../mol-math/linear-algebra';
@@ -27,7 +28,7 @@ export const PluginCommands = {
         ToggleVisibility: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
 
         Snapshots: {
-            Add: PluginCommand<{ name?: string, description?: string, params?: PluginState.SnapshotParams }>(),
+            Add: PluginCommand<{ key?: string, name?: string, description?: string, params?: PluginState.SnapshotParams }>(),
             Replace: PluginCommand<{ id: string, params?: PluginState.SnapshotParams }>(),
             Move: PluginCommand<{ id: string, dir: -1 | 1 }>(),
             Remove: PluginCommand<{ id: string }>(),
@@ -62,7 +63,9 @@ export const PluginCommands = {
     Camera: {
         Reset: PluginCommand<{ durationMs?: number, snapshot?: Partial<Camera.Snapshot> }>(),
         SetSnapshot: PluginCommand<{ snapshot: Partial<Camera.Snapshot>, durationMs?: number }>(),
-        Focus: PluginCommand<{ center: Vec3, radius: number, durationMs?: number }>()
+        Focus: PluginCommand<{ center: Vec3, radius: number, durationMs?: number }>(),
+        OrientAxes: PluginCommand<{ structures?: Structure[], durationMs?: number }>(),
+        ResetAxes: PluginCommand<{ durationMs?: number }>(),
     },
     Canvas3D: {
         SetSettings: PluginCommand<{ settings: Partial<Canvas3DProps> | ((old: Canvas3DProps) => Partial<Canvas3DProps> | void) }>(),

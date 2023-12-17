@@ -252,7 +252,7 @@ export const AminoAcidNamesL = new Set([
     'HIS', 'ARG', 'LYS', 'ILE', 'PHE', 'LEU', 'TRP', 'ALA', 'MET', 'PRO', 'CYS',
     'ASN', 'VAL', 'GLY', 'SER', 'GLN', 'TYR', 'ASP', 'GLU', 'THR', 'SEC', 'PYL',
     'UNK', // unknown amino acid from CCD
-    'MSE', 'SEP', 'TPO', 'PTR', 'PCA', // common from CCD
+    'MSE', 'SEP', 'TPO', 'PTR', 'PCA', 'HYP', // common from CCD
 
     // charmm ff
     'HSD', 'HSE', 'HSP', 'LSN', 'ASPP', 'GLUP',
@@ -286,7 +286,12 @@ export const AminoAcidNamesD = new Set([
 export const AminoAcidNames = SetUtils.unionMany(AminoAcidNamesL, AminoAcidNamesD);
 
 export const CommonProteinCaps = new Set([
-    'NME', 'ACE'
+    'NME', 'ACE', 'NH2', 'FOR', 'FMT'
+    // not including the following
+    // 'E1H' GFP backbone fragmentation in 2G16
+    // 'HOA' complexes zinc
+    // 'NEH' ubiquitine linker
+    // 'MOH' part of peptidomimetics
 ]);
 
 export const RnaBaseNames = new Set([

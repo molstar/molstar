@@ -18,7 +18,7 @@ import { Loci as ModelLoci, EmptyLoci, isEmptyLoci } from '../mol-model/loci';
 import { Overpaint } from '../mol-theme/overpaint';
 import { Transparency } from '../mol-theme/transparency';
 import { Mat4 } from '../mol-math/linear-algebra';
-import { getQualityProps } from './util';
+import { LocationCallback, getQualityProps } from './util';
 import { BaseGeometry } from '../mol-geo/geometry/base';
 import { Visual } from './visual';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
@@ -162,6 +162,7 @@ interface Representation<D, P extends PD.Params = PD.Params, S extends Represent
     setTheme: (theme: Theme) => void
     getLoci: (pickingId: PickingId) => ModelLoci
     getAllLoci: () => ModelLoci[]
+    eachLocation: (cb: LocationCallback) => void
     mark: (loci: ModelLoci, action: MarkerAction) => boolean
     destroy: () => void
 }
@@ -250,6 +251,7 @@ namespace Representation {
         setTheme: () => {},
         getLoci: () => EmptyLoci,
         getAllLoci: () => [],
+        eachLocation: () => {},
         mark: () => false,
         destroy: () => {}
     };
@@ -370,6 +372,14 @@ namespace Representation {
                 }
                 return loci;
             },
+            eachLocation: (cb: LocationCallback) => {
+                const { visuals } = currentProps;
+                for (let i = 0, il = reprList.length; i < il; ++i) {
+                    if (!visuals || visuals.includes(reprMap[i])) {
+                        reprList[i].eachLocation(cb);
+                    }
+                }
+            },
             mark: (loci: ModelLoci, action: MarkerAction) => {
                 let marked = false;
                 for (let i = 0, il = reprList.length; i < il; ++i) {
@@ -435,6 +445,9 @@ namespace Representation {
             getAllLoci: () => {
                 // TODO
                 return [];
+            },
+            eachLocation: () => {
+                // TODO
             },
             mark: (loci: ModelLoci, action: MarkerAction) => {
                 // TODO

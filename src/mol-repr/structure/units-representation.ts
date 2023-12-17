@@ -26,6 +26,7 @@ import { Clipping } from '../../mol-theme/clipping';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { StructureGroup } from './visual/util/common';
 import { Substance } from '../../mol-theme/substance';
+import { LocationCallback } from '../util';
 
 export interface UnitsVisual<P extends StructureParams> extends Visual<StructureGroup, P> { }
 
@@ -194,8 +195,14 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         return loci;
     }
 
+    function eachLocation(cb: LocationCallback) {
+        visuals.forEach(({ visual }) => {
+            visual.eachLocation(cb);
+        });
+    }
+
     function getAllLoci() {
-        return [Structure.Loci(_structure.target)];
+        return [Structure.Loci(_structure.child ?? _structure)];
     }
 
     function mark(loci: Loci, action: MarkerAction) {
@@ -251,9 +258,9 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         const { visible, alphaFactor, pickable, overpaint, transparency, substance, clipping, themeStrength, transform, unitTransforms, syncManually, markerActions } = state;
         const newState: Partial<StructureRepresentationState> = {};
 
-        if (visible !== _state.visible) newState.visible = visible;
-        if (alphaFactor !== _state.alphaFactor) newState.alphaFactor = alphaFactor;
-        if (pickable !== _state.pickable) newState.pickable = pickable;
+        if (visible !== undefined) newState.visible = visible;
+        if (alphaFactor !== undefined) newState.alphaFactor = alphaFactor;
+        if (pickable !== undefined) newState.pickable = pickable;
         if (overpaint !== undefined && _structure) {
             newState.overpaint = Overpaint.remap(overpaint, _structure);
         }
@@ -270,12 +277,12 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         if (transform !== undefined && !Mat4.areEqual(transform, _state.transform, EPSILON)) {
             newState.transform = transform;
         }
-        if (unitTransforms !== _state.unitTransforms || unitTransforms?.version !== state.unitTransformsVersion) {
+        if (unitTransforms !== _state.unitTransforms || unitTransforms?.version !== _state.unitTransformsVersion) {
             newState.unitTransforms = unitTransforms;
             _state.unitTransformsVersion = unitTransforms ? unitTransforms?.version : -1;
         }
-        if (syncManually !== _state.syncManually) newState.syncManually = syncManually;
-        if (markerActions !== _state.markerActions) newState.markerActions = markerActions;
+        if (syncManually !== undefined) newState.syncManually = syncManually;
+        if (markerActions !== undefined) newState.markerActions = markerActions;
 
         visuals.forEach(({ visual, group }) => setVisualState(visual, group, newState));
 
@@ -312,6 +319,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         setTheme,
         getLoci,
         getAllLoci,
+        eachLocation,
         mark,
         destroy
     };

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -10,6 +10,7 @@ import { VisualQuality } from '../mol-geo/geometry/base';
 import { Box3D, SpacegroupCell } from '../mol-math/geometry';
 import { ModelSymmetry } from '../mol-model-formats/structure/property/symmetry';
 import { Volume } from '../mol-model/volume';
+import { Location } from '../mol-model/location';
 
 export interface VisualUpdateState {
     updateTransform: boolean
@@ -45,6 +46,8 @@ export namespace VisualUpdateState {
     }
 }
 
+export type LocationCallback = (loc: Location, isSecondary: boolean) => void
+
 //
 
 export interface QualityProps {
@@ -55,7 +58,7 @@ export interface QualityProps {
     resolution: number
     probePositions: number
     doubleSided: boolean
-    xrayShaded: boolean
+    xrayShaded: boolean | 'inverted'
     alpha: number
     transparentBackfaces: 'off' | 'on' | 'opaque'
 }

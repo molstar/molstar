@@ -600,6 +600,7 @@ export const LoadCellPackModel = StateAction.build({
                     name: 'on',
                     params: {
                         samples: 32,
+                        multiScale: { name: 'off', params: {} },
                         radius: 8,
                         bias: 1,
                         blurKernelSize: 15,

@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { parseDcd } from '../../mol-io/reader/dcd/parser';
@@ -12,7 +13,7 @@ import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { shapeFromPly } from '../../mol-model-formats/shape/ply';
 import { coordinatesFromDcd } from '../../mol-model-formats/structure/dcd';
 import { trajectoryFromGRO } from '../../mol-model-formats/structure/gro';
-import { trajectoryFromMmCIF } from '../../mol-model-formats/structure/mmcif';
+import { trajectoryFromCCD, trajectoryFromMmCIF } from '../../mol-model-formats/structure/mmcif';
 import { trajectoryFromPDB } from '../../mol-model-formats/structure/pdb';
 import { topologyFromPsf } from '../../mol-model-formats/structure/psf';
 import { Coordinates, Model, Queries, QueryContext, Structure, StructureElement, StructureQuery, StructureSelection as Sel, Topology, ArrayTrajectory, Trajectory } from '../../mol-model/structure';
@@ -272,25 +273,47 @@ const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
     params(a) {
         if (!a) {
             return {
-                blockHeader: PD.Optional(PD.Text(void 0, { description: 'Header of the block to parse. If none is specifed, the 1st data block in the file is used.' }))
+                loadAllBlocks: PD.Optional(PD.Boolean(false, { description: 'If True, ignore Block Header and Block Index parameters and parse all datablocks into a single trajectory.' })),
+                blockHeader: PD.Optional(PD.Text(void 0, { description: 'Header of the block to parse. If not specifed, Block Index parameter applies.', hideIf: p => p.loadAllBlocks === true })),
+                blockIndex: PD.Optional(PD.Numeric(0, { min: 0, step: 1 }, { description: 'Zero-based index of the block to parse. Only applies when Block Header parameter is not specified.', hideIf: p => p.loadAllBlocks === true || p.blockHeader })),
             };
         }
         const { blocks } = a.data;
+        const headers = blocks.map(b => [b.header, b.header] as [string, string]);
+        headers.push(['', '[Use Block Index]']);
         return {
-            blockHeader: PD.Optional(PD.Select(blocks[0] && blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse' }))
+            loadAllBlocks: PD.Optional(PD.Boolean(false, { description: 'If True, ignore Block Header and Block Index parameters and parse all data blocks into a single trajectory.' })),
+            blockHeader: PD.Optional(PD.Select(blocks[0] && blocks[0].header, headers, { description: 'Header of the block to parse. If not specifed, Block Index parameter applies.', hideIf: p => p.loadAllBlocks === true })),
+            blockIndex: PD.Optional(PD.Numeric(0, { min: 0, step: 1, max: blocks.length - 1 }, { description: 'Zero-based index of the block to parse. Only applies when Block Header parameter is not specified.', hideIf: p => p.loadAllBlocks === true || p.blockHeader })),
         };
     }
 })({
     isApplicable: a => a.data.blocks.length > 0,
     apply({ a, params }) {
         return Task.create('Parse mmCIF', async ctx => {
-            const header = params.blockHeader || a.data.blocks[0].header;
-            const block = a.data.blocks.find(b => b.header === header);
-            if (!block) throw new Error(`Data block '${[header]}' not found.`);
-            const models = await trajectoryFromMmCIF(block).runInContext(ctx);
-            if (models.frameCount === 0) throw new Error('No models found.');
-            const props = trajectoryProps(models);
-            return new SO.Molecule.Trajectory(models, props);
+            let trajectory: Trajectory;
+            if (params.loadAllBlocks) {
+                const models: Model[] = [];
+                for (const block of a.data.blocks) {
+                    if (ctx.shouldUpdate) {
+                        await ctx.update(`Parsing ${block.header}...`);
+                    }
+                    const t = await trajectoryFromMmCIF(block).runInContext(ctx);
+                    for (let i = 0; i < t.frameCount; i++) {
+                        models.push(await Task.resolveInContext(t.getFrameAtIndex(i), ctx));
+                    }
+                }
+                trajectory = new ArrayTrajectory(models);
+            } else {
+                const header = params.blockHeader || a.data.blocks[params.blockIndex ?? 0].header;
+                const block = a.data.blocks.find(b => b.header === header);
+                if (!block) throw new Error(`Data block '${[header]}' not found.`);
+                const isCcd = block.categoryNames.includes('chem_comp_atom') && !block.categoryNames.includes('atom_site') && !block.categoryNames.includes('ihm_sphere_obj_site') && !block.categoryNames.includes('ihm_gaussian_obj_site');
+                trajectory = isCcd ? await trajectoryFromCCD(block).runInContext(ctx) : await trajectoryFromMmCIF(block, a.data).runInContext(ctx);
+            }
+            if (trajectory.frameCount === 0) throw new Error('No models found.');
+            const props = trajectoryProps(trajectory);
+            return new SO.Molecule.Trajectory(trajectory, props);
         });
     }
 });
@@ -1069,13 +1092,16 @@ const ShapeFromPly = PluginStateTransform.BuiltIn({
     from: SO.Format.Ply,
     to: SO.Shape.Provider,
     params(a) {
-        return { };
+        return {
+            transforms: PD.Optional(PD.Value<Mat4[]>([], { isHidden: true })),
+            label: PD.Optional(PD.Text('', { isHidden: true }))
+        };
     }
 })({
     apply({ a, params }) {
         return Task.create('Create shape from PLY', async ctx => {
             const shape = await shapeFromPly(a.data, params).runInContext(ctx);
-            const props = { label: 'Shape' };
+            const props = { label: params.label || 'Shape' };
             return new SO.Shape.Provider(shape, props);
         });
     }

@@ -29,9 +29,11 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
     static DefaultNextSnapshotDelayInMs = 1500;
 
     private entryMap = new Map<string, PluginStateSnapshotManager.Entry>();
+    private defaultSnapshotId: UUID | undefined = undefined;
 
     readonly events = {
-        changed: this.ev()
+        changed: this.ev(),
+        opened: this.ev(),
     };
 
     getIndex(e: PluginStateSnapshotManager.Entry) {
@@ -66,10 +68,13 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         const old = this.getEntry(id);
         if (!old) return;
 
+        this.defaultSnapshotId = undefined;
+
         if (old?.image) this.plugin.managers.asset.delete(old.image);
         const idx = this.getIndex(old);
         // The id changes here!
         const e = PluginStateSnapshotManager.Entry(snapshot, {
+            key: params?.key ?? old.key,
             name: params?.name ?? old.name,
             description: params?.description ?? old.description,
             image: params?.image,
@@ -98,6 +103,20 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         this.events.changed.next(void 0);
     }
 
+    update(e: PluginStateSnapshotManager.Entry, options: { key?: string, name?: string, description?: string }) {
+        const idx = this.getIndex(e);
+        if (idx < 0) return;
+        const entries = this.state.entries.set(idx, {
+            ...e,
+            key: options.key?.trim() || undefined,
+            name: options.name?.trim() || undefined,
+            description: options.description?.trim() || undefined
+        });
+        this.updateState({ entries });
+        this.entryMap.set(e.snapshot.id, this.state.entries.get(idx)!);
+        this.events.changed.next(void 0);
+    }
+
     clear() {
         if (this.state.entries.size === 0) return;
 
@@ -107,6 +126,15 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         this.entryMap.clear();
         this.updateState({ current: void 0, entries: List<PluginStateSnapshotManager.Entry>() });
         this.events.changed.next(void 0);
+    }
+
+    applyKey(key: string) {
+        const e = this.state.entries.find(e => e.key === key);
+        if (!e) return;
+
+        this.updateState({ current: e.snapshot.id as UUID });
+        this.events.changed.next(void 0);
+        this.plugin.state.setSnapshot(e.snapshot);
     }
 
     setCurrent(id: string) {
@@ -171,20 +199,27 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
     }
 
     private async syncCurrent(options?: { name?: string, description?: string, params?: PluginState.SnapshotParams }) {
+        const isEmpty = this.state.entries.size === 0;
+        const canReplace = this.state.entries.size === 1 && this.state.current && this.state.current === this.defaultSnapshotId;
+
+        if (!isEmpty && !canReplace) return;
+
         const snapshot = this.plugin.state.getSnapshot(options?.params);
-        if (this.state.entries.size === 0 || !this.state.current) {
-            this.add(PluginStateSnapshotManager.Entry(snapshot, { name: options?.name, description: options?.description }));
-        } else {
+        const image = (options?.params?.image ?? this.plugin.state.snapshotParams.value.image) ? await PluginStateSnapshotManager.getCanvasImageAsset(this.plugin, `${snapshot.id}-image.png`) : undefined;
+
+        if (isEmpty) {
+            this.add(PluginStateSnapshotManager.Entry(snapshot, { name: options?.name, description: options?.description, image }));
+        } else if (canReplace) {
+            // Replace the current state only if there is a single snapshot that has been created automatically
             const current = this.getEntry(this.state.current);
             if (current?.image) this.plugin.managers.asset.delete(current.image);
-            const image = (options?.params?.image ?? this.plugin.state.snapshotParams.value.image) ? await PluginStateSnapshotManager.getCanvasImageAsset(this.plugin, `${snapshot.id}-image.png`) : undefined;
-            // TODO: this replaces the current snapshot which is not always intended
-            this.replace(this.state.current, snapshot, { image });
+            this.replace(this.state.current!, snapshot, { image });
         }
+
+        this.defaultSnapshotId = snapshot.id;
     }
 
     async getStateSnapshot(options?: { name?: string, description?: string, playOnLoad?: boolean, params?: PluginState.SnapshotParams }): Promise<PluginStateSnapshotManager.StateSnapshot> {
-        // TODO: diffing and all that fancy stuff
         await this.syncCurrent(options);
 
         return {
@@ -242,11 +277,11 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
                 const snapshot = JSON.parse(data);
 
                 if (PluginStateSnapshotManager.isStateSnapshot(snapshot)) {
-                    return this.setStateSnapshot(snapshot);
+                    await this.setStateSnapshot(snapshot);
                 } else if (PluginStateSnapshotManager.isStateSnapshot(snapshot.data)) {
-                    return this.setStateSnapshot(snapshot.data);
+                    await this.setStateSnapshot(snapshot.data);
                 } else {
-                    this.plugin.state.setSnapshot(snapshot);
+                    await this.plugin.state.setSnapshot(snapshot);
                 }
             } else {
                 const data = await this.plugin.runTask(readFromFile(file, 'zip'));
@@ -270,8 +305,9 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
                 }
 
                 const snapshot = JSON.parse(stateData);
-                return this.setStateSnapshot(snapshot);
+                await this.setStateSnapshot(snapshot);
             }
+            this.events.opened.next(void 0);
         } catch (e) {
             console.error(e);
             this.plugin.log.error('Error reading state');
@@ -326,6 +362,11 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         }
     }
 
+    dispose() {
+        super.dispose();
+        this.entryMap.clear();
+    }
+
     constructor(private plugin: PluginContext) {
         super({
             current: void 0,
@@ -339,6 +380,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
 
 namespace PluginStateSnapshotManager {
     export interface EntryParams {
+        key?: string,
         name?: string,
         description?: string,
         image?: Asset

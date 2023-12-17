@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
@@ -11,9 +11,8 @@ export const dpoit_write = `
             discard;
         }
     } else if (uRenderMask == MaskTransparent) {
-        // the 'fragmentDepth > 0.99' check is to handle precision issues with packed depth
         vec2 coords = gl_FragCoord.xy / uDrawingBufferSize;
-        if (preFogAlpha != 1.0 && (fragmentDepth < getDepth(coords) || fragmentDepth > 0.99)) {
+        if (preFogAlpha != 1.0 && fragmentDepth < getDepth(coords)) {
             #ifdef dTransparentBackfaces_off
                 if (interior) discard;
             #endif

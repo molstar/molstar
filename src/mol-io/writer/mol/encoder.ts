@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
@@ -29,6 +29,7 @@ export class MolEncoder extends LigandEncoder {
         // happens for the unknown ligands (UNL)
         if (!atomMap) throw Error(`The Chemical Component Dictionary doesn't hold any atom data for ${name}`);
 
+        let atomCount = 0;
         let bondCount = 0;
         let chiral = false;
 
@@ -55,6 +56,7 @@ export class MolEncoder extends LigandEncoder {
             StringBuilder.writeSafe(ctab, '  0');
             StringBuilder.writeIntegerPadLeft(ctab, this.mapCharge(charge), 3);
             StringBuilder.writeSafe(ctab, '  0  0  0  0  0  0  0  0  0  0\n');
+            atomCount++;
             if (stereo_config !== 'n') chiral = true;
 
             // no data for metal ions
@@ -76,7 +78,7 @@ export class MolEncoder extends LigandEncoder {
         });
 
         // write counts line
-        StringBuilder.writeIntegerPadLeft(this.builder, atoms.size, 3);
+        StringBuilder.writeIntegerPadLeft(this.builder, atomCount, 3);
         StringBuilder.writeIntegerPadLeft(this.builder, bondCount, 3);
         StringBuilder.writeSafe(this.builder, `  0  0  ${chiral ? 1 : 0}  0  0  0  0  0  0\n`);
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -23,6 +23,7 @@ import { Vec2 } from '../../mol-math/linear-algebra/3d/vec2';
 import { Color } from '../../mol-util/color';
 import { Asset, AssetManager } from '../../mol-util/assets';
 import { Vec4 } from '../../mol-math/linear-algebra/3d/vec4';
+import { isPowerOfTwo } from '../../mol-math/misc';
 
 const SharedParams = {
     opacity: PD.Numeric(1, { min: 0.0, max: 1.0, step: 0.01 }),
@@ -59,6 +60,7 @@ const ImageParams = {
         url: PD.Text(''),
         file: PD.File({ accept: 'image/*' }),
     }),
+    blur: PD.Numeric(0, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'Note, this only works in WebGL2 or with power-of-two images and when "EXT_shader_texture_lod" is available.' }),
     ...SharedParams,
     coverage: PD.Select('viewport', PD.arrayToOptions(['viewport', 'canvas'])),
 };
@@ -207,6 +209,7 @@ export class BackgroundPass {
         }
         if (!this.image) return;
 
+        ValueCell.updateIfChanged(this.renderable.values.uBlur, props.blur);
         ValueCell.updateIfChanged(this.renderable.values.uOpacity, props.opacity);
         ValueCell.updateIfChanged(this.renderable.values.uSaturation, props.saturation);
         ValueCell.updateIfChanged(this.renderable.values.uLightness, props.lightness);
@@ -369,6 +372,12 @@ function getSkyboxTexture(ctx: WebGLContext, assetManager: AssetManager, faces: 
     const cubeAssets = getCubeAssets(assetManager, faces);
     const cubeFaces = getCubeFaces(assetManager, cubeAssets);
     const assets = [cubeAssets.nx, cubeAssets.ny, cubeAssets.nz, cubeAssets.px, cubeAssets.py, cubeAssets.pz];
+    if (typeof HTMLImageElement === 'undefined') {
+        console.error(`Missing "HTMLImageElement" required for background skybox`);
+        onload?.(true);
+        return { texture: createNullTexture(), assets };
+    }
+
     const texture = ctx.resources.cubeTexture(cubeFaces, true, onload);
     return { texture, assets };
 }
@@ -390,18 +399,28 @@ function areImageTexturePropsEqual(sourceA: ImageProps['source'], sourceB: Image
 }
 
 function getImageTexture(ctx: WebGLContext, assetManager: AssetManager, source: ImageProps['source'], onload?: (errored?: boolean) => void): { texture: Texture, asset: Asset } {
+    const asset = source.name === 'url'
+        ? Asset.getUrlAsset(assetManager, source.params)
+        : source.params!;
+    if (typeof HTMLImageElement === 'undefined') {
+        console.error(`Missing "HTMLImageElement" required for background image`);
+        onload?.(true);
+        return { texture: createNullTexture(), asset };
+    }
+
     const texture = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
     const img = new Image();
     img.onload = () => {
         texture.load(img);
+        if (ctx.isWebGL2 || (isPowerOfTwo(img.width) && isPowerOfTwo(img.height))) {
+            texture.mipmap();
+        }
         onload?.();
     };
     img.onerror = () => {
         onload?.(true);
     };
-    const asset = source.name === 'url'
-        ? Asset.getUrlAsset(assetManager, source.params)
-        : source.params!;
+
     assetManager.resolve(asset, 'binary').run().then(a => {
         const blob = new Blob([a.data]);
         img.src = URL.createObjectURL(blob);

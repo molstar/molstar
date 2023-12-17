@@ -131,18 +131,19 @@ export type Light = {
 const tmpDir = Vec3();
 const tmpColor = Vec3();
 function getLight(props: RendererProps['light'], light?: Light): Light {
+    const count = props.length;
     const { direction, color } = light || {
-        direction: (new Array(5 * 3)).fill(0),
-        color: (new Array(5 * 3)).fill(0),
+        direction: (new Array(count * 3)).fill(0),
+        color: (new Array(count * 3)).fill(0),
     };
-    for (let i = 0, il = props.length; i < il; ++i) {
+    for (let i = 0; i < count; ++i) {
         const p = props[i];
         Vec3.directionFromSpherical(tmpDir, degToRad(p.inclination), degToRad(p.azimuth), 1);
         Vec3.toArray(tmpDir, direction, i * 3);
         Vec3.scale(tmpColor, Color.toVec3Normalized(tmpColor, p.color), p.intensity);
         Vec3.toArray(tmpColor, color, i * 3);
     }
-    return { count: props.length, direction, color };
+    return { count, direction, color };
 }
 
 namespace Renderer {
@@ -212,6 +213,7 @@ namespace Renderer {
             uCameraDir: ValueCell.create(cameraDir),
             uNear: ValueCell.create(1),
             uFar: ValueCell.create(10000),
+            uFog: ValueCell.create(true),
             uFogNear: ValueCell.create(1),
             uFogFar: ValueCell.create(10000),
             uFogColor: ValueCell.create(bgColor),
@@ -424,7 +426,8 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-                if (r.state.opaque && r.values.transparencyAverage.ref.value !== 1 && !r.values.dXrayShaded?.ref.value) {
+                const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
+                if (r.state.opaque && r.values.transparencyAverage.ref.value !== 1 && !xrayShaded) {
                     renderObject(r, 'depth', Flag.None);
                 }
             }
@@ -442,7 +445,8 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-                if (!r.state.opaque || r.values.transparencyAverage.ref.value > 0 || r.values.dXrayShaded?.ref.value) {
+                const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
+                if (!r.state.opaque || r.values.transparencyAverage.ref.value > 0 || xrayShaded) {
                     renderObject(r, 'depth', Flag.None);
                 }
             }
@@ -462,7 +466,8 @@ namespace Renderer {
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
 
-                if (r.values.markerAverage.ref.value !== 1) {
+                const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
+                if (alpha !== 0 && r.values.markerAverage.ref.value !== 1) {
                     renderObject(renderables[i], 'marking', Flag.None);
                 }
             }
@@ -591,7 +596,8 @@ namespace Renderer {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if ((alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dGeometryType.ref.value !== 'directVolume' && r.values.dPointStyle?.ref.value !== 'fuzzy' && !r.values.dXrayShaded?.ref.value) || r.values.dTransparentBackfaces?.ref.value === 'opaque') {
+                const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
+                if ((alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dGeometryType.ref.value !== 'directVolume' && r.values.dPointStyle?.ref.value !== 'fuzzy' && !xrayShaded) || r.values.dTransparentBackfaces?.ref.value === 'opaque') {
                     renderObject(r, 'colorWboit', Flag.None);
                 }
             }
@@ -609,7 +615,8 @@ namespace Renderer {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if ((alpha < 1 && alpha !== 0) || r.values.transparencyAverage.ref.value > 0 || r.values.dGeometryType.ref.value === 'directVolume' || r.values.dPointStyle?.ref.value === 'fuzzy' || r.values.dGeometryType.ref.value === 'text' || r.values.dXrayShaded?.ref.value) {
+                const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
+                if ((alpha < 1 && alpha !== 0) || r.values.transparencyAverage.ref.value > 0 || r.values.dGeometryType.ref.value === 'directVolume' || r.values.dPointStyle?.ref.value === 'fuzzy' || r.values.dGeometryType.ref.value === 'text' || xrayShaded) {
                     renderObject(r, 'colorWboit', Flag.None);
                 }
             }
@@ -631,7 +638,8 @@ namespace Renderer {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if ((alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dPointStyle?.ref.value !== 'fuzzy' && !r.values.dXrayShaded?.ref.value) || r.values.dTransparentBackfaces?.ref.value === 'opaque') {
+                const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
+                if ((alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dPointStyle?.ref.value !== 'fuzzy' && !xrayShaded) || r.values.dTransparentBackfaces?.ref.value === 'opaque') {
                     renderObject(r, 'colorDpoit', Flag.None);
                 }
             }
@@ -657,7 +665,8 @@ namespace Renderer {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if ((alpha < 1 && alpha !== 0) || r.values.transparencyAverage.ref.value > 0 || r.values.dPointStyle?.ref.value === 'fuzzy' || r.values.dGeometryType.ref.value === 'text' || r.values.dXrayShaded?.ref.value) {
+                const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
+                if ((alpha < 1 && alpha !== 0) || r.values.transparencyAverage.ref.value > 0 || r.values.dPointStyle?.ref.value === 'fuzzy' || r.values.dGeometryType.ref.value === 'text' || xrayShaded) {
                     renderObject(r, 'colorDpoit', Flag.None);
                 }
             }

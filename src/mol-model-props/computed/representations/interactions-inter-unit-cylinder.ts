@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -19,11 +19,13 @@ import { Interval, OrderedSet, SortedArray } from '../../../mol-data/int';
 import { Interactions } from '../interactions/interactions';
 import { InteractionsProvider } from '../interactions';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
-import { InteractionFlag } from '../interactions/common';
+import { InteractionFlag, InteractionType } from '../interactions/common';
 import { Unit } from '../../../mol-model/structure/structure';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { assertUnreachable } from '../../../mol-util/type-helpers';
 import { InteractionsSharedParams } from './shared';
+import { eachBondedAtom } from '../chemistry/util';
+import { isHydrogen } from '../../../mol-repr/structure/visual/util/common';
 
 function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InteractionsInterUnitParams>, mesh?: Mesh) {
     if (!structure.hasAtomic) return Mesh.createEmpty(mesh);
@@ -33,26 +35,66 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
     const { contacts, unitsFeatures } = interactions;
 
     const { edgeCount, edges } = contacts;
-    const { sizeFactor, parentDisplay } = props;
+    const { sizeFactor, ignoreHydrogens, ignoreHydrogensVariant, parentDisplay } = props;
 
     if (!edgeCount) return Mesh.createEmpty(mesh);
 
     const { child } = structure;
+    const p = Vec3();
+    const pA = Vec3();
+    const pB = Vec3();
 
     const builderProps = {
         linkCount: edgeCount,
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
-            const { unitA, indexA, unitB, indexB } = edges[edgeIndex];
+            const { unitA, indexA, unitB, indexB, props: { type: t } } = edges[edgeIndex];
             const fA = unitsFeatures.get(unitA);
             const fB = unitsFeatures.get(unitB);
-            const uA = structure.unitMap.get(unitA);
-            const uB = structure.unitMap.get(unitB);
+            const uA = structure.unitMap.get(unitA) as Unit.Atomic;
+            const uB = structure.unitMap.get(unitB) as Unit.Atomic;
 
-            Vec3.set(posA, fA.x[indexA], fA.y[indexA], fA.z[indexA]);
-            Vec3.transformMat4(posA, posA, uA.conformation.operator.matrix);
+            if ((!ignoreHydrogens || ignoreHydrogensVariant !== 'all') && (
+                t === InteractionType.HydrogenBond || t === InteractionType.WeakHydrogenBond)
+            ) {
+                const idxA = fA.members[fA.offsets[indexA]];
+                const idxB = fB.members[fB.offsets[indexB]];
+                uA.conformation.position(uA.elements[idxA], pA);
+                uB.conformation.position(uB.elements[idxB], pB);
+                let minDistA = Vec3.distance(pA, pB);
+                let minDistB = minDistA;
+                Vec3.copy(posA, pA);
+                Vec3.copy(posB, pB);
 
-            Vec3.set(posB, fB.x[indexB], fB.y[indexB], fB.z[indexB]);
-            Vec3.transformMat4(posB, posB, uB.conformation.operator.matrix);
+                eachBondedAtom(structure, uA, idxA, (u, idx) => {
+                    const eI = u.elements[idx];
+                    if (isHydrogen(structure, u, eI, 'polar')) {
+                        u.conformation.position(eI, p);
+                        const dist = Vec3.distance(p, pB);
+                        if (dist < minDistA) {
+                            minDistA = dist;
+                            Vec3.copy(posA, p);
+                        }
+                    }
+                });
+
+                eachBondedAtom(structure, uB, idxB, (u, idx) => {
+                    const eI = u.elements[idx];
+                    if (isHydrogen(structure, u, eI, 'polar')) {
+                        u.conformation.position(eI, p);
+                        const dist = Vec3.distance(p, pA);
+                        if (dist < minDistB) {
+                            minDistB = dist;
+                            Vec3.copy(posB, p);
+                        }
+                    }
+                });
+            } else {
+                Vec3.set(posA, fA.x[indexA], fA.y[indexA], fA.z[indexA]);
+                Vec3.transformMat4(posA, posA, uA.conformation.operator.matrix);
+
+                Vec3.set(posB, fB.x[indexB], fB.y[indexB], fB.z[indexB]);
+                Vec3.transformMat4(posB, posB, uB.conformation.operator.matrix);
+            }
         },
         style: (edgeIndex: number) => LinkStyle.Dashed,
         radius: (edgeIndex: number) => {
@@ -155,6 +197,8 @@ export function InteractionsInterUnitVisual(materialId: number): ComplexVisual<I
                 newProps.dashScale !== currentProps.dashScale ||
                 newProps.dashCap !== currentProps.dashCap ||
                 newProps.radialSegments !== currentProps.radialSegments ||
+                newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
+                newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
                 newProps.parentDisplay !== currentProps.parentDisplay
             );
 

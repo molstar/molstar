@@ -60,7 +60,7 @@ export function splitValues(schema: RenderableSchema, values: RenderableValues) 
     return { attributeValues, defineValues, textureValues, materialTextureValues, uniformValues, materialUniformValues, bufferedUniformValues };
 }
 
-export type Versions<T extends RenderableValues> = { [k in keyof T]: number }
+export type Versions<T extends RenderableValues> = { -readonly [k in keyof T]: number }
 export function getValueVersions<T extends RenderableValues>(values: T) {
     const versions: Versions<any> = {};
     Object.keys(values).forEach(k => {
@@ -76,13 +76,15 @@ export function AttributeSpec<K extends AttributeKind>(kind: K, itemSize: Attrib
     return { type: 'attribute', kind, itemSize, divisor };
 }
 
-export type UniformSpec<K extends UniformKind> = { type: 'uniform', kind: K, variant?: 'material' | 'buffered' }
-export function UniformSpec<K extends UniformKind>(kind: K, variant?: 'material' | 'buffered'): UniformSpec<K> {
+type UniformVariant = 'material' | 'buffered'
+export type UniformSpec<K extends UniformKind> = { type: 'uniform', kind: K, variant?: UniformVariant }
+export function UniformSpec<K extends UniformKind>(kind: K, variant?: UniformVariant): UniformSpec<K> {
     return { type: 'uniform', kind, variant };
 }
 
-export type TextureSpec<K extends TextureKind> = { type: 'texture', kind: K, format: TextureFormat, dataType: TextureType, filter: TextureFilter, variant?: 'material' }
-export function TextureSpec<K extends TextureKind>(kind: K, format: TextureFormat, dataType: TextureType, filter: TextureFilter, variant?: 'material'): TextureSpec<K> {
+type TextureVariant = 'material'
+export type TextureSpec<K extends TextureKind> = { type: 'texture', kind: K, format: TextureFormat, dataType: TextureType, filter: TextureFilter, variant?: TextureVariant }
+export function TextureSpec<K extends TextureKind>(kind: K, format: TextureFormat, dataType: TextureType, filter: TextureFilter, variant?: TextureVariant): TextureSpec<K> {
     return { type: 'texture', kind, format, dataType, filter, variant };
 }
 
@@ -134,6 +136,7 @@ export const GlobalUniformSchema = {
     uCameraDir: UniformSpec('v3'),
     uNear: UniformSpec('f'),
     uFar: UniformSpec('f'),
+    uFog: UniformSpec('b'),
     uFogNear: UniformSpec('f'),
     uFogFar: UniformSpec('f'),
     uFogColor: UniformSpec('v3'),

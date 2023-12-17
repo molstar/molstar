@@ -1,16 +1,27 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { utf8ByteCount, utf8Write } from '../../mol-io/common/utf8';
-import { to_mmCIF, Unit } from '../../mol-model/structure';
+import { Structure, to_mmCIF, Unit } from '../../mol-model/structure';
 import { PluginContext } from '../../mol-plugin/context';
 import { Task } from '../../mol-task';
 import { getFormattedTime } from '../../mol-util/date';
 import { download } from '../../mol-util/download';
 import { zip } from '../../mol-util/zip/zip';
+
+const ModelExportNameProp = '__ModelExportName__';
+export const ModelExport = {
+    getStructureName(structure: Structure): string | undefined {
+        return structure.inheritedPropertyData[ModelExportNameProp];
+    },
+    setStructureName(structure: Structure, name: string) {
+        return structure.inheritedPropertyData[ModelExportNameProp] = name;
+    }
+};
 
 export async function exportHierarchy(plugin: PluginContext, options?: { format?: 'cif' | 'bcif' }) {
     try {
@@ -43,19 +54,21 @@ function _exportHierarchy(plugin: PluginContext, options?: { format?: 'cif' | 'b
                 continue;
             }
 
-            const name = entryMap.has(s.model.entryId)
-                ? `${s.model.entryId}_${entryMap.get(s.model.entryId)! + 1}.${format}`
-                : `${s.model.entryId}.${format}`;
-            entryMap.set(s.model.entryId, (entryMap.get(s.model.entryId) ?? 0) + 1);
+            const name = ModelExport.getStructureName(s) || s.model.entryId || 'unnamed';
 
-            await ctx.update({ message: `Exporting ${s.model.entryId}...`, isIndeterminate: true, canAbort: false });
+            const fileName = entryMap.has(name)
+                ? `${name}_${entryMap.get(name)! + 1}.${format}`
+                : `${name}.${format}`;
+            entryMap.set(name, (entryMap.get(name) ?? 0) + 1);
+
+            await ctx.update({ message: `Exporting ${name}...`, isIndeterminate: true, canAbort: false });
             if (s.elementCount > 100000) {
                 // Give UI chance to update, only needed for larger structures.
                 await new Promise(res => setTimeout(res, 50));
             }
 
             try {
-                files.push([name, to_mmCIF(s.model.entryId, s, format === 'bcif', { copyAllCategories: true })]);
+                files.push([fileName, to_mmCIF(name, s, format === 'bcif', { copyAllCategories: true })]);
             } catch (e) {
                 if (format === 'cif' && s.elementCount > 2000000) {
                     plugin.log.warn(`[Export] The structure might be too big to be exported as Text CIF, consider using the BinaryCIF format instead.`);

@@ -23,8 +23,28 @@ export function isWebGL2(gl: any): gl is WebGL2RenderingContext {
  * See https://registry.khronos.org/webgl/extensions/ANGLE_instanced_arrays/
  */
 export interface COMPAT_instanced_arrays {
+    /**
+     * Renders primitives from array data like the `drawArrays` method. In addition, it can execute multiple instances of the range of elements.
+     * @param mode the type primitive to render.
+     * @param first the starting index in the array of vector points.
+     * @param count the number of indices to be rendered.
+     * @param primcount the number of instances of the range of elements to execute.
+     */
     drawArraysInstanced(mode: number, first: number, count: number, primcount: number): void;
+    /**
+     * Renders primitives from array data like the `drawElements` method. In addition, it can execute multiple instances of a set of elements.
+     * @param mode the type primitive to render.
+     * @param count the number of elements to be rendered.
+     * @param type the type of the values in the element array buffer.
+     * @param offset an offset in the element array buffer. Must be a valid multiple of the size of the given `type`.
+     * @param primcount the number of instances of the set of elements to execute.
+     */
     drawElementsInstanced(mode: number, count: number, type: number, offset: number, primcount: number): void;
+    /**
+     * Modifies the rate at which generic vertex attributes advance when rendering multiple instances of primitives with `drawArraysInstanced` and `drawElementsInstanced`
+     * @param index the index of the generic vertex attributes.
+     * @param divisor the number of instances that will pass between updates of the generic attribute.
+     */
     vertexAttribDivisor(index: number, divisor: number): void;
     readonly VERTEX_ATTRIB_ARRAY_DIVISOR: number;
 }
@@ -109,6 +129,9 @@ export function getVertexArrayObject(gl: GLRenderingContext): COMPAT_vertex_arra
     }
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/OES_texture_float/
+ */
 export interface COMPAT_texture_float {
 }
 
@@ -116,6 +139,9 @@ export function getTextureFloat(gl: GLRenderingContext): COMPAT_texture_float | 
     return isWebGL2(gl) ? {} : gl.getExtension('OES_texture_float');
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/OES_texture_float_linear/
+ */
 export interface COMPAT_texture_float_linear {
 }
 
@@ -123,6 +149,9 @@ export function getTextureFloatLinear(gl: GLRenderingContext): COMPAT_texture_fl
     return gl.getExtension('OES_texture_float_linear');
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/OES_texture_half_float/
+ */
 export interface COMPAT_texture_half_float {
     readonly HALF_FLOAT: number
 }
@@ -137,6 +166,9 @@ export function getTextureHalfFloat(gl: GLRenderingContext): COMPAT_texture_half
     }
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/OES_texture_half_float_linear/
+ */
 export interface COMPAT_texture_half_float_linear {
 }
 
@@ -172,6 +204,9 @@ export function getFragDepth(gl: GLRenderingContext): COMPAT_frag_depth | null {
     return isWebGL2(gl) ? {} : gl.getExtension('EXT_frag_depth');
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/EXT_color_buffer_float/
+ */
 export interface COMPAT_color_buffer_float {
     readonly RGBA32F: number;
 }
@@ -193,6 +228,9 @@ export function getColorBufferFloat(gl: GLRenderingContext): COMPAT_color_buffer
     }
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/EXT_color_buffer_half_float/
+ */
 export interface COMPAT_color_buffer_half_float {
     readonly RGBA16F: number;
 }
@@ -544,6 +582,123 @@ export function getProvokingVertex(gl: GLRenderingContext): COMPAT_provoking_ver
                 provokingVertex: ext.provokingVertexWEBGL.bind(ext)
             };
         }
+    }
+    return null;
+}
+
+/**
+ * See https://registry.khronos.org/webgl/extensions/WEBGL_clip_cull_distance/
+ */
+export interface COMPAT_clip_cull_distance {
+    readonly MAX_CLIP_DISTANCES: number;
+    readonly MAX_CULL_DISTANCES: number;
+    readonly MAX_COMBINED_CLIP_AND_CULL_DISTANCES: number;
+
+    readonly CLIP_DISTANCE0: number;
+    readonly CLIP_DISTANCE1: number;
+    readonly CLIP_DISTANCE2: number;
+    readonly CLIP_DISTANCE3: number;
+    readonly CLIP_DISTANCE4: number;
+    readonly CLIP_DISTANCE5: number;
+    readonly CLIP_DISTANCE6: number;
+    readonly CLIP_DISTANCE7: number;
+}
+
+export function getClipCullDistance(gl: GLRenderingContext): COMPAT_clip_cull_distance | null {
+    if (isWebGL2(gl)) {
+        const ext = gl.getExtension('WEBGL_clip_cull_distance');
+        if (ext) {
+            return {
+                MAX_CLIP_DISTANCES: ext.MAX_CLIP_DISTANCES_WEBGL,
+                MAX_CULL_DISTANCES: ext.MAX_CULL_DISTANCES_WEBGL,
+                MAX_COMBINED_CLIP_AND_CULL_DISTANCES: ext.MAX_COMBINED_CLIP_AND_CULL_DISTANCES_WEBGL,
+
+                CLIP_DISTANCE0: ext.CLIP_DISTANCE0_WEBGL,
+                CLIP_DISTANCE1: ext.CLIP_DISTANCE1_WEBGL,
+                CLIP_DISTANCE2: ext.CLIP_DISTANCE2_WEBGL,
+                CLIP_DISTANCE3: ext.CLIP_DISTANCE3_WEBGL,
+                CLIP_DISTANCE4: ext.CLIP_DISTANCE4_WEBGL,
+                CLIP_DISTANCE5: ext.CLIP_DISTANCE5_WEBGL,
+                CLIP_DISTANCE6: ext.CLIP_DISTANCE6_WEBGL,
+                CLIP_DISTANCE7: ext.CLIP_DISTANCE7_WEBGL
+            };
+        }
+    }
+    return null;
+}
+
+/**
+ * See https://registry.khronos.org/webgl/extensions/EXT_conservative_depth/
+ */
+export interface COMPAT_conservative_depth {
+}
+
+export function getConservativeDepth(gl: GLRenderingContext): COMPAT_conservative_depth | null {
+    if (isWebGL2(gl)) {
+        const ext = gl.getExtension('EXT_conservative_depth');
+        if (ext) {
+            return {};
+        }
+    }
+    return null;
+}
+
+/**
+ * See https://registry.khronos.org/webgl/extensions/WEBGL_stencil_texturing/
+ */
+export interface COMPAT_stencil_texturing {
+    readonly DEPTH_STENCIL_TEXTURE_MODE: number;
+    readonly STENCIL_INDEX: number;
+}
+
+export function getStencilTexturing(gl: GLRenderingContext): COMPAT_stencil_texturing | null {
+    if (isWebGL2(gl)) {
+        const ext = gl.getExtension('WEBGL_stencil_texturing');
+        if (ext) {
+            return {
+                DEPTH_STENCIL_TEXTURE_MODE: ext.DEPTH_STENCIL_TEXTURE_MODE_WEBGL,
+                STENCIL_INDEX: ext.STENCIL_INDEX_WEBGL
+            };
+        }
+    }
+    return null;
+}
+
+/**
+ * See https://registry.khronos.org/webgl/extensions/EXT_clip_control/
+ */
+export interface COMPAT_clip_control {
+    readonly LOWER_LEFT: number;
+    readonly UPPER_LEFT: number;
+
+    readonly NEGATIVE_ONE_TO_ONE: number;
+    readonly ZERO_TO_ONE: number;
+
+    readonly CLIP_ORIGIN: number;
+    readonly CLIP_DEPTH_MODE: number;
+
+    /**
+     * @param origin must be LOWER_LEFT (default) or UPPER_LEFT.
+     * @param depth must be NEGATIVE_ONE_TO_ONE (default) or ZERO_TO_ONE.
+     */
+    clipControl(origin: number, depth: number): void
+}
+
+export function getClipControl(gl: GLRenderingContext): COMPAT_clip_control | null {
+    const ext = gl.getExtension('EXT_clip_control');
+    if (ext) {
+        return {
+            LOWER_LEFT: ext.LOWER_LEFT_EXT,
+            UPPER_LEFT: ext.UPPER_LEFT_EXT,
+
+            NEGATIVE_ONE_TO_ONE: ext.NEGATIVE_ONE_TO_ONE_EXT,
+            ZERO_TO_ONE: ext.ZERO_TO_ONE_EXT,
+
+            CLIP_ORIGIN: ext.CLIP_ORIGIN_EXT,
+            CLIP_DEPTH_MODE: ext.CLIP_DEPTH_MODE_EXT,
+
+            clipControl: ext.clipControlEXT.bind(ext)
+        };
     }
     return null;
 }

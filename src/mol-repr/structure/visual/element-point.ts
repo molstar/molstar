@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -25,6 +26,7 @@ export const ElementPointParams = {
     ignoreHydrogens: PD.Boolean(false),
     ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),
     traceOnly: PD.Boolean(false),
+    stride: PD.Numeric(1, { min: 1, max: 100, step: 1 }),
 };
 export type ElementPointParams = typeof ElementPointParams
 
@@ -70,7 +72,7 @@ export function createElementPoint(ctx: VisualContext, unit: Unit, structure: St
     // re-use boundingSphere if it has not changed much
     let boundingSphere: Sphere3D;
     Vec3.scale(center, center, 1 / count);
-    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
+    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         boundingSphere = oldBoundingSphere;
     } else {
         boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor);
@@ -91,7 +93,8 @@ export function ElementPointVisual(materialId: number): UnitsVisual<ElementPoint
             state.createGeometry = (
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
                 newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
-                newProps.traceOnly !== currentProps.traceOnly
+                newProps.traceOnly !== currentProps.traceOnly ||
+                newProps.stride !== currentProps.stride
             );
         }
     }, materialId);

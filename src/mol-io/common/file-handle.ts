@@ -16,7 +16,7 @@ export interface FileHandle {
      * @param position The offset from the beginning of the file from which data should be read.
      * @param sizeOrBuffer The buffer the data will be read from.
      * @param length The number of bytes to read.
-     * @param byteOffset The offset in the buffer at which to start writing.
+     * @param byteOffset The offset in the buffer at which to start reading.
      */
     readBuffer(position: number, sizeOrBuffer: SimpleBuffer | number, length?: number, byteOffset?: number): Promise<{ bytesRead: number, buffer: SimpleBuffer }>
 

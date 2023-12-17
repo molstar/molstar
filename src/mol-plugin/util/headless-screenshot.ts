@@ -10,8 +10,8 @@
 
 import fs from 'fs';
 import path from 'path';
-import { type BufferRet as JpegBufferRet } from 'jpeg-js'; // Only import type here, the actual import is done by LazyImports
-import { type PNG } from 'pngjs'; // Only import type here, the actual import is done by LazyImports
+import { type BufferRet as JpegBufferRet } from 'jpeg-js'; // Only import type here, the actual import must be provided by the caller
+import { type PNG } from 'pngjs'; // Only import type here, the actual import must be provided by the caller
 
 import { Canvas3D, Canvas3DContext, Canvas3DProps, DefaultCanvas3DParams } from '../../mol-canvas3d/canvas3d';
 import { ImagePass, ImageProps } from '../../mol-canvas3d/passes/image';
@@ -22,16 +22,13 @@ import { AssetManager } from '../../mol-util/assets';
 import { ColorNames } from '../../mol-util/color/names';
 import { PixelData } from '../../mol-util/image';
 import { InputObserver } from '../../mol-util/input/input-observer';
-import { LazyImports } from '../../mol-util/lazy-imports';
 import { ParamDefinition } from '../../mol-util/param-definition';
 
-
-const lazyImports = LazyImports.create('gl', 'jpeg-js', 'pngjs') as {
+export interface ExternalModules {
     'gl': typeof import('gl'),
-    'jpeg-js': typeof import('jpeg-js'),
-    'pngjs': typeof import('pngjs'),
-};
-
+    'jpeg-js'?: typeof import('jpeg-js'),
+    'pngjs'?: typeof import('pngjs'),
+}
 
 export type HeadlessScreenshotHelperOptions = {
     webgl?: WebGLContextAttributes,
@@ -45,22 +42,26 @@ export type RawImageData = {
     height: number,
 }
 
-
 /** To render Canvas3D when running in Node.js (without DOM) */
 export class HeadlessScreenshotHelper {
     readonly canvas3d: Canvas3D;
     readonly imagePass: ImagePass;
 
-    constructor(readonly canvasSize: { width: number, height: number }, canvas3d?: Canvas3D, options?: HeadlessScreenshotHelperOptions) {
+    constructor(readonly externalModules: ExternalModules, readonly canvasSize: { width: number, height: number }, canvas3d?: Canvas3D, options?: HeadlessScreenshotHelperOptions) {
         if (canvas3d) {
             this.canvas3d = canvas3d;
         } else {
-            const glContext = lazyImports.gl(this.canvasSize.width, this.canvasSize.height, options?.webgl ?? defaultWebGLAttributes());
+            const glContext = this.externalModules.gl(this.canvasSize.width, this.canvasSize.height, options?.webgl ?? defaultWebGLAttributes());
             const webgl = createContext(glContext);
             const input = InputObserver.create();
             const attribs = { ...Canvas3DContext.DefaultAttribs };
-            const passes = new Passes(webgl, new AssetManager(), attribs);
-            this.canvas3d = Canvas3D.create({ webgl, input, passes, attribs } as Canvas3DContext, options?.canvas ?? defaultCanvas3DParams());
+            const assetManager = new AssetManager();
+            const passes = new Passes(webgl, assetManager, attribs);
+            const dispose = () => {
+                input.dispose();
+                webgl.destroy();
+            };
+            this.canvas3d = Canvas3D.create({ webgl, input, passes, attribs, assetManager, dispose }, options?.canvas ?? defaultCanvas3DParams());
         }
 
         this.imagePass = this.canvas3d.getImagePass(options?.imagePass ?? defaultImagePassParams());
@@ -93,14 +94,20 @@ export class HeadlessScreenshotHelper {
 
     async getImagePng(imageSize?: { width: number, height: number }, postprocessing?: Partial<PostprocessingProps>): Promise<PNG> {
         const imageData = await this.getImageRaw(imageSize, postprocessing);
-        const generatedPng = new lazyImports.pngjs.PNG({ width: imageData.width, height: imageData.height });
+        if (!this.externalModules.pngjs) {
+            throw new Error("External module 'pngjs' was not provided. If you want to use getImagePng, you must import 'pngjs' and provide it to the HeadlessPluginContext/HeadlessScreenshotHelper constructor.");
+        }
+        const generatedPng = new this.externalModules.pngjs.PNG({ width: imageData.width, height: imageData.height });
         generatedPng.data = Buffer.from(imageData.data.buffer);
         return generatedPng;
     }
 
     async getImageJpeg(imageSize?: { width: number, height: number }, postprocessing?: Partial<PostprocessingProps>, jpegQuality: number = 90): Promise<JpegBufferRet> {
         const imageData = await this.getImageRaw(imageSize, postprocessing);
-        const generatedJpeg = lazyImports['jpeg-js'].encode(imageData, jpegQuality);
+        if (!this.externalModules['jpeg-js']) {
+            throw new Error("External module 'jpeg-js' was not provided. If you want to use getImageJpeg, you must import 'jpeg-js' and provide it to the HeadlessPluginContext/HeadlessScreenshotHelper constructor.");
+        }
+        const generatedJpeg = this.externalModules['jpeg-js'].encode(imageData, jpegQuality);
         return generatedJpeg;
     }
 
@@ -159,6 +166,7 @@ export function defaultCanvas3DParams(): Partial<Canvas3DProps> {
             backgroundColor: ColorNames.white,
         },
         postprocessing: {
+            ...DefaultCanvas3DParams.postprocessing,
             occlusion: {
                 name: 'off', params: {}
             },
@@ -196,8 +204,9 @@ export function defaultImagePassParams(): Partial<ImageProps> {
             axes: { name: 'off', params: {} },
         },
         multiSample: {
+            ...DefaultCanvas3DParams.multiSample,
             mode: 'on',
-            sampleLevel: 4
+            sampleLevel: 4,
         }
     };
 }
@@ -206,6 +215,7 @@ export const STYLIZED_POSTPROCESSING: Partial<PostprocessingProps> = {
     occlusion: {
         name: 'on' as const, params: {
             samples: 32,
+            multiScale: { name: 'off', params: {} },
             radius: 5,
             bias: 0.8,
             blurKernelSize: 15,

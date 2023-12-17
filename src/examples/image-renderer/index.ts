@@ -12,13 +12,16 @@
 import { ArgumentParser } from 'argparse';
 import fs from 'fs';
 import path from 'path';
+import gl from 'gl';
+import pngjs from 'pngjs';
+import jpegjs from 'jpeg-js';
 
 import { Download, ParseCif } from '../../mol-plugin-state/transforms/data';
 import { ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromMmCif } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { HeadlessPluginContext } from '../../mol-plugin/headless-plugin-context';
 import { DefaultPluginSpec } from '../../mol-plugin/spec';
-import { STYLIZED_POSTPROCESSING } from '../../mol-plugin/util/headless-screenshot';
+import { ExternalModules, STYLIZED_POSTPROCESSING } from '../../mol-plugin/util/headless-screenshot';
 import { setFSModule } from '../../mol-util/data-source';
 
 
@@ -45,7 +48,8 @@ async function main() {
     console.log('Outputs:', args.outDirectory);
 
     // Create a headless plugin
-    const plugin = new HeadlessPluginContext(DefaultPluginSpec(), { width: 800, height: 800 });
+    const externalModules: ExternalModules = { gl, pngjs, 'jpeg-js': jpegjs };
+    const plugin = new HeadlessPluginContext(externalModules, DefaultPluginSpec(), { width: 800, height: 800 });
     await plugin.init();
 
     // Download and visualize data in the plugin
