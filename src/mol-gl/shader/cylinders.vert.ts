@@ -59,6 +59,14 @@ void main() {
         dir = -dir;
     }
 
+    float d;
+    if (uLod.x != 0.0 && uLod.y != 0.0) {
+        // d = distance(vModelPosition, uCameraPosition);
+        d = dot(uCameraPlane.xyz, vModelPosition) + uCameraPlane.w;
+        float f = smoothstep(uLod.x - uLod.z, uLod.x, d);
+        vSize *= f;
+    }
+
     vec3 left = cross(camDir, dir);
     vec3 up = cross(left, dir);
     left = vSize * normalize(left);
@@ -74,6 +82,13 @@ void main() {
     if (gl_Position.z < -gl_Position.w) {
         mvPosition.z -= 2.0 * (length(vEnd - vStart) + vSize); // avoid clipping
         gl_Position.z = (uProjection * mvPosition).z;
+    }
+
+    if (uLod.x != 0.0 && uLod.y != 0.0) {
+        if (d < (uLod.x - uLod.z) || d > uLod.y) {
+            // move out of [ -w, +w ] to 'discard' in vert shader
+            gl_Position.z = 2.0 * gl_Position.w;
+        }
     }
 
     #include clip_instance

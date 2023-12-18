@@ -71,6 +71,7 @@ const SimpleSettingsParams = {
     layout: PD.MultiSelect([] as LayoutOptions[], PD.objectToOptions(LayoutOptions)),
     advanced: PD.Group({
         multiSample: Canvas3DParams.multiSample,
+        hiZ: Canvas3DParams.hiZ,
         sharpening: Canvas3DParams.postprocessing.params.sharpening,
         pixelScale: Canvas3DContext.Params.pixelScale,
         transparency: Canvas3DContext.Params.transparency,
@@ -135,6 +136,7 @@ const SimpleSettingsMapping = ParamMapping({
             },
             advanced: {
                 multiSample: canvas.multiSample,
+                hiZ: canvas.hiZ,
                 sharpening: canvas.postprocessing.sharpening,
                 pixelScale: props.pixelScale,
                 transparency: props.transparency,
@@ -158,6 +160,7 @@ const SimpleSettingsMapping = ParamMapping({
             minNear: s.clipping.minNear,
         };
         canvas.multiSample = s.advanced.multiSample;
+        canvas.hiZ = s.advanced.hiZ;
         canvas.postprocessing.sharpening = s.advanced.sharpening;
 
         props.layout = s.layout;

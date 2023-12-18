@@ -36,9 +36,15 @@ class MovingAverage {
     constructor(private count: number) { }
 }
 
-function clearStatsCalls(stats: WebGLStats) {
+function clearStats(stats: WebGLStats) {
     stats.calls.drawInstanced = 0;
+    stats.calls.drawInstancedBase = 0;
+    stats.calls.multiDrawInstancedBase = 0;
     stats.calls.counts = 0;
+
+    stats.culled.lod = 0;
+    stats.culled.frustum = 0;
+    stats.culled.occlusion = 0;
 }
 
 export type TimerResult = {
@@ -58,7 +64,7 @@ function getQuery(extensions: WebGLExtensions) {
 export type WebGLTimer = {
     /** Check with GPU for finished timers. */
     resolve: () => TimerResult[]
-    mark: (label: string, captureCalls?: boolean) => void
+    mark: (label: string, captureStats?: boolean) => void
     markEnd: (label: string) => void
     stats: () => { gpu: Record<string, number>, cpu: Record<string, number> }
     formatedStats: () => Record<string, string>
@@ -77,7 +83,7 @@ type Measure = {
     children: Measure[],
     root: boolean,
     cpu: { start: number, end: number },
-    captureCalls: boolean,
+    captureStats: boolean,
     timeElapsed?: number,
     calls?: Calls,
 };
@@ -96,7 +102,7 @@ export function createTimer(gl: GLRenderingContext, extensions: WebGLExtensions,
 
     let measures: Measure[] = [];
     let current: WebGLQuery | null = null;
-    let capturingCalls = false;
+    let capturingStats = false;
 
     const clear = () => {
         if (!dtq) return;
@@ -200,7 +206,7 @@ export function createTimer(gl: GLRenderingContext, extensions: WebGLExtensions,
 
             return results;
         },
-        mark: (label: string, captureCalls = false) => {
+        mark: (label: string, captureStats = false) => {
             if (!dtq) return;
 
             if (pending.has(label)) {
@@ -216,7 +222,7 @@ export function createTimer(gl: GLRenderingContext, extensions: WebGLExtensions,
                 children: [],
                 root: current === null,
                 cpu: { start: now(), end: -1 },
-                captureCalls,
+                captureStats,
             };
             pending.set(label, measure);
 
@@ -225,12 +231,12 @@ export function createTimer(gl: GLRenderingContext, extensions: WebGLExtensions,
             }
             stack.push(measure);
 
-            if (captureCalls) {
-                if (capturingCalls) {
-                    throw new Error('Already capturing calls');
+            if (captureStats) {
+                if (capturingStats) {
+                    throw new Error('Already capturing stats');
                 }
-                clearStatsCalls(stats);
-                capturingCalls = true;
+                clearStats(stats);
+                capturingStats = true;
             }
 
             add();
@@ -251,12 +257,9 @@ export function createTimer(gl: GLRenderingContext, extensions: WebGLExtensions,
             pending.delete(label);
 
             measure.cpu.end = now();
-            if (measure.captureCalls) {
-                measure.calls = {
-                    drawInstanced: stats.calls.drawInstanced,
-                    counts: stats.calls.counts,
-                };
-                capturingCalls = false;
+            if (measure.captureStats) {
+                measure.calls = { ...stats.calls };
+                capturingStats = false;
             }
 
             measures.push(measure);

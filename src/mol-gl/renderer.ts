@@ -21,6 +21,9 @@ import { Texture, Textures } from './webgl/texture';
 import { arrayMapUpsert } from '../mol-util/array';
 import { clamp } from '../mol-math/interpolate';
 import { isTimingMode } from '../mol-util/debug';
+import { Frustum3D } from '../mol-math/geometry/primitives/frustum3d';
+import { Plane3D } from '../mol-math/geometry/primitives/plane3d';
+import { Sphere3D } from '../mol-math/geometry';
 
 export interface RendererStats {
     programCount: number
@@ -81,6 +84,7 @@ interface Renderer {
     setTransparentBackground: (value: boolean) => void
     setDrawingBufferSize: (width: number, height: number) => void
     setPixelRatio: (value: number) => void
+    setOcclusionTest: (f: ((s: Sphere3D) => boolean) | null) => void
 
     dispose: () => void
 }
@@ -170,6 +174,7 @@ namespace Renderer {
         const bgColor = Color.toVec3Normalized(Vec3(), p.backgroundColor);
 
         let transparentBackground = false;
+        let isOccluded: ((s: Sphere3D) => boolean) | null = null;
 
         const emptyDepthTexture = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
         emptyDepthTexture.define(1, 1);
@@ -188,12 +193,16 @@ namespace Renderer {
 
         const cameraDir = Vec3();
         const cameraPosition = Vec3();
+        const cameraPlane = Plane3D();
         const viewOffset = Vec2();
+        const frustum = Frustum3D();
 
         const ambientColor = Vec3();
         Vec3.scale(ambientColor, Color.toArrayNormalized(p.ambientColor, ambientColor, 0), p.ambientIntensity);
 
         const globalUniforms: GlobalUniformValues = {
+            uDrawId: ValueCell.create(0),
+
             uModel: ValueCell.create(Mat4.identity()),
             uView: ValueCell.create(view),
             uInvView: ValueCell.create(invView),
@@ -213,6 +222,7 @@ namespace Renderer {
 
             uCameraPosition: ValueCell.create(cameraPosition),
             uCameraDir: ValueCell.create(cameraDir),
+            uCameraPlane: ValueCell.create(Plane3D.toArray(cameraPlane, Vec4(), 0)),
             uNear: ValueCell.create(1),
             uFar: ValueCell.create(10000),
             uFog: ValueCell.create(true),
@@ -256,6 +266,25 @@ namespace Renderer {
         const renderObject = (r: GraphicsRenderable, variant: GraphicsRenderVariant, flag: Flag) => {
             if (r.state.disposed || !r.state.visible || (!r.state.pickable && variant === 'pick')) {
                 return;
+            }
+
+            // TODO: check what happens if sphere surrounds frustum fully
+            if (!Frustum3D.intersectsSphere3D(frustum, r.values.boundingSphere.ref.value)) {
+                return;
+            }
+
+            const [minDistance, maxDistance] = r.values.uLod.ref.value;
+            if (minDistance !== 0 || maxDistance !== 0) {
+                const { center, radius } = r.values.boundingSphere.ref.value;
+                const d = Plane3D.distanceToPoint(cameraPlane, center);
+                if (d + radius < minDistance) return;
+                if (d - radius > maxDistance) return;
+            }
+
+            if (r.values.instanceGrid.ref.value.cellSize > 1 || r.values.lodLevels) {
+                r.cull(cameraPlane, frustum, isOccluded, ctx.stats);
+            } else {
+                r.uncull();
             }
 
             let needUpdate = false;
@@ -358,6 +387,12 @@ namespace Renderer {
             ValueCell.updateIfChanged(globalUniforms.uFogFar, camera.fogFar);
             ValueCell.updateIfChanged(globalUniforms.uFogNear, camera.fogNear);
             ValueCell.updateIfChanged(globalUniforms.uTransparentBackground, transparentBackground);
+
+            Frustum3D.fromProjectionMatrix(frustum, camera.projectionView);
+
+            Plane3D.copy(cameraPlane, frustum[Frustum3D.PlaneIndex.Near]);
+            cameraPlane.constant -= Plane3D.distanceToPoint(cameraPlane, cameraPosition);
+            ValueCell.update(globalUniforms.uCameraPlane, Plane3D.toArray(cameraPlane, globalUniforms.uCameraPlane.ref.value, 0));
 
             ValueCell.updateIfChanged(globalUniforms.uMarkerAverage, scene.markerAverage);
         };
@@ -841,6 +876,9 @@ namespace Renderer {
             },
             setPixelRatio: (value: number) => {
                 ValueCell.update(globalUniforms.uPixelRatio, value);
+            },
+            setOcclusionTest: (f: ((s: Sphere3D) => boolean) | null) => {
+                isOccluded = f;
             },
 
             props: p,

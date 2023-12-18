@@ -184,7 +184,15 @@ function createStats() {
 
         calls: {
             drawInstanced: 0,
+            drawInstancedBase: 0,
+            multiDrawInstancedBase: 0,
             counts: 0,
+        },
+
+        culled: {
+            lod: 0,
+            frustum: 0,
+            occlusion: 0,
         },
     };
     return stats;

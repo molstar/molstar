@@ -12,6 +12,15 @@ Note that since we don't clearly distinguish between a public and private interf
     - pixelScale, pickScale, transparency (blended, wboit, dpoit)
     - replacing instantiation-time attribs
 - [Breaking] Change default compile target to ES2018
+- Add culling support
+    - Cull per-object and per-instance
+    - Cull based on frustum and camera distance
+- Add LOD support
+    - Visibility based on camera distance
+    - Special mode for spheres with automatic LOD levels
+- Add occlusion culling (only WebGL2)
+    - Hi-Z pass
+    - Cull based on previous frame's Hi-Z buffer
 
 ## [Unreleased]
 
