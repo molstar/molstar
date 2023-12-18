@@ -27,6 +27,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix measurement label `offsetZ` default: not needed when `scaleByRadius` is enbaled
+
 ## [v3.43.1] - 2023-12-04
 
 - Fix `react-markdown` dependency
