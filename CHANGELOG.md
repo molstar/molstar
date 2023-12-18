@@ -6,7 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Add new cartoon visuals to support nucleotide base with sugar
+- Add new `cartoon` visuals to support atomic nucleotide base with sugar
+- Add `thicknessFactor` to `cartoon` representation for scaling nucleotide block/ring/atomic-fill visuals
 - Fix measurement label `offsetZ` default: not needed when `scaleByRadius` is enbaled
 
 ## [v3.43.1] - 2023-12-04
