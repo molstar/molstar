@@ -28,9 +28,6 @@ import { Cylinders } from '../../../mol-geo/geometry/cylinders/cylinders';
 import { CylindersBuilder } from '../../../mol-geo/geometry/cylinders/cylinders-builder';
 import { StructureGroup } from './util/common';
 
-
-// avoiding namespace lookup improved performance in Chrome (Aug 2020)
-
 const pTrace = Vec3();
 
 const pN1 = Vec3();

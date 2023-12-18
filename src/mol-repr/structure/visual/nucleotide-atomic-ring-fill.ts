@@ -20,7 +20,7 @@ import { NucleotideLocationIterator, getNucleotideElementLoci, eachNucleotideEle
 import { VisualUpdateState } from '../../util';
 import { Sphere3D } from '../../../mol-math/geometry';
 
-// TODO support rings for multiple locations (including from microheterogeneity)
+// TODO support ring-fills for multiple locations (including from microheterogeneity)
 
 const pN1 = Vec3();
 const pC2 = Vec3();
@@ -43,7 +43,8 @@ const normal = Vec3();
 const shift = Vec3();
 
 export const NucleotideAtomicRingFillMeshParams = {
-    nucleicRingThickness: PD.Numeric(0.5, { min: 0, max: 2, step: 0.01 }),
+    sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
+    thicknessFactor: PD.Numeric(1, { min: 0, max: 2, step: 0.01 }),
 };
 export const DefaultNucleotideAtomicRingFillMeshProps = PD.getDefaultValues(NucleotideAtomicRingFillMeshParams);
 export type NucleotideAtomicRingFillProps = typeof DefaultNucleotideAtomicRingFillMeshProps
@@ -78,7 +79,7 @@ function createNucleotideAtomicRingFillMesh(ctx: VisualContext, unit: Unit, stru
     const nucleotideElementCount = unit.nucleotideElements.length;
     if (!nucleotideElementCount) return Mesh.createEmpty(mesh);
 
-    const { nucleicRingThickness } = props;
+    const { sizeFactor, thicknessFactor } = props;
 
     const vertexCount = nucleotideElementCount * 25;
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 4, mesh);
@@ -90,7 +91,8 @@ function createNucleotideAtomicRingFillMesh(ctx: VisualContext, unit: Unit, stru
 
     const chainIt = Segmentation.transientSegments(chainAtomSegments, elements);
     const residueIt = Segmentation.transientSegments(residueAtomSegments, elements);
-    const thickness = nucleicRingThickness;
+
+    const thickness = sizeFactor * thicknessFactor;
 
     let i = 0;
     while (chainIt.hasNext) {
@@ -110,7 +112,7 @@ function createNucleotideAtomicRingFillMesh(ctx: VisualContext, unit: Unit, stru
 
                     // sugar ring
                     Vec3.triangleNormal(normal, pC3_1, pC4_1, pC1_1);
-                    Vec3.scale(mid, Vec3.add(mid, pO4_1, Vec3.add(mid, pC4_1, Vec3.add(mid, pC3_1, Vec3.add(mid, pC1_1, pC2_1)))), 0.2/* 1 / 5 */);
+                    Vec3.scale(mid, Vec3.add(mid, pO4_1, Vec3.add(mid, pC4_1, Vec3.add(mid, pC3_1, Vec3.add(mid, pC1_1, pC2_1)))), 0.2 /* 1 / 5 */);
 
                     Vec3.scale(shift, normal, thickness);
                     shiftPositions(positionsRing5, shift, mid, pC3_1, pC4_1, pO4_1, pC1_1, pC2_1);
@@ -164,7 +166,7 @@ function createNucleotideAtomicRingFillMesh(ctx: VisualContext, unit: Unit, stru
 
     const m = MeshBuilder.getMesh(builderState);
 
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.nucleicRingThickness);
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, thickness);
     m.setBoundingSphere(sphere);
 
     return m;
@@ -185,7 +187,8 @@ export function NucleotideAtomicRingFillVisual(materialId: number): UnitsVisual<
         eachLocation: eachNucleotideElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<NucleotideAtomicRingFillParams>, currentProps: PD.Values<NucleotideAtomicRingFillParams>) => {
             state.createGeometry = (
-                newProps.nucleicRingThickness !== currentProps.nucleicRingThickness
+                newProps.sizeFactor !== currentProps.sizeFactor ||
+                newProps.thicknessFactor !== currentProps.thicknessFactor
             );
         }
     }, materialId);

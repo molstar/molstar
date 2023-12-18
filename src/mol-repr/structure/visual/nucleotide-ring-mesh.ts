@@ -39,6 +39,7 @@ const normal = Vec3();
 
 export const NucleotideRingMeshParams = {
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
+    thicknessFactor: PD.Numeric(1, { min: 0, max: 2, step: 0.01 }),
     radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }, BaseGeometry.CustomQualityParamInfo),
     detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
 };
@@ -70,7 +71,7 @@ function createNucleotideRingMesh(ctx: VisualContext, unit: Unit, structure: Str
     const nucleotideElementCount = unit.nucleotideElements.length;
     if (!nucleotideElementCount) return Mesh.createEmpty(mesh);
 
-    const { sizeFactor, radialSegments, detail } = props;
+    const { sizeFactor, thicknessFactor, radialSegments, detail } = props;
 
     const vertexCount = nucleotideElementCount * (26 + radialSegments * 2);
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 4, mesh);
@@ -84,8 +85,8 @@ function createNucleotideRingMesh(ctx: VisualContext, unit: Unit, structure: Str
     const residueIt = Segmentation.transientSegments(residueAtomSegments, elements);
 
     const radius = 1 * sizeFactor;
-    const halfThickness = 1.25 * sizeFactor;
-    const cylinderProps: CylinderProps = { radiusTop: 1 * sizeFactor, radiusBottom: 1 * sizeFactor, radialSegments };
+    const thickness = thicknessFactor * sizeFactor;
+    const cylinderProps: CylinderProps = { radiusTop: radius, radiusBottom: radius, radialSegments };
 
     let i = 0;
     while (chainIt.hasNext) {
@@ -115,7 +116,7 @@ function createNucleotideRingMesh(ctx: VisualContext, unit: Unit, structure: Str
                         pos(idx.N1, pN1); pos(idx.C2, pC2); pos(idx.N3, pN3); pos(idx.C4, pC4); pos(idx.C5, pC5); pos(idx.C6, pC6); pos(idx.N7, pN7); pos(idx.C8, pC8);
 
                         Vec3.triangleNormal(normal, pN1, pC4, pC5);
-                        Vec3.scale(normal, normal, halfThickness);
+                        Vec3.scale(normal, normal, thickness);
                         shiftPositions(positionsRing5_6, normal, pN1, pC2, pN3, pC4, pC5, pC6, pN7, pC8, pN9);
 
                         MeshBuilder.addTriangleStrip(builderState, positionsRing5_6, stripIndicesRing5_6);
@@ -136,7 +137,7 @@ function createNucleotideRingMesh(ctx: VisualContext, unit: Unit, structure: Str
                         pos(idx.C2, pC2); pos(idx.N3, pN3); pos(idx.C4, pC4); pos(idx.C5, pC5); pos(idx.C6, pC6);
 
                         Vec3.triangleNormal(normal, pN1, pC4, pC5);
-                        Vec3.scale(normal, normal, halfThickness);
+                        Vec3.scale(normal, normal, thickness);
                         shiftPositions(positionsRing6, normal, pN1, pC2, pN3, pC4, pC5, pC6);
 
                         MeshBuilder.addTriangleStrip(builderState, positionsRing6, stripIndicesRing6);
@@ -152,7 +153,7 @@ function createNucleotideRingMesh(ctx: VisualContext, unit: Unit, structure: Str
 
     const m = MeshBuilder.getMesh(builderState);
 
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor);
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, radius);
     m.setBoundingSphere(sphere);
 
     return m;
@@ -174,6 +175,7 @@ export function NucleotideRingVisual(materialId: number): UnitsVisual<Nucleotide
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<NucleotideRingParams>, currentProps: PD.Values<NucleotideRingParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
+                newProps.thicknessFactor !== currentProps.thicknessFactor ||
                 newProps.radialSegments !== currentProps.radialSegments
             );
         }
