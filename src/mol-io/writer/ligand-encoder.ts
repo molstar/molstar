@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
@@ -111,11 +111,13 @@ export abstract class LigandEncoder implements Encoder<string> {
                 const key = it.move();
 
                 const lai = label_atom_id.value(key, data, index) as string;
+                // ignore all atoms not registered in the CCD
+                if (!ccdAtoms.has(lai)) continue;
                 // ignore all alternate locations after the first
                 if (atoms.has(lai)) continue;
 
                 const ts = type_symbol.value(key, data, index) as ElementSymbol;
-                if (this.skipHydrogen(ts, ccdAtoms.has(lai))) continue;
+                if (this.skipHydrogen(ts)) continue;
 
                 const a: { [k: string]: (string | number) } = {};
 
@@ -134,10 +136,11 @@ export abstract class LigandEncoder implements Encoder<string> {
         return atoms;
     }
 
-    // skip hydrogens if ignored globally or if observed in structure but unknown to CCD
-    protected skipHydrogen(ts: ElementSymbol, present: boolean) {
-        const isHydrogen = this.isHydrogen(ts);
-        return isHydrogen && (!this.hydrogens || !present);
+    protected skipHydrogen(type_symbol: ElementSymbol) {
+        if (this.hydrogens) {
+            return false;
+        }
+        return this.isHydrogen(type_symbol);
     }
 
     protected isHydrogen(type_symbol: ElementSymbol) {
