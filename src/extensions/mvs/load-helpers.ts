@@ -18,6 +18,7 @@ import { MVSAnnotationLabelRepresentationProvider } from './components/annotatio
 import { MVSAnnotationSpec } from './components/annotation-prop';
 import { MVSAnnotationStructureComponentProps } from './components/annotation-structure-component';
 import { MVSAnnotationTooltipsProps } from './components/annotation-tooltips-prop';
+import { CustomLabelTextProps } from './components/custom-label/visual';
 import { CustomTooltipsProps } from './components/custom-tooltips-prop';
 import { MultilayerColorThemeName, MultilayerColorThemeProps, NoColor } from './components/multilayer-color-theme';
 import { SelectorAll } from './components/selector';
@@ -223,7 +224,7 @@ function blockSpec(header: string | null | undefined, index: number | null | und
 }
 
 /** Collect annotation tooltips from all nodes in `tree` and map them to annotationIds. */
-export function collectAnnotationTooltips(tree: SubTreeOfKind<MolstarTree, 'structure'>, context: MolstarLoadingContext) {
+export function collectAnnotationTooltips(tree: SubTreeOfKind<MolstarTree, 'structure'>, context: MolstarLoadingContext): MVSAnnotationTooltipsProps['tooltips'] {
     const annotationTooltips: MVSAnnotationTooltipsProps['tooltips'] = [];
     dfs(tree, node => {
         if (node.kind === 'tooltip_from_uri' || node.kind === 'tooltip_from_source') {
@@ -235,8 +236,8 @@ export function collectAnnotationTooltips(tree: SubTreeOfKind<MolstarTree, 'stru
     });
     return arrayDistinct(annotationTooltips);
 }
-/** Collect annotation tooltips from all nodes in `tree`. */
-export function collectInlineTooltips(tree: SubTreeOfKind<MolstarTree, 'structure'>, context: MolstarLoadingContext) {
+/** Collect inline tooltips from all nodes in `tree`. */
+export function collectInlineTooltips(tree: SubTreeOfKind<MolstarTree, 'structure'>, context: MolstarLoadingContext): CustomTooltipsProps['tooltips'] {
     const inlineTooltips: CustomTooltipsProps['tooltips'] = [];
     dfs(tree, (node, parent) => {
         if (node.kind === 'tooltip') {
@@ -261,10 +262,46 @@ export function collectInlineTooltips(tree: SubTreeOfKind<MolstarTree, 'structur
     });
     return inlineTooltips;
 }
+/** Collect inline labels from all nodes in `tree`. */
+export function collectInlineLabels(tree: SubTreeOfKind<MolstarTree, 'structure'>, context: MolstarLoadingContext): CustomLabelTextProps['items'] {
+    const inlineLabels: CustomLabelTextProps['items'] = [];
+    dfs(tree, (node, parent) => {
+        if (node.kind === 'label') {
+            if (parent?.kind === 'component') {
+                inlineLabels.push({
+                    text: node.params.text,
+                    position: {
+                        name: 'selector',
+                        params: {
+                            selector: componentPropsFromSelector(parent.params.selector),
+                        },
+                    },
+                });
+            } else if (parent?.kind === 'component_from_uri' || parent?.kind === 'component_from_source') {
+                const p = componentFromXProps(parent, context);
+                if (isDefined(p.annotationId) && isDefined(p.fieldName) && isDefined(p.fieldValues)) {
+                    inlineLabels.push({
+                        text: node.params.text,
+                        position: {
+                            name: 'selector',
+                            params: {
+                                selector: {
+                                    name: 'annotation',
+                                    params: { annotationId: p.annotationId, fieldName: p.fieldName, fieldValues: p.fieldValues },
+                                },
+                            },
+                        },
+                    });
+                }
+            }
+        }
+    });
+    return inlineLabels;
+}
 
 /** Return `true` for components nodes which only serve for tooltip placement (not to be created in the MolStar object hierarchy) */
 export function isPhantomComponent(node: SubTreeOfKind<MolstarTree, 'component' | 'component_from_uri' | 'component_from_source'>) {
-    return node.children && node.children.every(child => child.kind === 'tooltip' || child.kind === 'tooltip_from_uri' || child.kind === 'tooltip_from_source');
+    return node.children && node.children.every(child => child.kind === 'tooltip' || child.kind === 'label');
     // These nodes could theoretically be removed when converting MVS to Molstar tree, but would get very tricky if we allow nested components
 }
 

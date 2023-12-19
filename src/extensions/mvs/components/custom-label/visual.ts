@@ -19,6 +19,7 @@ import { omitObjectKeys } from '../../../../mol-util/object';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { textPropsForSelection } from '../../helpers/label-text';
 import { MaybeIntegerParamDefinition, MaybeStringParamDefinition } from '../../helpers/param-definition';
+import { SelectorParams, substructureFromSelector } from '../selector';
 
 
 /** Parameter definition for "label-text" visual in "Custom Label" representation */
@@ -33,6 +34,9 @@ export const CustomLabelTextParams = {
                     y: PD.Numeric(0),
                     z: PD.Numeric(0),
                     scale: PD.Numeric(1, { min: 0, max: 20, step: 0.1 })
+                }),
+                selector: PD.Group({
+                    selector: SelectorParams,
                 }),
                 selection: PD.Group({
                     label_entity_id: MaybeStringParamDefinition(),
@@ -97,6 +101,11 @@ function createLabelText(ctx: VisualContext, structure: Structure, theme: Theme,
             case 'x_y_z':
                 const scale = item.position.params.scale;
                 builder.add(item.text, item.position.params.x, item.position.params.y, item.position.params.z, scale, scale, 0);
+                break;
+            case 'selector':
+                const substructure = substructureFromSelector(structure, item.position.params.selector);
+                const px = textPropsForSelection(substructure, theme.size.size, {});
+                if (px) builder.add(item.text, px.center[0], px.center[1], px.center[2], px.depth, px.scale, px.group);
                 break;
             case 'selection':
                 const p = textPropsForSelection(structure, theme.size.size, item.position.params);

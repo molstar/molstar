@@ -16,7 +16,7 @@ import { MVSAnnotationStructureComponent } from './components/annotation-structu
 import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-prop';
 import { CustomLabelProps, CustomLabelRepresentationProvider } from './components/custom-label/representation';
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
-import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, UpdateTarget, collectAnnotationReferences, collectAnnotationTooltips, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps } from './load-helpers';
+import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, UpdateTarget, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps } from './load-helpers';
 import { MVSData } from './mvs-data';
 import { ParamsOfKind, SubTreeOfKind, validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
@@ -148,6 +148,18 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
                 ],
             });
         }
+        const inlineLabels = collectInlineLabels(node, context);
+        if (inlineLabels.length > 0) {
+            const nearestReprNode = context.nearestReprMap?.get(node);
+            UpdateTarget.apply(struct, StructureRepresentation3D, {
+                type: {
+                    name: CustomLabelRepresentationProvider.name,
+                    params: { items: inlineLabels } satisfies Partial<CustomLabelProps>,
+                },
+                // colorTheme: { name: 'uniform', params: { value: ColorNames.white } },
+                colorTheme: colorThemeForNode(nearestReprNode, context),
+            });
+        }
         return struct;
     },
     tooltip: undefined, // No action needed, already loaded in `structure`
@@ -180,23 +192,10 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
             colorTheme: colorThemeForNode(node, context),
         });
     },
-    color: undefined, // No action needed, already loaded in `structure`
-    color_from_uri: undefined, // No action needed, already loaded in `structure`
-    color_from_source: undefined, // No action needed, already loaded in `structure`
-    label(updateParent: UpdateTarget, node: MolstarNode<'label'>, context: MolstarLoadingContext): UpdateTarget {
-        const item: CustomLabelProps['items'][number] = {
-            text: node.params.text,
-            position: { name: 'selection', params: {} },
-        };
-        const nearestReprNode = context.nearestReprMap?.get(node);
-        return UpdateTarget.apply(updateParent, StructureRepresentation3D, {
-            type: {
-                name: CustomLabelRepresentationProvider.name,
-                params: { items: [item] } satisfies Partial<CustomLabelProps>
-            },
-            colorTheme: colorThemeForNode(nearestReprNode, context),
-        });
-    },
+    color: undefined, // No action needed, already loaded in `representation`
+    color_from_uri: undefined, // No action needed, already loaded in `representation`
+    color_from_source: undefined, // No action needed, already loaded in `representation`
+    label: undefined, // No action needed, already loaded in `structure`
     label_from_uri(updateParent: UpdateTarget, node: MolstarNode<'label_from_uri'>, context: MolstarLoadingContext): UpdateTarget {
         const props = labelFromXProps(node, context);
         return UpdateTarget.apply(updateParent, StructureRepresentation3D, props);

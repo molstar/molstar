@@ -11,6 +11,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Support all X11 colors
   - Support relative URIs
   - CLI tools: mvs-validate, mvs-render, mvs-print-schema
+  - Labels applied in one node
 
 ## [v3.43.0] - 2023-12-02
 
