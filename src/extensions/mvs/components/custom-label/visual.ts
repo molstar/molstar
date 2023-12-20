@@ -105,7 +105,8 @@ function createLabelText(ctx: VisualContext, structure: Structure, theme: Theme,
             case 'selector':
                 const substructure = substructureFromSelector(structure, item.position.params.selector);
                 const px = textPropsForSelection(substructure, theme.size.size, {});
-                if (px) builder.add(item.text, px.center[0], px.center[1], px.center[2], px.depth, px.scale, px.group);
+                const group = serialIndexOfSubstructure(structure, substructure) ?? 0;
+                if (px) builder.add(item.text, px.center[0], px.center[1], px.center[2], px.depth, px.scale, group);
                 break;
             case 'selection':
                 const p = textPropsForSelection(structure, theme.size.size, item.position.params);
@@ -114,4 +115,20 @@ function createLabelText(ctx: VisualContext, structure: Structure, theme: Theme,
         }
     }
     return builder.getText();
+}
+
+/** Return the serial index within `structure` of the first element of `substructure` (or `undefined` in that element is not in `structure`)  */
+function serialIndexOfSubstructure(structure: Structure, substructure: Structure): number | undefined {
+    if (substructure.isEmpty) return undefined;
+    const theUnit = substructure.units[0];
+    const theElement = theUnit.elements[0];
+    for (const unit of structure.units) {
+        if (unit.model.id === theUnit.model.id) {
+            const serialIndex = structure.serialMapping.getSerialIndex(unit, theElement); // will be -1 or undefined if not found
+            if (serialIndex >= 0) {
+                return serialIndex;
+            }
+        }
+    }
+    return undefined;
 }
