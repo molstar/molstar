@@ -1,6 +1,6 @@
 {
   "name": "molstar",
-  "version": "3.43.0",
+  "version": "3.43.1",
   "description": "A comprehensive macromolecular library.",
   "homepage": "https://github.com/molstar/molstar#readme",
   "repository": {
@@ -140,7 +140,6 @@
     "raw-loader": "^4.0.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-markdown": "^9.0.1",
     "sass": "^1.69.5",
     "sass-loader": "^13.3.2",
     "simple-git": "^3.21.0",
@@ -169,6 +168,7 @@
     "immutable": "^4.3.4",
     "io-ts": "^2.2.20",
     "node-fetch": "^2.7.0",
+    "react-markdown": "^9.0.1",
     "rxjs": "^7.8.1",
     "swagger-ui-dist": "^5.10.3",
     "tslib": "^2.6.2",
