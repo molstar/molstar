@@ -4,6 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { SortedArray } from '../../../../mol-data/int';
 import { Text } from '../../../../mol-geo/geometry/text/text';
 import { TextBuilder } from '../../../../mol-geo/geometry/text/text-builder';
 import { Structure } from '../../../../mol-model/structure';
@@ -18,7 +19,6 @@ import { ColorNames } from '../../../../mol-util/color/names';
 import { omitObjectKeys } from '../../../../mol-util/object';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { textPropsForSelection } from '../../helpers/label-text';
-import { MaybeIntegerParamDefinition, MaybeStringParamDefinition } from '../../helpers/param-definition';
 import { SelectorParams, substructureFromSelector } from '../selector';
 
 
@@ -35,37 +35,8 @@ export const CustomLabelTextParams = {
                     z: PD.Numeric(0),
                     scale: PD.Numeric(1, { min: 0, max: 20, step: 0.1 })
                 }),
-                selector: PD.Group({
-                    selector: SelectorParams,
-                }),
                 selection: PD.Group({
-                    label_entity_id: MaybeStringParamDefinition(),
-                    label_asym_id: MaybeStringParamDefinition(),
-                    auth_asym_id: MaybeStringParamDefinition(),
-
-                    label_seq_id: MaybeIntegerParamDefinition(),
-                    auth_seq_id: MaybeIntegerParamDefinition(),
-                    pdbx_PDB_ins_code: MaybeStringParamDefinition(),
-                    /** Minimum label_seq_id (inclusive) */
-                    beg_label_seq_id: MaybeIntegerParamDefinition(undefined, { description: 'Minimum label_seq_id (inclusive)' }),
-                    /** Maximum label_seq_id (inclusive) */
-                    end_label_seq_id: MaybeIntegerParamDefinition(),
-                    /** Minimum auth_seq_id (inclusive) */
-                    beg_auth_seq_id: MaybeIntegerParamDefinition(),
-                    /** Maximum auth_seq_id (inclusive) */
-                    end_auth_seq_id: MaybeIntegerParamDefinition(),
-
-                    /** Atom name like 'CA', 'N', 'O'... */
-                    label_atom_id: MaybeStringParamDefinition(),
-                    /** Atom name like 'CA', 'N', 'O'... */
-                    auth_atom_id: MaybeStringParamDefinition(),
-                    /** Element symbol like 'H', 'HE', 'LI', 'BE'... */
-                    type_symbol: MaybeStringParamDefinition(),
-                    /** Unique atom identifier across conformations (_atom_site.id) */
-                    atom_id: MaybeIntegerParamDefinition(),
-                    /** 0-based index of the atom in the source data */
-                    atom_index: MaybeIntegerParamDefinition(),
-
+                    selector: SelectorParams,
                 }),
             }),
         },
@@ -102,15 +73,11 @@ function createLabelText(ctx: VisualContext, structure: Structure, theme: Theme,
                 const scale = item.position.params.scale;
                 builder.add(item.text, item.position.params.x, item.position.params.y, item.position.params.z, scale, scale, 0);
                 break;
-            case 'selector':
-                const substructure = substructureFromSelector(structure, item.position.params.selector);
-                const px = textPropsForSelection(substructure, theme.size.size, {});
-                const group = serialIndexOfSubstructure(structure, substructure) ?? 0;
-                if (px) builder.add(item.text, px.center[0], px.center[1], px.center[2], px.depth, px.scale, group);
-                break;
             case 'selection':
-                const p = textPropsForSelection(structure, theme.size.size, item.position.params);
-                if (p) builder.add(item.text, p.center[0], p.center[1], p.center[2], p.depth, p.scale, p.group);
+                const substructure = substructureFromSelector(structure, item.position.params.selector);
+                const p = textPropsForSelection(substructure, theme.size.size, {});
+                const group = serialIndexOfSubstructure(structure, substructure) ?? 0;
+                if (p) builder.add(item.text, p.center[0], p.center[1], p.center[2], p.depth, p.scale, group);
                 break;
         }
     }
@@ -123,11 +90,8 @@ function serialIndexOfSubstructure(structure: Structure, substructure: Structure
     const theUnit = substructure.units[0];
     const theElement = theUnit.elements[0];
     for (const unit of structure.units) {
-        if (unit.model.id === theUnit.model.id) {
-            const serialIndex = structure.serialMapping.getSerialIndex(unit, theElement); // will be -1 or undefined if not found
-            if (serialIndex >= 0) {
-                return serialIndex;
-            }
+        if (unit.model.id === theUnit.model.id && SortedArray.has(unit.elements, theElement)) {
+            return structure.serialMapping.getSerialIndex(unit, theElement);
         }
     }
     return undefined;

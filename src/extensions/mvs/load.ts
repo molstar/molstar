@@ -156,7 +156,6 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
                     name: CustomLabelRepresentationProvider.name,
                     params: { items: inlineLabels } satisfies Partial<CustomLabelProps>,
                 },
-                // colorTheme: { name: 'uniform', params: { value: ColorNames.white } },
                 colorTheme: colorThemeForNode(nearestReprNode, context),
             });
         }

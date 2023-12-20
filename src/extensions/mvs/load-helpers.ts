@@ -271,7 +271,7 @@ export function collectInlineLabels(tree: SubTreeOfKind<MolstarTree, 'structure'
                 inlineLabels.push({
                     text: node.params.text,
                     position: {
-                        name: 'selector',
+                        name: 'selection',
                         params: {
                             selector: componentPropsFromSelector(parent.params.selector),
                         },
@@ -283,7 +283,7 @@ export function collectInlineLabels(tree: SubTreeOfKind<MolstarTree, 'structure'
                     inlineLabels.push({
                         text: node.params.text,
                         position: {
-                            name: 'selector',
+                            name: 'selection',
                             params: {
                                 selector: {
                                     name: 'annotation',
