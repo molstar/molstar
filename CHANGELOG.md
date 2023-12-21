@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add new `cartoon` visuals to support atomic nucleotide base with sugar
+- Add `thicknessFactor` to `cartoon` representation for scaling nucleotide block/ring/atomic-fill visuals
 - Use bonds from `_struct_conn` in mmCIF files that use `label_seq_id`
 - Fix measurement label `offsetZ` default: not needed when `scaleByRadius` is enbaled
 - Support for label rendering in HeadlessPluginContext

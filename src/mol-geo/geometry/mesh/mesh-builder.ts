@@ -67,6 +67,22 @@ export namespace MeshBuilder {
         caAdd3(indices, offset, offset + 1, offset + 2);
     }
 
+    export function addTriangleWithNormal(state: State, a: Vec3, b: Vec3, c: Vec3, n: Vec3) {
+        const { vertices, normals, indices, groups, currentGroup } = state;
+        const offset = vertices.elementCount;
+
+        // positions
+        caAdd3(vertices, a[0], a[1], a[2]);
+        caAdd3(vertices, b[0], b[1], b[2]);
+        caAdd3(vertices, c[0], c[1], c[2]);
+
+        for (let i = 0; i < 3; ++i) {
+            caAdd3(normals, n[0], n[1], n[2]); // normal
+            caAdd(groups, currentGroup); // group
+        }
+        caAdd3(indices, offset, offset + 1, offset + 2);
+    }
+
     export function addTriangleStrip(state: State, vertices: ArrayLike<number>, indices: ArrayLike<number>) {
         v3fromArray(tmpVecC, vertices, indices[0] * 3);
         v3fromArray(tmpVecD, vertices, indices[1] * 3);
@@ -86,6 +102,15 @@ export namespace MeshBuilder {
             v3fromArray(tmpVecB, vertices, indices[i - 1] * 3);
             v3fromArray(tmpVecC, vertices, indices[i] * 3);
             addTriangle(state, tmpVecA, tmpVecC, tmpVecB);
+        }
+    }
+
+    export function addTriangleFanWithNormal(state: State, vertices: ArrayLike<number>, indices: ArrayLike<number>, normal: Vec3) {
+        v3fromArray(tmpVecA, vertices, indices[0] * 3);
+        for (let i = 2, il = indices.length; i < il; ++i) {
+            v3fromArray(tmpVecB, vertices, indices[i - 1] * 3);
+            v3fromArray(tmpVecC, vertices, indices[i] * 3);
+            addTriangleWithNormal(state, tmpVecA, tmpVecC, tmpVecB, normal);
         }
     }
 
