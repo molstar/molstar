@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Use bonds from `_struct_conn` in mmCIF files that use `label_seq_id`
 - Fix measurement label `offsetZ` default: not needed when `scaleByRadius` is enbaled
 - Support for label rendering in HeadlessPluginContext
 - MolViewSpec extension
