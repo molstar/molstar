@@ -84,10 +84,16 @@ export function createMVSAnnotationStructureComponent(structure: Structure, para
     let label = params.label;
     if (label === undefined || label === '') {
         if (params.fieldValues.name === 'selected' && params.fieldValues.params.length > 0) {
-            const ellipsis = params.fieldValues.params.length > 1 ? '+...' : '';
-            label = `${params.fieldName}: "${params.fieldValues.params[0].value}"${ellipsis}`;
+            const values = params.fieldValues.params;
+            let valuesStr = `"${values[0].value}"`;
+            if (values.length === 2) {
+                valuesStr += ` + "${values[1].value}"`;
+            } else if (values.length > 2) {
+                valuesStr += ` + ${values.length - 1} more values`;
+            }
+            label = `MVS Annotation Component (${params.fieldName}: ${valuesStr})`;
         } else {
-            label = 'Component from MVS Annotation';
+            label = 'MVS Annotation Component';
         }
     }
 

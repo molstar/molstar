@@ -47,7 +47,7 @@
              {
               "kind": "color_from_uri",
               "params": {
-               "uri": "/examples/mvs/1h9t_domains.json",
+               "uri": "./1h9t_domains.json",
                "format": "json",
                "schema": "all_atomic"
               }

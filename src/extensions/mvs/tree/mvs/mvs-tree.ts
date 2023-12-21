@@ -146,8 +146,8 @@ export const MVSTreeSchema = TreeSchema({
             description: 'This node instructs to apply color to a visual representation.',
             parent: ['representation'],
             params: {
-                /** Color to apply to the representation. Can be either a color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`). */
-                color: RequiredField(ColorT, 'Color to apply to the representation. Can be either a color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
+                /** Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`). */
+                color: RequiredField(ColorT, 'Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
                 /** Defines to what part of the representation this color should be applied. */
                 selector: OptionalField(union([ComponentSelectorT, ComponentExpressionT, list(ComponentExpressionT)]), 'Defines to what part of the representation this color should be applied.'),
             },
@@ -247,8 +247,8 @@ export const MVSTreeSchema = TreeSchema({
             description: 'This node sets canvas properties.',
             parent: ['root'],
             params: {
-                /** Color of the canvas background. Can be either a color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`). */
-                background_color: RequiredField(ColorT, 'Color of the canvas background. Can be either a color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
+                /** Color of the canvas background. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`). */
+                background_color: RequiredField(ColorT, 'Color of the canvas background. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
             },
         },
     }
