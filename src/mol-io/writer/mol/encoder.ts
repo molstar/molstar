@@ -34,7 +34,7 @@ export class MolEncoder extends LigandEncoder {
         let chiral = false;
 
         // traverse once to determine all actually present atoms
-        const atoms = this.getAtoms(instance, source);
+        const atoms = this.getAtoms(instance, source, atomMap.map);
         atoms.forEach((atom1, label_atom_id1) => {
             const { index: i1, type_symbol: type_symbol1 } = atom1;
             const atomMapData1 = atomMap.map.get(label_atom_id1);
