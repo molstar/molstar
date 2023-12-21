@@ -5,7 +5,7 @@
  *
  * Command-line application for validating MolViewSpec files
  * Build: npm run build
- * Run:   node lib/commonjs/examples/mvs/mvs-validate examples/mvs/1cbs.mvsj
+ * Run:   node lib/commonjs/cli/mvs/mvs-validate examples/mvs/1cbs.mvsj
  */
 
 import { ArgumentParser } from 'argparse';
