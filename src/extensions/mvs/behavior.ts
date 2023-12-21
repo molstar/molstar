@@ -6,11 +6,13 @@
 
 import { CustomModelProperty } from '../../mol-model-props/common/custom-model-property';
 import { CustomStructureProperty } from '../../mol-model-props/common/custom-structure-property';
+import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
 import { PluginDragAndDropHandler } from '../../mol-plugin-state/manager/drag-and-drop';
 import { LociLabelProvider } from '../../mol-plugin-state/manager/loci-label';
 import { PluginBehavior } from '../../mol-plugin/behavior/behavior';
 import { PluginContext } from '../../mol-plugin/context';
 import { StructureRepresentationProvider } from '../../mol-repr/structure/representation';
+import { StateAction } from '../../mol-state';
 import { ColorTheme } from '../../mol-theme/color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { MVSAnnotationColorThemeProvider } from './components/annotation-color-theme';
@@ -19,6 +21,7 @@ import { MVSAnnotationsProvider } from './components/annotation-prop';
 import { MVSAnnotationTooltipsLabelProvider, MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-prop';
 import { CustomLabelRepresentationProvider } from './components/custom-label/representation';
 import { CustomTooltipsLabelProvider, CustomTooltipsProvider } from './components/custom-tooltips-prop';
+import { LoadMvsData, MVSJFormatProvider } from './components/formats';
 import { makeMultilayerColorThemeProvider } from './components/multilayer-color-theme';
 import { loadMVS } from './load';
 import { MVSData } from './mvs-data';
@@ -32,6 +35,8 @@ interface Registrables {
     colorThemes?: ColorTheme.Provider[],
     lociLabels?: LociLabelProvider[],
     dragAndDropHandlers?: DragAndDropHandler[],
+    dataFormats?: { name: string, provider: DataFormatProvider }[],
+    actions?: StateAction[],
 }
 
 
@@ -67,6 +72,12 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
             dragAndDropHandlers: [
                 MVSDragAndDropHandler,
             ],
+            dataFormats: [
+                { name: 'MVSJ', provider: MVSJFormatProvider },
+            ],
+            actions: [
+                LoadMvsData,
+            ]
         };
 
         register(): void {
@@ -87,6 +98,12 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
             }
             for (const handler of this.registrables.dragAndDropHandlers ?? []) {
                 this.ctx.managers.dragAndDrop.addHandler(handler.name, handler.handle);
+            }
+            for (const format of this.registrables.dataFormats ?? []) {
+                this.ctx.dataFormats.add(format.name, format.provider);
+            }
+            for (const action of this.registrables.actions ?? []) {
+                this.ctx.state.data.actions.add(action);
             }
         }
         update(p: { autoAttach: boolean }) {
@@ -119,6 +136,12 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
             for (const handler of this.registrables.dragAndDropHandlers ?? []) {
                 this.ctx.managers.dragAndDrop.removeHandler(handler.name);
             }
+            for (const format of this.registrables.dataFormats ?? []) {
+                this.ctx.dataFormats.remove(format.name);
+            }
+            for (const action of this.registrables.actions ?? []) {
+                this.ctx.state.data.actions.remove(action);
+            }
         }
     },
     params: () => ({
@@ -144,7 +167,7 @@ const MVSDragAndDropHandler: DragAndDropHandler = {
             if (file.name.toLowerCase().endsWith('.mvsj')) {
                 const data = await file.text();
                 const mvsData = MVSData.fromMVSJ(data);
-                await loadMVS(plugin, mvsData, { sanityChecks: true, deletePrevious: !applied });
+                await loadMVS(plugin, mvsData, { sanityChecks: true, replaceExisting: !applied, sourceUrl: undefined });
                 applied = true;
             }
         }

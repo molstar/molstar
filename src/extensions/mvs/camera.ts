@@ -31,12 +31,15 @@ const DefaultFocusOptions = {
 const DefaultCanvasBackgroundColor = ColorNames.white;
 
 
+const _tmpVec = Vec3();
+
 /** Set the camera based on a camera node params. */
 export async function setCamera(plugin: PluginContext, params: ParamsOfKind<MolstarTree, 'camera'>) {
     const target = Vec3.create(...params.target);
     let position = Vec3.create(...params.position);
     if (plugin.canvas3d) position = fovAdjustedPosition(target, position, plugin.canvas3d.camera.state.mode, plugin.canvas3d.camera.state.fov);
     const up = Vec3.create(...params.up);
+    Vec3.orthogonalize(up, Vec3.sub(_tmpVec, target, position), up);
     const snapshot: Partial<Camera.Snapshot> = { target, position, up, radius: 10_000, 'radiusMax': 10_000 };
     await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
 }
@@ -57,11 +60,14 @@ export async function setFocus(plugin: PluginContext, structureNodeSelector: Sta
     const boundingSphere = structure ? Loci.getBoundingSphere(Structure.Loci(structure)) : getPluginBoundingSphere(plugin);
     if (boundingSphere && plugin.canvas3d) {
         const extraRadius = structure ? DefaultFocusOptions.extraRadiusForFocus : DefaultFocusOptions.extraRadiusForZoomAll;
+        const direction = Vec3.create(...params.direction);
+        const up = Vec3.create(...params.up);
+        Vec3.orthogonalize(up, direction, up);
         const snapshot = snapshotFromSphereAndDirections(plugin.canvas3d.camera, {
             center: boundingSphere.center,
             radius: boundingSphere.radius + extraRadius,
-            up: Vec3.create(...params.up),
-            direction: Vec3.create(...params.direction),
+            up,
+            direction,
         });
         await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
     }
@@ -75,7 +81,7 @@ function snapshotFromSphereAndDirections(camera: Camera, options: { center: Vec3
     const { center, direction, up } = options;
     const radius = Math.max(options.radius, DefaultFocusOptions.minRadius);
     const distance = camera.getTargetDistance(radius);
-    const deltaDirection = Vec3.setMagnitude(Vec3(), direction, distance);
+    const deltaDirection = Vec3.setMagnitude(_tmpVec, direction, distance);
     const position = Vec3.sub(Vec3(), center, deltaDirection);
     return { target: center, position, up, radius };
 }
@@ -91,7 +97,7 @@ function distanceAdjustment(mode: Camera.Mode, fov: number) {
  * necessary to just fit into view the same sphere (with center at `target`)
  * as the "reference camera" placed at `refPosition` would fit, while keeping the camera orientation.
  * The "reference camera" is a camera which can just fit into view a sphere of radius R with center at distance 2R
- * (this corresponds to FOV = 2 * asin(1/2) in perspective mode or FOV = 2 * atan(1/2) in orthogonal mode). */
+ * (this corresponds to FOV = 2 * asin(1/2) in perspective mode or FOV = 2 * atan(1/2) in orthographic mode). */
 function fovAdjustedPosition(target: Vec3, refPosition: Vec3, mode: Camera.Mode, fov: number) {
     const delta = Vec3.sub(Vec3(), refPosition, target);
     const adjustment = distanceAdjustment(mode, fov);

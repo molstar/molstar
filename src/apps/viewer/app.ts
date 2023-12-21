@@ -474,7 +474,7 @@ export class Viewer {
         if (format === 'mvsj') {
             const data = await this.plugin.runTask(this.plugin.fetch({ url, type: 'string' }));
             const mvsData = MVSData.fromMVSJ(data);
-            await loadMVS(this.plugin, mvsData, { sanityChecks: true });
+            await loadMVS(this.plugin, mvsData, { sanityChecks: true, sourceUrl: url });
         } else {
             throw new Error(`Unknown MolViewSpec format: ${format}`);
         }
@@ -484,7 +484,7 @@ export class Viewer {
     async loadMvsData(data: string, format: 'mvsj') {
         if (format === 'mvsj') {
             const mvsData = MVSData.fromMVSJ(data);
-            await loadMVS(this.plugin, mvsData, { sanityChecks: true });
+            await loadMVS(this.plugin, mvsData, { sanityChecks: true, sourceUrl: undefined });
         } else {
             throw new Error(`Unknown MolViewSpec format: ${format}`);
         }
@@ -556,4 +556,5 @@ export const ViewerAutoPreset = StructureRepresentationPresetProvider({
 
 export const PluginExtensions = {
     wwPDBStructConn: wwPDBStructConnExtensionFunctions,
+    mvs: { MVSData, loadMVS },
 };

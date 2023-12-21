@@ -1,5 +1,9 @@
 {
- "version": 6,
+ "metadata": {
+  "title": "Example MolViewSpec - 1h9t colored and labelled by external annotation",
+  "version": "1",
+  "timestamp": "2023-11-24T10:48:28.677Z"
+ },
  "root": {
   "kind": "root",
   "children": [
@@ -43,7 +47,7 @@
              {
               "kind": "color_from_uri",
               "params": {
-               "uri": "/examples/mvs/1h9t_domains.json",
+               "uri": "./1h9t_domains.json",
                "format": "json",
                "schema": "all_atomic"
               }
@@ -74,7 +78,7 @@
              {
               "kind": "color_from_uri",
               "params": {
-               "uri": "/examples/mvs/1h9t_domains.json",
+               "uri": "./1h9t_domains.json",
                "format": "json",
                "schema": "all_atomic"
               }
@@ -98,7 +102,7 @@
              {
               "kind": "color_from_uri",
               "params": {
-               "uri": "/examples/mvs/1h9t_domains.json",
+               "uri": "./1h9t_domains.json",
                "format": "json",
                "schema": "all_atomic"
               }
@@ -557,11 +561,7 @@
            {
             "kind": "focus",
             "params": {
-             "direction": [
-              -0.3,
-              -0.1,
-              -1
-             ]
+             "direction": [-0.3, -0.1, -1]
             }
            }
           ]

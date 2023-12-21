@@ -80,10 +80,15 @@ export function filterDefined<T>(elements: (T | undefined | null)[]): T[] {
     return elements.filter(x => x !== undefined && x !== null) as T[];
 }
 
-/** Create an 8-hex-character hash for a given input string, e.g. 'spanish inquisition' -> 'bd65e59a' */
-export function stringHash(input: string): string {
+/** Create an 8-hex-character hash for a given input string, e.g. 'spanish inquisition' -> '7f9ac4be' */
+function stringHash32(input: string): string {
     const uint32hash = hashString(input) >>> 0; // >>>0 converts to uint32, LOL
     return uint32hash.toString(16).padStart(8, '0');
+}
+/** Create an 16-hex-character hash for a given input string, e.g. 'spanish inquisition' -> '7f9ac4be544330be'*/
+export function stringHash(input: string): string {
+    const reversed = input.split('').reverse().join('');
+    return stringHash32(input) + stringHash32(reversed);
 }
 
 /** Return type of elements in a set */
@@ -95,7 +100,7 @@ export type ElementOfSet<S> = S extends Set<infer T> ? T : never
 export function decodeColor(colorString: string | undefined): Color | undefined {
     if (colorString === undefined) return undefined;
     let result: Color | undefined;
-    if (isHexColorString(colorString)) {
+    if (HexColor.is(colorString)) {
         if (colorString.length === 4) {
             // convert short form to full form (#f0f -> #ff00ff)
             colorString = `#${colorString[1]}${colorString[1]}${colorString[2]}${colorString[2]}${colorString[3]}${colorString[3]}`;
@@ -108,19 +113,15 @@ export function decodeColor(colorString: string | undefined): Color | undefined 
     return undefined;
 }
 
-/** Hexadecimal color string, e.g. '#FF1100' */
-export type HexColor = string & { '@type': 'HexColorString' }
-export function HexColor(str: string) {
-    if (!isHexColorString(str)) {
-        throw new Error(`ValueError: "${str}" is not a valid hex color string`);
-    }
-    return str as HexColor;
-}
-
 /** Regular expression matching a hexadecimal color string, e.g. '#FF1100' or '#f10' */
 const hexColorRegex = /^#([0-9A-F]{3}){1,2}$/i;
 
-/** Decide if a string is a valid hexadecimal color string (6-digit or 3-digit, e.g. '#FF1100' or '#f10') */
-export function isHexColorString(str: any): str is HexColor {
-    return typeof str === 'string' && hexColorRegex.test(str);
-}
+/** Hexadecimal color string, e.g. '#FF1100' (the type matches more than just valid HexColor strings) */
+export type HexColor = `#${string}`
+
+export const HexColor = {
+    /** Decide if a string is a valid hexadecimal color string (6-digit or 3-digit, e.g. '#FF1100' or '#f10') */
+    is(str: any): str is HexColor {
+        return typeof str === 'string' && hexColorRegex.test(str);
+    },
+};

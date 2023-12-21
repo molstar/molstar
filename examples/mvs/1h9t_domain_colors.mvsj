@@ -1,5 +1,9 @@
 {
- "version": 6,
+ "metadata": {
+  "title": "Example MolViewSpec - 1h9t colored by external annotation",
+  "version": "1",
+  "timestamp": "2023-11-24T10:47:33.182Z"
+ },
  "root": {
   "kind": "root",
   "children": [
@@ -43,7 +47,7 @@
              {
               "kind": "color_from_uri",
               "params": {
-               "uri": "/examples/mvs/1h9t_domains.json",
+               "uri": "./1h9t_domains.json",
                "format": "json",
                "schema": "all_atomic"
               }

@@ -4,8 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { pickObjectKeys } from '../../../../mol-util/object';
-import { HexColor } from '../../helpers/utils';
+import { deepClone, pickObjectKeys } from '../../../../mol-util/object';
 import { MVSData } from '../../mvs-data';
 import { ParamsOfKind, SubTreeOfKind } from '../generic/tree-schema';
 import { MVSDefaults } from './mvs-defaults';
@@ -18,7 +17,7 @@ import { MVSKind, MVSNode, MVSTree, MVSTreeSchema } from './mvs-tree';
  * const builder = createMVSBuilder();
  * builder.canvas({ background_color: 'white' });
  * const struct = builder.download({ url: 'https://www.ebi.ac.uk/pdbe/entry-files/download/1og2_updated.cif' }).parse({ format: 'mmcif' }).modelStructure();
- * struct.component().representation().color({ color: HexColor('#3050F8') });
+ * struct.component().representation().color({ color: '#3050F8' });
  * console.log(JSON.stringify(builder.getState()));
  * ```
  */
@@ -55,8 +54,15 @@ export class Root extends _Base<'root'> {
         (this._root as Root) = this;
     }
     /** Return the current state of the builder as object in MVS format. */
-    getState(): MVSData {
-        return { version: MVSData.SupportedVersion, root: this._node };
+    getState(metadata?: Partial<Pick<MVSData['metadata'], 'title' | 'description' | 'description_format'>>): MVSData {
+        return {
+            root: deepClone(this._node),
+            metadata: {
+                ...metadata,
+                version: `${MVSData.SupportedVersion}`,
+                timestamp: utcNowISO(),
+            },
+        };
     }
     // omitting `saveState`, filesystem operations are responsibility of the caller code (platform-dependent)
 
@@ -230,21 +236,26 @@ export function builderDemo() {
     const struct = builder.download({ url: 'https://www.ebi.ac.uk/pdbe/entry-files/download/1og2_updated.cif' }).parse({ format: 'mmcif' }).modelStructure();
     struct.component().representation().color({ color: 'white' });
     struct.component({ selector: 'ligand' }).representation({ type: 'ball_and_stick' })
-        .color({ color: HexColor('#555555') })
-        .color({ selector: { type_symbol: 'N' }, color: HexColor('#3050F8') })
-        .color({ selector: { type_symbol: 'O' }, color: HexColor('#FF0D0D') })
-        .color({ selector: { type_symbol: 'S' }, color: HexColor('#FFFF30') })
-        .color({ selector: { type_symbol: 'FE' }, color: HexColor('#E06633') });
+        .color({ color: '#555555' })
+        .color({ selector: { type_symbol: 'N' }, color: '#3050F8' })
+        .color({ selector: { type_symbol: 'O' }, color: '#FF0D0D' })
+        .color({ selector: { type_symbol: 'S' }, color: '#FFFF30' })
+        .color({ selector: { type_symbol: 'FE' }, color: '#E06633' });
     builder.download({ url: 'https://www.ebi.ac.uk/pdbe/entry-files/download/1og5_updated.cif' }).parse({ format: 'mmcif' }).assemblyStructure({ assembly_id: '1' }).component().representation().color({ color: 'cyan' });
     builder.download({ url: 'https://www.ebi.ac.uk/pdbe/entry-files/download/1og5_updated.cif' }).parse({ format: 'mmcif' }).assemblyStructure({ assembly_id: '2' }).component().representation().color({ color: 'blue' });
     const cif = builder.download({ url: 'https://www.ebi.ac.uk/pdbe/entry-files/download/1wrf_updated.cif' }).parse({ format: 'mmcif' });
 
-    cif.modelStructure({ model_index: 0 }).component().representation().color({ color: HexColor('#CC0000') });
-    cif.modelStructure({ model_index: 1 }).component().representation().color({ color: HexColor('#EE7700') });
-    cif.modelStructure({ model_index: 2 }).component().representation().color({ color: HexColor('#FFFF00') });
+    cif.modelStructure({ model_index: 0 }).component().representation().color({ color: '#CC0000' });
+    cif.modelStructure({ model_index: 1 }).component().representation().color({ color: '#EE7700' });
+    cif.modelStructure({ model_index: 2 }).component().representation().color({ color: '#FFFF00' });
 
-    cif.modelStructure({ model_index: 0 }).transform({ translation: [30, 0, 0] }).component().representation().color({ color: HexColor('#ff88bb') });
-    cif.modelStructure({ model_index: 0 as any }).transform({ translation: [60, 0, 0], rotation: [0, 1, 0, -1, 0, 0, 0, 0, 1] }).component().representation().color({ color: HexColor('#aa0077') });
+    cif.modelStructure({ model_index: 0 }).transform({ translation: [30, 0, 0] }).component().representation().color({ color: '#ff88bb' });
+    cif.modelStructure({ model_index: 0 as any }).transform({ translation: [60, 0, 0], rotation: [0, 1, 0, -1, 0, 0, 0, 0, 1] }).component().representation().color({ color: '#aa0077' });
 
     return builder.getState();
+}
+
+/** Return the current universal time, in ISO format, e.g. '2023-11-24T10:45:49.873Z' */
+function utcNowISO(): string {
+    return new Date().toISOString();
 }
