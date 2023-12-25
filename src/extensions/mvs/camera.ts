@@ -97,7 +97,7 @@ function distanceAdjustment(mode: Camera.Mode, fov: number) {
  * necessary to just fit into view the same sphere (with center at `target`)
  * as the "reference camera" placed at `refPosition` would fit, while keeping the camera orientation.
  * The "reference camera" is a camera which can just fit into view a sphere of radius R with center at distance 2R
- * (this corresponds to FOV = 2 * asin(1/2) in perspective mode or FOV = 2 * atan(1/2) in orthogonal mode). */
+ * (this corresponds to FOV = 2 * asin(1/2) in perspective mode or FOV = 2 * atan(1/2) in orthographic mode). */
 function fovAdjustedPosition(target: Vec3, refPosition: Vec3, mode: Camera.Mode, fov: number) {
     const delta = Vec3.sub(Vec3(), refPosition, target);
     const adjustment = distanceAdjustment(mode, fov);
