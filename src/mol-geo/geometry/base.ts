@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -128,7 +128,7 @@ export namespace BaseGeometry {
             uClipObjectScale: ValueCell.create(clip.objects.scale),
 
             instanceGranularity: ValueCell.create(props.instanceGranularity),
-            uLod: ValueCell.create(Vec4.create(props.lod[0], props.lod[1], props.lod[2], 1)),
+            uLod: ValueCell.create(Vec4.create(props.lod[0], props.lod[1], props.lod[2], 0)),
         };
     }
 
@@ -148,7 +148,7 @@ export namespace BaseGeometry {
         ValueCell.update(values.uClipObjectScale, clip.objects.scale);
 
         ValueCell.updateIfChanged(values.instanceGranularity, props.instanceGranularity);
-        ValueCell.update(values.uLod, Vec4.set(values.uLod.ref.value, props.lod[0], props.lod[1], props.lod[2], 1));
+        ValueCell.update(values.uLod, Vec4.set(values.uLod.ref.value, props.lod[0], props.lod[1], props.lod[2], 0));
     }
 
     export function createRenderableState(props: Partial<PD.Values<Params>> = {}): RenderableState {

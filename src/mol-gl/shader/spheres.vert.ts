@@ -85,9 +85,12 @@ void main(void){
     vModelPosition = (uModel * aTransform * position4).xyz; // for clipping in frag shader
 
     float d;
-    if (uLod.x != 0.0 || uLod.y != 0.0) {
+    if (uLod.w != 0.0 && (uLod.x != 0.0 || uLod.y != 0.0)) {
         d = dot(uCameraPlane.xyz, vModelPosition) + uCameraPlane.w;
-        float f = smoothstep(uLod.x - uLod.z, uLod.x, d) * uLod.w;
+        float f = min(
+            smoothstep(uLod.x, uLod.x + uLod.z, d),
+            1.0 - smoothstep(uLod.y - uLod.z, uLod.y, d)
+        ) * uLod.w;
         vRadius *= f;
     }
 
@@ -117,8 +120,8 @@ void main(void){
         gl_Position.z = (uProjection * vec4(mvPosition.xyz, 1.0)).z;
     }
 
-    if (uLod.x != 0.0 || uLod.y != 0.0) {
-        if (d < (uLod.x - uLod.z) || d > uLod.y) {
+    if (uLod.w != 0.0 && (uLod.x != 0.0 || uLod.y != 0.0)) {
+        if (d < uLod.x || d > uLod.y) {
             // move out of [ -w, +w ] to 'discard' in vert shader
             gl_Position.z = 2.0 * gl_Position.w;
         }

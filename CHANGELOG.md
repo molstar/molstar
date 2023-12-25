@@ -9,18 +9,19 @@ Note that since we don't clearly distinguish between a public and private interf
     - Requires calling methods from instance
 - [Breaking] Fix `mol-model/structure/model/properties/seconday-structure.ts` file name (#938)
 - [Breaking] Add `Canvas3DContext` runtime props
-    - pixelScale, pickScale, transparency (blended, wboit, dpoit)
-    - replacing instantiation-time attribs
+    - Props: pixelScale, pickScale, transparency (blended, wboit, dpoit)
+    - Replaces instantiation-time attribs
 - [Breaking] Change default compile target to ES2018
-- Add culling support
+- [Breaking] Add culling & LOD support
     - Cull per-object and per-instance
     - Cull based on frustum and camera distance
-- Add LOD support
-    - Visibility based on camera distance
-    - Special mode for spheres with automatic LOD levels
-- Add occlusion culling (only WebGL2)
-    - Hi-Z pass
-    - Cull based on previous frame's Hi-Z buffer
+    - LOD visibility based on camera distance
+    - Special LOD mode for spheres with automatic levels
+    - Occlusion culling (only WebGL2)
+        - Hi-Z pass
+        - Cull based on previous frame's Hi-Z buffer
+- Add stochstic/dithered transparency to fade overlapping LODs in and out
+- Add "Automatic Detail" preset that shows surface/cartoon/ball & stick based on camera distance
 
 ## [Unreleased]
 
