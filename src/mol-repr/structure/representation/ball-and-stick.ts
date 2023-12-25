@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -37,7 +37,14 @@ export const BallAndStickParams = {
 };
 export type BallAndStickParams = typeof BallAndStickParams
 export function getBallAndStickParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return BallAndStickParams;
+    const size = Structure.getSize(structure);
+    if (size >= Structure.Size.Huge) {
+        const params = PD.clone(BallAndStickParams);
+        params.visuals.defaultValue = ['element-sphere', 'intra-bond'];
+        return params;
+    } else {
+        return BallAndStickParams;
+    }
 }
 
 export type BallAndStickRepresentation = StructureRepresentation<BallAndStickParams>

@@ -2,11 +2,14 @@
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { edt } from '../../../mol-math/geometry/distance-transform';
 import { createTextureImage, TextureImage } from '../../../mol-gl/renderable/util';
+import { RUNNING_IN_NODEJS } from '../../../mol-util/nodejs-shims';
+
 
 const TextAtlasCache: { [k: string]: FontAtlas } = {};
 
@@ -61,7 +64,6 @@ export class FontAtlas {
     private z: Float64Array;
     private v: Int16Array;
 
-    private scratchCanvas: HTMLCanvasElement;
     private scratchContext: CanvasRenderingContext2D;
 
     readonly lineHeight: number;
@@ -84,11 +86,8 @@ export class FontAtlas {
         this.texture = createTextureImage(350 * this.lineHeight * this.maxWidth, 1, Uint8Array);
 
         // prepare scratch canvas
-        this.scratchCanvas = document.createElement('canvas');
-        this.scratchCanvas.width = this.maxWidth;
-        this.scratchCanvas.height = this.lineHeight;
+        this.scratchContext = createCanvasContext(this.maxWidth, this.lineHeight, { willReadFrequently: true })!;
 
-        this.scratchContext = this.scratchCanvas.getContext('2d', { willReadFrequently: true })!;
         this.scratchContext.font = `${p.fontStyle} ${p.fontVariant} ${p.fontWeight} ${fontSize}px ${p.fontFamily}`;
         this.scratchContext.fillStyle = 'black';
         this.scratchContext.textBaseline = 'middle';
@@ -174,5 +173,29 @@ export class FontAtlas {
 
         this.scratchW = w;
         this.scratchH = h;
+    }
+}
+
+/** Type of imported `canvas` module (not using `typeof import('canvas')` to avoid missing types) */
+type CanvasModule = any;
+let _canvas: CanvasModule | undefined;
+function getCanvasModule(): CanvasModule {
+    if (!_canvas) throw new Error('When running in Node.js and wanting to use Canvas API, call mol-util/data-source\'s setCanvasModule function first and pass imported `canvas` module to it.');
+    return _canvas;
+}
+/** Set `canvas` module, before using Canvas API functionality in NodeJS. Usage: `setCanvasModule(require('canvas')); // some code `*/
+export function setCanvasModule(canvas: CanvasModule) {
+    _canvas = canvas;
+}
+/** Return a newly created canvas context (using a canvas HTML element in browser, canvas module in NodeJS) */
+function createCanvasContext(width: number, height: number, options?: CanvasRenderingContext2DSettings): CanvasRenderingContext2D | null {
+    if (RUNNING_IN_NODEJS) {
+        const canvas = getCanvasModule().createCanvas(width, height);
+        return canvas.getContext('2d', options) as unknown as CanvasRenderingContext2D;
+    } else {
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        return canvas.getContext('2d', options);
     }
 }

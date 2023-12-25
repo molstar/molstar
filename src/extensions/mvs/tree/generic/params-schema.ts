@@ -7,6 +7,7 @@
 import * as iots from 'io-ts';
 import { PathReporter } from 'io-ts/PathReporter';
 import { isPlainObject, mapObjectMap } from '../../../../mol-util/object';
+import { onelinerJsonString } from '../../../../mol-util/json';
 
 
 /** All types that can be used in tree node params.
@@ -32,12 +33,17 @@ export function nullable<T extends iots.Type<any>>(type: T) {
     return union([type, iots.null]);
 }
 /** Type definition for literal types, e.g. `literal('red', 'green', 'blue')` means 'red' or 'green' or 'blue'  */
-export function literal<V extends string | number | boolean>(v1: V, v2?: V, ...others: V[]) {
-    if (v2 === undefined) {
-        return iots.literal(v1);
-    } else {
-        return union([iots.literal(v1), iots.literal(v2), ...others.map(v => iots.literal(v))]);
+export function literal<V extends string | number | boolean>(...values: V[]) {
+    if (values.length === 0) {
+        throw new Error(`literal type must have at least one value`);
     }
+    const typeName = `(${values.map(v => onelinerJsonString(v)).join(' | ')})`;
+    return new iots.Type<V>(
+        typeName,
+        ((value: any) => values.includes(value)) as any,
+        (value, ctx) => values.includes(value as any) ? { _tag: 'Right', right: value as any } : { _tag: 'Left', left: [{ value: value, context: ctx, message: `"${value}" is not a valid value for literal type ${typeName}` }] },
+        value => value
+    );
 }
 
 
