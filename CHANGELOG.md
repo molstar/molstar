@@ -17,6 +17,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - CLI tools: mvs-validate, mvs-render, mvs-print-schema
   - Labels applied in one node
 - ModelServer SDF/MOL2 ligand export: fix atom indices when additional atoms are present
+- Avoid showing (and calculating) inter-unit bonds for huge structures
 
 ## [v3.43.1] - 2023-12-04
 
