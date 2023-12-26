@@ -111,8 +111,16 @@ export namespace Color {
         return ((r << 16) | (g << 8) | b) as Color;
     }
 
-    const tmpSaturateHcl = [0, 0, 0] as Hcl;
+    export function hasHue(c: Color): boolean {
+        const r = c >> 16 & 255;
+        const g = c >> 8 & 255;
+        const b = c & 255;
+        return r !== g || r !== b;
+    }
+
+    const tmpSaturateHcl = [0, 0, 0] as unknown as Hcl;
     export function saturate(c: Color, amount: number): Color {
+        if (!hasHue(c)) return c;
         Hcl.fromColor(tmpSaturateHcl, c);
         return Hcl.toColor(Hcl.saturate(tmpSaturateHcl, tmpSaturateHcl, amount));
     }
@@ -121,7 +129,7 @@ export namespace Color {
         return saturate(c, -amount);
     }
 
-    const tmpDarkenLab = [0, 0, 0] as Lab;
+    const tmpDarkenLab = [0, 0, 0] as unknown as Lab;
     export function darken(c: Color, amount: number): Color {
         Lab.fromColor(tmpDarkenLab, c);
         return Lab.toColor(Lab.darken(tmpDarkenLab, tmpDarkenLab, amount));
@@ -192,7 +200,7 @@ export interface ColorList {
     type: 'sequential' | 'diverging' | 'qualitative'
 }
 export function ColorList(label: string, type: 'sequential' | 'diverging' | 'qualitative', description: string, list: (number | [number, number])[]): ColorList {
-    return { label, description, list: list as Color[], type };
+    return { label, description, list: list as ColorListEntry[], type };
 }
 
 export type ColorTable<T extends { [k: string]: number[] }> = { [k in keyof T]: Color[] }

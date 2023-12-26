@@ -233,8 +233,8 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             const residueIndexNext2 = this.getResidueIndex(residueIndex + 2);
             const residueIndexNext3 = this.getResidueIndex(residueIndex + 3);
 
-            this.prevSecStrucType = this.currSecStrucType;
-            this.currSecStrucType = this.nextSecStrucType;
+            this.prevSecStrucType = this.getSecStruc(residueIndexPrev1);
+            this.currSecStrucType = this.getSecStruc(residueIndex);
             this.nextSecStrucType = residueIndex === residueIndexNext1 ? SecStrucTypeNA : this.getSecStruc(residueIndexNext1);
 
             this.prevCoarseBackbone = this.currCoarseBackbone;

@@ -49,23 +49,29 @@ const DefaultPrintImageOptions = {
     pixelated: false,
     id: 'molstar.debug.image',
     normalize: false,
+    useCanvas: false,
 };
 export type PrintImageOptions = typeof DefaultPrintImageOptions
 
 export function printTextureImage(textureImage: TextureImage<any>, options: Partial<PrintImageOptions> = {}) {
-
     const { array, width, height } = textureImage;
     const itemSize = array.length / (width * height);
     const data = new Uint8ClampedArray(width * height * 4);
+    const [min, max] = arrayMinMax(array);
     if (itemSize === 1) {
+        data.fill(255);
         for (let y = 0; y < height; ++y) {
             for (let x = 0; x < width; ++x) {
-                data[(y * width + x) * 4 + 3] = array[y * width + x];
+                const i = y * width + x;
+                if (options.normalize) {
+                    data[i * 4 + 0] = ((array[i] - min) / (max - min)) * 255;
+                } else {
+                    data[i * 4 + 0] = array[i] * 255;
+                }
             }
         }
     } else if (itemSize === 4) {
         if (options.normalize) {
-            const [min, max] = arrayMinMax(array);
             for (let i = 0, il = width * height * 4; i < il; i += 4) {
                 data[i] = ((array[i] - min) / (max - min)) * 255;
                 data[i + 1] = ((array[i + 1] - min) / (max - min)) * 255;
@@ -87,14 +93,6 @@ let tmpContainer: HTMLDivElement;
 
 export function printImageData(imageData: ImageData, options: Partial<PrintImageOptions> = {}) {
     const o = { ...DefaultPrintImageOptions, ...options };
-    const canvas = tmpCanvas || document.createElement('canvas');
-    tmpCanvas = canvas;
-    canvas.width = imageData.width;
-    canvas.height = imageData.height;
-    const ctx = tmpCanvasCtx || canvas.getContext('2d');
-    tmpCanvasCtx = ctx;
-    if (!ctx) throw new Error('Could not create canvas 2d context');
-    ctx.putImageData(imageData, 0, 0);
 
     if (!tmpContainer) {
         tmpContainer = document.createElement('div');
@@ -106,23 +104,52 @@ export function printImageData(imageData: ImageData, options: Partial<PrintImage
         document.body.appendChild(tmpContainer);
     }
 
-    canvas.toBlob(imgBlob => {
-        const objectURL = URL.createObjectURL(imgBlob!);
-        const existingImg = document.getElementById(o.id) as HTMLImageElement;
-        const img = existingImg || document.createElement('img');
-        img.id = o.id;
-        img.src = objectURL;
-        img.style.width = imageData.width * o.scale + 'px';
-        img.style.height = imageData.height * o.scale + 'px';
+    if (o.useCanvas) {
+        const existingCanvas = document.getElementById(o.id) as HTMLCanvasElement;
+        const outCanvas = existingCanvas || document.createElement('canvas');
+        outCanvas.width = imageData.width;
+        outCanvas.height = imageData.height;
+        const outCtx = outCanvas.getContext('2d');
+        if (!outCtx) throw new Error('Could not create canvas 2d context');
+        outCtx.putImageData(imageData, 0, 0);
+        outCanvas.id = o.id;
+        outCanvas.style.width = imageData.width * o.scale + 'px';
+        outCanvas.style.height = imageData.height * o.scale + 'px';
         if (o.pixelated) {
-            // not supported in Firefox and IE
-            img.style.imageRendering = 'pixelated';
+            outCanvas.style.imageRendering = 'pixelated';
         }
-        img.style.position = 'relative';
-        img.style.border = 'solid grey';
-        img.style.pointerEvents = 'none';
-        if (!existingImg) tmpContainer.appendChild(img);
-    }, 'image/png');
+        outCanvas.style.position = 'relative';
+        outCanvas.style.border = 'solid grey';
+        outCanvas.style.pointerEvents = 'none';
+        if (!existingCanvas) tmpContainer.appendChild(outCanvas);
+    } else {
+        const canvas = tmpCanvas || document.createElement('canvas');
+        tmpCanvas = canvas;
+        canvas.width = imageData.width;
+        canvas.height = imageData.height;
+        const ctx = tmpCanvasCtx || canvas.getContext('2d');
+        tmpCanvasCtx = ctx;
+        if (!ctx) throw new Error('Could not create canvas 2d context');
+        ctx.putImageData(imageData, 0, 0);
+
+        canvas.toBlob(imgBlob => {
+            const objectURL = URL.createObjectURL(imgBlob!);
+            const existingImg = document.getElementById(o.id) as HTMLImageElement;
+            const img = existingImg || document.createElement('img');
+            img.id = o.id;
+            img.src = objectURL;
+            img.style.width = imageData.width * o.scale + 'px';
+            img.style.height = imageData.height * o.scale + 'px';
+            if (o.pixelated) {
+                // not supported in Firefox and IE
+                img.style.imageRendering = 'pixelated';
+            }
+            img.style.position = 'relative';
+            img.style.border = 'solid grey';
+            img.style.pointerEvents = 'none';
+            if (!existingImg) tmpContainer.appendChild(img);
+        }, 'image/png');
+    }
 }
 
 //

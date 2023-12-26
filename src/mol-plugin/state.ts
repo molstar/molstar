@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { State, StateTransform, StateTransformer } from '../mol-state';
@@ -21,6 +22,7 @@ import { PluginContext } from './context';
 import { PluginComponent } from '../mol-plugin-state/component';
 import { PluginConfig } from './config';
 import { StructureComponentManager } from '../mol-plugin-state/manager/structure/component';
+import { StructureSelectionSnapshot } from '../mol-plugin-state/manager/structure/selection';
 
 export { PluginState };
 
@@ -65,6 +67,7 @@ class PluginState extends PluginComponent {
             canvas3d: p.canvas3d ? { props: this.plugin.canvas3d?.props } : void 0,
             interactivity: p.interactivity ? { props: this.plugin.managers.interactivity.props } : void 0,
             structureFocus: this.plugin.managers.structure.focus.getSnapshot(),
+            structureSelection: p.structureSelection ? this.plugin.managers.structure.selection.getSnapshot() : void 0,
             structureComponentManager: p.componentManager ? {
                 options: this.plugin.managers.structure.component.state.options
             } : void 0,
@@ -89,6 +92,9 @@ class PluginState extends PluginComponent {
         if (snapshot.structureFocus) {
             this.plugin.managers.structure.focus.setSnapshot(snapshot.structureFocus);
         }
+        if (snapshot.structureSelection) {
+            this.plugin.managers.structure.selection.setSnapshot(snapshot.structureSelection);
+        }
         if (snapshot.animation) {
             this.animation.setSnapshot(snapshot.animation);
         }
@@ -108,6 +114,10 @@ class PluginState extends PluginComponent {
     updateTransform(state: State, a: StateTransform.Ref, params: any, canUndo?: string | boolean) {
         const tree = state.build().to(a).update(params);
         return PluginCommands.State.Update(this.plugin, { state, tree, options: { canUndo } });
+    }
+
+    hasBehavior(behavior: StateTransformer) {
+        return this.behaviors.tree.transforms.has(behavior.id);
     }
 
     updateBehavior<T extends StateTransformer>(behavior: T, params: (old: StateTransformer.Params<T>) => (void | StateTransformer.Params<T>)) {
@@ -146,6 +156,7 @@ namespace PluginState {
         durationInMs: PD.Numeric(1500, { min: 100, max: 15000, step: 100 }, { label: 'Duration in ms' }),
         data: PD.Boolean(true),
         behavior: PD.Boolean(false),
+        structureSelection: PD.Boolean(false),
         componentManager: PD.Boolean(true),
         animation: PD.Boolean(true),
         startAnimation: PD.Boolean(false),
@@ -181,6 +192,7 @@ namespace PluginState {
             props?: InteractivityManager.Props
         },
         structureFocus?: StructureFocusSnapshot,
+        structureSelection?: StructureSelectionSnapshot,
         structureComponentManager?: {
             options?: StructureComponentManager.Options
         },

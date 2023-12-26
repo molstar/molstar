@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -30,6 +30,12 @@ export const Backgrounds = PluginBehavior.create<{ }>({
             this.ctx.config.set(PluginConfig.Background.Styles, [
                 [{
                     variant: {
+                        name: 'off',
+                        params: {}
+                    }
+                }, 'Off'],
+                [{
+                    variant: {
                         name: 'radialGradient',
                         params: {
                             centerColor: Color(0xFFFFFF),
@@ -50,6 +56,7 @@ export const Backgrounds = PluginBehavior.create<{ }>({
                             lightness: 0,
                             saturation: 0,
                             opacity: 1,
+                            blur: 0,
                             coverage: 'viewport',
                         }
                     }

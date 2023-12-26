@@ -60,7 +60,7 @@ export function splitValues(schema: RenderableSchema, values: RenderableValues) 
     return { attributeValues, defineValues, textureValues, materialTextureValues, uniformValues, materialUniformValues, bufferedUniformValues };
 }
 
-export type Versions<T extends RenderableValues> = { [k in keyof T]: number }
+export type Versions<T extends RenderableValues> = { -readonly [k in keyof T]: number }
 export function getValueVersions<T extends RenderableValues>(values: T) {
     const versions: Versions<any> = {};
     Object.keys(values).forEach(k => {
@@ -136,6 +136,7 @@ export const GlobalUniformSchema = {
     uCameraDir: UniformSpec('v3'),
     uNear: UniformSpec('f'),
     uFar: UniformSpec('f'),
+    uFog: UniformSpec('b'),
     uFogNear: UniformSpec('f'),
     uFogFar: UniformSpec('f'),
     uFogColor: UniformSpec('v3'),

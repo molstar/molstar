@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -46,7 +46,8 @@ export class SimpleSettingsControl extends PluginUIComponent {
 const LayoutOptions = {
     'sequence': 'Sequence',
     'log': 'Log',
-    'left': 'Left Panel'
+    'left': 'Left Panel',
+    'right': 'Right Panel',
 };
 type LayoutOptions = keyof typeof LayoutOptions
 
@@ -80,6 +81,7 @@ const SimpleSettingsMapping = ParamMapping({
             if (controls.top !== 'none') options.push(['sequence', LayoutOptions.sequence]);
             if (controls.bottom !== 'none') options.push(['log', LayoutOptions.log]);
             if (controls.left !== 'none') options.push(['left', LayoutOptions.left]);
+            if (controls.right !== 'none') options.push(['right', LayoutOptions.right]);
             params.layout.options = options;
         }
         const bgStyles = ctx.config.get(PluginConfig.Background.Styles) || [];
@@ -98,6 +100,7 @@ const SimpleSettingsMapping = ParamMapping({
         if (r.top !== 'hidden' && (!c || c.top !== 'none')) layout.push('sequence');
         if (r.bottom !== 'hidden' && (!c || c.bottom !== 'none')) layout.push('log');
         if (r.left !== 'hidden' && (!c || c.left !== 'none')) layout.push('left');
+        if (r.right !== 'hidden' && (!c || c.right !== 'none')) layout.push('right');
         return { canvas: ctx.canvas3d?.props!, layout };
     }
 })({
@@ -152,6 +155,7 @@ const SimpleSettingsMapping = ParamMapping({
             s.regionState.top = props.layout.indexOf('sequence') >= 0 ? 'full' : 'hidden';
             s.regionState.bottom = props.layout.indexOf('log') >= 0 ? 'full' : 'hidden';
             s.regionState.left = hideLeft ? 'hidden' : ctx.behaviors.layout.leftPanelTabName.value === 'none' ? 'collapsed' : 'full';
+            s.regionState.right = props.layout.indexOf('right') >= 0 ? 'full' : 'hidden';
         });
         await PluginCommands.Layout.Update(ctx, { state });
 

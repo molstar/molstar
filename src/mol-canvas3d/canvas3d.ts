@@ -107,13 +107,13 @@ export { Canvas3DContext };
 
 /** Can be used to create multiple Canvas3D objects */
 interface Canvas3DContext {
-    readonly canvas: HTMLCanvasElement
+    readonly canvas?: HTMLCanvasElement
     readonly webgl: WebGLContext
     readonly input: InputObserver
     readonly passes: Passes
     readonly attribs: Readonly<Canvas3DContext.Attribs>
-    readonly contextLost: BehaviorSubject<now.Timestamp>
-    readonly contextRestored: BehaviorSubject<now.Timestamp>
+    readonly contextLost?: BehaviorSubject<now.Timestamp>
+    readonly contextRestored?: BehaviorSubject<now.Timestamp>
     readonly assetManager: AssetManager
     dispose: (options?: Partial<{ doNotForceWebGLContextLoss: boolean }>) => void
 }
@@ -315,6 +315,10 @@ namespace Canvas3D {
         let y = 0;
         let width = 128;
         let height = 128;
+
+        let forceNextRender = false;
+        let currentTime = 0;
+
         updateViewport();
         const scene = Scene.create(webgl, passes.draw.dpoitEnabled ? GraphicsRenderVariantsDpoit : (passes.draw.wboitEnabled ? GraphicsRenderVariantsWboit : GraphicsRenderVariantsBlended));
 
@@ -445,7 +449,7 @@ namespace Canvas3D {
                 if (isTimingMode) webgl.timer.mark('Canvas3D.render', true);
                 const ctx = { renderer, camera: cam, scene, helper };
                 if (MultiSamplePass.isEnabled(p.multiSample)) {
-                    const forceOn = !cameraChanged && markingUpdated && !controls.isAnimating;
+                    const forceOn = p.multiSample.reduceFlicker && !cameraChanged && markingUpdated && !controls.isAnimating;
                     multiSampleHelper.render(ctx, p, true, forceOn);
                 } else {
                     passes.draw.render(ctx, p, true);
@@ -460,9 +464,7 @@ namespace Canvas3D {
             return didRender;
         }
 
-        let forceNextRender = false;
         let forceDrawAfterAllCommited = false;
-        let currentTime = 0;
         let drawPaused = false;
 
         function draw(options?: { force?: boolean }) {

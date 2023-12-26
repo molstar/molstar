@@ -465,13 +465,13 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     private async addSpheres(values: SpheresValues, webgl: WebGLContext, ctx: RuntimeContext) {
         const center = Vec3();
 
-        const aPosition = values.aPosition.ref.value;
-        const aGroup = values.aGroup.ref.value;
+        const aPosition = values.centerBuffer.ref.value;
+        const aGroup = values.groupBuffer.ref.value;
         const instanceCount = values.instanceCount.ref.value;
         const vertexCount = values.uVertexCount.ref.value;
         const meshes: Mesh[] = [];
 
-        const sphereCount = vertexCount / 4 * instanceCount;
+        const sphereCount = vertexCount / 6 * instanceCount;
         let detail: number;
         switch (this.options.primitivesQuality) {
             case 'auto':
@@ -495,7 +495,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
             const state = MeshBuilder.createState(512, 256);
 
-            for (let i = 0; i < vertexCount; i += 4) {
+            for (let i = 0; i < sphereCount; ++i) {
                 v3fromArray(center, aPosition, i * 3);
 
                 const group = aGroup[i];

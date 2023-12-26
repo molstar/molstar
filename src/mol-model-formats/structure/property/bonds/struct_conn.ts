@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2017-2021 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2023 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Yakov Pechersky <ffxen158@gmail.com>
  */
 
 import { Model } from '../../../../mol-model/structure/model/model';
@@ -119,13 +120,18 @@ export namespace StructConn {
             // turns out "mismat" records might not have atom name value
             if (!atomName) return undefined;
 
+            // prefer auth_seq_id, but if it is absent, then fall back to label_seq_id
+            const resId = (ps.auth_seq_id.valueKind(row) === Column.ValueKind.Present) ?
+                ps.auth_seq_id.value(row) :
+                ps.label_seq_id.value(row);
+            const resInsCode = ps.ins_code.value(row);
             const altId = ps.label_alt_id.value(row);
             for (const eId of entityIds) {
                 const residueIndex = model.atomicHierarchy.index.findResidue(
                     eId,
                     asymId,
-                    ps.auth_seq_id.value(row),
-                    ps.ins_code.value(row)
+                    resId,
+                    resInsCode
                 );
                 if (residueIndex < 0) continue;
                 const atomIndex = model.atomicHierarchy.index.findAtomOnResidue(residueIndex, atomName, altId);

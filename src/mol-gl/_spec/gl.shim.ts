@@ -762,6 +762,7 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
         isContextLost: function () { return false; },
         drawingBufferWidth: width,
         drawingBufferHeight: height,
+        drawingBufferColorSpace: 'srgb',
         blendColor: function () { },
         blendEquation: function () { },
         blendEquationSeparate: function () { },

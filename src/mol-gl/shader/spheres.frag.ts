@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -17,9 +17,9 @@ precision highp int;
 #include common_clip
 
 uniform mat4 uInvView;
+uniform float uAlphaThickness;
 
 varying float vRadius;
-varying float vRadiusSq;
 varying vec3 vPoint;
 varying vec3 vPointViewPosition;
 
@@ -37,7 +37,7 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
     vec3 cameraSphereDir = mix(cameraSpherePos, rayOrigin - cameraSpherePos, uIsOrtho);
 
     float B = dot(rayDirection, cameraSphereDir);
-    float det = B * B + vRadiusSq - dot(cameraSphereDir, cameraSphereDir);
+    float det = B * B + vRadius * vRadius - dot(cameraSphereDir, cameraSphereDir);
 
     if (det < 0.0) return false;
 
@@ -51,7 +51,7 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
 
     bool objectClipped = false;
 
-    #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+    #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
         if (clipTest(vec4(modelPos, 0.0))) {
             objectClipped = true;
             fragmentDepth = -1.0;
@@ -83,23 +83,37 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
 }
 
 void main(void){
-    vec3 modelPos;
-    vec3 cameraPos;
     vec3 cameraNormal;
     float fragmentDepth;
-    bool clipped = false;
-    bool hit = SphereImpostor(modelPos, cameraPos, cameraNormal, interior, fragmentDepth);
-    if (!hit) discard;
 
-    if (fragmentDepth < 0.0) discard;
-    if (fragmentDepth > 1.0) discard;
+    #ifdef dApproximate
+        vec3 pointDir = -vPointViewPosition - vPoint;
+        if (dot(pointDir, pointDir) > vRadius * vRadius) discard;
+        vec3 vViewPosition = -vPointViewPosition;
+        fragmentDepth = gl_FragCoord.z;
+        #if !defined(dIgnoreLight) || defined(dXrayShaded)
+            pointDir.z -= cos(length(pointDir) / vRadius);
+            cameraNormal = -normalize(pointDir / vRadius);
+        #endif
+        interior = false;
+    #else
+        vec3 modelPos;
+        vec3 cameraPos;
+        bool hit = SphereImpostor(modelPos, cameraPos, cameraNormal, interior, fragmentDepth);
+        if (!hit) discard;
 
-    vec3 vViewPosition = cameraPos;
-    vec3 vModelPosition = modelPos;
+        if (fragmentDepth < 0.0) discard;
+        if (fragmentDepth > 1.0) discard;
 
-    gl_FragDepthEXT = fragmentDepth;
+        gl_FragDepthEXT = fragmentDepth;
 
-    #include clip_pixel
+        vec3 vModelPosition = modelPos;
+        vec3 vViewPosition = cameraPos;
+    #endif
+
+    #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
+        #include clip_pixel
+    #endif
     #include assign_material_color
 
     #if defined(dRenderVariant_pick)
@@ -119,6 +133,10 @@ void main(void){
     #elif defined(dRenderVariant_color)
         vec3 normal = -cameraNormal;
         #include apply_light_color
+
+        if (uRenderMask == MaskTransparent && uAlphaThickness > 0.0) {
+            gl_FragColor.a *= min(1.0, vRadius / uAlphaThickness);
+        }
 
         #include apply_interior_color
         #include apply_marker_color

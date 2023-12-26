@@ -20,11 +20,12 @@ namespace PixelData {
     /** horizontally flips the pixel data in-place */
     export function flipY(pixelData: PixelData): PixelData {
         const { array, width, height } = pixelData;
-        const width4 = width * 4;
+        const itemSize = array.length / (width * height);
+        const widthIS = width * itemSize;
         for (let i = 0, maxI = height / 2; i < maxI; ++i) {
-            for (let j = 0, maxJ = width4; j < maxJ; ++j) {
-                const index1 = i * width4 + j;
-                const index2 = (height - i - 1) * width4 + j;
+            for (let j = 0, maxJ = widthIS; j < maxJ; ++j) {
+                const index1 = i * widthIS + j;
+                const index2 = (height - i - 1) * widthIS + j;
                 const tmp = array[index1];
                 array[index1] = array[index2];
                 array[index2] = tmp;

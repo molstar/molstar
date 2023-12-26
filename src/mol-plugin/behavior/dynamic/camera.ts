@@ -154,10 +154,10 @@ export const CameraAxisHelper = PluginBehavior.create<{}>({
 });
 
 const DefaultCameraControlsBindings = {
-    keySpinAnimation: Binding([Key('KeyI')], 'Spin Animation', 'Press ${triggers}'),
-    keyRockAnimation: Binding([Key('KeyO')], 'Rock Animation', 'Press ${triggers}'),
+    keySpinAnimation: Binding([Key('I')], 'Spin Animation', 'Press ${triggers}'),
+    keyRockAnimation: Binding([Key('O')], 'Rock Animation', 'Press ${triggers}'),
     keyToggleFlyMode: Binding([Key('Space', M.create({ shift: true }))], 'Toggle Fly Mode', 'Press ${triggers}'),
-    keyResetView: Binding([Key('KeyT')], 'Reset View', 'Press ${triggers}'),
+    keyResetView: Binding([Key('T')], 'Reset View', 'Press ${triggers}'),
 };
 const CameraControlsParams = {
     bindings: PD.Value(DefaultCameraControlsBindings, { isHidden: true }),
@@ -169,14 +169,14 @@ export const CameraControls = PluginBehavior.create<CameraControlsProps>({
     category: 'interaction',
     ctor: class extends PluginBehavior.Handler<CameraControlsProps> {
         register(): void {
-            this.subscribeObservable(this.ctx.behaviors.interaction.key, ({ code, modifiers }) => {
+            this.subscribeObservable(this.ctx.behaviors.interaction.key, ({ code, key, modifiers }) => {
                 if (!this.ctx.canvas3d) return;
 
                 // include defaults for backwards state compatibility
                 const b = { ...DefaultCameraControlsBindings, ...this.params.bindings };
                 const p = this.ctx.canvas3d.props.trackball;
 
-                if (Binding.matchKey(b.keySpinAnimation, code, modifiers)) {
+                if (Binding.matchKey(b.keySpinAnimation, code, modifiers, key)) {
                     const name = p.animate.name !== 'spin' ? 'spin' : 'off';
                     if (name === 'off') {
                         this.ctx.canvas3d.setProps({
@@ -191,7 +191,7 @@ export const CameraControls = PluginBehavior.create<CameraControlsProps>({
                     }
                 }
 
-                if (Binding.matchKey(b.keyRockAnimation, code, modifiers)) {
+                if (Binding.matchKey(b.keyRockAnimation, code, modifiers, key)) {
                     const name = p.animate.name !== 'rock' ? 'rock' : 'off';
                     if (name === 'off') {
                         this.ctx.canvas3d.setProps({
@@ -206,19 +206,19 @@ export const CameraControls = PluginBehavior.create<CameraControlsProps>({
                     }
                 }
 
-                if (Binding.matchKey(b.keyToggleFlyMode, code, modifiers)) {
+                if (Binding.matchKey(b.keyToggleFlyMode, code, modifiers, key)) {
                     const flyMode = !p.flyMode;
 
                     this.ctx.canvas3d.setProps({
                         trackball: { flyMode }
                     });
 
-                    if (this.ctx.canvas3dContext) {
+                    if (this.ctx.canvas3dContext?.canvas) {
                         this.ctx.canvas3dContext.canvas.style.cursor = flyMode ? 'crosshair' : 'unset';
                     }
                 }
 
-                if (Binding.matchKey(b.keyResetView, code, modifiers)) {
+                if (Binding.matchKey(b.keyResetView, code, modifiers, key)) {
                     PluginCommands.Camera.Reset(this.ctx, {});
                 }
             });

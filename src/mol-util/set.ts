@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -15,9 +15,10 @@ export namespace SetUtils {
 
     /** Test if set a contains all elements of set b. */
     export function isSuperset<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>) {
+        if (setA.size < setB.size) return false;
         let flag = true;
         setB.forEach(elem => {
-            if (!setA.has(elem)) flag = false;
+            if (flag && !setA.has(elem)) flag = false;
         });
         return flag;
     }
@@ -39,7 +40,6 @@ export namespace SetUtils {
 
     export function unionMany<T>(...sets: ReadonlySet<T>[]) {
         if (sets.length === 0) return new Set<T>();
-        if (sets.length === 1) new Set(sets[0]);
         const union = new Set(sets[0]);
         for (let i = 1, il = sets.length; i < il; i++) {
             sets[i].forEach(elem => union.add(elem));
@@ -66,14 +66,16 @@ export namespace SetUtils {
     }
 
     export function areIntersecting<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>): boolean {
+        if (setA.size < setB.size) [setA, setB] = [setB, setA];
         let flag = false;
         setB.forEach(elem => {
-            if (setA.has(elem)) flag = true;
+            if (!flag && setA.has(elem)) flag = true;
         });
         return flag;
     }
 
     export function intersectionSize<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>): number {
+        if (setA.size < setB.size) [setA, setB] = [setB, setA];
         let count = 0;
         setB.forEach(elem => {
             if (setA.has(elem)) count += 1;
@@ -102,7 +104,7 @@ export namespace SetUtils {
         if (setA.size !== setB.size) return false;
         let flag = true;
         setB.forEach(elem => {
-            if (!setA.has(elem)) flag = false;
+            if (flag && !setA.has(elem)) flag = false;
         });
         return flag;
     }

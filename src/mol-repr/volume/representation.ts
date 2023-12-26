@@ -385,9 +385,9 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         const { visible, alphaFactor, pickable, overpaint, transparency, substance, clipping, transform, themeStrength, syncManually, markerActions } = state;
         const newState: Partial<Representation.State> = {};
 
-        if (visible !== _state.visible) newState.visible = visible;
-        if (alphaFactor !== _state.alphaFactor) newState.alphaFactor = alphaFactor;
-        if (pickable !== _state.pickable) newState.pickable = pickable;
+        if (visible !== undefined) newState.visible = visible;
+        if (alphaFactor !== undefined) newState.alphaFactor = alphaFactor;
+        if (pickable !== undefined) newState.pickable = pickable;
         if (overpaint !== undefined) newState.overpaint = overpaint;
         if (transparency !== undefined) newState.transparency = transparency;
         if (substance !== undefined) newState.substance = substance;
@@ -396,8 +396,8 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         if (transform !== undefined && !Mat4.areEqual(transform, _state.transform, EPSILON)) {
             newState.transform = transform;
         }
-        if (syncManually !== _state.syncManually) newState.syncManually = syncManually;
-        if (markerActions !== _state.markerActions) newState.markerActions = markerActions;
+        if (syncManually !== undefined) newState.syncManually = syncManually;
+        if (markerActions !== undefined) newState.markerActions = markerActions;
 
         visuals.forEach(visual => setVisualState(visual, newState));
 

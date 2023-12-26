@@ -15,6 +15,7 @@ import { isWebGL2, GLRenderingContext } from './compat';
 import { isPromiseLike, ValueOf } from '../../mol-util/type-helpers';
 import { WebGLExtensions } from './extensions';
 import { objectForEach } from '../../mol-util/object';
+import { isPowerOfTwo } from '../../mol-math/misc';
 
 const getNextTextureId = idFactory();
 
@@ -214,6 +215,7 @@ export interface Texture {
      * `define` or `load` without `sub` must have been called before.
      */
     load: (image: TextureImage<any> | TextureVolume<any> | HTMLImageElement, sub?: boolean) => void
+    mipmap: () => void
     bind: (id: TextureId) => void
     unbind: (id: TextureId) => void
     /** Use `layer` to attach a z-slice of a 3D texture */
@@ -275,6 +277,7 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
 
     let width = 0, height = 0, depth = 0;
     let loadedData: undefined | TextureImage<any> | TextureVolume<any> | HTMLImageElement;
+    let hasMipmap = false;
     let destroyed = false;
 
     function define(_width: number, _height: number, _depth?: number) {
@@ -337,6 +340,22 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
         loadedData = data;
     }
 
+    function mipmap() {
+        if (target !== gl.TEXTURE_2D) {
+            throw new Error('mipmap only supported for 2d textures');
+        }
+
+        if (isWebGL2(gl) || (isPowerOfTwo(width) && isPowerOfTwo(height))) {
+            gl.bindTexture(target, texture);
+            gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+            gl.generateMipmap(target);
+            gl.bindTexture(target, null);
+            hasMipmap = true;
+        } else {
+            throw new Error('mipmap unsupported for non-power-of-two textures and webgl1');
+        }
+    }
+
     function attachFramebuffer(framebuffer: Framebuffer, attachment: TextureAttachment, layer?: number) {
         framebuffer.bind();
         if (target === gl.TEXTURE_2D) {
@@ -365,6 +384,7 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
 
         define,
         load,
+        mipmap,
         bind: (id: TextureId) => {
             gl.activeTexture(gl.TEXTURE0 + id);
             gl.bindTexture(target, texture);
@@ -392,6 +412,7 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
             width = 0, height = 0, depth = 0; // set to zero to trigger resize
             define(_width, _height, _depth);
             if (loadedData) load(loadedData);
+            if (hasMipmap) mipmap();
         },
         destroy: () => {
             if (destroyed) return;
@@ -498,8 +519,8 @@ export function createCubeTexture(gl: GLRenderingContext, faces: CubeFaces, mipm
             if (loadedCount === 6) {
                 if (!destroyed) {
                     if (mipmaps) {
-                        gl.generateMipmap(target);
                         gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+                        gl.generateMipmap(target);
                     } else {
                         gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, filter);
                     }
@@ -532,6 +553,7 @@ export function createCubeTexture(gl: GLRenderingContext, faces: CubeFaces, mipm
 
         define: () => {},
         load: () => {},
+        mipmap: () => {},
         bind: (id: TextureId) => {
             gl.activeTexture(gl.TEXTURE0 + id);
             gl.bindTexture(target, texture);
@@ -577,6 +599,7 @@ export function createNullTexture(gl?: GLRenderingContext): Texture {
 
         define: () => {},
         load: () => {},
+        mipmap: () => {},
         bind: (id: TextureId) => {
             if (gl) {
                 gl.activeTexture(gl.TEXTURE0 + id);

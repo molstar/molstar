@@ -90,6 +90,19 @@ namespace Mat3 {
         return a;
     }
 
+    export function fromColumns(out: Mat3, left: Vec3, middle: Vec3, right: Vec3) {
+        out[0] = left[0];
+        out[1] = left[1];
+        out[2] = left[2];
+        out[3] = middle[0];
+        out[4] = middle[1];
+        out[5] = middle[2];
+        out[6] = right[0];
+        out[7] = right[1];
+        out[8] = right[2];
+        return out;
+    }
+
     /**
      * Copies the upper-left 3x3 values into the given mat3.
      */
@@ -407,12 +420,12 @@ namespace Mat3 {
         return out;
     }
 
-    const tmpR0 = [0.1, 0.0, 0.0] as Vec3;
-    const tmpR1 = [0.1, 0.0, 0.0] as Vec3;
-    const tmpR2 = [0.1, 0.0, 0.0] as Vec3;
-    const tmpR0xR1 = [0.1, 0.0, 0.0] as Vec3;
-    const tmpR0xR2 = [0.1, 0.0, 0.0] as Vec3;
-    const tmpR1xR2 = [0.1, 0.0, 0.0] as Vec3;
+    const tmpR0 = [0.1, 0.0, 0.0] as unknown as Vec3;
+    const tmpR1 = [0.1, 0.0, 0.0] as unknown as Vec3;
+    const tmpR2 = [0.1, 0.0, 0.0] as unknown as Vec3;
+    const tmpR0xR1 = [0.1, 0.0, 0.0] as unknown as Vec3;
+    const tmpR0xR2 = [0.1, 0.0, 0.0] as unknown as Vec3;
+    const tmpR1xR2 = [0.1, 0.0, 0.0] as unknown as Vec3;
     /**
      * Calculates the eigenvector for the given eigenvalue `e` of matrix `a`
      */

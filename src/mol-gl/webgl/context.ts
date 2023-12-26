@@ -52,6 +52,16 @@ export function checkError(gl: GLRenderingContext) {
     }
 }
 
+export function glEnumToString(gl: GLRenderingContext, value: number) {
+    const keys: string[] = [];
+    for (const key in gl) {
+        if ((gl as any)[key] === value) {
+            keys.push(key);
+        }
+    }
+    return keys.length ? keys.join(' | ') : `0x${value.toString(16)}`;
+}
+
 function unbindResources(gl: GLRenderingContext) {
     // bind null to all texture units
     const maxTextureImageUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
@@ -227,7 +237,7 @@ export interface WebGLContext {
 
 export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScale: number }> = {}): WebGLContext {
     const extensions = createExtensions(gl);
-    const state = createState(gl);
+    const state = createState(gl, extensions);
     const stats = createStats();
     const resources = createResources(gl, state, stats, extensions);
     const timer = createTimer(gl, extensions, stats);

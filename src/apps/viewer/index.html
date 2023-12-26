@@ -65,7 +65,10 @@
             var allowMajorPerformanceCaveat = getParam('allow-major-performance-caveat', '[^&]+').trim() === '1';
             var powerPreference = getParam('power-preference', '[^&]+').trim().toLowerCase();
 
+            // console.log('Available extensions: ', Object.keys(molstar.ExtensionMap));
+
             molstar.Viewer.create('app', {
+                disabledExtensions: [], // anything from Object.keys(molstar.ExtensionMap)
                 layoutShowControls: !hideControls,
                 viewportShowExpand: false,
                 collapseLeftPanel: collapseLeftPanel,
@@ -95,6 +98,14 @@
                 var structureUrlIsBinary = getParam('structure-url-is-binary', '[^&]+').trim() === '1';
                 if (structureUrl) viewer.loadStructureFromUrl(structureUrl, structureUrlFormat, structureUrlIsBinary);
 
+                var mvsUrl = getParam('mvs-url', '[^&]+').trim();
+                var mvsData = getParam('mvs-data', '[^&]+').trim();
+                var mvsFormat = getParam('mvs-format', '[^&]+').trim() || 'mvsj';
+                if (mvsUrl && mvsData) console.error('Cannot specify mvs-url and mvs-data URL parameters at the same time. Ignoring both.');
+                else if (mvsUrl) viewer.loadMvsFromUrl(mvsUrl, mvsFormat);
+                else if (mvsData) viewer.loadMvsData(mvsData, mvsFormat);
+
+
                 var pdb = getParam('pdb', '[^&]+').trim();
                 if (pdb) viewer.loadPdb(pdb);
 
@@ -109,6 +120,11 @@
 
                 var modelArchive = getParam('model-archive', '[^&]+').trim();
                 if (modelArchive) viewer.loadModelArchive(modelArchive);
+
+                window.addEventListener('unload', () => {
+                    // to aid GC
+                    viewer.dispose();
+                });
             });
         </script>
         <!-- __MOLSTAR_ANALYTICS__ -->

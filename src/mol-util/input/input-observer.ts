@@ -559,10 +559,28 @@ namespace InputObserver {
             return Math.sqrt(dx * dx + dy * dy);
         }
 
+        let singleTouchDistance = -1;
+        let lastSingleTouch: Touch | undefined = undefined;
+        const singleTouchPosition = Vec2(), singleTouchTmp = Vec2();
+
+        function updateSingleTouchDistance(ev: TouchEvent) {
+            if (singleTouchDistance < 0) return;
+
+            Vec2.set(singleTouchTmp, ev.touches[0].pageX, ev.touches[0].pageY);
+            singleTouchDistance += Vec2.distance(singleTouchPosition, singleTouchTmp);
+            Vec2.copy(singleTouchPosition, singleTouchTmp);
+        }
+
         function onTouchStart(ev: TouchEvent) {
             ev.preventDefault();
 
+            lastSingleTouch = undefined;
+            singleTouchDistance = -1;
             if (ev.touches.length === 1) {
+                singleTouchDistance = 0;
+                Vec2.set(singleTouchPosition, ev.touches[0].pageX, ev.touches[0].pageY);
+                lastSingleTouch = ev.touches[0];
+
                 buttons = button = ButtonsType.Flag.Primary;
                 onPointerDown(ev.touches[0]);
             } else if (ev.touches.length === 2) {
@@ -590,6 +608,18 @@ namespace InputObserver {
 
         function onTouchEnd(ev: TouchEvent) {
             endDrag();
+
+            if (lastSingleTouch && singleTouchDistance <= 4) {
+                const t = lastSingleTouch;
+                if (!mask(t.clientX, t.clientY)) return;
+
+                eventOffset(singleTouchTmp, t);
+                const { pageX, pageY } = getPagePosition(t);
+                const [x, y] = singleTouchTmp;
+
+                click.next({ x, y, pageX, pageY, buttons, button, modifiers: getModifierKeys() });
+            }
+            lastSingleTouch = undefined;
         }
 
         function onTouchMove(ev: TouchEvent) {
@@ -604,8 +634,11 @@ namespace InputObserver {
                 }
             }
 
+            lastSingleTouch = undefined;
             if (ev.touches.length === 1) {
                 buttons = ButtonsType.Flag.Primary;
+                lastSingleTouch = ev.touches[0];
+                updateSingleTouchDistance(ev);
                 onPointerMove(ev.touches[0]);
             } else if (ev.touches.length === 2) {
                 const touchDistance = getTouchDistance(ev);
@@ -811,7 +844,7 @@ namespace InputObserver {
             return out;
         }
 
-        function eventOffset(out: Vec2, ev: PointerEvent) {
+        function eventOffset(out: Vec2, ev: { clientX: number, clientY: number }) {
             width = element.clientWidth * pixelRatio();
             height = element.clientHeight * pixelRatio();
 
@@ -827,7 +860,7 @@ namespace InputObserver {
             return out;
         }
 
-        function getPagePosition(ev: PointerEvent) {
+        function getPagePosition(ev: { pageX: number, pageY: number }) {
             if (isLocked) {
                 return {
                     pageX: Math.round(window.innerWidth / 2) + lockedViewport.x,
@@ -841,8 +874,8 @@ namespace InputObserver {
             }
         }
 
-        const cross = addCross();
         const crossWidth = 30;
+        const cross = addCross();
 
         function addCross() {
             const cross = document.createElement('div');

@@ -115,19 +115,19 @@ export class DrawPass {
 
             ValueCell.update(this.copyFboTarget.values.uTexSize, Vec2.set(this.copyFboTarget.values.uTexSize.ref.value, width, height));
             ValueCell.update(this.copyFboPostprocessing.values.uTexSize, Vec2.set(this.copyFboPostprocessing.values.uTexSize.ref.value, width, height));
-
-            if (this.wboit?.supported) {
-                this.wboit.setSize(width, height);
-            }
-
-            if (this.dpoit?.supported) {
-                this.dpoit.setSize(width, height);
-            }
-
-            this.marking.setSize(width, height);
-            this.postprocessing.setSize(width, height);
-            this.antialiasing.setSize(width, height);
         }
+
+        if (this.wboit?.supported) {
+            this.wboit.setSize(width, height);
+        }
+
+        if (this.dpoit?.supported) {
+            this.dpoit.setSize(width, height);
+        }
+
+        this.marking.setSize(width, height);
+        this.postprocessing.setSize(width, height);
+        this.antialiasing.setSize(width, height);
     }
 
     private _renderDpoit(renderer: Renderer, camera: ICamera, scene: Scene, iterations: number, transparentBackground: boolean, postprocessingProps: PostprocessingProps) {
