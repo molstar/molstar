@@ -20,7 +20,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Occlusion culling (only WebGL2)
         - Hi-Z pass
         - Cull based on previous frame's Hi-Z buffer
-- Add stochstic/dithered transparency to fade overlapping LODs in and out
+- Add stochastic/dithered transparency to fade overlapping LODs in and out
 - Add "Automatic Detail" preset that shows surface/cartoon/ball & stick based on camera distance
 
 ## [Unreleased]
