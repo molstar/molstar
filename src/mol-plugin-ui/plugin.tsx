@@ -170,22 +170,18 @@ class Layout extends PluginUIComponent {
     private showDragOverlay = new BehaviorSubject(false);
     onDragEnter = (ev: React.DragEvent<HTMLDivElement>) => {
         let hasFile = false;
-        if (ev.dataTransfer.items) {
+        if (ev.dataTransfer.items && ev.dataTransfer.items.length > 0) {
             for (let i = 0; i < ev.dataTransfer.items.length; i++) {
                 if (ev.dataTransfer.items[i].kind !== 'file') continue;
                 hasFile = true;
                 break;
             }
         } else {
-            for (let i = 0; i < ev.dataTransfer.files.length; i++) {
-                if (!ev.dataTransfer.files[i]) continue;
+            for (let i = 0; i < ev.dataTransfer.types.length; i++) {
+                if (ev.dataTransfer.types[i] !== 'Files') continue;
                 hasFile = true;
                 break;
             }
-        }
-
-        if (!navigator.userAgent.includes('Chrome') || navigator.userAgent.includes('Safari')) {
-            hasFile = true;
         }
 
         if (hasFile) {
