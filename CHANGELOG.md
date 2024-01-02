@@ -5,6 +5,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [V4-DEV]
 
+- [Breaking] Generalize rcsb/assembly-symmetry/ extension
+    - Move to assembly-symmetry/
+    - Remove RCSB specific dependencies and prefixes
 - [Breaking] Reduce memory usage of `SymmetryOperator.ArrayMapping`
     - Requires calling methods from instance
 - [Breaking] Fix `mol-model/structure/model/properties/seconday-structure.ts` file name (#938)

@@ -4,18 +4,18 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CollapsableState, CollapsableControls } from '../../../mol-plugin-ui/base';
-import { ApplyActionControl } from '../../../mol-plugin-ui/state/apply-action';
-import { InitAssemblySymmetry3D, AssemblySymmetry3D, AssemblySymmetryPreset, tryCreateAssemblySymmetry, getRCSBAssemblySymmetryConfig } from './behavior';
-import { AssemblySymmetryProvider, AssemblySymmetryProps, AssemblySymmetryDataProvider, AssemblySymmetry } from './prop';
-import { ParameterControls } from '../../../mol-plugin-ui/controls/parameters';
-import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { StructureHierarchyManager } from '../../../mol-plugin-state/manager/structure/hierarchy';
-import { StateAction, StateSelection } from '../../../mol-state';
-import { PluginStateObject } from '../../../mol-plugin-state/objects';
-import { PluginContext } from '../../../mol-plugin/context';
-import { Task } from '../../../mol-task';
-import { ExtensionSvg, CheckSvg } from '../../../mol-plugin-ui/controls/icons';
+import { CollapsableState, CollapsableControls } from '../../mol-plugin-ui/base';
+import { ApplyActionControl } from '../../mol-plugin-ui/state/apply-action';
+import { InitAssemblySymmetry3D, AssemblySymmetry3D, AssemblySymmetryPreset, tryCreateAssemblySymmetry, getAssemblySymmetryConfig } from './behavior';
+import { AssemblySymmetryProvider, AssemblySymmetryProps, AssemblySymmetryDataProvider, AssemblySymmetryData } from './prop';
+import { ParameterControls } from '../../mol-plugin-ui/controls/parameters';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { StructureHierarchyManager } from '../../mol-plugin-state/manager/structure/hierarchy';
+import { StateAction, StateSelection } from '../../mol-state';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
+import { PluginContext } from '../../mol-plugin/context';
+import { Task } from '../../mol-task';
+import { ExtensionSvg, CheckSvg } from '../../mol-plugin-ui/controls/icons';
 
 interface AssemblySymmetryControlState extends CollapsableState {
     isBusy: boolean
@@ -107,13 +107,13 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
         for (const components of this.plugin.managers.structure.hierarchy.currentComponentGroups) {
             if (values.symmetryIndex === -1) {
                 const name = components[0]?.representations[0]?.cell.transform.params?.colorTheme.name;
-                if (name === AssemblySymmetry.Tag.Cluster) {
+                if (name === AssemblySymmetryData.Tag.Cluster) {
                     await this.plugin.managers.structure.component.updateRepresentationsTheme(components, { color: 'default' });
                 }
             } else {
                 tryCreateAssemblySymmetry(this.plugin, s.cell);
-                if (getRCSBAssemblySymmetryConfig(this.plugin).ApplyColors) {
-                    await this.plugin.managers.structure.component.updateRepresentationsTheme(components, { color: AssemblySymmetry.Tag.Cluster as any });
+                if (getAssemblySymmetryConfig(this.plugin).ApplyColors) {
+                    await this.plugin.managers.structure.component.updateRepresentationsTheme(components, { color: AssemblySymmetryData.Tag.Cluster as any });
                 }
             }
         }
@@ -124,7 +124,7 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
     };
 
     get hasAssemblySymmetry3D() {
-        return !this.pivot.cell.parent || !!StateSelection.findTagInSubtree(this.pivot.cell.parent.tree, this.pivot.cell.transform.ref, AssemblySymmetry.Tag.Representation);
+        return !this.pivot.cell.parent || !!StateSelection.findTagInSubtree(this.pivot.cell.parent.tree, this.pivot.cell.transform.ref, AssemblySymmetryData.Tag.Representation);
     }
 
     get enable() {
