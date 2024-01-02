@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Christian Dominguez <christian.99dominguez@gmail.com>
  */
 
 import { List } from 'immutable';
