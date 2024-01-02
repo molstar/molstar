@@ -184,6 +184,10 @@ class Layout extends PluginUIComponent {
             }
         }
 
+        if (!navigator.userAgent.includes('Chrome') || navigator.userAgent.includes('Safari')) {
+            hasFile = true;
+        }
+
         if (hasFile) {
             this.showDragOverlay.next(true);
         }
