@@ -3,18 +3,6 @@ All notable changes to this project will be documented in this file, following t
 
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
-## [ME]
-
-- Add culling support
-    - Cull per-object and per-instance
-    - Cull based on frustum and camera distance
-- Add LOD support
-    - Visibility based on camera distance
-    - Special mode for spheres with automatic LOD levels
-- Add occlusion culling (only WebGL2)
-    - Hi-Z pass
-    - Cull based on previous frame's Hi-Z buffer
-
 ## [V4-DEV]
 
 - [Breaking] Reduce memory usage of `SymmetryOperator.ArrayMapping`
