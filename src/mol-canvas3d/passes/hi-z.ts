@@ -183,6 +183,7 @@ export class HiZPass {
         //
 
         const v = this.renderable.values;
+        const s = Math.pow(2, Math.ceil(Math.log(Math.max(gl.drawingBufferWidth, gl.drawingBufferHeight)) / Math.log(2)) - 1);
 
         for (let i = 0, il = this.levelData.length; i < il; ++i) {
             const td = this.levelData[i];
@@ -193,7 +194,6 @@ export class HiZPass {
                 ValueCell.update(v.uOffset, Vec2.set(v.uOffset.ref.value, 0, 0));
                 ValueCell.update(v.tPreviousLevel, this.levelData[i - 1].texture);
             } else {
-                const s = Math.pow(2, Math.ceil(Math.log(Math.max(gl.drawingBufferWidth, gl.drawingBufferHeight)) / Math.log(2)) - 1);
                 ValueCell.update(v.uInvSize, Vec2.set(v.uInvSize.ref.value, 1 / s, 1 / s));
                 ValueCell.update(v.uOffset, Vec2.set(v.uOffset.ref.value,
                     this.viewport.x / gl.drawingBufferWidth,
@@ -429,8 +429,12 @@ export class HiZPass {
         this.debug = { container, canvas, ctx, rect };
     }
 
+    private canDebug(debug: HiZPass['debug']): debug is NonNullable<HiZPass['debug']> {
+        return this.supported && this.props.enabled && this.ready && !!this.debug;
+    }
+
     private showRect(p: Vec4, occluded: boolean) {
-        if (!this.supported || !this.props.enabled || !this.ready || !this.debug) return;
+        if (!this.canDebug(this.debug)) return;
 
         const { gl: { drawingBufferHeight }, pixelRatio } = this.webgl;
         const { viewport: { x, y, width, height } } = this;
@@ -452,7 +456,7 @@ export class HiZPass {
     }
 
     private showBuffer(lod: number) {
-        if (!this.supported || !this.props.enabled || !this.ready || !this.debug) return;
+        if (!this.canDebug(this.debug)) return;
         if (lod >= this.levelData.length || lod < this.props.minLevel) {
             this.debug.container.style.display = 'none';
             return;
@@ -488,7 +492,7 @@ export class HiZPass {
     }
 
     debugOcclusion(s: Sphere3D | undefined) {
-        if (!this.supported || !this.props.enabled || !this.ready || !this.debug) return;
+        if (!this.canDebug(this.debug)) return;
 
         if (!s) {
             this.debug.rect.style.display = 'none';
