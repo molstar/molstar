@@ -24,6 +24,7 @@ import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bo
 import { StructConn } from '../../../mol-model-formats/structure/property/bonds/struct_conn';
 import { StructureRepresentationRegistry } from '../../../mol-repr/structure/registry';
 import { assertUnreachable } from '../../../mol-util/type-helpers';
+import { Vec3 } from '../../../mol-math/linear-algebra/3d/vec3';
 
 export interface StructureRepresentationPresetProvider<P = any, S extends _Result = _Result> extends PresetProvider<PluginStateObject.Molecule.Structure, P, S> { }
 export function StructureRepresentationPresetProvider<P, S extends _Result>(repr: StructureRepresentationPresetProvider<P, S>) { return repr; }
@@ -432,6 +433,41 @@ const illustrative = StructureRepresentationPresetProvider({
     }
 });
 
+const autoLod = StructureRepresentationPresetProvider({
+    id: 'preset-structure-representation-auto-lod',
+    display: {
+        name: 'Automatic Detail', group: 'Miscellaneous',
+        description: 'Shows more (or less) detailed representations automatically based on camera distance.'
+    },
+    params: () => CommonParams,
+    async apply(ref, params, plugin) {
+        const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
+        if (!structureCell) return {};
+
+        const components = {
+            all: await presetStaticComponent(plugin, structureCell, 'all'),
+        };
+
+        const structure = structureCell.obj!.data;
+        const cartoonProps = {
+            sizeFactor: structure.isCoarseGrained ? 0.8 : 0.2,
+        };
+
+        const { update, builder, typeParams, color, symmetryColor, symmetryColorParams, ballAndStickColor } = reprBuilder(plugin, params, structure);
+
+        const representations = {
+            gaussianSurface: builder.buildRepresentation(update, components.all, { type: 'gaussian-surface', typeParams: { ...typeParams, lod: Vec3.create(30, 10000000, 100) }, color: symmetryColor, colorParams: symmetryColorParams }, { tag: 'gaussian-surface' }),
+            cartoon: builder.buildRepresentation(update, components.all, { type: 'cartoon', typeParams: { ...typeParams, ...cartoonProps, lod: Vec3.create(-20, 300, 100) }, color: symmetryColor, colorParams: symmetryColorParams }, { tag: 'cartoon' }),
+            ballAndStick: builder.buildRepresentation(update, components.all, { type: 'ball-and-stick', typeParams: { ...typeParams, lod: Vec3.create(-20, 40, 20) }, color, colorParams: ballAndStickColor }, { tag: 'ball-and-stick' }),
+        };
+
+        await update.commit({ revertOnError: false });
+        await updateFocusRepr(plugin, structure, params.theme?.focus?.name, params.theme?.focus?.params);
+
+        return { components, representations };
+    }
+});
+
 export function presetStaticComponent(plugin: PluginContext, structure: StateObjectRef<PluginStateObject.Molecule.Structure>, type: StaticStructureComponentType, params?: { label?: string, tags?: string[] }) {
     return plugin.builders.structure.tryCreateComponentStatic(structure, type, params);
 }
@@ -449,5 +485,6 @@ export const PresetStructureRepresentations = {
     'protein-and-nucleic': proteinAndNucleic,
     'coarse-surface': coarseSurface,
     illustrative,
+    'auto-lod': autoLod,
 };
 export type PresetStructureRepresentations = typeof PresetStructureRepresentations;

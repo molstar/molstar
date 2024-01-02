@@ -43,6 +43,7 @@ import { MarkingParams } from './passes/marking';
 import { degToRad, radToDeg } from '../mol-math/misc';
 import { AssetManager } from '../mol-util/assets';
 import { deepClone } from '../mol-util/object';
+import { HiZParams, HiZPass } from './passes/hi-z';
 
 export const Canvas3DParams = {
     camera: PD.Group({
@@ -91,6 +92,7 @@ export const Canvas3DParams = {
     multiSample: PD.Group(MultiSampleParams),
     postprocessing: PD.Group(PostprocessingParams),
     marking: PD.Group(MarkingParams),
+    hiZ: PD.Group(HiZParams),
     renderer: PD.Group(RendererParams),
     trackball: PD.Group(TrackballControlsParams),
     interaction: PD.Group(Canvas3dInteractionHelperParams),
@@ -338,7 +340,7 @@ namespace Canvas3D {
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, page?: Vec2, position?: Vec3 }
 
     export function create(ctx: Canvas3DContext, props: Partial<Canvas3DProps> = {}): Canvas3D {
-        const { webgl, input, passes, assetManager } = ctx;
+        const { webgl, input, passes, assetManager, canvas } = ctx;
         const p: Canvas3DProps = { ...deepClone(DefaultCanvas3DParams), ...deepClone(props) };
 
         const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>();
@@ -379,8 +381,11 @@ namespace Canvas3D {
 
         const controls = TrackballControls.create(input, camera, scene, p.trackball);
         const helper = new Helper(webgl, scene, p);
+        const hiZ = new HiZPass(webgl, passes.draw, canvas, p.hiZ);
 
         const renderer = Renderer.create(webgl, p.renderer);
+        renderer.setOcclusionTest(hiZ.isOccluded);
+
         const pickHelper = new PickHelper(webgl, renderer, scene, helper, passes.pick, { x, y, width, height }, p.pickPadding);
         const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input, camera, controls, p.interaction);
         const multiSampleHelper = new MultiSampleHelper(passes.multiSample);
@@ -495,6 +500,7 @@ namespace Canvas3D {
                 } else {
                     passes.draw.render(ctx, p, true);
                 }
+                hiZ.render(camera);
                 if (isTimingMode) webgl.timer.markEnd('Canvas3D.render');
 
                 // if only marking has updated, do not set the flag to dirty
@@ -525,6 +531,7 @@ namespace Canvas3D {
             currentTime = t;
             commit(options?.isSynchronous);
             camera.transition.tick(currentTime);
+            hiZ.tick();
 
             if (options?.manualDraw) {
                 return;
@@ -637,6 +644,9 @@ namespace Canvas3D {
 
             // snapshot the current bounding sphere of visible objects
             Sphere3D.copy(oldBoundingSphereVisible, scene.boundingSphereVisible);
+
+            // clear hi-Z buffer when scene changes
+            hiZ.clear();
 
             if (!scene.commit(isSynchronous ? void 0 : sceneCommitTimeoutMs)) {
                 commitQueueSize.next(scene.commitQueueSize);
@@ -763,6 +773,7 @@ namespace Canvas3D {
                 postprocessing: { ...p.postprocessing },
                 marking: { ...p.marking },
                 multiSample: { ...p.multiSample },
+                hiZ: { ...hiZ.props },
                 renderer: { ...renderer.props },
                 trackball: { ...controls.props },
                 interaction: { ...interactionHelper.props },
@@ -797,6 +808,39 @@ namespace Canvas3D {
             requestDraw();
         });
 
+        //
+
+        if (isDebugMode && canvas) {
+            let occlusionLoci: Loci | undefined = undefined;
+
+            const printOcclusion = (loci: Loci | undefined) => {
+                const s = loci && Loci.getBoundingSphere(Loci.normalize(loci, 'residue'));
+                hiZ.debugOcclusion(s);
+            };
+
+            input.click.subscribe(e => {
+                if (!e.modifiers.control || e.button !== 2) return;
+
+                const p = identify(e.x, e.y);
+                if (!p) {
+                    occlusionLoci = undefined;
+                    printOcclusion(occlusionLoci);
+                    return;
+                }
+
+                const l = getLoci(p.id);
+                occlusionLoci = l.loci;
+                printOcclusion(occlusionLoci);
+            });
+
+            didDraw.subscribe(() => {
+                setTimeout(() => {
+                    printOcclusion(occlusionLoci);
+                }, 100);
+            });
+        }
+
+        //
 
         return {
             webgl,
@@ -932,6 +976,7 @@ namespace Canvas3D {
                 if (props.postprocessing) Object.assign(p.postprocessing, props.postprocessing);
                 if (props.marking) Object.assign(p.marking, props.marking);
                 if (props.multiSample) Object.assign(p.multiSample, props.multiSample);
+                if (props.hiZ) hiZ.setProps(props.hiZ);
                 if (props.renderer) renderer.setProps(props.renderer);
                 if (props.trackball) controls.setProps(props.trackball);
                 if (props.interaction) interactionHelper.setProps(props.interaction);
@@ -979,6 +1024,7 @@ namespace Canvas3D {
                 controls.dispose();
                 renderer.dispose();
                 interactionHelper.dispose();
+                hiZ.dispose();
 
                 removeConsoleStatsProvider(consoleStats);
             }
@@ -1014,6 +1060,7 @@ namespace Canvas3D {
             renderer.setViewport(x, y, width, height);
             Viewport.set(camera.viewport, x, y, width, height);
             Viewport.set(controls.viewport, x, y, width, height);
+            hiZ.setViewport(x, y, width, height);
         }
     }
 }

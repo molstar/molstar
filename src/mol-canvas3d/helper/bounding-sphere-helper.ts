@@ -68,6 +68,7 @@ export class BoundingSphereHelper {
                 instanceCount: ro.values.instanceCount,
                 aInstance: ro.values.aInstance,
                 hasReflection: ro.values.hasReflection,
+                instanceGrid: ro.values.instanceGrid,
             });
             if (newInstanceData) this.instancesData.set(ro, newInstanceData);
         });
@@ -159,6 +160,6 @@ const objectMaterialId = getNextMaterialId();
 const instanceMaterialId = getNextMaterialId();
 
 function createBoundingSphereRenderObject(mesh: Mesh, color: Color, materialId: number, transform?: TransformData) {
-    const values = Mesh.Utils.createValuesSimple(mesh, { alpha: 0.1, doubleSided: false }, color, 1, transform);
+    const values = Mesh.Utils.createValuesSimple(mesh, { alpha: 0.1, doubleSided: false, cellSize: 0, batchSize: 0 }, color, 1, transform);
     return createRenderObject('mesh', values, { disposed: false, visible: true, alphaFactor: 1, pickable: false, colorOnly: false, opaque: false, writeDepth: false }, materialId);
 }

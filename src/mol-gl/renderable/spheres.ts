@@ -30,6 +30,7 @@ export const SpheresSchema = {
     uBumpFrequency: UniformSpec('f', 'material'),
     uBumpAmplitude: UniformSpec('f', 'material'),
 
+    lodLevels: ValueSpec('unknown'),
     centerBuffer: ValueSpec('float32'),
     groupBuffer: ValueSpec('float32'),
 };

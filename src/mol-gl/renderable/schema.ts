@@ -12,6 +12,7 @@ import { DefineKind, DefineValues } from '../shader-code';
 import { Mat4 } from '../../mol-math/linear-algebra';
 import { TextureValues, TextureType, TextureFormat, TextureFilter, TextureKind, TextureKindValue } from '../webgl/texture';
 import { Sphere3D } from '../../mol-math/geometry';
+import { InstanceGrid } from '../../mol-math/geometry/instance-grid';
 
 export type ValueKindType = {
     'number': number
@@ -22,7 +23,9 @@ export type ValueKindType = {
 
     'm4': Mat4,
     'float32': Float32Array
+    'uint32': Uint32Array
     'sphere': Sphere3D
+    'instanceGrid': InstanceGrid
 }
 export type ValueKind = keyof ValueKindType
 
@@ -116,6 +119,8 @@ export type RenderableValues = { readonly [k: string]: ValueCell<any> }
 //
 
 export const GlobalUniformSchema = {
+    uDrawId: UniformSpec('i'),
+
     uModel: UniformSpec('m4'),
     uView: UniformSpec('m4'),
     uInvView: UniformSpec('m4'),
@@ -134,6 +139,7 @@ export const GlobalUniformSchema = {
 
     uCameraPosition: UniformSpec('v3'),
     uCameraDir: UniformSpec('v3'),
+    uCameraPlane: UniformSpec('v4'),
     uNear: UniformSpec('f'),
     uFar: UniformSpec('f'),
     uFog: UniformSpec('b'),
@@ -319,6 +325,7 @@ export const BaseSchema = {
     uInstanceCount: UniformSpec('i'),
     uGroupCount: UniformSpec('i'),
     uInvariantBoundingSphere: UniformSpec('v4'),
+    uLod: UniformSpec('v4'),
 
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),
@@ -341,6 +348,8 @@ export const BaseSchema = {
     boundingSphere: ValueSpec('sphere'),
     /** bounding sphere NOT taking aTransform into account */
     invariantBoundingSphere: ValueSpec('sphere'),
+
+    instanceGrid: ValueSpec('instanceGrid'),
 } as const;
 export type BaseSchema = typeof BaseSchema
 export type BaseValues = Values<BaseSchema>
