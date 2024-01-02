@@ -36,7 +36,7 @@ export type CustomTooltipsData = { selector: Selector, text: string, elementSet?
 
 /** Provider for custom structure property "CustomTooltips" */
 export const CustomTooltipsProvider: CustomStructureProperty.Provider<CustomTooltipsParams, CustomTooltipsData> = CustomStructureProperty.createProvider({
-    label: 'Custom Tooltips',
+    label: 'MVS Custom Tooltips',
     descriptor: CustomPropertyDescriptor<any, any>({
         name: 'mvs-custom-tooltips',
     }),
