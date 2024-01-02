@@ -4,9 +4,9 @@
  * @author Adam Midlik <midlik@gmail.com>
  *
  * Command-line application for rendering images from MolViewSpec files
- * Build: npm install --no-save gl jpeg-js pngjs  // these packages are not listed in Mol* dependencies for performance reasons
+ * Build: npm install --no-save canvas gl jpeg-js pngjs  // these packages are not listed in Mol* dependencies for performance reasons
  *        npm run build
- * Run:   node lib/commonjs/examples/mvs/mvs-render -i examples/mvs/1cbs.mvsj -o ../outputs/1cbs.png --size 800x600 --molj
+ * Run:   node lib/commonjs/cli/mvs/mvs-render -i examples/mvs/1cbs.mvsj -o ../outputs/1cbs.png --size 800x600 --molj
  */
 
 import { ArgumentParser } from 'argparse';
@@ -29,10 +29,11 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { MolViewSpec } from '../../extensions/mvs/behavior';
 import { loadMVS } from '../../extensions/mvs/load';
 import { MVSData } from '../../extensions/mvs/mvs-data';
-import { dfs } from '../../extensions/mvs/tree/generic/tree-utils';
+import { setCanvasModule } from '../../mol-geo/geometry/text/font-atlas';
 
 
 setFSModule(fs);
+setCanvasModule(require('canvas'));
 
 const DEFAULT_SIZE = '800x800';
 
@@ -76,9 +77,8 @@ async function main(args: Args): Promise<void> {
 
         const data = fs.readFileSync(input, { encoding: 'utf8' });
         const mvsData = MVSData.fromMVSJ(data);
-        removeLabelNodes(mvsData);
 
-        await loadMVS(plugin, mvsData, { sanityChecks: true, replaceExisting: true });
+        await loadMVS(plugin, mvsData, { sanityChecks: true, replaceExisting: true, sourceUrl: `file://${path.resolve(input)}` });
         fs.mkdirSync(path.dirname(output), { recursive: true });
         if (args.molj) {
             await plugin.saveStateSnapshot(withExtension(output, '.molj'));
@@ -124,22 +124,6 @@ function parseIntStrict(str: string): number {
 function withExtension(filename: string, extension: string): string {
     const oldExtension = path.extname(filename);
     return filename.slice(0, -oldExtension.length) + extension;
-}
-
-/** Remove any label* nodes from the MVS tree (in-place). Print warning if removed at least one node. */
-function removeLabelNodes(mvsData: MVSData): void {
-    let removedSomething = false;
-    dfs(mvsData.root, node => {
-        const nChildren = node.children?.length ?? 0;
-        node.children = node.children?.filter(c => !c.kind.startsWith('label'));
-        if ((node.children?.length ?? 0) !== nChildren) {
-            removedSomething = true;
-        }
-    });
-    if (removedSomething) {
-        // trying to render labels would fail because `document` is not available in Nodejs
-        console.error('Rendering labels is not yet supported in mvs-render. Skipping any label* nodes.');
-    }
 }
 
 /** Check Mol* state, print and throw error if any cell is not OK. */

@@ -6,6 +6,9 @@ uniform int uGroupCount;
 uniform int uPickType;
 uniform int uMarkingType;
 
+uniform vec4 uCameraPlane;
+uniform vec4 uLod;
+
 #if dClipObjectCount != 0
     uniform int uClipObjectType[dClipObjectCount];
     uniform bool uClipObjectInvert[dClipObjectCount];

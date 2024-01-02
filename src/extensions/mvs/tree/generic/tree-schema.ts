@@ -157,33 +157,38 @@ function treeSchemaToString_<S extends TreeSchema>(schema: S, defaults?: Default
     const out: string[] = [];
     const bold = (str: string) => markdown ? `**${str}**` : str;
     const code = (str: string) => markdown ? `\`${str}\`` : str;
+    const h1 = markdown ? '## ' : '  - ';
+    const p1 = markdown ? '' : '    ';
+    const h2 = markdown ? '- ' : '      - ';
+    const p2 = markdown ? '  ' : '        ';
+    const newline = markdown ? '\n\n' : '\n';
     out.push(`Tree schema:`);
     for (const kind in schema.nodes) {
         const { description, params, parent } = schema.nodes[kind];
-        out.push(`  - ${bold(code(kind))}`);
+        out.push(`${h1}${code(kind)}`);
         if (kind === schema.rootKind) {
-            out.push('    [Root of the tree must be of this kind]');
+            out.push(`${p1}[Root of the tree must be of this kind]`);
         }
         if (description) {
-            out.push(`    ${description}`);
+            out.push(`${p1}${description}`);
         }
-        out.push(`    Parent: ${!parent ? 'any' : parent.length === 0 ? 'none' : parent.map(code).join(' or ')}`);
-        out.push(`    Params:${Object.keys(params).length > 0 ? '' : ' none'}`);
+        out.push(`${p1}Parent: ${!parent ? 'any' : parent.length === 0 ? 'none' : parent.map(code).join(' or ')}`);
+        out.push(`${p1}Params:${Object.keys(params).length > 0 ? '' : ' none'}`);
         for (const key in params) {
             const field = params[key];
             let typeString = field.type.name;
             if (typeString.startsWith('(') && typeString.endsWith(')')) {
                 typeString = typeString.slice(1, -1);
             }
-            out.push(`      - ${bold(code(key + (field.required ? ': ' : '?: ')))}${code(typeString)}`);
+            out.push(`${h2}${bold(code(key + (field.required ? ': ' : '?: ')))}${code(typeString)}`);
             const defaultValue = (defaults?.[kind] as any)?.[key];
             if (field.description) {
-                out.push(`        ${field.description}`);
+                out.push(`${p2}${field.description}`);
             }
             if (defaultValue !== undefined) {
-                out.push(`        Default: ${code(onelinerJsonString(defaultValue))}`);
+                out.push(`${p2}Default: ${code(onelinerJsonString(defaultValue))}`);
             }
         }
     }
-    return out.join(markdown ? '\n\n' : '\n');
+    return out.join(newline);
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -30,6 +30,7 @@ void main2(){
 }
 
 void main(){
+    #include fade_lod
     #include clip_pixel
 
     float fragmentDepth = gl_FragCoord.z;

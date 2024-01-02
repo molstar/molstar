@@ -48,6 +48,9 @@
   "bin": {
     "cif2bcif": "lib/commonjs/cli/cif2bcif/index.js",
     "cifschema": "lib/commonjs/cli/cifschema/index.js",
+    "mvs-validate": "lib/commonjs/cli/mvs/mvs-validate.js",
+    "mvs-render": "lib/commonjs/cli/mvs/mvs-render.js",
+    "mvs-print-schema": "lib/commonjs/cli/mvs/mvs-print-schema.js",
     "model-server": "lib/commonjs/servers/model/server.js",
     "model-server-query": "lib/commonjs/servers/model/query.js",
     "model-server-preprocess": "lib/commonjs/servers/model/preprocess.js",
@@ -100,7 +103,8 @@
     "Russell Parker <russell@benchling.com>",
     "Dominik Tichy <tichydominik451@gmail.com>",
     "Yana Rose <yana.v.rose@gmail.com>",
-    "Yakov Pechersky <ffxen158@gmail.com>"
+    "Yakov Pechersky <ffxen158@gmail.com>",
+    "Christian Dominguez <christian.99dominguez@gmail.com>"
   ],
   "license": "MIT",
   "devDependencies": {
@@ -177,6 +181,7 @@
     "react-dom": "^18.1.0 || ^17.0.2 || ^16.14.0"
   },
   "optionalDependencies": {
+    "canvas": "^2.11.2",
     "gl": "^6.0.2",
     "jpeg-js": "^0.4.4",
     "pngjs": "^6.0.0"

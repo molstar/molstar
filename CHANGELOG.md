@@ -21,13 +21,35 @@ Note that since we don't clearly distinguish between a public and private interf
     - Requires calling methods from instance
 - [Breaking] Fix `mol-model/structure/model/properties/seconday-structure.ts` file name (#938)
 - [Breaking] Add `Canvas3DContext` runtime props
-    - pixelScale, pickScale, transparency (blended, wboit, dpoit)
-    - replacing instantiation-time attribs
+    - Props: pixelScale, pickScale, transparency (blended, wboit, dpoit)
+    - Replaces instantiation-time attribs
 - [Breaking] Change default compile target to ES2018
+- [Breaking] Add culling & LOD support
+    - Cull per-object and per-instance
+    - Cull based on frustum and camera distance
+    - LOD visibility based on camera distance
+    - Special LOD mode for spheres with automatic levels
+    - Occlusion culling (only WebGL2)
+        - Hi-Z pass
+        - Cull based on previous frame's Hi-Z buffer
+- Add stochastic/dithered transparency to fade overlapping LODs in and out
+- Add "Automatic Detail" preset that shows surface/cartoon/ball & stick based on camera distance
 
 ## [Unreleased]
 
+- Add new `cartoon` visuals to support atomic nucleotide base with sugar
+- Add `thicknessFactor` to `cartoon` representation for scaling nucleotide block/ring/atomic-fill visuals
+- Use bonds from `_struct_conn` in mmCIF files that use `label_seq_id`
 - Fix measurement label `offsetZ` default: not needed when `scaleByRadius` is enbaled
+- Support for label rendering in HeadlessPluginContext
+- MolViewSpec extension
+  - Support all X11 colors
+  - Support relative URIs
+  - CLI tools: mvs-validate, mvs-render, mvs-print-schema
+  - Labels applied in one node
+- ModelServer SDF/MOL2 ligand export: fix atom indices when additional atoms are present
+- Avoid showing (and calculating) inter-unit bonds for huge structures
+- Fixed `DragOverlay` on WebKit/Safari browsers
 
 ## [v3.43.1] - 2023-12-04
 

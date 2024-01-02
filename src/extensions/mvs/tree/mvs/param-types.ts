@@ -5,8 +5,9 @@
  */
 
 import * as iots from 'io-ts';
-import { HexColor, isHexColorString } from '../../helpers/utils';
+import { HexColor } from '../../helpers/utils';
 import { ValueFor, float, int, list, literal, str, tuple, union } from '../generic/params-schema';
+import { ColorNames } from '../../../../mol-util/color/names';
 
 
 /** `format` parameter values for `parse` node in MVS tree */
@@ -61,12 +62,12 @@ export const Matrix = list(float);
 export const HexColorT = new iots.Type<HexColor>(
     'HexColor',
     ((value: any) => typeof value === 'string') as any,
-    (value, ctx) => isHexColorString(value) ? { _tag: 'Right', right: value } : { _tag: 'Left', left: [{ value: value, context: ctx, message: `"${value}" is not a valid hex color string` }] },
+    (value, ctx) => HexColor.is(value) ? { _tag: 'Right', right: value } : { _tag: 'Left', left: [{ value: value, context: ctx, message: `"${value}" is not a valid hex color string` }] },
     value => value
 );
 
 /** `color` parameter values for `color` node in MVS tree */
-export const ColorNamesT = literal('white', 'gray', 'black', 'red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'magenta');
+export const ColorNamesT = literal(...Object.keys(ColorNames) as (keyof ColorNames)[]);
 
 /** `color` parameter values for `color` node in MVS tree */
 export const ColorT = union([HexColorT, ColorNamesT]);

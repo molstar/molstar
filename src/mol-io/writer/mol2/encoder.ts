@@ -36,7 +36,7 @@ export class Mol2Encoder extends LigandEncoder {
         let atomCount = 0;
         let bondCount = 0;
 
-        const atoms = this.getAtoms(instance, source);
+        const atoms = this.getAtoms(instance, source, atomMap.map);
         StringBuilder.writeSafe(a, '@<TRIPOS>ATOM\n');
         StringBuilder.writeSafe(b, '@<TRIPOS>BOND\n');
         atoms.forEach((atom1, label_atom_id1) => {

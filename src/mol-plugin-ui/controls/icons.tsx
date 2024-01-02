@@ -53,11 +53,14 @@ export function CursorDefaultOutlineSvg() { return _CursorDefaultOutline; }
 const _FileOutline = <svg width='24px' height='24px' viewBox='0 0 24 24' strokeWidth='0.1px'><path fill='currentColor' d='M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z' /></svg>;
 export function FileOutlineSvg() { return _FileOutline; }
 
-const _PencilRuler = <svg width='24px' height='24px' viewBox='0 0 24 24' strokeWidth='0.1px'><path d='M3 17.25V21H6.75L17.81 9.93L14.06 6.18L3 17.25M22.61 18.36L18.36 22.61L13.16 17.41L14.93 15.64L15.93 16.64L18.4 14.16L19.82 15.58L18.36 17L19.42 18L20.84 16.6L22.61 18.36M6.61 10.83L1.39 5.64L5.64 1.39L7.4 3.16L4.93 5.64L6 6.7L8.46 4.22L9.88 5.64L8.46 7.05L9.46 8.05L6.61 10.83M20.71 7C21.1 6.61 21.1 6 20.71 5.59L18.37 3.29C18 2.9 17.35 2.9 16.96 3.29L15.12 5.12L18.87 8.87L20.71 7Z' /></svg>;
-export function PencilRulerSvg() { return _PencilRuler; }
+const _LightbulbOnOutline = <svg width='24px' height='24px' viewBox='0 0 24 24' strokeWidth='0.1px'><path fill="currentColor" d="M20,11H23V13H20V11M1,11H4V13H1V11M13,1V4H11V1H13M4.92,3.5L7.05,5.64L5.63,7.05L3.5,4.93L4.92,3.5M16.95,5.63L19.07,3.5L20.5,4.93L18.37,7.05L16.95,5.63M12,6A6,6 0 0,1 18,12C18,14.22 16.79,16.16 15,17.2V19A1,1 0 0,1 14,20H10A1,1 0 0,1 9,19V17.2C7.21,16.16 6,14.22 6,12A6,6 0 0,1 12,6M14,21V22A1,1 0 0,1 13,23H11A1,1 0 0,1 10,22V21H14M11,18H13V15.87C14.73,15.43 16,13.86 16,12A4,4 0 0,0 12,8A4,4 0 0,0 8,12C8,13.86 9.27,15.43 11,15.87V18Z" /></svg>;
+export function LightbulbOnOutlineSvg() { return _LightbulbOnOutline; }
 
 const _MagicWand = <svg width='24px' height='24px' viewBox='0 0 24 24'><path fill='currentColor' d='M7.5,5.6L5,7L6.4,4.5L5,2L7.5,3.4L10,2L8.6,4.5L10,7L7.5,5.6M19.5,15.4L22,14L20.6,16.5L22,19L19.5,17.6L17,19L18.4,16.5L17,14L19.5,15.4M22,2L20.6,4.5L22,7L19.5,5.6L17,7L18.4,4.5L17,2L19.5,3.4L22,2M13.34,12.78L15.78,10.34L13.66,8.22L11.22,10.66L13.34,12.78M14.37,7.29L16.71,9.63C17.1,10 17.1,10.65 16.71,11.04L5.04,22.71C4.65,23.1 4,23.1 3.63,22.71L1.29,20.37C0.9,20 0.9,19.35 1.29,18.96L12.96,7.29C13.35,6.9 14,6.9 14.37,7.29Z' /></svg>;
 export function MagicWandSvg() { return _MagicWand; }
+
+const _PencilRuler = <svg width='24px' height='24px' viewBox='0 0 24 24' strokeWidth='0.1px'><path d='M3 17.25V21H6.75L17.81 9.93L14.06 6.18L3 17.25M22.61 18.36L18.36 22.61L13.16 17.41L14.93 15.64L15.93 16.64L18.4 14.16L19.82 15.58L18.36 17L19.42 18L20.84 16.6L22.61 18.36M6.61 10.83L1.39 5.64L5.64 1.39L7.4 3.16L4.93 5.64L6 6.7L8.46 4.22L9.88 5.64L8.46 7.05L9.46 8.05L6.61 10.83M20.71 7C21.1 6.61 21.1 6 20.71 5.59L18.37 3.29C18 2.9 17.35 2.9 16.96 3.29L15.12 5.12L18.87 8.87L20.71 7Z' /></svg>;
+export function PencilRulerSvg() { return _PencilRuler; }
 
 // The following icons are adapted from https://material-ui.com/components/material-icons/ and
 // licensed with https://github.com/mui-org/material-ui/blob/master/LICENSE
@@ -156,10 +159,8 @@ const _SaveOutlined = <svg width='24px' height='24px' viewBox='0 0 24 24' stroke
 export function SaveOutlinedSvg() { return _SaveOutlined; }
 const _ScatterPlot = <svg width='24px' height='24px' viewBox='0 0 24 24'><circle cx='7' cy='14' r='3' /><circle cx='11' cy='6' r='3' /><circle cx='16.6' cy='17.6' r='3' /></svg>;
 export function ScatterPlotSvg() { return _ScatterPlot; }
-
 const _Search = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path></svg>;
 export function SearchSvg() { return _Search; }
-
 const _SkipPrevious = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M6 6h2v12H6zm3.5 6l8.5 6V6z' /></svg>;
 export function SkipPreviousSvg() { return _SkipPrevious; }
 const _Stop = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M6 6h12v12H6z' /></svg>;

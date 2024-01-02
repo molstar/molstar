@@ -61,6 +61,7 @@ import { common_clip } from './shader/chunks/common-clip.glsl';
 import { common_frag_params } from './shader/chunks/common-frag-params.glsl';
 import { common_vert_params } from './shader/chunks/common-vert-params.glsl';
 import { common } from './shader/chunks/common.glsl';
+import { fade_lod } from './shader/chunks/fade-lod.glsl';
 import { float_to_rgba } from './shader/chunks/float-to-rgba.glsl';
 import { light_frag_params } from './shader/chunks/light-frag-params.glsl';
 import { matrix_scale } from './shader/chunks/matrix-scale.glsl';
@@ -95,6 +96,7 @@ const ShaderChunks: { [k: string]: string } = {
     common_frag_params,
     common_vert_params,
     common,
+    fade_lod,
     float_to_rgba,
     light_frag_params,
     matrix_scale,

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -88,6 +88,7 @@ varying float vInstance;
 #endif
 
 void main() {
+    #include fade_lod
     #include clip_pixel
 
     #if defined(dInterpolation_cubic)
