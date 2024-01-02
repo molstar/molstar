@@ -11,7 +11,7 @@ import { ThemeDataContext } from '../../../mol-theme/theme';
 import { ColorNames } from '../../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { decodeColor } from '../helpers/utils';
-import { getMVSAnnotationForStructure } from './annotation-prop';
+import { MVSAnnotationsProvider, getMVSAnnotationForStructure } from './annotation-prop';
 
 
 /** Parameter definition for color theme "MVS Annotation" */
@@ -76,5 +76,5 @@ export const MVSAnnotationColorThemeProvider: ColorTheme.Provider<MVSAnnotationC
     factory: MVSAnnotationColorTheme,
     getParams: ctx => MVSAnnotationColorThemeParams,
     defaultValues: PD.getDefaultValues(MVSAnnotationColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => true,
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure?.models.some(m => m.customProperties.has(MVSAnnotationsProvider.descriptor)),
 };

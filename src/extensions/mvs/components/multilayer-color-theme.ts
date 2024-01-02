@@ -12,6 +12,7 @@ import { Color } from '../../../mol-util/color';
 import { ColorNames } from '../../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { stringToWords } from '../../../mol-util/string';
+import { MVSAnnotationsProvider } from './annotation-prop';
 import { ElementSet, SelectorParams, isSelectorAll } from './selector';
 
 
@@ -137,11 +138,11 @@ export const MultilayerColorThemeName = 'mvs-multilayer';
 export function makeMultilayerColorThemeProvider(colorThemeRegistry: ColorTheme.Registry): ColorTheme.Provider<MultilayerColorThemeParams, typeof MultilayerColorThemeName> {
     return {
         name: MultilayerColorThemeName,
-        label: 'Multi-layer',
+        label: 'MVS Multilayer',
         category: ColorTheme.Category.Misc,
         factory: (ctx, props) => makeMultilayerColorTheme(ctx, props, colorThemeRegistry),
         getParams: (ctx: ThemeDataContext) => makeMultilayerColorThemeParams(colorThemeRegistry, ctx),
         defaultValues: DefaultMultilayerColorThemeProps,
-        isApplicable: (ctx: ThemeDataContext) => true,
+        isApplicable: (ctx: ThemeDataContext) => !!ctx.structure?.models.some(m => m.customProperties.has(MVSAnnotationsProvider.descriptor)),
     };
 }
