@@ -8,6 +8,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - [Breaking] Generalize rcsb/assembly-symmetry/ extension
     - Move to assembly-symmetry/
     - Remove RCSB specific dependencies and prefixes
+- [Breaking] Change build target to ES2018
+    - Custom builds only require ES6 for dependencies like immer.js
+- Improve `SetUtils` performance using ES6 features
 - [Breaking] Reduce memory usage of `SymmetryOperator.ArrayMapping`
     - Requires calling methods from instance
 - [Breaking] Fix `mol-model/structure/model/properties/seconday-structure.ts` file name (#938)
