@@ -6,7 +6,7 @@
 
 import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
-import { createGraphicsRenderItem, GraphicsRenderVariant } from '../webgl/render-item';
+import { createGraphicsRenderItem, Transparency } from '../webgl/render-item';
 import { GlobalUniformSchema, BaseSchema, AttributeSpec, Values, InternalSchema, SizeSchema, InternalValues, ElementsSpec, ValueSpec, DefineSpec, GlobalTextureSchema, UniformSpec } from './schema';
 import { CylindersShaderCode } from '../shader-code';
 import { ValueCell } from '../../mol-util';
@@ -34,12 +34,12 @@ export const CylindersSchema = {
 export type CylindersSchema = typeof CylindersSchema
 export type CylindersValues = Values<CylindersSchema>
 
-export function CylindersRenderable(ctx: WebGLContext, id: number, values: CylindersValues, state: RenderableState, materialId: number, variants: GraphicsRenderVariant[]): Renderable<CylindersValues> {
+export function CylindersRenderable(ctx: WebGLContext, id: number, values: CylindersValues, state: RenderableState, materialId: number, transparency: Transparency): Renderable<CylindersValues> {
     const schema = { ...GlobalUniformSchema, ...GlobalTextureSchema, ...InternalSchema, ...CylindersSchema };
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
     };
     const shaderCode = CylindersShaderCode;
-    const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId, variants);
+    const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId, transparency);
     return createRenderable(renderItem, values, state);
 }

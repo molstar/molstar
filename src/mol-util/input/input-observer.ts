@@ -271,6 +271,8 @@ interface InputObserver {
     readonly keyDown: Observable<KeyInput>
     readonly lock: Observable<boolean>
 
+    setPixelScale: (pixelScale: number) => void
+
     requestPointerLock: (viewport: Viewport) => void
     exitPointerLock: () => void
     dispose: () => void
@@ -311,6 +313,8 @@ namespace InputObserver {
             pixelRatio: 1,
 
             ...createEvents(),
+
+            setPixelScale: noop,
 
             requestPointerLock: noop,
             exitPointerLock: noop,
@@ -926,6 +930,12 @@ namespace InputObserver {
             get pointerLock() { return isLocked; },
 
             ...events,
+
+            setPixelScale: (value: number) => {
+                pixelScale = value;
+                width = element.clientWidth * pixelRatio();
+                height = element.clientHeight * pixelRatio();
+            },
 
             requestPointerLock: (viewport: Viewport) => {
                 lockedViewport = viewport;

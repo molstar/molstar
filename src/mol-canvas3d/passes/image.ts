@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -49,10 +49,10 @@ export class ImagePass {
     get width() { return this._width; }
     get height() { return this._height; }
 
-    constructor(private webgl: WebGLContext, assetManager: AssetManager, private renderer: Renderer, private scene: Scene, private camera: Camera, helper: Helper, enableWboit: boolean, enableDpoit: boolean, props: Partial<ImageProps>) {
+    constructor(private webgl: WebGLContext, assetManager: AssetManager, private renderer: Renderer, private scene: Scene, private camera: Camera, helper: Helper, transparency: 'wboit' | 'dpoit' | 'blended', props: Partial<ImageProps>) {
         this.props = { ...PD.getDefaultValues(ImageParams), ...props };
 
-        this.drawPass = new DrawPass(webgl, assetManager, 128, 128, enableWboit, enableDpoit);
+        this.drawPass = new DrawPass(webgl, assetManager, 128, 128, transparency);
         this.multiSamplePass = new MultiSamplePass(webgl, this.drawPass);
         this.multiSampleHelper = new MultiSampleHelper(this.multiSamplePass);
 

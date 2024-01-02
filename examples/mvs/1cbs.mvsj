@@ -1,0 +1,117 @@
+{
+ "metadata": {
+  "title": "Example MolViewSpec - 1cbs with labelled protein and ligand",
+  "version": "1",
+  "timestamp": "2023-11-24T10:38:17.483Z"
+ },
+ "root": {
+  "kind": "root",
+  "children": [
+   {
+    "kind": "download",
+    "params": {
+     "url": "https://www.ebi.ac.uk/pdbe/entry-files/1cbs.bcif"
+    },
+    "children": [
+     {
+      "kind": "parse",
+      "params": {
+       "format": "bcif"
+      },
+      "children": [
+       {
+        "kind": "structure",
+        "params": {
+         "type": "model"
+        },
+        "children": [
+         {
+          "kind": "component",
+          "params": {
+           "selector": "polymer"
+          },
+          "children": [
+           {
+            "kind": "representation",
+            "params": {
+             "type": "cartoon"
+            },
+            "children": [
+             {
+              "kind": "color",
+              "params": {
+               "color": "green"
+              }
+             },
+             {
+              "kind": "color",
+              "params": {
+               "selector": {
+                "label_asym_id": "A",
+                "beg_label_seq_id": 1,
+                "end_label_seq_id": 50
+               },
+               "color": "#6688ff"
+              }
+             }
+            ]
+           },
+           {
+            "kind": "label",
+            "params": {
+             "text": "Protein"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": "ligand"
+          },
+          "children": [
+           {
+            "kind": "representation",
+            "params": {
+             "type": "ball_and_stick"
+            },
+            "children": [
+             {
+              "kind": "color",
+              "params": {
+               "color": "#cc3399"
+              }
+             }
+            ]
+           },
+           {
+            "kind": "label",
+            "params": {
+             "text": "Retinoic Acid"
+            }
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "kind": "canvas",
+    "params": {
+     "background_color": "#ffffee"
+    }
+   },
+   {
+    "kind": "camera",
+    "params": {
+     "target": [17, 21, 27],
+     "position": [41, 34, 69],
+     "up": [-0.129,0.966,-0.224]
+    }
+   }
+  ]
+ }
+}

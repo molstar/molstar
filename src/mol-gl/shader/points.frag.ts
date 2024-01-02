@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -17,6 +17,7 @@ const vec2 center = vec2(0.5);
 const float radius = 0.5;
 
 void main(){
+    #include fade_lod
     #include clip_pixel
 
     float fragmentDepth = gl_FragCoord.z;

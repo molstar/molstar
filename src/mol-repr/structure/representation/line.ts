@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -39,7 +39,14 @@ export const LineParams = {
 };
 export type LineParams = typeof LineParams
 export function getLineParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return LineParams;
+    const size = Structure.getSize(structure);
+    if (size >= Structure.Size.Huge) {
+        const params = PD.clone(LineParams);
+        params.visuals.defaultValue = ['intra-bond', 'element-point', 'element-cross'];
+        return params;
+    } else {
+        return LineParams;
+    }
 }
 
 export type LineRepresentation = StructureRepresentation<LineParams>

@@ -1,10 +1,11 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Vec2, Vec3 } from '../../mol-math/linear-algebra';
+import { InputObserver } from '../../mol-util/input/input-observer';
 import { Camera } from '../camera';
 import { Viewport } from '../camera/util';
 
@@ -31,7 +32,7 @@ export namespace ObjectControls {
      * `pageStart` and `pageEnd` are 2d window coordinates;
      * `ref` defines the plane depth, if not given `camera.target` is used
      */
-    export function panDirection(out: Vec3, pageStart: Vec2, pageEnd: Vec2, camera: Camera, ref?: Vec3) {
+    export function panDirection(out: Vec3, pageStart: Vec2, pageEnd: Vec2, input: InputObserver, camera: Camera, ref?: Vec3) {
         mouseOnScreen(panStart, pageStart, camera.viewport);
         mouseOnScreen(panEnd, pageEnd, camera.viewport);
         Vec2.sub(panMouseChange, Vec2.copy(panMouseChange, panEnd), panStart);
@@ -44,8 +45,8 @@ export namespace ObjectControls {
         const height = 2 * Math.tan(camera.state.fov / 2) * dist;
         const zoom = camera.viewport.height / height;
 
-        panMouseChange[0] *= (1 / zoom) * camera.viewport.width * camera.pixelRatio;
-        panMouseChange[1] *= (1 / zoom) * camera.viewport.height * camera.pixelRatio;
+        panMouseChange[0] *= (1 / zoom) * camera.viewport.width * input.pixelRatio;
+        panMouseChange[1] *= (1 / zoom) * camera.viewport.height * input.pixelRatio;
 
         Vec3.cross(panOffset, Vec3.copy(panOffset, eye), camera.up);
         Vec3.setMagnitude(panOffset, panOffset, panMouseChange[0]);

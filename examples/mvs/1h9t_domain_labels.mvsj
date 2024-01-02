@@ -1,0 +1,583 @@
+{
+ "metadata": {
+  "title": "Example MolViewSpec - 1h9t colored and labelled by external annotation",
+  "version": "1",
+  "timestamp": "2023-11-24T10:48:28.677Z"
+ },
+ "root": {
+  "kind": "root",
+  "children": [
+   {
+    "kind": "download",
+    "params": {
+     "url": "https://www.ebi.ac.uk/pdbe/entry-files/1h9t.bcif"
+    },
+    "children": [
+     {
+      "kind": "parse",
+      "params": {
+       "format": "bcif"
+      },
+      "children": [
+       {
+        "kind": "structure",
+        "params": {
+         "type": "model"
+        },
+        "children": [
+         {
+          "kind": "component",
+          "params": {
+           "selector": "protein"
+          },
+          "children": [
+           {
+            "kind": "representation",
+            "params": {
+             "type": "cartoon"
+            },
+            "children": [
+             {
+              "kind": "color",
+              "params": {
+               "selector": "all",
+               "color": "white"
+              }
+             },
+             {
+              "kind": "color_from_uri",
+              "params": {
+               "uri": "./1h9t_domains.json",
+               "format": "json",
+               "schema": "all_atomic"
+              }
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": "nucleic"
+          },
+          "children": [
+           {
+            "kind": "representation",
+            "params": {
+             "type": "ball_and_stick"
+            },
+            "children": [
+             {
+              "kind": "color",
+              "params": {
+               "selector": "all",
+               "color": "white"
+              }
+             },
+             {
+              "kind": "color_from_uri",
+              "params": {
+               "uri": "./1h9t_domains.json",
+               "format": "json",
+               "schema": "all_atomic"
+              }
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": "ion"
+          },
+          "children": [
+           {
+            "kind": "representation",
+            "params": {
+             "type": "surface"
+            },
+            "children": [
+             {
+              "kind": "color_from_uri",
+              "params": {
+               "uri": "./1h9t_domains.json",
+               "format": "json",
+               "schema": "all_atomic"
+              }
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "A",
+            "beg_label_seq_id": 9,
+            "end_label_seq_id": 83
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "DNA-binding"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "B",
+            "beg_label_seq_id": 9,
+            "end_label_seq_id": 83
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "DNA-binding"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "A",
+            "beg_label_seq_id": 84,
+            "end_label_seq_id": 231
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "Acyl-CoA\nbinding"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "B",
+            "beg_label_seq_id": 84,
+            "end_label_seq_id": 231
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "Acyl-CoA binding"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "C"
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "DNA X"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "D"
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "DNA Y"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "D",
+            "atom_id": 4016
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "DNA Y O5'"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "D",
+            "atom_id": 4391
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "DNA Y O3'"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "E"
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "Gold"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "H"
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "Gold"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "F"
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "Chloride"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "G"
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "Chloride"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "I"
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "Chloride"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "A",
+            "label_seq_id": 57
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "Ligand binding"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "A",
+            "label_seq_id": 67
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "Ligand binding"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "A",
+            "label_seq_id": 121
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "Ligand binding"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "A",
+            "label_seq_id": 125
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "Ligand binding"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "A",
+            "label_seq_id": 129
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "Ligand binding"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "A",
+            "label_seq_id": 178
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "Ligand binding"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "A",
+            "beg_label_seq_id": 203,
+            "end_label_seq_id": 205
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "Ligand binding"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "B",
+            "label_seq_id": 67
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "Ligand binding"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "B",
+            "label_seq_id": 121
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "Ligand binding"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "B",
+            "label_seq_id": 125
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "Ligand binding"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "B",
+            "label_seq_id": 129
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "Ligand binding"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "B",
+            "label_seq_id": 178
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "Ligand binding"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": {
+            "label_asym_id": "B",
+            "beg_label_seq_id": 203,
+            "end_label_seq_id": 205
+           }
+          },
+          "children": [
+           {
+            "kind": "label",
+            "params": {
+             "text": "Ligand binding"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": "all"
+          },
+          "children": [
+           {
+            "kind": "focus",
+            "params": {
+             "direction": [-0.3, -0.1, -1]
+            }
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "kind": "canvas",
+    "params": {
+     "background_color": "#eeffee"
+    }
+   }
+  ]
+ }
+}

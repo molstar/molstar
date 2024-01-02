@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
@@ -17,14 +17,14 @@ import { ElementIndex } from '../../../../mol-model/structure';
  */
 export function assignBends(ctx: DSSPContext) {
     const { unit, flags, proteinInfo } = ctx;
-    const { position } = unit.conformation;
+    const c = unit.conformation;
     const { traceElementIndex } = unit.model.atomicHierarchy.derived.residue;
 
     const { residueIndices, nIndices } = proteinInfo;
     const residueCount = residueIndices.length;
 
     // const position = (i: number, v: Vec3) => Vec3.set(v, x[i], y[i], z[i])
-    const p = (i: ElementIndex | -1, v: Vec3) => i === -1 ? Vec3.setNaN(v) : position(i, v);
+    const p = (i: ElementIndex | -1, v: Vec3) => i === -1 ? Vec3.setNaN(v) : c.position(i, v);
 
     const caPosPrev2 = Vec3();
     const caPos = Vec3();
