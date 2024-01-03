@@ -3,16 +3,23 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Ke Ma <mark.ma@rcsb.org>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { Sphere3D } from '../../mol-math/geometry';
-import { PluginContext } from '../../mol-plugin/context';
-import { PrincipalAxes } from '../../mol-math/linear-algebra/matrix/principal-axes';
 import { Camera } from '../../mol-canvas3d/camera';
-import { Loci } from '../../mol-model/loci';
-import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 import { GraphicsRenderObject } from '../../mol-gl/render-object';
-import { StructureElement } from '../../mol-model/structure';
+import { Sphere3D } from '../../mol-math/geometry';
+import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
+import { Mat3 } from '../../mol-math/linear-algebra';
+import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
+import { PrincipalAxes } from '../../mol-math/linear-algebra/matrix/principal-axes';
+import { Loci } from '../../mol-model/loci';
+import { Structure, StructureElement } from '../../mol-model/structure';
+import { PluginContext } from '../../mol-plugin/context';
+import { PluginStateObject } from '../objects';
+import { pcaFocus } from './focus-camera/focus-first-residue';
+import { changeCameraRotation, structureLayingTransform } from './focus-camera/orient-axes';
 
 // TODO: make this customizable somewhere?
 const DefaultCameraFocusOptions = {
@@ -84,7 +91,7 @@ export class CameraManager {
         }
     }
 
-    focusSpheres<T>(xs: ReadonlyArray<T>, sphere: (t: T) => Sphere3D | undefined, options?: Partial<CameraFocusOptions>) {
+    focusSpheres<T>(xs: ReadonlyArray<T>, sphere: (t: T) => Sphere3D | undefined, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes, positionToFlip?: Vec3 }) {
         const spheres = [];
 
         for (const x of xs) {
@@ -106,7 +113,7 @@ export class CameraManager {
         this.focusSphere(this.boundaryHelper.getSphere(), options);
     }
 
-    focusSphere(sphere: Sphere3D, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes }) {
+    focusSphere(sphere: Sphere3D, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes, positionToFlip?: Vec3 }) {
         const { canvas3d } = this.plugin;
         if (!canvas3d) return;
 
@@ -114,13 +121,32 @@ export class CameraManager {
         const radius = Math.max(sphere.radius + extraRadius, minRadius);
 
         if (options?.principalAxes) {
-            const { origin, dirA, dirC } = options?.principalAxes.boxAxes;
-            const snapshot = canvas3d.camera.getFocus(origin, radius, dirA, dirC);
-            canvas3d.requestCameraReset({ durationMs, snapshot });
+            const snapshot = pcaFocus(this.plugin, radius, options as { principalAxes: PrincipalAxes, positionToFlip?: Vec3 });
+            this.plugin.canvas3d?.requestCameraReset({ durationMs, snapshot });
         } else {
             const snapshot = canvas3d.camera.getFocus(sphere.center, radius);
             canvas3d.requestCameraReset({ durationMs, snapshot });
         }
+    }
+
+    /** Align PCA axes of `structures` (default: all loaded structures) to the screen axes. */
+    orientAxes(structures?: Structure[], durationMs?: number) {
+        if (!this.plugin.canvas3d) return;
+        if (!structures) {
+            const structCells = this.plugin.state.data.selectQ(q => q.ofType(PluginStateObject.Molecule.Structure));
+            const rootStructCells = structCells.filter(cell => cell.obj && !cell.transform.transformer.definition.isDecorator && !cell.obj.data.parent);
+            structures = rootStructCells.map(cell => cell.obj?.data).filter(struct => !!struct) as Structure[];
+        }
+        const { rotation } = structureLayingTransform(structures);
+        const newSnapshot = changeCameraRotation(this.plugin.canvas3d.camera.getSnapshot(), rotation);
+        this.setSnapshot(newSnapshot, durationMs);
+    }
+
+    /** Align Cartesian axes to the screen axes (X right, Y up). */
+    resetAxes(durationMs?: number) {
+        if (!this.plugin.canvas3d) return;
+        const newSnapshot = changeCameraRotation(this.plugin.canvas3d.camera.getSnapshot(), Mat3.Identity);
+        this.setSnapshot(newSnapshot, durationMs);
     }
 
     setSnapshot(snapshot: Partial<Camera.Snapshot>, durationMs?: number) {

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -8,6 +8,7 @@ import { ValueCell } from '../mol-util';
 import { idFactory } from '../mol-util/id-factory';
 import { WebGLExtensions } from './webgl/extensions';
 import { isWebGL2, GLRenderingContext } from './webgl/compat';
+import { assertUnreachable } from '../mol-util/type-helpers';
 
 export type DefineKind = 'boolean' | 'string' | 'number'
 export type DefineType = boolean | string
@@ -20,6 +21,10 @@ export interface ShaderExtensions {
     readonly fragDepth?: ShaderExtensionsValue
     readonly drawBuffers?: ShaderExtensionsValue
     readonly shaderTextureLod?: ShaderExtensionsValue
+    /** Needed to enable the `gl_DrawID` built-in */
+    readonly multiDraw?: ShaderExtensionsValue
+    readonly clipCullDistance?: ShaderExtensionsValue
+    readonly conservativeDepth?: ShaderExtensionsValue
 }
 
 type FragOutTypes = { [k in number]: 'vec4' | 'ivec4' }
@@ -56,6 +61,7 @@ import { common_clip } from './shader/chunks/common-clip.glsl';
 import { common_frag_params } from './shader/chunks/common-frag-params.glsl';
 import { common_vert_params } from './shader/chunks/common-vert-params.glsl';
 import { common } from './shader/chunks/common.glsl';
+import { fade_lod } from './shader/chunks/fade-lod.glsl';
 import { float_to_rgba } from './shader/chunks/float-to-rgba.glsl';
 import { light_frag_params } from './shader/chunks/light-frag-params.glsl';
 import { matrix_scale } from './shader/chunks/matrix-scale.glsl';
@@ -90,6 +96,7 @@ const ShaderChunks: { [k: string]: string } = {
     common_frag_params,
     common_vert_params,
     common,
+    fade_lod,
     float_to_rgba,
     light_frag_params,
     matrix_scale,
@@ -127,7 +134,7 @@ function unrollLoops(str: string) {
     return str.replace(reUnrollLoop, loopReplacer);
 }
 
-function loopReplacer(match: string, start: string, end: string, snippet: string) {
+function loopReplacer(_match: string, start: string, end: string, snippet: string) {
     let out = '';
     for (let i = parseInt(start); i < parseInt(end); ++i) {
         out += snippet
@@ -161,9 +168,10 @@ function ignoreDefine(name: string, variant: string, defines: ShaderDefines): bo
     } else {
         return [
             'dColorType', 'dUsePalette',
-            'dLightCount',
+            'dLightCount', 'dXrayShaded',
             'dOverpaintType', 'dOverpaint',
             'dSubstanceType', 'dSubstance',
+            'dColorMarker',
         ].includes(name);
     }
     return false;
@@ -204,7 +212,6 @@ export const DirectVolumeShaderCode = ShaderCode('direct-volume', directVolume_v
 
 import { image_vert } from './shader/image.vert';
 import { image_frag } from './shader/image.frag';
-import { assertUnreachable } from '../mol-util/type-helpers';
 export const ImageShaderCode = ShaderCode('image', image_vert, image_frag, { drawBuffers: 'optional' }, {}, ignoreDefineUnlit);
 
 //
@@ -245,6 +252,14 @@ function getGlsl100VertPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
             prefix.push('#define requiredDrawBuffers');
         } else if (shaderExtensions.drawBuffers === 'required') {
             throw new Error(`required 'GL_EXT_draw_buffers' extension not available`);
+        }
+    }
+    if (shaderExtensions.multiDraw) {
+        if (extensions.multiDraw) {
+            prefix.push('#extension GL_ANGLE_multi_draw : require');
+            prefix.push('#define enabledMultiDraw');
+        } else if (shaderExtensions.multiDraw === 'required') {
+            throw new Error(`required 'GL_ANGLE_multi_draw' extension not available`);
         }
     }
     return prefix.join('\n') + '\n';
@@ -311,6 +326,30 @@ function getGlsl300VertPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
     if (shaderExtensions.drawBuffers) {
         if (extensions.drawBuffers) {
             prefix.push('#define requiredDrawBuffers');
+        }
+    }
+    if (shaderExtensions.multiDraw) {
+        if (extensions.multiDraw) {
+            prefix.push('#extension GL_ANGLE_multi_draw : require');
+            prefix.push('#define enabledMultiDraw');
+        } else if (shaderExtensions.multiDraw === 'required') {
+            throw new Error(`required 'GL_ANGLE_multi_draw' extension not available`);
+        }
+    }
+    if (shaderExtensions.clipCullDistance) {
+        if (extensions.clipCullDistance) {
+            prefix.push('#extension GL_ANGLE_clip_cull_distance : enable');
+            prefix.push('#define enabledClipCullDistance');
+        } else if (shaderExtensions.clipCullDistance === 'required') {
+            throw new Error(`required 'GL_ANGLE_clip_cull_distance' extension not available`);
+        }
+    }
+    if (shaderExtensions.conservativeDepth) {
+        if (extensions.conservativeDepth) {
+            prefix.push('#extension GL_EXT_conservative_depth : enable');
+            prefix.push('#define enabledConservativeDepth');
+        } else if (shaderExtensions.conservativeDepth === 'required') {
+            throw new Error(`required 'GL_EXT_conservative_depth' extension not available`);
         }
     }
     if (extensions.noNonInstancedActiveAttribs) {

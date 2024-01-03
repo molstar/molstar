@@ -1,14 +1,14 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import produce, { setAutoFreeze } from 'immer';
+import { produce, setAutoFreeze } from 'immer';
 import { List } from 'immutable';
 import { merge, Subscription } from 'rxjs';
-import { filter, take } from 'rxjs/operators';
+import { debounceTime, filter, take, throttleTime } from 'rxjs/operators';
 import { Canvas3D, Canvas3DContext, DefaultCanvas3DParams } from '../mol-canvas3d/canvas3d';
 import { resizeCanvas } from '../mol-canvas3d/util';
 import { Vec2 } from '../mol-math/linear-algebra';
@@ -43,7 +43,7 @@ import { AssetManager } from '../mol-util/assets';
 import { Color } from '../mol-util/color';
 import { ajaxGet } from '../mol-util/data-source';
 import { isDebugMode, isProductionMode } from '../mol-util/debug';
-import { ModifiersKeys } from '../mol-util/input/input-observer';
+import { EmptyKeyInput, KeyInput, ModifiersKeys } from '../mol-util/input/input-observer';
 import { LogEntry } from '../mol-util/log-entry';
 import { objectForEach } from '../mol-util/object';
 import { RxEventHelper } from '../mol-util/rx-event-helper';
@@ -61,6 +61,12 @@ import { PluginToastManager } from './util/toast';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { setSaccharideCompIdMapType } from '../mol-model/structure/structure/carbohydrates/constants';
+import { DragAndDropManager } from '../mol-plugin-state/manager/drag-and-drop';
+
+export type PluginInitializedState =
+    | { kind: 'no' }
+    | { kind: 'yes' }
+    | { kind: 'error', error: any }
 
 export class PluginContext {
     runTask = <T>(task: Task<T>, params?: { useOverlay?: boolean }) => this.managers.task.run(task, params);
@@ -72,6 +78,8 @@ export class PluginContext {
 
     protected subs: Subscription[] = [];
     private initCanvas3dPromiseCallbacks: [res: () => void, rej: (err: any) => void] = [() => {}, () => {}];
+    private _isInitialized = false;
+    private initializedPromiseCallbacks: [res: () => void, rej: (err: any) => void] = [() => {}, () => {}];
 
     private disposed = false;
     private canvasContainer: HTMLDivElement | undefined = void 0;
@@ -95,7 +103,9 @@ export class PluginContext {
             hover: this.ev.behavior<InteractivityManager.HoverEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0 }),
             click: this.ev.behavior<InteractivityManager.ClickEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0 }),
             drag: this.ev.behavior<InteractivityManager.DragEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0, pageStart: Vec2(), pageEnd: Vec2() }),
-            selectionMode: this.ev.behavior<boolean>(false)
+            key: this.ev.behavior<KeyInput>(EmptyKeyInput),
+            keyReleased: this.ev.behavior<KeyInput>(EmptyKeyInput),
+            selectionMode: this.ev.behavior<boolean>(false),
         },
         labels: {
             highlight: this.ev.behavior<{ labels: ReadonlyArray<LociLabel> }>({ labels: [] })
@@ -112,6 +122,14 @@ export class PluginContext {
     readonly canvas3dInitialized = new Promise<void>((res, rej) => {
         this.initCanvas3dPromiseCallbacks = [res, rej];
     });
+
+    readonly initialized = new Promise<void>((res, rej) => {
+        this.initializedPromiseCallbacks = [res, rej];
+    });
+
+    get isInitialized() {
+        return this._isInitialized;
+    }
 
     readonly canvas3dContext: Canvas3DContext | undefined;
     readonly canvas3d: Canvas3D | undefined;
@@ -169,7 +187,8 @@ export class PluginContext {
         lociLabels: void 0 as any as LociLabelManager,
         toast: new PluginToastManager(this),
         asset: new AssetManager(),
-        task: new TaskManager()
+        task: new TaskManager(),
+        dragAndDrop: new DragAndDropManager(this),
     } as const;
 
     readonly events = {
@@ -255,21 +274,21 @@ export class PluginContext {
             this.layout.setRoot(container);
             if (this.spec.layout && this.spec.layout.initial) this.layout.setProps(this.spec.layout.initial);
 
-            if (canvas3dContext) {
-                (this.canvas3dContext as Canvas3DContext) = canvas3dContext;
-            } else {
-                const antialias = !(this.config.get(PluginConfig.General.DisableAntialiasing) ?? false);
-                const preserveDrawingBuffer = !(this.config.get(PluginConfig.General.DisablePreserveDrawingBuffer) ?? false);
-                const pixelScale = this.config.get(PluginConfig.General.PixelScale) || 1;
-                const pickScale = this.config.get(PluginConfig.General.PickScale) || 0.25;
-                const pickPadding = this.config.get(PluginConfig.General.PickPadding) ?? 1;
-                const enableWboit = this.config.get(PluginConfig.General.EnableWboit) || false;
-                const enableDpoit = this.config.get(PluginConfig.General.EnableDpoit) || false;
-                const preferWebGl1 = this.config.get(PluginConfig.General.PreferWebGl1) || false;
-                const failIfMajorPerformanceCaveat = !(this.config.get(PluginConfig.General.AllowMajorPerformanceCaveat) ?? false);
-                const powerPreference = this.config.get(PluginConfig.General.PowerPreference) || 'high-performance';
-                (this.canvas3dContext as Canvas3DContext) = Canvas3DContext.fromCanvas(canvas, this.managers.asset, { antialias, preserveDrawingBuffer, pixelScale, pickScale, pickPadding, enableWboit, enableDpoit, preferWebGl1, failIfMajorPerformanceCaveat, powerPreference });
+            if (!canvas3dContext) {
+                canvas3dContext = Canvas3DContext.fromCanvas(canvas, this.managers.asset, {
+                    antialias: !(this.config.get(PluginConfig.General.DisableAntialiasing) ?? false),
+                    preserveDrawingBuffer: !(this.config.get(PluginConfig.General.DisablePreserveDrawingBuffer) ?? false),
+                    preferWebGl1: this.config.get(PluginConfig.General.PreferWebGl1) || false,
+                    failIfMajorPerformanceCaveat: !(this.config.get(PluginConfig.General.AllowMajorPerformanceCaveat) ?? false),
+                    powerPreference: this.config.get(PluginConfig.General.PowerPreference) || 'high-performance',
+                    handleResize: this.handleResize,
+                }, {
+                    pixelScale: this.config.get(PluginConfig.General.PixelScale) || 1,
+                    pickScale: this.config.get(PluginConfig.General.PickScale) || 0.25,
+                    transparency: this.config.get(PluginConfig.General.Transparency) || 'wboit',
+                });
             }
+            (this.canvas3dContext as Canvas3DContext) = canvas3dContext;
             (this.canvas3d as Canvas3D) = Canvas3D.create(this.canvas3dContext!);
             this.canvas3dInit.next(true);
             let props = this.spec.canvas3d;
@@ -292,7 +311,9 @@ export class PluginContext {
             this.subs.push(this.canvas3d!.interaction.click.subscribe(e => this.behaviors.interaction.click.next(e)));
             this.subs.push(this.canvas3d!.interaction.drag.subscribe(e => this.behaviors.interaction.drag.next(e)));
             this.subs.push(this.canvas3d!.interaction.hover.subscribe(e => this.behaviors.interaction.hover.next(e)));
-            this.subs.push(this.canvas3d!.input.resize.subscribe(() => this.handleResize()));
+            this.subs.push(this.canvas3d!.input.resize.pipe(debounceTime(50), throttleTime(100, undefined, { leading: false, trailing: true })).subscribe(() => this.handleResize()));
+            this.subs.push(this.canvas3d!.input.keyDown.subscribe(e => this.behaviors.interaction.key.next(e)));
+            this.subs.push(this.canvas3d!.input.keyUp.subscribe(e => this.behaviors.interaction.keyReleased.next(e)));
             this.subs.push(this.layout.events.updated.subscribe(() => requestAnimationFrame(() => this.handleResize())));
 
             this.handleResize();
@@ -307,15 +328,14 @@ export class PluginContext {
         }
     }
 
-    handleResize() {
+    handleResize = () => {
         const canvas = this.canvas3dContext?.canvas;
         const container = this.layout.root;
         if (container && canvas) {
-            const pixelScale = this.config.get(PluginConfig.General.PixelScale) || 1;
-            resizeCanvas(canvas, container, pixelScale);
+            resizeCanvas(canvas, container, this.canvas3dContext.props.pixelScale);
             this.canvas3d?.requestResize();
         }
-    }
+    };
 
     readonly log = {
         entries: List<LogEntry>(),
@@ -362,19 +382,21 @@ export class PluginContext {
         }
         this.subs = [];
 
+        this.animationLoop.stop();
         this.commands.dispose();
         this.canvas3d?.dispose();
         this.canvas3dContext?.dispose(options);
         this.ev.dispose();
         this.state.dispose();
-        this.managers.task.dispose();
         this.helpers.substructureParent.dispose();
 
         objectForEach(this.managers, m => (m as any)?.dispose?.());
         objectForEach(this.managers.structure, m => (m as any)?.dispose?.());
+        objectForEach(this.managers.volume, m => (m as any)?.dispose?.());
 
         this.unmount();
         this.canvasContainer = undefined;
+        (this.customState as any) = {};
 
         this.disposed = true;
     }
@@ -476,24 +498,32 @@ export class PluginContext {
     }
 
     async init() {
-        this.subs.push(this.events.log.subscribe(e => this.log.entries = this.log.entries.push(e)));
+        try {
+            this.subs.push(this.events.log.subscribe(e => this.log.entries = this.log.entries.push(e)));
 
-        this.initCustomFormats();
-        this.initBehaviorEvents();
-        this.initBuiltInBehavior();
+            this.initCustomFormats();
+            this.initBehaviorEvents();
+            this.initBuiltInBehavior();
 
-        (this.managers.interactivity as InteractivityManager) = new InteractivityManager(this);
-        (this.managers.lociLabels as LociLabelManager) = new LociLabelManager(this);
-        (this.builders.structure as StructureBuilder) = new StructureBuilder(this);
+            (this.managers.interactivity as InteractivityManager) = new InteractivityManager(this);
+            (this.managers.lociLabels as LociLabelManager) = new LociLabelManager(this);
+            (this.builders.structure as StructureBuilder) = new StructureBuilder(this);
 
-        this.initAnimations();
-        this.initDataActions();
+            this.initAnimations();
+            this.initDataActions();
 
-        await this.initBehaviors();
+            await this.initBehaviors();
 
-        this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE.toLocaleString()}]`);
-        if (!isProductionMode) this.log.message(`Development mode enabled`);
-        if (isDebugMode) this.log.message(`Debug mode enabled`);
+            this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE.toLocaleString()}]`);
+            if (!isProductionMode) this.log.message(`Development mode enabled`);
+            if (isDebugMode) this.log.message(`Debug mode enabled`);
+
+            this._isInitialized = true;
+            this.initializedPromiseCallbacks[0]();
+        } catch (err) {
+            this.initializedPromiseCallbacks[1](err);
+            throw err;
+        }
     }
 
     constructor(public spec: PluginSpec) {

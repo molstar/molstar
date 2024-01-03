@@ -59,7 +59,8 @@
         "block-spacing": "error",
         "keyword-spacing": "off",
         "space-before-blocks": "error",
-        "semi-spacing": "error"
+        "semi-spacing": "error",
+        "no-constant-binary-expression": "error"
     },
     "overrides": [
         {

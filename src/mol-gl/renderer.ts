@@ -21,6 +21,9 @@ import { Texture, Textures } from './webgl/texture';
 import { arrayMapUpsert } from '../mol-util/array';
 import { clamp } from '../mol-math/interpolate';
 import { isTimingMode } from '../mol-util/debug';
+import { Frustum3D } from '../mol-math/geometry/primitives/frustum3d';
+import { Plane3D } from '../mol-math/geometry/primitives/plane3d';
+import { Sphere3D } from '../mol-math/geometry';
 
 export interface RendererStats {
     programCount: number
@@ -81,6 +84,7 @@ interface Renderer {
     setTransparentBackground: (value: boolean) => void
     setDrawingBufferSize: (width: number, height: number) => void
     setPixelRatio: (value: number) => void
+    setOcclusionTest: (f: ((s: Sphere3D) => boolean) | null) => void
 
     dispose: () => void
 }
@@ -104,12 +108,13 @@ export const RendererParams = {
     markerPriority: PD.Select(1, [[1, 'Highlight'], [2, 'Select']]),
 
     xrayEdgeFalloff: PD.Numeric(1, { min: 0.0, max: 3.0, step: 0.1 }),
+    exposure: PD.Numeric(1, { min: 0.0, max: 3.0, step: 0.01 }),
 
     light: PD.ObjectList({
         inclination: PD.Numeric(150, { min: 0, max: 180, step: 1 }),
         azimuth: PD.Numeric(320, { min: 0, max: 360, step: 1 }),
         color: PD.Color(Color.fromNormalizedRgb(1.0, 1.0, 1.0)),
-        intensity: PD.Numeric(0.6, { min: 0.0, max: 1.0, step: 0.01 }),
+        intensity: PD.Numeric(0.6, { min: 0.0, max: 5.0, step: 0.01 }),
     }, o => Color.toHexString(o.color), { defaultValue: [{
         inclination: 150,
         azimuth: 320,
@@ -117,7 +122,7 @@ export const RendererParams = {
         intensity: 0.6
     }] }),
     ambientColor: PD.Color(Color.fromNormalizedRgb(1.0, 1.0, 1.0)),
-    ambientIntensity: PD.Numeric(0.4, { min: 0.0, max: 1.0, step: 0.01 }),
+    ambientIntensity: PD.Numeric(0.4, { min: 0.0, max: 2.0, step: 0.01 }),
 };
 export type RendererProps = PD.Values<typeof RendererParams>
 
@@ -130,18 +135,19 @@ export type Light = {
 const tmpDir = Vec3();
 const tmpColor = Vec3();
 function getLight(props: RendererProps['light'], light?: Light): Light {
+    const count = props.length;
     const { direction, color } = light || {
-        direction: (new Array(5 * 3)).fill(0),
-        color: (new Array(5 * 3)).fill(0),
+        direction: (new Array(count * 3)).fill(0),
+        color: (new Array(count * 3)).fill(0),
     };
-    for (let i = 0, il = props.length; i < il; ++i) {
+    for (let i = 0; i < count; ++i) {
         const p = props[i];
         Vec3.directionFromSpherical(tmpDir, degToRad(p.inclination), degToRad(p.azimuth), 1);
         Vec3.toArray(tmpDir, direction, i * 3);
         Vec3.scale(tmpColor, Color.toVec3Normalized(tmpColor, p.color), p.intensity);
         Vec3.toArray(tmpColor, color, i * 3);
     }
-    return { count: props.length, direction, color };
+    return { count, direction, color };
 }
 
 namespace Renderer {
@@ -151,6 +157,7 @@ namespace Renderer {
         None = 0,
         BlendedFront = 1,
         BlendedBack = 2,
+        BlendedVolume = 3,
     }
 
     /** For internal use only */
@@ -171,6 +178,7 @@ namespace Renderer {
         const bgColor = Color.toVec3Normalized(Vec3(), p.backgroundColor);
 
         let transparentBackground = false;
+        let isOccluded: ((s: Sphere3D) => boolean) | null = null;
 
         const emptyDepthTexture = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
         emptyDepthTexture.define(1, 1);
@@ -188,12 +196,17 @@ namespace Renderer {
         const invModelViewProjection = Mat4();
 
         const cameraDir = Vec3();
+        const cameraPosition = Vec3();
+        const cameraPlane = Plane3D();
         const viewOffset = Vec2();
+        const frustum = Frustum3D();
 
         const ambientColor = Vec3();
         Vec3.scale(ambientColor, Color.toArrayNormalized(p.ambientColor, ambientColor, 0), p.ambientIntensity);
 
         const globalUniforms: GlobalUniformValues = {
+            uDrawId: ValueCell.create(0),
+
             uModel: ValueCell.create(Mat4.identity()),
             uView: ValueCell.create(view),
             uInvView: ValueCell.create(invView),
@@ -211,10 +224,12 @@ namespace Renderer {
             uViewport: ValueCell.create(Viewport.toVec4(Vec4(), viewport)),
             uDrawingBufferSize: ValueCell.create(drawingBufferSize),
 
-            uCameraPosition: ValueCell.create(Vec3()),
+            uCameraPosition: ValueCell.create(cameraPosition),
             uCameraDir: ValueCell.create(cameraDir),
+            uCameraPlane: ValueCell.create(Plane3D.toArray(cameraPlane, Vec4(), 0)),
             uNear: ValueCell.create(1),
             uFar: ValueCell.create(10000),
+            uFog: ValueCell.create(true),
             uFogNear: ValueCell.create(1),
             uFogFar: ValueCell.create(10000),
             uFogColor: ValueCell.create(bgColor),
@@ -246,6 +261,7 @@ namespace Renderer {
             uMarkerAverage: ValueCell.create(0),
 
             uXrayEdgeFalloff: ValueCell.create(p.xrayEdgeFalloff),
+            uExposure: ValueCell.create(p.exposure),
         };
         const globalUniformList = Object.entries(globalUniforms);
 
@@ -256,16 +272,35 @@ namespace Renderer {
                 return;
             }
 
-            let definesNeedUpdate = false;
+            // TODO: check what happens if sphere surrounds frustum fully
+            if (!Frustum3D.intersectsSphere3D(frustum, r.values.boundingSphere.ref.value)) {
+                return;
+            }
+
+            const [minDistance, maxDistance] = r.values.uLod.ref.value;
+            if (minDistance !== 0 || maxDistance !== 0) {
+                const { center, radius } = r.values.boundingSphere.ref.value;
+                const d = Plane3D.distanceToPoint(cameraPlane, center);
+                if (d + radius < minDistance) return;
+                if (d - radius > maxDistance) return;
+            }
+
+            if (r.values.instanceGrid.ref.value.cellSize > 1 || r.values.lodLevels) {
+                r.cull(cameraPlane, frustum, isOccluded, ctx.stats);
+            } else {
+                r.uncull();
+            }
+
+            let needUpdate = false;
             if (r.values.dLightCount.ref.value !== light.count) {
                 ValueCell.update(r.values.dLightCount, light.count);
-                definesNeedUpdate = true;
+                needUpdate = true;
             }
             if (r.values.dColorMarker.ref.value !== p.colorMarker) {
                 ValueCell.update(r.values.dColorMarker, p.colorMarker);
-                definesNeedUpdate = true;
+                needUpdate = true;
             }
-            if (definesNeedUpdate) r.update();
+            if (needUpdate) r.update();
 
             const program = r.getProgram(variant);
             if (state.currentProgramId !== program.id) {
@@ -282,7 +317,7 @@ namespace Renderer {
             }
 
             if (r.values.dGeometryType.ref.value === 'directVolume') {
-                if (variant !== 'colorDpoit' && variant !== 'colorWboit' && variant !== 'colorBlended') {
+                if (variant !== 'color') {
                     return; // only color supported
                 }
 
@@ -290,7 +325,7 @@ namespace Renderer {
                 state.disable(gl.CULL_FACE);
                 state.frontFace(gl.CCW);
 
-                if (variant === 'colorBlended') {
+                if (flag === Flag.BlendedVolume) {
                     // depth test done manually in shader against `depthTexture`
                     state.disable(gl.DEPTH_TEST);
                     state.depthMask(false);
@@ -347,14 +382,21 @@ namespace Renderer {
             ValueCell.updateIfChanged(globalUniforms.uIsOrtho, camera.state.mode === 'orthographic' ? 1 : 0);
             ValueCell.update(globalUniforms.uViewOffset, camera.viewOffset.enabled ? Vec2.set(viewOffset, camera.viewOffset.offsetX * 16, camera.viewOffset.offsetY * 16) : Vec2.set(viewOffset, 0, 0));
 
-            ValueCell.update(globalUniforms.uCameraPosition, camera.state.position);
+            ValueCell.update(globalUniforms.uCameraPosition, Vec3.copy(cameraPosition, camera.state.position));
             ValueCell.update(globalUniforms.uCameraDir, Vec3.normalize(cameraDir, Vec3.sub(cameraDir, camera.state.target, camera.state.position)));
 
             ValueCell.updateIfChanged(globalUniforms.uFar, camera.far);
             ValueCell.updateIfChanged(globalUniforms.uNear, camera.near);
+            ValueCell.updateIfChanged(globalUniforms.uFog, camera.state.fog > 0);
             ValueCell.updateIfChanged(globalUniforms.uFogFar, camera.fogFar);
             ValueCell.updateIfChanged(globalUniforms.uFogNear, camera.fogNear);
             ValueCell.updateIfChanged(globalUniforms.uTransparentBackground, transparentBackground);
+
+            Frustum3D.fromProjectionMatrix(frustum, camera.projectionView);
+
+            Plane3D.copy(cameraPlane, frustum[Frustum3D.PlaneIndex.Near]);
+            cameraPlane.constant -= Plane3D.distanceToPoint(cameraPlane, cameraPosition);
+            ValueCell.update(globalUniforms.uCameraPlane, Plane3D.toArray(cameraPlane, globalUniforms.uCameraPlane.ref.value, 0));
 
             ValueCell.updateIfChanged(globalUniforms.uMarkerAverage, scene.markerAverage);
         };
@@ -363,7 +405,7 @@ namespace Renderer {
             arrayMapUpsert(sharedTexturesList, 'tDepth', depthTexture || emptyDepthTexture);
 
             ValueCell.update(globalUniforms.uModel, group.view);
-            ValueCell.update(globalUniforms.uModelView, Mat4.mul(modelView, group.view, camera.view));
+            ValueCell.update(globalUniforms.uModelView, Mat4.mul(modelView, camera.view, group.view));
             ValueCell.update(globalUniforms.uInvModelView, Mat4.invert(invModelView, modelView));
             ValueCell.update(globalUniforms.uModelViewProjection, Mat4.mul(modelViewProjection, modelView, camera.projection));
             ValueCell.update(globalUniforms.uInvModelViewProjection, Mat4.invert(invModelViewProjection, modelViewProjection));
@@ -426,7 +468,8 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-                if (r.state.opaque && r.values.transparencyAverage.ref.value !== 1 && !r.values.dXrayShaded?.ref.value) {
+                const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
+                if (r.state.opaque && r.values.transparencyAverage.ref.value !== 1 && !xrayShaded) {
                     renderObject(r, 'depth', Flag.None);
                 }
             }
@@ -444,7 +487,8 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-                if (!r.state.opaque || r.values.transparencyAverage.ref.value > 0 || r.values.dXrayShaded?.ref.value) {
+                const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
+                if (!r.state.opaque || r.values.transparencyAverage.ref.value > 0 || xrayShaded) {
                     renderObject(r, 'depth', Flag.None);
                 }
             }
@@ -464,7 +508,8 @@ namespace Renderer {
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
 
-                if (r.values.markerAverage.ref.value !== 1) {
+                const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
+                if (alpha !== 0 && r.values.markerAverage.ref.value !== 1) {
                     renderObject(renderables[i], 'marking', Flag.None);
                 }
             }
@@ -512,9 +557,9 @@ namespace Renderer {
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
                 if (r.state.opaque) {
-                    renderObject(r, 'colorBlended', Flag.None);
+                    renderObject(r, 'color', Flag.None);
                 } else if (r.values.uDoubleSided?.ref.value && r.values.dTransparentBackfaces?.ref.value === 'opaque') {
-                    renderObject(r, 'colorBlended', Flag.BlendedBack);
+                    renderObject(r, 'color', Flag.BlendedBack);
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderBlendedOpaque');
@@ -539,7 +584,7 @@ namespace Renderer {
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
                 if (!r.state.opaque && r.state.writeDepth) {
-                    renderObject(r, 'colorBlended', Flag.None);
+                    renderObject(r, 'color', Flag.None);
                 }
             }
 
@@ -550,11 +595,11 @@ namespace Renderer {
                     if (r.values.uDoubleSided?.ref.value) {
                         // render frontfaces and backfaces separately to avoid artefacts
                         if (r.values.dTransparentBackfaces?.ref.value !== 'opaque') {
-                            renderObject(r, 'colorBlended', Flag.BlendedBack);
+                            renderObject(r, 'color', Flag.BlendedBack);
                         }
-                        renderObject(r, 'colorBlended', Flag.BlendedFront);
+                        renderObject(r, 'color', Flag.BlendedFront);
                     } else {
-                        renderObject(r, 'colorBlended', Flag.None);
+                        renderObject(r, 'color', Flag.None);
                     }
                 }
             }
@@ -572,7 +617,7 @@ namespace Renderer {
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
                 if (r.values.dGeometryType.ref.value === 'directVolume') {
-                    renderObject(r, 'colorBlended', Flag.None);
+                    renderObject(r, 'color', Flag.BlendedVolume);
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderBlendedVolume');
@@ -593,8 +638,9 @@ namespace Renderer {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if ((alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dGeometryType.ref.value !== 'directVolume' && r.values.dPointStyle?.ref.value !== 'fuzzy' && !r.values.dXrayShaded?.ref.value) || r.values.dTransparentBackfaces?.ref.value === 'opaque') {
-                    renderObject(r, 'colorWboit', Flag.None);
+                const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
+                if ((alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dGeometryType.ref.value !== 'directVolume' && r.values.dPointStyle?.ref.value !== 'fuzzy' && !xrayShaded) || r.values.dTransparentBackfaces?.ref.value === 'opaque') {
+                    renderObject(r, 'color', Flag.None);
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderWboitOpaque');
@@ -611,8 +657,9 @@ namespace Renderer {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if (alpha < 1 || r.values.transparencyAverage.ref.value > 0 || r.values.dGeometryType.ref.value === 'directVolume' || r.values.dPointStyle?.ref.value === 'fuzzy' || r.values.dGeometryType.ref.value === 'text' || r.values.dXrayShaded?.ref.value) {
-                    renderObject(r, 'colorWboit', Flag.None);
+                const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
+                if ((alpha < 1 && alpha !== 0) || r.values.transparencyAverage.ref.value > 0 || r.values.dGeometryType.ref.value === 'directVolume' || r.values.dPointStyle?.ref.value === 'fuzzy' || r.values.dGeometryType.ref.value === 'text' || xrayShaded) {
+                    renderObject(r, 'color', Flag.None);
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderWboitTransparent');
@@ -633,8 +680,9 @@ namespace Renderer {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if ((alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dPointStyle?.ref.value !== 'fuzzy' && !r.values.dXrayShaded?.ref.value) || r.values.dTransparentBackfaces?.ref.value === 'opaque') {
-                    renderObject(r, 'colorDpoit', Flag.None);
+                const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
+                if ((alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dPointStyle?.ref.value !== 'fuzzy' && !xrayShaded) || r.values.dTransparentBackfaces?.ref.value === 'opaque') {
+                    renderObject(r, 'color', Flag.None);
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDpoitOpaque');
@@ -659,8 +707,9 @@ namespace Renderer {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if (alpha < 1 || r.values.transparencyAverage.ref.value > 0 || r.values.dPointStyle?.ref.value === 'fuzzy' || !!r.values.uBackgroundColor || r.values.dXrayShaded?.ref.value) {
-                    renderObject(r, 'colorDpoit', Flag.None);
+                const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
+                if ((alpha < 1 && alpha !== 0) || r.values.transparencyAverage.ref.value > 0 || r.values.dPointStyle?.ref.value === 'fuzzy' || r.values.dGeometryType.ref.value === 'text' || xrayShaded) {
+                    renderObject(r, 'color', Flag.None);
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDpoitTransparent');
@@ -677,7 +726,7 @@ namespace Renderer {
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
                 if (r.values.dGeometryType.ref.value === 'directVolume') {
-                    renderObject(r, 'colorDpoit', Flag.None);
+                    renderObject(r, 'color', Flag.None);
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDpoitVolume');
@@ -791,6 +840,10 @@ namespace Renderer {
                     p.xrayEdgeFalloff = props.xrayEdgeFalloff;
                     ValueCell.update(globalUniforms.uXrayEdgeFalloff, p.xrayEdgeFalloff);
                 }
+                if (props.exposure !== undefined && props.exposure !== p.exposure) {
+                    p.exposure = props.exposure;
+                    ValueCell.update(globalUniforms.uExposure, p.exposure);
+                }
 
                 if (props.light !== undefined && !deepEqual(props.light, p.light)) {
                     p.light = props.light;
@@ -827,6 +880,9 @@ namespace Renderer {
             },
             setPixelRatio: (value: number) => {
                 ValueCell.update(globalUniforms.uPixelRatio, value);
+            },
+            setOcclusionTest: (f: ((s: Sphere3D) => boolean) | null) => {
+                isOccluded = f;
             },
 
             props: p,

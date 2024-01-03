@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -15,7 +15,7 @@ import { createRenderObject, getNextMaterialId, GraphicsRenderObject } from '../
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci, isEmptyLoci } from '../../mol-model/loci';
 import { Interval, SortedArray } from '../../mol-data/int';
-import { getQualityProps, VisualUpdateState } from '../util';
+import { getQualityProps, LocationCallback, VisualUpdateState } from '../util';
 import { ColorTheme } from '../../mol-theme/color';
 import { ValueCell } from '../../mol-util';
 import { createSizes } from '../../mol-geo/geometry/size-data';
@@ -233,6 +233,13 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         getLoci(pickingId: PickingId) {
             return renderObject ? getLoci(pickingId, currentVolume, currentKey, currentProps, renderObject.id) : EmptyLoci;
         },
+        eachLocation(cb: LocationCallback) {
+            locationIt.reset();
+            while (locationIt.hasNext) {
+                const { location, isSecondary } = locationIt.move();
+                cb(location, isSecondary);
+            }
+        },
         mark(loci: Loci, action: MarkerAction) {
             return Visual.mark(renderObject, loci, action, lociApply);
         },
@@ -378,9 +385,9 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         const { visible, alphaFactor, pickable, overpaint, transparency, substance, clipping, transform, themeStrength, syncManually, markerActions } = state;
         const newState: Partial<Representation.State> = {};
 
-        if (visible !== _state.visible) newState.visible = visible;
-        if (alphaFactor !== _state.alphaFactor) newState.alphaFactor = alphaFactor;
-        if (pickable !== _state.pickable) newState.pickable = pickable;
+        if (visible !== undefined) newState.visible = visible;
+        if (alphaFactor !== undefined) newState.alphaFactor = alphaFactor;
+        if (pickable !== undefined) newState.pickable = pickable;
         if (overpaint !== undefined) newState.overpaint = overpaint;
         if (transparency !== undefined) newState.transparency = transparency;
         if (substance !== undefined) newState.substance = substance;
@@ -389,8 +396,8 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         if (transform !== undefined && !Mat4.areEqual(transform, _state.transform, EPSILON)) {
             newState.transform = transform;
         }
-        if (syncManually !== _state.syncManually) newState.syncManually = syncManually;
-        if (markerActions !== _state.markerActions) newState.markerActions = markerActions;
+        if (syncManually !== undefined) newState.syncManually = syncManually;
+        if (markerActions !== undefined) newState.markerActions = markerActions;
 
         visuals.forEach(visual => setVisualState(visual, newState));
 
@@ -435,6 +442,11 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         },
         getAllLoci: (): Loci[] => {
             return [getLoci(_volume, _props)];
+        },
+        eachLocation: (cb: LocationCallback) => {
+            visuals.forEach(visual => {
+                visual.eachLocation(cb);
+            });
         },
         mark,
         destroy

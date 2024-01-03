@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,7 +7,7 @@
 import { ShaderCode, DefineValues, addShaderDefines } from '../shader-code';
 import { WebGLState } from './state';
 import { WebGLExtensions } from './extensions';
-import { getUniformSetters, UniformsList, getUniformType, UniformSetters, isArrayUniform } from './uniform';
+import { getUniformSetters, UniformsList, getUniformType, UniformSetters, isArrayUniform, UniformType } from './uniform';
 import { AttributeBuffers, getAttribType } from './buffer';
 import { TextureId, Textures } from './texture';
 import { idFactory } from '../../mol-util/id-factory';
@@ -23,12 +23,16 @@ export interface Program {
 
     use: () => void
     setUniforms: (uniformValues: UniformsList) => void
+    uniform: (k: string, v: UniformType) => void
     bindAttributes: (attribueBuffers: AttributeBuffers) => void
+    offsetAttributes: (attributeBuffers: AttributeBuffers, offset: number) => void
     bindTextures: (textures: Textures, startingTargetUnit: number) => void
 
     reset: () => void
     destroy: () => void
 }
+
+export type Programs = { [k: string]: Program }
 
 type Locations = { [k: string]: number }
 
@@ -70,6 +74,7 @@ function checkActiveAttributes(gl: GLRenderingContext, program: WebGLProgram, sc
             }
             if (name === 'gl_InstanceID') continue; // WebGL2 built-in
             if (name === 'gl_VertexID') continue; // WebGL2 built-in
+            if (name === 'gl_DrawID') continue; // WEBGL_multi_draw built-in
             const spec = schema[name];
             if (spec === undefined) {
                 throw new Error(`missing 'uniform' or 'texture' with name '${name}' in schema`);
@@ -95,6 +100,9 @@ function checkActiveUniforms(gl: GLRenderingContext, program: WebGLProgram, sche
                 // name assigned by `gl.shim.ts`, ignore for checks
                 continue;
             }
+            if (name === 'gl_InstanceID') continue; // WebGL2 built-in
+            if (name === 'gl_VertexID') continue; // WebGL2 built-in
+            if (name === 'gl_DrawID') continue; // WEBGL_multi_draw built-in
             const baseName = name.replace(/[[0-9]+\]$/, ''); // 'array' uniforms
             const spec = schema[baseName];
             if (spec === undefined) {
@@ -202,6 +210,10 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
                 }
             }
         },
+        uniform: (k: string, v: UniformType) => {
+            const l = locations[k];
+            if (l !== null) uniformSetters[k](gl, l, v);
+        },
         bindAttributes: (attributeBuffers: AttributeBuffers) => {
             state.clearVertexAttribsState();
             for (let i = 0, il = attributeBuffers.length; i < il; ++i) {
@@ -210,6 +222,13 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
                 if (l !== -1) buffer.bind(l);
             }
             state.disableUnusedVertexAttribs();
+        },
+        offsetAttributes: (attributeBuffers: AttributeBuffers, offset) => {
+            for (let i = 0, il = attributeBuffers.length; i < il; ++i) {
+                const [k, buffer] = attributeBuffers[i];
+                const l = locations[k];
+                if (l !== -1) buffer.changeOffset(l, offset);
+            }
         },
         bindTextures: (textures: Textures, startingTargetUnit: number) => {
             for (let i = 0, il = textures.length; i < il; ++i) {

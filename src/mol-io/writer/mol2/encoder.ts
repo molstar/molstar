@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
@@ -33,9 +33,10 @@ export class Mol2Encoder extends LigandEncoder {
         const bondMap = this.componentBondData.entries.get(name)!;
         // happens for the unknown ligands (UNL)
         if (!atomMap) throw Error(`The Chemical Component Dictionary doesn't hold any atom data for ${name}`);
+        let atomCount = 0;
         let bondCount = 0;
 
-        const atoms = this.getAtoms(instance, source);
+        const atoms = this.getAtoms(instance, source, atomMap.map);
         StringBuilder.writeSafe(a, '@<TRIPOS>ATOM\n');
         StringBuilder.writeSafe(b, '@<TRIPOS>BOND\n');
         atoms.forEach((atom1, label_atom_id1) => {
@@ -67,10 +68,11 @@ export class Mol2Encoder extends LigandEncoder {
 
             const sybyl = bondMap?.map ? this.mapToSybyl(label_atom_id1, type_symbol1, bondMap) : type_symbol1;
             StringBuilder.writeSafe(a, `${i1 + 1} ${label_atom_id1} ${atom1.Cartn_x.toFixed(3)} ${atom1.Cartn_y.toFixed(3)} ${atom1.Cartn_z.toFixed(3)} ${sybyl} 1 ${name} 0.000\n`);
+            atomCount++;
         });
 
         // could write something like 'SMALL\nNO_CHARGES', for now let's write **** indicating non-optional, yet missing, string values
-        StringBuilder.writeSafe(this.out, `@<TRIPOS>MOLECULE\n${name}\n${atoms.size} ${bondCount} 1\n****\n****\n\n`);
+        StringBuilder.writeSafe(this.out, `@<TRIPOS>MOLECULE\n${name}\n${atomCount} ${bondCount} 1\n****\n****\n\n`);
         StringBuilder.writeSafe(this.out, StringBuilder.getString(a));
         StringBuilder.writeSafe(this.out, StringBuilder.getString(b));
         StringBuilder.writeSafe(this.out, `@<TRIPOS>SUBSTRUCTURE\n1 ${name} 1\n`);

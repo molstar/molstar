@@ -6,7 +6,7 @@
 
 import { CollapsableState, CollapsableControls } from '../../../mol-plugin-ui/base';
 import { ApplyActionControl } from '../../../mol-plugin-ui/state/apply-action';
-import { InitAssemblySymmetry3D, AssemblySymmetry3D, AssemblySymmetryPreset, tryCreateAssemblySymmetry } from './behavior';
+import { InitAssemblySymmetry3D, AssemblySymmetry3D, AssemblySymmetryPreset, tryCreateAssemblySymmetry, getRCSBAssemblySymmetryConfig } from './behavior';
 import { AssemblySymmetryProvider, AssemblySymmetryProps, AssemblySymmetryDataProvider, AssemblySymmetry } from './prop';
 import { ParameterControls } from '../../../mol-plugin-ui/controls/parameters';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -72,6 +72,7 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
     get params() {
         const structure = this.pivot.cell.obj?.data;
         const params = PD.clone(structure ? AssemblySymmetryProvider.getParams(structure) : AssemblySymmetryProvider.defaultParams);
+        params.serverType.isHidden = true;
         params.serverUrl.isHidden = true;
         return params;
     }
@@ -111,7 +112,9 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
                 }
             } else {
                 tryCreateAssemblySymmetry(this.plugin, s.cell);
-                await this.plugin.managers.structure.component.updateRepresentationsTheme(components, { color: AssemblySymmetry.Tag.Cluster as any });
+                if (getRCSBAssemblySymmetryConfig(this.plugin).ApplyColors) {
+                    await this.plugin.managers.structure.component.updateRepresentationsTheme(components, { color: AssemblySymmetry.Tag.Cluster as any });
+                }
             }
         }
     }
@@ -151,5 +154,7 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
 const EnableAssemblySymmetry3D = StateAction.build({
     from: PluginStateObject.Molecule.Structure,
 })(({ a, ref, state }, plugin: PluginContext) => Task.create('Enable Assembly Symmetry', async ctx => {
-    await AssemblySymmetryPreset.apply(ref, Object.create(null), plugin);
+    const presetParams = AssemblySymmetryPreset.params?.(a, plugin) as PD.Params | undefined;
+    const presetProps = presetParams ? PD.getDefaultValues(presetParams) : Object.create(null);
+    await AssemblySymmetryPreset.apply(ref, presetProps, plugin);
 }));

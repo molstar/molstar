@@ -45,8 +45,14 @@ export function CellPackGenerateColorTheme(ctx: ThemeDataContext, props: PD.Valu
         const palette = getPalette(size, { palette: {
             name: 'generate',
             params: {
-                hue, chroma: [30, 80], luminance: [15, 85],
-                clusteringStepCount: 50, minSampleCount: 800, maxCount: 75
+                hue,
+                chroma: [30, 80],
+                luminance: [15, 85],
+                clusteringStepCount: 50,
+                minSampleCount: 800,
+                maxCount: 75,
+                sampleCountFactor: 5,
+                sort: 'contrast'
             }
         } }, { minLabel: 'Min', maxLabel: 'Max' });
         legend = palette.legend;

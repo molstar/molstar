@@ -1,12 +1,13 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Yana Rose <yana.v.rose@gmail.com>
  */
 
 import { substringStartsWith } from '../../../mol-util/string';
-import { CifCategory, CifFrame } from '../../../mol-io/reader/cif';
+import { CifCategory, CifField, CifFrame } from '../../../mol-io/reader/cif';
 import { Tokenizer } from '../../../mol-io/reader/common/text/tokenizer';
 import { PdbFile } from '../../../mol-io/reader/pdb/schema';
 import { parseCryst1, parseRemark350, parseMtrix } from './assembly';
@@ -20,6 +21,8 @@ import { getAtomSiteTemplate, addAtom, getAtomSite } from './atom-site';
 import { addAnisotropic, getAnisotropicTemplate, getAnisotropic } from './anisotropic';
 import { parseConect } from './conect';
 import { isDebugMode } from '../../../mol-util/debug';
+import { PdbHeaderData, addHeader } from './header';
+import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 
 export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
     const { lines } = pdb;
@@ -42,7 +45,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                 break;
         }
     }
-
+    const header: PdbHeaderData = {};
     const atomSite = getAtomSiteTemplate(data, atomCount);
     const anisotropic = getAnisotropicTemplate(data, anisotropicCount);
     const entityBuilder = new EntityBuilder();
@@ -51,6 +54,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
 
     let modelNum = 0, modelStr = '';
     let conectRange: [number, number] | undefined = undefined;
+    let hasAssemblies = false;
     const terIndices = new Set<number>();
 
     for (let i = 0, _i = lines.count; i < _i; i++) {
@@ -94,7 +98,9 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                 }
                 break;
             case 'H':
-                if (substringStartsWith(data, s, e, 'HETATM')) {
+                if (substringStartsWith(data, s, e, 'HEADER')) {
+                    addHeader(data, s, e, header);
+                } else if (substringStartsWith(data, s, e, 'HETATM')) {
                     if (!modelNum) { modelNum++; modelStr = '' + modelNum; }
                     addAtom(atomSite, modelStr, tokenizer, s, e, isPdbqt);
                 } else if (substringStartsWith(data, s, e, 'HELIX')) {
@@ -147,6 +153,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                     }
                     helperCategories.push(...parseRemark350(lines, i, j));
                     i = j - 1;
+                    hasAssemblies = true;
                 }
                 break;
             case 'S':
@@ -169,6 +176,26 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
         }
     }
 
+    // build entry, struct_keywords and pdbx_database_status
+    if (header.id_code) {
+        const entry: CifCategory.SomeFields<mmCIF_Schema['entry']> = {
+            id: CifField.ofString(header.id_code)
+        };
+        helperCategories.push(CifCategory.ofFields('entry', entry));
+    }
+    if (header.classification) {
+        const struct_keywords: CifCategory.SomeFields<mmCIF_Schema['struct_keywords']> = {
+            pdbx_keywords: CifField.ofString(header.classification)
+        };
+        helperCategories.push(CifCategory.ofFields('struct_keywords', struct_keywords));
+    }
+    if (header.dep_date) {
+        const pdbx_database_status: CifCategory.SomeFields<mmCIF_Schema['pdbx_database_status']> = {
+            recvd_initial_deposition_date: CifField.ofString(header.dep_date)
+        };
+        helperCategories.push(CifCategory.ofFields('pdbx_database_status', pdbx_database_status));
+    }
+
     // build entity and chem_comp categories
     const seqIds = Column.ofIntTokens(atomSite.auth_seq_id);
     const atomIds = Column.ofStringTokens(atomSite.auth_atom_id);
@@ -183,7 +210,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
         atomSite.label_entity_id[i] = entityBuilder.getEntityId(compId, moleculeType, asymIds.value(i));
     }
 
-    const atom_site = getAtomSite(atomSite, terIndices);
+    const atom_site = getAtomSite(atomSite, terIndices, { hasAssemblies });
     if (!isPdbqt) delete atom_site.partial_charge;
 
     if (conectRange) {

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -50,6 +50,16 @@ export function checkError(gl: GLRenderingContext) {
     if (error !== gl.NO_ERROR) {
         throw new Error(`WebGL error: '${getErrorDescription(gl, error)}'`);
     }
+}
+
+export function glEnumToString(gl: GLRenderingContext, value: number) {
+    const keys: string[] = [];
+    for (const key in gl) {
+        if ((gl as any)[key] === value) {
+            keys.push(key);
+        }
+    }
+    return keys.length ? keys.join(' | ') : `0x${value.toString(16)}`;
 }
 
 function unbindResources(gl: GLRenderingContext) {
@@ -155,7 +165,7 @@ function getDrawingBufferPixelData(gl: GLRenderingContext, state: WebGLState) {
 //
 
 function createStats() {
-    return {
+    const stats = {
         resourceCounts: {
             attribute: 0,
             elements: 0,
@@ -171,7 +181,21 @@ function createStats() {
         drawCount: 0,
         instanceCount: 0,
         instancedDrawCount: 0,
+
+        calls: {
+            drawInstanced: 0,
+            drawInstancedBase: 0,
+            multiDrawInstancedBase: 0,
+            counts: 0,
+        },
+
+        culled: {
+            lod: 0,
+            frustum: 0,
+            occlusion: 0,
+        },
     };
+    return stats;
 }
 
 export type WebGLStats = ReturnType<typeof createStats>
@@ -201,6 +225,8 @@ export interface WebGLContext {
     setContextLost: () => void
     handleContextRestored: (extraResets?: () => void) => void
 
+    setPixelScale: (value: number) => void
+
     /** Cache for compute renderables, managed by consumers */
     readonly namedComputeRenderables: { [name: string]: ComputeRenderable<any> }
     /** Cache for frambuffers, managed by consumers */
@@ -208,7 +234,7 @@ export interface WebGLContext {
     /** Cache for textures, managed by consumers */
     readonly namedTextures: { [name: string]: Texture }
 
-    createRenderTarget: (width: number, height: number, depth?: boolean, type?: 'uint8' | 'float32' | 'fp16', filter?: TextureFilter) => RenderTarget
+    createRenderTarget: (width: number, height: number, depth?: boolean, type?: 'uint8' | 'float32' | 'fp16', filter?: TextureFilter, format?: 'rgba' | 'alpha') => RenderTarget
     unbindFramebuffer: () => void
     readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array | Int32Array) => void
     readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>
@@ -221,10 +247,10 @@ export interface WebGLContext {
 
 export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScale: number }> = {}): WebGLContext {
     const extensions = createExtensions(gl);
-    const state = createState(gl);
+    const state = createState(gl, extensions);
     const stats = createStats();
     const resources = createResources(gl, state, stats, extensions);
-    const timer = createTimer(gl, extensions);
+    const timer = createTimer(gl, extensions, stats);
 
     const parameters = {
         maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE) as number,
@@ -239,8 +265,15 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         throw new Error('Need "MAX_VERTEX_TEXTURE_IMAGE_UNITS" >= 8');
     }
 
+    // optimize assuming flats first and last data are same or differences don't matter
+    // extension is only available when `FIRST_VERTEX_CONVENTION` is more efficient
+    const epv = extensions.provokingVertex;
+    epv?.provokingVertex(epv.FIRST_VERTEX_CONVENTION);
+
     let isContextLost = false;
     const contextRestored = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp);
+
+    let pixelScale = props.pixelScale || 1;
 
     let readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>;
     if (isWebGL2(gl)) {
@@ -286,7 +319,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         isWebGL2: isWebGL2(gl),
         get pixelRatio() {
             const dpr = (typeof window !== 'undefined') ? (window.devicePixelRatio || 1) : 1;
-            return dpr * (props.pixelScale || 1);
+            return dpr * (pixelScale || 1);
         },
 
         extensions,
@@ -328,8 +361,12 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
             contextRestored.next(now());
         },
 
-        createRenderTarget: (width: number, height: number, depth?: boolean, type?: 'uint8' | 'float32' | 'fp16', filter?: TextureFilter) => {
-            const renderTarget = createRenderTarget(gl, resources, width, height, depth, type, filter);
+        setPixelScale: (value: number) => {
+            pixelScale = value;
+        },
+
+        createRenderTarget: (width: number, height: number, depth?: boolean, type?: 'uint8' | 'float32' | 'fp16', filter?: TextureFilter, format?: 'rgba' | 'alpha') => {
+            const renderTarget = createRenderTarget(gl, resources, width, height, depth, type, filter, format);
             renderTargets.add(renderTarget);
             return {
                 ...renderTarget,

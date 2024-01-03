@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -16,7 +16,7 @@ import { addCylinder } from '../../mol-geo/geometry/mesh/builder/cylinder';
 import { ValueCell } from '../../mol-util';
 import { Sphere3D } from '../../mol-math/geometry';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import produce from 'immer';
+import { produce } from 'immer';
 import { Shape } from '../../mol-model/shape';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Camera } from '../camera';
@@ -24,7 +24,6 @@ import { DataLoci, EmptyLoci, isEveryLoci, Loci } from '../../mol-model/loci';
 import { MarkerAction, MarkerActions } from '../../mol-util/marker-action';
 import { Visual } from '../../mol-repr/visual';
 import { Interval } from '../../mol-data/int';
-import { GraphicsRenderVariantsBlended } from '../../mol-gl/webgl/render-item';
 
 const HandleParams = {
     ...Mesh.Params,
@@ -54,6 +53,7 @@ export class HandleHelper {
     };
 
     private renderObject: GraphicsRenderObject | undefined;
+    private pixelRatio = 1;
 
     private _transform = Mat4();
     getBoundingSphere(out: Sphere3D, instanceId: number) {
@@ -71,7 +71,12 @@ export class HandleHelper {
                 p.handle.name = props.handle.name;
                 if (props.handle.name === 'on') {
                     this.scene.clear();
-                    const params = { ...props.handle.params, scale: props.handle.params.scale * this.webgl.pixelRatio };
+                    this.pixelRatio = this.webgl.pixelRatio;
+                    const params = {
+                        ...props.handle.params,
+                        scale: props.handle.params.scale * this.webgl.pixelRatio,
+                        cellSize: 0,
+                    };
                     this.renderObject = createHandleRenderObject(params);
                     this.scene.add(this.renderObject);
                     this.scene.commit();
@@ -90,6 +95,10 @@ export class HandleHelper {
     //      they would be distingishable by their instanceId
     update(camera: Camera, position: Vec3, rotation: Mat3) {
         if (!this.renderObject) return;
+
+        if (this.pixelRatio !== this.webgl.pixelRatio) {
+            this.setProps(this.props);
+        }
 
         Mat4.setTranslation(this.renderObject.values.aTransform.ref.value as unknown as Mat4, position);
         Mat4.fromMat3(this.renderObject.values.aTransform.ref.value as unknown as Mat4, rotation);
@@ -129,7 +138,7 @@ export class HandleHelper {
     }
 
     constructor(private webgl: WebGLContext, props: Partial<HandleHelperProps> = {}) {
-        this.scene = Scene.create(webgl, GraphicsRenderVariantsBlended);
+        this.scene = Scene.create(webgl, 'blended');
         this.setProps(props);
     }
 }

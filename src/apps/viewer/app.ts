@@ -1,40 +1,48 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ANVILMembraneOrientation } from '../../extensions/anvil/behavior';
+import { Backgrounds } from '../../extensions/backgrounds';
 import { CellPack } from '../../extensions/cellpack';
-import { DnatcoConfalPyramids } from '../../extensions/dnatco';
+import { DnatcoNtCs } from '../../extensions/dnatco';
 import { G3DFormat, G3dProvider } from '../../extensions/g3d/format';
-import { Volseg, VolsegVolumeServerConfig } from '../../extensions/volumes-and-segmentations';
 import { GeometryExport } from '../../extensions/geo-export';
-import { MAQualityAssessment } from '../../extensions/model-archive/quality-assessment/behavior';
-import { QualityAssessmentPLDDTPreset, QualityAssessmentQmeanPreset } from '../../extensions/model-archive/quality-assessment/behavior';
+import { MAQualityAssessment, QualityAssessmentPLDDTPreset, QualityAssessmentQmeanPreset } from '../../extensions/model-archive/quality-assessment/behavior';
 import { QualityAssessment } from '../../extensions/model-archive/quality-assessment/prop';
 import { ModelExport } from '../../extensions/model-export';
 import { Mp4Export } from '../../extensions/mp4-export';
+import { MolViewSpec } from '../../extensions/mvs/behavior';
+import { loadMVS } from '../../extensions/mvs/load';
+import { MVSData } from '../../extensions/mvs/mvs-data';
 import { PDBeStructureQualityReport } from '../../extensions/pdbe';
 import { RCSBAssemblySymmetry, RCSBValidationReport } from '../../extensions/rcsb';
+import { RCSBAssemblySymmetryConfig } from '../../extensions/rcsb/assembly-symmetry/behavior';
+import { SbNcbrPartialCharges, SbNcbrPartialChargesPreset, SbNcbrPartialChargesPropertyProvider } from '../../extensions/sb-ncbr';
+import { Volseg, VolsegVolumeServerConfig } from '../../extensions/volumes-and-segmentations';
+import { wwPDBChemicalComponentDictionary } from '../../extensions/wwpdb/ccd/behavior';
+import { wwPDBStructConnExtensionFunctions } from '../../extensions/wwpdb/struct-conn';
 import { ZenodoImport } from '../../extensions/zenodo';
+import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/carbohydrates/constants';
 import { Volume } from '../../mol-model/volume';
 import { DownloadStructure, PdbDownloadProvider } from '../../mol-plugin-state/actions/structure';
 import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
 import { PresetTrajectoryHierarchy } from '../../mol-plugin-state/builder/structure/hierarchy-preset';
 import { PresetStructureRepresentations, StructureRepresentationPresetProvider } from '../../mol-plugin-state/builder/structure/representation-preset';
+import { BuiltInCoordinatesFormat } from '../../mol-plugin-state/formats/coordinates';
 import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
 import { BuiltInTopologyFormat } from '../../mol-plugin-state/formats/topology';
-import { BuiltInCoordinatesFormat } from '../../mol-plugin-state/formats/coordinates';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 import { BuildInVolumeFormat } from '../../mol-plugin-state/formats/volume';
 import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { TrajectoryFromModelAndCoordinates } from '../../mol-plugin-state/transforms/model';
-import { createPluginUI } from '../../mol-plugin-ui/react18';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
+import { createPluginUI } from '../../mol-plugin-ui/react18';
 import { DefaultPluginUISpec, PluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginConfig } from '../../mol-plugin/config';
@@ -46,21 +54,19 @@ import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
-import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/carbohydrates/constants';
-import { Backgrounds } from '../../extensions/backgrounds';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
-export { setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
+export { consoleStats, setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
 
 const CustomFormats = [
     ['g3d', G3dProvider] as const
 ];
 
-const Extensions = {
+export const ExtensionMap = {
     'volseg': PluginSpec.Behavior(Volseg),
     'backgrounds': PluginSpec.Behavior(Backgrounds),
     'cellpack': PluginSpec.Behavior(CellPack),
-    'dnatco-confal-pyramids': PluginSpec.Behavior(DnatcoConfalPyramids),
+    'dnatco-ntcs': PluginSpec.Behavior(DnatcoNtCs),
     'pdbe-structure-quality-report': PluginSpec.Behavior(PDBeStructureQualityReport),
     'rcsb-assembly-symmetry': PluginSpec.Behavior(RCSBAssemblySymmetry),
     'rcsb-validation-report': PluginSpec.Behavior(RCSBValidationReport),
@@ -71,11 +77,15 @@ const Extensions = {
     'geo-export': PluginSpec.Behavior(GeometryExport),
     'ma-quality-assessment': PluginSpec.Behavior(MAQualityAssessment),
     'zenodo-import': PluginSpec.Behavior(ZenodoImport),
+    'sb-ncbr-partial-charges': PluginSpec.Behavior(SbNcbrPartialCharges),
+    'wwpdb-chemical-component-dictionary': PluginSpec.Behavior(wwPDBChemicalComponentDictionary),
+    'mvs': PluginSpec.Behavior(MolViewSpec),
 };
 
 const DefaultViewerOptions = {
     customFormats: CustomFormats as [string, DataFormatProvider][],
-    extensions: ObjectKeys(Extensions),
+    extensions: ObjectKeys(ExtensionMap),
+    disabledExtensions: [] as string[],
     layoutIsExpanded: true,
     layoutShowControls: true,
     layoutShowRemoteState: true,
@@ -88,9 +98,7 @@ const DefaultViewerOptions = {
     disableAntialiasing: PluginConfig.General.DisableAntialiasing.defaultValue,
     pixelScale: PluginConfig.General.PixelScale.defaultValue,
     pickScale: PluginConfig.General.PickScale.defaultValue,
-    pickPadding: PluginConfig.General.PickPadding.defaultValue,
-    enableWboit: PluginConfig.General.EnableWboit.defaultValue,
-    enableDpoit: PluginConfig.General.EnableDpoit.defaultValue,
+    transparency: PluginConfig.General.Transparency.defaultValue,
     preferWebgl1: PluginConfig.General.PreferWebGl1.defaultValue,
     allowMajorPerformanceCaveat: PluginConfig.General.AllowMajorPerformanceCaveat.defaultValue,
     powerPreference: PluginConfig.General.PowerPreference.defaultValue,
@@ -108,6 +116,9 @@ const DefaultViewerOptions = {
     emdbProvider: PluginConfig.Download.DefaultEmdbProvider.defaultValue,
     saccharideCompIdMapType: 'default' as SaccharideCompIdMapType,
     volumesAndSegmentationsDefaultServer: VolsegVolumeServerConfig.DefaultServer.defaultValue,
+    rcsbAssemblySymmetryDefaultServerType: RCSBAssemblySymmetryConfig.DefaultServerType.defaultValue,
+    rcsbAssemblySymmetryDefaultServerUrl: RCSBAssemblySymmetryConfig.DefaultServerUrl.defaultValue,
+    rcsbAssemblySymmetryApplyColors: RCSBAssemblySymmetryConfig.ApplyColors.defaultValue,
 };
 type ViewerOptions = typeof DefaultViewerOptions;
 
@@ -126,11 +137,13 @@ export class Viewer {
         const o: ViewerOptions = { ...DefaultViewerOptions, ...definedOptions };
         const defaultSpec = DefaultPluginUISpec();
 
+        const disabledExtension = new Set(o.disabledExtensions ?? []);
+
         const spec: PluginUISpec = {
             actions: defaultSpec.actions,
             behaviors: [
                 ...defaultSpec.behaviors,
-                ...o.extensions.map(e => Extensions[e]),
+                ...o.extensions.filter(e => !disabledExtension.has(e)).map(e => ExtensionMap[e]),
             ],
             animations: [...defaultSpec.animations || []],
             customParamEditors: defaultSpec.customParamEditors,
@@ -162,9 +175,7 @@ export class Viewer {
                 [PluginConfig.General.DisableAntialiasing, o.disableAntialiasing],
                 [PluginConfig.General.PixelScale, o.pixelScale],
                 [PluginConfig.General.PickScale, o.pickScale],
-                [PluginConfig.General.PickPadding, o.pickPadding],
-                [PluginConfig.General.EnableWboit, o.enableWboit],
-                [PluginConfig.General.EnableDpoit, o.enableDpoit],
+                [PluginConfig.General.Transparency, o.transparency],
                 [PluginConfig.General.PreferWebGl1, o.preferWebgl1],
                 [PluginConfig.General.AllowMajorPerformanceCaveat, o.allowMajorPerformanceCaveat],
                 [PluginConfig.General.PowerPreference, o.powerPreference],
@@ -183,6 +194,9 @@ export class Viewer {
                 [PluginConfig.Structure.DefaultRepresentationPreset, ViewerAutoPreset.id],
                 [PluginConfig.Structure.SaccharideCompIdMapType, o.saccharideCompIdMapType],
                 [VolsegVolumeServerConfig.DefaultServer, o.volumesAndSegmentationsDefaultServer],
+                [RCSBAssemblySymmetryConfig.DefaultServerType, o.rcsbAssemblySymmetryDefaultServerType],
+                [RCSBAssemblySymmetryConfig.DefaultServerUrl, o.rcsbAssemblySymmetryDefaultServerUrl],
+                [RCSBAssemblySymmetryConfig.ApplyColors, o.rcsbAssemblySymmetryApplyColors],
             ]
         };
 
@@ -452,8 +466,33 @@ export class Viewer {
         return { model, coords, preset };
     }
 
+    async loadMvsFromUrl(url: string, format: 'mvsj') {
+        if (format === 'mvsj') {
+            const data = await this.plugin.runTask(this.plugin.fetch({ url, type: 'string' }));
+            const mvsData = MVSData.fromMVSJ(data);
+            await loadMVS(this.plugin, mvsData, { sanityChecks: true, sourceUrl: url });
+        } else {
+            throw new Error(`Unknown MolViewSpec format: ${format}`);
+        }
+        // We might add more formats in the future
+    }
+
+    async loadMvsData(data: string, format: 'mvsj') {
+        if (format === 'mvsj') {
+            const mvsData = MVSData.fromMVSJ(data);
+            await loadMVS(this.plugin, mvsData, { sanityChecks: true, sourceUrl: undefined });
+        } else {
+            throw new Error(`Unknown MolViewSpec format: ${format}`);
+        }
+        // We might add more formats in the future
+    }
+
     handleResize() {
         this.plugin.layout.events.updated.next(void 0);
+    }
+
+    dispose() {
+        this.plugin.dispose();
     }
 }
 
@@ -503,8 +542,15 @@ export const ViewerAutoPreset = StructureRepresentationPresetProvider({
             return await QualityAssessmentPLDDTPreset.apply(ref, params, plugin);
         } else if (!!structure.models.some(m => QualityAssessment.isApplicable(m, 'qmean'))) {
             return await QualityAssessmentQmeanPreset.apply(ref, params, plugin);
+        } else if (!!structure.models.some(m => SbNcbrPartialChargesPropertyProvider.isApplicable(m))) {
+            return await SbNcbrPartialChargesPreset.apply(ref, params, plugin);
         } else {
             return await PresetStructureRepresentations.auto.apply(ref, params, plugin);
         }
     }
 });
+
+export const PluginExtensions = {
+    wwPDBStructConn: wwPDBStructConnExtensionFunctions,
+    mvs: { MVSData, loadMVS },
+};

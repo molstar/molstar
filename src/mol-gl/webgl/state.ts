@@ -1,10 +1,11 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { GLRenderingContext } from './compat';
+import { WebGLExtensions } from './extensions';
 
 export type WebGLState = {
     currentProgramId: number
@@ -22,6 +23,7 @@ export type WebGLState = {
      * - `gl.SAMPLE_COVERAGE`: ANDing the fragment's coverage with the temporary coverage value
      * - `gl.SCISSOR_TEST`: scissor test that discards fragments that are outside of the scissor rectangle
      * - `gl.STENCIL_TEST`: stencil testing and updates to the stencil buffer
+     * - `ext.CLIP_DISTANCE[0-7]`: clip distance 0 to 7 (with `ext` being `WEBGL_clip_cull_distance`)
      */
     enable: (cap: number) => void
     /**
@@ -35,6 +37,7 @@ export type WebGLState = {
      * - `gl.SAMPLE_COVERAGE`: ANDing the fragment's coverage with the temporary coverage value
      * - `gl.SCISSOR_TEST`: scissor test that discards fragments that are outside of the scissor rectangle
      * - `gl.STENCIL_TEST`: stencil testing and updates to the stencil buffer
+     * - `ext.CLIP_DISTANCE[0-7]`: clip distance 0 to 7 (with `ext` being `WEBGL_clip_cull_distance`)
      */
     disable: (cap: number) => void
 
@@ -85,10 +88,18 @@ export type WebGLState = {
     viewport: (x: number, y: number, width: number, height: number) => void
     scissor: (x: number, y: number, width: number, height: number) => void
 
+    /**
+     * controls the clipping volume behavior
+     * @param origin must be `ext.LOWER_LEFT` (default) or `ext.UPPER_LEFT`.
+     * @param depth must be `ext.NEGATIVE_ONE_TO_ONE` (default) or `ext.ZERO_TO_ONE`.
+     * with `ext` being `EXT_clip_control`
+     */
+    clipControl?: (origin: number, depth: number) => void
+
     reset: () => void
 }
 
-export function createState(gl: GLRenderingContext): WebGLState {
+export function createState(gl: GLRenderingContext, e: WebGLExtensions): WebGLState {
     let enabledCapabilities: Record<number, boolean> = {};
 
     let currentFrontFace = gl.getParameter(gl.FRONT_FACE);
@@ -127,6 +138,9 @@ export function createState(gl: GLRenderingContext): WebGLState {
 
     let currentViewport: [number, number, number, number] = gl.getParameter(gl.VIEWPORT);
     let currentScissor: [number, number, number, number] = gl.getParameter(gl.SCISSOR_BOX);
+
+    let currentClipOrigin = e.clipControl ? gl.getParameter(e.clipControl.CLIP_ORIGIN) : -1;
+    let currentClipDepthMode = e.clipControl ? gl.getParameter(e.clipControl.CLIP_DEPTH_MODE) : -1;
 
     const clearVertexAttribsState = () => {
         for (let i = 0; i < maxVertexAttribs; ++i) {
@@ -378,6 +392,14 @@ export function createState(gl: GLRenderingContext): WebGLState {
             }
         },
 
+        clipControl: e.clipControl ? (origin: number, depth: number) => {
+            if (origin !== currentClipOrigin || depth !== currentClipDepthMode) {
+                e.clipControl!.clipControl(origin, depth);
+                currentClipOrigin = origin;
+                currentClipDepthMode = depth;
+            }
+        } : undefined,
+
         reset: () => {
             enabledCapabilities = {};
 
@@ -420,6 +442,9 @@ export function createState(gl: GLRenderingContext): WebGLState {
 
             currentViewport = gl.getParameter(gl.VIEWPORT);
             currentScissor = gl.getParameter(gl.SCISSOR_BOX);
+
+            currentClipOrigin = e.clipControl ? gl.getParameter(e.clipControl.CLIP_ORIGIN) : -1;
+            currentClipDepthMode = e.clipControl ? gl.getParameter(e.clipControl.CLIP_DEPTH_MODE) : -1;
         }
     };
 }

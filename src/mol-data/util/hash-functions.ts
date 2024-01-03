@@ -49,7 +49,7 @@ export function hash4(i: number, j: number, k: number, l: number) {
 export function hashString(s: string) {
     let h = 0;
     for (let i = 0, l = s.length; i < l; i++) {
-        h = (h << 5) - h + s.charCodeAt(i++) | 0;
+        h = (h << 5) - h + s.charCodeAt(i) | 0;
     }
     return h;
 }

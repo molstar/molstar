@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -21,9 +21,11 @@ import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { Interactions } from '../interactions/interactions';
 import { InteractionFlag } from '../interactions/common';
 import { Sphere3D } from '../../../mol-math/geometry';
-import { StructureGroup } from '../../../mol-repr/structure/visual/util/common';
+import { StructureGroup, isHydrogen } from '../../../mol-repr/structure/visual/util/common';
 import { assertUnreachable } from '../../../mol-util/type-helpers';
 import { InteractionsSharedParams } from './shared';
+import { InteractionType } from '../interactions/common';
+import { eachIntraBondedAtom } from '../chemistry/util';
 
 async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<InteractionsIntraUnitParams>, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh);
@@ -39,22 +41,63 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
     const contacts = interactions.unitsContacts.get(unit.id);
 
     const { x, y, z, members, offsets } = features;
-    const { edgeCount, a, b, edgeProps: { flag } } = contacts;
-    const { sizeFactor, parentDisplay } = props;
+    const { edgeCount, a, b, edgeProps: { flag, type } } = contacts;
+    const { sizeFactor, ignoreHydrogens, ignoreHydrogensVariant, parentDisplay } = props;
 
     if (!edgeCount) return Mesh.createEmpty(mesh);
+
+    const { elements, conformation: c } = unit;
+    const p = Vec3();
+    const pA = Vec3();
+    const pB = Vec3();
 
     const builderProps = {
         linkCount: edgeCount * 2,
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
-            Vec3.set(posA, x[a[edgeIndex]], y[a[edgeIndex]], z[a[edgeIndex]]);
-            Vec3.set(posB, x[b[edgeIndex]], y[b[edgeIndex]], z[b[edgeIndex]]);
+            const t = type[edgeIndex];
+            if ((!ignoreHydrogens || ignoreHydrogensVariant !== 'all') && (
+                t === InteractionType.HydrogenBond || t === InteractionType.WeakHydrogenBond)
+            ) {
+                const idxA = members[offsets[a[edgeIndex]]];
+                const idxB = members[offsets[b[edgeIndex]]];
+                c.invariantPosition(elements[idxA], pA);
+                c.invariantPosition(elements[idxB], pB);
+                let minDistA = Vec3.distance(pA, pB);
+                let minDistB = minDistA;
+                Vec3.copy(posA, pA);
+                Vec3.copy(posB, pB);
+
+                eachIntraBondedAtom(unit, idxA, (_, idx) => {
+                    if (isHydrogen(structure, unit, elements[idx], 'polar')) {
+                        c.invariantPosition(elements[idx], p);
+                        const dist = Vec3.distance(p, pB);
+                        if (dist < minDistA) {
+                            minDistA = dist;
+                            Vec3.copy(posA, p);
+                        }
+                    }
+                });
+
+                eachIntraBondedAtom(unit, idxB, (_, idx) => {
+                    if (isHydrogen(structure, unit, elements[idx], 'polar')) {
+                        c.invariantPosition(elements[idx], p);
+                        const dist = Vec3.distance(p, pA);
+                        if (dist < minDistB) {
+                            minDistB = dist;
+                            Vec3.copy(posB, p);
+                        }
+                    }
+                });
+            } else {
+                Vec3.set(posA, x[a[edgeIndex]], y[a[edgeIndex]], z[a[edgeIndex]]);
+                Vec3.set(posB, x[b[edgeIndex]], y[b[edgeIndex]], z[b[edgeIndex]]);
+            }
         },
         style: (edgeIndex: number) => LinkStyle.Dashed,
         radius: (edgeIndex: number) => {
-            location.element = unit.elements[members[offsets[a[edgeIndex]]]];
+            location.element = elements[members[offsets[a[edgeIndex]]]];
             const sizeA = theme.size.size(location);
-            location.element = unit.elements[members[offsets[b[edgeIndex]]]];
+            location.element = elements[members[offsets[b[edgeIndex]]]];
             const sizeB = theme.size.size(location);
             return Math.min(sizeA, sizeB) * sizeFactor;
         },
@@ -65,7 +108,7 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
                 if (parentDisplay === 'stub') {
                     const f = a[edgeIndex];
                     for (let i = offsets[f], il = offsets[f + 1]; i < il; ++i) {
-                        const e = unit.elements[members[offsets[i]]];
+                        const e = elements[members[offsets[i]]];
                         if (!SortedArray.has(childUnit.elements, e)) return true;
                     }
                 } else if (parentDisplay === 'full' || parentDisplay === 'between') {
@@ -74,13 +117,13 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
 
                     const fA = a[edgeIndex];
                     for (let i = offsets[fA], il = offsets[fA + 1]; i < il; ++i) {
-                        const eA = unit.elements[members[offsets[i]]];
+                        const eA = elements[members[offsets[i]]];
                         if (!SortedArray.has(childUnit.elements, eA)) flagA = true;
                     }
 
                     const fB = b[edgeIndex];
                     for (let i = offsets[fB], il = offsets[fB + 1]; i < il; ++i) {
-                        const eB = unit.elements[members[offsets[i]]];
+                        const eB = elements[members[offsets[i]]];
                         if (!SortedArray.has(childUnit.elements, eB)) flagB = true;
                     }
 
@@ -127,6 +170,8 @@ export function InteractionsIntraUnitVisual(materialId: number): UnitsVisual<Int
                 newProps.dashScale !== currentProps.dashScale ||
                 newProps.dashCap !== currentProps.dashCap ||
                 newProps.radialSegments !== currentProps.radialSegments ||
+                newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
+                newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
                 newProps.parentDisplay !== currentProps.parentDisplay
             );
 

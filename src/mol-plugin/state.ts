@@ -1,14 +1,15 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { State, StateTransform, StateTransformer } from '../mol-state';
 import { PluginStateObject as SO } from '../mol-plugin-state/objects';
 import { Camera } from '../mol-canvas3d/camera';
 import { PluginBehavior } from './behavior';
-import { Canvas3DParams, Canvas3DProps } from '../mol-canvas3d/canvas3d';
+import { Canvas3DContext, Canvas3DParams, Canvas3DProps } from '../mol-canvas3d/canvas3d';
 import { PluginCommands } from './commands';
 import { PluginAnimationManager } from '../mol-plugin-state/manager/animation';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
@@ -21,6 +22,7 @@ import { PluginContext } from './context';
 import { PluginComponent } from '../mol-plugin-state/component';
 import { PluginConfig } from './config';
 import { StructureComponentManager } from '../mol-plugin-state/manager/structure/component';
+import { StructureSelectionSnapshot } from '../mol-plugin-state/manager/structure/selection';
 
 export { PluginState };
 
@@ -62,9 +64,11 @@ class PluginState extends PluginComponent {
                 transitionStyle: p.cameraTransition!.name,
                 transitionDurationInMs: p?.cameraTransition?.name === 'animate' ? p.cameraTransition.params.durationInMs : void 0
             } : void 0,
+            canvas3dContext: p.canvas3dContext ? { props: this.plugin.canvas3dContext?.props } : void 0,
             canvas3d: p.canvas3d ? { props: this.plugin.canvas3d?.props } : void 0,
             interactivity: p.interactivity ? { props: this.plugin.managers.interactivity.props } : void 0,
             structureFocus: this.plugin.managers.structure.focus.getSnapshot(),
+            structureSelection: p.structureSelection ? this.plugin.managers.structure.selection.getSnapshot() : void 0,
             structureComponentManager: p.componentManager ? {
                 options: this.plugin.managers.structure.component.state.options
             } : void 0,
@@ -76,18 +80,25 @@ class PluginState extends PluginComponent {
         await this.animation.stop();
 
         // this needs to go 1st since these changes are already baked into the behavior and data state
-        if (snapshot.structureComponentManager?.options) await this.plugin.managers.structure.component.setOptions(snapshot.structureComponentManager?.options);
+        if (snapshot.structureComponentManager?.options) this.plugin.managers.structure.component._setSnapshotState(snapshot.structureComponentManager?.options);
         if (snapshot.behaviour) await this.plugin.runTask(this.behaviors.setSnapshot(snapshot.behaviour));
         if (snapshot.data) await this.plugin.runTask(this.data.setSnapshot(snapshot.data));
         if (snapshot.canvas3d?.props) {
             const settings = PD.normalizeParams(Canvas3DParams, snapshot.canvas3d.props, 'children');
             await PluginCommands.Canvas3D.SetSettings(this.plugin, { settings });
         }
+        if (snapshot.canvas3dContext?.props) {
+            const props = PD.normalizeParams(Canvas3DContext.Params, snapshot.canvas3dContext.props, 'children');
+            this.plugin.canvas3dContext?.setProps(props);
+        }
         if (snapshot.interactivity) {
             if (snapshot.interactivity.props) this.plugin.managers.interactivity.setProps(snapshot.interactivity.props);
         }
         if (snapshot.structureFocus) {
             this.plugin.managers.structure.focus.setSnapshot(snapshot.structureFocus);
+        }
+        if (snapshot.structureSelection) {
+            this.plugin.managers.structure.selection.setSnapshot(snapshot.structureSelection);
         }
         if (snapshot.animation) {
             this.animation.setSnapshot(snapshot.animation);
@@ -108,6 +119,10 @@ class PluginState extends PluginComponent {
     updateTransform(state: State, a: StateTransform.Ref, params: any, canUndo?: string | boolean) {
         const tree = state.build().to(a).update(params);
         return PluginCommands.State.Update(this.plugin, { state, tree, options: { canUndo } });
+    }
+
+    hasBehavior(behavior: StateTransformer) {
+        return this.behaviors.tree.transforms.has(behavior.id);
     }
 
     updateBehavior<T extends StateTransformer>(behavior: T, params: (old: StateTransformer.Params<T>) => (void | StateTransformer.Params<T>)) {
@@ -146,10 +161,12 @@ namespace PluginState {
         durationInMs: PD.Numeric(1500, { min: 100, max: 15000, step: 100 }, { label: 'Duration in ms' }),
         data: PD.Boolean(true),
         behavior: PD.Boolean(false),
+        structureSelection: PD.Boolean(false),
         componentManager: PD.Boolean(true),
         animation: PD.Boolean(true),
         startAnimation: PD.Boolean(false),
         canvas3d: PD.Boolean(true),
+        canvas3dContext: PD.Boolean(true),
         interactivity: PD.Boolean(true),
         camera: PD.Boolean(true),
         cameraTransition: PD.MappedStatic('animate', {
@@ -157,7 +174,8 @@ namespace PluginState {
                 durationInMs: PD.Numeric(250, { min: 100, max: 5000, step: 500 }, { label: 'Duration in ms' }),
             }),
             instant: PD.Group({ })
-        }, { options: [['animate', 'Animate'], ['instant', 'Instant']] })
+        }, { options: [['animate', 'Animate'], ['instant', 'Instant']] }),
+        image: PD.Boolean(false),
     };
     export type SnapshotParams = Partial<PD.Values<typeof SnapshotParams>>
     export const DefaultSnapshotParams = PD.getDefaultValues(SnapshotParams);
@@ -176,10 +194,14 @@ namespace PluginState {
         canvas3d?: {
             props?: Canvas3DProps
         },
+        canvas3dContext?: {
+            props?: Canvas3DContext.Props
+        },
         interactivity?: {
             props?: InteractivityManager.Props
         },
         structureFocus?: StructureFocusSnapshot,
+        structureSelection?: StructureSelectionSnapshot,
         structureComponentManager?: {
             options?: StructureComponentManager.Options
         },

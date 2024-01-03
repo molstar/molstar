@@ -12,7 +12,7 @@ import { ElementSymbol, BondType, SecondaryStructureType } from '../../../mol-mo
 import { SetUtils } from '../../../mol-util/set';
 import { upperCaseAny } from '../../../mol-util/string';
 import { VdwRadius, AtomWeight, AtomNumber } from '../../../mol-model/structure/model/properties/atomic';
-import { cantorPairing } from '../../../mol-data/util';
+import { cantorPairing, invertCantorPairing, sortedCantorPairing } from '../../../mol-data/util';
 import { bundleElementImpl, bundleGenerator } from '../../../mol-model/structure/query/queries/internal';
 import { arrayEqual } from '../../../mol-util/array';
 
@@ -118,10 +118,16 @@ const symbols = [
         return ret;
     }),
 
+    C(MolScript.core.math.cantorPairing, (ctx, v) => cantorPairing(v[0](ctx), v[1](ctx))),
+    C(MolScript.core.math.sortedCantorPairing, (ctx, v) => sortedCantorPairing(v[0](ctx), v[1](ctx))),
+    C(MolScript.core.math.invertCantorPairing, (ctx, v) => invertCantorPairing([0, 0], v[0](ctx))),
+
     C(MolScript.core.math.floor, (ctx, v) => Math.floor(v[0](ctx))),
     C(MolScript.core.math.ceil, (ctx, v) => Math.ceil(v[0](ctx))),
     C(MolScript.core.math.roundInt, (ctx, v) => Math.round(v[0](ctx))),
+    C(MolScript.core.math.trunc, (ctx, v) => Math.trunc(v[0](ctx))),
     C(MolScript.core.math.abs, (ctx, v) => Math.abs(v[0](ctx))),
+    C(MolScript.core.math.sign, (ctx, v) => Math.sign(v[0](ctx))),
     C(MolScript.core.math.sqrt, (ctx, v) => Math.sqrt(v[0](ctx))),
     C(MolScript.core.math.cbrt, (ctx, v) => Math.cbrt(v[0](ctx))),
     C(MolScript.core.math.sin, (ctx, v) => Math.sin(v[0](ctx))),

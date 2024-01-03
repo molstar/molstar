@@ -29,5 +29,10 @@
         color: $font-color;
     }
 
+    .msp-plugin-init-error {
+        white-space: pre;
+        margin: $control-spacing;
+    }
+
     background: $default-background;
 }

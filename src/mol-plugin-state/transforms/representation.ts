@@ -351,7 +351,7 @@ const OverpaintStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
 
         const newGeometryVersion = a.data.repr.geometryVersion;
         // smoothing needs to be re-calculated when geometry changes
-        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Unchanged;
+        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Recreate;
 
         const oldOverpaint = b.data.state.overpaint!;
         const newOverpaint = Overpaint.ofScript(newParams.layers, newStructure);
@@ -409,7 +409,7 @@ const OverpaintStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
 
         const newGeometryVersion = a.data.repr.geometryVersion;
         // smoothing needs to be re-calculated when geometry changes
-        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Unchanged;
+        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Recreate;
 
         const oldOverpaint = b.data.state.overpaint!;
         const newOverpaint = Overpaint.ofBundle(newParams.layers, newStructure);
@@ -464,7 +464,7 @@ const TransparencyStructureRepresentation3DFromScript = PluginStateTransform.Bui
 
         const newGeometryVersion = a.data.repr.geometryVersion;
         // smoothing needs to be re-calculated when geometry changes
-        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Unchanged;
+        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Recreate;
 
         const oldTransparency = b.data.state.transparency!;
         const newTransparency = Transparency.ofScript(newParams.layers, newStructure);
@@ -520,7 +520,7 @@ const TransparencyStructureRepresentation3DFromBundle = PluginStateTransform.Bui
 
         const newGeometryVersion = a.data.repr.geometryVersion;
         // smoothing needs to be re-calculated when geometry changes
-        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Unchanged;
+        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Recreate;
 
         const oldTransparency = b.data.state.transparency!;
         const newTransparency = Transparency.ofBundle(newParams.layers, newStructure);
@@ -577,7 +577,7 @@ const SubstanceStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
 
         const newGeometryVersion = a.data.repr.geometryVersion;
         // smoothing needs to be re-calculated when geometry changes
-        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Unchanged;
+        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Recreate;
 
         const oldSubstance = b.data.state.substance!;
         const newSubstance = Substance.ofScript(newParams.layers, newStructure);
@@ -635,7 +635,7 @@ const SubstanceStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
 
         const newGeometryVersion = a.data.repr.geometryVersion;
         // smoothing needs to be re-calculated when geometry changes
-        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Unchanged;
+        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Recreate;
 
         const oldSubstance = b.data.state.substance!;
         const newSubstance = Substance.ofBundle(newParams.layers, newStructure);

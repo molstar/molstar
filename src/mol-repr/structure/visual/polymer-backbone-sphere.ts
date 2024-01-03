@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -34,7 +34,7 @@ export const PolymerBackboneSphereParams = {
 export type PolymerBackboneSphereParams = typeof PolymerBackboneSphereParams
 
 export function PolymerBackboneSphereVisual(materialId: number, structure: Structure, props: PD.Values<PolymerBackboneSphereParams>, webgl?: WebGLContext) {
-    return props.tryUseImpostor && webgl && webgl.extensions.fragDepth
+    return props.tryUseImpostor && webgl && webgl.extensions.fragDepth && webgl.extensions.textureFloat
         ? PolymerBackboneSphereImpostorVisual(materialId)
         : PolymerBackboneSphereMeshVisual(materialId);
 }
@@ -50,11 +50,11 @@ function createPolymerBackboneSphereImpostor(ctx: VisualContext, unit: Unit, str
 
     const builder = SpheresBuilder.create(polymerElementCount, polymerElementCount / 2, spheres);
 
-    const pos = unit.conformation.invariantPosition;
+    const c = unit.conformation;
     const p = Vec3();
 
     const add = (index: ElementIndex, group: number) => {
-        pos(index, p);
+        c.invariantPosition(index, p);
         builder.add(p[0], p[1], p[2], group);
     };
 
@@ -91,13 +91,13 @@ function createPolymerBackboneSphereMesh(ctx: VisualContext, unit: Unit, structu
     const vertexCount = polymerElementCount * sphereVertexCount(detail);
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 2, mesh);
 
-    const pos = unit.conformation.invariantPosition;
+    const c = unit.conformation;
     const p = Vec3();
     const center = StructureElement.Location.create(structure, unit);
 
     const add = (index: ElementIndex, group: number) => {
         center.element = index;
-        pos(center.element, p);
+        c.invariantPosition(center.element, p);
         builderState.currentGroup = group;
         addSphere(builderState, p, theme.size.size(center) * sizeFactor, detail);
     };

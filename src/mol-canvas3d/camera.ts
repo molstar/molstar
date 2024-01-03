@@ -38,12 +38,6 @@ class Camera implements ICamera {
     readonly projectionView: Mat4 = Mat4.identity();
     readonly inverseProjectionView: Mat4 = Mat4.identity();
 
-    private pixelScale: number;
-    get pixelRatio() {
-        const dpr = (typeof window !== 'undefined') ? window.devicePixelRatio : 1;
-        return dpr * this.pixelScale;
-    }
-
     readonly viewport: Viewport;
     readonly state: Readonly<Camera.Snapshot> = Camera.createDefaultSnapshot();
     readonly viewOffset = Camera.ViewOffset();
@@ -116,14 +110,14 @@ class Camera implements ICamera {
     }
 
     getTargetDistance(radius: number) {
-        return Camera.targetDistance(radius, this.state.fov, this.viewport.width, this.viewport.height);
+        return Camera.targetDistance(radius, this.state.mode, this.state.fov, this.viewport.width, this.viewport.height);
     }
 
-    getFocus(target: Vec3, radius: number, up?: Vec3, dir?: Vec3): Partial<Camera.Snapshot> {
+    getFocus(target: Vec3, radius: number, up?: Vec3, dir?: Vec3, snapshot?: Partial<Camera.Snapshot>): Partial<Camera.Snapshot> {
         const r = Math.max(radius, 0.01);
         const targetDistance = this.getTargetDistance(r);
 
-        Vec3.sub(this.deltaDirection, this.target, this.position);
+        Vec3.sub(this.deltaDirection, snapshot?.target ?? this.target, snapshot?.position ?? this.position);
         if (dir) Vec3.matchDirection(this.deltaDirection, dir, this.deltaDirection);
         Vec3.setMagnitude(this.deltaDirection, this.deltaDirection, targetDistance);
         Vec3.sub(this.newPosition, target, this.deltaDirection);
@@ -194,7 +188,7 @@ class Camera implements ICamera {
     getPixelSize(point: Vec3) {
         // project -> unproject of `point` does not exactly return the same
         // to get a sufficiently accurate measure we unproject the original
-        // clip position in addition to the one shifted bey one pixel
+        // clip position in addition to the one shifted by one pixel
         this.project(tmpClip, point);
         this.unproject(tmpPos1, tmpClip);
         tmpClip[0] += 1;
@@ -202,9 +196,8 @@ class Camera implements ICamera {
         return Vec3.distance(tmpPos1, tmpPos2);
     }
 
-    constructor(state?: Partial<Camera.Snapshot>, viewport = Viewport.create(0, 0, 128, 128), props: Partial<{ pixelScale: number }> = {}) {
+    constructor(state?: Partial<Camera.Snapshot>, viewport = Viewport.create(0, 0, 128, 128)) {
         this.viewport = viewport;
-        this.pixelScale = props.pixelScale || 1;
         Camera.copySnapshot(this.state, state);
     }
 }
@@ -257,11 +250,14 @@ namespace Camera {
         out.height = view.height;
     }
 
-    export function targetDistance(radius: number, fov: number, width: number, height: number) {
+    export function targetDistance(radius: number, mode: Mode, fov: number, width: number, height: number) {
         const r = Math.max(radius, 0.01);
         const aspect = width / height;
         const aspectFactor = (height < width ? 1 : aspect);
-        return Math.abs((r / aspectFactor) / Math.sin(fov / 2));
+        if (mode === 'orthographic')
+            return Math.abs((r / aspectFactor) / Math.tan(fov / 2));
+        else
+            return Math.abs((r / aspectFactor) / Math.sin(fov / 2));
     }
 
     export function createDefaultSnapshot(): Snapshot {
@@ -278,6 +274,7 @@ namespace Camera {
             fog: 50,
             clipFar: true,
             minNear: 5,
+            minFar: 0,
         };
     }
 
@@ -294,6 +291,7 @@ namespace Camera {
         fog: number
         clipFar: boolean
         minNear: number
+        minFar: number
     }
 
     export function copySnapshot(out: Snapshot, source?: Partial<Snapshot>) {
@@ -311,6 +309,7 @@ namespace Camera {
         if (typeof source.fog !== 'undefined') out.fog = source.fog;
         if (typeof source.clipFar !== 'undefined') out.clipFar = source.clipFar;
         if (typeof source.minNear !== 'undefined') out.minNear = source.minNear;
+        if (typeof source.minFar !== 'undefined') out.minFar = source.minFar;
 
         return out;
     }
@@ -323,6 +322,7 @@ namespace Camera {
             && a.fog === b.fog
             && a.clipFar === b.clipFar
             && a.minNear === b.minNear
+            && a.minFar === b.minFar
             && Vec3.exactEquals(a.position, b.position)
             && Vec3.exactEquals(a.up, b.up)
             && Vec3.exactEquals(a.target, b.target);
@@ -390,17 +390,13 @@ function updatePers(camera: Camera) {
 }
 
 function updateClip(camera: Camera) {
-    let { radius, radiusMax, mode, fog, clipFar, minNear } = camera.state;
+    let { radius, radiusMax, mode, fog, clipFar, minNear, minFar } = camera.state;
     if (radius < 0.01) radius = 0.01;
 
-    const normalizedFar = clipFar ? radius : radiusMax;
+    const normalizedFar = Math.max(clipFar ? radius : radiusMax, minFar);
     const cameraDistance = Vec3.distance(camera.position, camera.target);
     let near = cameraDistance - radius;
     let far = cameraDistance + normalizedFar;
-
-    const fogNearFactor = -(50 - fog) / 50;
-    const fogNear = cameraDistance - (normalizedFar * fogNearFactor);
-    const fogFar = far;
 
     if (mode === 'perspective') {
         // set at least to 5 to avoid slow sphere impostor rendering
@@ -417,8 +413,12 @@ function updateClip(camera: Camera) {
         far = near + 0.01;
     }
 
+    const fogNearFactor = -(50 - fog) / 50;
+    const fogNear = cameraDistance - (normalizedFar * fogNearFactor);
+    const fogFar = far;
+
     camera.near = near;
-    camera.far = 2 * far; // avoid precision issues distingushing far objects from background
+    camera.far = far;
     camera.fogNear = fogNear;
     camera.fogFar = fogFar;
 }

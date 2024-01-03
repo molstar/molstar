@@ -22,6 +22,7 @@ export function getFieldType(type: string, description: string, values?: string[
         case 'uline':
         case 'uchar3':
         case 'uchar1':
+        case 'uchar5':
             // only force lower-case for enums
             return values && values.length ? EnumCol(values.map(x => x.toLowerCase()), 'lstr', description) : StrCol(description);
         case 'aliasname':
@@ -61,6 +62,7 @@ export function getFieldType(type: string, description: string, values?: string[
         case 'symop':
         case 'exp_data_doi':
         case 'asym_id':
+        case 'uniprot_ptm_id':
             return StrCol(description);
         case 'int':
         case 'non_negative_int':
@@ -89,6 +91,7 @@ export function getFieldType(type: string, description: string, values?: string[
         case 'Tag':
         case 'Implied':
         case 'Word':
+        case 'Uri':
             return wrapContainer('str', ',', description, container);
         case 'Real':
             return wrapContainer('float', ',', description, container);

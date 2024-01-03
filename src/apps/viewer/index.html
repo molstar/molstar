@@ -59,13 +59,15 @@
             var pixelScale = getParam('pixel-scale', '[^&]+').trim();
             var pickScale = getParam('pick-scale', '[^&]+').trim();
             var pickPadding = getParam('pick-padding', '[^&]+').trim();
-            var disableWboit = getParam('disable-wboit', '[^&]+').trim() === '1';
-            var enableDpoit = getParam('enable-dpoit', '[^&]+').trim() === '1';
+            var transparency = getParam('transparency', '[^&]+').trim().toLowerCase();
             var preferWebgl1 = getParam('prefer-webgl1', '[^&]+').trim() === '1' || void 0;
             var allowMajorPerformanceCaveat = getParam('allow-major-performance-caveat', '[^&]+').trim() === '1';
             var powerPreference = getParam('power-preference', '[^&]+').trim().toLowerCase();
 
+            // console.log('Available extensions: ', Object.keys(molstar.ExtensionMap));
+
             molstar.Viewer.create('app', {
+                disabledExtensions: [], // anything from Object.keys(molstar.ExtensionMap)
                 layoutShowControls: !hideControls,
                 viewportShowExpand: false,
                 collapseLeftPanel: collapseLeftPanel,
@@ -77,8 +79,7 @@
                 pixelScale: parseFloat(pixelScale) || 1,
                 pickScale: parseFloat(pickScale) || 0.25,
                 pickPadding: isNaN(parseFloat(pickPadding)) ? 1 : parseFloat(pickPadding),
-                enableWboit: (disableWboit || enableDpoit) ? false : void 0, // use default value if disable-wboit is not set
-                enableDpoit: enableDpoit ? true : void 0,
+                transparency: transparency || undefined,
                 preferWebgl1: preferWebgl1,
                 allowMajorPerformanceCaveat: allowMajorPerformanceCaveat,
                 powerPreference: powerPreference || 'high-performance',
@@ -95,6 +96,14 @@
                 var structureUrlIsBinary = getParam('structure-url-is-binary', '[^&]+').trim() === '1';
                 if (structureUrl) viewer.loadStructureFromUrl(structureUrl, structureUrlFormat, structureUrlIsBinary);
 
+                var mvsUrl = getParam('mvs-url', '[^&]+').trim();
+                var mvsData = getParam('mvs-data', '[^&]+').trim();
+                var mvsFormat = getParam('mvs-format', '[^&]+').trim() || 'mvsj';
+                if (mvsUrl && mvsData) console.error('Cannot specify mvs-url and mvs-data URL parameters at the same time. Ignoring both.');
+                else if (mvsUrl) viewer.loadMvsFromUrl(mvsUrl, mvsFormat);
+                else if (mvsData) viewer.loadMvsData(mvsData, mvsFormat);
+
+
                 var pdb = getParam('pdb', '[^&]+').trim();
                 if (pdb) viewer.loadPdb(pdb);
 
@@ -109,6 +118,11 @@
 
                 var modelArchive = getParam('model-archive', '[^&]+').trim();
                 if (modelArchive) viewer.loadModelArchive(modelArchive);
+
+                window.addEventListener('unload', () => {
+                    // to aid GC
+                    viewer.dispose();
+                });
             });
         </script>
         <!-- __MOLSTAR_ANALYTICS__ -->

@@ -18,6 +18,7 @@ export async function pack(input: { name: string, filename: string }[], blockSiz
         await create(outputFilename, input, blockSizeInMB, isPeriodic, format);
     } catch (e) {
         console.error('[Error] ' + e);
+        process.exit(1);
     }
 }
 

@@ -7,7 +7,7 @@
 import { StateTransformer, StateTransform } from '../../mol-state';
 import { PluginContext } from '../../mol-plugin/context';
 import { Download, ReadFile, DownloadBlob, RawData } from '../transforms/data';
-import { getFileInfo } from '../../mol-util/file-info';
+import { getFileNameInfo } from '../../mol-util/file-info';
 
 export class DataBuilder {
     private get dataState() {
@@ -31,7 +31,7 @@ export class DataBuilder {
 
     async readFile(params: StateTransformer.Params<ReadFile>, options?: Partial<StateTransform.Options>) {
         const data = await this.dataState.build().toRoot().apply(ReadFile, params, options).commit({ revertOnError: true });
-        const fileInfo = getFileInfo(params.file?.file || '');
+        const fileInfo = getFileNameInfo(params.file?.file?.name ?? '');
         return { data: data, fileInfo };
     }
 

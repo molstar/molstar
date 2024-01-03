@@ -6,6 +6,9 @@ uniform int uGroupCount;
 uniform int uPickType;
 uniform int uMarkingType;
 
+uniform vec4 uCameraPlane;
+uniform vec4 uLod;
+
 #if dClipObjectCount != 0
     uniform int uClipObjectType[dClipObjectCount];
     uniform bool uClipObjectInvert[dClipObjectCount];
@@ -57,6 +60,7 @@ uniform float uNear;
 uniform float uFar;
 uniform float uIsOrtho;
 
+uniform bool uFog;
 uniform float uFogNear;
 uniform float uFogFar;
 uniform vec3 uFogColor;
@@ -72,6 +76,7 @@ uniform vec3 uInteriorColor;
 bool interior;
 
 uniform float uXrayEdgeFalloff;
+uniform float uExposure;
 
 uniform mat4 uProjection;
 

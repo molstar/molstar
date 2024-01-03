@@ -16,6 +16,7 @@ import { StructureSelectionHistoryEntry } from '../../mol-plugin-state/manager/s
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { PluginCommands } from '../../mol-plugin/commands';
+import { PluginConfig } from '../../mol-plugin/config';
 import { StateObjectCell, StateObjectRef } from '../../mol-state';
 import { elementLabel, structureElementStatsLabel } from '../../mol-theme/label';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -324,6 +325,11 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
         return entries;
     }
 
+    toggleHint() {
+        const shouldShowToggleHint = this.plugin.config.get(PluginConfig.Viewport.ShowSelectionMode);
+        return shouldShowToggleHint ? (<>{' '}(toggle <ToggleSelectionModeButton inline /> mode)</>) : null;
+    }
+
     addByChains() {
         const entries = this.chainEntries;
         return <>
@@ -331,7 +337,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
                 {entries.map((e, i) => this.lociEntry(e, i))}
             </div>}
             {entries.length < 2 && <div className='msp-control-offset msp-help-text'>
-                <div className='msp-help-description'><Icon svg={HelpOutlineSvg} inline />Add 2 or more selections (toggle <ToggleSelectionModeButton inline /> mode) from separate structures. Selections must be limited to single polymer chains or residues therein.</div>
+                <div className='msp-help-description'><Icon svg={HelpOutlineSvg} inline />Add 2 or more selections{this.toggleHint()} from separate structures. Selections must be limited to single polymer chains or residues therein.</div>
             </div>}
             {entries.length > 1 && <Button title='Superpose structures by selected chains.' className='msp-btn-commit msp-btn-commit-on' onClick={this.superposeChains} style={{ marginTop: '1px' }}>
                 Superpose
@@ -346,7 +352,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
                 {entries.map((e, i) => this.atomsLociEntry(e, i))}
             </div>}
             {entries.length < 2 && <div className='msp-control-offset msp-help-text'>
-                <div className='msp-help-description'><Icon svg={HelpOutlineSvg} inline />Add 1 or more selections (toggle <ToggleSelectionModeButton inline /> mode) from
+                <div className='msp-help-description'><Icon svg={HelpOutlineSvg} inline />Add 1 or more selections{this.toggleHint()} from
                 separate structures. Selections must be limited to single atoms.</div>
             </div>}
             {entries.length > 1 && <Button title='Superpose structures by selected atoms.' className='msp-btn-commit msp-btn-commit-on' onClick={this.superposeAtoms} style={{ marginTop: '1px' }}>

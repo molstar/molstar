@@ -3,8 +3,292 @@ All notable changes to this project will be documented in this file, following t
 
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
+## [V4-DEV]
+
+- [Breaking] Change build target to ES2018
+    - Custom builds only require ES6 for dependencies like immer.js
+- Improve `SetUtils` performance using ES6 features
+- [Breaking] Reduce memory usage of `SymmetryOperator.ArrayMapping`
+    - Requires calling methods from instance
+- [Breaking] Fix `mol-model/structure/model/properties/seconday-structure.ts` file name (#938)
+- [Breaking] Add `Canvas3DContext` runtime props
+    - Props: pixelScale, pickScale, transparency (blended, wboit, dpoit)
+    - Replaces instantiation-time attribs
+- [Breaking] Change default compile target to ES2018
+- [Breaking] Add culling & LOD support
+    - Cull per-object and per-instance
+    - Cull based on frustum and camera distance
+    - LOD visibility based on camera distance
+    - Special LOD mode for spheres with automatic levels
+    - Occlusion culling (only WebGL2)
+        - Hi-Z pass
+        - Cull based on previous frame's Hi-Z buffer
+- Add stochastic/dithered transparency to fade overlapping LODs in and out
+- Add "Automatic Detail" preset that shows surface/cartoon/ball & stick based on camera distance
 
 ## [Unreleased]
+
+- Add new `cartoon` visuals to support atomic nucleotide base with sugar
+- Add `thicknessFactor` to `cartoon` representation for scaling nucleotide block/ring/atomic-fill visuals
+- Use bonds from `_struct_conn` in mmCIF files that use `label_seq_id`
+- Fix measurement label `offsetZ` default: not needed when `scaleByRadius` is enbaled
+- Support for label rendering in HeadlessPluginContext
+- MolViewSpec extension
+  - Support all X11 colors
+  - Support relative URIs
+  - CLI tools: mvs-validate, mvs-render, mvs-print-schema
+  - Labels applied in one node
+- ModelServer SDF/MOL2 ligand export: fix atom indices when additional atoms are present
+- Avoid showing (and calculating) inter-unit bonds for huge structures
+- Fixed `DragOverlay` on WebKit/Safari browsers
+
+## [v3.43.1] - 2023-12-04
+
+- Fix `react-markdown` dependency
+
+## [v3.43.0] - 2023-12-02
+
+- Fix `State.tryGetCellData` (return type & data check)
+- Don't change camera.target unless flyMode or pointerLock are enabled
+- Handle empty CIF files
+- Snapshot improvements:
+    - Add `key` property
+    - Ability to existing snapshot name, key, and description
+    - Support markdown in descriptions (ignores all HTML tags)
+    - Ability to link to snapshots by key from descriptions
+    - Separate UI control showing description of the current snapshot
+- Do not activate drag overlay for non-file content
+- Add `structure-element-sphere` visual to `spacefill` representation
+- Fix missing `await` in `HeadlessPluginContext.saveStateSnapshot`
+- Added support for providing custom sequence viewers to the plugin spec
+- MolViewSpec extension (MVS)
+- Add URL parameters `mvs-url`, `mvs-data`, `mvs-format`
+- Add drag&drop for `.mvsj` files
+- Fix `bumpiness` scaling with `ignoreLight` enabled
+- Add `transforms` & `label` params to `ShapeFromPly`
+- Optimize `LociSelectManager.selectOnly` to avoid superfluous loci set operations
+- Dispose of viewer on `unload` event to aid GC
+
+## [v3.42.0] - 2023-11-05
+
+- Fix handling of PDB files with insertion codes (#945)
+- Fix de-/saturate of colors with no hue
+- Improve `distinctColors` function
+    - Add `sort` and `sampleCountFactor` parameters
+    - Fix clustering issues
+- Add `clipPrimitive` option to spheres geometry, clipping whole spheres instead of cutting them
+- Add `DragAndDropManager`
+- Add `options` support for default bond labels
+
+## [v3.41.0] - 2023-10-15
+
+- Add `PluginContext.initialized` promise & support for it in the `Plugin` UI component.
+- Fix undesired interaction between settings panel and the panel on the right.
+- Add ability to customize server parameters for `RCSBAssemblySymmetry`.
+
+## [v3.40.1] - 2023-09-30
+
+- Do not call `updateFocusRepr` if default `StructureFocusRepresentation` isn't present.
+- Treat "tap" as a click in `InputObserver`
+- ModelServer ligand queries: fix atom count reported by SDF/MOL/MOL2 export
+- CCD extension: Make visuals for aromatic bonds configurable
+- Add optional `file?: CifFile` to `MmcifFormat.data`
+- Add support for webgl extensions
+    - `WEBGL_clip_cull_distance`
+    - `EXT_conservative_depth`
+    - `WEBGL_stencil_texturing`
+    - `EXT_clip_control`
+- Add `MultiSampleParams.reduceFlicker` (to be able to switch it off)
+- Add `alphaThickness` parameter to adjust alpha of spheres for radius
+- Ability to hide "right" panel from simplified viewport controls
+- Add `blockIndex` parameter to TrajectoryFromMmCif
+- Fix bounding sphere calculation for "element-like" visuals
+- Fix RCSB PDB validation report URL
+- Add sharpening postprocessing option
+- Take pixel-ratio into account for outline scale
+- Gracefully handle missing HTMLImageElement
+- Fix pixel-ratio changes not applied to all render passes
+
+## [v3.39.0] - 2023-09-02
+
+- Add some elements support for `guessElementSymbolString` function
+- Faster bounding rectangle calculation for imposter spheres
+- Allow toggling of hydrogens as part of `LabelTextVisual`
+
+## [v3.38.3] - 2023-07-29
+
+- Fix imposter spheres not updating, e.g. in trajectories (broke in v3.38.0)
+
+## [v3.38.2] - 2023-07-24
+
+- Don't rely solely on `chem_comp_atom` when detecting CCD files (#877)
+- Actually support non-physical keys in `Bindings.Trigger.code`
+
+## [v3.38.1] - 2023-07-22
+
+- Fix pixel-scale not updated in SSAO pass
+
+## [v3.38.0] - 2023-07-18
+
+- Fix display issue with SIFTS mapping
+- Support non-physical keys in `Bindings.Trigger.code`
+- Update `getStateSnapshot` to only overwrite current snapshot if it was created automatically
+- Fix distinct palette's `getSamples` infinite loop
+- Add 'NH2', 'FOR', 'FMT' to `CommonProteinCaps`
+- Add `opened` event to `PluginStateSnapshotManager`
+- Properly switch-off fog
+- Add `approximate` option for spheres rendering
+- Reduce `Spheres` memory usage
+    - Derive mapping from VertexID
+    - Pull position and group from texture
+- Add `Euler` math primitive
+- Add stride option to element sphere & point visuals
+- Add `disabledExtensions` field to default viewer's options
+- Add `LRUCache.remove`
+- Add 'Chain Instance' and 'Uniform' options for 'Carbon Color' param (in Color Theme: Element Symbol)
+
+## [v3.37.1] - 2023-06-20
+
+- Fix issues with wboit/dpoit in large scenes
+- Fix lines, text, points rendering (broken in v3.37.0)
+
+## [v3.37.0] - 2023-06-17
+
+- Add `inverted` option to `xrayShaded` parameter
+- Model-export extension: Add ability to set a file name for structures
+- Add `contextHash` to `SizeTheme`
+- Add mipmap-based blur for image backgrounds
+
+## [v3.36.1] - 2023-06-11
+
+- Allow parsing of CCD ligand files
+- Add dedicated wwPDB CCD extension to align and visualize ideal & model CCD coordinates
+- Make operators in `IndexPairBonds` a directed property
+- Remove erroneous bounding-box overlap test in `Structure.eachUnitPair`
+- Fix `EdgeBuilder.addNextEdge` for loop edges
+- Optimize inter unit bond compute
+- Ensure consistent state for volume representation (#210)
+- Improve SSAO for thin geometry (e.g. lines)
+- Add snapshot support for structure selections
+- Add `nucleicProfile` parameter to cartoon representation
+- Add `cartoon` theme with separate colorings for for mainchain and sidechain visuals
+
+## [v3.35.0] - 2023-05-14
+
+- Enable odd dash count (1,3,5)
+- Add principal axes spec and fix edge cases
+- Add a uniform color theme for NtC tube that still paints residue and segment dividers in a different color
+- Mesh exporter improvements
+    - Support points & lines in glTF export
+    - Set alphaMode and doubleSided in glTF export
+    - Fix flipped cylinder caps
+- Fix bond assignments `struct_conn` records referencing waters
+- Add StructConn extension providing functions for inspecting struct_conns
+- Fix `PluginState.setSnapshot` triggering unnecessary state updates
+- Fix an edge case in the `mol-state`'s `State` when trying to apply a transform to an existing Null object
+- Add `SbNcbrPartialCharges` extension for coloring and labeling atoms and residues by partial atomic charges
+  - uses custom mmcif categories `_sb_ncbr_partial_atomic_charges_meta` and `_sb_ncbr_partial_atomic_charges` (more info in [README.md](./src/extensions/sb-ncbr/README.md))
+- Parse HEADER record when reading PDB file
+- Support `ignoreHydrogens` in interactions representation
+- Add hydroxyproline (HYP) commonly present in collagen molecules to the list of amino acids
+- Fix assemblies for Archive PDB files (do not generate unique `label_asym_id` if `REMARK 350` is present)
+- Add additional functions to `core.math` in `mol-script`
+    - `cantorPairing`, `sortedCantorPairing`, `invertCantorPairing`,
+    - `trunc`, `sign`
+
+## [v3.34.0] - 2023-04-16
+
+- Avoid `renderMarkingDepth` for fully transparent renderables
+- Remove `camera.far` doubling workaround
+- Add `ModifiersKeys.areNone` helper function
+- Do not render NtC tube segments unless all required atoms are present in the structure
+- Fix rendering issues caused by VAO reuse
+- Add "Zoom All", "Orient Axes", "Reset Axes" buttons to the "Reset Camera" button
+- Improve trackball move-state handling when key bindings use modifiers
+- Fix rendering with very small viewport and SSAO enabled
+- Fix `.getAllLoci` for structure representations with `structure.child`
+- Fix `readAllLinesAsync` refering to dom length property
+- Make mol-util/file-info node compatible
+- Add `eachLocation` to representation/visual interface
+
+## [v3.33.0] - 2023-04-02
+
+- Handle resizes of viewer element even when window remains the same size
+- Throttle canvas resize events
+- Selection toggle buttons hidden if selection mode is off
+- Camera focus loci bindings allow reset on click-away to be overridden
+- Input/controls improvements
+    - Move or fly around the scene using keys
+    - Pointer lock to look around scene
+    - Toggle spin/rock animation using keys
+- Apply bumpiness as lightness variation with `ignoreLight`
+- Remove `JSX` reference from `loci-labels.ts`
+- Fix overpaint/transparency/substance smoothing not updated when geometry changes
+- Fix camera project/unproject when using offset viewport
+- Add support for loading all blocks from a mmcif file as a trajectory
+- Add `Frustum3D` and `Plane3D` math primitives
+- Include `occupancy` and `B_iso_or_equiv` when creating `Conformation` from `Model`
+- Remove LazyImports (introduced in v3.31.1)
+
+## [v3.32.0] - 2023-03-20
+
+- Avoid rendering of fully transparent renderables
+- Add occlusion color parameter
+- Fix issue with outlines and orthographic camera
+- Reduce over-blurring occlusion at larger view distances
+- Fix occlusion artefact with non-canvas viewport and pixel-ratio > 1
+- Update nodejs-shims conditionals to handle polyfilled document object in NodeJS environment.
+- Ensure marking edges are at least one pixel wide
+- Add exposure parameter to renderer
+- Only trigger marking when mouse is directly over canvas
+- Fix blurry occlusion in screenshots
+- [Breaking] Add `setFSModule` to `mol-util/data-source` instead of trying to trick WebPack
+
+## [v3.31.4] - 2023-02-24
+
+- Allow link cylinder/line `dashCount` set to '0'
+- Stop animation loop when disposing `PluginContext` (thanks @gfrn for identifying the issue)
+
+## [v3.31.3] - 2023-02-22
+
+- Fix impostor bond visuals not correctly updating on `sizeFactor` changes
+- Fix degenerate case in PCA
+- Fix near clipping avoidance in impostor shaders
+- Update `fs` import in `data-source.ts`
+
+## [v3.31.2] - 2023-02-12
+
+- Fix exit code of volume pack executable (pack.ts). Now exits with non-0 status when an error happens
+- Remove pca transform from components ui focus (too distracting)
+- Fix artefacts with opaque outlines behind transparent objects
+- Fix polymer trace visual not updating
+- Fix use of `WEBGL_provoking_vertex`
+
+## [v3.31.1] - 2023-02-05
+
+- Improve Component camera focus based on the PCA of the structure and the following rules:
+    - The first residue should be in first quadrant if there is only one chain
+    - The average position of the residues of the first chain should be in the first quadrant if there is more than one chain
+- Add `HeadlessPluginContext` and `HeadlessScreenshotHelper` to be used in Node.js
+- Add example `image-renderer`
+- Fix wrong offset when rendering text with orthographic projection
+- Update camera/handle helper when `devicePixelRatio` changes
+- Add various options to customize the axes camera-helper
+- Fix issue with texture-mesh color smoothing when changing themes
+- Add fast boundary helper and corresponding unit trait
+- Add Observable for Canvas3D commits
+
+## [v3.30.0] - 2023-01-29
+
+- Improve `Dnatco` extension
+    - Factor out common code in `Dnatco` extension
+    - Add `NtC tube` visual. Applicable for structures with NtC annotation
+    - [Breaking] Rename `DnatcoConfalPyramids` to `DnatcoNtCs`
+- Improve boundary calculation performance
+- Add option to create & include images in state snapshots
+- Fix SSAO artefacts with high bias values
+- Fix SSAO resolution scale parameter handling
+- Improve outlines, visually more stable at different view distances
 
 ## [v3.29.0] - 2023-01-15
 

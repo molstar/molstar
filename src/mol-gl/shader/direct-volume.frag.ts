@@ -68,6 +68,7 @@ uniform int uGroupCount;
 uniform float uMetalness;
 uniform float uRoughness;
 
+uniform bool uFog;
 uniform float uFogNear;
 uniform float uFogFar;
 uniform vec3 uFogColor;
@@ -75,6 +76,7 @@ uniform vec3 uFogColor;
 uniform float uAlpha;
 uniform bool uTransparentBackground;
 uniform float uXrayEdgeFalloff;
+uniform float uExposure;
 
 uniform int uRenderMask;
 

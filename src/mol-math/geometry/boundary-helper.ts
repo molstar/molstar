@@ -9,6 +9,12 @@ import { CentroidHelper } from './centroid-helper';
 import { Sphere3D } from '../geometry';
 import { Box3D } from './primitives/box3d';
 
+// avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const v3dot = Vec3.dot;
+const v3copy = Vec3.copy;
+const v3scaleAndSub = Vec3.scaleAndSub;
+const v3scaleAndAdd = Vec3.scaleAndAdd;
+
 // implementing http://www.ep.liu.se/ecp/034/009/ecp083409.pdf
 
 export class BoundaryHelper {
@@ -21,28 +27,29 @@ export class BoundaryHelper {
     centroidHelper = new CentroidHelper();
 
     private computeExtrema(i: number, p: Vec3) {
-        const d = Vec3.dot(this.dir[i], p);
+        const d = v3dot(this.dir[i], p);
 
         if (d < this.minDist[i]) {
             this.minDist[i] = d;
-            Vec3.copy(this.extrema[i * 2], p);
+            v3copy(this.extrema[i * 2], p);
         }
         if (d > this.maxDist[i]) {
             this.maxDist[i] = d;
-            Vec3.copy(this.extrema[i * 2 + 1], p);
+            v3copy(this.extrema[i * 2 + 1], p);
         }
     }
 
     private computeSphereExtrema(i: number, center: Vec3, radius: number) {
-        const d = Vec3.dot(this.dir[i], center);
+        const di = this.dir[i];
+        const d = v3dot(di, center);
 
         if (d - radius < this.minDist[i]) {
             this.minDist[i] = d - radius;
-            Vec3.scaleAndSub(this.extrema[i * 2], center, this.dir[i], radius);
+            v3scaleAndSub(this.extrema[i * 2], center, di, radius);
         }
         if (d + radius > this.maxDist[i]) {
             this.maxDist[i] = d + radius;
-            Vec3.scaleAndAdd(this.extrema[i * 2 + 1], center, this.dir[i], radius);
+            v3scaleAndAdd(this.extrema[i * 2 + 1], center, di, radius);
         }
     }
 
@@ -94,7 +101,7 @@ export class BoundaryHelper {
     }
 
     getSphere(sphere?: Sphere3D) {
-        return Sphere3D.setExtrema(this.centroidHelper.getSphere(sphere), [...this.extrema]);
+        return Sphere3D.setExtrema(this.centroidHelper.getSphere(sphere), this.extrema.slice());
     }
 
     getBox(box?: Box3D) {

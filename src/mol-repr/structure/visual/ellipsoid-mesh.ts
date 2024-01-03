@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -81,7 +81,7 @@ export function createEllipsoidMesh(ctx: VisualContext, unit: Unit, structure: S
     const { elementToAnsiotrop, data } = atomSiteAnisotrop;
     const { U } = data;
     const space = data._schema.U.space;
-    const pos = unit.conformation.invariantPosition;
+    const c = unit.conformation;
     const l = StructureElement.Location.create(structure);
     l.unit = unit;
 
@@ -93,7 +93,7 @@ export function createEllipsoidMesh(ctx: VisualContext, unit: Unit, structure: S
             (ignoreHydrogens && isH(atomicNumber, ei))) continue;
 
         l.element = ei;
-        pos(ei, v);
+        c.invariantPosition(ei, v);
 
         builderState.currentGroup = i;
         Tensor.toMat3(mat, space, U.value(ai));

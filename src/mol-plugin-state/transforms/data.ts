@@ -282,8 +282,9 @@ const ParseCif = PluginStateTransform.BuiltIn({
 })({
     apply({ a }) {
         return Task.create('Parse CIF', async ctx => {
-            const parsed = await (SO.Data.String.is(a) ? CIF.parse(a.data) : CIF.parseBinary(a.data)).runInContext(ctx);
+            const parsed = await (typeof a.data === 'string' ? CIF.parse(a.data) : CIF.parseBinary(a.data)).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
+            if (parsed.result.blocks.length === 0) return StateObject.Null;
             return new SO.Format.Cif(parsed.result);
         });
     }

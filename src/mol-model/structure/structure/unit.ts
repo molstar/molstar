@@ -20,7 +20,7 @@ import { getAtomicPolymerElements, getCoarsePolymerElements, getAtomicGapElement
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
 import { getPrincipalAxes } from './util/principal-axes';
-import { Boundary, getBoundary } from '../../../mol-math/geometry/boundary';
+import { Boundary, getBoundary, getFastBoundary } from '../../../mol-math/geometry/boundary';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bonds/index-pair';
 import { ElementSetIntraBondCache } from './unit/bonds/element-set-intra-bond-cache';
@@ -128,7 +128,8 @@ namespace Unit {
     export enum Trait {
         None = 0x0,
         MultiChain = 0x1,
-        Partitioned = 0x2
+        Partitioned = 0x2,
+        FastBoundary = 0x4,
     }
     export namespace Traits {
         export const is: (t: Traits, f: Trait) => boolean = BitFlags.has;
@@ -175,12 +176,12 @@ namespace Unit {
 
     function getSphereRadiusFunc(model: Model) {
         const r = model.coarseConformation.spheres.radius;
-        return (i: number) => r[i];
+        return (i: ElementIndex) => r[i];
     }
 
-    function getGaussianRadiusFunc(model: Model) {
+    function getGaussianRadiusFunc(_model: Model) {
         // TODO: compute radius for gaussians
-        return (i: number) => 0;
+        return (i: ElementIndex) => 0;
     }
 
     /**
@@ -247,7 +248,7 @@ namespace Unit {
             }
 
             const conformation = (this.model.atomicConformation !== model.atomicConformation || operator !== this.conformation.operator)
-                ? SymmetryOperator.createMapping(operator, model.atomicConformation)
+                ? SymmetryOperator.createMapping<ElementIndex>(operator, model.atomicConformation)
                 : this.conformation;
             return new Atomic(this.id, this.invariantId, this.chainGroupId, this.traits, model, this.elements, conformation, props);
         }
@@ -255,7 +256,9 @@ namespace Unit {
         get boundary() {
             if (this.props.boundary) return this.props.boundary;
             const { x, y, z } = this.model.atomicConformation;
-            this.props.boundary = getBoundary({ x, y, z, indices: this.elements });
+            this.props.boundary = Traits.is(this.traits, Trait.FastBoundary)
+                ? getFastBoundary({ x, y, z, indices: this.elements })
+                : getBoundary({ x, y, z, indices: this.elements });
             return this.props.boundary;
         }
 
@@ -408,7 +411,7 @@ namespace Unit {
             }
 
             const conformation = coarseConformation !== modelCoarseConformation
-                ? SymmetryOperator.createMapping(this.conformation.operator, modelCoarseConformation)
+                ? SymmetryOperator.createMapping(this.conformation.operator, modelCoarseConformation, this.kind === Unit.Kind.Spheres ? getSphereRadiusFunc(model) : getGaussianRadiusFunc(model))
                 : this.conformation;
             return new Coarse(this.id, this.invariantId, this.chainGroupId, this.traits, model, this.kind, this.elements, conformation, props) as Unit.Spheres | Unit.Gaussians; // TODO get rid of casting
         }
@@ -417,7 +420,9 @@ namespace Unit {
             if (this.props.boundary) return this.props.boundary;
             // TODO: support sphere radius?
             const { x, y, z } = this.getCoarseConformation();
-            this.props.boundary = getBoundary({ x, y, z, indices: this.elements });
+            this.props.boundary = Traits.is(this.traits, Trait.FastBoundary)
+                ? getFastBoundary({ x, y, z, indices: this.elements })
+                : getBoundary({ x, y, z, indices: this.elements });
             return this.props.boundary;
         }
 

@@ -6,7 +6,7 @@
 
 import { Structure } from '../../mol-model/structure';
 import { DSSPComputationParams, DSSPComputationProps, computeUnitDSSP } from './secondary-structure/dssp';
-import { SecondaryStructure } from '../../mol-model/structure/model/properties/seconday-structure';
+import { SecondaryStructure } from '../../mol-model/structure/model/properties/secondary-structure';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Unit } from '../../mol-model/structure/structure';
 import { CustomStructureProperty } from '../common/custom-structure-property';

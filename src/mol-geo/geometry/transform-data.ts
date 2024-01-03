@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,6 +7,8 @@
 import { ValueCell } from '../../mol-util';
 import { Mat4, Mat3 } from '../../mol-math/linear-algebra';
 import { fillSerial } from '../../mol-util/array';
+import { Sphere3D } from '../../mol-math/geometry';
+import { calcInstanceGrid, createEmptyInstanceGrid, InstanceGrid } from '../../mol-math/geometry/instance-grid';
 
 export type TransformData = {
     /**
@@ -26,6 +28,8 @@ export type TransformData = {
     aInstance: ValueCell<Float32Array>,
 
     hasReflection: ValueCell<boolean>,
+
+    instanceGrid: ValueCell<InstanceGrid>,
 }
 
 const _m3 = Mat3();
@@ -38,7 +42,7 @@ function checkReflection(transformArray: Float32Array, instanceCount: number) {
     return false;
 }
 
-export function createTransform(transformArray: Float32Array, instanceCount: number, transformData?: TransformData): TransformData {
+export function createTransform(transformArray: Float32Array, instanceCount: number, invariantBoundingSphere: Sphere3D | undefined, cellSize: number, batchSize: number, transformData?: TransformData): TransformData {
     const hasReflection = checkReflection(transformArray, instanceCount);
 
     if (transformData) {
@@ -70,10 +74,11 @@ export function createTransform(transformArray: Float32Array, instanceCount: num
             instanceCount: ValueCell.create(instanceCount),
             aInstance: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
             hasReflection: ValueCell.create(hasReflection),
+            instanceGrid: ValueCell.create(createEmptyInstanceGrid()),
         };
     }
 
-    updateTransformData(transformData);
+    updateTransformData(transformData, invariantBoundingSphere, cellSize, batchSize);
     return transformData;
 }
 
@@ -81,7 +86,7 @@ const identityTransform = new Float32Array(16);
 Mat4.toArray(Mat4.identity(), identityTransform, 0);
 
 export function createIdentityTransform(transformData?: TransformData): TransformData {
-    return createTransform(new Float32Array(identityTransform), 1, transformData);
+    return createTransform(new Float32Array(identityTransform), 1, undefined, 0, 0, transformData);
 }
 
 export function fillIdentityTransform(transform: Float32Array, count: number) {
@@ -95,8 +100,9 @@ export function fillIdentityTransform(transform: Float32Array, count: number) {
  * updates per-instance transform calculated for instance `i` as
  * `aTransform[i] = matrix * transform[i] * extraTransform[i]`
  */
-export function updateTransformData(transformData: TransformData) {
+export function updateTransformData(transformData: TransformData, invariantBoundingSphere: Sphere3D | undefined, cellSize: number, batchSize: number) {
     const aTransform = transformData.aTransform.ref.value;
+    const aInstance = transformData.aInstance.ref.value;
     const instanceCount = transformData.instanceCount.ref.value;
     const matrix = transformData.matrix.ref.value;
     const transform = transformData.transform.ref.value;
@@ -105,6 +111,22 @@ export function updateTransformData(transformData: TransformData) {
         const i16 = i * 16;
         Mat4.mulOffset(aTransform, extraTransform, transform, i16, i16, i16);
         Mat4.mulOffset(aTransform, matrix, aTransform, i16, 0, i16);
+        aInstance[i] = i;
     }
-    ValueCell.update(transformData.aTransform, aTransform);
+
+    if (invariantBoundingSphere && instanceCount > 0) {
+        const instanceGrid = calcInstanceGrid({
+            instanceCount,
+            instance: aInstance,
+            transform: aTransform,
+            invariantBoundingSphere
+        }, cellSize, batchSize);
+
+        ValueCell.update(transformData.instanceGrid, instanceGrid);
+        ValueCell.update(transformData.aInstance, instanceGrid.cellInstance);
+        ValueCell.update(transformData.aTransform, instanceGrid.cellTransform);
+    } else {
+        ValueCell.update(transformData.aInstance, aInstance);
+        ValueCell.update(transformData.aTransform, aTransform);
+    }
 }

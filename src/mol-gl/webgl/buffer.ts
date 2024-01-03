@@ -102,7 +102,7 @@ export interface Buffer {
     destroy: () => void
 }
 
-function getBuffer(gl: GLRenderingContext) {
+export function getBuffer(gl: GLRenderingContext) {
     const buffer = gl.createBuffer();
     if (buffer === null) {
         throw new Error('Could not create WebGL buffer');
@@ -187,10 +187,12 @@ export type AttributeValues = { [k: string]: ValueCell<ArrayType> }
 export type AttributeBuffers = [string, AttributeBuffer][]
 
 export interface AttributeBuffer extends Buffer {
+    readonly divisor: number
     bind: (location: number) => void
+    changeOffset: (location: number, offset: number) => void
 }
 
-export function createAttributeBuffer<T extends ArrayType, S extends AttributeItemSize>(gl: GLRenderingContext, state: WebGLState, extensions: WebGLExtensions, array: T, itemSize: S, divisor: number, usageHint: UsageHint = 'dynamic'): AttributeBuffer {
+export function createAttributeBuffer<T extends ArrayType, S extends AttributeItemSize>(gl: GLRenderingContext, state: WebGLState, extensions: WebGLExtensions, array: T, itemSize: S, divisor: number, usageHint: UsageHint = 'static'): AttributeBuffer {
     const { instancedArrays } = extensions;
 
     const buffer = createBuffer(gl, array, usageHint, 'attribute');
@@ -198,6 +200,7 @@ export function createAttributeBuffer<T extends ArrayType, S extends AttributeIt
 
     return {
         ...buffer,
+        divisor,
         bind: (location: number) => {
             gl.bindBuffer(_bufferType, buffer.getBuffer());
             if (itemSize === 16) {
@@ -210,6 +213,17 @@ export function createAttributeBuffer<T extends ArrayType, S extends AttributeIt
                 state.enableVertexAttrib(location);
                 gl.vertexAttribPointer(location, itemSize, _dataType, false, 0, 0);
                 instancedArrays.vertexAttribDivisor(location, divisor);
+            }
+        },
+        changeOffset: (location: number, offset: number) => {
+            const o = offset * _bpe * itemSize;
+            gl.bindBuffer(_bufferType, buffer.getBuffer());
+            if (itemSize === 16) {
+                for (let i = 0; i < 4; ++i) {
+                    gl.vertexAttribPointer(location + i, 4, _dataType, false, 4 * 4 * _bpe, (i * 4 * _bpe) + o);
+                }
+            } else {
+                gl.vertexAttribPointer(location, itemSize, _dataType, false, 0, o);
             }
         }
     };

@@ -24,6 +24,9 @@ interface PluginUISpec extends PluginSpec {
             view?: React.ComponentClass,
             controls?: React.ComponentClass
         },
+        sequenceViewer?: {
+            view?: React.ComponentClass
+        }
         hideTaskOverlay?: boolean,
         disableDragOverlay?: boolean,
     },

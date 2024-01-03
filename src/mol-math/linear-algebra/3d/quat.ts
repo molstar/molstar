@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -25,7 +25,8 @@
 import { Mat3 } from './mat3';
 import { Vec3 } from './vec3';
 import { EPSILON } from './common';
-import { NumberArray } from '../../../mol-util/type-helpers';
+import { assertUnreachable, NumberArray } from '../../../mol-util/type-helpers';
+import { Euler } from './euler';
 
 interface Quat extends Array<number> { [d: number]: number, '@type': 'quat', length: 4 }
 interface ReadonlyQuat extends Array<number> { readonly [d: number]: number, '@type': 'quat', length: 4 }
@@ -238,6 +239,10 @@ namespace Quat {
         return out;
     }
 
+    export function dot(a: Quat, b: Quat) {
+        return a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+    }
+
     /**
      * Creates a quaternion from the given 3x3 rotation matrix.
      *
@@ -277,7 +282,64 @@ namespace Quat {
         return out;
     }
 
-    const fromUnitVec3Temp = [0, 0, 0] as Vec3;
+    export function fromEuler(out: Quat, euler: Euler, order: Euler.Order) {
+        const [x, y, z] = euler;
+
+        // http://www.mathworks.com/matlabcentral/fileexchange/20696-function-to-convert-between-dcm-euler-angles-quaternions-and-euler-vectors/content/SpinCalc.m
+
+        const c1 = Math.cos(x / 2);
+        const c2 = Math.cos(y / 2);
+        const c3 = Math.cos(z / 2);
+
+        const s1 = Math.sin(x / 2);
+        const s2 = Math.sin(y / 2);
+        const s3 = Math.sin(z / 2);
+
+        switch (order) {
+            case 'XYZ':
+                out[0] = s1 * c2 * c3 + c1 * s2 * s3;
+                out[1] = c1 * s2 * c3 - s1 * c2 * s3;
+                out[2] = c1 * c2 * s3 + s1 * s2 * c3;
+                out[3] = c1 * c2 * c3 - s1 * s2 * s3;
+                break;
+            case 'YXZ':
+                out[0] = s1 * c2 * c3 + c1 * s2 * s3;
+                out[1] = c1 * s2 * c3 - s1 * c2 * s3;
+                out[2] = c1 * c2 * s3 - s1 * s2 * c3;
+                out[3] = c1 * c2 * c3 + s1 * s2 * s3;
+                break;
+            case 'ZXY':
+                out[0] = s1 * c2 * c3 - c1 * s2 * s3;
+                out[1] = c1 * s2 * c3 + s1 * c2 * s3;
+                out[2] = c1 * c2 * s3 + s1 * s2 * c3;
+                out[3] = c1 * c2 * c3 - s1 * s2 * s3;
+                break;
+            case 'ZYX':
+                out[0] = s1 * c2 * c3 - c1 * s2 * s3;
+                out[1] = c1 * s2 * c3 + s1 * c2 * s3;
+                out[2] = c1 * c2 * s3 - s1 * s2 * c3;
+                out[3] = c1 * c2 * c3 + s1 * s2 * s3;
+                break;
+            case 'YZX':
+                out[0] = s1 * c2 * c3 + c1 * s2 * s3;
+                out[1] = c1 * s2 * c3 + s1 * c2 * s3;
+                out[2] = c1 * c2 * s3 - s1 * s2 * c3;
+                out[3] = c1 * c2 * c3 - s1 * s2 * s3;
+                break;
+            case 'XZY':
+                out[0] = s1 * c2 * c3 - c1 * s2 * s3;
+                out[1] = c1 * s2 * c3 - s1 * c2 * s3;
+                out[2] = c1 * c2 * s3 + s1 * s2 * c3;
+                out[3] = c1 * c2 * c3 + s1 * s2 * s3;
+                break;
+            default:
+                assertUnreachable(order);
+        }
+
+        return out;
+    }
+
+    const fromUnitVec3Temp = [0, 0, 0] as unknown as Vec3;
     /** Quaternion from two normalized unit vectors. */
     export function fromUnitVec3(out: Quat, a: Vec3, b: Vec3) {
         // assumes a and b are normalized
@@ -314,7 +376,7 @@ namespace Quat {
         return out;
     }
 
-    export function toArray(a: Quat, out: NumberArray, offset: number) {
+    export function toArray<T extends NumberArray>(a: Quat, out: T, offset: number) {
         out[offset + 0] = a[0];
         out[offset + 1] = a[1];
         out[offset + 2] = a[2];
@@ -395,9 +457,9 @@ namespace Quat {
      *
      * Both vectors are assumed to be unit length.
      */
-    const rotTmpVec3 = [0, 0, 0] as Vec3;
-    const rotTmpVec3UnitX = [1, 0, 0] as Vec3;
-    const rotTmpVec3UnitY = [0, 1, 0] as Vec3;
+    const rotTmpVec3 = [0, 0, 0] as unknown as Vec3;
+    const rotTmpVec3UnitX = [1, 0, 0] as unknown as Vec3;
+    const rotTmpVec3UnitY = [0, 1, 0] as unknown as Vec3;
     export function rotationTo(out: Quat, a: Vec3, b: Vec3) {
         const dot = Vec3.dot(a, b);
         if (dot < -0.999999) {
@@ -440,7 +502,7 @@ namespace Quat {
      * axes. Each axis is a vec3 and is expected to be unit length and
      * perpendicular to all other specified axes.
      */
-    const axesTmpMat = [0, 0, 0, 0, 0, 0, 0, 0, 0] as Mat3;
+    const axesTmpMat = [0, 0, 0, 0, 0, 0, 0, 0, 0] as unknown as Mat3;
     export function setAxes(out: Quat, view: Vec3, right: Vec3, up: Vec3) {
         axesTmpMat[0] = right[0];
         axesTmpMat[3] = right[1];

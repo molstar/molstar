@@ -56,14 +56,14 @@ export namespace Clip {
     export type Params = typeof Params
     export type Props = PD.Values<Params>
 
-    function createClipObjects() {
+    function createClipObjects(count: number) {
         return {
             count: 0,
-            type: (new Array(5)).fill(1),
-            invert: (new Array(5)).fill(false),
-            position: (new Array(5 * 3)).fill(0),
-            rotation: (new Array(5 * 4)).fill(0),
-            scale: (new Array(5 * 3)).fill(1),
+            type: (new Array(count)).fill(1),
+            invert: (new Array(count)).fill(false),
+            position: (new Array(count * 3)).fill(0),
+            rotation: (new Array(count * 4)).fill(0),
+            scale: (new Array(count * 3)).fill(1),
         };
     }
 
@@ -73,8 +73,9 @@ export namespace Clip {
     const vB = Vec3();
 
     export function getClip(props: Props, clip?: Clip): Clip {
-        const { type, invert, position, rotation, scale } = clip?.objects || createClipObjects();
-        for (let i = 0, il = props.objects.length; i < il; ++i) {
+        const count = props.objects.length;
+        const { type, invert, position, rotation, scale } = clip?.objects || createClipObjects(count);
+        for (let i = 0; i < count; ++i) {
             const p = props.objects[i];
             type[i] = Type[p.type];
             invert[i] = p.invert;
@@ -84,7 +85,7 @@ export namespace Clip {
         }
         return {
             variant: props.variant,
-            objects: { count: props.objects.length, type, invert, position, rotation, scale }
+            objects: { count, type, invert, position, rotation, scale }
         };
     }
 

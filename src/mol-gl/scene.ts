@@ -8,14 +8,14 @@
 import { WebGLContext } from './webgl/context';
 import { GraphicsRenderObject, createRenderable } from './render-object';
 import { Object3D } from './object3d';
-import { Sphere3D } from '../mol-math/geometry';
+import { Sphere3D } from '../mol-math/geometry/primitives/sphere3d';
 import { CommitQueue } from './commit-queue';
 import { now } from '../mol-util/now';
 import { arraySetRemove } from '../mol-util/array';
 import { BoundaryHelper } from '../mol-math/geometry/boundary-helper';
 import { hash1 } from '../mol-data/util';
 import { GraphicsRenderable } from './renderable';
-import { GraphicsRenderVariants } from './webgl/render-item';
+import { Transparency } from './webgl/render-item';
 import { clamp } from '../mol-math/interpolate';
 
 const boundaryHelper = new BoundaryHelper('98');
@@ -45,8 +45,8 @@ function calculateBoundingSphere(renderables: GraphicsRenderable[], boundingSphe
 }
 
 function renderableSort(a: GraphicsRenderable, b: GraphicsRenderable) {
-    const drawProgramIdA = (a.getProgram('colorBlended') || a.getProgram('colorWboit') || a.getProgram('colorDpoit')).id;
-    const drawProgramIdB = (b.getProgram('colorBlended') || b.getProgram('colorWboit') || b.getProgram('colorDpoit')).id;
+    const drawProgramIdA = a.getProgram('color').id;
+    const drawProgramIdB = b.getProgram('color').id;
     const materialIdA = a.materialId;
     const materialIdB = b.materialId;
 
@@ -72,11 +72,13 @@ interface Scene extends Object3D {
 
     /** Returns `true` if some visibility has changed, `false` otherwise. */
     syncVisibility: () => boolean
+    setTransparency: (transparency: Transparency) => void
     update: (objects: ArrayLike<GraphicsRenderObject> | undefined, keepBoundingSphere: boolean) => void
     add: (o: GraphicsRenderObject) => void // GraphicsRenderable
     remove: (o: GraphicsRenderObject) => void
     commit: (maxTimeMs?: number) => boolean
     readonly needsCommit: boolean
+    readonly commitQueueSize: number
     has: (o: GraphicsRenderObject) => boolean
     clear: () => void
     forEach: (callbackFn: (value: GraphicsRenderable, key: GraphicsRenderObject) => void) => void
@@ -93,7 +95,7 @@ namespace Scene {
         readonly renderables: ReadonlyArray<GraphicsRenderable>
     }
 
-    export function create(ctx: WebGLContext, variants = GraphicsRenderVariants): Scene {
+    export function create(ctx: WebGLContext, transparency: Transparency = 'blended'): Scene {
         const renderableMap = new Map<GraphicsRenderObject, GraphicsRenderable>();
         const renderables: GraphicsRenderable[] = [];
         const boundingSphere = Sphere3D();
@@ -118,7 +120,7 @@ namespace Scene {
 
         function add(o: GraphicsRenderObject) {
             if (!renderableMap.has(o)) {
-                const renderable = createRenderable(ctx, o, variants);
+                const renderable = createRenderable(ctx, o, transparency);
                 renderables.push(renderable);
                 if (o.type === 'direct-volume') {
                     volumes.push(renderable);
@@ -128,10 +130,8 @@ namespace Scene {
                 renderableMap.set(o, renderable);
                 boundingSphereDirty = true;
                 boundingSphereVisibleDirty = true;
-                return renderable;
             } else {
                 console.warn(`RenderObject with id '${o.id}' already present`);
-                return renderableMap.get(o)!;
             }
         }
 
@@ -255,6 +255,12 @@ namespace Scene {
             volumes: { view, position, direction, up, renderables: volumes },
 
             syncVisibility,
+            setTransparency: (value: Transparency) => {
+                transparency = value;
+                for (let i = 0, il = renderables.length; i < il; ++i) {
+                    renderables[i].setTransparency(value);
+                }
+            },
             update(objects, keepBoundingSphere) {
                 Object3D.update(object3d);
                 if (objects) {
@@ -279,6 +285,7 @@ namespace Scene {
             add: (o: GraphicsRenderObject) => commitQueue.add(o),
             remove: (o: GraphicsRenderObject) => commitQueue.remove(o),
             commit: (maxTime = Number.MAX_VALUE) => commit(maxTime),
+            get commitQueueSize() { return commitQueue.size; },
             get needsCommit() { return !commitQueue.isEmpty; },
             has: (o: GraphicsRenderObject) => {
                 return renderableMap.has(o);

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -34,8 +34,10 @@ function getGraph(indexA: ArrayLike<ElementIndex>, indexB: ArrayLike<ElementInde
     for (let i = 0, _i = builder.edgeCount; i < _i; i++) {
         builder.addNextEdge();
         builder.assignProperty(key, props.key ? props.key[i] : -1);
-        builder.assignProperty(operatorA, props.operatorA ? props.operatorA[i] : -1);
-        builder.assignProperty(operatorB, props.operatorB ? props.operatorB[i] : -1);
+        builder.assignDirectedProperty(
+            operatorA, props.operatorA ? props.operatorA[i] : -1,
+            operatorB, props.operatorB ? props.operatorB[i] : -1
+        );
         builder.assignProperty(order, props.order ? props.order[i] : 1);
         builder.assignProperty(distance, props.distance ? props.distance[i] : -1);
         builder.assignProperty(flag, props.flag ? props.flag[i] : BondType.Flag.Covalent);

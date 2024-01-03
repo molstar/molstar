@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -42,16 +42,23 @@ export function getIllustrativeColorThemeParams(ctx: ThemeDataContext) {
     return params;
 }
 
+type IllustrativeColorThemeProps = PD.Values<IllustrativeColorThemeParams>
+
+function getStyleTheme(ctx: ThemeDataContext, props: IllustrativeColorThemeProps['style']) {
+    switch (props.name) {
+        case 'uniform': return UniformColorTheme(ctx, props.params);
+        case 'chain-id': return ChainIdColorTheme(ctx, props.params);
+        case 'entity-id': return EntityIdColorTheme(ctx, props.params);
+        case 'entity-source': return EntitySourceColorTheme(ctx, props.params);
+        case 'molecule-type': return MoleculeTypeColorTheme(ctx, props.params);
+        case 'model-index': return ModelIndexColorTheme(ctx, props.params);
+        case 'structure-index': return StructureIndexColorTheme(ctx, props.params);
+        default: assertUnreachable(props);
+    }
+}
+
 export function IllustrativeColorTheme(ctx: ThemeDataContext, props: PD.Values<IllustrativeColorThemeParams>): ColorTheme<IllustrativeColorThemeParams> {
-    const { color: styleColor, legend } =
-        props.style.name === 'uniform' ? UniformColorTheme(ctx, props.style.params) :
-            props.style.name === 'chain-id' ? ChainIdColorTheme(ctx, props.style.params) :
-                props.style.name === 'entity-id' ? EntityIdColorTheme(ctx, props.style.params) :
-                    props.style.name === 'entity-source' ? EntitySourceColorTheme(ctx, props.style.params) :
-                        props.style.name === 'molecule-type' ? MoleculeTypeColorTheme(ctx, props.style.params) :
-                            props.style.name === 'model-index' ? ModelIndexColorTheme(ctx, props.style.params) :
-                                props.style.name === 'structure-index' ? StructureIndexColorTheme(ctx, props.style.params) :
-                                    assertUnreachable(props.style);
+    const { color: styleColor, legend } = getStyleTheme(ctx, props.style);
 
     function illustrativeColor(location: Location, typeSymbol: ElementSymbol) {
         const baseColor = styleColor(location, false);

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -71,8 +71,8 @@ class State {
 
     tryGetCellData = <T extends StateObject>(ref: StateTransform.Ref) => {
         const ret = this.cells.get(ref)?.obj?.data;
-        if (!ref) throw new Error(`Cell '${ref}' data undefined.`);
-        return ret as T;
+        if (ret === undefined) throw new Error(`Cell '${ref}' data undefined.`);
+        return ret as T extends StateObject<infer D> ? D : never;
     };
 
     private historyCapacity = 5;
@@ -868,13 +868,36 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
     const current = ctx.cells.get(currentRef)!;
     const transform = current.transform;
 
-    // special case for Root
+    // Special case for Root
     if (current.transform.ref === StateTransform.RootRef) {
         return { action: 'none' };
     }
 
+    const treeParent = ctx.cells.get(current.transform.parent);
+    const isParentNull = treeParent?.obj === StateObject.Null;
+
+    // Special case for when the immediate parent is null
+    // This could happen then manually applying transforms to
+    // already existing null nudes
+    if (isParentNull) {
+        current.sourceRef = treeParent.transform.ref;
+
+        if (oldTree.transforms.has(currentRef) && current.params) {
+            const oldParams = current.params.values;
+            const oldCache = current.cache;
+            dispose(transform, current.obj, oldParams, oldCache, ctx.parent.globalContext);
+
+            current.params = undefined;
+            current.obj = StateObject.Null;
+            return { ref: currentRef, action: 'updated', obj: current.obj! };
+        } else {
+            current.params = undefined;
+            return { ref: currentRef, action: 'created', obj: StateObject.Null };
+        }
+    }
+
     const parentCell = transform.transformer.definition.from.length === 0
-        ? ctx.cells.get(current.transform.parent)
+        ? treeParent
         : StateSelection.findAncestorOfType(tree, ctx.cells, currentRef, transform.transformer.definition.from);
     if (!parentCell) {
         throw new Error(`No suitable parent found for '${currentRef}'`);

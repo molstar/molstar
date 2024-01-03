@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -24,13 +24,9 @@ uniform float uFogNear;
 uniform float uFogFar;
 uniform vec3 uFogColor;
 uniform vec3 uOutlineColor;
+uniform vec3 uOcclusionColor;
 uniform bool uTransparentBackground;
-
 uniform vec2 uOcclusionOffset;
-
-uniform float uMaxPossibleViewZDiff;
-
-const vec3 occlusionColor = vec3(0.0);
 
 #include common
 
@@ -63,11 +59,13 @@ bool isBackground(const in float depth) {
 }
 
 float getOutline(const in vec2 coords, const in float opaqueDepth, out float closestTexel) {
-    float backgroundViewZ = uFar + 3.0 * uMaxPossibleViewZDiff;
+    float backgroundViewZ = 2.0 * uFar;
     vec2 invTexSize = 1.0 / uTexSize;
 
-    float selfDepth = min(opaqueDepth, getDepthTransparent(coords));
-    float selfViewZ = isBackground(selfDepth) ? backgroundViewZ : getViewZ(selfDepth);
+    float transparentDepth = getDepthTransparent(coords);
+    float opaqueSelfViewZ = isBackground(opaqueDepth) ? backgroundViewZ : getViewZ(opaqueDepth);
+    float transparentSelfViewZ = isBackground(transparentDepth) ? backgroundViewZ : getViewZ(transparentDepth);
+    float selfDepth = min(opaqueDepth, transparentDepth);
 
     float outline = 1.0;
     closestTexel = 1.0;
@@ -84,7 +82,8 @@ float getOutline(const in vec2 coords, const in float opaqueDepth, out float clo
             float sampleOutlineDepth = unpackRGToUnitInterval(sampleOutlineCombined.gb);
             float sampleOutlineViewZ = isBackground(sampleOutlineDepth) ? backgroundViewZ : getViewZ(sampleOutlineDepth);
 
-            if (sampleOutline == 0.0 && sampleOutlineDepth < closestTexel && abs(selfViewZ - sampleOutlineViewZ) > uMaxPossibleViewZDiff) {
+            float selfViewZ = sampleOutlineCombined.a == 0.0 ? opaqueSelfViewZ : transparentSelfViewZ;
+            if (sampleOutline == 0.0 && sampleOutlineDepth < closestTexel) {
                 outline = 0.0;
                 closestTexel = sampleOutlineDepth;
             }
@@ -118,9 +117,9 @@ void main(void) {
             fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
             float occlusionFactor = getSsao(coords + uOcclusionOffset);
             if (!uTransparentBackground) {
-                color.rgb = mix(mix(occlusionColor, uFogColor, fogFactor), color.rgb, occlusionFactor);
+                color.rgb = mix(mix(uOcclusionColor, uFogColor, fogFactor), color.rgb, occlusionFactor);
             } else {
-                color.rgb = mix(occlusionColor * (1.0 - fogFactor), color.rgb, occlusionFactor);
+                color.rgb = mix(uOcclusionColor * (1.0 - fogFactor), color.rgb, occlusionFactor);
             }
         }
     #endif

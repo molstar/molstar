@@ -99,7 +99,7 @@ export class ViewportHelpContent extends PluginUIComponent<{ selectOnly?: boolea
             {(!this.props.selectOnly && this.plugin.canvas3d) && <HelpGroup key='trackball' header='Moving in 3D'>
                 <BindingsHelp bindings={this.plugin.canvas3d.props.trackball.bindings} />
             </HelpGroup>}
-            {!!interactionBindings && <HelpGroup key='interactions' header='Mouse Controls'>
+            {!!interactionBindings && <HelpGroup key='interactions' header='Mouse & Key Controls'>
                 <BindingsHelp bindings={interactionBindings} />
             </HelpGroup>}
         </>;

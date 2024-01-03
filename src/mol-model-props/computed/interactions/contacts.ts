@@ -44,7 +44,7 @@ function validPair(structure: Structure, infoA: Features.Info, infoB: Features.I
     const altA = altLoc(infoA.unit, indexA);
     const altB = altLoc(infoB.unit, indexB);
     if (altA && altB && altA !== altB) return false; // incompatible alternate location id
-    if (infoA.unit.residueIndex[infoA.unit.elements[indexA]] === infoB.unit.residueIndex[infoB.unit.elements[indexB]] && infoA.unit === infoB.unit) return false; // same residue
+    if (infoA.unit === infoB.unit && infoA.unit.model.atomicHierarchy.residueAtomSegments.count > 1 && infoA.unit.residueIndex[infoA.unit.elements[indexA]] === infoB.unit.residueIndex[infoB.unit.elements[indexB]]) return false; // same residue (and more than one residue)
 
     // e.g. no hbond if donor and acceptor are bonded
     if (connectedTo(structure, infoA.unit, indexA, infoB.unit, indexB)) return false;

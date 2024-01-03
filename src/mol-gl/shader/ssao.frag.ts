@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -13,6 +13,8 @@ precision highp sampler2D;
 #include common
 
 uniform sampler2D tDepth;
+uniform sampler2D tDepthHalf;
+uniform sampler2D tDepthQuarter;
 uniform vec2 uTexSize;
 uniform vec4 uBounds;
 
@@ -21,7 +23,14 @@ uniform vec3 uSamples[dNSamples];
 uniform mat4 uProjection;
 uniform mat4 uInvProjection;
 
-uniform float uRadius;
+#ifdef dMultiScale
+    uniform float uLevelRadius[dLevels];
+    uniform float uLevelBias[dLevels];
+    uniform float uNearThreshold;
+    uniform float uFarThreshold;
+#else
+    uniform float uRadius;
+#endif
 uniform float uBias;
 
 float smootherstep(float edge0, float edge1, float x) {
@@ -46,20 +55,38 @@ bool isBackground(const in float depth) {
     return depth == 1.0;
 }
 
-bool outsideBounds(const in vec2 p) {
-    return p.x < uBounds.x || p.y < uBounds.y || p.x > uBounds.z || p.y > uBounds.w;
+float getDepth(const in vec2 coords) {
+    vec2 c = vec2(clamp(coords.x, uBounds.x, uBounds.z), clamp(coords.y, uBounds.y, uBounds.w));
+    #ifdef depthTextureSupport
+        return texture2D(tDepth, c).r;
+    #else
+        return unpackRGBAToDepth(texture2D(tDepth, c));
+    #endif
 }
 
-float getDepth(const in vec2 coords) {
-    if (outsideBounds(coords)) {
-        return 1.0;
-    } else {
-        #ifdef depthTextureSupport
-            return texture2D(tDepth, coords).r;
-        #else
-            return unpackRGBAToDepth(texture2D(tDepth, coords));
-        #endif
-    }
+#define dQuarterThreshold 0.1
+#define dHalfThreshold 0.05
+
+float getMappedDepth(const in vec2 coords, const in vec2 selfCoords) {
+    vec2 c = vec2(clamp(coords.x, uBounds.x, uBounds.z), clamp(coords.y, uBounds.y, uBounds.w));
+    float d = distance(coords, selfCoords);
+    #ifdef depthTextureSupport
+        if (d > dQuarterThreshold) {
+            return texture2D(tDepthQuarter, c).r;
+        } else if (d > dHalfThreshold) {
+            return texture2D(tDepthHalf, c).r;
+        } else {
+            return texture2D(tDepth, c).r;
+        }
+    #else
+        if (d > dQuarterThreshold) {
+            return unpackRGBAToDepth(texture2D(tDepthQuarter, c));
+        } else if (d > dHalfThreshold) {
+            return unpackRGBAToDepth(texture2D(tDepthHalf, c));
+        } else {
+            return unpackRGBAToDepth(texture2D(tDepth, c));
+        }
+    #endif
 }
 
 vec3 normalFromDepth(const in float depth, const in float depth1, const in float depth2, vec2 offset1, vec2 offset2) {
@@ -72,6 +99,12 @@ vec3 normalFromDepth(const in float depth, const in float depth1, const in float
     return normalize(normal);
 }
 
+float getPixelSize(const in vec2 coords, const in float depth) {
+    vec3 viewPos0 = screenSpaceToViewSpace(vec3(coords, depth), uInvProjection);
+    vec3 viewPos1 = screenSpaceToViewSpace(vec3(coords + vec2(1.0, 0.0) / uTexSize, depth), uInvProjection);
+    return distance(viewPos0, viewPos1);
+}
+
 // StarCraft II Ambient Occlusion by [Filion and McNaughton 2008]
 void main(void) {
     vec2 invTexSize = 1.0 / uTexSize;
@@ -81,7 +114,7 @@ void main(void) {
     vec2 selfPackedDepth = packUnitIntervalToRG(selfDepth);
 
     if (isBackground(selfDepth)) {
-        gl_FragColor = vec4(packUnitIntervalToRG(0.0), selfPackedDepth);
+        gl_FragColor = vec4(packUnitIntervalToRG(1.0), selfPackedDepth);
         return;
     }
 
@@ -95,27 +128,53 @@ void main(void) {
     vec3 selfViewPos = screenSpaceToViewSpace(vec3(selfCoords, selfDepth), uInvProjection);
 
     vec3 randomVec = normalize(vec3(getNoiseVec2(selfCoords) * 2.0 - 1.0, 0.0));
-
     vec3 tangent = normalize(randomVec - selfViewNormal * dot(randomVec, selfViewNormal));
     vec3 bitangent = cross(selfViewNormal, tangent);
     mat3 TBN = mat3(tangent, bitangent, selfViewNormal);
 
     float occlusion = 0.0;
-    for(int i = 0; i < dNSamples; i++){
-        vec3 sampleViewPos = TBN * uSamples[i];
-        sampleViewPos = selfViewPos + sampleViewPos * uRadius;
+    #ifdef dMultiScale
+        float pixelSize = getPixelSize(selfCoords, selfDepth);
 
-        vec4 offset = vec4(sampleViewPos, 1.0);
-        offset = uProjection * offset;
-        offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
+        for(int l = 0; l < dLevels; l++) {
+            // TODO: smooth transition
+            if (pixelSize * uNearThreshold > uLevelRadius[l]) continue;
+            if (pixelSize * uFarThreshold < uLevelRadius[l]) continue;
 
-        float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, getDepth(offset.xy)), uInvProjection).z;
+            float levelOcclusion = 0.0;
+            for(int i = 0; i < dNSamples; i++) {
+                vec3 sampleViewPos = TBN * uSamples[i];
+                sampleViewPos = selfViewPos + sampleViewPos * uLevelRadius[l];
 
-        occlusion += step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ));
-    }
+                vec4 offset = vec4(sampleViewPos, 1.0);
+                offset = uProjection * offset;
+                offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
+
+                float sampleDepth = getMappedDepth(offset.xy, selfCoords);
+                float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
+
+                levelOcclusion += step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uLevelRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uLevelBias[l];
+            }
+            occlusion = max(occlusion, levelOcclusion);
+        }
+    #else
+        for(int i = 0; i < dNSamples; i++) {
+            vec3 sampleViewPos = TBN * uSamples[i];
+            sampleViewPos = selfViewPos + sampleViewPos * uRadius;
+
+            vec4 offset = vec4(sampleViewPos, 1.0);
+            offset = uProjection * offset;
+            offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
+
+            float sampleDepth = getMappedDepth(offset.xy, selfCoords);
+            float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
+
+            occlusion += step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ));
+        }
+    #endif
     occlusion = 1.0 - (uBias * occlusion / float(dNSamples));
 
-    vec2 packedOcclusion = packUnitIntervalToRG(occlusion);
+    vec2 packedOcclusion = packUnitIntervalToRG(clamp(occlusion, 0.01, 1.0));
 
     gl_FragColor = vec4(packedOcclusion, selfPackedDepth);
 }

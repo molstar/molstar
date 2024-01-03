@@ -118,8 +118,6 @@ export class ParameterMappingControl<S, T> extends PluginUIComponent<{ mapping: 
     };
 
     componentDidMount() {
-        this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
-
         this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
             this.setState({ isDisabled: v });
         });
@@ -258,13 +256,7 @@ function renderSimple(options: { props: ParamProps<any>, state: { showHelp: bool
             title={desc}
             label={<>
                 {label}
-                {hasHelp &&
-                    <button className='msp-help msp-btn-link msp-btn-icon msp-control-group-expander' onClick={toggleHelp}
-                        title={desc || `${state.showHelp ? 'Hide' : 'Show'} help`}
-                        style={{ background: 'transparent', textAlign: 'left', padding: '0' }}>
-                        <Icon svg={HelpOutlineSvg} />
-                    </button>
-                }
+                {hasHelp && <ToggleParamHelpButton show={state.showHelp} toggle={toggleHelp} title={desc} />}
             </>}
             control={control}
         />
@@ -273,6 +265,14 @@ function renderSimple(options: { props: ParamProps<any>, state: { showHelp: bool
         </div>}
         {addOn}
     </>;
+}
+
+export function ToggleParamHelpButton({ show, toggle, title }: { show: boolean, toggle: () => void, title?: string }) {
+    return <button className='msp-help msp-btn-link msp-btn-icon msp-control-group-expander' onClick={toggle}
+        title={title || `${show ? 'Hide' : 'Show'} help`}
+        style={{ background: 'transparent', textAlign: 'left', padding: '0' }}>
+        <Icon svg={HelpOutlineSvg} />
+    </button>;
 }
 
 export abstract class SimpleParam<P extends PD.Any> extends React.PureComponent<ParamProps<P>, { showHelp: boolean }> {

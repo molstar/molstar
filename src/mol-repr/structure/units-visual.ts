@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -16,7 +16,7 @@ import { createRenderObject, GraphicsRenderObject, RenderObjectValues } from '..
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci } from '../../mol-model/loci';
 import { Interval } from '../../mol-data/int';
-import { VisualUpdateState } from '../util';
+import { LocationCallback, VisualUpdateState } from '../util';
 import { ColorTheme } from '../../mol-theme/color';
 import { createMarkers } from '../../mol-geo/geometry/marker-data';
 import { MarkerAction } from '../../mol-util/marker-action';
@@ -46,7 +46,7 @@ export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<
 
 function createUnitsRenderObject<G extends Geometry>(structureGroup: StructureGroup, geometry: G, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureParams & Geometry.Params<G>>, materialId: number) {
     const { createValues, createRenderableState } = Geometry.getUtils(geometry);
-    const transform = createUnitsTransform(structureGroup, props.includeParent);
+    const transform = createUnitsTransform(structureGroup, props.includeParent, geometry.boundingSphere, props.cellSize, props.batchSize);
     const values = createValues(geometry, transform, locationIt, theme, props);
     const state = createRenderableState(props);
     return createRenderObject(geometry.kind, values, state, materialId);
@@ -126,7 +126,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             updateState.createGeometry = true;
         }
 
-        if (newProps.instanceGranularity !== currentProps.instanceGranularity) {
+        if (newProps.instanceGranularity !== currentProps.instanceGranularity || newProps.cellSize !== currentProps.cellSize || newProps.batchSize !== currentProps.batchSize) {
             updateState.updateTransform = true;
         }
 
@@ -207,7 +207,11 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
 
             if (updateState.updateMatrix) {
                 // console.log('update matrix');
-                createUnitsTransform(newStructureGroup, newProps.includeParent, renderObject.values);
+                createUnitsTransform(newStructureGroup, newProps.includeParent, renderObject.values.invariantBoundingSphere.ref.value, newProps.cellSize, newProps.batchSize, renderObject.values);
+                if ('lodLevels' in renderObject.values) {
+                    // to trigger `uLod` update in `renderable.cull`
+                    ValueCell.update(renderObject.values.lodLevels, renderObject.values.lodLevels.ref.value);
+                }
             }
 
             if (updateState.createGeometry) {
@@ -336,6 +340,13 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         },
         getLoci(pickingId: PickingId) {
             return renderObject ? getLoci(pickingId, currentStructureGroup, renderObject.id) : EmptyLoci;
+        },
+        eachLocation(cb: LocationCallback) {
+            locationIt.reset();
+            while (locationIt.hasNext) {
+                const { location, isSecondary } = locationIt.move();
+                cb(location, isSecondary);
+            }
         },
         mark(loci: Loci, action: MarkerAction) {
             let hasInvariantId = true;
