@@ -42,7 +42,8 @@ import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { TrajectoryFromModelAndCoordinates } from '../../mol-plugin-state/transforms/model';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
-import { createPluginUI } from '../../mol-plugin-ui/react18';
+import { createPluginUI } from '../../mol-plugin-ui';
+import { renderReact18 } from '../../mol-plugin-ui/react18';
 import { DefaultPluginUISpec, PluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginConfig } from '../../mol-plugin/config';
@@ -204,7 +205,10 @@ export class Viewer {
             ? document.getElementById(elementOrId)
             : elementOrId;
         if (!element) throw new Error(`Could not get element with id '${elementOrId}'`);
-        const plugin = await createPluginUI(element, spec, {
+        const plugin = await createPluginUI({
+            target: element,
+            spec,
+            render: renderReact18,
             onBeforeUIRender: plugin => {
                 // the preset needs to be added before the UI renders otherwise
                 // "Download Structure" wont be able to pick it up
