@@ -294,9 +294,6 @@ function getGlsl100FragPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
             throw new Error(`required 'GL_EXT_shader_texture_lod' extension not available`);
         }
     }
-    if (extensions.depthTexture) {
-        prefix.push('#define depthTextureSupport');
-    }
     return prefix.join('\n') + '\n';
 }
 
@@ -315,8 +312,6 @@ const glsl300FragPrefixCommon = `
 
 #define gl_FragColor out_FragData0
 #define gl_FragDepthEXT gl_FragDepth
-
-#define depthTextureSupport
 `;
 
 function getGlsl300VertPrefix(extensions: WebGLExtensions, shaderExtensions: ShaderExtensions) {

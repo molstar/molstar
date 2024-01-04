@@ -115,13 +115,12 @@ export class WboitPass {
     }
 
     static isSupported(webgl: WebGLContext) {
-        const { extensions: { drawBuffers, textureFloat, colorBufferFloat, depthTexture } } = webgl;
-        if (!textureFloat || !colorBufferFloat || !depthTexture || !drawBuffers) {
+        const { extensions: { drawBuffers, textureFloat, colorBufferFloat } } = webgl;
+        if (!textureFloat || !colorBufferFloat || !drawBuffers) {
             if (isDebugMode) {
                 const missing: string[] = [];
                 if (!textureFloat) missing.push('textureFloat');
                 if (!colorBufferFloat) missing.push('colorBufferFloat');
-                if (!depthTexture) missing.push('depthTexture');
                 if (!drawBuffers) missing.push('drawBuffers');
                 console.log(`Missing "${missing.join('", "')}" extensions required for "wboit"`);
             }
