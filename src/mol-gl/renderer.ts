@@ -32,7 +32,6 @@ export interface RendererStats {
     attributeCount: number
     elementsCount: number
     framebufferCount: number
-    renderbufferCount: number
     textureCount: number
     vertexArrayCount: number
 
@@ -890,7 +889,6 @@ namespace Renderer {
                     attributeCount: ctx.stats.resourceCounts.attribute,
                     elementsCount: ctx.stats.resourceCounts.elements,
                     framebufferCount: ctx.stats.resourceCounts.framebuffer,
-                    renderbufferCount: ctx.stats.resourceCounts.renderbuffer,
                     textureCount: ctx.stats.resourceCounts.texture,
                     vertexArrayCount: ctx.stats.resourceCounts.vertexArray,
 
