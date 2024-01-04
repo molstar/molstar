@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [V4-DEV]
 
 - [Breaking] Require `WEBGL_depth_texture` webgl extension
+    - Remove `renderbuffer` use
 - [Breaking] Change build target to ES2018
     - Custom builds only require ES6 for dependencies like immer.js
 - Improve `SetUtils` performance using ES6 features

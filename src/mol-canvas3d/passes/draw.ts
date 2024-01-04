@@ -75,15 +75,12 @@ export class DrawPass {
     }
 
     constructor(private webgl: WebGLContext, assetManager: AssetManager, width: number, height: number, transparency: 'wboit' | 'dpoit' | 'blended') {
-        const { resources, isWebGL2 } = webgl;
         this.drawTarget = createNullRenderTarget(webgl.gl);
         this.colorTarget = webgl.createRenderTarget(width, height, true, 'uint8', 'linear');
+        this.depthTextureOpaque = this.colorTarget.depthTexture!;
 
         this.depthTargetTransparent = webgl.createRenderTarget(width, height);
         this.depthTextureTransparent = this.depthTargetTransparent.texture;
-
-        this.depthTextureOpaque = resources.texture('image-depth', 'depth', isWebGL2 ? 'float' : 'ushort', 'nearest');
-        this.depthTextureOpaque.define(width, height);
 
         this.wboit = new WboitPass(webgl, width, height);
         this.dpoit = new DpoitPass(webgl, width, height);
@@ -109,7 +106,6 @@ export class DrawPass {
         if (width !== w || height !== h) {
             this.colorTarget.setSize(width, height);
             this.depthTargetTransparent.setSize(width, height);
-            this.depthTextureOpaque.define(width, height);
 
             ValueCell.update(this.copyFboTarget.values.uTexSize, Vec2.set(this.copyFboTarget.values.uTexSize.ref.value, width, height));
             ValueCell.update(this.copyFboPostprocessing.values.uTexSize, Vec2.set(this.copyFboPostprocessing.values.uTexSize.ref.value, width, height));
