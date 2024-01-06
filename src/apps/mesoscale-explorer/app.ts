@@ -6,7 +6,8 @@
 
 import { Mp4Export } from '../../extensions/mp4-export';
 import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
-import { createPluginUI } from '../../mol-plugin-ui/react18';
+import { createPluginUI } from '../../mol-plugin-ui';
+import { renderReact18 } from '../../mol-plugin-ui/react18';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { DefaultPluginUISpec, PluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginConfig } from '../../mol-plugin/config';
@@ -199,7 +200,10 @@ export class MesoscaleExplorer {
             : elementOrId;
         if (!element) throw new Error(`Could not get element with id '${elementOrId}'`);
 
-        const plugin = await createPluginUI(element, spec, {
+        const plugin = await createPluginUI({
+            target: element,
+            spec,
+            render: renderReact18,
             onBeforeUIRender: async plugin => {
                 let examples: MesoscaleExplorerState['examples'] = undefined;
                 try {
