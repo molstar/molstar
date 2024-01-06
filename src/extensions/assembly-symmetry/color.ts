@@ -4,16 +4,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ThemeDataContext } from '../../../mol-theme/theme';
-import { ColorTheme, LocationColor } from '../../../mol-theme/color';
-import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { AssemblySymmetryProvider, AssemblySymmetry } from './prop';
-import { Color } from '../../../mol-util/color';
-import { Unit, StructureElement, StructureProperties, Bond } from '../../../mol-model/structure';
-import { Location } from '../../../mol-model/location';
-import { ScaleLegend, TableLegend } from '../../../mol-util/legend';
-import { getPalette, getPaletteParams } from '../../../mol-util/color/palette';
-import { CustomProperty } from '../../../mol-model-props/common/custom-property';
+import { ThemeDataContext } from '../../mol-theme/theme';
+import { ColorTheme, LocationColor } from '../../mol-theme/color';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { AssemblySymmetryProvider, AssemblySymmetryData } from './prop';
+import { Color } from '../../mol-util/color';
+import { Unit, StructureElement, StructureProperties, Bond } from '../../mol-model/structure';
+import { Location } from '../../mol-model/location';
+import { ScaleLegend, TableLegend } from '../../mol-util/legend';
+import { getPalette, getPaletteParams } from '../../mol-util/color/palette';
+import { CustomProperty } from '../../mol-model-props/common/custom-property';
 
 const DefaultColor = Color(0xCCCCCC);
 
@@ -94,19 +94,19 @@ export function AssemblySymmetryClusterColorTheme(ctx: ThemeDataContext, props: 
         color,
         props,
         contextHash,
-        description: 'Assigns chain colors according to assembly symmetry cluster membership calculated with BioJava and obtained via RCSB PDB.',
+        description: 'Assigns chain colors according to assembly symmetry cluster membership data provided by RCSB PDB (calculated with BioJava) or by PDBe.',
         legend
     };
 }
 
-export const AssemblySymmetryClusterColorThemeProvider: ColorTheme.Provider<AssemblySymmetryClusterColorThemeParams, AssemblySymmetry.Tag.Cluster> = {
-    name: AssemblySymmetry.Tag.Cluster,
+export const AssemblySymmetryClusterColorThemeProvider: ColorTheme.Provider<AssemblySymmetryClusterColorThemeParams, AssemblySymmetryData.Tag.Cluster> = {
+    name: AssemblySymmetryData.Tag.Cluster,
     label: 'Assembly Symmetry Cluster',
     category: ColorTheme.Category.Symmetry,
     factory: AssemblySymmetryClusterColorTheme,
     getParams: getAssemblySymmetryClusterColorThemeParams,
     defaultValues: PD.getDefaultValues(AssemblySymmetryClusterColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => AssemblySymmetry.isApplicable(ctx.structure),
+    isApplicable: (ctx: ThemeDataContext) => AssemblySymmetryData.isApplicable(ctx.structure),
     ensureCustomProperties: {
         attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => data.structure ? AssemblySymmetryProvider.attach(ctx, data.structure, void 0, true) : Promise.resolve(),
         detach: (data) => data.structure && AssemblySymmetryProvider.ref(data.structure, false)

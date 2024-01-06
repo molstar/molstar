@@ -3,8 +3,12 @@ All notable changes to this project will be documented in this file, following t
 
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
+
 ## [V4-DEV]
 
+- [Breaking] Generalize rcsb/assembly-symmetry/ extension
+    - Move to assembly-symmetry/
+    - Remove RCSB specific dependencies and prefixes
 - [Breaking] Require `WEBGL_depth_texture` webgl extension
     - Remove `renderbuffer` use
 - [Breaking] Change build target to ES2018
