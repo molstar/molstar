@@ -11,7 +11,8 @@ import { SphericalBasisOrder } from '../../extensions/alpha-orbitals/spherical-f
 import { BasisAndOrbitals, CreateOrbitalDensityVolume, CreateOrbitalRepresentation3D, CreateOrbitalVolume, StaticBasisAndOrbitals } from '../../extensions/alpha-orbitals/transforms';
 import { canComputeGrid3dOnGPU } from '../../mol-gl/compute/grid3d';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { createPluginUI } from '../../mol-plugin-ui/react18';
+import { createPluginUI } from '../../mol-plugin-ui';
+import { renderReact18 } from '../../mol-plugin-ui/react18';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -56,28 +57,32 @@ export class AlphaOrbitalsExample {
 
     async init(target: string | HTMLElement) {
         const defaultSpec = DefaultPluginUISpec();
-        this.plugin = await createPluginUI(typeof target === 'string' ? document.getElementById(target)! : target, {
-            ...defaultSpec,
-            layout: {
-                initial: {
-                    isExpanded: false,
-                    showControls: false
+        this.plugin = await createPluginUI({
+            target: typeof target === 'string' ? document.getElementById(target)! : target,
+            render: renderReact18,
+            spec: {
+                ...defaultSpec,
+                layout: {
+                    initial: {
+                        isExpanded: false,
+                        showControls: false
+                    },
                 },
-            },
-            components: {
-                controls: { left: 'none', right: 'none', top: 'none', bottom: 'none' },
-            },
-            canvas3d: {
-                camera: {
-                    helper: { axes: { name: 'off', params: {} } }
-                }
-            },
-            config: [
-                [PluginConfig.Viewport.ShowExpand, false],
-                [PluginConfig.Viewport.ShowControls, false],
-                [PluginConfig.Viewport.ShowSelectionMode, false],
-                [PluginConfig.Viewport.ShowAnimation, false],
-            ]
+                components: {
+                    controls: { left: 'none', right: 'none', top: 'none', bottom: 'none' },
+                },
+                canvas3d: {
+                    camera: {
+                        helper: { axes: { name: 'off', params: {} } }
+                    }
+                },
+                config: [
+                    [PluginConfig.Viewport.ShowExpand, false],
+                    [PluginConfig.Viewport.ShowControls, false],
+                    [PluginConfig.Viewport.ShowSelectionMode, false],
+                    [PluginConfig.Viewport.ShowAnimation, false],
+                ]
+            }
         });
 
         this.plugin.managers.interactivity.setProps({ granularity: 'element' });
