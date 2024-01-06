@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [V4-DEV]
 
+- Add Mesoscale Explorer app for investigating large systems
+- [Breaking] Remove `cellpack` extension (superseded by Mesoscale Explorer app)
 - [Breaking] Set minimal node.js version to 18
 - [Breaking] Generalize rcsb/assembly-symmetry/ extension
     - Move to assembly-symmetry/
