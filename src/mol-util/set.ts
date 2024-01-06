@@ -16,11 +16,10 @@ export namespace SetUtils {
     /** Test if set a contains all elements of set b. */
     export function isSuperset<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>) {
         if (setA.size < setB.size) return false;
-        let flag = true;
-        setB.forEach(elem => {
-            if (flag && !setA.has(elem)) flag = false;
-        });
-        return flag;
+        for (const elem of setB) {
+            if (!setA.has(elem)) return false;
+        }
+        return true;
     }
 
     /** Add all elements from `sets` to `out` */
@@ -67,11 +66,10 @@ export namespace SetUtils {
 
     export function areIntersecting<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>): boolean {
         if (setA.size < setB.size) [setA, setB] = [setB, setA];
-        let flag = false;
-        setB.forEach(elem => {
-            if (!flag && setA.has(elem)) flag = true;
-        });
-        return flag;
+        for (const elem of setB) {
+            if (setA.has(elem)) return true;
+        }
+        return false;
     }
 
     export function intersectionSize<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>): number {
@@ -102,10 +100,9 @@ export namespace SetUtils {
     /** Test if set a and b contain the same elements. */
     export function areEqual<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>) {
         if (setA.size !== setB.size) return false;
-        let flag = true;
-        setB.forEach(elem => {
-            if (flag && !setA.has(elem)) flag = false;
-        });
-        return flag;
+        for (const elem of setB) {
+            if (!setA.has(elem)) return false;
+        }
+        return true;
     }
 }

@@ -18,8 +18,8 @@ import { MolViewSpec } from '../../extensions/mvs/behavior';
 import { loadMVS } from '../../extensions/mvs/load';
 import { MVSData } from '../../extensions/mvs/mvs-data';
 import { PDBeStructureQualityReport } from '../../extensions/pdbe';
-import { RCSBAssemblySymmetry, RCSBValidationReport } from '../../extensions/rcsb';
-import { RCSBAssemblySymmetryConfig } from '../../extensions/rcsb/assembly-symmetry/behavior';
+import { RCSBValidationReport } from '../../extensions/rcsb';
+import { AssemblySymmetry, AssemblySymmetryConfig } from '../../extensions/assembly-symmetry';
 import { SbNcbrPartialCharges, SbNcbrPartialChargesPreset, SbNcbrPartialChargesPropertyProvider } from '../../extensions/sb-ncbr';
 import { Volseg, VolsegVolumeServerConfig } from '../../extensions/volumes-and-segmentations';
 import { wwPDBChemicalComponentDictionary } from '../../extensions/wwpdb/ccd/behavior';
@@ -41,7 +41,8 @@ import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { TrajectoryFromModelAndCoordinates } from '../../mol-plugin-state/transforms/model';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
-import { createPluginUI } from '../../mol-plugin-ui/react18';
+import { createPluginUI } from '../../mol-plugin-ui';
+import { renderReact18 } from '../../mol-plugin-ui/react18';
 import { DefaultPluginUISpec, PluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginConfig } from '../../mol-plugin/config';
@@ -66,7 +67,7 @@ export const ExtensionMap = {
     'backgrounds': PluginSpec.Behavior(Backgrounds),
     'dnatco-ntcs': PluginSpec.Behavior(DnatcoNtCs),
     'pdbe-structure-quality-report': PluginSpec.Behavior(PDBeStructureQualityReport),
-    'rcsb-assembly-symmetry': PluginSpec.Behavior(RCSBAssemblySymmetry),
+    'rcsb-assembly-symmetry': PluginSpec.Behavior(AssemblySymmetry),
     'rcsb-validation-report': PluginSpec.Behavior(RCSBValidationReport),
     'anvil-membrane-orientation': PluginSpec.Behavior(ANVILMembraneOrientation),
     'g3d': PluginSpec.Behavior(G3DFormat),
@@ -114,9 +115,9 @@ const DefaultViewerOptions = {
     emdbProvider: PluginConfig.Download.DefaultEmdbProvider.defaultValue,
     saccharideCompIdMapType: 'default' as SaccharideCompIdMapType,
     volumesAndSegmentationsDefaultServer: VolsegVolumeServerConfig.DefaultServer.defaultValue,
-    rcsbAssemblySymmetryDefaultServerType: RCSBAssemblySymmetryConfig.DefaultServerType.defaultValue,
-    rcsbAssemblySymmetryDefaultServerUrl: RCSBAssemblySymmetryConfig.DefaultServerUrl.defaultValue,
-    rcsbAssemblySymmetryApplyColors: RCSBAssemblySymmetryConfig.ApplyColors.defaultValue,
+    rcsbAssemblySymmetryDefaultServerType: AssemblySymmetryConfig.DefaultServerType.defaultValue,
+    rcsbAssemblySymmetryDefaultServerUrl: AssemblySymmetryConfig.DefaultServerUrl.defaultValue,
+    rcsbAssemblySymmetryApplyColors: AssemblySymmetryConfig.ApplyColors.defaultValue,
 };
 type ViewerOptions = typeof DefaultViewerOptions;
 
@@ -192,9 +193,9 @@ export class Viewer {
                 [PluginConfig.Structure.DefaultRepresentationPreset, ViewerAutoPreset.id],
                 [PluginConfig.Structure.SaccharideCompIdMapType, o.saccharideCompIdMapType],
                 [VolsegVolumeServerConfig.DefaultServer, o.volumesAndSegmentationsDefaultServer],
-                [RCSBAssemblySymmetryConfig.DefaultServerType, o.rcsbAssemblySymmetryDefaultServerType],
-                [RCSBAssemblySymmetryConfig.DefaultServerUrl, o.rcsbAssemblySymmetryDefaultServerUrl],
-                [RCSBAssemblySymmetryConfig.ApplyColors, o.rcsbAssemblySymmetryApplyColors],
+                [AssemblySymmetryConfig.DefaultServerType, o.rcsbAssemblySymmetryDefaultServerType],
+                [AssemblySymmetryConfig.DefaultServerUrl, o.rcsbAssemblySymmetryDefaultServerUrl],
+                [AssemblySymmetryConfig.ApplyColors, o.rcsbAssemblySymmetryApplyColors],
             ]
         };
 
@@ -202,7 +203,10 @@ export class Viewer {
             ? document.getElementById(elementOrId)
             : elementOrId;
         if (!element) throw new Error(`Could not get element with id '${elementOrId}'`);
-        const plugin = await createPluginUI(element, spec, {
+        const plugin = await createPluginUI({
+            target: element,
+            spec,
+            render: renderReact18,
             onBeforeUIRender: plugin => {
                 // the preset needs to be added before the UI renders otherwise
                 // "Download Structure" wont be able to pick it up
