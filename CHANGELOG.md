@@ -3,13 +3,21 @@ All notable changes to this project will be documented in this file, following t
 
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
+
 ## [V4-DEV]
 
 - [Breaking] Generalize rcsb/assembly-symmetry/ extension
     - Move to assembly-symmetry/
     - Remove RCSB specific dependencies and prefixes
+- [Breaking] Require `WEBGL_depth_texture` webgl extension
+    - Remove `renderbuffer` use
 - [Breaking] Change build target to ES2018
     - Custom builds only require ES6 for dependencies like immer.js
+- [Breaking] Changed `createPluginUI`
+    - The function now takes a single `options` argument
+    - The caller must specify a `render` method that mounts the Mol* react component to DOM
+        - A default `renderReact18` method is provided, but needs to be imported separately
+        - To support React 16 and 17, `ReactDOM.render` can be passed
 - Improve `SetUtils` performance using ES6 features
 - [Breaking] Reduce memory usage of `SymmetryOperator.ArrayMapping`
     - Requires calling methods from instance
@@ -30,6 +38,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add "Automatic Detail" preset that shows surface/cartoon/ball & stick based on camera distance
 
 ## [Unreleased]
+
+## [v3.44.0] - 2023-01-06
 
 - Add new `cartoon` visuals to support atomic nucleotide base with sugar
 - Add `thicknessFactor` to `cartoon` representation for scaling nucleotide block/ring/atomic-fill visuals

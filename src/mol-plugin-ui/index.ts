@@ -1,23 +1,24 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import * as React from 'react';
-import * as ReactDOM from 'react-dom';
+
+import { createElement } from 'react';
 import { Plugin } from './plugin';
 import { PluginUIContext } from './context';
 import { DefaultPluginUISpec, PluginUISpec } from './spec';
 
-export async function createPluginUI(target: HTMLElement, spec?: PluginUISpec, options?: { onBeforeUIRender?: (ctx: PluginUIContext) => (Promise<void> | void) }) {
+export async function createPluginUI(options: { target: HTMLElement, render: (component: any, container: Element) => any, spec?: PluginUISpec, onBeforeUIRender?: (ctx: PluginUIContext) => (Promise<void> | void) }) {
+    const { spec, target, onBeforeUIRender, render } = options;
     const ctx = new PluginUIContext(spec || DefaultPluginUISpec());
     await ctx.init();
-    if (options?.onBeforeUIRender) {
-        await options.onBeforeUIRender(ctx);
+    if (onBeforeUIRender) {
+        await onBeforeUIRender(ctx);
     }
-    ReactDOM.render(React.createElement(Plugin, { plugin: ctx }), target);
+    render(createElement(Plugin, { plugin: ctx }), target);
     try {
         await ctx.canvas3dInitialized;
     } catch {
