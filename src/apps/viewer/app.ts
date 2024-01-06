@@ -7,7 +7,6 @@
 
 import { ANVILMembraneOrientation } from '../../extensions/anvil/behavior';
 import { Backgrounds } from '../../extensions/backgrounds';
-import { CellPack } from '../../extensions/cellpack';
 import { DnatcoNtCs } from '../../extensions/dnatco';
 import { G3DFormat, G3dProvider } from '../../extensions/g3d/format';
 import { GeometryExport } from '../../extensions/geo-export';
@@ -66,7 +65,6 @@ const CustomFormats = [
 export const ExtensionMap = {
     'volseg': PluginSpec.Behavior(Volseg),
     'backgrounds': PluginSpec.Behavior(Backgrounds),
-    'cellpack': PluginSpec.Behavior(CellPack),
     'dnatco-ntcs': PluginSpec.Behavior(DnatcoNtCs),
     'pdbe-structure-quality-report': PluginSpec.Behavior(PDBeStructureQualityReport),
     'rcsb-assembly-symmetry': PluginSpec.Behavior(AssemblySymmetry),
