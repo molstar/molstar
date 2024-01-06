@@ -9,6 +9,11 @@ Note that since we don't clearly distinguish between a public and private interf
     - Remove `renderbuffer` use
 - [Breaking] Change build target to ES2018
     - Custom builds only require ES6 for dependencies like immer.js
+- [Breaking] Changed `createPluginUI`
+    - The function now takes a single `options` argument
+    - The caller must specify a `render` method that mounts the Mol* react component to DOM
+        - A default `renderReact18` method is provided, but needs to be imported separately
+        - To support React 16 and 17, `ReactDOM.render` can be passed
 - Improve `SetUtils` performance using ES6 features
 - [Breaking] Reduce memory usage of `SymmetryOperator.ArrayMapping`
     - Requires calling methods from instance
