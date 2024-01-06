@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 
-## [V4-DEV]
+## [Unreleased]
+
+## [v4.0.0-beta.0] - 2023-01-06
 
 - Add Mesoscale Explorer app for investigating large systems
 - [Breaking] Remove `cellpack` extension (superseded by Mesoscale Explorer app)
@@ -39,8 +41,6 @@ Note that since we don't clearly distinguish between a public and private interf
         - Cull based on previous frame's Hi-Z buffer
 - Add stochastic/dithered transparency to fade overlapping LODs in and out
 - Add "Automatic Detail" preset that shows surface/cartoon/ball & stick based on camera distance
-
-## [Unreleased]
 
 ## [v3.44.0] - 2023-01-06
 
