@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [V4-DEV]
 
+- [Breaking] Set minimal node.js version to 18
 - [Breaking] Generalize rcsb/assembly-symmetry/ extension
     - Move to assembly-symmetry/
     - Remove RCSB specific dependencies and prefixes
