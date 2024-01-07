@@ -83,6 +83,7 @@ function createNucleotideAtomicBondImpostor(ctx: VisualContext, unit: Unit, stru
     const residueIt = Segmentation.transientSegments(residueAtomSegments, elements);
 
     let i = 0;
+    const colorModeFlag = 2.0;
     while (chainIt.hasNext) {
         residueIt.setSegment(chainIt.move());
 
@@ -99,14 +100,14 @@ function createNucleotideAtomicBondImpostor(ctx: VisualContext, unit: Unit, stru
 
                     // trace cylinder
                     pos(idx.trace, pTrace);
-                    builder.add(pC3_1[0], pC3_1[1], pC3_1[2], pTrace[0], pTrace[1], pTrace[2], 1, true, true, i);
+                    builder.add(pC3_1[0], pC3_1[1], pC3_1[2], pTrace[0], pTrace[1], pTrace[2], 1, true, true, colorModeFlag, i);
 
                     // sugar ring
-                    builder.add(pC3_1[0], pC3_1[1], pC3_1[2], pC4_1[0], pC4_1[1], pC4_1[2], 1, true, true, i);
-                    builder.add(pC4_1[0], pC4_1[1], pC4_1[2], pO4_1[0], pO4_1[1], pO4_1[2], 1, true, true, i);
-                    builder.add(pO4_1[0], pO4_1[1], pO4_1[2], pC1_1[0], pC1_1[1], pC1_1[2], 1, true, true, i);
-                    builder.add(pC1_1[0], pC1_1[1], pC1_1[2], pC2_1[0], pC2_1[1], pC2_1[2], 1, true, true, i);
-                    builder.add(pC2_1[0], pC2_1[1], pC2_1[2], pC3_1[0], pC3_1[1], pC3_1[2], 1, true, true, i);
+                    builder.add(pC3_1[0], pC3_1[1], pC3_1[2], pC4_1[0], pC4_1[1], pC4_1[2], 1, true, true, colorModeFlag, i);
+                    builder.add(pC4_1[0], pC4_1[1], pC4_1[2], pO4_1[0], pO4_1[1], pO4_1[2], 1, true, true, colorModeFlag, i);
+                    builder.add(pO4_1[0], pO4_1[1], pO4_1[2], pC1_1[0], pC1_1[1], pC1_1[2], 1, true, true, colorModeFlag, i);
+                    builder.add(pC1_1[0], pC1_1[1], pC1_1[2], pC2_1[0], pC2_1[1], pC2_1[2], 1, true, true, colorModeFlag, i);
+                    builder.add(pC2_1[0], pC2_1[1], pC2_1[2], pC3_1[0], pC3_1[1], pC3_1[2], 1, true, true, colorModeFlag, i);
                 }
 
                 const { isPurine, isPyrimidine } = getNucleotideBaseType(unit, residueIndex);
@@ -116,26 +117,26 @@ function createNucleotideAtomicBondImpostor(ctx: VisualContext, unit: Unit, stru
 
                     if (idx.C1_1 !== -1 && idx.N9 !== -1) {
                         pos(idx.C1_1, pC1_1); pos(idx.N9, pN9);
-                        builder.add(pN9[0], pN9[1], pN9[2], pC1_1[0], pC1_1[1], pC1_1[2], 1, true, true, i);
+                        builder.add(pN9[0], pN9[1], pN9[2], pC1_1[0], pC1_1[1], pC1_1[2], 1, true, true, colorModeFlag, i);
                     } else if (idx.N9 !== -1 && idx.trace !== -1) {
                         pos(idx.N9, pN9); pos(idx.trace, pTrace);
-                        builder.add(pN9[0], pN9[1], pN9[2], pTrace[0], pTrace[1], pTrace[2], 1, true, true, i);
+                        builder.add(pN9[0], pN9[1], pN9[2], pTrace[0], pTrace[1], pTrace[2], 1, true, true, colorModeFlag, i);
                     }
 
                     if (hasPurinIndices(idx)) {
                         pos(idx.N1, pN1); pos(idx.C2, pC2); pos(idx.N3, pN3); pos(idx.C4, pC4); pos(idx.C5, pC5); pos(idx.C6, pC6); pos(idx.N7, pN7); pos(idx.C8, pC8); pos(idx.N9, pN9);
 
                         // base ring
-                        builder.add(pN9[0], pN9[1], pN9[2], pC8[0], pC8[1], pC8[2], 1, true, true, i);
-                        builder.add(pC8[0], pC8[1], pC8[2], pN7[0], pN7[1], pN7[2], 1, true, true, i);
-                        builder.add(pN7[0], pN7[1], pN7[2], pC5[0], pC5[1], pC5[2], 1, true, true, i);
-                        builder.add(pC5[0], pC5[1], pC5[2], pC6[0], pC6[1], pC6[2], 1, true, true, i);
-                        builder.add(pC6[0], pC6[1], pC6[2], pN1[0], pN1[1], pN1[2], 1, true, true, i);
-                        builder.add(pN1[0], pN1[1], pN1[2], pC2[0], pC2[1], pC2[2], 1, true, true, i);
-                        builder.add(pC2[0], pC2[1], pC2[2], pN3[0], pN3[1], pN3[2], 1, true, true, i);
-                        builder.add(pN3[0], pN3[1], pN3[2], pC4[0], pC4[1], pC4[2], 1, true, true, i);
-                        builder.add(pC4[0], pC4[1], pC4[2], pC5[0], pC5[1], pC5[2], 1, true, true, i);
-                        builder.add(pC4[0], pC4[1], pC4[2], pN9[0], pN9[1], pN9[2], 1, true, true, i);
+                        builder.add(pN9[0], pN9[1], pN9[2], pC8[0], pC8[1], pC8[2], 1, true, true, colorModeFlag, i);
+                        builder.add(pC8[0], pC8[1], pC8[2], pN7[0], pN7[1], pN7[2], 1, true, true, colorModeFlag, i);
+                        builder.add(pN7[0], pN7[1], pN7[2], pC5[0], pC5[1], pC5[2], 1, true, true, colorModeFlag, i);
+                        builder.add(pC5[0], pC5[1], pC5[2], pC6[0], pC6[1], pC6[2], 1, true, true, colorModeFlag, i);
+                        builder.add(pC6[0], pC6[1], pC6[2], pN1[0], pN1[1], pN1[2], 1, true, true, colorModeFlag, i);
+                        builder.add(pN1[0], pN1[1], pN1[2], pC2[0], pC2[1], pC2[2], 1, true, true, colorModeFlag, i);
+                        builder.add(pC2[0], pC2[1], pC2[2], pN3[0], pN3[1], pN3[2], 1, true, true, colorModeFlag, i);
+                        builder.add(pN3[0], pN3[1], pN3[2], pC4[0], pC4[1], pC4[2], 1, true, true, colorModeFlag, i);
+                        builder.add(pC4[0], pC4[1], pC4[2], pC5[0], pC5[1], pC5[2], 1, true, true, colorModeFlag, i);
+                        builder.add(pC4[0], pC4[1], pC4[2], pN9[0], pN9[1], pN9[2], 1, true, true, colorModeFlag, i);
 
                     }
                 } else if (isPyrimidine) {
@@ -143,22 +144,22 @@ function createNucleotideAtomicBondImpostor(ctx: VisualContext, unit: Unit, stru
 
                     if (idx.C1_1 !== -1 && idx.N1 !== -1) {
                         pos(idx.N1, pN1); pos(idx.C1_1, pC1_1);
-                        builder.add(pN1[0], pN1[1], pN1[2], pC1_1[0], pC1_1[1], pC1_1[2], 1, true, true, i);
+                        builder.add(pN1[0], pN1[1], pN1[2], pC1_1[0], pC1_1[1], pC1_1[2], 1, true, true, colorModeFlag, i);
                     } else if (idx.N1 !== -1 && idx.trace !== -1) {
                         pos(idx.N1, pN1); pos(idx.trace, pTrace);
-                        builder.add(pN1[0], pN1[1], pN1[2], pTrace[0], pTrace[1], pTrace[2], 1, true, true, i);
+                        builder.add(pN1[0], pN1[1], pN1[2], pTrace[0], pTrace[1], pTrace[2], 1, true, true, colorModeFlag, i);
                     }
 
                     if (hasPyrimidineIndices(idx)) {
                         pos(idx.N1, pN1); pos(idx.C2, pC2); pos(idx.N3, pN3); pos(idx.C4, pC4); pos(idx.C5, pC5); pos(idx.C6, pC6);
 
                         // base ring
-                        builder.add(pN1[0], pN1[1], pN1[2], pC6[0], pC6[1], pC6[2], 1, true, true, i);
-                        builder.add(pC6[0], pC6[1], pC6[2], pC5[0], pC5[1], pC5[2], 1, true, true, i);
-                        builder.add(pC5[0], pC5[1], pC5[2], pC4[0], pC4[1], pC4[2], 1, true, true, i);
-                        builder.add(pC4[0], pC4[1], pC4[2], pN3[0], pN3[1], pN3[2], 1, true, true, i);
-                        builder.add(pN3[0], pN3[1], pN3[2], pC2[0], pC2[1], pC2[2], 1, true, true, i);
-                        builder.add(pC2[0], pC2[1], pC2[2], pN1[0], pN1[1], pN1[2], 1, true, true, i);
+                        builder.add(pN1[0], pN1[1], pN1[2], pC6[0], pC6[1], pC6[2], 1, true, true, colorModeFlag, i);
+                        builder.add(pC6[0], pC6[1], pC6[2], pC5[0], pC5[1], pC5[2], 1, true, true, colorModeFlag, i);
+                        builder.add(pC5[0], pC5[1], pC5[2], pC4[0], pC4[1], pC4[2], 1, true, true, colorModeFlag, i);
+                        builder.add(pC4[0], pC4[1], pC4[2], pN3[0], pN3[1], pN3[2], 1, true, true, colorModeFlag, i);
+                        builder.add(pN3[0], pN3[1], pN3[2], pC2[0], pC2[1], pC2[2], 1, true, true, colorModeFlag, i);
+                        builder.add(pC2[0], pC2[1], pC2[2], pN1[0], pN1[1], pN1[2], 1, true, true, colorModeFlag, i);
                     }
                 }
 
