@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ValueCell } from '../../mol-util';
@@ -11,7 +12,6 @@ import { Color } from '../../mol-util/color';
 import { Vec2, Vec3, Vec4 } from '../../mol-math/linear-algebra';
 import { LocationIterator } from '../util/location-iterator';
 import { NullLocation } from '../../mol-model/location';
-import { StructureElement, Bond } from '../../mol-model/structure';
 import { LocationColor, ColorTheme, ColorVolume } from '../../mol-theme/color';
 import { createNullTexture, Texture } from '../../mol-gl/webgl/texture';
 
@@ -156,33 +156,29 @@ function createInstanceColor(locationIt: LocationIterator, color: LocationColor,
 
 /** Creates color texture with color for each group (i.e. shared across instances) */
 function createGroupColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
-    const { groupCount } = locationIt;
-    const colors = createTextureImage(Math.max(1, groupCount * 2), 3, Uint8Array, colorData && colorData.tColor.ref.value.array);
+    const { groupCount, hasLocation2 } = locationIt;
+    const colors = createTextureImage(Math.max(1, groupCount * (hasLocation2 ? 2 : 1)), 3, Uint8Array, colorData && colorData.tColor.ref.value.array);
     locationIt.reset();
-    const bLoc = StructureElement.Location.create();
+    const indexMultiplier = hasLocation2 ? 6 : 3;
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
-        const { location, isSecondary, groupIndex } = locationIt.move();
-        Color.toArray(color(location, isSecondary), colors.array, groupIndex * 3 * 2);
-        if (Bond.isLocation(location)) {
-            const { bStructure, bUnit, bIndex } = location;
-            bLoc.structure = bStructure;
-            bLoc.unit = bUnit;
-            bLoc.element = bUnit.elements[bIndex];
-            Color.toArray(color(bLoc, isSecondary), colors.array, groupIndex * 3 * 2 + 3);
-        }
+        const { location, location2, isSecondary, groupIndex } = locationIt.move();
+        Color.toArray(color(location, isSecondary), colors.array, groupIndex * indexMultiplier);
+        if (hasLocation2) Color.toArray(color(location2, isSecondary), colors.array, groupIndex * indexMultiplier + 3);
     }
     return createTextureColor(colors, 'group', colorData);
 }
 
 /** Creates color texture with color for each group in each instance */
 function createGroupInstanceColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
-    const { groupCount, instanceCount } = locationIt;
-    const count = instanceCount * groupCount;
+    const { groupCount, instanceCount, hasLocation2 } = locationIt;
+    const count = instanceCount * groupCount * (hasLocation2 ? 2 : 1);
     const colors = createTextureImage(Math.max(1, count), 3, Uint8Array, colorData && colorData.tColor.ref.value.array);
     locationIt.reset();
+    const indexMultiplier = hasLocation2 ? 6 : 3;
     while (locationIt.hasNext) {
-        const { location, isSecondary, index } = locationIt.move();
-        Color.toArray(color(location, isSecondary), colors.array, index * 3);
+        const { location, location2, isSecondary, index } = locationIt.move();
+        Color.toArray(color(location, isSecondary), colors.array, index * indexMultiplier);
+        if (hasLocation2) Color.toArray(color(location2, isSecondary), colors.array, index * indexMultiplier + 3);
     }
     return createTextureColor(colors, 'groupInstance', colorData);
 }

@@ -2,6 +2,7 @@
  * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ValueCell } from '../../../mol-util';
@@ -166,6 +167,7 @@ export namespace Cylinders {
         solidInterior: PD.Boolean(true, BaseGeometry.ShadingCategory),
         bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
         bumpAmplitude: PD.Numeric(1, { min: 0, max: 5, step: 0.1 }, BaseGeometry.ShadingCategory),
+        colorMode: PD.Select('default', PD.arrayToOptions(['default', 'interpolate']), BaseGeometry.ShadingCategory)
     };
     export type Params = typeof Params
 
@@ -220,7 +222,6 @@ export namespace Cylinders {
         const padding = getMaxSize(size) * props.sizeFactor;
         const invariantBoundingSphere = Sphere3D.clone(cylinders.boundingSphere);
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount, 0);
-
         return {
             dGeometryType: ValueCell.create('cylinders'),
 
@@ -255,6 +256,7 @@ export namespace Cylinders {
             dSolidInterior: ValueCell.create(props.solidInterior),
             uBumpFrequency: ValueCell.create(props.bumpFrequency),
             uBumpAmplitude: ValueCell.create(props.bumpAmplitude),
+            dDualColor: ValueCell.create(props.colorMode === 'interpolate'),
         };
     }
 
@@ -274,6 +276,7 @@ export namespace Cylinders {
         ValueCell.updateIfChanged(values.dSolidInterior, props.solidInterior);
         ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);
         ValueCell.updateIfChanged(values.uBumpAmplitude, props.bumpAmplitude);
+        ValueCell.updateIfChanged(values.dDualColor, props.colorMode === 'interpolate');
     }
 
     function updateBoundingSphere(values: CylindersValues, cylinders: Cylinders) {

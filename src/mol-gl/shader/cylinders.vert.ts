@@ -8,8 +8,6 @@ export const cylinders_vert = `
 precision highp float;
 precision highp int;
 
-#define multiColor
-
 #include common
 #include read_from_texture
 #include common_vert_params

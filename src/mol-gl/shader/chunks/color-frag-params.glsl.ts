@@ -12,7 +12,7 @@ uniform float uBumpiness;
         uniform vec3 uColor;
     #elif defined(dColorType_varying)
         varying vec4 vColor;
-        #ifdef multiColor
+        #ifdef dDualColor
           varying vec4 vColor2;
         #endif
     #endif

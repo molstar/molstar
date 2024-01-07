@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { BondType } from '../../../../mol-model/structure/model/types';
@@ -142,6 +143,35 @@ export namespace BondIterator {
         return LocationIterator(groupCount, instanceCount, 1, getLocation);
     }
 
+    export function fromGroupLoc2(structureGroup: StructureGroup, props: PD.Values): LocationIterator {
+        const { group, structure } = structureGroup;
+        const unit = group.units[0] as Unit.Atomic;
+        const groupCount = Unit.isAtomic(unit) ? unit.bonds.edgeCount * 2 : 0;
+        const instanceCount = group.units.length;
+        const location = Bond.Location(structure, undefined, undefined, structure, undefined, undefined);
+        const getLocation = (groupIndex: number, instanceIndex: number) => {
+            const unit = group.units[instanceIndex] as Unit.Atomic;
+            location.aUnit = unit;
+            location.bUnit = unit;
+            location.aIndex = unit.bonds.a[groupIndex];
+            location.bIndex = unit.bonds.b[groupIndex];
+            return location;
+        };
+        if (props.colorMode === 'interpolate') {
+            const location2 = Bond.Location(structure, undefined, undefined, structure, undefined, undefined);
+            const getLocation2 = (groupIndex: number, instanceIndex: number) => { // inverting A with B
+                const unit = group.units[instanceIndex] as Unit.Atomic;
+                location2.aUnit = unit;
+                location2.bUnit = unit;
+                location2.aIndex = unit.bonds.b[groupIndex];
+                location2.bIndex = unit.bonds.a[groupIndex];
+                return location2;
+            };
+            return LocationIterator(groupCount, instanceCount, 1, getLocation, false, () => false, getLocation2);
+        }
+        return LocationIterator(groupCount, instanceCount, 1, getLocation);
+    }
+
     export function fromStructure(structure: Structure): LocationIterator {
         const groupCount = structure.interUnitBonds.edgeCount;
         const instanceCount = 1;
@@ -153,6 +183,33 @@ export namespace BondIterator {
             location.bUnit = structure.unitMap.get(bond.unitB);
             location.bIndex = bond.indexB;
             return location;
+        };
+        return LocationIterator(groupCount, instanceCount, 1, getLocation, true);
+    }
+
+    export function fromStructureLoc2(structure: Structure, props: PD.Values): LocationIterator {
+        const groupCount = structure.interUnitBonds.edgeCount;
+        const instanceCount = 1;
+        const location = Bond.Location(structure, undefined, undefined, structure, undefined, undefined);
+        const getLocation = (groupIndex: number) => {
+            const bond = structure.interUnitBonds.edges[groupIndex];
+            location.aUnit = structure.unitMap.get(bond.unitA);
+            location.aIndex = bond.indexA;
+            location.bUnit = structure.unitMap.get(bond.unitB);
+            location.bIndex = bond.indexB;
+            return location;
+        };
+        if (props.colorMode === 'interpolate') {
+            const location2 = Bond.Location(structure, undefined, undefined, structure, undefined, undefined);
+            const getLocation2 = (groupIndex: number) => { // inverting A with B
+                const bond = structure.interUnitBonds.edges[groupIndex];
+                location2.aUnit = structure.unitMap.get(bond.unitB);
+                location2.aIndex = bond.indexB;
+                location2.bUnit = structure.unitMap.get(bond.unitA);
+                location2.bIndex = bond.indexA;
+                return location2;
+            };
+            return LocationIterator(groupCount, instanceCount, 1, getLocation, true, () => false, getLocation2);
         };
         return LocationIterator(groupCount, instanceCount, 1, getLocation, true);
     }

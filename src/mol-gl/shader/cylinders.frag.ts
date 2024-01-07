@@ -9,7 +9,6 @@ precision highp float;
 precision highp int;
 
 #define bumpEnabled
-#define multiColor
 
 uniform mat4 uView;
 

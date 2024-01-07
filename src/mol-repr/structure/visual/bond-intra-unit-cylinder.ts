@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -230,7 +231,7 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
     return UnitsCylindersVisual<IntraUnitBondCylinderParams>({
         defaultProps: PD.getDefaultValues(IntraUnitBondCylinderParams),
         createGeometry: createIntraUnitBondCylinderImpostors,
-        createLocationIterator: BondIterator.fromGroup,
+        createLocationIterator: BondIterator.fromGroupLoc2,
         getLoci: getIntraBondLoci,
         eachLocation: eachIntraBond,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IntraUnitBondCylinderParams>, currentProps: PD.Values<IntraUnitBondCylinderParams>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
@@ -253,9 +254,14 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
                 newProps.adjustCylinderLength !== currentProps.adjustCylinderLength ||
                 newProps.aromaticBonds !== currentProps.aromaticBonds ||
-                newProps.multipleBonds !== currentProps.multipleBonds ||
-                newProps.colorMode !== currentProps.colorMode
+                newProps.multipleBonds !== currentProps.multipleBonds
             );
+
+            if (newProps.colorMode !== currentProps.colorMode) {
+                state.createGeometry = true;
+                state.updateTransform = true;
+                state.updateColor = true;
+            }
 
             const newUnit = newStructureGroup.group.units[0];
             const currentUnit = currentStructureGroup.group.units[0];

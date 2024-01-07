@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -213,7 +214,7 @@ export function InterUnitBondCylinderImpostorVisual(materialId: number): Complex
     return ComplexCylindersVisual<InterUnitBondCylinderParams>({
         defaultProps: PD.getDefaultValues(InterUnitBondCylinderParams),
         createGeometry: createInterUnitBondCylinderImpostors,
-        createLocationIterator: BondIterator.fromStructure,
+        createLocationIterator: BondIterator.fromStructureLoc2,
         getLoci: getInterBondLoci,
         eachLocation: eachInterBond,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitBondCylinderParams>, currentProps: PD.Values<InterUnitBondCylinderParams>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
@@ -235,9 +236,13 @@ export function InterUnitBondCylinderImpostorVisual(materialId: number): Complex
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
                 newProps.adjustCylinderLength !== currentProps.adjustCylinderLength ||
-                newProps.multipleBonds !== currentProps.multipleBonds ||
-                newProps.colorMode !== currentProps.colorMode
+                newProps.multipleBonds !== currentProps.multipleBonds
             );
+            if (newProps.colorMode !== currentProps.colorMode) {
+                state.createGeometry = true;
+                state.updateTransform = true;
+                state.updateColor = true;
+            }
 
             if (newStructure.interUnitBonds !== currentStructure.interUnitBonds) {
                 state.createGeometry = true;
