@@ -7,6 +7,9 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Add color interpolation to impostor cylinders
+
+## [v3.44.0] - 2023-01-06
+
 - Add new `cartoon` visuals to support atomic nucleotide base with sugar
 - Add `thicknessFactor` to `cartoon` representation for scaling nucleotide block/ring/atomic-fill visuals
 - Use bonds from `_struct_conn` in mmCIF files that use `label_seq_id`
@@ -19,6 +22,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Labels applied in one node
 - ModelServer SDF/MOL2 ligand export: fix atom indices when additional atoms are present
 - Avoid showing (and calculating) inter-unit bonds for huge structures
+- Fixed `DragOverlay` on WebKit/Safari browsers
 
 ## [v3.43.1] - 2023-12-04
 
