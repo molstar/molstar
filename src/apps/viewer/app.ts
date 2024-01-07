@@ -67,7 +67,7 @@ export const ExtensionMap = {
     'backgrounds': PluginSpec.Behavior(Backgrounds),
     'dnatco-ntcs': PluginSpec.Behavior(DnatcoNtCs),
     'pdbe-structure-quality-report': PluginSpec.Behavior(PDBeStructureQualityReport),
-    'rcsb-assembly-symmetry': PluginSpec.Behavior(AssemblySymmetry),
+    'assembly-symmetry': PluginSpec.Behavior(AssemblySymmetry),
     'rcsb-validation-report': PluginSpec.Behavior(RCSBValidationReport),
     'anvil-membrane-orientation': PluginSpec.Behavior(ANVILMembraneOrientation),
     'g3d': PluginSpec.Behavior(G3DFormat),
