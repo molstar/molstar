@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -12,6 +12,7 @@ import { ColorNames } from '../../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { decodeColor } from '../helpers/utils';
 import { getMVSAnnotationForStructure } from './annotation-prop';
+import { isMVSStructure } from './is-mvs-model-prop';
 
 
 /** Parameter definition for color theme "MVS Annotation" */
@@ -76,5 +77,5 @@ export const MVSAnnotationColorThemeProvider: ColorTheme.Provider<MVSAnnotationC
     factory: MVSAnnotationColorTheme,
     getParams: ctx => MVSAnnotationColorThemeParams,
     defaultValues: PD.getDefaultValues(MVSAnnotationColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => true,
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && isMVSStructure(ctx.structure),
 };

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -75,7 +75,7 @@ type MVSAnnotationData = { format: 'json', data: Jsonable } | { format: 'cif', d
 
 /** Provider for custom model property "Annotations" */
 export const MVSAnnotationsProvider: CustomModelProperty.Provider<MVSAnnotationsParams, MVSAnnotations> = CustomModelProperty.createProvider({
-    label: 'Annotations',
+    label: 'MVS Annotations',
     descriptor: CustomPropertyDescriptor({
         name: 'mvs-annotations',
     }),

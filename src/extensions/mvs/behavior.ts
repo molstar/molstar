@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -22,6 +22,7 @@ import { MVSAnnotationTooltipsLabelProvider, MVSAnnotationTooltipsProvider } fro
 import { CustomLabelRepresentationProvider } from './components/custom-label/representation';
 import { CustomTooltipsLabelProvider, CustomTooltipsProvider } from './components/custom-tooltips-prop';
 import { LoadMvsData, MVSJFormatProvider } from './components/formats';
+import { IsMVSModelProvider } from './components/is-mvs-model-prop';
 import { makeMultilayerColorThemeProvider } from './components/multilayer-color-theme';
 import { loadMVS } from './load';
 import { MVSData } from './mvs-data';
@@ -51,6 +52,7 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
         private readonly registrables: Registrables = {
             customModelProperties: [
+                IsMVSModelProvider,
                 MVSAnnotationsProvider,
             ],
             customStructureProperties: [
