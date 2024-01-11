@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- MolViewSpec components are applicable only when the model has been loaded from MolViewSpec
+
 ## [v3.44.0] - 2023-01-06
 
 - Add new `cartoon` visuals to support atomic nucleotide base with sugar

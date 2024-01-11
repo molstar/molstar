@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -36,7 +36,7 @@ export type CustomTooltipsData = { selector: Selector, text: string, elementSet?
 
 /** Provider for custom structure property "CustomTooltips" */
 export const CustomTooltipsProvider: CustomStructureProperty.Provider<CustomTooltipsParams, CustomTooltipsData> = CustomStructureProperty.createProvider({
-    label: 'Custom Tooltips',
+    label: 'MVS Custom Tooltips',
     descriptor: CustomPropertyDescriptor<any, any>({
         name: 'mvs-custom-tooltips',
     }),
