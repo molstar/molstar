@@ -33,7 +33,7 @@ export const LinkCylinderParams = {
     dashCap: PD.Boolean(true),
     stubCap: PD.Boolean(true),
     radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }, BaseGeometry.CustomQualityParamInfo),
-    colorMode: PD.Select('default', PD.arrayToOptions(['default', 'interpolate']), BaseGeometry.ShadingCategory)
+    colorMode: PD.Select('default', PD.arrayToOptions(['default', 'interpolate'] as const), BaseGeometry.ShadingCategory)
 };
 export const DefaultLinkCylinderProps = PD.getDefaultValues(LinkCylinderParams);
 export type LinkCylinderProps = typeof DefaultLinkCylinderProps
