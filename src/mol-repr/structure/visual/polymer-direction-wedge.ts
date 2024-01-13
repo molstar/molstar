@@ -17,6 +17,7 @@ import { isNucleic, SecondaryStructureType } from '../../../mol-model/structure/
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { Sphere3D } from '../../../mol-math/geometry';
+import { StructureGroup } from './util/common';
 
 const t = Mat4.identity();
 const sVec = Vec3.zero();
@@ -101,7 +102,7 @@ export function PolymerDirectionVisual(materialId: number): UnitsVisual<PolymerD
     return UnitsMeshVisual<PolymerDirectionParams>({
         defaultProps: PD.getDefaultValues(PolymerDirectionParams),
         createGeometry: createPolymerDirectionWedgeMesh,
-        createLocationIterator: PolymerLocationIterator.fromGroup,
+        createLocationIterator: (structureGroup: StructureGroup) => PolymerLocationIterator.fromGroup(structureGroup),
         getLoci: getPolymerElementLoci,
         eachLocation: eachPolymerElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerDirectionParams>, currentProps: PD.Values<PolymerDirectionParams>) => {

@@ -126,7 +126,7 @@ export function makeInterBondIgnoreTest(structure: Structure, props: BondProps):
 }
 
 export namespace BondIterator {
-    export function fromGroup(structureGroup: StructureGroup): LocationIterator {
+    export function fromGroup(structureGroup: StructureGroup, props?: { includeLocation2?: boolean }): LocationIterator {
         const { group, structure } = structureGroup;
         const unit = group.units[0] as Unit.Atomic;
         const groupCount = Unit.isAtomic(unit) ? unit.bonds.edgeCount * 2 : 0;
@@ -140,26 +140,9 @@ export namespace BondIterator {
             location.bIndex = unit.bonds.b[groupIndex];
             return location;
         };
-        return LocationIterator(groupCount, instanceCount, 1, getLocation);
-    }
-
-    export function fromGroupLoc2(structureGroup: StructureGroup, props: PD.Values): LocationIterator {
-        const { group, structure } = structureGroup;
-        const unit = group.units[0] as Unit.Atomic;
-        const groupCount = Unit.isAtomic(unit) ? unit.bonds.edgeCount * 2 : 0;
-        const instanceCount = group.units.length;
-        const location = Bond.Location(structure, undefined, undefined, structure, undefined, undefined);
-        const getLocation = (groupIndex: number, instanceIndex: number) => {
-            const unit = group.units[instanceIndex] as Unit.Atomic;
-            location.aUnit = unit;
-            location.bUnit = unit;
-            location.aIndex = unit.bonds.a[groupIndex];
-            location.bIndex = unit.bonds.b[groupIndex];
-            return location;
-        };
-        if (props.colorMode === 'interpolate') {
+        if (props?.includeLocation2) {
             const location2 = Bond.Location(structure, undefined, undefined, structure, undefined, undefined);
-            const getLocation2 = (groupIndex: number, instanceIndex: number) => { // inverting A with B
+            const getLocation2 = (groupIndex: number, instanceIndex: number) => { // swapping A and B
                 const unit = group.units[instanceIndex] as Unit.Atomic;
                 location2.aUnit = unit;
                 location2.bUnit = unit;
@@ -172,7 +155,7 @@ export namespace BondIterator {
         return LocationIterator(groupCount, instanceCount, 1, getLocation);
     }
 
-    export function fromStructure(structure: Structure): LocationIterator {
+    export function fromStructure(structure: Structure, props?: { includeLocation2?: boolean }): LocationIterator {
         const groupCount = structure.interUnitBonds.edgeCount;
         const instanceCount = 1;
         const location = Bond.Location(structure, undefined, undefined, structure, undefined, undefined);
@@ -184,24 +167,9 @@ export namespace BondIterator {
             location.bIndex = bond.indexB;
             return location;
         };
-        return LocationIterator(groupCount, instanceCount, 1, getLocation, true);
-    }
-
-    export function fromStructureLoc2(structure: Structure, props: PD.Values): LocationIterator {
-        const groupCount = structure.interUnitBonds.edgeCount;
-        const instanceCount = 1;
-        const location = Bond.Location(structure, undefined, undefined, structure, undefined, undefined);
-        const getLocation = (groupIndex: number) => {
-            const bond = structure.interUnitBonds.edges[groupIndex];
-            location.aUnit = structure.unitMap.get(bond.unitA);
-            location.aIndex = bond.indexA;
-            location.bUnit = structure.unitMap.get(bond.unitB);
-            location.bIndex = bond.indexB;
-            return location;
-        };
-        if (props.colorMode === 'interpolate') {
+        if (props?.includeLocation2) {
             const location2 = Bond.Location(structure, undefined, undefined, structure, undefined, undefined);
-            const getLocation2 = (groupIndex: number) => { // inverting A with B
+            const getLocation2 = (groupIndex: number) => { // swapping A and B
                 const bond = structure.interUnitBonds.edges[groupIndex];
                 location2.aUnit = structure.unitMap.get(bond.unitB);
                 location2.aIndex = bond.indexB;

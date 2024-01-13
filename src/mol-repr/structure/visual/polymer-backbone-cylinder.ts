@@ -88,7 +88,7 @@ export function PolymerBackboneCylinderImpostorVisual(materialId: number): Units
     return UnitsCylindersVisual<PolymerBackboneCylinderParams>({
         defaultProps: PD.getDefaultValues(PolymerBackboneCylinderParams),
         createGeometry: createPolymerBackboneCylinderImpostor,
-        createLocationIterator: PolymerLocationIterator.fromGroup,
+        createLocationIterator: (structureGroup: StructureGroup) => PolymerLocationIterator.fromGroup(structureGroup),
         getLoci: getPolymerElementLoci,
         eachLocation: eachPolymerElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerBackboneCylinderParams>, currentProps: PD.Values<PolymerBackboneCylinderParams>) => { },
@@ -148,7 +148,7 @@ export function PolymerBackboneCylinderMeshVisual(materialId: number): UnitsVisu
     return UnitsMeshVisual<PolymerBackboneCylinderParams>({
         defaultProps: PD.getDefaultValues(PolymerBackboneCylinderParams),
         createGeometry: createPolymerBackboneCylinderMesh,
-        createLocationIterator: PolymerLocationIterator.fromGroup,
+        createLocationIterator: (structureGroup: StructureGroup) => PolymerLocationIterator.fromGroup(structureGroup),
         getLoci: getPolymerElementLoci,
         eachLocation: eachPolymerElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerBackboneCylinderParams>, currentProps: PD.Values<PolymerBackboneCylinderParams>) => {

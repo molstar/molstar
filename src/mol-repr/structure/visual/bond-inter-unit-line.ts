@@ -127,7 +127,7 @@ export function InterUnitBondLineVisual(materialId: number): ComplexVisual<Inter
     return ComplexLinesVisual<InterUnitBondLineParams>({
         defaultProps: PD.getDefaultValues(InterUnitBondLineParams),
         createGeometry: createInterUnitBondLines,
-        createLocationIterator: BondIterator.fromStructure,
+        createLocationIterator: (structure: Structure) => BondIterator.fromStructure(structure),
         getLoci: getInterBondLoci,
         eachLocation: eachInterBond,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitBondLineParams>, currentProps: PD.Values<InterUnitBondLineParams>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {

@@ -214,7 +214,7 @@ export function InterUnitBondCylinderImpostorVisual(materialId: number): Complex
     return ComplexCylindersVisual<InterUnitBondCylinderParams>({
         defaultProps: PD.getDefaultValues(InterUnitBondCylinderParams),
         createGeometry: createInterUnitBondCylinderImpostors,
-        createLocationIterator: BondIterator.fromStructureLoc2,
+        createLocationIterator: (structure: Structure, props: PD.Values<InterUnitBondCylinderParams>) => BondIterator.fromStructure(structure, { includeLocation2: props.colorMode === 'interpolate' }),
         getLoci: getInterBondLoci,
         eachLocation: eachInterBond,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitBondCylinderParams>, currentProps: PD.Values<InterUnitBondCylinderParams>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
@@ -238,6 +238,7 @@ export function InterUnitBondCylinderImpostorVisual(materialId: number): Complex
                 newProps.adjustCylinderLength !== currentProps.adjustCylinderLength ||
                 newProps.multipleBonds !== currentProps.multipleBonds
             );
+
             if (newProps.colorMode !== currentProps.colorMode) {
                 state.createGeometry = true;
                 state.updateTransform = true;
@@ -261,7 +262,7 @@ export function InterUnitBondCylinderMeshVisual(materialId: number): ComplexVisu
     return ComplexMeshVisual<InterUnitBondCylinderParams>({
         defaultProps: PD.getDefaultValues(InterUnitBondCylinderParams),
         createGeometry: createInterUnitBondCylinderMesh,
-        createLocationIterator: BondIterator.fromStructure,
+        createLocationIterator: (structure: Structure) => BondIterator.fromStructure(structure),
         getLoci: getInterBondLoci,
         eachLocation: eachInterBond,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitBondCylinderParams>, currentProps: PD.Values<InterUnitBondCylinderParams>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {

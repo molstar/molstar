@@ -231,7 +231,7 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
     return UnitsCylindersVisual<IntraUnitBondCylinderParams>({
         defaultProps: PD.getDefaultValues(IntraUnitBondCylinderParams),
         createGeometry: createIntraUnitBondCylinderImpostors,
-        createLocationIterator: BondIterator.fromGroupLoc2,
+        createLocationIterator: (structureGroup: StructureGroup, props) => BondIterator.fromGroup(structureGroup, { includeLocation2: props.colorMode === 'interpolate' }),
         getLoci: getIntraBondLoci,
         eachLocation: eachIntraBond,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IntraUnitBondCylinderParams>, currentProps: PD.Values<IntraUnitBondCylinderParams>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
@@ -284,7 +284,7 @@ export function IntraUnitBondCylinderMeshVisual(materialId: number): UnitsVisual
     return UnitsMeshVisual<IntraUnitBondCylinderParams>({
         defaultProps: PD.getDefaultValues(IntraUnitBondCylinderParams),
         createGeometry: createIntraUnitBondCylinderMesh,
-        createLocationIterator: BondIterator.fromGroup,
+        createLocationIterator: (structureGroup: StructureGroup) => BondIterator.fromGroup(structureGroup),
         getLoci: getIntraBondLoci,
         eachLocation: eachIntraBond,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IntraUnitBondCylinderParams>, currentProps: PD.Values<IntraUnitBondCylinderParams>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
