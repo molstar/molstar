@@ -48,7 +48,12 @@ export interface Cylinders {
     readonly scaleBuffer: ValueCell<Float32Array>,
     /** Cylinder cap buffer as array of cap flags wrapped in a value cell */
     readonly capBuffer: ValueCell<Float32Array>,
-    /** Cylinder colorMode buffer as array of coloring modes flags wrapped in a value cell */
+    /**
+     * Cylinder colorMode buffer as array of coloring modes flags wrapped in a value cell
+     * - for colorMode between 0 and 1 use colorMode to interpolate
+     * - for colorMode == 2 do nothing, i.e., use given theme color
+     * - for colorMode == 3 use position on cylinder axis to interpolate
+     */
     readonly colorModeBuffer: ValueCell<Float32Array>,
 
     /** Bounding sphere of the cylinders */
