@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -16,6 +16,7 @@ import { MVSAnnotationStructureComponent } from './components/annotation-structu
 import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-prop';
 import { CustomLabelProps, CustomLabelRepresentationProvider } from './components/custom-label/representation';
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
+import { IsMVSModelProps, IsMVSModelProvider } from './components/is-mvs-model-prop';
 import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, UpdateTarget, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps } from './load-helpers';
 import { MVSData } from './mvs-data';
 import { ParamsOfKind, SubTreeOfKind, validateTree } from './tree/generic/tree-schema';
@@ -119,10 +120,12 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         });
         UpdateTarget.apply(model, CustomModelProperties, {
             properties: {
-                [MVSAnnotationsProvider.descriptor.name]: { annotations }
+                [IsMVSModelProvider.descriptor.name]: { isMvs: true } satisfies IsMVSModelProps,
+                [MVSAnnotationsProvider.descriptor.name]: { annotations },
             },
             autoAttach: [
-                MVSAnnotationsProvider.descriptor.name
+                IsMVSModelProvider.descriptor.name,
+                MVSAnnotationsProvider.descriptor.name,
             ],
         });
         return model;

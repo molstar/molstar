@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -12,6 +12,7 @@ import { Color } from '../../../mol-util/color';
 import { ColorNames } from '../../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { stringToWords } from '../../../mol-util/string';
+import { isMVSStructure } from './is-mvs-model-prop';
 import { ElementSet, SelectorParams, isSelectorAll } from './selector';
 
 
@@ -137,11 +138,11 @@ export const MultilayerColorThemeName = 'mvs-multilayer';
 export function makeMultilayerColorThemeProvider(colorThemeRegistry: ColorTheme.Registry): ColorTheme.Provider<MultilayerColorThemeParams, typeof MultilayerColorThemeName> {
     return {
         name: MultilayerColorThemeName,
-        label: 'Multi-layer',
+        label: 'MVS Multi-layer',
         category: ColorTheme.Category.Misc,
         factory: (ctx, props) => makeMultilayerColorTheme(ctx, props, colorThemeRegistry),
         getParams: (ctx: ThemeDataContext) => makeMultilayerColorThemeParams(colorThemeRegistry, ctx),
         defaultValues: DefaultMultilayerColorThemeProps,
-        isApplicable: (ctx: ThemeDataContext) => true,
+        isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && isMVSStructure(ctx.structure),
     };
 }
