@@ -11,9 +11,6 @@ uniform float uBumpiness;
         attribute vec3 aColor;
     #elif defined(dColorType_texture)
         varying vec4 vColor;
-        #ifdef dDualColor
-          varying vec4 vColor2;
-        #endif
         uniform vec2 uColorTexDim;
         uniform sampler2D tColor;
     #elif defined(dColorType_grid)

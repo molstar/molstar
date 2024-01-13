@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -33,7 +33,6 @@ varying vec3 vStart;
 varying vec3 vEnd;
 varying float vSize;
 varying float vCap;
-varying float vColorMode;
 
 uniform float uIsOrtho;
 uniform vec3 uCameraDir;
@@ -52,14 +51,15 @@ void main() {
     vEnd = (modelTransform * vec4(aEnd, 1.0)).xyz;
     vSize = size * aScale;
     vCap = aCap;
-    vColorMode = aColorMode;
 
     vModelPosition = (vStart + vEnd) * 0.5;
     vec3 camDir = -mix(normalize(vModelPosition - uCameraPosition), uCameraDir, uIsOrtho);
     vec3 dir = vEnd - vStart;
+    float f = aMapping.x > 0.0 ? 1.0 : 0.0;
     // ensure cylinder 'dir' is pointing towards the camera
     if(dot(camDir, dir) < 0.0) {
         dir = -dir;
+        f = 1.0 - f;
     }
 
     vec3 left = cross(camDir, dir);
@@ -78,6 +78,18 @@ void main() {
         mvPosition.z -= 2.0 * (length(vEnd - vStart) + vSize); // avoid clipping
         gl_Position.z = (uProjection * mvPosition).z;
     }
+
+    #if defined(dDualColor) && defined(dRenderVariant_color) && (defined(dColorType_group) || defined(dColorType_groupInstance))
+        // dual-color mixing
+        // - for aColorMode between 0 and 1 use aColorMode to interpolate
+        // - for aColorMode == 2 do nothing, i.e., use vColor
+        // - for aColorMode == 3 use position on cylinder axis to interpolate
+        if (aColorMode <= 1.0){
+            vColor.rgb = mix(vColor.rgb, color2.rgb, aColorMode);
+        } else if (aColorMode == 3.0) {
+            vColor.rgb = mix(vColor.rgb, color2.rgb, mix(-0.25, 1.25, f / 1.5));
+        }
+    #endif
 
     #include clip_instance
 }

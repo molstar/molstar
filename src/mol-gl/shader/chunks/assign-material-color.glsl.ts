@@ -13,17 +13,6 @@ export const assign_material_color = `
         vec4 material = vec4(uColor, uAlpha);
     #elif defined(dColorType_varying)
         vec4 material = vec4(vColor.rgb, uAlpha);
-        #if defined(dDualColor)
-            //interpolate
-            if (vColorMode >= 0.0 && vColorMode <= 1.0){
-                material = vec4(mix(vColor.rgb, vColor2.rgb, vColorMode).rgb, uAlpha);
-            } else if (vColorMode > 2.9 && vColorMode < 3.1) {
-                vec3 b = vEnd - vStart;
-                vec3 a = vModelPosition - vStart;
-                vec3 projection = dot(a,b) / dot(b,b) * b;
-                material = vec4(mix(vColor.rgb, vColor2.rgb, dot(projection,projection) / dot(b,b) / 2.0).rgb, uAlpha);
-            }
-        #endif
     #endif
 
     // mix material with overpaint

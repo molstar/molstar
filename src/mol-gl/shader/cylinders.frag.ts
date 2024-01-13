@@ -17,7 +17,6 @@ varying vec3 vStart;
 varying vec3 vEnd;
 varying float vSize;
 varying float vCap;
-varying float vColorMode;
 
 uniform vec3 uCameraDir;
 uniform vec3 uCameraPosition;
