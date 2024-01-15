@@ -5,9 +5,29 @@ export const assign_color_varying = `
     #elif defined(dColorType_instance)
         vColor.rgb = readFromTexture(tColor, aInstance, uColorTexDim).rgb;
     #elif defined(dColorType_group)
-        vColor.rgb = readFromTexture(tColor, group, uColorTexDim).rgb;
+        #if defined(dDualColor)
+            vec4 color2;
+            if (aColorMode == 2.0) {
+                vColor.rgb = readFromTexture(tColor, group, uColorTexDim).rgb;
+            } else {
+                vColor.rgb = readFromTexture(tColor, group * 2.0, uColorTexDim).rgb;
+                color2.rgb = readFromTexture(tColor, group * 2.0 + 1.0, uColorTexDim).rgb;
+            }
+        #else
+            vColor.rgb = readFromTexture(tColor, group, uColorTexDim).rgb;
+        #endif
     #elif defined(dColorType_groupInstance)
-        vColor.rgb = readFromTexture(tColor, aInstance * float(uGroupCount) + group, uColorTexDim).rgb;
+        #if defined(dDualColor)
+            vec4 color2;
+            if (aColorMode == 2.0) {
+                vColor.rgb = readFromTexture(tColor, aInstance * float(uGroupCount) + group, uColorTexDim).rgb;
+            } else {
+                vColor.rgb = readFromTexture(tColor, (aInstance * float(uGroupCount) + group) * 2.0, uColorTexDim).rgb;
+                color2.rgb = readFromTexture(tColor, (aInstance * float(uGroupCount) + group) * 2.0 + 1.0, uColorTexDim).rgb;
+            }
+        #else
+            vColor.rgb = readFromTexture(tColor, aInstance * float(uGroupCount) + group, uColorTexDim).rgb;
+        #endif
     #elif defined(dColorType_vertex)
         vColor.rgb = readFromTexture(tColor, VertexID, uColorTexDim).rgb;
     #elif defined(dColorType_vertexInstance)

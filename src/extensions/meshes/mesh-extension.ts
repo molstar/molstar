@@ -164,7 +164,7 @@ const meshShapeProviderParams: Mesh.Params = {
     quality: PD.Select<VisualQuality>('custom', VisualQualityOptions, { isEssential: true, description: 'Visual/rendering quality of the representation.' }), // use 'custom' when wanting to apply doubleSided
     doubleSided: PD.Boolean(true, BaseGeometry.CustomQualityParamInfo),
     // set `flatShaded`: true to see the real mesh vertices and triangles
-    transparentBackfaces: PD.Select('on', PD.arrayToOptions(['off', 'on', 'opaque']), BaseGeometry.ShadingCategory), // 'on' means: show backfaces with correct opacity, even when opacity < 1 (requires doubleSided) ¯\_(ツ)_/¯
+    transparentBackfaces: PD.Select('on', PD.arrayToOptions(['off', 'on', 'opaque'] as const), BaseGeometry.ShadingCategory), // 'on' means: show backfaces with correct opacity, even when opacity < 1 (requires doubleSided) ¯\_(ツ)_/¯
 };
 
 

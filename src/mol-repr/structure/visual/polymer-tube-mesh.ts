@@ -21,6 +21,7 @@ import { Vec3 } from '../../../mol-math/linear-algebra';
 import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
 import { Sphere3D } from '../../../mol-math/geometry';
+import { StructureGroup } from './util/common';
 
 export const PolymerTubeMeshParams = {
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
@@ -117,7 +118,7 @@ export function PolymerTubeVisual(materialId: number): UnitsVisual<PolymerTubePa
     return UnitsMeshVisual<PolymerTubeParams>({
         defaultProps: PD.getDefaultValues(PolymerTubeParams),
         createGeometry: createPolymerTubeMesh,
-        createLocationIterator: sg => PolymerLocationIterator.fromGroup(sg, true),
+        createLocationIterator: (structureGroup: StructureGroup) => PolymerLocationIterator.fromGroup(structureGroup, { asSecondary: true }),
         getLoci: getPolymerElementLoci,
         eachLocation: eachPolymerElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerTubeParams>, currentProps: PD.Values<PolymerTubeParams>) => {
