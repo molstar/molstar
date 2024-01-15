@@ -6,6 +6,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add color interpolation to impostor cylinders
+- MolViewSpec components are applicable only when the model has been loaded from MolViewSpec
+
 ## [v4.0.0-beta.0] - 2023-01-06
 
 - Add Mesoscale Explorer app for investigating large systems

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -9,6 +9,7 @@ import { Representation, RepresentationContext, RepresentationParamsGetter } fro
 import { ComplexRepresentation, StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../../../../mol-repr/structure/representation';
 import { MarkerAction } from '../../../../mol-util/marker-action';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
+import { isMVSStructure } from '../is-mvs-model-prop';
 import { CustomLabelTextParams, CustomLabelTextVisual } from './visual';
 
 
@@ -38,12 +39,12 @@ export function CustomLabelRepresentation(ctx: RepresentationContext, getParams:
 /** A thingy that is needed to register representation type "Custom Label", allowing user-defined labels at at user-defined positions */
 export const CustomLabelRepresentationProvider = StructureRepresentationProvider({
     name: 'mvs-custom-label',
-    label: 'Custom Label',
+    label: 'MVS Custom Label',
     description: 'Displays labels with custom text',
     factory: CustomLabelRepresentation,
     getParams: () => CustomLabelParams,
     defaultValues: PD.getDefaultValues(CustomLabelParams),
     defaultColorTheme: { name: 'uniform' },
     defaultSizeTheme: { name: 'physical' },
-    isApplicable: (structure: Structure) => structure.elementCount > 0
+    isApplicable: (structure: Structure) => structure.elementCount > 0 && isMVSStructure(structure),
 });

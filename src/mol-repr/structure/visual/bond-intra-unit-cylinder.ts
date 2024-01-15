@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -230,7 +231,7 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
     return UnitsCylindersVisual<IntraUnitBondCylinderParams>({
         defaultProps: PD.getDefaultValues(IntraUnitBondCylinderParams),
         createGeometry: createIntraUnitBondCylinderImpostors,
-        createLocationIterator: BondIterator.fromGroup,
+        createLocationIterator: (structureGroup: StructureGroup, props) => BondIterator.fromGroup(structureGroup, { includeLocation2: props.colorMode === 'interpolate' }),
         getLoci: getIntraBondLoci,
         eachLocation: eachIntraBond,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IntraUnitBondCylinderParams>, currentProps: PD.Values<IntraUnitBondCylinderParams>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
@@ -256,6 +257,12 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
                 newProps.multipleBonds !== currentProps.multipleBonds
             );
 
+            if (newProps.colorMode !== currentProps.colorMode) {
+                state.createGeometry = true;
+                state.updateTransform = true;
+                state.updateColor = true;
+            }
+
             const newUnit = newStructureGroup.group.units[0];
             const currentUnit = currentStructureGroup.group.units[0];
             if (Unit.isAtomic(newUnit) && Unit.isAtomic(currentUnit)) {
@@ -277,7 +284,7 @@ export function IntraUnitBondCylinderMeshVisual(materialId: number): UnitsVisual
     return UnitsMeshVisual<IntraUnitBondCylinderParams>({
         defaultProps: PD.getDefaultValues(IntraUnitBondCylinderParams),
         createGeometry: createIntraUnitBondCylinderMesh,
-        createLocationIterator: BondIterator.fromGroup,
+        createLocationIterator: (structureGroup: StructureGroup) => BondIterator.fromGroup(structureGroup),
         getLoci: getIntraBondLoci,
         eachLocation: eachIntraBond,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IntraUnitBondCylinderParams>, currentProps: PD.Values<IntraUnitBondCylinderParams>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {

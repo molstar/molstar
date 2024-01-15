@@ -153,7 +153,7 @@ export function IntraUnitBondLineVisual(materialId: number): UnitsVisual<IntraUn
     return UnitsLinesVisual<IntraUnitBondLineParams>({
         defaultProps: PD.getDefaultValues(IntraUnitBondLineParams),
         createGeometry: createIntraUnitBondLines,
-        createLocationIterator: BondIterator.fromGroup,
+        createLocationIterator: (structureGroup: StructureGroup) => BondIterator.fromGroup(structureGroup),
         getLoci: getIntraBondLoci,
         eachLocation: eachIntraBond,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IntraUnitBondLineParams>, currentProps: PD.Values<IntraUnitBondLineParams>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {

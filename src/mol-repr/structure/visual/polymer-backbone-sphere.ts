@@ -72,7 +72,7 @@ export function PolymerBackboneSphereImpostorVisual(materialId: number): UnitsVi
     return UnitsSpheresVisual<PolymerBackboneSphereParams>({
         defaultProps: PD.getDefaultValues(PolymerBackboneSphereParams),
         createGeometry: createPolymerBackboneSphereImpostor,
-        createLocationIterator: PolymerLocationIterator.fromGroup,
+        createLocationIterator: (structureGroup: StructureGroup) => PolymerLocationIterator.fromGroup(structureGroup),
         getLoci: getPolymerElementLoci,
         eachLocation: eachPolymerElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerBackboneSphereParams>, currentProps: PD.Values<PolymerBackboneSphereParams>) => { },
@@ -116,7 +116,7 @@ export function PolymerBackboneSphereMeshVisual(materialId: number): UnitsVisual
     return UnitsMeshVisual<PolymerBackboneSphereParams>({
         defaultProps: PD.getDefaultValues(PolymerBackboneSphereParams),
         createGeometry: createPolymerBackboneSphereMesh,
-        createLocationIterator: PolymerLocationIterator.fromGroup,
+        createLocationIterator: (structureGroup: StructureGroup) => PolymerLocationIterator.fromGroup(structureGroup),
         getLoci: getPolymerElementLoci,
         eachLocation: eachPolymerElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerBackboneSphereParams>, currentProps: PD.Values<PolymerBackboneSphereParams>) => {

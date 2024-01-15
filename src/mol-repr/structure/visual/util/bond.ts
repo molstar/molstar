@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { BondType } from '../../../../mol-model/structure/model/types';
@@ -125,7 +126,7 @@ export function makeInterBondIgnoreTest(structure: Structure, props: BondProps):
 }
 
 export namespace BondIterator {
-    export function fromGroup(structureGroup: StructureGroup): LocationIterator {
+    export function fromGroup(structureGroup: StructureGroup, props?: { includeLocation2?: boolean }): LocationIterator {
         const { group, structure } = structureGroup;
         const unit = group.units[0] as Unit.Atomic;
         const groupCount = Unit.isAtomic(unit) ? unit.bonds.edgeCount * 2 : 0;
@@ -139,10 +140,22 @@ export namespace BondIterator {
             location.bIndex = unit.bonds.b[groupIndex];
             return location;
         };
+        if (props?.includeLocation2) {
+            const location2 = Bond.Location(structure, undefined, undefined, structure, undefined, undefined);
+            const getLocation2 = (groupIndex: number, instanceIndex: number) => { // swapping A and B
+                const unit = group.units[instanceIndex] as Unit.Atomic;
+                location2.aUnit = unit;
+                location2.bUnit = unit;
+                location2.aIndex = unit.bonds.b[groupIndex];
+                location2.bIndex = unit.bonds.a[groupIndex];
+                return location2;
+            };
+            return LocationIterator(groupCount, instanceCount, 1, getLocation, false, () => false, getLocation2);
+        }
         return LocationIterator(groupCount, instanceCount, 1, getLocation);
     }
 
-    export function fromStructure(structure: Structure): LocationIterator {
+    export function fromStructure(structure: Structure, props?: { includeLocation2?: boolean }): LocationIterator {
         const groupCount = structure.interUnitBonds.edgeCount;
         const instanceCount = 1;
         const location = Bond.Location(structure, undefined, undefined, structure, undefined, undefined);
@@ -153,6 +166,18 @@ export namespace BondIterator {
             location.bUnit = structure.unitMap.get(bond.unitB);
             location.bIndex = bond.indexB;
             return location;
+        };
+        if (props?.includeLocation2) {
+            const location2 = Bond.Location(structure, undefined, undefined, structure, undefined, undefined);
+            const getLocation2 = (groupIndex: number) => { // swapping A and B
+                const bond = structure.interUnitBonds.edges[groupIndex];
+                location2.aUnit = structure.unitMap.get(bond.unitB);
+                location2.aIndex = bond.indexB;
+                location2.bUnit = structure.unitMap.get(bond.unitA);
+                location2.bIndex = bond.indexA;
+                return location2;
+            };
+            return LocationIterator(groupCount, instanceCount, 1, getLocation, true, () => false, getLocation2);
         };
         return LocationIterator(groupCount, instanceCount, 1, getLocation, true);
     }
