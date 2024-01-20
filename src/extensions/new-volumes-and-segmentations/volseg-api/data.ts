@@ -6,28 +6,71 @@
 
 export interface Metadata {
     grid: GridMetadata,
-    annotation: AnnotationMetadata | null,
+    annotation?: AnnotationMetadata
 }
 
 export interface GridMetadata {
-    volumes: VolumesMetadata,
-    segmentation_lattices: SegmentationLatticesMetadata,
-    segmentation_meshes: MeshesMetadata
-    geometric_segmentation?: GeometricSegmentation | undefined
+    entry_id: EntryId
+    volumes: VolumesMetadata
+    segmentation_lattices?: SegmentationLatticesMetadata
+    segmentation_meshes?: MeshSegmentationSetsMetadata
+    geometric_segmentation?: GeometricSegmentationSetsMetadata
 }
 
-export interface GeometricSegmentation {
-    exists?: boolean
+export interface MeshSegmentationSetsMetadata {
+    sets_ids: string[]
+    sets: MeshesMetadata[]
+    // maps set ids to time info
+    time_info: { [set_id: string]: TimeInfo }
+}
+
+export interface MeshesMetadata {
+    segmentation_mesh_set_id: string
+    // maps timeframe index to MeshesTimeframeMetadata with mesh comp num
+    mesh_timeframes: { [timeframe_index: number]: MeshComponentNumbers }
+    detail_lvl_to_fraction: {
+        [lvl: number]: number
+    }
+}
+
+export interface MeshComponentNumbers {
+    segment_ids?: {
+        [segId: number]: {
+            detail_lvls: {
+                [detail: number]: {
+                    mesh_ids: {
+                        [meshId: number]: {
+                            num_triangles: number
+                            num_vertices: number
+                            num_normals?: number
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+export interface EntryId {
+    source_db_name: string
+    source_db_id: string
+}
+
+export interface GeometricSegmentationSetsMetadata {
+    sets_ids: string[]
+    // maps set ids to time info
+    time_info: { [set_id: string]: TimeInfo }
 }
 
 export interface VolumesMetadata {
-    channel_ids: number[]
+    channel_ids: string[]
+    // Values of time dimension
     time_info: TimeInfo
     volume_sampling_info: VolumeSamplingInfo
 }
 
 export interface SamplingInfo {
-    // Info about "downsampling dimension"
+    // Info about 'downsampling dimension'
     spatial_downsampling_levels: number[]
     boxes: { [downsampling: number]: SamplingBox }
     time_transformations: TimeTransformation[]
@@ -38,9 +81,13 @@ export interface SamplingInfo {
 
 export interface VolumeSamplingInfo extends SamplingInfo {
     // resolution -> time -> channel_id
-    descriptive_statistics: {[resolution: number]: {
-        [time: number]: {
-            [channel_id: string]: VolumeDescriptiveStatistics}}}
+    descriptive_statistics: {
+        [resolution: number]: {
+            [time: number]: {
+                [channel_id: string]: VolumeDescriptiveStatistics
+            }
+        }
+    }
 }
 
 export interface VolumeDescriptiveStatistics {
@@ -57,7 +104,7 @@ export interface TimeTransformation {
 }
 
 export interface TimeInfo {
-    // #just one kind - range
+    // just one kind - range
     kind: string
     start: number
     end: number
@@ -75,36 +122,12 @@ export interface SegmentationLattices {
     segmentation_downsamplings: { [lattice: number]: number[] },
 }
 
-export interface MeshesMetadata {
-    mesh_component_numbers: {
-        segment_ids?: {
-            [segId: number]: {
-                detail_lvls: {
-                    [detail: number]: {
-                        mesh_ids: {
-                            [meshId: number]: {
-                                num_triangles: number,
-                                num_vertices: number
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    detail_lvl_to_fraction: {
-        [lvl: number]: number
-    }
-}
-
 export interface SegmentationLatticesMetadata {
-    segmentation_lattice_ids: number[]
-    // #maps lattice id to Sampling Info
-    segmentation_sampling_info: { [lattice_id: number]: SamplingInfo }
-    // #maps lattice id to channel_ids for that lattice
-    channel_ids: { [lattice_id: number]: number[] }
+    // e.g. label groups (Cell, Chromosomes)
+    segmentation_lattice_ids: string[]
+    segmentation_sampling_info: { [lattice_id: string]: SamplingInfo }
     // #maps lattice id to TimeInfo
-    time_info: { [lattice_id: number]: TimeInfo }
+    time_info: { [lattice_id: string]: TimeInfo }
 }
 
 export interface EntryId {
@@ -113,43 +136,86 @@ export interface EntryId {
 }
 
 export interface AnnotationMetadata {
+    name?: string
     entry_id: EntryId
-    details: string | undefined
-    name: string
-    non_segment_annotation: BiologicalAnnotation | undefined
-    volume_channels_annotations: ChannelAnnotation[] | undefined
-    segmentation_lattices: SegmentationLatticeInfo[]
+    // id => DescriptionData
+    descriptions: { [id: string]: DescriptionData }
+    // NOTE: on frontend, segment key = `${kind}:{segmentation_id}:{segment_id}`
+    annotations: SegmentAnnotationData[]
+    details?: string
+    volume_channels_annotations?: ChannelAnnotation[]
 }
 
 export interface ChannelAnnotation {
-    channel_id: number
-    // # with transparency
+    channel_id: string
     color: Vector4
-    label: string | undefined
+    label?: string
 }
 
-export interface Segment {
-    id: number
-    color: Vector4
-    biological_annotation: BiologicalAnnotation
-    extra_annotations: BiologicalAnnotation | undefined
+export interface DescriptionData {
+    id: string
+    target_kind: 'lattice' | 'mesh' | 'primitive' | 'entry'
+    target_id?: TargetId
+    name?: string
+    external_references?: ExternalReference[]
+    is_hidden?: boolean
+    time?: number | number[] | Vector2[]
+
+    description?: Description
+    metadata?: { [key: string]: any}
 }
 
-export interface SegmentationLatticeInfo {
-    lattice_id: number
-    segment_list: Segment[]
+export interface TargetId {
+    segmentation_id: string
+    segment_id: number
 }
 
-export interface BiologicalAnnotation {
-    name: string
-    external_references: ExternalReference[]
-    is_hidden: boolean | undefined
+export interface Description {
+    description_format: 'text' | 'markdown'
+    description_text: string
+}
+
+
+export interface SegmentAnnotationData {
+    id: string
+    segment_kind: 'lattice' | 'mesh' | 'primitive'
+    segment_id: number
+    segmentation_id: string
+    color?: Vector4
+    time?: number | number[] | Vector2[]
 }
 
 export interface ExternalReference {
-    id: number, resource: string, accession: string, label: string,
-    description: string
+    id: number
+    resource?: string
+    accession?: string
+    label?: string,
+    description?: string
 }
 
+// export interface Segment {
+//     id: number
+//     color: Vector4
+//     biological_annotation: BiologicalAnnotation
+//     extra_annotations: BiologicalAnnotation | undefined
+// }
+
+// export interface SegmentationLatticeInfo {
+//     lattice_id: number
+//     segment_list: Segment[]
+// }
+
+// export interface BiologicalAnnotation {
+//     name: string
+//     external_references: ExternalReference[]
+//     is_hidden: boolean | undefined
+// }
+
+// export interface ExternalReference {
+//     id: number, resource: string, accession: string, label: string,
+//     description: string
+// }
+
+type Vector2 = [number, number];
 type Vector3 = [number, number, number];
 type Vector4 = [number, number, number, number];
