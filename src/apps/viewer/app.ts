@@ -64,7 +64,7 @@ const CustomFormats = [
 ];
 
 export const ExtensionMap = {
-    'volseg': PluginSpec.Behavior(Volseg),
+    // 'volseg': PluginSpec.Behavior(Volseg),
     'new-volseg': PluginSpec.Behavior(NewVolseg),
     'backgrounds': PluginSpec.Behavior(Backgrounds),
     'cellpack': PluginSpec.Behavior(CellPack),

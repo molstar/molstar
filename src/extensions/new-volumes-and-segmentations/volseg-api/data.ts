@@ -52,7 +52,7 @@ export interface VolumeDescriptiveStatistics {
 
 export interface TimeTransformation {
     // # to which downsampling level it is applied: can be to specific level, can be to all lvls
-    downsampling_level: string | number
+    downsampling_level: 'all' | number
     factor: number
 }
 

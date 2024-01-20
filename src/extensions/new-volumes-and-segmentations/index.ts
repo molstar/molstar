@@ -38,7 +38,7 @@ export const NewVolseg = PluginBehavior.create<{ autoAttach: boolean, showToolti
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean, showTooltip: boolean }> {
         register() {
             this.ctx.state.data.actions.add(LoadVolseg);
-            this.ctx.customStructureControls.set('volseg', VolsegUI as any);
+            this.ctx.customStructureControls.set('new-volseg', VolsegUI as any);
             this.initializeEntryLists(); // do not await
 
             const entries = new Map<string, VolsegEntryData>();
@@ -55,7 +55,7 @@ export const NewVolseg = PluginBehavior.create<{ autoAttach: boolean, showToolti
         }
         unregister() {
             this.ctx.state.data.actions.remove(LoadVolseg);
-            this.ctx.customStructureControls.delete('volseg');
+            this.ctx.customStructureControls.delete('new-volseg');
         }
         private async initializeEntryLists() {
             const apiUrl = this.ctx.config.get(NewVolsegVolumeServerConfig.DefaultServer) ?? DEFAULT_VOLSEG_SERVER;

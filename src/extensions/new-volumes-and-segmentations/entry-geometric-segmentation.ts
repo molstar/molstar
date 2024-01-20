@@ -34,7 +34,7 @@ export class VolsegGeometricSegmentationData {
             const primitivesData = await this.entryData._resolveStringUrl(url);
 
             const parsedData: ShapePrimitivesData = JSON.parse(primitivesData);
-
+            console.log('parsedData', parsedData);
             const geometricSegmentationNode = await this.entryData.newUpdate().to(group)
                 .apply(CreateShapePrimitivesProvider, { data: parsedData })
                 .apply(StateTransforms.Representation.ShapeRepresentation3D, { alpha: 0.5 })
