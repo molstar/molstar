@@ -18,10 +18,10 @@ export interface GridMetadata {
 }
 
 export interface MeshSegmentationSetsMetadata {
-    sets_ids: string[]
-    sets: MeshesMetadata[]
+    segmentation_ids: string[]
+    segmentation_metadata: { [segmentation_id: string]: MeshesMetadata }
     // maps set ids to time info
-    time_info: { [set_id: string]: TimeInfo }
+    time_info: { [segmentation_id: string]: TimeInfo }
 }
 
 export interface MeshesMetadata {
@@ -57,9 +57,9 @@ export interface EntryId {
 }
 
 export interface GeometricSegmentationSetsMetadata {
-    sets_ids: string[]
+    segmentation_ids: string[]
     // maps set ids to time info
-    time_info: { [set_id: string]: TimeInfo }
+    time_info: { [segmentation_id: string]: TimeInfo }
 }
 
 export interface VolumesMetadata {
@@ -127,7 +127,7 @@ export interface SegmentationLatticesMetadata {
     segmentation_lattice_ids: string[]
     segmentation_sampling_info: { [lattice_id: string]: SamplingInfo }
     // #maps lattice id to TimeInfo
-    time_info: { [lattice_id: string]: TimeInfo }
+    time_info: { [segmentation_id: string]: TimeInfo }
 }
 
 export interface EntryId {
