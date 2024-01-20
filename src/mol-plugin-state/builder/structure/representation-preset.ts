@@ -264,7 +264,8 @@ const coarseSurface = StructureRepresentationPresetProvider({
         };
 
         const structure = structureCell.obj!.data;
-        const size = Structure.getSize(structure);
+        const thresholds = plugin.config.get(PluginConfig.Structure.SizeThresholds) || Structure.DefaultSizeThresholds;
+        const size = Structure.getSize(structure, thresholds);
         const gaussianProps = Object.create(null);
         if (size === Structure.Size.Gigantic) {
             Object.assign(gaussianProps, {

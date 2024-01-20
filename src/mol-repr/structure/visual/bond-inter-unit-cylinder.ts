@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -213,7 +214,7 @@ export function InterUnitBondCylinderImpostorVisual(materialId: number): Complex
     return ComplexCylindersVisual<InterUnitBondCylinderParams>({
         defaultProps: PD.getDefaultValues(InterUnitBondCylinderParams),
         createGeometry: createInterUnitBondCylinderImpostors,
-        createLocationIterator: BondIterator.fromStructure,
+        createLocationIterator: (structure: Structure, props: PD.Values<InterUnitBondCylinderParams>) => BondIterator.fromStructure(structure, { includeLocation2: props.colorMode === 'interpolate' }),
         getLoci: getInterBondLoci,
         eachLocation: eachInterBond,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitBondCylinderParams>, currentProps: PD.Values<InterUnitBondCylinderParams>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
@@ -238,6 +239,12 @@ export function InterUnitBondCylinderImpostorVisual(materialId: number): Complex
                 newProps.multipleBonds !== currentProps.multipleBonds
             );
 
+            if (newProps.colorMode !== currentProps.colorMode) {
+                state.createGeometry = true;
+                state.updateTransform = true;
+                state.updateColor = true;
+            }
+
             if (newStructure.interUnitBonds !== currentStructure.interUnitBonds) {
                 state.createGeometry = true;
                 state.updateTransform = true;
@@ -255,7 +262,7 @@ export function InterUnitBondCylinderMeshVisual(materialId: number): ComplexVisu
     return ComplexMeshVisual<InterUnitBondCylinderParams>({
         defaultProps: PD.getDefaultValues(InterUnitBondCylinderParams),
         createGeometry: createInterUnitBondCylinderMesh,
-        createLocationIterator: BondIterator.fromStructure,
+        createLocationIterator: (structure: Structure) => BondIterator.fromStructure(structure),
         getLoci: getInterBondLoci,
         eachLocation: eachInterBond,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitBondCylinderParams>, currentProps: PD.Values<InterUnitBondCylinderParams>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {

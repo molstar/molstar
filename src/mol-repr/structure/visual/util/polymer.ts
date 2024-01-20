@@ -41,7 +41,7 @@ export function getGapRanges(unit: Unit): SortedRanges<ElementIndex> {
 }
 
 export namespace PolymerLocationIterator {
-    export function fromGroup(structureGroup: StructureGroup, asSecondary = false): LocationIterator {
+    export function fromGroup(structureGroup: StructureGroup, options?: { asSecondary?: boolean }): LocationIterator {
         const { group, structure } = structureGroup;
         const polymerElements = group.units[0].polymerElements;
         const groupCount = polymerElements.length;
@@ -53,6 +53,7 @@ export namespace PolymerLocationIterator {
             location.element = polymerElements[groupIndex];
             return location;
         };
+        const asSecondary = !!options?.asSecondary;
         function isSecondary(elementIndex: number, instanceIndex: number) {
             return asSecondary;
         }

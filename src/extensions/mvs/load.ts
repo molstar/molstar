@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -9,7 +9,6 @@ import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, 
 import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectSelector } from '../../mol-state';
-import { canonicalJsonString } from '../../mol-util/json';
 import { MolViewSpec } from './behavior';
 import { setCamera, setCanvas, setFocus } from './camera';
 import { MVSAnnotationsProvider } from './components/annotation-prop';
@@ -17,7 +16,8 @@ import { MVSAnnotationStructureComponent } from './components/annotation-structu
 import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-prop';
 import { CustomLabelProps, CustomLabelRepresentationProvider } from './components/custom-label/representation';
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
-import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, UpdateTarget, collectAnnotationReferences, collectAnnotationTooltips, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, makeNearestReprMap, representationProps, structureProps, transformProps } from './load-helpers';
+import { IsMVSModelProps, IsMVSModelProvider } from './components/is-mvs-model-prop';
+import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, UpdateTarget, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps } from './load-helpers';
 import { MVSData } from './mvs-data';
 import { ParamsOfKind, SubTreeOfKind, validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
@@ -27,14 +27,15 @@ import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 /** Load a MolViewSpec (MVS) tree into the Mol* plugin.
  * If `options.replaceExisting`, remove all objects in the current Mol* state; otherwise add to the current state.
- * If `options.sanityChecks`, run some sanity checks and print potential issues to the console. */
-export async function loadMVS(plugin: PluginContext, data: MVSData, options: { replaceExisting?: boolean, sanityChecks?: boolean } = {}) {
+ * If `options.sanityChecks`, run some sanity checks and print potential issues to the console.
+ * `options.sourceUrl` serves as the base for resolving relative URLs/URIs and may itself be relative to the window URL. */
+export async function loadMVS(plugin: PluginContext, data: MVSData, options: { replaceExisting?: boolean, sanityChecks?: boolean, sourceUrl?: string } = {}) {
     try {
-        // console.log(`MVS tree (v${data.version}):\n${treeToString(data.root)}`);
+        // console.log(`MVS tree:\n${MVSData.toPrettyString(data)}`)
         validateTree(MVSTreeSchema, data.root, 'MVS');
         if (options.sanityChecks) mvsSanityCheck(data.root);
-        const molstarTree = convertMvsToMolstar(data.root);
-        // console.log(`Converted MolStar tree:\n${treeToString(molstarTree)}`);
+        const molstarTree = convertMvsToMolstar(data.root, options.sourceUrl);
+        // console.log(`Converted MolStar tree:\n${MVSData.toPrettyString({ root: molstarTree, metadata: { version: 'x', timestamp: 'x' } })}`)
         validateTree(MolstarTreeSchema, molstarTree, 'Converted Molstar');
         await loadMolstarTree(plugin, molstarTree, options);
     } catch (err) {
@@ -119,10 +120,12 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         });
         UpdateTarget.apply(model, CustomModelProperties, {
             properties: {
-                [MVSAnnotationsProvider.descriptor.name]: { annotations }
+                [IsMVSModelProvider.descriptor.name]: { isMvs: true } satisfies IsMVSModelProps,
+                [MVSAnnotationsProvider.descriptor.name]: { annotations },
             },
             autoAttach: [
-                MVSAnnotationsProvider.descriptor.name
+                IsMVSModelProvider.descriptor.name,
+                MVSAnnotationsProvider.descriptor.name,
             ],
         });
         return model;
@@ -148,6 +151,17 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
                 ],
             });
         }
+        const inlineLabels = collectInlineLabels(node, context);
+        if (inlineLabels.length > 0) {
+            const nearestReprNode = context.nearestReprMap?.get(node);
+            UpdateTarget.apply(struct, StructureRepresentation3D, {
+                type: {
+                    name: CustomLabelRepresentationProvider.name,
+                    params: { items: inlineLabels } satisfies Partial<CustomLabelProps>,
+                },
+                colorTheme: colorThemeForNode(nearestReprNode, context),
+            });
+        }
         return struct;
     },
     tooltip: undefined, // No action needed, already loaded in `structure`
@@ -160,7 +174,7 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         const selector = node.params.selector;
         return UpdateTarget.apply(updateParent, StructureComponent, {
             type: componentPropsFromSelector(selector),
-            label: canonicalJsonString(selector),
+            label: prettyNameFromSelector(selector),
             nullIfEmpty: false,
         });
     },
@@ -180,23 +194,10 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
             colorTheme: colorThemeForNode(node, context),
         });
     },
-    color: undefined, // No action needed, already loaded in `structure`
-    color_from_uri: undefined, // No action needed, already loaded in `structure`
-    color_from_source: undefined, // No action needed, already loaded in `structure`
-    label(updateParent: UpdateTarget, node: MolstarNode<'label'>, context: MolstarLoadingContext): UpdateTarget {
-        const item: CustomLabelProps['items'][number] = {
-            text: node.params.text,
-            position: { name: 'selection', params: {} },
-        };
-        const nearestReprNode = context.nearestReprMap?.get(node);
-        return UpdateTarget.apply(updateParent, StructureRepresentation3D, {
-            type: {
-                name: CustomLabelRepresentationProvider.name,
-                params: { items: [item] } satisfies Partial<CustomLabelProps>
-            },
-            colorTheme: colorThemeForNode(nearestReprNode, context),
-        });
-    },
+    color: undefined, // No action needed, already loaded in `representation`
+    color_from_uri: undefined, // No action needed, already loaded in `representation`
+    color_from_source: undefined, // No action needed, already loaded in `representation`
+    label: undefined, // No action needed, already loaded in `structure`
     label_from_uri(updateParent: UpdateTarget, node: MolstarNode<'label_from_uri'>, context: MolstarLoadingContext): UpdateTarget {
         const props = labelFromXProps(node, context);
         return UpdateTarget.apply(updateParent, StructureRepresentation3D, props);

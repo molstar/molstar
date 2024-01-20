@@ -20,6 +20,7 @@ export const CylindersSchema = {
     aMapping: AttributeSpec('float32', 3, 0),
     aScale: AttributeSpec('float32', 1, 0),
     aCap: AttributeSpec('float32', 1, 0),
+    aColorMode: AttributeSpec('float32', 1, 0),
     elements: ElementsSpec('uint32'),
 
     padding: ValueSpec('number'),
@@ -30,6 +31,7 @@ export const CylindersSchema = {
     dSolidInterior: DefineSpec('boolean'),
     uBumpFrequency: UniformSpec('f', 'material'),
     uBumpAmplitude: UniformSpec('f', 'material'),
+    dDualColor: DefineSpec('boolean'),
 };
 export type CylindersSchema = typeof CylindersSchema
 export type CylindersValues = Values<CylindersSchema>

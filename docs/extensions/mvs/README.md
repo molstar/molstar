@@ -93,9 +93,9 @@ Mol* MolViewSpec extension provides functionality for building, validating, and 
 
 ### Programming interface
 
-Most functions for manipulation of MVS data (including parsing, encoding, validating, and building) are provided by the `MVSData` object (defined in [src/extensions/mvs/mvs-data.ts](../../../src/extensions/mvs/mvs-data.ts)). In TypeScript, `MVSData` is also the type for a MVS view.
+Most functions for manipulation of MVS data (including parsing, encoding, validating, and building) are provided by the `MVSData` object (defined in [src/extensions/mvs/mvs-data.ts](/src/extensions/mvs/mvs-data.ts)). In TypeScript, `MVSData` is also the type for a MVS view.
 
-The `loadMVS` function (defined in [src/extensions/mvs/load.ts](../../../src/extensions/mvs/load.ts)) can be used to load MVS view data into Mol* Viewer.
+The `loadMVS` function (defined in [src/extensions/mvs/load.ts](/src/extensions/mvs/load.ts)) can be used to load MVS view data into Mol* Viewer.
 
 Example usage:
 
@@ -121,9 +121,41 @@ structure
 structure
     .component({ selector: 'ligand' })
     .representation({ type: 'ball_and_stick' })
-    .color({ color: '#aa55ff' as any });
+    .color({ color: '#aa55ff' });
 const mvsData2: MVSData = builder.getState();
 await loadMVS(this.plugin, mvsData2, { replaceExisting: false });
 ```
 
 When using the pre-built Mol* plugin bundle, `MVSData` and `loadMVS` are exposed as `molstar.PluginExtensions.mvs.MVSData` and `molstar.PluginExtensions.mvs.loadMVS`. Furthermore, the `molstar.Viewer` class has `loadMvsFromUrl` and `loadMvsData` methods, providing the same functionality as `mvs-url` and `mvs-data` URL parameters.
+
+
+### Command-line utilities
+
+The MVS extension in Mol* provides a few command-line utilities, which can be executed via NodeJS:
+
+- `mvs-validate` provides validation of MolViewSpec files
+- `mvs-render` creates images based on MolViewSpec files
+- `mvs-print-schema` prints MolViewSpec tree schema (i.e. currently supported node types and their parameters)
+
+Example usage:
+
+```sh
+# Validate a MolViewSpec file `examples/mvs/1cbs.mvsj`
+node lib/commonjs/cli/mvs/mvs-validate examples/mvs/1cbs.mvsj
+
+# Render a MolViewSpec file `examples/mvs/1cbs.mvsj` to `../outputs/1cbs.png`
+npm install --no-save canvas gl jpeg-js pngjs  # Might be needed before the first execution
+node lib/commonjs/cli/mvs/mvs-render -i examples/mvs/1cbs.mvsj -o ../outputs/1cbs.png --size 800x600 --molj
+
+# Print MolViewSpec tree schema formatted as markdown
+node lib/commonjs/cli/mvs/mvs-print-schema --markdown
+```
+
+(If you installed Mol* package from the npm repository, use can just type `npx mvs-validate`...).
+
+
+## Topics
+
+- [Selectors](./selectors.md)
+- [Annotations](./annotations.md)
+- [Camera Settings](./camera-settings.md)
