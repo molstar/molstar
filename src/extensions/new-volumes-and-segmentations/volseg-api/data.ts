@@ -161,7 +161,7 @@ export interface DescriptionData {
     is_hidden?: boolean
     time?: number | number[] | Vector2[]
 
-    description?: Description
+    description?: DescriptionText
     metadata?: { [key: string]: any}
 }
 
@@ -170,10 +170,11 @@ export interface TargetId {
     segment_id: number
 }
 
-export interface Description {
-    description_format: 'text' | 'markdown'
-    description_text: string
+export interface DescriptionText {
+    format: 'text' | 'markdown'
+    text: string
 }
+
 
 
 export interface SegmentAnnotationData {
