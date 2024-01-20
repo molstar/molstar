@@ -123,41 +123,34 @@ export const LoadVolseg = StateAction.build({
                 await entryNode.data.updateStateNode({ channelsData: [...updatedChannelsData] });
             }
 
-            const hasLattices = entryNode.data.metadata.raw.grid.segmentation_lattices.segmentation_lattice_ids.length > 0;
-            if (hasLattices) {
-                const group = await entryNode.data.latticeSegmentationData.createSegmentationGroup();
-                // for now single channel
-                const channelIds = [0];
-                const segmentLabels = entryNode.data.metadata.allSegments.map(seg => ({ id: seg.id, label: seg.biological_annotation.name ? `<b>${seg.biological_annotation.name}</b>` : '' }));
-                for (const channelId of channelIds) {
-                    const segmentationParams: ProjectSegmentationDataParamsValues = {
-                        timeframeIndex: 0,
-                        channelId: channelId,
-                        segmentLabels: segmentLabels,
-                        ownerId: entryNode.data.ref
-                    };
-                    const segmentationNode = await state.build().to(group).apply(ProjectSegmentationData, segmentationParams, { tags: [SEGMENTATION_NODE_TAG] }).commit();
-                    await entryNode.data.latticeSegmentationData.createSegmentationRepresentation3D(segmentationNode, segmentationParams);
-                }
-            };
-            const hasMeshes = Object.keys(entryNode.data.metadata.raw.grid.segmentation_meshes.mesh_component_numbers).length > 0;
-            if (hasMeshes) {
-                const group = await entryNode.data.meshSegmentationData.createMeshGroup();
-                // for now 0
-                const channelIds = [0];
-                const timeframeIndex = 0;
-                for (const channelId of channelIds) {
-                    const meshSegmentParams = entryData.meshSegmentationData.getMeshSegmentParams();
-                    const meshParams: ProjectMeshSegmentationDataParamsValues = {
-                        meshSegmentParams: meshSegmentParams,
-                        channelId: channelId,
-                        timeframeIndex: timeframeIndex
-                    };
-                    const meshNode = await state.build().to(group).apply(ProjectMeshData, meshParams).commit();
-                    await entryNode.data.meshSegmentationData.createMeshRepresentation3D(meshNode);
-                }
-            }
-            await entryData.geometricSegmentationData.loadGeometricSegmentation();
+            // const hasLattices = entryNode.data.metadata.raw.grid.segmentation_lattices;
+            // if (hasLattices) {
+            //     const group = await entryNode.data.latticeSegmentationData.createSegmentationGroup();
+            //     // for now single channel
+            //     // const channelIds = [0];
+            //     const segmentLabels = entryNode.data.metadata.allSegments.map(seg => ({ id: seg.id, label: seg.biological_annotation.name ? `<b>${seg.biological_annotation.name}</b>` : '' }));
+            //     const segmentationParams: ProjectSegmentationDataParamsValues = {
+            //         timeframeIndex: 0,
+            //         segmentLabels: segmentLabels,
+            //         ownerId: entryNode.data.ref
+            //     };
+            //     const segmentationNode = await state.build().to(group).apply(ProjectSegmentationData, segmentationParams, { tags: [SEGMENTATION_NODE_TAG] }).commit();
+            //     await entryNode.data.latticeSegmentationData.createSegmentationRepresentation3D(segmentationNode, segmentationParams);
+            // };
+
+            // const hasMeshes = entryNode.data.metadata.raw.grid.segmentation_meshes;
+            // if (hasMeshes) {
+            //     const group = await entryNode.data.meshSegmentationData.createMeshGroup();
+            //     const timeframeIndex = 0;
+            //     const meshSegmentParams = entryData.meshSegmentationData.getMeshSegmentParams();
+            //     const meshParams: ProjectMeshSegmentationDataParamsValues = {
+            //         meshSegmentParams: meshSegmentParams,
+            //         timeframeIndex: timeframeIndex
+            //     };
+            //     const meshNode = await state.build().to(group).apply(ProjectMeshData, meshParams).commit();
+            //     await entryNode.data.meshSegmentationData.createMeshRepresentation3D(meshNode);
+            // }
+            // await entryData.geometricSegmentationData.loadGeometricSegmentation();
         }
     }).runInContext(taskCtx);
 }));

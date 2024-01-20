@@ -138,7 +138,7 @@ export class VolsegVolumeData {
         return { isovalue: adjustedIsovalue, volumeType: volumeValues.volumeType, opacity: volumeValues.opacity, channelId: channelId, label: label, color: color };
     }
 
-    async setVolumeVisual(type: 'isosurface' | 'direct-volume' | 'off', channelId: number, transform: StateTransform) {
+    async setVolumeVisual(type: 'isosurface' | 'direct-volume' | 'off', channelId: string, transform: StateTransform) {
         const visual = this.entryData.findNodesByRef(transform.ref);
         if (!visual) return;
         const oldParams: VolumeVisualParams = visual.transform.params;
@@ -163,7 +163,7 @@ export class VolsegVolumeData {
         }
     }
 
-    async updateVolumeVisual(newParams: SimpleVolumeParamValues, channelId: number, transform: StateTransform) {
+    async updateVolumeVisual(newParams: SimpleVolumeParamValues, channelId: string, transform: StateTransform) {
         const { volumeType, opacity } = newParams;
         const visual = this.entryData.findNodesByRef(transform.ref);
         if (!visual) return;
@@ -202,7 +202,7 @@ export class VolsegVolumeData {
         }
     }
 
-    private getIsovalueFromState(channelId: number): Volume.IsoValue {
+    private getIsovalueFromState(channelId: string): Volume.IsoValue {
         const { volumeIsovalueKind, volumeIsovalueValue } = this.entryData.currentState.value.channelsData.filter(c => c.channelId === channelId)[0];
         return volumeIsovalueKind === 'relative'
             ? Volume.IsoValue.relative(volumeIsovalueValue)
@@ -219,7 +219,7 @@ export class VolsegVolumeData {
         });
     }
 
-    private changeIsovalueInVolumeVisualParams(params: VolumeVisualParams, isovalue: Volume.IsoValue | undefined, stats: VolumeStats, channelId: number) {
+    private changeIsovalueInVolumeVisualParams(params: VolumeVisualParams, isovalue: Volume.IsoValue | undefined, stats: VolumeStats, channelId: string) {
         isovalue ??= this.getIsovalueFromState(channelId);
         switch (params.type.name) {
             case 'isosurface':

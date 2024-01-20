@@ -20,17 +20,17 @@ import { CreateTransformer } from './helpers';
 
 export const ProjectDataParams = {
     timeframeIndex: ParamDefinition.Numeric(1, { step: 1 }),
-    channelId: ParamDefinition.Numeric(0, { step: 1 }),
+    channelId: ParamDefinition.Text('0'),
 };
 
 export const ProjectSegmentationDataParams = {
-    ...ProjectDataParams,
+    timeframeIndex: ParamDefinition.Numeric(1, { step: 1 }),
     segmentLabels: ParamDefinition.ObjectList({ id: ParamDefinition.Numeric(-1), label: ParamDefinition.Text('') }, s => `${s.id} = ${s.label}`, { description: 'Mapping of segment IDs to segment labels' }),
     ownerId: ParamDefinition.Text('', { isHidden: true, description: 'Reference to the object which manages this volume' }),
 };
 
 export const ProjectMeshSegmentationDataParams = {
-    ...ProjectDataParams,
+    timeframeIndex: ParamDefinition.Numeric(1, { step: 1 }),
     ...VolsegMeshDataParams
 };
 

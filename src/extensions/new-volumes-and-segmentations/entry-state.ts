@@ -20,7 +20,7 @@ export const VolsegStateParams = {
     visibleSegments: PD.ObjectList({ segmentId: PD.Numeric(0) }, s => s.segmentId.toString()),
     visibleModels: PD.ObjectList({ pdbId: PD.Text('') }, s => s.pdbId.toString()),
     channelsData: PD.ObjectList({
-        channelId: PD.Numeric(0),
+        channelId: PD.Text('0'),
         volumeIsovalueKind: PD.Select('relative', [['relative', 'Relative'], ['absolute', 'Absolute']]),
         volumeIsovalueValue: PD.Numeric(1),
         volumeType: VolumeTypeChoice.PDSelect(),
@@ -28,7 +28,7 @@ export const VolsegStateParams = {
         label: PD.Text(''),
         color: PD.Color(Color(0x121212))
     },
-    i => i.channelId.toString()
+    i => i.channelId
     )
 };
 export type VolsegStateData = PD.Values<typeof VolsegStateParams>;

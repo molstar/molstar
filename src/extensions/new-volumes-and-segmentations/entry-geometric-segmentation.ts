@@ -22,7 +22,7 @@ export class VolsegGeometricSegmentationData {
     async loadGeometricSegmentation() {
         const hasGeometricSegmentation = this.entryData.metadata.raw.grid.geometric_segmentation?.exists;
         if (hasGeometricSegmentation) {
-            const url = this.entryData.api.shapePrimitivesUrl(this.entryData.source, this.entryData.entryId);
+            const url = this.entryData.api.geometricSegmentationUrl(this.entryData.source, this.entryData.entryId);
 
             let group = this.entryData.findNodesByTags(GEOMETRIC_SEGMENTATION_GROUP_TAG)[0]?.transform.ref;
             if (!group) {

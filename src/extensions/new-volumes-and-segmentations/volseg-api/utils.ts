@@ -35,7 +35,7 @@ export class MetadataWrapper {
         return this.raw.annotation?.volume_channels_annotations;
     }
 
-    getVolumeChannelColor(channel_id: number) {
+    getVolumeChannelColor(channel_id: string) {
         if (!this.channelAnnotations) {
             return Color(0x121212);
         }
@@ -48,7 +48,7 @@ export class MetadataWrapper {
         }
     }
 
-    getVolumeChannelLabel(channel_id: number) {
+    getVolumeChannelLabel(channel_id: string) {
         if (!this.channelAnnotations) {
             return null;
         }

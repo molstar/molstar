@@ -106,7 +106,7 @@ export class RawMeshSegmentData {
 }
 
 class RawChannelData extends PluginComponent {
-    constructor(public timeframeIndex: number, public channelId: number, public data: Uint8Array | string | RawMeshSegmentData[]) {
+    constructor(public timeframeIndex: number, public channelId: string, public data: Uint8Array | string | RawMeshSegmentData[]) {
         super();
     }
 }
@@ -131,7 +131,7 @@ class RawTimeframesDataCache {
         }
     }
 
-    private _createKey(timeframeIndex: number, channelId: number) {
+    private _createKey(timeframeIndex: number, channelId: string) {
         return `${timeframeIndex.toString()}_${channelId}`;
     }
 
@@ -182,7 +182,7 @@ class RawTimeframesDataCache {
         }
     }
 
-    async get(timeframeIndex: number, channelId: number) {
+    async get(timeframeIndex: number, channelId: string) {
         const key = this._createKey(timeframeIndex, channelId);
         // check if exists
         // debugger;
@@ -267,7 +267,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         return result;
     }
 
-    async getData(timeframeIndex: number, channelId: number, kind: RawDataKind) {
+    async getData(timeframeIndex: number, channelId: string, kind: RawDataKind) {
         // TODO: optimize if elif?
         if (kind === 'volume') {
             const channelData = await this.cachedVolumeTimeframesData.get(timeframeIndex, channelId);
@@ -297,10 +297,10 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         if (hasVolumes) {
             await this.preloadVolumeTimeframesData();
         }
-        const hasLattices = this.metadata.raw.grid.segmentation_lattices.segmentation_lattice_ids.length > 0;
-        if (hasLattices) {
-            await this.preloadSegmentationTimeframesData();
-        }
+        // const hasLattices = this.metadata.raw.grid.segmentation_lattices;
+        // if (hasLattices) {
+        //     await this.preloadSegmentationTimeframesData();
+        // }
     }
 
 
@@ -395,7 +395,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         return data;
     }
 
-    async _loadRawMeshChannelData(timeframe: number, channelId: number) {
+    async _loadRawMeshChannelData(timeframe: number, channelId: string) {
         const segmentsData: RawMeshSegmentData[] = [];
         const segmentsToCreate = this.metadata.meshSegmentIds;
         for (const seg of segmentsToCreate) {
@@ -416,7 +416,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         );
     }
 
-    async _loadRawChannelData(timeframe: number, channelId: number, kind: RawDataKind) {
+    async _loadRawChannelData(timeframe: number, channelId: string, kind: RawDataKind) {
         let urlString: string;
         if (kind === 'volume') {
             urlString = this.api.volumeUrl(this.source, this.entryId, timeframe, channelId, BOX, MAX_VOXELS);
@@ -583,7 +583,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         await this.updateStateNode({ visibleModels: pdbIds.map(pdbId => ({ pdbId: pdbId })) });
     }
 
-    async actionSetVolumeVisual(type: 'isosurface' | 'direct-volume' | 'off', channelId: number, transform: StateTransform) {
+    async actionSetVolumeVisual(type: 'isosurface' | 'direct-volume' | 'off', channelId: string, transform: StateTransform) {
         await this.volumeData.setVolumeVisual(type, channelId, transform);
         const currentChannelsData = this.currentState.value.channelsData;
         // it needs to find object corresponding to that channel volume node and update only it!
@@ -592,7 +592,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         await this.updateStateNode({ channelsData: [...currentChannelsData] });
     }
 
-    async actionUpdateVolumeVisual(params: SimpleVolumeParamValues, channelId: number, transform: StateTransform) {
+    async actionUpdateVolumeVisual(params: SimpleVolumeParamValues, channelId: string, transform: StateTransform) {
         await this.volumeData.updateVolumeVisual(params, channelId, transform);
         const currentChannelsData = this.currentState.value.channelsData;
         // it needs to find object corresponding to that channel volume node and update only it!
