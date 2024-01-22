@@ -124,7 +124,7 @@ export interface SegmentationLattices {
 
 export interface SegmentationLatticesMetadata {
     // e.g. label groups (Cell, Chromosomes)
-    segmentation_lattice_ids: string[]
+    segmentation_ids: string[]
     segmentation_sampling_info: { [lattice_id: string]: SamplingInfo }
     // #maps lattice id to TimeInfo
     time_info: { [segmentation_id: string]: TimeInfo }

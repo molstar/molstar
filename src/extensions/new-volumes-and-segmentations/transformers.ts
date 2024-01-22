@@ -25,6 +25,7 @@ export const ProjectDataParams = {
 
 export const ProjectSegmentationDataParams = {
     timeframeIndex: ParamDefinition.Numeric(1, { step: 1 }),
+    segmentationId: ParamDefinition.Text('0'),
     segmentLabels: ParamDefinition.ObjectList({ id: ParamDefinition.Numeric(-1), label: ParamDefinition.Text('') }, s => `${s.id} = ${s.label}`, { description: 'Mapping of segment IDs to segment labels' }),
     ownerId: ParamDefinition.Text('', { isHidden: true, description: 'Reference to the object which manages this volume' }),
 };
@@ -79,14 +80,14 @@ export const ProjectSegmentationData = CreateTransformer({
 })({
     apply({ a, params, spine }, plugin: PluginContext) {
         return Task.create('Project Volume Data', async ctx => {
-            const { timeframeIndex, channelId } = params;
+            const { timeframeIndex, segmentationId } = params;
             const entry = spine.getAncestorOfType(VolsegEntry);
             // const entry = a;
             const entryData = entry!.data;
-            const rawData = await entryData.getData(timeframeIndex, channelId, 'segmentation') as Uint8Array | string;
+            const rawData = await entryData.getData(timeframeIndex, segmentationId, 'segmentation') as Uint8Array | string;
 
             // TODO: label?
-            const label = channelId.toString();
+            const label = segmentationId.toString();
 
             const parsed = await CIF.parse(rawData).runInContext(ctx);
             // const parsed = await entryData.plugin.dataFormats.get('dscif')!.parse(entryData.plugin, data);

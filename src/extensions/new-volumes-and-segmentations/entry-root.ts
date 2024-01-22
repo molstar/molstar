@@ -111,31 +111,37 @@ class RawChannelData extends PluginComponent {
     }
 }
 
+class RawLatticeSegmentationData extends PluginComponent {
+    constructor(public timeframeIndex: number, public segmentationId: string, public data: Uint8Array | string) {
+        super();
+    }
+}
+
 export interface StateHierarchyMirror {
     volumes: StateObjectCell<PluginStateObject.Volume.Data>[]
     segmentations: StateObjectCell<PluginStateObject.Volume.Data>[]
 }
 
 class RawTimeframesDataCache {
-    private cache: Map<string, RawChannelData> = new Map<string, RawChannelData>();
+    private cache: Map<string, RawChannelData | RawLatticeSegmentationData> = new Map<string, RawChannelData | RawLatticeSegmentationData>();
     private maxEntries: number;
     private totalSizeLimitInBytes: number = 1_000_000_000;
 
     constructor(public entryData: VolsegEntryData, public kind: RawDataKind) {
     }
 
-    private setCacheSizeInItems(data: RawChannelData) {
+    private setCacheSizeInItems(data: RawChannelData | RawLatticeSegmentationData) {
         if (!this.maxEntries) {
             const size = this._getEntrySize(data);
             this._setCacheSizeInItems(size);
         }
     }
 
-    private _createKey(timeframeIndex: number, channelId: string) {
-        return `${timeframeIndex.toString()}_${channelId}`;
+    private _createKey(timeframeIndex: number, channelIdOrSegmentationId: string) {
+        return `${timeframeIndex.toString()}_${channelIdOrSegmentationId}`;
     }
 
-    private _getEntrySize(entry: RawChannelData | RawMeshSegmentData) {
+    private _getEntrySize(entry: RawChannelData | RawLatticeSegmentationData | RawMeshSegmentData) {
         const data = entry.data;
         let bytes: number = 0;
         if (data instanceof Uint8Array) {
@@ -161,7 +167,9 @@ class RawTimeframesDataCache {
         console.log(`maxEntries of ${this.kind} cache set to: ${this.maxEntries}`);
     };
 
-    add(data: RawChannelData) {
+    // TODO: modify add method so that it works for volume and segmentation data
+    // as key can use timeframe index and segmentation_id for lattices
+    add(data: RawChannelData | RawLatticeSegmentationData) {
         if (this.cache.size >= this.maxEntries) {
             // least-recently used cache eviction strategy
             const keyToDelete = this.cache.keys().next().value;
@@ -170,8 +178,14 @@ class RawTimeframesDataCache {
         }
         // check if exists
         const timeframeIndex = data.timeframeIndex;
-        const channelId = data.channelId;
-        const key = this._createKey(timeframeIndex, channelId);
+        let key: string;
+        if (data instanceof RawChannelData) {
+            key = this._createKey(timeframeIndex, data.channelId);
+        } else if (data instanceof RawLatticeSegmentationData) {
+            key = this._createKey(timeframeIndex, data.segmentationId);
+        } else {
+            throw Error(`data type ${data}is not supported`);
+        }
         const hasKey = this.cache.has(key);
         if (hasKey) {
             return null;
@@ -182,8 +196,8 @@ class RawTimeframesDataCache {
         }
     }
 
-    async get(timeframeIndex: number, channelId: string) {
-        const key = this._createKey(timeframeIndex, channelId);
+    async get(timeframeIndex: number, channelIdOrSegmentationId: string, kind: RawDataKind) {
+        const key = this._createKey(timeframeIndex, channelIdOrSegmentationId);
         // check if exists
         // debugger;
         const hasKey = this.cache.has(key);
@@ -203,7 +217,14 @@ class RawTimeframesDataCache {
                 this.cache.delete(keyToDelete);
             }
             console.log('not in cache, loaded');
-            const entry = await this.entryData._loadRawChannelData(timeframeIndex, channelId, this.kind);
+            let entry;
+            if (kind === 'volume') {
+                entry = await this.entryData._loadRawChannelData(timeframeIndex, channelIdOrSegmentationId, this.kind);
+            } else if (kind === 'segmentation') {
+                entry = await this.entryData._loadRawLatticeSegmentationData(timeframeIndex, channelIdOrSegmentationId);
+            } else {
+                throw Error(`Data kind ${kind} is not supported`);
+            }
             this.cache.delete(key);
             this.cache.set(key, entry);
             // debugger;
@@ -267,14 +288,14 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         return result;
     }
 
-    async getData(timeframeIndex: number, channelId: string, kind: RawDataKind) {
+    async getData(timeframeIndex: number, channelIdOrSegmentationId: string, kind: RawDataKind) {
         // TODO: optimize if elif?
         if (kind === 'volume') {
-            const channelData = await this.cachedVolumeTimeframesData.get(timeframeIndex, channelId);
+            const channelData = await this.cachedVolumeTimeframesData.get(timeframeIndex, channelIdOrSegmentationId, 'volume');
             return channelData.data;
-        } else {
-            const channelData = await this.cachedSegmentationTimeframesData.get(timeframeIndex, channelId);
-            return channelData.data;
+        } else if (kind === 'segmentation') {
+            const segmentationData = await this.cachedSegmentationTimeframesData.get(timeframeIndex, channelIdOrSegmentationId, 'segmentation');
+            return segmentationData.data;
         }
     }
 
@@ -297,10 +318,10 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         if (hasVolumes) {
             await this.preloadVolumeTimeframesData();
         }
-        // const hasLattices = this.metadata.raw.grid.segmentation_lattices;
-        // if (hasLattices) {
-        //     await this.preloadSegmentationTimeframesData();
-        // }
+        const hasLattices = this.metadata.raw.grid.segmentation_lattices;
+        if (hasLattices) {
+            await this.preloadSegmentationTimeframesData();
+        }
     }
 
 
@@ -415,14 +436,9 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             segmentsData
         );
     }
-
-    async _loadRawChannelData(timeframe: number, channelId: string, kind: RawDataKind) {
-        let urlString: string;
-        if (kind === 'volume') {
-            urlString = this.api.volumeUrl(this.source, this.entryId, timeframe, channelId, BOX, MAX_VOXELS);
-        } else {
-            urlString = this.api.latticeUrl(this.source, this.entryId, 0, timeframe, channelId, BOX, MAX_VOXELS);
-        }
+    // TODO: make it work only for volumes
+    async _loadRawChannelData(timeframe: number, channelId: string) {
+        const urlString = this.api.volumeUrl(this.source, this.entryId, timeframe, channelId, BOX, MAX_VOXELS);
         // const url = Asset.getUrlAsset(this.plugin.managers.asset, urlString);
         // const asset = this.plugin.managers.asset.resolve(url, 'binary');
         const data = await this._resolveBinaryUrl(urlString);
@@ -433,26 +449,45 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         );
     }
 
-    private async loadRawChannelsData(timeInfo: TimeInfo, channelIds: number[], kind: RawDataKind) {
+    async _loadRawLatticeSegmentationData(timeframe: number, segmentationId: string) {
+        const urlString = this.api.latticeUrl(this.source, this.entryId, segmentationId, timeframe, BOX, MAX_VOXELS);
+        const data = await this._resolveBinaryUrl(urlString);
+        return new RawLatticeSegmentationData(
+            timeframe,
+            segmentationId,
+            data
+        );
+    }
+
+    private async loadRawChannelsData(timeInfo: TimeInfo, channelIds: string[]) {
         // TODO: make it run in parallel without await
         // TODO: or to run it in ctx?
 
         const start = timeInfo.start;
         const end = timeInfo.end;
         for (let i = start; i <= end; i++) {
-            const channelsData: RawChannelData[] = [];
             for (const channelId of channelIds) {
-                const rawChannelData = await this._loadRawChannelData(i, channelId, kind);
+                const rawChannelData = await this._loadRawChannelData(i, channelId);
+                this.cachedVolumeTimeframesData.add(
+                    rawChannelData
+                );
+            }
+        }
+    }
+
+    private async loadRawLatticeSegmentationData(timeInfoMapping: { [segmentation_id: string]: TimeInfo }, segmentationIds: string[]) {
+        // TODO: make it run in parallel without await
+        // TODO: or to run it in ctx?
+        for (const segmentationId of segmentationIds) {
+            const timeInfo = timeInfoMapping[segmentationId]
+            const start = timeInfo.start;
+            const end = timeInfo.end;
+            for (let i = start; i <= end; i++) {
+                const rawLatticeSegmentationData = await this._loadRawLatticeSegmentationData(i, segmentationId);
                 // channelsData.push(rawChannelData);
-                if (kind === 'volume') {
-                    this.cachedVolumeTimeframesData.add(
-                        rawChannelData
-                    );
-                } else {
-                    this.cachedSegmentationTimeframesData.add(
-                        rawChannelData
-                    );
-                }
+                this.cachedSegmentationTimeframesData.add(
+                    rawLatticeSegmentationData
+                );
             }
         }
     }
@@ -460,18 +495,23 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     async preloadVolumeTimeframesData() {
         const timeInfo = this.metadata.raw.grid.volumes.time_info;
         const channelIds = this.metadata.raw.grid.volumes.channel_ids;
-        this.loadRawChannelsData(timeInfo, channelIds, 'volume');
+        this.loadRawChannelsData(timeInfo, channelIds);
         console.log('cachedVolumeTimeframesData');
         console.log(this.cachedVolumeTimeframesData);
     }
 
     async preloadSegmentationTimeframesData() {
         // NOTE: for now single lattice
-        const timeInfo = this.metadata.raw.grid.segmentation_lattices.time_info[0];
-        const channelIds = this.metadata.raw.grid.segmentation_lattices.channel_ids[0];
-        this.loadRawChannelsData(timeInfo, channelIds, 'segmentation');
-        console.log('cachedSegmentationTimeframesData');
-        console.log(this.cachedSegmentationTimeframesData);
+        if (this.metadata.raw.grid.segmentation_lattices) {
+            const segmentationIds = this.metadata.raw.grid.segmentation_lattices.segmentation_ids;
+            const timeInfoMapping = this.metadata.raw.grid.segmentation_lattices.time_info;
+            // TODO: do loop over timeinfo or segmentationIds or both
+            this.loadRawLatticeSegmentationData(timeInfoMapping, segmentationIds);
+            console.log('cachedSegmentationTimeframesData');
+            console.log(this.cachedSegmentationTimeframesData);
+        } else {
+            console.log('No segmentation data for this entry');
+        }
     }
 
     async updateProjectData(timeframeIndex: number) {

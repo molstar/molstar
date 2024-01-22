@@ -36,7 +36,7 @@ export class VolsegLatticeSegmentationData {
     }
 
     async loadSegmentation() {
-        // const hasLattices = this.entryData.metadata.raw.grid.segmentation_lattices.segmentation_lattice_ids.length > 0;
+        // const hasLattices = this.entryData.metadata.raw.grid.segmentation_lattices.segmentation_ids.length > 0;
         // if (hasLattices) {
         //     const url = this.entryData.api.latticeUrl(this.entryData.source, this.entryData.entryId, 0, BOX, MAX_VOXELS);
         //     let group = this.entryData.findNodesByTags(GROUP_TAG)[0]?.transform.ref;
@@ -76,6 +76,7 @@ export class VolsegLatticeSegmentationData {
 
     async createSegmentationRepresentation3D(segmentationNode: StateObjectSelector<PluginStateObject.Volume.Data>, params: ProjectSegmentationDataParamsValues) {
         const segmentationData = segmentationNode.data as Volume;
+        debugger;
         const segmentation = Volume.Segmentation.get(segmentationData);
         const segmentIds: number[] = Array.from(segmentation?.segments.keys() ?? []);
         // debugger;

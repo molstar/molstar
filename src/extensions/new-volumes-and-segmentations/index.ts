@@ -123,20 +123,24 @@ export const LoadVolseg = StateAction.build({
                 await entryNode.data.updateStateNode({ channelsData: [...updatedChannelsData] });
             }
 
-            // const hasLattices = entryNode.data.metadata.raw.grid.segmentation_lattices;
-            // if (hasLattices) {
-            //     const group = await entryNode.data.latticeSegmentationData.createSegmentationGroup();
-            //     // for now single channel
-            //     // const channelIds = [0];
-            //     const segmentLabels = entryNode.data.metadata.allSegments.map(seg => ({ id: seg.id, label: seg.biological_annotation.name ? `<b>${seg.biological_annotation.name}</b>` : '' }));
-            //     const segmentationParams: ProjectSegmentationDataParamsValues = {
-            //         timeframeIndex: 0,
-            //         segmentLabels: segmentLabels,
-            //         ownerId: entryNode.data.ref
-            //     };
-            //     const segmentationNode = await state.build().to(group).apply(ProjectSegmentationData, segmentationParams, { tags: [SEGMENTATION_NODE_TAG] }).commit();
-            //     await entryNode.data.latticeSegmentationData.createSegmentationRepresentation3D(segmentationNode, segmentationParams);
-            // };
+            const hasLattices = entryNode.data.metadata.raw.grid.segmentation_lattices;
+            if (hasLattices) {
+                const group = await entryNode.data.latticeSegmentationData.createSegmentationGroup();
+                // for now single channel
+                // const channelIds = [0];
+                const segmentationIds = hasLattices.segmentation_ids;
+                for (const segmentationId of segmentationIds) {
+                    const segmentLabels = entryNode.data.metadata.allSegments.map(seg => ({ id: seg.id, label: seg.biological_annotation.name ? `<b>${seg.biological_annotation.name}</b>` : '' }));
+                    const segmentationParams: ProjectSegmentationDataParamsValues = {
+                        timeframeIndex: 0,
+                        segmentationId: segmentationId,
+                        segmentLabels: segmentLabels,
+                        ownerId: entryNode.data.ref
+                    };
+                    const segmentationNode = await state.build().to(group).apply(ProjectSegmentationData, segmentationParams, { tags: [SEGMENTATION_NODE_TAG] }).commit();
+                    await entryNode.data.latticeSegmentationData.createSegmentationRepresentation3D(segmentationNode, segmentationParams);
+                }
+            };
 
             // const hasMeshes = entryNode.data.metadata.raw.grid.segmentation_meshes;
             // if (hasMeshes) {
