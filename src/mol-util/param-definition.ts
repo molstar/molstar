@@ -104,10 +104,13 @@ export namespace ParamDefinition {
     }
 
     export interface Text<T extends string = string> extends Base<T> {
-        type: 'text'
+        type: 'text',
+        multiline?: boolean,
+        placeholder?: string,
+        disableInteractiveUpdates?: boolean
     }
-    export function Text<T extends string = string>(defaultValue: string = '', info?: Info): Text<T> {
-        return setInfo<Text<T>>({ type: 'text', defaultValue: defaultValue as any }, info);
+    export function Text<T extends string = string>(defaultValue: string = '', info?: Info & { multiline?: boolean, placeholder?: string, disableInteractiveUpdates?: boolean }): Text<T> {
+        return setInfo<Text<T>>({ type: 'text', defaultValue: defaultValue as any, multiline: info?.multiline, placeholder: info?.placeholder, disableInteractiveUpdates: info?.disableInteractiveUpdates }, info);
     }
 
     export interface Color extends Base<ColorData> {

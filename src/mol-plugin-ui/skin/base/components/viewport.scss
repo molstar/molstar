@@ -142,11 +142,17 @@
     padding: $info-vertical-padding $control-spacing;
     background: $default-background; //$highlight-info-background;
     opacity: 90%;
-
-    // min-height: $row-height;
-    text-align: right;
+    max-width: 400px;
 
     @include non-selectable;
+}
+
+.msp-highlight-markdown-row {
+    padding-left: $control-spacing;
+}
+
+.msp-highlight-simple-row {
+    text-align: right;
 }
 
 .msp-highlight-info-hr {

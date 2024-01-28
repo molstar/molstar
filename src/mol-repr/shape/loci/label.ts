@@ -33,8 +33,8 @@ export const LabelParams = {
     ...TextParams,
     scaleByRadius: PD.Boolean(true),
     visuals: PD.MultiSelect(['text'], PD.objectToOptions(LabelVisuals)),
-    snapshotKey: PD.Text('', { isEssential: true, description: 'Active the snapshot with the provided key when clicking on the label' }),
-    tooltip: PD.Text('', { isEssential: true, description: 'Tooltip text to be displayed when hovering over the label' }),
+    snapshotKey: PD.Text('', { isEssential: true, disableInteractiveUpdates: true, description: 'Activate the snapshot with the provided key when clicking on the label' }),
+    tooltip: PD.Text('', { isEssential: true, multiline: true, disableInteractiveUpdates: true, placeholder: 'Tooltip', description: 'Tooltip text to be displayed when hovering over the label' }),
 };
 
 export type LabelParams = typeof LabelParams
