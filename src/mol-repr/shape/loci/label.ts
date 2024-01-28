@@ -26,13 +26,15 @@ const TextParams = {
 type TextParams = typeof TextParams
 
 const LabelVisuals = {
-    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<LabelData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils, { modifyState: s => ({ ...s, pickable: false }) }),
+    'text': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<LabelData, TextParams>) => ShapeRepresentation(getTextShape, Text.Utils),
 };
 
 export const LabelParams = {
     ...TextParams,
     scaleByRadius: PD.Boolean(true),
     visuals: PD.MultiSelect(['text'], PD.objectToOptions(LabelVisuals)),
+    snapshotKey: PD.Text('', { isEssential: true, description: 'Active the snapshot with the provided key when clicking on the label' }),
+    tooltip: PD.Text('', { isEssential: true, description: 'Tooltip text to be displayed when hovering over the label' }),
 };
 
 export type LabelParams = typeof LabelParams
@@ -69,13 +71,18 @@ function buildText(data: LabelData, props: LabelProps, text?: Text): Text {
 function getTextShape(ctx: RuntimeContext, data: LabelData, props: LabelProps, shape?: Shape<Text>) {
     const text = buildText(data, props, shape && shape.geometry);
     const name = getLabelName(data);
+    const tooltip = props.tooltip?.trim() ?? '';
     const customLabel = props.customText.trim();
-    const getLabel = customLabel
-        ? function (groupId: number) {
-            return customLabel;
-        } : function (groupId: number) {
-            return label(data.infos[groupId]);
-        };
+    let getLabel: (groupId: number) => any;
+
+    if (tooltip) {
+        getLabel = (_: number) => tooltip;
+    } else if (customLabel) {
+        getLabel = (_: number) => customLabel;
+    } else {
+        getLabel = (groupId: number) => label(data.infos[groupId]);
+    }
+
     return Shape.create(name, data, text, () => props.textColor, () => props.textSize, getLabel);
 }
 
