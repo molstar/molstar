@@ -117,7 +117,6 @@
     "@graphql-codegen/typescript-operations": "^4.0.1",
     "@types/cors": "^2.8.17",
     "@types/gl": "^6.0.5",
-    "@types/jpeg-js": "^0.3.7",
     "@types/pngjs": "^6.0.4",
     "@types/jest": "^29.5.11",
     "@types/react": "^18.2.47",
@@ -168,6 +167,7 @@
     "immer": "^9.0.21",
     "immutable": "^4.3.4",
     "io-ts": "^2.2.21",
+    "jpeg-js": "^0.4.4",
     "node-fetch": "^2.7.0",
     "react-markdown": "^9.0.1",
     "rxjs": "^7.8.1",
@@ -177,13 +177,21 @@
     "xhr2": "^0.2.1"
   },
   "peerDependencies": {
+    "canvas": "^2.11.2",
+    "gl": "^6.0.2",
+    "pngjs": "^6.0.0",
     "react": "^18.1.0 || ^17.0.2 || ^16.14.0",
     "react-dom": "^18.1.0 || ^17.0.2 || ^16.14.0"
   },
-  "optionalDependencies": {
-    "canvas": "^2.11.2",
-    "gl": "^6.0.2",
-    "jpeg-js": "^0.4.4",
-    "pngjs": "^6.0.0"
+  "peerDependenciesMeta": {
+    "canvas": {
+      "optional": true
+    },
+    "gl": {
+      "optional": true
+    },
+    "pngjs": {
+      "optional": true
+    }
   }
 }
