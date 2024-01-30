@@ -8,6 +8,14 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Add color interpolation to impostor cylinders
 - MolViewSpec components are applicable only when the model has been loaded from MolViewSpec
+- Add `snapshotKey` and `tooltip` params to loci `LabelRepresentation`
+- Update `FocusLoci` behavior to support `snapshotKey` param
+  - Clicking a visual with `snapshotKey` will trigger that snapshot
+- Render multiline loci label tooltips as Markdown
+- `ParamDefinition.Text` updates:
+  - Support `multiline` inputs
+  - Support `placeholder` parameter
+  - Support `disableInteractiveUpdates` to only trigger updates once the control loses focus
 
 ## [v4.0.0-beta.0] - 2023-01-06
 
