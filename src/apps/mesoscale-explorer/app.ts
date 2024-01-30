@@ -61,7 +61,7 @@ const DefaultMesoscaleExplorerOptions = {
     customFormats: [] as [string, DataFormatProvider][],
     extensions: ObjectKeys(Extensions),
     layoutIsExpanded: true,
-    layoutShowControls: true,
+    layoutShowControls: false,
     layoutShowRemoteState: true,
     layoutControlsDisplay: 'reactive' as PluginLayoutControlsDisplay,
     layoutShowSequence: true,
@@ -134,6 +134,12 @@ export class MesoscaleExplorer {
             behaviors: [
                 PluginSpec.Behavior(PluginBehaviors.Camera.CameraAxisHelper),
                 PluginSpec.Behavior(PluginBehaviors.Camera.CameraControls),
+
+                PluginSpec.Behavior(PluginBehaviors.Camera.FocusLoci),
+                PluginSpec.Behavior(PluginBehaviors.Representation.FocusLoci),
+                PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci),
+                PluginSpec.Behavior(PluginBehaviors.Representation.SelectLoci),
+                PluginSpec.Behavior(PluginBehaviors.Representation.DefaultLociLabelProvider),
 
                 PluginSpec.Behavior(MesoFocusLoci),
                 PluginSpec.Behavior(MesoSelectLoci),

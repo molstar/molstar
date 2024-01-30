@@ -76,7 +76,7 @@ export class ModelInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
     }
 }
 
-const SelectionStyleParam = PD.Select('color+outline', PD.objectToOptions({
+const SelectionStyleParam = PD.Select('outline', PD.objectToOptions({
     'color+outline': 'Color & Outline',
     'color': 'Color',
     'outline': 'Outline'

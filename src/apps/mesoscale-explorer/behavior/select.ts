@@ -22,6 +22,9 @@ const M = ModifiersKeys;
 const Trigger = Binding.Trigger;
 
 const DefaultMesoSelectLociBindings = {
+    click: Binding([
+        Trigger(B.Flag.Primary, M.create())
+    ], 'Click', 'Click element using ${triggers}'),
     clickToggleSelect: Binding([
         Trigger(B.Flag.Primary, M.create({ shift: true })),
         Trigger(B.Flag.Primary, M.create({ control: true })),
@@ -63,7 +66,7 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
             this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, button, modifiers }) => {
                 if (!this.ctx.canvas3d || this.ctx.isBusy) return;
 
-                const { clickToggleSelect } = this.params.bindings;
+                const { click, clickToggleSelect } = this.params.bindings;
                 if (Binding.match(clickToggleSelect, button, modifiers)) {
                     if (Loci.isEmpty(current.loci)) {
                         this.ctx.managers.interactivity.lociSelects.deselectAll();
@@ -72,6 +75,15 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
 
                     const loci = Loci.normalize(current.loci, modifiers.control ? 'entity' : 'chain');
                     this.ctx.managers.interactivity.lociSelects.toggle({ loci }, false);
+                }
+                if (Binding.match(click, button, modifiers)) {
+                    if (Loci.isEmpty(current.loci)) {
+                        this.ctx.managers.interactivity.lociSelects.deselectAll();
+                        return;
+                    }
+
+                    const loci = Loci.normalize(current.loci, this.ctx.managers.interactivity.props.granularity);
+                    this.ctx.managers.camera.focusLoci(loci);
                 }
             });
             this.ctx.managers.interactivity.lociSelects.addProvider(this.lociMarkProvider);
@@ -103,6 +115,11 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
                     if (StructureElement.Loci.is(current.loci)) {
                         const cell = this.ctx.helpers.substructureParent.get(current.loci.structure);
                         labels.push(cell?.obj?.label || 'Unknown');
+                    } else {
+                        const loci = Loci.normalize(current.loci, this.ctx.managers.interactivity.props.granularity);
+                        if (loci.kind === 'group-loci') {
+                            labels.push(loci.shape.getLabel(0, 0));
+                        }
                     }
                     this.ctx.behaviors.labels.highlight.next({ labels });
                 }
