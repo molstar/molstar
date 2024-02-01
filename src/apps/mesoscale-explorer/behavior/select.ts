@@ -82,8 +82,10 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
                         return;
                     }
 
-                    const loci = Loci.normalize(current.loci, this.ctx.managers.interactivity.props.granularity);
-                    this.ctx.managers.camera.focusLoci(loci);
+                    // const loci = Loci.normalize(current.loci, 'chain'); // this.ctx.managers.interactivity.props.granularity);
+                    const snapshotKey = current.repr?.props?.snapshotKey?.trim() ?? '';
+                    if (snapshotKey) this.ctx.managers.snapshot.applyKey(snapshotKey);
+                    // this.ctx.managers.camera.focusLoci(loci);
                 }
             });
             this.ctx.managers.interactivity.lociSelects.addProvider(this.lociMarkProvider);
@@ -110,15 +112,19 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
 
                 if (Loci.isEmpty(current.loci)) {
                     this.ctx.behaviors.labels.highlight.next({ labels: [] });
+                    this.ctx.managers.interactivity.lociHighlights.clearHighlights();
                 } else {
                     const labels: string[] = [];
                     if (StructureElement.Loci.is(current.loci)) {
                         const cell = this.ctx.helpers.substructureParent.get(current.loci.structure);
-                        labels.push(cell?.obj?.label || 'Unknown');
+                        labels.push(cell?.obj?.label || 'Unknown'); // label or description or both ?
                     } else {
                         const loci = Loci.normalize(current.loci, this.ctx.managers.interactivity.props.granularity);
                         if (loci.kind === 'group-loci') {
                             labels.push(loci.shape.getLabel(0, 0));
+                            /* optionally highlight target selection ? */
+                            // const target = loci.shape.getLociGroup(loci.group).getTarget(loci.instance);
+                            this.ctx.managers.interactivity.lociHighlights.highlight({ repr: current.repr, loci }, false);
                         }
                     }
                     this.ctx.behaviors.labels.highlight.next({ labels });

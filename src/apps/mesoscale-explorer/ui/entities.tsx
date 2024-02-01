@@ -101,11 +101,18 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
     }
 
     get info() {
-        const info: { label: string, key: string }[] = [];
+        const info: { label: string, key: string, description?: string }[] = [];
         this.plugin.managers.structure.selection.entries.forEach((e, k) => {
             if (StructureElement.Loci.is(e.selection) && !StructureElement.Loci.isEmpty(e.selection)) {
                 const cell = this.plugin.helpers.substructureParent.get(e.selection.structure);
+                const { entities } = e.selection.structure.model;
+                // const idx = entities.getEntityIndex(0);
+                // const unitsByEntity = getUnitsByEntity(parent);
+                // const units = unitsByEntity.get(idx) || [];
+                // const structure = Structure.create(units);
+                const description = entities.data.pdbx_description.value(0)[0] || 'model';
                 info.push({
+                    description: description,
                     label: cell?.obj?.label || 'Unknown',
                     key: k,
                 });
@@ -139,7 +146,7 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
         const info = this.info;
         if (!info.length) return <>
             <div className='msp-help-text'>
-                <div>Use <i>ctrl+left click</i> to select entities, either on the 3D canvas or in the tree below</div>
+                <div>Use <i>ctrl+left</i> to select entities, either on the 3D canvas or in the tree below</div>
             </div>
         </>;
 
@@ -148,15 +155,24 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
                 const label = <Button className={`msp-btn-tree-label`} noOverflow disabled={this.state.isDisabled}
                     onClick={() => this.center(entry.key)}
                 >
-                    <span title={entry.label}>{entry.label}</span>
+                    <span title={entry.label}>
+                        {entry.label}
+                    </span>
                 </Button>;
                 const find = <IconButton svg={SearchSvg} toggleState={false} disabled={this.state.isDisabled} small onClick={() => this.find(entry.label)} />;
                 const remove = <IconButton svg={CloseSvg} toggleState={false} disabled={this.state.isDisabled} onClick={() => this.remove(entry.key)} />;
-                return <div key={index} className={`msp-flex-row`} style={{ margin: `1px 5px 1px ${1 * 10 + 5}px` }}>
-                    {label}
-                    {find}
-                    {remove}
-                </div>;
+                return <>
+                    <div key={index} className={`msp-flex-row`} style={{ margin: `1px 5px 1px ${1 * 10 + 5}px` }}>
+                        {label}
+                        {find}
+                        {remove}
+                    </div>
+                    <div className={`msp-flex-row msp-help-text`}>
+                        <div style={{ overflow: 'auto'}}>
+                            {entry.description}
+                        </div>
+                    </div>
+                </>;
             })}
         </>;
     }
@@ -376,7 +392,9 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
             {options.length > 1 && <div style={{ margin: '5px', marginBottom: '10px' }}>
                 <SelectControl name={'Group By'} param={groupParam} value={`${groupBy}`} onChange={(e) => { this.setGroupBy(parseInt(e.value)); }} />
             </div>}
-            <GroupNode filter={filter} cell={root} depth={0} />
+            <div style={{ position: 'relative', overflowY: 'auto', borderBottom: '1px  solid #000', maxHeight: '600px' }}>
+                <GroupNode filter={filter} cell={root} depth={0} />
+            </div>
         </>;
     }
 }

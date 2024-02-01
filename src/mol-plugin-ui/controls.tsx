@@ -26,6 +26,10 @@ import { VolumeStreamingControls, VolumeSourceControls } from './structure/volum
 import { PluginConfig } from '../mol-plugin/config';
 import { StructureSuperpositionControls } from './structure/superposition';
 import { StructureQuickStylesControls } from './structure/quick-styles';
+import { EveryLoci } from '../mol-model/loci';
+import { MarkerAction } from '../mol-util/marker-action';
+import { Script } from '../mol-script/script';
+import { StructureSelection } from '../mol-model/structure';
 
 export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: boolean, label: string }> {
     state = { show: false, label: '' };
@@ -196,6 +200,7 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
 export function ViewportSnapshotDescription() {
     const plugin = React.useContext(PluginReactContext);
     const [_, setV] = React.useState(0);
+
     React.useEffect(() => {
         const sub = plugin.managers.snapshot.events.changed.subscribe(() => setV(v => v + 1));
         return () => sub.unsubscribe();
@@ -217,15 +222,69 @@ function MarkdownAnchor({ href, children, element }: { href?: string, children?:
 
     if (!href) return element;
 
-    if (href[0] === '#') {
-        return <a href='#' onClick={(e) => {
+    const handleHover = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        e.preventDefault();
+        // Implement your hover logic here
+        // console.log('Hovered over:', href);
+
+        // Example: Perform an action if the href starts with 'h'
+        if (href.startsWith('i')) {
+            // Example hover action
             e.preventDefault();
+            plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+            const query_names = href.substring(1).split(',');
+            for (const s of plugin.managers.structure.hierarchy.current.structures) {
+                for (const query_name of query_names) {
+                    if (s.cell.obj?.label === query_name) {
+                        const sel = Script.getStructureSelection(Q => Q.struct.generator.atomGroups({
+                            'entity-test': query_name,
+                        }), s.cell.obj?.data);
+                        const loci = StructureSelection.toLociWithSourceUnits(sel);
+                        plugin.canvas3d?.mark({ loci }, MarkerAction.Highlight);
+                        // plugin.managers.interactivity.lociHighlights.highlightOnly({ loci });
+                        // break;
+                    }
+                }
+            }
+        }
+    };
+    const handleLeave = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        e.preventDefault();
+        // Implement your hover off logic here
+        // console.log('Hovered off:', href);
+        // Example: Perform an action if the href starts with 'h'
+        if (href.startsWith('i')) {
+            // Example hover off action
+            e.preventDefault();
+            plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+        }
+    };
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        e.preventDefault();
+        // Implement your click logic here
+        // console.log('Clicked on:', href);
+        if (href.startsWith('#')) {
             plugin.managers.snapshot.applyKey(href.substring(1));
-        }}>{children}</a>;
+        } else if (href.startsWith('i')) {
+            // Example click action for links starting with 'h'
+            // console.log('Perform click action for:', href);
+            // Your existing logic for 'h' links can be placed here
+        } else {
+            // open the link in a new tab
+            window.open(href, '_blank');
+        }
+        // Add other conditions as needed
+    };
+
+    if (href[0] === '#') {
+        return <a href={href[0]} onMouseOver={handleHover} onClick={handleClick}>{children}</a>;
     }
-
-    // TODO: consider adding more "commands", for example !reset-camera
-
+    if (href[0] === 'i') {
+        return <a href={href[0]} onMouseLeave={handleLeave} onMouseOver={handleHover} onClick={handleClick}>{children}</a>;
+    }
+    if (href[0] === 'h') {
+        return <a href={href[0]} onClick={handleClick}>{children}</a>;
+    }
     return element;
 }
 
