@@ -17,7 +17,7 @@ import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
 import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/carbohydrates/constants';
 import { Backgrounds } from '../../extensions/backgrounds';
-import { LeftPanel, RightPanel } from './ui/panels';
+import { LeftPanel, MesoScaleViewport, RightPanel } from './ui/panels';
 import { Color } from '../../mol-util/color';
 import { SpacefillRepresentationProvider } from '../../mol-repr/structure/representation/spacefill';
 import { PluginBehaviors } from '../../mol-plugin/behavior';
@@ -178,6 +178,9 @@ export class MesoscaleExplorer {
                     right: RightPanel,
                 },
                 remoteState: 'none',
+                viewport: {
+                    view: MesoScaleViewport,
+                }
             },
             config: [
                 [PluginConfig.General.DisableAntialiasing, o.disableAntialiasing],

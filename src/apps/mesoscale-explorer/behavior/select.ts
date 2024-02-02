@@ -87,24 +87,21 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
                     // const loci = Loci.normalize(current.loci, 'chain'); // this.ctx.managers.interactivity.props.granularity);
                     const snapshotKey = current.repr?.props?.snapshotKey?.trim() ?? '';
                     if (snapshotKey) {
-                        console.log('click ', snapshotKey);
+                        console.log('click snapshotKey ', snapshotKey);
                         this.ctx.managers.snapshot.applyKey(snapshotKey);
-                    }
-                    else {
-                        const loci = Loci.normalize(current.loci, 'chain');
-                        if (StructureElement.Loci.is(loci)) {
-                            this.ctx.managers.interactivity.lociSelects.deselectAll();
+                    } else {
+                        console.log('click else ', current.loci, StructureElement.Loci.is(current.loci));
+                        if (StructureElement.Loci.is(current.loci)) {
                             // const loci = Loci.normalize(current.loci, 'chain');
-                            const currents = this.ctx.managers.snapshot.state.current;
-                            const e = this.ctx.managers.snapshot.getEntry(currents)!;
-                            if (!e?.description?.trim()) return;
-                            const cell = this.ctx.helpers.substructureParent.get(loci.structure);
-                            const d = cell?.obj?.label || cell?.obj?.description;
-                            console.log('cell', cell, cell?.obj, cell?.obj?.description, cell?.obj?.label, loci.structure);
+                            const cell = this.ctx.helpers.substructureParent.get(current.loci.structure);
+                            const d = cell?.obj?.description || cell?.obj?.label;
+                            console.log('cell', d);
                             MesoscaleState.set(this.ctx, { selectionDescription: `"${d}"` });
                             // MesoscaleState.set(this.ctx, { selectionDescription: `"${cell?.obj?.label}"` });
                             // MesoscaleState.setSelectionDescription(this.ctx, cell?.obj?.label || 'Unknown');
                             // this.ctx.managers.snapshot.applyKey(e.key ?? '');
+                        } else {
+                            this.ctx.managers.interactivity.lociSelects.deselectAll();
                         }
                         // this.ctx.managers.interactivity.lociSelects.selectOnly({ loci }, false);
                         // this.ctx.managers.interactivity.lociSelects.toggle({ loci }, false);
@@ -153,9 +150,9 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
                         // this.ctx.canvas3d?.setProps({ renderer: { dimStrength: 1 } });
                         const cell = this.ctx.helpers.substructureParent.get(current.loci.structure);
                         labels.push(cell?.obj?.label || 'Unknown'); // label or description or both ?
-                        const d = cell?.obj?.label || ' '; // cell?.obj?.description;
-                        console.log('cell', cell, cell?.obj, cell?.obj?.description, cell?.obj?.label, current.loci.structure);
-                        MesoscaleState.set(this.ctx, { selectionDescription: `"${d}"` });
+                        // const d = cell?.obj?.label || ' '; // cell?.obj?.description;
+                        // console.log('cell', cell, cell?.obj, cell?.obj?.description, cell?.obj?.label, current.loci.structure);
+                        // if (!clicked_entity) MesoscaleState.set(this.ctx, { selectionDescription: `"${d}"` });
                         const loci = Loci.normalize(current.loci, modifiers.control ? 'entity' : 'chain');
                         this.ctx.managers.interactivity.lociHighlights.highlightOnly({ repr: current.repr, loci }, false);
                     } else {

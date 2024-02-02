@@ -265,7 +265,7 @@ export const MesoscaleGroup = PluginStateTransform.BuiltIn({
 })({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Apply Mesoscale Group', async () => {
-            return new MesoscaleGroupObject({}, { label: params.label });
+            return new MesoscaleGroupObject({}, { label: params.label, description: params.description});
         });
     },
 });
@@ -501,6 +501,10 @@ export function getEntityLabel(plugin: PluginContext, cell: StateObjectCell) {
     return StateObjectRef.resolve(plugin.state.data, cell.transform.parent)?.obj?.label || 'Entity';
 }
 
+export function getEntityDescription(plugin: PluginContext, cell: StateObjectCell) {
+    const s = StateObjectRef.resolve(plugin.state.data, cell.transform.parent);
+    return s?.obj?.description || s?.obj?.label || ' ';
+}
 //
 
 export async function updateColors(plugin: PluginContext, values: PD.Values, tag: string, filter: string) {

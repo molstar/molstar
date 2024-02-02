@@ -217,7 +217,7 @@ export function ViewportSnapshotDescription() {
     </div>;
 }
 
-function MarkdownAnchor({ href, children, element }: { href?: string, children?: any, element?: any }) {
+export function MarkdownAnchor({ href, children, element }: { href?: string, children?: any, element?: any }) {
     const plugin = React.useContext(PluginReactContext);
 
     if (!href) return element;

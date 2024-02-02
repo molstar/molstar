@@ -18,7 +18,7 @@ import { CombinedColorControl } from '../../../mol-plugin-ui/controls/color';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { EveryLoci, Loci } from '../../../mol-model/loci';
 import { deepEqual } from '../../../mol-util';
-import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams, expandAllGroups } from '../data/state';
+import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams, expandAllGroups, getEntityDescription } from '../data/state';
 import React from 'react';
 import { MesoscaleExplorerState } from '../app';
 import { StructureElement } from '../../../mol-model/structure/structure/element';
@@ -26,6 +26,8 @@ import { PluginStateObject as PSO } from '../../../mol-plugin-state/objects';
 import { Structure } from '../../../mol-model/structure';
 import { PluginContext } from '../../../mol-plugin/context';
 import { Sphere3D } from '../../../mol-math/geometry';
+import Markdown from 'react-markdown';
+import { MarkdownAnchor } from '../../../mol-plugin-ui/controls';
 
 function centerLoci(plugin: PluginContext, loci: Loci, durationMs = 250) {
     const { canvas3d } = plugin;
@@ -84,6 +86,69 @@ const SelectionStyleParam = PD.Select('outline', PD.objectToOptions({
 } as const));
 type SelectionStyle = typeof SelectionStyleParam['defaultValue']
 
+
+export class CanvasInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
+    state = {
+        isDisabled: false,
+    };
+
+    componentDidMount() {
+        this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
+            this.setState({ isDisabled: v });
+        });
+
+        this.subscribe(this.plugin.managers.structure.selection.events.changed, e => {
+            if (!this.state.isDisabled) {
+                this.forceUpdate();
+            }
+        });
+    }
+
+    get info() {
+        // const infos: { label: string, key: string, description?: string }[] = [];
+        const info: {selectionDescription: string, infos: { label: string, key: string, description?: string }[] } = { selectionDescription: '', infos: [] };
+        if (MesoscaleState.has(this.plugin)) {
+            const state = MesoscaleState.get(this.plugin);
+            if (state.selectionDescription) info.selectionDescription = state.selectionDescription;
+        }
+        this.plugin.managers.structure.selection.entries.forEach((e, k) => {
+            if (StructureElement.Loci.is(e.selection) && !StructureElement.Loci.isEmpty(e.selection)) {
+                const cell = this.plugin.helpers.substructureParent.get(e.selection.structure);
+                const { entities } = e.selection.structure.model;
+                // const idx = entities.getEntityIndex(0);
+                // const unitsByEntity = getUnitsByEntity(parent);
+                // const units = unitsByEntity.get(idx) || [];
+                // const structure = Structure.create(units);
+                const description = entities.data.pdbx_description.value(0)[0] || 'model';
+                info.infos.push({
+                    description: description,
+                    label: cell?.obj?.label || 'Unknown',
+                    key: k,
+                });
+            }
+        });
+        return info;
+    }
+
+    renderInfo() {
+        const info = this.info;
+        if (info.selectionDescription === '') return <></>;
+        return <div className='msp-highlight-info'>
+            <Markdown skipHtml components={{ a: MarkdownAnchor }}>{info.selectionDescription}</Markdown>
+        </div>;
+        // return <div className='msp-help-text'>
+        //    <div>{info.selectionDescription}</div>
+        // </div>;
+    }
+
+    // {this.renderInfo()}
+    render() {
+        return <>
+            {this.renderInfo()}
+        </>;
+    }
+}
+
 export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
     state = {
         isDisabled: false,
@@ -103,7 +168,7 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
 
     get info() {
         // const infos: { label: string, key: string, description?: string }[] = [];
-        const info: {selectionDescription: string, infos: { label: string, key: string, description?: string }[] } = { selectionDescription: 'current protein', infos: [] };
+        const info: {selectionDescription: string, infos: { label: string, key: string, description?: string }[] } = { selectionDescription: '', infos: [] };
         if (MesoscaleState.has(this.plugin)) {
             const state = MesoscaleState.get(this.plugin);
             if (state.selectionDescription) info.selectionDescription = state.selectionDescription;
@@ -247,9 +312,9 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
         </div>;
     }
 
+    // {this.renderInfo()}
     render() {
         return <>
-            {this.renderInfo()}
             {this.renderStyle()}
             {this.selection}
         </>;
@@ -464,6 +529,12 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         this.setState({ action: this.state.action === 'root' ? undefined : 'root' });
     };
 
+    showInfo = (e: React.MouseEvent<HTMLElement>) => {
+        e.preventDefault();
+        const d = this.cell.obj!.description || this.cell.obj!.label;
+        MesoscaleState.set(this.plugin, { selectionDescription: `"${d}"` });
+    };
+
     highlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
         this.plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
@@ -473,6 +544,8 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
                 this.plugin.canvas3d?.mark({ repr, loci: EveryLoci }, MarkerAction.Highlight);
             }
         }
+        // const d = this.cell.obj!.description || this.cell.obj!.label;
+        // MesoscaleState.set(this.plugin, { selectionDescription: `"${d}"` });
     };
 
     clearHighlight = (e: React.MouseEvent<HTMLElement>) => {
@@ -682,6 +755,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         const label = <Button className={`msp-btn-tree-label`} noOverflow disabled={disabled}
             onMouseEnter={this.highlight}
             onMouseLeave={this.clearHighlight}
+            onClick={this.showInfo}
         >
             <span title={groupLabel}>{groupLabel}</span>
         </Button>;
@@ -768,6 +842,8 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
         this.plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
         const repr = this.cell?.obj?.data.repr;
         if (repr) {
+            // const d = getEntityDescription(this.plugin, this.cell);
+            // MesoscaleState.set(this.plugin, { selectionDescription: `"${d}"` });
             this.plugin.canvas3d?.mark({ repr, loci: EveryLoci }, MarkerAction.Highlight);
         }
         e.currentTarget.blur();
@@ -801,7 +877,9 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
         if (e.ctrlKey) {
             this.toggleSelect(e);
         } else {
-            this.center(e);
+            const d = getEntityDescription(this.plugin, this.cell);
+            MesoscaleState.set(this.plugin, { selectionDescription: `"${d}"` });
+            // this.center(e);
         }
     };
 
