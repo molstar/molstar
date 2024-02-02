@@ -4,6 +4,65 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+export interface GeometricSegmentationData {
+    segmentation_id: string
+    primitives: { [timeframeIndex: number]: ShapePrimitiveData }
+}
+
+export interface ShapePrimitiveData {
+    shape_primitive_list: ShapePrimitiveBase[]
+}
+
+export interface ShapePrimitiveBase {
+    // # NOTE: to be able to refer to it in annotations
+    id: number
+    kind: ShapePrimitiveKind
+    // # NOTE: color in annotations
+}
+
+export type ShapePrimitiveKind = 'sphere' | 'tube' | 'cylinder' | 'box' | 'ellipsoid' | 'pyramid'
+
+export interface RotationParameters {
+    axis: Vector3
+    radians: number
+}
+
+export interface Sphere {
+    // # in angstroms
+    center: Vector3
+    radius: number
+}
+
+export interface Box extends ShapePrimitiveBase {
+    // # with respect to origin 0, 0, 0
+    translation: Vector3
+    // # default size 2, 2, 2 in angstroms for pdbe-1.rec
+    scaling: Vector3
+    rotation: RotationParameters
+}
+
+export interface Cylinder extends ShapePrimitiveBase {
+    start: Vector3
+    end: Vector3
+    radius_bottom: number
+    radius_top: number // =0 <=> cone
+}
+
+export interface Ellipsoid extends ShapePrimitiveBase {
+    dir_major: Vector3
+    dir_minor: Vector3
+    center: Vector3
+    radius_scale: Vector3
+}
+
+export interface Pyramid extends ShapePrimitiveBase {
+    // # with respect to origin 0, 0, 0
+    translation: Vector3
+    // # default size 2, 2, 2 in angstroms for pdbe-1.rec
+    scaling: Vector3
+    rotation: RotationParameters
+}
+
 export type ParsedSegmentKey = {
     kind: 'lattice' | 'mesh' | 'primitive'
     segmentationId: string
