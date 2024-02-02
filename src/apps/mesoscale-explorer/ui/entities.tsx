@@ -97,6 +97,12 @@ export class CanvasInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
             this.setState({ isDisabled: v });
         });
 
+        this.subscribe(this.plugin.state.events.cell.stateUpdated, e => {
+            if (!this.state.isDisabled && MesoscaleState.has(this.plugin) && MesoscaleState.ref(this.plugin) === e.ref) {
+                this.forceUpdate();
+            }
+        });
+
         this.subscribe(this.plugin.managers.structure.selection.events.changed, e => {
             if (!this.state.isDisabled) {
                 this.forceUpdate();
@@ -136,12 +142,8 @@ export class CanvasInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
         return <div className='msp-highlight-info'>
             <Markdown skipHtml components={{ a: MarkdownAnchor }}>{info.selectionDescription}</Markdown>
         </div>;
-        // return <div className='msp-help-text'>
-        //    <div>{info.selectionDescription}</div>
-        // </div>;
     }
 
-    // {this.renderInfo()}
     render() {
         return <>
             {this.renderInfo()}

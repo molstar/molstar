@@ -139,6 +139,7 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
                     if (dimDisabledHover) {
                         dimDisabledHover = false;
                         this.ctx.canvas3d?.setProps({ renderer: { dimStrength: 1 } }, true);
+                        this.ctx.canvas3d?.setProps({ marking: { enabled: false } }, true);
                     }
                 } else {
                     const labels: string[] = [];
@@ -146,6 +147,7 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
                         if (!dimDisabledHover) {
                             dimDisabledHover = true;
                             this.ctx.canvas3d?.setProps({ renderer: { dimStrength: 0 } });
+                            this.ctx.canvas3d?.setProps({ marking: { enabled: true } }, true);
                         }
                         // this.ctx.canvas3d?.setProps({ renderer: { dimStrength: 1 } });
                         const cell = this.ctx.helpers.substructureParent.get(current.loci.structure);
@@ -164,6 +166,7 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
                             if (!dimDisabledHover) {
                                 dimDisabledHover = true;
                                 this.ctx.canvas3d?.setProps({ renderer: { dimStrength: 0 } });
+                                this.ctx.canvas3d?.setProps({ marking: { enabled: true } }, true);
                             }
                             this.ctx.managers.interactivity.lociHighlights.highlight({ repr: current.repr, loci }, false);
                         }
