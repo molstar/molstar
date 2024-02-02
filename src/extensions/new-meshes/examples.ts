@@ -18,7 +18,7 @@ import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import { ParamDefinition } from '../../mol-util/param-definition';
 
-// import { createMeshFromUrl } from './mesh-extension';
+import { createMeshFromUrl } from './mesh-extension';
 import { MeshServerInfo } from './mesh-streaming/server-info';
 import { InitMeshStreaming } from './mesh-streaming/transformers';
 import * as MeshUtils from './mesh-utils';
