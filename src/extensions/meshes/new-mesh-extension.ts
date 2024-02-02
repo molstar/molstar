@@ -117,28 +117,28 @@ export namespace MeshlistData {
 
 export class MeshlistStateObject extends PluginStateObject.Create<MeshlistData>({ name: 'Parsed Meshlist', typeClass: 'Object' }) { }
 
-export const ParseMeshlistTransformer = VolsegTransform({
-    name: 'meshlist-from-string',
-    from: PluginStateObject.Format.Cif,
-    to: MeshlistStateObject,
-    params: {
-        label: PD.Text(MeshlistStateObject.type.name, { isHidden: true }),
-        segmentId: PD.Numeric(1, {}, { isHidden: true }),
-        segmentName: PD.Text('Segment'),
-        detail: PD.Numeric(1, {}, { isHidden: true }),
-        /** Reference to the object which manages this meshlist (e.g. `MeshStreaming.Behavior`) */
-        ownerId: PD.Text('', { isHidden: true }),
-    }
-})({
-    apply({ a, params }, globalCtx) { // `a` is the parent node, params are 2nd argument to To.apply(), `globalCtx` is the plugin
-        return Task.create('Create Parsed Meshlist', async ctx => {
-            const meshlistData = await MeshlistData.fromCIF(a.data, params.segmentId, params.segmentName, params.detail);
-            meshlistData.ownerId = params.ownerId;
-            const es = meshlistData.meshIds.length === 1 ? '' : 'es';
-            return new MeshlistStateObject(meshlistData, { label: params.label, description: `${meshlistData.segmentName} (${meshlistData.meshIds.length} mesh${es})` });
-        });
-    }
-});
+// export const ParseMeshlistTransformer = VolsegTransform({
+//     name: 'meshlist-from-string',
+//     from: PluginStateObject.Format.Cif,
+//     to: MeshlistStateObject,
+//     params: {
+//         label: PD.Text(MeshlistStateObject.type.name, { isHidden: true }),
+//         segmentId: PD.Numeric(1, {}, { isHidden: true }),
+//         segmentName: PD.Text('Segment'),
+//         detail: PD.Numeric(1, {}, { isHidden: true }),
+//         /** Reference to the object which manages this meshlist (e.g. `MeshStreaming.Behavior`) */
+//         ownerId: PD.Text('', { isHidden: true }),
+//     }
+// })({
+//     apply({ a, params }, globalCtx) { // `a` is the parent node, params are 2nd argument to To.apply(), `globalCtx` is the plugin
+//         return Task.create('Create Parsed Meshlist', async ctx => {
+//             const meshlistData = await MeshlistData.fromCIF(a.data, params.segmentId, params.segmentName, params.detail);
+//             meshlistData.ownerId = params.ownerId;
+//             const es = meshlistData.meshIds.length === 1 ? '' : 'es';
+//             return new MeshlistStateObject(meshlistData, { label: params.label, description: `${meshlistData.segmentName} (${meshlistData.meshIds.length} mesh${es})` });
+//         });
+//     }
+// });
 
 
 // // // // // // // // // // // // // // // // // // // // // // // //
@@ -169,7 +169,7 @@ const meshShapeProviderParams: Mesh.Params = {
 
 
 export const MeshShapeTransformer = VolsegTransform({
-    name: 'shape-from-meshlist',
+    name: 'new-shape-from-meshlist',
     display: { name: 'Shape from Meshlist', description: 'Create Shape from Meshlist data' },
     from: MeshlistStateObject,
     to: PluginStateObject.Shape.Provider,
@@ -243,36 +243,36 @@ export const CreateMeshlistStateObject = VolsegTransform({
 
 
 /** Download data and create state tree hierarchy down to visual representation. */
-export async function createMeshFromUrl(plugin: PluginContext, meshDataUrl: string, segmentId: number, detail: number,
-    collapseTree: boolean, color?: Color, parent?: StateObjectSelector | StateObjectRef, transparentIfBboxAbove?: number,
-    name?: string, ownerId?: string) {
+// export async function createMeshFromUrl(plugin: PluginContext, meshDataUrl: string, segmentId: number, detail: number,
+//     collapseTree: boolean, color?: Color, parent?: StateObjectSelector | StateObjectRef, transparentIfBboxAbove?: number,
+//     name?: string, ownerId?: string) {
 
-    const update = parent ? plugin.build().to(parent) : plugin.build().toRoot();
-    const rawDataNodeRef = update.apply(Download,
-        { url: meshDataUrl, isBinary: true, label: `Downloaded Data ${segmentId}` },
-        { state: { isCollapsed: collapseTree } }
-    ).ref;
-    const parsedDataNode = await update.to(rawDataNodeRef)
-        .apply(StateTransforms.Data.ParseCif)
-        .apply(ParseMeshlistTransformer,
-            { label: undefined, segmentId: segmentId, segmentName: name ?? `Segment ${segmentId}`, detail: detail, ownerId: ownerId },
-            {}
-        )
-        .commit();
+//     const update = parent ? plugin.build().to(parent) : plugin.build().toRoot();
+//     const rawDataNodeRef = update.apply(Download,
+//         { url: meshDataUrl, isBinary: true, label: `Downloaded Data ${segmentId}` },
+//         { state: { isCollapsed: collapseTree } }
+//     ).ref;
+//     const parsedDataNode = await update.to(rawDataNodeRef)
+//         .apply(StateTransforms.Data.ParseCif)
+//         .apply(ParseMeshlistTransformer,
+//             { label: undefined, segmentId: segmentId, segmentName: name ?? `Segment ${segmentId}`, detail: detail, ownerId: ownerId },
+//             {}
+//         )
+//         .commit();
 
-    let transparent = false;
-    if (transparentIfBboxAbove !== undefined && parsedDataNode.data) {
-        const bbox = MeshlistData.bbox(parsedDataNode.data) || Box3D.zero();
-        transparent = Box3D.volume(bbox) > transparentIfBboxAbove;
-    }
+//     let transparent = false;
+//     if (transparentIfBboxAbove !== undefined && parsedDataNode.data) {
+//         const bbox = MeshlistData.bbox(parsedDataNode.data) || Box3D.zero();
+//         transparent = Box3D.volume(bbox) > transparentIfBboxAbove;
+//     }
 
-    await plugin.build().to(parsedDataNode)
-        .apply(MeshShapeTransformer, { color: color },)
-        .apply(ShapeRepresentation3D,
-            { alpha: transparent ? BACKGROUND_OPACITY : FOREROUND_OPACITY },
-            { tags: ['mesh-segment-visual', `segment-${segmentId}`] }
-        )
-        .commit();
+//     await plugin.build().to(parsedDataNode)
+//         .apply(MeshShapeTransformer, { color: color },)
+//         .apply(ShapeRepresentation3D,
+//             { alpha: transparent ? BACKGROUND_OPACITY : FOREROUND_OPACITY },
+//             { tags: ['mesh-segment-visual', `segment-${segmentId}`] }
+//         )
+//         .commit();
 
-    return rawDataNodeRef;
-}
+//     return rawDataNodeRef;
+// }
