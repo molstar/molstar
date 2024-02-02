@@ -265,7 +265,7 @@ export const MesoscaleGroup = PluginStateTransform.BuiltIn({
 })({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Apply Mesoscale Group', async () => {
-            return new MesoscaleGroupObject({}, { label: params.label, description: params.description});
+            return new MesoscaleGroupObject({}, { label: params.label, description: params.description });
         });
     },
 });
