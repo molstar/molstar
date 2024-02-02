@@ -21,7 +21,7 @@ import { MVSAnnotationsProvider } from './components/annotation-prop';
 import { MVSAnnotationTooltipsLabelProvider, MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-prop';
 import { CustomLabelRepresentationProvider } from './components/custom-label/representation';
 import { CustomTooltipsLabelProvider, CustomTooltipsProvider } from './components/custom-tooltips-prop';
-import { LoadMvsData, MVSJFormatProvider } from './components/formats';
+import { LoadMvsData, MVSJFormatProvider, MVSXFormatProvider } from './components/formats';
 import { IsMVSModelProvider } from './components/is-mvs-model-prop';
 import { makeMultilayerColorThemeProvider } from './components/multilayer-color-theme';
 import { loadMVS } from './load';
@@ -76,6 +76,7 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
             ],
             dataFormats: [
                 { name: 'MVSJ', provider: MVSJFormatProvider },
+                { name: 'MVSX', provider: MVSXFormatProvider },
             ],
             actions: [
                 LoadMvsData,
