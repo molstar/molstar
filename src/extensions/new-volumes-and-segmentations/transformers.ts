@@ -6,12 +6,12 @@
 import { CIF } from '../../mol-io/reader/cif';
 import { volumeFromDensityServerData } from '../../mol-model-formats/volume/density-server';
 import { volumeFromSegmentationData } from '../../mol-model-formats/volume/segmentation';
-import { PluginStateObject, PluginStateTransform } from '../../mol-plugin-state/objects';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateTransformer } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { ParamDefinition } from '../../mol-util/param-definition';
-import { MeshData, VolsegMeshData, VolsegMeshDataParams, VolsegMeshSegmentation } from '../meshes/mesh-extension';
+import { MeshData, VolsegMeshData, VolsegMeshDataParams, VolsegMeshSegmentation } from '../new-meshes/mesh-extension';
 
 import { RawMeshSegmentData, VolsegEntry, VolsegEntryData, createVolsegEntryParams } from './entry-root';
 import { VolsegState, VolsegStateParams, VOLSEG_STATE_FROM_ENTRY_TRANSFORMER_NAME } from './entry-state';
@@ -32,6 +32,7 @@ export const ProjectSegmentationDataParams = {
 
 export const ProjectMeshSegmentationDataParams = {
     timeframeIndex: ParamDefinition.Numeric(1, { step: 1 }),
+    segmentationId: ParamDefinition.Text('0'),
     ...VolsegMeshDataParams
 };
 
@@ -86,8 +87,8 @@ export const ProjectSegmentationData = CreateTransformer({
             const entryData = entry!.data;
             const rawData = await entryData.getData(timeframeIndex, segmentationId, 'segmentation') as Uint8Array | string;
 
-            // TODO: label?
-            const label = segmentationId.toString();
+            // NOTE: label - segmentationId;
+            const label = segmentationId;
 
             const parsed = await CIF.parse(rawData).runInContext(ctx);
             // const parsed = await entryData.plugin.dataFormats.get('dscif')!.parse(entryData.plugin, data);
@@ -99,10 +100,15 @@ export const ProjectSegmentationData = CreateTransformer({
             if (!block) throw new Error(`Data block '${[header]}' not found.`);
             const segmentationCif = CIF.schema.segmentation(block);
             const segmentLabels: { [id: number]: string } = {};
+
             for (const segment of params.segmentLabels) segmentLabels[segment.id] = segment.label;
-            const volume = await volumeFromSegmentationData(segmentationCif, { segmentLabels, ownerId: params.ownerId }).runInContext(ctx);
+            // TODO: check here segment labels;
+            // here params.segmentLabels has all 40 segment labels
+            // should have only segment labels for that timeframe?
+            const volume = await volumeFromSegmentationData(segmentationCif, { label: label, segmentLabels: segmentLabels, ownerId: params.ownerId }).runInContext(ctx);
+            console.log(volume);
             const [x, y, z] = volume.grid.cells.space.dimensions;
-            const props = { label: `Segmentation channel: ${label}`, description: `Segmentation ${x}\u00D7${y}\u00D7${z}` };
+            const props = { label: `ID: ${label}`, description: `Segmentation ID: ${label} ${x}\u00D7${y}\u00D7${z}` };
             return new PluginStateObject.Volume.Data(volume, props);
         });
     }
@@ -117,19 +123,19 @@ export const ProjectMeshData = CreateTransformer({
 })({
     apply({ a, params, spine }, plugin: PluginContext) {
         return Task.create('Project Mesh Data', async ctx => {
-            const { timeframeIndex, channelId } = params;
+            const { timeframeIndex, segmentationId } = params;
             // TODO: alternatively to using a
             const entry = spine.getAncestorOfType(VolsegEntry);
             // const entry = a;
             const entryData = entry!.data;
-            const segmentsToCreate = entryData.metadata.meshSegmentIds;
+            const segmentsToCreate = entryData.metadata.getMeshSegmentIdsForSegmentationIdAndTimeframe(segmentationId, timeframeIndex);
 
             const group = entryData.findNodesByTags('mesh-segmentation-group')[0]?.transform.ref;
 
             const totalVolume = entryData.metadata.gridTotalVolume;
             const meshData: MeshData[] = [];
             const segmentsParams = params.meshSegmentParams;
-            const rawCifData = await entryData._loadRawMeshChannelData(timeframeIndex, channelId);
+            const rawCifData = await entryData._loadRawMeshSegmentationData(timeframeIndex, segmentationId);
             const rawDataArray: RawMeshSegmentData[] = rawCifData.data as RawMeshSegmentData[];
             for (const segmentParam of segmentsParams) {
                 const rawDataItem = rawDataArray.find(i => i.segmentId === segmentParam.id);

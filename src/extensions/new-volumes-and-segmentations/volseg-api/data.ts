@@ -4,6 +4,12 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+export type ParsedSegmentKey = {
+    kind: 'lattice' | 'mesh' | 'primitive'
+    segmentationId: string
+    segmentId: number
+}
+
 export interface Metadata {
     grid: GridMetadata,
     annotation?: AnnotationMetadata
@@ -25,7 +31,6 @@ export interface MeshSegmentationSetsMetadata {
 }
 
 export interface MeshesMetadata {
-    segmentation_mesh_set_id: string
     // maps timeframe index to MeshesTimeframeMetadata with mesh comp num
     mesh_timeframes: { [timeframe_index: number]: MeshComponentNumbers }
     detail_lvl_to_fraction: {
@@ -183,6 +188,7 @@ export interface SegmentAnnotationData {
     segment_id: number
     segmentation_id: string
     color?: Vector4
+    // NOTE: only a single number or number[] is currently supported
     time?: number | number[] | Vector2[]
 }
 

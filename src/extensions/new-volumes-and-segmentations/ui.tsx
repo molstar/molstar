@@ -25,6 +25,7 @@ import { isDefined } from './helpers';
 import { ProjectDataParamsValues } from './transformers';
 import { StateObjectCell } from '../../mol-state';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
+import { createSegmentKey, parseSegmentKey } from './volseg-api/utils';
 
 
 interface VolsegUIData {
@@ -116,12 +117,19 @@ function VolsegControls({ plugin, data, setData }: { plugin: PluginContext, data
 function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
     const state = useBehavior(entryData.currentState);
 
-    const allSegments = entryData.metadata.allSegments;
-    const selectedSegment = entryData.metadata.getSegment(state.selectedSegment);
-    const visibleSegments = state.visibleSegments.map(seg => seg.segmentId);
+    const allDescriptions = entryData.metadata.allDescriptions;
+    const parsedSelectedSegmentKey = parseSegmentKey(state.selectedSegment);
+    const { segmentId, segmentationId, kind } = parsedSelectedSegmentKey;
+    const selectedSegmentDescriptions = entryData.metadata.getSegment(segmentId, segmentationId, kind);
+    // NOTE: for now single description
+    const selectedSegmentDescription = selectedSegmentDescriptions ? selectedSegmentDescriptions[0] : undefined;
+    const visibleSegmentKeys = state.visibleSegments.map(seg => seg.segmentKey);
+    console.log(visibleSegmentKeys);
     const visibleModels = state.visibleModels.map(model => model.pdbId);
     const allPdbs = entryData.pdbs;
 
+    const currentTimeframe = useBehavior(entryData.currentTimeframe);
+    console.log('Current timframe is: ', currentTimeframe);
     return <>
         {/* Title */}
         <div style={{ fontWeight: 'bold', padding: 8, paddingTop: 6, paddingBottom: 4, overflow: 'hidden' }}>
@@ -140,47 +148,64 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
 
         {/* Volume */}
         <VolumeControls entryData={entryData} />
-        {allSegments.length > 0 && <ExpandGroup header='Segmentation data' initiallyExpanded>
+
+        {allDescriptions.length > 0 && <ExpandGroup header='Segmentation data' initiallyExpanded>
             {/* Segment opacity slider */}
             <ControlRow label='Opacity' control={
                 <WaitingSlider min={0} max={1} value={state.segmentOpacity} step={0.05} onChange={async v => await entryData.actionSetOpacity(v)} />
             } />
 
             {/* Segment toggles */}
-            {allSegments.length > 0 && <>
+            {allDescriptions.length > 0 && <>
                 <WaitingButton onClick={async () => { await sleep(20); await entryData.actionToggleAllSegments(); }} style={{ marginTop: 1 }}>
                     Toggle All segments
                 </WaitingButton>
                 <div style={{ maxHeight: 200, overflow: 'hidden', overflowY: 'auto', marginBlock: 1 }}>
-                    {allSegments.map(segment =>
-                        <div style={{ display: 'flex', marginBottom: 1 }} key={segment.id}
-                            onMouseEnter={() => entryData.actionHighlightSegment(segment)}
+                    {allDescriptions.map(description => {
+                        if (description.target_kind === 'entry' || !description.target_id) return;
+                        // TODO: here can add check for time frame
+                        if (description.time && description.time !== currentTimeframe) return;
+                        const segmentKey = createSegmentKey(description.target_id.segment_id, description.target_id.segmentation_id, description.target_kind);
+                        return <div style={{ display: 'flex', marginBottom: 1 }} key={`${description.target_id?.segment_id}:${description.target_id?.segmentation_id}:${description.target_kind}`}
+                            onMouseEnter={() => entryData.actionHighlightSegment(segmentKey)}
                             onMouseLeave={() => entryData.actionHighlightSegment()}>
-                            <Button onClick={() => entryData.actionSelectSegment(segment !== selectedSegment ? segment.id : undefined)}
-                                style={{ fontWeight: segment.id === selectedSegment?.id ? 'bold' : undefined, marginRight: 1, flexGrow: 1, textAlign: 'left' }}>
-                                <div title={segment.biological_annotation.name ?? 'Unnamed segment'} style={{ maxWidth: 240, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {segment.biological_annotation.name ?? 'Unnamed segment'} ({segment.id})
+
+                            <Button onClick={() => entryData.actionSelectSegment(description !== selectedSegmentDescription ? segmentKey : undefined)}
+                                style={{
+                                    fontWeight: description.target_id.segment_id === selectedSegmentDescription?.target_id?.segment_id
+                                    && description.target_id.segmentation_id === selectedSegmentDescription?.target_id.segmentation_id
+                                        ? 'bold' : undefined, marginRight: 1, flexGrow: 1, textAlign: 'left'
+                                }}>
+                                <div title={description.name ?? 'Unnamed segment'} style={{ maxWidth: 240, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {description.name ?? 'Unnamed segment'} ({description.target_id?.segment_id})
                                 </div>
                             </Button>
-                            <IconButton svg={visibleSegments.includes(segment.id) ? Icons.VisibilityOutlinedSvg : Icons.VisibilityOffOutlinedSvg}
-                                onClick={() => entryData.actionToggleSegment(segment.id)} />
-                        </div>
+                            <IconButton svg={visibleSegmentKeys.includes(segmentKey) ? Icons.VisibilityOutlinedSvg : Icons.VisibilityOffOutlinedSvg}
+                                onClick={() => entryData.actionToggleSegment(segmentKey)} />
+                        </div>;
+                    }
                     )}
                 </div>
             </>}
         </ExpandGroup>}
 
         {/* Segment annotations */}
-        {allSegments.length > 0 && <ExpandGroup header='Selected segment annotation' initiallyExpanded>
+        {allDescriptions.length > 0 && <ExpandGroup header='Selected segment annotation' initiallyExpanded>
             <div style={{ paddingTop: 4, paddingRight: 8, maxHeight: 300, overflow: 'hidden', overflowY: 'auto' }}>
-                {!selectedSegment && 'No segment selected'}
-                {selectedSegment && <b>Segment {selectedSegment.id}:<br />{selectedSegment.biological_annotation.name ?? 'Unnamed segment'}</b>}
-                {selectedSegment?.biological_annotation.external_references.map(ref =>
-                    <p key={ref.id} style={{ marginTop: 4 }}>
+                {!selectedSegmentDescription && 'No segment selected'}
+                {selectedSegmentDescription &&
+                    selectedSegmentDescription.target_kind !== 'entry' &&
+                    selectedSegmentDescription.target_id &&
+                    <b>Segment {selectedSegmentDescription.target_id.segment_id}:<br />{selectedSegmentDescription.name ?? 'Unnamed segment'}</b>}
+                {selectedSegmentDescription?.external_references?.map(ref => {
+                    // if (description.target_kind === 'entry' || !description.target_id) return;
+                    return <p key={ref.id} style={{ marginTop: 4 }}>
                         <small>{ref.resource}:{ref.accession}</small><br />
-                        <b>{capitalize(ref.label)}</b><br />
+                        <b>{capitalize(ref.label ? ref.label : '')}</b><br />
                         {ref.description}
-                    </p>)}
+                    </p>;
+                }
+                )}
             </div>
         </ExpandGroup>}
     </>;

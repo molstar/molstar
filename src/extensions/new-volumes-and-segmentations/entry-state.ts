@@ -9,15 +9,22 @@ import { Choice } from '../../mol-util/param-choice';
 import { Color } from '../../mol-util/color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
-
 export const VolumeTypeChoice = new Choice({ 'isosurface': 'Isosurface', 'direct-volume': 'Direct volume', 'off': 'Off' }, 'isosurface');
 export type VolumeType = Choice.Values<typeof VolumeTypeChoice>
 
 
 export const VolsegStateParams = {
     segmentOpacity: PD.Numeric(1, { min: 0, max: 1, step: 0.05 }),
-    selectedSegment: PD.Numeric(-1, { step: 1 }),
-    visibleSegments: PD.ObjectList({ segmentId: PD.Numeric(0) }, s => s.segmentId.toString()),
+    // segmentKey: `${kind}:${segmentationId}:${segmentId}`
+    selectedSegment: PD.Text(''),
+    // visibleSegments: PD.ObjectList({
+    //     segmentId: PD.Numeric(0),
+    //     segmentationId: PD.Text(''),
+    //     kind: PD.Select('lattice', [['lattice', 'lattice'], ['mesh', 'mesh'], ['primitive', 'primitive']])
+    // }, k => `${k.segmentId}:${k.segmentationId}:${k.kind}`),
+    visibleSegments: PD.ObjectList({
+        segmentKey: PD.Text('') }, k => k.segmentKey
+    ),
     visibleModels: PD.ObjectList({ pdbId: PD.Text('') }, s => s.pdbId.toString()),
     channelsData: PD.ObjectList({
         channelId: PD.Text('0'),
