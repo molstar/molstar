@@ -44,6 +44,7 @@ export interface MeshlistData {
     mesh: Mesh,
     /** Reference to the object which created this meshlist (e.g. `MeshStreaming.Behavior`) */
     ownerId?: string,
+    segmentationId?: string
 }
 
 export namespace MeshlistData {
@@ -218,6 +219,9 @@ export const CreateMeshlistStateObject = VolsegTransform({
     to: MeshlistStateObject,
     params: {
         segmentId: PD.Numeric(1, {}, { isHidden: true }),
+        // add ownerId
+        ownerId: PD.Text(''),
+        segmentationId: PD.Text('0')
     }
 })({
     apply({ a, params, spine }, globalCtx) { // `a` is the parent node, params are 2nd argument to To.apply(), `globalCtx` is the plugin
@@ -229,7 +233,8 @@ export const CreateMeshlistStateObject = VolsegTransform({
             const cif = segmentData.parsedCif;
             const { detail, label, color, id } = segmentData.meshSegmentParams;
             const meshlistData = await MeshlistData.fromCIF(cif, params.segmentId, label, detail);
-            // meshlistData.ownerId = entry!.data.ref;
+            meshlistData.ownerId = params.ownerId;
+            meshlistData.segmentationId = params.segmentationId;
             const es = meshlistData.meshIds.length === 1 ? '' : 'es';
             return new MeshlistStateObject(meshlistData, { label: undefined, description: `${meshlistData.segmentName} (${meshlistData.meshIds.length} mesh${es})` });
         });
