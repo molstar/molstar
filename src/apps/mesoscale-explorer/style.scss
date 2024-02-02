@@ -31,3 +31,10 @@ a {
         color: $hover-font-color;
     }
 }
+
+/* overide default css */
+
+.msp-snapshot-description-wrapper {
+    resize: both; /* Allows resizing in both directions */
+    overflow: auto; /* Adjust as needed */
+}

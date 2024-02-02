@@ -244,6 +244,7 @@ export const MesoscaleGroupParams = {
     index: PD.Value<number>(-1, { isHidden: true }),
     tag: PD.Value<string>('', { isHidden: true }),
     label: PD.Value<string>('', { isHidden: true }),
+    description: PD.Value<string>('', { isHidden: true }),
     hidden: PD.Boolean(false),
     color: PD.Group(RootParams),
     lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
@@ -353,6 +354,7 @@ export const MesoscaleStateParams = {
     filter: PD.Value<string>('', { isHidden: true }),
     graphics: PD.Select('quality', PD.arrayToOptions(['ultra', 'quality', 'balanced', 'performance', 'custom'] as GraphicsMode[])),
     description: PD.Value<string>('', { isHidden: true }),
+    selectionDescription: PD.Value<string>('', { isHidden: true }),
     link: PD.Value<string>('', { isHidden: true }),
 };
 

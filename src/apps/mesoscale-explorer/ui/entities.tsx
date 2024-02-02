@@ -60,6 +60,7 @@ export class ModelInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
         if (!state.description && !state.link) return;
 
         return {
+            selectionDescription: state.selectionDescription,
             description: state.description,
             link: state.link,
         };
@@ -101,7 +102,12 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
     }
 
     get info() {
-        const info: { label: string, key: string, description?: string }[] = [];
+        // const infos: { label: string, key: string, description?: string }[] = [];
+        const info: {selectionDescription: string, infos: { label: string, key: string, description?: string }[] } = { selectionDescription: 'current protein', infos: [] };
+        if (MesoscaleState.has(this.plugin)) {
+            const state = MesoscaleState.get(this.plugin);
+            if (state.selectionDescription) info.selectionDescription = state.selectionDescription;
+        }
         this.plugin.managers.structure.selection.entries.forEach((e, k) => {
             if (StructureElement.Loci.is(e.selection) && !StructureElement.Loci.isEmpty(e.selection)) {
                 const cell = this.plugin.helpers.substructureParent.get(e.selection.structure);
@@ -111,7 +117,7 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
                 // const units = unitsByEntity.get(idx) || [];
                 // const structure = Structure.create(units);
                 const description = entities.data.pdbx_description.value(0)[0] || 'model';
-                info.push({
+                info.infos.push({
                     description: description,
                     label: cell?.obj?.label || 'Unknown',
                     key: k,
@@ -138,20 +144,22 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
         const e = this.plugin.managers.structure.selection.entries.get(key);
         if (!e) return;
 
-        const loci = Structure.toStructureElementLoci(e.selection.structure);
-        centerLoci(this.plugin, loci);
+        // const loci = Structure.toStructureElementLoci(e.selection.structure);
+        MesoscaleState.set(this.plugin, { selectionDescription: key });
+        // centerLoci(this.plugin, loci);
     }
 
     get selection() {
         const info = this.info;
-        if (!info.length) return <>
+        if (!info.infos.length) return <>
             <div className='msp-help-text'>
                 <div>Use <i>ctrl+left</i> to select entities, either on the 3D canvas or in the tree below</div>
+                <div>Use <i>shift+left</i> to select individual chain on the 3D canvas</div>
             </div>
         </>;
 
         return <>
-            {info.map((entry, index) => {
+            {info.infos.map((entry, index) => {
                 const label = <Button className={`msp-btn-tree-label`} noOverflow disabled={this.state.isDisabled}
                     onClick={() => this.center(entry.key)}
                 >
@@ -166,11 +174,6 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
                         {label}
                         {find}
                         {remove}
-                    </div>
-                    <div className={`msp-flex-row msp-help-text`}>
-                        <div style={{ overflow: 'auto'}}>
-                            {entry.description}
-                        </div>
                     </div>
                 </>;
             })}
@@ -237,8 +240,16 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
         </div>;
     }
 
+    renderInfo() {
+        const info = this.info;
+        return <div className='msp-help-text'>
+            <div>{info.selectionDescription}</div>
+        </div>;
+    }
+
     render() {
         return <>
+            {this.renderInfo()}
             {this.renderStyle()}
             {this.selection}
         </>;
