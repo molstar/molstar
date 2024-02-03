@@ -161,23 +161,25 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
                     Toggle All segments
                 </WaitingButton>
                 <div style={{ maxHeight: 200, overflow: 'hidden', overflowY: 'auto', marginBlock: 1 }}>
-                    {allDescriptions.map(description => {
-                        if (description.target_kind === 'entry' || !description.target_id) return;
-                        // TODO: here can add check for time frame
-                        if (description.time && description.time !== currentTimeframe) return;
-                        const segmentKey = createSegmentKey(description.target_id.segment_id, description.target_id.segmentation_id, description.target_kind);
-                        return <div style={{ display: 'flex', marginBottom: 1 }} key={`${description.target_id?.segment_id}:${description.target_id?.segmentation_id}:${description.target_kind}`}
+                    {allDescriptions.map(d => {
+                        if (d.target_kind === 'entry' || !d.target_id) return;
+                        // NOTE: if time is a single number
+                        if (d.time && Number.isFinite(d.time) && d.time !== currentTimeframe) return;
+                        // NOTE: if time is array
+                        if (d.time && Array.isArray(d.time) && d.time.every(i => Number.isFinite(i)) && !(d.time as number[]).includes(currentTimeframe)) return;
+                        const segmentKey = createSegmentKey(d.target_id.segment_id, d.target_id.segmentation_id, d.target_kind);
+                        return <div style={{ display: 'flex', marginBottom: 1 }} key={`${d.target_id?.segment_id}:${d.target_id?.segmentation_id}:${d.target_kind}`}
                             onMouseEnter={() => entryData.actionHighlightSegment(segmentKey)}
                             onMouseLeave={() => entryData.actionHighlightSegment()}>
 
-                            <Button onClick={() => entryData.actionSelectSegment(description !== selectedSegmentDescription ? segmentKey : undefined)}
+                            <Button onClick={() => entryData.actionSelectSegment(d !== selectedSegmentDescription ? segmentKey : undefined)}
                                 style={{
-                                    fontWeight: description.target_id.segment_id === selectedSegmentDescription?.target_id?.segment_id
-                                    && description.target_id.segmentation_id === selectedSegmentDescription?.target_id.segmentation_id
+                                    fontWeight: d.target_id.segment_id === selectedSegmentDescription?.target_id?.segment_id
+                                    && d.target_id.segmentation_id === selectedSegmentDescription?.target_id.segmentation_id
                                         ? 'bold' : undefined, marginRight: 1, flexGrow: 1, textAlign: 'left'
                                 }}>
-                                <div title={description.name ?? 'Unnamed segment'} style={{ maxWidth: 240, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {description.name ?? 'Unnamed segment'} ({description.target_id?.segment_id})
+                                <div title={d.name ?? 'Unnamed segment'} style={{ maxWidth: 240, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {d.name ?? 'Unnamed segment'} ({d.target_id?.segment_id})
                                 </div>
                             </Button>
                             <IconButton svg={visibleSegmentKeys.includes(segmentKey) ? Icons.VisibilityOutlinedSvg : Icons.VisibilityOffOutlinedSvg}
