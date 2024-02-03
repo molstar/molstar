@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.382, IHM 1.24, MA 1.4.5.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.386, IHM 1.25, MA 1.4.6.
  *
  * @author molstar/ciftools package
  */
@@ -1966,7 +1966,7 @@ export const mmCIF_Schema = {
         /**
          * The identifying content type of the related entry.
          */
-        content_type: Aliased<'minimized average structure' | 'representative structure' | 'ensemble' | 'derivative structure' | 'native structure' | 'associated EM volume' | 'other EM volume' | 'associated NMR restraints' | 'associated structure factors' | 'associated SAS data' | 'protein target sequence and/or protocol data' | 'split' | 're-refinement' | 'complete structure' | 'unspecified' | 'other'>(str),
+        content_type: Aliased<'minimized average structure' | 'representative structure' | 'ensemble' | 'derivative structure' | 'native structure' | 'associated EM volume' | 'other EM volume' | 'focused EM volume' | 'consensus EM volume' | 'associated NMR restraints' | 'associated structure factors' | 'associated SAS data' | 'protein target sequence and/or protocol data' | 'split' | 're-refinement' | 'complete structure' | 'unspecified' | 'other'>(str),
     },
     /**
      * The PDBX_ENTITY_NONPOLY category provides a mapping between

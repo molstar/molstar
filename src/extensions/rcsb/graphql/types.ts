@@ -6,7 +6,7 @@ export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: 
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
 export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };
 export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
-// Generated on 2023-12-02T13:19:10-08:00
+// Generated on 2024-02-03T09:57:34-08:00
 
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -496,7 +496,9 @@ export type CoreAssembly = {
   readonly pdbx_struct_oper_list?: Maybe<ReadonlyArray<Maybe<PdbxStructOperList>>>;
   /** Get a list of polymer entity instances (chains) that constitute this assembly. */
   readonly polymer_entity_instances?: Maybe<ReadonlyArray<Maybe<CorePolymerEntityInstance>>>;
+  readonly rcsb_assembly_annotation?: Maybe<ReadonlyArray<Maybe<RcsbAssemblyAnnotation>>>;
   readonly rcsb_assembly_container_identifiers: RcsbAssemblyContainerIdentifiers;
+  readonly rcsb_assembly_feature?: Maybe<ReadonlyArray<Maybe<RcsbAssemblyFeature>>>;
   readonly rcsb_assembly_info?: Maybe<RcsbAssemblyInfo>;
   /**
    * A unique identifier for each object in this assembly container formed by
@@ -1223,8 +1225,15 @@ export type DrugbankInfo = {
   readonly description?: Maybe<Scalars['String']['output']>;
   /** The DrugBank drug categories. */
   readonly drug_categories?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
-  /** The DrugBank drug drug groups. */
+  /**
+   * The DrugBank drug groups determine their drug development status.
+   *
+   * Allowable values:
+   * approved, experimental, illicit, investigational, nutraceutical, vet_approved, withdrawn
+   *
+   */
   readonly drug_groups?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
+  readonly drug_products?: Maybe<ReadonlyArray<Maybe<DrugbankInfoDrugProducts>>>;
   /** The DrugBank accession code */
   readonly drugbank_id: Scalars['String']['output'];
   /**
@@ -1255,6 +1264,57 @@ export type DrugbankInfo = {
   readonly pharmacology?: Maybe<Scalars['String']['output']>;
   /** DrugBank drug name synonyms. */
   readonly synonyms?: Maybe<ReadonlyArray<Maybe<Scalars['String']['output']>>>;
+};
+
+export type DrugbankInfoDrugProducts = {
+  /**
+   * Indicates whether this drug has been approved by the regulating government.
+   *
+   * Allowable values:
+   * N, Y
+   *
+   */
+  readonly approved?: Maybe<Scalars['String']['output']>;
+  /**
+   * The country where this commercially available drug has been approved.
+   *
+   * Allowable values:
+   * Canada, EU, US
+   *
+   */
+  readonly country?: Maybe<Scalars['String']['output']>;
+  /**
+   * The ending date for market approval.
+   *
+   * Examples:
+   * 2003-07-30
+   *
+   */
+  readonly ended_marketing_on?: Maybe<Scalars['Date']['output']>;
+  /**
+   * The proprietary name(s) provided by the manufacturer for any commercially available products containing this drug.
+   *
+   * Examples:
+   * Hivid Tab 0.375mg
+   *
+   */
+  readonly name?: Maybe<Scalars['String']['output']>;
+  /**
+   * Source of this product information. For example, a value of DPD indicates this information was retrieved from the Canadian Drug Product Database.
+   *
+   * Allowable values:
+   * DPD, EMA, FDA NDC
+   *
+   */
+  readonly source?: Maybe<Scalars['String']['output']>;
+  /**
+   * The starting date for market approval.
+   *
+   * Examples:
+   * 1992-12-31
+   *
+   */
+  readonly started_marketing_on?: Maybe<Scalars['Date']['output']>;
 };
 
 export type DrugbankTarget = {
@@ -6591,6 +6651,48 @@ export type RcsbAccessionInfo = {
   readonly status_code?: Maybe<Scalars['String']['output']>;
 };
 
+export type RcsbAssemblyAnnotation = {
+  readonly additional_properties?: Maybe<ReadonlyArray<Maybe<RcsbAssemblyAnnotationAdditionalProperties>>>;
+  /** An identifier for the annotation. */
+  readonly annotation_id?: Maybe<Scalars['String']['output']>;
+  /** Identifies the version of the annotation assignment. */
+  readonly assignment_version?: Maybe<Scalars['String']['output']>;
+  /** A description for the annotation. */
+  readonly description?: Maybe<Scalars['String']['output']>;
+  /** A name for the annotation. */
+  readonly name?: Maybe<Scalars['String']['output']>;
+  /**
+   * Code identifying the individual, organization or program that
+   *  assigned the annotation.
+   *
+   * Examples:
+   * MCSA
+   *
+   */
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
+  /**
+   * A type or category of the annotation.
+   *
+   * Allowable values:
+   * MCSA
+   *
+   */
+  readonly type?: Maybe<Scalars['String']['output']>;
+};
+
+export type RcsbAssemblyAnnotationAdditionalProperties = {
+  /**
+   * The additional property name.
+   *
+   * Allowable values:
+   * MCSA_MOTIF_COMPATIBILITY
+   *
+   */
+  readonly name?: Maybe<Scalars['String']['output']>;
+  /** The value(s) of the additional property. */
+  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['ObjectScalar']['output']>>>;
+};
+
 export type RcsbAssemblyContainerIdentifiers = {
   /**
    * Assembly identifier for the container.
@@ -6613,6 +6715,69 @@ export type RcsbAssemblyContainerIdentifiers = {
    *
    */
   readonly rcsb_id?: Maybe<Scalars['String']['output']>;
+};
+
+export type RcsbAssemblyFeature = {
+  readonly additional_properties?: Maybe<ReadonlyArray<Maybe<RcsbAssemblyFeatureAdditionalProperties>>>;
+  /** Identifies the version of the feature assignment. */
+  readonly assignment_version?: Maybe<Scalars['String']['output']>;
+  /** A description for the feature. */
+  readonly description?: Maybe<Scalars['String']['output']>;
+  /** An identifier for the feature. */
+  readonly feature_id?: Maybe<Scalars['String']['output']>;
+  /** This container groups together chain-level identifiers of the assigned features. */
+  readonly feature_positions?: Maybe<ReadonlyArray<Maybe<RcsbAssemblyFeatureFeaturePositions>>>;
+  /** A name for the feature. */
+  readonly name?: Maybe<Scalars['String']['output']>;
+  /**
+   * Code identifying the individual, organization or program that
+   *  assigned the feature.
+   *
+   * Examples:
+   * MCSA
+   *
+   */
+  readonly provenance_source?: Maybe<Scalars['String']['output']>;
+  /**
+   * A type or category of the feature.
+   *
+   * Allowable values:
+   * MCSA
+   *
+   */
+  readonly type?: Maybe<Scalars['String']['output']>;
+};
+
+export type RcsbAssemblyFeatureAdditionalProperties = {
+  /**
+   * The additional property name.
+   *
+   * Allowable values:
+   * MCSA_MOTIF_COMPATIBILITY
+   *
+   */
+  readonly name?: Maybe<Scalars['String']['output']>;
+  /** The value(s) of the additional property. */
+  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['ObjectScalar']['output']>>>;
+};
+
+export type RcsbAssemblyFeatureFeaturePositions = {
+  /**
+   * An identifier of polymer chain (label_asym_id) corresponding to the feature assignment.
+   *
+   * Examples:
+   * A, B
+   *
+   */
+  readonly asym_id: Scalars['String']['output'];
+  /** An identifier for the monomer at which this segment of the feature begins. */
+  readonly beg_seq_id: Scalars['Int']['output'];
+  /** An identifier for the monomer at which this segment of the feature ends. */
+  readonly end_seq_id?: Maybe<Scalars['Int']['output']>;
+  /** Identifies the list of operations from the category pdbx_struct_oper_list. One item in array per operator applied. The order follows how operators are applied. */
+  readonly struct_oper_list: ReadonlyArray<Maybe<Scalars['String']['output']>>;
+  /** The value(s) of the feature over the monomer segment. */
+  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['Float']['output']>>>;
 };
 
 export type RcsbAssemblyInfo = {
