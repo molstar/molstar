@@ -16,6 +16,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Support `multiline` inputs
   - Support `placeholder` parameter
   - Support `disableInteractiveUpdates` to only trigger updates once the control loses focus
+- Move dependencies related to the headless context from optional deps to optional peer deps
 
 ## [v3.44.0] - 2023-01-06
 
