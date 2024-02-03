@@ -69,7 +69,6 @@ export class MetadataWrapper {
                 return a;
             }
         });
-        debugger;
         return allSegmentsForTimeframe;
     }
 

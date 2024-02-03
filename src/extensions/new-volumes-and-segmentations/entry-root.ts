@@ -542,7 +542,6 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         if (this.metadata.raw.grid.segmentation_meshes) {
             const segmentationIds = this.metadata.raw.grid.segmentation_meshes.segmentation_ids;
             const timeInfoMapping = this.metadata.raw.grid.segmentation_meshes.time_info;
-            debugger;
             this.loadRawMeshSegmentationData(timeInfoMapping, segmentationIds);
             console.log('cachedMeshesTimeframesData');
             console.log(this.cachedMeshesTimeframesData);
@@ -830,7 +829,6 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             const segmentId = this.getSegmentIdFromLoci(loci);
             const segmentationId = this.getSegmentationIdFromLoci(loci);
             const segmentationKind = this.getSegmentationKindFromLoci(loci);
-            debugger;
             if (segmentId === undefined || !segmentationId || !segmentationKind) return;
             // const segmentKey = createSegmentKey(segmentId, segmentationId, segmentationKind);
             const descriptions = this.metadata.getSegment(segmentId, segmentationId, segmentationKind);
@@ -840,7 +838,6 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             // for each segment
             // first try assuming there is a single one
             const annotLabels = descriptions[0].external_references?.map(e => `${applyEllipsis(e.label ? e.label : '')} [${e.resource}:${e.accession}]`);
-            debugger;
             // TODO: try rendering multiple descriptions
             if (!annotLabels || annotLabels.length === 0) return;
             if (annotLabels.length > MAX_ANNOTATIONS_IN_LABEL + 1) {
@@ -853,7 +850,6 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     };
 
     private getSegmentationIdFromLoci(loci: Loci): string | undefined {
-        debugger;
         if (Volume.Segment.isLoci(loci)) {
             return loci.volume.label;
         } else if (ShapeGroup.isLoci(loci)) {
