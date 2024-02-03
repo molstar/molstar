@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.45.0] - 2023-02-03
+
 - Add color interpolation to impostor cylinders
 - MolViewSpec components are applicable only when the model has been loaded from MolViewSpec
 - Add `snapshotKey` and `tooltip` params to loci `LabelRepresentation`
