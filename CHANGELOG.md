@@ -6,22 +6,6 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-## [v3.45.0] - 2023-02-03
-
-- Add color interpolation to impostor cylinders
-- MolViewSpec components are applicable only when the model has been loaded from MolViewSpec
-- Add `snapshotKey` and `tooltip` params to loci `LabelRepresentation`
-- Update `FocusLoci` behavior to support `snapshotKey` param
-  - Clicking a visual with `snapshotKey` will trigger that snapshot
-- Render multiline loci label tooltips as Markdown
-- `ParamDefinition.Text` updates:
-  - Support `multiline` inputs
-  - Support `placeholder` parameter
-  - Support `disableInteractiveUpdates` to only trigger updates once the control loses focus
-- Move dependencies related to the headless context from optional deps to optional peer deps
-
-## [v4.0.0-beta.0] - 2023-01-06
-
 - Add Mesoscale Explorer app for investigating large systems
 - [Breaking] Remove `cellpack` extension (superseded by Mesoscale Explorer app)
 - [Breaking] Set minimal node.js version to 18
@@ -55,6 +39,20 @@ Note that since we don't clearly distinguish between a public and private interf
         - Cull based on previous frame's Hi-Z buffer
 - Add stochastic/dithered transparency to fade overlapping LODs in and out
 - Add "Automatic Detail" preset that shows surface/cartoon/ball & stick based on camera distance
+
+## [v3.45.0] - 2023-02-03
+
+- Add color interpolation to impostor cylinders
+- MolViewSpec components are applicable only when the model has been loaded from MolViewSpec
+- Add `snapshotKey` and `tooltip` params to loci `LabelRepresentation`
+- Update `FocusLoci` behavior to support `snapshotKey` param
+  - Clicking a visual with `snapshotKey` will trigger that snapshot
+- Render multiline loci label tooltips as Markdown
+- `ParamDefinition.Text` updates:
+  - Support `multiline` inputs
+  - Support `placeholder` parameter
+  - Support `disableInteractiveUpdates` to only trigger updates once the control loses focus
+- Move dependencies related to the headless context from optional deps to optional peer deps
 
 ## [v3.44.0] - 2023-01-06
 
