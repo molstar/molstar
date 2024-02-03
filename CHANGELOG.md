@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.45.0] - 2023-02-03
+
 - Add color interpolation to impostor cylinders
 - MolViewSpec components are applicable only when the model has been loaded from MolViewSpec
 - Add `snapshotKey` and `tooltip` params to loci `LabelRepresentation`
@@ -16,6 +18,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Support `multiline` inputs
   - Support `placeholder` parameter
   - Support `disableInteractiveUpdates` to only trigger updates once the control loses focus
+- Move dependencies related to the headless context from optional deps to optional peer deps
 
 ## [v4.0.0-beta.0] - 2023-01-06
 
