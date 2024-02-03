@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -7,7 +7,7 @@
 
 import * as React from 'react';
 import { throttleTime } from 'rxjs';
-import { Canvas3DParams } from '../mol-canvas3d/canvas3d';
+import { Canvas3DContext, Canvas3DParams } from '../mol-canvas3d/canvas3d';
 import { PluginCommands } from '../mol-plugin/commands';
 import { LeftPanelTabName } from '../mol-plugin/layout';
 import { StateTransform } from '../mol-state';
@@ -138,6 +138,11 @@ class FullSettings extends PluginUIComponent {
         PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: { [p.name]: p.value } });
     };
 
+    private setCanvas3DContextProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
+        this.plugin.canvas3dContext?.setProps({ [p.name]: p.value });
+        this.plugin.events.canvas3d.settingsUpdated.next(void 0);
+    };
+
     componentDidMount() {
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
         this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());
@@ -153,9 +158,10 @@ class FullSettings extends PluginUIComponent {
 
     render() {
         return <>
-            {this.plugin.canvas3d && <>
+            {this.plugin.canvas3d && this.plugin.canvas3dContext && <>
                 <SectionHeader title='Viewport' />
                 <ParameterControls params={Canvas3DParams} values={this.plugin.canvas3d.props} onChange={this.setSettings} />
+                <ParameterControls params={Canvas3DContext.Params} values={this.plugin.canvas3dContext.props} onChange={this.setCanvas3DContextProps} />
             </>}
             <SectionHeader title='Behavior' />
             <StateTree state={this.plugin.state.behaviors} />

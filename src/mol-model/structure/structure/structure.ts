@@ -1147,11 +1147,11 @@ namespace Structure {
 
     const distVec = Vec3();
     function unitElementMinDistance(unit: Unit, p: Vec3, eRadius: number) {
-        const { elements, conformation: { position, r } } = unit, dV = distVec;
+        const { elements, conformation: c } = unit, dV = distVec;
         let minD = Number.MAX_VALUE;
         for (let i = 0, _i = elements.length; i < _i; i++) {
             const e = elements[i];
-            const d = Vec3.distance(p, position(e, dV)) - eRadius - r(e);
+            const d = Vec3.distance(p, c.position(e, dV)) - eRadius - c.r(e);
             if (d < minD) minD = d;
         }
         return minD;
@@ -1177,10 +1177,10 @@ namespace Structure {
 
         for (let i = 0, _i = units.length; i < _i; i++) {
             const unit = units[i];
-            const { elements, conformation: { position, r } } = unit;
+            const { elements, conformation: c } = unit;
             for (let i = 0, _i = elements.length; i < _i; i++) {
                 const e = elements[i];
-                const d = minDistanceToPoint(b, position(e, distPivot), r(e));
+                const d = minDistanceToPoint(b, c.position(e, distPivot), c.r(e));
                 if (d < minD) minD = d;
             }
         }

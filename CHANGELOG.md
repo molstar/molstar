@@ -6,6 +6,40 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add Mesoscale Explorer app for investigating large systems
+- [Breaking] Remove `cellpack` extension (superseded by Mesoscale Explorer app)
+- [Breaking] Set minimal node.js version to 18
+- [Breaking] Generalize rcsb/assembly-symmetry/ extension
+    - Move to assembly-symmetry/
+    - Remove RCSB specific dependencies and prefixes
+- [Breaking] Require `WEBGL_depth_texture` webgl extension
+    - Remove `renderbuffer` use
+- [Breaking] Change build target to ES2018
+    - Custom builds only require ES6 for dependencies like immer.js
+- [Breaking] Changed `createPluginUI`
+    - The function now takes a single `options` argument
+    - The caller must specify a `render` method that mounts the Mol* react component to DOM
+        - A default `renderReact18` method is provided, but needs to be imported separately
+        - To support React 16 and 17, `ReactDOM.render` can be passed
+- Improve `SetUtils` performance using ES6 features
+- [Breaking] Reduce memory usage of `SymmetryOperator.ArrayMapping`
+    - Requires calling methods from instance
+- [Breaking] Fix `mol-model/structure/model/properties/seconday-structure.ts` file name (#938)
+- [Breaking] Add `Canvas3DContext` runtime props
+    - Props: pixelScale, pickScale, transparency (blended, wboit, dpoit)
+    - Replaces instantiation-time attribs
+- [Breaking] Change default compile target to ES2018
+- [Breaking] Add culling & LOD support
+    - Cull per-object and per-instance
+    - Cull based on frustum and camera distance
+    - LOD visibility based on camera distance
+    - Special LOD mode for spheres with automatic levels
+    - Occlusion culling (only WebGL2)
+        - Hi-Z pass
+        - Cull based on previous frame's Hi-Z buffer
+- Add stochastic/dithered transparency to fade overlapping LODs in and out
+- Add "Automatic Detail" preset that shows surface/cartoon/ball & stick based on camera distance
+
 ## [v3.45.0] - 2023-02-03
 
 - Add color interpolation to impostor cylinders

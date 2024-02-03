@@ -16,7 +16,6 @@ import { WebGLStats } from './context';
 import { hashString, hashFnv32a } from '../../mol-data/util';
 import { DefineValues, ShaderCode } from '../shader-code';
 import { RenderableSchema } from '../renderable/schema';
-import { createRenderbuffer, Renderbuffer, RenderbufferAttachment, RenderbufferFormat } from './renderbuffer';
 import { Texture, TextureKind, TextureFormat, TextureType, TextureFilter, createTexture, CubeFaces, createCubeTexture } from './texture';
 import { VertexArray, createVertexArray } from './vertex-array';
 
@@ -56,7 +55,6 @@ export interface WebGLResources {
     elements: (array: ElementsType, usageHint?: UsageHint) => ElementsBuffer
     framebuffer: () => Framebuffer
     program: (defineValues: DefineValues, shaderCode: ShaderCode, schema: RenderableSchema) => Program
-    renderbuffer: (format: RenderbufferFormat, attachment: RenderbufferAttachment, width: number, height: number) => Renderbuffer
     shader: (type: ShaderType, source: string) => Shader
     texture: (kind: TextureKind, format: TextureFormat, type: TextureType, filter: TextureFilter) => Texture,
     cubeTexture: (faces: CubeFaces, mipmaps: boolean, onload?: () => void) => Texture,
@@ -74,7 +72,6 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
         elements: new Set<Resource>(),
         framebuffer: new Set<Resource>(),
         program: new Set<Resource>(),
-        renderbuffer: new Set<Resource>(),
         shader: new Set<Resource>(),
         texture: new Set<Resource>(),
         cubeTexture: new Set<Resource>(),
@@ -132,9 +129,6 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
         program: (defineValues: DefineValues, shaderCode: ShaderCode, schema: RenderableSchema) => {
             return wrapCached(programCache.get({ defineValues, shaderCode, schema }));
         },
-        renderbuffer: (format: RenderbufferFormat, attachment: RenderbufferAttachment, width: number, height: number) => {
-            return wrap('renderbuffer', createRenderbuffer(gl, format, attachment, width, height));
-        },
         shader: getShader,
         texture: (kind: TextureKind, format: TextureFormat, type: TextureType, filter: TextureFilter) => {
             return wrap('texture', createTexture(gl, extensions, kind, format, type, filter));
@@ -172,7 +166,6 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
             sets.attribute.forEach(r => r.reset());
             sets.elements.forEach(r => r.reset());
             sets.framebuffer.forEach(r => r.reset());
-            sets.renderbuffer.forEach(r => r.reset());
             sets.shader.forEach(r => r.reset());
             sets.program.forEach(r => r.reset());
             sets.vertexArray.forEach(r => r.reset());
@@ -182,7 +175,6 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
             sets.attribute.forEach(r => r.destroy());
             sets.elements.forEach(r => r.destroy());
             sets.framebuffer.forEach(r => r.destroy());
-            sets.renderbuffer.forEach(r => r.destroy());
             sets.shader.forEach(r => r.destroy());
             sets.program.forEach(r => r.destroy());
             sets.vertexArray.forEach(r => r.destroy());

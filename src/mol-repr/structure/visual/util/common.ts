@@ -15,9 +15,12 @@ import { fillSerial } from '../../../../mol-util/array';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { AssignableArrayLike } from '../../../../mol-util/type-helpers';
 import { getBoundary } from '../../../../mol-math/geometry/boundary';
-import { Box3D } from '../../../../mol-math/geometry';
+import { Box3D, Sphere3D } from '../../../../mol-math/geometry';
 import { SizeTheme } from '../../../../mol-theme/size';
 import { hasPolarNeighbour } from '../../../../mol-model-props/computed/chemistry/functional-group';
+
+// avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const m4toArray = Mat4.toArray;
 
 /** Return a Loci for the elements of a whole residue the elementIndex belongs to. */
 export function getResidueLoci(structure: Structure, unit: Unit.Atomic, elementIndex: ElementIndex): Loci {
@@ -75,7 +78,7 @@ export function getAltResidueLociFromId(structure: Structure, unit: Unit.Atomic,
 
 export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 
-export function createUnitsTransform(structureGroup: StructureGroup, includeParent: boolean, transformData?: TransformData) {
+export function createUnitsTransform(structureGroup: StructureGroup, includeParent: boolean, invariantBoundingSphere: Sphere3D, cellSize: number, batchSize: number, transformData?: TransformData) {
     const { child } = structureGroup.structure;
     const units: ReadonlyArray<Unit> = includeParent && child
         ? structureGroup.group.units.filter(u => child.unitMap.has(u.id))
@@ -84,9 +87,9 @@ export function createUnitsTransform(structureGroup: StructureGroup, includePare
     const n = unitCount * 16;
     const array = transformData && transformData.aTransform.ref.value.length >= n ? transformData.aTransform.ref.value : new Float32Array(n);
     for (let i = 0; i < unitCount; i++) {
-        Mat4.toArray(units[i].conformation.operator.matrix, array, i * 16);
+        m4toArray(units[i].conformation.operator.matrix, array, i * 16);
     }
-    return createTransform(array, unitCount, transformData);
+    return createTransform(array, unitCount, invariantBoundingSphere, cellSize, batchSize, transformData);
 }
 
 export const UnitKindInfo = {
@@ -244,8 +247,7 @@ export function getStructureConformationAndRadius(structure: Structure, sizeThem
         const _id: number[] = [];
         for (let i = 0, il = units.length; i < il; ++i) {
             const unit = units[i];
-            const { elements } = unit;
-            const { x, y, z } = unit.conformation;
+            const { elements, conformation: c } = unit;
             const childUnit = structure.unitMap.get(unit.id);
 
             l.unit = unit;
@@ -254,7 +256,7 @@ export function getStructureConformationAndRadius(structure: Structure, sizeThem
                 if (ignoreHydrogens && isHydrogen(structure, unit, eI, ignoreHydrogensVariant)) continue;
                 if (traceOnly && !isTrace(unit, eI)) continue;
 
-                const _x = x(eI), _y = y(eI), _z = z(eI);
+                const _x = c.x(eI), _y = c.y(eI), _z = c.z(eI);
                 if (differentRoot && squaredDistance(_x, _y, _z, center) > radiusSq) continue;
 
                 _xs.push(_x);
@@ -286,16 +288,15 @@ export function getStructureConformationAndRadius(structure: Structure, sizeThem
         const _rs = new Float32Array(elementCount);
         for (let i = 0, m = 0, il = structure.units.length; i < il; ++i) {
             const unit = structure.units[i];
-            const { elements } = unit;
-            const { x, y, z } = unit.conformation;
+            const { elements, conformation: c } = unit;
             l.unit = unit;
             for (let j = 0, jl = elements.length; j < jl; ++j) {
                 const eI = elements[j];
 
                 const mj = m + j;
-                _xs[mj] = x(eI);
-                _ys[mj] = y(eI);
-                _zs[mj] = z(eI);
+                _xs[mj] = c.x(eI);
+                _ys[mj] = c.y(eI);
+                _zs[mj] = c.z(eI);
                 l.element = eI;
                 _rs[mj] = sizeTheme.size(l);
             }

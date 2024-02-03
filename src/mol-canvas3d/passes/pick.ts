@@ -11,7 +11,6 @@ import { isWebGL2 } from '../../mol-gl/webgl/compat';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Framebuffer } from '../../mol-gl/webgl/framebuffer';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
-import { Renderbuffer } from '../../mol-gl/webgl/renderbuffer';
 import { Texture } from '../../mol-gl/webgl/texture';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { spiral2d } from '../../mol-math/misc';
@@ -46,15 +45,15 @@ export class PickPass {
     private readonly groupPickFramebuffer: Framebuffer;
     private readonly depthPickFramebuffer: Framebuffer;
 
-    private readonly depthRenderbuffer: Renderbuffer;
+    private readonly depthTexture: Texture;
 
     private pickWidth: number;
     private pickHeight: number;
 
-    constructor(private webgl: WebGLContext, private drawPass: DrawPass, readonly pickBaseScale: number) {
-        const pickScale = pickBaseScale / webgl.pixelRatio;
-        this.pickWidth = Math.ceil(drawPass.colorTarget.getWidth() * pickScale);
-        this.pickHeight = Math.ceil(drawPass.colorTarget.getHeight() * pickScale);
+    constructor(private webgl: WebGLContext, private drawPass: DrawPass, private pickScale: number) {
+        const pickRatio = pickScale / webgl.pixelRatio;
+        this.pickWidth = Math.ceil(drawPass.colorTarget.getWidth() * pickRatio);
+        this.pickHeight = Math.ceil(drawPass.colorTarget.getHeight() * pickRatio);
 
         const { resources, extensions: { drawBuffers }, gl } = webgl;
 
@@ -91,11 +90,11 @@ export class PickPass {
             this.groupPickTexture.attachFramebuffer(this.framebuffer, 'color2');
             this.depthPickTexture.attachFramebuffer(this.framebuffer, 'color3');
 
-            this.depthRenderbuffer = isWebGL2(gl)
-                ? resources.renderbuffer('depth32f', 'depth', this.pickWidth, this.pickHeight)
-                : resources.renderbuffer('depth16', 'depth', this.pickWidth, this.pickHeight);
-
-            this.depthRenderbuffer.attachFramebuffer(this.framebuffer);
+            this.depthTexture = isWebGL2(gl)
+                ? resources.texture('image-depth', 'depth', 'float', 'nearest')
+                : resources.texture('image-depth', 'depth', 'ushort', 'nearest');
+            this.depthTexture.define(this.pickWidth, this.pickHeight);
+            this.depthTexture.attachFramebuffer(this.framebuffer, 'depth');
 
             this.objectPickTexture.attachFramebuffer(this.objectPickFramebuffer, 'color0');
             this.instancePickTexture.attachFramebuffer(this.instancePickFramebuffer, 'color0');
@@ -107,6 +106,15 @@ export class PickPass {
             this.groupPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight);
             this.depthPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight);
         }
+    }
+
+    get pickRatio() {
+        return this.pickScale / this.webgl.pixelRatio;
+    }
+
+    setPickScale(pickScale: number) {
+        this.pickScale = pickScale;
+        this.syncSize();
     }
 
     bindObject() {
@@ -146,9 +154,9 @@ export class PickPass {
     }
 
     syncSize() {
-        const pickScale = this.pickBaseScale / this.webgl.pixelRatio;
-        const pickWidth = Math.ceil(this.drawPass.colorTarget.getWidth() * pickScale);
-        const pickHeight = Math.ceil(this.drawPass.colorTarget.getHeight() * pickScale);
+        const pickRatio = this.pickScale / this.webgl.pixelRatio;
+        const pickWidth = Math.ceil(this.drawPass.colorTarget.getWidth() * pickRatio);
+        const pickHeight = Math.ceil(this.drawPass.colorTarget.getHeight() * pickRatio);
 
         if (pickWidth !== this.pickWidth || pickHeight !== this.pickHeight) {
             this.pickWidth = pickWidth;
@@ -160,7 +168,7 @@ export class PickPass {
                 this.groupPickTexture.define(this.pickWidth, this.pickHeight);
                 this.depthPickTexture.define(this.pickWidth, this.pickHeight);
 
-                this.depthRenderbuffer.setSize(this.pickWidth, this.pickHeight);
+                this.depthTexture.define(this.pickWidth, this.pickHeight);
             } else {
                 this.objectPickTarget.setSize(this.pickWidth, this.pickHeight);
                 this.instancePickTarget.setSize(this.pickWidth, this.pickHeight);
@@ -217,7 +225,7 @@ export class PickHelper {
 
     private viewport = Viewport();
 
-    private pickScale: number;
+    private pickRatio: number;
     private pickX: number;
     private pickY: number;
     private pickWidth: number;
@@ -239,12 +247,12 @@ export class PickHelper {
     setViewport(x: number, y: number, width: number, height: number) {
         Viewport.set(this.viewport, x, y, width, height);
 
-        this.pickScale = this.pickPass.pickBaseScale / this.webgl.pixelRatio;
-        this.pickX = Math.ceil(x * this.pickScale);
-        this.pickY = Math.ceil(y * this.pickScale);
+        this.pickRatio = this.pickPass.pickRatio;
+        this.pickX = Math.ceil(x * this.pickRatio);
+        this.pickY = Math.ceil(y * this.pickRatio);
 
-        const pickWidth = Math.floor(width * this.pickScale);
-        const pickHeight = Math.floor(height * this.pickScale);
+        const pickWidth = Math.floor(width * this.pickRatio);
+        const pickHeight = Math.floor(height * this.pickRatio);
 
         if (pickWidth !== this.pickWidth || pickHeight !== this.pickHeight) {
             this.pickWidth = pickWidth;
@@ -254,7 +262,7 @@ export class PickHelper {
             this.setupBuffers();
         }
 
-        this.spiral = spiral2d(Math.round(this.pickScale * this.pickPadding));
+        this.spiral = spiral2d(Math.round(this.pickRatio * this.pickPadding));
     }
 
     private syncBuffers() {
@@ -297,7 +305,7 @@ export class PickHelper {
 
         renderer.setTransparentBackground(false);
         renderer.setDrawingBufferSize(pickWidth, pickHeight);
-        renderer.setPixelRatio(this.pickScale);
+        renderer.setPixelRatio(this.pickRatio);
 
         if (StereoCamera.is(camera)) {
             renderer.setViewport(pickX, pickY, halfPickWidth, pickHeight);
@@ -315,7 +323,7 @@ export class PickHelper {
     }
 
     private identifyInternal(x: number, y: number, camera: Camera | StereoCamera): PickData | undefined {
-        const { webgl, pickScale } = this;
+        const { webgl, pickRatio } = this;
         if (webgl.isContextLost) return;
 
         x *= webgl.pixelRatio;
@@ -341,8 +349,8 @@ export class PickHelper {
         const xv = x - viewport.x;
         const yv = y - viewport.y;
 
-        const xp = Math.floor(xv * pickScale);
-        const yp = Math.floor(yv * pickScale);
+        const xp = Math.floor(xv * pickRatio);
+        const yp = Math.floor(yv * pickRatio);
 
         const objectId = this.getId(xp, yp, this.objectBuffer);
         // console.log('objectId', objectId);

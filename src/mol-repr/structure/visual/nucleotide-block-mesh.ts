@@ -57,10 +57,9 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
     const vertexCount = nucleotideElementCount * (box.vertices.length / 3 + radialSegments * 2);
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 4, mesh);
 
-    const { elements, model } = unit;
+    const { elements, model, conformation: c } = unit;
     const { chainAtomSegments, residueAtomSegments } = model.atomicHierarchy;
     const { moleculeType } = model.atomicHierarchy.derived.residue;
-    const pos = unit.conformation.invariantPosition;
 
     const chainIt = Segmentation.transientSegments(chainAtomSegments, elements);
     const residueIt = Segmentation.transientSegments(residueAtomSegments, elements);
@@ -97,11 +96,11 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
                 }
 
                 if (idx5 !== -1 && idx.trace !== -1) {
-                    pos(idx5, p5); pos(idx.trace, pt);
+                    c.invariantPosition(idx5, p5); c.invariantPosition(idx.trace, pt);
                     builderState.currentGroup = i;
                     addCylinder(builderState, p5, pt, 1, cylinderProps);
                     if (idx1 !== -1 && idx2 !== -1 && idx3 !== -1 && idx4 !== -1) {
-                        pos(idx1, p1); pos(idx2, p2); pos(idx3, p3); pos(idx4, p4);
+                        c.invariantPosition(idx1, p1); c.invariantPosition(idx2, p2); c.invariantPosition(idx3, p3); c.invariantPosition(idx4, p4);
                         Vec3.normalize(v12, Vec3.sub(v12, p2, p1));
                         Vec3.normalize(v34, Vec3.sub(v34, p4, p3));
                         Vec3.normalize(vC, Vec3.cross(vC, v12, v34));

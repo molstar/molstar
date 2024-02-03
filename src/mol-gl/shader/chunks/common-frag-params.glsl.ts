@@ -6,6 +6,9 @@ uniform int uGroupCount;
 uniform int uPickType;
 uniform int uMarkingType;
 
+uniform vec4 uCameraPlane;
+uniform vec4 uLod;
+
 #if dClipObjectCount != 0
     uniform int uClipObjectType[dClipObjectCount];
     uniform bool uClipObjectInvert[dClipObjectCount];
@@ -88,11 +91,7 @@ float getDepthPacked(const in vec2 coords) {
 }
 
 float getDepth(const in vec2 coords) {
-    #ifdef depthTextureSupport
-        return texture2D(tDepth, coords).r;
-    #else
-        return unpackRGBAToDepth(texture2D(tDepth, coords));
-    #endif
+    return texture2D(tDepth, coords).r;
 }
 
 float calcDepth(const in vec3 pos) {

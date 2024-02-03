@@ -124,10 +124,6 @@ and navigate to `build/viewer`
 
     node --max-old-space-size=4096 lib/commonjs/cli/chem-comp-dict/create-saccharides.js src/mol-model/structure/model/types/saccharides.ts
 
-**GraphQL schemas**
-
-    node node_modules/@graphql-codegen/cli/cjs/bin -c src/extensions/rcsb/graphql/codegen.yml
-
 ### Other scripts
 **Create chem comp bond table**
 
@@ -167,13 +163,12 @@ If node complains about a missing acorn peer dependency, run the following comma
 
 ### Editor
 
-To get syntax highlighting for shader and graphql files add the following to Visual Code's settings files and make sure relevant extensions are installed in the editor.
+To get syntax highlighting for shader files add the following to Visual Code's settings files and make sure relevant extensions are installed in the editor.
 
     "files.associations": {
         "*.glsl.ts": "glsl",
         "*.frag.ts": "glsl",
-        "*.vert.ts": "glsl",
-        "*.gql.ts": "graphql"
+        "*.vert.ts": "glsl"
     },
 
 ## Publish
