@@ -14,6 +14,7 @@ import { Pyramid, TriangularPyramid } from '../../mol-geo/primitive/pyramid';
 import { Primitive } from '../../mol-geo/primitive/primitive';
 import { polygon } from '../../mol-geo/primitive/polygon';
 import { addEllipsoid } from '../../mol-geo/geometry/mesh/builder/ellipsoid';
+import { DescriptionData, SegmentAnnotationData, Cylinder, ShapePrimitiveData, Ellipsoid, PyramidPrimitive, Sphere, BoxPrimitive, Vector4 } from './volseg-api/data';
 
 
 let cone: Primitive;
@@ -22,16 +23,41 @@ export function Cone() {
     return cone;
 }
 
+function rgbaToHex(rgbaNormalized: Vector4) {
+    const rgba = rgbaNormalized.map(i => Math.round(i * 255));
+    const [red, green, blue, opacity] = rgba;
 
-export type ShapePrimitive =
-    | { kind: 'sphere', center: number[], radius: number, label: string, color: number }
-    | { kind: 'cylinder', start: number[], end: number[], radius: number, label: string, color: number }
-    | { kind: 'box', translation: number[], scaling: number[], label: string, color: number }
-    | { kind: 'pyramid', translation: number[], scaling: number[], label: string, color: number }
-    | { kind: 'cone', translation: number[], scaling: number[], label: string, color: number }
-    | { kind: 'ellipsoid', dir_major: number[], dir_minor: number[], center: number[], radius_scale: number[], label: string, color: number }
+    let r = Math.round(red).toString(16);
+    let g = Math.round(green).toString(16);
+    let b = Math.round(blue).toString(16);
+    let a = Math.round(opacity).toString(16);
 
-export type ShapePrimitivesData = ShapePrimitive[]
+    if (r.length === 1)
+        r = '0' + r;
+    if (g.length === 1)
+        g = '0' + g;
+    if (b.length === 1)
+        b = '0' + b;
+    if (a.length === 1)
+        a = '0' + a;
+
+    const hexString = '#' + r + g + b + a;
+    const hexNumber = parseInt(hexString.replace(/^#/, ''), 16);
+    // console.log(`Hex number ${hexNumber} for hex string ${hexString} and RGBA ${red}, ${green}, ${blue}, ${opacity}`);
+    return hexString;
+}
+
+
+
+// export type ShapePrimitive =
+//     | { kind: 'sphere', center: number[], radius: number, label: string, color: number }
+//     | { kind: 'cylinder', start: number[], end: number[], radius: number, label: string, color: number }
+//     | { kind: 'box', translation: number[], scaling: number[], label: string, color: number }
+//     | { kind: 'pyramid', translation: number[], scaling: number[], label: string, color: number }
+//     | { kind: 'cone', translation: number[], scaling: number[], label: string, color: number }
+//     | { kind: 'ellipsoid', dir_major: number[], dir_minor: number[], center: number[], radius_scale: number[], label: string, color: number }
+
+// export type ShapePrimitivesData = ShapePrimitive[]
 
 function addBox(state: MeshBuilder.State,
     translation: Vec3 = [0.5, 0.5, 0.5] as Vec3,
@@ -52,14 +78,21 @@ function addTriangularPyramid(state: MeshBuilder.State,
     MeshBuilder.addPrimitive(state, mat4, TriangularPyramid());
 }
 
-function addCone(state: MeshBuilder.State,
-    translation: Vec3 = [0.5, 0.5, 0.5] as Vec3,
-    scaling: Vec3 = [1, 1, 1] as Vec3) {
-    const mat4 = Mat4.identity();
-    Mat4.scale(mat4, mat4, scaling);
-    Mat4.translate(mat4, mat4, translation);
-    MeshBuilder.addPrimitive(state, mat4, Cone());
-}
+// function addCone(state: MeshBuilder.State,
+//     translation: Vec3 = [0.5, 0.5, 0.5] as Vec3,
+//     scaling: Vec3 = [1, 1, 1] as Vec3) {
+//     const mat4 = Mat4.identity();
+//     Mat4.scale(mat4, mat4, scaling);
+//     Mat4.translate(mat4, mat4, translation);
+//     MeshBuilder.addPrimitive(state, mat4, Cone());
+// }
+
+export type CreateShapePrimitivesProviderParamsValues = PD.Values<typeof CreateShapePrimitivesProviderParams>;
+export const CreateShapePrimitivesProviderParams = {
+    data: PD.Value<ShapePrimitiveData>([] as any, { isHidden: true }),
+    segmentAnnotations: PD.Value<SegmentAnnotationData[]>([] as any, { isHidden: true }),
+    descriptions: PD.Value<DescriptionData[]>([] as any, { isHidden: true })
+};
 
 const Transform = StateTransformer.builderFactory('msvolseg');
 export const CreateShapePrimitivesProvider = Transform({
@@ -67,37 +100,53 @@ export const CreateShapePrimitivesProvider = Transform({
     display: { name: 'Spheres' },
     from: PluginStateObject.Root, // EntryData
     to: PluginStateObject.Shape.Provider,
-    params: {
-        data: PD.Value<ShapePrimitivesData>([] as any, { isHidden: true })
-    }
+    params: CreateShapePrimitivesProviderParams
 })({
     apply({ params }) {
         return new PluginStateObject.Shape.Provider({
             label: 'Shape Primitives',
-            data: params.data,
+            data: params,
+            // data: params.data,
             params: Mesh.Params,
             geometryUtils: Mesh.Utils,
-            getShape: (_, data) => createShapePrimitives(data)
+            getShape: (_, data) => createShapePrimitives(params)
         }, { label: 'Shape Primitives' });
     }
 });
 
-function createShapePrimitives(data: ShapePrimitivesData) {
 
+function _get_target_segment_name(allDescriptions: DescriptionData[], segment_id: number) {
+    // NOTE: for now single description
+    const description = allDescriptions.filter(d => d.target_id && d.target_id.segment_id === segment_id);
+    console.log(`Target segment name is ${description[0].name!}`);
+    return description[0].name!;
+}
+
+function _get_target_segment_color_as_hex(allSegmentAnnotations: SegmentAnnotationData[], segment_id: number) {
+    // NOTE: for now single annotation, should be single one
+    const annotation = allSegmentAnnotations.filter(a => a.segment_id === segment_id);
+    const colorAsArray = annotation[0].color!;
+    const colorAsHex = rgbaToHex(colorAsArray);
+    return colorAsHex;
+}
+
+function createShapePrimitives(params: CreateShapePrimitivesProviderParamsValues) {
     const builder = MeshBuilder.createState(512, 512);
-
+    const descriptions = params.descriptions;
+    const segmentAnnotations = params.segmentAnnotations;
+    const data = params.data.shape_primitive_list;
     for (let i = 0; i < data.length; i++) {
         const p = data[i];
         builder.currentGroup = i;
-
+        debugger;
         switch (p.kind) {
             case 'sphere':
-                addSphere(builder, p.center as Vec3, p.radius, 2);
+                addSphere(builder, (p as Sphere).center, (p as Sphere).radius, 2);
                 break;
             case 'cylinder':
-                addCylinder(builder, p.start as Vec3, p.end as Vec3, 1, {
-                    radiusTop: p.radius,
-                    radiusBottom: p.radius,
+                addCylinder(builder, (p as Cylinder).start as Vec3, (p as Cylinder).end as Vec3, 1, {
+                    radiusTop: (p as Cylinder).radius_top,
+                    radiusBottom: (p as Cylinder).radius_bottom,
                     bottomCap: true,
                     topCap: true,
                 });
@@ -106,43 +155,39 @@ function createShapePrimitives(data: ShapePrimitivesData) {
             case 'box':
                 addBox(
                     builder,
-                    p.translation as Vec3,
-                    p.scaling as Vec3
+                    (p as BoxPrimitive).translation as Vec3,
+                    (p as BoxPrimitive).scaling as Vec3
                 );
                 break;
             case 'pyramid':
                 addTriangularPyramid(
                     builder,
-                    p.translation as Vec3,
-                    p.scaling as Vec3
-                );
-                break;
-            case 'cone':
-                addCone(
-                    builder,
-                    p.translation as Vec3,
-                    p.scaling as Vec3
+                    (p as PyramidPrimitive).translation as Vec3,
+                    (p as PyramidPrimitive).scaling as Vec3
                 );
                 break;
             case 'ellipsoid':
                 addEllipsoid(
                     builder,
-                    p.center as Vec3,
-                    p.dir_major as Vec3,
-                    p.dir_minor as Vec3,
-                    p.radius_scale as Vec3,
+                    (p as Ellipsoid).center as Vec3,
+                    (p as Ellipsoid).dir_major as Vec3,
+                    (p as Ellipsoid).dir_minor as Vec3,
+                    (p as Ellipsoid).radius_scale as Vec3,
                     2
                 );
                 break;
         }
     }
 
+
     return Shape.create(
         'Shape Primitives',
         {},
         MeshBuilder.getMesh(builder),
-        g => Color(data[g].color),
+        // g => Color(data[g].color),
+        g => Color.fromHexStyle(_get_target_segment_color_as_hex(segmentAnnotations, data[g].id)),
         () => 1,
-        g => data[g].label,
+        // g => data[g].label,
+        g => _get_target_segment_name(descriptions, data[g].id)
     );
 }

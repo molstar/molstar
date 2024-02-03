@@ -4,13 +4,15 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { Vec3 } from '../../../mol-math/linear-algebra'
+
 export interface GeometricSegmentationData {
     segmentation_id: string
     primitives: { [timeframeIndex: number]: ShapePrimitiveData }
 }
 
 export interface ShapePrimitiveData {
-    shape_primitive_list: ShapePrimitiveBase[]
+    shape_primitive_list: Array<BoxPrimitive | Sphere | Cylinder | Ellipsoid | PyramidPrimitive>
 }
 
 export interface ShapePrimitiveBase {
@@ -23,43 +25,43 @@ export interface ShapePrimitiveBase {
 export type ShapePrimitiveKind = 'sphere' | 'tube' | 'cylinder' | 'box' | 'ellipsoid' | 'pyramid'
 
 export interface RotationParameters {
-    axis: Vector3
+    axis: Vec3
     radians: number
 }
 
-export interface Sphere {
+export interface Sphere extends ShapePrimitiveBase {
     // # in angstroms
-    center: Vector3
+    center: Vec3
     radius: number
 }
 
-export interface Box extends ShapePrimitiveBase {
+export interface BoxPrimitive extends ShapePrimitiveBase {
     // # with respect to origin 0, 0, 0
-    translation: Vector3
+    translation: Vec3
     // # default size 2, 2, 2 in angstroms for pdbe-1.rec
-    scaling: Vector3
+    scaling: Vec3
     rotation: RotationParameters
 }
 
 export interface Cylinder extends ShapePrimitiveBase {
-    start: Vector3
-    end: Vector3
+    start: Vec3
+    end: Vec3
     radius_bottom: number
     radius_top: number // =0 <=> cone
 }
 
 export interface Ellipsoid extends ShapePrimitiveBase {
-    dir_major: Vector3
-    dir_minor: Vector3
-    center: Vector3
-    radius_scale: Vector3
+    dir_major: Vec3
+    dir_minor: Vec3
+    center: Vec3
+    radius_scale: Vec3
 }
 
-export interface Pyramid extends ShapePrimitiveBase {
+export interface PyramidPrimitive extends ShapePrimitiveBase {
     // # with respect to origin 0, 0, 0
-    translation: Vector3
+    translation: Vec3
     // # default size 2, 2, 2 in angstroms for pdbe-1.rec
-    scaling: Vector3
+    scaling: Vec3
     rotation: RotationParameters
 }
 
@@ -284,4 +286,4 @@ export interface ExternalReference {
 
 type Vector2 = [number, number];
 type Vector3 = [number, number, number];
-type Vector4 = [number, number, number, number];
+export type Vector4 = [number, number, number, number];
