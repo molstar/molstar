@@ -400,7 +400,8 @@ const MesoscaleState = {
         return ref;
     },
     has(ctx: PluginContext): boolean {
-        return !!(ctx.customState as MesoscaleExplorerState).stateRef;
+        const ref = (ctx.customState as MesoscaleExplorerState).stateRef || '';
+        return ctx.state.data.cells.has(ref) ? true : false;
     },
 };
 
