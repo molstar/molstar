@@ -795,8 +795,12 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         if (parsedSegmentKey.kind === 'lattice') {
             await this.latticeSegmentationData.selectSegment(parsedSegmentKey.segmentId, parsedSegmentKey.segmentationId);
         } else if (parsedSegmentKey.kind === 'mesh') {
-            await this.meshSegmentationData.selectSegment(parsedSegmentKey.segmentId);
+            await this.meshSegmentationData.selectSegment(parsedSegmentKey.segmentId, parsedSegmentKey.segmentationId);
+        } else if (parsedSegmentKey.kind === 'primitive') {
+            // await this.geometricSegmentationData.selectSegment(parsedSegmentKey.segmentId);
         }
+
+        // TODO: primitives
         // await this.latticeSegmentationData.selectSegment(segment);
         // await this.meshSegmentationData.selectSegment(segment);
         await this.highlightSegment();

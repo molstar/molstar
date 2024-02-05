@@ -136,9 +136,9 @@ export class VolsegMeshSegmentationData {
         }
     }
 
-    async selectSegment(segment?: number) {
-        if (segment === undefined || segment < 0) return;
-        const visuals = this.entryData.findNodesByTags('mesh-segment-visual', `segment-${segment}`);
+    async selectSegment(segment?: number, segmentationId?: string) {
+        if (segment === undefined || segment < 0 || segmentationId === undefined) return;
+        const visuals = this.entryData.findNodesByTags('mesh-segment-visual', `segment-${segment}`, segmentationId);
         const reprNode: PluginStateObject.Shape.Representation3D | undefined = visuals[0]?.obj;
         if (!reprNode) return;
         const loci = reprNode.data.repr.getAllLoci()[0];
