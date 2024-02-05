@@ -179,7 +179,7 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
                                         ? 'bold' : undefined, marginRight: 1, flexGrow: 1, textAlign: 'left'
                                 }}>
                                 <div title={d.name ?? 'Unnamed segment'} style={{ maxWidth: 240, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {d.name ?? 'Unnamed segment'} ({d.target_id?.segment_id})
+                                    {d.name ?? 'Unnamed segment'} ({d.target_id?.segment_id}) ({d.target_id?.segmentation_id})
                                 </div>
                             </Button>
                             <IconButton svg={visibleSegmentKeys.includes(segmentKey) ? Icons.VisibilityOutlinedSvg : Icons.VisibilityOffOutlinedSvg}
