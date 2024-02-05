@@ -100,8 +100,8 @@ export const CreateShapePrimitiveProviderParams = {
 
 const Transform = StateTransformer.builderFactory('msvolseg');
 export const CreateShapePrimitiveProvider = Transform({
-    name: 'create-sphere-provider',
-    display: { name: 'Spheres' },
+    name: 'create-shape-primitive-provider',
+    display: { name: 'Shape Primitives' },
     from: PluginStateObject.Root, // EntryData
     to: PluginStateObject.Shape.Provider,
     params: CreateShapePrimitiveProviderParams
@@ -134,14 +134,12 @@ function _get_target_segment_color_as_hex(allSegmentAnnotations: SegmentAnnotati
     return colorAsHex;
 }
 
-// TODO: for that transform should be applied for each shape primitive
-
 function createShapePrimitive(params: CreateShapePrimitiveProviderParamsValues) {
     const builder = MeshBuilder.createState(512, 512);
     const descriptions = params.descriptions;
     const segmentAnnotations = params.segmentAnnotations;
     const data = params.data;
-    
+
     // for (let i = 0; i < data.length; i++) {
     const p = data;
     builder.currentGroup = 0;
@@ -183,14 +181,12 @@ function createShapePrimitive(params: CreateShapePrimitiveProviderParamsValues) 
                 2
             );
             break;
-        }
+    }
     // }
 
 
     return Shape.create(
         'Shape Primitives',
-        // TODO: this is source data
-        // {},
         params,
         MeshBuilder.getMesh(builder),
         // g => Color(data[g].color),
