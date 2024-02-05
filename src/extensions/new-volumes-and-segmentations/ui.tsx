@@ -198,7 +198,7 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
                 {selectedSegmentDescription &&
                     selectedSegmentDescription.target_kind !== 'entry' &&
                     selectedSegmentDescription.target_id &&
-                    <b>Segment {selectedSegmentDescription.target_id.segment_id}:<br />{selectedSegmentDescription.name ?? 'Unnamed segment'}</b>}
+                    <b>Segment {selectedSegmentDescription.target_id.segment_id} from segmentation {selectedSegmentDescription.target_id.segmentation_id}:<br />{selectedSegmentDescription.name ?? 'Unnamed segment'}</b>}
                 {selectedSegmentDescription?.external_references?.map(ref => {
                     // if (description.target_kind === 'entry' || !description.target_id) return;
                     return <p key={ref.id} style={{ marginTop: 4 }}>
