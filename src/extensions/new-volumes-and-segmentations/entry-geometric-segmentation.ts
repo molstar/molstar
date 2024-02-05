@@ -7,6 +7,7 @@
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { CreateGroup } from '../../mol-plugin-state/transforms/misc';
 import { setSubtreeVisibility } from '../../mol-plugin/behavior/static/state';
+import { PluginCommands } from '../../mol-plugin/commands';
 import { VolsegEntryData } from './entry-root';
 import { CreateShapePrimitiveProvider } from './shape_primitives';
 import { GeometricSegmentationData } from './volseg-api/data';
@@ -56,14 +57,10 @@ export class VolsegGeometricSegmentationData {
     }
     // From meshes, here probably similar
     async showSegments(segmentIds: number[], segmentationId: string) {
-        debugger;
         const segmentsToShow = new Set(segmentIds);
 
         // This will select all segments of that segmentation
         const visuals = this.entryData.findNodesByTags('geometric-segmentation-visual', segmentationId);
-        debugger;
-        console.log('visuals');
-        console.log(visuals);
         for (const visual of visuals) {
             const theTag = visual.obj?.tags?.find(tag => tag.startsWith('segment-'));
             if (!theTag) continue;
@@ -71,6 +68,13 @@ export class VolsegGeometricSegmentationData {
             const visibility = segmentsToShow.has(id);
             setSubtreeVisibility(this.entryData.plugin.state.data, visual.transform.ref, !visibility); // true means hide, ¯\_(ツ)_/¯
             segmentsToShow.delete(id);
+        }
+    }
+
+    async highlightSegment(segmentId: number, segmentationId: string) {
+        const visuals = this.entryData.findNodesByTags('geometric-segmentation-visual', `segment-${segmentId}`, segmentationId);
+        for (const visual of visuals) {
+            await PluginCommands.Interactivity.Object.Highlight(this.entryData.plugin, { state: this.entryData.plugin.state.data, ref: visual.transform.ref });
         }
     }
 }

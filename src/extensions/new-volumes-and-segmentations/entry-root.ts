@@ -671,6 +671,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
 
     // async actionSelectSegment(segment?: number) {
     async actionSelectSegment(segmentKey?: string) {
+        debugger;
         if (segmentKey !== undefined && this.currentState.value.visibleSegments.find(s => s.segmentKey === segmentKey) === undefined) {
             // first make the segment visible if it is not
             await this.actionToggleSegment(segmentKey);
@@ -736,11 +737,12 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             else if (kind === 'mesh') promises.push(this.meshSegmentationData.showSegments(value, key));
             else if (kind === 'primitive') promises.push(this.geometricSegmentationData.showSegments(value, key));
         });
-
+        debugger;
         await Promise.all(promises);
     }
 
     async actionShowSegments(segmentKeys: string[]) {
+        debugger;
         const allExistingLatticeSegmentationIds = this.metadata.raw.grid.segmentation_lattices!.segmentation_ids;
         const allExistingMeshSegmentationIds = this.metadata.raw.grid.segmentation_meshes!.segmentation_ids;
         const allExistingGeometricSegmentationIds = this.metadata.raw.grid.geometric_segmentation!.segmentation_ids;
@@ -750,6 +752,9 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             }
             for (const id of allExistingMeshSegmentationIds) {
                 await this.meshSegmentationData.showSegments([], id);
+            }
+            for (const id of allExistingGeometricSegmentationIds) {
+                await this.geometricSegmentationData.showSegments([], id);
             }
         }
         const parsedSegmentKeys = segmentKeys.map(
@@ -776,6 +781,8 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
                 await this.latticeSegmentationData.highlightSegment(segmentId, segmentationId);
             } else if (kind === 'mesh') {
                 await this.meshSegmentationData.highlightSegment(segmentId, segmentationId);
+            } else if (kind === 'primitive') {
+                await this.geometricSegmentationData.highlightSegment(segmentId, segmentationId);
             }
             // TODO: support primitive
         }
