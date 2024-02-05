@@ -4,6 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { CreateGroup } from '../../mol-plugin-state/transforms/misc';
 import { setSubtreeVisibility } from '../../mol-plugin/behavior/static/state';
@@ -47,7 +48,7 @@ export class VolsegGeometricSegmentationData {
                 for (const shapePrimitiveData of timeframeData.shape_primitive_list) {
                     const shapePrimitiveNode = await this.entryData.newUpdate().to(group)
                     // TODO: can provide a single description and a single segment annotation
-                        .apply(CreateShapePrimitiveProvider, { data: shapePrimitiveData, descriptions: descriptions, segmentAnnotations: segmentAnnotations })
+                        .apply(CreateShapePrimitiveProvider, { data: shapePrimitiveData, descriptions: descriptions, segmentAnnotations: segmentAnnotations, segmentationId: segmentationId })
                         // TODO: shape representation 3d could have no alpha
                         .apply(StateTransforms.Representation.ShapeRepresentation3D, { alpha: 0.5 }, { tags: ['geometric-segmentation-visual', segmentationId, `segment-${shapePrimitiveData.id}`] })
                         .commit();
@@ -76,5 +77,17 @@ export class VolsegGeometricSegmentationData {
         for (const visual of visuals) {
             await PluginCommands.Interactivity.Object.Highlight(this.entryData.plugin, { state: this.entryData.plugin.state.data, ref: visual.transform.ref });
         }
+    }
+
+    async selectSegment(segment?: number, segmentationId?: string) {
+        if (segment === undefined || segment < 0 || segmentationId === undefined) return;
+        const visuals = this.entryData.findNodesByTags('geometric-segmentation-visual', `segment-${segment}`, segmentationId);
+        const reprNode: PluginStateObject.Shape.Representation3D | undefined = visuals[0]?.obj;
+        debugger;
+        if (!reprNode) return;
+        const loci = reprNode.data.repr.getAllLoci()[0];
+        debugger;
+        if (!loci) return;
+        this.entryData.plugin.managers.interactivity.lociSelects.select({ loci: loci, repr: reprNode.data.repr }, false);
     }
 }

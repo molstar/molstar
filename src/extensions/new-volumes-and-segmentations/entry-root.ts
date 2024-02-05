@@ -19,10 +19,10 @@ import { StateObjectCell, StateSelection, StateTransform } from '../../mol-state
 import { shallowEqualObjects } from '../../mol-util';
 import { Choice } from '../../mol-util/param-choice';
 import { ParamDefinition } from '../../mol-util/param-definition';
-import { MeshlistData } from '../new-meshes/mesh-extension';
+import { isMeshlistData, MeshlistData } from '../new-meshes/mesh-extension';
 
 import { DEFAULT_VOLSEG_SERVER, VolumeApiV2 } from './volseg-api/api';
-import { ParsedSegmentKey, TimeInfo } from './volseg-api/data';
+import { BoxPrimitive, Cylinder, Ellipsoid, ParsedSegmentKey, PyramidPrimitive, Sphere, TimeInfo } from './volseg-api/data';
 import { createSegmentKey, getSegmentLabelsFromDescriptions, MetadataWrapper, parseSegmentKey } from './volseg-api/utils';
 import { DEFAULT_MESH_DETAIL, VolsegMeshSegmentationData } from './entry-meshes';
 import { VolsegModelData } from './entry-models';
@@ -38,6 +38,7 @@ import { Asset } from '../../mol-util/assets';
 import { PluginComponent } from '../../mol-plugin-state/component';
 import { VolsegGeometricSegmentationData } from './entry-geometric-segmentation';
 import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
+import { CreateShapePrimitiveProviderParamsValues, isShapePrimitiveParamsValues } from './shape_primitives';
 
 
 export const MAX_VOXELS = 10 ** 7;
@@ -376,10 +377,10 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             const loci = e.current.loci;
             const clickedSegmentId = this.getSegmentIdFromLoci(loci);
             const clickedSegmentSegmentationId = this.getSegmentationIdFromLoci(loci);
-            // or add segmentation id to volume data 3d info lattice id
-            console.log(clickedSegmentSegmentationId);
-            if (clickedSegmentId === undefined) return;
             const segmentationKind = this.getSegmentationKindFromLoci(loci);
+            if (clickedSegmentSegmentationId === undefined) return;
+            if (clickedSegmentId === undefined) return;
+            if (segmentationKind === undefined) return;
             const clickedSegmentKey = createSegmentKey(clickedSegmentId, clickedSegmentSegmentationId, segmentationKind);
             if (clickedSegmentKey === this.currentState.value.selectedSegment) {
                 this.actionSelectSegment(undefined);
@@ -797,7 +798,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         } else if (parsedSegmentKey.kind === 'mesh') {
             await this.meshSegmentationData.selectSegment(parsedSegmentKey.segmentId, parsedSegmentKey.segmentationId);
         } else if (parsedSegmentKey.kind === 'primitive') {
-            // await this.geometricSegmentationData.selectSegment(parsedSegmentKey.segmentId);
+            await this.geometricSegmentationData.selectSegment(parsedSegmentKey.segmentId, parsedSegmentKey.segmentationId);
         }
 
         // TODO: primitives
@@ -865,24 +866,32 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         if (Volume.Segment.isLoci(loci)) {
             return loci.volume.label;
         } else if (ShapeGroup.isLoci(loci)) {
-            // TODO: need to find the way to put segmentationId
-            // into loci upon its
-            const meshData = (loci.shape.sourceData ?? {}) as MeshlistData;
-            // const parent = this.findNodesByRef(meshData.ownerId!);
-            return meshData.segmentationId!;
+            const sourceData = loci.shape.sourceData;
+            debugger;
+            // as any?
+            if (isMeshlistData(sourceData as any)) {
+                const meshData = (loci.shape.sourceData ?? {}) as MeshlistData;
+                return meshData.segmentationId!;
+            } else if (isShapePrimitiveParamsValues(sourceData as any)) {
+                const shapePrimitiveParamsValues = (loci.shape.sourceData ?? {}) as CreateShapePrimitiveProviderParamsValues;
+                return shapePrimitiveParamsValues.segmentationId;
+            }
         }
-        
-        // if (meshData.se === this.ref && meshData.segmentId !== undefined) {
-        //     return meshData.segmentId;
-        // }
     }
 
     private getSegmentationKindFromLoci(loci: Loci): 'lattice' | 'mesh' | 'primitive' | undefined {
-        // TODO: support primitive
         if (Volume.Segment.isLoci(loci)) {
             return 'lattice';
         } else if (ShapeGroup.isLoci(loci)) {
-            return 'mesh';
+            // return 'mesh';
+            const sourceData = loci.shape.sourceData;
+            if (isMeshlistData(sourceData as any)) {
+                const meshData = (loci.shape.sourceData ?? {}) as MeshlistData;
+                return 'mesh';
+            } else if (isShapePrimitiveParamsValues(sourceData as any)) {
+                const shapePrimitiveParamsValues = (loci.shape.sourceData ?? {}) as CreateShapePrimitiveProviderParamsValues;
+                return 'primitive';
+            }
         } else {
             // TODO: fix in case of isosurface loci
             console.log(`Segmentation kind is not supported for ${loci}`);
@@ -896,10 +905,16 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             }
         }
         if (ShapeGroup.isLoci(loci)) {
-            const meshData = (loci.shape.sourceData ?? {}) as MeshlistData;
-            // NOTE: no ownerId
-            if (meshData.ownerId === this.ref && meshData.segmentId !== undefined) {
-                return meshData.segmentId;
+            const sourceData = loci.shape.sourceData;
+            if (isMeshlistData(sourceData as any)) {
+                const meshData = (loci.shape.sourceData ?? {}) as MeshlistData;
+                if (meshData.ownerId === this.ref && meshData.segmentId !== undefined) {
+                    return meshData.segmentId;
+                }
+            // TODO: check for ownerId? this would be entry root
+            } else if (isShapePrimitiveParamsValues(sourceData as any)) {
+                const shapePrimitiveParamsValues = (loci.shape.sourceData ?? {}) as CreateShapePrimitiveProviderParamsValues;
+                return shapePrimitiveParamsValues.data.id;
             }
         }
     }

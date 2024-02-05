@@ -35,6 +35,9 @@ export const VolsegTransform: StateTransformer.Builder.Root = StateTransformer.b
 // // // // // // // // // // // // // // // // // // // // // // // //
 // Parsed data
 
+export const isMeshlistData = (value: MeshlistData): value is MeshlistData => !!value?.detail;
+
+
 /** Data type for `MeshlistStateObject` - list of meshes */
 export interface MeshlistData {
     segmentId: number,

@@ -87,12 +87,15 @@ function addTriangularPyramid(state: MeshBuilder.State,
 //     MeshBuilder.addPrimitive(state, mat4, Cone());
 // }
 
+export const isShapePrimitiveParamsValues = (value: CreateShapePrimitiveProviderParamsValues): value is CreateShapePrimitiveProviderParamsValues => !!value?.data;
+
 export type CreateShapePrimitiveProviderParamsValues = PD.Values<typeof CreateShapePrimitiveProviderParams>;
 export const CreateShapePrimitiveProviderParams = {
     // data: PD.Value<ShapePrimitiveData>([] as any, { isHidden: true }),
     data: PD.Value<BoxPrimitive | Sphere | Cylinder | Ellipsoid | PyramidPrimitive>([] as any, { isHidden: true }),
     segmentAnnotations: PD.Value<SegmentAnnotationData[]>([] as any, { isHidden: true }),
-    descriptions: PD.Value<DescriptionData[]>([] as any, { isHidden: true })
+    descriptions: PD.Value<DescriptionData[]>([] as any, { isHidden: true }),
+    segmentationId: PD.Text('')
 };
 
 const Transform = StateTransformer.builderFactory('msvolseg');
@@ -186,7 +189,9 @@ function createShapePrimitive(params: CreateShapePrimitiveProviderParamsValues) 
 
     return Shape.create(
         'Shape Primitives',
-        {},
+        // TODO: this is source data
+        // {},
+        params,
         MeshBuilder.getMesh(builder),
         // g => Color(data[g].color),
         g => Color.fromHexStyle(_get_target_segment_color_as_hex(segmentAnnotations, data.id)),
