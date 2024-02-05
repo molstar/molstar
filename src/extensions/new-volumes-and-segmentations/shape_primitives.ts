@@ -42,7 +42,7 @@ function rgbaToHex(rgbaNormalized: Vector4) {
         a = '0' + a;
 
     const hexString = '#' + r + g + b + a;
-    const hexNumber = parseInt(hexString.replace(/^#/, ''), 16);
+    // const hexNumber = parseInt(hexString.replace(/^#/, ''), 16);
     // console.log(`Hex number ${hexNumber} for hex string ${hexString} and RGBA ${red}, ${green}, ${blue}, ${opacity}`);
     return hexString;
 }
@@ -87,20 +87,21 @@ function addTriangularPyramid(state: MeshBuilder.State,
 //     MeshBuilder.addPrimitive(state, mat4, Cone());
 // }
 
-export type CreateShapePrimitivesProviderParamsValues = PD.Values<typeof CreateShapePrimitivesProviderParams>;
-export const CreateShapePrimitivesProviderParams = {
-    data: PD.Value<ShapePrimitiveData>([] as any, { isHidden: true }),
+export type CreateShapePrimitiveProviderParamsValues = PD.Values<typeof CreateShapePrimitiveProviderParams>;
+export const CreateShapePrimitiveProviderParams = {
+    // data: PD.Value<ShapePrimitiveData>([] as any, { isHidden: true }),
+    data: PD.Value<BoxPrimitive | Sphere | Cylinder | Ellipsoid | PyramidPrimitive>([] as any, { isHidden: true }),
     segmentAnnotations: PD.Value<SegmentAnnotationData[]>([] as any, { isHidden: true }),
     descriptions: PD.Value<DescriptionData[]>([] as any, { isHidden: true })
 };
 
 const Transform = StateTransformer.builderFactory('msvolseg');
-export const CreateShapePrimitivesProvider = Transform({
+export const CreateShapePrimitiveProvider = Transform({
     name: 'create-sphere-provider',
     display: { name: 'Spheres' },
     from: PluginStateObject.Root, // EntryData
     to: PluginStateObject.Shape.Provider,
-    params: CreateShapePrimitivesProviderParams
+    params: CreateShapePrimitiveProviderParams
 })({
     apply({ params }) {
         return new PluginStateObject.Shape.Provider({
@@ -109,7 +110,7 @@ export const CreateShapePrimitivesProvider = Transform({
             // data: params.data,
             params: Mesh.Params,
             geometryUtils: Mesh.Utils,
-            getShape: (_, data) => createShapePrimitives(params)
+            getShape: (_, data) => createShapePrimitive(params)
         }, { label: 'Shape Primitives' });
     }
 });
@@ -130,54 +131,57 @@ function _get_target_segment_color_as_hex(allSegmentAnnotations: SegmentAnnotati
     return colorAsHex;
 }
 
-function createShapePrimitives(params: CreateShapePrimitivesProviderParamsValues) {
+// TODO: for that transform should be applied for each shape primitive
+
+function createShapePrimitive(params: CreateShapePrimitiveProviderParamsValues) {
     const builder = MeshBuilder.createState(512, 512);
     const descriptions = params.descriptions;
     const segmentAnnotations = params.segmentAnnotations;
-    const data = params.data.shape_primitive_list;
-    for (let i = 0; i < data.length; i++) {
-        const p = data[i];
-        builder.currentGroup = i;
-        debugger;
-        switch (p.kind) {
-            case 'sphere':
-                addSphere(builder, (p as Sphere).center, (p as Sphere).radius, 2);
-                break;
-            case 'cylinder':
-                addCylinder(builder, (p as Cylinder).start as Vec3, (p as Cylinder).end as Vec3, 1, {
-                    radiusTop: (p as Cylinder).radius_top,
-                    radiusBottom: (p as Cylinder).radius_bottom,
-                    bottomCap: true,
-                    topCap: true,
-                });
+    const data = params.data;
+    
+    // for (let i = 0; i < data.length; i++) {
+    const p = data;
+    builder.currentGroup = 0;
+    debugger;
+    switch (p.kind) {
+        case 'sphere':
+            addSphere(builder, (p as Sphere).center, (p as Sphere).radius, 2);
+            break;
+        case 'cylinder':
+            addCylinder(builder, (p as Cylinder).start as Vec3, (p as Cylinder).end as Vec3, 1, {
+                radiusTop: (p as Cylinder).radius_top,
+                radiusBottom: (p as Cylinder).radius_bottom,
+                bottomCap: true,
+                topCap: true,
+            });
 
-                break;
-            case 'box':
-                addBox(
-                    builder,
-                    (p as BoxPrimitive).translation as Vec3,
-                    (p as BoxPrimitive).scaling as Vec3
-                );
-                break;
-            case 'pyramid':
-                addTriangularPyramid(
-                    builder,
-                    (p as PyramidPrimitive).translation as Vec3,
-                    (p as PyramidPrimitive).scaling as Vec3
-                );
-                break;
-            case 'ellipsoid':
-                addEllipsoid(
-                    builder,
-                    (p as Ellipsoid).center as Vec3,
-                    (p as Ellipsoid).dir_major as Vec3,
-                    (p as Ellipsoid).dir_minor as Vec3,
-                    (p as Ellipsoid).radius_scale as Vec3,
-                    2
-                );
-                break;
+            break;
+        case 'box':
+            addBox(
+                builder,
+                (p as BoxPrimitive).translation as Vec3,
+                (p as BoxPrimitive).scaling as Vec3
+            );
+            break;
+        case 'pyramid':
+            addTriangularPyramid(
+                builder,
+                (p as PyramidPrimitive).translation as Vec3,
+                (p as PyramidPrimitive).scaling as Vec3
+            );
+            break;
+        case 'ellipsoid':
+            addEllipsoid(
+                builder,
+                (p as Ellipsoid).center as Vec3,
+                (p as Ellipsoid).dir_major as Vec3,
+                (p as Ellipsoid).dir_minor as Vec3,
+                (p as Ellipsoid).radius_scale as Vec3,
+                2
+            );
+            break;
         }
-    }
+    // }
 
 
     return Shape.create(
@@ -185,9 +189,9 @@ function createShapePrimitives(params: CreateShapePrimitivesProviderParamsValues
         {},
         MeshBuilder.getMesh(builder),
         // g => Color(data[g].color),
-        g => Color.fromHexStyle(_get_target_segment_color_as_hex(segmentAnnotations, data[g].id)),
+        g => Color.fromHexStyle(_get_target_segment_color_as_hex(segmentAnnotations, data.id)),
         () => 1,
         // g => data[g].label,
-        g => _get_target_segment_name(descriptions, data[g].id)
+        g => _get_target_segment_name(descriptions, data.id)
     );
 }

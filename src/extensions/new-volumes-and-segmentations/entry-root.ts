@@ -734,15 +734,16 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         SegmentationIdsToSegmentIds.forEach((value, key) => {
             if (kind === 'lattice') promises.push(this.latticeSegmentationData.showSegments(value, key));
             else if (kind === 'mesh') promises.push(this.meshSegmentationData.showSegments(value, key));
+            else if (kind === 'primitive') promises.push(this.geometricSegmentationData.showSegments(value, key));
         });
 
         await Promise.all(promises);
     }
 
     async actionShowSegments(segmentKeys: string[]) {
-        // TODO: account for mesh segments
         const allExistingLatticeSegmentationIds = this.metadata.raw.grid.segmentation_lattices!.segmentation_ids;
         const allExistingMeshSegmentationIds = this.metadata.raw.grid.segmentation_meshes!.segmentation_ids;
+        const allExistingGeometricSegmentationIds = this.metadata.raw.grid.geometric_segmentation!.segmentation_ids;
         if (segmentKeys.length === 0) {
             for (const id of allExistingLatticeSegmentationIds) {
                 await this.latticeSegmentationData.showSegments([], id);
@@ -758,8 +759,9 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         this._actionShowSegments(parsedSegmentKeys, allExistingLatticeSegmentationIds, 'lattice');
         // MESHES PART
         this._actionShowSegments(parsedSegmentKeys, allExistingMeshSegmentationIds, 'mesh');
-        // await this.latticeSegmentationData.showSegments(latticeSegmentIds);
-        // await this.meshSegmentationData.showSegments(segments);
+        // GEOMETRIC SEGMENTATION PAR
+        this._actionShowSegments(parsedSegmentKeys, allExistingGeometricSegmentationIds, 'primitive');
+
         await this.updateStateNode({ visibleSegments: segmentKeys.map(s => ({ segmentKey: s })) });
         console.log('Current state');
         console.log(this.getStateNode());
@@ -773,7 +775,6 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             if (kind === 'lattice') {
                 await this.latticeSegmentationData.highlightSegment(segmentId, segmentationId);
             } else if (kind === 'mesh') {
-                // TODO: support mesh segment highlighting
                 await this.meshSegmentationData.highlightSegment(segmentId, segmentationId);
             }
             // TODO: support primitive

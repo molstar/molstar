@@ -167,7 +167,8 @@ export const LoadVolseg = StateAction.build({
 
 
             }
-            await entryData.geometricSegmentationData.loadGeometricSegmentation();
+            // for now for a single timeframe;
+            await entryData.geometricSegmentationData.loadGeometricSegmentation(0);
             const allAnnotationsForTimeframe = entryData.metadata.getAllAnnotationsForTimeframe(0);
             const allSegmentKeysForTimeframe = allAnnotationsForTimeframe.map(a => {
                 return createSegmentKey(a.segment_id, a.segmentation_id, a.segment_kind);
