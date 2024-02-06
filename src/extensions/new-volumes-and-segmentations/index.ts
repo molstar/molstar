@@ -180,7 +180,8 @@ export const LoadVolseg = StateAction.build({
                     }
                     const geometricSegmentationNode = await state.build().to(group).apply(ProjectGeometricSegmentationData, geometricSegmentationParams, { tags: [GEOMETRIC_SEGMENTATION_NODE_TAG] }).commit();
                     await entryNode.data.geometricSegmentationData.createGeometricSegmentationRepresentation3D(geometricSegmentationNode, geometricSegmentationParams);
-
+                }
+            }
             const allAnnotationsForTimeframe = entryData.metadata.getAllAnnotationsForTimeframe(0);
             const allSegmentKeysForTimeframe = allAnnotationsForTimeframe.map(a => {
                 return createSegmentKey(a.segment_id, a.segmentation_id, a.segment_kind);
