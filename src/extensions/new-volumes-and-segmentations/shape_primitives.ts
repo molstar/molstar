@@ -17,6 +17,16 @@ import { addEllipsoid } from '../../mol-geo/geometry/mesh/builder/ellipsoid';
 import { DescriptionData, SegmentAnnotationData, Cylinder, ShapePrimitiveData, Ellipsoid, PyramidPrimitive, Sphere, BoxPrimitive, Vector4 } from './volseg-api/data';
 
 
+
+export class VolsegShapePrimitivesData {
+    constructor(public shapePrimitiveData: ShapePrimitiveData) {
+    }
+}
+
+// 'Data', try 'Object' later
+export class VolsegGeometricSegmentation extends PluginStateObject.Create<VolsegShapePrimitivesData>({ name: 'Vol & Seg Geometric Segmentation', typeClass: 'Data' }) { }
+
+
 let cone: Primitive;
 export function Cone() {
     if (!cone) cone = Pyramid(polygon(48, true));
@@ -87,33 +97,36 @@ function addTriangularPyramid(state: MeshBuilder.State,
 //     MeshBuilder.addPrimitive(state, mat4, Cone());
 // }
 
-export const isShapePrimitiveParamsValues = (value: CreateShapePrimitiveProviderParamsValues): value is CreateShapePrimitiveProviderParamsValues => !!value?.data;
+export const isShapePrimitiveParamsValues = (value: CreateShapePrimitiveProviderParamsValues): value is CreateShapePrimitiveProviderParamsValues => !!value?.segmentAnnotations;
 
 export type CreateShapePrimitiveProviderParamsValues = PD.Values<typeof CreateShapePrimitiveProviderParams>;
 export const CreateShapePrimitiveProviderParams = {
     // data: PD.Value<ShapePrimitiveData>([] as any, { isHidden: true }),
-    data: PD.Value<BoxPrimitive | Sphere | Cylinder | Ellipsoid | PyramidPrimitive>([] as any, { isHidden: true }),
+    // data: PD.Value<BoxPrimitive | Sphere | Cylinder | Ellipsoid | PyramidPrimitive>([] as any, { isHidden: true }),
     segmentAnnotations: PD.Value<SegmentAnnotationData[]>([] as any, { isHidden: true }),
     descriptions: PD.Value<DescriptionData[]>([] as any, { isHidden: true }),
-    segmentationId: PD.Text('')
+    segmentationId: PD.Text(''),
+    segmentId: PD.Numeric(0),
 };
 
 const Transform = StateTransformer.builderFactory('msvolseg');
 export const CreateShapePrimitiveProvider = Transform({
     name: 'create-shape-primitive-provider',
     display: { name: 'Shape Primitives' },
-    from: PluginStateObject.Root, // EntryData
+    // from: PluginStateObject.Root, //
+    // TODO: something wrong with VolsegGeometricSegmentation
+    from: VolsegGeometricSegmentation,
     to: PluginStateObject.Shape.Provider,
     params: CreateShapePrimitiveProviderParams
 })({
-    apply({ params }) {
+    apply({ a, params }) {
         return new PluginStateObject.Shape.Provider({
             label: 'Shape Primitives',
             data: params,
             // data: params.data,
             params: Mesh.Params,
             geometryUtils: Mesh.Utils,
-            getShape: (_, data) => createShapePrimitive(params)
+            getShape: (_, data) => createShapePrimitive(a.data.shapePrimitiveData, params)
         }, { label: 'Shape Primitives' });
     }
 });
@@ -134,17 +147,17 @@ function _get_target_segment_color_as_hex(allSegmentAnnotations: SegmentAnnotati
     return colorAsHex;
 }
 
-function createShapePrimitive(params: CreateShapePrimitiveProviderParamsValues) {
+function createShapePrimitive(data: ShapePrimitiveData, params: CreateShapePrimitiveProviderParamsValues) {
     const builder = MeshBuilder.createState(512, 512);
     const descriptions = params.descriptions;
     const segmentAnnotations = params.segmentAnnotations;
-    const data = params.data;
-
-    // for (let i = 0; i < data.length; i++) {
-    const p = data;
+    debugger;
+    // TODO: instead of data, should be specific BoxPrimitive | Sphere | Cylinder | Ellipsoid | PyramidPrimitive
+    // selected based on params.segmentId
+    const p = data.shape_primitive_list.find(s => s.id === params.segmentId);
     builder.currentGroup = 0;
     debugger;
-    switch (p.kind) {
+    switch (p!.kind) {
         case 'sphere':
             addSphere(builder, (p as Sphere).center, (p as Sphere).radius, 2);
             break;
@@ -190,9 +203,9 @@ function createShapePrimitive(params: CreateShapePrimitiveProviderParamsValues) 
         params,
         MeshBuilder.getMesh(builder),
         // g => Color(data[g].color),
-        g => Color.fromHexStyle(_get_target_segment_color_as_hex(segmentAnnotations, data.id)),
+        g => Color.fromHexStyle(_get_target_segment_color_as_hex(segmentAnnotations, p!.id)),
         () => 1,
         // g => data[g].label,
-        g => _get_target_segment_name(descriptions, data.id)
+        g => _get_target_segment_name(descriptions, p!.id)
     );
 }

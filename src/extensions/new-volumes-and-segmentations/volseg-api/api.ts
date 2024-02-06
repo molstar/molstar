@@ -42,8 +42,8 @@ export class VolumeApiV2 {
             return `${this.volumeServerUrl}/${source}/${entryId}/segmentation/cell/${segmentation}/${timeframe}?max_points=${maxPoints}`;
         }
     }
-    public geometricSegmentationUrl(source: string, entryId: string, segmentation_id: string) {
-        return `${this.volumeServerUrl}/${source}/${entryId}/geometric_segmentation/${segmentation_id}`;
+    public geometricSegmentationUrl(source: string, entryId: string, segmentation_id: string, timeframe: number) {
+        return `${this.volumeServerUrl}/${source}/${entryId}/geometric_segmentation/${segmentation_id}/${timeframe}`;
     }
     // @app.get("/v2/{source}/{id}/mesh/{segmentation_id}/{time}/{segment_id}/{detail_lvl}")
     public meshUrl_Json(source: string, entryId: string, segmentation_id: string, timeframe: number, segment: number, detailLevel: number): string {

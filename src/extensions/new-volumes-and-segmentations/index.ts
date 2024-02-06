@@ -15,7 +15,7 @@ import { DEFAULT_VOLSEG_SERVER, VolumeApiV2 } from './volseg-api/api';
 import { SEGMENTATION_NODE_TAG, VOLUME_NODE_TAG, VolsegEntryData, VolsegEntryParamValues, createLoadVolsegParams } from './entry-root';
 import { VolsegGlobalState } from './global-state';
 import { createEntryId } from './helpers';
-import { ProjectMeshData, ProjectMeshSegmentationDataParamsValues, ProjectSegmentationData, ProjectSegmentationDataParamsValues, ProjectVolumeData, VolsegEntryFromRoot, VolsegGlobalStateFromRoot, VolsegStateFromEntry } from './transformers';
+import { ProjectGeometricSegmentationData, ProjectGeometricSegmentationDataParamsValues, ProjectMeshData, ProjectMeshSegmentationDataParamsValues, ProjectSegmentationData, ProjectSegmentationDataParamsValues, ProjectVolumeData, VolsegEntryFromRoot, VolsegGlobalStateFromRoot, VolsegStateFromEntry } from './transformers';
 import { VolsegUI } from './ui';
 import { createSegmentKey, getSegmentLabelsFromDescriptions } from './volseg-api/utils';
 import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
@@ -168,7 +168,20 @@ export const LoadVolseg = StateAction.build({
 
             }
             // for now for a single timeframe;
-            await entryData.geometricSegmentationData.loadGeometricSegmentation(0);
+            // await entryData.geometricSegmentationData.loadGeometricSegmentation(0);
+            const hasGeometricSegmentation = entryData.metadata.raw.grid.geometric_segmentation;
+            if (hasGeometricSegmentation && hasGeometricSegmentation.segmentation_ids.length > 0) {
+                const group = await entryNode.data.geometricSegmentationData.createGeometricSegmentationGroup();
+                // const timeInfo = this.entryData.metadata.raw.grid.geometric_segmentation!.time_info;
+                for (const segmentationId of hasGeometricSegmentation.segmentation_ids) {
+                    const timeframeIndex = 0;
+                    const geometricSegmentationParams: ProjectGeometricSegmentationDataParamsValues = {
+                        segmentationId: segmentationId,
+                        timeframeIndex: timeframeIndex
+                    }
+                    const geometricSegmentationNode = await state.build().to(group).apply(ProjectGeometricSegmentationData, geometricSegmentationParams).commit();
+                    await entryNode.data.geometricSegmentationData.createGeometricSegmentationRepresentation3D(geometricSegmentationNode, geometricSegmentationParams);
+
             const allAnnotationsForTimeframe = entryData.metadata.getAllAnnotationsForTimeframe(0);
             const allSegmentKeysForTimeframe = allAnnotationsForTimeframe.map(a => {
                 return createSegmentKey(a.segment_id, a.segmentation_id, a.segment_kind);

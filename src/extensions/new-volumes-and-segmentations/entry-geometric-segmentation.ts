@@ -9,8 +9,10 @@ import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { CreateGroup } from '../../mol-plugin-state/transforms/misc';
 import { setSubtreeVisibility } from '../../mol-plugin/behavior/static/state';
 import { PluginCommands } from '../../mol-plugin/commands';
+import { StateObjectSelector } from '../../mol-state';
 import { VolsegEntryData } from './entry-root';
-import { CreateShapePrimitiveProvider } from './shape_primitives';
+import { CreateShapePrimitiveProvider, VolsegShapePrimitivesData } from './shape_primitives';
+import { ProjectGeometricSegmentationDataParamsValues, VolsegGeometricSegmentation } from './transformers';
 import { GeometricSegmentationData } from './volseg-api/data';
 
 
@@ -23,39 +25,66 @@ export class VolsegGeometricSegmentationData {
         this.entryData = rootData;
     }
 
-    async loadGeometricSegmentation(timeframeIndex: number) {
-        const hasGeometricSegmentation = this.entryData.metadata.raw.grid.geometric_segmentation;
-        if (hasGeometricSegmentation && hasGeometricSegmentation.segmentation_ids.length > 0) {
-            let group = this.entryData.findNodesByTags(GEOMETRIC_SEGMENTATION_GROUP_TAG)[0]?.transform.ref;
-            if (!group) {
-                const newGroupNode = await this.entryData.newUpdate().apply(CreateGroup,
-                    { label: 'Segmentation', description: 'Geometric segmentation' }, { tags: [GEOMETRIC_SEGMENTATION_GROUP_TAG], state: { isCollapsed: true } }).commit();
-                group = newGroupNode.ref;
-            }
-            // const timeInfo = this.entryData.metadata.raw.grid.geometric_segmentation!.time_info;
-            for (const segmentationId of hasGeometricSegmentation.segmentation_ids) {
-                const url = this.entryData.api.geometricSegmentationUrl(this.entryData.source, this.entryData.entryId, segmentationId);
-
-                const primitivesData = await this.entryData._resolveStringUrl(url);
-
-                const parsedData: GeometricSegmentationData = JSON.parse(primitivesData);
-                console.log('parsedData', parsedData);
-                // const t = timeInfo[segmentationId];
-                // for (let timeframeIndex = t.start; timeframeIndex <= t.end; timeframeIndex++) {
-                const timeframeData = parsedData.primitives[timeframeIndex];
-                const descriptions = this.entryData.metadata.getAllDescriptionsForSegmentationAndTimeframe(segmentationId, 'primitive', timeframeIndex);
-                const segmentAnnotations = this.entryData.metadata.getAllSegmentAnotationsForSegmentationAndTimeframe(segmentationId, 'primitive', timeframeIndex);
-                for (const shapePrimitiveData of timeframeData.shape_primitive_list) {
-                    const shapePrimitiveNode = await this.entryData.newUpdate().to(group)
-                    // TODO: can provide a single description and a single segment annotation
-                        .apply(CreateShapePrimitiveProvider, { data: shapePrimitiveData, descriptions: descriptions, segmentAnnotations: segmentAnnotations, segmentationId: segmentationId })
-                        // TODO: shape representation 3d could have no alpha
-                        .apply(StateTransforms.Representation.ShapeRepresentation3D, { alpha: 0.5 }, { tags: ['geometric-segmentation-visual', segmentationId, `segment-${shapePrimitiveData.id}`] })
-                        .commit();
-                }
-            }
+    async createGeometricSegmentationGroup() {
+        let group = this.entryData.findNodesByTags(GEOMETRIC_SEGMENTATION_GROUP_TAG)[0]?.transform.ref;
+        if (!group) {
+            const newGroupNode = await this.entryData.newUpdate().apply(CreateGroup,
+                { label: 'Segmentation', description: 'Geometric segmentation' }, { tags: [GEOMETRIC_SEGMENTATION_GROUP_TAG], state: { isCollapsed: true } }).commit();
+            group = newGroupNode.ref;
         }
+        return group;
     }
+
+    async createGeometricSegmentationRepresentation3D(gsNode: StateObjectSelector<VolsegGeometricSegmentation>, params: ProjectGeometricSegmentationDataParamsValues) {
+        const gsData: VolsegShapePrimitivesData = gsNode.cell!.obj!.data;
+        // const update = this.entryData.plugin.build().to(gsNode);
+        const { timeframeIndex, segmentationId } = params;
+        const descriptions = this.entryData.metadata.getAllDescriptionsForSegmentationAndTimeframe(segmentationId, 'primitive', timeframeIndex);
+        const segmentAnnotations = this.entryData.metadata.getAllSegmentAnotationsForSegmentationAndTimeframe(segmentationId, 'primitive', timeframeIndex);
+        for (const primitiveData of gsData.shapePrimitiveData.shape_primitive_list) {
+            await this.entryData.newUpdate().to(gsNode.ref)
+            // TODO: can provide a single description and a single segment annotation
+                .apply(CreateShapePrimitiveProvider, { segmentId: primitiveData.id, descriptions: descriptions, segmentAnnotations: segmentAnnotations, segmentationId: segmentationId })
+                // TODO: shape representation 3d could have no alpha
+                .apply(StateTransforms.Representation.ShapeRepresentation3D, { alpha: 0.5 }, { tags: ['geometric-segmentation-visual', segmentationId, `segment-${primitiveData.id}`] })
+                .commit();
+        }
+        // await update.commit();
+    }
+
+    // async loadGeometricSegmentation(timeframeIndex: number) {
+    //     const hasGeometricSegmentation = this.entryData.metadata.raw.grid.geometric_segmentation;
+    //     if (hasGeometricSegmentation && hasGeometricSegmentation.segmentation_ids.length > 0) {
+    //         let group = this.entryData.findNodesByTags(GEOMETRIC_SEGMENTATION_GROUP_TAG)[0]?.transform.ref;
+    //         if (!group) {
+    //             const newGroupNode = await this.entryData.newUpdate().apply(CreateGroup,
+    //                 { label: 'Segmentation', description: 'Geometric segmentation' }, { tags: [GEOMETRIC_SEGMENTATION_GROUP_TAG], state: { isCollapsed: true } }).commit();
+    //             group = newGroupNode.ref;
+    //         }
+    //         // const timeInfo = this.entryData.metadata.raw.grid.geometric_segmentation!.time_info;
+    //         for (const segmentationId of hasGeometricSegmentation.segmentation_ids) {
+    //             const url = this.entryData.api.geometricSegmentationUrl(this.entryData.source, this.entryData.entryId, segmentationId);
+
+    //             const primitivesData = await this.entryData._resolveStringUrl(url);
+
+    //             const parsedData: GeometricSegmentationData = JSON.parse(primitivesData);
+    //             console.log('parsedData', parsedData);
+    //             // const t = timeInfo[segmentationId];
+    //             // for (let timeframeIndex = t.start; timeframeIndex <= t.end; timeframeIndex++) {
+    //             const timeframeData = parsedData.primitives[timeframeIndex];
+    //             const descriptions = this.entryData.metadata.getAllDescriptionsForSegmentationAndTimeframe(segmentationId, 'primitive', timeframeIndex);
+    //             const segmentAnnotations = this.entryData.metadata.getAllSegmentAnotationsForSegmentationAndTimeframe(segmentationId, 'primitive', timeframeIndex);
+    //             for (const shapePrimitiveData of timeframeData.shape_primitive_list) {
+    //                 const shapePrimitiveNode = await this.entryData.newUpdate().to(group)
+    //                 // TODO: can provide a single description and a single segment annotation
+    //                     .apply(CreateShapePrimitiveProvider, { data: shapePrimitiveData, descriptions: descriptions, segmentAnnotations: segmentAnnotations, segmentationId: segmentationId })
+    //                     // TODO: shape representation 3d could have no alpha
+    //                     .apply(StateTransforms.Representation.ShapeRepresentation3D, { alpha: 0.5 }, { tags: ['geometric-segmentation-visual', segmentationId, `segment-${shapePrimitiveData.id}`] })
+    //                     .commit();
+    //             }
+    //         }
+    //     }
+    // }
     // From meshes, here probably similar
     async showSegments(segmentIds: number[], segmentationId: string) {
         const segmentsToShow = new Set(segmentIds);

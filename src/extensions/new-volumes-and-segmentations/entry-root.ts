@@ -22,7 +22,7 @@ import { ParamDefinition } from '../../mol-util/param-definition';
 import { isMeshlistData, MeshlistData } from '../new-meshes/mesh-extension';
 
 import { DEFAULT_VOLSEG_SERVER, VolumeApiV2 } from './volseg-api/api';
-import { BoxPrimitive, Cylinder, Ellipsoid, ParsedSegmentKey, PyramidPrimitive, Sphere, TimeInfo } from './volseg-api/data';
+import { BoxPrimitive, Cylinder, Ellipsoid, ParsedSegmentKey, PyramidPrimitive, ShapePrimitiveData, Sphere, TimeInfo } from './volseg-api/data';
 import { createSegmentKey, getSegmentLabelsFromDescriptions, MetadataWrapper, parseSegmentKey } from './volseg-api/utils';
 import { DEFAULT_MESH_DETAIL, VolsegMeshSegmentationData } from './entry-meshes';
 import { VolsegModelData } from './entry-models';
@@ -305,6 +305,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         console.log('hierarchy synced');
         const volumes = this.findNodesByTags(VOLUME_NODE_TAG);
         const segmentations = this.findNodesByTags(SEGMENTATION_NODE_TAG);
+        // const geometricSegmentations = this.findNodesByTags
         console.log('volumes, segmentations');
         console.log(volumes, segmentations);
         this.state.hierarchy.next({ volumes, segmentations });
@@ -450,6 +451,16 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             segmentsData
         );
     }
+
+    async _loadGeometricSegmentationData(timeframe: number, segmentationId: string) {
+        // const primitivesData: ShapePrimitiveData
+        const url = this.api.geometricSegmentationUrl(this.source, this.entryId, segmentationId, timeframe);
+        const primitivesData = await this._resolveStringUrl(url);
+        const parsedData: ShapePrimitiveData = JSON.parse(primitivesData);
+        console.log('parsedData', parsedData);
+        return parsedData;
+    }
+
     async _loadRawChannelData(timeframe: number, channelId: string) {
         const urlString = this.api.volumeUrl(this.source, this.entryId, timeframe, channelId, BOX, MAX_VOXELS);
         // const url = Asset.getUrlAsset(this.plugin.managers.asset, urlString);
@@ -914,7 +925,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             // TODO: check for ownerId? this would be entry root
             } else if (isShapePrimitiveParamsValues(sourceData as any)) {
                 const shapePrimitiveParamsValues = (loci.shape.sourceData ?? {}) as CreateShapePrimitiveProviderParamsValues;
-                return shapePrimitiveParamsValues.data.id;
+                return shapePrimitiveParamsValues.segmentId;
             }
         }
     }

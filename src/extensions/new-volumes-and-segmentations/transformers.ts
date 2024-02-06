@@ -17,21 +17,23 @@ import { RawMeshSegmentData, VolsegEntry, VolsegEntryData, createVolsegEntryPara
 import { VolsegState, VolsegStateParams, VOLSEG_STATE_FROM_ENTRY_TRANSFORMER_NAME } from './entry-state';
 import { VolsegGlobalState, VolsegGlobalStateData, VolsegGlobalStateParams } from './global-state';
 import { CreateTransformer } from './helpers';
+import { VolsegGeometricSegmentation, VolsegShapePrimitivesData } from './shape_primitives';
+import { GeometricSegmentationData, ShapePrimitiveData } from './volseg-api/data';
 
 export const ProjectDataParams = {
-    timeframeIndex: ParamDefinition.Numeric(1, { step: 1 }),
+    timeframeIndex: ParamDefinition.Numeric(0, { step: 1 }),
     channelId: ParamDefinition.Text('0'),
 };
 
 export const ProjectSegmentationDataParams = {
-    timeframeIndex: ParamDefinition.Numeric(1, { step: 1 }),
+    timeframeIndex: ParamDefinition.Numeric(0, { step: 1 }),
     segmentationId: ParamDefinition.Text('0'),
     segmentLabels: ParamDefinition.ObjectList({ id: ParamDefinition.Numeric(-1), label: ParamDefinition.Text('') }, s => `${s.id} = ${s.label}`, { description: 'Mapping of segment IDs to segment labels' }),
     ownerId: ParamDefinition.Text('', { isHidden: true, description: 'Reference to the object which manages this volume' }),
 };
 
 export const ProjectMeshSegmentationDataParams = {
-    timeframeIndex: ParamDefinition.Numeric(1, { step: 1 }),
+    timeframeIndex: ParamDefinition.Numeric(0, { step: 1 }),
     segmentationId: ParamDefinition.Text('0'),
     ...VolsegMeshDataParams
 };
@@ -152,6 +154,37 @@ export const ProjectMeshData = CreateTransformer({
                 meshData.push(meshDataItem);
             }
             return new VolsegMeshSegmentation(new VolsegMeshData(meshData));
+        });
+    }
+});
+
+// params should be similar to mesh segmentation data
+export const ProjectGeometricSegmentationDataParams = {
+    timeframeIndex: ParamDefinition.Numeric(0, { step: 1 }),
+    segmentationId: ParamDefinition.Text('0'),
+    // ...VolsegMeshDataParams
+};
+
+export type ProjectGeometricSegmentationDataParamsValues = ParamDefinition.Values<typeof ProjectGeometricSegmentationDataParams>;
+
+// should have all geometric segmentation data
+export const ProjectGeometricSegmentationData = CreateTransformer({
+    name: 'project-geometric-segmentation',
+    display: { name: 'Project Geometric Segmentation', description: 'Project Geometric Segmentation' },
+    from: VolsegEntry,
+    to: VolsegGeometricSegmentation,
+    params: ProjectGeometricSegmentationDataParams
+})({
+    apply({ a, params, spine }, plugin: PluginContext) {
+        return Task.create('Project Geometric Segmentation Data', async ctx => {
+            const { timeframeIndex, segmentationId } = params;
+            // TODO: alternatively to using a
+            const entry = spine.getAncestorOfType(VolsegEntry);
+            // const entry = a;
+            const entryData = entry!.data;
+
+            const shapePrimitiveData = await entryData._loadGeometricSegmentationData(timeframeIndex, segmentationId);
+            return new VolsegGeometricSegmentation(new VolsegShapePrimitivesData(shapePrimitiveData));
         });
     }
 });
