@@ -151,12 +151,10 @@ function createShapePrimitive(data: ShapePrimitiveData, params: CreateShapePrimi
     const builder = MeshBuilder.createState(512, 512);
     const descriptions = params.descriptions;
     const segmentAnnotations = params.segmentAnnotations;
-    debugger;
     // TODO: instead of data, should be specific BoxPrimitive | Sphere | Cylinder | Ellipsoid | PyramidPrimitive
     // selected based on params.segmentId
     const p = data.shape_primitive_list.find(s => s.id === params.segmentId);
     builder.currentGroup = 0;
-    debugger;
     switch (p!.kind) {
         case 'sphere':
             addSphere(builder, (p as Sphere).center, (p as Sphere).radius, 2);

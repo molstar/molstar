@@ -32,14 +32,15 @@ import { VolsegVolumeData, SimpleVolumeParamValues, VOLUME_VISUAL_TAG } from './
 import * as ExternalAPIs from './external-api';
 import { VolsegGlobalStateData } from './global-state';
 import { applyEllipsis, isDefined, lazyGetter, splitEntryId } from './helpers';
-import { ProjectDataParamsValues, ProjectSegmentationDataParamsValues, type VolsegStateFromEntry } from './transformers';
+import { ProjectDataParamsValues, ProjectGeometricSegmentationDataParamsValues, ProjectSegmentationDataParamsValues, type VolsegStateFromEntry } from './transformers';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { Asset } from '../../mol-util/assets';
 import { PluginComponent } from '../../mol-plugin-state/component';
 import { VolsegGeometricSegmentationData } from './entry-geometric-segmentation';
 import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
-import { CreateShapePrimitiveProviderParamsValues, isShapePrimitiveParamsValues } from './shape_primitives';
+import { CreateShapePrimitiveProviderParamsValues, isShapePrimitiveParamsValues, VolsegGeometricSegmentation } from './shape_primitives';
 
+export const GEOMETRIC_SEGMENTATION_NODE_TAG = 'geometric-segmentation-node';
 
 export const MAX_VOXELS = 10 ** 7;
 // export const MAX_VOXELS = 10 ** 2; // DEBUG
@@ -121,6 +122,7 @@ class RawSegmentationData extends PluginComponent {
 export interface StateHierarchyMirror {
     volumes: StateObjectCell<PluginStateObject.Volume.Data>[]
     segmentations: StateObjectCell<PluginStateObject.Volume.Data>[]
+    geometricSegmentations: StateObjectCell<VolsegGeometricSegmentation>[]
 }
 
 class RawTimeframesDataCache {
@@ -305,10 +307,10 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         console.log('hierarchy synced');
         const volumes = this.findNodesByTags(VOLUME_NODE_TAG);
         const segmentations = this.findNodesByTags(SEGMENTATION_NODE_TAG);
-        // const geometricSegmentations = this.findNodesByTags
+        const geometricSegmentations = this.findNodesByTags(GEOMETRIC_SEGMENTATION_NODE_TAG);
         console.log('volumes, segmentations');
         console.log(volumes, segmentations);
-        this.state.hierarchy.next({ volumes, segmentations });
+        this.state.hierarchy.next({ volumes, segmentations, geometricSegmentations });
     }
 
     private async init() {
@@ -567,6 +569,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         this.changeCurrentTimeframe(timeframeIndex);
         const volumes = this.state.hierarchy.value!.volumes;
         const segmenations = this.state.hierarchy.value!.segmentations;
+        const geometricSegmentations = this.state.hierarchy.value!.geometricSegmentations;
         for (const v of volumes) {
             const projectDataTransform = v.transform.ref;
             const oldParams: ProjectDataParamsValues = v.transform.params;
@@ -588,7 +591,6 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
                 this.currentTimeframe.value
             );
             const segmentLabels = getSegmentLabelsFromDescriptions(descriptionsForLattice);
-            ;
             const newParams: ProjectSegmentationDataParamsValues = {
                 ...oldParams,
                 segmentLabels: segmentLabels,
@@ -599,19 +601,26 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             console.log(s);
             console.log(oldParams);
             console.log(newParams);
-            // does not work, uncomment later
-            // const vis = this.findNodesByTags(SEGMENT_VISUAL_TAG, oldParams.segmentationId)[0];
-            // // and then do:
-            // const oldVisualParams = vis.params!;
-            // const volumeTransformRef = vis.transform.ref;
-            // const segmentationData = s.obj!.data;
-            // const segments = segmentLabels.map(s => s.id);
-            // oldVisualParams.values.type.params.segments = segments;
-            // const newVisualParams = oldVisualParams.values;
-            // console.log(oldVisualParams);
-            // console.log(newVisualParams);
-            // debugger;
-            // await this.plugin.state.updateTransform(this.plugin.state.data, volumeTransformRef, newVisualParams);
+        }
+
+        for (const s of geometricSegmentations) {
+            const transform = s.transform.ref;
+            const oldParams: ProjectGeometricSegmentationDataParamsValues = s.transform.params;
+            // TODO: here get descriptions for segmentation and timeframe
+            // and set segmentLabels
+            // const descriptionsForLattice = this.metadata.getAllDescriptionsForSegmentationAndTimeframe(
+            //     oldParams.segmentationId,
+            //     'lattice',
+            //     this.currentTimeframe.value
+            // );
+            // const segmentLabels = getSegmentLabelsFromDescriptions(descriptionsForLattice);
+            // ;
+            const newParams: ProjectGeometricSegmentationDataParamsValues = {
+                ...oldParams,
+                // segmentLabels: segmentLabels,
+                timeframeIndex: timeframeIndex
+            };
+            await this.plugin.state.updateTransform(this.plugin.state.data, transform, newParams, 'Project Data Transform');
         }
     }
 

@@ -214,10 +214,12 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
 }
 
 function TimeFrameSlider({ entryData }: { entryData: VolsegEntryData }) {
+    // gets time info from volume
     const timeInfo = entryData.metadata.raw.grid.volumes.time_info;
     const timeInfoStart = timeInfo.start;
     const timeInfoValue = useBehavior(entryData.currentTimeframe);
     const timeInfoEnd = timeInfo.end;
+    debugger;
     if (timeInfoEnd === 0) return null;
 
     return <ControlRow label='Time Frame' control={
