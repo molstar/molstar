@@ -177,7 +177,7 @@ export const LoadVolseg = StateAction.build({
                     const geometricSegmentationParams: ProjectGeometricSegmentationDataParamsValues = {
                         segmentationId: segmentationId,
                         timeframeIndex: timeframeIndex
-                    }
+                    };
                     const geometricSegmentationNode = await state.build().to(group).apply(ProjectGeometricSegmentationData, geometricSegmentationParams, { tags: [GEOMETRIC_SEGMENTATION_NODE_TAG] }).commit();
                     await entryNode.data.geometricSegmentationData.createGeometricSegmentationRepresentation3D(geometricSegmentationNode, geometricSegmentationParams);
                 }
