@@ -10,7 +10,8 @@ import { AnimateModelIndex } from '../../mol-plugin-state/animation/built-in/mod
 import { createStructureRepresentationParams } from '../../mol-plugin-state/helpers/structure-representation-params';
 import { PluginStateObject, PluginStateObject as PSO } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { createPluginUI } from '../../mol-plugin-ui/react18';
+import { createPluginUI } from '../../mol-plugin-ui';
+import { renderReact18 } from '../../mol-plugin-ui/react18';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { CreateVolumeStreamingInfo, InitVolumeStreaming } from '../../mol-plugin/behavior/dynamic/volume-streaming/transformers';
@@ -46,19 +47,23 @@ class MolStarProteopediaWrapper {
     async init(target: string | HTMLElement, options?: {
         customColorList?: number[]
     }) {
-        this.plugin = await createPluginUI(typeof target === 'string' ? document.getElementById(target)! : target, {
-            ...DefaultPluginUISpec(),
-            animations: [
-                AnimateModelIndex
-            ],
-            layout: {
-                initial: {
-                    isExpanded: false,
-                    showControls: false
+        this.plugin = await createPluginUI({
+            target: typeof target === 'string' ? document.getElementById(target)! : target,
+            render: renderReact18,
+            spec: {
+                ...DefaultPluginUISpec(),
+                animations: [
+                    AnimateModelIndex
+                ],
+                layout: {
+                    initial: {
+                        isExpanded: false,
+                        showControls: false
+                    }
+                },
+                components: {
+                    remoteState: 'none'
                 }
-            },
-            components: {
-                remoteState: 'none'
             }
         });
 

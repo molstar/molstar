@@ -43,7 +43,7 @@ export function createElementPoint(ctx: VisualContext, unit: Unit, structure: St
     const builder = PointsBuilder.create(n, n / 10, points);
 
     const p = Vec3();
-    const pos = unit.conformation.invariantPosition;
+    const c = unit.conformation;
     const ignore = makeElementIgnoreTest(structure, unit, props);
     const center = Vec3();
     let count = 0;
@@ -51,14 +51,14 @@ export function createElementPoint(ctx: VisualContext, unit: Unit, structure: St
     if (ignore) {
         for (let i = 0; i < n; ++i) {
             if (ignore(elements[i])) continue;
-            pos(elements[i], p);
+            c.invariantPosition(elements[i], p);
             v3add(center, center, p);
             count += 1;
             builder.add(p[0], p[1], p[2], i);
         }
     } else {
         for (let i = 0; i < n; ++i) {
-            pos(elements[i], p);
+            c.invariantPosition(elements[i], p);
             v3add(center, center, p);
             count += 1;
             builder.add(p[0], p[1], p[2], i);

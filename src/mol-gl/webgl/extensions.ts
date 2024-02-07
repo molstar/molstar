@@ -4,19 +4,19 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers, getShaderTextureLod, COMPAT_shader_texture_lod, getDepthTexture, COMPAT_depth_texture, COMPAT_sRGB, getSRGB, getTextureHalfFloat, getTextureHalfFloatLinear, COMPAT_texture_half_float, COMPAT_texture_half_float_linear, COMPAT_color_buffer_half_float, getColorBufferHalfFloat, getVertexArrayObject, getDisjointTimerQuery, COMPAT_disjoint_timer_query, getNoNonInstancedActiveAttribs, getDrawBuffersIndexed, COMPAT_draw_buffers_indexed, getParallelShaderCompile, COMPAT_parallel_shader_compile, getFboRenderMipmap, COMPAT_fboRenderMipmap, COMPAT_provoking_vertex, getProvokingVertex, COMPAT_clip_cull_distance, getClipCullDistance, COMPAT_conservative_depth, getConservativeDepth, COMPAT_stencil_texturing, getStencilTexturing, COMPAT_clip_control, getClipControl } from './compat';
+import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers, getShaderTextureLod, COMPAT_shader_texture_lod, getDepthTexture, COMPAT_depth_texture, COMPAT_sRGB, getSRGB, getTextureHalfFloat, getTextureHalfFloatLinear, COMPAT_texture_half_float, COMPAT_texture_half_float_linear, COMPAT_color_buffer_half_float, getColorBufferHalfFloat, getVertexArrayObject, getDisjointTimerQuery, COMPAT_disjoint_timer_query, getNoNonInstancedActiveAttribs, COMPAT_multi_draw, getMultiDraw, getDrawInstancedBaseVertexBaseInstance, getMultiDrawInstancedBaseVertexBaseInstance, COMPAT_draw_instanced_base_vertex_base_instance, COMPAT_multi_draw_instanced_base_vertex_base_instance, getDrawBuffersIndexed, COMPAT_draw_buffers_indexed, getParallelShaderCompile, COMPAT_parallel_shader_compile, getFboRenderMipmap, COMPAT_fboRenderMipmap, COMPAT_provoking_vertex, getProvokingVertex, COMPAT_clip_cull_distance, getClipCullDistance, COMPAT_conservative_depth, getConservativeDepth, COMPAT_stencil_texturing, getStencilTexturing, COMPAT_clip_control, getClipControl } from './compat';
 import { isDebugMode } from '../../mol-util/debug';
 
 export type WebGLExtensions = {
     instancedArrays: COMPAT_instanced_arrays
     elementIndexUint: COMPAT_element_index_uint
     standardDerivatives: COMPAT_standard_derivatives
+    depthTexture: COMPAT_depth_texture
 
     textureFloat: COMPAT_texture_float | null
     textureFloatLinear: COMPAT_texture_float_linear | null
     textureHalfFloat: COMPAT_texture_half_float | null
     textureHalfFloatLinear: COMPAT_texture_half_float_linear | null
-    depthTexture: COMPAT_depth_texture | null
     blendMinMax: COMPAT_blend_minmax | null
     vertexArrayObject: COMPAT_vertex_array_object | null
     fragDepth: COMPAT_frag_depth | null
@@ -27,6 +27,9 @@ export type WebGLExtensions = {
     shaderTextureLod: COMPAT_shader_texture_lod | null
     sRGB: COMPAT_sRGB | null
     disjointTimerQuery: COMPAT_disjoint_timer_query | null
+    multiDraw: COMPAT_multi_draw | null
+    drawInstancedBaseVertexBaseInstance: COMPAT_draw_instanced_base_vertex_base_instance | null
+    multiDrawInstancedBaseVertexBaseInstance: COMPAT_multi_draw_instanced_base_vertex_base_instance | null
     parallelShaderCompile: COMPAT_parallel_shader_compile | null
     fboRenderMipmap: COMPAT_fboRenderMipmap | null
     provokingVertex: COMPAT_provoking_vertex | null
@@ -51,6 +54,10 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     if (standardDerivatives === null) {
         throw new Error('Could not find support for "standard_derivatives"');
     }
+    const depthTexture = getDepthTexture(gl);
+    if (depthTexture === null) {
+        throw new Error('Could not find support for "depth_texture"');
+    }
 
     const textureFloat = getTextureFloat(gl);
     if (isDebugMode && textureFloat === null) {
@@ -71,10 +78,6 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
         // TODO handle non-support downstream (no gpu gaussian calc, no gpu mc???)
         // - can't be a required extension because it is not supported by `headless-gl`
         console.log('Could not find support for "texture_half_float_linear"');
-    }
-    const depthTexture = getDepthTexture(gl);
-    if (isDebugMode && depthTexture === null) {
-        console.log('Could not find support for "depth_texture"');
     }
     const blendMinMax = getBlendMinMax(gl);
     if (isDebugMode && blendMinMax === null) {
@@ -118,6 +121,18 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     if (isDebugMode && disjointTimerQuery === null) {
         console.log('Could not find support for "disjoint_timer_query"');
     }
+    const multiDraw = getMultiDraw(gl);
+    if (isDebugMode && multiDraw === null) {
+        console.log('Could not find support for "multi_draw"');
+    }
+    const drawInstancedBaseVertexBaseInstance = getDrawInstancedBaseVertexBaseInstance(gl);
+    if (isDebugMode && drawInstancedBaseVertexBaseInstance === null) {
+        console.log('Could not find support for "draw_instanced_base_vertex_base_instance"');
+    }
+    const multiDrawInstancedBaseVertexBaseInstance = getMultiDrawInstancedBaseVertexBaseInstance(gl);
+    if (isDebugMode && multiDrawInstancedBaseVertexBaseInstance === null) {
+        console.log('Could not find support for "multi_draw_instanced_base_vertex_base_instance"');
+    }
     const parallelShaderCompile = getParallelShaderCompile(gl);
     if (isDebugMode && parallelShaderCompile === null) {
         console.log('Could not find support for "parallel_shader_compile"');
@@ -153,12 +168,12 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
         instancedArrays,
         standardDerivatives,
         elementIndexUint,
+        depthTexture,
 
         textureFloat,
         textureFloatLinear,
         textureHalfFloat,
         textureHalfFloatLinear,
-        depthTexture,
         blendMinMax,
         vertexArrayObject,
         fragDepth,
@@ -169,6 +184,9 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
         shaderTextureLod,
         sRGB,
         disjointTimerQuery,
+        multiDraw,
+        drawInstancedBaseVertexBaseInstance,
+        multiDrawInstancedBaseVertexBaseInstance,
         parallelShaderCompile,
         fboRenderMipmap,
         provokingVertex,

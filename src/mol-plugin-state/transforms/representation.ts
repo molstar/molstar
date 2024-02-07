@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -43,6 +43,7 @@ import { PlaneParams, PlaneRepresentation } from '../../mol-repr/shape/loci/plan
 import { Substance } from '../../mol-theme/substance';
 import { Material } from '../../mol-util/material';
 import { lerp } from '../../mol-math/interpolate';
+import { MarkerAction, MarkerActions } from '../../mol-util/marker-action';
 
 export { StructureRepresentation3D };
 export { ExplodeStructureRepresentation3D };
@@ -1143,6 +1144,11 @@ const StructureSelectionsLabel3D = PluginStateTransform.BuiltIn({
             const data = getLabelDataFromStructureSelections(a.data);
             const repr = LabelRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => LabelParams);
             await repr.createOrUpdate(params, data).runInContext(ctx);
+
+            // Support interactivity when needed
+            const pickable = !!(params.snapshotKey?.trim() || params.tooltip?.trim());
+            repr.setState({ pickable, markerActions: pickable ? MarkerActions.Highlighting : MarkerAction.None });
+
             return new SO.Shape.Representation3D({ repr, sourceData: data }, { label: `Label` });
         });
     },
@@ -1152,6 +1158,11 @@ const StructureSelectionsLabel3D = PluginStateTransform.BuiltIn({
             const data = getLabelDataFromStructureSelections(a.data);
             await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
             b.data.sourceData = data;
+
+            // Update interactivity
+            const pickable = !!(newParams.snapshotKey?.trim() || newParams.tooltip?.trim());
+            b.data.repr.setState({ pickable, markerActions: pickable ? MarkerActions.Highlighting : MarkerAction.None });
+
             return StateTransformer.UpdateResult.Updated;
         });
     },

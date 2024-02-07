@@ -43,9 +43,8 @@ function createPolymerGapCylinderMesh(ctx: VisualContext, unit: Unit, structure:
     const vertexCountEstimate = segmentCount * radialSegments * 2 * polymerGapCount * 2;
     const builderState = MeshBuilder.createState(vertexCountEstimate, vertexCountEstimate / 10, mesh);
 
-    const pos = unit.conformation.invariantPosition;
-    const pA = Vec3.zero();
-    const pB = Vec3.zero();
+    const pA = Vec3();
+    const pB = Vec3();
     const cylinderProps: CylinderProps = {
         radiusTop: 1, radiusBottom: 1, topCap: true, bottomCap: true, radialSegments
     };
@@ -64,8 +63,8 @@ function createPolymerGapCylinderMesh(ctx: VisualContext, unit: Unit, structure:
             // Mat4.scale(t, t, Vec3.create(0.7, 0.7, 2.5))
             // MeshBuilder.addPrimitive(builderState, t, triangularPyramid)
         } else {
-            pos(centerA.element, pA);
-            pos(centerB.element, pB);
+            unit.conformation.invariantPosition(centerA.element, pA);
+            unit.conformation.invariantPosition(centerB.element, pB);
 
             cylinderProps.radiusTop = cylinderProps.radiusBottom = theme.size.size(centerA) * sizeFactor;
             builderState.currentGroup = i;

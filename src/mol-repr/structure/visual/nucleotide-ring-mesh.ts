@@ -76,10 +76,9 @@ function createNucleotideRingMesh(ctx: VisualContext, unit: Unit, structure: Str
     const vertexCount = nucleotideElementCount * (26 + radialSegments * 2);
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 4, mesh);
 
-    const { elements, model } = unit;
+    const { elements, model, conformation: c } = unit;
     const { chainAtomSegments, residueAtomSegments } = model.atomicHierarchy;
     const { moleculeType } = model.atomicHierarchy.derived.residue;
-    const pos = unit.conformation.invariantPosition;
 
     const chainIt = Segmentation.transientSegments(chainAtomSegments, elements);
     const residueIt = Segmentation.transientSegments(residueAtomSegments, elements);
@@ -106,14 +105,14 @@ function createNucleotideRingMesh(ctx: VisualContext, unit: Unit, structure: Str
                     setPurinIndices(idx, unit, residueIndex);
 
                     if (idx.N9 !== -1 && idx.trace !== -1) {
-                        pos(idx.N9, pN9); pos(idx.trace, pTrace);
+                        c.invariantPosition(idx.N9, pN9); c.invariantPosition(idx.trace, pTrace);
                         builderState.currentGroup = i;
                         addCylinder(builderState, pN9, pTrace, 1, cylinderProps);
                         addSphere(builderState, pN9, radius, detail);
                     }
 
                     if (hasPurinIndices(idx)) {
-                        pos(idx.N1, pN1); pos(idx.C2, pC2); pos(idx.N3, pN3); pos(idx.C4, pC4); pos(idx.C5, pC5); pos(idx.C6, pC6); pos(idx.N7, pN7); pos(idx.C8, pC8);
+                        c.invariantPosition(idx.N1, pN1); c.invariantPosition(idx.C2, pC2); c.invariantPosition(idx.N3, pN3); c.invariantPosition(idx.C4, pC4); c.invariantPosition(idx.C5, pC5); c.invariantPosition(idx.C6, pC6); c.invariantPosition(idx.N7, pN7); c.invariantPosition(idx.C8, pC8);
 
                         Vec3.triangleNormal(normal, pN1, pC4, pC5);
                         Vec3.scale(normal, normal, thickness);
@@ -127,14 +126,14 @@ function createNucleotideRingMesh(ctx: VisualContext, unit: Unit, structure: Str
                     setPyrimidineIndices(idx, unit, residueIndex);
 
                     if (idx.N1 !== -1 && idx.trace !== -1) {
-                        pos(idx.N1, pN1); pos(idx.trace, pTrace);
+                        c.invariantPosition(idx.N1, pN1); c.invariantPosition(idx.trace, pTrace);
                         builderState.currentGroup = i;
                         addCylinder(builderState, pN1, pTrace, 1, cylinderProps);
                         addSphere(builderState, pN1, radius, detail);
                     }
 
                     if (hasPyrimidineIndices(idx)) {
-                        pos(idx.C2, pC2); pos(idx.N3, pN3); pos(idx.C4, pC4); pos(idx.C5, pC5); pos(idx.C6, pC6);
+                        c.invariantPosition(idx.C2, pC2); c.invariantPosition(idx.N3, pN3); c.invariantPosition(idx.C4, pC4); c.invariantPosition(idx.C5, pC5); c.invariantPosition(idx.C6, pC6);
 
                         Vec3.triangleNormal(normal, pN1, pC4, pC5);
                         Vec3.scale(normal, normal, thickness);

@@ -85,6 +85,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
         if (updateState.updateTransform) {
             updateState.updateColor = true;
             updateState.updateSize = true;
+            updateState.updateMatrix = true;
         }
 
         if (updateState.createGeometry) {
@@ -110,7 +111,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             if (updateState.createNew) {
                 renderObjects.length = 0; // clear list o renderObjects
                 locationIt = Shape.groupIterator(_shape);
-                const transform = Shape.createTransform(_shape.transforms);
+                const transform = Shape.createTransform(_shape.transforms, _shape.geometry.boundingSphere, newProps.cellSize, newProps.batchSize);
                 const values = geometryUtils.createValues(_shape.geometry, transform, locationIt, _theme, newProps);
                 const state = geometryUtils.createRenderableState(newProps);
                 if (builder.modifyState) Object.assign(state, builder.modifyState(state));
@@ -126,13 +127,21 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
 
                 if (updateState.updateTransform) {
                     // console.log('update transform')
-                    Shape.createTransform(_shape.transforms, _renderObject.values);
                     locationIt = Shape.groupIterator(_shape);
                     const { instanceCount, groupCount } = locationIt;
                     if (props.instanceGranularity) {
                         createMarkers(instanceCount, 'instance', _renderObject.values);
                     } else {
                         createMarkers(instanceCount * groupCount, 'groupInstance', _renderObject.values);
+                    }
+                }
+
+                if (updateState.updateMatrix) {
+                    // console.log('update matrix');
+                    Shape.createTransform(_shape.transforms, _shape.geometry.boundingSphere, newProps.cellSize, newProps.batchSize, _renderObject.values);
+                    if ('lodLevels' in _renderObject.values) {
+                        // to trigger `uLod` update in `renderable.cull`
+                        ValueCell.update(_renderObject.values.lodLevels, _renderObject.values.lodLevels.ref.value);
                     }
                 }
 

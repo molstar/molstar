@@ -68,13 +68,12 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
 
     const { detail, sizeFactor, stride } = props;
 
-    const { elements } = unit;
+    const { elements, conformation: c } = unit;
     const elementCount = elements.length;
     const vertexCount = elementCount * sphereVertexCount(detail);
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 2, mesh);
 
     const v = Vec3();
-    const pos = unit.conformation.invariantPosition;
     const ignore = makeElementIgnoreTest(structure, unit, props);
     const l = StructureElement.Location.create(structure, unit);
     const themeSize = theme.size.size;
@@ -86,7 +85,7 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
         if (stride && i % stride !== 0) continue;
         if (ignore && ignore(elements[i])) continue;
 
-        pos(elements[i], v);
+        c.invariantPosition(elements[i], v);
         v3add(center, center, v);
         count += 1;
 
@@ -122,12 +121,11 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
 
     const { sizeFactor, stride } = props;
 
-    const { elements } = unit;
+    const { elements, conformation: c } = unit;
     const elementCount = elements.length;
     const builder = SpheresBuilder.create(elementCount, elementCount / 2, spheres);
 
     const v = Vec3();
-    const pos = unit.conformation.invariantPosition;
     const ignore = makeElementIgnoreTest(structure, unit, props);
 
     const l = StructureElement.Location.create(structure, unit);
@@ -141,7 +139,7 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
             if (stride && i % stride !== 0) continue;
             if (ignore && ignore(elements[i])) continue;
 
-            pos(elements[i], v);
+            c.invariantPosition(elements[i], v);
             builder.add(v[0], v[1], v[2], i);
             v3add(center, center, v);
             count += 1;
@@ -152,7 +150,7 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
         }
     } else {
         for (let i = 0; i < elementCount; i++) {
-            pos(elements[i], v);
+            c.invariantPosition(elements[i], v);
             builder.add(v[0], v[1], v[2], i);
             v3add(center, center, v);
         }
@@ -238,10 +236,9 @@ export function createStructureElementSphereMesh(ctx: VisualContext, structure: 
         const childUnit = child?.unitMap.get(unit.id);
         if (child && !childUnit) continue;
 
-        const { elements } = unit;
+        const { elements, conformation: c } = unit;
         const elementCount = elements.length;
         const v = Vec3();
-        const pos = unit.conformation.position;
         const ignore = makeElementIgnoreTest(structure, unit, props);
         const l = StructureElement.Location.create(structure, unit);
 
@@ -251,7 +248,7 @@ export function createStructureElementSphereMesh(ctx: VisualContext, structure: 
             if (ignore && ignore(eI)) continue;
 
 
-            pos(eI, v);
+            c.position(eI, v);
             v3add(center, center, v);
             count += 1;
 
@@ -298,11 +295,10 @@ export function createStructureElementSphereImpostor(ctx: VisualContext, structu
         const childUnit = child?.unitMap.get(unit.id);
         if (child && !childUnit) return Spheres.createEmpty(spheres);
 
-        const { elements } = unit;
+        const { elements, conformation: c } = unit;
         const elementCount = elements.length;
 
         const v = Vec3();
-        const pos = unit.conformation.position;
         const ignore = makeElementIgnoreTest(structure, unit, props);
         const l = StructureElement.Location.create(structure, unit);
 
@@ -312,7 +308,7 @@ export function createStructureElementSphereImpostor(ctx: VisualContext, structu
                 if (stride && i % stride !== 0) continue;
                 if (ignore && ignore(eI)) continue;
 
-                pos(eI, v);
+                c.position(eI, v);
                 builder.add(v[0], v[1], v[2], getSerialIndex(unit, eI));
                 v3add(center, center, v);
                 count += 1;
@@ -324,7 +320,7 @@ export function createStructureElementSphereImpostor(ctx: VisualContext, structu
         } else {
             for (let i = 0; i < elementCount; i++) {
                 const eI = elements[i];
-                pos(eI, v);
+                c.position(eI, v);
                 builder.add(v[0], v[1], v[2], getSerialIndex(unit, eI));
                 v3add(center, center, v);
             }

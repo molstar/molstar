@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -286,7 +286,7 @@ export class SelectionViewportControls extends PluginUIComponent {
 }
 
 export class LociLabels extends PluginUIComponent<{}, { labels: ReadonlyArray<LociLabel> }> {
-    state = { labels: [] };
+    state = { labels: [] as string[] };
 
     componentDidMount() {
         this.subscribe(this.plugin.behaviors.labels.highlight, e => this.setState({ labels: e.labels }));
@@ -298,7 +298,15 @@ export class LociLabels extends PluginUIComponent<{}, { labels: ReadonlyArray<Lo
         }
 
         return <div className='msp-highlight-info'>
-            {this.state.labels.map((e, i) => <div key={'' + i} dangerouslySetInnerHTML={{ __html: e }} />)}
+            {this.state.labels.map((e, i) => {
+                if (e.indexOf('\n') > 0) {
+                    return <div className='msp-highlight-markdown-row' key={'' + i}>
+                        <Markdown skipHtml>{e}</Markdown>
+                    </div>;
+                }
+
+                return <div className='msp-highlight-simple-row' key={'' + i} dangerouslySetInnerHTML={{ __html: e }} />;
+            })}
         </div>;
     }
 }

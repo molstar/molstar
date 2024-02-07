@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
-import { createGraphicsRenderItem, GraphicsRenderVariant } from '../webgl/render-item';
+import { createGraphicsRenderItem, Transparency } from '../webgl/render-item';
 import { GlobalUniformSchema, BaseSchema, AttributeSpec, UniformSpec, Values, InternalSchema, SizeSchema, InternalValues, TextureSpec, ElementsSpec, ValueSpec, GlobalTextureSchema } from './schema';
 import { TextShaderCode } from '../shader-code';
 import { ValueCell } from '../../mol-util';
@@ -35,12 +35,12 @@ export const TextSchema = {
 export type TextSchema = typeof TextSchema
 export type TextValues = Values<TextSchema>
 
-export function TextRenderable(ctx: WebGLContext, id: number, values: TextValues, state: RenderableState, materialId: number, variants: GraphicsRenderVariant[]): Renderable<TextValues> {
+export function TextRenderable(ctx: WebGLContext, id: number, values: TextValues, state: RenderableState, materialId: number, transparency: Transparency): Renderable<TextValues> {
     const schema = { ...GlobalUniformSchema, ...GlobalTextureSchema, ...InternalSchema, ...TextSchema };
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
     };
     const shaderCode = TextShaderCode;
-    const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId, variants);
+    const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId, transparency);
     return createRenderable(renderItem, values, state);
 }

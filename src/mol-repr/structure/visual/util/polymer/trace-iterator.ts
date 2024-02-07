@@ -15,7 +15,7 @@ import { getPolymerRanges } from '../polymer';
 import { AtomicConformation } from '../../../../../mol-model/structure/model/properties/atomic';
 import { SecondaryStructureProvider } from '../../../../../mol-model-props/computed/secondary-structure';
 import { HelixOrientationProvider } from '../../../../../mol-model-props/computed/helix-orientation';
-import { SecondaryStructure } from '../../../../../mol-model/structure/model/properties/seconday-structure';
+import { SecondaryStructure } from '../../../../../mol-model/structure/model/properties/secondary-structure';
 
 function isHelixSS(ss: SecondaryStructureType.Flag) {
     return SecondaryStructureType.is(ss, SecondaryStructureType.Flag.Helix);

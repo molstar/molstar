@@ -111,6 +111,7 @@ void main(void){
         vec3 vViewPosition = cameraPos;
     #endif
 
+    #include fade_lod
     #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
         #include clip_pixel
     #endif

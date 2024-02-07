@@ -78,10 +78,9 @@ const pC4 = Vec3();
 const pN9 = Vec3();
 
 export function getNucleotideBaseType(unit: Unit.Atomic, residueIndex: ResidueIndex) {
-    const { model } = unit;
+    const { model, conformation: c } = unit;
     const { residueAtomSegments, atoms, index: atomicIndex } = model.atomicHierarchy;
     const { label_comp_id } = atoms;
-    const pos = unit.conformation.invariantPosition;
 
     const compId = label_comp_id.value(residueAtomSegments.offsets[residueIndex]);
 
@@ -92,7 +91,7 @@ export function getNucleotideBaseType(unit: Unit.Atomic, residueIndex: ResidueIn
         // detect Purine or Pyrimidin based on geometry
         const idxC4 = atomicIndex.findAtomOnResidue(residueIndex, 'C4');
         const idxN9 = atomicIndex.findAtomOnResidue(residueIndex, 'N9');
-        if (idxC4 !== -1 && idxN9 !== -1 && Vec3.distance(pos(idxC4, pC4), pos(idxN9, pN9)) < 1.6) {
+        if (idxC4 !== -1 && idxN9 !== -1 && Vec3.distance(c.invariantPosition(idxC4, pC4), c.invariantPosition(idxN9, pN9)) < 1.6) {
             isPurine = true;
         } else {
             isPyrimidine = true;
