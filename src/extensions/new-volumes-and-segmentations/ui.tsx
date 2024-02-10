@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { CollapsableControls, CollapsableState } from '../../mol-plugin-ui/base';
-import { Button, ControlRow, ExpandGroup, IconButton } from '../../mol-plugin-ui/controls/common';
+import { Button, ControlRow, ExpandGroup, IconButton, TextInput } from '../../mol-plugin-ui/controls/common';
 import * as Icons from '../../mol-plugin-ui/controls/icons';
 import { ParameterControls } from '../../mol-plugin-ui/controls/parameters';
 import { Slider } from '../../mol-plugin-ui/controls/slider';
@@ -27,6 +27,8 @@ import { StateObjectCell } from '../../mol-state';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { createSegmentKey, parseSegmentKey } from './volseg-api/utils';
 import Markdown from 'react-markdown';
+import { Asset } from '../../mol-util/assets';
+import { DescriptionData } from './volseg-api/data';
 
 
 interface VolsegUIData {
@@ -83,6 +85,27 @@ export class VolsegUI extends CollapsableControls<{}, { data: VolsegUIData }> {
     }
 }
 
+// TODO: return data
+async function openFileCallback(v, entryData: VolsegEntryData) {
+    console.log(v.target.files![0]);
+    const file = Asset.File(v.target.files![0]);
+    // debugger;
+    // get PluginContext
+    // const url = Asset.getUrlAsset(entryData.plugin.managers.asset, urlString);
+    const asset = entryData.plugin.managers.asset.resolve(file, 'string');
+    const data = (await asset.run()).data;
+    console.log(data);
+    // TODO: it is string, create json object
+    const descriptionData: DescriptionData[] = JSON.parse(data);
+    console.log(descriptionData);
+    // const asset = await plugin.managers.asset.resolve(p.file, p.isBinary ? 'binary' : 'string').runInContext(ctx);
+    // (cache as any).asset = asset;
+    // const o = p.isBinary
+    //     ? new SO.Data.Binary(asset.data as Uint8Array, { label: p.label ? p.label : p.file.name })
+    //     : new SO.Data.String(asset.data as string, { label: p.label ? p.label : p.file.name });
+    // debugger;
+    return descriptionData;
+}
 
 function VolsegControls({ plugin, data, setData }: { plugin: PluginContext, data: VolsegUIData, setData: (d: VolsegUIData) => void }) {
     const entryData = data.activeNode?.data;
@@ -224,6 +247,25 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
                 }
                 )}
             </div>
+        </ExpandGroup>}
+        {/* Editing annotations */}
+        {/* TODO: onchange function that triggers api endpoint */}
+        {/* We have entryData here, can do it */}
+        {/* need to add api endpoint there */}
+        {allDescriptions.length > 0 && <ExpandGroup header='Edit descriptions' initiallyExpanded>
+            <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file' style={{ marginTop: '1px' }}>
+                {'Open JSON file'} <input onChange={async v => {
+                    const data = await openFileCallback(v, entryData);
+                    await entryData.api.editDescriptionsUrl(entryData.source, entryData.entryId, data);
+                }} type='file' multiple={false} />
+            </div>
+        </ExpandGroup>}
+        {allDescriptions.length > 0 && <ExpandGroup header='Remove descriptions' initiallyExpanded>
+            <ControlRow label='Opacity' control={
+                <></>
+                // could be TextInput with IDs of annotations
+                // <TextInput onChange={this.onR} numeric value={r} delayMs={250} style={{ order: 1, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true} />
+            } />
         </ExpandGroup>}
     </>;
 }

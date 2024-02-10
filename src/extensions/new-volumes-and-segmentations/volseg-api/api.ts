@@ -4,7 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { type Metadata } from './data';
+import { DescriptionData, type Metadata } from './data';
 
 
 export const DEFAULT_VOLSEG_SERVER = 'https://molstarvolseg.ncbr.muni.cz/v2';
@@ -16,7 +16,20 @@ export class VolumeApiV2 {
     public constructor(volumeServerUrl: string = DEFAULT_VOLSEG_SERVER) {
         this.volumeServerUrl = volumeServerUrl.replace(/\/$/, ''); // trim trailing slash
     }
-
+    // @app.post("/v2/{source}/{id}/descriptions/edit")
+    public async editDescriptionsUrl(source: string, entryId: string, descriptionData: DescriptionData[]) {
+        const url = `${this.volumeServerUrl}/${source}/${entryId}/descriptions/edit`;
+        const obj = JSON.stringify({ descriptions: descriptionData });
+        console.log(obj);
+        debugger;
+        const response = await fetch(url, {
+            method: 'POST',
+            // body: JSON.stringify({notification: {title: message},to : '/topics/user_'+username}),
+            body: obj,
+            // headers: {'Content-Type': 'application/json', 'Authorization': 'key='+API_KEY}
+            headers: { 'Content-Type': 'application/json' } 
+        });
+    }
     public entryListUrl(maxEntries: number, keyword?: string): string {
         return `${this.volumeServerUrl}/list_entries/${maxEntries}/${keyword ?? ''}`;
     }
