@@ -137,8 +137,7 @@ export const ProjectMeshData = CreateTransformer({
             const totalVolume = entryData.metadata.gridTotalVolume;
             const meshData: MeshData[] = [];
             const segmentsParams = params.meshSegmentParams;
-            const rawCifData = await entryData._loadRawMeshSegmentationData(timeframeIndex, segmentationId);
-            const rawDataArray: RawMeshSegmentData[] = rawCifData.data as RawMeshSegmentData[];
+            const rawDataArray: RawMeshSegmentData[] = await entryData.getData(timeframeIndex, segmentationId, 'mesh') as RawMeshSegmentData[];
             for (const segmentParam of segmentsParams) {
                 const rawDataItem = rawDataArray.find(i => i.segmentId === segmentParam.id);
                 if (!rawDataItem) throw new Error('no segment');
