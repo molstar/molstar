@@ -51,7 +51,7 @@ const MAX_ANNOTATIONS_IN_LABEL = 6;
 export const VOLUME_NODE_TAG = 'volume-node-tag';
 export const SEGMENTATION_NODE_TAG = 'segmenation-node-tag';
 
-const SourceChoice = new Choice({ emdb: 'EMDB', empiar: 'EMPIAR', idr: 'IDR', pdbe: 'PDBe' }, 'emdb');
+const SourceChoice = new Choice({ emdb: 'EMDB', empiar: 'EMPIAR', idr: 'IDR', pdbe: 'PDBe', custom: 'CUSTOM' }, 'emdb');
 export type Source = Choice.Values<typeof SourceChoice>;
 
 
