@@ -26,6 +26,7 @@ import { ProjectDataParamsValues } from './transformers';
 import { StateObjectCell } from '../../mol-state';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { createSegmentKey, parseSegmentKey } from './volseg-api/utils';
+import Markdown from 'react-markdown';
 
 
 interface VolsegUIData {
@@ -199,6 +200,13 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
                     selectedSegmentDescription.target_kind !== 'entry' &&
                     selectedSegmentDescription.target_id &&
                     <b>Segment {selectedSegmentDescription.target_id.segment_id} from segmentation {selectedSegmentDescription.target_id.segmentation_id}:<br />{selectedSegmentDescription.name ?? 'Unnamed segment'}</b>}
+                <br />
+                <br />
+                <b>Description: </b>
+                {selectedSegmentDescription && selectedSegmentDescription.description && selectedSegmentDescription.description.format === 'markdown' &&
+                    <Markdown skipHtml>{selectedSegmentDescription.description.text}</Markdown>}
+                {selectedSegmentDescription && selectedSegmentDescription.description && selectedSegmentDescription.description.format === 'text' &&
+                    <p>{selectedSegmentDescription.description.text}</p>}
                 {selectedSegmentDescription?.external_references?.map(ref => {
                     // if (description.target_kind === 'entry' || !description.target_id) return;
                     return <p key={ref.id} style={{ marginTop: 4 }}>
@@ -219,7 +227,6 @@ function TimeFrameSlider({ entryData }: { entryData: VolsegEntryData }) {
     const timeInfoStart = timeInfo.start;
     const timeInfoValue = useBehavior(entryData.currentTimeframe);
     const timeInfoEnd = timeInfo.end;
-    debugger;
     if (timeInfoEnd === 0) return null;
 
     return <ControlRow label='Time Frame' control={
