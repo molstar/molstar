@@ -153,7 +153,7 @@ export const ProjectMeshData = CreateTransformer({
                 };
                 meshData.push(meshDataItem);
             }
-            return new VolsegMeshSegmentation(new VolsegMeshData(meshData));
+            return new VolsegMeshSegmentation(new VolsegMeshData(meshData), { label: `Segmentation ID: ${segmentationId}` });
         });
     }
 });
