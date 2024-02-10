@@ -184,7 +184,7 @@ export const ProjectGeometricSegmentationData = CreateTransformer({
             const entryData = entry!.data;
 
             const shapePrimitiveData = await entryData._loadGeometricSegmentationData(timeframeIndex, segmentationId);
-            return new VolsegGeometricSegmentation(new VolsegShapePrimitivesData(shapePrimitiveData));
+            return new VolsegGeometricSegmentation(new VolsegShapePrimitivesData(shapePrimitiveData), { label: `Segmentation ID: ${segmentationId}` });
         });
     }
 });
