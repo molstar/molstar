@@ -209,9 +209,10 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
                             </Button>
                             {/* TODO: two more icon buttons for remove annotation and description */}
                             {/* Make methods in entryData for remove description */}
-                            <IconButton svg={Icons.WarningSvg}
+                            <IconButton svg={Icons.WarningSvg} title={'Remove description'}
                                 onClick={() => entryData.removeDescription(d.id)} />
                             <IconButton svg={visibleSegmentKeys.includes(segmentKey) ? Icons.VisibilityOutlinedSvg : Icons.VisibilityOffOutlinedSvg}
+                                title={visibleSegmentKeys.includes(segmentKey) ? 'Hide segment' : 'Show segment'}
                                 onClick={() => entryData.actionToggleSegment(segmentKey)} />
                         </div>;
                     }
