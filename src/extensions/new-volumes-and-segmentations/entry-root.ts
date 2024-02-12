@@ -22,7 +22,7 @@ import { ParamDefinition } from '../../mol-util/param-definition';
 import { isMeshlistData, MeshlistData } from '../new-meshes/mesh-extension';
 
 import { DEFAULT_VOLSEG_SERVER, VolumeApiV2 } from './volseg-api/api';
-import { BoxPrimitive, Cylinder, Ellipsoid, ParsedSegmentKey, PyramidPrimitive, ShapePrimitiveData, Sphere, TimeInfo } from './volseg-api/data';
+import { BoxPrimitive, Cylinder, DescriptionData, Ellipsoid, ParsedSegmentKey, PyramidPrimitive, ShapePrimitiveData, Sphere, TimeInfo } from './volseg-api/data';
 import { createSegmentKey, getSegmentLabelsFromDescriptions, MetadataWrapper, parseSegmentKey } from './volseg-api/utils';
 import { DEFAULT_MESH_DETAIL, VolsegMeshSegmentationData } from './entry-meshes';
 import { VolsegModelData } from './entry-models';
@@ -410,13 +410,20 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         this.plugin.managers.lociLabels.removeProvider(this.labelProvider);
     }
 
-    async removeDescription(descriptionId: string, segmentKey: string) {
+    async removeDescription(descriptionId: string) {
         this.api.removeDescriptionsUrl(this.source, this.entryId, [descriptionId]);
-        // TODO: remove from visible segments
-        const current = this.currentState.value.visibleSegments.map(seg => seg.segmentKey);
-        const currentWithoutRemoved = current.filter(i => i !== segmentKey);
         this.metadata.removeDescription(descriptionId);
-        await this.updateStateNode({ visibleSegments: currentWithoutRemoved.map(s => ({ segmentKey: s })) });
+    }
+
+    async editDescriptions(descriptionData: DescriptionData[]) {
+        await this.api.editDescriptionsUrl(this.source, this.entryId, descriptionData);
+        // TODO: add to visible segments and to metadata
+        // if segment exists
+
+        // const current = this.currentState.value.visibleSegments.map(seg => seg.segmentKey);
+        // const currentWithAdded = [...current, 
+        // this.metadata.removeDescription(descriptionId);
+        // await this.updateStateNode({ visibleSegments: currentWithAdded.map(s => ({ segmentKey: s })) });
     }
 
     async loadVolume() {

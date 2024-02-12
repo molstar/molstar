@@ -209,7 +209,11 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
                             {/* TODO: two more icon buttons for remove annotation and description */}
                             {/* Make methods in entryData for remove description */}
                             <IconButton svg={Icons.WarningSvg} title={'Remove description'}
-                                onClick={() => entryData.removeDescription(d.id, segmentKey)} />
+                                onClick={() => {
+                                    entryData.removeDescription(d.id);
+                                    // NOTE: assumes single description per segment
+                                    entryData.actionToggleSegment(segmentKey);
+                                }} />
                             <IconButton svg={visibleSegmentKeys.includes(segmentKey) ? Icons.VisibilityOutlinedSvg : Icons.VisibilityOffOutlinedSvg}
                                 title={visibleSegmentKeys.includes(segmentKey) ? 'Hide segment' : 'Show segment'}
                                 onClick={() => entryData.actionToggleSegment(segmentKey)} />
@@ -261,7 +265,7 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
             <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file' style={{ marginTop: '1px' }}>
                 {'Open JSON file'} <input onChange={async v => {
                     const data = await openFileCallback(v, entryData);
-                    await entryData.api.editDescriptionsUrl(entryData.source, entryData.entryId, data);
+                    await entryData.editDescriptions(data);
                 }} type='file' multiple={false} />
             </div>
         </ExpandGroup>}
