@@ -39,6 +39,20 @@ export class VolumeApiV2 {
             headers: { 'Content-Type': 'application/json' }
         });
     }
+
+    // removeSegmentAnnotationsUrl
+    public async removeSegmentAnnotationsUrl(source: string, entryId: string, annotation_ids: string[]) {
+        const url = `${this.volumeServerUrl}/${source}/${entryId}/segment_annotations/remove`;
+        const obj = JSON.stringify({ annotation_ids: annotation_ids });
+        const response = await fetch(url, {
+            method: 'POST',
+            // body: JSON.stringify({notification: {title: message},to : '/topics/user_'+username}),
+            body: obj,
+            // headers: {'Content-Type': 'application/json', 'Authorization': 'key='+API_KEY}
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
     public entryListUrl(maxEntries: number, keyword?: string): string {
         return `${this.volumeServerUrl}/list_entries/${maxEntries}/${keyword ?? ''}`;
     }

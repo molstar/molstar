@@ -410,6 +410,12 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         this.plugin.managers.lociLabels.removeProvider(this.labelProvider);
     }
 
+    async removeSegmentAnnotation(segmentId: number, segmentationId: string, kind: 'lattice' | 'mesh' | 'primitive') {
+        const targetAnnotation = this.metadata.getSegmentAnnotation(segmentId, segmentationId, kind);
+        this.api.removeSegmentAnnotationsUrl(this.source, this.entryId, [targetAnnotation!.id]);
+        this.metadata.removeSegmentAnnotation(targetAnnotation!.id);
+    }
+
     async removeDescription(descriptionId: string) {
         this.api.removeDescriptionsUrl(this.source, this.entryId, [descriptionId]);
         this.metadata.removeDescription(descriptionId);
@@ -878,7 +884,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             const segmentationKind = this.getSegmentationKindFromLoci(loci);
             if (segmentId === undefined || !segmentationId || !segmentationKind) return;
             // const segmentKey = createSegmentKey(segmentId, segmentationId, segmentationKind);
-            const descriptions = this.metadata.getSegment(segmentId, segmentationId, segmentationKind);
+            const descriptions = this.metadata.getSegmentDescription(segmentId, segmentationId, segmentationKind);
             if (!descriptions) return;
 
             // theoretically there can be multiple descriptions

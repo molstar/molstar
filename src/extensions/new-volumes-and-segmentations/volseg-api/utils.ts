@@ -25,6 +25,12 @@ export class MetadataWrapper {
         }
     }
 
+    removeSegmentAnnotation(id: string) {
+        const segmentAnnotations = this.allAnnotations;
+        const filtered = segmentAnnotations.filter(a => a.id !== id);
+        this.raw.annotation!.annotations = filtered;
+    }
+
     get allDescriptions() {
         const descriptions = this.raw.annotation?.descriptions;
         if (descriptions) {
@@ -120,7 +126,12 @@ export class MetadataWrapper {
 
     }
 
-    getSegment(segmentId: number, segmentationId: string, kind: 'lattice' | 'mesh' | 'primitive'): DescriptionData[] | undefined {
+    getSegmentAnnotation(segmentId: number, segmentationId: string, kind: 'lattice' | 'mesh' | 'primitive') {
+        const allAnnotations = this.allAnnotations;
+        return allAnnotations.find(a => a.segment_id === segmentId && a.segment_kind === kind && a.segmentation_id === segmentationId);
+    }
+
+    getSegmentDescription(segmentId: number, segmentationId: string, kind: 'lattice' | 'mesh' | 'primitive'): DescriptionData[] | undefined {
         // NOTE: for now assumes single lattice, single mesh set etc.
         const segmentKey = createSegmentKey(segmentId, segmentationId, kind);
         if (this.allDescriptions) {
@@ -147,10 +158,10 @@ export class MetadataWrapper {
     }
 
     // TODO: apparently for meshes
-    getSegmentColor(segmentId: number): Color | undefined {
-        const colorArray = this.getSegment(segmentId)?.color;
-        return colorArray ? Color.fromNormalizedArray(colorArray, 0) : undefined;
-    }
+    // getSegmentColor(segmentId: number): Color | undefined {
+    //     const colorArray = this.getSegmentDescription(segmentId)?.color;
+    //     return colorArray ? Color.fromNormalizedArray(colorArray, 0) : undefined;
+    // }
 
     /** Get the list of detail levels available for the given mesh segment. */
     getMeshDetailLevels(segmentationId: string, timeframe: number, segmentId: number): number[] {

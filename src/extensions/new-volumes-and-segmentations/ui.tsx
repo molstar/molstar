@@ -142,7 +142,7 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
     const allDescriptions = entryData.metadata.allDescriptions;
     const parsedSelectedSegmentKey = parseSegmentKey(state.selectedSegment);
     const { segmentId, segmentationId, kind } = parsedSelectedSegmentKey;
-    const selectedSegmentDescriptions = entryData.metadata.getSegment(segmentId, segmentationId, kind);
+    const selectedSegmentDescriptions = entryData.metadata.getSegmentDescription(segmentId, segmentationId, kind);
     // NOTE: for now single description
     const selectedSegmentDescription = selectedSegmentDescriptions ? selectedSegmentDescriptions[0] : undefined;
     const visibleSegmentKeys = state.visibleSegments.map(seg => seg.segmentKey);
@@ -170,7 +170,7 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
 
         {/* Volume */}
         <VolumeControls entryData={entryData} />
-
+        {/* TODO: should show this section even if allDescriptions.length === 0 */}
         {allDescriptions.length > 0 && <ExpandGroup header='Segmentation data' initiallyExpanded>
             {/* Segment opacity slider */}
             <ControlRow label='Opacity' control={
@@ -212,7 +212,15 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
                                 onClick={() => {
                                     entryData.removeDescription(d.id);
                                     // NOTE: assumes single description per segment
-                                    entryData.actionToggleSegment(segmentKey);
+                                    // entryData.actionToggleSegment(segmentKey);
+                                }} />
+                            <IconButton svg={Icons.WarningSvg} title={'Remove segment annotation'}
+                                onClick={() => {
+                                    // there is just one segment annotation for each segment
+                                    // pick it by id
+                                    entryData.removeSegmentAnnotation(d.target_id!.segment_id, d.target_id!.segmentation_id, d.target_kind!);
+                                    // NOTE: assumes single description per segment
+                                    // entryData.actionToggleSegment(segmentKey);
                                 }} />
                             <IconButton svg={visibleSegmentKeys.includes(segmentKey) ? Icons.VisibilityOutlinedSvg : Icons.VisibilityOffOutlinedSvg}
                                 title={visibleSegmentKeys.includes(segmentKey) ? 'Hide segment' : 'Show segment'}
