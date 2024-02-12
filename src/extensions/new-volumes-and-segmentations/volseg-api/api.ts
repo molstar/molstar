@@ -20,14 +20,23 @@ export class VolumeApiV2 {
     public async editDescriptionsUrl(source: string, entryId: string, descriptionData: DescriptionData[]) {
         const url = `${this.volumeServerUrl}/${source}/${entryId}/descriptions/edit`;
         const obj = JSON.stringify({ descriptions: descriptionData });
-        console.log(obj);
-        debugger;
         const response = await fetch(url, {
             method: 'POST',
             // body: JSON.stringify({notification: {title: message},to : '/topics/user_'+username}),
             body: obj,
             // headers: {'Content-Type': 'application/json', 'Authorization': 'key='+API_KEY}
             headers: { 'Content-Type': 'application/json' } 
+        });
+    }
+    public async removeDescriptionsUrl(source: string, entryId: string, description_ids: string[]) {
+        const url = `${this.volumeServerUrl}/${source}/${entryId}/descriptions/remove`;
+        const obj = JSON.stringify({ description_ids: description_ids });
+        const response = await fetch(url, {
+            method: 'POST',
+            // body: JSON.stringify({notification: {title: message},to : '/topics/user_'+username}),
+            body: obj,
+            // headers: {'Content-Type': 'application/json', 'Authorization': 'key='+API_KEY}
+            headers: { 'Content-Type': 'application/json' }
         });
     }
     public entryListUrl(maxEntries: number, keyword?: string): string {

@@ -410,6 +410,10 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         this.plugin.managers.lociLabels.removeProvider(this.labelProvider);
     }
 
+    async removeDescription(descriptionId: string) {
+        this.api.removeDescriptionsUrl(this.source, this.entryId, [descriptionId]);
+    }
+
     async loadVolume() {
         // const result = await this.volumeData.loadVolume();
         // if (result) {

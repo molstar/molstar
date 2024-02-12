@@ -85,7 +85,6 @@ export class VolsegUI extends CollapsableControls<{}, { data: VolsegUIData }> {
     }
 }
 
-// TODO: return data
 async function openFileCallback(v, entryData: VolsegEntryData) {
     console.log(v.target.files![0]);
     const file = Asset.File(v.target.files![0]);
@@ -192,20 +191,26 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
                         // NOTE: if time is array
                         if (d.time && Array.isArray(d.time) && d.time.every(i => Number.isFinite(i)) && !(d.time as number[]).includes(currentTimeframe)) return;
                         const segmentKey = createSegmentKey(d.target_id.segment_id, d.target_id.segmentation_id, d.target_kind);
-                        return <div style={{ display: 'flex', marginBottom: 1 }} key={`${d.target_id?.segment_id}:${d.target_id?.segmentation_id}:${d.target_kind}`}
+                        // How it was before
+                        // return <div style={{ display: 'flex', marginBottom: 1 }} key={`${d.target_id?.segment_id}:${d.target_id?.segmentation_id}:${d.target_kind}`}
+                        return <div className='msp-flex-row' style={{ marginTop: '1px' }} key={`${d.target_id?.segment_id}:${d.target_id?.segmentation_id}:${d.target_kind}`}
                             onMouseEnter={() => entryData.actionHighlightSegment(segmentKey)}
                             onMouseLeave={() => entryData.actionHighlightSegment()}>
 
-                            <Button onClick={() => entryData.actionSelectSegment(d !== selectedSegmentDescription ? segmentKey : undefined)}
+                            <Button noOverflow flex onClick={() => entryData.actionSelectSegment(d !== selectedSegmentDescription ? segmentKey : undefined)}
                                 style={{
                                     fontWeight: d.target_id.segment_id === selectedSegmentDescription?.target_id?.segment_id
                                     && d.target_id.segmentation_id === selectedSegmentDescription?.target_id.segmentation_id
-                                        ? 'bold' : undefined, marginRight: 1, flexGrow: 1, textAlign: 'left'
+                                        ? 'bold' : undefined, textAlign: 'left'
                                 }}>
                                 <div title={d.name ?? 'Unnamed segment'} style={{ maxWidth: 240, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                     {d.name ?? 'Unnamed segment'} ({d.target_id?.segment_id}) ({d.target_id?.segmentation_id})
                                 </div>
                             </Button>
+                            {/* TODO: two more icon buttons for remove annotation and description */}
+                            {/* Make methods in entryData for remove description */}
+                            <IconButton svg={Icons.WarningSvg}
+                                onClick={() => entryData.removeDescription(d.id)} />
                             <IconButton svg={visibleSegmentKeys.includes(segmentKey) ? Icons.VisibilityOutlinedSvg : Icons.VisibilityOffOutlinedSvg}
                                 onClick={() => entryData.actionToggleSegment(segmentKey)} />
                         </div>;
@@ -259,13 +264,6 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
                     await entryData.api.editDescriptionsUrl(entryData.source, entryData.entryId, data);
                 }} type='file' multiple={false} />
             </div>
-        </ExpandGroup>}
-        {allDescriptions.length > 0 && <ExpandGroup header='Remove descriptions' initiallyExpanded>
-            <ControlRow label='Opacity' control={
-                <></>
-                // could be TextInput with IDs of annotations
-                // <TextInput onChange={this.onR} numeric value={r} delayMs={250} style={{ order: 1, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true} />
-            } />
         </ExpandGroup>}
     </>;
 }
