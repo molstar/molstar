@@ -410,8 +410,13 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         this.plugin.managers.lociLabels.removeProvider(this.labelProvider);
     }
 
-    async removeDescription(descriptionId: string) {
+    async removeDescription(descriptionId: string, segmentKey: string) {
         this.api.removeDescriptionsUrl(this.source, this.entryId, [descriptionId]);
+        // TODO: remove from visible segments
+        const current = this.currentState.value.visibleSegments.map(seg => seg.segmentKey);
+        const currentWithoutRemoved = current.filter(i => i !== segmentKey);
+        this.metadata.removeDescription(descriptionId);
+        await this.updateStateNode({ visibleSegments: currentWithoutRemoved.map(s => ({ segmentKey: s })) });
     }
 
     async loadVolume() {
@@ -762,12 +767,10 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             else if (kind === 'mesh') promises.push(this.meshSegmentationData.showSegments(value, key));
             else if (kind === 'primitive') promises.push(this.geometricSegmentationData.showSegments(value, key));
         });
-        debugger;
         await Promise.all(promises);
     }
 
     async actionShowSegments(segmentKeys: string[]) {
-        debugger;
         const allExistingLatticeSegmentationIds = this.metadata.raw.grid.segmentation_lattices!.segmentation_ids;
         const allExistingMeshSegmentationIds = this.metadata.raw.grid.segmentation_meshes!.segmentation_ids;
         const allExistingGeometricSegmentationIds = this.metadata.raw.grid.geometric_segmentation!.segmentation_ids;

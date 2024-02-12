@@ -15,6 +15,16 @@ export class MetadataWrapper {
         this.raw = rawMetadata;
     }
 
+    removeDescription(id: string) {
+        const descriptions = this.raw.annotation?.descriptions;
+        if (this.raw.annotation && descriptions) {
+            // const removed = descriptions.filter(d => d.i)
+            delete descriptions[id];
+            this.raw.annotation.descriptions = descriptions;
+            console.log(this.raw.annotation.descriptions);
+        }
+    }
+
     get allDescriptions() {
         const descriptions = this.raw.annotation?.descriptions;
         if (descriptions) {

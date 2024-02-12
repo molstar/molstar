@@ -139,7 +139,6 @@ function VolsegControls({ plugin, data, setData }: { plugin: PluginContext, data
 
 function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
     const state = useBehavior(entryData.currentState);
-
     const allDescriptions = entryData.metadata.allDescriptions;
     const parsedSelectedSegmentKey = parseSegmentKey(state.selectedSegment);
     const { segmentId, segmentationId, kind } = parsedSelectedSegmentKey;
@@ -210,7 +209,7 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
                             {/* TODO: two more icon buttons for remove annotation and description */}
                             {/* Make methods in entryData for remove description */}
                             <IconButton svg={Icons.WarningSvg} title={'Remove description'}
-                                onClick={() => entryData.removeDescription(d.id)} />
+                                onClick={() => entryData.removeDescription(d.id, segmentKey)} />
                             <IconButton svg={visibleSegmentKeys.includes(segmentKey) ? Icons.VisibilityOutlinedSvg : Icons.VisibilityOffOutlinedSvg}
                                 title={visibleSegmentKeys.includes(segmentKey) ? 'Hide segment' : 'Show segment'}
                                 onClick={() => entryData.actionToggleSegment(segmentKey)} />
