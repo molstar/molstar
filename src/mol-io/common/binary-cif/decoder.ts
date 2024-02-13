@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * From CIFTools.js
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -54,7 +54,7 @@ function getIntArray(type: Encoding.IntDataType, size: number) {
         case Encoding.IntDataType.Uint8: return new Uint8Array(size);
         case Encoding.IntDataType.Uint16: return new Uint16Array(size);
         case Encoding.IntDataType.Uint32: return new Uint32Array(size);
-        default: assertUnreachable(type);
+        default: return new Int32Array(size);
     }
 }
 
@@ -62,7 +62,7 @@ function getFloatArray(type: Encoding.FloatDataType, size: number) {
     switch (type) {
         case Encoding.FloatDataType.Float32: return new Float32Array(size);
         case Encoding.FloatDataType.Float64: return new Float64Array(size);
-        default: assertUnreachable(type);
+        default: return new Float64Array(size);
     }
 }
 

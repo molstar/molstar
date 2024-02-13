@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix BinaryCIF decoder edge cases. Fixes mmCIF model export from data provided by ModelServer.
+
 ## [v4.0.0] - 2023-02-04
 
 - Add Mesoscale Explorer app for investigating large systems
