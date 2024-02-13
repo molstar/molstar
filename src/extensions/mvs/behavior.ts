@@ -13,6 +13,7 @@ import { PluginBehavior } from '../../mol-plugin/behavior/behavior';
 import { PluginContext } from '../../mol-plugin/context';
 import { StructureRepresentationProvider } from '../../mol-repr/structure/representation';
 import { StateAction } from '../../mol-state';
+import { Task } from '../../mol-task';
 import { ColorTheme } from '../../mol-theme/color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { MVSAnnotationColorThemeProvider } from './components/annotation-color-theme';
@@ -21,7 +22,7 @@ import { MVSAnnotationsProvider } from './components/annotation-prop';
 import { MVSAnnotationTooltipsLabelProvider, MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-prop';
 import { CustomLabelRepresentationProvider } from './components/custom-label/representation';
 import { CustomTooltipsLabelProvider, CustomTooltipsProvider } from './components/custom-tooltips-prop';
-import { LoadMvsData, MVSJFormatProvider, MVSXFormatProvider } from './components/formats';
+import { LoadMvsData, MVSJFormatProvider, MVSXFormatProvider, loadMVSX } from './components/formats';
 import { IsMVSModelProvider } from './components/is-mvs-model-prop';
 import { makeMultilayerColorThemeProvider } from './components/multilayer-color-theme';
 import { loadMVS } from './load';
@@ -159,18 +160,32 @@ interface DragAndDropHandler {
     handle: PluginDragAndDropHandler,
 }
 
-/** DragAndDropHandler handler for `.mvsj` files */
+/** DragAndDropHandler handler for `.mvsj` and `.mvsx` files */
 const MVSDragAndDropHandler: DragAndDropHandler = {
-    name: 'mvs-mvsj',
-    /** Load .mvsj files. Delete previous plugin state before loading.
-     * If multiple files are provided, merge their MVS data into one state. */
+    name: 'mvs-mvsj-mvsx',
+    /** Load .mvsj and .mvsx files. Delete previous plugin state before loading.
+     * If multiple files are provided, merge their MVS data into one state.
+     * Return `true` if at least one file has been loaded. */
     async handle(files: File[], plugin: PluginContext): Promise<boolean> {
         let applied = false;
         for (const file of files) {
             if (file.name.toLowerCase().endsWith('.mvsj')) {
-                const data = await file.text();
-                const mvsData = MVSData.fromMVSJ(data);
-                await loadMVS(plugin, mvsData, { sanityChecks: true, replaceExisting: !applied, sourceUrl: undefined });
+                const task = Task.create('Load MVSJ file', async ctx => {
+                    const data = await file.text();
+                    const mvsData = MVSData.fromMVSJ(data);
+                    await loadMVS(plugin, mvsData, { sanityChecks: true, replaceExisting: !applied, sourceUrl: undefined });
+                });
+                await plugin.runTask(task);
+                applied = true;
+            }
+            if (file.name.toLowerCase().endsWith('.mvsx')) {
+                const task = Task.create('Load MVSX file', async ctx => {
+                    const buffer = await file.arrayBuffer();
+                    const array = new Uint8Array(buffer);
+                    const parsed = await loadMVSX(plugin, ctx, array);
+                    await loadMVS(plugin, parsed.mvsData, { sanityChecks: true, replaceExisting: !applied, sourceUrl: parsed.sourceUrl });
+                });
+                await plugin.runTask(task);
                 applied = true;
             }
         }

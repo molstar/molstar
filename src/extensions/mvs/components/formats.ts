@@ -10,7 +10,7 @@ import { PluginStateObject as SO } from '../../../mol-plugin-state/objects';
 import { Download } from '../../../mol-plugin-state/transforms/data';
 import { PluginContext } from '../../../mol-plugin/context';
 import { StateAction, StateObjectRef } from '../../../mol-state';
-import { Task } from '../../../mol-task';
+import { RuntimeContext, Task } from '../../../mol-task';
 import { Asset, AssetManager } from '../../../mol-util/assets';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { unzip } from '../../../mol-util/zip/zip';
@@ -48,24 +48,15 @@ export const ParseMVSX = MVSTransform({
 })({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Parse MVSX file', async ctx => {
-            const archiveId = `ni,fnv1a;${hashFnv32a(a.data)}`;
-            const files = await unzip(ctx, a.data.buffer) as { [path: string]: Uint8Array };
-            for (const path in files) {
-                const url = arcpUri(archiveId, path);
-                ensureUrlAsset(plugin.managers.asset, url, files[path]);
-            }
-            const mainFile = files[params.mainFilePath];
-            if (!mainFile) throw new Error(`File ${params.mainFilePath} not found in the MVSX archive`);
-            const mvsData = MVSData.fromMVSJ(decodeUtf8(mainFile));
-            const sourceUrl = arcpUri(archiveId, params.mainFilePath);
-            return new Mvs({ mvsData, sourceUrl });
+            const data = await loadMVSX(plugin, ctx, a.data, params.mainFilePath);
+            return new Mvs(data);
         });
     },
 });
 
 
 /** Params for the `LoadMvsData` action */
-const LoadMvsDataParams = {
+export const LoadMvsDataParams = {
     replaceExisting: PD.Boolean(false, { description: 'If true, the loaded MVS view will replace the current state; if false, the MVS view will be added to the current state.' }),
 };
 
@@ -112,6 +103,24 @@ export const MVSXFormatProvider: DataFormatProvider<{}, StateObjectRef<Mvs>, any
     visuals: MVSJFormatProvider.visuals,
 });
 
+
+/** Parse binary data `data` as MVSX archive,
+ * add all contained files to `plugin`'s asset manager,
+ * and parse the main file in the archive as MVSJ.
+ * Return parsed MVS data and `sourceUrl` for resolution of relative URIs.  */
+export async function loadMVSX(plugin: PluginContext, runtimeCtx: RuntimeContext, data: Uint8Array, mainFilePath: string = 'index.mvsj'): Promise<Mvs['data']> {
+    const archiveId = `ni,fnv1a;${hashFnv32a(data)}`;
+    const files = await unzip(runtimeCtx, data.buffer) as { [path: string]: Uint8Array };
+    for (const path in files) {
+        const url = arcpUri(archiveId, path);
+        ensureUrlAsset(plugin.managers.asset, url, files[path]);
+    }
+    const mainFile = files[mainFilePath];
+    if (!mainFile) throw new Error(`File ${mainFilePath} not found in the MVSX archive`);
+    const mvsData = MVSData.fromMVSJ(decodeUtf8(mainFile));
+    const sourceUrl = arcpUri(archiveId, mainFilePath);
+    return { mvsData, sourceUrl };
+}
 
 /** If the PluginStateObject `pso` comes from a Download transform, try to get its `url` parameter. */
 function tryGetDownloadUrl(pso: SO.Data.String, plugin: PluginContext): string | undefined {
