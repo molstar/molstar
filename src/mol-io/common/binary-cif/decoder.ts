@@ -125,7 +125,7 @@ function delta(data: (Int8Array | Int16Array | Int32Array), encoding: Encoding.D
     return output;
 }
 
-function integerPackingSigned(data: (Int8Array | Int16Array), encoding: Encoding.IntegerPacking) {
+function integerPackingSigned(data: (Int8Array | Int16Array | Uint8Array | Uint16Array), encoding: Encoding.IntegerPacking) {
     const upperLimit = encoding.byteCount === 1 ? 0x7F : 0x7FFF;
     const lowerLimit = -upperLimit - 1;
     const n = data.length;
