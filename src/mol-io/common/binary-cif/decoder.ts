@@ -125,7 +125,7 @@ function delta(data: (Int8Array | Int16Array | Int32Array), encoding: Encoding.D
     return output;
 }
 
-function integerPackingSigned(data: (Int8Array | Int16Array | Uint8Array | Uint16Array), encoding: Encoding.IntegerPacking) {
+function integerPackingSigned(data: (Int8Array | Int16Array), encoding: Encoding.IntegerPacking) {
     const upperLimit = encoding.byteCount === 1 ? 0x7F : 0x7FFF;
     const lowerLimit = -upperLimit - 1;
     const n = data.length;
@@ -147,7 +147,7 @@ function integerPackingSigned(data: (Int8Array | Int16Array | Uint8Array | Uint1
     return output;
 }
 
-function integerPackingUnsigned(data: (Int8Array | Int16Array), encoding: Encoding.IntegerPacking) {
+function integerPackingUnsigned(data: (Uint8Array | Uint16Array), encoding: Encoding.IntegerPacking) {
     const upperLimit = encoding.byteCount === 1 ? 0xFF : 0xFFFF;
     const n = data.length;
     const output = new Int32Array(encoding.srcSize);
@@ -168,9 +168,9 @@ function integerPackingUnsigned(data: (Int8Array | Int16Array), encoding: Encodi
     return output;
 }
 
-function integerPacking(data: (Int8Array | Int16Array), encoding: Encoding.IntegerPacking) {
+function integerPacking(data: (Int8Array | Int16Array | Uint8Array | Uint16Array), encoding: Encoding.IntegerPacking) {
     if (data.length === encoding.srcSize) return data;
-    return encoding.isUnsigned ? integerPackingUnsigned(data, encoding) : integerPackingSigned(data, encoding);
+    return encoding.isUnsigned ? integerPackingUnsigned(data as any, encoding) : integerPackingSigned(data as any, encoding);
 }
 
 function stringArray(data: Uint8Array, encoding: Encoding.StringArray) {
