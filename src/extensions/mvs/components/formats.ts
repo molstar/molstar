@@ -110,7 +110,13 @@ export const MVSXFormatProvider: DataFormatProvider<{}, StateObjectRef<Mvs>, any
  * Return parsed MVS data and `sourceUrl` for resolution of relative URIs.  */
 export async function loadMVSX(plugin: PluginContext, runtimeCtx: RuntimeContext, data: Uint8Array, mainFilePath: string = 'index.mvsj'): Promise<Mvs['data']> {
     const archiveId = `ni,fnv1a;${hashFnv32a(data)}`;
-    const files = await unzip(runtimeCtx, data.buffer) as { [path: string]: Uint8Array };
+    let files: { [path: string]: Uint8Array };
+    try {
+        files = await unzip(runtimeCtx, data.buffer) as typeof files;
+    } catch (err) {
+        plugin.log.error('Invalid MVSX file');
+        throw err;
+    }
     for (const path in files) {
         const url = arcpUri(archiveId, path);
         ensureUrlAsset(plugin.managers.asset, url, files[path]);
