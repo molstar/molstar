@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -57,14 +57,14 @@ function createPolymerBackboneCylinderImpostor(ctx: VisualContext, unit: Unit, s
     const cylindersCountEstimate = polymerElementCount * 2;
     const builder = CylindersBuilder.create(cylindersCountEstimate, cylindersCountEstimate / 4, cylinders);
 
-    const pos = unit.conformation.invariantPosition;
+    const uc = unit.conformation;
     const pA = Vec3();
     const pB = Vec3();
     const pM = Vec3();
 
     const add = function (indexA: ElementIndex, indexB: ElementIndex, groupA: number, groupB: number, moleculeType: MoleculeType) {
-        pos(indexA, pA);
-        pos(indexB, pB);
+        uc.invariantPosition(indexA, pA);
+        uc.invariantPosition(indexB, pB);
 
         const isNucleicType = isNucleic(moleculeType);
         const shift = isNucleicType ? NucleicShift : StandardShift;
@@ -107,7 +107,7 @@ function createPolymerBackboneCylinderMesh(ctx: VisualContext, unit: Unit, struc
     const vertexCountEstimate = radialSegments * 2 * polymerElementCount * 2;
     const builderState = MeshBuilder.createState(vertexCountEstimate, vertexCountEstimate / 10, mesh);
 
-    const pos = unit.conformation.invariantPosition;
+    const c = unit.conformation;
     const pA = Vec3();
     const pB = Vec3();
     const cylinderProps: CylinderProps = { radiusTop: 1, radiusBottom: 1, radialSegments };
@@ -119,8 +119,8 @@ function createPolymerBackboneCylinderMesh(ctx: VisualContext, unit: Unit, struc
         centerA.element = indexA;
         centerB.element = indexB;
 
-        pos(centerA.element, pA);
-        pos(centerB.element, pB);
+        c.invariantPosition(centerA.element, pA);
+        c.invariantPosition(centerB.element, pB);
 
         const isNucleicType = isNucleic(moleculeType);
         const shift = isNucleicType ? NucleicShift : StandardShift;

@@ -171,7 +171,6 @@ function createStats() {
             elements: 0,
             framebuffer: 0,
             program: 0,
-            renderbuffer: 0,
             shader: 0,
             texture: 0,
             cubeTexture: 0,
@@ -184,7 +183,15 @@ function createStats() {
 
         calls: {
             drawInstanced: 0,
+            drawInstancedBase: 0,
+            multiDrawInstancedBase: 0,
             counts: 0,
+        },
+
+        culled: {
+            lod: 0,
+            frustum: 0,
+            occlusion: 0,
         },
     };
     return stats;
@@ -216,6 +223,8 @@ export interface WebGLContext {
     readonly contextRestored: BehaviorSubject<now.Timestamp>
     setContextLost: () => void
     handleContextRestored: (extraResets?: () => void) => void
+
+    setPixelScale: (value: number) => void
 
     /** Cache for compute renderables, managed by consumers */
     readonly namedComputeRenderables: { [name: string]: ComputeRenderable<any> }
@@ -263,6 +272,8 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
     let isContextLost = false;
     const contextRestored = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp);
 
+    let pixelScale = props.pixelScale || 1;
+
     let readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>;
     if (isWebGL2(gl)) {
         const pbo = gl.createBuffer();
@@ -307,7 +318,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         isWebGL2: isWebGL2(gl),
         get pixelRatio() {
             const dpr = (typeof window !== 'undefined') ? (window.devicePixelRatio || 1) : 1;
-            return dpr * (props.pixelScale || 1);
+            return dpr * (pixelScale || 1);
         },
 
         extensions,
@@ -347,6 +358,10 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
 
             isContextLost = false;
             contextRestored.next(now());
+        },
+
+        setPixelScale: (value: number) => {
+            pixelScale = value;
         },
 
         createRenderTarget: (width: number, height: number, depth?: boolean, type?: 'uint8' | 'float32' | 'fp16', filter?: TextureFilter, format?: 'rgba' | 'alpha') => {

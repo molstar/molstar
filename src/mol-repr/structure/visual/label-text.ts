@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -109,7 +109,7 @@ function createResidueText(ctx: VisualContext, structure: Structure, theme: Them
 
     for (let i = 0, il = units.length; i < il; ++i) {
         const unit = units[i];
-        const pos = unit.conformation.position;
+        const c = unit.conformation;
         const { elements } = unit;
         l.unit = unit;
         l.element = unit.elements[0];
@@ -126,12 +126,12 @@ function createResidueText(ctx: VisualContext, structure: Structure, theme: Them
 
             boundaryHelper.reset();
             for (let eI = start; eI < j; eI++) {
-                pos(elements[eI], tmpVec);
+                c.position(elements[eI], tmpVec);
                 boundaryHelper.includePosition(tmpVec);
             }
             boundaryHelper.finishedIncludeStep();
             for (let eI = start; eI < j; eI++) {
-                pos(elements[eI], tmpVec);
+                c.position(elements[eI], tmpVec);
                 boundaryHelper.radiusPosition(tmpVec);
             }
 
@@ -163,7 +163,7 @@ function createElementText(ctx: VisualContext, structure: Structure, theme: Them
 
     for (let i = 0, il = units.length; i < il; ++i) {
         const unit = units[i];
-        const pos = unit.conformation.position;
+        const c = unit.conformation;
         const { elements } = unit;
         l.unit = unit;
 
@@ -174,7 +174,7 @@ function createElementText(ctx: VisualContext, structure: Structure, theme: Them
             if (ignore && ignore(elements[j])) continue;
 
             l.element = elements[j];
-            pos(l.element, tmpVec);
+            c.position(l.element, tmpVec);
             const atomId = label_atom_id(l);
             const altId = label_alt_id(l);
             const text = altId ? `${atomId}%${altId}` : atomId;

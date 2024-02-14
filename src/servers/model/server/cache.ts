@@ -11,7 +11,7 @@ import { ModelServerConfig as ServerConfig } from '../config';
 interface CacheEntry<T> {
     key: string,
     approximateSize: number,
-    timeoutId: NodeJS.Timer | undefined,
+    timeoutId: NodeJS.Timeout | undefined,
     item: T
 }
 

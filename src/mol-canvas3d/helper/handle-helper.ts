@@ -16,7 +16,7 @@ import { addCylinder } from '../../mol-geo/geometry/mesh/builder/cylinder';
 import { ValueCell } from '../../mol-util';
 import { Sphere3D } from '../../mol-math/geometry';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import produce from 'immer';
+import { produce } from 'immer';
 import { Shape } from '../../mol-model/shape';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Camera } from '../camera';
@@ -24,7 +24,6 @@ import { DataLoci, EmptyLoci, isEveryLoci, Loci } from '../../mol-model/loci';
 import { MarkerAction, MarkerActions } from '../../mol-util/marker-action';
 import { Visual } from '../../mol-repr/visual';
 import { Interval } from '../../mol-data/int';
-import { GraphicsRenderVariantsBlended } from '../../mol-gl/webgl/render-item';
 
 const HandleParams = {
     ...Mesh.Params,
@@ -75,7 +74,8 @@ export class HandleHelper {
                     this.pixelRatio = this.webgl.pixelRatio;
                     const params = {
                         ...props.handle.params,
-                        scale: props.handle.params.scale * this.webgl.pixelRatio
+                        scale: props.handle.params.scale * this.webgl.pixelRatio,
+                        cellSize: 0,
                     };
                     this.renderObject = createHandleRenderObject(params);
                     this.scene.add(this.renderObject);
@@ -138,7 +138,7 @@ export class HandleHelper {
     }
 
     constructor(private webgl: WebGLContext, props: Partial<HandleHelperProps> = {}) {
-        this.scene = Scene.create(webgl, GraphicsRenderVariantsBlended);
+        this.scene = Scene.create(webgl, 'blended');
         this.setProps(props);
     }
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -175,12 +175,12 @@ function withinMaxRadiusLookup({ queryCtx, selection, target, maxRadius, invert 
         let withinRadius = false;
         for (let i = 0, _i = units.length; i < _i; i++) {
             const unit = units[i];
-            const { elements, conformation: { position, r } } = unit;
+            const { elements, conformation: c } = unit;
 
             for (let i = 0, _i = elements.length; i < _i; i++) {
                 const e = elements[i];
-                position(e, pos);
-                if (targetLookup.check(pos[0], pos[1], pos[2], maxRadius + r(e))) {
+                c.position(e, pos);
+                if (targetLookup.check(pos[0], pos[1], pos[2], maxRadius + c.r(e))) {
                     withinRadius = true;
                     break;
                 }

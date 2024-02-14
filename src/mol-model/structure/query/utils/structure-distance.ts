@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -29,15 +29,15 @@ namespace MinMaxDist {
         Miss
     }
 
-    const distVec = Vec3.zero();
+    const distVec = Vec3();
     function inUnit(ctx: QueryContext, unit: Unit, p: Vec3, eRadius: number, minDist: number, maxDist: number, elementRadius: QueryFn<number>) {
-        const { elements, conformation: { position } } = unit, dV = distVec;
+        const { elements, conformation: c } = unit, dV = distVec;
         ctx.element.unit = unit;
         let withinRange = false;
         for (let i = 0, _i = elements.length; i < _i; i++) {
             const e = elements[i];
             ctx.element.element = e;
-            const d = Math.max(0, Vec3.distance(p, position(e, dV)) - eRadius - elementRadius(ctx));
+            const d = Math.max(0, Vec3.distance(p, c.position(e, dV)) - eRadius - elementRadius(ctx));
             if (d < minDist) return Result.BelowMin;
             if (d < maxDist) withinRange = true;
         }
@@ -55,7 +55,7 @@ namespace MinMaxDist {
         return withinRange ? Result.WithinMax : Result.Miss;
     }
 
-    const distPivot = Vec3.zero();
+    const distPivot = Vec3();
     export function check(ctx: QueryContext, a: Structure, b: Structure, minDist: number, maxDist: number, elementRadius: QueryFn<number>) {
         if (a.elementCount === 0 || b.elementCount === 0) return 0;
 
@@ -64,12 +64,12 @@ namespace MinMaxDist {
         ctx.element.structure = a;
         for (let i = 0, _i = units.length; i < _i; i++) {
             const unit = units[i];
-            const { elements, conformation: { position } } = unit;
+            const { elements, conformation: c } = unit;
             ctx.element.unit = unit;
             for (let i = 0, _i = elements.length; i < _i; i++) {
                 const e = elements[i];
                 ctx.element.element = e;
-                const tp = toPoint(ctx, b, position(e, distPivot), elementRadius(ctx), minDist, maxDist, elementRadius);
+                const tp = toPoint(ctx, b, c.position(e, distPivot), elementRadius(ctx), minDist, maxDist, elementRadius);
                 if (tp === Result.BelowMin) return false;
                 if (tp === Result.WithinMax) withinRange = true;
             }
@@ -79,14 +79,14 @@ namespace MinMaxDist {
 }
 
 namespace MaxRadiusDist {
-    const distVec = Vec3.zero();
+    const distVec = Vec3();
     function inUnit(ctx: QueryContext, unit: Unit, p: Vec3, eRadius: number, maxDist: number, elementRadius: QueryFn<number>) {
-        const { elements, conformation: { position } } = unit, dV = distVec;
+        const { elements, conformation: c } = unit, dV = distVec;
         ctx.element.unit = unit;
         for (let i = 0, _i = elements.length; i < _i; i++) {
             const e = elements[i];
             ctx.element.element = e;
-            if (Math.max(0, Vec3.distance(p, position(e, dV)) - eRadius - elementRadius(ctx)) <= maxDist) return true;
+            if (Math.max(0, Vec3.distance(p, c.position(e, dV)) - eRadius - elementRadius(ctx)) <= maxDist) return true;
         }
         return false;
     }
@@ -99,7 +99,7 @@ namespace MaxRadiusDist {
         return false;
     }
 
-    const distPivot = Vec3.zero();
+    const distPivot = Vec3();
     export function check(ctx: QueryContext, a: Structure, b: Structure, maxDist: number, elementRadius: QueryFn<number>) {
         if (a.elementCount === 0 || b.elementCount === 0) return 0;
 
@@ -108,11 +108,11 @@ namespace MaxRadiusDist {
         for (let i = 0, _i = units.length; i < _i; i++) {
             const unit = units[i];
             ctx.element.unit = unit;
-            const { elements, conformation: { position } } = unit;
+            const { elements, conformation: c } = unit;
             for (let i = 0, _i = elements.length; i < _i; i++) {
                 const e = elements[i];
                 ctx.element.element = e;
-                if (toPoint(ctx, b, position(e, distPivot), elementRadius(ctx), maxDist, elementRadius)) return true;
+                if (toPoint(ctx, b, c.position(e, distPivot), elementRadius(ctx), maxDist, elementRadius)) return true;
             }
         }
         return false;

@@ -84,10 +84,9 @@ function createNucleotideAtomicRingFillMesh(ctx: VisualContext, unit: Unit, stru
     const vertexCount = nucleotideElementCount * 25;
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 4, mesh);
 
-    const { elements, model } = unit;
+    const { elements, model, conformation: c } = unit;
     const { chainAtomSegments, residueAtomSegments } = model.atomicHierarchy;
     const { moleculeType } = model.atomicHierarchy.derived.residue;
-    const pos = unit.conformation.invariantPosition;
 
     const chainIt = Segmentation.transientSegments(chainAtomSegments, elements);
     const residueIt = Segmentation.transientSegments(residueAtomSegments, elements);
@@ -108,7 +107,7 @@ function createNucleotideAtomicRingFillMesh(ctx: VisualContext, unit: Unit, stru
 
                 setSugarIndices(idx, unit, residueIndex);
                 if (hasSugarIndices(idx)) {
-                    pos(idx.C1_1, pC1_1); pos(idx.C2_1, pC2_1); pos(idx.C3_1, pC3_1); pos(idx.C4_1, pC4_1); pos(idx.O4_1, pO4_1);
+                    c.invariantPosition(idx.C1_1, pC1_1); c.invariantPosition(idx.C2_1, pC2_1); c.invariantPosition(idx.C3_1, pC3_1); c.invariantPosition(idx.C4_1, pC4_1); c.invariantPosition(idx.O4_1, pO4_1);
 
                     // sugar ring
                     Vec3.triangleNormal(normal, pC3_1, pC4_1, pC1_1);
@@ -129,7 +128,7 @@ function createNucleotideAtomicRingFillMesh(ctx: VisualContext, unit: Unit, stru
                     setPurinIndices(idx, unit, residueIndex);
 
                     if (hasPurinIndices(idx)) {
-                        pos(idx.N1, pN1); pos(idx.C2, pC2); pos(idx.N3, pN3); pos(idx.C4, pC4); pos(idx.C5, pC5); pos(idx.C6, pC6); pos(idx.N7, pN7); pos(idx.C8, pC8), pos(idx.N9, pN9);
+                        c.invariantPosition(idx.N1, pN1); c.invariantPosition(idx.C2, pC2); c.invariantPosition(idx.N3, pN3); c.invariantPosition(idx.C4, pC4); c.invariantPosition(idx.C5, pC5); c.invariantPosition(idx.C6, pC6); c.invariantPosition(idx.N7, pN7); c.invariantPosition(idx.C8, pC8), c.invariantPosition(idx.N9, pN9);
 
                         // base ring
                         Vec3.triangleNormal(normal, pN1, pC4, pC5);
@@ -145,7 +144,7 @@ function createNucleotideAtomicRingFillMesh(ctx: VisualContext, unit: Unit, stru
                     setPyrimidineIndices(idx, unit, residueIndex);
 
                     if (hasPyrimidineIndices(idx)) {
-                        pos(idx.N1, pN1); pos(idx.C2, pC2); pos(idx.N3, pN3); pos(idx.C4, pC4); pos(idx.C5, pC5); pos(idx.C6, pC6);
+                        c.invariantPosition(idx.N1, pN1); c.invariantPosition(idx.C2, pC2); c.invariantPosition(idx.N3, pN3); c.invariantPosition(idx.C4, pC4); c.invariantPosition(idx.C5, pC5); c.invariantPosition(idx.C6, pC6);
 
                         // base ring
                         Vec3.triangleNormal(normal, pN1, pC4, pC5);

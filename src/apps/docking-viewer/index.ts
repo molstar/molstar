@@ -8,7 +8,8 @@
 import { Structure } from '../../mol-model/structure';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 import { PluginStateObject as PSO, PluginStateTransform } from '../../mol-plugin-state/objects';
-import { createPluginUI } from '../../mol-plugin-ui/react18';
+import { createPluginUI } from '../../mol-plugin-ui';
+import { renderReact18 } from '../../mol-plugin-ui/react18';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
 import { DefaultPluginUISpec, PluginUISpec } from '../../mol-plugin-ui/spec';
@@ -128,7 +129,7 @@ class Viewer {
             ? document.getElementById(elementOrId)
             : elementOrId;
         if (!element) throw new Error(`Could not get element with id '${elementOrId}'`);
-        const plugin = await createPluginUI(element, spec);
+        const plugin = await createPluginUI({ target: element, spec, render: renderReact18 });
 
         (plugin.customState as any) = {
             colorPalette: {

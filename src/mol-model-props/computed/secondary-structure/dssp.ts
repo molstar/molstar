@@ -5,7 +5,7 @@
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
-import { SecondaryStructure } from '../../../mol-model/structure/model/properties/seconday-structure';
+import { SecondaryStructure } from '../../../mol-model/structure/model/properties/secondary-structure';
 import { SecondaryStructureType } from '../../../mol-model/structure/model/types';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { assignBends } from './dssp/bends';

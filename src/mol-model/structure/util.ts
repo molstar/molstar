@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -47,11 +47,11 @@ export function getAtomIdForAtomRole(polymerType: PolymerType, atomRole: AtomRol
 
 const tmpPositionsVec = Vec3.zero();
 export function getPositions(unit: Unit, indices: ArrayLike<number>): NumberArray {
-    const pos = unit.conformation.position;
+    const c = unit.conformation;
     const positions = new Float32Array(indices.length * 3);
     const { elements } = unit;
     for (let i = 0, il = indices.length; i < il; ++i) {
-        pos(elements[indices[i]], tmpPositionsVec);
+        c.position(elements[indices[i]], tmpPositionsVec);
         Vec3.toArray(tmpPositionsVec, positions, i * 3);
     }
     return positions;

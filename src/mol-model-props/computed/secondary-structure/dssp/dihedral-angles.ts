@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
@@ -18,12 +18,12 @@ export interface DihedralAngles {
 
 export function calculateUnitDihedralAngles(unit: Unit.Atomic, proteinInfo: ProteinInfo): DihedralAngles {
     const { cIndices, nIndices, residueIndices } = proteinInfo;
-    const { position } = unit.conformation;
+    const c = unit.conformation;
     const { index } = unit.model.atomicHierarchy;
     const { traceElementIndex } = unit.model.atomicHierarchy.derived.residue;
 
     const residueCount = residueIndices.length;
-    const p = (i: ElementIndex | -1, v: Vec3) => i === -1 ? Vec3.setNaN(v) : position(i, v);
+    const p = (i: ElementIndex | -1, v: Vec3) => i === -1 ? Vec3.setNaN(v) : c.position(i, v);
 
     let cPosPrev = Vec3(), caPosPrev = Vec3(), nPosPrev = Vec3();
     let cPos = Vec3(), caPos = Vec3(), nPos = Vec3();

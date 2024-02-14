@@ -21,6 +21,8 @@ export interface ShaderExtensions {
     readonly fragDepth?: ShaderExtensionsValue
     readonly drawBuffers?: ShaderExtensionsValue
     readonly shaderTextureLod?: ShaderExtensionsValue
+    /** Needed to enable the `gl_DrawID` built-in */
+    readonly multiDraw?: ShaderExtensionsValue
     readonly clipCullDistance?: ShaderExtensionsValue
     readonly conservativeDepth?: ShaderExtensionsValue
 }
@@ -59,6 +61,7 @@ import { common_clip } from './shader/chunks/common-clip.glsl';
 import { common_frag_params } from './shader/chunks/common-frag-params.glsl';
 import { common_vert_params } from './shader/chunks/common-vert-params.glsl';
 import { common } from './shader/chunks/common.glsl';
+import { fade_lod } from './shader/chunks/fade-lod.glsl';
 import { float_to_rgba } from './shader/chunks/float-to-rgba.glsl';
 import { light_frag_params } from './shader/chunks/light-frag-params.glsl';
 import { matrix_scale } from './shader/chunks/matrix-scale.glsl';
@@ -93,6 +96,7 @@ const ShaderChunks: { [k: string]: string } = {
     common_frag_params,
     common_vert_params,
     common,
+    fade_lod,
     float_to_rgba,
     light_frag_params,
     matrix_scale,
@@ -250,6 +254,14 @@ function getGlsl100VertPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
             throw new Error(`required 'GL_EXT_draw_buffers' extension not available`);
         }
     }
+    if (shaderExtensions.multiDraw) {
+        if (extensions.multiDraw) {
+            prefix.push('#extension GL_ANGLE_multi_draw : require');
+            prefix.push('#define enabledMultiDraw');
+        } else if (shaderExtensions.multiDraw === 'required') {
+            throw new Error(`required 'GL_ANGLE_multi_draw' extension not available`);
+        }
+    }
     return prefix.join('\n') + '\n';
 }
 
@@ -282,9 +294,6 @@ function getGlsl100FragPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
             throw new Error(`required 'GL_EXT_shader_texture_lod' extension not available`);
         }
     }
-    if (extensions.depthTexture) {
-        prefix.push('#define depthTextureSupport');
-    }
     return prefix.join('\n') + '\n';
 }
 
@@ -303,8 +312,6 @@ const glsl300FragPrefixCommon = `
 
 #define gl_FragColor out_FragData0
 #define gl_FragDepthEXT gl_FragDepth
-
-#define depthTextureSupport
 `;
 
 function getGlsl300VertPrefix(extensions: WebGLExtensions, shaderExtensions: ShaderExtensions) {
@@ -314,6 +321,14 @@ function getGlsl300VertPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
     if (shaderExtensions.drawBuffers) {
         if (extensions.drawBuffers) {
             prefix.push('#define requiredDrawBuffers');
+        }
+    }
+    if (shaderExtensions.multiDraw) {
+        if (extensions.multiDraw) {
+            prefix.push('#extension GL_ANGLE_multi_draw : require');
+            prefix.push('#define enabledMultiDraw');
+        } else if (shaderExtensions.multiDraw === 'required') {
+            throw new Error(`required 'GL_ANGLE_multi_draw' extension not available`);
         }
     }
     if (shaderExtensions.clipCullDistance) {
