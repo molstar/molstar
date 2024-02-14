@@ -28,7 +28,7 @@ import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { createSegmentKey, parseSegmentKey } from './volseg-api/utils';
 import Markdown from 'react-markdown';
 import { Asset } from '../../mol-util/assets';
-import { DescriptionData } from './volseg-api/data';
+import { DescriptionData, SegmentAnnotationData } from './volseg-api/data';
 
 
 interface VolsegUIData {
@@ -85,25 +85,13 @@ export class VolsegUI extends CollapsableControls<{}, { data: VolsegUIData }> {
     }
 }
 
-async function openFileCallback(v, entryData: VolsegEntryData) {
+async function parseJSONwithAnnotationsOrDescriptions(v, entryData: VolsegEntryData) {
     console.log(v.target.files![0]);
     const file = Asset.File(v.target.files![0]);
-    // debugger;
-    // get PluginContext
-    // const url = Asset.getUrlAsset(entryData.plugin.managers.asset, urlString);
     const asset = entryData.plugin.managers.asset.resolve(file, 'string');
     const data = (await asset.run()).data;
-    console.log(data);
-    // TODO: it is string, create json object
-    const descriptionData: DescriptionData[] = JSON.parse(data);
-    console.log(descriptionData);
-    // const asset = await plugin.managers.asset.resolve(p.file, p.isBinary ? 'binary' : 'string').runInContext(ctx);
-    // (cache as any).asset = asset;
-    // const o = p.isBinary
-    //     ? new SO.Data.Binary(asset.data as Uint8Array, { label: p.label ? p.label : p.file.name })
-    //     : new SO.Data.String(asset.data as string, { label: p.label ? p.label : p.file.name });
-    // debugger;
-    return descriptionData;
+    const parsedData: DescriptionData[] | SegmentAnnotationData [] = JSON.parse(data);
+    return parsedData;
 }
 
 function VolsegControls({ plugin, data, setData }: { plugin: PluginContext, data: VolsegUIData, setData: (d: VolsegUIData) => void }) {
@@ -233,7 +221,7 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
         </ExpandGroup>}
 
         {/* Segment annotations */}
-        {allDescriptions.length > 0 && <ExpandGroup header='Selected segment annotation' initiallyExpanded>
+        {allDescriptions.length > 0 && <ExpandGroup header='Selected segment descriptions' initiallyExpanded>
             <div style={{ paddingTop: 4, paddingRight: 8, maxHeight: 300, overflow: 'hidden', overflowY: 'auto' }}>
                 {!selectedSegmentDescription && 'No segment selected'}
                 {selectedSegmentDescription &&
@@ -269,11 +257,19 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
         {/* TODO: onchange function that triggers api endpoint */}
         {/* We have entryData here, can do it */}
         {/* need to add api endpoint there */}
-        {allDescriptions.length > 0 && <ExpandGroup header='Edit descriptions' initiallyExpanded>
+        {<ExpandGroup header='Edit descriptions' initiallyExpanded>
             <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file' style={{ marginTop: '1px' }}>
-                {'Open JSON file'} <input onChange={async v => {
-                    const data = await openFileCallback(v, entryData);
-                    await entryData.editDescriptions(data);
+                {'Load JSON with descriptions'} <input onChange={async v => {
+                    const data = await parseJSONwithAnnotationsOrDescriptions(v, entryData);
+                    await entryData.editDescriptions(data as DescriptionData[]);
+                }} type='file' multiple={false} />
+            </div>
+        </ExpandGroup>}
+        {<ExpandGroup header='Edit segment annotations' initiallyExpanded>
+            <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file' style={{ marginTop: '1px' }}>
+                {'Load JSON with segment annotations'} <input onChange={async v => {
+                    const data = await parseJSONwithAnnotationsOrDescriptions(v, entryData);
+                    await entryData.editSegmentAnnotations(data as SegmentAnnotationData[]);
                 }} type='file' multiple={false} />
             </div>
         </ExpandGroup>}

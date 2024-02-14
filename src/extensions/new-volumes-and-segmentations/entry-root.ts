@@ -22,7 +22,7 @@ import { ParamDefinition } from '../../mol-util/param-definition';
 import { isMeshlistData, MeshlistData } from '../new-meshes/mesh-extension';
 
 import { DEFAULT_VOLSEG_SERVER, VolumeApiV2 } from './volseg-api/api';
-import { BoxPrimitive, Cylinder, DescriptionData, Ellipsoid, ParsedSegmentKey, PyramidPrimitive, ShapePrimitiveData, Sphere, TimeInfo } from './volseg-api/data';
+import { BoxPrimitive, Cylinder, DescriptionData, Ellipsoid, ParsedSegmentKey, PyramidPrimitive, SegmentAnnotationData, ShapePrimitiveData, Sphere, TimeInfo } from './volseg-api/data';
 import { createSegmentKey, getSegmentLabelsFromDescriptions, MetadataWrapper, parseSegmentKey } from './volseg-api/utils';
 import { DEFAULT_MESH_DETAIL, VolsegMeshSegmentationData } from './entry-meshes';
 import { VolsegModelData } from './entry-models';
@@ -423,13 +423,13 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
 
     async editDescriptions(descriptionData: DescriptionData[]) {
         await this.api.editDescriptionsUrl(this.source, this.entryId, descriptionData);
-        // TODO: add to visible segments and to metadata
-        // if segment exists
+        // TODO: add to metadata
+        // or fetch it again?
+        // TODO: trigger re-rendering of UI
+    }
 
-        // const current = this.currentState.value.visibleSegments.map(seg => seg.segmentKey);
-        // const currentWithAdded = [...current, 
-        // this.metadata.removeDescription(descriptionId);
-        // await this.updateStateNode({ visibleSegments: currentWithAdded.map(s => ({ segmentKey: s })) });
+    async editSegmentAnnotations(segmentAnnotationData: SegmentAnnotationData[]) {
+        await this.api.editSegmentAnnotationsUrl(this.source, this.entryId, segmentAnnotationData);
     }
 
     async loadVolume() {
@@ -893,11 +893,11 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             const annotLabels = descriptions[0].external_references?.map(e => `${applyEllipsis(e.label ? e.label : '')} [${e.resource}:${e.accession}]`);
             // TODO: try rendering multiple descriptions
             if (!annotLabels || annotLabels.length === 0) return;
-            if (annotLabels.length > MAX_ANNOTATIONS_IN_LABEL + 1) {
-                const nHidden = annotLabels.length - MAX_ANNOTATIONS_IN_LABEL;
-                annotLabels.length = MAX_ANNOTATIONS_IN_LABEL;
-                annotLabels.push(`(${nHidden} more annotations, click on the segment to see all)`);
-            }
+            // if (annotLabels.length > MAX_ANNOTATIONS_IN_LABEL + 1) {
+            //     const nHidden = annotLabels.length - MAX_ANNOTATIONS_IN_LABEL;
+            //     annotLabels.length = MAX_ANNOTATIONS_IN_LABEL;
+            //     annotLabels.push(`(${nHidden} more annotations, click on the segment to see all)`);
+            // }
             return '<hr class="msp-highlight-info-hr"/>' + annotLabels.filter(isDefined).join('<br/>');
         }
     };

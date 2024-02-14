@@ -4,7 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { DescriptionData, type Metadata } from './data';
+import { DescriptionData, SegmentAnnotationData, type Metadata } from './data';
 
 
 export const DEFAULT_VOLSEG_SERVER = 'https://molstarvolseg.ncbr.muni.cz/v2';
@@ -20,6 +20,17 @@ export class VolumeApiV2 {
     public async editDescriptionsUrl(source: string, entryId: string, descriptionData: DescriptionData[]) {
         const url = `${this.volumeServerUrl}/${source}/${entryId}/descriptions/edit`;
         const obj = JSON.stringify({ descriptions: descriptionData });
+        const response = await fetch(url, {
+            method: 'POST',
+            // body: JSON.stringify({notification: {title: message},to : '/topics/user_'+username}),
+            body: obj,
+            // headers: {'Content-Type': 'application/json', 'Authorization': 'key='+API_KEY}
+            headers: { 'Content-Type': 'application/json' } 
+        });
+    }
+    public async editSegmentAnnotationsUrl(source: string, entryId: string, segmentAnnotationData: SegmentAnnotationData[]) {
+        const url = `${this.volumeServerUrl}/${source}/${entryId}/segment_annotations/edit`;
+        const obj = JSON.stringify({ segment_annotations: segmentAnnotationData });
         const response = await fetch(url, {
             method: 'POST',
             // body: JSON.stringify({notification: {title: message},to : '/topics/user_'+username}),
