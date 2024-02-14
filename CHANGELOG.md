@@ -7,6 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix BinaryCIF decoder edge cases. Fixes mmCIF model export from data provided by ModelServer.
+- MolViewSpec extension: support for MVSX file format
 
 ## [v4.0.0] - 2023-02-04
 
