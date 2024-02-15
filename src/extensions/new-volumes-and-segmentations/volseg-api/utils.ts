@@ -231,8 +231,11 @@ export class MetadataWrapper {
     // }
 
     get gridTotalVolume() {
-        const [vx, vy, vz] = this.raw.grid.volumes.volume_sampling_info.boxes[1].voxel_size;
-        const [gx, gy, gz] = this.raw.grid.volumes.volume_sampling_info.boxes[1].grid_dimensions;
+        const sortedResolutions = this.raw.grid.volumes.volume_sampling_info.spatial_downsampling_levels.sort((n1, n2) => n1 - n2);
+        const firstAvailableResolution = sortedResolutions[0];
+        console.log('firstAvailableResolution', firstAvailableResolution);
+        const [vx, vy, vz] = this.raw.grid.volumes.volume_sampling_info.boxes[firstAvailableResolution].voxel_size;
+        const [gx, gy, gz] = this.raw.grid.volumes.volume_sampling_info.boxes[firstAvailableResolution].grid_dimensions;
         return vx * vy * vz * gx * gy * gz;
     }
 
