@@ -220,7 +220,7 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
             </>}
         </ExpandGroup>}
 
-        {/* Segment annotations */}
+        {/* Descriptions */}
         {allDescriptions.length > 0 && <ExpandGroup header='Selected segment descriptions' initiallyExpanded>
             <div style={{ paddingTop: 4, paddingRight: 8, maxHeight: 300, overflow: 'hidden', overflowY: 'auto' }}>
                 {!selectedSegmentDescription && 'No segment selected'}
@@ -245,7 +245,10 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
                 {selectedSegmentDescription?.external_references?.map(ref => {
                     // if (description.target_kind === 'entry' || !description.target_id) return;
                     return <p key={ref.id} style={{ marginTop: 4 }}>
-                        <small>{ref.resource}:{ref.accession}</small><br />
+                        {/* <small>{ref.resource}:{ref.accession}</small><br /> */}
+                        {ref.url ? <a href={ref.url}>{ref.resource}:{ref.accession}</a> :
+                            <small>{ref.resource}:{ref.accession}</small>}
+                        <br />
                         <b>{capitalize(ref.label ? ref.label : '')}</b><br />
                         {ref.description}
                     </p>;

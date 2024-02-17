@@ -259,6 +259,7 @@ export interface ExternalReference {
     accession?: string
     label?: string,
     description?: string
+    url?: string
 }
 
 // export interface Segment {
