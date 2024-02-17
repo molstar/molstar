@@ -9,7 +9,7 @@ import { Choice } from '../../../mol-util/param-choice';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 
 
-export const DEFAULT_MESH_SERVER = 'http://localhost:9000/v2';
+export const DEFAULT_MESH_SERVER = 'http://localhost:9000/v1';
 
 
 export class MeshServerInfo extends PluginStateObject.Create<MeshServerInfo.Data>({ name: 'Volume Server', typeClass: 'Object' }) { }

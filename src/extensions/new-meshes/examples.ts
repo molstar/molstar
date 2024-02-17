@@ -64,7 +64,7 @@ export async function runMeshExample2(plugin: PluginContext, segments: 'one' | '
                 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 17]; // segment-13 and segment-15 are quasi background
 
     for (const segmentId of segmentIds) {
-        await createMeshFromUrl(plugin, `http://localhost:9000/v2/empiar/empiar-10070/mesh_bcif/${segmentId}/${detail}`, segmentId, detail, false, undefined);
+        await createMeshFromUrl(plugin, `http://localhost:9000/v1/empiar/empiar-10070/mesh_bcif/${segmentId}/${detail}`, segmentId, detail, false, undefined);
     }
 }
 
@@ -165,7 +165,7 @@ export async function runIsosurfaceExample(plugin: PluginContext, db_url: string
 }
 
 
-export async function runCifMeshExample(plugin: PluginContext, api: string = 'http://localhost:9000/v2',
+export async function runCifMeshExample(plugin: PluginContext, api: string = 'http://localhost:9000/v1',
     source: MeshServerInfo.MeshSource = 'empiar', entryId: string = 'empiar-10070',
     segmentId: number = 1, detail: number = 10,
 ) {

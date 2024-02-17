@@ -25,7 +25,7 @@ const DEBUGGING = typeof window !== 'undefined' ? window?.location?.hostname ===
 
 export const NewVolsegVolumeServerConfig = {
     // DefaultServer: new PluginConfigItem('volseg-volume-server', DEFAULT_VOLUME_SERVER_V2),
-    DefaultServer: new PluginConfigItem('volseg-volume-server', DEBUGGING ? 'http://localhost:9000/v2' : DEFAULT_VOLSEG_SERVER),
+    DefaultServer: new PluginConfigItem('volseg-volume-server', DEBUGGING ? 'http://localhost:9000/v1' : DEFAULT_VOLSEG_SERVER),
 };
 
 
