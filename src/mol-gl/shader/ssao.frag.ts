@@ -57,7 +57,11 @@ bool isBackground(const in float depth) {
 
 float getDepth(const in vec2 coords) {
     vec2 c = vec2(clamp(coords.x, uBounds.x, uBounds.z), clamp(coords.y, uBounds.y, uBounds.w));
-    return texture2D(tDepth, c).r;
+    #ifdef depthTextureSupport
+        return texture2D(tDepth, c).r;
+    #else
+        return unpackRGBAToDepth(texture2D(tDepth, c));
+    #endif
 }
 
 #define dQuarterThreshold 0.1
@@ -66,13 +70,23 @@ float getDepth(const in vec2 coords) {
 float getMappedDepth(const in vec2 coords, const in vec2 selfCoords) {
     vec2 c = vec2(clamp(coords.x, uBounds.x, uBounds.z), clamp(coords.y, uBounds.y, uBounds.w));
     float d = distance(coords, selfCoords);
-    if (d > dQuarterThreshold) {
-        return texture2D(tDepthQuarter, c).r;
-    } else if (d > dHalfThreshold) {
-        return texture2D(tDepthHalf, c).r;
-    } else {
-        return texture2D(tDepth, c).r;
-    }
+    #ifdef depthTextureSupport
+        if (d > dQuarterThreshold) {
+            return texture2D(tDepthQuarter, c).r;
+        } else if (d > dHalfThreshold) {
+            return texture2D(tDepthHalf, c).r;
+        } else {
+            return texture2D(tDepth, c).r;
+        }
+    #else
+        if (d > dQuarterThreshold) {
+            return unpackRGBAToDepth(texture2D(tDepthQuarter, c));
+        } else if (d > dHalfThreshold) {
+            return unpackRGBAToDepth(texture2D(tDepthHalf, c));
+        } else {
+            return unpackRGBAToDepth(texture2D(tDepth, c));
+        }
+    #endif
 }
 
 vec3 normalFromDepth(const in float depth, const in float depth1, const in float depth2, vec2 offset1, vec2 offset2) {
