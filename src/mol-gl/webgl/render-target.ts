@@ -9,14 +9,15 @@ import { createNullTexture, Texture, TextureFilter } from './texture';
 import { createNullFramebuffer, Framebuffer } from './framebuffer';
 import { WebGLResources } from './resources';
 import { GLRenderingContext, isWebGL2 } from './compat';
+import { Renderbuffer } from './renderbuffer';
 
 const getNextRenderTargetId = idFactory();
 
 export interface RenderTarget {
     readonly id: number
-    readonly framebuffer: Framebuffer
     readonly texture: Texture
-    readonly depthTexture: Texture | null
+    readonly framebuffer: Framebuffer
+    readonly depthRenderbuffer: Renderbuffer | null
 
     getWidth: () => number
     getHeight: () => number
@@ -34,24 +35,22 @@ export function createRenderTarget(gl: GLRenderingContext, resources: WebGLResou
     }
 
     const framebuffer = resources.framebuffer();
-    const colorTexture = type === 'fp16'
+    const targetTexture = type === 'fp16'
         ? resources.texture('image-float16', format, 'fp16', filter)
         : type === 'float32'
             ? resources.texture('image-float32', format, 'float', filter)
             : resources.texture('image-uint8', format, 'ubyte', filter);
-    const depthTexture = !depth
+    // make a depth renderbuffer of the same size as the targetTexture
+    const depthRenderbuffer = !depth
         ? null
         : isWebGL2(gl)
-            ? resources.texture('image-depth', 'depth', 'float', 'nearest')
-            : resources.texture('image-depth', 'depth', 'ushort', 'nearest');
+            ? resources.renderbuffer('depth32f', 'depth', _width, _height)
+            : resources.renderbuffer('depth16', 'depth', _width, _height);
 
     function init() {
-        colorTexture.define(_width, _height);
-        colorTexture.attachFramebuffer(framebuffer, 'color0');
-        if (depthTexture) {
-            depthTexture.define(_width, _height);
-            depthTexture.attachFramebuffer(framebuffer, 'depth');
-        }
+        targetTexture.define(_width, _height);
+        targetTexture.attachFramebuffer(framebuffer, 'color0');
+        if (depthRenderbuffer) depthRenderbuffer.attachFramebuffer(framebuffer);
     }
     init();
 
@@ -59,9 +58,9 @@ export function createRenderTarget(gl: GLRenderingContext, resources: WebGLResou
 
     return {
         id: getNextRenderTargetId(),
+        texture: targetTexture,
         framebuffer,
-        texture: colorTexture,
-        depthTexture,
+        depthRenderbuffer,
 
         getWidth: () => _width,
         getHeight: () => _height,
@@ -75,17 +74,17 @@ export function createRenderTarget(gl: GLRenderingContext, resources: WebGLResou
 
             _width = width;
             _height = height;
-            colorTexture.define(_width, _height);
-            if (depthTexture) depthTexture.define(_width, _height);
+            targetTexture.define(_width, _height);
+            if (depthRenderbuffer) depthRenderbuffer.setSize(_width, _height);
         },
         reset: () => {
             init();
         },
         destroy: () => {
             if (destroyed) return;
+            targetTexture.destroy();
             framebuffer.destroy();
-            colorTexture.destroy();
-            if (depthTexture) depthTexture.destroy();
+            if (depthRenderbuffer) depthRenderbuffer.destroy();
             destroyed = true;
         }
     };
@@ -96,9 +95,9 @@ export function createRenderTarget(gl: GLRenderingContext, resources: WebGLResou
 export function createNullRenderTarget(gl: GLRenderingContext): RenderTarget {
     return {
         id: getNextRenderTargetId(),
-        framebuffer: createNullFramebuffer(),
         texture: createNullTexture(gl),
-        depthTexture: null,
+        framebuffer: createNullFramebuffer(),
+        depthRenderbuffer: null,
 
         getWidth: () => 0,
         getHeight: () => 0,
