@@ -892,7 +892,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             // first try assuming there is a single one
             const annotLabels = descriptions[0].external_references?.map(e => `${applyEllipsis(e.label ? e.label : '')} [${e.resource}:${e.accession}]`);
             // TODO: try rendering multiple descriptions
-            if (!annotLabels || annotLabels.length === 0) return;
+            if (!annotLabels || annotLabels.length === 0 || descriptions[0].is_hidden === true) return;
             // if (annotLabels.length > MAX_ANNOTATIONS_IN_LABEL + 1) {
             //     const nHidden = annotLabels.length - MAX_ANNOTATIONS_IN_LABEL;
             //     annotLabels.length = MAX_ANNOTATIONS_IN_LABEL;

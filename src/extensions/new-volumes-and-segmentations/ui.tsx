@@ -172,7 +172,7 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
                 </WaitingButton>
                 <div style={{ maxHeight: 200, overflow: 'hidden', overflowY: 'auto', marginBlock: 1 }}>
                     {allDescriptions.map(d => {
-                        if (d.target_kind === 'entry' || !d.target_id) return;
+                        if (d.target_kind === 'entry' || !d.target_id || d.is_hidden === true) return;
                         // NOTE: if time is a single number
                         if (d.time && Number.isFinite(d.time) && d.time !== currentTimeframe) return;
                         // NOTE: if time is array
