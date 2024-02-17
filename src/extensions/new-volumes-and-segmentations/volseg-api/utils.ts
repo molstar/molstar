@@ -259,7 +259,7 @@ export function parseSegmentKey(segmentKey: string) {
 export function getSegmentLabelsFromDescriptions(descriptions: DescriptionData[]) {
     return descriptions.map(
         description => (
-            { id: description.target_id!.segment_id, label: description?.name ? description?.name : 'No label provided' }
+            { id: description.target_id!.segment_id, label: description?.name ? `<b>${description?.name}</b>` : 'No label provided' }
         )
     );
 }
