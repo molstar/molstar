@@ -1,0 +1,2179 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "MolViewSpec Node Schema OpenAPI",
+        "version": "0.1"
+    },
+    "paths": {},
+    "components": {
+        "schemas": {
+            "CameraParams": {
+                "title": "CameraParams",
+                "type": "object",
+                "properties": {
+                    "target": {
+                        "title": "Target",
+                        "description": "What to look at",
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "number"
+                            }
+                        ]
+                    },
+                    "position": {
+                        "title": "Position",
+                        "description": "The position of the camera",
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "number"
+                            }
+                        ]
+                    },
+                    "up": {
+                        "title": "Up",
+                        "description": "Controls the rotation around the vector between target and position",
+                        "required": true,
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "number"
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "target",
+                    "position",
+                    "up"
+                ]
+            },
+            "CanvasParams": {
+                "title": "CanvasParams",
+                "type": "object",
+                "properties": {
+                    "background_color": {
+                        "title": "Background Color",
+                        "anyOf": [
+                            {
+                                "enum": [
+                                    "aliceblue",
+                                    "antiquewhite",
+                                    "aqua",
+                                    "aquamarine",
+                                    "azure",
+                                    "beige",
+                                    "bisque",
+                                    "black",
+                                    "blanchedalmond",
+                                    "blue",
+                                    "blueviolet",
+                                    "brown",
+                                    "burlywood",
+                                    "cadetblue",
+                                    "chartreuse",
+                                    "chocolate",
+                                    "coral",
+                                    "cornflowerblue",
+                                    "cornsilk",
+                                    "crimson",
+                                    "cyan",
+                                    "darkblue",
+                                    "darkcyan",
+                                    "darkgoldenrod",
+                                    "darkgray",
+                                    "darkgreen",
+                                    "darkgrey",
+                                    "darkkhaki",
+                                    "darkmagenta",
+                                    "darkolivegreen",
+                                    "darkorange",
+                                    "darkorchid",
+                                    "darkred",
+                                    "darksalmon",
+                                    "darkseagreen",
+                                    "darkslateblue",
+                                    "darkslategray",
+                                    "darkslategrey",
+                                    "darkturquoise",
+                                    "darkviolet",
+                                    "deeppink",
+                                    "deepskyblue",
+                                    "dimgray",
+                                    "dimgrey",
+                                    "dodgerblue",
+                                    "firebrick",
+                                    "floralwhite",
+                                    "forestgreen",
+                                    "fuchsia",
+                                    "gainsboro",
+                                    "ghostwhite",
+                                    "gold",
+                                    "goldenrod",
+                                    "gray",
+                                    "green",
+                                    "greenyellow",
+                                    "grey",
+                                    "honeydew",
+                                    "hotpink",
+                                    "indianred",
+                                    "indigo",
+                                    "ivory",
+                                    "khaki",
+                                    "lavender",
+                                    "lavenderblush",
+                                    "lawngreen",
+                                    "lemonchiffon",
+                                    "lightblue",
+                                    "lightcoral",
+                                    "lightcyan",
+                                    "lightgoldenrodyellow",
+                                    "lightgray",
+                                    "lightgreen",
+                                    "lightgrey",
+                                    "lightpink",
+                                    "lightsalmon",
+                                    "lightseagreen",
+                                    "lightskyblue",
+                                    "lightslategray",
+                                    "lightslategrey",
+                                    "lightsteelblue",
+                                    "lightyellow",
+                                    "lime",
+                                    "limegreen",
+                                    "linen",
+                                    "magenta",
+                                    "maroon",
+                                    "mediumaquamarine",
+                                    "mediumblue",
+                                    "mediumorchid",
+                                    "mediumpurple",
+                                    "mediumseagreen",
+                                    "mediumslateblue",
+                                    "mediumspringgreen",
+                                    "mediumturquoise",
+                                    "mediumvioletred",
+                                    "midnightblue",
+                                    "mintcream",
+                                    "mistyrose",
+                                    "moccasin",
+                                    "navajowhite",
+                                    "navy",
+                                    "oldlace",
+                                    "olive",
+                                    "olivedrab",
+                                    "orange",
+                                    "orangered",
+                                    "orchid",
+                                    "palegoldenrod",
+                                    "palegreen",
+                                    "paleturquoise",
+                                    "palevioletred",
+                                    "papayawhip",
+                                    "peachpuff",
+                                    "peru",
+                                    "pink",
+                                    "plum",
+                                    "powderblue",
+                                    "purple",
+                                    "red",
+                                    "rosybrown",
+                                    "royalblue",
+                                    "saddlebrown",
+                                    "salmon",
+                                    "sandybrown",
+                                    "seagreen",
+                                    "seashell",
+                                    "sienna",
+                                    "silver",
+                                    "skyblue",
+                                    "slateblue",
+                                    "slategray",
+                                    "slategrey",
+                                    "snow",
+                                    "springgreen",
+                                    "steelblue",
+                                    "tan",
+                                    "teal",
+                                    "thistle",
+                                    "tomato",
+                                    "turquoise",
+                                    "violet",
+                                    "wheat",
+                                    "white",
+                                    "whitesmoke",
+                                    "yellow",
+                                    "yellowgreen"
+                                ],
+                                "type": "string"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "background_color"
+                ]
+            },
+            "ColorFromSourceParams": {
+                "title": "ColorFromSourceParams",
+                "type": "object",
+                "properties": {
+                    "category_name": {
+                        "title": "Category Name",
+                        "type": "string"
+                    },
+                    "field_name": {
+                        "title": "Field Name",
+                        "description": "Name of the column in CIF that contains the desired value (color/label/tooltip/component...); the default value is 'color'/'label'/'tooltip'/'component' depending on the node kind",
+                        "type": "string"
+                    },
+                    "block_header": {
+                        "title": "Block Header",
+                        "type": "string"
+                    },
+                    "block_index": {
+                        "title": "Block Index",
+                        "type": "integer"
+                    },
+                    "schema": {
+                        "title": "Schema",
+                        "enum": [
+                            "whole_structure",
+                            "entity",
+                            "chain",
+                            "auth_chain",
+                            "residue",
+                            "auth_residue",
+                            "residue_range",
+                            "auth_residue_range",
+                            "atom",
+                            "auth_atom",
+                            "all_atomic"
+                        ],
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "category_name",
+                    "schema"
+                ]
+            },
+            "ColorFromUriParams": {
+                "title": "ColorFromUriParams",
+                "type": "object",
+                "properties": {
+                    "uri": {
+                        "title": "Uri",
+                        "type": "string"
+                    },
+                    "format": {
+                        "title": "Format",
+                        "enum": [
+                            "cif",
+                            "bcif",
+                            "json"
+                        ],
+                        "type": "string"
+                    },
+                    "category_name": {
+                        "title": "Category Name",
+                        "description": "Only applies when format is 'cif' or 'bcif'",
+                        "type": "string"
+                    },
+                    "field_name": {
+                        "title": "Field Name",
+                        "description": "Name of the column in CIF or field name (key) in JSON that contains the desired value (color/label/tooltip/component...); the default value is 'color'/'label'/'tooltip'/'component' depending on the node kind",
+                        "type": "string"
+                    },
+                    "block_header": {
+                        "title": "Block Header",
+                        "description": "Only applies when format is 'cif' or 'bcif'",
+                        "type": "string"
+                    },
+                    "block_index": {
+                        "title": "Block Index",
+                        "description": "Only applies when format is 'cif' or 'bcif'",
+                        "type": "integer"
+                    },
+                    "schema": {
+                        "title": "Schema",
+                        "enum": [
+                            "whole_structure",
+                            "entity",
+                            "chain",
+                            "auth_chain",
+                            "residue",
+                            "auth_residue",
+                            "residue_range",
+                            "auth_residue_range",
+                            "atom",
+                            "auth_atom",
+                            "all_atomic"
+                        ],
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "uri",
+                    "format",
+                    "schema"
+                ]
+            },
+            "ColorInlineParams": {
+                "title": "ColorInlineParams",
+                "type": "object",
+                "properties": {
+                    "selector": {
+                        "title": "Selector",
+                        "description": "Describes one or more selections or one of the enumerated selectors.",
+                        "anyOf": [
+                            {
+                                "enum": [
+                                    "all",
+                                    "polymer",
+                                    "protein",
+                                    "nucleic",
+                                    "branched",
+                                    "ligand",
+                                    "ion",
+                                    "water"
+                                ],
+                                "type": "string"
+                            },
+                            {
+                                "$ref": "#/definitions/ComponentExpression"
+                            },
+                            {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/ComponentExpression"
+                                }
+                            }
+                        ]
+                    },
+                    "color": {
+                        "title": "Color",
+                        "anyOf": [
+                            {
+                                "enum": [
+                                    "aliceblue",
+                                    "antiquewhite",
+                                    "aqua",
+                                    "aquamarine",
+                                    "azure",
+                                    "beige",
+                                    "bisque",
+                                    "black",
+                                    "blanchedalmond",
+                                    "blue",
+                                    "blueviolet",
+                                    "brown",
+                                    "burlywood",
+                                    "cadetblue",
+                                    "chartreuse",
+                                    "chocolate",
+                                    "coral",
+                                    "cornflowerblue",
+                                    "cornsilk",
+                                    "crimson",
+                                    "cyan",
+                                    "darkblue",
+                                    "darkcyan",
+                                    "darkgoldenrod",
+                                    "darkgray",
+                                    "darkgreen",
+                                    "darkgrey",
+                                    "darkkhaki",
+                                    "darkmagenta",
+                                    "darkolivegreen",
+                                    "darkorange",
+                                    "darkorchid",
+                                    "darkred",
+                                    "darksalmon",
+                                    "darkseagreen",
+                                    "darkslateblue",
+                                    "darkslategray",
+                                    "darkslategrey",
+                                    "darkturquoise",
+                                    "darkviolet",
+                                    "deeppink",
+                                    "deepskyblue",
+                                    "dimgray",
+                                    "dimgrey",
+                                    "dodgerblue",
+                                    "firebrick",
+                                    "floralwhite",
+                                    "forestgreen",
+                                    "fuchsia",
+                                    "gainsboro",
+                                    "ghostwhite",
+                                    "gold",
+                                    "goldenrod",
+                                    "gray",
+                                    "green",
+                                    "greenyellow",
+                                    "grey",
+                                    "honeydew",
+                                    "hotpink",
+                                    "indianred",
+                                    "indigo",
+                                    "ivory",
+                                    "khaki",
+                                    "lavender",
+                                    "lavenderblush",
+                                    "lawngreen",
+                                    "lemonchiffon",
+                                    "lightblue",
+                                    "lightcoral",
+                                    "lightcyan",
+                                    "lightgoldenrodyellow",
+                                    "lightgray",
+                                    "lightgreen",
+                                    "lightgrey",
+                                    "lightpink",
+                                    "lightsalmon",
+                                    "lightseagreen",
+                                    "lightskyblue",
+                                    "lightslategray",
+                                    "lightslategrey",
+                                    "lightsteelblue",
+                                    "lightyellow",
+                                    "lime",
+                                    "limegreen",
+                                    "linen",
+                                    "magenta",
+                                    "maroon",
+                                    "mediumaquamarine",
+                                    "mediumblue",
+                                    "mediumorchid",
+                                    "mediumpurple",
+                                    "mediumseagreen",
+                                    "mediumslateblue",
+                                    "mediumspringgreen",
+                                    "mediumturquoise",
+                                    "mediumvioletred",
+                                    "midnightblue",
+                                    "mintcream",
+                                    "mistyrose",
+                                    "moccasin",
+                                    "navajowhite",
+                                    "navy",
+                                    "oldlace",
+                                    "olive",
+                                    "olivedrab",
+                                    "orange",
+                                    "orangered",
+                                    "orchid",
+                                    "palegoldenrod",
+                                    "palegreen",
+                                    "paleturquoise",
+                                    "palevioletred",
+                                    "papayawhip",
+                                    "peachpuff",
+                                    "peru",
+                                    "pink",
+                                    "plum",
+                                    "powderblue",
+                                    "purple",
+                                    "red",
+                                    "rosybrown",
+                                    "royalblue",
+                                    "saddlebrown",
+                                    "salmon",
+                                    "sandybrown",
+                                    "seagreen",
+                                    "seashell",
+                                    "sienna",
+                                    "silver",
+                                    "skyblue",
+                                    "slateblue",
+                                    "slategray",
+                                    "slategrey",
+                                    "snow",
+                                    "springgreen",
+                                    "steelblue",
+                                    "tan",
+                                    "teal",
+                                    "thistle",
+                                    "tomato",
+                                    "turquoise",
+                                    "violet",
+                                    "wheat",
+                                    "white",
+                                    "whitesmoke",
+                                    "yellow",
+                                    "yellowgreen"
+                                ],
+                                "type": "string"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "selector",
+                    "color"
+                ],
+                "definitions": {
+                    "ComponentExpression": {
+                        "title": "ComponentExpression",
+                        "type": "object",
+                        "properties": {
+                            "label_entity_id": {
+                                "title": "Label Entity Id",
+                                "type": "string"
+                            },
+                            "label_asym_id": {
+                                "title": "Label Asym Id",
+                                "type": "string"
+                            },
+                            "auth_asym_id": {
+                                "title": "Auth Asym Id",
+                                "type": "string"
+                            },
+                            "label_seq_id": {
+                                "title": "Label Seq Id",
+                                "type": "integer"
+                            },
+                            "auth_seq_id": {
+                                "title": "Auth Seq Id",
+                                "type": "integer"
+                            },
+                            "pdbx_PDB_ins_code": {
+                                "title": "Pdbx Pdb Ins Code",
+                                "type": "string"
+                            },
+                            "beg_label_seq_id": {
+                                "title": "Beg Label Seq Id",
+                                "description": "Defines a consecutive range of residues when combined with `end_label_seq_id`.",
+                                "type": "integer"
+                            },
+                            "end_label_seq_id": {
+                                "title": "End Label Seq Id",
+                                "description": "Defines a consecutive range of residues when combined with `beg_label_seq_id`. End indices are inclusive.",
+                                "type": "integer"
+                            },
+                            "beg_auth_seq_id": {
+                                "title": "Beg Auth Seq Id",
+                                "description": "Defines a consecutive range of residues when combined with `end_auth_seq_id`.",
+                                "type": "integer"
+                            },
+                            "end_auth_seq_id": {
+                                "title": "End Auth Seq Id",
+                                "description": "Defines a consecutive range of residues when combined with `beg_auth_seq_id`. End indices are inclusive.",
+                                "type": "integer"
+                            },
+                            "residue_index": {
+                                "title": "Residue Index",
+                                "description": "0-based residue index in the source file",
+                                "type": "integer"
+                            },
+                            "label_atom_id": {
+                                "title": "Label Atom Id",
+                                "description": "Atom name like 'CA', 'N', 'O' (`_atom_site.label_atom_id`)",
+                                "type": "string"
+                            },
+                            "auth_atom_id": {
+                                "title": "Auth Atom Id",
+                                "description": "Atom name like 'CA', 'N', 'O' (`_atom_site.auth_atom_id`)",
+                                "type": "string"
+                            },
+                            "type_symbol": {
+                                "title": "Type Symbol",
+                                "description": "Element symbol like 'H', 'HE', 'LI', 'BE' (`_atom_site.type_symbol`)",
+                                "type": "string"
+                            },
+                            "atom_id": {
+                                "title": "Atom Id",
+                                "description": "Unique atom identifier (`_atom_site.id`)",
+                                "type": "integer"
+                            },
+                            "atom_index": {
+                                "title": "Atom Index",
+                                "description": "0-based atom index in the source file",
+                                "type": "integer"
+                            }
+                        }
+                    }
+                }
+            },
+            "ComponentExpression": {
+                "title": "ComponentExpression",
+                "type": "object",
+                "properties": {
+                    "label_entity_id": {
+                        "title": "Label Entity Id",
+                        "type": "string"
+                    },
+                    "label_asym_id": {
+                        "title": "Label Asym Id",
+                        "type": "string"
+                    },
+                    "auth_asym_id": {
+                        "title": "Auth Asym Id",
+                        "type": "string"
+                    },
+                    "label_seq_id": {
+                        "title": "Label Seq Id",
+                        "type": "integer"
+                    },
+                    "auth_seq_id": {
+                        "title": "Auth Seq Id",
+                        "type": "integer"
+                    },
+                    "pdbx_PDB_ins_code": {
+                        "title": "Pdbx Pdb Ins Code",
+                        "type": "string"
+                    },
+                    "beg_label_seq_id": {
+                        "title": "Beg Label Seq Id",
+                        "description": "Defines a consecutive range of residues when combined with `end_label_seq_id`.",
+                        "type": "integer"
+                    },
+                    "end_label_seq_id": {
+                        "title": "End Label Seq Id",
+                        "description": "Defines a consecutive range of residues when combined with `beg_label_seq_id`. End indices are inclusive.",
+                        "type": "integer"
+                    },
+                    "beg_auth_seq_id": {
+                        "title": "Beg Auth Seq Id",
+                        "description": "Defines a consecutive range of residues when combined with `end_auth_seq_id`.",
+                        "type": "integer"
+                    },
+                    "end_auth_seq_id": {
+                        "title": "End Auth Seq Id",
+                        "description": "Defines a consecutive range of residues when combined with `beg_auth_seq_id`. End indices are inclusive.",
+                        "type": "integer"
+                    },
+                    "residue_index": {
+                        "title": "Residue Index",
+                        "description": "0-based residue index in the source file",
+                        "type": "integer"
+                    },
+                    "label_atom_id": {
+                        "title": "Label Atom Id",
+                        "description": "Atom name like 'CA', 'N', 'O' (`_atom_site.label_atom_id`)",
+                        "type": "string"
+                    },
+                    "auth_atom_id": {
+                        "title": "Auth Atom Id",
+                        "description": "Atom name like 'CA', 'N', 'O' (`_atom_site.auth_atom_id`)",
+                        "type": "string"
+                    },
+                    "type_symbol": {
+                        "title": "Type Symbol",
+                        "description": "Element symbol like 'H', 'HE', 'LI', 'BE' (`_atom_site.type_symbol`)",
+                        "type": "string"
+                    },
+                    "atom_id": {
+                        "title": "Atom Id",
+                        "description": "Unique atom identifier (`_atom_site.id`)",
+                        "type": "integer"
+                    },
+                    "atom_index": {
+                        "title": "Atom Index",
+                        "description": "0-based atom index in the source file",
+                        "type": "integer"
+                    }
+                }
+            },
+            "ComponentFromSourceParams": {
+                "title": "ComponentFromSourceParams",
+                "type": "object",
+                "properties": {
+                    "category_name": {
+                        "title": "Category Name",
+                        "type": "string"
+                    },
+                    "field_name": {
+                        "title": "Field Name",
+                        "description": "Name of the column in CIF that contains the desired value (color/label/tooltip/component...); the default value is 'color'/'label'/'tooltip'/'component' depending on the node kind",
+                        "type": "string"
+                    },
+                    "block_header": {
+                        "title": "Block Header",
+                        "type": "string"
+                    },
+                    "block_index": {
+                        "title": "Block Index",
+                        "type": "integer"
+                    },
+                    "schema": {
+                        "title": "Schema",
+                        "enum": [
+                            "whole_structure",
+                            "entity",
+                            "chain",
+                            "auth_chain",
+                            "residue",
+                            "auth_residue",
+                            "residue_range",
+                            "auth_residue_range",
+                            "atom",
+                            "auth_atom",
+                            "all_atomic"
+                        ],
+                        "type": "string"
+                    },
+                    "field_values": {
+                        "title": "Field Values",
+                        "description": "Create the component from rows that have any of these values in the field specified by `field_name`. If not provided, create the component from all rows.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": [
+                    "category_name",
+                    "schema"
+                ]
+            },
+            "ComponentFromUriParams": {
+                "title": "ComponentFromUriParams",
+                "type": "object",
+                "properties": {
+                    "uri": {
+                        "title": "Uri",
+                        "type": "string"
+                    },
+                    "format": {
+                        "title": "Format",
+                        "enum": [
+                            "cif",
+                            "bcif",
+                            "json"
+                        ],
+                        "type": "string"
+                    },
+                    "category_name": {
+                        "title": "Category Name",
+                        "description": "Only applies when format is 'cif' or 'bcif'",
+                        "type": "string"
+                    },
+                    "field_name": {
+                        "title": "Field Name",
+                        "description": "Name of the column in CIF or field name (key) in JSON that contains the desired value (color/label/tooltip/component...); the default value is 'color'/'label'/'tooltip'/'component' depending on the node kind",
+                        "type": "string"
+                    },
+                    "block_header": {
+                        "title": "Block Header",
+                        "description": "Only applies when format is 'cif' or 'bcif'",
+                        "type": "string"
+                    },
+                    "block_index": {
+                        "title": "Block Index",
+                        "description": "Only applies when format is 'cif' or 'bcif'",
+                        "type": "integer"
+                    },
+                    "schema": {
+                        "title": "Schema",
+                        "enum": [
+                            "whole_structure",
+                            "entity",
+                            "chain",
+                            "auth_chain",
+                            "residue",
+                            "auth_residue",
+                            "residue_range",
+                            "auth_residue_range",
+                            "atom",
+                            "auth_atom",
+                            "all_atomic"
+                        ],
+                        "type": "string"
+                    },
+                    "field_values": {
+                        "title": "Field Values",
+                        "description": "Create the component from rows that have any of these values in the field specified by `field_name`. If not provided, create the component from all rows.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": [
+                    "uri",
+                    "format",
+                    "schema"
+                ]
+            },
+            "ComponentInlineParams": {
+                "title": "ComponentInlineParams",
+                "type": "object",
+                "properties": {
+                    "selector": {
+                        "title": "Selector",
+                        "description": "Describes one or more selections or one of the enumerated selectors.",
+                        "anyOf": [
+                            {
+                                "enum": [
+                                    "all",
+                                    "polymer",
+                                    "protein",
+                                    "nucleic",
+                                    "branched",
+                                    "ligand",
+                                    "ion",
+                                    "water"
+                                ],
+                                "type": "string"
+                            },
+                            {
+                                "$ref": "#/definitions/ComponentExpression"
+                            },
+                            {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/ComponentExpression"
+                                }
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "selector"
+                ],
+                "definitions": {
+                    "ComponentExpression": {
+                        "title": "ComponentExpression",
+                        "type": "object",
+                        "properties": {
+                            "label_entity_id": {
+                                "title": "Label Entity Id",
+                                "type": "string"
+                            },
+                            "label_asym_id": {
+                                "title": "Label Asym Id",
+                                "type": "string"
+                            },
+                            "auth_asym_id": {
+                                "title": "Auth Asym Id",
+                                "type": "string"
+                            },
+                            "label_seq_id": {
+                                "title": "Label Seq Id",
+                                "type": "integer"
+                            },
+                            "auth_seq_id": {
+                                "title": "Auth Seq Id",
+                                "type": "integer"
+                            },
+                            "pdbx_PDB_ins_code": {
+                                "title": "Pdbx Pdb Ins Code",
+                                "type": "string"
+                            },
+                            "beg_label_seq_id": {
+                                "title": "Beg Label Seq Id",
+                                "description": "Defines a consecutive range of residues when combined with `end_label_seq_id`.",
+                                "type": "integer"
+                            },
+                            "end_label_seq_id": {
+                                "title": "End Label Seq Id",
+                                "description": "Defines a consecutive range of residues when combined with `beg_label_seq_id`. End indices are inclusive.",
+                                "type": "integer"
+                            },
+                            "beg_auth_seq_id": {
+                                "title": "Beg Auth Seq Id",
+                                "description": "Defines a consecutive range of residues when combined with `end_auth_seq_id`.",
+                                "type": "integer"
+                            },
+                            "end_auth_seq_id": {
+                                "title": "End Auth Seq Id",
+                                "description": "Defines a consecutive range of residues when combined with `beg_auth_seq_id`. End indices are inclusive.",
+                                "type": "integer"
+                            },
+                            "residue_index": {
+                                "title": "Residue Index",
+                                "description": "0-based residue index in the source file",
+                                "type": "integer"
+                            },
+                            "label_atom_id": {
+                                "title": "Label Atom Id",
+                                "description": "Atom name like 'CA', 'N', 'O' (`_atom_site.label_atom_id`)",
+                                "type": "string"
+                            },
+                            "auth_atom_id": {
+                                "title": "Auth Atom Id",
+                                "description": "Atom name like 'CA', 'N', 'O' (`_atom_site.auth_atom_id`)",
+                                "type": "string"
+                            },
+                            "type_symbol": {
+                                "title": "Type Symbol",
+                                "description": "Element symbol like 'H', 'HE', 'LI', 'BE' (`_atom_site.type_symbol`)",
+                                "type": "string"
+                            },
+                            "atom_id": {
+                                "title": "Atom Id",
+                                "description": "Unique atom identifier (`_atom_site.id`)",
+                                "type": "integer"
+                            },
+                            "atom_index": {
+                                "title": "Atom Index",
+                                "description": "0-based atom index in the source file",
+                                "type": "integer"
+                            }
+                        }
+                    }
+                }
+            },
+            "DownloadParams": {
+                "title": "DownloadParams",
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "title": "Url",
+                        "description": "URL from which to pull structure data.",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "url"
+                ]
+            },
+            "FocusInlineParams": {
+                "title": "FocusInlineParams",
+                "type": "object",
+                "properties": {
+                    "direction": {
+                        "title": "Direction",
+                        "description": "Direction of the view (vector position -> target)",
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "number"
+                            }
+                        ]
+                    },
+                    "up": {
+                        "title": "Up",
+                        "description": "Controls the rotation around the vector between target and position",
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "number"
+                            }
+                        ]
+                    }
+                }
+            },
+            "LabelFromSourceParams": {
+                "title": "LabelFromSourceParams",
+                "type": "object",
+                "properties": {
+                    "category_name": {
+                        "title": "Category Name",
+                        "type": "string"
+                    },
+                    "field_name": {
+                        "title": "Field Name",
+                        "description": "Name of the column in CIF that contains the desired value (color/label/tooltip/component...); the default value is 'color'/'label'/'tooltip'/'component' depending on the node kind",
+                        "type": "string"
+                    },
+                    "block_header": {
+                        "title": "Block Header",
+                        "type": "string"
+                    },
+                    "block_index": {
+                        "title": "Block Index",
+                        "type": "integer"
+                    },
+                    "schema": {
+                        "title": "Schema",
+                        "enum": [
+                            "whole_structure",
+                            "entity",
+                            "chain",
+                            "auth_chain",
+                            "residue",
+                            "auth_residue",
+                            "residue_range",
+                            "auth_residue_range",
+                            "atom",
+                            "auth_atom",
+                            "all_atomic"
+                        ],
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "category_name",
+                    "schema"
+                ]
+            },
+            "LabelFromUriParams": {
+                "title": "LabelFromUriParams",
+                "type": "object",
+                "properties": {
+                    "uri": {
+                        "title": "Uri",
+                        "type": "string"
+                    },
+                    "format": {
+                        "title": "Format",
+                        "enum": [
+                            "cif",
+                            "bcif",
+                            "json"
+                        ],
+                        "type": "string"
+                    },
+                    "category_name": {
+                        "title": "Category Name",
+                        "description": "Only applies when format is 'cif' or 'bcif'",
+                        "type": "string"
+                    },
+                    "field_name": {
+                        "title": "Field Name",
+                        "description": "Name of the column in CIF or field name (key) in JSON that contains the desired value (color/label/tooltip/component...); the default value is 'color'/'label'/'tooltip'/'component' depending on the node kind",
+                        "type": "string"
+                    },
+                    "block_header": {
+                        "title": "Block Header",
+                        "description": "Only applies when format is 'cif' or 'bcif'",
+                        "type": "string"
+                    },
+                    "block_index": {
+                        "title": "Block Index",
+                        "description": "Only applies when format is 'cif' or 'bcif'",
+                        "type": "integer"
+                    },
+                    "schema": {
+                        "title": "Schema",
+                        "enum": [
+                            "whole_structure",
+                            "entity",
+                            "chain",
+                            "auth_chain",
+                            "residue",
+                            "auth_residue",
+                            "residue_range",
+                            "auth_residue_range",
+                            "atom",
+                            "auth_atom",
+                            "all_atomic"
+                        ],
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "uri",
+                    "format",
+                    "schema"
+                ]
+            },
+            "LabelInlineParams": {
+                "title": "LabelInlineParams",
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "title": "Text",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "text"
+                ]
+            },
+            "LineParams": {
+                "title": "LineParams",
+                "type": "object",
+                "properties": {
+                    "position1": {
+                        "title": "Position1",
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "number"
+                            }
+                        ]
+                    },
+                    "position2": {
+                        "title": "Position2",
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "number"
+                            }
+                        ]
+                    },
+                    "radius": {
+                        "title": "Radius",
+                        "type": "number"
+                    },
+                    "color": {
+                        "title": "Color",
+                        "anyOf": [
+                            {
+                                "enum": [
+                                    "aliceblue",
+                                    "antiquewhite",
+                                    "aqua",
+                                    "aquamarine",
+                                    "azure",
+                                    "beige",
+                                    "bisque",
+                                    "black",
+                                    "blanchedalmond",
+                                    "blue",
+                                    "blueviolet",
+                                    "brown",
+                                    "burlywood",
+                                    "cadetblue",
+                                    "chartreuse",
+                                    "chocolate",
+                                    "coral",
+                                    "cornflowerblue",
+                                    "cornsilk",
+                                    "crimson",
+                                    "cyan",
+                                    "darkblue",
+                                    "darkcyan",
+                                    "darkgoldenrod",
+                                    "darkgray",
+                                    "darkgreen",
+                                    "darkgrey",
+                                    "darkkhaki",
+                                    "darkmagenta",
+                                    "darkolivegreen",
+                                    "darkorange",
+                                    "darkorchid",
+                                    "darkred",
+                                    "darksalmon",
+                                    "darkseagreen",
+                                    "darkslateblue",
+                                    "darkslategray",
+                                    "darkslategrey",
+                                    "darkturquoise",
+                                    "darkviolet",
+                                    "deeppink",
+                                    "deepskyblue",
+                                    "dimgray",
+                                    "dimgrey",
+                                    "dodgerblue",
+                                    "firebrick",
+                                    "floralwhite",
+                                    "forestgreen",
+                                    "fuchsia",
+                                    "gainsboro",
+                                    "ghostwhite",
+                                    "gold",
+                                    "goldenrod",
+                                    "gray",
+                                    "green",
+                                    "greenyellow",
+                                    "grey",
+                                    "honeydew",
+                                    "hotpink",
+                                    "indianred",
+                                    "indigo",
+                                    "ivory",
+                                    "khaki",
+                                    "lavender",
+                                    "lavenderblush",
+                                    "lawngreen",
+                                    "lemonchiffon",
+                                    "lightblue",
+                                    "lightcoral",
+                                    "lightcyan",
+                                    "lightgoldenrodyellow",
+                                    "lightgray",
+                                    "lightgreen",
+                                    "lightgrey",
+                                    "lightpink",
+                                    "lightsalmon",
+                                    "lightseagreen",
+                                    "lightskyblue",
+                                    "lightslategray",
+                                    "lightslategrey",
+                                    "lightsteelblue",
+                                    "lightyellow",
+                                    "lime",
+                                    "limegreen",
+                                    "linen",
+                                    "magenta",
+                                    "maroon",
+                                    "mediumaquamarine",
+                                    "mediumblue",
+                                    "mediumorchid",
+                                    "mediumpurple",
+                                    "mediumseagreen",
+                                    "mediumslateblue",
+                                    "mediumspringgreen",
+                                    "mediumturquoise",
+                                    "mediumvioletred",
+                                    "midnightblue",
+                                    "mintcream",
+                                    "mistyrose",
+                                    "moccasin",
+                                    "navajowhite",
+                                    "navy",
+                                    "oldlace",
+                                    "olive",
+                                    "olivedrab",
+                                    "orange",
+                                    "orangered",
+                                    "orchid",
+                                    "palegoldenrod",
+                                    "palegreen",
+                                    "paleturquoise",
+                                    "palevioletred",
+                                    "papayawhip",
+                                    "peachpuff",
+                                    "peru",
+                                    "pink",
+                                    "plum",
+                                    "powderblue",
+                                    "purple",
+                                    "red",
+                                    "rosybrown",
+                                    "royalblue",
+                                    "saddlebrown",
+                                    "salmon",
+                                    "sandybrown",
+                                    "seagreen",
+                                    "seashell",
+                                    "sienna",
+                                    "silver",
+                                    "skyblue",
+                                    "slateblue",
+                                    "slategray",
+                                    "slategrey",
+                                    "snow",
+                                    "springgreen",
+                                    "steelblue",
+                                    "tan",
+                                    "teal",
+                                    "thistle",
+                                    "tomato",
+                                    "turquoise",
+                                    "violet",
+                                    "wheat",
+                                    "white",
+                                    "whitesmoke",
+                                    "yellow",
+                                    "yellowgreen"
+                                ],
+                                "type": "string"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "label": {
+                        "title": "Label",
+                        "type": "string"
+                    },
+                    "tooltip": {
+                        "title": "Tooltip",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "position1",
+                    "position2",
+                    "radius",
+                    "color"
+                ]
+            },
+            "Metadata": {
+                "title": "Metadata",
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "title": "Version",
+                        "description": "Version of the spec used to write this tree.",
+                        "type": "string"
+                    },
+                    "title": {
+                        "title": "Title",
+                        "description": "Name of this view.",
+                        "type": "string"
+                    },
+                    "description": {
+                        "title": "Description",
+                        "description": "Detailed description of this view.",
+                        "type": "string"
+                    },
+                    "description_format": {
+                        "title": "Description Format",
+                        "description": "Format of the description.",
+                        "enum": [
+                            "markdown",
+                            "plaintext"
+                        ],
+                        "type": "string"
+                    },
+                    "timestamp": {
+                        "title": "Timestamp",
+                        "description": "Timestamp when this view was exported.",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "version",
+                    "timestamp"
+                ]
+            },
+            "Node": {
+                "$ref": "#/definitions/Node",
+                "definitions": {
+                    "Node": {
+                        "title": "Node",
+                        "type": "object",
+                        "properties": {
+                            "kind": {
+                                "title": "Kind",
+                                "description": "The type of this node.",
+                                "enum": [
+                                    "root",
+                                    "camera",
+                                    "canvas",
+                                    "color",
+                                    "color_from_source",
+                                    "color_from_uri",
+                                    "component",
+                                    "component_from_source",
+                                    "component_from_uri",
+                                    "download",
+                                    "focus",
+                                    "generic_visuals",
+                                    "label",
+                                    "label_from_source",
+                                    "label_from_uri",
+                                    "line",
+                                    "parse",
+                                    "representation",
+                                    "sphere",
+                                    "structure",
+                                    "tooltip",
+                                    "tooltip_from_source",
+                                    "tooltip_from_uri",
+                                    "transform"
+                                ],
+                                "type": "string"
+                            },
+                            "params": {
+                                "title": "Params",
+                                "description": "Optional params that are needed for this node.",
+                                "type": "object"
+                            },
+                            "children": {
+                                "title": "Children",
+                                "description": "Optional collection of nested child nodes.",
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/Node"
+                                }
+                            }
+                        },
+                        "required": [
+                            "kind"
+                        ]
+                    }
+                }
+            },
+            "ParseParams": {
+                "title": "ParseParams",
+                "type": "object",
+                "properties": {
+                    "format": {
+                        "title": "Format",
+                        "description": "The format of the structure data.",
+                        "enum": [
+                            "mmcif",
+                            "bcif",
+                            "pdb"
+                        ],
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "format"
+                ]
+            },
+            "RepresentationParams": {
+                "title": "RepresentationParams",
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "title": "Type",
+                        "enum": [
+                            "ball_and_stick",
+                            "cartoon",
+                            "surface"
+                        ],
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "type"
+                ]
+            },
+            "SphereParams": {
+                "title": "SphereParams",
+                "type": "object",
+                "properties": {
+                    "position": {
+                        "title": "Position",
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "number"
+                            }
+                        ]
+                    },
+                    "radius": {
+                        "title": "Radius",
+                        "type": "number"
+                    },
+                    "color": {
+                        "title": "Color",
+                        "anyOf": [
+                            {
+                                "enum": [
+                                    "aliceblue",
+                                    "antiquewhite",
+                                    "aqua",
+                                    "aquamarine",
+                                    "azure",
+                                    "beige",
+                                    "bisque",
+                                    "black",
+                                    "blanchedalmond",
+                                    "blue",
+                                    "blueviolet",
+                                    "brown",
+                                    "burlywood",
+                                    "cadetblue",
+                                    "chartreuse",
+                                    "chocolate",
+                                    "coral",
+                                    "cornflowerblue",
+                                    "cornsilk",
+                                    "crimson",
+                                    "cyan",
+                                    "darkblue",
+                                    "darkcyan",
+                                    "darkgoldenrod",
+                                    "darkgray",
+                                    "darkgreen",
+                                    "darkgrey",
+                                    "darkkhaki",
+                                    "darkmagenta",
+                                    "darkolivegreen",
+                                    "darkorange",
+                                    "darkorchid",
+                                    "darkred",
+                                    "darksalmon",
+                                    "darkseagreen",
+                                    "darkslateblue",
+                                    "darkslategray",
+                                    "darkslategrey",
+                                    "darkturquoise",
+                                    "darkviolet",
+                                    "deeppink",
+                                    "deepskyblue",
+                                    "dimgray",
+                                    "dimgrey",
+                                    "dodgerblue",
+                                    "firebrick",
+                                    "floralwhite",
+                                    "forestgreen",
+                                    "fuchsia",
+                                    "gainsboro",
+                                    "ghostwhite",
+                                    "gold",
+                                    "goldenrod",
+                                    "gray",
+                                    "green",
+                                    "greenyellow",
+                                    "grey",
+                                    "honeydew",
+                                    "hotpink",
+                                    "indianred",
+                                    "indigo",
+                                    "ivory",
+                                    "khaki",
+                                    "lavender",
+                                    "lavenderblush",
+                                    "lawngreen",
+                                    "lemonchiffon",
+                                    "lightblue",
+                                    "lightcoral",
+                                    "lightcyan",
+                                    "lightgoldenrodyellow",
+                                    "lightgray",
+                                    "lightgreen",
+                                    "lightgrey",
+                                    "lightpink",
+                                    "lightsalmon",
+                                    "lightseagreen",
+                                    "lightskyblue",
+                                    "lightslategray",
+                                    "lightslategrey",
+                                    "lightsteelblue",
+                                    "lightyellow",
+                                    "lime",
+                                    "limegreen",
+                                    "linen",
+                                    "magenta",
+                                    "maroon",
+                                    "mediumaquamarine",
+                                    "mediumblue",
+                                    "mediumorchid",
+                                    "mediumpurple",
+                                    "mediumseagreen",
+                                    "mediumslateblue",
+                                    "mediumspringgreen",
+                                    "mediumturquoise",
+                                    "mediumvioletred",
+                                    "midnightblue",
+                                    "mintcream",
+                                    "mistyrose",
+                                    "moccasin",
+                                    "navajowhite",
+                                    "navy",
+                                    "oldlace",
+                                    "olive",
+                                    "olivedrab",
+                                    "orange",
+                                    "orangered",
+                                    "orchid",
+                                    "palegoldenrod",
+                                    "palegreen",
+                                    "paleturquoise",
+                                    "palevioletred",
+                                    "papayawhip",
+                                    "peachpuff",
+                                    "peru",
+                                    "pink",
+                                    "plum",
+                                    "powderblue",
+                                    "purple",
+                                    "red",
+                                    "rosybrown",
+                                    "royalblue",
+                                    "saddlebrown",
+                                    "salmon",
+                                    "sandybrown",
+                                    "seagreen",
+                                    "seashell",
+                                    "sienna",
+                                    "silver",
+                                    "skyblue",
+                                    "slateblue",
+                                    "slategray",
+                                    "slategrey",
+                                    "snow",
+                                    "springgreen",
+                                    "steelblue",
+                                    "tan",
+                                    "teal",
+                                    "thistle",
+                                    "tomato",
+                                    "turquoise",
+                                    "violet",
+                                    "wheat",
+                                    "white",
+                                    "whitesmoke",
+                                    "yellow",
+                                    "yellowgreen"
+                                ],
+                                "type": "string"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "label": {
+                        "title": "Label",
+                        "type": "string"
+                    },
+                    "tooltip": {
+                        "title": "Tooltip",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "position",
+                    "radius",
+                    "color"
+                ]
+            },
+            "State": {
+                "title": "State",
+                "type": "object",
+                "properties": {
+                    "root": {
+                        "title": "Root",
+                        "description": "Root of the node tree.",
+                        "allOf": [
+                            {
+                                "$ref": "#/definitions/Node"
+                            }
+                        ]
+                    },
+                    "metadata": {
+                        "title": "Metadata",
+                        "description": "Associated metadata.",
+                        "allOf": [
+                            {
+                                "$ref": "#/definitions/Metadata"
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "root",
+                    "metadata"
+                ],
+                "definitions": {
+                    "Node": {
+                        "title": "Node",
+                        "type": "object",
+                        "properties": {
+                            "kind": {
+                                "title": "Kind",
+                                "description": "The type of this node.",
+                                "enum": [
+                                    "root",
+                                    "camera",
+                                    "canvas",
+                                    "color",
+                                    "color_from_source",
+                                    "color_from_uri",
+                                    "component",
+                                    "component_from_source",
+                                    "component_from_uri",
+                                    "download",
+                                    "focus",
+                                    "generic_visuals",
+                                    "label",
+                                    "label_from_source",
+                                    "label_from_uri",
+                                    "line",
+                                    "parse",
+                                    "representation",
+                                    "sphere",
+                                    "structure",
+                                    "tooltip",
+                                    "tooltip_from_source",
+                                    "tooltip_from_uri",
+                                    "transform"
+                                ],
+                                "type": "string"
+                            },
+                            "params": {
+                                "title": "Params",
+                                "description": "Optional params that are needed for this node.",
+                                "type": "object"
+                            },
+                            "children": {
+                                "title": "Children",
+                                "description": "Optional collection of nested child nodes.",
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/Node"
+                                }
+                            }
+                        },
+                        "required": [
+                            "kind"
+                        ]
+                    },
+                    "Metadata": {
+                        "title": "Metadata",
+                        "type": "object",
+                        "properties": {
+                            "version": {
+                                "title": "Version",
+                                "description": "Version of the spec used to write this tree.",
+                                "type": "string"
+                            },
+                            "title": {
+                                "title": "Title",
+                                "description": "Name of this view.",
+                                "type": "string"
+                            },
+                            "description": {
+                                "title": "Description",
+                                "description": "Detailed description of this view.",
+                                "type": "string"
+                            },
+                            "description_format": {
+                                "title": "Description Format",
+                                "description": "Format of the description.",
+                                "enum": [
+                                    "markdown",
+                                    "plaintext"
+                                ],
+                                "type": "string"
+                            },
+                            "timestamp": {
+                                "title": "Timestamp",
+                                "description": "Timestamp when this view was exported.",
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "version",
+                            "timestamp"
+                        ]
+                    }
+                }
+            },
+            "StructureParams": {
+                "title": "StructureParams",
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "title": "Type",
+                        "enum": [
+                            "model",
+                            "assembly",
+                            "symmetry",
+                            "symmetry_mates"
+                        ],
+                        "type": "string"
+                    },
+                    "assembly_id": {
+                        "title": "Assembly Id",
+                        "description": "Use the name to specify which assembly to load",
+                        "type": "string"
+                    },
+                    "assembly_index": {
+                        "title": "Assembly Index",
+                        "description": "0-based assembly index, use this to load the 1st assembly",
+                        "type": "integer"
+                    },
+                    "model_index": {
+                        "title": "Model Index",
+                        "description": "0-based model index in case multiple NMR frames are present",
+                        "type": "integer"
+                    },
+                    "block_index": {
+                        "title": "Block Index",
+                        "description": "0-based block index in case multiple mmCIF or SDF data blocks are present",
+                        "type": "integer"
+                    },
+                    "block_header": {
+                        "title": "Block Header",
+                        "description": "Reference a specific mmCIF or SDF data block by its block header",
+                        "type": "string"
+                    },
+                    "radius": {
+                        "title": "Radius",
+                        "description": "Radius around model coordinates when loading symmetry mates",
+                        "type": "number"
+                    },
+                    "ijk_min": {
+                        "title": "Ijk Min",
+                        "description": "Bottom-left Miller indices",
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "integer"
+                            }
+                        ]
+                    },
+                    "ijk_max": {
+                        "title": "Ijk Max",
+                        "description": "Top-right Miller indices",
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "integer"
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "type"
+                ]
+            },
+            "TooltipFromSourceParams": {
+                "title": "TooltipFromSourceParams",
+                "type": "object",
+                "properties": {
+                    "category_name": {
+                        "title": "Category Name",
+                        "type": "string"
+                    },
+                    "field_name": {
+                        "title": "Field Name",
+                        "description": "Name of the column in CIF that contains the desired value (color/label/tooltip/component...); the default value is 'color'/'label'/'tooltip'/'component' depending on the node kind",
+                        "type": "string"
+                    },
+                    "block_header": {
+                        "title": "Block Header",
+                        "type": "string"
+                    },
+                    "block_index": {
+                        "title": "Block Index",
+                        "type": "integer"
+                    },
+                    "schema": {
+                        "title": "Schema",
+                        "enum": [
+                            "whole_structure",
+                            "entity",
+                            "chain",
+                            "auth_chain",
+                            "residue",
+                            "auth_residue",
+                            "residue_range",
+                            "auth_residue_range",
+                            "atom",
+                            "auth_atom",
+                            "all_atomic"
+                        ],
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "category_name",
+                    "schema"
+                ]
+            },
+            "TooltipFromUriParams": {
+                "title": "TooltipFromUriParams",
+                "type": "object",
+                "properties": {
+                    "uri": {
+                        "title": "Uri",
+                        "type": "string"
+                    },
+                    "format": {
+                        "title": "Format",
+                        "enum": [
+                            "cif",
+                            "bcif",
+                            "json"
+                        ],
+                        "type": "string"
+                    },
+                    "category_name": {
+                        "title": "Category Name",
+                        "description": "Only applies when format is 'cif' or 'bcif'",
+                        "type": "string"
+                    },
+                    "field_name": {
+                        "title": "Field Name",
+                        "description": "Name of the column in CIF or field name (key) in JSON that contains the desired value (color/label/tooltip/component...); the default value is 'color'/'label'/'tooltip'/'component' depending on the node kind",
+                        "type": "string"
+                    },
+                    "block_header": {
+                        "title": "Block Header",
+                        "description": "Only applies when format is 'cif' or 'bcif'",
+                        "type": "string"
+                    },
+                    "block_index": {
+                        "title": "Block Index",
+                        "description": "Only applies when format is 'cif' or 'bcif'",
+                        "type": "integer"
+                    },
+                    "schema": {
+                        "title": "Schema",
+                        "enum": [
+                            "whole_structure",
+                            "entity",
+                            "chain",
+                            "auth_chain",
+                            "residue",
+                            "auth_residue",
+                            "residue_range",
+                            "auth_residue_range",
+                            "atom",
+                            "auth_atom",
+                            "all_atomic"
+                        ],
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "uri",
+                    "format",
+                    "schema"
+                ]
+            },
+            "TooltipInlineParams": {
+                "title": "TooltipInlineParams",
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "title": "Text",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "text"
+                ]
+            },
+            "TransformParams": {
+                "title": "TransformParams",
+                "type": "object",
+                "properties": {
+                    "rotation": {
+                        "title": "Rotation",
+                        "description": "In a column major (j * 3 + i indexing) format, this is equivalent to Fortran-order in numpy, to be multiplied from the left",
+                        "type": "array",
+                        "items": {
+                            "type": "number"
+                        }
+                    },
+                    "translation": {
+                        "title": "Translation",
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "number"
+                            }
+                        ]
+                    }
+                }
+            },
+            "_DataFromSourceParams": {
+                "title": "_DataFromSourceParams",
+                "type": "object",
+                "properties": {
+                    "category_name": {
+                        "title": "Category Name",
+                        "type": "string"
+                    },
+                    "field_name": {
+                        "title": "Field Name",
+                        "description": "Name of the column in CIF that contains the desired value (color/label/tooltip/component...); the default value is 'color'/'label'/'tooltip'/'component' depending on the node kind",
+                        "type": "string"
+                    },
+                    "block_header": {
+                        "title": "Block Header",
+                        "type": "string"
+                    },
+                    "block_index": {
+                        "title": "Block Index",
+                        "type": "integer"
+                    },
+                    "schema": {
+                        "title": "Schema",
+                        "enum": [
+                            "whole_structure",
+                            "entity",
+                            "chain",
+                            "auth_chain",
+                            "residue",
+                            "auth_residue",
+                            "residue_range",
+                            "auth_residue_range",
+                            "atom",
+                            "auth_atom",
+                            "all_atomic"
+                        ],
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "category_name",
+                    "schema"
+                ]
+            },
+            "_DataFromUriParams": {
+                "title": "_DataFromUriParams",
+                "type": "object",
+                "properties": {
+                    "uri": {
+                        "title": "Uri",
+                        "type": "string"
+                    },
+                    "format": {
+                        "title": "Format",
+                        "enum": [
+                            "cif",
+                            "bcif",
+                            "json"
+                        ],
+                        "type": "string"
+                    },
+                    "category_name": {
+                        "title": "Category Name",
+                        "description": "Only applies when format is 'cif' or 'bcif'",
+                        "type": "string"
+                    },
+                    "field_name": {
+                        "title": "Field Name",
+                        "description": "Name of the column in CIF or field name (key) in JSON that contains the desired value (color/label/tooltip/component...); the default value is 'color'/'label'/'tooltip'/'component' depending on the node kind",
+                        "type": "string"
+                    },
+                    "block_header": {
+                        "title": "Block Header",
+                        "description": "Only applies when format is 'cif' or 'bcif'",
+                        "type": "string"
+                    },
+                    "block_index": {
+                        "title": "Block Index",
+                        "description": "Only applies when format is 'cif' or 'bcif'",
+                        "type": "integer"
+                    },
+                    "schema": {
+                        "title": "Schema",
+                        "enum": [
+                            "whole_structure",
+                            "entity",
+                            "chain",
+                            "auth_chain",
+                            "residue",
+                            "auth_residue",
+                            "residue_range",
+                            "auth_residue_range",
+                            "atom",
+                            "auth_atom",
+                            "all_atomic"
+                        ],
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "uri",
+                    "format",
+                    "schema"
+                ]
+            },
+            "Component": {
+                "title": "Component",
+                "type": "object",
+                "properties": {}
+            },
+            "Download": {
+                "title": "Download",
+                "type": "object",
+                "properties": {}
+            },
+            "GenericVisuals": {
+                "title": "GenericVisuals",
+                "type": "object",
+                "properties": {}
+            },
+            "Parse": {
+                "title": "Parse",
+                "type": "object",
+                "properties": {}
+            },
+            "Representation": {
+                "title": "Representation",
+                "type": "object",
+                "properties": {}
+            },
+            "Root": {
+                "title": "Root",
+                "type": "object",
+                "properties": {}
+            },
+            "Structure": {
+                "title": "Structure",
+                "type": "object",
+                "properties": {}
+            },
+            "_Base": {
+                "title": "_Base",
+                "type": "object",
+                "properties": {}
+            }
+        }
+    }
+}

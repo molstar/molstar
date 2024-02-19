@@ -42,6 +42,8 @@ A simple example of a MVS tree showing PDB structure 1cbs:
 
 A complete list of supported node types and their parameters is described by the [MVS tree schema](./mvs-tree-schema.md).
 
+An OpenAPI JSON schema is avalaible in [molviewspec-v1-openapi-schema.json](./molviewspec-v1-openapi-schema.json).
+
 ### Encoding
 
 #### MVSJ
