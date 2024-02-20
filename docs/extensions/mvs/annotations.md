@@ -101,6 +101,8 @@ assuming that the JSON annotation file shown in the previous section is availabl
 
 The `uri` parameter can also hold a URI reference (relative URI). In such cases, this URI reference is relative to the URI of the MVS file itself (e.g. if the MVS file is available from `https://example.org/spanish/inquisition/expectations.mvsj`, then the relative URI `./annotations.json` is equivalent to `https://example.org/spanish/inquisition/annotations.json`). This is however not applicable in all cases (e.g. the MVS tree can be constructed ad-hoc within a web application, therefore it has no URI; or the MVS file is loaded from a local disk using drag&drop, therefore the relative location is not accessible by the browser).
 
+ A special case is when the MVS tree is saved in MVSX format. An MVSX file is a ZIP archive containing the MVS tree in `index.mvsj` and possibly other files. In this case, the relative URIs will resolve to the files within the archive (e.g. `./annotations.json` points to the file `annotations.json` stored in the MSVX archive).
+
 ### From source
 
 The MVS annotations can in fact be stored within the same mmCIF file from which the structure coordinates are loaded. To reference these annotations, we can use `color_from_source`, `label_from_source`, `tooltip_from_source`, and `component_from_source` nodes. Example:
