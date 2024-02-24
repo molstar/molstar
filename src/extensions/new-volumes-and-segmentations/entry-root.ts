@@ -333,6 +333,15 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         }
     }
 
+    async updateMetadata() {
+        const metadata = await this.api.getMetadata(this.source, this.entryId);
+        this.metadata = new MetadataWrapper(metadata);
+        // trigger update of state to re-render UI
+        const params = this.getStateNode().obj?.data;
+        if (params) {
+            this.currentState.next(params);
+        }
+    }
 
     async register(ref: string) {
         this.ref = ref;

@@ -29,7 +29,8 @@ import { createSegmentKey, parseSegmentKey } from './volseg-api/utils';
 import Markdown from 'react-markdown';
 import { Asset } from '../../mol-util/assets';
 import { DescriptionData, SegmentAnnotationData } from './volseg-api/data';
-
+import React from "react";
+import JSONEditorComponent from './jsoneditor-component';
 
 interface VolsegUIData {
     globalState?: VolsegGlobalStateData,
@@ -140,11 +141,14 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
 
     const currentTimeframe = useBehavior(entryData.currentTimeframe);
     console.log('Current timframe is: ', currentTimeframe);
+    console.log('UI re-rendered');
+    const annotationsJson = entryData.metadata.raw.annotation;
     return <>
         {/* Title */}
         <div style={{ fontWeight: 'bold', padding: 8, paddingTop: 6, paddingBottom: 4, overflow: 'hidden' }}>
             {entryData.metadata.raw.annotation?.name ?? 'Unnamed Annotation'}
         </div>
+        <JSONEditorComponent jsonData={annotationsJson} entryData={entryData}/>
 
         {/* Fitted models */}
         {allPdbs.length > 0 && <ExpandGroup header='Fitted models in PDB' initiallyExpanded>
