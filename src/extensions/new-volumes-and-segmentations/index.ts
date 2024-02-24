@@ -99,12 +99,12 @@ export const LoadVolseg = StateAction.build({
         if (entryNode.data) {
             const entryData = entryNode.data;
             // const currentTimeframe = entryData.currentTimeframe.value;
-            const hasVolumes = entryNode.data.metadata.raw.grid.volumes.volume_sampling_info.spatial_downsampling_levels.length > 0;
+            const hasVolumes = entryNode.data.metadata.value!.raw.grid.volumes.volume_sampling_info.spatial_downsampling_levels.length > 0;
             if (hasVolumes) {
                 const group = await entryNode.data.volumeData.createVolumeGroup();
                 const updatedChannelsData = [];
                 const results = [];
-                const channelIds = entryNode.data.metadata.raw.grid.volumes.channel_ids;
+                const channelIds = entryNode.data.metadata.value!.raw.grid.volumes.channel_ids;
                 for (const channelId of channelIds) {
                     const volumeParams = { timeframeIndex: 0, channelId: channelId };
                     const volumeNode = await state.build().to(group).apply(ProjectVolumeData, volumeParams, { tags: [VOLUME_NODE_TAG] }).commit();
@@ -125,12 +125,12 @@ export const LoadVolseg = StateAction.build({
                 await entryNode.data.updateStateNode({ channelsData: [...updatedChannelsData] });
             }
 
-            const hasLattices = entryNode.data.metadata.raw.grid.segmentation_lattices;
+            const hasLattices = entryNode.data.metadata.value!.raw.grid.segmentation_lattices;
             if (hasLattices && hasLattices.segmentation_ids.length > 0) {
                 const group = await entryNode.data.latticeSegmentationData.createSegmentationGroup();
                 const segmentationIds = hasLattices.segmentation_ids;
                 for (const segmentationId of segmentationIds) {
-                    const descriptionsForLattice = entryNode.data.metadata.getAllDescriptionsForSegmentationAndTimeframe(
+                    const descriptionsForLattice = entryNode.data.metadata.value!.getAllDescriptionsForSegmentationAndTimeframe(
                         segmentationId,
                         'lattice',
                         0
@@ -147,7 +147,7 @@ export const LoadVolseg = StateAction.build({
                 }
             };
 
-            const hasMeshes = entryNode.data.metadata.raw.grid.segmentation_meshes;
+            const hasMeshes = entryNode.data.metadata.value!.raw.grid.segmentation_meshes;
             if (hasMeshes && hasMeshes.segmentation_ids.length > 0) {
                 // meshes should be rendered as segmentation sets similar to lattices
                 const group = await entryNode.data.meshSegmentationData.createMeshGroup();
@@ -168,10 +168,10 @@ export const LoadVolseg = StateAction.build({
             }
             // for now for a single timeframe;
             // await entryData.geometricSegmentationData.loadGeometricSegmentation(0);
-            const hasGeometricSegmentation = entryData.metadata.raw.grid.geometric_segmentation;
+            const hasGeometricSegmentation = entryData.metadata.value!.raw.grid.geometric_segmentation;
             if (hasGeometricSegmentation && hasGeometricSegmentation.segmentation_ids.length > 0) {
                 const group = await entryNode.data.geometricSegmentationData.createGeometricSegmentationGroup();
-                // const timeInfo = this.entryData.metadata.raw.grid.geometric_segmentation!.time_info;
+                // const timeInfo = this.entryData.metadata.value!.raw.grid.geometric_segmentation!.time_info;
                 for (const segmentationId of hasGeometricSegmentation.segmentation_ids) {
                     const timeframeIndex = 0;
                     const geometricSegmentationParams: ProjectGeometricSegmentationDataParamsValues = {
@@ -182,7 +182,7 @@ export const LoadVolseg = StateAction.build({
                     await entryNode.data.geometricSegmentationData.createGeometricSegmentationRepresentation3D(geometricSegmentationNode, geometricSegmentationParams);
                 }
             }
-            const allAnnotationsForTimeframe = entryData.metadata.getAllAnnotationsForTimeframe(0);
+            const allAnnotationsForTimeframe = entryData.metadata.value!.getAllAnnotationsForTimeframe(0);
             const allSegmentKeysForTimeframe = allAnnotationsForTimeframe.map(a => {
                 return createSegmentKey(a.segment_id, a.segmentation_id, a.segment_kind);
             }

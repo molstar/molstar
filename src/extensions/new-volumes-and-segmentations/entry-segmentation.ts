@@ -36,7 +36,7 @@ export class VolsegLatticeSegmentationData {
     }
 
     async loadSegmentation() {
-        // const hasLattices = this.entryData.metadata.raw.grid.segmentation_lattices.segmentation_ids.length > 0;
+        // const hasLattices = this.entryData.metadata.value!.raw.grid.segmentation_lattices.segmentation_ids.length > 0;
         // if (hasLattices) {
         //     const url = this.entryData.api.latticeUrl(this.entryData.source, this.entryData.entryId, 0, BOX, MAX_VOXELS);
         //     let group = this.entryData.findNodesByTags(GROUP_TAG)[0]?.transform.ref;
@@ -45,7 +45,7 @@ export class VolsegLatticeSegmentationData {
         //             { label: 'Segmentation', description: 'Lattice' }, { tags: [GROUP_TAG], state: { isCollapsed: true } }).commit();
         //         group = newGroupNode.ref;
         //     }
-        //     const segmentLabels = this.entryData.metadata.allSegments.map(seg => ({ id: seg.id, label: seg.biological_annotation.name ? `<b>${seg.biological_annotation.name}</b>` : '' }));
+        //     const segmentLabels = this.entryData.metadata.value!.allSegments.map(seg => ({ id: seg.id, label: seg.biological_annotation.name ? `<b>${seg.biological_annotation.name}</b>` : '' }));
         //     const volumeNode = await this.entryData.newUpdate().to(group)
         //         .apply(Download, { url, isBinary: true, label: `Segmentation Data: ${url}` })
         //         .apply(ParseCif)
@@ -91,9 +91,9 @@ export class VolsegLatticeSegmentationData {
     // creates colors for lattice segments
     private createPalette(segmentIds: number[]) {
         const colorMap = new Map<number, Color>();
-        // for (const segment of this.entryData.metadata.allSegments) {
-        if (this.entryData.metadata.allAnnotations) {
-            for (const annotation of this.entryData.metadata.allAnnotations) {
+        // for (const segment of this.entryData.metadata.value!.allSegments) {
+        if (this.entryData.metadata.value!.allAnnotations) {
+            for (const annotation of this.entryData.metadata.value!.allAnnotations) {
                 if (annotation.color) {
                     const color = Color.fromNormalizedArray(annotation.color, 0);
                     colorMap.set(annotation.segment_id, color);

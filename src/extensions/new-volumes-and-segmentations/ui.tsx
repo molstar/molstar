@@ -128,10 +128,11 @@ function VolsegControls({ plugin, data, setData }: { plugin: PluginContext, data
 
 function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
     const state = useBehavior(entryData.currentState);
-    const allDescriptions = entryData.metadata.allDescriptions;
+    const metadata = useBehavior(entryData.metadata);
+    const allDescriptions = entryData.metadata.value!.allDescriptions;
     const parsedSelectedSegmentKey = parseSegmentKey(state.selectedSegment);
     const { segmentId, segmentationId, kind } = parsedSelectedSegmentKey;
-    const selectedSegmentDescriptions = entryData.metadata.getSegmentDescription(segmentId, segmentationId, kind);
+    const selectedSegmentDescriptions = entryData.metadata.value!.getSegmentDescription(segmentId, segmentationId, kind);
     // NOTE: for now single description
     const selectedSegmentDescription = selectedSegmentDescriptions ? selectedSegmentDescriptions[0] : undefined;
     const visibleSegmentKeys = state.visibleSegments.map(seg => seg.segmentKey);
@@ -142,11 +143,11 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
     const currentTimeframe = useBehavior(entryData.currentTimeframe);
     console.log('Current timframe is: ', currentTimeframe);
     console.log('UI re-rendered');
-    const annotationsJson = entryData.metadata.raw.annotation;
+    const annotationsJson = metadata!.raw.annotation;
     return <>
         {/* Title */}
         <div style={{ fontWeight: 'bold', padding: 8, paddingTop: 6, paddingBottom: 4, overflow: 'hidden' }}>
-            {entryData.metadata.raw.annotation?.name ?? 'Unnamed Annotation'}
+            {metadata!.raw.annotation?.name ?? 'Unnamed Annotation'}
         </div>
         <JSONEditorComponent jsonData={annotationsJson} entryData={entryData}/>
 
@@ -285,7 +286,7 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
 
 function TimeFrameSlider({ entryData }: { entryData: VolsegEntryData }) {
     // gets time info from volume
-    const timeInfo = entryData.metadata.raw.grid.volumes.time_info;
+    const timeInfo = entryData.metadata.value!.raw.grid.volumes.time_info;
     const timeInfoStart = timeInfo.start;
     const timeInfoValue = useBehavior(entryData.currentTimeframe);
     const timeInfoEnd = timeInfo.end;
