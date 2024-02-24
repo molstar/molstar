@@ -171,6 +171,7 @@ function createStats() {
             elements: 0,
             framebuffer: 0,
             program: 0,
+            renderbuffer: 0,
             shader: 0,
             texture: 0,
             cubeTexture: 0,

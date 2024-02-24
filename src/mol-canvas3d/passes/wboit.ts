@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -19,6 +19,7 @@ import { Framebuffer } from '../../mol-gl/webgl/framebuffer';
 import { Vec2 } from '../../mol-math/linear-algebra';
 import { isDebugMode, isTimingMode } from '../../mol-util/debug';
 import { isWebGL2 } from '../../mol-gl/webgl/compat';
+import { Renderbuffer } from '../../mol-gl/webgl/renderbuffer';
 
 const EvaluateWboitSchema = {
     ...QuadSchema,
@@ -51,7 +52,7 @@ export class WboitPass {
     private readonly framebuffer: Framebuffer;
     private readonly textureA: Texture;
     private readonly textureB: Texture;
-    private readonly depthTexture: Texture;
+    private readonly depthRenderbuffer: Renderbuffer;
 
     private _supported = false;
     get supported() {
@@ -89,7 +90,7 @@ export class WboitPass {
         if (width !== w || height !== h) {
             this.textureA.define(width, height);
             this.textureB.define(width, height);
-            this.depthTexture.define(width, height);
+            this.depthRenderbuffer.setSize(width, height);
             ValueCell.update(this.renderable.values.uTexSize, Vec2.set(this.renderable.values.uTexSize.ref.value, width, height));
         }
     }
@@ -109,16 +110,18 @@ export class WboitPass {
 
         this.textureA.attachFramebuffer(this.framebuffer, 'color0');
         this.textureB.attachFramebuffer(this.framebuffer, 'color1');
-        this.depthTexture.attachFramebuffer(this.framebuffer, 'depth');
+
+        this.depthRenderbuffer.attachFramebuffer(this.framebuffer);
     }
 
     static isSupported(webgl: WebGLContext) {
-        const { extensions: { drawBuffers, textureFloat, colorBufferFloat } } = webgl;
-        if (!textureFloat || !colorBufferFloat || !drawBuffers) {
+        const { extensions: { drawBuffers, textureFloat, colorBufferFloat, depthTexture } } = webgl;
+        if (!textureFloat || !colorBufferFloat || !depthTexture || !drawBuffers) {
             if (isDebugMode) {
                 const missing: string[] = [];
                 if (!textureFloat) missing.push('textureFloat');
                 if (!colorBufferFloat) missing.push('colorBufferFloat');
+                if (!depthTexture) missing.push('depthTexture');
                 if (!drawBuffers) missing.push('drawBuffers');
                 console.log(`Missing "${missing.join('", "')}" extensions required for "wboit"`);
             }
@@ -139,10 +142,9 @@ export class WboitPass {
         this.textureB = resources.texture('image-float32', 'rgba', 'float', 'nearest');
         this.textureB.define(width, height);
 
-        this.depthTexture = isWebGL2(gl)
-            ? resources.texture('image-depth', 'depth', 'float', 'nearest')
-            : resources.texture('image-depth', 'depth', 'ushort', 'nearest');
-        this.depthTexture.define(width, height);
+        this.depthRenderbuffer = isWebGL2(gl)
+            ? resources.renderbuffer('depth32f', 'depth', width, height)
+            : resources.renderbuffer('depth16', 'depth', width, height);
 
         this.renderable = getEvaluateWboitRenderable(webgl, this.textureA, this.textureB);
         this.framebuffer = resources.framebuffer();

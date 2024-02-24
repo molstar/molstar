@@ -11,6 +11,7 @@ import { isWebGL2 } from '../../mol-gl/webgl/compat';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Framebuffer } from '../../mol-gl/webgl/framebuffer';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
+import { Renderbuffer } from '../../mol-gl/webgl/renderbuffer';
 import { Texture } from '../../mol-gl/webgl/texture';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { spiral2d } from '../../mol-math/misc';
@@ -45,7 +46,7 @@ export class PickPass {
     private readonly groupPickFramebuffer: Framebuffer;
     private readonly depthPickFramebuffer: Framebuffer;
 
-    private readonly depthTexture: Texture;
+    private readonly depthRenderbuffer: Renderbuffer;
 
     private pickWidth: number;
     private pickHeight: number;
@@ -90,11 +91,11 @@ export class PickPass {
             this.groupPickTexture.attachFramebuffer(this.framebuffer, 'color2');
             this.depthPickTexture.attachFramebuffer(this.framebuffer, 'color3');
 
-            this.depthTexture = isWebGL2(gl)
-                ? resources.texture('image-depth', 'depth', 'float', 'nearest')
-                : resources.texture('image-depth', 'depth', 'ushort', 'nearest');
-            this.depthTexture.define(this.pickWidth, this.pickHeight);
-            this.depthTexture.attachFramebuffer(this.framebuffer, 'depth');
+            this.depthRenderbuffer = isWebGL2(gl)
+                ? resources.renderbuffer('depth32f', 'depth', this.pickWidth, this.pickHeight)
+                : resources.renderbuffer('depth16', 'depth', this.pickWidth, this.pickHeight);
+
+            this.depthRenderbuffer.attachFramebuffer(this.framebuffer);
 
             this.objectPickTexture.attachFramebuffer(this.objectPickFramebuffer, 'color0');
             this.instancePickTexture.attachFramebuffer(this.instancePickFramebuffer, 'color0');
@@ -168,7 +169,7 @@ export class PickPass {
                 this.groupPickTexture.define(this.pickWidth, this.pickHeight);
                 this.depthPickTexture.define(this.pickWidth, this.pickHeight);
 
-                this.depthTexture.define(this.pickWidth, this.pickHeight);
+                this.depthRenderbuffer.setSize(this.pickWidth, this.pickHeight);
             } else {
                 this.objectPickTarget.setSize(this.pickWidth, this.pickHeight);
                 this.instancePickTarget.setSize(this.pickWidth, this.pickHeight);

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -15,6 +15,7 @@ import { QualityAssessment } from '../../extensions/model-archive/quality-assess
 import { ModelExport } from '../../extensions/model-export';
 import { Mp4Export } from '../../extensions/mp4-export';
 import { MolViewSpec } from '../../extensions/mvs/behavior';
+import { loadMVSX } from '../../extensions/mvs/components/formats';
 import { loadMVS } from '../../extensions/mvs/load';
 import { MVSData } from '../../extensions/mvs/mvs-data';
 import { NewVolseg, NewVolsegVolumeServerConfig } from '../../extensions/new-volumes-and-segmentations';
@@ -51,6 +52,7 @@ import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
 import { PluginSpec } from '../../mol-plugin/spec';
 import { PluginState } from '../../mol-plugin/state';
 import { StateObjectRef, StateObjectSelector } from '../../mol-state';
+import { Task } from '../../mol-task';
 import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
@@ -472,25 +474,46 @@ export class Viewer {
         return { model, coords, preset };
     }
 
-    async loadMvsFromUrl(url: string, format: 'mvsj') {
+    async loadMvsFromUrl(url: string, format: 'mvsj' | 'mvsx') {
         if (format === 'mvsj') {
             const data = await this.plugin.runTask(this.plugin.fetch({ url, type: 'string' }));
             const mvsData = MVSData.fromMVSJ(data);
             await loadMVS(this.plugin, mvsData, { sanityChecks: true, sourceUrl: url });
+        } else if (format === 'mvsx') {
+            const data = await this.plugin.runTask(this.plugin.fetch({ url, type: 'binary' }));
+            await this.plugin.runTask(Task.create('Load MVSX file', async ctx => {
+                const parsed = await loadMVSX(this.plugin, ctx, data);
+                await loadMVS(this.plugin, parsed.mvsData, { sanityChecks: true, sourceUrl: parsed.sourceUrl });
+            }));
         } else {
             throw new Error(`Unknown MolViewSpec format: ${format}`);
         }
-        // We might add more formats in the future
     }
 
-    async loadMvsData(data: string, format: 'mvsj') {
+    /** Load MolViewSpec from `data`.
+     * If `format` is 'mvsj', `data` must be a string or a Uint8Array containing a UTF8-encoded string.
+     * If `format` is 'mvsx', `data` must be a Uint8Array or a string containing base64-encoded binary data prefixed with 'base64,'. */
+    async loadMvsData(data: string | Uint8Array, format: 'mvsj' | 'mvsx') {
+        if (typeof data === 'string' && data.startsWith('base64')) {
+            data = Uint8Array.from(atob(data.substring(7)), c => c.charCodeAt(0)); // Decode base64 string to Uint8Array
+        }
         if (format === 'mvsj') {
+            if (typeof data !== 'string') {
+                data = new TextDecoder().decode(data); // Decode Uint8Array to string using UTF8
+            }
             const mvsData = MVSData.fromMVSJ(data);
             await loadMVS(this.plugin, mvsData, { sanityChecks: true, sourceUrl: undefined });
+        } else if (format === 'mvsx') {
+            if (typeof data === 'string') {
+                throw new Error("loadMvsData: if `format` is 'mvsx', then `data` must be a Uint8Array or a base64-encoded string prefixed with 'base64,'.");
+            }
+            await this.plugin.runTask(Task.create('Load MVSX file', async ctx => {
+                const parsed = await loadMVSX(this.plugin, ctx, data as Uint8Array);
+                await loadMVS(this.plugin, parsed.mvsData, { sanityChecks: true, sourceUrl: parsed.sourceUrl });
+            }));
         } else {
             throw new Error(`Unknown MolViewSpec format: ${format}`);
         }
-        // We might add more formats in the future
     }
 
     handleResize() {
