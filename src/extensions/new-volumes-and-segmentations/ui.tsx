@@ -3,7 +3,8 @@
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
-
+import Popup from 'reactjs-popup';
+import 'reactjs-popup/dist/index.css';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { CollapsableControls, CollapsableState } from '../../mol-plugin-ui/base';
@@ -149,8 +150,19 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
         <div style={{ fontWeight: 'bold', padding: 8, paddingTop: 6, paddingBottom: 4, overflow: 'hidden' }}>
             {metadata!.raw.annotation?.name ?? 'Unnamed Annotation'}
         </div>
-        <JSONEditorComponent jsonData={annotationsJson} entryData={entryData}/>
-
+        {/* <JSONEditorComponent jsonData={annotationsJson} entryData={entryData}/> */}
+        <Popup nested trigger={<Button>Open annotation JSON editor</Button>} modal>
+            {/* <span> Modal content </span> */}
+            {close => (
+                <>
+                    <button className="close" onClick={close}>
+                        &times;
+                    </button>
+                    <JSONEditorComponent jsonData={annotationsJson} entryData={entryData}/>
+                </>
+                
+            )}
+        </Popup>
         {/* Fitted models */}
         {allPdbs.length > 0 && <ExpandGroup header='Fitted models in PDB' initiallyExpanded>
             {allPdbs.map(pdb =>
