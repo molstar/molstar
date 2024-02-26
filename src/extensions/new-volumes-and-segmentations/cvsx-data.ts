@@ -3,6 +3,7 @@
  *
  */
 
+import { StateTransforms } from "../../mol-plugin-state/transforms";
 import { PluginContext } from "../../mol-plugin/context";
 import { Asset } from "../../mol-util/assets";
 import { getFileNameInfo } from "../../mol-util/file-info";
@@ -31,7 +32,16 @@ export async function processCvsxFile(file: Asset.File, plugin: PluginContext, f
     // need to await so that the enclosing Task finishes after the update is done.
     const parsed = await provider.parse(plugin, data);
     if (visuals) {
-        await provider.visuals?.(plugin, parsed);
+        const visuals = await provider.visuals?.(plugin, parsed);
+        if (format === 'dscif') {
+            for (const visual of visuals) {
+                const update = plugin.build().to(visual.cell.transform.parent);
+                for (const visual of visuals) {
+                    update.to(visual).update(StateTransforms.Representation.VolumeRepresentation3D, p => { p.type.params.alpha = 0.5; });
+                }
+                await update.commit();
+            }
+        }
     }
 };
 
