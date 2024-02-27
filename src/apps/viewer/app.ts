@@ -55,7 +55,7 @@ import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
-import { CVSXData, processCvsxFile } from '../../extensions/new-volumes-and-segmentations/cvsx-data';
+import { CVSXData, processCvsxAnnotationsFile, processCvsxFile } from '../../extensions/new-volumes-and-segmentations/cvsx-data';
 import { Unzip } from '../../mol-util/zip/zip';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
@@ -491,10 +491,8 @@ export class Viewer {
             const url = Asset.getUrlAsset(this.plugin.managers.asset, urlString);
             const asset = this.plugin.managers.asset.resolve(url, 'zip');
             const zippedFiles = (await asset.run()).data;
-            debugger;
             console.log(zippedFiles);
             for (const [fn, filedata] of Object.entries(zippedFiles)) {
-                debugger;
                 if (!(filedata instanceof Uint8Array) || filedata.length === 0) continue;
                 const asset = Asset.File(new File([filedata], fn));
 
@@ -505,13 +503,20 @@ export class Viewer {
                     fileFormat = 'dscif'; visuals = true;
                 } else if (asset.file?.name.startsWith('segmentation')) {
                     fileFormat = 'segcif'; visuals = true;
+                } else if (asset.file?.name.startsWith('annotations.json')) {
+                    fileFormat = 'annotationsJson'; visuals = false;
                 }
                 // TODO: add data provider for annotations.json;
                 // somehow render right panel UI based on it
                 // maybe copy/import UI function from ui.tsx
                 // and adjust its code so that it can take annotations
-                // from external source 
-                await processCvsxFile(asset, this.plugin, fileFormat, visuals);
+                // from external source
+                if (fileFormat === 'annotationsJson') {
+                    const parsedAnnotations = processCvsxAnnotationsFile(asset, this.plugin);
+                } else {
+                    await processCvsxFile(asset, this.plugin, fileFormat, visuals);
+                }
+                
             }
 
             // then somehow do unzip
@@ -520,8 +525,9 @@ export class Viewer {
             // how to unzip that data
             // no idea
             // should use file instead
-
-            const cvsxData = CVSXData.fromCVSX(zippedFiles);
+            
+            // do not need this
+            // const cvsxData = CVSXData.fromCVSX(zippedFiles);
             // data could contain volume bcif segmentation bcif
             // TODO: should create csvx data model?
             // and use some code from existing transforms?

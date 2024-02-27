@@ -3,16 +3,35 @@
  *
  */
 
+import { createVolumeRepresentationParams } from "../../mol-plugin-state/helpers/volume-representation-params";
 import { StateTransforms } from "../../mol-plugin-state/transforms";
 import { PluginContext } from "../../mol-plugin/context";
 import { Asset } from "../../mol-util/assets";
 import { getFileNameInfo } from "../../mol-util/file-info";
 import { Unzip } from "../../mol-util/zip/zip";
+import { AnnotationMetadata } from "./volseg-api/data";
 
 // import { treeValidationIssues } from './tree/generic/tree-schema';
 // import { treeToString } from './tree/generic/tree-utils';
 // import { Root, createMVSBuilder } from './tree/mvs/mvs-builder';
 // import { MVSTree, MVSTreeSchema } from './tree/mvs/mvs-tree';
+
+// export const BuiltInAnnotationFormats = [
+//     ['annotationsJson', AnnotationsJsonProvider] as const
+// ] as const;
+
+// export type BuiltInAnnotationFormat = (typeof BuiltInAnnotationFormats)[number][0]
+
+export async function processCvsxAnnotationsFile(file: Asset.File, plugin: PluginContext) {
+    // Parse to interface
+    // file.file
+    console.log(file);
+    const asset = plugin.managers.asset.resolve(file, 'string');
+    const data = (await asset.run()).data;
+    const parsedData: AnnotationMetadata = JSON.parse(data);
+    console.log(parsedData);
+    return parsedData;
+}
 
 export async function processCvsxFile(file: Asset.File, plugin: PluginContext, format: string, visuals: boolean) {
     // Need to select provider here
@@ -29,6 +48,10 @@ export async function processCvsxFile(file: Asset.File, plugin: PluginContext, f
         return;
     }
 
+    // TODO: need to first parse annotations.json and pass this information
+    // to processCvsxFile for parsing segmentation
+
+
     // need to await so that the enclosing Task finishes after the update is done.
     const parsed = await provider.parse(plugin, data);
     if (visuals) {
@@ -41,6 +64,31 @@ export async function processCvsxFile(file: Asset.File, plugin: PluginContext, f
                 }
                 await update.commit();
             }
+        } else if (format === 'segcif') {
+            console.log();
+            // TODO: update colors
+            // for (const visual of visuals) {
+            //     const update = plugin.build().to(visual.cell.transform.parent);
+            //     // TODO: segmentationData
+            //     update.to(visual).update(StateTransforms.Representation.VolumeRepresentation3D, p => 
+            //         createVolumeRepresentationParams(plugin, segmentationData, {
+            //             type: 'segment',
+            //             typeParams: { tryUseGpu: false },
+            //             color: 'volume-segment',
+            //             // TODO: createPalette after extracting segment Ids
+            //             // colorParams: { palette: this.createPalette(segmentIds) 
+            //         })
+            //         );
+            //         await update.commit();
+            // }
+            
+            // const segmentationRepresentation3D = await this.entryData.newUpdate().to(segmentationNode)
+            // .apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(this.entryData.plugin, segmentationData, {
+            //     type: 'segment',
+            //     typeParams: { tryUseGpu: VolsegGlobalStateData.getGlobalState(this.entryData.plugin)?.tryUseGpu },
+            //     color: 'volume-segment',
+            //     colorParams: { palette: this.createPalette(segmentIds) },
+            // }), { tags: [SEGMENT_VISUAL_TAG, segmentationId] }).commit();
         }
     }
 };
