@@ -55,7 +55,7 @@ import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
-import { CVSXData, processCvsxAnnotationsFile, processCvsxFile } from '../../extensions/new-volumes-and-segmentations/cvsx-data';
+import { processCvsxAnnotationsFile, processCvsxFile, updateVisualsBasedOnAnnotations } from '../../extensions/new-volumes-and-segmentations/cvsx-data';
 import { Unzip } from '../../mol-util/zip/zip';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
@@ -488,6 +488,8 @@ export class Viewer {
     // TODO: need to set alpha opacity for volume.bcif
     async loadCvsxFromUrl(urlString: string, format: 'cvsx') {
         if (format === 'cvsx') {
+            const visuals = [];
+            let parsedAnnotations = undefined;
             const url = Asset.getUrlAsset(this.plugin.managers.asset, urlString);
             const asset = this.plugin.managers.asset.resolve(url, 'zip');
             const zippedFiles = (await asset.run()).data;
@@ -498,13 +500,13 @@ export class Viewer {
 
                 console.log(asset.file?.name);
                 let fileFormat = 'auto';
-                let visuals = false;
+                let needVisuals = false;
                 if (asset.file?.name.startsWith('volume')) {
-                    fileFormat = 'dscif'; visuals = true;
+                    fileFormat = 'dscif'; needVisuals = true;
                 } else if (asset.file?.name.startsWith('segmentation')) {
-                    fileFormat = 'segcif'; visuals = true;
+                    fileFormat = 'segcif'; needVisuals = true;
                 } else if (asset.file?.name.startsWith('annotations.json')) {
-                    fileFormat = 'annotationsJson'; visuals = false;
+                    fileFormat = 'annotationsJson'; needVisuals = false;
                 }
                 // TODO: add data provider for annotations.json;
                 // somehow render right panel UI based on it
@@ -512,15 +514,20 @@ export class Viewer {
                 // and adjust its code so that it can take annotations
                 // from external source
                 if (fileFormat === 'annotationsJson') {
-                    const parsedAnnotations = processCvsxAnnotationsFile(asset, this.plugin);
+                    parsedAnnotations = await processCvsxAnnotationsFile(asset, this.plugin);
                 } else {
-                    await processCvsxFile(asset, this.plugin, fileFormat, visuals);
+                    const visualsObj = await processCvsxFile(asset, this.plugin, fileFormat, needVisuals);
+                    if (visualsObj) visuals.push(visualsObj);
                 }
+
                 
             }
 
-            // then somehow do unzip
-            debugger;
+            if (parsedAnnotations) {
+                await updateVisualsBasedOnAnnotations(parsedAnnotations, this.plugin, visuals);
+            }
+
+
             // we have data as object where keys are strings and values are uint8arrays
             // how to unzip that data
             // no idea
