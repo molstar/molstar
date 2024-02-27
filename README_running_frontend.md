@@ -8,11 +8,15 @@ NPM and Node.js:
 	```
     git clone https://github.com/aliaksei-chareshneu/molstar-new
     ```
-2. Switch to `new-volumes-and-segmentations` branch:
+2. Change directory to `molstar-new`:
+    ```
+    cd molstar-new
+    ```
+3. Switch to `new-volumes-and-segmentations` branch:
     ```
     git checkout new-volumes-and-segmentations
     ```
-3. Build:
+4. Build:
     ```
     npm install
     npm run build
