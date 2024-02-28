@@ -27,7 +27,7 @@
     * Protein (1BRR, 5Z6Y)
     * DNA (5D3G)
     * Collagen (6JEC)
-* Multiple models with different sets of ligands or missing ligands (1J6T, 1VRC, 2ICY, 1O2F)
+* Multiple models with different sets of ligands or missing ligands (1J6T, 1VRC, 1O2F)
 * Long linear sugar chain (4HG6)
 * Anisotropic B-factors/Ellipsoids (1EJG)
 * NOS bridges (LYS-CSO in 7B0L, 6ZWJ, 6ZWH)
