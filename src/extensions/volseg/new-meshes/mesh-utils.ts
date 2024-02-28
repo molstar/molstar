@@ -6,14 +6,14 @@
 
 /** Helper functions for manipulation with mesh data. */
 
-import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
-import { CIF, CifFile } from '../../mol-io/reader/cif';
-import { Box3D } from '../../mol-math/geometry';
-import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
-import { volumeFromDensityServerData } from '../../mol-model-formats/volume/density-server';
-import { Grid } from '../../mol-model/volume';
-import { ColorNames } from '../../mol-util/color/names';
-import { TypedArray } from '../../mol-util/type-helpers';
+import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
+import { CIF, CifFile } from '../../../mol-io/reader/cif';
+import { Box3D } from '../../../mol-math/geometry';
+import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
+import { volumeFromDensityServerData } from '../../../mol-model-formats/volume/density-server';
+import { Grid } from '../../../mol-model/volume';
+import { ColorNames } from '../../../mol-util/color/names';
+import { TypedArray } from '../../../mol-util/type-helpers';
 
 import { CIF_schema_mesh } from './mesh-cif-schema';
 

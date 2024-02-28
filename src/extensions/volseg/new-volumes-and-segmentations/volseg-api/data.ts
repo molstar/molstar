@@ -4,7 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { Vec3 } from '../../../mol-math/linear-algebra'
+import { Vec3 } from '../../../../mol-math/linear-algebra'
 
 export interface GeometricSegmentationData {
     segmentation_id: string

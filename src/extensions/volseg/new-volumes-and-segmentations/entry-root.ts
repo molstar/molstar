@@ -6,19 +6,19 @@
 
 import { BehaviorSubject, distinctUntilChanged, Subject, throttleTime } from 'rxjs';
 import { NewVolsegVolumeServerConfig } from '.';
-import { Loci } from '../../mol-model/loci';
+import { Loci } from '../../../mol-model/loci';
 
-import { ShapeGroup } from '../../mol-model/shape';
-import { Volume } from '../../mol-model/volume';
-import { LociLabelProvider } from '../../mol-plugin-state/manager/loci-label';
-import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { PluginBehavior } from '../../mol-plugin/behavior';
-import { PluginCommands } from '../../mol-plugin/commands';
-import { PluginContext } from '../../mol-plugin/context';
-import { StateObjectCell, StateSelection, StateTransform } from '../../mol-state';
-import { shallowEqualObjects } from '../../mol-util';
-import { Choice } from '../../mol-util/param-choice';
-import { ParamDefinition } from '../../mol-util/param-definition';
+import { ShapeGroup } from '../../../mol-model/shape';
+import { Volume } from '../../../mol-model/volume';
+import { LociLabelProvider } from '../../../mol-plugin-state/manager/loci-label';
+import { PluginStateObject } from '../../../mol-plugin-state/objects';
+import { PluginBehavior } from '../../../mol-plugin/behavior';
+import { PluginCommands } from '../../../mol-plugin/commands';
+import { PluginContext } from '../../../mol-plugin/context';
+import { StateObjectCell, StateSelection, StateTransform } from '../../../mol-state';
+import { shallowEqualObjects } from '../../../mol-util';
+import { Choice } from '../../../mol-util/param-choice';
+import { ParamDefinition } from '../../../mol-util/param-definition';
 import { isMeshlistData, MeshlistData } from '../new-meshes/mesh-extension';
 
 import { DEFAULT_VOLSEG_SERVER, VolumeApiV2 } from './volseg-api/api';
@@ -33,11 +33,11 @@ import * as ExternalAPIs from './external-api';
 import { VolsegGlobalStateData } from './global-state';
 import { applyEllipsis, isDefined, lazyGetter, splitEntryId } from './helpers';
 import { ProjectDataParamsValues, ProjectGeometricSegmentationDataParamsValues, ProjectSegmentationDataParamsValues, type VolsegStateFromEntry } from './transformers';
-import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { Asset } from '../../mol-util/assets';
-import { PluginComponent } from '../../mol-plugin-state/component';
+import { StateTransforms } from '../../../mol-plugin-state/transforms';
+import { Asset } from '../../../mol-util/assets';
+import { PluginComponent } from '../../../mol-plugin-state/component';
 import { VolsegGeometricSegmentationData } from './entry-geometric-segmentation';
-import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
+import { createVolumeRepresentationParams } from '../../../mol-plugin-state/helpers/volume-representation-params';
 import { CreateShapePrimitiveProviderParamsValues, isShapePrimitiveParamsValues, VolsegGeometricSegmentation } from './shape_primitives';
 
 export const GEOMETRIC_SEGMENTATION_NODE_TAG = 'geometric-segmentation-node';

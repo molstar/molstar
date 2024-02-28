@@ -6,17 +6,17 @@
 
 /** Testing examples for using mesh-extension.ts. */
 
-import { CIF } from '../../mol-io/reader/cif';
-import { Volume } from '../../mol-model/volume';
-import { createStructureRepresentationParams } from '../../mol-plugin-state/helpers/structure-representation-params';
-import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
-import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { PluginContext } from '../../mol-plugin/context';
-import { StateObjectSelector } from '../../mol-state';
-import { Asset } from '../../mol-util/assets';
-import { Color } from '../../mol-util/color';
-import { ParamDefinition } from '../../mol-util/param-definition';
+import { CIF } from '../../../mol-io/reader/cif';
+import { Volume } from '../../../mol-model/volume';
+import { createStructureRepresentationParams } from '../../../mol-plugin-state/helpers/structure-representation-params';
+import { createVolumeRepresentationParams } from '../../../mol-plugin-state/helpers/volume-representation-params';
+import { PluginStateObject } from '../../../mol-plugin-state/objects';
+import { StateTransforms } from '../../../mol-plugin-state/transforms';
+import { PluginContext } from '../../../mol-plugin/context';
+import { StateObjectSelector } from '../../../mol-state';
+import { Asset } from '../../../mol-util/assets';
+import { Color } from '../../../mol-util/color';
+import { ParamDefinition } from '../../../mol-util/param-definition';
 
 import { createMeshFromUrl } from './mesh-extension';
 import { MeshServerInfo } from './mesh-streaming/server-info';

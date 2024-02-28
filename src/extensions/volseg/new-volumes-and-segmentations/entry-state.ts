@@ -4,10 +4,10 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { Choice } from '../../mol-util/param-choice';
-import { Color } from '../../mol-util/color';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { PluginStateObject } from '../../../mol-plugin-state/objects';
+import { Choice } from '../../../mol-util/param-choice';
+import { Color } from '../../../mol-util/color';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 
 export const VolumeTypeChoice = new Choice({ 'isosurface': 'Isosurface', 'direct-volume': 'Direct volume', 'off': 'Off' }, 'isosurface');
 export type VolumeType = Choice.Values<typeof VolumeTypeChoice>

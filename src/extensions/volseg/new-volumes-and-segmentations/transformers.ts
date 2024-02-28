@@ -3,14 +3,14 @@
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
-import { CIF } from '../../mol-io/reader/cif';
-import { volumeFromDensityServerData } from '../../mol-model-formats/volume/density-server';
-import { volumeFromSegmentationData } from '../../mol-model-formats/volume/segmentation';
-import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { PluginContext } from '../../mol-plugin/context';
-import { StateTransformer } from '../../mol-state';
-import { Task } from '../../mol-task';
-import { ParamDefinition } from '../../mol-util/param-definition';
+import { CIF } from '../../../mol-io/reader/cif';
+import { volumeFromDensityServerData } from '../../../mol-model-formats/volume/density-server';
+import { volumeFromSegmentationData } from '../../../mol-model-formats/volume/segmentation';
+import { PluginStateObject } from '../../../mol-plugin-state/objects';
+import { PluginContext } from '../../../mol-plugin/context';
+import { StateTransformer } from '../../../mol-state';
+import { Task } from '../../../mol-task';
+import { ParamDefinition } from '../../../mol-util/param-definition';
 import { MeshData, VolsegMeshData, VolsegMeshDataParams, VolsegMeshSegmentation } from '../new-meshes/mesh-extension';
 
 import { RawMeshSegmentData, VolsegEntry, VolsegEntryData, createVolsegEntryParams } from './entry-root';

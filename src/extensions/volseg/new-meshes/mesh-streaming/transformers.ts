@@ -4,14 +4,14 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
-import { PluginStateObject } from '../../../mol-plugin-state/objects';
-import { PluginContext } from '../../../mol-plugin/context';
-import { ShapeRepresentation } from '../../../mol-repr/shape/representation';
-import { StateAction, StateTransformer } from '../../../mol-state';
-import { Task } from '../../../mol-task';
-import { shallowEqualObjects } from '../../../mol-util';
-import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { Mesh } from '../../../../mol-geo/geometry/mesh/mesh';
+import { PluginStateObject } from '../../../../mol-plugin-state/objects';
+import { PluginContext } from '../../../../mol-plugin/context';
+import { ShapeRepresentation } from '../../../../mol-repr/shape/representation';
+import { StateAction, StateTransformer } from '../../../../mol-state';
+import { Task } from '../../../../mol-task';
+import { shallowEqualObjects } from '../../../../mol-util';
+import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 
 import { BACKGROUND_OPACITY, FOREROUND_OPACITY, MeshlistData, VolsegTransform } from '../mesh-extension';
 import { MeshStreaming, NO_SEGMENT } from './behavior';

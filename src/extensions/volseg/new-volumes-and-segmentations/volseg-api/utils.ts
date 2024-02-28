@@ -4,7 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { Color } from '../../../mol-util/color';
+import { Color } from '../../../../mol-util/color';
 import { DescriptionData, Metadata, ParsedSegmentKey } from './data';
 
 export class MetadataWrapper {

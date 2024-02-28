@@ -4,7 +4,7 @@ import "jsoneditor/dist/jsoneditor.css";
 import { Card } from "primereact/card";
 import { VolsegEntryData } from "./entry-root";
 import { MetadataWrapper } from "./volseg-api/utils";
-import { Button } from "../../mol-plugin-ui/controls/common";
+import { Button } from "../../../mol-plugin-ui/controls/common";
 
 interface JSONEditorComponentProps {
     jsonData: any;

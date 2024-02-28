@@ -5,10 +5,10 @@
  */
 
 import { BehaviorSubject } from 'rxjs';
-import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { PluginBehavior } from '../../mol-plugin/behavior';
-import { PluginContext } from '../../mol-plugin/context';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { PluginStateObject } from '../../../mol-plugin-state/objects';
+import { PluginBehavior } from '../../../mol-plugin/behavior';
+import { PluginContext } from '../../../mol-plugin/context';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { VolsegEntry } from './entry-root';
 import { isDefined } from './helpers';
 

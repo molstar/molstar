@@ -7,22 +7,22 @@
 /** Defines new types of State tree transformers for dealing with mesh data. */
 
 
-import { BaseGeometry, VisualQuality, VisualQualityOptions } from '../../mol-geo/geometry/base';
-import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
-import { CifFile } from '../../mol-io/reader/cif';
-import { Box3D } from '../../mol-math/geometry';
-import { Vec3 } from '../../mol-math/linear-algebra';
-import { Shape } from '../../mol-model/shape';
-import { ShapeProvider } from '../../mol-model/shape/provider';
-import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { Download } from '../../mol-plugin-state/transforms/data';
-import { ShapeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
-import { PluginContext } from '../../mol-plugin/context';
-import { StateObjectRef, StateObjectSelector, StateTransformer } from '../../mol-state';
-import { Task } from '../../mol-task';
-import { Color } from '../../mol-util/color';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { BaseGeometry, VisualQuality, VisualQualityOptions } from '../../../mol-geo/geometry/base';
+import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
+import { CifFile } from '../../../mol-io/reader/cif';
+import { Box3D } from '../../../mol-math/geometry';
+import { Vec3 } from '../../../mol-math/linear-algebra';
+import { Shape } from '../../../mol-model/shape';
+import { ShapeProvider } from '../../../mol-model/shape/provider';
+import { PluginStateObject } from '../../../mol-plugin-state/objects';
+import { StateTransforms } from '../../../mol-plugin-state/transforms';
+import { Download } from '../../../mol-plugin-state/transforms/data';
+import { ShapeRepresentation3D } from '../../../mol-plugin-state/transforms/representation';
+import { PluginContext } from '../../../mol-plugin/context';
+import { StateObjectRef, StateObjectSelector, StateTransformer } from '../../../mol-state';
+import { Task } from '../../../mol-task';
+import { Color } from '../../../mol-util/color';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import * as MeshUtils from './mesh-utils';
 
 

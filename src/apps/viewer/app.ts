@@ -18,7 +18,7 @@ import { MolViewSpec } from '../../extensions/mvs/behavior';
 import { loadMVSX } from '../../extensions/mvs/components/formats';
 import { loadMVS } from '../../extensions/mvs/load';
 import { MVSData } from '../../extensions/mvs/mvs-data';
-import { NewVolseg, NewVolsegVolumeServerConfig } from '../../extensions/new-volumes-and-segmentations';
+import { NewVolseg, NewVolsegVolumeServerConfig } from '../../extensions/volseg/new-volumes-and-segmentations';
 import { PDBeStructureQualityReport } from '../../extensions/pdbe';
 import { RCSBValidationReport } from '../../extensions/rcsb';
 import { AssemblySymmetry, AssemblySymmetryConfig } from '../../extensions/assembly-symmetry';
@@ -57,7 +57,7 @@ import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
-import { processCvsxAnnotationsFile, processCvsxFile, updateVisualsBasedOnAnnotations } from '../../extensions/new-volumes-and-segmentations/cvsx-data';
+import { processCvsxAnnotationsFile, processCvsxFile, updateVisualsBasedOnAnnotations } from '../../extensions/volseg/new-volumes-and-segmentations/cvsx-data';
 import { Unzip } from '../../mol-util/zip/zip';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';

@@ -4,12 +4,12 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { CreateGroup } from '../../mol-plugin-state/transforms/misc';
-import { setSubtreeVisibility } from '../../mol-plugin/behavior/static/state';
-import { PluginCommands } from '../../mol-plugin/commands';
-import { StateObjectSelector } from '../../mol-state';
+import { PluginStateObject } from '../../../mol-plugin-state/objects';
+import { StateTransforms } from '../../../mol-plugin-state/transforms';
+import { CreateGroup } from '../../../mol-plugin-state/transforms/misc';
+import { setSubtreeVisibility } from '../../../mol-plugin/behavior/static/state';
+import { PluginCommands } from '../../../mol-plugin/commands';
+import { StateObjectSelector } from '../../../mol-state';
 import { VolsegEntryData } from './entry-root';
 import { CreateShapePrimitiveProvider, VolsegShapePrimitivesData } from './shape_primitives';
 import { ProjectGeometricSegmentationDataParamsValues, VolsegGeometricSegmentation } from './transformers';

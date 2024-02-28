@@ -4,11 +4,11 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { Download, ParseCif } from '../../mol-plugin-state/transforms/data';
-import { CreateGroup } from '../../mol-plugin-state/transforms/misc';
-import { TrajectoryFromMmCif } from '../../mol-plugin-state/transforms/model';
-import { setSubtreeVisibility } from '../../mol-plugin/behavior/static/state';
-import { StateObjectRef, StateObjectSelector } from '../../mol-state';
+import { Download, ParseCif } from '../../../mol-plugin-state/transforms/data';
+import { CreateGroup } from '../../../mol-plugin-state/transforms/misc';
+import { TrajectoryFromMmCif } from '../../../mol-plugin-state/transforms/model';
+import { setSubtreeVisibility } from '../../../mol-plugin/behavior/static/state';
+import { StateObjectRef, StateObjectSelector } from '../../../mol-state';
 
 import { VolsegEntryData } from './entry-root';
 

@@ -3,16 +3,16 @@
  *
  */
 
-import { Volume } from "../../mol-model/volume";
-import { createVolumeRepresentationParams } from "../../mol-plugin-state/helpers/volume-representation-params";
-import { PluginStateObject } from "../../mol-plugin-state/objects";
-import { StateTransforms } from "../../mol-plugin-state/transforms";
-import { VolumeRepresentation3D } from "../../mol-plugin-state/transforms/representation";
-import { PluginContext } from "../../mol-plugin/context";
-import { Asset } from "../../mol-util/assets";
-import { Color } from "../../mol-util/color";
-import { getFileNameInfo } from "../../mol-util/file-info";
-import { Unzip } from "../../mol-util/zip/zip";
+import { Volume } from "../../../mol-model/volume";
+import { createVolumeRepresentationParams } from "../../../mol-plugin-state/helpers/volume-representation-params";
+import { PluginStateObject } from "../../../mol-plugin-state/objects";
+import { StateTransforms } from "../../../mol-plugin-state/transforms";
+import { VolumeRepresentation3D } from "../../../mol-plugin-state/transforms/representation";
+import { PluginContext } from "../../../mol-plugin/context";
+import { Asset } from "../../../mol-util/assets";
+import { Color } from "../../../mol-util/color";
+import { getFileNameInfo } from "../../../mol-util/file-info";
+import { Unzip } from "../../../mol-util/zip/zip";
 import { AnnotationMetadata } from "./volseg-api/data";
 
 

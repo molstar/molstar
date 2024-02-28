@@ -4,20 +4,20 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { Volume } from '../../mol-model/volume';
-import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
-import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { Download, ParseCif } from '../../mol-plugin-state/transforms/data';
-import { CreateGroup } from '../../mol-plugin-state/transforms/misc';
-import { VolumeFromSegmentationCif } from '../../mol-plugin-state/transforms/volume';
-import { PluginCommands } from '../../mol-plugin/commands';
-import { Color } from '../../mol-util/color';
+import { Volume } from '../../../mol-model/volume';
+import { createVolumeRepresentationParams } from '../../../mol-plugin-state/helpers/volume-representation-params';
+import { StateTransforms } from '../../../mol-plugin-state/transforms';
+import { Download, ParseCif } from '../../../mol-plugin-state/transforms/data';
+import { CreateGroup } from '../../../mol-plugin-state/transforms/misc';
+import { VolumeFromSegmentationCif } from '../../../mol-plugin-state/transforms/volume';
+import { PluginCommands } from '../../../mol-plugin/commands';
+import { Color } from '../../../mol-util/color';
 
 import { BOX, VolsegEntryData, MAX_VOXELS } from './entry-root';
 import { VolumeVisualParams } from './entry-volume';
 import { VolsegGlobalStateData } from './global-state';
-import { StateObjectSelector } from '../../mol-state';
-import { PluginStateObject } from '../../mol-plugin-state/objects';
+import { StateObjectSelector } from '../../../mol-state';
+import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { ProjectSegmentationDataParamsValues } from './transformers';
 import { createSegmentKey, parseSegmentKey } from './volseg-api/utils';
 

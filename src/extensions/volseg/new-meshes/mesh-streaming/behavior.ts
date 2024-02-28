@@ -6,21 +6,21 @@
 
 import { distinctUntilChanged, map } from 'rxjs';
 
-import { CIF } from '../../../mol-io/reader/cif';
-import { Box3D } from '../../../mol-math/geometry';
-import { PluginStateObject } from '../../../mol-plugin-state/objects';
-import { PluginBehavior } from '../../../mol-plugin/behavior';
-import { PluginCommand } from '../../../mol-plugin/command';
-import { PluginCommands } from '../../../mol-plugin/commands';
-import { PluginContext } from '../../../mol-plugin/context';
-import { UUID } from '../../../mol-util';
-import { Asset } from '../../../mol-util/assets';
-import { Color } from '../../../mol-util/color';
-import { ColorNames } from '../../../mol-util/color/names';
-import { Choice } from '../../../mol-util/param-choice';
-import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { CIF } from '../../../../mol-io/reader/cif';
+import { Box3D } from '../../../../mol-math/geometry';
+import { PluginStateObject } from '../../../../mol-plugin-state/objects';
+import { PluginBehavior } from '../../../../mol-plugin/behavior';
+import { PluginCommand } from '../../../../mol-plugin/command';
+import { PluginCommands } from '../../../../mol-plugin/commands';
+import { PluginContext } from '../../../../mol-plugin/context';
+import { UUID } from '../../../../mol-util';
+import { Asset } from '../../../../mol-util/assets';
+import { Color } from '../../../../mol-util/color';
+import { ColorNames } from '../../../../mol-util/color/names';
+import { Choice } from '../../../../mol-util/param-choice';
+import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 
-import { MetadataWrapper } from '../../volumes-and-segmentations/volseg-api/utils';
+import { MetadataWrapper } from '../../../volumes-and-segmentations/volseg-api/utils';
 
 import { MeshlistData } from '../mesh-extension';
 import { MeshServerInfo } from './server-info';

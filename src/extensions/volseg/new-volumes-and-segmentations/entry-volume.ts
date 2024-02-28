@@ -4,18 +4,18 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { Vec2 } from '../../mol-math/linear-algebra';
-import { Volume } from '../../mol-model/volume';
-import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
-import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { Download } from '../../mol-plugin-state/transforms/data';
-import { CreateGroup } from '../../mol-plugin-state/transforms/misc';
-import { setSubtreeVisibility } from '../../mol-plugin/behavior/static/state';
-import { PluginCommands } from '../../mol-plugin/commands';
-import { StateObjectSelector, StateTransform } from '../../mol-state';
-import { Color } from '../../mol-util/color';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { Vec2 } from '../../../mol-math/linear-algebra';
+import { Volume } from '../../../mol-model/volume';
+import { createVolumeRepresentationParams } from '../../../mol-plugin-state/helpers/volume-representation-params';
+import { PluginStateObject } from '../../../mol-plugin-state/objects';
+import { StateTransforms } from '../../../mol-plugin-state/transforms';
+import { Download } from '../../../mol-plugin-state/transforms/data';
+import { CreateGroup } from '../../../mol-plugin-state/transforms/misc';
+import { setSubtreeVisibility } from '../../../mol-plugin/behavior/static/state';
+import { PluginCommands } from '../../../mol-plugin/commands';
+import { StateObjectSelector, StateTransform } from '../../../mol-state';
+import { Color } from '../../../mol-util/color';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 
 import { BOX, VolsegEntryData, MAX_VOXELS } from './entry-root';
 import { VolsegStateParams, VolumeTypeChoice } from './entry-state';

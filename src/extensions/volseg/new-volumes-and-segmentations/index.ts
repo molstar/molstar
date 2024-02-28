@@ -4,12 +4,12 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { PluginStateObject as SO } from '../../mol-plugin-state/objects';
-import { PluginBehavior } from '../../mol-plugin/behavior';
-import { PluginConfigItem } from '../../mol-plugin/config';
-import { PluginContext } from '../../mol-plugin/context';
-import { StateAction } from '../../mol-state';
-import { Task } from '../../mol-task';
+import { PluginStateObject as SO } from '../../../mol-plugin-state/objects';
+import { PluginBehavior } from '../../../mol-plugin/behavior';
+import { PluginConfigItem } from '../../../mol-plugin/config';
+import { PluginContext } from '../../../mol-plugin/context';
+import { StateAction } from '../../../mol-state';
+import { Task } from '../../../mol-task';
 import { DEFAULT_VOLSEG_SERVER, VolumeApiV2 } from './volseg-api/api';
 
 import { GEOMETRIC_SEGMENTATION_NODE_TAG, SEGMENTATION_NODE_TAG, VOLUME_NODE_TAG, VolsegEntryData, VolsegEntryParamValues, createLoadVolsegParams } from './entry-root';
@@ -18,7 +18,7 @@ import { createEntryId } from './helpers';
 import { ProjectGeometricSegmentationData, ProjectGeometricSegmentationDataParamsValues, ProjectMeshData, ProjectMeshSegmentationDataParamsValues, ProjectSegmentationData, ProjectSegmentationDataParamsValues, ProjectVolumeData, VolsegEntryFromRoot, VolsegGlobalStateFromRoot, VolsegStateFromEntry } from './transformers';
 import { VolsegUI } from './ui';
 import { createSegmentKey, getSegmentLabelsFromDescriptions } from './volseg-api/utils';
-import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
+import { useBehavior } from '../../../mol-plugin-ui/hooks/use-behavior';
 
 // TODO: temp change, put there 'localhost'
 const DEBUGGING = typeof window !== 'undefined' ? window?.location?.hostname === 'localhost' || '127.0.0.1' : false;
