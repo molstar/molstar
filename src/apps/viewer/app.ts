@@ -57,7 +57,7 @@ import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
-import { processCvsxAnnotationsFile, processCvsxFile, updateVisualsBasedOnAnnotations } from '../../extensions/volseg/new-volumes-and-segmentations/cvsx-data';
+import { processCvsxAnnotationsFile, processCvsxFile, updateVisualsBasedOnAnnotations } from '../../extensions/volseg/visualize-static-query-zip';
 import { Unzip } from '../../mol-util/zip/zip';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';

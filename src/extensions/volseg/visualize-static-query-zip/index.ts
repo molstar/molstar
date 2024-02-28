@@ -13,7 +13,7 @@ import { Asset } from "../../../mol-util/assets";
 import { Color } from "../../../mol-util/color";
 import { getFileNameInfo } from "../../../mol-util/file-info";
 import { Unzip } from "../../../mol-util/zip/zip";
-import { AnnotationMetadata } from "./volseg-api/data";
+import { AnnotationMetadata } from "../new-volumes-and-segmentations/volseg-api/data";
 
 
 const DEFAULT_SEGMENT_COLOR = Color.fromNormalizedRgb(0.8, 0.8, 0.8);
