@@ -57,6 +57,8 @@ import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
+import { processCvsxAnnotationsFile, processCvsxFile, updateVisualsBasedOnAnnotations } from '../../extensions/new-volumes-and-segmentations/cvsx-data';
+import { Unzip } from '../../mol-util/zip/zip';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { consoleStats, setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
@@ -470,7 +472,6 @@ export class Viewer {
             .commit();
 
         const preset = await plugin.builders.structure.hierarchy.applyPreset(trajectory, params.preset ?? 'default');
-
         return { model, coords, preset };
     }
 
@@ -489,6 +490,70 @@ export class Viewer {
             throw new Error(`Unknown MolViewSpec format: ${format}`);
         }
     }
+
+
+    // TODO: need to parse metadata.json?
+    // TODO: need to set alpha opacity for volume.bcif
+    async loadCvsxFromUrl(urlString: string, format: 'cvsx') {
+        if (format === 'cvsx') {
+            const visuals = [];
+            let parsedAnnotations = undefined;
+            const url = Asset.getUrlAsset(this.plugin.managers.asset, urlString);
+            const asset = this.plugin.managers.asset.resolve(url, 'zip');
+            const zippedFiles = (await asset.run()).data;
+            console.log(zippedFiles);
+            for (const [fn, filedata] of Object.entries(zippedFiles)) {
+                if (!(filedata instanceof Uint8Array) || filedata.length === 0) continue;
+                const asset = Asset.File(new File([filedata], fn));
+
+                console.log(asset.file?.name);
+                let fileFormat = 'auto';
+                let needVisuals = false;
+                if (asset.file?.name.startsWith('volume')) {
+                    fileFormat = 'dscif'; needVisuals = true;
+                } else if (asset.file?.name.startsWith('segmentation')) {
+                    fileFormat = 'segcif'; needVisuals = true;
+                } else if (asset.file?.name.startsWith('annotations.json')) {
+                    fileFormat = 'annotationsJson'; needVisuals = false;
+                }
+                // TODO: add data provider for annotations.json;
+                // somehow render right panel UI based on it
+                // maybe copy/import UI function from ui.tsx
+                // and adjust its code so that it can take annotations
+                // from external source
+                if (fileFormat === 'annotationsJson') {
+                    parsedAnnotations = await processCvsxAnnotationsFile(asset, this.plugin);
+                } else {
+                    const visualsObj = await processCvsxFile(asset, this.plugin, fileFormat, needVisuals);
+                    if (visualsObj) visuals.push(visualsObj);
+                }
+
+                
+            }
+
+            if (parsedAnnotations) {
+                await updateVisualsBasedOnAnnotations(parsedAnnotations, this.plugin, visuals);
+            }
+
+
+            // we have data as object where keys are strings and values are uint8arrays
+            // how to unzip that data
+            // no idea
+            // should use file instead
+            
+            // do not need this
+            // const cvsxData = CVSXData.fromCVSX(zippedFiles);
+            // data could contain volume bcif segmentation bcif
+            // TODO: should create csvx data model?
+            // and use some code from existing transforms?
+            // const cvsxData = MVSData.fromMVSJ(data);
+            // await loadCVSX(this.plugin, cvsxData, { sanityChecks: true, sourceUrl: url });
+        } else {
+            throw new Error(`Unknown cvsx format: ${format}`);
+        }
+        // We might add more formats in the future
+    }
+
 
     /** Load MolViewSpec from `data`.
      * If `format` is 'mvsj', `data` must be a string or a Uint8Array containing a UTF8-encoded string.
