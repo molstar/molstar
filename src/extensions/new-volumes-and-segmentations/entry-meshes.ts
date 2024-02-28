@@ -31,9 +31,9 @@ export class VolsegMeshSegmentationData {
     }
 
     async loadSegmentation() {
-        // const hasMeshes = this.entryData.metadata.meshSegmentIds.length > 0;
+        // const hasMeshes = this.entryData.metadata.value!.meshSegmentIds.length > 0;
         // if (hasMeshes) {
-        //     await this.showSegments(this.entryData.metadata.allSegmentIds);
+        //     await this.showSegments(this.entryData.metadata.value!.allSegmentIds);
         // }
     }
 
@@ -49,7 +49,7 @@ export class VolsegMeshSegmentationData {
     async createMeshRepresentation3D(meshNode: StateObjectSelector<VolsegMeshSegmentation>, params: ProjectMeshSegmentationDataParamsValues) {
         const meshData = meshNode.data!.meshData;
         const ownerId = this.entryData.ref;
-        const totalVolume = this.entryData.metadata.gridTotalVolume;
+        const totalVolume = this.entryData.metadata.value!.gridTotalVolume;
         const segmentationId = params.segmentationId;
         for (const meshDataItem of meshData) {
             const update = this.entryData.plugin.build().to(meshNode);
@@ -79,20 +79,20 @@ export class VolsegMeshSegmentationData {
                 )
                 .commit();
         }
-        // this.entryData.actionShowSegments(this.entryData.metadata.meshSegmentIds);
+        // this.entryData.actionShowSegments(this.entryData.metadata.value!.meshSegmentIds);
     }
 
     getMeshSegmentParams(segmentationId: string, timeframeIndex: number) {
         const params: meshSegmentParamsValues[] = [];
         // segments to create should be extracted from specific mesh segmentation
         // need mesh segmentation id
-        const segmentsToCreate = this.entryData.metadata.getMeshSegmentIdsForSegmentationIdAndTimeframe(segmentationId, timeframeIndex);
-        const segmentAnnotations = this.entryData.metadata.getAllSegmentAnotationsForSegmentationAndTimeframe(
+        const segmentsToCreate = this.entryData.metadata.value!.getMeshSegmentIdsForSegmentationIdAndTimeframe(segmentationId, timeframeIndex);
+        const segmentAnnotations = this.entryData.metadata.value!.getAllSegmentAnotationsForSegmentationAndTimeframe(
             segmentationId,
             'mesh',
             timeframeIndex
         );
-        const descriptions = this.entryData.metadata.getAllDescriptionsForSegmentationAndTimeframe(
+        const descriptions = this.entryData.metadata.value!.getAllDescriptionsForSegmentationAndTimeframe(
             segmentationId,
             'mesh',
             timeframeIndex
@@ -106,7 +106,7 @@ export class VolsegMeshSegmentationData {
             const targetDescription = descriptions.find(d => d.target_id && d.target_id.segment_id === seg && d.target_kind === 'mesh' && d.target_id.segmentation_id === segmentationId);
             const label = targetDescription?.name ?? `Segment ${seg}`;
 
-            const detail = this.entryData.metadata.getSufficientMeshDetail(segmentationId, timeframeIndex, seg, DEFAULT_MESH_DETAIL);
+            const detail = this.entryData.metadata.value!.getSufficientMeshDetail(segmentationId, timeframeIndex, seg, DEFAULT_MESH_DETAIL);
             const segmentParams: meshSegmentParamsValues = {
                 id: seg,
                 label: label,

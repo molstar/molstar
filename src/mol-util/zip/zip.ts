@@ -22,6 +22,9 @@ export function Unzip(buf: ArrayBuffer, onlyNames = false) {
 export async function unzip(runtime: RuntimeContext, buf: ArrayBuffer, onlyNames = false) {
     const out: { [k: string]: Uint8Array | { size: number, csize: number } } = Object.create(null);
     const data = new Uint8Array(buf);
+    if (readUshort(data, 0) !== 0x4b50) {
+        throw new Error('Invalid ZIP file. A valid ZIP file must start with two magic bytes \\x50\\x4b ("PK" in ASCII).');
+    }
     let eocd = data.length - 4;
 
     while (readUint(data, eocd) !== 0x06054b50) eocd--;

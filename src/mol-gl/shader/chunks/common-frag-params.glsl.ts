@@ -91,7 +91,11 @@ float getDepthPacked(const in vec2 coords) {
 }
 
 float getDepth(const in vec2 coords) {
-    return texture2D(tDepth, coords).r;
+    #ifdef depthTextureSupport
+        return texture2D(tDepth, coords).r;
+    #else
+        return unpackRGBAToDepth(texture2D(tDepth, coords));
+    #endif
 }
 
 float calcDepth(const in vec3 pos) {

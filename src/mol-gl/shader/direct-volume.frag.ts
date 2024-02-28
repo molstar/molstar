@@ -146,7 +146,11 @@ float transferFunction(float value) {
 }
 
 float getDepth(const in vec2 coords) {
-    return texture2D(tDepth, coords).r;
+    #ifdef depthTextureSupport
+        return texture2D(tDepth, coords).r;
+    #else
+        return unpackRGBAToDepth(texture2D(tDepth, coords));
+    #endif
 }
 
 const float gradOffset = 0.5;

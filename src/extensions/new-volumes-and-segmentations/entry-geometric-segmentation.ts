@@ -39,8 +39,8 @@ export class VolsegGeometricSegmentationData {
         const gsData: VolsegShapePrimitivesData = gsNode.cell!.obj!.data;
         // const update = this.entryData.plugin.build().to(gsNode);
         const { timeframeIndex, segmentationId } = params;
-        const descriptions = this.entryData.metadata.getAllDescriptionsForSegmentationAndTimeframe(segmentationId, 'primitive', timeframeIndex);
-        const segmentAnnotations = this.entryData.metadata.getAllSegmentAnotationsForSegmentationAndTimeframe(segmentationId, 'primitive', timeframeIndex);
+        const descriptions = this.entryData.metadata.value!.getAllDescriptionsForSegmentationAndTimeframe(segmentationId, 'primitive', timeframeIndex);
+        const segmentAnnotations = this.entryData.metadata.value!.getAllSegmentAnotationsForSegmentationAndTimeframe(segmentationId, 'primitive', timeframeIndex);
         for (const primitiveData of gsData.shapePrimitiveData.shape_primitive_list) {
             await this.entryData.newUpdate().to(gsNode.ref)
             // TODO: can provide a single description and a single segment annotation
@@ -53,7 +53,7 @@ export class VolsegGeometricSegmentationData {
     }
 
     // async loadGeometricSegmentation(timeframeIndex: number) {
-    //     const hasGeometricSegmentation = this.entryData.metadata.raw.grid.geometric_segmentation;
+    //     const hasGeometricSegmentation = this.entryData.metadata.value!.raw.grid.geometric_segmentation;
     //     if (hasGeometricSegmentation && hasGeometricSegmentation.segmentation_ids.length > 0) {
     //         let group = this.entryData.findNodesByTags(GEOMETRIC_SEGMENTATION_GROUP_TAG)[0]?.transform.ref;
     //         if (!group) {
@@ -61,7 +61,7 @@ export class VolsegGeometricSegmentationData {
     //                 { label: 'Segmentation', description: 'Geometric segmentation' }, { tags: [GEOMETRIC_SEGMENTATION_GROUP_TAG], state: { isCollapsed: true } }).commit();
     //             group = newGroupNode.ref;
     //         }
-    //         // const timeInfo = this.entryData.metadata.raw.grid.geometric_segmentation!.time_info;
+    //         // const timeInfo = this.entryData.metadata.value!.raw.grid.geometric_segmentation!.time_info;
     //         for (const segmentationId of hasGeometricSegmentation.segmentation_ids) {
     //             const url = this.entryData.api.geometricSegmentationUrl(this.entryData.source, this.entryData.entryId, segmentationId);
 
@@ -72,8 +72,8 @@ export class VolsegGeometricSegmentationData {
     //             // const t = timeInfo[segmentationId];
     //             // for (let timeframeIndex = t.start; timeframeIndex <= t.end; timeframeIndex++) {
     //             const timeframeData = parsedData.primitives[timeframeIndex];
-    //             const descriptions = this.entryData.metadata.getAllDescriptionsForSegmentationAndTimeframe(segmentationId, 'primitive', timeframeIndex);
-    //             const segmentAnnotations = this.entryData.metadata.getAllSegmentAnotationsForSegmentationAndTimeframe(segmentationId, 'primitive', timeframeIndex);
+    //             const descriptions = this.entryData.metadata.value!.getAllDescriptionsForSegmentationAndTimeframe(segmentationId, 'primitive', timeframeIndex);
+    //             const segmentAnnotations = this.entryData.metadata.value!.getAllSegmentAnotationsForSegmentationAndTimeframe(segmentationId, 'primitive', timeframeIndex);
     //             for (const shapePrimitiveData of timeframeData.shape_primitive_list) {
     //                 const shapePrimitiveNode = await this.entryData.newUpdate().to(group)
     //                 // TODO: can provide a single description and a single segment annotation

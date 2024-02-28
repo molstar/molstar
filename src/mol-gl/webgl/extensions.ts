@@ -11,12 +11,12 @@ export type WebGLExtensions = {
     instancedArrays: COMPAT_instanced_arrays
     elementIndexUint: COMPAT_element_index_uint
     standardDerivatives: COMPAT_standard_derivatives
-    depthTexture: COMPAT_depth_texture
 
     textureFloat: COMPAT_texture_float | null
     textureFloatLinear: COMPAT_texture_float_linear | null
     textureHalfFloat: COMPAT_texture_half_float | null
     textureHalfFloatLinear: COMPAT_texture_half_float_linear | null
+    depthTexture: COMPAT_depth_texture | null
     blendMinMax: COMPAT_blend_minmax | null
     vertexArrayObject: COMPAT_vertex_array_object | null
     fragDepth: COMPAT_frag_depth | null
@@ -54,10 +54,6 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     if (standardDerivatives === null) {
         throw new Error('Could not find support for "standard_derivatives"');
     }
-    const depthTexture = getDepthTexture(gl);
-    if (depthTexture === null) {
-        throw new Error('Could not find support for "depth_texture"');
-    }
 
     const textureFloat = getTextureFloat(gl);
     if (isDebugMode && textureFloat === null) {
@@ -78,6 +74,10 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
         // TODO handle non-support downstream (no gpu gaussian calc, no gpu mc???)
         // - can't be a required extension because it is not supported by `headless-gl`
         console.log('Could not find support for "texture_half_float_linear"');
+    }
+    const depthTexture = getDepthTexture(gl);
+    if (isDebugMode && depthTexture === null) {
+        console.log('Could not find support for "depth_texture"');
     }
     const blendMinMax = getBlendMinMax(gl);
     if (isDebugMode && blendMinMax === null) {
@@ -168,12 +168,12 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
         instancedArrays,
         standardDerivatives,
         elementIndexUint,
-        depthTexture,
 
         textureFloat,
         textureFloatLinear,
         textureHalfFloat,
         textureHalfFloatLinear,
+        depthTexture,
         blendMinMax,
         vertexArrayObject,
         fragDepth,

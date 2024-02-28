@@ -31,7 +31,11 @@ float getViewZ(const in float depth) {
 }
 
 float getDepthOpaque(const in vec2 coords) {
-    return texture2D(tDepthOpaque, coords).r;
+    #ifdef depthTextureSupport
+        return texture2D(tDepthOpaque, coords).r;
+    #else
+        return unpackRGBAToDepth(texture2D(tDepthOpaque, coords));
+    #endif
 }
 
 float getDepthTransparent(const in vec2 coords) {

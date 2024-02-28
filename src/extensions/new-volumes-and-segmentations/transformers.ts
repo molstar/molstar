@@ -55,7 +55,7 @@ export const ProjectVolumeData = CreateTransformer({
             const entry = spine.getAncestorOfType(VolsegEntry);
             const entryData = entry!.data;
             const rawData = await entryData.getData(timeframeIndex, channelId, 'volume') as Uint8Array | string;
-            let label = entryData.metadata.getVolumeChannelLabel(channelId);
+            let label = entryData.metadata.value!.getVolumeChannelLabel(channelId);
             if (!label) label = channelId.toString();
 
             const parsed = await CIF.parse(rawData).runInContext(ctx);
@@ -130,11 +130,11 @@ export const ProjectMeshData = CreateTransformer({
             const entry = spine.getAncestorOfType(VolsegEntry);
             // const entry = a;
             const entryData = entry!.data;
-            const segmentsToCreate = entryData.metadata.getMeshSegmentIdsForSegmentationIdAndTimeframe(segmentationId, timeframeIndex);
+            const segmentsToCreate = entryData.metadata.value!.getMeshSegmentIdsForSegmentationIdAndTimeframe(segmentationId, timeframeIndex);
 
             const group = entryData.findNodesByTags('mesh-segmentation-group')[0]?.transform.ref;
 
-            const totalVolume = entryData.metadata.gridTotalVolume;
+            const totalVolume = entryData.metadata.value!.gridTotalVolume;
             const meshData: MeshData[] = [];
             const segmentsParams = params.meshSegmentParams;
             const rawDataArray: RawMeshSegmentData[] = await entryData.getData(timeframeIndex, segmentationId, 'mesh') as RawMeshSegmentData[];

@@ -4,7 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { DescriptionData, SegmentAnnotationData, type Metadata } from './data';
+import { DescriptionData, SegmentAnnotationData, type Metadata, AnnotationMetadata } from './data';
 
 
 export const DEFAULT_VOLSEG_SERVER = 'https://molstarvolseg.ncbr.muni.cz/v2';
@@ -16,6 +16,21 @@ export class VolumeApiV2 {
     public constructor(volumeServerUrl: string = DEFAULT_VOLSEG_SERVER) {
         this.volumeServerUrl = volumeServerUrl.replace(/\/$/, ''); // trim trailing slash
     }
+
+    // @app.post("/v1/{source}/{id}/annotations_json/update")
+    // async def annotations_json_update(source: str, id: str,
+    //     annotations_json: AnnotationsMetadata = Body(..., embed=True)
+    // ) -> None:
+    public async updateAnnotationsJson(source: string, entryId: string, annotationsJson: AnnotationMetadata) {
+        const url = `${this.volumeServerUrl}/${source}/${entryId}/annotations_json/update`;
+        const obj = JSON.stringify({ annotations_json: annotationsJson });
+        const response = await fetch(url, {
+            method: 'POST',
+            body: obj,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
     // @app.post("/v2/{source}/{id}/descriptions/edit")
     public async editDescriptionsUrl(source: string, entryId: string, descriptionData: DescriptionData[]) {
         const url = `${this.volumeServerUrl}/${source}/${entryId}/descriptions/edit`;

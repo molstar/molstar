@@ -51,9 +51,9 @@ export class VolsegVolumeData {
     }
 
     async loadVolume() {
-        // const hasVolumes = this.entryData.metadata.raw.grid.volumes.volume_downsamplings.length > 0;
+        // const hasVolumes = this.entryData.metadata.value!.raw.grid.volumes.volume_downsamplings.length > 0;
         // if (hasVolumes) {
-        //     const isoLevelPromise = ExternalAPIs.tryGetIsovalue(this.entryData.metadata.raw.grid.general.source_db_id ?? this.entryData.entryId);
+        //     const isoLevelPromise = ExternalAPIs.tryGetIsovalue(this.entryData.metadata.value!.raw.grid.general.source_db_id ?? this.entryData.entryId);
         //     let group = this.entryData.findNodesByTags(GROUP_TAG)[0]?.transform.ref;
         //     if (!group) {
         //         const newGroupNode = await this.entryData.newUpdate().apply(CreateGroup, { label: 'Volume' }, { tags: [GROUP_TAG], state: { isCollapsed: true } }).commit();
@@ -100,10 +100,10 @@ export class VolsegVolumeData {
 
     async createVolumeRepresentation3D(volumeNode: StateObjectSelector<PluginStateObject.Volume.Data>, params: ProjectDataParamsValues) {
         const { timeframeIndex, channelId } = params;
-        const isoLevelPromise = ExternalAPIs.tryGetIsovalue(this.entryData.metadata.raw.annotation?.entry_id.source_db_id ?? this.entryData.entryId);
-        const color = this.entryData.metadata.getVolumeChannelColor(channelId);
+        const isoLevelPromise = ExternalAPIs.tryGetIsovalue(this.entryData.metadata.value!.raw.annotation?.entry_id.source_db_id ?? this.entryData.entryId);
+        const color = this.entryData.metadata.value!.getVolumeChannelColor(channelId);
         const volumeData = volumeNode.cell!.obj!.data;
-        let label = this.entryData.metadata.getVolumeChannelLabel(channelId);
+        let label = this.entryData.metadata.value!.getVolumeChannelLabel(channelId);
         if (!label) label = channelId.toString();
 
         const volumeType = VolumeTypeChoice.defaultValue;

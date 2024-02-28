@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  *
@@ -17,19 +17,21 @@ import path from 'path';
 import pngjs from 'pngjs';
 
 import { Canvas3DParams } from '../../mol-canvas3d/canvas3d';
+import { setCanvasModule } from '../../mol-geo/geometry/text/font-atlas';
 import { PluginContext } from '../../mol-plugin/context';
 import { HeadlessPluginContext } from '../../mol-plugin/headless-plugin-context';
 import { DefaultPluginSpec, PluginSpec } from '../../mol-plugin/spec';
 import { ExternalModules, defaultCanvas3DParams } from '../../mol-plugin/util/headless-screenshot';
+import { Task } from '../../mol-task';
 import { setFSModule } from '../../mol-util/data-source';
 import { onelinerJsonString } from '../../mol-util/json';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
 // MolViewSpec must be imported after HeadlessPluginContext
 import { MolViewSpec } from '../../extensions/mvs/behavior';
+import { loadMVSX } from '../../extensions/mvs/components/formats';
 import { loadMVS } from '../../extensions/mvs/load';
 import { MVSData } from '../../extensions/mvs/mvs-data';
-import { setCanvasModule } from '../../mol-geo/geometry/text/font-atlas';
 
 
 setFSModule(fs);
@@ -48,7 +50,7 @@ interface Args {
 /** Return parsed command line arguments for `main` */
 function parseArguments(): Args {
     const parser = new ArgumentParser({ description: 'Command-line application for rendering images from MolViewSpec files' });
-    parser.add_argument('-i', '--input', { required: true, nargs: '+', help: 'Input file(s) in .mvsj format' });
+    parser.add_argument('-i', '--input', { required: true, nargs: '+', help: 'Input file(s) in .mvsj or .mvsx format. File format is inferred from the file extension.' });
     parser.add_argument('-o', '--output', { required: true, nargs: '+', help: 'File path(s) for output files (one output path for each input file). Output format is inferred from the file extension (.png or .jpg)' });
     parser.add_argument('-s', '--size', { help: `Output image resolution, {width}x{height}. Default: ${DEFAULT_SIZE}.`, default: DEFAULT_SIZE });
     parser.add_argument('-m', '--molj', { action: 'store_true', help: `Save Mol* state (.molj) in addition to rendered images (use the same output file paths but with .molj extension)` });
@@ -75,10 +77,22 @@ async function main(args: Args): Promise<void> {
         const output = args.output[i];
         console.log(`Processing ${input} -> ${output}`);
 
-        const data = fs.readFileSync(input, { encoding: 'utf8' });
-        const mvsData = MVSData.fromMVSJ(data);
+        let mvsData: MVSData;
+        let sourceUrl: string | undefined;
+        if (input.toLowerCase().endsWith('.mvsj')) {
+            const data = fs.readFileSync(input, { encoding: 'utf8' });
+            mvsData = MVSData.fromMVSJ(data);
+            sourceUrl = `file://${path.resolve(input)}`;
+        } else if (input.toLowerCase().endsWith('.mvsx')) {
+            const data = fs.readFileSync(input);
+            const mvsx = await plugin.runTask(Task.create('Load MVSX', async ctx => loadMVSX(plugin, ctx, data)));
+            mvsData = mvsx.mvsData;
+            sourceUrl = mvsx.sourceUrl;
+        } else {
+            throw new Error(`Input file name must end with .mvsj or .mvsx: ${input}`);
+        }
+        await loadMVS(plugin, mvsData, { sanityChecks: true, replaceExisting: true, sourceUrl: sourceUrl });
 
-        await loadMVS(plugin, mvsData, { sanityChecks: true, replaceExisting: true, sourceUrl: `file://${path.resolve(input)}` });
         fs.mkdirSync(path.dirname(output), { recursive: true });
         if (args.molj) {
             await plugin.saveStateSnapshot(withExtension(output, '.molj'));

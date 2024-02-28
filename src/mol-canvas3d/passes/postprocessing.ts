@@ -515,15 +515,21 @@ export class PostprocessingPass {
         const qw = Math.max(1, Math.floor(sw * 0.25));
         const qh = Math.max(1, Math.floor(sh * 0.25));
 
-        this.downsampledDepthTarget = webgl.createRenderTarget(sw, sh, false, 'float32', 'linear', webgl.isWebGL2 ? 'alpha' : 'rgba');
+        this.downsampledDepthTarget = drawPass.packedDepth
+            ? webgl.createRenderTarget(sw, sh, false, 'uint8', 'linear', 'rgba')
+            : webgl.createRenderTarget(sw, sh, false, 'float32', 'linear', webgl.isWebGL2 ? 'alpha' : 'rgba');
         this.downsampleDepthRenderable = createCopyRenderable(webgl, depthTextureOpaque);
 
         const depthTexture = this.ssaoScale === 1 ? depthTextureOpaque : this.downsampledDepthTarget.texture;
 
-        this.depthHalfTarget = webgl.createRenderTarget(hw, hh, false, 'float32', 'linear', webgl.isWebGL2 ? 'alpha' : 'rgba');
+        this.depthHalfTarget = drawPass.packedDepth
+            ? webgl.createRenderTarget(hw, hh, false, 'uint8', 'linear', 'rgba')
+            : webgl.createRenderTarget(hw, hh, false, 'float32', 'linear', webgl.isWebGL2 ? 'alpha' : 'rgba');
         this.depthHalfRenderable = createCopyRenderable(webgl, depthTexture);
 
-        this.depthQuarterTarget = webgl.createRenderTarget(qw, qh, false, 'float32', 'linear', webgl.isWebGL2 ? 'alpha' : 'rgba');
+        this.depthQuarterTarget = drawPass.packedDepth
+            ? webgl.createRenderTarget(qw, qh, false, 'uint8', 'linear', 'rgba')
+            : webgl.createRenderTarget(qw, qh, false, 'float32', 'linear', webgl.isWebGL2 ? 'alpha' : 'rgba');
         this.depthQuarterRenderable = createCopyRenderable(webgl, this.depthHalfTarget.texture);
 
         this.ssaoDepthTexture = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');

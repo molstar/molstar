@@ -243,8 +243,10 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     entryNumber: string;
     /** Full entry ID; e.g. 'emd-1832' */
     entryId: string;
-    metadata: MetadataWrapper;
+    // metadata: MetadataWrapper;
     pdbs: string[];
+
+    public metadata = new BehaviorSubject<MetadataWrapper | undefined>(undefined);
 
     public cachedVolumeTimeframesData = new RawTimeframesDataCache(this, 'volume');
     public cachedSegmentationTimeframesData = new RawTimeframesDataCache(this, 'segmentation');
@@ -277,8 +279,8 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
 
     private async initialize() {
         const metadata = await this.api.getMetadata(this.source, this.entryId);
-        this.metadata = new MetadataWrapper(metadata);
-        this.pdbs = await ExternalAPIs.getPdbIdsForEmdbEntry(this.metadata.raw.annotation?.entry_id.source_db_id ?? this.entryId);
+        this.metadata.next(new MetadataWrapper(metadata));
+        this.pdbs = await ExternalAPIs.getPdbIdsForEmdbEntry(this.metadata.value!.raw.annotation?.entry_id.source_db_id ?? this.entryId);
         // TODO use Asset?
         await this.init();
     }
@@ -319,20 +321,29 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             console.log('data events changed emitted');
             this.sync();
         });
-        const hasVolumes = this.metadata.raw.grid.volumes.volume_sampling_info.spatial_downsampling_levels.length > 0;
+        const hasVolumes = this.metadata.value!.raw.grid.volumes.volume_sampling_info.spatial_downsampling_levels.length > 0;
         if (hasVolumes) {
             await this.preloadVolumeTimeframesData();
         }
-        const hasLattices = this.metadata.raw.grid.segmentation_lattices;
+        const hasLattices = this.metadata.value!.raw.grid.segmentation_lattices;
         if (hasLattices) {
             await this.preloadSegmentationTimeframesData();
         }
-        const hasMeshes = this.metadata.raw.grid.segmentation_meshes;
+        const hasMeshes = this.metadata.value!.raw.grid.segmentation_meshes;
         if (hasMeshes) {
             await this.preloadMeshesTimeframesData();
         }
     }
 
+    async updateMetadata() {
+        const metadata = await this.api.getMetadata(this.source, this.entryId);
+        this.metadata.next(new MetadataWrapper(metadata));
+        // trigger update of state to re-render UI
+        // const params = this.getStateNode().obj?.data;
+        // if (params) {
+        //     this.currentState.next(params);
+        // }
+    }
 
     async register(ref: string) {
         this.ref = ref;
@@ -411,14 +422,14 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     }
 
     async removeSegmentAnnotation(segmentId: number, segmentationId: string, kind: 'lattice' | 'mesh' | 'primitive') {
-        const targetAnnotation = this.metadata.getSegmentAnnotation(segmentId, segmentationId, kind);
+        const targetAnnotation = this.metadata.value!.getSegmentAnnotation(segmentId, segmentationId, kind);
         this.api.removeSegmentAnnotationsUrl(this.source, this.entryId, [targetAnnotation!.id]);
-        this.metadata.removeSegmentAnnotation(targetAnnotation!.id);
+        this.metadata.value!.removeSegmentAnnotation(targetAnnotation!.id);
     }
 
     async removeDescription(descriptionId: string) {
         this.api.removeDescriptionsUrl(this.source, this.entryId, [descriptionId]);
-        this.metadata.removeDescription(descriptionId);
+        this.metadata.value!.removeDescription(descriptionId);
     }
 
     async editDescriptions(descriptionData: DescriptionData[]) {
@@ -457,9 +468,9 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     async _loadRawMeshSegmentationData(timeframe: number, segmentationId: string) {
         const segmentsData: RawMeshSegmentData[] = [];
         // need to have segmentsToCreate for given segmentationId and timeframe index
-        const segmentsToCreate = this.metadata.getMeshSegmentIdsForSegmentationIdAndTimeframe(segmentationId, timeframe);
+        const segmentsToCreate = this.metadata.value!.getMeshSegmentIdsForSegmentationIdAndTimeframe(segmentationId, timeframe);
         for (const seg of segmentsToCreate) {
-            const detail = this.metadata.getSufficientMeshDetail(segmentationId, timeframe, seg, DEFAULT_MESH_DETAIL);
+            const detail = this.metadata.value!.getSufficientMeshDetail(segmentationId, timeframe, seg, DEFAULT_MESH_DETAIL);
             const urlString = this.api.meshUrl_Bcif(this.source, this.entryId, segmentationId, timeframe, seg, detail);
             const data = await this._resolveBinaryUrl(urlString);
             segmentsData.push(
@@ -555,17 +566,17 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     }
 
     async preloadVolumeTimeframesData() {
-        const timeInfo = this.metadata.raw.grid.volumes.time_info;
-        const channelIds = this.metadata.raw.grid.volumes.channel_ids;
+        const timeInfo = this.metadata.value!.raw.grid.volumes.time_info;
+        const channelIds = this.metadata.value!.raw.grid.volumes.channel_ids;
         this.loadRawChannelsData(timeInfo, channelIds);
         console.log('cachedVolumeTimeframesData');
         console.log(this.cachedVolumeTimeframesData);
     }
 
     async preloadSegmentationTimeframesData() {
-        if (this.metadata.raw.grid.segmentation_lattices) {
-            const segmentationIds = this.metadata.raw.grid.segmentation_lattices.segmentation_ids;
-            const timeInfoMapping = this.metadata.raw.grid.segmentation_lattices.time_info;
+        if (this.metadata.value!.raw.grid.segmentation_lattices) {
+            const segmentationIds = this.metadata.value!.raw.grid.segmentation_lattices.segmentation_ids;
+            const timeInfoMapping = this.metadata.value!.raw.grid.segmentation_lattices.time_info;
             this.loadRawLatticeSegmentationData(timeInfoMapping, segmentationIds);
             console.log('cachedSegmentationTimeframesData');
             console.log(this.cachedSegmentationTimeframesData);
@@ -575,9 +586,9 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     }
 
     async preloadMeshesTimeframesData() {
-        if (this.metadata.raw.grid.segmentation_meshes) {
-            const segmentationIds = this.metadata.raw.grid.segmentation_meshes.segmentation_ids;
-            const timeInfoMapping = this.metadata.raw.grid.segmentation_meshes.time_info;
+        if (this.metadata.value!.raw.grid.segmentation_meshes) {
+            const segmentationIds = this.metadata.value!.raw.grid.segmentation_meshes.segmentation_ids;
+            const timeInfoMapping = this.metadata.value!.raw.grid.segmentation_meshes.time_info;
             this.loadRawMeshSegmentationData(timeInfoMapping, segmentationIds);
             console.log('cachedMeshesTimeframesData');
             console.log(this.cachedMeshesTimeframesData);
@@ -607,7 +618,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             const oldParams: ProjectSegmentationDataParamsValues = s.transform.params;
             // TODO: here get descriptions for segmentation and timeframe
             // and set segmentLabels
-            const descriptionsForLattice = this.metadata.getAllDescriptionsForSegmentationAndTimeframe(
+            const descriptionsForLattice = this.metadata.value!.getAllDescriptionsForSegmentationAndTimeframe(
                 oldParams.segmentationId,
                 'lattice',
                 this.currentTimeframe.value
@@ -630,7 +641,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             const oldParams: ProjectGeometricSegmentationDataParamsValues = s.transform.params;
             // TODO: here get descriptions for segmentation and timeframe
             // and set segmentLabels
-            // const descriptionsForLattice = this.metadata.getAllDescriptionsForSegmentationAndTimeframe(
+            // const descriptionsForLattice = this.metadata.value!.getAllDescriptionsForSegmentationAndTimeframe(
             //     oldParams.segmentationId,
             //     'lattice',
             //     this.currentTimeframe.value
@@ -649,7 +660,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     // async loadSegmentations() {
     //     await this.latticeSegmentationData.loadSegmentation();
     //     await this.meshSegmentationData.loadSegmentation();
-    //     await this.actionShowSegments(this.metadata.allSegmentIds);
+    //     await this.actionShowSegments(this.metadata.value!.allSegmentIds);
     // }
 
     changeCurrentTimeframe(index: number) {
@@ -702,8 +713,8 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     async actionToggleAllSegments() {
         const currentTimeframe = this.currentTimeframe.value;
         const current = this.currentState.value.visibleSegments.map(seg => seg.segmentKey);
-        if (current.length !== this.metadata.getAllAnnotationsForTimeframe(currentTimeframe).length) {
-            const allSegmentKeys = this.metadata.getAllAnnotationsForTimeframe(currentTimeframe).map(a =>
+        if (current.length !== this.metadata.value!.getAllAnnotationsForTimeframe(currentTimeframe).length) {
+            const allSegmentKeys = this.metadata.value!.getAllAnnotationsForTimeframe(currentTimeframe).map(a =>
                 createSegmentKey(a.segment_id, a.segmentation_id, a.segment_kind)
             );
             await this.actionShowSegments(allSegmentKeys);
@@ -784,9 +795,9 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     }
 
     async actionShowSegments(segmentKeys: string[]) {
-        const allExistingLatticeSegmentationIds = this.metadata.raw.grid.segmentation_lattices!.segmentation_ids;
-        const allExistingMeshSegmentationIds = this.metadata.raw.grid.segmentation_meshes!.segmentation_ids;
-        const allExistingGeometricSegmentationIds = this.metadata.raw.grid.geometric_segmentation!.segmentation_ids;
+        const allExistingLatticeSegmentationIds = this.metadata.value!.raw.grid.segmentation_lattices!.segmentation_ids;
+        const allExistingMeshSegmentationIds = this.metadata.value!.raw.grid.segmentation_meshes!.segmentation_ids;
+        const allExistingGeometricSegmentationIds = this.metadata.value!.raw.grid.geometric_segmentation!.segmentation_ids;
         if (segmentKeys.length === 0) {
             for (const id of allExistingLatticeSegmentationIds) {
                 await this.latticeSegmentationData.showSegments([], id);
@@ -884,7 +895,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             const segmentationKind = this.getSegmentationKindFromLoci(loci);
             if (segmentId === undefined || !segmentationId || !segmentationKind) return;
             // const segmentKey = createSegmentKey(segmentId, segmentationId, segmentationKind);
-            const descriptions = this.metadata.getSegmentDescription(segmentId, segmentationId, segmentationKind);
+            const descriptions = this.metadata.value!.getSegmentDescription(segmentId, segmentationId, segmentationKind);
             if (!descriptions) return;
 
             // theoretically there can be multiple descriptions

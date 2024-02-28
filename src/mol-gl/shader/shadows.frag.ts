@@ -48,7 +48,11 @@ float getViewZ(const in float depth) {
 }
 
 float getDepth(const in vec2 coords) {
-    return texture2D(tDepth, coords).r;
+    #ifdef depthTextureSupport
+        return texture2D(tDepth, coords).r;
+    #else
+        return unpackRGBAToDepth(texture2D(tDepth, coords));
+    #endif
 }
 
 float screenFade(const in vec2 coords) {
