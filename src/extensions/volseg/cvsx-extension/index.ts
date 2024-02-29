@@ -187,9 +187,6 @@ export async function processCvsxFile(file: Asset.File, plugin: PluginContext, f
             .to(parsed.volumes[0])
             .apply(StateTransforms.Representation.VolumeRepresentation3D, params, { tags: CVSX_LATTICE_SEGMENTATION_VISUAL_TAG })
             .commit();
-
-        await update.commit();
-
     }
 
     // TODO: if format 'segcif'
