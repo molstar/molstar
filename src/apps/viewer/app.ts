@@ -57,7 +57,7 @@ import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
-import { processCvsxAnnotationsFile, processCvsxFile, updateVisualsBasedOnAnnotations } from '../../extensions/volseg/visualize-static-query-zip';
+import { VisualizeStaticQueryZip, processCvsxAnnotationsFile, processCvsxFile, updateVisualsBasedOnAnnotations } from '../../extensions/volseg/cvsx-extension';
 import { Unzip } from '../../mol-util/zip/zip';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
@@ -69,6 +69,7 @@ const CustomFormats = [
 
 export const ExtensionMap = {
     // 'volseg': PluginSpec.Behavior(Volseg),
+    'visualize-static-query-zip': PluginSpec.Behavior(VisualizeStaticQueryZip),
     'new-volseg': PluginSpec.Behavior(NewVolseg),
     'backgrounds': PluginSpec.Behavior(Backgrounds),
     'dnatco-ntcs': PluginSpec.Behavior(DnatcoNtCs),
@@ -492,11 +493,9 @@ export class Viewer {
     }
 
 
-    // TODO: need to parse metadata.json?
-    // TODO: need to set alpha opacity for volume.bcif
     async loadCvsxFromUrl(urlString: string, format: 'cvsx') {
         if (format === 'cvsx') {
-            const visuals = [];
+            const outputs = [];
             let parsedAnnotations = undefined;
             const url = Asset.getUrlAsset(this.plugin.managers.asset, urlString);
             const asset = this.plugin.managers.asset.resolve(url, 'zip');
@@ -524,30 +523,20 @@ export class Viewer {
                 if (fileFormat === 'annotationsJson') {
                     parsedAnnotations = await processCvsxAnnotationsFile(asset, this.plugin);
                 } else {
-                    const visualsObj = await processCvsxFile(asset, this.plugin, fileFormat, needVisuals);
-                    if (visualsObj) visuals.push(visualsObj);
+                    const outputByFormat = await processCvsxFile(asset, this.plugin, fileFormat, needVisuals);
+                    if (outputByFormat) outputs.push(outputByFormat);
                 }
 
                 
             }
 
-            if (parsedAnnotations) {
-                await updateVisualsBasedOnAnnotations(parsedAnnotations, this.plugin, visuals);
-            }
+            // if (parsedAnnotations) {
+            //     await updateVisualsBasedOnAnnotations(parsedAnnotations, this.plugin, outputs);
+            // }
 
 
-            // we have data as object where keys are strings and values are uint8arrays
-            // how to unzip that data
-            // no idea
-            // should use file instead
-            
-            // do not need this
-            // const cvsxData = CVSXData.fromCVSX(zippedFiles);
-            // data could contain volume bcif segmentation bcif
-            // TODO: should create csvx data model?
-            // and use some code from existing transforms?
-            // const cvsxData = MVSData.fromMVSJ(data);
-            // await loadCVSX(this.plugin, cvsxData, { sanityChecks: true, sourceUrl: url });
+            // TODO: need to pass this to extension
+
         } else {
             throw new Error(`Unknown cvsx format: ${format}`);
         }
