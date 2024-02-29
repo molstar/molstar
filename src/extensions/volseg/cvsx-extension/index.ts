@@ -72,60 +72,16 @@ function createPaletteCVSX(annotations: AnnotationMetadata) {
     }
 }
 
-export async function updateVisualsBasedOnAnnotations(annotations: AnnotationMetadata, plugin: PluginContext, outputByFormats: OutputByFormat[]) {
-    for (const vs of outputByFormats) {
-        const { format, visuals, parsed } = vs;
-        debugger;
-        if (format === 'dscif') {
-            for (let i = 0; i < visuals.length; i++) {
-                const visual = visuals[i];
-                const parsedOne: Volume = parsed.volumes[0].data;
+function findNodesByRef(plugin: PluginContext, ref: string) {
+    return plugin.state.data.selectQ(q => q.byRef(ref).subtree())[0];
+}
 
-                const update = plugin.build().to(visual.cell.transform.parent);
-                const newParams = createVolumeRepresentationParams(plugin, parsedOne, {
-                    type: 'isosurface',
-                    typeParams: { isoValue: Volume.IsoValue.relative(1.5), alpha: 0.2 },
-                    color: 'uniform',
-                    colorParams: { value: ColorNames.black }
-                })
-                // for (const visual of visuals) {
-                // TODO: works, try applyOrUpdate 
-                // update.to(visual).update(StateTransforms.Representation.VolumeRepresentation3D, p => { p.type.params.alpha = 0.2; p.colorTheme.params.value = Color.fromHexStyle('#000000')});
-
-                // this update overwrites the previous one
-                update.to(visual).applyOrUpdate(visual.ref, StateTransforms.Representation.VolumeRepresentation3D, newParams, { tags: ['CSVX-volume'] });
-                // TODO: update volume channel annotations if any similar to labels
-                // TODO: update isolevel?
-                // const isoLevelPromise = ExternalAPIs.tryGetIsovalue(this.entryData.metadata.raw.annotation?.entry_id.source_db_id ?? this.entryData.entryId);
-                // const color = this.entryData.metadata.getVolumeChannelColor(channelId);
-                // const volumeData = volumeNode.cell!.obj!.data;
-                // let label = this.entryData.metadata.getVolumeChannelLabel(channelId);
-                // if (!label) label = channelId.toString();
-                // }
-                await update.commit();
-                console.log(visual);
-                debugger;
-            }
-        } else if (format === 'segcif') {
-            for (let i = 0; i < visuals.length; i++) {
-                const visual = visuals[i];
-                const parsedOne: Volume = parsed.volumes[0].data;
-                const update = plugin.build().to(visual.cell.transform.parent);
-                const params = createVolumeRepresentationParams(plugin, parsedOne, {
-                    type: 'segment',
-                    typeParams: { tryUseGpu: false },
-                    color: 'volume-segment',
-                    colorParams: {
-                        palette: createPaletteCVSX(annotations)
-                    });
-                update.to(visual).update(StateTransforms.Representation.VolumeRepresentation3D, p =>
-                    params
-                );
-                await update.commit();
-            }
-
-        }
-    }
+function findNodesByTags(plugin: PluginContext, ...tags: string[]) {
+    return plugin.state.data.selectQ(q => {
+        let builder = q.root.subtree();
+        for (const tag of tags) builder = builder.withTag(tag);
+        return builder;
+    });
 }
 
 export async function processCvsxAnnotationsFile(file: Asset.File, plugin: PluginContext) {
@@ -137,7 +93,7 @@ export async function processCvsxAnnotationsFile(file: Asset.File, plugin: Plugi
     return parsedData;
 }
 
-export async function processCvsxFile(file: Asset.File, plugin: PluginContext, format: string, visuals: boolean) {
+export async function processCvsxFile(file: Asset.File, plugin: PluginContext, format: string, annotations?: AnnotationMetadata) {
     // Need to select provider here
     const info = getFileNameInfo(file.file?.name ?? '');
     const isBinary = plugin.dataFormats.binaryExtensions.has(info.ext);
@@ -174,19 +130,32 @@ export async function processCvsxFile(file: Asset.File, plugin: PluginContext, f
         // with default params
         const parsedOne: Volume = parsed.volumes[0].data;
         const update = plugin.build().toRoot();
-        const params = createVolumeRepresentationParams(plugin, parsedOne, {
-            type: 'segment',
-            typeParams: { tryUseGpu: false },
-            color: 'volume-segment',
-            // colorParams: {
-            //     palette: createPaletteCVSX(annotations)
-            // }
-        }
-        );
-        const volumeRepresentation3D = await update
+        if (annotations) {
+            const params = createVolumeRepresentationParams(plugin, parsedOne, {
+                type: 'segment',
+                typeParams: { tryUseGpu: false },
+                color: 'volume-segment',
+                colorParams: {
+                    palette: createPaletteCVSX(annotations)
+                }
+            })
+            const volumeRepresentation3D = await update
             .to(parsed.volumes[0])
             .apply(StateTransforms.Representation.VolumeRepresentation3D, params, { tags: CVSX_LATTICE_SEGMENTATION_VISUAL_TAG })
             .commit();
+        } else {
+            const params = createVolumeRepresentationParams(plugin, parsedOne, {
+                type: 'segment',
+                typeParams: { tryUseGpu: false },
+                color: 'volume-segment',
+            })
+            const volumeRepresentation3D = await update
+            .to(parsed.volumes[0])
+            .apply(StateTransforms.Representation.VolumeRepresentation3D, params, { tags: CVSX_LATTICE_SEGMENTATION_VISUAL_TAG })
+            .commit();
+        }
+        
+        
     }
 
     // TODO: if format 'segcif'

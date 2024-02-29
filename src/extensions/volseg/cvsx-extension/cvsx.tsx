@@ -65,14 +65,11 @@ class CVSXStateModel extends PluginComponent {
     mount() {
         // Probably update state here as well
         const volumeVisualNodes = this.findNodesByTags(CVSX_VOLUME_VISUAL_TAG);
-        console.log(volumeVisualNodes);
-        debugger;
         this.state.next({ props: {
             volumes: volumeVisualNodes,
             segmentations: undefined,
             annotations: undefined
         } });
-        debugger;
         const obs = combineLatest([
             this.plugin.behaviors.state.isBusy,
             this.plugin.state.data.events.cell.stateUpdated
