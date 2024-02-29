@@ -22,6 +22,8 @@ import { StateTransform } from '../../../mol-state/transform';
 import { setSubtreeVisibility } from '../../../mol-plugin/behavior/static/state';
 import { PluginCommands } from '../../../mol-plugin/commands';
 
+export const CVSX_VOLUME_VISUAL_TAG = 'CVSX-volume-visual';
+export const CVSX_LATTICE_SEGMENTATION_VISUAL_TAG = 'CVSX-lattice-segmentation-visual';
 
 export class CSVXUI extends CollapsableControls<{}, {}> {
     protected defaultState(): CollapsableState {
@@ -62,7 +64,7 @@ class CVSXStateModel extends PluginComponent {
 
     mount() {
         // Probably update state here as well
-        const volumeVisualNodes = this.findNodesByTags('CVSX-volume');
+        const volumeVisualNodes = this.findNodesByTags(CVSX_VOLUME_VISUAL_TAG);
         console.log(volumeVisualNodes);
         debugger;
         this.state.next({ props: {
@@ -79,7 +81,7 @@ class CVSXStateModel extends PluginComponent {
             if (busy) return;
             // TODO:
             // 1. query state tree for volume visuals
-            const volumeVisualNodes = this.findNodesByTags('CVSX-volume');
+            const volumeVisualNodes = this.findNodesByTags(CVSX_VOLUME_VISUAL_TAG);
             // volumeVisualNodes[0].transform.ref
             // we need them to initialize Volume Controls in right panel
             // (volume channel controls)
@@ -167,14 +169,12 @@ function CVSXFileControls({ plugin }: { plugin: PluginContext }) {
         <>
             {props.volumes && props.volumes.map(v => {
                 console.log('v', v);
-                // return <div key={v.transform.ref}>Volume Tranform Ref: {v.transform.ref}</div>
                 const transform = v.transform;
                 if (!transform) return null;
                 const volumeValues: SimpleVolumeParamValues = {
                     volumeType: transform.state.isHidden ? 'off' : transform.params?.type.name as any,
                     opacity: transform.params?.type.params.alpha,
                 };
-                // TODO: add action in onchangeValues
                 return <div key={v.transform.ref}>
                     <WaitingParameterControls params={SimpleVolumeParams} values={volumeValues} onChangeValues={async next => { await sleep(20); await model.updateVolumeVisual(next, transform)}} />
                     <UpdateTransformControl state={plugin.state.data} transform={transform} customHeader='none' />
@@ -185,6 +185,6 @@ function CVSXFileControls({ plugin }: { plugin: PluginContext }) {
 
 
         <Button onClick={model.doSomething}>Do something</Button>
-        {/* <Button onClick={() => {const n = model.findNodesByTags('CVSX-volume'); console.log('NODES'); console.log(n)}}>Find nodes by Tag</Button> */}
+        {/* <Button onClick={() => {const n = model.findNodesByTags(CVSX_VOLUME_TAG); console.log('NODES'); console.log(n)}}>Find nodes by Tag</Button> */}
     </>;
 }

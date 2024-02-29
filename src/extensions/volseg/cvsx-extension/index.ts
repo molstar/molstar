@@ -16,7 +16,7 @@ import { ColorNames } from "../../../mol-util/color/names";
 import { getFileNameInfo } from "../../../mol-util/file-info";
 import { Unzip } from "../../../mol-util/zip/zip";
 import { AnnotationMetadata } from "../new-volumes-and-segmentations/volseg-api/data";
-import { CSVXUI } from "./cvsx";
+import { CSVXUI, CVSX_LATTICE_SEGMENTATION_VISUAL_TAG, CVSX_VOLUME_VISUAL_TAG } from "./cvsx";
 import { VisualizeStaticQueryZipUI } from "./ui";
 
 // TODO: where VolsegEntryData is used
@@ -154,7 +154,6 @@ export async function processCvsxFile(file: Asset.File, plugin: PluginContext, f
 
     // need to await so that the enclosing Task finishes after the update is done.
     const parsed = await provider.parse(plugin, data);
-    // TODO: create visual here similar to volumes-and-segmentations
     if (format === 'dscif') {
         const parsedOne: Volume = parsed.volumes[0].data;
         const update = plugin.build().toRoot();
@@ -165,16 +164,37 @@ export async function processCvsxFile(file: Asset.File, plugin: PluginContext, f
             color: 'uniform',
             colorParams: { value: ColorNames.black }
         })
-        
+
         const volumeRepresentation3D = await update
             .to(parsed.volumes[0])
-            .apply(StateTransforms.Representation.VolumeRepresentation3D, newParams, { tags: ['CVSX-volume'] })
+            .apply(StateTransforms.Representation.VolumeRepresentation3D, newParams, { tags: [CVSX_VOLUME_VISUAL_TAG] })
             .commit();
+    } else if (format === 'segcif') {
+        // TODO: create visual but with default colours
+        // with default params
+        const parsedOne: Volume = parsed.volumes[0].data;
+        const update = plugin.build().toRoot();
+        const params = createVolumeRepresentationParams(plugin, parsedOne, {
+            type: 'segment',
+            typeParams: { tryUseGpu: false },
+            color: 'volume-segment',
+            // colorParams: {
+            //     palette: createPaletteCVSX(annotations)
+            // }
+        }
+        );
+        const volumeRepresentation3D = await update
+            .to(parsed.volumes[0])
+            .apply(StateTransforms.Representation.VolumeRepresentation3D, params, { tags: CVSX_LATTICE_SEGMENTATION_VISUAL_TAG })
+            .commit();
+
+        await update.commit();
+
     }
 
     // TODO: if format 'segcif'
 
-    
+
     // if (visuals) {
     //     const visuals = await provider.visuals?.(plugin, parsed);
     //     const visualsByFormats: OutputByFormat = {
