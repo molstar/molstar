@@ -229,3 +229,58 @@ const AssignColorVolume = PluginStateTransform.BuiltIn({
         });
     }
 });
+
+export type VolumeTransform = typeof VolumeTransform;
+export const VolumeTransform = PluginStateTransform.BuiltIn({
+    name: 'volume-transform',
+    display: { name: 'Transform Volume' },
+    isDecorator: true,
+    from: SO.Volume.Data,
+    to: SO.Volume.Data,
+    params: {
+        transform: PD.MappedStatic(
+            'matrix',
+            // TODO: support "components" based rotation
+            {
+                matrix: PD.Group(
+                    {
+                        data: PD.Mat4(Mat4.identity()),
+                        transpose: PD.Boolean(false),
+                    },
+                    { isFlat: true }
+                ),
+            },
+            { label: 'Kind' }
+        ),
+    },
+})({
+    canAutoUpdate({ newParams }) {
+        return newParams.transform.name !== 'matrix';
+    },
+    apply({ a, params }) {
+        // similar to StateTransforms.Model.TransformStructureConformation;
+        const transform = Mat4();
+        let gridTransform = { ...a.data.grid.transform };
+        Mat4.copy(transform, params.transform.params.data);
+        if (params.transform.params.transpose) Mat4.transpose(transform, transform);
+        const origMat =
+        a.data.grid.transform.kind === 'matrix'
+            ? a.data.grid.transform.matrix
+            : Grid.getGridToCartesianTransform(a.data.grid);
+        gridTransform = {
+            kind: 'matrix',
+            matrix: Mat4.mul(Mat4(), transform, origMat),
+        };
+        const v = {
+            ...a.data,
+            grid: {
+                ...a.data.grid,
+                transform: gridTransform,
+            },
+        };
+        return new SO.Volume.Data(v, {
+            label: a.label,
+            description: `${a.description} [Transformed]`,
+        });
+    },
+});
