@@ -495,19 +495,15 @@ export class Viewer {
 
     async loadCvsxFromUrl(urlString: string, format: 'cvsx') {
         if (format === 'cvsx') {
-            const outputs = [];
             let parsedAnnotations = undefined;
             const url = Asset.getUrlAsset(this.plugin.managers.asset, urlString);
             const asset = this.plugin.managers.asset.resolve(url, 'zip');
             const zippedFiles = (await asset.run()).data;
-            console.log(zippedFiles);
 
-            // TODO: process annotations here, provide it to process annotation files
             const zippedFilesEntries = Object.entries(zippedFiles);
             const annotationJSONEntry = zippedFilesEntries.find(z => z[0] === 'annotations.json');
             if (annotationJSONEntry) {
                 const [fn, filedata] = annotationJSONEntry;
-                // if (!(filedata instanceof Uint8Array) || filedata.length === 0) ;
                 const asset = Asset.File(new File([filedata], fn));
                 parsedAnnotations = await processCvsxAnnotationsFile(asset, this.plugin);
                 console.log('parsedAnnotations', parsedAnnotations);
@@ -519,24 +515,14 @@ export class Viewer {
 
                 console.log(asset.file?.name);
                 let fileFormat = 'auto';
-                // let needVisuals = false;
                 if (asset.file?.name.startsWith('volume')) {
                     fileFormat = 'dscif';
                     await processCvsxFile(asset, this.plugin, fileFormat);
                 } else if (asset.file?.name.startsWith('segmentation')) {
                     fileFormat = 'segcif';
-                    // TODO: provide annotations if file format is segcif and if annotations are present
                     await processCvsxFile(asset, this.plugin, fileFormat, parsedAnnotations);
-
                 }
             }
-
-            // if (parsedAnnotations) {
-            //     await updateVisualsBasedOnAnnotations(parsedAnnotations, this.plugin, outputs);
-            // }
-
-
-            // TODO: need to pass this to extension
 
         } else {
             throw new Error(`Unknown cvsx format: ${format}`);

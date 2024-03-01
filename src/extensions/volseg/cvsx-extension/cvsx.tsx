@@ -10,17 +10,18 @@ import { useEffect, useRef } from 'react';
 import { BehaviorSubject, combineLatest } from 'rxjs';
 import { PluginComponent } from '../../../mol-plugin-state/component';
 import { CollapsableControls, CollapsableState } from '../../../mol-plugin-ui/base';
-import { Button } from '../../../mol-plugin-ui/controls/common';
+import { Button, ControlRow } from '../../../mol-plugin-ui/controls/common';
 import { GetAppSvg } from '../../../mol-plugin-ui/controls/icons';
 import { useBehavior } from '../../../mol-plugin-ui/hooks/use-behavior';
 import { PluginContext } from '../../../mol-plugin/context';
 import { SimpleVolumeParamValues, SimpleVolumeParams, VolumeVisualParams } from '../new-volumes-and-segmentations/entry-volume';
 import { UpdateTransformControl } from '../../../mol-plugin-ui/state/update-transform';
-import { WaitingParameterControls } from '../new-volumes-and-segmentations/ui';
+import { WaitingParameterControls, WaitingSlider } from '../new-volumes-and-segmentations/ui';
 import { sleep } from '../../../mol-util/sleep';
 import { StateTransform } from '../../../mol-state/transform';
 import { setSubtreeVisibility } from '../../../mol-plugin/behavior/static/state';
 import { PluginCommands } from '../../../mol-plugin/commands';
+import { StateTransforms } from '../../../mol-plugin-state/transforms';
 
 export const CVSX_VOLUME_VISUAL_TAG = 'CVSX-volume-visual';
 export const CVSX_LATTICE_SEGMENTATION_VISUAL_TAG = 'CVSX-lattice-segmentation-visual';
@@ -65,9 +66,10 @@ class CVSXStateModel extends PluginComponent {
     mount() {
         // Probably update state here as well
         const volumeVisualNodes = this.findNodesByTags(CVSX_VOLUME_VISUAL_TAG);
+        const latticeSegmentationVisualNodes = this.findNodesByTags(CVSX_LATTICE_SEGMENTATION_VISUAL_TAG);
         this.state.next({ props: {
             volumes: volumeVisualNodes,
-            segmentations: undefined,
+            segmentations: latticeSegmentationVisualNodes,
             annotations: undefined
         } });
         const obs = combineLatest([
@@ -79,6 +81,7 @@ class CVSXStateModel extends PluginComponent {
             // TODO:
             // 1. query state tree for volume visuals
             const volumeVisualNodes = this.findNodesByTags(CVSX_VOLUME_VISUAL_TAG);
+            const latticeSegmentationVisualNodes = this.findNodesByTags(CVSX_LATTICE_SEGMENTATION_VISUAL_TAG);
             // volumeVisualNodes[0].transform.ref
             // we need them to initialize Volume Controls in right panel
             // (volume channel controls)
@@ -92,7 +95,7 @@ class CVSXStateModel extends PluginComponent {
             // query state tree for all relevant info
             this.state.next({ props: {
                 volumes: volumeVisualNodes,
-                segmentations: undefined,
+                segmentations: latticeSegmentationVisualNodes,
                 annotations: undefined
             } });
         });
@@ -104,6 +107,17 @@ class CVSXStateModel extends PluginComponent {
 
     doSomething = () => {
 
+    };
+
+    // NOTE: currently works for all segmentations at once
+    updateSegmentationOpacity = async (opacity: number) => {
+        const reprs = this.state.value.props.segmentations;
+        const update = this.plugin.build().toRoot();
+        console.log(reprs);
+        for (const s of reprs) {
+            update.to(s).update(StateTransforms.Representation.VolumeRepresentation3D, p => { p.type.params.alpha = opacity; });
+        }
+        return await update.commit();
     };
 
     updateVolumeVisual = async (newParams: SimpleVolumeParamValues, transform: StateTransform) => {
@@ -131,7 +145,7 @@ class CVSXStateModel extends PluginComponent {
             const update = this.plugin.build().toRoot().to(visual.transform.ref).update(newVisualParams);
             await PluginCommands.State.Update(this.plugin, { state: this.plugin.state.data, tree: update, options: { doNotUpdateCurrent: true } });
         }
-    }
+    };
 
     constructor(public plugin: PluginContext) {
         super();
@@ -161,7 +175,6 @@ function CVSXFileControls({ plugin }: { plugin: PluginContext }) {
         {/* TODO: create props first */}
         {/* {state.props} */}
         {/* TODO: here render UI based on props */}
-        {/* {console.log(state.props)} */}
         {/* check how volume controls are rendered in volseg ui */}
         <>
             {props.volumes && props.volumes.map(v => {
@@ -177,6 +190,12 @@ function CVSXFileControls({ plugin }: { plugin: PluginContext }) {
                     <UpdateTransformControl state={plugin.state.data} transform={transform} customHeader='none' />
                 </div>;
 
+            })}
+            {props.segmentations && props.segmentations.map(s => {
+                // Opacity of segmentation can get from its visual
+                return <ControlRow key={s.transform.ref} label='Opacity' control={
+                    <WaitingSlider min={0} max={1} value={s.transform.params.type.params.alpha} step={0.05} onChange={async v => await model.updateSegmentationOpacity(v)} />
+                } />
             })}
         </>
 
