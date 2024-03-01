@@ -16,7 +16,7 @@ import { ColorNames } from "../../../mol-util/color/names";
 import { getFileNameInfo } from "../../../mol-util/file-info";
 import { Unzip } from "../../../mol-util/zip/zip";
 import { AnnotationMetadata } from "../new-volumes-and-segmentations/volseg-api/data";
-import { CSVXUI, CVSX_LATTICE_SEGMENTATION_VISUAL_TAG, CVSX_VOLUME_VISUAL_TAG } from "./cvsx";
+import { CSVXUI, CVSX_ANNOTATIONS_FILE_TAG, CVSX_LATTICE_SEGMENTATION_VISUAL_TAG, CVSX_VOLUME_VISUAL_TAG } from "./cvsx";
 import { VisualizeStaticQueryZipUI } from "./ui";
 
 // TODO: where VolsegEntryData is used
@@ -87,9 +87,14 @@ function findNodesByTags(plugin: PluginContext, ...tags: string[]) {
 export async function processCvsxAnnotationsFile(file: Asset.File, plugin: PluginContext) {
     // Parse to interface
     // file.file
-    const asset = plugin.managers.asset.resolve(file, 'string');
-    const data = (await asset.run()).data;
-    const parsedData: AnnotationMetadata = JSON.parse(data);
+    const info = getFileNameInfo(file.file?.name ?? '');
+    const isBinary = plugin.dataFormats.binaryExtensions.has(info.ext);
+    // TODO: continue from here, can add tags perhaps?
+    const { data } = await plugin.builders.data.readFile({ file, isBinary }, { tags: [CVSX_ANNOTATIONS_FILE_TAG] });
+    console.log(data);
+    // const asset = plugin.managers.asset.resolve(file, 'string');
+    // const d = (await asset.run()).data;
+    const parsedData: AnnotationMetadata = JSON.parse(data.cell!.obj!.data as string);
     return parsedData;
 }
 
@@ -140,9 +145,9 @@ export async function processCvsxFile(file: Asset.File, plugin: PluginContext, f
                 }
             })
             const volumeRepresentation3D = await update
-            .to(parsed.volumes[0])
-            .apply(StateTransforms.Representation.VolumeRepresentation3D, params, { tags: CVSX_LATTICE_SEGMENTATION_VISUAL_TAG })
-            .commit();
+                .to(parsed.volumes[0])
+                .apply(StateTransforms.Representation.VolumeRepresentation3D, params, { tags: CVSX_LATTICE_SEGMENTATION_VISUAL_TAG })
+                .commit();
         } else {
             const params = createVolumeRepresentationParams(plugin, parsedOne, {
                 type: 'segment',
@@ -150,12 +155,12 @@ export async function processCvsxFile(file: Asset.File, plugin: PluginContext, f
                 color: 'volume-segment',
             })
             const volumeRepresentation3D = await update
-            .to(parsed.volumes[0])
-            .apply(StateTransforms.Representation.VolumeRepresentation3D, params, { tags: CVSX_LATTICE_SEGMENTATION_VISUAL_TAG })
-            .commit();
+                .to(parsed.volumes[0])
+                .apply(StateTransforms.Representation.VolumeRepresentation3D, params, { tags: CVSX_LATTICE_SEGMENTATION_VISUAL_TAG })
+                .commit();
         }
-        
-        
+
+
     }
 
     // TODO: if format 'segcif'

@@ -25,6 +25,7 @@ import { StateTransforms } from '../../../mol-plugin-state/transforms';
 
 export const CVSX_VOLUME_VISUAL_TAG = 'CVSX-volume-visual';
 export const CVSX_LATTICE_SEGMENTATION_VISUAL_TAG = 'CVSX-lattice-segmentation-visual';
+export const CVSX_ANNOTATIONS_FILE_TAG = 'CVSX-annotations-file';
 
 export class CSVXUI extends CollapsableControls<{}, {}> {
     protected defaultState(): CollapsableState {
@@ -67,13 +68,17 @@ class CVSXStateModel extends PluginComponent {
         // Probably update state here as well
         const volumeVisualNodes = this.findNodesByTags(CVSX_VOLUME_VISUAL_TAG);
         const latticeSegmentationVisualNodes = this.findNodesByTags(CVSX_LATTICE_SEGMENTATION_VISUAL_TAG);
+        const annotationNode = this.findNodesByTags(CVSX_ANNOTATIONS_FILE_TAG);
+        const annotations = JSON.parse(annotationNode[0]!.obj!.data);
         this.state.next({
             props: {
                 volumes: volumeVisualNodes,
                 segmentations: latticeSegmentationVisualNodes,
-                annotations: undefined
+                annotations: annotations
             }
         });
+        console.log('state');
+        console.log(this.state.value);
         const obs = combineLatest([
             this.plugin.behaviors.state.isBusy,
             this.plugin.state.data.events.cell.stateUpdated
@@ -84,6 +89,9 @@ class CVSXStateModel extends PluginComponent {
             // 1. query state tree for volume visuals
             const volumeVisualNodes = this.findNodesByTags(CVSX_VOLUME_VISUAL_TAG);
             const latticeSegmentationVisualNodes = this.findNodesByTags(CVSX_LATTICE_SEGMENTATION_VISUAL_TAG);
+            // TODO: make it not annotationNode, but annotation data
+            const annotationNode = this.findNodesByTags(CVSX_ANNOTATIONS_FILE_TAG);
+            const annotations = JSON.parse(annotationNode[0]!.obj!.data);
             // volumeVisualNodes[0].transform.ref
             // we need them to initialize Volume Controls in right panel
             // (volume channel controls)
@@ -99,7 +107,7 @@ class CVSXStateModel extends PluginComponent {
                 props: {
                     volumes: volumeVisualNodes,
                     segmentations: latticeSegmentationVisualNodes,
-                    annotations: undefined
+                    annotations: annotations
                 }
             });
         });

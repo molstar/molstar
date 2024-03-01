@@ -502,6 +502,7 @@ export class Viewer {
 
             const zippedFilesEntries = Object.entries(zippedFiles);
             const annotationJSONEntry = zippedFilesEntries.find(z => z[0] === 'annotations.json');
+            
             if (annotationJSONEntry) {
                 const [fn, filedata] = annotationJSONEntry;
                 const asset = Asset.File(new File([filedata], fn));
@@ -509,6 +510,8 @@ export class Viewer {
                 console.log('parsedAnnotations', parsedAnnotations);
             }
 
+            
+            // TODO: remove annotations from zippedFilesEntries
             for (const [fn, filedata] of zippedFilesEntries) {
                 if (!(filedata instanceof Uint8Array) || filedata.length === 0) continue;
                 const asset = Asset.File(new File([filedata], fn));
