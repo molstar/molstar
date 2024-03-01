@@ -9,6 +9,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix BinaryCIF decoder edge cases. Fixes mmCIF model export from data provided by ModelServer.
 - MolViewSpec extension: support for MVSX file format
 - Revert "require WEBGL_depth_texture extension" & "remove renderbuffer use"
+- VolumeTransform to translate/rotate a volume like in a structure superposition
+
 
 ## [v4.0.0] - 2023-02-04
 
