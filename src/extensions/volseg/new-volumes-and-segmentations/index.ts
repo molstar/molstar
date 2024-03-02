@@ -12,7 +12,7 @@ import { StateAction } from '../../../mol-state';
 import { Task } from '../../../mol-task';
 import { DEFAULT_VOLSEG_SERVER, VolumeApiV2 } from './volseg-api/api';
 
-import { GEOMETRIC_SEGMENTATION_NODE_TAG, SEGMENTATION_NODE_TAG, VOLUME_NODE_TAG, VolsegEntryData, VolsegEntryParamValues, createLoadVolsegParams } from './entry-root';
+import { GEOMETRIC_SEGMENTATION_NODE_TAG, MESH_SEGMENTATION_NODE_TAG, SEGMENTATION_NODE_TAG, VOLUME_NODE_TAG, VolsegEntryData, VolsegEntryParamValues, createLoadVolsegParams } from './entry-root';
 import { VolsegGlobalState } from './global-state';
 import { createEntryId } from './helpers';
 import { ProjectGeometricSegmentationData, ProjectGeometricSegmentationDataParamsValues, ProjectMeshData, ProjectMeshSegmentationDataParamsValues, ProjectSegmentationData, ProjectSegmentationDataParamsValues, ProjectVolumeData, VolsegEntryFromRoot, VolsegGlobalStateFromRoot, VolsegStateFromEntry } from './transformers';
@@ -160,7 +160,7 @@ export const LoadVolseg = StateAction.build({
                         segmentationId: segmentationId,
                         timeframeIndex: timeframeIndex
                     };
-                    const meshNode = await state.build().to(group).apply(ProjectMeshData, meshParams).commit();
+                    const meshNode = await state.build().to(group).apply(ProjectMeshData, meshParams, { tags: [MESH_SEGMENTATION_NODE_TAG] }).commit();
                     await entryNode.data.meshSegmentationData.createMeshRepresentation3D(meshNode, meshParams);
                 }
 
