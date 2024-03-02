@@ -32,7 +32,7 @@ import { VolsegVolumeData, SimpleVolumeParamValues, VOLUME_VISUAL_TAG } from './
 import * as ExternalAPIs from './external-api';
 import { VolsegGlobalStateData } from './global-state';
 import { applyEllipsis, isDefined, lazyGetter, splitEntryId } from './helpers';
-import { ProjectDataParamsValues, ProjectGeometricSegmentationDataParamsValues, ProjectMeshSegmentationDataParamsValues, ProjectSegmentationDataParamsValues, type VolsegStateFromEntry } from './transformers';
+import { ProjectDataParamsValues, ProjectGeometricSegmentationDataParamsValues, ProjectMeshSegmentationDataParamsValues, ProjectLatticeSegmentationDataParamsValues, type VolsegStateFromEntry } from './transformers';
 import { StateTransforms } from '../../../mol-plugin-state/transforms';
 import { Asset } from '../../../mol-util/assets';
 import { PluginComponent } from '../../../mol-plugin-state/component';
@@ -619,7 +619,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
 
         for (const s of segmenations) {
             const projectSegmentationDataTransform = s.transform.ref;
-            const oldParams: ProjectSegmentationDataParamsValues = s.transform.params;
+            const oldParams: ProjectLatticeSegmentationDataParamsValues = s.transform.params;
             // TODO: here get descriptions for segmentation and timeframe
             // and set segmentLabels
             const descriptionsForLattice = this.metadata.value!.getAllDescriptionsForSegmentationAndTimeframe(
@@ -628,7 +628,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
                 this.currentTimeframe.value
             );
             const segmentLabels = getSegmentLabelsFromDescriptions(descriptionsForLattice);
-            const newParams: ProjectSegmentationDataParamsValues = {
+            const newParams: ProjectLatticeSegmentationDataParamsValues = {
                 ...oldParams,
                 segmentLabels: segmentLabels,
                 timeframeIndex: timeframeIndex

@@ -23,7 +23,7 @@ import { VolsegEntry, VolsegEntryData } from './entry-root';
 import { SimpleVolumeParams, SimpleVolumeParamValues } from './entry-volume';
 import { VolsegGlobalState, VolsegGlobalStateData, VolsegGlobalStateParams } from './global-state';
 import { isDefined } from './helpers';
-import { ProjectDataParamsValues } from './transformers';
+import { ProjectDataParamsValues, ProjectGeometricSegmentationDataParamsValues, ProjectLatticeSegmentationDataParamsValues, ProjectMeshSegmentationDataParamsValues } from './transformers';
 import { StateObjectCell } from '../../../mol-state';
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { createSegmentKey, parseSegmentKey } from './volseg-api/utils';
@@ -32,6 +32,8 @@ import { Asset } from '../../../mol-util/assets';
 import { DescriptionData, SegmentAnnotationData } from './volseg-api/data';
 import React from "react";
 import JSONEditorComponent from './jsoneditor-component';
+import { VolsegGeometricSegmentation } from './shape_primitives';
+import { VolsegMeshSegmentation } from '../new-meshes/mesh-extension';
 
 interface VolsegUIData {
     globalState?: VolsegGlobalStateData,
@@ -92,7 +94,7 @@ async function parseJSONwithAnnotationsOrDescriptions(v, entryData: VolsegEntryD
     const file = Asset.File(v.target.files![0]);
     const asset = entryData.plugin.managers.asset.resolve(file, 'string');
     const data = (await asset.run()).data;
-    const parsedData: DescriptionData[] | SegmentAnnotationData [] = JSON.parse(data);
+    const parsedData: DescriptionData[] | SegmentAnnotationData[] = JSON.parse(data);
     return parsedData;
 }
 
@@ -158,9 +160,9 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
                     <button className="close" onClick={close}>
                         &times;
                     </button>
-                    <JSONEditorComponent jsonData={annotationsJson} entryData={entryData}/>
+                    <JSONEditorComponent jsonData={annotationsJson} entryData={entryData} />
                 </>
-                
+
             )}
         </Popup>
         {/* Fitted models */}
@@ -176,6 +178,7 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
         {/* Volume */}
         <VolumeControls entryData={entryData} />
         {/* TODO: should show this section even if allDescriptions.length === 0 */}
+        <SegmentationControls entryData={entryData} />
         {allDescriptions.length > 0 && <ExpandGroup header='Segmentation data' initiallyExpanded>
             {/* Segment opacity slider */}
             <ControlRow label='Opacity' control={
@@ -204,7 +207,7 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
                             <Button noOverflow flex onClick={() => entryData.actionSelectSegment(d !== selectedSegmentDescription ? segmentKey : undefined)}
                                 style={{
                                     fontWeight: d.target_id.segment_id === selectedSegmentDescription?.target_id?.segment_id
-                                    && d.target_id.segmentation_id === selectedSegmentDescription?.target_id.segmentation_id
+                                        && d.target_id.segmentation_id === selectedSegmentDescription?.target_id.segmentation_id
                                         ? 'bold' : undefined, textAlign: 'left'
                                 }}>
                                 <div title={d.name ?? 'Unnamed segment'} style={{ maxWidth: 240, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -335,6 +338,39 @@ function VolumeChannelControls({ entryData, volume }: { entryData: VolsegEntryDa
     </ExpandGroup>;
 }
 
+// TODO: TODO: TODO: exclude Opacity from state
+function SegmentationSetControls({ entryData, segmentation }: { entryData: VolsegEntryData, segmentation: StateObjectCell<PluginStateObject.Volume.Data> | StateObjectCell<VolsegGeometricSegmentation> | StateObjectCell<VolsegMeshSegmentation> }) {
+    const projectDataTransform = segmentation.transform;
+    debugger;
+    if (!projectDataTransform) return null;
+    const params: ProjectLatticeSegmentationDataParamsValues | ProjectGeometricSegmentationDataParamsValues | ProjectMeshSegmentationDataParamsValues = projectDataTransform.params;
+
+    const segmentationId = params.segmentationId;
+    
+    const childRef = entryData.plugin.state.data.tree.children.get(projectDataTransform.ref).toArray()[0];
+    const segmentationRepresentation3DNode = entryData.findNodesByRef(childRef);
+    const transform = segmentationRepresentation3DNode.transform;
+    debugger;
+    if (!transform) return null;
+
+    // TODO: need to render opacity control here and list of annotations
+    // start from opacity control
+    // opacity does not have to be in 
+    
+    return <ExpandGroup header={`${segmentationId}`}>
+        {/* TODO: use actual opacity */}
+        <div>Segmentation</div>
+        <ControlRow label='Opacity' control={
+            <WaitingSlider min={0} max={1} value={0} step={0.05} onChange={async v => await entryData.actionSetOpacity(v)} />
+        } />
+        {/* <WaitingParameterControls params={SimpleVolumeParams} values={volumeValues} onChangeValues={async next => { await sleep(20); await entryData.actionUpdateVolumeVisual(next, channelId, transform); }} /> */}
+        {/* <UpdateTransformControl state={entryData.plugin.state.data} transform={transform} customHeader='none' /> */}
+    </ExpandGroup>;
+    // <ControlRow label='Opacity' control={
+    //     <WaitingSlider min={0} max={1} value={state.segmentOpacity} step={0.05} onChange={async v => await entryData.actionSetOpacity(v)} />
+    // } />
+}
+
 function VolumeControls({ entryData }: { entryData: VolsegEntryData }) {
     const h = useBehavior(entryData.state.hierarchy);
     if (!h) return null;
@@ -344,6 +380,21 @@ function VolumeControls({ entryData }: { entryData: VolsegEntryData }) {
             {h.volumes.map((v) => {
                 const params: ProjectDataParamsValues = v.transform.params;
                 return <VolumeChannelControls key={params.channelId} entryData={entryData} volume={v} />;
+            })}
+        </ExpandGroup>
+    </>;
+}
+
+function SegmentationControls({ entryData }: { entryData: VolsegEntryData }) {
+    const h = useBehavior(entryData.state.hierarchy);
+    if (!h) return null;
+    return <>
+        {/* <Button onClick={() => { console.log('volume cache, segmentation cache: ', entryData.cachedVolumeTimeframesData, entryData.cachedSegmentationTimeframesData); }}>Get volume and segmentation cache</Button> */}
+        <ExpandGroup header='Segmentation data'>
+            {h.segmentations.map((v) => {
+                return <SegmentationSetControls key={v.transform.ref} entryData={entryData} segmentation={v} />;
+                // const params: ProjectDataParamsValues = v.transform.params;
+                // return <VolumeChannelControls key={params.channelId} entryData={entryData} volume={v} />;
             })}
         </ExpandGroup>
     </>;

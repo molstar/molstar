@@ -18,7 +18,7 @@ import { VolumeVisualParams } from './entry-volume';
 import { VolsegGlobalStateData } from './global-state';
 import { StateObjectSelector } from '../../../mol-state';
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
-import { ProjectSegmentationDataParamsValues } from './transformers';
+import { ProjectLatticeSegmentationDataParamsValues } from './transformers';
 import { createSegmentKey, parseSegmentKey } from './volseg-api/utils';
 
 
@@ -74,7 +74,7 @@ export class VolsegLatticeSegmentationData {
         return group;
     }
 
-    async createSegmentationRepresentation3D(segmentationNode: StateObjectSelector<PluginStateObject.Volume.Data>, params: ProjectSegmentationDataParamsValues) {
+    async createSegmentationRepresentation3D(segmentationNode: StateObjectSelector<PluginStateObject.Volume.Data>, params: ProjectLatticeSegmentationDataParamsValues) {
         const segmentationData = segmentationNode.data as Volume;
         const segmentationId = params.segmentationId;
         const segmentation = Volume.Segmentation.get(segmentationData);

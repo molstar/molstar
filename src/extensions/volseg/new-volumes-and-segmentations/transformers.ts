@@ -25,7 +25,7 @@ export const ProjectDataParams = {
     channelId: ParamDefinition.Text('0'),
 };
 
-export const ProjectSegmentationDataParams = {
+export const ProjectLatticeSegmentationDataParams = {
     timeframeIndex: ParamDefinition.Numeric(0, { step: 1 }),
     segmentationId: ParamDefinition.Text('0'),
     segmentLabels: ParamDefinition.ObjectList({ id: ParamDefinition.Numeric(-1), label: ParamDefinition.Text('') }, s => `${s.id} = ${s.label}`, { description: 'Mapping of segment IDs to segment labels' }),
@@ -39,7 +39,7 @@ export const ProjectMeshSegmentationDataParams = {
 };
 
 export type ProjectDataParamsValues = ParamDefinition.Values<typeof ProjectDataParams>;
-export type ProjectSegmentationDataParamsValues = ParamDefinition.Values<typeof ProjectSegmentationDataParams>;
+export type ProjectLatticeSegmentationDataParamsValues = ParamDefinition.Values<typeof ProjectLatticeSegmentationDataParams>;
 export type ProjectMeshSegmentationDataParamsValues = ParamDefinition.Values<typeof ProjectMeshSegmentationDataParams>;
 
 export const ProjectVolumeData = CreateTransformer({
@@ -79,7 +79,7 @@ export const ProjectSegmentationData = CreateTransformer({
     display: { name: 'Project Segmentation Data', description: 'Project Segmentation Data' },
     from: PluginStateObject.Root,
     to: PluginStateObject.Volume.Data,
-    params: ProjectSegmentationDataParams
+    params: ProjectLatticeSegmentationDataParams
 })({
     apply({ a, params, spine }, plugin: PluginContext) {
         return Task.create('Project Volume Data', async ctx => {

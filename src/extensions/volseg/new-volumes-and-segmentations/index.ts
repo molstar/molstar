@@ -15,7 +15,7 @@ import { DEFAULT_VOLSEG_SERVER, VolumeApiV2 } from './volseg-api/api';
 import { GEOMETRIC_SEGMENTATION_NODE_TAG, MESH_SEGMENTATION_NODE_TAG, SEGMENTATION_NODE_TAG, VOLUME_NODE_TAG, VolsegEntryData, VolsegEntryParamValues, createLoadVolsegParams } from './entry-root';
 import { VolsegGlobalState } from './global-state';
 import { createEntryId } from './helpers';
-import { ProjectGeometricSegmentationData, ProjectGeometricSegmentationDataParamsValues, ProjectMeshData, ProjectMeshSegmentationDataParamsValues, ProjectSegmentationData, ProjectSegmentationDataParamsValues, ProjectVolumeData, VolsegEntryFromRoot, VolsegGlobalStateFromRoot, VolsegStateFromEntry } from './transformers';
+import { ProjectGeometricSegmentationData, ProjectGeometricSegmentationDataParamsValues, ProjectMeshData, ProjectMeshSegmentationDataParamsValues, ProjectSegmentationData, ProjectLatticeSegmentationDataParamsValues, ProjectVolumeData, VolsegEntryFromRoot, VolsegGlobalStateFromRoot, VolsegStateFromEntry } from './transformers';
 import { VolsegUI } from './ui';
 import { createSegmentKey, getSegmentLabelsFromDescriptions } from './volseg-api/utils';
 import { useBehavior } from '../../../mol-plugin-ui/hooks/use-behavior';
@@ -136,7 +136,7 @@ export const LoadVolseg = StateAction.build({
                         0
                     );
                     const segmentLabels = getSegmentLabelsFromDescriptions(descriptionsForLattice);
-                    const segmentationParams: ProjectSegmentationDataParamsValues = {
+                    const segmentationParams: ProjectLatticeSegmentationDataParamsValues = {
                         timeframeIndex: 0,
                         segmentationId: segmentationId,
                         segmentLabels: segmentLabels,
