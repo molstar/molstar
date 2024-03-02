@@ -22,11 +22,12 @@ import { StateTransform } from '../../../mol-state/transform';
 import { setSubtreeVisibility } from '../../../mol-plugin/behavior/static/state';
 import { PluginCommands } from '../../../mol-plugin/commands';
 import { StateTransforms } from '../../../mol-plugin-state/transforms';
-import { AnnotationMetadata } from '../new-volumes-and-segmentations/volseg-api/data';
+import { AnnotationMetadata, ShapePrimitiveData } from '../new-volumes-and-segmentations/volseg-api/data';
 
 export const CVSX_VOLUME_VISUAL_TAG = 'CVSX-volume-visual';
 export const CVSX_LATTICE_SEGMENTATION_VISUAL_TAG = 'CVSX-lattice-segmentation-visual';
 export const CVSX_ANNOTATIONS_FILE_TAG = 'CVSX-annotations-file';
+export const CVSX_GEOMETRIC_SEGMENTATION_FILE = 'CVSX-geometric-segmentation-file';
 
 export class CSVXUI extends CollapsableControls<{}, {}> {
     protected defaultState(): CollapsableState {
@@ -45,6 +46,7 @@ export interface CVSXProps {
     volumes: any | undefined,
     segmentations: any | undefined,
     annotations: AnnotationMetadata | undefined,
+    geometricSegmentation: ShapePrimitiveData | undefined
 }
 
 // TODO: props could be volumes, segmentations, annotations
@@ -57,7 +59,7 @@ class CVSXStateModel extends PluginComponent {
         // TODO: toggle all segments somehow
         // throw new Error('Method not implemented.');
     }
-    state = new BehaviorSubject<{ props: CVSXProps }>({ props: { volumes: undefined, segmentations: undefined, annotations: undefined } });
+    state = new BehaviorSubject<{ props: CVSXProps }>({ props: { volumes: undefined, segmentations: undefined, annotations: undefined, geometricSegmentation: undefined } });
     private visualTypeParamCache: { [type: string]: any } = {};
 
     get allDescriptions() {
@@ -87,52 +89,36 @@ class CVSXStateModel extends PluginComponent {
         });
     }
 
-    mount() {
-        // Probably update state here as well
+    _updateProps() {
         const volumeVisualNodes = this.findNodesByTags(CVSX_VOLUME_VISUAL_TAG);
         const latticeSegmentationVisualNodes = this.findNodesByTags(CVSX_LATTICE_SEGMENTATION_VISUAL_TAG);
-        const annotationNode = this.findNodesByTags(CVSX_ANNOTATIONS_FILE_TAG);
-        const annotations = JSON.parse(annotationNode[0]!.obj!.data);
+        const annotationNodes = this.findNodesByTags(CVSX_ANNOTATIONS_FILE_TAG);
+        let annotations = undefined;
+        let geometricSegmentation = undefined;
+        if (annotationNodes.length > 0) annotations = JSON.parse(annotationNodes[0]!.obj!.data);
+        const geometricSegmentationNodes = this.findNodesByTags(CVSX_GEOMETRIC_SEGMENTATION_FILE);
+        if (geometricSegmentationNodes.length > 0) geometricSegmentation = JSON.parse(geometricSegmentationNodes[0]!.obj!.data);
         this.state.next({
             props: {
                 volumes: volumeVisualNodes,
                 segmentations: latticeSegmentationVisualNodes,
-                annotations: annotations
+                annotations: annotations,
+                geometricSegmentation: geometricSegmentation
             }
         });
         console.log('state');
         console.log(this.state.value);
+    }
+
+    mount() {
+        this._updateProps();
         const obs = combineLatest([
             this.plugin.behaviors.state.isBusy,
             this.plugin.state.data.events.cell.stateUpdated
         ]);
         this.subscribe(obs, ([busy, cell]) => {
             if (busy) return;
-            // TODO:
-            // 1. query state tree for volume visuals
-            const volumeVisualNodes = this.findNodesByTags(CVSX_VOLUME_VISUAL_TAG);
-            const latticeSegmentationVisualNodes = this.findNodesByTags(CVSX_LATTICE_SEGMENTATION_VISUAL_TAG);
-            // TODO: make it not annotationNode, but annotation data
-            const annotationNode = this.findNodesByTags(CVSX_ANNOTATIONS_FILE_TAG);
-            const annotations = JSON.parse(annotationNode[0]!.obj!.data);
-            // volumeVisualNodes[0].transform.ref
-            // we need them to initialize Volume Controls in right panel
-            // (volume channel controls)
-
-
-
-            // 2. query state tree for segmentation visuals
-            // somehow get annotations too
-
-            // similar to "standard" extension
-            // query state tree for all relevant info
-            this.state.next({
-                props: {
-                    volumes: volumeVisualNodes,
-                    segmentations: latticeSegmentationVisualNodes,
-                    annotations: annotations
-                }
-            });
+            this._updateProps();
         });
     }
 

@@ -12,6 +12,19 @@ import { ParamDefinition } from '../../../mol-util/param-definition';
 import { Source } from './entry-root';
 
 
+export function objectToArray(o?: object) {
+    if (o) {
+        const d = [];
+        const arr = Object.entries(o);
+        for (const obj of arr) {
+            d.push(obj[1]);
+        };
+        return d;
+    } else {
+        return [];
+    }
+}
+
 /** Split entry ID (e.g. 'emd-1832') into source ('emdb') and number ('1832') */
 export function splitEntryId(entryId: string) {
     const PREFIX_TO_SOURCE: { [prefix: string]: Source } = { 'emd': 'emdb' };

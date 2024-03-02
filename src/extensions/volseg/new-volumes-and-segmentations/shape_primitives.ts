@@ -113,8 +113,6 @@ const Transform = StateTransformer.builderFactory('msvolseg');
 export const CreateShapePrimitiveProvider = Transform({
     name: 'create-shape-primitive-provider',
     display: { name: 'Shape Primitives' },
-    // from: PluginStateObject.Root, //
-    // TODO: something wrong with VolsegGeometricSegmentation
     from: VolsegGeometricSegmentation,
     to: PluginStateObject.Shape.Provider,
     params: CreateShapePrimitiveProviderParams
@@ -127,6 +125,26 @@ export const CreateShapePrimitiveProvider = Transform({
             params: Mesh.Params,
             geometryUtils: Mesh.Utils,
             getShape: (_, data) => createShapePrimitive(a.data.shapePrimitiveData, params)
+        }, { label: 'Shape Primitives' });
+    }
+});
+
+export const CreateShapePrimitiveProviderCVSX = Transform({
+    name: 'create-shape-primitive-provider-cvsx',
+    display: { name: 'Shape Primitives' },
+    from: PluginStateObject.Data.String,
+    to: PluginStateObject.Shape.Provider,
+    params: CreateShapePrimitiveProviderParams
+})({
+    apply({ a, params }) {
+        const shapePrimitiveData: ShapePrimitiveData = JSON.parse(a.data);
+        return new PluginStateObject.Shape.Provider({
+            label: 'Shape Primitives',
+            data: params,
+            // data: params.data,
+            params: Mesh.Params,
+            geometryUtils: Mesh.Utils,
+            getShape: (_, data) => createShapePrimitive(shapePrimitiveData, params)
         }, { label: 'Shape Primitives' });
     }
 });

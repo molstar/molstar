@@ -5,6 +5,7 @@
  */
 
 import { Color } from '../../../../mol-util/color';
+import { objectToArray } from '../helpers';
 import { DescriptionData, Metadata, ParsedSegmentKey } from './data';
 
 export class MetadataWrapper {
@@ -34,12 +35,7 @@ export class MetadataWrapper {
     get allDescriptions() {
         const descriptions = this.raw.annotation?.descriptions;
         if (descriptions) {
-            const d = [];
-            const arr = Object.entries(descriptions);
-            for (const obj of arr) {
-                d.push(obj[1]);
-            };
-            return d;
+            return (objectToArray(descriptions) as DescriptionData[]);
         } else {
             return [];
         }

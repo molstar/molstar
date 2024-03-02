@@ -15,8 +15,10 @@ import { Color } from "../../../mol-util/color";
 import { ColorNames } from "../../../mol-util/color/names";
 import { getFileNameInfo } from "../../../mol-util/file-info";
 import { Unzip } from "../../../mol-util/zip/zip";
-import { AnnotationMetadata } from "../new-volumes-and-segmentations/volseg-api/data";
-import { CSVXUI, CVSX_ANNOTATIONS_FILE_TAG, CVSX_LATTICE_SEGMENTATION_VISUAL_TAG, CVSX_VOLUME_VISUAL_TAG } from "./cvsx";
+import { objectToArray } from "../new-volumes-and-segmentations/helpers";
+import { CreateShapePrimitiveProvider, CreateShapePrimitiveProviderCVSX, VolsegGeometricSegmentation, VolsegShapePrimitivesData } from "../new-volumes-and-segmentations/shape_primitives";
+import { AnnotationMetadata, DescriptionData, ShapePrimitiveData } from "../new-volumes-and-segmentations/volseg-api/data";
+import { CSVXUI, CVSX_ANNOTATIONS_FILE_TAG, CVSX_GEOMETRIC_SEGMENTATION_FILE, CVSX_LATTICE_SEGMENTATION_VISUAL_TAG, CVSX_VOLUME_VISUAL_TAG } from "./cvsx";
 import { VisualizeStaticQueryZipUI } from "./ui";
 
 // TODO: where VolsegEntryData is used
@@ -85,16 +87,33 @@ function findNodesByTags(plugin: PluginContext, ...tags: string[]) {
 }
 
 export async function processCvsxAnnotationsFile(file: Asset.File, plugin: PluginContext) {
-    // Parse to interface
-    // file.file
     const info = getFileNameInfo(file.file?.name ?? '');
     const isBinary = plugin.dataFormats.binaryExtensions.has(info.ext);
     const { data } = await plugin.builders.data.readFile({ file, isBinary }, { tags: [CVSX_ANNOTATIONS_FILE_TAG] });
-    console.log(data);
-    // const asset = plugin.managers.asset.resolve(file, 'string');
-    // const d = (await asset.run()).data;
     const parsedData: AnnotationMetadata = JSON.parse(data.cell!.obj!.data as string);
     return parsedData;
+}
+
+export async function processCvsxGeometricSegmentationFile(file: Asset.File, plugin: PluginContext, annotations?: AnnotationMetadata) {
+    const info = getFileNameInfo(file.file?.name ?? '');
+    const isBinary = plugin.dataFormats.binaryExtensions.has(info.ext);
+    const { data } = await plugin.builders.data.readFile({ file, isBinary }, { tags: [CVSX_GEOMETRIC_SEGMENTATION_FILE] });
+    const parsedData: ShapePrimitiveData = JSON.parse(data.cell!.obj!.data as string);
+
+    const segmentationId = annotations?.annotations[0].segmentation_id;
+    const segmentAnnotations = annotations?.annotations;
+    const descriptions = (objectToArray(annotations?.descriptions) as DescriptionData[]);
+    const update = plugin.build().toRoot(); 
+    for (const primitiveData of parsedData.shape_primitive_list) {
+        update.to(data.ref)
+            //     // TODO: can provide a single description and a single segment annotation
+            .apply(CreateShapePrimitiveProviderCVSX, { segmentId: primitiveData.id, descriptions: descriptions, segmentAnnotations: segmentAnnotations, segmentationId: segmentationId })
+            //         // TODO: shape representation 3d could have no alpha
+            .apply(StateTransforms.Representation.ShapeRepresentation3D, { alpha: 0.5 }, { tags: ['geometric-segmentation-visual', '0', `segment-${primitiveData.id}`] })
+            // .commit();
+    }
+    await update.commit();
+    // debugger;
 }
 
 export async function processCvsxFile(file: Asset.File, plugin: PluginContext, format: string, annotations?: AnnotationMetadata) {
@@ -111,7 +130,6 @@ export async function processCvsxFile(file: Asset.File, plugin: PluginContext, f
         await plugin.state.data.build().delete(data).commit();
         return;
     }
-
     // need to await so that the enclosing Task finishes after the update is done.
     const parsed = await provider.parse(plugin, data);
     if (format === 'dscif') {
@@ -130,8 +148,6 @@ export async function processCvsxFile(file: Asset.File, plugin: PluginContext, f
             .apply(StateTransforms.Representation.VolumeRepresentation3D, newParams, { tags: [CVSX_VOLUME_VISUAL_TAG] })
             .commit();
     } else if (format === 'segcif') {
-        // TODO: create visual but with default colours
-        // with default params
         const parsedOne: Volume = parsed.volumes[0].data;
         const update = plugin.build().toRoot();
         if (annotations) {
@@ -158,12 +174,7 @@ export async function processCvsxFile(file: Asset.File, plugin: PluginContext, f
                 .apply(StateTransforms.Representation.VolumeRepresentation3D, params, { tags: CVSX_LATTICE_SEGMENTATION_VISUAL_TAG })
                 .commit();
         }
-
-
     }
-
-    // TODO: if format 'segcif'
-
 
     // if (visuals) {
     //     const visuals = await provider.visuals?.(plugin, parsed);

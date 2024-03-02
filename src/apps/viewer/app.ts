@@ -57,7 +57,7 @@ import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
-import { VisualizeStaticQueryZip, processCvsxAnnotationsFile, processCvsxFile } from '../../extensions/volseg/cvsx-extension';
+import { VisualizeStaticQueryZip, processCvsxAnnotationsFile, processCvsxFile, processCvsxGeometricSegmentationFile } from '../../extensions/volseg/cvsx-extension';
 import { Unzip } from '../../mol-util/zip/zip';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
@@ -515,7 +515,7 @@ export class Viewer {
             for (const [fn, filedata] of zippedFilesEntries) {
                 if (!(filedata instanceof Uint8Array) || filedata.length === 0) continue;
                 const asset = Asset.File(new File([filedata], fn));
-
+                
                 console.log(asset.file?.name);
                 let fileFormat = 'auto';
                 if (asset.file?.name.startsWith('volume')) {
@@ -524,6 +524,9 @@ export class Viewer {
                 } else if (asset.file?.name.startsWith('segmentation')) {
                     fileFormat = 'segcif';
                     await processCvsxFile(asset, this.plugin, fileFormat, parsedAnnotations);
+                } else if (asset.file?.name.startsWith('geometric-segmentation.json')) {
+                    fileFormat = 'geometric-segmentation-json';
+                    await processCvsxGeometricSegmentationFile(asset, this.plugin, parsedAnnotations);
                 }
             }
 
