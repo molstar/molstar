@@ -16,12 +16,13 @@ import { useBehavior } from '../../../mol-plugin-ui/hooks/use-behavior';
 import { PluginContext } from '../../../mol-plugin/context';
 import { SimpleVolumeParamValues, SimpleVolumeParams, VolumeVisualParams } from '../new-volumes-and-segmentations/entry-volume';
 import { UpdateTransformControl } from '../../../mol-plugin-ui/state/update-transform';
-import { WaitingParameterControls, WaitingSlider } from '../new-volumes-and-segmentations/ui';
+import { WaitingButton, WaitingParameterControls, WaitingSlider } from '../new-volumes-and-segmentations/ui';
 import { sleep } from '../../../mol-util/sleep';
 import { StateTransform } from '../../../mol-state/transform';
 import { setSubtreeVisibility } from '../../../mol-plugin/behavior/static/state';
 import { PluginCommands } from '../../../mol-plugin/commands';
 import { StateTransforms } from '../../../mol-plugin-state/transforms';
+import { AnnotationMetadata } from '../new-volumes-and-segmentations/volseg-api/data';
 
 export const CVSX_VOLUME_VISUAL_TAG = 'CVSX-volume-visual';
 export const CVSX_LATTICE_SEGMENTATION_VISUAL_TAG = 'CVSX-lattice-segmentation-visual';
@@ -43,13 +44,35 @@ export class CSVXUI extends CollapsableControls<{}, {}> {
 export interface CVSXProps {
     volumes: any | undefined,
     segmentations: any | undefined,
-    annotations: any | undefined,
+    annotations: AnnotationMetadata | undefined,
 }
 
 // TODO: props could be volumes, segmentations, annotations
 class CVSXStateModel extends PluginComponent {
+    actionToggleAllSegments() {
+        // TODO: first get all segment annotations
+        // NOTE: assumes lattice only
+        // NOTE: need to track which segment is selected
+        
+        // TODO: toggle all segments somehow
+        // throw new Error('Method not implemented.');
+    }
     state = new BehaviorSubject<{ props: CVSXProps }>({ props: { volumes: undefined, segmentations: undefined, annotations: undefined } });
     private visualTypeParamCache: { [type: string]: any } = {};
+
+    get allDescriptions() {
+        const descriptions = this.state.value.props.annotations?.descriptions;
+        if (descriptions) {
+            const d = [];
+            const arr = Object.entries(descriptions);
+            for (const obj of arr) {
+                d.push(obj[1]);
+            };
+            return d;
+        } else {
+            return [];
+        }
+    }
 
     findNodesByRef(ref: string) {
         // return this.plugin.state.data.selectQ(q => q.byRef(ref).subtree())[0];
@@ -179,7 +202,8 @@ function CVSXFileControls({ plugin }: { plugin: PluginContext }) {
     const isBusy = useBehavior(plugin.behaviors.state.isBusy);
     const props = state.props;
 
-
+    const descriptions = props.annotations?.descriptions;
+    const allDescriptions = model.allDescriptions;
 
 
     return <>
@@ -210,7 +234,7 @@ function CVSXFileControls({ plugin }: { plugin: PluginContext }) {
                     // Opacity of segmentation can get from its visual
                     return <ControlRow key={s.transform.ref} label='Opacity' control={
                         <WaitingSlider min={0} max={1} value={s.transform.params.type.params.alpha} step={0.05} onChange={async v => await model.updateSegmentationOpacity(v)} />
-                    } />
+                    } />;
                 })}
             </ExpandGroup>}
         </>

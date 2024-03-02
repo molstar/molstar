@@ -89,7 +89,6 @@ export async function processCvsxAnnotationsFile(file: Asset.File, plugin: Plugi
     // file.file
     const info = getFileNameInfo(file.file?.name ?? '');
     const isBinary = plugin.dataFormats.binaryExtensions.has(info.ext);
-    // TODO: continue from here, can add tags perhaps?
     const { data } = await plugin.builders.data.readFile({ file, isBinary }, { tags: [CVSX_ANNOTATIONS_FILE_TAG] });
     console.log(data);
     // const asset = plugin.managers.asset.resolve(file, 'string');

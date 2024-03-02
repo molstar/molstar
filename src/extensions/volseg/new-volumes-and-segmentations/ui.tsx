@@ -359,7 +359,7 @@ export function WaitingSlider({ value, onChange, ...etc }: { value: number, onCh
     return <Slider value={sliderValue} disabled={changing} onChange={newValue => execute(onChange, newValue)} {...etc} />;
 }
 
-function WaitingButton({ onClick, ...etc }: { onClick: () => any } & ComponentParams<typeof Button>) {
+export function WaitingButton({ onClick, ...etc }: { onClick: () => any } & ComponentParams<typeof Button>) {
     const [changing, _, execute] = useAsyncChange(undefined);
 
     return <Button disabled={changing} onClick={() => execute(onClick, undefined)} {...etc}>
