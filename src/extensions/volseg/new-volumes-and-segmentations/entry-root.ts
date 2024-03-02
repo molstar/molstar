@@ -744,12 +744,14 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         await this.updateStateNode({ selectedSegment: segmentKey });
     }
 
-    async actionSetOpacity(opacity: number) {
-        if (opacity === this.getStateNode().obj?.data.segmentOpacity) return;
-        this.latticeSegmentationData.updateOpacity(opacity);
-        this.meshSegmentationData.updateOpacity(opacity);
+    async actionSetOpacity(opacity: number, segmentationId: string, kind: 'lattice' | 'mesh' | 'primitive') {
+        debugger;
+        // if (opacity === this.getStateNode().obj?.data.segmentOpacity) return;
+        if (kind === 'lattice') this.latticeSegmentationData.updateOpacity(opacity, segmentationId);
+        else if (kind === 'mesh') this.meshSegmentationData.updateOpacity(opacity, segmentationId);
+        // else if TODO: geometric segmentation
 
-        await this.updateStateNode({ segmentOpacity: opacity });
+        // await this.updateStateNode({ segmentOpacity: opacity });
     }
 
     async actionShowFittedModel(pdbIds: string[]) {

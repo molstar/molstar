@@ -181,9 +181,9 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
         <SegmentationControls entryData={entryData} />
         {allDescriptions.length > 0 && <ExpandGroup header='Segmentation data' initiallyExpanded>
             {/* Segment opacity slider */}
-            <ControlRow label='Opacity' control={
+            {/* <ControlRow label='Opacity' control={
                 <WaitingSlider min={0} max={1} value={state.segmentOpacity} step={0.05} onChange={async v => await entryData.actionSetOpacity(v)} />
-            } />
+            } /> */}
 
             {/* Segment toggles */}
             {allDescriptions.length > 0 && <>
@@ -338,8 +338,11 @@ function VolumeChannelControls({ entryData, volume }: { entryData: VolsegEntryDa
     </ExpandGroup>;
 }
 
+// TODO: function to change opacity by updating transform
+// by knowing params type (lattice, geometric segmentation, mesh segmentation)
+// and segmentation ID
 // TODO: TODO: TODO: exclude Opacity from state
-function SegmentationSetControls({ entryData, segmentation }: { entryData: VolsegEntryData, segmentation: StateObjectCell<PluginStateObject.Volume.Data> | StateObjectCell<VolsegGeometricSegmentation> | StateObjectCell<VolsegMeshSegmentation> }) {
+function SegmentationSetControls({ entryData, segmentation, kind }: { entryData: VolsegEntryData, segmentation: StateObjectCell<PluginStateObject.Volume.Data> | StateObjectCell<VolsegGeometricSegmentation> | StateObjectCell<VolsegMeshSegmentation>, kind: 'lattice' | 'mesh' | 'primitive' }) {
     const projectDataTransform = segmentation.transform;
     debugger;
     if (!projectDataTransform) return null;
@@ -354,14 +357,12 @@ function SegmentationSetControls({ entryData, segmentation }: { entryData: Volse
     if (!transform) return null;
 
     // TODO: need to render opacity control here and list of annotations
-    // start from opacity control
-    // opacity does not have to be in 
-    
+
     return <ExpandGroup header={`${segmentationId}`}>
         {/* TODO: use actual opacity */}
-        <div>Segmentation</div>
+        {/* <div>Segmentation</div> */}
         <ControlRow label='Opacity' control={
-            <WaitingSlider min={0} max={1} value={0} step={0.05} onChange={async v => await entryData.actionSetOpacity(v)} />
+            <WaitingSlider min={0} max={1} value={transform.params?.type.params.alpha} step={0.05} onChange={async v => await entryData.actionSetOpacity(v, segmentationId, kind)} />
         } />
         {/* <WaitingParameterControls params={SimpleVolumeParams} values={volumeValues} onChangeValues={async next => { await sleep(20); await entryData.actionUpdateVolumeVisual(next, channelId, transform); }} /> */}
         {/* <UpdateTransformControl state={entryData.plugin.state.data} transform={transform} customHeader='none' /> */}
@@ -391,8 +392,19 @@ function SegmentationControls({ entryData }: { entryData: VolsegEntryData }) {
     return <>
         {/* <Button onClick={() => { console.log('volume cache, segmentation cache: ', entryData.cachedVolumeTimeframesData, entryData.cachedSegmentationTimeframesData); }}>Get volume and segmentation cache</Button> */}
         <ExpandGroup header='Segmentation data'>
+            {/* TODO: just lattices, need geometric and mesh segmentations as well */}
             {h.segmentations.map((v) => {
-                return <SegmentationSetControls key={v.transform.ref} entryData={entryData} segmentation={v} />;
+                return <SegmentationSetControls key={v.transform.ref} entryData={entryData} segmentation={v} kind={'lattice'} />;
+                // const params: ProjectDataParamsValues = v.transform.params;
+                // return <VolumeChannelControls key={params.channelId} entryData={entryData} volume={v} />;
+            })}
+            {h.meshSegmentations.map((v) => {
+                return <SegmentationSetControls key={v.transform.ref} entryData={entryData} segmentation={v} kind={'mesh'}/>;
+                // const params: ProjectDataParamsValues = v.transform.params;
+                // return <VolumeChannelControls key={params.channelId} entryData={entryData} volume={v} />;
+            })}
+            {h.geometricSegmentations.map((v) => {
+                return <SegmentationSetControls key={v.transform.ref} entryData={entryData} segmentation={v} kind={'primitive'}/>;
                 // const params: ProjectDataParamsValues = v.transform.params;
                 // return <VolumeChannelControls key={params.channelId} entryData={entryData} volume={v} />;
             })}

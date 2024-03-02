@@ -108,12 +108,13 @@ export class VolsegLatticeSegmentationData {
         }
     }
 
-    async updateOpacity(opacity: number) {
-        const reprs = this.entryData.findNodesByTags(SEGMENT_VISUAL_TAG);
+    async updateOpacity(opacity: number, segmentationId: string) {
+        debugger;
+        const s = this.entryData.findNodesByTags(SEGMENT_VISUAL_TAG, segmentationId)[0];
         const update = this.entryData.newUpdate();
-        for (const s of reprs) {
-            update.to(s).update(StateTransforms.Representation.VolumeRepresentation3D, p => { p.type.params.alpha = opacity; });
-        }
+        // for (const s of reprs) {
+        update.to(s).update(StateTransforms.Representation.VolumeRepresentation3D, p => { p.type.params.alpha = opacity; });
+        // }
         return await update.commit();
     }
     private makeLoci(segments: number[], segmentationId: string) {

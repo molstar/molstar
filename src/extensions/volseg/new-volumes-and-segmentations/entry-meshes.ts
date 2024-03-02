@@ -37,8 +37,9 @@ export class VolsegMeshSegmentationData {
         // }
     }
 
-    updateOpacity(opacity: number) {
-        const visuals = this.entryData.findNodesByTags('mesh-segment-visual');
+    updateOpacity(opacity: number, segmentationId: string) {
+        debugger;
+        const visuals = this.entryData.findNodesByTags('mesh-segment-visual', segmentationId);
         const update = this.entryData.newUpdate();
         for (const visual of visuals) {
             update.to(visual).update(ShapeRepresentation3D, p => { (p as any).alpha = opacity; });
