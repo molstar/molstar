@@ -5,7 +5,7 @@
  * @author Aliaksei Chareshneu <chareshneu@mail.muni.cz>
  */
 
-
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { useEffect, useRef } from 'react';
 import { BehaviorSubject, combineLatest } from 'rxjs';
 import { PluginComponent } from '../../../mol-plugin-state/component';
@@ -22,11 +22,14 @@ import { StateTransform } from '../../../mol-state/transform';
 import { setSubtreeVisibility } from '../../../mol-plugin/behavior/static/state';
 import { PluginCommands } from '../../../mol-plugin/commands';
 import { StateTransforms } from '../../../mol-plugin-state/transforms';
-import { AnnotationMetadata, ShapePrimitiveData } from '../new-volumes-and-segmentations/volseg-api/data';
+import { AnnotationMetadata, DescriptionData, ShapePrimitiveData, Metadata } from '../new-volumes-and-segmentations/volseg-api/data';
+import { objectToArray } from '../new-volumes-and-segmentations/helpers';
+import { MetadataWrapper } from '../new-volumes-and-segmentations/volseg-api/utils';
 
 export const CVSX_VOLUME_VISUAL_TAG = 'CVSX-volume-visual';
 export const CVSX_LATTICE_SEGMENTATION_VISUAL_TAG = 'CVSX-lattice-segmentation-visual';
 export const CVSX_ANNOTATIONS_FILE_TAG = 'CVSX-annotations-file';
+export const CVSX_METADATA_FILE_TAG = 'CVSX-metadata-file';
 export const CVSX_GEOMETRIC_SEGMENTATION_FILE = 'CVSX-geometric-segmentation-file';
 
 export class CSVXUI extends CollapsableControls<{}, {}> {
@@ -49,6 +52,20 @@ export interface CVSXProps {
     geometricSegmentation: ShapePrimitiveData | undefined
 }
 
+export const CVSXState = {
+    // segmentOpacity: PD.Numeric(1, { min: 0, max: 1, step: 0.05 }),
+    // segmentKey: `${kind}:${segmentationId}:${segmentId}`
+    selectedSegment: PD.Text(''),
+    // visibleSegments: PD.ObjectList({
+    //     segmentId: PD.Numeric(0),
+    //     segmentationId: PD.Text(''),
+    //     kind: PD.Select('lattice', [['lattice', 'lattice'], ['mesh', 'mesh'], ['primitive', 'primitive']])
+    // }, k => `${k.segmentId}:${k.segmentationId}:${k.kind}`),
+    visibleSegments: PD.ObjectList({
+        segmentKey: PD.Text('') }, k => k.segmentKey
+    ),
+}
+
 // TODO: props could be volumes, segmentations, annotations
 class CVSXStateModel extends PluginComponent {
     actionToggleAllSegments() {
@@ -60,17 +77,14 @@ class CVSXStateModel extends PluginComponent {
         // throw new Error('Method not implemented.');
     }
     state = new BehaviorSubject<{ props: CVSXProps }>({ props: { volumes: undefined, segmentations: undefined, annotations: undefined, geometricSegmentation: undefined } });
-    private visualTypeParamCache: { [type: string]: any } = {};
+    currentState = new BehaviorSubject(PD.getDefaultValues(CVSXState));
+    metadata = new BehaviorSubject<MetadataWrapper | undefined>(undefined);
 
+    private visualTypeParamCache: { [type: string]: any } = {};
     get allDescriptions() {
         const descriptions = this.state.value.props.annotations?.descriptions;
         if (descriptions) {
-            const d = [];
-            const arr = Object.entries(descriptions);
-            for (const obj of arr) {
-                d.push(obj[1]);
-            };
-            return d;
+            return (objectToArray(descriptions) as DescriptionData[]);
         } else {
             return [];
         }
@@ -87,6 +101,19 @@ class CVSXStateModel extends PluginComponent {
             for (const tag of tags) builder = builder.withTag(tag);
             return builder;
         });
+    }
+
+    _updateMetadata() {
+        const annotationNodes = this.findNodesByTags(CVSX_ANNOTATIONS_FILE_TAG);
+        const metadataNodes = this.findNodesByTags(CVSX_METADATA_FILE_TAG);
+        const meta: Metadata = {
+            grid: JSON.parse(metadataNodes[0]!.obj!.data),
+            annotation: JSON.parse(annotationNodes[0]!.obj!.data)
+        };
+        this.metadata.next(new MetadataWrapper(meta));
+        console.log('Metadata updated');
+        console.log(this.metadata.value);
+        // this.metadata = new MetadataWrapper(meta);
     }
 
     _updateProps() {
@@ -112,6 +139,7 @@ class CVSXStateModel extends PluginComponent {
 
     mount() {
         this._updateProps();
+        this._updateMetadata();
         const obs = combineLatest([
             this.plugin.behaviors.state.isBusy,
             this.plugin.state.data.events.cell.stateUpdated
@@ -119,6 +147,7 @@ class CVSXStateModel extends PluginComponent {
         this.subscribe(obs, ([busy, cell]) => {
             if (busy) return;
             this._updateProps();
+            this._updateMetadata();
         });
     }
 

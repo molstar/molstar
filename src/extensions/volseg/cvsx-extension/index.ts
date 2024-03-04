@@ -17,8 +17,8 @@ import { getFileNameInfo } from "../../../mol-util/file-info";
 import { Unzip } from "../../../mol-util/zip/zip";
 import { objectToArray } from "../new-volumes-and-segmentations/helpers";
 import { CreateShapePrimitiveProvider, CreateShapePrimitiveProviderCVSX, VolsegGeometricSegmentation, VolsegShapePrimitivesData } from "../new-volumes-and-segmentations/shape_primitives";
-import { AnnotationMetadata, DescriptionData, ShapePrimitiveData } from "../new-volumes-and-segmentations/volseg-api/data";
-import { CSVXUI, CVSX_ANNOTATIONS_FILE_TAG, CVSX_GEOMETRIC_SEGMENTATION_FILE, CVSX_LATTICE_SEGMENTATION_VISUAL_TAG, CVSX_VOLUME_VISUAL_TAG } from "./cvsx";
+import { AnnotationMetadata, DescriptionData, GridMetadata, ShapePrimitiveData } from "../new-volumes-and-segmentations/volseg-api/data";
+import { CSVXUI, CVSX_ANNOTATIONS_FILE_TAG, CVSX_GEOMETRIC_SEGMENTATION_FILE, CVSX_LATTICE_SEGMENTATION_VISUAL_TAG, CVSX_METADATA_FILE_TAG, CVSX_VOLUME_VISUAL_TAG } from "./cvsx";
 import { VisualizeStaticQueryZipUI } from "./ui";
 
 // TODO: where VolsegEntryData is used
@@ -91,6 +91,14 @@ export async function processCvsxAnnotationsFile(file: Asset.File, plugin: Plugi
     const isBinary = plugin.dataFormats.binaryExtensions.has(info.ext);
     const { data } = await plugin.builders.data.readFile({ file, isBinary }, { tags: [CVSX_ANNOTATIONS_FILE_TAG] });
     const parsedData: AnnotationMetadata = JSON.parse(data.cell!.obj!.data as string);
+    return parsedData;
+}
+
+export async function processCvsxMetadataFile(file: Asset.File, plugin: PluginContext) {
+    const info = getFileNameInfo(file.file?.name ?? '');
+    const isBinary = plugin.dataFormats.binaryExtensions.has(info.ext);
+    const { data } = await plugin.builders.data.readFile({ file, isBinary }, { tags: [CVSX_METADATA_FILE_TAG] });
+    const parsedData: GridMetadata = JSON.parse(data.cell!.obj!.data as string);
     return parsedData;
 }
 

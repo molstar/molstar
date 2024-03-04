@@ -57,7 +57,7 @@ import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
-import { VisualizeStaticQueryZip, processCvsxAnnotationsFile, processCvsxFile, processCvsxGeometricSegmentationFile } from '../../extensions/volseg/cvsx-extension';
+import { VisualizeStaticQueryZip, processCvsxAnnotationsFile, processCvsxFile, processCvsxGeometricSegmentationFile, processCvsxMetadataFile } from '../../extensions/volseg/cvsx-extension';
 import { Unzip } from '../../mol-util/zip/zip';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
@@ -496,13 +496,15 @@ export class Viewer {
     async loadCvsxFromUrl(urlString: string, format: 'cvsx') {
         if (format === 'cvsx') {
             let parsedAnnotations = undefined;
+            let parsedMetadata = undefined;
             const url = Asset.getUrlAsset(this.plugin.managers.asset, urlString);
             const asset = this.plugin.managers.asset.resolve(url, 'zip');
             const zippedFiles = (await asset.run()).data;
 
             const zippedFilesEntries = Object.entries(zippedFiles);
             const annotationJSONEntry = zippedFilesEntries.find(z => z[0] === 'annotations.json');
-            
+            const metadataJSONEntry = zippedFilesEntries.find(z => z[0] === 'metadata.json');
+
             if (annotationJSONEntry) {
                 const [fn, filedata] = annotationJSONEntry;
                 const asset = Asset.File(new File([filedata], fn));
@@ -510,8 +512,16 @@ export class Viewer {
                 console.log('parsedAnnotations', parsedAnnotations);
             }
 
+            if (metadataJSONEntry) {
+                const [fn, filedata] = metadataJSONEntry;
+                const asset = Asset.File(new File([filedata], fn));
+                parsedMetadata = await processCvsxMetadataFile(asset, this.plugin);
+                console.log('parsedMetadata', parsedAnnotations);
+            }
+
+
             
-            // TODO: remove annotations from zippedFilesEntries
+            // TODO: remove annotations and metadata from zippedFilesEntries
             for (const [fn, filedata] of zippedFilesEntries) {
                 if (!(filedata instanceof Uint8Array) || filedata.length === 0) continue;
                 const asset = Asset.File(new File([filedata], fn));
