@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * Adapted from CIFTools.js (https://github.com/dsehnal/CIFTools.js; MIT) and MMTF (https://github.com/rcsb/mmtf-javascript/; MIT)
  *
@@ -57,7 +57,10 @@ export namespace ArrayEncoder {
 
     export function fromEncoding(encoding: Encoding[]) {
         let e = by(getProvider(encoding[0]));
-        for (let i = 1; i < encoding.length; i++) e = e.and(getProvider(encoding[i]));
+        for (let i = 1; i < encoding.length; i++) {
+            if (encoding[i - 1].kind === 'IntegerPacking') break;
+            e = e.and(getProvider(encoding[i]));
+        }
         return e;
     }
 
