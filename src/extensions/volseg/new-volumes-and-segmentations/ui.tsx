@@ -185,8 +185,14 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
                 <WaitingSlider min={0} max={1} value={state.segmentOpacity} step={0.05} onChange={async v => await entryData.actionSetOpacity(v)} />
             } /> */}
 
+            <DescriptionsList allDescriptions={allDescriptions}
+                selectedSegmentDescription={selectedSegmentDescription}
+                currentTimeframe={currentTimeframe}
+                visibleSegmentKeys={visibleSegmentKeys}
+                model={entryData}
+                ></DescriptionsList>
             {/* Segment toggles */}
-            {allDescriptions.length > 0 && <>
+            {/* {allDescriptions.length > 0 && <>
                 <WaitingButton onClick={async () => { await sleep(20); await entryData.actionToggleAllSegments(); }} style={{ marginTop: 1 }}>
                     Toggle All segments
                 </WaitingButton>
@@ -214,8 +220,6 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
                                     {d.name ?? 'Unnamed segment'} ({d.target_id?.segment_id}) ({d.target_id?.segmentation_id})
                                 </div>
                             </Button>
-                            {/* TODO: two more icon buttons for remove annotation and description */}
-                            {/* Make methods in entryData for remove description */}
                             <IconButton svg={Icons.WarningSvg} title={'Remove description'}
                                 onClick={() => {
                                     entryData.removeDescription(d.id);
@@ -237,7 +241,7 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
                     }
                     )}
                 </div>
-            </>}
+            </>} */}
         </ExpandGroup>}
 
         {/* Descriptions */}
@@ -338,9 +342,6 @@ function VolumeChannelControls({ entryData, volume }: { entryData: VolsegEntryDa
     </ExpandGroup>;
 }
 
-// TODO: function to change opacity by updating transform
-// by knowing params type (lattice, geometric segmentation, mesh segmentation)
-// and segmentation ID
 // TODO: TODO: TODO: exclude Opacity from state
 function SegmentationSetControls({ entryData, segmentation, kind }: { entryData: VolsegEntryData, segmentation: StateObjectCell<PluginStateObject.Volume.Data> | StateObjectCell<VolsegGeometricSegmentation> | StateObjectCell<VolsegMeshSegmentation>, kind: 'lattice' | 'mesh' | 'primitive' }) {
     const projectDataTransform = segmentation.transform;
@@ -357,6 +358,12 @@ function SegmentationSetControls({ entryData, segmentation, kind }: { entryData:
     if (!transform) return null;
 
     // TODO: need to render opacity control here and list of annotations
+    // TODO: render descriptions
+    const descriptions = entryData.metadata.value!.getAllDescriptionsForSegmentationAndTimeframe(
+        segmentationId,
+        kind,
+        entryData.currentTimeframe.value
+    );
 
     return <ExpandGroup header={`${segmentationId}`}>
         {/* TODO: use actual opacity */}
@@ -364,12 +371,8 @@ function SegmentationSetControls({ entryData, segmentation, kind }: { entryData:
         <ControlRow label='Opacity' control={
             <WaitingSlider min={0} max={1} value={transform.params?.type.params.alpha} step={0.05} onChange={async v => await entryData.actionSetOpacity(v, segmentationId, kind)} />
         } />
-        {/* <WaitingParameterControls params={SimpleVolumeParams} values={volumeValues} onChangeValues={async next => { await sleep(20); await entryData.actionUpdateVolumeVisual(next, channelId, transform); }} /> */}
-        {/* <UpdateTransformControl state={entryData.plugin.state.data} transform={transform} customHeader='none' /> */}
+        
     </ExpandGroup>;
-    // <ControlRow label='Opacity' control={
-    //     <WaitingSlider min={0} max={1} value={state.segmentOpacity} step={0.05} onChange={async v => await entryData.actionSetOpacity(v)} />
-    // } />
 }
 
 function VolumeControls({ entryData }: { entryData: VolsegEntryData }) {
@@ -384,6 +387,67 @@ function VolumeControls({ entryData }: { entryData: VolsegEntryData }) {
             })}
         </ExpandGroup>
     </>;
+}
+
+function DescriptionsList( {allDescriptions, selectedSegmentDescription, currentTimeframe, visibleSegmentKeys, model }: {allDescriptions: DescriptionData[], selectedSegmentDescription: DescriptionData | undefined, currentTimeframe: number, visibleSegmentKeys: string[], model: VolsegEntryData}) {
+    // Take in annotations, descriptions, selectedSegment
+    // TODO: handle toggle all segments, highlight segments, select segments
+    // TODO: or better - pass in entryData | another model
+    // on which all required methods toggle all segments, highlight segments, select segments
+    // are implemented
+    return <>{allDescriptions.length > 0 && <>
+        <WaitingButton onClick={async () => { await sleep(20); await model.actionToggleAllSegments(); }} style={{ marginTop: 1 }}>
+            Toggle All segments
+        </WaitingButton>
+        <div style={{ maxHeight: 200, overflow: 'hidden', overflowY: 'auto', marginBlock: 1 }}>
+            {allDescriptions.map(d => {
+                if (d.target_kind === 'entry' || !d.target_id || d.is_hidden === true) return;
+                // NOTE: if time is a single number
+                if (d.time && Number.isFinite(d.time) && d.time !== currentTimeframe) return;
+                // NOTE: if time is array
+                if (d.time && Array.isArray(d.time) && d.time.every(i => Number.isFinite(i)) && !(d.time as number[]).includes(currentTimeframe)) return;
+                const segmentKey = createSegmentKey(d.target_id.segment_id, d.target_id.segmentation_id, d.target_kind);
+                // How it was before
+                // return <div style={{ display: 'flex', marginBottom: 1 }} key={`${d.target_id?.segment_id}:${d.target_id?.segmentation_id}:${d.target_kind}`}
+                return <div className='msp-flex-row' style={{ marginTop: '1px' }} key={`${d.target_id?.segment_id}:${d.target_id?.segmentation_id}:${d.target_kind}`}
+                    // onMouseEnter={() => entryData.actionHighlightSegment(segmentKey)}
+                    // onMouseLeave={() => entryData.actionHighlightSegment()}
+                    >
+
+                    <Button noOverflow flex onClick={() => model.actionSelectSegment(d !== selectedSegmentDescription ? segmentKey : undefined)}
+                        style={{
+                            fontWeight: d.target_id.segment_id === selectedSegmentDescription?.target_id?.segment_id
+                                && d.target_id.segmentation_id === selectedSegmentDescription?.target_id.segmentation_id
+                                ? 'bold' : undefined, textAlign: 'left'
+                        }}>
+                        <div title={d.name ?? 'Unnamed segment'} style={{ maxWidth: 240, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {d.name ?? 'Unnamed segment'} ({d.target_id?.segment_id}) ({d.target_id?.segmentation_id})
+                        </div>
+                    </Button>
+                    {/* TODO: two more icon buttons for remove annotation and description */}
+                    {/* Make methods in entryData for remove description */}
+                    <IconButton svg={Icons.WarningSvg} title={'Remove description'}
+                        onClick={() => {
+                            model.removeDescription(d.id);
+                            // NOTE: assumes single description per segment
+                            // entryData.actionToggleSegment(segmentKey);
+                        }} />
+                    <IconButton svg={Icons.WarningSvg} title={'Remove segment annotation'}
+                        onClick={() => {
+                            // there is just one segment annotation for each segment
+                            // pick it by id
+                            model.removeSegmentAnnotation(d.target_id!.segment_id, d.target_id!.segmentation_id, d.target_kind!);
+                            // NOTE: assumes single description per segment
+                            // entryData.actionToggleSegment(segmentKey);
+                        }} />
+                    <IconButton svg={visibleSegmentKeys.includes(segmentKey) ? Icons.VisibilityOutlinedSvg : Icons.VisibilityOffOutlinedSvg}
+                        title={visibleSegmentKeys.includes(segmentKey) ? 'Hide segment' : 'Show segment'}
+                        onClick={() => model.actionToggleSegment(segmentKey)} />
+                </div>;
+            }
+            )}
+        </div>
+    </>}</>;
 }
 
 function SegmentationControls({ entryData }: { entryData: VolsegEntryData }) {
