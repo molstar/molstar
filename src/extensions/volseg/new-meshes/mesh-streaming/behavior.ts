@@ -20,10 +20,11 @@ import { ColorNames } from '../../../../mol-util/color/names';
 import { Choice } from '../../../../mol-util/param-choice';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 
-import { MetadataWrapper } from '../../../volumes-and-segmentations/volseg-api/utils';
+// import { MetadataWrapper } from '../../../new-volumes-and-segmentations/volseg-api/utils';
 
 import { MeshlistData } from '../mesh-extension';
 import { MeshServerInfo } from './server-info';
+import { MetadataWrapper } from '../../new-volumes-and-segmentations/volseg-api/utils';
 
 
 const DEFAULT_SEGMENT_NAME = 'Untitled segment';
