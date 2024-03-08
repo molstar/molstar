@@ -22,7 +22,7 @@ import { ParamDefinition } from '../../../mol-util/param-definition';
 import { isMeshlistData, MeshlistData, VolsegMeshSegmentation } from '../new-meshes/mesh-extension';
 
 import { DEFAULT_VOLSEG_SERVER, VolumeApiV2 } from './volseg-api/api';
-import { BoxPrimitive, Cylinder, DescriptionData, Ellipsoid, ParsedSegmentKey, PyramidPrimitive, SegmentAnnotationData, ShapePrimitiveData, Sphere, TimeInfo } from './volseg-api/data';
+import { BoxPrimitive, Cylinder, DescriptionData, Ellipsoid, Metadata, ParsedSegmentKey, PyramidPrimitive, SegmentAnnotationData, ShapePrimitiveData, Sphere, TimeInfo } from './volseg-api/data';
 import { createSegmentKey, getSegmentLabelsFromDescriptions, MetadataWrapper, parseSegmentKey } from './volseg-api/utils';
 import { DEFAULT_MESH_DETAIL, VolsegMeshSegmentationData } from './entry-meshes';
 import { VolsegModelData } from './entry-models';
@@ -39,6 +39,10 @@ import { PluginComponent } from '../../../mol-plugin-state/component';
 import { VolsegGeometricSegmentationData } from './entry-geometric-segmentation';
 import { createVolumeRepresentationParams } from '../../../mol-plugin-state/helpers/volume-representation-params';
 import { CreateShapePrimitiveProviderParamsValues, isShapePrimitiveParamsValues, VolsegGeometricSegmentation } from './shape_primitives';
+import { actionSelectSegment, parseCVSXJSON } from '../common';
+import { RuntimeContext } from '../../../mol-task';
+import { Unzip, unzip } from '../../../mol-util/zip/zip';
+import { processCvsxMetadataFile } from '../cvsx-extension';
 
 export const GEOMETRIC_SEGMENTATION_NODE_TAG = 'geometric-segmentation-node';
 export const MESH_SEGMENTATION_NODE_TAG = 'mesh-segmentation-node'
@@ -247,6 +251,8 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     entryId: string;
     // metadata: MetadataWrapper;
     pdbs: string[];
+    kind: 'api' | 'file' = 'api';
+    filesData: any = {};
 
     public metadata = new BehaviorSubject<MetadataWrapper | undefined>(undefined);
 
@@ -270,13 +276,14 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     public currentVolume = new BehaviorSubject<StateTransform<VolRepr3DT>[]>([]);
     public currentTimeframe = new BehaviorSubject(0);
 
-    private constructor(plugin: PluginContext, params: VolsegEntryParamValues) {
+    private constructor(plugin: PluginContext, params: VolsegEntryParamValues, filesData?: any) {
         super(plugin, params);
         this.plugin = plugin;
         this.api = new VolumeApiV2(params.serverUrl);
         this.source = params.source;
         this.entryId = params.entryId;
         this.entryNumber = splitEntryId(this.entryId).entryNumber;
+        this.filesData = filesData;
     }
 
     private async initialize() {
@@ -287,9 +294,57 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         await this.init();
     }
 
+    private async initializeFromFile(metadata?: Metadata) {
+        if (metadata) this.metadata.next(new MetadataWrapper(metadata));
+        await this.initFromFile();
+    }
+
     static async create(plugin: PluginContext, params: VolsegEntryParamValues) {
         const result = new VolsegEntryData(plugin, params);
         await result.initialize();
+        return result;
+    }
+
+    static async createFromFile(plugin: PluginContext, file: Uint8Array, runtimeCtx: RuntimeContext) {
+        const zippedFiles: { [path: string]: Uint8Array } = await unzip(runtimeCtx, file.buffer) as typeof zippedFiles;
+        const zippedFilesEntries = Object.entries(zippedFiles);
+        const annotationJSONEntry = zippedFilesEntries.find(z => z[0] === 'annotations.json');
+        const metadataJSONEntry = zippedFilesEntries.find(z => z[0] === 'metadata.json');
+        const rawQueryJSON = zippedFilesEntries.find(z => z[0] === 'query.json');
+        const rawVolume = zippedFilesEntries.find(z => z[0].startsWith('volume'));
+        const rawLatticeSegmentation = zippedFilesEntries.find(z => z[0].startsWith('segmentation'));
+        debugger;
+        const parsedQueryJSON = await parseCVSXJSON(rawQueryJSON!, plugin);
+        let params: VolsegEntryParamValues = {
+            serverUrl: '',
+            source: parsedQueryJSON.args.source_db,
+            entryId: parsedQueryJSON.args.entry_id,
+        };
+        const parsedGridMetadata = await parseCVSXJSON(metadataJSONEntry!, plugin);
+        const parsedAnnotationMetadata = await parseCVSXJSON(annotationJSONEntry!, plugin);
+        const source: Source = parsedGridMetadata.entry_id.source_db_name;
+        const entryId = parsedGridMetadata.entry_id.source_db_id;
+        params = {
+            serverUrl: '',
+            source: source,
+            entryId: entryId
+        };
+        const metadata: Metadata = {
+            grid: parsedGridMetadata,
+            annotation: parsedAnnotationMetadata
+        };
+        const filesData = {
+            // parsed everything
+            volume: rawVolume[1],
+            latticeSegmentation: rawLatticeSegmentation[1],
+            // geometricSegmentation:
+            // meshSegmentation: 
+            annotation: parsedAnnotationMetadata,
+            metadata: parsedGridMetadata,
+            query: parsedQueryJSON
+        }
+        const result = new VolsegEntryData(plugin, params, filesData);
+        await result.initializeFromFile(metadata);
         return result;
     }
 
@@ -336,6 +391,23 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         if (hasMeshes) {
             await this.preloadMeshesTimeframesData();
         }
+    }
+
+    private async initFromFile() {
+        this.sync();
+        this.subscribeObservable(this.plugin.state.data.events.changed, state => {
+            console.log('data events changed emitted');
+            this.sync();
+        });
+        const hasVolumes = this.metadata.value!.raw.grid.volumes.volume_sampling_info.spatial_downsampling_levels.length > 0;
+        if (hasVolumes) {
+            this.preloadVolumeTimeframesDataFromFile();
+        }
+        const hasLattices = this.metadata.value!.raw.grid.segmentation_lattices;
+        if (hasLattices) {
+            this.preloadSegmentationTimeframesDataFromFile();
+        }
+        debugger;
     }
 
     async updateMetadata() {
@@ -400,9 +472,9 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             if (segmentationKind === undefined) return;
             const clickedSegmentKey = createSegmentKey(clickedSegmentId, clickedSegmentSegmentationId, segmentationKind);
             if (clickedSegmentKey === this.currentState.value.selectedSegment) {
-                this.actionSelectSegment(undefined);
+                actionSelectSegment(this, undefined);
             } else {
-                this.actionSelectSegment(clickedSegmentKey);
+                actionSelectSegment(this, clickedSegmentKey);
             }
         });
 
@@ -576,6 +648,31 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         console.log(this.cachedVolumeTimeframesData);
     }
 
+    preloadSegmentationTimeframesDataFromFile() {
+        if (this.metadata.value!.raw.grid.segmentation_lattices) {
+            const rawLatticeSegmentationData = new RawSegmentationData(
+                this.filesData.query.args.time, this.filesData.query.args.channel_id, this.filesData.latticeSegmentation
+            );
+            // channelsData.push(rawChannelData);
+            this.cachedSegmentationTimeframesData.add(
+                rawLatticeSegmentationData
+            );
+            console.log('cachedSegmentationTimeframesData');
+            console.log(this.cachedSegmentationTimeframesData);
+        } else {
+            console.log('No segmentation data for this entry');
+        }
+    }
+
+    preloadVolumeTimeframesDataFromFile() {
+        // need to get data as Uint8Array
+        const rawChannelData = new RawChannelData(this.filesData.query.args.time, this.filesData.query.args.channel_id, this.filesData.volume);
+        debugger;
+        this.cachedVolumeTimeframesData.add(
+            rawChannelData
+        );
+    }
+
     async preloadSegmentationTimeframesData() {
         if (this.metadata.value!.raw.grid.segmentation_lattices) {
             const segmentationIds = this.metadata.value!.raw.grid.segmentation_lattices.segmentation_ids;
@@ -712,37 +809,36 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         this.highlightRequest.next(segmentKey);
     }
 
-    async actionToggleSegment(segmentKey: string) {
-        const current = this.currentState.value.visibleSegments.map(seg => seg.segmentKey);
-        if (current.includes(segmentKey)) {
-            await this.actionShowSegments(current.filter(s => s !== segmentKey));
-        } else {
-            await this.actionShowSegments([...current, segmentKey]);
-        }
-    }
+    // async actionToggleSegment(segmentKey: string) {
+    //     const current = this.currentState.value.visibleSegments.map(seg => seg.segmentKey);
+    //     if (current.includes(segmentKey)) {
+    //         await this.actionShowSegments(current.filter(s => s !== segmentKey));
+    //     } else {
+    //         await this.actionShowSegments([...current, segmentKey]);
+    //     }
+    // }
 
-    async actionToggleAllSegments() {
-        const currentTimeframe = this.currentTimeframe.value;
-        const current = this.currentState.value.visibleSegments.map(seg => seg.segmentKey);
-        if (current.length !== this.metadata.value!.getAllAnnotationsForTimeframe(currentTimeframe).length) {
-            const allSegmentKeys = this.metadata.value!.getAllAnnotationsForTimeframe(currentTimeframe).map(a =>
-                createSegmentKey(a.segment_id, a.segmentation_id, a.segment_kind)
-            );
-            await this.actionShowSegments(allSegmentKeys);
-        } else {
-            await this.actionShowSegments([]);
-        }
-    }
+    // async actionToggleAllSegments() {
+    //     const currentTimeframe = this.currentTimeframe.value;
+    //     const current = this.currentState.value.visibleSegments.map(seg => seg.segmentKey);
+    //     if (current.length !== this.metadata.value!.getAllAnnotationsForTimeframe(currentTimeframe).length) {
+    //         const allSegmentKeys = this.metadata.value!.getAllAnnotationsForTimeframe(currentTimeframe).map(a =>
+    //             createSegmentKey(a.segment_id, a.segmentation_id, a.segment_kind)
+    //         );
+    //         await this.actionShowSegments(allSegmentKeys);
+    //     } else {
+    //         await this.actionShowSegments([]);
+    //     }
+    // }
 
     // async actionSelectSegment(segment?: number) {
-    async actionSelectSegment(segmentKey?: string) {
-        debugger;
-        if (segmentKey !== undefined && this.currentState.value.visibleSegments.find(s => s.segmentKey === segmentKey) === undefined) {
-            // first make the segment visible if it is not
-            await this.actionToggleSegment(segmentKey);
-        }
-        await this.updateStateNode({ selectedSegment: segmentKey });
-    }
+    // async actionSelectSegment(segmentKey?: string) {
+    //     if (segmentKey !== undefined && this.currentState.value.visibleSegments.find(s => s.segmentKey === segmentKey) === undefined) {
+    //         // first make the segment visible if it is not
+    //         await this.actionToggleSegment(segmentKey);
+    //     }
+    //     await this.updateStateNode({ selectedSegment: segmentKey });
+    // }
 
     async actionSetOpacity(opacity: number, segmentationId: string, kind: 'lattice' | 'mesh' | 'primitive') {
         debugger;
@@ -779,63 +875,63 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     }
 
     // function to use in actionShowSegments for both lattice and mesh segments
-    async _actionShowSegments(parsedSegmentKeys: ParsedSegmentKey[], existingSegmentationIds: string[], kind: 'mesh' | 'lattice' | 'primitive') {
-        const segmentKeys = parsedSegmentKeys.filter(k => k.kind === kind);
-        const segmentIds = segmentKeys.map(k => k.segmentId);
-        const SegmentationIdsToSegmentIds = new Map<string, number[]>;
-        for (const key of segmentKeys) {
-            if (!SegmentationIdsToSegmentIds.has(key.segmentationId)) {
-                SegmentationIdsToSegmentIds.set(key.segmentationId, [key.segmentId]);
-            } else {
-                // have this key, add segmentId
-                const currentSegmentationIds = SegmentationIdsToSegmentIds.get(key.segmentationId);
-                SegmentationIdsToSegmentIds.set(key.segmentationId, [...currentSegmentationIds!, key.segmentId]);
-            }
-        }
-        for (const id of existingSegmentationIds) {
-            if (!SegmentationIdsToSegmentIds.has(id)) {
-                SegmentationIdsToSegmentIds.set(id, []);
-            }
-        }
-        console.log(SegmentationIdsToSegmentIds);
-        const promises: Promise<void>[] = [];
-        SegmentationIdsToSegmentIds.forEach((value, key) => {
-            if (kind === 'lattice') promises.push(this.latticeSegmentationData.showSegments(value, key));
-            else if (kind === 'mesh') promises.push(this.meshSegmentationData.showSegments(value, key));
-            else if (kind === 'primitive') promises.push(this.geometricSegmentationData.showSegments(value, key));
-        });
-        await Promise.all(promises);
-    }
+    // async _actionShowSegments(parsedSegmentKeys: ParsedSegmentKey[], existingSegmentationIds: string[], kind: 'mesh' | 'lattice' | 'primitive') {
+    //     const segmentKeys = parsedSegmentKeys.filter(k => k.kind === kind);
+    //     const segmentIds = segmentKeys.map(k => k.segmentId);
+    //     const SegmentationIdsToSegmentIds = new Map<string, number[]>;
+    //     for (const key of segmentKeys) {
+    //         if (!SegmentationIdsToSegmentIds.has(key.segmentationId)) {
+    //             SegmentationIdsToSegmentIds.set(key.segmentationId, [key.segmentId]);
+    //         } else {
+    //             // have this key, add segmentId
+    //             const currentSegmentationIds = SegmentationIdsToSegmentIds.get(key.segmentationId);
+    //             SegmentationIdsToSegmentIds.set(key.segmentationId, [...currentSegmentationIds!, key.segmentId]);
+    //         }
+    //     }
+    //     for (const id of existingSegmentationIds) {
+    //         if (!SegmentationIdsToSegmentIds.has(id)) {
+    //             SegmentationIdsToSegmentIds.set(id, []);
+    //         }
+    //     }
+    //     console.log(SegmentationIdsToSegmentIds);
+    //     const promises: Promise<void>[] = [];
+    //     SegmentationIdsToSegmentIds.forEach((value, key) => {
+    //         if (kind === 'lattice') promises.push(this.latticeSegmentationData.showSegments(value, key));
+    //         else if (kind === 'mesh') promises.push(this.meshSegmentationData.showSegments(value, key));
+    //         else if (kind === 'primitive') promises.push(this.geometricSegmentationData.showSegments(value, key));
+    //     });
+    //     await Promise.all(promises);
+    // }
 
-    async actionShowSegments(segmentKeys: string[]) {
-        const allExistingLatticeSegmentationIds = this.metadata.value!.raw.grid.segmentation_lattices!.segmentation_ids;
-        const allExistingMeshSegmentationIds = this.metadata.value!.raw.grid.segmentation_meshes!.segmentation_ids;
-        const allExistingGeometricSegmentationIds = this.metadata.value!.raw.grid.geometric_segmentation!.segmentation_ids;
-        if (segmentKeys.length === 0) {
-            for (const id of allExistingLatticeSegmentationIds) {
-                await this.latticeSegmentationData.showSegments([], id);
-            }
-            for (const id of allExistingMeshSegmentationIds) {
-                await this.meshSegmentationData.showSegments([], id);
-            }
-            for (const id of allExistingGeometricSegmentationIds) {
-                await this.geometricSegmentationData.showSegments([], id);
-            }
-        }
-        const parsedSegmentKeys = segmentKeys.map(
-            k => parseSegmentKey(k)
-        );
-        // LATTICES PART
-        this._actionShowSegments(parsedSegmentKeys, allExistingLatticeSegmentationIds, 'lattice');
-        // MESHES PART
-        this._actionShowSegments(parsedSegmentKeys, allExistingMeshSegmentationIds, 'mesh');
-        // GEOMETRIC SEGMENTATION PAR
-        this._actionShowSegments(parsedSegmentKeys, allExistingGeometricSegmentationIds, 'primitive');
+    // async actionShowSegments(segmentKeys: string[]) {
+    //     const allExistingLatticeSegmentationIds = this.metadata.value!.raw.grid.segmentation_lattices!.segmentation_ids;
+    //     const allExistingMeshSegmentationIds = this.metadata.value!.raw.grid.segmentation_meshes!.segmentation_ids;
+    //     const allExistingGeometricSegmentationIds = this.metadata.value!.raw.grid.geometric_segmentation!.segmentation_ids;
+    //     if (segmentKeys.length === 0) {
+    //         for (const id of allExistingLatticeSegmentationIds) {
+    //             await this.latticeSegmentationData.showSegments([], id);
+    //         }
+    //         for (const id of allExistingMeshSegmentationIds) {
+    //             await this.meshSegmentationData.showSegments([], id);
+    //         }
+    //         for (const id of allExistingGeometricSegmentationIds) {
+    //             await this.geometricSegmentationData.showSegments([], id);
+    //         }
+    //     }
+    //     const parsedSegmentKeys = segmentKeys.map(
+    //         k => parseSegmentKey(k)
+    //     );
+    //     // LATTICES PART
+    //     this._actionShowSegments(parsedSegmentKeys, allExistingLatticeSegmentationIds, 'lattice');
+    //     // MESHES PART
+    //     this._actionShowSegments(parsedSegmentKeys, allExistingMeshSegmentationIds, 'mesh');
+    //     // GEOMETRIC SEGMENTATION PAR
+    //     this._actionShowSegments(parsedSegmentKeys, allExistingGeometricSegmentationIds, 'primitive');
 
-        await this.updateStateNode({ visibleSegments: segmentKeys.map(s => ({ segmentKey: s })) });
-        console.log('Current state');
-        console.log(this.getStateNode());
-    }
+    //     await this.updateStateNode({ visibleSegments: segmentKeys.map(s => ({ segmentKey: s })) });
+    //     console.log('Current state');
+    //     console.log(this.getStateNode());
+    // }
 
     private async highlightSegment(segmentKey?: string) {
         await PluginCommands.Interactivity.ClearHighlights(this.plugin);

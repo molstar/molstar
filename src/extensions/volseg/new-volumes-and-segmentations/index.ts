@@ -19,6 +19,7 @@ import { ProjectGeometricSegmentationData, ProjectGeometricSegmentationDataParam
 import { VolsegUI } from './ui';
 import { createSegmentKey, getSegmentLabelsFromDescriptions } from './volseg-api/utils';
 import { useBehavior } from '../../../mol-plugin-ui/hooks/use-behavior';
+import { actionShowSegments } from '../common';
 
 // TODO: temp change, put there 'localhost'
 const DEBUGGING = typeof window !== 'undefined' ? window?.location?.hostname === 'localhost' || '127.0.0.1' : false;
@@ -187,7 +188,7 @@ export const LoadVolseg = StateAction.build({
                 return createSegmentKey(a.segment_id, a.segmentation_id, a.segment_kind);
             }
             );
-            await entryData.actionShowSegments(allSegmentKeysForTimeframe);
+            await actionShowSegments(allSegmentKeysForTimeframe, entryData);
         }
     }).runInContext(taskCtx);
 }));

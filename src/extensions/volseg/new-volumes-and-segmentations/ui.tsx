@@ -34,6 +34,9 @@ import React from "react";
 import JSONEditorComponent from './jsoneditor-component';
 import { VolsegGeometricSegmentation } from './shape_primitives';
 import { VolsegMeshSegmentation } from '../new-meshes/mesh-extension';
+import { actionSelectSegment, actionToggleAllSegments, actionToggleSegment, findNodesByRef } from '../common';
+import { CVSXStateModel } from '../cvsx-extension/cvsx';
+import { DescriptionsList } from '../common-ui';
 
 interface VolsegUIData {
     globalState?: VolsegGlobalStateData,
@@ -166,7 +169,7 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
             )}
         </Popup>
         {/* Fitted models */}
-        {allPdbs.length > 0 && <ExpandGroup header='Fitted models in PDB' initiallyExpanded>
+        {allPdbs && allPdbs.length > 0 && <ExpandGroup header='Fitted models in PDB' initiallyExpanded>
             {allPdbs.map(pdb =>
                 <WaitingButton key={pdb} onClick={() => entryData.actionShowFittedModel(visibleModels.includes(pdb) ? [] : [pdb])}
                     style={{ fontWeight: visibleModels.includes(pdb) ? 'bold' : undefined, textAlign: 'left', marginTop: 1 }}>
@@ -178,71 +181,7 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
         {/* Volume */}
         <VolumeControls entryData={entryData} />
         {/* TODO: should show this section even if allDescriptions.length === 0 */}
-        <SegmentationControls entryData={entryData} />
-        {allDescriptions.length > 0 && <ExpandGroup header='Segmentation data' initiallyExpanded>
-            {/* Segment opacity slider */}
-            {/* <ControlRow label='Opacity' control={
-                <WaitingSlider min={0} max={1} value={state.segmentOpacity} step={0.05} onChange={async v => await entryData.actionSetOpacity(v)} />
-            } /> */}
-
-            <DescriptionsList allDescriptions={allDescriptions}
-                selectedSegmentDescription={selectedSegmentDescription}
-                currentTimeframe={currentTimeframe}
-                visibleSegmentKeys={visibleSegmentKeys}
-                model={entryData}
-                ></DescriptionsList>
-            {/* Segment toggles */}
-            {/* {allDescriptions.length > 0 && <>
-                <WaitingButton onClick={async () => { await sleep(20); await entryData.actionToggleAllSegments(); }} style={{ marginTop: 1 }}>
-                    Toggle All segments
-                </WaitingButton>
-                <div style={{ maxHeight: 200, overflow: 'hidden', overflowY: 'auto', marginBlock: 1 }}>
-                    {allDescriptions.map(d => {
-                        if (d.target_kind === 'entry' || !d.target_id || d.is_hidden === true) return;
-                        // NOTE: if time is a single number
-                        if (d.time && Number.isFinite(d.time) && d.time !== currentTimeframe) return;
-                        // NOTE: if time is array
-                        if (d.time && Array.isArray(d.time) && d.time.every(i => Number.isFinite(i)) && !(d.time as number[]).includes(currentTimeframe)) return;
-                        const segmentKey = createSegmentKey(d.target_id.segment_id, d.target_id.segmentation_id, d.target_kind);
-                        // How it was before
-                        // return <div style={{ display: 'flex', marginBottom: 1 }} key={`${d.target_id?.segment_id}:${d.target_id?.segmentation_id}:${d.target_kind}`}
-                        return <div className='msp-flex-row' style={{ marginTop: '1px' }} key={`${d.target_id?.segment_id}:${d.target_id?.segmentation_id}:${d.target_kind}`}
-                            onMouseEnter={() => entryData.actionHighlightSegment(segmentKey)}
-                            onMouseLeave={() => entryData.actionHighlightSegment()}>
-
-                            <Button noOverflow flex onClick={() => entryData.actionSelectSegment(d !== selectedSegmentDescription ? segmentKey : undefined)}
-                                style={{
-                                    fontWeight: d.target_id.segment_id === selectedSegmentDescription?.target_id?.segment_id
-                                        && d.target_id.segmentation_id === selectedSegmentDescription?.target_id.segmentation_id
-                                        ? 'bold' : undefined, textAlign: 'left'
-                                }}>
-                                <div title={d.name ?? 'Unnamed segment'} style={{ maxWidth: 240, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {d.name ?? 'Unnamed segment'} ({d.target_id?.segment_id}) ({d.target_id?.segmentation_id})
-                                </div>
-                            </Button>
-                            <IconButton svg={Icons.WarningSvg} title={'Remove description'}
-                                onClick={() => {
-                                    entryData.removeDescription(d.id);
-                                    // NOTE: assumes single description per segment
-                                    // entryData.actionToggleSegment(segmentKey);
-                                }} />
-                            <IconButton svg={Icons.WarningSvg} title={'Remove segment annotation'}
-                                onClick={() => {
-                                    // there is just one segment annotation for each segment
-                                    // pick it by id
-                                    entryData.removeSegmentAnnotation(d.target_id!.segment_id, d.target_id!.segmentation_id, d.target_kind!);
-                                    // NOTE: assumes single description per segment
-                                    // entryData.actionToggleSegment(segmentKey);
-                                }} />
-                            <IconButton svg={visibleSegmentKeys.includes(segmentKey) ? Icons.VisibilityOutlinedSvg : Icons.VisibilityOffOutlinedSvg}
-                                title={visibleSegmentKeys.includes(segmentKey) ? 'Hide segment' : 'Show segment'}
-                                onClick={() => entryData.actionToggleSegment(segmentKey)} />
-                        </div>;
-                    }
-                    )}
-                </div>
-            </>} */}
-        </ExpandGroup>}
+        <SegmentationControls model={entryData} />
 
         {/* Descriptions */}
         {allDescriptions.length > 0 && <ExpandGroup header='Selected segment descriptions' initiallyExpanded>
@@ -343,35 +282,30 @@ function VolumeChannelControls({ entryData, volume }: { entryData: VolsegEntryDa
 }
 
 // TODO: TODO: TODO: exclude Opacity from state
-function SegmentationSetControls({ entryData, segmentation, kind }: { entryData: VolsegEntryData, segmentation: StateObjectCell<PluginStateObject.Volume.Data> | StateObjectCell<VolsegGeometricSegmentation> | StateObjectCell<VolsegMeshSegmentation>, kind: 'lattice' | 'mesh' | 'primitive' }) {
+function SegmentationSetControls({ model, segmentation, kind }: { model: VolsegEntryData | CVSXStateModel, segmentation: StateObjectCell<PluginStateObject.Volume.Data> | StateObjectCell<VolsegGeometricSegmentation> | StateObjectCell<VolsegMeshSegmentation>, kind: 'lattice' | 'mesh' | 'primitive' }) {
     const projectDataTransform = segmentation.transform;
-    debugger;
     if (!projectDataTransform) return null;
     const params: ProjectLatticeSegmentationDataParamsValues | ProjectGeometricSegmentationDataParamsValues | ProjectMeshSegmentationDataParamsValues = projectDataTransform.params;
 
     const segmentationId = params.segmentationId;
-    
-    const childRef = entryData.plugin.state.data.tree.children.get(projectDataTransform.ref).toArray()[0];
-    const segmentationRepresentation3DNode = entryData.findNodesByRef(childRef);
-    const transform = segmentationRepresentation3DNode.transform;
-    debugger;
-    if (!transform) return null;
 
-    // TODO: need to render opacity control here and list of annotations
-    // TODO: render descriptions
-    const descriptions = entryData.metadata.value!.getAllDescriptionsForSegmentationAndTimeframe(
-        segmentationId,
-        kind,
-        entryData.currentTimeframe.value
-    );
+    const childRef = model.plugin.state.data.tree.children.get(projectDataTransform.ref).toArray()[0];
+    const segmentationRepresentation3DNode = findNodesByRef(model.plugin, childRef);
+    // in case of CVSX segmentation.transform is already 3D representation
+    // how to get segmentation Id from it?
+    const transform = segmentationRepresentation3DNode.transform;
+    if (!transform) return null;
 
     return <ExpandGroup header={`${segmentationId}`}>
         {/* TODO: use actual opacity */}
         {/* <div>Segmentation</div> */}
         <ControlRow label='Opacity' control={
-            <WaitingSlider min={0} max={1} value={transform.params?.type.params.alpha} step={0.05} onChange={async v => await entryData.actionSetOpacity(v, segmentationId, kind)} />
+            <WaitingSlider min={0} max={1} value={transform.params?.type.params.alpha} step={0.05} onChange={async v => await model.actionSetOpacity(v, segmentationId, kind)} />
         } />
-        
+        <DescriptionsList
+            model={model} targetSegmentationId={segmentationId} targetKind={kind}
+        ></DescriptionsList>
+
     </ExpandGroup>;
 }
 
@@ -389,88 +323,22 @@ function VolumeControls({ entryData }: { entryData: VolsegEntryData }) {
     </>;
 }
 
-function DescriptionsList( {allDescriptions, selectedSegmentDescription, currentTimeframe, visibleSegmentKeys, model }: {allDescriptions: DescriptionData[], selectedSegmentDescription: DescriptionData | undefined, currentTimeframe: number, visibleSegmentKeys: string[], model: VolsegEntryData}) {
-    // Take in annotations, descriptions, selectedSegment
-    // TODO: handle toggle all segments, highlight segments, select segments
-    // TODO: or better - pass in entryData | another model
-    // on which all required methods toggle all segments, highlight segments, select segments
-    // are implemented
-    return <>{allDescriptions.length > 0 && <>
-        <WaitingButton onClick={async () => { await sleep(20); await model.actionToggleAllSegments(); }} style={{ marginTop: 1 }}>
-            Toggle All segments
-        </WaitingButton>
-        <div style={{ maxHeight: 200, overflow: 'hidden', overflowY: 'auto', marginBlock: 1 }}>
-            {allDescriptions.map(d => {
-                if (d.target_kind === 'entry' || !d.target_id || d.is_hidden === true) return;
-                // NOTE: if time is a single number
-                if (d.time && Number.isFinite(d.time) && d.time !== currentTimeframe) return;
-                // NOTE: if time is array
-                if (d.time && Array.isArray(d.time) && d.time.every(i => Number.isFinite(i)) && !(d.time as number[]).includes(currentTimeframe)) return;
-                const segmentKey = createSegmentKey(d.target_id.segment_id, d.target_id.segmentation_id, d.target_kind);
-                // How it was before
-                // return <div style={{ display: 'flex', marginBottom: 1 }} key={`${d.target_id?.segment_id}:${d.target_id?.segmentation_id}:${d.target_kind}`}
-                return <div className='msp-flex-row' style={{ marginTop: '1px' }} key={`${d.target_id?.segment_id}:${d.target_id?.segmentation_id}:${d.target_kind}`}
-                    // onMouseEnter={() => entryData.actionHighlightSegment(segmentKey)}
-                    // onMouseLeave={() => entryData.actionHighlightSegment()}
-                    >
-
-                    <Button noOverflow flex onClick={() => model.actionSelectSegment(d !== selectedSegmentDescription ? segmentKey : undefined)}
-                        style={{
-                            fontWeight: d.target_id.segment_id === selectedSegmentDescription?.target_id?.segment_id
-                                && d.target_id.segmentation_id === selectedSegmentDescription?.target_id.segmentation_id
-                                ? 'bold' : undefined, textAlign: 'left'
-                        }}>
-                        <div title={d.name ?? 'Unnamed segment'} style={{ maxWidth: 240, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {d.name ?? 'Unnamed segment'} ({d.target_id?.segment_id}) ({d.target_id?.segmentation_id})
-                        </div>
-                    </Button>
-                    {/* TODO: two more icon buttons for remove annotation and description */}
-                    {/* Make methods in entryData for remove description */}
-                    <IconButton svg={Icons.WarningSvg} title={'Remove description'}
-                        onClick={() => {
-                            model.removeDescription(d.id);
-                            // NOTE: assumes single description per segment
-                            // entryData.actionToggleSegment(segmentKey);
-                        }} />
-                    <IconButton svg={Icons.WarningSvg} title={'Remove segment annotation'}
-                        onClick={() => {
-                            // there is just one segment annotation for each segment
-                            // pick it by id
-                            model.removeSegmentAnnotation(d.target_id!.segment_id, d.target_id!.segmentation_id, d.target_kind!);
-                            // NOTE: assumes single description per segment
-                            // entryData.actionToggleSegment(segmentKey);
-                        }} />
-                    <IconButton svg={visibleSegmentKeys.includes(segmentKey) ? Icons.VisibilityOutlinedSvg : Icons.VisibilityOffOutlinedSvg}
-                        title={visibleSegmentKeys.includes(segmentKey) ? 'Hide segment' : 'Show segment'}
-                        onClick={() => model.actionToggleSegment(segmentKey)} />
-                </div>;
-            }
-            )}
-        </div>
-    </>}</>;
-}
-
-function SegmentationControls({ entryData }: { entryData: VolsegEntryData }) {
-    const h = useBehavior(entryData.state.hierarchy);
+export function SegmentationControls({ model }: { model: VolsegEntryData | CVSXStateModel }) {
+    const h = useBehavior(model.state.hierarchy);
     if (!h) return null;
     return <>
         {/* <Button onClick={() => { console.log('volume cache, segmentation cache: ', entryData.cachedVolumeTimeframesData, entryData.cachedSegmentationTimeframesData); }}>Get volume and segmentation cache</Button> */}
         <ExpandGroup header='Segmentation data'>
             {/* TODO: just lattices, need geometric and mesh segmentations as well */}
             {h.segmentations.map((v) => {
-                return <SegmentationSetControls key={v.transform.ref} entryData={entryData} segmentation={v} kind={'lattice'} />;
-                // const params: ProjectDataParamsValues = v.transform.params;
-                // return <VolumeChannelControls key={params.channelId} entryData={entryData} volume={v} />;
+                return <SegmentationSetControls key={v.transform.ref} model={model} segmentation={v} kind={'lattice'} />;
             })}
             {h.meshSegmentations.map((v) => {
-                return <SegmentationSetControls key={v.transform.ref} entryData={entryData} segmentation={v} kind={'mesh'}/>;
-                // const params: ProjectDataParamsValues = v.transform.params;
-                // return <VolumeChannelControls key={params.channelId} entryData={entryData} volume={v} />;
+                return <SegmentationSetControls key={v.transform.ref} model={model} segmentation={v} kind={'mesh'} />;
             })}
             {h.geometricSegmentations.map((v) => {
-                return <SegmentationSetControls key={v.transform.ref} entryData={entryData} segmentation={v} kind={'primitive'}/>;
-                // const params: ProjectDataParamsValues = v.transform.params;
-                // return <VolumeChannelControls key={params.channelId} entryData={entryData} volume={v} />;
+                return <SegmentationSetControls key={v.transform.ref} model={model} segmentation={v} kind={'primitive'} />;
+
             })}
         </ExpandGroup>
     </>;
