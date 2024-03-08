@@ -23,7 +23,7 @@ import { isMeshlistData, MeshlistData, VolsegMeshSegmentation } from '../new-mes
 
 import { DEFAULT_VOLSEG_SERVER, VolumeApiV2 } from './volseg-api/api';
 import { BoxPrimitive, Cylinder, DescriptionData, Ellipsoid, Metadata, ParsedSegmentKey, PyramidPrimitive, SegmentAnnotationData, ShapePrimitiveData, Sphere, TimeInfo } from './volseg-api/data';
-import { createSegmentKey, getSegmentLabelsFromDescriptions, MetadataWrapper, parseSegmentKey } from './volseg-api/utils';
+import { createSegmentKey, getSegmentLabelsFromDescriptions, instanceOfShapePrimitiveData, MetadataWrapper, parseSegmentKey } from './volseg-api/utils';
 import { DEFAULT_MESH_DETAIL, VolsegMeshSegmentationData } from './entry-meshes';
 import { VolsegModelData } from './entry-models';
 import { SEGMENT_VISUAL_TAG, VolsegLatticeSegmentationData } from './entry-segmentation';
@@ -76,7 +76,7 @@ function entryParam(entries: string[] = []) {
     }, { isFlat: true });
 }
 type LoadVolsegParamValues = ParamDefinition.Values<ReturnType<typeof createLoadVolsegParams>>;
-type RawDataKind = 'volume' | 'segmentation' | 'mesh';
+type RawDataKind = 'volume' | 'segmentation' | 'mesh' | 'primitive';
 
 export function createVolsegEntryParams(plugin?: PluginContext) {
     const defaultVolumeServer = plugin?.config.get(NewVolsegVolumeServerConfig.DefaultServer) ?? DEFAULT_VOLSEG_SERVER;
@@ -119,7 +119,7 @@ class RawChannelData extends PluginComponent {
 }
 
 class RawSegmentationData extends PluginComponent {
-    constructor(public timeframeIndex: number, public segmentationId: string, public data: Uint8Array | string | RawMeshSegmentData[]) {
+    constructor(public timeframeIndex: number, public segmentationId: string, public data: Uint8Array | string | RawMeshSegmentData[] | ShapePrimitiveData) {
         super();
     }
 }
@@ -151,6 +151,7 @@ class RawTimeframesDataCache {
     }
 
     private _getEntrySize(entry: RawChannelData | RawSegmentationData | RawMeshSegmentData) {
+        debugger;
         const data = entry.data;
         let bytes: number = 0;
         if (data instanceof Uint8Array) {
@@ -158,6 +159,8 @@ class RawTimeframesDataCache {
         } else if (data instanceof String) {
             // string
             bytes = new TextEncoder().encode(data as string).length;
+        } else if (instanceOfShapePrimitiveData(data)) {
+            bytes = JSON.stringify(data).length;
         } else {
             // rawMeshSegmentData
             const arr: RawMeshSegmentData[] = data as RawMeshSegmentData[];
@@ -229,6 +232,8 @@ class RawTimeframesDataCache {
                 entry = await this.entryData._loadRawLatticeSegmentationData(timeframeIndex, channelIdOrSegmentationId);
             } else if (kind === 'mesh') {
                 entry = await this.entryData._loadRawMeshSegmentationData(timeframeIndex, channelIdOrSegmentationId);
+            } else if (kind === 'primitive') {
+                entry = await this.entryData._loadGeometricSegmentationData(timeframeIndex, channelIdOrSegmentationId);
             } else {
                 throw Error(`Data kind ${kind} is not supported`);
             }
@@ -259,7 +264,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     public cachedVolumeTimeframesData = new RawTimeframesDataCache(this, 'volume');
     public cachedSegmentationTimeframesData = new RawTimeframesDataCache(this, 'segmentation');
     public cachedMeshesTimeframesData = new RawTimeframesDataCache(this, 'mesh');
-
+    public cachedShapePrimitiveData = new RawTimeframesDataCache(this, 'primitive');
     state = {
         hierarchy: new BehaviorSubject<StateHierarchyMirror | undefined>(undefined)
     };
@@ -314,6 +319,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         const rawVolume = zippedFilesEntries.find(z => z[0].startsWith('volume'));
         const rawLatticeSegmentation = zippedFilesEntries.find(z => z[0].startsWith('segmentation'));
         debugger;
+        const geometricSegmentation = zippedFilesEntries.find(z => z[0].startsWith('geometric-segmentation.json'));
         const parsedQueryJSON = await parseCVSXJSON(rawQueryJSON!, plugin);
         let params: VolsegEntryParamValues = {
             serverUrl: '',
@@ -333,11 +339,16 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             grid: parsedGridMetadata,
             annotation: parsedAnnotationMetadata
         };
+        let gs = undefined;
+        if (geometricSegmentation) {
+            gs = await parseCVSXJSON(geometricSegmentation, plugin)
+        }
+        debugger;
         const filesData = {
             // parsed everything
-            volume: rawVolume[1],
-            latticeSegmentation: rawLatticeSegmentation[1],
-            // geometricSegmentation:
+            volume: rawVolume? rawVolume[1]: undefined,
+            latticeSegmentation: rawLatticeSegmentation ? rawLatticeSegmentation[1] : undefined,
+            geometricSegmentation: gs,
             // meshSegmentation: 
             annotation: parsedAnnotationMetadata,
             metadata: parsedGridMetadata,
@@ -350,6 +361,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
 
     async getData(timeframeIndex: number, channelIdOrSegmentationId: string, kind: RawDataKind) {
         // TODO: optimize if elif?
+        debugger;
         if (kind === 'volume') {
             const channelData = await this.cachedVolumeTimeframesData.get(timeframeIndex, channelIdOrSegmentationId, 'volume');
             return channelData.data;
@@ -359,6 +371,9 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         } else if (kind === 'mesh') {
             const meshData = await this.cachedMeshesTimeframesData.get(timeframeIndex, channelIdOrSegmentationId, 'mesh');
             return meshData.data;
+        } else if (kind === 'primitive') {
+            const shapePrimitiveData = await this.cachedShapePrimitiveData.get(timeframeIndex, channelIdOrSegmentationId, 'primitive');
+            return shapePrimitiveData.data;
         }
     }
 
@@ -391,6 +406,11 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         if (hasMeshes) {
             await this.preloadMeshesTimeframesData();
         }
+
+        const hasShapePrimitives = this.metadata.value!.raw.grid.geometric_segmentation;
+        if (hasShapePrimitives) {
+            await this.preloadMeshesTimeframesData();
+        }
     }
 
     private async initFromFile() {
@@ -399,6 +419,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             console.log('data events changed emitted');
             this.sync();
         });
+        // TODO: optimize these has
         const hasVolumes = this.metadata.value!.raw.grid.volumes.volume_sampling_info.spatial_downsampling_levels.length > 0;
         if (hasVolumes) {
             this.preloadVolumeTimeframesDataFromFile();
@@ -407,7 +428,10 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         if (hasLattices) {
             this.preloadSegmentationTimeframesDataFromFile();
         }
-        debugger;
+        const hasGeometricSegmentation = this.metadata.value!.raw.grid.geometric_segmentation;
+        if (hasGeometricSegmentation) {
+            this.preloadShapePrimitivesTimeframesDataFromFile();
+        }
     }
 
     async updateMetadata() {
@@ -568,7 +592,12 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         const primitivesData = await this._resolveStringUrl(url);
         const parsedData: ShapePrimitiveData = JSON.parse(primitivesData);
         console.log('parsedData', parsedData);
-        return parsedData;
+        return new RawSegmentationData(
+            timeframe,
+            segmentationId,
+            parsedData
+        );
+        // return parsedData;
     }
 
     async _loadRawChannelData(timeframe: number, channelId: string) {
@@ -640,6 +669,20 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         }
     }
 
+    private async loadRawShapePrimitiveData(timeInfoMapping: { [segmentation_id: string]: TimeInfo }, segmentationIds: string[]) {
+        for (const segmentationId of segmentationIds) {
+            const timeInfo = timeInfoMapping[segmentationId];
+            const start = timeInfo.start;
+            const end = timeInfo.end;
+            for (let i = start; i <= end; i++) {
+                const shapePrimitiveData = await this._loadGeometricSegmentationData(i, segmentationId);
+                this.cachedShapePrimitiveData.add(
+                    shapePrimitiveData
+                );
+            }
+        }
+    }
+
     async preloadVolumeTimeframesData() {
         const timeInfo = this.metadata.value!.raw.grid.volumes.time_info;
         const channelIds = this.metadata.value!.raw.grid.volumes.channel_ids;
@@ -649,9 +692,9 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     }
 
     preloadSegmentationTimeframesDataFromFile() {
-        if (this.metadata.value!.raw.grid.segmentation_lattices) {
+        if (this.metadata.value!.raw.grid.segmentation_lattices && this.metadata.value!.raw.grid.segmentation_lattices.segmentation_ids.length > 0) {
             const rawLatticeSegmentationData = new RawSegmentationData(
-                this.filesData.query.args.time, this.filesData.query.args.channel_id, this.filesData.latticeSegmentation
+                this.filesData.query.args.time, this.filesData.query.args.segmentation_id, this.filesData.latticeSegmentation
             );
             // channelsData.push(rawChannelData);
             this.cachedSegmentationTimeframesData.add(
@@ -661,6 +704,24 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             console.log(this.cachedSegmentationTimeframesData);
         } else {
             console.log('No segmentation data for this entry');
+        }
+    }
+
+    preloadShapePrimitivesTimeframesDataFromFile() {
+        if (this.metadata.value!.raw.grid.geometric_segmentation && this.metadata.value!.raw.grid.geometric_segmentation.segmentation_ids.length > 0) {;
+            debugger;
+            const shapePrimitiveData = new RawSegmentationData(
+                this.filesData.query.args.time, this.filesData.query.args.segmentation_id, this.filesData.geometricSegmentation
+            );
+            debugger;
+            // channelsData.push(rawChannelData);
+            this.cachedShapePrimitiveData.add(
+                shapePrimitiveData
+            );
+            console.log('cachedShapePrimitiveData');
+            console.log(this.cachedShapePrimitiveData);
+        } else {
+            console.log('No shape primitive data for this entry');
         }
     }
 
@@ -694,6 +755,18 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             console.log(this.cachedMeshesTimeframesData);
         } else {
             console.log('No mesh segmentation data for this entry');
+        }
+    }
+
+    async preloadShapePrimitivesTimeframesData() {
+        if (this.metadata.value!.raw.grid.geometric_segmentation) {
+            const segmentationIds = this.metadata.value!.raw.grid.geometric_segmentation.segmentation_ids;
+            const timeInfoMapping = this.metadata.value!.raw.grid.geometric_segmentation.time_info;
+            this.loadRawShapePrimitiveData(timeInfoMapping, segmentationIds);
+            console.log('cachedShapePrimitiveData');
+            console.log(this.cachedShapePrimitiveData);
+        } else {
+            console.log('No shape primitive data for this entry');
         }
     }
 
@@ -846,7 +919,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         if (kind === 'lattice') this.latticeSegmentationData.updateOpacity(opacity, segmentationId);
         else if (kind === 'mesh') this.meshSegmentationData.updateOpacity(opacity, segmentationId);
         // else if TODO: geometric segmentation
-
+        else if (kind === 'primitive') this.geometricSegmentationData.updateOpacity(opacity, segmentationId);
         // await this.updateStateNode({ segmentOpacity: opacity });
     }
 

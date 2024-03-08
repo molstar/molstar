@@ -281,6 +281,31 @@ function VolumeChannelControls({ entryData, volume }: { entryData: VolsegEntryDa
     </ExpandGroup>;
 }
 
+
+function _getVisualTransformFromProjectDataTransform(model: VolsegEntryData, projectDataTransform) {
+    // TODO: if geometric segmentation - need child ref of child ref 
+    // conform
+    // if () {
+    //     return 
+    // } else {
+    const childRef = model.plugin.state.data.tree.children.get(projectDataTransform.ref).toArray()[0];
+    const segmentationRepresentation3DNode = findNodesByRef(model.plugin, childRef);
+    // in case of CVSX segmentation.transform is already 3D representation
+    // how to get segmentation Id from it?
+    const transform = segmentationRepresentation3DNode.transform;
+    if (transform.params.descriptions) {
+        debugger;
+        const childChildRef = model.plugin.state.data.tree.children.get(segmentationRepresentation3DNode.transform.ref).toArray()[0];
+        const t = findNodesByRef(model.plugin, childChildRef);
+        // TODO: get childRef of childRef
+        debugger;
+        return t.transform;
+    } else {
+        return transform;
+    }
+        // }
+    
+}
 // TODO: TODO: TODO: exclude Opacity from state
 function SegmentationSetControls({ model, segmentation, kind }: { model: VolsegEntryData | CVSXStateModel, segmentation: StateObjectCell<PluginStateObject.Volume.Data> | StateObjectCell<VolsegGeometricSegmentation> | StateObjectCell<VolsegMeshSegmentation>, kind: 'lattice' | 'mesh' | 'primitive' }) {
     const projectDataTransform = segmentation.transform;
@@ -289,18 +314,30 @@ function SegmentationSetControls({ model, segmentation, kind }: { model: VolsegE
 
     const segmentationId = params.segmentationId;
 
-    const childRef = model.plugin.state.data.tree.children.get(projectDataTransform.ref).toArray()[0];
-    const segmentationRepresentation3DNode = findNodesByRef(model.plugin, childRef);
-    // in case of CVSX segmentation.transform is already 3D representation
-    // how to get segmentation Id from it?
-    const transform = segmentationRepresentation3DNode.transform;
+
+    // TODO: if geometric segmentation - need child ref of child ref 
+    // const childRef = model.plugin.state.data.tree.children.get(projectDataTransform.ref).toArray()[0];
+    // const segmentationRepresentation3DNode = findNodesByRef(model.plugin, childRef);
+    // // in case of CVSX segmentation.transform is already 3D representation
+    // // how to get segmentation Id from it?
+    // const transform = segmentationRepresentation3DNode.transform;
+    const transform = _getVisualTransformFromProjectDataTransform(model, projectDataTransform);
     if (!transform) return null;
 
+    let opacity = undefined;
+    if (transform.params?.type) {
+        opacity = transform.params?.type.params.alpha;
+    } else {
+        // TODO: fix
+        opacity = transform.params.alpha;
+    }
+    debugger;
     return <ExpandGroup header={`${segmentationId}`}>
         {/* TODO: use actual opacity */}
         {/* <div>Segmentation</div> */}
         <ControlRow label='Opacity' control={
-            <WaitingSlider min={0} max={1} value={transform.params?.type.params.alpha} step={0.05} onChange={async v => await model.actionSetOpacity(v, segmentationId, kind)} />
+            // TODO: problem is here
+            <WaitingSlider min={0} max={1} value={opacity} step={0.05} onChange={async v => await model.actionSetOpacity(v, segmentationId, kind)} />
         } />
         <DescriptionsList
             model={model} targetSegmentationId={segmentationId} targetKind={kind}

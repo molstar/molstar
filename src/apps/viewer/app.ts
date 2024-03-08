@@ -59,8 +59,8 @@ import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
 import { VisualizeStaticQueryZip, processCvsxAnnotationsFile, processCvsxFile, processCvsxGeometricSegmentationFile, processCvsxMetadataFile } from '../../extensions/volseg/cvsx-extension';
 import { Unzip } from '../../mol-util/zip/zip';
-import { ProjectLatticeSegmentationDataParamsValues, ProjectSegmentationData, ProjectVolumeData, VolsegEntryFromFile, VolsegGlobalStateFromFile, VolsegGlobalStateFromFile, VolsegStateFromEntry } from '../../extensions/volseg/new-volumes-and-segmentations/transformers';
-import { SEGMENTATION_NODE_TAG, VOLUME_NODE_TAG } from '../../extensions/volseg/new-volumes-and-segmentations/entry-root';
+import { ProjectGeometricSegmentationData, ProjectGeometricSegmentationDataParamsValues, ProjectLatticeSegmentationDataParamsValues, ProjectSegmentationData, ProjectVolumeData, VolsegEntryFromFile, VolsegGlobalStateFromFile, VolsegGlobalStateFromFile, VolsegStateFromEntry } from '../../extensions/volseg/new-volumes-and-segmentations/transformers';
+import { GEOMETRIC_SEGMENTATION_NODE_TAG, SEGMENTATION_NODE_TAG, VOLUME_NODE_TAG } from '../../extensions/volseg/new-volumes-and-segmentations/entry-root';
 import { VolsegGlobalState } from '../../extensions/volseg/new-volumes-and-segmentations/global-state';
 import { getSegmentLabelsFromDescriptions } from '../../extensions/volseg/new-volumes-and-segmentations/volseg-api/utils';
 
@@ -566,6 +566,23 @@ export class Viewer {
                     };
                     const segmentationNode = await this.plugin.build().to(group).apply(ProjectSegmentationData, segmentationParams, { tags: [SEGMENTATION_NODE_TAG] }).commit();
                     await entryNode.data.latticeSegmentationData.createSegmentationRepresentation3D(segmentationNode, segmentationParams);
+                }
+
+                const hasGeometricSegmentation = entryData.metadata.value!.raw.grid.geometric_segmentation;
+                if (hasGeometricSegmentation && hasGeometricSegmentation.segmentation_ids.length > 0) {
+                    const group = await entryNode.data.geometricSegmentationData.createGeometricSegmentationGroup();
+                    // const timeInfo = this.entryData.metadata.value!.raw.grid.geometric_segmentation!.time_info;
+                    // single segmentation id
+                    // for (const segmentationId of hasGeometricSegmentation.segmentation_ids) {
+                        // const timeframeIndex = 0;
+                    const segmentationId: string = entryData.filesData!.query.args.segmentation_id;
+                    const geometricSegmentationParams: ProjectGeometricSegmentationDataParamsValues = {
+                        segmentationId: segmentationId,
+                        timeframeIndex: timeframeIndex
+                    };
+                    const geometricSegmentationNode = await this.plugin.build().to(group).apply(ProjectGeometricSegmentationData, geometricSegmentationParams, { tags: [GEOMETRIC_SEGMENTATION_NODE_TAG] }).commit();
+                    await entryNode.data.geometricSegmentationData.createGeometricSegmentationRepresentation3D(geometricSegmentationNode, geometricSegmentationParams);
+                    // }
                 }
             };
 

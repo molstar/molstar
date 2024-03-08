@@ -181,8 +181,9 @@ export const ProjectGeometricSegmentationData = CreateTransformer({
             const entry = spine.getAncestorOfType(VolsegEntry);
             // const entry = a;
             const entryData = entry!.data;
-
-            const shapePrimitiveData = await entryData._loadGeometricSegmentationData(timeframeIndex, segmentationId);
+            debugger;
+            // const shapePrimitiveData = await entryData._loadGeometricSegmentationData(timeframeIndex, segmentationId);
+            const shapePrimitiveData = await entryData.getData(timeframeIndex, segmentationId, 'primitive') as ShapePrimitiveData;
             return new VolsegGeometricSegmentation(new VolsegShapePrimitivesData(shapePrimitiveData), { label: `Segmentation ID: ${segmentationId}` });
         });
     }

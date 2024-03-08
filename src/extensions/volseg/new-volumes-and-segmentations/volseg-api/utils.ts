@@ -6,7 +6,7 @@
 
 import { Color } from '../../../../mol-util/color';
 import { objectToArray } from '../helpers';
-import { DescriptionData, Metadata, ParsedSegmentKey } from './data';
+import { DescriptionData, Metadata, ParsedSegmentKey, ShapePrimitiveData } from './data';
 
 export class MetadataWrapper {
     raw: Metadata;
@@ -235,6 +235,11 @@ export class MetadataWrapper {
         return vx * vy * vz * gx * gy * gz;
     }
 
+}
+
+export function instanceOfShapePrimitiveData(object: any): object is ShapePrimitiveData {
+    debugger;
+    return 'shape_primitive_list' in object;
 }
 
 export function createSegmentKey(segmentId: number, segmentationId: string, kind: 'lattice' | 'mesh' | 'primitive') {

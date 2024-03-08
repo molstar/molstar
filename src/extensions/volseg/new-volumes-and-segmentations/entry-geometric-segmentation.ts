@@ -7,6 +7,7 @@
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { StateTransforms } from '../../../mol-plugin-state/transforms';
 import { CreateGroup } from '../../../mol-plugin-state/transforms/misc';
+import { ShapeRepresentation3D } from '../../../mol-plugin-state/transforms/representation';
 import { setSubtreeVisibility } from '../../../mol-plugin/behavior/static/state';
 import { PluginCommands } from '../../../mol-plugin/commands';
 import { StateObjectSelector } from '../../../mol-state';
@@ -46,6 +47,7 @@ export class VolsegGeometricSegmentationData {
             // TODO: can provide a single description and a single segment annotation
                 .apply(CreateShapePrimitiveProvider, { segmentId: primitiveData.id, descriptions: descriptions, segmentAnnotations: segmentAnnotations, segmentationId: segmentationId })
                 // TODO: shape representation 3d could have no alpha
+                // TODO: get alpha from transform somehow 
                 .apply(StateTransforms.Representation.ShapeRepresentation3D, { alpha: 0.5 }, { tags: ['geometric-segmentation-visual', segmentationId, `segment-${primitiveData.id}`] })
                 .commit();
         }
@@ -106,6 +108,16 @@ export class VolsegGeometricSegmentationData {
         for (const visual of visuals) {
             await PluginCommands.Interactivity.Object.Highlight(this.entryData.plugin, { state: this.entryData.plugin.state.data, ref: visual.transform.ref });
         }
+    }
+
+    updateOpacity(opacity: number, segmentationId: string) {
+        debugger;
+        const visuals = this.entryData.findNodesByTags('geometric-segmentation-visual', segmentationId);
+        const update = this.entryData.newUpdate();
+        for (const visual of visuals) {
+            update.to(visual).update(ShapeRepresentation3D, p => { (p as any).alpha = opacity; });
+        }
+        return update.commit();
     }
 
     async selectSegment(segment?: number, segmentationId?: string) {
