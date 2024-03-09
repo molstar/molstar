@@ -317,6 +317,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         const rawQueryJSON = zippedFilesEntries.find(z => z[0] === 'query.json');
         const rawVolume = zippedFilesEntries.find(z => z[0].startsWith('volume'));
         const rawLatticeSegmentation = zippedFilesEntries.find(z => z[0].startsWith('segmentation'));
+        const rawMeshSegmentation = zippedFilesEntries.filter(z => Number.isFinite(parseInt(z[0].charAt(0))) && z[0].endsWith('.bcif'));
         debugger;
         const geometricSegmentation = zippedFilesEntries.find(z => z[0].startsWith('geometric-segmentation.json'));
         const parsedQueryJSON = await parseCVSXJSON(rawQueryJSON!, plugin);
@@ -342,17 +343,16 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         if (geometricSegmentation) {
             gs = await parseCVSXJSON(geometricSegmentation, plugin)
         }
-        debugger;
         const filesData = {
             // parsed everything
-            volume: rawVolume? rawVolume[1]: undefined,
+            volume: rawVolume ? rawVolume[1] : undefined,
             latticeSegmentation: rawLatticeSegmentation ? rawLatticeSegmentation[1] : undefined,
             geometricSegmentation: gs,
-            // meshSegmentation: 
+            meshSegmentation: rawMeshSegmentation ? rawMeshSegmentation : undefined,
             annotation: parsedAnnotationMetadata,
             metadata: parsedGridMetadata,
             query: parsedQueryJSON
-        }
+        };
         const result = new VolsegEntryData(plugin, params, filesData);
         await result.initializeFromFile(metadata);
         return result;
@@ -430,6 +430,10 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         const hasGeometricSegmentation = this.metadata.value!.raw.grid.geometric_segmentation;
         if (hasGeometricSegmentation) {
             this.preloadShapePrimitivesTimeframesDataFromFile();
+        }
+        const hasMeshes = this.metadata.value!.raw.grid.segmentation_meshes;
+        if (hasMeshes) {
+            this.preloadMeshTimeframesDataFromFile();
         }
     }
 
@@ -707,7 +711,8 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     }
 
     preloadShapePrimitivesTimeframesDataFromFile() {
-        if (this.metadata.value!.raw.grid.geometric_segmentation && this.metadata.value!.raw.grid.geometric_segmentation.segmentation_ids.length > 0) {;
+        if (this.metadata.value!.raw.grid.geometric_segmentation && this.metadata.value!.raw.grid.geometric_segmentation.segmentation_ids.length > 0) {
+            ;
             debugger;
             const shapePrimitiveData = new RawSegmentationData(
                 this.filesData.query.args.time, this.filesData.query.args.segmentation_id, this.filesData.geometricSegmentation
@@ -721,6 +726,61 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             console.log(this.cachedShapePrimitiveData);
         } else {
             console.log('No shape primitive data for this entry');
+        }
+    }
+
+    preloadMeshTimeframesDataFromFile() {
+        if (this.metadata.value!.raw.grid.segmentation_meshes && this.metadata.value!.raw.grid.segmentation_meshes.segmentation_ids.length > 0) {
+            // array of [string, Uint8Array] string = segment id + .bcif
+            const segmentsData: RawMeshSegmentData[] = [];
+            const rawData = this.filesData.meshSegmentation;
+            debugger;
+            for (const [filename, d] of rawData) {
+                const segmentId = parseInt((filename as string).split('.')[0]);
+                segmentsData.push(
+                    new RawMeshSegmentData(
+                        segmentId,
+                        d
+                    )
+                );
+            }
+            // TODO: make data like this:
+            // for (const seg of segmentsToCreate) {
+            //     const detail = this.metadata.value!.getSufficientMeshDetail(segmentationId, timeframe, seg, DEFAULT_MESH_DETAIL);
+            //     const urlString = this.api.meshUrl_Bcif(this.source, this.entryId, segmentationId, timeframe, seg, detail);
+            //     const data = await this._resolveBinaryUrl(urlString);
+            //     segmentsData.push(
+            //         new RawMeshSegmentData(
+            //             seg,
+            //             data
+            //         )
+            //     );
+            // }
+            // return new RawSegmentationData(
+            //     timeframe,
+            //     segmentationId,
+            //     segmentsData
+            // );
+
+
+            // const data = new RawSegmentationData(
+            //     this.filesData.query.args.time, this.filesData.query.args.segmentation_id, this.filesData.meshSegmentation
+            // );
+
+
+            const data = new RawSegmentationData(
+                this.filesData.query.args.time,
+                this.filesData.query.args.segmentation_id,
+                segmentsData
+            );
+            // channelsData.push(rawChannelData);
+            this.cachedMeshesTimeframesData.add(
+                data
+            );
+            console.log('cachedMeshesTimeframesData');
+            console.log(this.cachedMeshesTimeframesData);
+        } else {
+            console.log('No mesh segmentation data for this entry');
         }
     }
 
@@ -1143,7 +1203,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
                 if (meshData.ownerId === this.ref && meshData.segmentId !== undefined) {
                     return meshData.segmentId;
                 }
-            // TODO: check for ownerId? this would be entry root
+                // TODO: check for ownerId? this would be entry root
             } else if (isShapePrimitiveParamsValues(sourceData as any)) {
                 const shapePrimitiveParamsValues = (loci.shape.sourceData ?? {}) as CreateShapePrimitiveProviderParamsValues;
                 return shapePrimitiveParamsValues.segmentId;
