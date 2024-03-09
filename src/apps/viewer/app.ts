@@ -57,12 +57,14 @@ import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
-import { VisualizeStaticQueryZip, processCvsxAnnotationsFile, processCvsxFile, processCvsxGeometricSegmentationFile, processCvsxMetadataFile } from '../../extensions/volseg/cvsx-extension';
+// import { VisualizeStaticQueryZip, processCvsxAnnotationsFile, processCvsxFile, processCvsxGeometricSegmentationFile, processCvsxMetadataFile } from '../../extensions/volseg/cvsx-extension';
 import { Unzip } from '../../mol-util/zip/zip';
 import { ProjectGeometricSegmentationData, ProjectGeometricSegmentationDataParamsValues, ProjectLatticeSegmentationDataParamsValues, ProjectSegmentationData, ProjectVolumeData, VolsegEntryFromFile, VolsegGlobalStateFromFile, VolsegGlobalStateFromFile, VolsegStateFromEntry } from '../../extensions/volseg/new-volumes-and-segmentations/transformers';
 import { GEOMETRIC_SEGMENTATION_NODE_TAG, SEGMENTATION_NODE_TAG, VOLUME_NODE_TAG } from '../../extensions/volseg/new-volumes-and-segmentations/entry-root';
 import { VolsegGlobalState } from '../../extensions/volseg/new-volumes-and-segmentations/global-state';
 import { getSegmentLabelsFromDescriptions } from '../../extensions/volseg/new-volumes-and-segmentations/volseg-api/utils';
+import { loadCVSXFromAnything } from '../../extensions/volseg/cvsx-extension';
+import { CVSXSpec } from '../../extensions/volseg/cvsx-extension/behaviour';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { consoleStats, setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
@@ -90,6 +92,7 @@ export const ExtensionMap = {
     'sb-ncbr-partial-charges': PluginSpec.Behavior(SbNcbrPartialCharges),
     'wwpdb-chemical-component-dictionary': PluginSpec.Behavior(wwPDBChemicalComponentDictionary),
     'mvs': PluginSpec.Behavior(MolViewSpec),
+    'cvsx': PluginSpec.Behavior(CVSXSpec)
 };
 
 const DefaultViewerOptions = {
@@ -501,137 +504,7 @@ export class Viewer {
         if (format === 'cvsx') {
             const data = await this.plugin.builders.data.download({ url: urlString, isBinary: true });
 
-            // TODO: global state - later
-            // const globalStateNode = ctx.state.data.selectQ(q => q.ofType(VolsegGlobalState))[0];
-            // if (!globalStateNode) {
-            await this.plugin.build().to(data).apply(VolsegGlobalStateFromFile, {}, { state: { isGhost: true } }).commit();
-            // }
-
-            const entryNode = await this.plugin.build().to(data).apply(VolsegEntryFromFile).commit();
-            await this.plugin.build().to(entryNode).apply(VolsegStateFromEntry, {}, { state: { isGhost: true } }).commit();
-            debugger;
-
-            if (entryNode.data) {
-                const entryData = entryNode.data;
-                const timeframeIndex = entryData.filesData!.query.args.time;
-                const channelId = entryData.filesData!.query.args.channel_id;
-                // const currentTimeframe = entryData.currentTimeframe.value;
-                const hasVolumes = entryNode.data.metadata.value!.raw.grid.volumes.volume_sampling_info.spatial_downsampling_levels.length > 0;
-                if (hasVolumes) {
-                    const group = await entryNode.data.volumeData.createVolumeGroup();
-                    const updatedChannelsData = [];
-                    const results = [];
-
-                    // single channel, single timeframe, get from entryData
-                    // const channelIds = entryNode.data.metadata.value!.raw.grid.volumes.channel_ids;
-                    // for (const channelId of channelIds) {
-                    const volumeParams = { timeframeIndex: timeframeIndex, channelId: channelId };
-                    const volumeNode = await this.plugin.build().to(group).apply(ProjectVolumeData, volumeParams, { tags: [VOLUME_NODE_TAG] }).commit();
-                    const result = await entryNode.data.volumeData.createVolumeRepresentation3D(volumeNode, volumeParams);
-                    results.push(result);
-                    for (const result of results) {
-                        if (result) {
-                            const isovalue = result.isovalue.kind === 'relative' ? result.isovalue.relativeValue : result.isovalue.absoluteValue;
-                            updatedChannelsData.push(
-                                {
-                                    channelId: result.channelId, volumeIsovalueKind: result.isovalue.kind, volumeIsovalueValue: isovalue, volumeType: result.volumeType, volumeOpacity: result.opacity,
-                                    label: result.label,
-                                    color: result.color
-                                }
-                            );
-                        }
-                    }
-                    await entryNode.data.updateStateNode({ channelsData: [...updatedChannelsData] });
-                }
-
-                const hasLattices = entryNode.data.metadata.value!.raw.grid.segmentation_lattices;
-                if (hasLattices && hasLattices.segmentation_ids.length > 0) {
-                    const segmentationId: string = entryData.filesData!.query.args.segmentation_id;
-                    const group = await entryNode.data.latticeSegmentationData.createSegmentationGroup();
-                    // same, single channel single timeframe
-
-                    // const segmentationIds = hasLattices.segmentation_ids;
-                    // for (const segmentationId of segmentationIds) {
-                    const descriptionsForLattice = entryNode.data.metadata.value!.getAllDescriptionsForSegmentationAndTimeframe(
-                        segmentationId,
-                        'lattice',
-                        timeframeIndex
-                    );
-                    const segmentLabels = getSegmentLabelsFromDescriptions(descriptionsForLattice);
-                    const segmentationParams: ProjectLatticeSegmentationDataParamsValues = {
-                        timeframeIndex: timeframeIndex,
-                        segmentationId: segmentationId,
-                        segmentLabels: segmentLabels,
-                        ownerId: entryNode.data.ref
-                    };
-                    const segmentationNode = await this.plugin.build().to(group).apply(ProjectSegmentationData, segmentationParams, { tags: [SEGMENTATION_NODE_TAG] }).commit();
-                    await entryNode.data.latticeSegmentationData.createSegmentationRepresentation3D(segmentationNode, segmentationParams);
-                }
-
-                const hasGeometricSegmentation = entryData.metadata.value!.raw.grid.geometric_segmentation;
-                if (hasGeometricSegmentation && hasGeometricSegmentation.segmentation_ids.length > 0) {
-                    const group = await entryNode.data.geometricSegmentationData.createGeometricSegmentationGroup();
-                    // const timeInfo = this.entryData.metadata.value!.raw.grid.geometric_segmentation!.time_info;
-                    // single segmentation id
-                    // for (const segmentationId of hasGeometricSegmentation.segmentation_ids) {
-                        // const timeframeIndex = 0;
-                    const segmentationId: string = entryData.filesData!.query.args.segmentation_id;
-                    const geometricSegmentationParams: ProjectGeometricSegmentationDataParamsValues = {
-                        segmentationId: segmentationId,
-                        timeframeIndex: timeframeIndex
-                    };
-                    const geometricSegmentationNode = await this.plugin.build().to(group).apply(ProjectGeometricSegmentationData, geometricSegmentationParams, { tags: [GEOMETRIC_SEGMENTATION_NODE_TAG] }).commit();
-                    await entryNode.data.geometricSegmentationData.createGeometricSegmentationRepresentation3D(geometricSegmentationNode, geometricSegmentationParams);
-                    // }
-                }
-            };
-
-
-            // PLAN: apply all transforms as usually to entryNode (project data)
-            // before that get data from files
-            // and set them to cache
-
-
-
-            // const zippedFilesEntries = Object.entries(zippedFiles);
-            // const annotationJSONEntry = zippedFilesEntries.find(z => z[0] === 'annotations.json');
-            // const metadataJSONEntry = zippedFilesEntries.find(z => z[0] === 'metadata.json');
-
-            // if (annotationJSONEntry) {
-            //     const [fn, filedata] = annotationJSONEntry;
-            //     const asset = Asset.File(new File([filedata], fn));
-            //     parsedAnnotations = await processCvsxAnnotationsFile(asset, this.plugin);
-            //     console.log('parsedAnnotations', parsedAnnotations);
-            // }
-
-            // if (metadataJSONEntry) {
-            //     const [fn, filedata] = metadataJSONEntry;
-            //     const asset = Asset.File(new File([filedata], fn));
-            //     parsedMetadata = await processCvsxMetadataFile(asset, this.plugin);
-            //     console.log('parsedMetadata', parsedAnnotations);
-            // }
-
-
-
-            // // TODO: remove annotations and metadata from zippedFilesEntries
-            // for (const [fn, filedata] of zippedFilesEntries) {
-            //     if (!(filedata instanceof Uint8Array) || filedata.length === 0) continue;
-            //     const asset = Asset.File(new File([filedata], fn));
-
-            //     console.log(asset.file?.name);
-            //     let fileFormat = 'auto';
-            //     if (asset.file?.name.startsWith('volume')) {
-            //         fileFormat = 'dscif';
-            //         await processCvsxFile(asset, this.plugin, fileFormat);
-            //     } else if (asset.file?.name.startsWith('segmentation')) {
-            //         fileFormat = 'segcif';
-            //         await processCvsxFile(asset, this.plugin, fileFormat, parsedAnnotations);
-            //     } else if (asset.file?.name.startsWith('geometric-segmentation.json')) {
-            //         fileFormat = 'geometric-segmentation-json';
-            //         await processCvsxGeometricSegmentationFile(asset, this.plugin, parsedAnnotations);
-            //     }
-            // }
-
+            loadCVSXFromAnything(this.plugin, data);
         } else {
             throw new Error(`Unknown cvsx format: ${format}`);
         }

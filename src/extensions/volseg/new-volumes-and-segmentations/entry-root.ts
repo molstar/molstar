@@ -42,7 +42,6 @@ import { CreateShapePrimitiveProviderParamsValues, isShapePrimitiveParamsValues,
 import { actionSelectSegment, parseCVSXJSON } from '../common';
 import { RuntimeContext } from '../../../mol-task';
 import { Unzip, unzip } from '../../../mol-util/zip/zip';
-import { processCvsxMetadataFile } from '../cvsx-extension';
 
 export const GEOMETRIC_SEGMENTATION_NODE_TAG = 'geometric-segmentation-node';
 export const MESH_SEGMENTATION_NODE_TAG = 'mesh-segmentation-node'
