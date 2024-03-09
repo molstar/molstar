@@ -1,8 +1,8 @@
 import { PluginStateObject } from "../../../mol-plugin-state/objects";
 import { PluginContext } from "../../../mol-plugin/context";
 import { StateObjectSelector } from "../../../mol-state";
-import { GEOMETRIC_SEGMENTATION_NODE_TAG, SEGMENTATION_NODE_TAG, VOLUME_NODE_TAG } from "../new-volumes-and-segmentations/entry-root";
-import { ProjectGeometricSegmentationData, ProjectGeometricSegmentationDataParamsValues, ProjectLatticeSegmentationDataParamsValues, ProjectSegmentationData, ProjectVolumeData, VolsegEntryFromFile, VolsegGlobalStateFromFile, VolsegGlobalStateFromRoot, VolsegStateFromEntry } from "../new-volumes-and-segmentations/transformers";
+import { GEOMETRIC_SEGMENTATION_NODE_TAG, MESH_SEGMENTATION_NODE_TAG, SEGMENTATION_NODE_TAG, VOLUME_NODE_TAG } from "../new-volumes-and-segmentations/entry-root";
+import { ProjectGeometricSegmentationData, ProjectGeometricSegmentationDataParamsValues, ProjectLatticeSegmentationDataParamsValues, ProjectMeshData, ProjectMeshSegmentationDataParamsValues, ProjectSegmentationData, ProjectVolumeData, VolsegEntryFromFile, VolsegGlobalStateFromFile, VolsegGlobalStateFromRoot, VolsegStateFromEntry } from "../new-volumes-and-segmentations/transformers";
 import { getSegmentLabelsFromDescriptions } from "../new-volumes-and-segmentations/volseg-api/utils";
 
 export async function loadCVSXFromAnything(plugin: PluginContext, data: StateObjectSelector<PluginStateObject.Data.Binary | PluginStateObject.Data.String>) {
@@ -85,6 +85,26 @@ export async function loadCVSXFromAnything(plugin: PluginContext, data: StateObj
             await entryNode.data.geometricSegmentationData.createGeometricSegmentationRepresentation3D(geometricSegmentationNode, geometricSegmentationParams);
             // }
         }
+
+        const hasMeshes = entryNode.data.metadata.value!.raw.grid.segmentation_meshes;
+        if (hasMeshes && hasMeshes.segmentation_ids.length > 0) {
+            // meshes should be rendered as segmentation sets similar to lattices
+            const group = await entryNode.data.meshSegmentationData.createMeshGroup();
+            // const segmentationIds = hasMeshes.segmentation_ids;
+            // for (const segmentationId of segmentationIds) {
+            // const timeframeIndex = timeframeIndex;
+            const segmentationId: string = entryData.filesData!.query.args.segmentation_id;
+            const meshSegmentParams = entryData.meshSegmentationData.getMeshSegmentParams(segmentationId, timeframeIndex);
+            const meshParams: ProjectMeshSegmentationDataParamsValues = {
+                meshSegmentParams: meshSegmentParams,
+                segmentationId: segmentationId,
+                timeframeIndex: timeframeIndex
+            };
+            const meshNode = await plugin.build().to(group).apply(ProjectMeshData, meshParams, { tags: [MESH_SEGMENTATION_NODE_TAG] }).commit();
+            await entryNode.data.meshSegmentationData.createMeshRepresentation3D(meshNode, meshParams);
+        }
+
+
     };
     return entryNode;
 }
