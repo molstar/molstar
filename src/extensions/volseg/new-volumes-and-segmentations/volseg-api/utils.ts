@@ -8,6 +8,22 @@ import { Color } from '../../../../mol-util/color';
 import { objectToArray } from '../helpers';
 import { DescriptionData, Metadata, ParsedSegmentKey, ShapePrimitiveData } from './data';
 
+
+export function compareTwoObjects(object1: any, object2: any): boolean {
+    if (!object1 || !object2) return false;
+    let compareRes = true;
+    if (Object.keys(object1).length === Object.keys(object2).length) {
+        Object.keys(object1).forEach(key => {
+            if (object1[key] !== object2[key]) {
+                compareRes = false;
+            }
+        });
+    } else {
+        compareRes = false;
+    }
+    return compareRes;
+}
+
 export class MetadataWrapper {
     raw: Metadata;
     private segmentMap?: Map<string, DescriptionData[]>;
@@ -196,6 +212,12 @@ export class MetadataWrapper {
         const segmentIds = meshComponentNumbers.segment_ids;
         if (!segmentIds) return [];
         return Object.keys(segmentIds).map(s => parseInt(s));
+    }
+
+    getAllDescriptionsBasedOnMetadata(metadata: { [key: string]: any }) {
+        const a = this.allDescriptions;
+        const filtered = a.filter(i => compareTwoObjects(i.metadata, metadata));
+        return filtered;
     }
 
     getAllSegmentAnotationsForSegmentationAndTimeframe(segmentationId: string, kind: 'lattice' | 'mesh' | 'primitive', timeframeIndex: number) {

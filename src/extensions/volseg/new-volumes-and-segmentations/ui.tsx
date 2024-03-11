@@ -189,6 +189,14 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
         {/* TODO: onchange function that triggers api endpoint */}
         {/* We have entryData here, can do it */}
         {/* need to add api endpoint there */}
+        <Button onClick={() => {
+            const r = entryData.metadata!.value?.getAllDescriptionsBasedOnMetadata(
+                {
+                    "some_key": "some_value"
+                });
+            console.log('Metadata query segments result')
+            console.log(r);
+        }}>Query Segments based on metadata</Button>
         {<ExpandGroup header='Edit descriptions' initiallyExpanded>
             <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file' style={{ marginTop: '1px' }}>
                 {'Load JSON with descriptions'} <input onChange={async v => {
@@ -269,8 +277,8 @@ function _getVisualTransformFromProjectDataTransform(model: VolsegEntryData, pro
     } else {
         return transform;
     }
-        // }
-    
+    // }
+
 }
 // TODO: TODO: TODO: exclude Opacity from state
 function SegmentationSetControls({ model, segmentation, kind }: { model: VolsegEntryData | CVSXStateModel, segmentation: StateObjectCell<PluginStateObject.Volume.Data> | StateObjectCell<VolsegGeometricSegmentation> | StateObjectCell<VolsegMeshSegmentation>, kind: 'lattice' | 'mesh' | 'primitive' }) {
