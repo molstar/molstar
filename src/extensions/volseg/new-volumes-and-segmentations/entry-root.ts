@@ -42,6 +42,7 @@ import { CreateShapePrimitiveProviderParamsValues, isShapePrimitiveParamsValues,
 import { actionSelectSegment, parseCVSXJSON } from '../common';
 import { RuntimeContext } from '../../../mol-task';
 import { Unzip, unzip } from '../../../mol-util/zip/zip';
+import { CVSXFilesData } from '../cvsx-extension/data';
 
 export const GEOMETRIC_SEGMENTATION_NODE_TAG = 'geometric-segmentation-node';
 export const MESH_SEGMENTATION_NODE_TAG = 'mesh-segmentation-node'
@@ -256,7 +257,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     // metadata: MetadataWrapper;
     pdbs: string[];
     kind: 'api' | 'file' = 'api';
-    filesData: any = {};
+    filesData: CVSXFilesData | undefined = undefined;
 
     public metadata = new BehaviorSubject<MetadataWrapper | undefined>(undefined);
 
@@ -280,7 +281,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     public currentVolume = new BehaviorSubject<StateTransform<VolRepr3DT>[]>([]);
     public currentTimeframe = new BehaviorSubject(0);
 
-    private constructor(plugin: PluginContext, params: VolsegEntryParamValues, filesData?: any) {
+    private constructor(plugin: PluginContext, params: VolsegEntryParamValues, filesData?: CVSXFilesData) {
         super(plugin, params);
         this.plugin = plugin;
         this.api = new VolumeApiV2(params.serverUrl);
@@ -341,17 +342,17 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         };
         let gs = undefined;
         if (geometricSegmentation) {
-            gs = await parseCVSXJSON(geometricSegmentation, plugin)
+            gs = await parseCVSXJSON(geometricSegmentation, plugin);
         }
-        const filesData = {
+        const filesData: CVSXFilesData = {
             // parsed everything
             volume: rawVolume ? rawVolume[1] : undefined,
             latticeSegmentation: rawLatticeSegmentation ? rawLatticeSegmentation[1] : undefined,
             geometricSegmentation: gs,
             meshSegmentation: rawMeshSegmentation ? rawMeshSegmentation : undefined,
-            annotation: parsedAnnotationMetadata,
-            metadata: parsedGridMetadata,
-            query: parsedQueryJSON
+            annotation: parsedAnnotationMetadata ? parsedAnnotationMetadata : undefined,
+            metadata: parsedGridMetadata ? parsedGridMetadata : undefined,
+            query: parsedQueryJSON ? parsedQueryJSON : undefined
         };
         const result = new VolsegEntryData(plugin, params, filesData);
         await result.initializeFromFile(metadata);
@@ -697,7 +698,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     preloadSegmentationTimeframesDataFromFile() {
         if (this.metadata.value!.raw.grid.segmentation_lattices && this.metadata.value!.raw.grid.segmentation_lattices.segmentation_ids.length > 0) {
             const rawLatticeSegmentationData = new RawSegmentationData(
-                this.filesData.query.args.time, this.filesData.query.args.segmentation_id, this.filesData.latticeSegmentation
+                this.filesData!.query.args.time!, this.filesData!.query.args.segmentation_id!, this.filesData!.latticeSegmentation!
             );
             // channelsData.push(rawChannelData);
             this.cachedSegmentationTimeframesData.add(
@@ -715,7 +716,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             ;
             debugger;
             const shapePrimitiveData = new RawSegmentationData(
-                this.filesData.query.args.time, this.filesData.query.args.segmentation_id, this.filesData.geometricSegmentation
+                this.filesData!.query.args.time!, this.filesData!.query.args.segmentation_id!, this.filesData!.geometricSegmentation
             );
             debugger;
             // channelsData.push(rawChannelData);
@@ -733,7 +734,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         if (this.metadata.value!.raw.grid.segmentation_meshes && this.metadata.value!.raw.grid.segmentation_meshes.segmentation_ids.length > 0) {
             // array of [string, Uint8Array] string = segment id + .bcif
             const segmentsData: RawMeshSegmentData[] = [];
-            const rawData = this.filesData.meshSegmentation;
+            const rawData = this.filesData!.meshSegmentation!;
             debugger;
             for (const [filename, d] of rawData) {
                 const segmentId = parseInt((filename as string).split('.')[0]);
@@ -769,8 +770,8 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
 
 
             const data = new RawSegmentationData(
-                this.filesData.query.args.time,
-                this.filesData.query.args.segmentation_id,
+                this.filesData!.query.args.time!,
+                this.filesData!.query.args.segmentation_id!,
                 segmentsData
             );
             // channelsData.push(rawChannelData);
@@ -786,7 +787,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
 
     preloadVolumeTimeframesDataFromFile() {
         // need to get data as Uint8Array
-        const rawChannelData = new RawChannelData(this.filesData.query.args.time, this.filesData.query.args.channel_id, this.filesData.volume);
+        const rawChannelData = new RawChannelData(this.filesData!.query.args.time!, this.filesData!.query.args.channel_id!, this.filesData!.volume!);
         debugger;
         this.cachedVolumeTimeframesData.add(
             rawChannelData
