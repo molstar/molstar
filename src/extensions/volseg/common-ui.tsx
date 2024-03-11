@@ -1,4 +1,4 @@
-import { Button, IconButton } from "../../mol-plugin-ui/controls/common";
+import { Button, ExpandGroup, IconButton } from "../../mol-plugin-ui/controls/common";
 import { sleep } from "../../mol-util/sleep";
 import { actionSelectSegment, actionToggleAllSegments, actionToggleSegment } from "./common";
 import { WaitingButton } from "./new-volumes-and-segmentations/ui";
@@ -7,6 +7,8 @@ import * as Icons from '../../mol-plugin-ui/controls/icons';
 import { useBehavior } from "../../mol-plugin-ui/hooks/use-behavior";
 import { VolsegEntryData } from "./new-volumes-and-segmentations/entry-root";
 import { CVSXStateModel } from "./cvsx-extension/cvsx";
+import Markdown from "react-markdown";
+import { capitalize } from "../../mol-util/string";
 
 export function DescriptionsList({ model, targetSegmentationId, targetKind }: { model: VolsegEntryData | CVSXStateModel, targetSegmentationId: string, targetKind: 'lattice' | 'mesh' | 'primitive' }) {
     const state = useBehavior(model.currentState);
@@ -29,7 +31,7 @@ export function DescriptionsList({ model, targetSegmentationId, targetKind }: { 
     // const visibleModels = state.visibleModels.map(model => model.pdbId);
     // const allPdbs = model.pdbs;
 
-    
+
     return <>{allDescriptionsForSegmentationId.length > 0 && <>
         <WaitingButton onClick={async () => { await sleep(20); await actionToggleAllSegments(model, targetSegmentationId, targetKind); }} style={{ marginTop: 1 }}>
             Toggle All segments
@@ -81,4 +83,64 @@ export function DescriptionsList({ model, targetSegmentationId, targetKind }: { 
             )}
         </div>
     </>}</>;
+}
+
+export function SelectedSegmentDescription({ model, targetSegmentationId, targetKind }: { model: VolsegEntryData | CVSXStateModel, targetSegmentationId: string, targetKind: 'lattice' | 'mesh' | 'primitive' }) {
+    const state = useBehavior(model.currentState);
+    const currentTimeframe = useBehavior(model.currentTimeframe);
+    const metadata = useBehavior(model.metadata);
+    // const allDescriptions = metadata!.allDescriptions;
+    // is there a method in metadata that gets all descriptions for target segmentation id and kind?
+    const anyDescriptions = metadata!.allDescriptions.length > 0;
+    const allDescriptionsForSegmentationAndTimeframe = metadata!.getAllDescriptionsForSegmentationAndTimeframe(
+        targetSegmentationId,
+        targetKind,
+        currentTimeframe
+    );
+    debugger;
+    const parsedSelectedSegmentKey = parseSegmentKey(state.selectedSegment);
+    const { segmentId, segmentationId, kind } = parsedSelectedSegmentKey;
+    const selectedSegmentDescriptions = model.metadata.value!.getSegmentDescription(segmentId, segmentationId, kind);
+    // NOTE: for now single description
+    const selectedSegmentDescription = selectedSegmentDescriptions ? selectedSegmentDescriptions[0] : undefined;
+    const visibleSegmentKeys = state.visibleSegments.map(seg => seg.segmentKey);
+    console.log(visibleSegmentKeys);
+    return <>{
+        anyDescriptions && <ExpandGroup header='Selected segment descriptions' initiallyExpanded>
+            <div style={{ paddingTop: 4, paddingRight: 8, maxHeight: 300, overflow: 'hidden', overflowY: 'auto' }}>
+                {!selectedSegmentDescription && 'No segment selected'}
+                {selectedSegmentDescription &&
+                    selectedSegmentDescription.target_kind !== 'entry' &&
+                    selectedSegmentDescription.target_id &&
+                    <b>Segment {selectedSegmentDescription.target_id.segment_id} from segmentation {selectedSegmentDescription.target_id.segmentation_id}:<br />{selectedSegmentDescription.name ?? 'Unnamed segment'}</b>}
+                {selectedSegmentDescription && selectedSegmentDescription.description && selectedSegmentDescription.description.format === 'markdown' &&
+                    <>
+                        <br />
+                        <br />
+                        <b>Description: </b>
+                        <Markdown skipHtml>{selectedSegmentDescription.description.text}</Markdown>
+                    </>}
+                {selectedSegmentDescription && selectedSegmentDescription.description && selectedSegmentDescription.description.format === 'text' &&
+                    <>
+                        <br />
+                        <br />
+                        <b>Description: </b>
+                        <p>{selectedSegmentDescription.description.text}</p>
+                    </>}
+                {selectedSegmentDescription?.external_references?.map(ref => {
+                    // if (description.target_kind === 'entry' || !description.target_id) return;
+                    return <p key={ref.id} style={{ marginTop: 4 }}>
+                        {/* <small>{ref.resource}:{ref.accession}</small><br /> */}
+                        {ref.url ? <a href={ref.url}>{ref.resource}:{ref.accession}</a> :
+                            <small>{ref.resource}:{ref.accession}</small>}
+                        <br />
+                        <b>{capitalize(ref.label ? ref.label : '')}</b><br />
+                        {ref.description}
+                    </p>;
+                }
+                )}
+            </div>
+        </ExpandGroup>
+    }</>;
+
 }

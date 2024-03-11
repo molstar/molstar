@@ -36,7 +36,7 @@ import { VolsegGeometricSegmentation } from './shape_primitives';
 import { VolsegMeshSegmentation } from '../new-meshes/mesh-extension';
 import { actionSelectSegment, actionToggleAllSegments, actionToggleSegment, findNodesByRef } from '../common';
 import { CVSXStateModel } from '../cvsx-extension/cvsx';
-import { DescriptionsList } from '../common-ui';
+import { DescriptionsList, SelectedSegmentDescription } from '../common-ui';
 
 interface VolsegUIData {
     globalState?: VolsegGlobalStateData,
@@ -184,41 +184,7 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
         <SegmentationControls model={entryData} />
 
         {/* Descriptions */}
-        {allDescriptions.length > 0 && <ExpandGroup header='Selected segment descriptions' initiallyExpanded>
-            <div style={{ paddingTop: 4, paddingRight: 8, maxHeight: 300, overflow: 'hidden', overflowY: 'auto' }}>
-                {!selectedSegmentDescription && 'No segment selected'}
-                {selectedSegmentDescription &&
-                    selectedSegmentDescription.target_kind !== 'entry' &&
-                    selectedSegmentDescription.target_id &&
-                    <b>Segment {selectedSegmentDescription.target_id.segment_id} from segmentation {selectedSegmentDescription.target_id.segmentation_id}:<br />{selectedSegmentDescription.name ?? 'Unnamed segment'}</b>}
-                {selectedSegmentDescription && selectedSegmentDescription.description && selectedSegmentDescription.description.format === 'markdown' &&
-                    <>
-                        <br />
-                        <br />
-                        <b>Description: </b>
-                        <Markdown skipHtml>{selectedSegmentDescription.description.text}</Markdown>
-                    </>}
-                {selectedSegmentDescription && selectedSegmentDescription.description && selectedSegmentDescription.description.format === 'text' &&
-                    <>
-                        <br />
-                        <br />
-                        <b>Description: </b>
-                        <p>{selectedSegmentDescription.description.text}</p>
-                    </>}
-                {selectedSegmentDescription?.external_references?.map(ref => {
-                    // if (description.target_kind === 'entry' || !description.target_id) return;
-                    return <p key={ref.id} style={{ marginTop: 4 }}>
-                        {/* <small>{ref.resource}:{ref.accession}</small><br /> */}
-                        {ref.url ? <a href={ref.url}>{ref.resource}:{ref.accession}</a> :
-                            <small>{ref.resource}:{ref.accession}</small>}
-                        <br />
-                        <b>{capitalize(ref.label ? ref.label : '')}</b><br />
-                        {ref.description}
-                    </p>;
-                }
-                )}
-            </div>
-        </ExpandGroup>}
+        <SelectedSegmentDescription model={entryData} targetSegmentationId={segmentationId} targetKind={kind}></SelectedSegmentDescription>
         {/* Editing annotations */}
         {/* TODO: onchange function that triggers api endpoint */}
         {/* We have entryData here, can do it */}
