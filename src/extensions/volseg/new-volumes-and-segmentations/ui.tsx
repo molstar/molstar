@@ -6,11 +6,12 @@
 import Popup from 'reactjs-popup';
 import 'reactjs-popup/dist/index.css';
 import { useCallback, useEffect, useRef, useState } from 'react';
+// import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
 import { CollapsableControls, CollapsableState } from '../../../mol-plugin-ui/base';
 import { Button, ControlRow, ExpandGroup, IconButton, TextInput } from '../../../mol-plugin-ui/controls/common';
 import * as Icons from '../../../mol-plugin-ui/controls/icons';
-import { ParameterControls } from '../../../mol-plugin-ui/controls/parameters';
+import { ParameterControls, TextControl } from '../../../mol-plugin-ui/controls/parameters';
 import { Slider } from '../../../mol-plugin-ui/controls/slider';
 import { useBehavior } from '../../../mol-plugin-ui/hooks/use-behavior';
 import { UpdateTransformControl } from '../../../mol-plugin-ui/state/update-transform';
@@ -36,7 +37,8 @@ import { VolsegGeometricSegmentation } from './shape_primitives';
 import { VolsegMeshSegmentation } from '../new-meshes/mesh-extension';
 import { actionSelectSegment, actionToggleAllSegments, actionToggleSegment, findNodesByRef } from '../common';
 import { CVSXStateModel } from '../cvsx-extension/cvsx';
-import { DescriptionsList, SelectedSegmentDescription } from '../common-ui';
+import { DescriptionsList, MetadataTextFilter, SelectedSegmentDescription } from '../common-ui';
+import { Script } from '../../../mol-script/script';
 
 interface VolsegUIData {
     globalState?: VolsegGlobalStateData,
@@ -146,6 +148,8 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
     const visibleModels = state.visibleModels.map(model => model.pdbId);
     const allPdbs = entryData.pdbs;
 
+    let text = 'TEXT';
+
     const currentTimeframe = useBehavior(entryData.currentTimeframe);
     console.log('Current timframe is: ', currentTimeframe);
     console.log('UI re-rendered');
@@ -185,18 +189,25 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
 
         {/* Descriptions */}
         <SelectedSegmentDescription model={entryData} targetSegmentationId={segmentationId} targetKind={kind}></SelectedSegmentDescription>
-        {/* Editing annotations */}
-        {/* TODO: onchange function that triggers api endpoint */}
-        {/* We have entryData here, can do it */}
-        {/* need to add api endpoint there */}
-        <Button onClick={() => {
+        
+        {/* TODO: It has to take value from some variable inside UI component? */}
+        {/* <TextInput onChange={(v) => {console.log(v); text = v;}} value={text} delayMs={250} style={{ order: 1, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={() => {}} blurOnEnter={true} blurOnEscape={true} /> */}
+        {/* <TextControl param={ParamDefinition.Text('Some text')} isDisabled={false} onChange={(d) => {
+            props
+            debugger;
+            console.log(d);
+            console.log(textInputValue);
+            textInputValue = d.value;
+        }} name='Name' value={textInputValue} /> */}
+        {/* <TextFilterMetadata onChange={(v) => {text = v.value; console.log('text', text);}} param={PD.Text('Some string')} name={'NAME'} value={text}></TextFilterMetadata> */}
+        {/* <Button onClick={() => {
             const r = entryData.metadata!.value?.getAllDescriptionsBasedOnMetadata(
                 {
                     "some_key": "some_value"
                 });
             console.log('Metadata query segments result')
             console.log(r);
-        }}>Query Segments based on metadata</Button>
+        }}>Query Segments based on metadata</Button> */}
         {<ExpandGroup header='Edit descriptions' initiallyExpanded>
             <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file' style={{ marginTop: '1px' }}>
                 {'Load JSON with descriptions'} <input onChange={async v => {
@@ -281,7 +292,7 @@ function _getVisualTransformFromProjectDataTransform(model: VolsegEntryData, pro
 
 }
 // TODO: TODO: TODO: exclude Opacity from state
-function SegmentationSetControls({ model, segmentation, kind }: { model: VolsegEntryData | CVSXStateModel, segmentation: StateObjectCell<PluginStateObject.Volume.Data> | StateObjectCell<VolsegGeometricSegmentation> | StateObjectCell<VolsegMeshSegmentation>, kind: 'lattice' | 'mesh' | 'primitive' }) {
+function SegmentationSetControls({ model, segmentation, kind }: { model: VolsegEntryData , segmentation: StateObjectCell<PluginStateObject.Volume.Data> | StateObjectCell<VolsegGeometricSegmentation> | StateObjectCell<VolsegMeshSegmentation>, kind: 'lattice' | 'mesh' | 'primitive' }) {
     const projectDataTransform = segmentation.transform;
     if (!projectDataTransform) return null;
     const params: ProjectLatticeSegmentationDataParamsValues | ProjectGeometricSegmentationDataParamsValues | ProjectMeshSegmentationDataParamsValues = projectDataTransform.params;

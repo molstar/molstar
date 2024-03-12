@@ -220,6 +220,16 @@ export class MetadataWrapper {
         return filtered;
     }
 
+    filterDescriptionsBasedOnKeywordInMetadata(d: DescriptionData[], keyword: string) {
+        // for each description
+        // loop over metadata fields
+        // compare value of each field with keyword
+        if (keyword === '') return d;
+        const filtered = d.filter(i => i.metadata && Object.values(i.metadata).includes(keyword));
+        // suppose no segments
+        return filtered;
+    }
+
     getAllSegmentAnotationsForSegmentationAndTimeframe(segmentationId: string, kind: 'lattice' | 'mesh' | 'primitive', timeframeIndex: number) {
         const allAnnotations = this.allAnnotations;
         const allAnnotationsForSegmentationId = allAnnotations.filter(d =>
