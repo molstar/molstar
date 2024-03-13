@@ -37,7 +37,7 @@ import { VolsegGeometricSegmentation } from './shape_primitives';
 import { VolsegMeshSegmentation } from '../new-meshes/mesh-extension';
 import { actionSelectSegment, actionToggleSegment, findNodesByRef } from '../common';
 import { CVSXStateModel } from '../cvsx-extension/cvsx';
-import { DescriptionsList, MetadataTextFilter, SelectedSegmentDescription } from '../common-ui';
+import { DescriptionsList, EntryDescriptionUI, MetadataTextFilter, SelectedSegmentDescription } from '../common-ui';
 import { Script } from '../../../mol-script/script';
 
 interface VolsegUIData {
@@ -138,6 +138,7 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
     const state = useBehavior(entryData.currentState);
     const metadata = useBehavior(entryData.metadata);
     const allDescriptions = entryData.metadata.value!.allDescriptions;
+    const entryDescriptions = allDescriptions.filter(d => d.target_kind === 'entry');
     const parsedSelectedSegmentKey = parseSegmentKey(state.selectedSegment);
     const { segmentId, segmentationId, kind } = parsedSelectedSegmentKey;
     const selectedSegmentDescriptions = entryData.metadata.value!.getSegmentDescription(segmentId, segmentationId, kind);
@@ -159,6 +160,8 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
         <div style={{ fontWeight: 'bold', padding: 8, paddingTop: 6, paddingBottom: 4, overflow: 'hidden' }}>
             {metadata!.raw.annotation?.name ?? 'Unnamed Annotation'}
         </div>
+        {entryDescriptions.length > 0 && entryDescriptions.map(e =>
+            <EntryDescriptionUI key={e.id} entryDescriptionData={e}></EntryDescriptionUI>)}
         {/* <JSONEditorComponent jsonData={annotationsJson} entryData={entryData}/> */}
         <Popup nested trigger={<Button>Open annotation JSON editor</Button>} modal>
             {/* <span> Modal content </span> */}
@@ -184,30 +187,11 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
 
         {/* Volume */}
         <VolumeControls entryData={entryData} />
-        {/* TODO: should show this section even if allDescriptions.length === 0 */}
         <SegmentationControls model={entryData} />
 
         {/* Descriptions */}
         <SelectedSegmentDescription model={entryData} targetSegmentationId={segmentationId} targetKind={kind}></SelectedSegmentDescription>
-        
-        {/* TODO: It has to take value from some variable inside UI component? */}
-        {/* <TextInput onChange={(v) => {console.log(v); text = v;}} value={text} delayMs={250} style={{ order: 1, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={() => {}} blurOnEnter={true} blurOnEscape={true} /> */}
-        {/* <TextControl param={ParamDefinition.Text('Some text')} isDisabled={false} onChange={(d) => {
-            props
-            debugger;
-            console.log(d);
-            console.log(textInputValue);
-            textInputValue = d.value;
-        }} name='Name' value={textInputValue} /> */}
-        {/* <TextFilterMetadata onChange={(v) => {text = v.value; console.log('text', text);}} param={PD.Text('Some string')} name={'NAME'} value={text}></TextFilterMetadata> */}
-        {/* <Button onClick={() => {
-            const r = entryData.metadata!.value?.getAllDescriptionsBasedOnMetadata(
-                {
-                    "some_key": "some_value"
-                });
-            console.log('Metadata query segments result')
-            console.log(r);
-        }}>Query Segments based on metadata</Button> */}
+
         {<ExpandGroup header='Edit descriptions' initiallyExpanded>
             <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file' style={{ marginTop: '1px' }}>
                 {'Load JSON with descriptions'} <input onChange={async v => {
@@ -292,7 +276,7 @@ function _getVisualTransformFromProjectDataTransform(model: VolsegEntryData, pro
 
 }
 // TODO: TODO: TODO: exclude Opacity from state
-function SegmentationSetControls({ model, segmentation, kind }: { model: VolsegEntryData , segmentation: StateObjectCell<PluginStateObject.Volume.Data> | StateObjectCell<VolsegGeometricSegmentation> | StateObjectCell<VolsegMeshSegmentation>, kind: 'lattice' | 'mesh' | 'primitive' }) {
+function SegmentationSetControls({ model, segmentation, kind }: { model: VolsegEntryData, segmentation: StateObjectCell<PluginStateObject.Volume.Data> | StateObjectCell<VolsegGeometricSegmentation> | StateObjectCell<VolsegMeshSegmentation>, kind: 'lattice' | 'mesh' | 'primitive' }) {
     const projectDataTransform = segmentation.transform;
     if (!projectDataTransform) return null;
     const params: ProjectLatticeSegmentationDataParamsValues | ProjectGeometricSegmentationDataParamsValues | ProjectMeshSegmentationDataParamsValues = projectDataTransform.params;

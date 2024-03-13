@@ -10,8 +10,52 @@ import { CVSXStateModel } from './cvsx-extension/cvsx';
 import Markdown from 'react-markdown';
 import { capitalize } from '../../mol-util/string';
 import { useState } from 'react';
-import { DescriptionData } from './new-volumes-and-segmentations/volseg-api/data';
+import { DescriptionData, DescriptionText, ExternalReference } from './new-volumes-and-segmentations/volseg-api/data';
 
+export function DescriptionTextUI({ descriptionText: d }: { descriptionText: DescriptionText }) {
+    if (d.format === 'markdown') {
+        return <>
+            <br />
+            <br />
+            <b>Description: </b>
+            <Markdown skipHtml>{d.text}</Markdown>
+        </>;
+    } else if (d.format === 'text') {
+        return <>
+            <br />
+            <br />
+            <b>Description: </b>
+            <p>{d.text}</p>
+        </>;
+    }
+}
+
+// Renders all external references
+export function ExternalReferencesUI({ externalReferences: e }: { externalReferences: ExternalReference[] }) {
+    return <>
+        {e.map(ref => {
+            // if (description.target_kind === 'entry' || !description.target_id) return;
+            return <p key={ref.id} style={{ marginTop: 4 }}>
+                {ref.url ? <a href={ref.url}>{ref.resource}:{ref.accession}</a> :
+                    <small>{ref.resource}:{ref.accession}</small>}
+                <br />
+                <b>{capitalize(ref.label ? ref.label : '')}</b><br />
+                {ref.description}
+            </p>;
+        }
+        )}
+    </>;
+}
+
+export function EntryDescriptionUI({ entryDescriptionData: e }: { entryDescriptionData: DescriptionData }) {
+    return <ExpandGroup header='Entry description data'>
+        <div key={e.id}>
+            {e.name ?? ''}
+            {e.description && <DescriptionTextUI descriptionText={e.description}></DescriptionTextUI>}
+            {e.external_references && <ExternalReferencesUI externalReferences={e.external_references} />}
+        </div>
+    </ExpandGroup>;
+}
 
 export const MetadataTextFilter = ({ setFilteredDescriptions, descriptions, model }: { setFilteredDescriptions: any, descriptions: DescriptionData[], model: VolsegEntryData }) => {
     const [text, setText] = useState('');
@@ -136,7 +180,7 @@ export function SelectedSegmentDescription({ model, targetSegmentationId, target
                     selectedSegmentDescription.target_kind !== 'entry' &&
                     selectedSegmentDescription.target_id &&
                     <b>Segment {selectedSegmentDescription.target_id.segment_id} from segmentation {selectedSegmentDescription.target_id.segmentation_id}:<br />{selectedSegmentDescription.name ?? 'Unnamed segment'}</b>}
-                {selectedSegmentDescription && selectedSegmentDescription.description && selectedSegmentDescription.description.format === 'markdown' &&
+                {/* {selectedSegmentDescription && selectedSegmentDescription.description && selectedSegmentDescription.description.format === 'markdown' &&
                     <>
                         <br />
                         <br />
@@ -149,11 +193,11 @@ export function SelectedSegmentDescription({ model, targetSegmentationId, target
                         <br />
                         <b>Description: </b>
                         <p>{selectedSegmentDescription.description.text}</p>
-                    </>}
-                {selectedSegmentDescription?.external_references?.map(ref => {
-                    // if (description.target_kind === 'entry' || !description.target_id) return;
+                    </>} */}
+                {selectedSegmentDescription && selectedSegmentDescription.description &&
+                    <DescriptionTextUI descriptionText={selectedSegmentDescription.description}></DescriptionTextUI>}
+                {/* {selectedSegmentDescription?.external_references?.map(ref => {
                     return <p key={ref.id} style={{ marginTop: 4 }}>
-                        {/* <small>{ref.resource}:{ref.accession}</small><br /> */}
                         {ref.url ? <a href={ref.url}>{ref.resource}:{ref.accession}</a> :
                             <small>{ref.resource}:{ref.accession}</small>}
                         <br />
@@ -161,7 +205,9 @@ export function SelectedSegmentDescription({ model, targetSegmentationId, target
                         {ref.description}
                     </p>;
                 }
-                )}
+                )} */}
+                {selectedSegmentDescription?.external_references &&
+                    <ExternalReferencesUI externalReferences={selectedSegmentDescription.external_references}></ExternalReferencesUI>}
             </div>
         </ExpandGroup>
     }</>;
