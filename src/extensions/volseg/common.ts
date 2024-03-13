@@ -9,11 +9,8 @@ import { getFileNameInfo } from "../../mol-util/file-info";
 import { CVSXStateModel } from "./cvsx-extension/cvsx";
 import { VolsegEntryData } from "./new-volumes-and-segmentations/entry-root";
 import { SEGMENT_VISUAL_TAG } from "./new-volumes-and-segmentations/entry-segmentation";
-import { ParsedSegmentKey } from "./new-volumes-and-segmentations/volseg-api/data";
+import { DescriptionData, ParsedSegmentKey } from "./new-volumes-and-segmentations/volseg-api/data";
 import { createSegmentKey, parseSegmentKey } from "./new-volumes-and-segmentations/volseg-api/utils";
-
-// TODO: other model
-// TODO: try other model - CVSXStateModel
 
 export async function parseCVSXJSON(rawFile: [string, Uint8Array], plugin: PluginContext) {
     const [fn, filedata] = rawFile;
@@ -25,21 +22,69 @@ export async function parseCVSXJSON(rawFile: [string, Uint8Array], plugin: Plugi
     return parsedData;
 }
 
-export async function actionToggleAllSegments(model: VolsegEntryData | CVSXStateModel, segmentationId: string, kind: 'lattice' | 'mesh' | 'primitive') {    
+// export async function actionToggleAllSegments(model: VolsegEntryData | CVSXStateModel, segmentationId: string, kind: 'lattice' | 'mesh' | 'primitive') {    
+//     const currentTimeframe = model.currentTimeframe.value;
+//     const current = model.currentState.value.visibleSegments.map(seg => seg.segmentKey);
+//     const currentForThisSegmentation = current.filter(c => 
+//         parseSegmentKey(c).segmentationId === segmentationId &&
+//         parseSegmentKey(c).kind === kind
+//     );
+//     const currentForOtherSegmentations = current.filter(item => currentForThisSegmentation.indexOf(item) < 0);
+//     if (currentForThisSegmentation.length !== model.metadata.value!.getAllSegmentAnotationsForSegmentationAndTimeframe(segmentationId, kind, currentTimeframe).length) {
+//         const allSegmentKeysFromSegmentation = model.metadata.value!.getAllSegmentAnotationsForSegmentationAndTimeframe(segmentationId, kind, currentTimeframe).map(a =>
+//             createSegmentKey(a.segment_id, a.segmentation_id, a.segment_kind)
+//         );
+//         const allSegmentKeys = [...allSegmentKeysFromSegmentation, ...currentForOtherSegmentations];
+//         await actionShowSegments(allSegmentKeys, model);
+//     } else {
+//         await actionShowSegments(currentForOtherSegmentations, model);
+//     }
+// }
+
+
+
+export async function actionToggleAllFilteredSegments(model: VolsegEntryData | CVSXStateModel, segmentationId: string, kind: 'lattice' | 'mesh' | 'primitive', filteredDescriptions: DescriptionData[]) {
     const currentTimeframe = model.currentTimeframe.value;
+    // This is currently visible
     const current = model.currentState.value.visibleSegments.map(seg => seg.segmentKey);
-    const currentForThisSegmentation = current.filter(c => 
+    // this is currently visible for this segmentation
+    const currentForThisSegmentation = current.filter(c =>
         parseSegmentKey(c).segmentationId === segmentationId &&
         parseSegmentKey(c).kind === kind
     );
+    // const currentForThisSegmentation = filteredDescriptions;
+    // this is currently visible for other segmentations
     const currentForOtherSegmentations = current.filter(item => currentForThisSegmentation.indexOf(item) < 0);
-    if (currentForThisSegmentation.length !== model.metadata.value!.getAllSegmentAnotationsForSegmentationAndTimeframe(segmentationId, kind, currentTimeframe).length) {
-        const allSegmentKeysFromSegmentation = model.metadata.value!.getAllSegmentAnotationsForSegmentationAndTimeframe(segmentationId, kind, currentTimeframe).map(a =>
-            createSegmentKey(a.segment_id, a.segmentation_id, a.segment_kind)
-        );
-        const allSegmentKeys = [...allSegmentKeysFromSegmentation, ...currentForOtherSegmentations];
+    // length of currently visible for this segmentation !== number of all segments for this segmentation
+    debugger;
+
+    // This checks if 
+    // if (currentForThisSegmentation.length !== model.metadata.value!.getAllSegmentAnotationsForSegmentationAndTimeframe(segmentationId, kind, currentTimeframe).length) {
+    const allFilteredSegmentKeys = filteredDescriptions.map(d =>
+        createSegmentKey(d.target_id!.segment_id, d.target_id!.segmentation_id, d.target_kind))
+    const allSegmentKeysFromSegmentation = model.metadata.value!.getAllDescriptionsForSegmentationAndTimeframe(segmentationId, kind, currentTimeframe).map(d =>
+        createSegmentKey(d.target_id!.segment_id, d.target_id!.segmentation_id, d.target_kind));
+    if (currentForThisSegmentation.length !== filteredDescriptions.length) {
+
+        console.log(filteredDescriptions);
+        debugger;
+        // TODO: currentForOtherSegmentations should be kept
+        // TODO: modify just allSegmentKeysFromSegmentation\
+        // TODO: TODO: TODO:
+        // APPROACH
+        // 1. get model.metadata.value!.getAllSegmentAnotationsForSegmentationAndTimeframe(segmentationId, kind, currentTimeframe)
+        // or better getAllDescriptionsForSegmentationAndTimeframe
+        // 2. filter them
+        // allSegmentKeysFromSegmentation should contain just the keys of segments
+        // which are in filteredDescriptions
+        const allSegmentKeys = [...allFilteredSegmentKeys, ...currentForOtherSegmentations];
         await actionShowSegments(allSegmentKeys, model);
     } else {
+        // TODO: add to currentForOtherSegmentations
+        // segments from this segmentation, but not filtered
+        const descriptionsFromThisSegmentationNotFiltered = allSegmentKeysFromSegmentation.filter(i => allFilteredSegmentKeys.indexOf(i) < 0);
+        console.log(descriptionsFromThisSegmentationNotFiltered);
+        debugger;
         await actionShowSegments(currentForOtherSegmentations, model);
     }
 }

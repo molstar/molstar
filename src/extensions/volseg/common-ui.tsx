@@ -1,6 +1,6 @@
 import { Button, ExpandGroup, IconButton, TextInput } from '../../mol-plugin-ui/controls/common';
 import { sleep } from '../../mol-util/sleep';
-import { actionSelectSegment, actionToggleAllSegments, actionToggleSegment } from './common';
+import { actionSelectSegment, actionToggleAllFilteredSegments, actionToggleSegment } from './common';
 import { WaitingButton } from './new-volumes-and-segmentations/ui';
 import { createSegmentKey, parseSegmentKey } from './new-volumes-and-segmentations/volseg-api/utils';
 import * as Icons from '../../mol-plugin-ui/controls/icons';
@@ -23,7 +23,7 @@ export const MetadataTextFilter = ({ setFilteredDescriptions, descriptions, mode
     return (
         // <View style={{ padding: 10 }}>
         <TextInput
-            style={{ order: 1, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control'
+            style={{ order: 1, flex: '1 1 auto', minWidth: 0, marginBlock: 1 }} className='msp-form-control'
             value={text}
             placeholder="Type keyword to filter segments..."
             // this will just set text, need to filter metadata based on text
@@ -64,7 +64,7 @@ export function DescriptionsList({ model, targetSegmentationId, targetKind }: { 
     return <>
         <MetadataTextFilter setFilteredDescriptions={setFilteredDescriptions} descriptions={allDescriptionsForSegmentationId} model={model}></MetadataTextFilter>
         {filteredDescriptions.length > 0 && <>
-            <WaitingButton onClick={async () => { await sleep(20); await actionToggleAllSegments(model, targetSegmentationId, targetKind); }} style={{ marginTop: 1 }}>
+            <WaitingButton onClick={async () => { await sleep(20); await actionToggleAllFilteredSegments(model, targetSegmentationId, targetKind, filteredDescriptions); }} style={{ marginTop: 1 }}>
                 Toggle All segments
             </WaitingButton>
             <div style={{ maxHeight: 200, overflow: 'hidden', overflowY: 'auto', marginBlock: 1 }}>

@@ -35,7 +35,7 @@ import React from "react";
 import JSONEditorComponent from './jsoneditor-component';
 import { VolsegGeometricSegmentation } from './shape_primitives';
 import { VolsegMeshSegmentation } from '../new-meshes/mesh-extension';
-import { actionSelectSegment, actionToggleAllSegments, actionToggleSegment, findNodesByRef } from '../common';
+import { actionSelectSegment, actionToggleSegment, findNodesByRef } from '../common';
 import { CVSXStateModel } from '../cvsx-extension/cvsx';
 import { DescriptionsList, MetadataTextFilter, SelectedSegmentDescription } from '../common-ui';
 import { Script } from '../../../mol-script/script';
