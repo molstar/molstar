@@ -209,8 +209,43 @@ export class VolsegVolumeData {
             : Volume.IsoValue.absolute(volumeIsovalueValue);
     }
 
+    // private createVolumeVisualParams(volume: Volume, type: 'isosurface' | 'direct-volume' | 'off', color: Color): VolumeVisualParams {
+    //     if (type === 'off') type = 'isosurface';
+    //     return createVolumeRepresentationParams(this.entryData.plugin, volume, {
+    //         type: type,
+    //         typeParams: { alpha: 0.2, tryUseGpu: VolsegGlobalStateData.getGlobalState(this.entryData.plugin)?.tryUseGpu },
+    //         color: 'uniform',
+    //         colorParams: { value: color },
+    //     });
+    // }
+
+
+    // TODO: fix volume type invalid slice
     private createVolumeVisualParams(volume: Volume, type: 'isosurface' | 'direct-volume' | 'off', color: Color): VolumeVisualParams {
         if (type === 'off') type = 'isosurface';
+
+        const dimensions = volume.grid.cells.space.dimensions;
+        const dimensionsOrder = {
+            0: 'x',
+            1: 'y',
+            2: 'z'
+        };
+        // console.log(dimensions);
+        for (const i in dimensions) {
+            if (dimensions[i] === 1) {
+                // console.log(`creating slice for dimension ${dimensionsOrder[i]}`);
+                const params = createVolumeRepresentationParams(this.entryData.plugin, volume, {
+                    type: 'slice',
+                    typeParams: { dimension: { name: dimensionsOrder[i], params: 0 }, isoValue: { kind: 'relative', relativeValue: 0 } },
+                    color: 'uniform',
+                    colorParams: { value: color },
+                });
+                return params;
+            }
+            // }
+        }
+
+
         return createVolumeRepresentationParams(this.entryData.plugin, volume, {
             type: type,
             typeParams: { alpha: 0.2, tryUseGpu: VolsegGlobalStateData.getGlobalState(this.entryData.plugin)?.tryUseGpu },
