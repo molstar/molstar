@@ -318,6 +318,11 @@ function SegmentationSetControls({ model, segmentation, kind }: { model: VolsegE
 function VolumeControls({ entryData }: { entryData: VolsegEntryData }) {
     const h = useBehavior(entryData.state.hierarchy);
     if (!h) return null;
+    const isBusy = useBehavior(entryData.plugin.behaviors.state.isBusy);
+    if (isBusy) {
+        console.log('isBusy!');
+        return null;
+    }
     return <>
         {/* <Button onClick={() => { console.log('volume cache, segmentation cache: ', entryData.cachedVolumeTimeframesData, entryData.cachedSegmentationTimeframesData); }}>Get volume and segmentation cache</Button> */}
         <ExpandGroup header='Volume data'>
@@ -329,9 +334,15 @@ function VolumeControls({ entryData }: { entryData: VolsegEntryData }) {
     </>;
 }
 
-export function SegmentationControls({ model }: { model: VolsegEntryData | CVSXStateModel }) {
+export function SegmentationControls({ model }: { model: VolsegEntryData }) {
+    // TODO: do check for segmentation data and return null if no segmentation data
     const h = useBehavior(model.state.hierarchy);
     if (!h) return null;
+    const isBusy = useBehavior(model.plugin.behaviors.state.isBusy);
+    if (isBusy) {
+        console.log('isBusy!');
+        return null;
+    }
     return <>
         {/* <Button onClick={() => { console.log('volume cache, segmentation cache: ', entryData.cachedVolumeTimeframesData, entryData.cachedSegmentationTimeframesData); }}>Get volume and segmentation cache</Button> */}
         <ExpandGroup header='Segmentation data'>
