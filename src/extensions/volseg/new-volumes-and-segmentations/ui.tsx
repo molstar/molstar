@@ -275,7 +275,6 @@ function _getVisualTransformFromProjectDataTransform(model: VolsegEntryData, pro
     // }
 
 }
-// TODO: TODO: TODO: exclude Opacity from state
 function SegmentationSetControls({ model, segmentation, kind }: { model: VolsegEntryData, segmentation: StateObjectCell<PluginStateObject.Volume.Data> | StateObjectCell<VolsegGeometricSegmentation> | StateObjectCell<VolsegMeshSegmentation>, kind: 'lattice' | 'mesh' | 'primitive' }) {
     const projectDataTransform = segmentation.transform;
     if (!projectDataTransform) return null;
@@ -336,6 +335,10 @@ function VolumeControls({ entryData }: { entryData: VolsegEntryData }) {
 
 export function SegmentationControls({ model }: { model: VolsegEntryData }) {
     // TODO: do check for segmentation data and return null if no segmentation data
+    // can be a separate function that loops checks if segmentation ids is not null
+    if (!model.metadata.value!.hasSegmentations()) {
+        return null;
+    }
     const h = useBehavior(model.state.hierarchy);
     if (!h) return null;
     const isBusy = useBehavior(model.plugin.behaviors.state.isBusy);

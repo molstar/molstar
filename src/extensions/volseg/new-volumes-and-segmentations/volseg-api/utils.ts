@@ -32,6 +32,21 @@ export class MetadataWrapper {
         this.raw = rawMetadata;
     }
 
+    
+    hasSegmentations() {
+        const grid = this.raw.grid;
+        if (grid.geometric_segmentation && grid.geometric_segmentation.segmentation_ids.length > 0) {
+            return true;
+        }
+        if (grid.segmentation_lattices && grid.segmentation_lattices.segmentation_ids.length > 0) {
+            return true;
+        }
+        if (grid.segmentation_meshes && grid.segmentation_meshes.segmentation_ids.length > 0) {
+            return true;
+        }
+        return false;
+    }
+
     removeDescription(id: string) {
         const descriptions = this.raw.annotation?.descriptions;
         if (this.raw.annotation && descriptions) {
