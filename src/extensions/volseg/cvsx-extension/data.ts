@@ -1,20 +1,32 @@
 import { AnnotationMetadata, GridMetadata, ShapePrimitiveData } from ../ new- volumes - and - segmentations / volseg - api / data
 
 export interface CVSXFilesData {
-    // parsed everything
-    volume?: Uint8Array
-    latticeSegmentation?: Uint8Array,
-    geometricSegmentation?: ShapePrimitiveData,
-    meshSegmentation?: [string, Uint8Array][],
+    volumes?: CVSXVolumeData[]
+    latticeSegmentations?: CVSXLatticeSegmentationData[],
+    // TODO: other
+    geometricSegmentations?: ShapePrimitiveData,
+    meshSegmentations?: [string, Uint8Array][],
     annotation?: AnnotationMetadata,
     metadata?: GridMetadata,
-    query: QueryMetadata
+    query: QueryArgs
 };
 
-export interface QueryMetadata {
-    subquery_types: string[]
-    args: QueryArgs
+export interface CVSXVolumeData {
+    channelId: string
+    timeframeIndex: number
+    data: Uint8Array
 }
+
+export interface CVSXLatticeSegmentationData {
+    segmentationId: string
+    timeframeIndex: number
+    data: Uint8Array
+}
+
+// export interface QueryMetadata {
+//     subquery_types: string[]
+//     args: QueryArgs
+// }
 
 interface QueryArgs {
     entry_id: string,

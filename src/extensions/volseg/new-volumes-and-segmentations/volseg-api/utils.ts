@@ -32,6 +32,13 @@ export class MetadataWrapper {
         this.raw = rawMetadata;
     }
 
+    hasLatticeSegmentations() {
+        const grid = this.raw.grid;
+        if (grid.segmentation_lattices && grid.segmentation_lattices.segmentation_ids.length > 0) {
+            return grid.segmentation_lattices;
+        }
+        return false;
+    };
     
     hasSegmentations() {
         const grid = this.raw.grid;
