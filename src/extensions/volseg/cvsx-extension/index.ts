@@ -14,9 +14,15 @@ export async function loadCVSXFromAnything(plugin: PluginContext, data: StateObj
 
     if (entryNode.data) {
         const entryData = entryNode.data;
-        const timeframeIndex = entryData.metadata!.value!.raw.grid.volumes.time_info.start;
-        const channelIds = entryData.metadata!.value!.raw.grid.volumes.channel_ids;
-        const currentTimeframe = entryData.currentTimeframe.value;
+        let timeframeIndex = entryData.metadata!.value!.raw.grid.volumes.time_info.start;
+        let channelIds = entryData.metadata!.value!.raw.grid.volumes.channel_ids;
+        // const currentTimeframe = entryData.currentTimeframe.value;
+        if (entryData.filesData!.query.channel_id) {
+            channelIds = [entryData.filesData!.query.channel_id];
+        }
+        if (entryData.filesData!.query.time) {
+            timeframeIndex = entryData.filesData!.query.time;
+        }
         const hasVolumes = entryNode.data.metadata.value!.raw.grid.volumes.volume_sampling_info.spatial_downsampling_levels.length > 0;
         if (hasVolumes) {
             const group = await entryNode.data.volumeData.createVolumeGroup();
@@ -45,7 +51,10 @@ export async function loadCVSXFromAnything(plugin: PluginContext, data: StateObj
 
         const hasLattices = entryData.metadata!.value!.hasLatticeSegmentations();
         if (hasLattices) {
-            const segmentationIds = hasLattices.segmentation_ids;
+            let segmentationIds = hasLattices.segmentation_ids;
+            if (entryData.filesData!.query.segmentation_id) {
+                segmentationIds = [entryData.filesData!.query.segmentation_id];
+            }
             // loop over lattices and create one for each
             for (const segmentationId of segmentationIds) {
                 // const segmentationId = hasLattices.segmentation_sampling_info
@@ -92,7 +101,10 @@ export async function loadCVSXFromAnything(plugin: PluginContext, data: StateObj
 
         const hasMeshes = entryNode.data.metadata.value!.hasMeshSegmentations();
         if (hasMeshes) {
-            const segmentationIds = hasMeshes.segmentation_ids;
+            let segmentationIds = hasMeshes.segmentation_ids;
+            if (entryData.filesData!.query.segmentation_id) {
+                segmentationIds = [entryData.filesData!.query.segmentation_id];
+            }
             const group = await entryNode.data.meshSegmentationData.createMeshGroup();
             for (const segmentationId of segmentationIds) {
                 const meshSegmentParams = entryData.meshSegmentationData.getMeshSegmentParams(segmentationId, timeframeIndex);
