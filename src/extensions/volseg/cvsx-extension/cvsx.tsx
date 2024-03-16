@@ -16,7 +16,7 @@ import { useBehavior } from '../../../mol-plugin-ui/hooks/use-behavior';
 import { PluginContext } from '../../../mol-plugin/context';
 import { SimpleVolumeParamValues, SimpleVolumeParams, VolumeVisualParams } from '../new-volumes-and-segmentations/entry-volume';
 import { UpdateTransformControl } from '../../../mol-plugin-ui/state/update-transform';
-import { WaitingButton, WaitingParameterControls, WaitingSlider } from '../new-volumes-and-segmentations/ui';
+import { SegmentationControls, WaitingButton, WaitingParameterControls, WaitingSlider } from '../new-volumes-and-segmentations/ui';
 import { sleep } from '../../../mol-util/sleep';
 import { StateTransform } from '../../../mol-state/transform';
 import { setSubtreeVisibility } from '../../../mol-plugin/behavior/static/state';
@@ -25,6 +25,9 @@ import { StateTransforms } from '../../../mol-plugin-state/transforms';
 import { AnnotationMetadata, DescriptionData, ShapePrimitiveData, Metadata } from '../new-volumes-and-segmentations/volseg-api/data';
 import { objectToArray } from '../new-volumes-and-segmentations/helpers';
 import { MetadataWrapper } from '../new-volumes-and-segmentations/volseg-api/utils';
+import { findNodesByRef, findNodesByTags } from '../common';
+import { StateHierarchyMirror } from '../new-volumes-and-segmentations/entry-root';
+import { DescriptionsList } from '../common-ui';
 
 export const CVSX_VOLUME_VISUAL_TAG = 'CVSX-volume-visual';
 export const CVSX_LATTICE_SEGMENTATION_VISUAL_TAG = 'CVSX-lattice-segmentation-visual';
@@ -35,7 +38,7 @@ export const CVSX_GEOMETRIC_SEGMENTATION_FILE = 'CVSX-geometric-segmentation-fil
 export class CSVXUI extends CollapsableControls<{}, {}> {
     protected defaultState(): CollapsableState {
         return {
-            header: 'CSVS',
+            header: 'CSVX',
             isCollapsed: true,
             brand: { accent: 'cyan', svg: GetAppSvg }
         };
@@ -45,12 +48,12 @@ export class CSVXUI extends CollapsableControls<{}, {}> {
     }
 }
 
-export interface CVSXProps {
-    volumes: any | undefined,
-    segmentations: any | undefined,
-    annotations: AnnotationMetadata | undefined,
-    geometricSegmentation: ShapePrimitiveData | undefined
-}
+// export interface CVSXProps {
+//     volumes: any | undefined,
+//     segmentations: any | undefined,
+//     annotations: AnnotationMetadata | undefined,
+//     geometricSegmentation: ShapePrimitiveData | undefined
+// }
 
 export const CVSXState = {
     // segmentOpacity: PD.Numeric(1, { min: 0, max: 1, step: 0.05 }),
@@ -62,50 +65,28 @@ export const CVSXState = {
     //     kind: PD.Select('lattice', [['lattice', 'lattice'], ['mesh', 'mesh'], ['primitive', 'primitive']])
     // }, k => `${k.segmentId}:${k.segmentationId}:${k.kind}`),
     visibleSegments: PD.ObjectList({
-        segmentKey: PD.Text('') }, k => k.segmentKey
+        segmentKey: PD.Text('')
+    }, k => k.segmentKey
     ),
 }
 
+export type CVSXStateData = PD.Values<typeof CVSXState>;
+
 // TODO: props could be volumes, segmentations, annotations
-class CVSXStateModel extends PluginComponent {
-    actionToggleAllSegments() {
-        // TODO: first get all segment annotations
-        // NOTE: assumes lattice only
-        // NOTE: need to track which segment is selected
-        
-        // TODO: toggle all segments somehow
-        // throw new Error('Method not implemented.');
-    }
-    state = new BehaviorSubject<{ props: CVSXProps }>({ props: { volumes: undefined, segmentations: undefined, annotations: undefined, geometricSegmentation: undefined } });
+export class CVSXStateModel extends PluginComponent {
+    // state = new BehaviorSubject<{ props: CVSXProps }>({ props: { volumes: undefined, segmentations: undefined, annotations: undefined, geometricSegmentation: undefined } });
+    state = {
+        hierarchy: new BehaviorSubject<StateHierarchyMirror | undefined>(undefined)
+    };
+
     currentState = new BehaviorSubject(PD.getDefaultValues(CVSXState));
     metadata = new BehaviorSubject<MetadataWrapper | undefined>(undefined);
-
+    public currentTimeframe = new BehaviorSubject(0);
     private visualTypeParamCache: { [type: string]: any } = {};
-    get allDescriptions() {
-        const descriptions = this.state.value.props.annotations?.descriptions;
-        if (descriptions) {
-            return (objectToArray(descriptions) as DescriptionData[]);
-        } else {
-            return [];
-        }
-    }
-
-    findNodesByRef(ref: string) {
-        // return this.plugin.state.data.selectQ(q => q.byRef(ref).subtree())[0];
-        return this.plugin.state.data.selectQ(q => q.byRef(ref).subtree())[0];
-    }
-
-    findNodesByTags(...tags: string[]) {
-        return this.plugin.state.data.selectQ(q => {
-            let builder = q.root.subtree();
-            for (const tag of tags) builder = builder.withTag(tag);
-            return builder;
-        });
-    }
 
     _updateMetadata() {
-        const annotationNodes = this.findNodesByTags(CVSX_ANNOTATIONS_FILE_TAG);
-        const metadataNodes = this.findNodesByTags(CVSX_METADATA_FILE_TAG);
+        const annotationNodes = findNodesByTags(this.plugin, CVSX_ANNOTATIONS_FILE_TAG);
+        const metadataNodes = findNodesByTags(this.plugin, CVSX_METADATA_FILE_TAG);
         const meta: Metadata = {
             grid: JSON.parse(metadataNodes[0]!.obj!.data),
             annotation: JSON.parse(annotationNodes[0]!.obj!.data)
@@ -116,29 +97,32 @@ class CVSXStateModel extends PluginComponent {
         // this.metadata = new MetadataWrapper(meta);
     }
 
-    _updateProps() {
-        const volumeVisualNodes = this.findNodesByTags(CVSX_VOLUME_VISUAL_TAG);
-        const latticeSegmentationVisualNodes = this.findNodesByTags(CVSX_LATTICE_SEGMENTATION_VISUAL_TAG);
-        const annotationNodes = this.findNodesByTags(CVSX_ANNOTATIONS_FILE_TAG);
-        let annotations = undefined;
-        let geometricSegmentation = undefined;
-        if (annotationNodes.length > 0) annotations = JSON.parse(annotationNodes[0]!.obj!.data);
-        const geometricSegmentationNodes = this.findNodesByTags(CVSX_GEOMETRIC_SEGMENTATION_FILE);
-        if (geometricSegmentationNodes.length > 0) geometricSegmentation = JSON.parse(geometricSegmentationNodes[0]!.obj!.data);
-        this.state.next({
-            props: {
-                volumes: volumeVisualNodes,
-                segmentations: latticeSegmentationVisualNodes,
-                annotations: annotations,
-                geometricSegmentation: geometricSegmentation
-            }
+    async updateStateNode(params: Partial<CVSXStateData>) {
+        const oldParams = this.currentState.value;
+        const newParams = { ...oldParams, ...params };
+        const state = this.plugin.state.data;
+        console.log('State was updated');
+    }
+
+    _updateHierarchy() {
+        const volumes = findNodesByTags(this.plugin, CVSX_VOLUME_VISUAL_TAG);
+        const segmentations = findNodesByTags(this.plugin, CVSX_LATTICE_SEGMENTATION_VISUAL_TAG);
+        // const annotationNodes = findNodesByTags(this.plugin, CVSX_ANNOTATIONS_FILE_TAG);
+        // let annotations = undefined;
+        // let geometricSegmentation = undefined;
+        // if (annotationNodes.length > 0) annotations = JSON.parse(annotationNodes[0]!.obj!.data);
+        const geometricSegmentations = findNodesByTags(this.plugin, CVSX_GEOMETRIC_SEGMENTATION_FILE);
+        // TODO: mesh segmentations
+        const meshSegmentations = findNodesByTags(this.plugin, '');
+
+        // if (geometricSegmentationNodes.length > 0) geometricSegmentation = JSON.parse(geometricSegmentationNodes[0]!.obj!.data);
+        this.state.hierarchy.next({
+            volumes, segmentations, geometricSegmentations, meshSegmentations
         });
-        console.log('state');
-        console.log(this.state.value);
     }
 
     mount() {
-        this._updateProps();
+        this._updateHierarchy();
         this._updateMetadata();
         const obs = combineLatest([
             this.plugin.behaviors.state.isBusy,
@@ -146,7 +130,7 @@ class CVSXStateModel extends PluginComponent {
         ]);
         this.subscribe(obs, ([busy, cell]) => {
             if (busy) return;
-            this._updateProps();
+            this._updateHierarchy();
             this._updateMetadata();
         });
     }
@@ -161,7 +145,8 @@ class CVSXStateModel extends PluginComponent {
 
     // NOTE: currently works for all segmentations at once
     updateSegmentationOpacity = async (opacity: number) => {
-        const reprs = this.state.value.props.segmentations;
+        const reprs = this.state.hierarchy?.value?.segmentations;
+        if (!reprs) return;
         const update = this.plugin.build().toRoot();
         console.log(reprs);
         for (const s of reprs) {
@@ -172,7 +157,7 @@ class CVSXStateModel extends PluginComponent {
 
     updateVolumeVisual = async (newParams: SimpleVolumeParamValues, transform: StateTransform) => {
         const { volumeType, opacity } = newParams;
-        const visual = this.findNodesByRef(transform.ref);
+        const visual = findNodesByRef(this.plugin, transform.ref);
         if (!visual) return;
         const oldVisualParams: VolumeVisualParams = visual.transform.params;
         this.visualTypeParamCache[oldVisualParams.type.name] = oldVisualParams.type.params;
@@ -213,13 +198,22 @@ function CVSXFileControls({ plugin }: { plugin: PluginContext }) {
         return () => model.dispose();
     }, [model]);
 
-    const state = useBehavior(model.state);
     const isBusy = useBehavior(plugin.behaviors.state.isBusy);
-    const props = state.props;
 
-    const descriptions = props.annotations?.descriptions;
-    const allDescriptions = model.allDescriptions;
+    const metadata = useBehavior(model.metadata);
+    // TODO: instead get descriptions for selected segmentation id and kind later
+    // possibly need to store in hierarchy top level node
+    // or include in bcif info about segmentation id and kind
+    // it is alredy included in the form of file name (kind) but not segmentation id
+    // include new category?
+    // does not work
+    // get from metadata?
+    // how to associate specific segmentation with metadata
+    const allDescriptions = metadata?.allDescriptions;
+    // const allDescriptions = model.metadata.value.allDescriptions;
 
+    const h = useBehavior(model.state.hierarchy);
+    if (!h) return null;
 
     return <>
         disabled: {isBusy}
@@ -228,8 +222,8 @@ function CVSXFileControls({ plugin }: { plugin: PluginContext }) {
         {/* TODO: here render UI based on props */}
         {/* check how volume controls are rendered in volseg ui */}
         <>
-            {props.volumes && <ExpandGroup header='Volume data' initiallyExpanded>
-                {props.volumes.map(v => {
+            {h.volumes && <ExpandGroup header='Volume data' initiallyExpanded>
+                {h.volumes.map(v => {
                     console.log('v', v);
                     const transform = v.transform;
                     if (!transform) return null;
@@ -244,14 +238,23 @@ function CVSXFileControls({ plugin }: { plugin: PluginContext }) {
 
                 })}
             </ExpandGroup>}
-            {props.segmentations && <ExpandGroup header='Segmentation data' initiallyExpanded>
-                {props.segmentations.map(s => {
+            {/* <SegmentationControls model={model}></SegmentationControls> */}
+            {h.segmentations && <ExpandGroup header='Segmentation data' initiallyExpanded>
+                {h.segmentations.map(s => {
                     // Opacity of segmentation can get from its visual
-                    return <ControlRow key={s.transform.ref} label='Opacity' control={
-                        <WaitingSlider min={0} max={1} value={s.transform.params.type.params.alpha} step={0.05} onChange={async v => await model.updateSegmentationOpacity(v)} />
-                    } />;
+                    return <>
+                        <ControlRow key={s.transform.ref} label='Opacity' control={
+                            <WaitingSlider min={0} max={1} value={s.transform.params.type.params.alpha} step={0.05} onChange={async v => await model.updateSegmentationOpacity(v)} />
+                        } />
+                        <DescriptionsList model={model} targetSegmentationId={} targetKind={'lattice'}></DescriptionsList>
+                    </>
+                        ;
                 })}
+                {/* {allDescriptions && <DescriptionsList
+                    model={model} targetSegmentationId={}
+                ></DescriptionsList>} */}
             </ExpandGroup>}
+
         </>
 
 
