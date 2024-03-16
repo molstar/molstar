@@ -22,8 +22,8 @@ import { ParamDefinition } from '../../../mol-util/param-definition';
 import { isMeshlistData, MeshlistData, VolsegMeshSegmentation } from '../new-meshes/mesh-extension';
 
 import { DEFAULT_VOLSEG_SERVER, VolumeApiV2 } from './volseg-api/api';
-import { BoxPrimitive, Cylinder, DescriptionData, Ellipsoid, Metadata, ParsedSegmentKey, PyramidPrimitive, SegmentAnnotationData, ShapePrimitiveData, Sphere, TimeInfo } from './volseg-api/data';
-import { createSegmentKey, getSegmentLabelsFromDescriptions, instanceOfShapePrimitiveData, MetadataWrapper, parseSegmentKey } from './volseg-api/utils';
+import { BoxPrimitive, Cylinder, DescriptionData, Ellipsoid, GridMetadata, Metadata, ParsedSegmentKey, PyramidPrimitive, SegmentAnnotationData, ShapePrimitiveData, Sphere, TimeInfo } from './volseg-api/data';
+import { createSegmentKey, getCVSXMeshSegmentationDataFromRaw, getSegmentLabelsFromDescriptions, instanceOfShapePrimitiveData, MetadataWrapper, parseSegmentKey } from './volseg-api/utils';
 import { DEFAULT_MESH_DETAIL, VolsegMeshSegmentationData } from './entry-meshes';
 import { VolsegModelData } from './entry-models';
 import { SEGMENT_VISUAL_TAG, VolsegLatticeSegmentationData } from './entry-segmentation';
@@ -42,7 +42,7 @@ import { CreateShapePrimitiveProviderParamsValues, isShapePrimitiveParamsValues,
 import { actionSelectSegment, parseCVSXJSON } from '../common';
 import { RuntimeContext } from '../../../mol-task';
 import { Unzip, unzip } from '../../../mol-util/zip/zip';
-import { CVSXFilesData, CVSXLatticeSegmentationData, CVSXVolumeData } from '../cvsx-extension/data';
+import { CVSXFilesData, CVSXLatticeSegmentationData, CVSXMeshSegmentationData, CVSXVolumeData } from '../cvsx-extension/data';
 
 export const GEOMETRIC_SEGMENTATION_NODE_TAG = 'geometric-segmentation-node';
 export const MESH_SEGMENTATION_NODE_TAG = 'mesh-segmentation-node'
@@ -318,7 +318,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         const rawQueryJSON = zippedFilesEntries.find(z => z[0] === 'query.json');
         const rawVolumes = zippedFilesEntries.filter(z => z[0].startsWith('volume'));
         const rawLatticeSegmentations = zippedFilesEntries.filter(z => z[0].startsWith('lattice'));
-        const rawMeshSegmentation = zippedFilesEntries.filter(z => Number.isFinite(parseInt(z[0].charAt(0))) && z[0].endsWith('.bcif'));
+        const rawMeshSegmentations = zippedFilesEntries.filter(z => z[0].startsWith('mesh'));
         debugger;
         const geometricSegmentation = zippedFilesEntries.find(z => z[0].startsWith('geometric-segmentation.json'));
         const parsedQueryJSON = await parseCVSXJSON(rawQueryJSON!, plugin);
@@ -346,6 +346,8 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         }
 
 
+        const meshSegmentationData = getCVSXMeshSegmentationDataFromRaw(rawMeshSegmentations, parsedGridMetadata)
+        debugger;
         const filesData: CVSXFilesData = {
             // parsed everything
             volumes: rawVolumes ? rawVolumes.map(v => {
@@ -365,7 +367,16 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
                 return d;
             }) : undefined,
             geometricSegmentations: gs,
-            meshSegmentations: rawMeshSegmentation ? rawMeshSegmentation : undefined,
+            // rawMeshSegmentations - list of files
+            // segment_id_segmentation_id_timeframe
+            // format mesh_1_0_0 mesh_2_0_0 etc.
+            // meshSegmentation data has to be collected for each segmentation
+            // 1. check how many segmentations are there in metadata
+            // need to convert list
+            // for each segmentation id filter rawMeshSegmentations for only those
+            // segmentation data that is for that segmentation id
+            // for each segmentation check 
+            meshSegmentations: meshSegmentationData ? meshSegmentationData : undefined,
             annotation: parsedAnnotationMetadata ? parsedAnnotationMetadata : undefined,
             metadata: parsedGridMetadata ? parsedGridMetadata : undefined,
             query: parsedQueryJSON ? parsedQueryJSON : undefined
@@ -435,7 +446,6 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             console.log('data events changed emitted');
             this.sync();
         });
-        // TODO: optimize these has
         const hasVolumes = this.metadata.value!.raw.grid.volumes.volume_sampling_info.spatial_downsampling_levels.length > 0;
         if (hasVolumes) {
             this.preloadVolumeTimeframesDataFromFile();
@@ -750,55 +760,31 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     }
 
     preloadMeshTimeframesDataFromFile() {
-        if (this.metadata.value!.raw.grid.segmentation_meshes && this.metadata.value!.raw.grid.segmentation_meshes.segmentation_ids.length > 0) {
-            // array of [string, Uint8Array] string = segment id + .bcif
-            const segmentsData: RawMeshSegmentData[] = [];
-            const rawData = this.filesData!.meshSegmentations!;
-            debugger;
-            for (const [filename, d] of rawData) {
-                const segmentId = parseInt((filename as string).split('.')[0]);
-                segmentsData.push(
-                    new RawMeshSegmentData(
-                        segmentId,
-                        d
-                    )
+        debugger;
+        if (this.filesData!.meshSegmentations) {
+            for (const segmentationData of this.filesData!.meshSegmentations) {
+                const segmentsData: RawMeshSegmentData[] = [];
+                const rawData = segmentationData.data;
+                for (const [filename, d] of rawData) {
+                    const segmentId = parseInt((filename as string).split('_')[1]);
+                    segmentsData.push(
+                        new RawMeshSegmentData(
+                            segmentId,
+                            d
+                        )
+                    );
+                }
+                const data = new RawSegmentationData(
+                    segmentationData.timeframeIndex,
+                    segmentationData.segmentationId,
+                    segmentsData
                 );
+                this.cachedMeshesTimeframesData.add(
+                    data
+                );
+                console.log('cachedMeshesTimeframesData');
+                console.log(this.cachedMeshesTimeframesData);
             }
-            // TODO: make data like this:
-            // for (const seg of segmentsToCreate) {
-            //     const detail = this.metadata.value!.getSufficientMeshDetail(segmentationId, timeframe, seg, DEFAULT_MESH_DETAIL);
-            //     const urlString = this.api.meshUrl_Bcif(this.source, this.entryId, segmentationId, timeframe, seg, detail);
-            //     const data = await this._resolveBinaryUrl(urlString);
-            //     segmentsData.push(
-            //         new RawMeshSegmentData(
-            //             seg,
-            //             data
-            //         )
-            //     );
-            // }
-            // return new RawSegmentationData(
-            //     timeframe,
-            //     segmentationId,
-            //     segmentsData
-            // );
-
-
-            // const data = new RawSegmentationData(
-            //     this.filesData.query.args.time, this.filesData.query.args.segmentation_id, this.filesData.meshSegmentation
-            // );
-
-
-            const data = new RawSegmentationData(
-                this.filesData!.query.args.time!,
-                this.filesData!.query.args.segmentation_id!,
-                segmentsData
-            );
-            // channelsData.push(rawChannelData);
-            this.cachedMeshesTimeframesData.add(
-                data
-            );
-            console.log('cachedMeshesTimeframesData');
-            console.log(this.cachedMeshesTimeframesData);
         } else {
             console.log('No mesh segmentation data for this entry');
         }

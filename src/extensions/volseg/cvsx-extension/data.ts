@@ -5,11 +5,18 @@ export interface CVSXFilesData {
     latticeSegmentations?: CVSXLatticeSegmentationData[],
     // TODO: other
     geometricSegmentations?: ShapePrimitiveData,
-    meshSegmentations?: [string, Uint8Array][],
+    meshSegmentations?: CVSXMeshSegmentationData[],
     annotation?: AnnotationMetadata,
     metadata?: GridMetadata,
     query: QueryArgs
 };
+
+export interface CVSXMeshSegmentationData {
+    segmentationId: string
+    timeframeIndex: number
+    // segment id, segment data
+    data: [string, Uint8Array][]
+}
 
 export interface CVSXVolumeData {
     channelId: string

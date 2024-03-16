@@ -5,8 +5,9 @@
  */
 
 import { Color } from '../../../../mol-util/color';
+import { CVSXMeshSegmentationData } from '../../cvsx-extension/data';
 import { objectToArray } from '../helpers';
-import { DescriptionData, Metadata, ParsedSegmentKey, ShapePrimitiveData } from './data';
+import { DescriptionData, GridMetadata, Metadata, ParsedSegmentKey, ShapePrimitiveData } from './data';
 
 
 export function compareTwoObjects(object1: any, object2: any): boolean {
@@ -24,6 +25,41 @@ export function compareTwoObjects(object1: any, object2: any): boolean {
     return compareRes;
 }
 
+
+export function getCVSXMeshSegmentationDataFromRaw(rawData: [string, Uint8Array][], metadata: GridMetadata) {
+    const hasMeshSegmentations = metadata.segmentation_meshes;
+    const data: CVSXMeshSegmentationData[] = [];
+    if (hasMeshSegmentations && hasMeshSegmentations.segmentation_ids.length > 0) {
+        const segmentationIds = hasMeshSegmentations.segmentation_ids;
+        for (const segmentationId of segmentationIds) {
+            const timeInfo = hasMeshSegmentations.time_info[segmentationId];
+            const timeframes = Array.from({ length: timeInfo.end - timeInfo.start + 1 }, (_, i) => i + timeInfo.start);
+            for (const timeframe of timeframes) {
+                const targetSegments = rawData.filter(r => {
+                    const filename = r[0];
+                    const segmentId = filename.split('_')[1];
+                    const targetSegmentationId = filename.split('_')[2];
+                    const timeframeIndex = parseInt(filename.split('_')[3]);
+                    if (segmentationId === targetSegmentationId && timeframe === timeframeIndex) {
+                        return true;
+                    }
+                });
+                console.log(`Target Segments for ${timeframe} and ${segmentationId}`);
+                console.log(targetSegments);
+                const d: CVSXMeshSegmentationData = {
+                    segmentationId: segmentationId,
+                    timeframeIndex: timeframe,
+                    data: targetSegments
+                };
+                data.push(d);
+            }
+        }
+        return data;
+    } else {
+        return false;
+    }
+}
+
 export class MetadataWrapper {
     raw: Metadata;
     private segmentMap?: Map<string, DescriptionData[]>;
@@ -39,7 +75,23 @@ export class MetadataWrapper {
         }
         return false;
     };
-    
+
+    hasMeshSegmentations() {
+        const grid = this.raw.grid;
+        if (grid.segmentation_meshes && grid.segmentation_meshes.segmentation_ids.length > 0) {
+            return grid.segmentation_meshes;
+        }
+        return false;
+    };
+
+    hasGeometricSegmentations() {
+        const grid = this.raw.grid;
+        if (grid.geometric_segmentation && grid.geometric_segmentation.segmentation_ids.length > 0) {
+            return grid.geometric_segmentation;
+        }
+        return false;
+    };
+
     hasSegmentations() {
         const grid = this.raw.grid;
         if (grid.geometric_segmentation && grid.geometric_segmentation.segmentation_ids.length > 0) {
