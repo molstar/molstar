@@ -64,11 +64,14 @@ export async function getCVSXGeometricSegmentationDataFromRaw(rawData: [string, 
     }
 }
 // TODO: this should consider only the files
-export function getCVSXMeshSegmentationDataFromRaw(rawData: [string, Uint8Array][], metadata: GridMetadata) {
+export function getCVSXMeshSegmentationDataFromRaw(rawData: [string, Uint8Array][], metadata: GridMetadata, query: QueryArgs) {
     const hasMeshSegmentations = metadata.segmentation_meshes;
     const data: CVSXMeshSegmentationData[] = [];
     if (hasMeshSegmentations && hasMeshSegmentations.segmentation_ids.length > 0) {
-        const segmentationIds = hasMeshSegmentations.segmentation_ids;
+        let segmentationIds = hasMeshSegmentations.segmentation_ids;
+        if (query.segmentation_id) {
+            segmentationIds = [query.segmentation_id];
+        }
         for (const segmentationId of segmentationIds) {
             const timeInfo = hasMeshSegmentations.time_info[segmentationId];
             const timeframes = Array.from({ length: timeInfo.end - timeInfo.start + 1 }, (_, i) => i + timeInfo.start);

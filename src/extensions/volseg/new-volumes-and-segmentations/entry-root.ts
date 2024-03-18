@@ -345,7 +345,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             gs = await getCVSXGeometricSegmentationDataFromRaw(geometricSegmentations, parsedGridMetadata, parsedQueryJSON, plugin)
         }
 
-        const meshSegmentationData = getCVSXMeshSegmentationDataFromRaw(rawMeshSegmentations, parsedGridMetadata)
+        const meshSegmentationData = getCVSXMeshSegmentationDataFromRaw(rawMeshSegmentations, parsedGridMetadata, parsedQueryJSON)
         debugger;
         const filesData: CVSXFilesData = {
             // parsed everything
