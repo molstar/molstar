@@ -1,15 +1,22 @@
-import { AnnotationMetadata, GridMetadata, ShapePrimitiveData } from ../ new- volumes - and - segmentations / volseg - api / data
+
+import { AnnotationMetadata, GridMetadata, ShapePrimitiveData } from "../new-volumes-and-segmentations/volseg-api/data"
 
 export interface CVSXFilesData {
     volumes?: CVSXVolumeData[]
     latticeSegmentations?: CVSXLatticeSegmentationData[],
     // TODO: other
-    geometricSegmentations?: ShapePrimitiveData,
+    geometricSegmentations?: CVSXGeometricSegmentationData[],
     meshSegmentations?: CVSXMeshSegmentationData[],
     annotation?: AnnotationMetadata,
     metadata?: GridMetadata,
     query: QueryArgs
 };
+
+export interface CVSXGeometricSegmentationData {
+    segmentationId: string
+    timeframeIndex: number
+    data: ShapePrimitiveData
+}
 
 export interface CVSXMeshSegmentationData {
     segmentationId: string
@@ -35,7 +42,7 @@ export interface CVSXLatticeSegmentationData {
 //     args: QueryArgs
 // }
 
-interface QueryArgs {
+export interface QueryArgs {
     entry_id: string,
     source_db: string,
     time?: number,

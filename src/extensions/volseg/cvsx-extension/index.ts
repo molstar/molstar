@@ -83,20 +83,26 @@ export async function loadCVSXFromAnything(plugin: PluginContext, data: StateObj
 
         const hasGeometricSegmentation = entryData.metadata.value!.raw.grid.geometric_segmentation;
         if (hasGeometricSegmentation && hasGeometricSegmentation.segmentation_ids.length > 0) {
+            let segmentationIds = hasGeometricSegmentation.segmentation_ids;
+            if (entryData.filesData!.query.segmentation_id) {
+                segmentationIds = [entryData.filesData!.query.segmentation_id];
+            }
+            
             const group = await entryNode.data.geometricSegmentationData.createGeometricSegmentationGroup();
             // const timeInfo = entryData.metadata.value!.raw.grid.geometric_segmentation!.time_info;
             // single segmentation id
             // for (const segmentationId of hasGeometricSegmentation.segmentation_ids) {
             // const timeframeIndex = 0;
-            debugger;
-            const segmentationId: string = entryData.filesData!.query.args.segmentation_id;
-            const geometricSegmentationParams: ProjectGeometricSegmentationDataParamsValues = {
-                segmentationId: segmentationId,
-                timeframeIndex: timeframeIndex
-            };
-            const geometricSegmentationNode = await plugin.build().to(group).apply(ProjectGeometricSegmentationData, geometricSegmentationParams, { tags: [GEOMETRIC_SEGMENTATION_NODE_TAG] }).commit();
-            await entryNode.data.geometricSegmentationData.createGeometricSegmentationRepresentation3D(geometricSegmentationNode, geometricSegmentationParams);
+            for (const segmentationId of segmentationIds) {
+                // const segmentationId: string = entryData.filesData!.query.args.segmentation_id;
+                const geometricSegmentationParams: ProjectGeometricSegmentationDataParamsValues = {
+                    segmentationId: segmentationId,
+                    timeframeIndex: timeframeIndex
+                };
+                const geometricSegmentationNode = await plugin.build().to(group).apply(ProjectGeometricSegmentationData, geometricSegmentationParams, { tags: [GEOMETRIC_SEGMENTATION_NODE_TAG] }).commit();
+                await entryNode.data.geometricSegmentationData.createGeometricSegmentationRepresentation3D(geometricSegmentationNode, geometricSegmentationParams);
             // }
+            }
         }
 
         const hasMeshes = entryNode.data.metadata.value!.hasMeshSegmentations();

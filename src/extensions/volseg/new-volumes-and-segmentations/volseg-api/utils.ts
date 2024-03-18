@@ -4,8 +4,10 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { PluginContext } from '../../../../mol-plugin/context';
 import { Color } from '../../../../mol-util/color';
-import { CVSXMeshSegmentationData } from '../../cvsx-extension/data';
+import { parseCVSXJSON } from '../../common';
+import { CVSXGeometricSegmentationData, CVSXMeshSegmentationData, QueryArgs } from '../../cvsx-extension/data';
 import { objectToArray } from '../helpers';
 import { DescriptionData, GridMetadata, Metadata, ParsedSegmentKey, ShapePrimitiveData } from './data';
 
@@ -25,7 +27,43 @@ export function compareTwoObjects(object1: any, object2: any): boolean {
     return compareRes;
 }
 
-
+export async function getCVSXGeometricSegmentationDataFromRaw(rawData: [string, Uint8Array][], metadata: GridMetadata, query: QueryArgs, plugin: PluginContext) {
+    const hasGeometricSegmentation = metadata.geometric_segmentation;
+    const data: CVSXGeometricSegmentationData[] = [];
+    if (hasGeometricSegmentation && hasGeometricSegmentation.segmentation_ids.length > 0) {
+        let segmentationIds = hasGeometricSegmentation.segmentation_ids;
+        if (query.segmentation_id) {
+            segmentationIds = [query.segmentation_id];
+        }
+        for (const segmentationId of segmentationIds) {
+            const timeInfo = hasGeometricSegmentation.time_info[segmentationId];
+            let timeframes = Array.from({ length: timeInfo.end - timeInfo.start + 1 }, (_, i) => i + timeInfo.start);
+            if (query.time) {
+                timeframes = [query.time];
+            }
+            for (const timeframe of timeframes) {
+                const gsData = rawData.find(r => {
+                    const filename = r[0].split('.')[0];
+                    const targetSegmentationId = filename.split('_')[1];
+                    const timeframeIndex = parseInt(filename.split('_')[2]);
+                    if (segmentationId === targetSegmentationId && timeframe === timeframeIndex) {
+                        return true;
+                    }
+                });
+                debugger;
+                const parsedGsData: ShapePrimitiveData = await parseCVSXJSON(gsData!, plugin);
+                const d: CVSXGeometricSegmentationData = {
+                    segmentationId: segmentationId,
+                    timeframeIndex: timeframe,
+                    data: parsedGsData
+                };
+                data.push(d);
+            }
+        }
+        return data;
+    }
+}
+// TODO: this should consider only the files
 export function getCVSXMeshSegmentationDataFromRaw(rawData: [string, Uint8Array][], metadata: GridMetadata) {
     const hasMeshSegmentations = metadata.segmentation_meshes;
     const data: CVSXMeshSegmentationData[] = [];
@@ -36,7 +74,7 @@ export function getCVSXMeshSegmentationDataFromRaw(rawData: [string, Uint8Array]
             const timeframes = Array.from({ length: timeInfo.end - timeInfo.start + 1 }, (_, i) => i + timeInfo.start);
             for (const timeframe of timeframes) {
                 const targetSegments = rawData.filter(r => {
-                    const filename = r[0];
+                    const filename = r[0].split('.')[0];
                     const segmentId = filename.split('_')[1];
                     const targetSegmentationId = filename.split('_')[2];
                     const timeframeIndex = parseInt(filename.split('_')[3]);
