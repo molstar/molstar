@@ -81,18 +81,14 @@ export async function loadCVSXFromAnything(plugin: PluginContext, data: StateObj
 
         }
 
-        const hasGeometricSegmentation = entryData.metadata.value!.raw.grid.geometric_segmentation;
-        if (hasGeometricSegmentation && hasGeometricSegmentation.segmentation_ids.length > 0) {
+        const hasGeometricSegmentation = entryData.metadata!.value!.hasGeometricSegmentations();
+        if (hasGeometricSegmentation) {
             let segmentationIds = hasGeometricSegmentation.segmentation_ids;
             if (entryData.filesData!.query.segmentation_id) {
                 segmentationIds = [entryData.filesData!.query.segmentation_id];
             }
-            
+
             const group = await entryNode.data.geometricSegmentationData.createGeometricSegmentationGroup();
-            // const timeInfo = entryData.metadata.value!.raw.grid.geometric_segmentation!.time_info;
-            // single segmentation id
-            // for (const segmentationId of hasGeometricSegmentation.segmentation_ids) {
-            // const timeframeIndex = 0;
             for (const segmentationId of segmentationIds) {
                 // const segmentationId: string = entryData.filesData!.query.args.segmentation_id;
                 const geometricSegmentationParams: ProjectGeometricSegmentationDataParamsValues = {

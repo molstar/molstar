@@ -366,15 +366,6 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
                 return d;
             }) : undefined,
             geometricSegmentations: gs ? gs : undefined,
-            // rawMeshSegmentations - list of files
-            // segment_id_segmentation_id_timeframe
-            // format mesh_1_0_0 mesh_2_0_0 etc.
-            // meshSegmentation data has to be collected for each segmentation
-            // 1. check how many segmentations are there in metadata
-            // need to convert list
-            // for each segmentation id filter rawMeshSegmentations for only those
-            // segmentation data that is for that segmentation id
-            // for each segmentation check 
             meshSegmentations: meshSegmentationData ? meshSegmentationData : undefined,
             annotation: parsedAnnotationMetadata ? parsedAnnotationMetadata : undefined,
             metadata: parsedGridMetadata ? parsedGridMetadata : undefined,
