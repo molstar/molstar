@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Jesse Liang <jesse.liang@rcsb.org>
@@ -58,7 +58,8 @@ export class HeadlessScreenshotHelper {
             const props = { ...Canvas3DContext.DefaultProps };
             const assetManager = new AssetManager();
             const passes = new Passes(webgl, assetManager, props);
-            const setProps = () => {};
+            props.transparency = passes.draw.transparency;  // Fallback to 'blended' transparency, if default ('wboit') transparency not supported
+            const setProps = () => { };
             const dispose = () => {
                 input.dispose();
                 webgl.destroy();
