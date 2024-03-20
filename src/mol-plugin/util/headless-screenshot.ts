@@ -58,7 +58,7 @@ export class HeadlessScreenshotHelper {
             const props = { ...Canvas3DContext.DefaultProps };
             const assetManager = new AssetManager();
             const passes = new Passes(webgl, assetManager, props);
-            props.transparency = passes.draw.transparency;  // Fallback to 'blended' transparency, if default ('wboit') transparency not supported
+            props.transparency = passes.draw.transparency; // Fallback to 'blended' transparency, if default ('wboit') transparency not supported
             const setProps = () => { };
             const dispose = () => {
                 input.dispose();
