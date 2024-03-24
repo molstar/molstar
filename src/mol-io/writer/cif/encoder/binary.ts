@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * Adapted from CIFTools.js (https://github.com/dsehnal/CIFTools.js)
  *
@@ -146,7 +146,15 @@ function encodeField(categoryName: string, field: Field, data: CategoryInstanceD
 
     const { array, allPresent, mask } = getFieldData(field, getArrayCtor(field, format), totalCount, data);
 
-    let encoder: ArrayEncoder | undefined = tryGetEncoder(categoryName, field, format, encoderProvider);
+    let encoder: ArrayEncoder | undefined;
+    if (field.type === Field.Type.Str) {
+        // Force string array encoding if field type is str to prevent conflicts between
+        // encoderProvider (determined by automatic classifier) and field type comming from a CIF schema
+        encoder = ArrayEncoder.by(E.stringArray);
+    } else {
+        encoder = tryGetEncoder(categoryName, field, format, encoderProvider);
+    }
+
     if (!encoder) {
         if (autoClassify) encoder = classify(field.type, array);
         else encoder = getDefaultEncoder(field.type);

@@ -193,7 +193,7 @@ namespace TrackballControls {
         }
 
         function getRotateFactor() {
-            const aspectRatio = input.width / input.height;
+            const aspectRatio = (input.width / input.height) || 1;
             return p.rotateSpeed * input.pixelRatio * aspectRatio;
         }
 
