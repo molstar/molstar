@@ -55,7 +55,7 @@ export const StructureGaussianSurfaceMeshParams = {
 export type StructureGaussianSurfaceMeshParams = typeof StructureGaussianSurfaceMeshParams
 
 function gpuSupport(webgl: WebGLContext) {
-    return webgl.extensions.colorBufferFloat && webgl.extensions.textureFloat && webgl.extensions.blendMinMax && webgl.extensions.drawBuffers;
+    return webgl.extensions.colorBufferFloat && webgl.extensions.textureFloat && webgl.extensions.textureFloatLinear && webgl.extensions.blendMinMax && webgl.extensions.drawBuffers;
 }
 
 function suitableForGpu(structure: Structure, props: PD.Values<SharedParams>, webgl: WebGLContext) {

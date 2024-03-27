@@ -5,9 +5,11 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- VolumeTransform to translate/rotate a volume like in a structure superposition
 - Fix BinaryCIF encoder edge cases caused by re-encoding an existing BinaryCIF file
 - Fix edge-case where width/height in InputObserver are not correct
 - Fix transparency rendering fallback (#1058)
+- Fix SSAO broken when `OES_texture_float_linear` is unavailable
 
 ## [v4.0.1] - 2023-02-19
 
