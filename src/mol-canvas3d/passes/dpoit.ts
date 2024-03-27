@@ -221,12 +221,13 @@ export class DpoitPass {
     }
 
     static isSupported(webgl: WebGLContext) {
-        const { extensions: { drawBuffers, textureFloat, colorBufferFloat, blendMinMax } } = webgl;
-        if (!textureFloat || !colorBufferFloat || !drawBuffers || !blendMinMax) {
+        const { extensions: { drawBuffers, textureFloat, colorBufferFloat, depthTexture, blendMinMax } } = webgl;
+        if (!textureFloat || !colorBufferFloat || !depthTexture || !drawBuffers || !blendMinMax) {
             if (isDebugMode) {
                 const missing: string[] = [];
                 if (!textureFloat) missing.push('textureFloat');
                 if (!colorBufferFloat) missing.push('colorBufferFloat');
+                if (!depthTexture) missing.push('depthTexture');
                 if (!drawBuffers) missing.push('drawBuffers');
                 if (!blendMinMax) missing.push('blendMinMax');
                 console.log(`Missing "${missing.join('", "')}" extensions required for "dpoit"`);
