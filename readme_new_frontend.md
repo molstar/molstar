@@ -1,5 +1,8 @@
 ## Building & Running new frontend
 
+### Preparation:
+After cloning the repository, switch to `cvsx-new-query-app` branch
+
 ### Build:
     npm install
     npm run watch-viewer
