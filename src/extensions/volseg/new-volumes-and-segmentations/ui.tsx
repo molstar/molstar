@@ -149,8 +149,6 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
     const visibleModels = state.visibleModels.map(model => model.pdbId);
     const allPdbs = entryData.pdbs;
 
-    let text = 'TEXT';
-
     const currentTimeframe = useBehavior(entryData.currentTimeframe);
     console.log('Current timframe is: ', currentTimeframe);
     console.log('UI re-rendered');
@@ -305,7 +303,6 @@ function SegmentationSetControls({ model, segmentation, kind }: { model: VolsegE
         // TODO: fix
         opacity = transform.params.alpha;
     }
-    debugger;
     return <ExpandGroup header={`${segmentationId}`}>
         {/* TODO: use actual opacity */}
         {/* <div>Segmentation</div> */}
