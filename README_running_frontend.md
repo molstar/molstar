@@ -12,14 +12,13 @@ NPM and Node.js:
     ```
     cd molstar-new
     ```
-3. Switch to `new-volumes-and-segmentations` branch:
+3. Switch to `cvsx-new-query-app` branch:
     ```
-    git checkout new-volumes-and-segmentations
+    git checkout cvsx-new-query-app
     ```
 4. Build:
     ```
     npm install
-    npm run build
     npm run watch-viewer
     ```
 
