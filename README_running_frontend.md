@@ -30,7 +30,7 @@ npm run serve
 ```
 2. In your browser, open:
 
-http://127.0.0.1:1338/build/viewer/index.html
+http://127.0.0.1:1338/build/viewer/
 
 # Using annotator app
 1. In the UI, set the following fields:
