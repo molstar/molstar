@@ -19,6 +19,7 @@ NPM and Node.js:
 4. Build:
     ```
     npm install
+    npm run build
     npm run watch-viewer
     ```
 
