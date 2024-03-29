@@ -646,48 +646,27 @@ export namespace Mesh {
         createPositionIterator
     };
 
-    function createPositionIterator(mesh: Mesh, transform: TransformData, offset: number = 1.4): LocationIterator {
+    function createPositionIterator(mesh: Mesh, transform: TransformData): LocationIterator {
         const groupCount = mesh.vertexCount;
         const instanceCount = transform.instanceCount.ref.value;
         const location = PositionLocation();
         const p = location.position;
-        const n = mesh.normalBuffer.ref.value; // NOTE: Get normal vector
-        const v = mesh.vertexBuffer.ref.value;
+        const n = location.normal;
+        const vs = mesh.vertexBuffer.ref.value;
+        const ns = mesh.normalBuffer.ref.value;
         const m = transform.aTransform.ref.value;
         const getLocation = (groupIndex: number, instanceIndex: number) => {
             if (instanceIndex < 0) {
-                Vec3.fromArray(p, v, groupIndex * 3);
-                // NOTE: Apply the normal offset
-                Vec3.scaleAndAdd(p, p, Vec3.fromArray(Vec3(), n, groupIndex * 3), offset);
+                Vec3.fromArray(p, vs, groupIndex * 3);
+                Vec3.fromArray(n, ns, groupIndex * 3);
             } else {
-                Vec3.transformMat4Offset(p, v, m, 0, groupIndex * 3, instanceIndex * 16);
-                // NOTE: Apply the normal offset after transforming the vertex position with the instance-specific transform matrix
-                const nTransformed = Vec3();
-                Vec3.transformMat4Offset(nTransformed, n, m, 0, groupIndex * 3, instanceIndex * 16);
-                Vec3.scaleAndAdd(p, p, nTransformed, offset);
+                Vec3.transformMat4Offset(p, vs, m, 0, groupIndex * 3, instanceIndex * 16);
+                Vec3.transformMat4Offset(n, ns, m, 0, groupIndex * 3, instanceIndex * 16);
             }
             return location;
         };
         return LocationIterator(groupCount, instanceCount, 1, getLocation);
     }
-
-    // function createPositionIterator(mesh: Mesh, transform: TransformData): LocationIterator {
-    //     const groupCount = mesh.vertexCount;
-    //     const instanceCount = transform.instanceCount.ref.value;
-    //     const location = PositionLocation();
-    //     const p = location.position;
-    //     const v = mesh.vertexBuffer.ref.value;
-    //     const m = transform.aTransform.ref.value;
-    //     const getLocation = (groupIndex: number, instanceIndex: number) => {
-    //         if (instanceIndex < 0) {
-    //             Vec3.fromArray(p, v, groupIndex * 3);
-    //         } else {
-    //             Vec3.transformMat4Offset(p, v, m, 0, groupIndex * 3, instanceIndex * 16);
-    //         }
-    //         return location;
-    //     };
-    //     return LocationIterator(groupCount, instanceCount, 1, getLocation);
-    // }
 
     function createValues(mesh: Mesh, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): MeshValues {
         const { instanceCount, groupCount } = locationIt;

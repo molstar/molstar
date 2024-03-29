@@ -2,6 +2,7 @@
  * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Cai Huiyu <szmun.caihy@gmail.com>
  */
 
 import { Color, ColorScale } from '../../mol-util/color';
@@ -16,7 +17,7 @@ import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { lerp } from '../../mol-math/interpolate';
 import { ColorThemeCategory } from './categories';
 
-const Description = `Assigns a color based volume value at a given vertex.`;
+const Description = `Assigns a color based on volume value at a given vertex.`;
 
 export const ExternalVolumeColorThemeParams = {
     volume: PD.ValueRef<Volume>(
@@ -47,6 +48,12 @@ export const ExternalVolumeColorThemeParams = {
         })
     }),
     defaultColor: PD.Color(Color(0xcccccc)),
+    aboveMode: PD.MappedStatic('disabled', {
+        'disabled': PD.EmptyGroup({}),
+        'enabled': PD.Group({
+            distance: PD.Numeric(1.4, { min: 0, max: 20, step: 0.1 })
+        })
+    }, { description: 'Assign colors based on volume values above the surface.' }),
 };
 export type ExternalVolumeColorThemeParams = typeof ExternalVolumeColorThemeParams
 
@@ -95,7 +102,14 @@ export function ExternalVolumeColorTheme(ctx: ThemeDataContext, props: PD.Values
                 return props.defaultColor;
             }
 
+            // Transform the position by adding distance * normal
             Vec3.copy(gridCoords, location.position);
+
+            console.log(props.aboveMode);
+            if (props.aboveMode.name === 'enabled') {
+                Vec3.scaleAndAdd(gridCoords, gridCoords, location.normal, props.aboveMode.params.distance);
+            }
+
             Vec3.transformMat4(gridCoords, gridCoords, cartnToGrid);
 
             const i = Math.floor(gridCoords[0]);

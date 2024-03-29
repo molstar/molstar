@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author Cai Huiyu <szmun.caihy@gmail.com>
  */
 
 import { Iterator } from '../../mol-data';
@@ -119,10 +120,16 @@ export function LocationIterator(groupCount: number, instanceCount: number, stri
 /** A position Location */
 export interface PositionLocation {
     readonly kind: 'position-location',
-    readonly position: Vec3
+    readonly position: Vec3,
+    // Normal vector at the position (used for surface coloring)
+    readonly normal: Vec3
 }
-export function PositionLocation(position?: Vec3): PositionLocation {
-    return { kind: 'position-location', position: position ? Vec3.clone(position) : Vec3() };
+export function PositionLocation(position?: Vec3, normal?: Vec3): PositionLocation {
+    return {
+        kind: 'position-location',
+        position: position ? Vec3.clone(position) : Vec3(),
+        normal: normal ? Vec3.clone(normal) : Vec3()
+    };
 }
 export function isPositionLocation(x: any): x is PositionLocation {
     return !!x && x.kind === 'position-location';

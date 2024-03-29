@@ -10,6 +10,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix edge-case where width/height in InputObserver are not correct
 - Fix transparency rendering fallback (#1058)
 - Fix SSAO broken when `OES_texture_float_linear` is unavailable
+- Reproduce pymol's surface_ramp_above_mode=1 behavior for external-volume color theme
 
 ## [v4.0.1] - 2023-02-19
 
