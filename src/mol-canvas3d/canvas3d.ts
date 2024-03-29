@@ -363,7 +363,7 @@ namespace Canvas3D {
         let currentTime = 0;
 
         updateViewport();
-        const scene = Scene.create(webgl, ctx.props.transparency);
+        const scene = Scene.create(webgl, passes.draw.transparency);
 
         function getSceneRadius() {
             return scene.boundingSphere.radius * p.sceneRadiusFactor;
@@ -804,7 +804,7 @@ namespace Canvas3D {
         addConsoleStatsProvider(consoleStats);
 
         const ctxChangedSub = ctx.changed?.subscribe(() => {
-            scene.setTransparency(ctx.props.transparency);
+            scene.setTransparency(passes.draw.transparency);
             requestDraw();
         });
 

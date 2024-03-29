@@ -22,7 +22,7 @@ import { DpoitPass } from './dpoit';
 import { AntialiasingPass, PostprocessingPass, PostprocessingProps } from './postprocessing';
 import { MarkingPass, MarkingProps } from './marking';
 import { CopyRenderable, createCopyRenderable } from '../../mol-gl/compute/util';
-import { isTimingMode } from '../../mol-util/debug';
+import { isDebugMode, isTimingMode } from '../../mol-util/debug';
 import { AssetManager } from '../../mol-util/assets';
 
 type Props = {
@@ -66,8 +66,14 @@ export class DrawPass {
     setTransparency(transparency: 'wboit' | 'dpoit' | 'blended') {
         if (transparency === 'wboit') {
             this.transparencyMode = this.wboit.supported ? 'wboit' : 'blended';
+            if (isDebugMode && !this.wboit.supported) {
+                console.log('Missing "wboit" support, falling back to "blended".');
+            }
         } else if (transparency === 'dpoit') {
             this.transparencyMode = this.dpoit.supported ? 'dpoit' : 'blended';
+            if (isDebugMode && !this.dpoit.supported) {
+                console.log('Missing "dpoit" support, falling back to "blended".');
+            }
         } else {
             this.transparencyMode = 'blended';
         }

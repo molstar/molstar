@@ -830,6 +830,8 @@ namespace InputObserver {
         }
 
         function onResize() {
+            width = element.clientWidth * pixelRatio();
+            height = element.clientHeight * pixelRatio();
             resize.next({});
         }
 
