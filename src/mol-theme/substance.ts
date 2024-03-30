@@ -36,8 +36,8 @@ namespace Substance {
         return true;
     }
 
-    export function isEmpty(overpaint: Substance) {
-        return overpaint.layers.length === 0;
+    export function isEmpty(substance: Substance) {
+        return substance.layers.length === 0;
     }
 
     export function remap(substance: Substance, structure: Structure): Substance {
