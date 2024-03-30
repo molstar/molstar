@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -78,7 +78,7 @@ varying float vInstance;
         for (float m = -1.0; m <= 2.0; ++m) {
             for (float n = -1.0; n <= 2.0; ++n) {
                 vec4 vecData = texture2D(tex, texCoord + texelSize * vec2(m, n));
-                float c = cubicFilter(m - cell.x) * cubicFilter(-n + cell.y);
+                float c = abs(cubicFilter(m - cell.x) * cubicFilter(-n + cell.y));
                 nSum += vecData * c;
                 nDenom += c;
             }
@@ -99,7 +99,17 @@ void main() {
     imageData.a = clamp(imageData.a, 0.0, 1.0);
     if (imageData.a > 0.9) imageData.a = 1.0;
 
+    imageData.a *= uAlpha;
+    if (imageData.a < 0.05)
+        discard;
+
     float fragmentDepth = gl_FragCoord.z;
+
+    if ((uRenderMask == MaskOpaque && imageData.a < 1.0) ||
+        (uRenderMask == MaskTransparent && imageData.a == 1.0)
+    ) {
+        discard;
+    }
 
     #if defined(dRenderVariant_pick)
         if (imageData.a < 0.3)
@@ -145,10 +155,7 @@ void main() {
             gl_FragColor = vec4(0.0, depthTest, isHighlight ? 1.0 : 0.0, 1.0);
         }
     #elif defined(dRenderVariant_color)
-        if (imageData.a < 0.05)
-            discard;
         gl_FragColor = imageData;
-        gl_FragColor.a *= uAlpha;
 
         float marker = uMarker;
         if (uMarker == -1.0) {

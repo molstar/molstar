@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -53,6 +53,7 @@ import { assign_material_color } from './shader/chunks/assign-material-color.gls
 import { assign_position } from './shader/chunks/assign-position.glsl';
 import { assign_size } from './shader/chunks/assign-size.glsl';
 import { check_picking_alpha } from './shader/chunks/check-picking-alpha.glsl';
+import { check_transparency } from './shader/chunks/check-transparency.glsl';
 import { clip_instance } from './shader/chunks/clip-instance.glsl';
 import { clip_pixel } from './shader/chunks/clip-pixel.glsl';
 import { color_frag_params } from './shader/chunks/color-frag-params.glsl';
@@ -88,6 +89,7 @@ const ShaderChunks: { [k: string]: string } = {
     assign_position,
     assign_size,
     check_picking_alpha,
+    check_transparency,
     clip_instance,
     clip_pixel,
     color_frag_params,

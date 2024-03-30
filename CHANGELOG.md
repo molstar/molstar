@@ -11,6 +11,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix transparency rendering fallback (#1058)
 - Fix SSAO broken when `OES_texture_float_linear` is unavailable
 - Add `rotation` parameter to skybox background
+- Refactor transparency rendering
+    - More uniform behavior for blended, wboit, dpoit
+    - Fix issues with text & image geometry
 
 ## [v4.0.1] - 2023-02-19
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -35,6 +35,7 @@ void main() {
 
     float fragmentDepth = gl_FragCoord.z;
     #include assign_material_color
+    #include check_transparency
 
     #if defined(dRenderVariant_pick)
         #include check_picking_alpha

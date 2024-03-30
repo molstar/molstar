@@ -89,36 +89,10 @@ export const assign_material_color = `
     if (vTransparency < 0.09) ta = 1.0; // hard cutoff looks better
 
     #if defined(dRenderVariant_pick)
-        if (ta < uPickingAlphaThreshold)
+        if (ta * uAlpha < uPickingAlphaThreshold)
             discard; // ignore so the element below can be picked
     #elif defined(dRenderVariant_color)
         material.a *= ta;
-
-        #if defined(dRenderVariant_colorBlended)
-            #if defined(dTransparentBackfaces_off)
-                if ((uRenderMask == MaskOpaque && material.a < 1.0) ||
-                    (uRenderMask == MaskTransparent && material.a == 1.0) ||
-                    (interior && material.a < 1.0)
-                ) {
-                    discard;
-                }
-            #elif defined(dTransparentBackfaces_on)
-                if ((uRenderMask == MaskOpaque && material.a < 1.0) ||
-                    (uRenderMask == MaskTransparent && material.a == 1.0)
-                ) {
-                    discard;
-                }
-            #elif defined(dTransparentBackfaces_opaque)
-                if (interior) {
-                    material.a = 1.0;
-                } else if (
-                    (uRenderMask == MaskOpaque && material.a < 1.0) ||
-                    (uRenderMask == MaskTransparent && material.a == 1.0)
-                ) {
-                    discard;
-                }
-            #endif
-        #endif
     #endif
 #endif
 `;
