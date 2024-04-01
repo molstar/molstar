@@ -203,6 +203,7 @@ const gl = {
     RGB565: 36194,
     RGBA: 6408,
     RGBA4: 32854,
+    RGBA8: 32856,
     SAMPLER_2D: 35678,
     SAMPLER_CUBE: 35680,
     SAMPLES: 32937,
