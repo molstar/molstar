@@ -121,7 +121,7 @@ export function LocationIterator(groupCount: number, instanceCount: number, stri
 export interface PositionLocation {
     readonly kind: 'position-location',
     readonly position: Vec3,
-    // Normal vector at the position (used for surface coloring)
+    /** Normal vector at the position (used for surface coloring) */
     readonly normal: Vec3
 }
 export function PositionLocation(position?: Vec3, normal?: Vec3): PositionLocation {
