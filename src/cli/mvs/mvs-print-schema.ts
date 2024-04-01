@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *

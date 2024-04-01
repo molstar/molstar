@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -19,6 +19,7 @@
 
 import { NumberArray } from '../../../mol-util/type-helpers';
 import { EPSILON } from './common';
+import { Euler } from './euler';
 import { Mat4 } from './mat4';
 import { Vec3 } from './vec3';
 
@@ -117,6 +118,12 @@ namespace Mat3 {
         out[7] = a[9];
         out[8] = a[10];
         return out;
+    }
+
+    const _m4 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] as unknown as Mat4;
+    export function fromEuler(out: Mat3, euler: Euler, order: Euler.Order) {
+        Mat4.fromEuler(_m4, euler, order);
+        return fromMat4(out, _m4);
     }
 
     export function create(a00: number, a01: number, a02: number, a10: number, a11: number, a12: number, a20: number, a21: number, a22: number): Mat3 {

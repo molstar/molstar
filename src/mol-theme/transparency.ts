@@ -23,8 +23,6 @@ namespace Transparency {
     export type Layer<T extends Loci = Loci> = { readonly loci: T, readonly value: number }
     export const Empty: Transparency = { kind: 'empty-loci', layers: [] };
 
-    export type Variant = 'single' | 'multi'
-
     export function areEqual(tA: Transparency, tB: Transparency) {
         if (tA.layers.length === 0 && tB.layers.length === 0) return true;
         if (tA.layers.length !== tB.layers.length) return false;
