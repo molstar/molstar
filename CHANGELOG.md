@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v4.1.0] - 2023-03-31
+
 - Add `VolumeTransform` to translate/rotate a volume like in a structure superposition
 - Fix BinaryCIF encoder edge cases caused by re-encoding an existing BinaryCIF file
 - Fix edge-case where width/height in InputObserver are not correct
