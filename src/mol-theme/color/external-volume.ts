@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Cai Huiyu <szmun.caihy@gmail.com>
@@ -48,12 +48,7 @@ export const ExternalVolumeColorThemeParams = {
         })
     }),
     defaultColor: PD.Color(Color(0xcccccc)),
-    aboveMode: PD.MappedStatic('disabled', {
-        'disabled': PD.EmptyGroup({}),
-        'enabled': PD.Group({
-            distance: PD.Numeric(1.4, { min: 0, max: 20, step: 0.1 })
-        })
-    }, { description: 'Assign colors based on volume values above the surface.' }),
+    normalOffset: PD.Numeric(0., { min: 0, max: 20, step: 0.1 }, { description: 'Offset vertex position along its normal by given amount.' }),
 };
 export type ExternalVolumeColorThemeParams = typeof ExternalVolumeColorThemeParams
 
@@ -102,12 +97,11 @@ export function ExternalVolumeColorTheme(ctx: ThemeDataContext, props: PD.Values
                 return props.defaultColor;
             }
 
-            // Transform the position by adding distance * normal
+            // Offset the vertex position along its normal
             Vec3.copy(gridCoords, location.position);
 
-            console.log(props.aboveMode);
-            if (props.aboveMode.name === 'enabled') {
-                Vec3.scaleAndAdd(gridCoords, gridCoords, location.normal, props.aboveMode.params.distance);
+            if (props.normalOffset > 0) {
+                Vec3.scaleAndAdd(gridCoords, gridCoords, location.normal, props.normalOffset);
             }
 
             Vec3.transformMat4(gridCoords, gridCoords, cartnToGrid);

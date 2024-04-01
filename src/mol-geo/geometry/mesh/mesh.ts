@@ -661,7 +661,7 @@ export namespace Mesh {
                 Vec3.fromArray(n, ns, groupIndex * 3);
             } else {
                 Vec3.transformMat4Offset(p, vs, m, 0, groupIndex * 3, instanceIndex * 16);
-                Vec3.transformMat4Offset(n, ns, m, 0, groupIndex * 3, instanceIndex * 16);
+                Vec3.transformDirectionOffset(n, ns, m, 0, groupIndex * 3, instanceIndex * 16);
             }
             return location;
         };
