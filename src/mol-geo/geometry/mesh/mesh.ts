@@ -651,13 +651,17 @@ export namespace Mesh {
         const instanceCount = transform.instanceCount.ref.value;
         const location = PositionLocation();
         const p = location.position;
-        const v = mesh.vertexBuffer.ref.value;
+        const n = location.normal;
+        const vs = mesh.vertexBuffer.ref.value;
+        const ns = mesh.normalBuffer.ref.value;
         const m = transform.aTransform.ref.value;
         const getLocation = (groupIndex: number, instanceIndex: number) => {
             if (instanceIndex < 0) {
-                Vec3.fromArray(p, v, groupIndex * 3);
+                Vec3.fromArray(p, vs, groupIndex * 3);
+                Vec3.fromArray(n, ns, groupIndex * 3);
             } else {
-                Vec3.transformMat4Offset(p, v, m, 0, groupIndex * 3, instanceIndex * 16);
+                Vec3.transformMat4Offset(p, vs, m, 0, groupIndex * 3, instanceIndex * 16);
+                Vec3.transformDirectionOffset(n, ns, m, 0, groupIndex * 3, instanceIndex * 16);
             }
             return location;
         };

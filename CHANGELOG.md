@@ -10,6 +10,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix edge-case where width/height in InputObserver are not correct
 - Fix transparency rendering fallback (#1058)
 - Fix SSAO broken when `OES_texture_float_linear` is unavailable
+- Add `normalOffset` to `external-volume` color theme
+    - This can give results similar to pymol's surface_ramp_above_mode=1
 - Add `rotation` parameter to skybox background
 
 ## [v4.0.1] - 2023-02-19

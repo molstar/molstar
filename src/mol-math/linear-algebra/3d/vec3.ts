@@ -466,6 +466,26 @@ namespace Vec3 {
     }
 
     /**
+     * Transforms the direction vector with a Mat4. 4th vector component is implicitly '0'
+     * This means the translation components of the matrix are ignored.
+     * Assumes that m is already the transpose of the inverse matrix suitable for normal transformation.
+     */
+    export function transformDirectionOffset(out: NumberArray, a: NumberArray, m: NumberArray, outO: number, aO: number, oM: number) {
+        const x = a[0 + aO], y = a[1 + aO], z = a[2 + aO];
+        out[0 + outO] = m[0 + oM] * x + m[4 + oM] * y + m[8 + oM] * z;
+        out[1 + outO] = m[1 + oM] * x + m[5 + oM] * y + m[9 + oM] * z;
+        out[2 + outO] = m[2 + oM] * x + m[6 + oM] * y + m[10 + oM] * z;
+        // Normalize the output vector to handle non-uniform scaling
+        const len = Math.hypot(out[0 + outO], out[1 + outO], out[2 + outO]);
+        if (len > 0) {
+            out[0 + outO] /= len;
+            out[1 + outO] /= len;
+            out[2 + outO] /= len;
+        }
+        return out;
+    }
+
+    /**
      * Transforms the Vec3 with a Mat3.
      */
     export function transformMat3(out: Vec3, a: Vec3, m: Mat3) {
