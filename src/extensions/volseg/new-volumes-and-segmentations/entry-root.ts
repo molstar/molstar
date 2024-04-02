@@ -431,6 +431,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     }
 
     private async initFromFile() {
+        this.kind = 'file';
         this.sync();
         this.subscribeObservable(this.plugin.state.data.events.changed, state => {
             console.log('data events changed emitted');
