@@ -240,7 +240,8 @@ export const CreateMeshlistStateObject = VolsegTransform({
             meshlistData.segmentationId = params.segmentationId;
             const es = meshlistData.meshIds.length === 1 ? '' : 'es';
             // TODO: make label something meaningful
-            // return new MeshlistStateObject(meshlistData, { label: 'Meshlist Data', description: `${meshlistData.segmentName} (${meshlistData.meshIds.length} mesh${es})` });
+            const cleanText = label.replace(/<\/?[^>]+(>|$)/g, '');
+            return new MeshlistStateObject(meshlistData, { label: cleanText, description: `${cleanText} (${meshlistData.meshIds.length} mesh${es})` });
             return new MeshlistStateObject(meshlistData);
         });
     }
