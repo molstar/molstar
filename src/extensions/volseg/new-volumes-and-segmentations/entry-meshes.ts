@@ -13,8 +13,8 @@ import { Color } from '../../../mol-util/color';
 import { ColorNames } from '../../../mol-util/color/names';
 import { Box3D } from '../../../mol-math/geometry';
 
-import { BACKGROUND_SEGMENT_VOLUME_THRESHOLD } from '../new-meshes/mesh-streaming/behavior';
-import { BACKGROUND_OPACITY, CreateMeshlistStateObject, FOREROUND_OPACITY, MeshShapeTransformer, MeshlistData, VolsegMeshSegmentation, meshSegmentParamsValues } from '../new-meshes/mesh-extension';
+// import { BACKGROUND_SEGMENT_VOLUME_THRESHOLD } from '../new-meshes/mesh-streaming/behavior';
+import { BACKGROUND_OPACITY, BACKGROUND_SEGMENT_VOLUME_THRESHOLD, CreateMeshlistStateObject, FOREROUND_OPACITY, MeshShapeTransformer, MeshlistData, VolsegMeshSegmentation, meshSegmentParamsValues } from '../new-meshes/mesh-extension';
 import { VolsegEntryData } from './entry-root';
 
 

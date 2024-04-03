@@ -12,9 +12,8 @@ import { setSubtreeVisibility } from '../../../mol-plugin/behavior/static/state'
 import { PluginCommands } from '../../../mol-plugin/commands';
 import { StateObjectSelector } from '../../../mol-state';
 import { VolsegEntryData } from './entry-root';
-import { CreateShapePrimitiveProvider, VolsegShapePrimitivesData } from './shape_primitives';
-import { ProjectGeometricSegmentationDataParamsValues, VolsegGeometricSegmentation } from './transformers';
-import { GeometricSegmentationData } from './volseg-api/data';
+import { CreateShapePrimitiveProvider, VolsegGeometricSegmentation, VolsegShapePrimitivesData } from './shape_primitives';
+import { ProjectGeometricSegmentationDataParamsValues } from './transformers';
 
 
 const GEOMETRIC_SEGMENTATION_GROUP_TAG = 'geometric-segmentation-group';

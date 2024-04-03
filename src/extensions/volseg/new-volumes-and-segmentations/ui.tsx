@@ -161,7 +161,10 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
         <Popup nested trigger={<Button>Open annotation JSON editor</Button>} modal>
             {/* <span> Modal content </span> */}
             {/* TODO: fix this */}
-            {close => (
+
+
+
+            {/* {close => (
                 <>
                     <button className="close" onClick={close}>
                         &times;
@@ -169,7 +172,14 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
                     <JSONEditorComponent jsonData={annotationsJson} entryData={entryData} />
                 </>
 
-            )}
+            )} */}
+
+            <>
+                {/* <button className="close" onClick={close}>
+                    &times;
+                </button> */}
+                <JSONEditorComponent jsonData={annotationsJson} entryData={entryData} />
+            </>
         </Popup>
         {/* Fitted models */}
         {allPdbs && allPdbs.length > 0 && <ExpandGroup header='Fitted models in PDB' initiallyExpanded>

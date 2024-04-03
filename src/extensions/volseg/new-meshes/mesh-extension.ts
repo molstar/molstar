@@ -25,7 +25,7 @@ import { Color } from '../../../mol-util/color';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import * as MeshUtils from './mesh-utils';
 
-
+export const BACKGROUND_SEGMENT_VOLUME_THRESHOLD = 0.5;
 export const BACKGROUND_OPACITY = 0.2;
 export const FOREROUND_OPACITY = 1;
 
@@ -239,7 +239,9 @@ export const CreateMeshlistStateObject = VolsegTransform({
             meshlistData.ownerId = params.ownerId;
             meshlistData.segmentationId = params.segmentationId;
             const es = meshlistData.meshIds.length === 1 ? '' : 'es';
-            return new MeshlistStateObject(meshlistData, { label: undefined, description: `${meshlistData.segmentName} (${meshlistData.meshIds.length} mesh${es})` });
+            // TODO: make label something meaningful
+            // return new MeshlistStateObject(meshlistData, { label: 'Meshlist Data', description: `${meshlistData.segmentName} (${meshlistData.meshIds.length} mesh${es})` });
+            return new MeshlistStateObject(meshlistData);
         });
     }
 });
