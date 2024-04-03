@@ -17,16 +17,15 @@ import { PluginCommands } from '../../../mol-plugin/commands';
 import { PluginContext } from '../../../mol-plugin/context';
 import { StateObjectCell, StateSelection, StateTransform } from '../../../mol-state';
 import { shallowEqualObjects } from '../../../mol-util';
-import { Choice } from '../../../mol-util/param-choice';
 import { ParamDefinition } from '../../../mol-util/param-definition';
 import { isMeshlistData, MeshlistData, VolsegMeshSegmentation } from '../new-meshes/mesh-extension';
 
 import { DEFAULT_VOLSEG_SERVER, VolumeApiV2 } from './volseg-api/api';
-import { BoxPrimitive, Cylinder, DescriptionData, Ellipsoid, GridMetadata, Metadata, ParsedSegmentKey, PyramidPrimitive, SegmentAnnotationData, ShapePrimitiveData, Sphere, TimeInfo } from './volseg-api/data';
+import { DescriptionData, Metadata, SegmentAnnotationData, ShapePrimitiveData, TimeInfo } from './volseg-api/data';
 import { createSegmentKey, getCVSXGeometricSegmentationDataFromRaw, getCVSXMeshSegmentationDataFromRaw, getSegmentLabelsFromDescriptions, instanceOfShapePrimitiveData, MetadataWrapper, parseSegmentKey } from './volseg-api/utils';
 import { DEFAULT_MESH_DETAIL, VolsegMeshSegmentationData } from './entry-meshes';
 import { VolsegModelData } from './entry-models';
-import { SEGMENT_VISUAL_TAG, VolsegLatticeSegmentationData } from './entry-segmentation';
+import { VolsegLatticeSegmentationData } from './entry-segmentation';
 import { VolsegState, VolsegStateData, VolsegStateParams } from './entry-state';
 import { VolsegVolumeData, SimpleVolumeParamValues, VOLUME_VISUAL_TAG } from './entry-volume';
 import * as ExternalAPIs from './external-api';
@@ -37,28 +36,24 @@ import { StateTransforms } from '../../../mol-plugin-state/transforms';
 import { Asset } from '../../../mol-util/assets';
 import { PluginComponent } from '../../../mol-plugin-state/component';
 import { VolsegGeometricSegmentationData } from './entry-geometric-segmentation';
-import { createVolumeRepresentationParams } from '../../../mol-plugin-state/helpers/volume-representation-params';
 import { CreateShapePrimitiveProviderParamsValues, isShapePrimitiveParamsValues, VolsegGeometricSegmentation } from './shape_primitives';
 import { actionSelectSegment, parseCVSXJSON } from '../common';
 import { RuntimeContext } from '../../../mol-task';
-import { Unzip, unzip } from '../../../mol-util/zip/zip';
-import { CVSXFilesData, CVSXLatticeSegmentationData, CVSXMeshSegmentationData, CVSXVolumeData, QueryArgs } from '../cvsx-extension/data';
+import { unzip } from '../../../mol-util/zip/zip';
+import { CVSXFilesData, CVSXLatticeSegmentationData, CVSXVolumeData, QueryArgs } from '../cvsx-extension/data';
+import { SourceChoice } from '../common';
+import { Source } from '../common';
 
 export const GEOMETRIC_SEGMENTATION_NODE_TAG = 'geometric-segmentation-node';
-export const MESH_SEGMENTATION_NODE_TAG = 'mesh-segmentation-node'
+export const MESH_SEGMENTATION_NODE_TAG = 'mesh-segmentation-node';
 
 export const MAX_VOXELS = 10 ** 7;
 // export const MAX_VOXELS = 10 ** 2; // DEBUG
 export const BOX: [[number, number, number], [number, number, number]] | null = null;
 // export const BOX: [[number, number, number], [number, number, number]] | null = [[-90, -90, -90], [90, 90, 90]]; // DEBUG
 
-const MAX_ANNOTATIONS_IN_LABEL = 6;
 export const VOLUME_NODE_TAG = 'volume-node-tag';
 export const SEGMENTATION_NODE_TAG = 'segmenation-node-tag';
-
-const SourceChoice = new Choice({ emdb: 'EMDB', empiar: 'EMPIAR', idr: 'IDR', pdbe: 'PDBe', custom: 'CUSTOM' }, 'emdb');
-export type Source = Choice.Values<typeof SourceChoice>;
-
 
 export function createLoadVolsegParams(plugin?: PluginContext, entrylists: { [source: string]: string[] } = {}) {
     const defaultVolumeServer = plugin?.config.get(NewVolsegVolumeServerConfig.DefaultServer) ?? DEFAULT_VOLSEG_SERVER;
@@ -341,10 +336,10 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         };
         let gs = undefined;
         if (geometricSegmentations) {
-            gs = await getCVSXGeometricSegmentationDataFromRaw(geometricSegmentations, parsedGridMetadata, parsedQueryJSON, plugin)
+            gs = await getCVSXGeometricSegmentationDataFromRaw(geometricSegmentations, parsedGridMetadata, parsedQueryJSON, plugin);
         }
 
-        const meshSegmentationData = getCVSXMeshSegmentationDataFromRaw(rawMeshSegmentations, parsedGridMetadata, parsedQueryJSON)
+        const meshSegmentationData = getCVSXMeshSegmentationDataFromRaw(rawMeshSegmentations, parsedGridMetadata, parsedQueryJSON);
         debugger;
         const filesData: CVSXFilesData = {
             // parsed everything
@@ -731,7 +726,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     }
 
     preloadShapePrimitivesTimeframesDataFromFile() {
-        // 
+        //
         if (this.filesData!.geometricSegmentations) {
             // if (this.metadata.value!.raw.grid.geometric_segmentation && this.metadata.value!.raw.grid.geometric_segmentation.segmentation_ids.length > 0) {
             for (const g of this.filesData!.geometricSegmentations) {
@@ -1180,10 +1175,10 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             // return 'mesh';
             const sourceData = loci.shape.sourceData;
             if (isMeshlistData(sourceData as any)) {
-                const meshData = (loci.shape.sourceData ?? {}) as MeshlistData;
+                // const meshData = (loci.shape.sourceData ?? {}) as MeshlistData;
                 return 'mesh';
             } else if (isShapePrimitiveParamsValues(sourceData as any)) {
-                const shapePrimitiveParamsValues = (loci.shape.sourceData ?? {}) as CreateShapePrimitiveProviderParamsValues;
+                // const shapePrimitiveParamsValues = (loci.shape.sourceData ?? {}) as CreateShapePrimitiveProviderParamsValues;
                 return 'primitive';
             }
         } else {

@@ -105,7 +105,7 @@ export class VolsegMeshSegmentationData {
             // NOTE: for now single description
             // should be description for that segment
             const targetDescription = descriptions.find(d => d.target_id && d.target_id.segment_id === seg && d.target_kind === 'mesh' && d.target_id.segmentation_id === segmentationId);
-            const label = targetDescription?.name ?? `Segment ${seg}`;
+            const label = targetDescription?.name ? `<b>${targetDescription.name}</b>` : `Segment ${seg}`;
 
             const detail = this.entryData.metadata.value!.getSufficientMeshDetail(segmentationId, timeframeIndex, seg, DEFAULT_MESH_DETAIL);
             const segmentParams: meshSegmentParamsValues = {

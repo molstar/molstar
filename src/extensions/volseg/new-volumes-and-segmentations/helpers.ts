@@ -9,7 +9,7 @@ import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { setSubtreeVisibility } from '../../../mol-plugin/behavior/static/state';
 import { StateBuilder, StateObjectSelector, StateTransformer } from '../../../mol-state';
 import { ParamDefinition } from '../../../mol-util/param-definition';
-import { Source } from './entry-root';
+import { Source } from '../common';
 
 
 export function objectToArray(o?: object) {

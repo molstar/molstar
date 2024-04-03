@@ -1,7 +1,7 @@
-import { DataFormatProvider } from "../../../mol-plugin-state/formats/provider";
-import { PluginBehavior } from "../../../mol-plugin/behavior";
-import { ParamDefinition } from "../../../mol-util/param-definition";
-import { CVSXFormatProvider } from "./formats";
+import { DataFormatProvider } from '../../../mol-plugin-state/formats/provider';
+import { PluginBehavior } from '../../../mol-plugin/behavior';
+import { ParamDefinition } from '../../../mol-util/param-definition';
+import { CVSXFormatProvider } from './formats';
 
 /** Collection of things that can be register/unregistered in a plugin */
 interface Registrables {
@@ -27,7 +27,7 @@ export const CVSXSpec = PluginBehavior.create<{ autoAttach: boolean }>({
             dataFormats: [
                 // { name: 'MVSJ', provider: MVSJFormatProvider },
                 // { name: 'MVSX', provider: MVSXFormatProvider },
-                { name: 'CVSX', provider: CVSXFormatProvider}
+                { name: 'CVSX', provider: CVSXFormatProvider }
             ],
             // actions: [
             //     LoadMvsData,

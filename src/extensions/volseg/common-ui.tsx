@@ -6,7 +6,6 @@ import { createSegmentKey, parseSegmentKey } from './new-volumes-and-segmentatio
 import * as Icons from '../../mol-plugin-ui/controls/icons';
 import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
 import { VolsegEntryData } from './new-volumes-and-segmentations/entry-root';
-import { CVSXStateModel } from './cvsx-extension/cvsx';
 import Markdown from 'react-markdown';
 import { capitalize } from '../../mol-util/string';
 import { useState } from 'react';
@@ -154,9 +153,9 @@ export function DescriptionsList({ model, targetSegmentationId, targetKind }: { 
         </>}</>;
 }
 
-export function SelectedSegmentDescription({ model, targetSegmentationId, targetKind }: { model: VolsegEntryData | CVSXStateModel, targetSegmentationId: string, targetKind: 'lattice' | 'mesh' | 'primitive' }) {
+export function SelectedSegmentDescription({ model, targetSegmentationId, targetKind }: { model: VolsegEntryData, targetSegmentationId: string, targetKind: 'lattice' | 'mesh' | 'primitive' }) {
     const state = useBehavior(model.currentState);
-    const currentTimeframe = useBehavior(model.currentTimeframe);
+    useBehavior(model.currentTimeframe);
     const metadata = useBehavior(model.metadata);
     // const allDescriptions = metadata!.allDescriptions;
     // is there a method in metadata that gets all descriptions for target segmentation id and kind?

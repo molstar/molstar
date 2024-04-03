@@ -7,19 +7,17 @@
 import { Volume } from '../../../mol-model/volume';
 import { createVolumeRepresentationParams } from '../../../mol-plugin-state/helpers/volume-representation-params';
 import { StateTransforms } from '../../../mol-plugin-state/transforms';
-import { Download, ParseCif } from '../../../mol-plugin-state/transforms/data';
 import { CreateGroup } from '../../../mol-plugin-state/transforms/misc';
-import { VolumeFromSegmentationCif } from '../../../mol-plugin-state/transforms/volume';
 import { PluginCommands } from '../../../mol-plugin/commands';
 import { Color } from '../../../mol-util/color';
 
-import { BOX, VolsegEntryData, MAX_VOXELS } from './entry-root';
+import { VolsegEntryData } from './entry-root';
 import { VolumeVisualParams } from './entry-volume';
 import { VolsegGlobalStateData } from './global-state';
 import { StateObjectSelector } from '../../../mol-state';
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { ProjectLatticeSegmentationDataParamsValues } from './transformers';
-import { createSegmentKey, parseSegmentKey } from './volseg-api/utils';
+import { parseSegmentKey } from './volseg-api/utils';
 
 
 const GROUP_TAG = 'lattice-segmentation-group';
@@ -123,7 +121,7 @@ export class VolsegLatticeSegmentationData {
                     } else {
                         // does not exist, create
                         const colorMapForSegmentation = new Map<number, Color>();
-                        colorMapForSegmentation.set(annotation.segment_id, color)
+                        colorMapForSegmentation.set(annotation.segment_id, color);
                         colorMapForAllSegmentations.set(annotation.segmentation_id, colorMapForSegmentation);
                     }
                     this.colorMap = colorMapForAllSegmentations;
@@ -132,24 +130,6 @@ export class VolsegLatticeSegmentationData {
         }
         console.log('this.colorMap');
         console.log(this.colorMap);
-    }
-
-    private _createPalette(segmentIds: number[]) {
-        const colorMap = new Map<number, Color>();
-        if (this.entryData.metadata.value!.allAnnotations) {
-            for (const annotation of this.entryData.metadata.value!.allAnnotations) {
-                if (annotation.color) {
-                    const color = Color.fromNormalizedArray(annotation.color, 0);
-                    colorMap.set(annotation.segment_id, color);
-                }
-            }
-            if (colorMap.size === 0) return undefined;
-            for (const segid of segmentIds) {
-                colorMap.get(segid);
-            }
-            const colors = segmentIds.map(segid => colorMap.get(segid) ?? DEFAULT_SEGMENT_COLOR);
-            return { name: 'colors' as const, params: { list: { kind: 'set' as const, colors: colors } } };
-        }
     }
 
     async updateOpacity(opacity: number, segmentationId: string) {

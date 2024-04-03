@@ -3,7 +3,7 @@ import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { setSubtreeVisibility } from '../../mol-plugin/behavior/static/state';
 import { PluginContext } from '../../mol-plugin/context';
 import { Asset } from '../../mol-util/assets';
-import { CVSXStateModel } from './cvsx-extension/cvsx';
+import { Choice } from '../../mol-util/param-choice';
 import { VolsegEntryData } from './new-volumes-and-segmentations/entry-root';
 import { SEGMENT_VISUAL_TAG } from './new-volumes-and-segmentations/entry-segmentation';
 import { DescriptionData, ParsedSegmentKey } from './new-volumes-and-segmentations/volseg-api/data';
@@ -19,7 +19,7 @@ export async function parseCVSXJSON(rawFile: [string, Uint8Array], plugin: Plugi
     return parsedData;
 }
 
-// export async function actionToggleAllSegments(model: VolsegEntryData | CVSXStateModel, segmentationId: string, kind: 'lattice' | 'mesh' | 'primitive') {
+// export async function actionToggleAllSegments(model: VolsegEntryData, segmentationId: string, kind: 'lattice' | 'mesh' | 'primitive') {
 //     const currentTimeframe = model.currentTimeframe.value;
 //     const current = model.currentState.value.visibleSegments.map(seg => seg.segmentKey);
 //     const currentForThisSegmentation = current.filter(c =>
@@ -40,7 +40,7 @@ export async function parseCVSXJSON(rawFile: [string, Uint8Array], plugin: Plugi
 
 
 
-export async function actionToggleAllFilteredSegments(model: VolsegEntryData | CVSXStateModel, segmentationId: string, kind: 'lattice' | 'mesh' | 'primitive', filteredDescriptions: DescriptionData[]) {
+export async function actionToggleAllFilteredSegments(model: VolsegEntryData, segmentationId: string, kind: 'lattice' | 'mesh' | 'primitive', filteredDescriptions: DescriptionData[]) {
     const currentTimeframe = model.currentTimeframe.value;
     // This is currently visible
     const current = model.currentState.value.visibleSegments.map(seg => seg.segmentKey);
@@ -72,7 +72,7 @@ export async function actionToggleAllFilteredSegments(model: VolsegEntryData | C
 
         console.log(filteredDescriptions);
         const allSegmentKeys = [...allFilteredSegmentKeys, ...currentForOtherSegmentations];
-        await actionShowSegments(allSegmentKeys, model);
+        await actionShowSegments(allSegmentKeys as string[], model);
     } else {
         // TODO: add to currentForOtherSegmentations
         // segments from this segmentation, but not filtered
@@ -83,7 +83,7 @@ export async function actionToggleAllFilteredSegments(model: VolsegEntryData | C
     }
 }
 
-export async function actionShowSegments(segmentKeys: string[], model: VolsegEntryData | CVSXStateModel) {
+export async function actionShowSegments(segmentKeys: string[], model: VolsegEntryData) {
     const allExistingLatticeSegmentationIds = model.metadata.value!.raw.grid.segmentation_lattices!.segmentation_ids;
     const allExistingMeshSegmentationIds = model.metadata.value!.raw.grid.segmentation_meshes!.segmentation_ids;
     const allExistingGeometricSegmentationIds = model.metadata.value!.raw.grid.geometric_segmentation!.segmentation_ids;
@@ -114,7 +114,7 @@ export async function actionShowSegments(segmentKeys: string[], model: VolsegEnt
     await model.updateStateNode({ visibleSegments: segmentKeys.map(s => ({ segmentKey: s })) });
 }
 
-export async function _actionShowSegments(parsedSegmentKeys: ParsedSegmentKey[], existingSegmentationIds: string[], kind: 'mesh' | 'lattice' | 'primitive', model: VolsegEntryData | CVSXStateModel) {
+export async function _actionShowSegments(parsedSegmentKeys: ParsedSegmentKey[], existingSegmentationIds: string[], kind: 'mesh' | 'lattice' | 'primitive', model: VolsegEntryData) {
     const segmentKeys = parsedSegmentKeys.filter(k => k.kind === kind);
     // const segmentIds = segmentKeys.map(k => k.segmentId);
     const SegmentationIdsToSegmentIds = new Map<string, number[]>;
@@ -159,14 +159,14 @@ export function findNodesByRef(plugin: PluginContext, ref: string) {
     return plugin.state.data.selectQ(q => q.byRef(ref).subtree())[0];
 }
 
-async function selectSegment(model: VolsegEntryData | CVSXStateModel, segmentId?: number, segmentationId?: string) {
+async function selectSegment(model: VolsegEntryData, segmentId?: number, segmentationId?: string) {
     if (segmentId === undefined || segmentId < 0 || !segmentationId) return;
     const segmentLoci = makeLoci([segmentId], segmentationId, model);
     if (!segmentLoci) return;
     model.plugin.managers.interactivity.lociSelects.select(segmentLoci, false);
 }
 
-function makeLoci(segments: number[], segmentationId: string, model: VolsegEntryData | CVSXStateModel) {
+function makeLoci(segments: number[], segmentationId: string, model: VolsegEntryData) {
     const vis = findNodesByTags(model.plugin, SEGMENT_VISUAL_TAG, segmentationId)[0];
     if (!vis) return undefined;
     const repr = vis.obj?.data.repr;
@@ -175,7 +175,7 @@ function makeLoci(segments: number[], segmentationId: string, model: VolsegEntry
     return { loci: Volume.Segment.Loci(wholeLoci.volume, segments), repr: repr };
 }
 
-async function showSegments(segmentIds: number[], segmentationId: string, kind: 'lattice' | 'mesh' | 'primitive', model: VolsegEntryData | CVSXStateModel) {
+async function showSegments(segmentIds: number[], segmentationId: string, kind: 'lattice' | 'mesh' | 'primitive', model: VolsegEntryData) {
     if (kind === 'lattice') {
         const repr = findNodesByTags(model.plugin, SEGMENT_VISUAL_TAG, segmentationId)[0];
         if (!repr) return;
@@ -221,7 +221,7 @@ async function showSegments(segmentIds: number[], segmentationId: string, kind: 
     }
 }
 
-export async function actionSelectSegment(model: VolsegEntryData | CVSXStateModel, segmentKey?: string) {
+export async function actionSelectSegment(model: VolsegEntryData, segmentKey?: string) {
     if (segmentKey !== undefined && model.currentState.value.visibleSegments.find(s => s.segmentKey === segmentKey) === undefined) {
         // first make the segment visible if it is not
         await actionToggleSegment(model, segmentKey);
@@ -229,7 +229,7 @@ export async function actionSelectSegment(model: VolsegEntryData | CVSXStateMode
     await model.updateStateNode({ selectedSegment: segmentKey });
 }
 
-export async function actionToggleSegment(model: VolsegEntryData | CVSXStateModel, segmentKey: string) {
+export async function actionToggleSegment(model: VolsegEntryData, segmentKey: string) {
     const current = model.currentState.value.visibleSegments.map(seg => seg.segmentKey);
     if (current.includes(segmentKey)) {
         await actionShowSegments(current.filter(s => s !== segmentKey), model);
@@ -237,3 +237,6 @@ export async function actionToggleSegment(model: VolsegEntryData | CVSXStateMode
         await actionShowSegments([...current, segmentKey], model);
     }
 }
+export const SourceChoice = new Choice({ emdb: 'EMDB', empiar: 'EMPIAR', idr: 'IDR', pdbe: 'PDBe', custom: 'CUSTOM' }, 'emdb');
+export type Source = Choice.Values<typeof SourceChoice>;
+

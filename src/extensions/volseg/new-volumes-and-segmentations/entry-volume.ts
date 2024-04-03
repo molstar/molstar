@@ -9,7 +9,6 @@ import { Volume } from '../../../mol-model/volume';
 import { createVolumeRepresentationParams } from '../../../mol-plugin-state/helpers/volume-representation-params';
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { StateTransforms } from '../../../mol-plugin-state/transforms';
-import { Download } from '../../../mol-plugin-state/transforms/data';
 import { CreateGroup } from '../../../mol-plugin-state/transforms/misc';
 import { setSubtreeVisibility } from '../../../mol-plugin/behavior/static/state';
 import { PluginCommands } from '../../../mol-plugin/commands';
@@ -17,8 +16,8 @@ import { StateObjectSelector, StateTransform } from '../../../mol-state';
 import { Color } from '../../../mol-util/color';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 
-import { BOX, VolsegEntryData, MAX_VOXELS } from './entry-root';
-import { VolsegStateParams, VolumeTypeChoice } from './entry-state';
+import { VolsegEntryData } from './entry-root';
+import { VolumeTypeChoice } from './entry-state';
 import * as ExternalAPIs from './external-api';
 import { VolsegGlobalStateData } from './global-state';
 import { ProjectDataParamsValues } from './transformers';
@@ -99,7 +98,7 @@ export class VolsegVolumeData {
     }
 
     async createVolumeRepresentation3D(volumeNode: StateObjectSelector<PluginStateObject.Volume.Data>, params: ProjectDataParamsValues) {
-        const { timeframeIndex, channelId } = params;
+        const { channelId } = params;
         const isoLevelPromise = ExternalAPIs.tryGetIsovalue(this.entryData.metadata.value!.raw.annotation?.entry_id.source_db_id ?? this.entryData.entryId);
         const color = this.entryData.metadata.value!.getVolumeChannelColor(channelId);
         const volumeData = volumeNode.cell!.obj!.data;
@@ -209,23 +208,12 @@ export class VolsegVolumeData {
             : Volume.IsoValue.absolute(volumeIsovalueValue);
     }
 
-    // private createVolumeVisualParams(volume: Volume, type: 'isosurface' | 'direct-volume' | 'off', color: Color): VolumeVisualParams {
-    //     if (type === 'off') type = 'isosurface';
-    //     return createVolumeRepresentationParams(this.entryData.plugin, volume, {
-    //         type: type,
-    //         typeParams: { alpha: 0.2, tryUseGpu: VolsegGlobalStateData.getGlobalState(this.entryData.plugin)?.tryUseGpu },
-    //         color: 'uniform',
-    //         colorParams: { value: color },
-    //     });
-    // }
-
-
     // TODO: fix volume type invalid slice
     private createVolumeVisualParams(volume: Volume, type: 'isosurface' | 'direct-volume' | 'off', color: Color): VolumeVisualParams {
         if (type === 'off') type = 'isosurface';
 
         const dimensions = volume.grid.cells.space.dimensions;
-        const dimensionsOrder = {
+        const dimensionsOrder: { [dim: number]: 'x' | 'y' | 'z' } = {
             0: 'x',
             1: 'y',
             2: 'z'

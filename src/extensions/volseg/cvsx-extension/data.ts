@@ -1,5 +1,6 @@
 
-import { AnnotationMetadata, GridMetadata, ShapePrimitiveData } from "../new-volumes-and-segmentations/volseg-api/data"
+import { Source } from '../common';
+import { AnnotationMetadata, GridMetadata, ShapePrimitiveData } from '../new-volumes-and-segmentations/volseg-api/data';
 
 export interface CVSXFilesData {
     volumes?: CVSXVolumeData[]
@@ -44,7 +45,7 @@ export interface CVSXLatticeSegmentationData {
 
 export interface QueryArgs {
     entry_id: string,
-    source_db: string,
+    source_db: Source,
     time?: number,
     channel_id?: string,
     segmentation_id?: string,

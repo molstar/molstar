@@ -1,27 +1,23 @@
-import React, { useEffect, useRef } from "react";
-import JSONEditor, { JSONEditorOptions } from "jsoneditor";
-import "jsoneditor/dist/jsoneditor.css";
-import { Card } from "primereact/card";
-import { VolsegEntryData } from "./entry-root";
-import { MetadataWrapper } from "./volseg-api/utils";
-import { Button } from "../../../mol-plugin-ui/controls/common";
+import React, { useEffect, useRef } from 'react';
+import JSONEditor, { JSONEditorOptions } from 'jsoneditor';
+import 'jsoneditor/dist/jsoneditor.css';
+import { Card } from 'primereact/card';
+import { VolsegEntryData } from './entry-root';
+import { Button } from '../../../mol-plugin-ui/controls/common';
+import { AnnotationMetadata } from './volseg-api/data';
 
 interface JSONEditorComponentProps {
     jsonData: any;
     entryData: VolsegEntryData
 }
 
-async function updateJSON(jsonData, entryData) {
+async function updateJSON(jsonData: AnnotationMetadata, entryData: VolsegEntryData) {
     console.log('JSON changed'); console.log(jsonData);
     await entryData.api.updateAnnotationsJson(entryData.source, entryData.entryId, jsonData);
-    // should fetch metadata again
-    // const metadata = await entryData.api.getMetadata(entryData.source, entryData.entryId);
-    // entryData.metadata.value! = new MetadataWrapper(metadata);
-    debugger;
     await entryData.updateMetadata();
 }
 
-const JSONEditorComponent: React.FC<JSONEditorComponentProps> = ({ jsonData, entryData }) => {
+export const JSONEditorComponent: React.FC<JSONEditorComponentProps> = ({ jsonData, entryData }) => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     let jsonEditor: JSONEditor | null = null;
     // let jsonDataUpdated = jsonData;
@@ -30,13 +26,6 @@ const JSONEditorComponent: React.FC<JSONEditorComponentProps> = ({ jsonData, ent
         if (containerRef.current) {
             const options: JSONEditorOptions = {
                 onChangeJSON: async (jsonData) => {
-                    // console.log('JSON changed'); console.log(jsonData);
-                    // await entryData.api.updateAnnotationsJson(entryData.source, entryData.entryId, jsonData);
-                    // // should fetch metadata again
-                    // // const metadata = await entryData.api.getMetadata(entryData.source, entryData.entryId);
-                    // // entryData.metadata.value! = new MetadataWrapper(metadata);
-                    
-                    // await entryData.updateMetadata();
                     jsonDataUpdated.current = jsonData;
                 }
             };
@@ -52,8 +41,6 @@ const JSONEditorComponent: React.FC<JSONEditorComponentProps> = ({ jsonData, ent
     }, [jsonData]);
 
 
-    // TODO: can try to use .get() method
-    // const jsonContent = containerRef.current,options.get()
     return (
         <Card>
             <div ref={containerRef} style={{ width: '100%', height: '400px' }} />
@@ -61,5 +48,3 @@ const JSONEditorComponent: React.FC<JSONEditorComponentProps> = ({ jsonData, ent
         </Card>
     );
 };
-
-export default JSONEditorComponent;

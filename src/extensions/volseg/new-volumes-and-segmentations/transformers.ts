@@ -18,7 +18,7 @@ import { VolsegState, VolsegStateParams, VOLSEG_STATE_FROM_ENTRY_TRANSFORMER_NAM
 import { VolsegGlobalState, VolsegGlobalStateData, VolsegGlobalStateParams } from './global-state';
 import { CreateTransformer } from './helpers';
 import { VolsegGeometricSegmentation, VolsegShapePrimitivesData } from './shape_primitives';
-import { GeometricSegmentationData, ShapePrimitiveData } from './volseg-api/data';
+import { ShapePrimitiveData } from './volseg-api/data';
 
 export const ProjectDataParams = {
     timeframeIndex: ParamDefinition.Numeric(0, { step: 1 }),
@@ -130,11 +130,11 @@ export const ProjectMeshData = CreateTransformer({
             const entry = spine.getAncestorOfType(VolsegEntry);
             // const entry = a;
             const entryData = entry!.data;
-            const segmentsToCreate = entryData.metadata.value!.getMeshSegmentIdsForSegmentationIdAndTimeframe(segmentationId, timeframeIndex);
+            // const segmentsToCreate = entryData.metadata.value!.getMeshSegmentIdsForSegmentationIdAndTimeframe(segmentationId, timeframeIndex);
 
-            const group = entryData.findNodesByTags('mesh-segmentation-group')[0]?.transform.ref;
+            // const group = entryData.findNodesByTags('mesh-segmentation-group')[0]?.transform.ref;
 
-            const totalVolume = entryData.metadata.value!.gridTotalVolume;
+            // const totalVolume = entryData.metadata.value!.gridTotalVolume;
             const meshData: MeshData[] = [];
             const segmentsParams = params.meshSegmentParams;
             const rawDataArray: RawMeshSegmentData[] = await entryData.getData(timeframeIndex, segmentationId, 'mesh') as RawMeshSegmentData[];
@@ -220,8 +220,6 @@ export const VolsegEntryFromFile = CreateTransformer({
 })({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Load Vol & Seg Entry', async (ctx) => {
-            // const data = await VolsegEntryData.create(plugin, params);
-            // TODO: implement 
             const data = await VolsegEntryData.createFromFile(plugin, a.data, ctx);
             debugger;
             return new VolsegEntry(data, { label: data.entryId, description: 'Vol & Seg Entry' });

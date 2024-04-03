@@ -78,7 +78,7 @@ export function getCVSXMeshSegmentationDataFromRaw(rawData: [string, Uint8Array]
             for (const timeframe of timeframes) {
                 const targetSegments = rawData.filter(r => {
                     const filename = r[0].split('.')[0];
-                    const segmentId = filename.split('_')[1];
+                    // const segmentId = filename.split('_')[1];
                     const targetSegmentationId = filename.split('_')[2];
                     const timeframeIndex = parseInt(filename.split('_')[3]);
                     if (segmentationId === targetSegmentationId && timeframe === timeframeIndex) {
@@ -394,7 +394,7 @@ export function createSegmentKey(segmentId: number, segmentationId: string, kind
 }
 
 export function parseSegmentKey(segmentKey: string) {
-    const kind: 'lattice' | 'mesh' | 'primitive' = segmentKey.split(':')[0];
+    const kind = segmentKey.split(':')[0] as 'lattice' | 'mesh' | 'primitive';
     const segmentationId = segmentKey.split(':')[1];
     const segmentId = segmentKey.split(':')[2];
     const parsedSegmentKey: ParsedSegmentKey = {

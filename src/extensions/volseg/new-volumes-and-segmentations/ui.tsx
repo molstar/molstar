@@ -9,9 +9,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 // import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
 import { CollapsableControls, CollapsableState } from '../../../mol-plugin-ui/base';
-import { Button, ControlRow, ExpandGroup, IconButton, TextInput } from '../../../mol-plugin-ui/controls/common';
+import { Button, ControlRow, ExpandGroup } from '../../../mol-plugin-ui/controls/common';
 import * as Icons from '../../../mol-plugin-ui/controls/icons';
-import { ParameterControls, TextControl } from '../../../mol-plugin-ui/controls/parameters';
+import { ParameterControls } from '../../../mol-plugin-ui/controls/parameters';
 import { Slider } from '../../../mol-plugin-ui/controls/slider';
 import { useBehavior } from '../../../mol-plugin-ui/hooks/use-behavior';
 import { UpdateTransformControl } from '../../../mol-plugin-ui/state/update-transform';
@@ -27,18 +27,15 @@ import { isDefined } from './helpers';
 import { ProjectDataParamsValues, ProjectGeometricSegmentationDataParamsValues, ProjectLatticeSegmentationDataParamsValues, ProjectMeshSegmentationDataParamsValues } from './transformers';
 import { StateObjectCell } from '../../../mol-state';
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
-import { createSegmentKey, parseSegmentKey } from './volseg-api/utils';
-import Markdown from 'react-markdown';
+import { parseSegmentKey } from './volseg-api/utils';
 import { Asset } from '../../../mol-util/assets';
 import { DescriptionData, SegmentAnnotationData } from './volseg-api/data';
-import React from "react";
-import JSONEditorComponent from './jsoneditor-component';
+import React from 'react';
 import { VolsegGeometricSegmentation } from './shape_primitives';
 import { VolsegMeshSegmentation } from '../new-meshes/mesh-extension';
-import { actionSelectSegment, actionToggleSegment, findNodesByRef } from '../common';
-import { CVSXStateModel } from '../cvsx-extension/cvsx';
-import { DescriptionsList, EntryDescriptionUI, MetadataTextFilter, SelectedSegmentDescription } from '../common-ui';
-import { Script } from '../../../mol-script/script';
+import { findNodesByRef } from '../common';
+import { DescriptionsList, EntryDescriptionUI, SelectedSegmentDescription } from '../common-ui';
+import { JSONEditorComponent } from './jsoneditor-component';
 
 interface VolsegUIData {
     globalState?: VolsegGlobalStateData,
@@ -94,7 +91,7 @@ export class VolsegUI extends CollapsableControls<{}, { data: VolsegUIData }> {
     }
 }
 
-async function parseJSONwithAnnotationsOrDescriptions(v, entryData: VolsegEntryData) {
+async function parseJSONwithAnnotationsOrDescriptions(v: React.ChangeEvent<HTMLInputElement>, entryData: VolsegEntryData) {
     console.log(v.target.files![0]);
     const file = Asset.File(v.target.files![0]);
     const asset = entryData.plugin.managers.asset.resolve(file, 'string');
@@ -140,10 +137,10 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
     const allDescriptions = entryData.metadata.value!.allDescriptions;
     const entryDescriptions = allDescriptions.filter(d => d.target_kind === 'entry');
     const parsedSelectedSegmentKey = parseSegmentKey(state.selectedSegment);
-    const { segmentId, segmentationId, kind } = parsedSelectedSegmentKey;
-    const selectedSegmentDescriptions = entryData.metadata.value!.getSegmentDescription(segmentId, segmentationId, kind);
+    const { segmentationId, kind } = parsedSelectedSegmentKey;
+    // const selectedSegmentDescriptions = entryData.metadata.value!.getSegmentDescription(segmentId, segmentationId, kind);
     // NOTE: for now single description
-    const selectedSegmentDescription = selectedSegmentDescriptions ? selectedSegmentDescriptions[0] : undefined;
+    // const selectedSegmentDescription = selectedSegmentDescriptions ? selectedSegmentDescriptions[0] : undefined;
     const visibleSegmentKeys = state.visibleSegments.map(seg => seg.segmentKey);
     console.log(visibleSegmentKeys);
     const visibleModels = state.visibleModels.map(model => model.pdbId);
@@ -163,6 +160,7 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
         {/* <JSONEditorComponent jsonData={annotationsJson} entryData={entryData}/> */}
         <Popup nested trigger={<Button>Open annotation JSON editor</Button>} modal>
             {/* <span> Modal content </span> */}
+            {/* TODO: fix this */}
             {close => (
                 <>
                     <button className="close" onClick={close}>
@@ -255,29 +253,19 @@ function VolumeChannelControls({ entryData, volume }: { entryData: VolsegEntryDa
 }
 
 
-function _getVisualTransformFromProjectDataTransform(model: VolsegEntryData, projectDataTransform) {
-    // TODO: if geometric segmentation - need child ref of child ref 
-    // conform
-    // if () {
-    //     return 
-    // } else {
+function _getVisualTransformFromProjectDataTransform(model: VolsegEntryData, projectDataTransform: any) {
     const childRef = model.plugin.state.data.tree.children.get(projectDataTransform.ref).toArray()[0];
     const segmentationRepresentation3DNode = findNodesByRef(model.plugin, childRef);
     // in case of CVSX segmentation.transform is already 3D representation
     // how to get segmentation Id from it?
     const transform = segmentationRepresentation3DNode.transform;
     if (transform.params.descriptions) {
-        debugger;
         const childChildRef = model.plugin.state.data.tree.children.get(segmentationRepresentation3DNode.transform.ref).toArray()[0];
         const t = findNodesByRef(model.plugin, childChildRef);
-        // TODO: get childRef of childRef
-        debugger;
         return t.transform;
     } else {
         return transform;
     }
-    // }
-
 }
 function SegmentationSetControls({ model, segmentation, kind }: { model: VolsegEntryData, segmentation: StateObjectCell<PluginStateObject.Volume.Data> | StateObjectCell<VolsegGeometricSegmentation> | StateObjectCell<VolsegMeshSegmentation>, kind: 'lattice' | 'mesh' | 'primitive' }) {
     const projectDataTransform = segmentation.transform;
@@ -287,7 +275,7 @@ function SegmentationSetControls({ model, segmentation, kind }: { model: VolsegE
     const segmentationId = params.segmentationId;
 
 
-    // TODO: if geometric segmentation - need child ref of child ref 
+    // TODO: if geometric segmentation - need child ref of child ref
     // const childRef = model.plugin.state.data.tree.children.get(projectDataTransform.ref).toArray()[0];
     // const segmentationRepresentation3DNode = findNodesByRef(model.plugin, childRef);
     // // in case of CVSX segmentation.transform is already 3D representation
@@ -389,12 +377,6 @@ export function WaitingParameterControls<T extends PD.Params>({ values, onChange
     const [changing, currentValues, execute] = useAsyncChange(values);
 
     return <ParameterControls isDisabled={changing} values={currentValues} onChangeValues={newValue => execute(onChangeValues, newValue)} {...etc} />;
-}
-
-function capitalize(text: string) {
-    const first = text.charAt(0);
-    const rest = text.slice(1);
-    return first.toUpperCase() + rest;
 }
 
 function useAsyncChange<T>(initialValue: T) {

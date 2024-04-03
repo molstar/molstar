@@ -24,7 +24,7 @@ export class VolumeApiV2 {
     public async updateAnnotationsJson(source: string, entryId: string, annotationsJson: AnnotationMetadata) {
         const url = `${this.volumeServerUrl}/${source}/${entryId}/annotations_json/update`;
         const obj = JSON.stringify({ annotations_json: annotationsJson });
-        const response = await fetch(url, {
+        await fetch(url, {
             method: 'POST',
             body: obj,
             headers: { 'Content-Type': 'application/json' }
@@ -35,29 +35,29 @@ export class VolumeApiV2 {
     public async editDescriptionsUrl(source: string, entryId: string, descriptionData: DescriptionData[]) {
         const url = `${this.volumeServerUrl}/${source}/${entryId}/descriptions/edit`;
         const obj = JSON.stringify({ descriptions: descriptionData });
-        const response = await fetch(url, {
+        await fetch(url, {
             method: 'POST',
             // body: JSON.stringify({notification: {title: message},to : '/topics/user_'+username}),
             body: obj,
             // headers: {'Content-Type': 'application/json', 'Authorization': 'key='+API_KEY}
-            headers: { 'Content-Type': 'application/json' } 
+            headers: { 'Content-Type': 'application/json' }
         });
     }
     public async editSegmentAnnotationsUrl(source: string, entryId: string, segmentAnnotationData: SegmentAnnotationData[]) {
         const url = `${this.volumeServerUrl}/${source}/${entryId}/segment_annotations/edit`;
         const obj = JSON.stringify({ segment_annotations: segmentAnnotationData });
-        const response = await fetch(url, {
+        await fetch(url, {
             method: 'POST',
             // body: JSON.stringify({notification: {title: message},to : '/topics/user_'+username}),
             body: obj,
             // headers: {'Content-Type': 'application/json', 'Authorization': 'key='+API_KEY}
-            headers: { 'Content-Type': 'application/json' } 
+            headers: { 'Content-Type': 'application/json' }
         });
     }
     public async removeDescriptionsUrl(source: string, entryId: string, description_ids: string[]) {
         const url = `${this.volumeServerUrl}/${source}/${entryId}/descriptions/remove`;
         const obj = JSON.stringify({ description_ids: description_ids });
-        const response = await fetch(url, {
+        await fetch(url, {
             method: 'POST',
             // body: JSON.stringify({notification: {title: message},to : '/topics/user_'+username}),
             body: obj,
@@ -70,7 +70,7 @@ export class VolumeApiV2 {
     public async removeSegmentAnnotationsUrl(source: string, entryId: string, annotation_ids: string[]) {
         const url = `${this.volumeServerUrl}/${source}/${entryId}/segment_annotations/remove`;
         const obj = JSON.stringify({ annotation_ids: annotation_ids });
-        const response = await fetch(url, {
+        await fetch(url, {
             method: 'POST',
             // body: JSON.stringify({notification: {title: message},to : '/topics/user_'+username}),
             body: obj,

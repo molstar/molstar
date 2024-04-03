@@ -18,7 +18,6 @@ import { createEntryId } from './helpers';
 import { ProjectGeometricSegmentationData, ProjectGeometricSegmentationDataParamsValues, ProjectMeshData, ProjectMeshSegmentationDataParamsValues, ProjectSegmentationData, ProjectLatticeSegmentationDataParamsValues, ProjectVolumeData, VolsegEntryFromRoot, VolsegGlobalStateFromRoot, VolsegStateFromEntry } from './transformers';
 import { VolsegUI } from './ui';
 import { createSegmentKey, getSegmentLabelsFromDescriptions } from './volseg-api/utils';
-import { useBehavior } from '../../../mol-plugin-ui/hooks/use-behavior';
 import { actionShowSegments } from '../common';
 
 // TODO: temp change, put there 'localhost'
