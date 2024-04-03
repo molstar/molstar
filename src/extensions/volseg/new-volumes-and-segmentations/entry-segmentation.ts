@@ -30,9 +30,12 @@ const DEFAULT_SEGMENT_COLOR = Color.fromNormalizedRgb(0.8, 0.8, 0.8);
 
 export class VolsegLatticeSegmentationData {
     private entryData: VolsegEntryData;
+    // should map segmentation Id to Map<number, Color>
+    private colorMap: Map<string, Map<number, Color>>;
 
     constructor(rootData: VolsegEntryData) {
         this.entryData = rootData;
+        // this.colorMap = undefined;
     }
 
     async loadSegmentation() {
@@ -65,6 +68,8 @@ export class VolsegLatticeSegmentationData {
     }
 
     async createSegmentationGroup() {
+        this.createColorMap();
+        debugger;
         let group = this.entryData.findNodesByTags(GROUP_TAG)[0]?.transform.ref;
         if (!group) {
             const newGroupNode = await this.entryData.newUpdate().apply(CreateGroup,
@@ -84,14 +89,52 @@ export class VolsegLatticeSegmentationData {
                 type: 'segment',
                 typeParams: { tryUseGpu: VolsegGlobalStateData.getGlobalState(this.entryData.plugin)?.tryUseGpu },
                 color: 'volume-segment',
-                colorParams: { palette: this.createPalette(segmentIds) },
+                colorParams: { palette: this.getPaletteForSegmentation(segmentationId, segmentIds) },
             }), { tags: [SEGMENT_VISUAL_TAG, segmentationId] }).commit();
     }
 
     // creates colors for lattice segments
-    private createPalette(segmentIds: number[]) {
+    private getPaletteForSegmentation(segmentationId: string, segmentIds: number[]) {
+        const colorMapForSegmentation = this.colorMap.get(segmentationId);
+        if (!colorMapForSegmentation) {
+            const colors = segmentIds.map(segid => DEFAULT_SEGMENT_COLOR);
+            return { name: 'colors' as const, params: { list: { kind: 'set' as const, colors: colors } } };
+        } else {
+            const colors = segmentIds.map(segid => colorMapForSegmentation.get(segid) ?? DEFAULT_SEGMENT_COLOR);
+            return { name: 'colors' as const, params: { list: { kind: 'set' as const, colors: colors } } };
+        }
+    }
+
+    // should be aware of segmentations and segments in each segmentation
+    // should be called once
+    private createColorMap() {
+        const colorMapForAllSegmentations = new Map<string, any>();
+        if (this.entryData.metadata.value!.allAnnotations) {
+            for (const annotation of this.entryData.metadata.value!.allAnnotations) {
+                if (annotation.color) {
+                    const color = Color.fromNormalizedArray(annotation.color, 0);
+                    if (colorMapForAllSegmentations.get(annotation.segmentation_id)) {
+                        // segmentation id exists
+                        // there is a map inside with at least one segment
+                        const colorMapForSegmentation: Map<number, Color> = colorMapForAllSegmentations.get(annotation.segmentation_id);
+                        colorMapForSegmentation.set(annotation.segment_id, color);
+                        colorMapForAllSegmentations.set(annotation.segmentation_id, colorMapForSegmentation);
+                    } else {
+                        // does not exist, create
+                        const colorMapForSegmentation = new Map<number, Color>();
+                        colorMapForSegmentation.set(annotation.segment_id, color)
+                        colorMapForAllSegmentations.set(annotation.segmentation_id, colorMapForSegmentation);
+                    }
+                    this.colorMap = colorMapForAllSegmentations;
+                }
+            }
+        }
+        console.log('this.colorMap');
+        console.log(this.colorMap);
+    }
+
+    private _createPalette(segmentIds: number[]) {
         const colorMap = new Map<number, Color>();
-        // for (const segment of this.entryData.metadata.value!.allSegments) {
         if (this.entryData.metadata.value!.allAnnotations) {
             for (const annotation of this.entryData.metadata.value!.allAnnotations) {
                 if (annotation.color) {

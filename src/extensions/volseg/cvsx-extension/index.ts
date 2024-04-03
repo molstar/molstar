@@ -56,9 +56,9 @@ export async function loadCVSXFromAnything(plugin: PluginContext, data: StateObj
                 segmentationIds = [entryData.filesData!.query.segmentation_id];
             }
             // loop over lattices and create one for each
+            const group = await entryNode.data.latticeSegmentationData.createSegmentationGroup();
             for (const segmentationId of segmentationIds) {
                 // const segmentationId = hasLattices.segmentation_sampling_info
-                const group = await entryNode.data.latticeSegmentationData.createSegmentationGroup();
                 // same, single channel single timeframe
 
                 // const segmentationIds = hasLattices.segmentation_ids;

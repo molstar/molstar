@@ -151,7 +151,6 @@ class RawTimeframesDataCache {
     }
 
     private _getEntrySize(entry: RawChannelData | RawSegmentationData | RawMeshSegmentData) {
-        debugger;
         const data = entry.data;
         let bytes: number = 0;
         if (data instanceof Uint8Array) {
