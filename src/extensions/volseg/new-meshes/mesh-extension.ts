@@ -234,7 +234,7 @@ export const CreateMeshlistStateObject = VolsegTransform({
             const segmentData = a.data.meshData.find(m => m.meshSegmentParams.id === segmentId);
             if (!segmentData) throw Error('no segment data found');
             const cif = segmentData.parsedCif;
-            const { detail, label, color, id } = segmentData.meshSegmentParams;
+            const { detail, label } = segmentData.meshSegmentParams;
             const meshlistData = await MeshlistData.fromCIF(cif, params.segmentId, label, detail);
             meshlistData.ownerId = params.ownerId;
             meshlistData.segmentationId = params.segmentationId;

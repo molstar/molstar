@@ -70,8 +70,8 @@ function rgbaToHex(rgbaNormalized: Vector4) {
 // export type ShapePrimitivesData = ShapePrimitive[]
 
 function addBox(state: MeshBuilder.State,
-    translation: Vec3 = [0.5, 0.5, 0.5] as Vec3,
-    scaling: Vec3 = [1, 1, 1] as Vec3) {
+    translation: Vec3 = Vec3.create(0.5, 0.5, 0.5),
+    scaling: Vec3 = Vec3.create(1, 1, 1)) {
     const mat4 = Mat4.identity();
     Mat4.scale(mat4, mat4, scaling);
     Mat4.translate(mat4, mat4, translation);
@@ -80,8 +80,8 @@ function addBox(state: MeshBuilder.State,
 }
 
 function addTriangularPyramid(state: MeshBuilder.State,
-    translation: Vec3 = [0.5, 0.5, 0.5] as Vec3,
-    scaling: Vec3 = [1, 1, 1] as Vec3) {
+    translation: Vec3 = Vec3.create(0.5, 0.5, 0.5),
+    scaling: Vec3 = Vec3.create(1, 1, 1)) {
     const mat4 = Mat4.identity();
     Mat4.scale(mat4, mat4, scaling);
     Mat4.translate(mat4, mat4, translation);

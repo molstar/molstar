@@ -211,6 +211,7 @@ export namespace MeshStreaming {
 
         private initVisualInfos() {
             const visuals: { [tag: string]: VisualInfo } = {};
+            // fix this
             for (const segid of this.metadata!.meshSegmentIds) {
                 const name = this.metadata?.getSegment(segid)?.biological_annotation.name ?? DEFAULT_SEGMENT_NAME;
                 const color = this.metadata?.getSegmentColor(segid) ?? DEFAULT_SEGMENT_COLOR;

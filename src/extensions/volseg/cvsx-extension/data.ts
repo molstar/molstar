@@ -5,7 +5,6 @@ import { AnnotationMetadata, GridMetadata, ShapePrimitiveData } from '../new-vol
 export interface CVSXFilesData {
     volumes?: CVSXVolumeData[]
     latticeSegmentations?: CVSXLatticeSegmentationData[],
-    // TODO: other
     geometricSegmentations?: CVSXGeometricSegmentationData[],
     meshSegmentations?: CVSXMeshSegmentationData[],
     annotation?: AnnotationMetadata,
@@ -37,11 +36,6 @@ export interface CVSXLatticeSegmentationData {
     timeframeIndex: number
     data: Uint8Array
 }
-
-// export interface QueryMetadata {
-//     subquery_types: string[]
-//     args: QueryArgs
-// }
 
 export interface QueryArgs {
     entry_id: string,
