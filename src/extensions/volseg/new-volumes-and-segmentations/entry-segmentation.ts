@@ -84,7 +84,7 @@ export class VolsegLatticeSegmentationData {
         const segmentationId = params.segmentationId;
         const segmentation = Volume.Segmentation.get(segmentationData);
         const segmentIds: number[] = Array.from(segmentation?.segments.keys() ?? []);
-        const segmentationRepresentation3D = await this.entryData.newUpdate().to(segmentationNode)
+        await this.entryData.newUpdate().to(segmentationNode)
             .apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(this.entryData.plugin, segmentationData, {
                 type: 'segment',
                 typeParams: { tryUseGpu: VolsegGlobalStateData.getGlobalState(this.entryData.plugin)?.tryUseGpu },
@@ -94,6 +94,7 @@ export class VolsegLatticeSegmentationData {
     }
 
     // creates colors for lattice segments
+
     private getPaletteForSegmentation(segmentationId: string, segmentIds: number[]) {
         const colorMapForSegmentation = this.colorMap.get(segmentationId);
         if (!colorMapForSegmentation) {

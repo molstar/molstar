@@ -9,7 +9,7 @@ import { VolsegEntryData } from './new-volumes-and-segmentations/entry-root';
 import { CVSXStateModel } from './cvsx-extension/cvsx';
 import Markdown from 'react-markdown';
 import { capitalize } from '../../mol-util/string';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { DescriptionData, DescriptionText, ExternalReference } from './new-volumes-and-segmentations/volseg-api/data';
 
 export function DescriptionTextUI({ descriptionText: d }: { descriptionText: DescriptionText }) {

@@ -1,16 +1,13 @@
-import { Volume } from "../../mol-model/volume";
-import { PluginStateObject } from "../../mol-plugin-state/objects";
-import { StateTransforms } from "../../mol-plugin-state/transforms";
-import { setSubtreeVisibility } from "../../mol-plugin/behavior/static/state";
-import { PluginContext } from "../../mol-plugin/context";
-import { RuntimeContext } from "../../mol-task";
-import { Asset } from "../../mol-util/assets";
-import { getFileNameInfo } from "../../mol-util/file-info";
-import { CVSXStateModel } from "./cvsx-extension/cvsx";
-import { VolsegEntryData } from "./new-volumes-and-segmentations/entry-root";
-import { SEGMENT_VISUAL_TAG } from "./new-volumes-and-segmentations/entry-segmentation";
-import { DescriptionData, ParsedSegmentKey } from "./new-volumes-and-segmentations/volseg-api/data";
-import { createSegmentKey, parseSegmentKey } from "./new-volumes-and-segmentations/volseg-api/utils";
+import { Volume } from '../../mol-model/volume';
+import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { setSubtreeVisibility } from '../../mol-plugin/behavior/static/state';
+import { PluginContext } from '../../mol-plugin/context';
+import { Asset } from '../../mol-util/assets';
+import { CVSXStateModel } from './cvsx-extension/cvsx';
+import { VolsegEntryData } from './new-volumes-and-segmentations/entry-root';
+import { SEGMENT_VISUAL_TAG } from './new-volumes-and-segmentations/entry-segmentation';
+import { DescriptionData, ParsedSegmentKey } from './new-volumes-and-segmentations/volseg-api/data';
+import { createSegmentKey, parseSegmentKey } from './new-volumes-and-segmentations/volseg-api/utils';
 
 export async function parseCVSXJSON(rawFile: [string, Uint8Array], plugin: PluginContext) {
     const [fn, filedata] = rawFile;
@@ -22,10 +19,10 @@ export async function parseCVSXJSON(rawFile: [string, Uint8Array], plugin: Plugi
     return parsedData;
 }
 
-// export async function actionToggleAllSegments(model: VolsegEntryData | CVSXStateModel, segmentationId: string, kind: 'lattice' | 'mesh' | 'primitive') {    
+// export async function actionToggleAllSegments(model: VolsegEntryData | CVSXStateModel, segmentationId: string, kind: 'lattice' | 'mesh' | 'primitive') {
 //     const currentTimeframe = model.currentTimeframe.value;
 //     const current = model.currentState.value.visibleSegments.map(seg => seg.segmentKey);
-//     const currentForThisSegmentation = current.filter(c => 
+//     const currentForThisSegmentation = current.filter(c =>
 //         parseSegmentKey(c).segmentationId === segmentationId &&
 //         parseSegmentKey(c).kind === kind
 //     );
@@ -56,27 +53,24 @@ export async function actionToggleAllFilteredSegments(model: VolsegEntryData | C
     // this is currently visible for other segmentations
     const currentForOtherSegmentations = current.filter(item => currentForThisSegmentation.indexOf(item) < 0);
     // length of currently visible for this segmentation !== number of all segments for this segmentation
-    debugger;
 
-    // This checks if 
+    // This checks if
     // if (currentForThisSegmentation.length !== model.metadata.value!.getAllSegmentAnotationsForSegmentationAndTimeframe(segmentationId, kind, currentTimeframe).length) {
-    const allFilteredSegmentKeys = filteredDescriptions.map(d =>
-        createSegmentKey(d.target_id!.segment_id, d.target_id!.segmentation_id, d.target_kind))
-    const allSegmentKeysFromSegmentation = model.metadata.value!.getAllDescriptionsForSegmentationAndTimeframe(segmentationId, kind, currentTimeframe).map(d =>
-        createSegmentKey(d.target_id!.segment_id, d.target_id!.segmentation_id, d.target_kind));
+    const allFilteredSegmentKeys = filteredDescriptions.map(d => {
+        // there are three types that are acceptable
+        // should add check that this is not entry
+        if (d.target_kind !== 'entry') {
+            return createSegmentKey(d.target_id!.segment_id, d.target_id!.segmentation_id, d.target_kind);
+        }
+    }).filter(Boolean);
+    const allSegmentKeysFromSegmentation = model.metadata.value!.getAllDescriptionsForSegmentationAndTimeframe(segmentationId, kind, currentTimeframe).map(d => {
+        if (d.target_kind !== 'entry') {
+            return createSegmentKey(d.target_id!.segment_id, d.target_id!.segmentation_id, d.target_kind);
+        }
+    }).filter(Boolean);
     if (currentForThisSegmentation.length !== filteredDescriptions.length) {
 
         console.log(filteredDescriptions);
-        debugger;
-        // TODO: currentForOtherSegmentations should be kept
-        // TODO: modify just allSegmentKeysFromSegmentation\
-        // TODO: TODO: TODO:
-        // APPROACH
-        // 1. get model.metadata.value!.getAllSegmentAnotationsForSegmentationAndTimeframe(segmentationId, kind, currentTimeframe)
-        // or better getAllDescriptionsForSegmentationAndTimeframe
-        // 2. filter them
-        // allSegmentKeysFromSegmentation should contain just the keys of segments
-        // which are in filteredDescriptions
         const allSegmentKeys = [...allFilteredSegmentKeys, ...currentForOtherSegmentations];
         await actionShowSegments(allSegmentKeys, model);
     } else {
@@ -122,7 +116,7 @@ export async function actionShowSegments(segmentKeys: string[], model: VolsegEnt
 
 export async function _actionShowSegments(parsedSegmentKeys: ParsedSegmentKey[], existingSegmentationIds: string[], kind: 'mesh' | 'lattice' | 'primitive', model: VolsegEntryData | CVSXStateModel) {
     const segmentKeys = parsedSegmentKeys.filter(k => k.kind === kind);
-    const segmentIds = segmentKeys.map(k => k.segmentId);
+    // const segmentIds = segmentKeys.map(k => k.segmentId);
     const SegmentationIdsToSegmentIds = new Map<string, number[]>;
     for (const key of segmentKeys) {
         if (!SegmentationIdsToSegmentIds.has(key.segmentationId)) {

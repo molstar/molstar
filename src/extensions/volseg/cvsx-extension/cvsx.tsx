@@ -16,14 +16,13 @@ import { useBehavior } from '../../../mol-plugin-ui/hooks/use-behavior';
 import { PluginContext } from '../../../mol-plugin/context';
 import { SimpleVolumeParamValues, SimpleVolumeParams, VolumeVisualParams } from '../new-volumes-and-segmentations/entry-volume';
 import { UpdateTransformControl } from '../../../mol-plugin-ui/state/update-transform';
-import { SegmentationControls, WaitingButton, WaitingParameterControls, WaitingSlider } from '../new-volumes-and-segmentations/ui';
+import { WaitingParameterControls, WaitingSlider } from '../new-volumes-and-segmentations/ui';
 import { sleep } from '../../../mol-util/sleep';
 import { StateTransform } from '../../../mol-state/transform';
 import { setSubtreeVisibility } from '../../../mol-plugin/behavior/static/state';
 import { PluginCommands } from '../../../mol-plugin/commands';
 import { StateTransforms } from '../../../mol-plugin-state/transforms';
-import { AnnotationMetadata, DescriptionData, ShapePrimitiveData, Metadata } from '../new-volumes-and-segmentations/volseg-api/data';
-import { objectToArray } from '../new-volumes-and-segmentations/helpers';
+import { Metadata } from '../new-volumes-and-segmentations/volseg-api/data';
 import { MetadataWrapper } from '../new-volumes-and-segmentations/volseg-api/utils';
 import { findNodesByRef, findNodesByTags } from '../common';
 import { StateHierarchyMirror } from '../new-volumes-and-segmentations/entry-root';
@@ -68,7 +67,7 @@ export const CVSXState = {
         segmentKey: PD.Text('')
     }, k => k.segmentKey
     ),
-}
+};
 
 export type CVSXStateData = PD.Values<typeof CVSXState>;
 
@@ -246,9 +245,9 @@ function CVSXFileControls({ plugin }: { plugin: PluginContext }) {
                         <ControlRow key={s.transform.ref} label='Opacity' control={
                             <WaitingSlider min={0} max={1} value={s.transform.params.type.params.alpha} step={0.05} onChange={async v => await model.updateSegmentationOpacity(v)} />
                         } />
-                        <DescriptionsList model={model} targetSegmentationId={} targetKind={'lattice'}></DescriptionsList>
+                        <DescriptionsList model={model} targetSegmentationId={ } targetKind={'lattice'}></DescriptionsList>
                     </>
-                        ;
+                    ;
                 })}
                 {/* {allDescriptions && <DescriptionsList
                     model={model} targetSegmentationId={}
