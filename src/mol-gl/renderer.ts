@@ -421,8 +421,7 @@ namespace Renderer {
         };
 
         const checkOpaque = function (r: GraphicsRenderable) {
-            // TODO: simplify, handle in renderable.state???
-            // uAlpha is updated in "render" so we need to recompute it here
+            // uAlpha is updated in `r.render` so we need to recompute it here
             const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
             const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
             return (
@@ -436,8 +435,7 @@ namespace Renderer {
         };
 
         const checkTransparent = function (r: GraphicsRenderable) {
-            // TODO: simplify, handle in renderable.state???
-            // uAlpha is updated in "render" so we need to recompute it here
+            // uAlpha is updated in `r.render` so we need to recompute it here
             const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
             const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
             return (
