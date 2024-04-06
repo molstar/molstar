@@ -5,6 +5,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Refactor transparency rendering
+    - More uniform behavior for blended, wboit, dpoit
+    - Fix issues with text & image geometry
+
 ## [v4.1.0] - 2023-03-31
 
 - Add `VolumeTransform` to translate/rotate a volume like in a structure superposition
@@ -15,9 +19,6 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `normalOffset` to `external-volume` color theme
     - This can give results similar to pymol's surface_ramp_above_mode=1
 - Add `rotation` parameter to skybox background
-- Refactor transparency rendering
-    - More uniform behavior for blended, wboit, dpoit
-    - Fix issues with text & image geometry
 
 ## [v4.0.1] - 2023-02-19
 
