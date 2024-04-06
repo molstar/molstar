@@ -5,11 +5,15 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v4.1.0] - 2023-03-31
+
 - Add `VolumeTransform` to translate/rotate a volume like in a structure superposition
 - Fix BinaryCIF encoder edge cases caused by re-encoding an existing BinaryCIF file
 - Fix edge-case where width/height in InputObserver are not correct
 - Fix transparency rendering fallback (#1058)
 - Fix SSAO broken when `OES_texture_float_linear` is unavailable
+- Add `normalOffset` to `external-volume` color theme
+    - This can give results similar to pymol's surface_ramp_above_mode=1
 - Add `rotation` parameter to skybox background
 - Refactor transparency rendering
     - More uniform behavior for blended, wboit, dpoit

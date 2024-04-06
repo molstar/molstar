@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Cai Huiyu <szmun.caihy@gmail.com>
  */
 
 import { Color, ColorScale } from '../../mol-util/color';
@@ -16,7 +17,7 @@ import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { lerp } from '../../mol-math/interpolate';
 import { ColorThemeCategory } from './categories';
 
-const Description = `Assigns a color based volume value at a given vertex.`;
+const Description = `Assigns a color based on volume value at a given vertex.`;
 
 export const ExternalVolumeColorThemeParams = {
     volume: PD.ValueRef<Volume>(
@@ -47,6 +48,7 @@ export const ExternalVolumeColorThemeParams = {
         })
     }),
     defaultColor: PD.Color(Color(0xcccccc)),
+    normalOffset: PD.Numeric(0., { min: 0, max: 20, step: 0.1 }, { description: 'Offset vertex position along its normal by given amount.' }),
 };
 export type ExternalVolumeColorThemeParams = typeof ExternalVolumeColorThemeParams
 
@@ -95,7 +97,13 @@ export function ExternalVolumeColorTheme(ctx: ThemeDataContext, props: PD.Values
                 return props.defaultColor;
             }
 
+            // Offset the vertex position along its normal
             Vec3.copy(gridCoords, location.position);
+
+            if (props.normalOffset > 0) {
+                Vec3.scaleAndAdd(gridCoords, gridCoords, location.normal, props.normalOffset);
+            }
+
             Vec3.transformMat4(gridCoords, gridCoords, cartnToGrid);
 
             const i = Math.floor(gridCoords[0]);
