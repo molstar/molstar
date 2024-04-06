@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -46,7 +46,7 @@ void main(){
 
         // perform adaptive anti-aliasing of the edges
         float w = clamp(smoothness * (abs(dFdx(vTexCoord.x)) + abs(dFdy(vTexCoord.y))), 0.0, 0.5);
-        float a = smoothstep(0.5 - w, 0.5 + w, sdf);
+        float a = clamp(0.0, 1.0, smoothstep(0.5 - w, 0.5 + w, sdf));
 
         // gamma correction for linear attenuation
         a = pow(a, 1.0 / gamma);
@@ -54,8 +54,6 @@ void main(){
         if (a < 0.5) discard;
 
         #if defined(dRenderVariant_color)
-            material.a *= a;
-
             // add border
             float t = 0.5 + uBorderWidth;
             if (uBorderWidth > 0.0 && sdf < t) {
@@ -63,6 +61,8 @@ void main(){
             }
         #endif
     }
+
+    #include check_transparency
 
     #if defined(dRenderVariant_pick)
         #include check_picking_alpha

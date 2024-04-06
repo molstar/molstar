@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -117,6 +117,14 @@ void main(void){
     #endif
     #include assign_material_color
 
+    #if defined(dRenderVariant_color)
+        if (uRenderMask == MaskTransparent && uAlphaThickness > 0.0) {
+            material.a *= min(1.0, vRadius / uAlphaThickness);
+        }
+    #endif
+
+    #include check_transparency
+
     #if defined(dRenderVariant_pick)
         #include check_picking_alpha
         #ifdef requiredDrawBuffers
@@ -134,10 +142,6 @@ void main(void){
     #elif defined(dRenderVariant_color)
         vec3 normal = -cameraNormal;
         #include apply_light_color
-
-        if (uRenderMask == MaskTransparent && uAlphaThickness > 0.0) {
-            gl_FragColor.a *= min(1.0, vRadius / uAlphaThickness);
-        }
 
         #include apply_interior_color
         #include apply_marker_color

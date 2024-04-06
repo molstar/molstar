@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -420,6 +420,35 @@ namespace Renderer {
             state.currentRenderItemId = -1;
         };
 
+        const checkOpaque = function (r: GraphicsRenderable) {
+            // uAlpha is updated in `r.render` so we need to recompute it here
+            const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
+            const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
+            return (
+                (alpha === 1 &&
+                    r.values.transparencyAverage.ref.value !== 1 &&
+                    r.values.dGeometryType.ref.value !== 'directVolume' &&
+                    r.values.dPointStyle?.ref.value !== 'fuzzy' &&
+                    !xrayShaded
+                ) || r.values.dTransparentBackfaces?.ref.value === 'opaque'
+            );
+        };
+
+        const checkTransparent = function (r: GraphicsRenderable) {
+            // uAlpha is updated in `r.render` so we need to recompute it here
+            const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
+            const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
+            return (
+                (alpha < 1 && alpha !== 0) ||
+                r.values.transparencyAverage.ref.value > 0 ||
+                r.values.dGeometryType.ref.value === 'directVolume' ||
+                r.values.dPointStyle?.ref.value === 'fuzzy' ||
+                r.values.dGeometryType.ref.value === 'text' ||
+                r.values.dGeometryType.ref.value === 'image' ||
+                xrayShaded
+            );
+        };
+
         const renderPick = (group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, depthTexture: Texture | null, pickType: PickType) => {
             if (isTimingMode) ctx.timer.mark('Renderer.renderPick');
             state.disable(gl.BLEND);
@@ -464,8 +493,7 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-                const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
-                if (r.state.opaque && r.values.transparencyAverage.ref.value !== 1 && !xrayShaded) {
+                if (checkOpaque(r)) {
                     renderObject(r, 'depth', Flag.None);
                 }
             }
@@ -483,8 +511,7 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-                const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
-                if (!r.state.opaque || r.values.transparencyAverage.ref.value > 0 || xrayShaded) {
+                if (checkTransparent(r)) {
                     renderObject(r, 'depth', Flag.None);
                 }
             }
@@ -505,7 +532,7 @@ namespace Renderer {
                 const r = renderables[i];
 
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if (alpha !== 0 && r.values.markerAverage.ref.value !== 1) {
+                if (alpha !== 0 && r.values.transparencyAverage.ref.value !== 1 && r.values.markerAverage.ref.value !== 1) {
                     renderObject(renderables[i], 'marking', Flag.None);
                 }
             }
@@ -552,10 +579,8 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-                if (r.state.opaque) {
+                if (checkOpaque(r)) {
                     renderObject(r, 'color', Flag.None);
-                } else if (r.values.uDoubleSided?.ref.value && r.values.dTransparentBackfaces?.ref.value === 'opaque') {
-                    renderObject(r, 'color', Flag.BlendedBack);
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderBlendedOpaque');
@@ -563,31 +588,21 @@ namespace Renderer {
 
         const renderBlendedTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
             if (isTimingMode) ctx.timer.mark('Renderer.renderBlendedTransparent');
-            state.enable(gl.DEPTH_TEST);
-
-            updateInternal(group, camera, depthTexture, Mask.Transparent, false);
-
-            const { renderables } = group;
-
             if (transparentBackground) {
                 state.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
             } else {
                 state.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
             }
             state.enable(gl.BLEND);
-
-            state.depthMask(true);
-            for (let i = 0, il = renderables.length; i < il; ++i) {
-                const r = renderables[i];
-                if (!r.state.opaque && r.state.writeDepth) {
-                    renderObject(r, 'color', Flag.None);
-                }
-            }
-
+            state.enable(gl.DEPTH_TEST);
             state.depthMask(false);
+
+            updateInternal(group, camera, depthTexture, Mask.Transparent, false);
+
+            const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-                if ((!r.state.opaque && !r.state.writeDepth) || r.values.transparencyAverage.ref.value > 0) {
+                if (checkTransparent(r)) {
                     if (r.values.uDoubleSided?.ref.value) {
                         // render frontfaces and backfaces separately to avoid artefacts
                         if (r.values.dTransparentBackfaces?.ref.value !== 'opaque') {
@@ -606,6 +621,7 @@ namespace Renderer {
             if (isTimingMode) ctx.timer.mark('Renderer.renderBlendedVolume');
             state.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
             state.enable(gl.BLEND);
+            state.depthMask(false);
 
             updateInternal(group, camera, depthTexture, Mask.Transparent, false);
 
@@ -630,12 +646,7 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-
-                // TODO: simplify, handle in renderable.state???
-                // uAlpha is updated in "render" so we need to recompute it here
-                const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
-                if ((alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dGeometryType.ref.value !== 'directVolume' && r.values.dPointStyle?.ref.value !== 'fuzzy' && !xrayShaded) || r.values.dTransparentBackfaces?.ref.value === 'opaque') {
+                if (checkOpaque(r)) {
                     renderObject(r, 'color', Flag.None);
                 }
             }
@@ -649,12 +660,7 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-
-                // TODO: simplify, handle in renderable.state???
-                // uAlpha is updated in "render" so we need to recompute it here
-                const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
-                if ((alpha < 1 && alpha !== 0) || r.values.transparencyAverage.ref.value > 0 || r.values.dGeometryType.ref.value === 'directVolume' || r.values.dPointStyle?.ref.value === 'fuzzy' || r.values.dGeometryType.ref.value === 'text' || xrayShaded) {
+                if (checkTransparent(r)) {
                     renderObject(r, 'color', Flag.None);
                 }
             }
@@ -672,12 +678,7 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-
-                // TODO: simplify, handle in renderable.state???
-                // uAlpha is updated in "render" so we need to recompute it here
-                const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
-                if ((alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dPointStyle?.ref.value !== 'fuzzy' && !xrayShaded) || r.values.dTransparentBackfaces?.ref.value === 'opaque') {
+                if (checkOpaque(r)) {
                     renderObject(r, 'color', Flag.None);
                 }
             }
@@ -699,12 +700,7 @@ namespace Renderer {
 
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-
-                // TODO: simplify, handle in renderable.state???
-                // uAlpha is updated in "render" so we need to recompute it here
-                const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
-                if ((alpha < 1 && alpha !== 0) || r.values.transparencyAverage.ref.value > 0 || r.values.dPointStyle?.ref.value === 'fuzzy' || r.values.dGeometryType.ref.value === 'text' || xrayShaded) {
+                if (checkTransparent(r)) {
                     renderObject(r, 'color', Flag.None);
                 }
             }

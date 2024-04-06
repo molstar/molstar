@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -32,6 +32,12 @@ void main(){
         if (fuzzyAlpha < 0.0001) discard;
     #endif
 
+    #if defined(dPointStyle_fuzzy) && defined(dRenderVariant_color)
+        material.a *= fuzzyAlpha;
+    #endif
+
+    #include check_transparency
+
     #if defined(dRenderVariant_pick)
         #include check_picking_alpha
         #ifdef requiredDrawBuffers
@@ -48,10 +54,6 @@ void main(){
         gl_FragColor = material;
     #elif defined(dRenderVariant_color)
         gl_FragColor = material;
-
-        #if defined(dPointStyle_fuzzy)
-            gl_FragColor.a *= fuzzyAlpha;
-        #endif
 
         #include apply_marker_color
         #include apply_fog

@@ -5,6 +5,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Refactor transparency rendering
+    - More uniform behavior for blended, wboit, dpoit
+    - Fix issues with text & image geometry
+
 ## [v4.1.0] - 2023-03-31
 
 - Add `VolumeTransform` to translate/rotate a volume like in a structure superposition
