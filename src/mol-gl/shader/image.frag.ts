@@ -154,6 +154,8 @@ void main() {
             bool isHighlight = intMod(marker, 2.0) > 0.1;
             gl_FragColor = vec4(0.0, depthTest, isHighlight ? 1.0 : 0.0, 1.0);
         }
+    #elif defined(dRenderVariant_emissive)
+        gl_FragColor = vec4(0.0);
     #elif defined(dRenderVariant_color)
         gl_FragColor = imageData;
 

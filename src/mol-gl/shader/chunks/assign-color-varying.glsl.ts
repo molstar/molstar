@@ -95,6 +95,20 @@ export const assign_color_varying = `
         vSubstance.rgb = mix(vec3(uMetalness, uRoughness, uBumpiness), vSubstance.rgb, vSubstance.a);
         vSubstance *= uSubstanceStrength;
     #endif
+#elif defined(dRenderVariant_emissive)
+    #ifdef dEmissive
+        #if defined(dEmissiveType_instance)
+            vEmissive = readFromTexture(tEmissive, aInstance, uEmissiveTexDim).a;
+        #elif defined(dEmissiveType_groupInstance)
+            vEmissive = readFromTexture(tEmissive, aInstance * float(uGroupCount) + group, uEmissiveTexDim).a;
+        #elif defined(dEmissiveType_vertexInstance)
+            vEmissive = readFromTexture(tEmissive, int(aInstance) * uVertexCount + VertexID, uEmissiveTexDim).a;
+        #elif defined(dEmissiveType_volumeInstance)
+            vec3 tgridPos = (uEmissiveGridTransform.w * (vModelPosition - uEmissiveGridTransform.xyz)) / uEmissiveGridDim;
+            vEmissive = texture3dFrom2dLinear(tEmissiveGrid, tgridPos, uEmissiveGridDim, uEmissiveTexDim).a;
+        #endif
+        vEmissive *= uEmissiveStrength;
+    #endif
 #elif defined(dRenderVariant_pick)
     #ifdef requiredDrawBuffers
         vObject = vec4(packIntToRGB(float(uObjectId)), 1.0);

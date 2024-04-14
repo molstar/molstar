@@ -71,6 +71,21 @@ uniform float uBumpiness;
         #endif
         uniform float uSubstanceStrength;
     #endif
+#elif defined(dRenderVariant_emissive)
+    #ifdef dEmissive
+        #if defined(dEmissiveType_instance) || defined(dEmissiveType_groupInstance) || defined(dEmissiveType_vertexInstance)
+            varying float vEmissive;
+            uniform vec2 uEmissiveTexDim;
+            uniform sampler2D tEmissive;
+        #elif defined(dEmissiveType_volumeInstance)
+            varying float vEmissive;
+            uniform vec2 uEmissiveTexDim;
+            uniform vec3 uEmissiveGridDim;
+            uniform vec4 uEmissiveGridTransform;
+            uniform sampler2D tEmissiveGrid;
+        #endif
+        uniform float uEmissiveStrength;
+    #endif
 #elif defined(dRenderVariant_pick)
     #if __VERSION__ == 100 || !defined(dVaryingGroup)
         #ifdef requiredDrawBuffers

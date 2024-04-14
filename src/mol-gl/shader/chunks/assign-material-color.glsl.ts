@@ -86,6 +86,12 @@ export const assign_material_color = `
             discard;
         material = vec4(0.0, depthTest, isHighlight ? 1.0 : 0.0, 1.0 - fogFactor);
     }
+#elif defined(dRenderVariant_emissive)
+    float emissive = uEmissive;
+    #ifdef dEmissive
+        emissive += vEmissive;
+    #endif
+    vec4 material = vec4(emissive);
 #endif
 
 // apply per-group transparency
