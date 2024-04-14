@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -97,12 +97,12 @@ export async function createPetworldHierarchy(plugin: PluginContext, trajectory:
 
     const group = await state.build()
         .toRoot()
-        .applyOrUpdateTagged('group:ent:', MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `ent:`, label: 'entity', color: { type: 'generate', value: ColorNames.white, variability: 20, shift: 0, lightness: 0, alpha: 1 } }, { tags: 'group:ent:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
+        .applyOrUpdateTagged('group:ent:', MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `ent:`, label: 'entity', color: { type: 'generate', value: ColorNames.white, variability: 20, shift: 0, lightness: 0, alpha: 1, emissive: 0 } }, { tags: 'group:ent:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
         .commit({ revertOnError: true });
 
     await state.build()
         .to(group)
-        .applyOrUpdateTagged(`group:ent:mem`, MesoscaleGroup, { ...groupParams, index: undefined, tag: `ent:mem`, label: 'Membrane', color: { type: 'uniform', value: ColorNames.lightgrey, variability: 20, shift: 0, lightness: 0, alpha: 1 } }, { tags: `ent:`, state: { isCollapsed: true, isHidden: groupParams.hidden } })
+        .applyOrUpdateTagged(`group:ent:mem`, MesoscaleGroup, { ...groupParams, index: undefined, tag: `ent:mem`, label: 'Membrane', color: { type: 'uniform', value: ColorNames.lightgrey, variability: 20, shift: 0, lightness: 0, alpha: 1, emissive: 0 } }, { tags: `ent:`, state: { isCollapsed: true, isHidden: groupParams.hidden } })
         .commit();
 
     const colors = getDistinctBaseColors(other.length, 0);
