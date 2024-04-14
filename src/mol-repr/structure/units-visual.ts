@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -42,6 +42,7 @@ import { Clipping } from '../../mol-theme/clipping';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { isPromiseLike } from '../../mol-util/type-helpers';
 import { Substance } from '../../mol-theme/substance';
+import { Emissive } from '../../mol-theme/emissive';
 
 export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<StructureGroup, P> { }
 
@@ -386,6 +387,10 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             const smoothing = { geometry, props: currentProps, webgl };
             Visual.setTransparency(renderObject, transparency, lociApply, true, smoothing);
         },
+        setEmissive(emissive: Emissive, webgl?: WebGLContext) {
+            const smoothing = { geometry, props: currentProps, webgl };
+            Visual.setEmissive(renderObject, emissive, lociApply, true, smoothing);
+        },
         setSubstance(substance: Substance, webgl?: WebGLContext) {
             const smoothing = { geometry, props: currentProps, webgl };
             Visual.setSubstance(renderObject, substance, lociApply, true, smoothing);
@@ -393,7 +398,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         setClipping(clipping: Clipping) {
             Visual.setClipping(renderObject, clipping, lociApply, true);
         },
-        setThemeStrength(strength: { overpaint: number, transparency: number, substance: number }) {
+        setThemeStrength(strength: { overpaint: number, transparency: number, emissive: number, substance: number }) {
             Visual.setThemeStrength(renderObject, strength);
         },
         destroy() {

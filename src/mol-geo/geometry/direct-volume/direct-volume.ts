@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -28,6 +28,7 @@ import { createTransferFunctionTexture, getControlPointsFromVec2Array } from './
 import { createEmptyClipping } from '../clipping-data';
 import { Grid } from '../../../mol-model/volume';
 import { createEmptySubstance } from '../substance-data';
+import { createEmptyEmissive } from '../emissive-data';
 
 const VolumeBox = Box();
 
@@ -216,6 +217,7 @@ export namespace DirectVolume {
             : createMarkers(instanceCount * groupCount, 'groupInstance');
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const emissive = createEmptyEmissive();
         const material = createEmptySubstance();
         const clipping = createEmptyClipping();
 
@@ -235,6 +237,7 @@ export namespace DirectVolume {
             ...marker,
             ...overpaint,
             ...transparency,
+            ...emissive,
             ...material,
             ...clipping,
             ...transform,

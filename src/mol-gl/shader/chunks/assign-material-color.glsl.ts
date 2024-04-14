@@ -20,6 +20,11 @@ export const assign_material_color = `
         material.rgb = mix(material.rgb, vOverpaint.rgb, vOverpaint.a);
     #endif
 
+    float emissive = uEmissive;
+    #ifdef dEmissive
+        emissive += vEmissive;
+    #endif
+
     float metalness = uMetalness;
     float roughness = uRoughness;
     float bumpiness = uBumpiness;

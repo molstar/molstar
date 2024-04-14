@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -30,6 +30,7 @@ import { hashFnv32a } from '../../../mol-data/util';
 import { GroupMapping, createGroupMapping } from '../../util';
 import { createEmptyClipping } from '../clipping-data';
 import { createEmptySubstance } from '../substance-data';
+import { createEmptyEmissive } from '../emissive-data';
 
 type TextAttachment = (
     'bottom-left' | 'bottom-center' | 'bottom-right' |
@@ -216,6 +217,7 @@ export namespace Text {
             : createMarkers(instanceCount * groupCount, 'groupInstance');
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const emissive = createEmptyEmissive();
         const substance = createEmptySubstance();
         const clipping = createEmptyClipping();
 
@@ -241,6 +243,7 @@ export namespace Text {
             ...marker,
             ...overpaint,
             ...transparency,
+            ...emissive,
             ...substance,
             ...clipping,
             ...transform,

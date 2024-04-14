@@ -42,6 +42,21 @@ uniform float uBumpiness;
         uniform float uOverpaintStrength;
     #endif
 
+    #ifdef dEmissive
+        #if defined(dEmissiveType_instance) || defined(dEmissiveType_groupInstance) || defined(dEmissiveType_vertexInstance)
+            varying float vEmissive;
+            uniform vec2 uEmissiveTexDim;
+            uniform sampler2D tEmissive;
+        #elif defined(dEmissiveType_volumeInstance)
+            varying float vEmissive;
+            uniform vec2 uEmissiveTexDim;
+            uniform vec3 uEmissiveGridDim;
+            uniform vec4 uEmissiveGridTransform;
+            uniform sampler2D tEmissiveGrid;
+        #endif
+        uniform float uEmissiveStrength;
+    #endif
+
     #ifdef dSubstance
         #if defined(dSubstanceType_instance) || defined(dSubstanceType_groupInstance) || defined(dSubstanceType_vertexInstance)
             varying vec4 vSubstance;

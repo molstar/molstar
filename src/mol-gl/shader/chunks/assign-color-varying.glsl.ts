@@ -65,6 +65,20 @@ export const assign_color_varying = `
         vOverpaint *= uOverpaintStrength;
     #endif
 
+    #ifdef dEmissive
+        #if defined(dEmissiveType_instance)
+            vEmissive = readFromTexture(tEmissive, aInstance, uEmissiveTexDim).a;
+        #elif defined(dEmissiveType_groupInstance)
+            vEmissive = readFromTexture(tEmissive, aInstance * float(uGroupCount) + group, uEmissiveTexDim).a;
+        #elif defined(dEmissiveType_vertexInstance)
+            vEmissive = readFromTexture(tEmissive, int(aInstance) * uVertexCount + VertexID, uEmissiveTexDim).a;
+        #elif defined(dEmissiveType_volumeInstance)
+            vec3 tgridPos = (uEmissiveGridTransform.w * (vModelPosition - uEmissiveGridTransform.xyz)) / uEmissiveGridDim;
+            vEmissive = texture3dFrom2dLinear(tEmissiveGrid, tgridPos, uEmissiveGridDim, uEmissiveTexDim).a;
+        #endif
+        vEmissive *= uEmissiveStrength;
+    #endif
+
     #ifdef dSubstance
         #if defined(dSubstanceType_instance)
             vSubstance = readFromTexture(tSubstance, aInstance, uSubstanceTexDim);

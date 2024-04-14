@@ -67,6 +67,7 @@ uniform int uGroupCount;
 
 uniform float uMetalness;
 uniform float uRoughness;
+uniform float uEmissive;
 
 uniform bool uFog;
 uniform float uFogNear;
@@ -190,6 +191,7 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
     vec4 overpaint;
     float metalness = uMetalness;
     float roughness = uRoughness;
+    float emissive = uEmissive;
 
     vec3 gradient = vec3(1.0);
     vec3 dx = vec3(gradOffset * scaleVol.x, 0.0, 0.0);
@@ -290,7 +292,7 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
             material.rgb = mix(material.rgb, overpaint.rgb, overpaint.a);
         #endif
 
-        #ifdef dIgnoreLight
+        #if defined(dIgnoreLight)
             gl_FragColor.rgb = material.rgb;
         #else
             if (material.a >= 0.01) {

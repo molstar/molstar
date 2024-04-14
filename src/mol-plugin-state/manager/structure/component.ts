@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -34,6 +34,7 @@ import { StructureFocusRepresentation } from '../../../mol-plugin/behavior/dynam
 import { setStructureSubstance } from '../../helpers/structure-substance';
 import { Material } from '../../../mol-util/material';
 import { Clip } from '../../../mol-util/clip';
+import { setStructureEmissive } from '../../helpers/structure-emissive';
 
 export { StructureComponentManager };
 
@@ -401,6 +402,9 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
                 } else if (params.action.name === 'transparency') {
                     const p = params.action.params;
                     await setStructureTransparency(this.plugin, s.components, p.value, getLoci, params.representations);
+                } else if (params.action.name === 'emissive') {
+                    const p = params.action.params;
+                    await setStructureEmissive(this.plugin, s.components, p.value, getLoci, params.representations);
                 } else if (params.action.name === 'material') {
                     const p = params.action.params;
                     await setStructureSubstance(this.plugin, s.components, p.material, getLoci, params.representations);
@@ -512,6 +516,9 @@ namespace StructureComponentManager {
                 }, { isFlat: true }),
                 resetColor: PD.EmptyGroup({ label: 'Reset Color' }),
                 transparency: PD.Group({
+                    value: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }),
+                }, { isFlat: true }),
+                emissive: PD.Group({
                     value: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }),
                 }, { isFlat: true }),
                 material: PD.Group({
