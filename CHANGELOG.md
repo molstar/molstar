@@ -8,6 +8,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Refactor transparency rendering
     - More uniform behavior for blended, wboit, dpoit
     - Fix issues with text & image geometry
+- Add emissive material support
+- Add bloom post-processing
 
 ## [v4.1.0] - 2023-03-31
 
