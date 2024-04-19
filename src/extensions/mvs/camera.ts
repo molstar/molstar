@@ -33,6 +33,12 @@ const DefaultCanvasBackgroundColor = ColorNames.white;
 
 const _tmpVec = Vec3();
 
+/** Set the camera position to the current position (thus suppress automatic adjustment). */
+export async function suppressCameraAutoreset(plugin: PluginContext) {
+    const snapshot = { ...plugin.canvas3d?.camera.state };
+    await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
+}
+
 /** Set the camera based on a camera node params. */
 export async function setCamera(plugin: PluginContext, params: ParamsOfKind<MolstarTree, 'camera'>) {
     const target = Vec3.create(...params.target);
