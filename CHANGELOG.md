@@ -18,6 +18,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - `EXT_clip_control`
 - Add `MultiSampleParams.reduceFlicker` (to be able to switch it off)
 - Add `alphaThickness` parameter to adjust alpha of spheres for radius
+- Return StateTransform selectors from measurements API (addDistance, addAngle, etc.)
 
 ## [v3.39.0] - 2023-09-02
 
