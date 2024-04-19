@@ -10,6 +10,7 @@ precision mediump sampler2D;
     uniform float uOpacity;
     uniform float uSaturation;
     uniform float uLightness;
+    uniform mat3 uRotation;
 #elif defined(dVariant_image)
     uniform sampler2D tImage;
     uniform vec2 uImageScale;
@@ -52,9 +53,9 @@ void main() {
     #if defined(dVariant_skybox)
         vec4 t = uViewDirectionProjectionInverse * vPosition;
         #ifdef enabledShaderTextureLod
-            gl_FragColor = textureCubeLodEXT(tSkybox, normalize(t.xyz / t.w), uBlur * 8.0);
+            gl_FragColor = textureCubeLodEXT(tSkybox, uRotation * normalize(t.xyz / t.w), uBlur * 8.0);
         #else
-            gl_FragColor = textureCube(tSkybox, normalize(t.xyz / t.w));
+            gl_FragColor = textureCube(tSkybox, uRotation * normalize(t.xyz / t.w));
         #endif
         gl_FragColor.a = uOpacity;
         gl_FragColor.rgb = lightenColor(saturateColor(gl_FragColor.rgb, uSaturation), uLightness);

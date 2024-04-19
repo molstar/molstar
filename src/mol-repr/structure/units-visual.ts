@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -46,7 +47,7 @@ export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<
 
 function createUnitsRenderObject<G extends Geometry>(structureGroup: StructureGroup, geometry: G, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureParams & Geometry.Params<G>>, materialId: number) {
     const { createValues, createRenderableState } = Geometry.getUtils(geometry);
-    const transform = createUnitsTransform(structureGroup, props.includeParent);
+    const transform = createUnitsTransform(structureGroup, props.includeParent, geometry.boundingSphere, props.cellSize, props.batchSize);
     const values = createValues(geometry, transform, locationIt, theme, props);
     const state = createRenderableState(props);
     return createRenderObject(geometry.kind, values, state, materialId);
@@ -55,7 +56,7 @@ function createUnitsRenderObject<G extends Geometry>(structureGroup: StructureGr
 interface UnitsVisualBuilder<P extends StructureParams, G extends Geometry> {
     defaultProps: PD.Values<P>
     createGeometry(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: G): Promise<G> | G
-    createLocationIterator(structureGroup: StructureGroup): LocationIterator
+    createLocationIterator(structureGroup: StructureGroup, props: PD.Values<P>): LocationIterator
     getLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number): Loci
     eachLocation(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean, isMarking: boolean): boolean
     setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup): void
@@ -126,7 +127,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             updateState.createGeometry = true;
         }
 
-        if (newProps.instanceGranularity !== currentProps.instanceGranularity) {
+        if (newProps.instanceGranularity !== currentProps.instanceGranularity || newProps.cellSize !== currentProps.cellSize || newProps.batchSize !== currentProps.batchSize) {
             updateState.updateTransform = true;
         }
 
@@ -182,7 +183,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
 
     function update(newGeometry?: G) {
         if (updateState.createNew) {
-            locationIt = createLocationIterator(newStructureGroup);
+            locationIt = createLocationIterator(newStructureGroup, newProps);
             if (newGeometry) {
                 renderObject = createUnitsRenderObject(newStructureGroup, newGeometry, locationIt, newTheme, newProps, materialId);
                 positionIt = createPositionIterator(newGeometry, renderObject.values);
@@ -196,7 +197,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
 
             if (updateState.updateTransform) {
                 // console.log('update transform');
-                locationIt = createLocationIterator(newStructureGroup);
+                locationIt = createLocationIterator(newStructureGroup, newProps);
                 const { instanceCount, groupCount } = locationIt;
                 if (newProps.instanceGranularity) {
                     createMarkers(instanceCount, 'instance', renderObject.values);
@@ -207,7 +208,11 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
 
             if (updateState.updateMatrix) {
                 // console.log('update matrix');
-                createUnitsTransform(newStructureGroup, newProps.includeParent, renderObject.values);
+                createUnitsTransform(newStructureGroup, newProps.includeParent, renderObject.values.invariantBoundingSphere.ref.value, newProps.cellSize, newProps.batchSize, renderObject.values);
+                if ('lodLevels' in renderObject.values) {
+                    // to trigger `uLod` update in `renderable.cull`
+                    ValueCell.update(renderObject.values.lodLevels, renderObject.values.lodLevels.ref.value);
+                }
             }
 
             if (updateState.createGeometry) {

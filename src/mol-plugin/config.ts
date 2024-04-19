@@ -30,9 +30,7 @@ export const PluginConfig = {
         DisablePreserveDrawingBuffer: item('plugin-config.disable-preserve-drawing-buffer', false),
         PixelScale: item('plugin-config.pixel-scale', 1),
         PickScale: item('plugin-config.pick-scale', 0.25),
-        PickPadding: item('plugin-config.pick-padding', 3),
-        EnableWboit: item('plugin-config.enable-wboit', true),
-        EnableDpoit: item('plugin-config.enable-dpoit', false),
+        Transparency: item<'blended' | 'wboit' | 'dpoit'>('plugin-config.transparency', 'wboit'),
         // as of Oct 1 2021, WebGL 2 doesn't work on iOS 15.
         // TODO: check back in a few weeks to see if it was fixed
         PreferWebGl1: item('plugin-config.prefer-webgl1', PluginFeatureDetection.preferWebGl1),
@@ -50,7 +48,7 @@ export const PluginConfig = {
         CanStream: item('volume-streaming.can-stream', (s: Structure, plugin: PluginContext) => {
             return s.models.length === 1 && Model.probablyHasDensityMap(s.models[0]);
         }),
-        EmdbHeaderServer: item('volume-streaming.emdb-header-server', 'https://ftp.wwpdb.org/pub/emdb/structures'),
+        EmdbHeaderServer: item('volume-streaming.emdb-header-server', 'https://files.wwpdb.org/pub/emdb/structures'),
     },
     Viewport: {
         ShowExpand: item('viewer.show-expand-button', true),

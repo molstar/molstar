@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -19,6 +19,7 @@
 
 import { NumberArray } from '../../../mol-util/type-helpers';
 import { EPSILON } from './common';
+import { Euler } from './euler';
 import { Mat4 } from './mat4';
 import { Vec3 } from './vec3';
 
@@ -90,6 +91,19 @@ namespace Mat3 {
         return a;
     }
 
+    export function fromColumns(out: Mat3, left: Vec3, middle: Vec3, right: Vec3) {
+        out[0] = left[0];
+        out[1] = left[1];
+        out[2] = left[2];
+        out[3] = middle[0];
+        out[4] = middle[1];
+        out[5] = middle[2];
+        out[6] = right[0];
+        out[7] = right[1];
+        out[8] = right[2];
+        return out;
+    }
+
     /**
      * Copies the upper-left 3x3 values into the given mat3.
      */
@@ -104,6 +118,12 @@ namespace Mat3 {
         out[7] = a[9];
         out[8] = a[10];
         return out;
+    }
+
+    const _m4 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] as unknown as Mat4;
+    export function fromEuler(out: Mat3, euler: Euler, order: Euler.Order) {
+        Mat4.fromEuler(_m4, euler, order);
+        return fromMat4(out, _m4);
     }
 
     export function create(a00: number, a01: number, a02: number, a10: number, a11: number, a12: number, a20: number, a21: number, a22: number): Mat3 {

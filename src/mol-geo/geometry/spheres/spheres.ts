@@ -52,7 +52,9 @@ export namespace Spheres {
     export interface ShaderData {
         readonly positionGroup: ValueCell<TextureImage<Float32Array>>
         readonly texDim: ValueCell<Vec2>
-        update(): void
+        readonly lodLevels: ValueCell<LodLevelsValue>
+        readonly sizeFactor: ValueCell<number>
+        update(props?: { lodLevels: LodLevels, sizeFactor: number }): void
     }
 
     export function create(centers: Float32Array, groups: Float32Array, sphereCount: number, spheres?: Spheres): Spheres {
@@ -84,6 +86,8 @@ export namespace Spheres {
 
         const positionGroup = ValueCell.create(createTextureImage(1, 4, Float32Array));
         const texDim = ValueCell.create(Vec2.create(0, 0));
+        const lodLevels = ValueCell.create([] as LodLevelsValue);
+        const sizeFactor = ValueCell.create(0);
 
         const spheres = {
             kind: 'spheres' as const,
@@ -113,11 +117,21 @@ export namespace Spheres {
             shaderData: {
                 positionGroup,
                 texDim,
-                update() {
+                lodLevels,
+                sizeFactor,
+                update(props?: { lodLevels: LodLevels, sizeFactor: number }) {
+                    const lodLevelsProp = props?.lodLevels ?? getLodLevels(lodLevels.ref.value);
+                    const sizeFactorProp = props?.sizeFactor ?? sizeFactor.ref.value;
+
+                    const strides = getStrides(lodLevelsProp, sizeFactorProp);
                     const pgt = createTextureImage(spheres.sphereCount, 4, Float32Array, positionGroup.ref.value.array);
-                    setPositionGroup(pgt, spheres.centerBuffer.ref.value, spheres.groupBuffer.ref.value, spheres.sphereCount);
+                    const offsets = getStrideOffsetsAndSetPositionGroup(pgt, spheres.centerBuffer.ref.value, spheres.groupBuffer.ref.value, spheres.sphereCount, strides);
+                    const newLodLevels = offsets ? getLodLevelsValue(lodLevelsProp, sizeFactorProp, offsets, spheres.sphereCount) : [];
+
                     ValueCell.update(positionGroup, pgt);
                     ValueCell.update(texDim, Vec2.set(texDim.ref.value, pgt.width, pgt.height));
+                    ValueCell.update(lodLevels, newLodLevels);
+                    ValueCell.update(sizeFactor, sizeFactorProp);
                 }
             },
         };
@@ -132,14 +146,98 @@ export namespace Spheres {
         return spheres;
     }
 
-    function setPositionGroup(out: TextureImage<Float32Array>, centers: Float32Array, groups: Float32Array, count: number) {
+    function getStrideOffsetsAndSetPositionGroup(out: TextureImage<Float32Array>, centers: Float32Array, groups: Float32Array, count: number, strides: number[]) {
         const { array } = out;
-        for (let i = 0; i < count; ++i) {
-            array[i * 4 + 0] = centers[i * 3 + 0];
-            array[i * 4 + 1] = centers[i * 3 + 1];
-            array[i * 4 + 2] = centers[i * 3 + 2];
-            array[i * 4 + 3] = groups[i];
+        if (strides.length === 0) {
+            for (let i = 0; i < count; ++i) {
+                array[i * 4 + 0] = centers[i * 3 + 0];
+                array[i * 4 + 1] = centers[i * 3 + 1];
+                array[i * 4 + 2] = centers[i * 3 + 2];
+                array[i * 4 + 3] = groups[i];
+            }
+            return;
         }
+
+        const offsets = [0];
+
+        let o = 0;
+        for (let i = 0, il = strides.length; i < il; ++i) {
+            const s = strides[i];
+            for (let j = 0; j < count; ++j) {
+                let handled = false;
+                for (let k = 0; k < i; ++k) {
+                    if (j % strides[k] === 0) {
+                        handled = true;
+                        break;
+                    }
+                }
+                if (!handled && j % s === 0) {
+                    array[o * 4 + 0] = centers[j * 3 + 0];
+                    array[o * 4 + 1] = centers[j * 3 + 1];
+                    array[o * 4 + 2] = centers[j * 3 + 2];
+                    array[o * 4 + 3] = groups[j];
+                    o += 1;
+                }
+            }
+            offsets.push(o * 6);
+        }
+
+        return offsets;
+    }
+
+    type LodLevels = {
+        minDistance: number
+        maxDistance: number
+        overlap: number
+        stride: number
+        scaleBias: number
+    }[]
+
+    function areLodLevelsEqual(a: LodLevels, b: LodLevels) {
+        if (a.length !== b.length) return false;
+        for (let i = 0, il = a.length; i < il; ++i) {
+            if (a[i].maxDistance !== b[i].maxDistance) return false;
+            if (a[i].minDistance !== b[i].minDistance) return false;
+            if (a[i].overlap !== b[i].overlap) return false;
+            if (a[i].stride !== b[i].stride) return false;
+            if (a[i].scaleBias !== b[i].scaleBias) return false;
+        }
+        return true;
+    }
+
+    type LodLevelsValue = [minDistance: number, maxDistance: number, overlap: number, count: number, scale: number, stride: number, scaleBias: number][];
+
+    function getLodLevelsValue(prop: LodLevels, sizeFactor: number, offsets: number[], count: number): LodLevelsValue {
+        return prop.map((l, i) => {
+            const stride = getAdjustedStride(l, sizeFactor);
+            return [
+                l.minDistance,
+                l.maxDistance,
+                l.overlap,
+                offsets[offsets.length - 1 - i],
+                Math.pow(Math.min(count, stride), 1 / l.scaleBias),
+                l.stride,
+                l.scaleBias,
+            ];
+        });
+    }
+
+    function getLodLevels(lodLevelsValue: LodLevelsValue): LodLevels {
+        return lodLevelsValue.map(l => ({
+            minDistance: l[0],
+            maxDistance: l[1],
+            overlap: l[2],
+            stride: l[5],
+            scaleBias: l[6],
+        }));
+    }
+
+    function getAdjustedStride(lodLevel: LodLevels[0], sizeFactor: number) {
+        return Math.max(1, Math.round(lodLevel.stride / Math.pow(sizeFactor, lodLevel.scaleBias)));
+    }
+
+    function getStrides(lodLevels: LodLevels, sizeFactor: number) {
+        return lodLevels.map(l => getAdjustedStride(l, sizeFactor)).reverse();
     }
 
     export const Params = {
@@ -148,12 +246,23 @@ export namespace Spheres {
         doubleSided: PD.Boolean(false, BaseGeometry.CustomQualityParamInfo),
         ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
         xrayShaded: PD.Select<boolean | 'inverted'>(false, [[false, 'Off'], [true, 'On'], ['inverted', 'Inverted']], BaseGeometry.ShadingCategory),
-        transparentBackfaces: PD.Select('off', PD.arrayToOptions(['off', 'on', 'opaque']), BaseGeometry.ShadingCategory),
+        transparentBackfaces: PD.Select('off', PD.arrayToOptions(['off', 'on', 'opaque'] as const), BaseGeometry.ShadingCategory),
         solidInterior: PD.Boolean(true, BaseGeometry.ShadingCategory),
+        clipPrimitive: PD.Boolean(false, { ...BaseGeometry.ShadingCategory, description: 'Clip whole sphere instead of cutting it.' }),
         approximate: PD.Boolean(false, { ...BaseGeometry.ShadingCategory, description: 'Faster rendering, but has artifacts.' }),
         alphaThickness: PD.Numeric(0, { min: 0, max: 20, step: 1 }, { ...BaseGeometry.ShadingCategory, description: 'If not zero, adjusts alpha for radius.' }),
         bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
         bumpAmplitude: PD.Numeric(1, { min: 0, max: 5, step: 0.1 }, BaseGeometry.ShadingCategory),
+        lodLevels: PD.ObjectList({
+            minDistance: PD.Numeric(0),
+            maxDistance: PD.Numeric(0),
+            overlap: PD.Numeric(0),
+            stride: PD.Numeric(0),
+            scaleBias: PD.Numeric(3, { min: 0.1, max: 10, step: 0.1 }),
+        }, o => `${o.stride}`, {
+            ...BaseGeometry.CullingLodCategory,
+            defaultValue: [] as LodLevels
+        })
     };
     export type Params = typeof Params
 
@@ -207,7 +316,7 @@ export namespace Spheres {
         const invariantBoundingSphere = Sphere3D.expand(Sphere3D(), spheres.boundingSphere, padding);
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount, 0);
 
-        spheres.shaderData.update();
+        spheres.shaderData.update({ lodLevels: props.lodLevels, sizeFactor: props.sizeFactor });
 
         return {
             dGeometryType: ValueCell.create('spheres'),
@@ -230,17 +339,19 @@ export namespace Spheres {
             padding: ValueCell.create(padding),
 
             ...BaseGeometry.createValues(props, counts),
-            uSizeFactor: ValueCell.create(props.sizeFactor),
+            uSizeFactor: spheres.shaderData.sizeFactor,
             uDoubleSided: ValueCell.create(props.doubleSided),
             dIgnoreLight: ValueCell.create(props.ignoreLight),
             dXrayShaded: ValueCell.create(props.xrayShaded === 'inverted' ? 'inverted' : props.xrayShaded === true ? 'on' : 'off'),
             dTransparentBackfaces: ValueCell.create(props.transparentBackfaces),
             dSolidInterior: ValueCell.create(props.solidInterior),
+            dClipPrimitive: ValueCell.create(props.clipPrimitive),
             dApproximate: ValueCell.create(props.approximate),
             uAlphaThickness: ValueCell.create(props.alphaThickness),
             uBumpFrequency: ValueCell.create(props.bumpFrequency),
             uBumpAmplitude: ValueCell.create(props.bumpAmplitude),
 
+            lodLevels: spheres.shaderData.lodLevels,
             centerBuffer: spheres.centerBuffer,
             groupBuffer: spheres.groupBuffer,
         };
@@ -260,10 +371,21 @@ export namespace Spheres {
         ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded === 'inverted' ? 'inverted' : props.xrayShaded === true ? 'on' : 'off');
         ValueCell.updateIfChanged(values.dTransparentBackfaces, props.transparentBackfaces);
         ValueCell.updateIfChanged(values.dSolidInterior, props.solidInterior);
+        ValueCell.updateIfChanged(values.dClipPrimitive, props.clipPrimitive);
         ValueCell.updateIfChanged(values.dApproximate, props.approximate);
         ValueCell.updateIfChanged(values.uAlphaThickness, props.alphaThickness);
         ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);
         ValueCell.updateIfChanged(values.uBumpAmplitude, props.bumpAmplitude);
+
+        const lodLevels = getLodLevels(values.lodLevels.ref.value as LodLevelsValue);
+        if (!areLodLevelsEqual(props.lodLevels, lodLevels)) {
+            const count = values.uVertexCount.ref.value / 6;
+            const strides = getStrides(props.lodLevels, props.sizeFactor);
+            const offsets = getStrideOffsetsAndSetPositionGroup(values.tPositionGroup.ref.value, values.centerBuffer.ref.value, values.groupBuffer.ref.value, count, strides);
+            const lodLevels = offsets ? getLodLevelsValue(props.lodLevels, props.sizeFactor, offsets, count) : [];
+            ValueCell.update(values.tPositionGroup, values.tPositionGroup.ref.value);
+            ValueCell.update(values.lodLevels, lodLevels);
+        }
     }
 
     function updateBoundingSphere(values: SpheresValues, spheres: Spheres) {

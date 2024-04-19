@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Cai Huiyu <szmun.caihy@gmail.com>
  */
 
 import { ValueCell } from '../../../mol-util';
@@ -120,7 +121,7 @@ export namespace TextureMesh {
         flatShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
         ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
         xrayShaded: PD.Select<boolean | 'inverted'>(false, [[false, 'Off'], [true, 'On'], ['inverted', 'Inverted']], BaseGeometry.ShadingCategory),
-        transparentBackfaces: PD.Select('off', PD.arrayToOptions(['off', 'on', 'opaque']), BaseGeometry.ShadingCategory),
+        transparentBackfaces: PD.Select('off', PD.arrayToOptions(['off', 'on', 'opaque'] as const), BaseGeometry.ShadingCategory),
         bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
         bumpAmplitude: PD.Numeric(1, { min: 0, max: 5, step: 0.1 }, BaseGeometry.ShadingCategory),
     };
@@ -154,17 +155,24 @@ export namespace TextureMesh {
         textureMesh.vertexTexture.ref.value.attachFramebuffer(framebuffer, 0);
         webgl.readPixels(0, 0, width, height, vertices);
 
+        const normals = new Float32Array(width * height * 4);
+        framebuffer.bind();
+        textureMesh.normalTexture.ref.value.attachFramebuffer(framebuffer, 0);
+        webgl.readPixels(0, 0, width, height, normals);
+
         const groupCount = textureMesh.vertexCount;
         const instanceCount = transform.instanceCount.ref.value;
         const location = PositionLocation();
         const p = location.position;
-        const v = vertices;
+        const n = location.normal;
         const m = transform.aTransform.ref.value;
         const getLocation = (groupIndex: number, instanceIndex: number) => {
             if (instanceIndex < 0) {
-                Vec3.fromArray(p, v, groupIndex * 4);
+                Vec3.fromArray(p, vertices, groupIndex * 4);
+                Vec3.fromArray(n, normals, groupIndex * 4);
             } else {
-                Vec3.transformMat4Offset(p, v, m, 0, groupIndex * 4, instanceIndex * 16);
+                Vec3.transformMat4Offset(p, vertices, m, 0, groupIndex * 4, instanceIndex * 16);
+                Vec3.transformDirectionOffset(n, normals, m, 0, groupIndex * 4, instanceIndex * 16);
             }
             return location;
         };

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -23,7 +23,9 @@ import { Vec2 } from '../../mol-math/linear-algebra/3d/vec2';
 import { Color } from '../../mol-util/color';
 import { Asset, AssetManager } from '../../mol-util/assets';
 import { Vec4 } from '../../mol-math/linear-algebra/3d/vec4';
-import { isPowerOfTwo } from '../../mol-math/misc';
+import { degToRad, isPowerOfTwo } from '../../mol-math/misc';
+import { Mat3 } from '../../mol-math/linear-algebra/3d/mat3';
+import { Euler } from '../../mol-math/linear-algebra/3d/euler';
 
 const SharedParams = {
     opacity: PD.Numeric(1, { min: 0.0, max: 1.0, step: 0.01 }),
@@ -51,6 +53,11 @@ const SkyboxParams = {
         }, { isExpanded: true, label: 'Files' }),
     }),
     blur: PD.Numeric(0, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'Note, this only works in WebGL2 or when "EXT_shader_texture_lod" is available.' }),
+    rotation: PD.Group({
+        x: PD.Numeric(0, { min: 0, max: 360, step: 1 }, { immediateUpdate: true }),
+        y: PD.Numeric(0, { min: 0, max: 360, step: 1 }, { immediateUpdate: true }),
+        z: PD.Numeric(0, { min: 0, max: 360, step: 1 }, { immediateUpdate: true }),
+    }),
     ...SharedParams,
 };
 type SkyboxProps = PD.Values<typeof SkyboxParams>
@@ -172,6 +179,14 @@ export class BackgroundPass {
         Mat4.mul(m, cam.projection, m);
         Mat4.invert(m, m);
         ValueCell.update(this.renderable.values.uViewDirectionProjectionInverse, m);
+
+        const r = this.renderable.values.uRotation.ref.value;
+        Mat3.fromEuler(r, Euler.create(
+            degToRad(props.rotation.x),
+            degToRad(props.rotation.y),
+            degToRad(props.rotation.z)
+        ), 'XYZ');
+        ValueCell.update(this.renderable.values.uRotation, r);
 
         ValueCell.updateIfChanged(this.renderable.values.uBlur, props.blur);
         ValueCell.updateIfChanged(this.renderable.values.uOpacity, props.opacity);
@@ -372,6 +387,12 @@ function getSkyboxTexture(ctx: WebGLContext, assetManager: AssetManager, faces: 
     const cubeAssets = getCubeAssets(assetManager, faces);
     const cubeFaces = getCubeFaces(assetManager, cubeAssets);
     const assets = [cubeAssets.nx, cubeAssets.ny, cubeAssets.nz, cubeAssets.px, cubeAssets.py, cubeAssets.pz];
+    if (typeof HTMLImageElement === 'undefined') {
+        console.error(`Missing "HTMLImageElement" required for background skybox`);
+        onload?.(true);
+        return { texture: createNullTexture(), assets };
+    }
+
     const texture = ctx.resources.cubeTexture(cubeFaces, true, onload);
     return { texture, assets };
 }
@@ -393,6 +414,15 @@ function areImageTexturePropsEqual(sourceA: ImageProps['source'], sourceB: Image
 }
 
 function getImageTexture(ctx: WebGLContext, assetManager: AssetManager, source: ImageProps['source'], onload?: (errored?: boolean) => void): { texture: Texture, asset: Asset } {
+    const asset = source.name === 'url'
+        ? Asset.getUrlAsset(assetManager, source.params)
+        : source.params!;
+    if (typeof HTMLImageElement === 'undefined') {
+        console.error(`Missing "HTMLImageElement" required for background image`);
+        onload?.(true);
+        return { texture: createNullTexture(), asset };
+    }
+
     const texture = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
     const img = new Image();
     img.onload = () => {
@@ -405,9 +435,7 @@ function getImageTexture(ctx: WebGLContext, assetManager: AssetManager, source: 
     img.onerror = () => {
         onload?.(true);
     };
-    const asset = source.name === 'url'
-        ? Asset.getUrlAsset(assetManager, source.params)
-        : source.params!;
+
     assetManager.resolve(asset, 'binary').run().then(a => {
         const blob = new Blob([a.data]);
         img.src = URL.createObjectURL(blob);
@@ -436,6 +464,7 @@ const BackgroundSchema = {
     uOpacity: UniformSpec('f'),
     uSaturation: UniformSpec('f'),
     uLightness: UniformSpec('f'),
+    uRotation: UniformSpec('m3'),
     dVariant: DefineSpec('string', ['skybox', 'image', 'verticalGradient', 'horizontalGradient', 'radialGradient']),
 };
 const SkyboxShaderCode = ShaderCode('background', background_vert, background_frag, {
@@ -463,6 +492,7 @@ function getBackgroundRenderable(ctx: WebGLContext, width: number, height: numbe
         uOpacity: ValueCell.create(1),
         uSaturation: ValueCell.create(0),
         uLightness: ValueCell.create(0),
+        uRotation: ValueCell.create(Mat3.identity()),
         dVariant: ValueCell.create('skybox'),
     };
 

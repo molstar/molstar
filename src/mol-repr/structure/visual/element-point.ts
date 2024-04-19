@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -42,7 +43,7 @@ export function createElementPoint(ctx: VisualContext, unit: Unit, structure: St
     const builder = PointsBuilder.create(n, n / 10, points);
 
     const p = Vec3();
-    const pos = unit.conformation.invariantPosition;
+    const c = unit.conformation;
     const ignore = makeElementIgnoreTest(structure, unit, props);
     const center = Vec3();
     let count = 0;
@@ -50,14 +51,14 @@ export function createElementPoint(ctx: VisualContext, unit: Unit, structure: St
     if (ignore) {
         for (let i = 0; i < n; ++i) {
             if (ignore(elements[i])) continue;
-            pos(elements[i], p);
+            c.invariantPosition(elements[i], p);
             v3add(center, center, p);
             count += 1;
             builder.add(p[0], p[1], p[2], i);
         }
     } else {
         for (let i = 0; i < n; ++i) {
-            pos(elements[i], p);
+            c.invariantPosition(elements[i], p);
             v3add(center, center, p);
             count += 1;
             builder.add(p[0], p[1], p[2], i);
@@ -71,7 +72,7 @@ export function createElementPoint(ctx: VisualContext, unit: Unit, structure: St
     // re-use boundingSphere if it has not changed much
     let boundingSphere: Sphere3D;
     Vec3.scale(center, center, 1 / count);
-    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
+    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         boundingSphere = oldBoundingSphere;
     } else {
         boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor);

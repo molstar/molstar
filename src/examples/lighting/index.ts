@@ -6,8 +6,9 @@
 
 import { Canvas3DProps } from '../../mol-canvas3d/canvas3d';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
-import { createPluginUI } from '../../mol-plugin-ui/react18';
+import { createPluginUI } from '../../mol-plugin-ui';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
+import { renderReact18 } from '../../mol-plugin-ui/react18';
 import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { Asset } from '../../mol-util/assets';
@@ -113,16 +114,20 @@ class LightingDemo {
     private preset: Canvas3DPreset = 'illustrative';
 
     async init(target: string | HTMLElement) {
-        this.plugin = await createPluginUI(typeof target === 'string' ? document.getElementById(target)! : target, {
-            ...DefaultPluginUISpec(),
-            layout: {
-                initial: {
-                    isExpanded: false,
-                    showControls: false
+        this.plugin = await createPluginUI({
+            target: typeof target === 'string' ? document.getElementById(target)! : target,
+            render: renderReact18,
+            spec: {
+                ...DefaultPluginUISpec(),
+                layout: {
+                    initial: {
+                        isExpanded: false,
+                        showControls: false
+                    },
                 },
-            },
-            components: {
-                controls: { left: 'none', right: 'none', top: 'none', bottom: 'none' }
+                components: {
+                    controls: { left: 'none', right: 'none', top: 'none', bottom: 'none' }
+                }
             }
         });
 

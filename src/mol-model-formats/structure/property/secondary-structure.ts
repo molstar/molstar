@@ -9,7 +9,7 @@
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { SecondaryStructureType } from '../../../mol-model/structure/model/types';
 import { AtomicHierarchy } from '../../../mol-model/structure/model/properties/atomic';
-import { SecondaryStructure } from '../../../mol-model/structure/model/properties/seconday-structure';
+import { SecondaryStructure } from '../../../mol-model/structure/model/properties/secondary-structure';
 import { Column, Table } from '../../../mol-data/db';
 import { ChainIndex, ResidueIndex } from '../../../mol-model/structure/model/indexing';
 import { FormatPropertyProvider } from '../common/property';

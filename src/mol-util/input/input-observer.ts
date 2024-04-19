@@ -271,6 +271,8 @@ interface InputObserver {
     readonly keyDown: Observable<KeyInput>
     readonly lock: Observable<boolean>
 
+    setPixelScale: (pixelScale: number) => void
+
     requestPointerLock: (viewport: Viewport) => void
     exitPointerLock: () => void
     dispose: () => void
@@ -311,6 +313,8 @@ namespace InputObserver {
             pixelRatio: 1,
 
             ...createEvents(),
+
+            setPixelScale: noop,
 
             requestPointerLock: noop,
             exitPointerLock: noop,
@@ -826,6 +830,8 @@ namespace InputObserver {
         }
 
         function onResize() {
+            width = element.clientWidth * pixelRatio();
+            height = element.clientHeight * pixelRatio();
             resize.next({});
         }
 
@@ -874,8 +880,8 @@ namespace InputObserver {
             }
         }
 
-        const cross = addCross();
         const crossWidth = 30;
+        const cross = addCross();
 
         function addCross() {
             const cross = document.createElement('div');
@@ -926,6 +932,12 @@ namespace InputObserver {
             get pointerLock() { return isLocked; },
 
             ...events,
+
+            setPixelScale: (value: number) => {
+                pixelScale = value;
+                width = element.clientWidth * pixelRatio();
+                height = element.clientHeight * pixelRatio();
+            },
 
             requestPointerLock: (viewport: Viewport) => {
                 lockedViewport = viewport;

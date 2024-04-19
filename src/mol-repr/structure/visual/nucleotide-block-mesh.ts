@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -14,10 +14,10 @@ import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Segmentation } from '../../../mol-data/int';
 import { CylinderProps } from '../../../mol-geo/primitive/cylinder';
-import { isNucleic, isPurineBase, isPyrimidineBase } from '../../../mol-model/structure/model/types';
+import { isNucleic } from '../../../mol-model/structure/model/types';
 import { addCylinder } from '../../../mol-geo/geometry/mesh/builder/cylinder';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
-import { NucleotideLocationIterator, getNucleotideElementLoci, eachNucleotideElement } from './util/nucleotide';
+import { NucleotideLocationIterator, getNucleotideElementLoci, eachNucleotideElement, getNucleotideBaseType, createNucleicIndices, setPurinIndices, setPyrimidineIndices } from './util/nucleotide';
 import { VisualUpdateState } from '../../util';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
 import { Sphere3D } from '../../../mol-math/geometry';
@@ -29,7 +29,7 @@ const p2 = Vec3();
 const p3 = Vec3();
 const p4 = Vec3();
 const p5 = Vec3();
-const p6 = Vec3();
+const pt = Vec3();
 const v12 = Vec3();
 const v34 = Vec3();
 const vC = Vec3();
@@ -40,6 +40,7 @@ const box = Box();
 
 export const NucleotideBlockMeshParams = {
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
+    thicknessFactor: PD.Numeric(1, { min: 0, max: 2, step: 0.01 }),
     radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }, BaseGeometry.CustomQualityParamInfo),
 };
 export const DefaultNucleotideBlockMeshProps = PD.getDefaultValues(NucleotideBlockMeshParams);
@@ -51,21 +52,23 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
     const nucleotideElementCount = unit.nucleotideElements.length;
     if (!nucleotideElementCount) return Mesh.createEmpty(mesh);
 
-    const { sizeFactor, radialSegments } = props;
+    const { sizeFactor, thicknessFactor, radialSegments } = props;
 
     const vertexCount = nucleotideElementCount * (box.vertices.length / 3 + radialSegments * 2);
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 4, mesh);
 
-    const { elements, model } = unit;
-    const { chainAtomSegments, residueAtomSegments, atoms, index: atomicIndex } = model.atomicHierarchy;
-    const { moleculeType, traceElementIndex } = model.atomicHierarchy.derived.residue;
-    const { label_comp_id } = atoms;
-    const pos = unit.conformation.invariantPosition;
+    const { elements, model, conformation: c } = unit;
+    const { chainAtomSegments, residueAtomSegments } = model.atomicHierarchy;
+    const { moleculeType } = model.atomicHierarchy.derived.residue;
 
     const chainIt = Segmentation.transientSegments(chainAtomSegments, elements);
     const residueIt = Segmentation.transientSegments(residueAtomSegments, elements);
 
-    const cylinderProps: CylinderProps = { radiusTop: 1 * sizeFactor, radiusBottom: 1 * sizeFactor, radialSegments, bottomCap: true };
+    const radius = 1 * sizeFactor;
+    const width = 4.5;
+    const depth = thicknessFactor * sizeFactor * 2;
+
+    const cylinderProps: CylinderProps = { radiusTop: radius, radiusBottom: radius, radialSegments, bottomCap: true };
 
     let i = 0;
     while (chainIt.hasNext) {
@@ -75,53 +78,29 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
             const { index: residueIndex } = residueIt.move();
 
             if (isNucleic(moleculeType[residueIndex])) {
-                const compId = label_comp_id.value(residueAtomSegments.offsets[residueIndex]);
-                let idx1: ElementIndex | -1 = -1, idx2: ElementIndex | -1 = -1, idx3: ElementIndex | -1 = -1, idx4: ElementIndex | -1 = -1, idx5: ElementIndex | -1 = -1, idx6: ElementIndex | -1 = -1;
-                const width = 4.5, depth = 2.5 * sizeFactor;
+                const idx = createNucleicIndices();
+                let idx1: ElementIndex | -1 = -1, idx2: ElementIndex | -1 = -1, idx3: ElementIndex | -1 = -1, idx4: ElementIndex | -1 = -1, idx5: ElementIndex | -1 = -1;
+
                 let height = 4.5;
 
-                let isPurine = isPurineBase(compId);
-                let isPyrimidine = isPyrimidineBase(compId);
-
-                if (!isPurine && !isPyrimidine) {
-                    // detect Purine or Pyrimidin based on geometry
-                    const idxC4 = atomicIndex.findAtomOnResidue(residueIndex, 'C4');
-                    const idxN9 = atomicIndex.findAtomOnResidue(residueIndex, 'N9');
-                    if (idxC4 !== -1 && idxN9 !== -1 && Vec3.distance(pos(idxC4, p1), pos(idxN9, p2)) < 1.6) {
-                        isPurine = true;
-                    } else {
-                        isPyrimidine = true;
-                    }
-                }
+                const { isPurine, isPyrimidine } = getNucleotideBaseType(unit, residueIndex);
 
                 if (isPurine) {
                     height = 4.5;
-                    idx1 = atomicIndex.findAtomOnResidue(residueIndex, 'N1');
-                    idx2 = atomicIndex.findAtomOnResidue(residueIndex, 'C4');
-                    idx3 = atomicIndex.findAtomOnResidue(residueIndex, 'C6');
-                    idx4 = atomicIndex.findAtomOnResidue(residueIndex, 'C2');
-                    idx5 = atomicIndex.findAtomOnResidue(residueIndex, 'N9');
-                    idx6 = traceElementIndex[residueIndex];
+                    setPurinIndices(idx, unit, residueIndex);
+                    idx1 = idx.N1; idx2 = idx.C4; idx3 = idx.C6; idx4 = idx.C2; idx5 = idx.N9;
                 } else if (isPyrimidine) {
                     height = 3.0;
-                    idx1 = atomicIndex.findAtomOnResidue(residueIndex, 'N3');
-                    idx2 = atomicIndex.findAtomOnResidue(residueIndex, 'C6');
-                    idx3 = atomicIndex.findAtomOnResidue(residueIndex, 'C4');
-                    idx4 = atomicIndex.findAtomOnResidue(residueIndex, 'C2');
-                    idx5 = atomicIndex.findAtomOnResidue(residueIndex, 'N1');
-                    if (idx5 === -1) {
-                        // modified ring, e.g. DZ
-                        idx5 = atomicIndex.findAtomOnResidue(residueIndex, 'C1');
-                    }
-                    idx6 = traceElementIndex[residueIndex];
+                    setPyrimidineIndices(idx, unit, residueIndex);
+                    idx1 = idx.N3; idx2 = idx.C6; idx3 = idx.C4; idx4 = idx.C2; idx5 = idx.N1;
                 }
 
-                if (idx5 !== -1 && idx6 !== -1) {
-                    pos(idx5, p5); pos(idx6, p6);
+                if (idx5 !== -1 && idx.trace !== -1) {
+                    c.invariantPosition(idx5, p5); c.invariantPosition(idx.trace, pt);
                     builderState.currentGroup = i;
-                    addCylinder(builderState, p5, p6, 1, cylinderProps);
+                    addCylinder(builderState, p5, pt, 1, cylinderProps);
                     if (idx1 !== -1 && idx2 !== -1 && idx3 !== -1 && idx4 !== -1) {
-                        pos(idx1, p1); pos(idx2, p2); pos(idx3, p3); pos(idx4, p4);
+                        c.invariantPosition(idx1, p1); c.invariantPosition(idx2, p2); c.invariantPosition(idx3, p3); c.invariantPosition(idx4, p4);
                         Vec3.normalize(v12, Vec3.sub(v12, p2, p1));
                         Vec3.normalize(v34, Vec3.sub(v34, p4, p3));
                         Vec3.normalize(vC, Vec3.cross(vC, v12, v34));
@@ -140,7 +119,7 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
 
     const m = MeshBuilder.getMesh(builderState);
 
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor);
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, radius);
     m.setBoundingSphere(sphere);
 
     return m;
@@ -162,6 +141,7 @@ export function NucleotideBlockVisual(materialId: number): UnitsVisual<Nucleotid
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<NucleotideBlockParams>, currentProps: PD.Values<NucleotideBlockParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
+                newProps.thicknessFactor !== currentProps.thicknessFactor ||
                 newProps.radialSegments !== currentProps.radialSegments
             );
         }

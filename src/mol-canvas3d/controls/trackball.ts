@@ -193,7 +193,7 @@ namespace TrackballControls {
         }
 
         function getRotateFactor() {
-            const aspectRatio = input.width / input.height;
+            const aspectRatio = (input.width / input.height) || 1;
             return p.rotateSpeed * input.pixelRatio * aspectRatio;
         }
 
@@ -389,9 +389,7 @@ namespace TrackballControls {
             if (keyState.moveForward === 1) {
                 Vec3.normalize(moveDir, moveEye);
                 Vec3.scaleAndSub(camera.position, camera.position, moveDir, moveSpeed);
-                const dt = Vec3.distance(camera.target, camera.position);
-                const ds = Vec3.distance(scene.boundingSphereVisible.center, camera.position);
-                if (p.flyMode || input.pointerLock || (dt < minDistance && ds < camera.state.radiusMax)) {
+                if (p.flyMode || input.pointerLock) {
                     Vec3.sub(camera.target, camera.position, moveEye);
                 }
             }

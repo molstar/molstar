@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -46,7 +46,7 @@ export function createElementCross(ctx: VisualContext, unit: Unit, structure: St
     const s = Vec3();
     const e = Vec3();
 
-    const pos = unit.conformation.invariantPosition;
+    const c = unit.conformation;
     const ignore = makeElementIgnoreTest(structure, unit, props);
 
     const r = props.crossSize / 2;
@@ -56,7 +56,7 @@ export function createElementCross(ctx: VisualContext, unit: Unit, structure: St
         if (ignore && ignore(elements[i])) continue;
         if (lone && Unit.isAtomic(unit) && bondCount(structure, unit, i) !== 0) continue;
 
-        pos(elements[i], p);
+        c.invariantPosition(elements[i], p);
         v3scaleAndAdd(s, p, v3unitX, r);
         v3scaleAndAdd(e, p, v3unitX, -r);
         builder.add(s[0], s[1], s[2], e[0], e[1], e[2], i);

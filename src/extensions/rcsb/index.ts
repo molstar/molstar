@@ -4,5 +4,4 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export { RCSBAssemblySymmetry } from './assembly-symmetry/behavior';
 export { RCSBValidationReport } from './validation-report/behavior';

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -76,11 +76,11 @@ function getIncludeSurroundings(ctx: QueryContext, source: Structure, structure:
     const r = params.radius;
 
     for (const unit of structure.units) {
-        const { x, y, z } = unit.conformation;
+        const c = unit.conformation;
         const elements = unit.elements;
         for (let i = 0, _i = elements.length; i < _i; i++) {
             const e = elements[i];
-            lookup.findIntoBuilder(x(e), y(e), z(e), r, builder);
+            lookup.findIntoBuilder(c.x(e), c.y(e), c.z(e), r, builder);
         }
 
         ctx.throwIfTimedOut();
@@ -103,14 +103,14 @@ function getIncludeSurroundingsWithRadius(ctx: QueryContext, source: Structure, 
     ctx.element.structure = structure;
     for (const unit of structure.units) {
         ctx.element.unit = unit;
-        const { x, y, z } = unit.conformation;
+        const c = unit.conformation;
         const elements = unit.elements;
 
         for (let i = 0, _i = elements.length; i < _i; i++) {
             const e = elements[i];
             ctx.element.element = e;
             const eRadius = elementRadius(ctx);
-            lookup.findIntoBuilderWithRadius(x(e), y(e), z(e), eRadius, sourceMaxRadius, radius, elementRadiusClosure, builder);
+            lookup.findIntoBuilderWithRadius(c.x(e), c.y(e), c.z(e), eRadius, sourceMaxRadius, radius, elementRadiusClosure, builder);
         }
 
         ctx.throwIfTimedOut();
@@ -558,11 +558,11 @@ export function surroundingLigands({ query, radius, includeWater }: SurroundingL
             const finalBuilder = new StructureUniqueSubsetBuilder(ctx.inputStructure);
             const lookup = ctx.inputStructure.lookup3d;
             for (const unit of components.units) {
-                const { x, y, z } = unit.conformation;
+                const c = unit.conformation;
                 const elements = unit.elements;
                 for (let i = 0, _i = elements.length; i < _i; i++) {
                     const e = elements[i];
-                    lookup.findIntoBuilderIf(x(e), y(e), z(e), radius, finalBuilder, testIsWater);
+                    lookup.findIntoBuilderIf(c.x(e), c.y(e), c.z(e), radius, finalBuilder, testIsWater);
                     finalBuilder.addToUnit(unit.id, e);
                 }
 

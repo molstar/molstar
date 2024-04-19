@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -118,8 +118,6 @@ export class ParameterMappingControl<S, T> extends PluginUIComponent<{ mapping: 
     };
 
     componentDidMount() {
-        this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
-
         this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
             this.setState({ isDisabled: v });
         });
@@ -244,6 +242,7 @@ function renderSimple(options: { props: ParamProps<any>, state: { showHelp: bool
     const _className = [];
     if (props.param.shortLabel) _className.push('msp-control-label-short');
     if (props.param.twoColumns) _className.push('msp-control-col-2');
+    if (props.param.multiline) _className.push('msp-control-twoline');
     const className = _className.join(' ');
 
     const label = props.param.label || camelCaseToWords(props.name);
@@ -258,13 +257,7 @@ function renderSimple(options: { props: ParamProps<any>, state: { showHelp: bool
             title={desc}
             label={<>
                 {label}
-                {hasHelp &&
-                    <button className='msp-help msp-btn-link msp-btn-icon msp-control-group-expander' onClick={toggleHelp}
-                        title={desc || `${state.showHelp ? 'Hide' : 'Show'} help`}
-                        style={{ background: 'transparent', textAlign: 'left', padding: '0' }}>
-                        <Icon svg={HelpOutlineSvg} />
-                    </button>
-                }
+                {hasHelp && <ToggleParamHelpButton show={state.showHelp} toggle={toggleHelp} title={desc} />}
             </>}
             control={control}
         />
@@ -273,6 +266,14 @@ function renderSimple(options: { props: ParamProps<any>, state: { showHelp: bool
         </div>}
         {addOn}
     </>;
+}
+
+export function ToggleParamHelpButton({ show, toggle, title }: { show: boolean, toggle: () => void, title?: string }) {
+    return <button className='msp-help msp-btn-link msp-btn-icon msp-control-group-expander' onClick={toggle}
+        title={title || `${show ? 'Hide' : 'Show'} help`}
+        style={{ background: 'transparent', textAlign: 'left', padding: '0' }}>
+        <Icon svg={HelpOutlineSvg} />
+    </button>;
 }
 
 export abstract class SimpleParam<P extends PD.Any> extends React.PureComponent<ParamProps<P>, { showHelp: boolean }> {
@@ -401,30 +402,69 @@ export class NumberRangeControl extends SimpleParam<PD.Numeric> {
 }
 
 export class TextControl extends SimpleParam<PD.Text> {
-    onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
+    updateValue = (value: string) => {
         if (value !== this.props.value) {
             this.update(value);
         }
     };
 
-    onKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if ((e.keyCode === 13 || e.charCode === 13 || e.key === 'Enter')) {
-            if (this.props.onEnter) this.props.onEnter();
-        }
-        e.stopPropagation();
-    };
-
     renderControl() {
-        const placeholder = this.props.param.label || camelCaseToWords(this.props.name);
-        return <input type='text'
-            value={this.props.value || ''}
-            placeholder={placeholder}
-            onChange={this.onChange}
-            onKeyPress={this.props.onEnter ? this.onKeyPress : void 0}
-            disabled={this.props.isDisabled}
-        />;
+        const placeholder = this.props.param.placeholder || this.props.param.label || camelCaseToWords(this.props.name);
+        return <TextCtrl props={this.props} placeholder={placeholder} update={this.updateValue} />;
     }
+}
+
+function TextCtrl({ props, placeholder, update }: { props: ParamProps<PD.Text>, placeholder: string, update: (v: string) => any }) {
+    const [value, setValue] = React.useState(props.value);
+    React.useEffect(() => setValue(props.value), [props.value]);
+
+    if (props.param.multiline) {
+        return <div className='msp-control-text-area-wrapper'>
+            <textarea
+                value={props.param.disableInteractiveUpdates ? (value || '') : props.value}
+                placeholder={placeholder}
+                onChange={e => {
+                    if (props.param.disableInteractiveUpdates) setValue(e.target.value);
+                    else update(e.target.value);
+                }}
+                onBlur={e => {
+                    if (props.param.disableInteractiveUpdates) update(e.target.value);
+                }}
+                onKeyDown={e => {
+                    if (e.key === 'Enter' && (e.shiftKey || e.ctrlKey || e.metaKey)) {
+                        e.currentTarget.blur();
+                    }
+                }}
+                disabled={props.isDisabled}
+            />
+        </div>;
+    }
+
+    return <input
+        type='text'
+        value={props.param.disableInteractiveUpdates ? (value || '') : props.value}
+        placeholder={placeholder}
+        onChange={e => {
+            if (props.param.disableInteractiveUpdates) setValue(e.target.value);
+            else update(e.target.value);
+        }}
+        onBlur={e => {
+            if (props.param.disableInteractiveUpdates) update(e.target.value);
+        }}
+        disabled={props.isDisabled}
+        onKeyDown={e => {
+            if (e.key !== 'Enter') return;
+
+            if (props.onEnter) {
+                e.stopPropagation();
+                props.onEnter();
+            } else if (e.key === 'Enter' && (e.shiftKey || e.ctrlKey || e.metaKey)) {
+                e.currentTarget.blur();
+            } else if (props.param.disableInteractiveUpdates) {
+                update(value);
+            }
+        }}
+    />;
 }
 
 export class PureSelectControl extends React.PureComponent<ParamProps<PD.Select<string | number>> & { title?: string }> {

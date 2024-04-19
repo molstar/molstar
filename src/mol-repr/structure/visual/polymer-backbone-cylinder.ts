@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -57,21 +57,21 @@ function createPolymerBackboneCylinderImpostor(ctx: VisualContext, unit: Unit, s
     const cylindersCountEstimate = polymerElementCount * 2;
     const builder = CylindersBuilder.create(cylindersCountEstimate, cylindersCountEstimate / 4, cylinders);
 
-    const pos = unit.conformation.invariantPosition;
+    const uc = unit.conformation;
     const pA = Vec3();
     const pB = Vec3();
     const pM = Vec3();
 
     const add = function (indexA: ElementIndex, indexB: ElementIndex, groupA: number, groupB: number, moleculeType: MoleculeType) {
-        pos(indexA, pA);
-        pos(indexB, pB);
+        uc.invariantPosition(indexA, pA);
+        uc.invariantPosition(indexB, pB);
 
         const isNucleicType = isNucleic(moleculeType);
         const shift = isNucleicType ? NucleicShift : StandardShift;
 
         v3add(pM, pA, v3scale(pM, v3sub(pM, pB, pA), shift));
-        builder.add(pA[0], pA[1], pA[2], pM[0], pM[1], pM[2], 1, false, false, groupA);
-        builder.add(pM[0], pM[1], pM[2], pB[0], pB[1], pB[2], 1, false, false, groupB);
+        builder.add(pA[0], pA[1], pA[2], pM[0], pM[1], pM[2], 1, false, false, 2, groupA);
+        builder.add(pM[0], pM[1], pM[2], pB[0], pB[1], pB[2], 1, false, false, 2, groupB);
     };
 
     eachPolymerBackboneLink(unit, add);
@@ -88,7 +88,7 @@ export function PolymerBackboneCylinderImpostorVisual(materialId: number): Units
     return UnitsCylindersVisual<PolymerBackboneCylinderParams>({
         defaultProps: PD.getDefaultValues(PolymerBackboneCylinderParams),
         createGeometry: createPolymerBackboneCylinderImpostor,
-        createLocationIterator: PolymerLocationIterator.fromGroup,
+        createLocationIterator: (structureGroup: StructureGroup) => PolymerLocationIterator.fromGroup(structureGroup),
         getLoci: getPolymerElementLoci,
         eachLocation: eachPolymerElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerBackboneCylinderParams>, currentProps: PD.Values<PolymerBackboneCylinderParams>) => { },
@@ -107,7 +107,7 @@ function createPolymerBackboneCylinderMesh(ctx: VisualContext, unit: Unit, struc
     const vertexCountEstimate = radialSegments * 2 * polymerElementCount * 2;
     const builderState = MeshBuilder.createState(vertexCountEstimate, vertexCountEstimate / 10, mesh);
 
-    const pos = unit.conformation.invariantPosition;
+    const c = unit.conformation;
     const pA = Vec3();
     const pB = Vec3();
     const cylinderProps: CylinderProps = { radiusTop: 1, radiusBottom: 1, radialSegments };
@@ -119,8 +119,8 @@ function createPolymerBackboneCylinderMesh(ctx: VisualContext, unit: Unit, struc
         centerA.element = indexA;
         centerB.element = indexB;
 
-        pos(centerA.element, pA);
-        pos(centerB.element, pB);
+        c.invariantPosition(centerA.element, pA);
+        c.invariantPosition(centerB.element, pB);
 
         const isNucleicType = isNucleic(moleculeType);
         const shift = isNucleicType ? NucleicShift : StandardShift;
@@ -148,7 +148,7 @@ export function PolymerBackboneCylinderMeshVisual(materialId: number): UnitsVisu
     return UnitsMeshVisual<PolymerBackboneCylinderParams>({
         defaultProps: PD.getDefaultValues(PolymerBackboneCylinderParams),
         createGeometry: createPolymerBackboneCylinderMesh,
-        createLocationIterator: PolymerLocationIterator.fromGroup,
+        createLocationIterator: (structureGroup: StructureGroup) => PolymerLocationIterator.fromGroup(structureGroup),
         getLoci: getPolymerElementLoci,
         eachLocation: eachPolymerElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerBackboneCylinderParams>, currentProps: PD.Values<PolymerBackboneCylinderParams>) => {

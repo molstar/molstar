@@ -1,12 +1,13 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Yakov Pechersky <ffxen158@gmail.com>
  */
 
 import { CIF } from '../../mol-io/reader/cif';
-import { Vec3 } from '../../mol-math/linear-algebra';
+import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { volumeFromCcp4 } from '../../mol-model-formats/volume/ccp4';
 import { volumeFromDensityServerData } from '../../mol-model-formats/volume/density-server';
 import { volumeFromDsn6 } from '../../mol-model-formats/volume/dsn6';
@@ -15,7 +16,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 import { volumeFromCube } from '../../mol-model-formats/volume/cube';
 import { volumeFromDx } from '../../mol-model-formats/volume/dx';
-import { Volume } from '../../mol-model/volume';
+import { Grid, Volume } from '../../mol-model/volume';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateSelection } from '../../mol-state';
 import { volumeFromSegmentationData } from '../../mol-model-formats/volume/segmentation';
@@ -228,4 +229,59 @@ const AssignColorVolume = PluginStateTransform.BuiltIn({
             return new SO.Volume.Data(volume, props);
         });
     }
+});
+
+export type VolumeTransform = typeof VolumeTransform;
+export const VolumeTransform = PluginStateTransform.BuiltIn({
+    name: 'volume-transform',
+    display: { name: 'Transform Volume' },
+    isDecorator: true,
+    from: SO.Volume.Data,
+    to: SO.Volume.Data,
+    params: {
+        transform: PD.MappedStatic(
+            'matrix',
+            // TODO: support "components" based rotation
+            {
+                matrix: PD.Group(
+                    {
+                        data: PD.Mat4(Mat4.identity()),
+                        transpose: PD.Boolean(false),
+                    },
+                    { isFlat: true }
+                ),
+            },
+            { label: 'Kind' }
+        ),
+    },
+})({
+    canAutoUpdate({ newParams }) {
+        return newParams.transform.name !== 'matrix';
+    },
+    apply({ a, params }) {
+        // similar to StateTransforms.Model.TransformStructureConformation;
+        const transform = Mat4();
+        let gridTransform = { ...a.data.grid.transform };
+        Mat4.copy(transform, params.transform.params.data);
+        if (params.transform.params.transpose) Mat4.transpose(transform, transform);
+        const origMat =
+        a.data.grid.transform.kind === 'matrix'
+            ? a.data.grid.transform.matrix
+            : Grid.getGridToCartesianTransform(a.data.grid);
+        gridTransform = {
+            kind: 'matrix',
+            matrix: Mat4.mul(Mat4(), transform, origMat),
+        };
+        const v = {
+            ...a.data,
+            grid: {
+                ...a.data.grid,
+                transform: gridTransform,
+            },
+        };
+        return new SO.Volume.Data(v, {
+            label: a.label,
+            description: `${a.description} [Transformed]`,
+        });
+    },
 });

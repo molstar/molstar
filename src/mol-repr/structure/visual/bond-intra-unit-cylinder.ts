@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -43,7 +44,7 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
     const ignoreComputedAromatic = ignoreBondType(include, exclude, BondType.Flag.Computed);
 
     const vRef = Vec3(), delta = Vec3();
-    const pos = unit.conformation.invariantPosition;
+    const c = unit.conformation;
 
     let stub: undefined | ((edgeIndex: number) => boolean);
 
@@ -87,7 +88,7 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
             let aI = a[edgeIndex], bI = b[edgeIndex];
 
             const rI = deloTriplets?.getThirdElement(aI, bI);
-            if (rI !== undefined) return pos(elements[rI], vRef);
+            if (rI !== undefined) return c.invariantPosition(elements[rI], vRef);
 
             if (aI > bI) [aI, bI] = [bI, aI];
             if (offset[aI + 1] - offset[aI] === 1) [aI, bI] = [bI, aI];
@@ -105,18 +106,18 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
                         const size = arrayIntersectionSize(aR, _bR);
                         if (size > maxSize) {
                             maxSize = size;
-                            pos(elements[_bI], vRef);
+                            c.invariantPosition(elements[_bI], vRef);
                         }
                     } else {
-                        return pos(elements[_bI], vRef);
+                        return c.invariantPosition(elements[_bI], vRef);
                     }
                 }
             }
             return maxSize > 0 ? vRef : null;
         },
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
-            pos(elements[a[edgeIndex]], posA);
-            pos(elements[b[edgeIndex]], posB);
+            c.invariantPosition(elements[a[edgeIndex]], posA);
+            c.invariantPosition(elements[b[edgeIndex]], posB);
 
             if (adjustCylinderLength) {
                 const rA = radiusA(edgeIndex), rB = radiusB(edgeIndex);
@@ -230,7 +231,7 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
     return UnitsCylindersVisual<IntraUnitBondCylinderParams>({
         defaultProps: PD.getDefaultValues(IntraUnitBondCylinderParams),
         createGeometry: createIntraUnitBondCylinderImpostors,
-        createLocationIterator: BondIterator.fromGroup,
+        createLocationIterator: (structureGroup: StructureGroup, props) => BondIterator.fromGroup(structureGroup, { includeLocation2: props.colorMode === 'interpolate' }),
         getLoci: getIntraBondLoci,
         eachLocation: eachIntraBond,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IntraUnitBondCylinderParams>, currentProps: PD.Values<IntraUnitBondCylinderParams>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
@@ -256,6 +257,12 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
                 newProps.multipleBonds !== currentProps.multipleBonds
             );
 
+            if (newProps.colorMode !== currentProps.colorMode) {
+                state.createGeometry = true;
+                state.updateTransform = true;
+                state.updateColor = true;
+            }
+
             const newUnit = newStructureGroup.group.units[0];
             const currentUnit = currentStructureGroup.group.units[0];
             if (Unit.isAtomic(newUnit) && Unit.isAtomic(currentUnit)) {
@@ -277,7 +284,7 @@ export function IntraUnitBondCylinderMeshVisual(materialId: number): UnitsVisual
     return UnitsMeshVisual<IntraUnitBondCylinderParams>({
         defaultProps: PD.getDefaultValues(IntraUnitBondCylinderParams),
         createGeometry: createIntraUnitBondCylinderMesh,
-        createLocationIterator: BondIterator.fromGroup,
+        createLocationIterator: (structureGroup: StructureGroup) => BondIterator.fromGroup(structureGroup),
         getLoci: getIntraBondLoci,
         eachLocation: eachIntraBond,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IntraUnitBondCylinderParams>, currentProps: PD.Values<IntraUnitBondCylinderParams>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {

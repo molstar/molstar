@@ -158,8 +158,8 @@ async function ensureDicAvailable(dicPath: string, dicUrl: string) {
 const DIC_DIR = path.resolve(__dirname, '../../../../build/dics/');
 const MMCIF_DIC_PATH = `${DIC_DIR}/mmcif_pdbx_v50.dic`;
 const MMCIF_DIC_URL = 'http://mmcif.wwpdb.org/dictionaries/ascii/mmcif_pdbx_v50.dic';
-const IHM_DIC_PATH = `${DIC_DIR}/ihm-extension.dic`;
-const IHM_DIC_URL = 'https://raw.githubusercontent.com/ihmwg/IHM-dictionary/master/ihm-extension.dic';
+const IHM_DIC_PATH = `${DIC_DIR}/mmcif_ihm_ext.dic`;
+const IHM_DIC_URL = 'https://raw.githubusercontent.com/ihmwg/IHMCIF/master/dist/mmcif_ihm_ext.dic';
 const MA_DIC_PATH = `${DIC_DIR}/ma-extension.dic`;
 const MA_DIC_URL = 'https://raw.githubusercontent.com/ihmwg/ModelCIF/master/dist/mmcif_ma.dic';
 

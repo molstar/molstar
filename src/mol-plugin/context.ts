@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import produce, { setAutoFreeze } from 'immer';
+import { produce, setAutoFreeze } from 'immer';
 import { List } from 'immutable';
 import { merge, Subscription } from 'rxjs';
 import { debounceTime, filter, take, throttleTime } from 'rxjs/operators';
@@ -61,6 +61,12 @@ import { PluginToastManager } from './util/toast';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { setSaccharideCompIdMapType } from '../mol-model/structure/structure/carbohydrates/constants';
+import { DragAndDropManager } from '../mol-plugin-state/manager/drag-and-drop';
+
+export type PluginInitializedState =
+    | { kind: 'no' }
+    | { kind: 'yes' }
+    | { kind: 'error', error: any }
 
 export class PluginContext {
     runTask = <T>(task: Task<T>, params?: { useOverlay?: boolean }) => this.managers.task.run(task, params);
@@ -72,6 +78,8 @@ export class PluginContext {
 
     protected subs: Subscription[] = [];
     private initCanvas3dPromiseCallbacks: [res: () => void, rej: (err: any) => void] = [() => {}, () => {}];
+    private _isInitialized = false;
+    private initializedPromiseCallbacks: [res: () => void, rej: (err: any) => void] = [() => {}, () => {}];
 
     private disposed = false;
     private canvasContainer: HTMLDivElement | undefined = void 0;
@@ -114,6 +122,14 @@ export class PluginContext {
     readonly canvas3dInitialized = new Promise<void>((res, rej) => {
         this.initCanvas3dPromiseCallbacks = [res, rej];
     });
+
+    readonly initialized = new Promise<void>((res, rej) => {
+        this.initializedPromiseCallbacks = [res, rej];
+    });
+
+    get isInitialized() {
+        return this._isInitialized;
+    }
 
     readonly canvas3dContext: Canvas3DContext | undefined;
     readonly canvas3d: Canvas3D | undefined;
@@ -171,7 +187,8 @@ export class PluginContext {
         lociLabels: void 0 as any as LociLabelManager,
         toast: new PluginToastManager(this),
         asset: new AssetManager(),
-        task: new TaskManager()
+        task: new TaskManager(),
+        dragAndDrop: new DragAndDropManager(this),
     } as const;
 
     readonly events = {
@@ -257,21 +274,21 @@ export class PluginContext {
             this.layout.setRoot(container);
             if (this.spec.layout && this.spec.layout.initial) this.layout.setProps(this.spec.layout.initial);
 
-            if (canvas3dContext) {
-                (this.canvas3dContext as Canvas3DContext) = canvas3dContext;
-            } else {
-                const antialias = !(this.config.get(PluginConfig.General.DisableAntialiasing) ?? false);
-                const preserveDrawingBuffer = !(this.config.get(PluginConfig.General.DisablePreserveDrawingBuffer) ?? false);
-                const pixelScale = this.config.get(PluginConfig.General.PixelScale) || 1;
-                const pickScale = this.config.get(PluginConfig.General.PickScale) || 0.25;
-                const pickPadding = this.config.get(PluginConfig.General.PickPadding) ?? 1;
-                const enableWboit = this.config.get(PluginConfig.General.EnableWboit) || false;
-                const enableDpoit = this.config.get(PluginConfig.General.EnableDpoit) || false;
-                const preferWebGl1 = this.config.get(PluginConfig.General.PreferWebGl1) || false;
-                const failIfMajorPerformanceCaveat = !(this.config.get(PluginConfig.General.AllowMajorPerformanceCaveat) ?? false);
-                const powerPreference = this.config.get(PluginConfig.General.PowerPreference) || 'high-performance';
-                (this.canvas3dContext as Canvas3DContext) = Canvas3DContext.fromCanvas(canvas, this.managers.asset, { antialias, preserveDrawingBuffer, pixelScale, pickScale, pickPadding, enableWboit, enableDpoit, preferWebGl1, failIfMajorPerformanceCaveat, powerPreference });
+            if (!canvas3dContext) {
+                canvas3dContext = Canvas3DContext.fromCanvas(canvas, this.managers.asset, {
+                    antialias: !(this.config.get(PluginConfig.General.DisableAntialiasing) ?? false),
+                    preserveDrawingBuffer: !(this.config.get(PluginConfig.General.DisablePreserveDrawingBuffer) ?? false),
+                    preferWebGl1: this.config.get(PluginConfig.General.PreferWebGl1) || false,
+                    failIfMajorPerformanceCaveat: !(this.config.get(PluginConfig.General.AllowMajorPerformanceCaveat) ?? false),
+                    powerPreference: this.config.get(PluginConfig.General.PowerPreference) || 'high-performance',
+                    handleResize: this.handleResize,
+                }, {
+                    pixelScale: this.config.get(PluginConfig.General.PixelScale) || 1,
+                    pickScale: this.config.get(PluginConfig.General.PickScale) || 0.25,
+                    transparency: this.config.get(PluginConfig.General.Transparency) || 'wboit',
+                });
             }
+            (this.canvas3dContext as Canvas3DContext) = canvas3dContext;
             (this.canvas3d as Canvas3D) = Canvas3D.create(this.canvas3dContext!);
             this.canvas3dInit.next(true);
             let props = this.spec.canvas3d;
@@ -311,15 +328,14 @@ export class PluginContext {
         }
     }
 
-    handleResize() {
+    handleResize = () => {
         const canvas = this.canvas3dContext?.canvas;
         const container = this.layout.root;
         if (container && canvas) {
-            const pixelScale = this.config.get(PluginConfig.General.PixelScale) || 1;
-            resizeCanvas(canvas, container, pixelScale);
+            resizeCanvas(canvas, container, this.canvas3dContext.props.pixelScale);
             this.canvas3d?.requestResize();
         }
-    }
+    };
 
     readonly log = {
         entries: List<LogEntry>(),
@@ -372,14 +388,15 @@ export class PluginContext {
         this.canvas3dContext?.dispose(options);
         this.ev.dispose();
         this.state.dispose();
-        this.managers.task.dispose();
         this.helpers.substructureParent.dispose();
 
         objectForEach(this.managers, m => (m as any)?.dispose?.());
         objectForEach(this.managers.structure, m => (m as any)?.dispose?.());
+        objectForEach(this.managers.volume, m => (m as any)?.dispose?.());
 
         this.unmount();
         this.canvasContainer = undefined;
+        (this.customState as any) = {};
 
         this.disposed = true;
     }
@@ -481,24 +498,32 @@ export class PluginContext {
     }
 
     async init() {
-        this.subs.push(this.events.log.subscribe(e => this.log.entries = this.log.entries.push(e)));
+        try {
+            this.subs.push(this.events.log.subscribe(e => this.log.entries = this.log.entries.push(e)));
 
-        this.initCustomFormats();
-        this.initBehaviorEvents();
-        this.initBuiltInBehavior();
+            this.initCustomFormats();
+            this.initBehaviorEvents();
+            this.initBuiltInBehavior();
 
-        (this.managers.interactivity as InteractivityManager) = new InteractivityManager(this);
-        (this.managers.lociLabels as LociLabelManager) = new LociLabelManager(this);
-        (this.builders.structure as StructureBuilder) = new StructureBuilder(this);
+            (this.managers.interactivity as InteractivityManager) = new InteractivityManager(this);
+            (this.managers.lociLabels as LociLabelManager) = new LociLabelManager(this);
+            (this.builders.structure as StructureBuilder) = new StructureBuilder(this);
 
-        this.initAnimations();
-        this.initDataActions();
+            this.initAnimations();
+            this.initDataActions();
 
-        await this.initBehaviors();
+            await this.initBehaviors();
 
-        this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE.toLocaleString()}]`);
-        if (!isProductionMode) this.log.message(`Development mode enabled`);
-        if (isDebugMode) this.log.message(`Debug mode enabled`);
+            this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE.toLocaleString()}]`);
+            if (!isProductionMode) this.log.message(`Development mode enabled`);
+            if (isDebugMode) this.log.message(`Debug mode enabled`);
+
+            this._isInitialized = true;
+            this.initializedPromiseCallbacks[0]();
+        } catch (err) {
+            this.initializedPromiseCallbacks[1](err);
+            throw err;
+        }
     }
 
     constructor(public spec: PluginSpec) {

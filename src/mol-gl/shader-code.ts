@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -21,6 +21,8 @@ export interface ShaderExtensions {
     readonly fragDepth?: ShaderExtensionsValue
     readonly drawBuffers?: ShaderExtensionsValue
     readonly shaderTextureLod?: ShaderExtensionsValue
+    /** Needed to enable the `gl_DrawID` built-in */
+    readonly multiDraw?: ShaderExtensionsValue
     readonly clipCullDistance?: ShaderExtensionsValue
     readonly conservativeDepth?: ShaderExtensionsValue
 }
@@ -51,6 +53,7 @@ import { assign_material_color } from './shader/chunks/assign-material-color.gls
 import { assign_position } from './shader/chunks/assign-position.glsl';
 import { assign_size } from './shader/chunks/assign-size.glsl';
 import { check_picking_alpha } from './shader/chunks/check-picking-alpha.glsl';
+import { check_transparency } from './shader/chunks/check-transparency.glsl';
 import { clip_instance } from './shader/chunks/clip-instance.glsl';
 import { clip_pixel } from './shader/chunks/clip-pixel.glsl';
 import { color_frag_params } from './shader/chunks/color-frag-params.glsl';
@@ -59,6 +62,7 @@ import { common_clip } from './shader/chunks/common-clip.glsl';
 import { common_frag_params } from './shader/chunks/common-frag-params.glsl';
 import { common_vert_params } from './shader/chunks/common-vert-params.glsl';
 import { common } from './shader/chunks/common.glsl';
+import { fade_lod } from './shader/chunks/fade-lod.glsl';
 import { float_to_rgba } from './shader/chunks/float-to-rgba.glsl';
 import { light_frag_params } from './shader/chunks/light-frag-params.glsl';
 import { matrix_scale } from './shader/chunks/matrix-scale.glsl';
@@ -85,6 +89,7 @@ const ShaderChunks: { [k: string]: string } = {
     assign_position,
     assign_size,
     check_picking_alpha,
+    check_transparency,
     clip_instance,
     clip_pixel,
     color_frag_params,
@@ -93,6 +98,7 @@ const ShaderChunks: { [k: string]: string } = {
     common_frag_params,
     common_vert_params,
     common,
+    fade_lod,
     float_to_rgba,
     light_frag_params,
     matrix_scale,
@@ -250,6 +256,14 @@ function getGlsl100VertPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
             throw new Error(`required 'GL_EXT_draw_buffers' extension not available`);
         }
     }
+    if (shaderExtensions.multiDraw) {
+        if (extensions.multiDraw) {
+            prefix.push('#extension GL_ANGLE_multi_draw : require');
+            prefix.push('#define enabledMultiDraw');
+        } else if (shaderExtensions.multiDraw === 'required') {
+            throw new Error(`required 'GL_ANGLE_multi_draw' extension not available`);
+        }
+    }
     return prefix.join('\n') + '\n';
 }
 
@@ -314,6 +328,14 @@ function getGlsl300VertPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
     if (shaderExtensions.drawBuffers) {
         if (extensions.drawBuffers) {
             prefix.push('#define requiredDrawBuffers');
+        }
+    }
+    if (shaderExtensions.multiDraw) {
+        if (extensions.multiDraw) {
+            prefix.push('#extension GL_ANGLE_multi_draw : require');
+            prefix.push('#define enabledMultiDraw');
+        } else if (shaderExtensions.multiDraw === 'required') {
+            throw new Error(`required 'GL_ANGLE_multi_draw' extension not available`);
         }
     }
     if (shaderExtensions.clipCullDistance) {

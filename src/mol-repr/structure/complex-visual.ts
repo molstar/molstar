@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -31,12 +32,13 @@ import { Text } from '../../mol-geo/geometry/text/text';
 import { SizeTheme } from '../../mol-theme/size';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
 import { createMarkers } from '../../mol-geo/geometry/marker-data';
-import { StructureParams, StructureMeshParams, StructureTextParams, StructureDirectVolumeParams, StructureLinesParams, StructureCylindersParams, StructureTextureMeshParams } from './params';
+import { StructureParams, StructureMeshParams, StructureTextParams, StructureDirectVolumeParams, StructureLinesParams, StructureCylindersParams, StructureTextureMeshParams, StructureSpheresParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { isPromiseLike } from '../../mol-util/type-helpers';
 import { Substance } from '../../mol-theme/substance';
+import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
 
 export interface ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
@@ -51,7 +53,7 @@ function createComplexRenderObject<G extends Geometry>(structure: Structure, geo
 interface ComplexVisualBuilder<P extends StructureParams, G extends Geometry> {
     defaultProps: PD.Values<P>
     createGeometry(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: G): Promise<G> | G
-    createLocationIterator(structure: Structure): LocationIterator
+    createLocationIterator(structure: Structure, props: PD.Values<P>): LocationIterator
     getLoci(pickingId: PickingId, structure: Structure, id: number): Loci
     eachLocation(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean, isMarking: boolean): boolean,
     setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure): void
@@ -142,7 +144,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
 
     function update(newGeometry?: G) {
         if (updateState.createNew) {
-            locationIt = createLocationIterator(newStructure);
+            locationIt = createLocationIterator(newStructure, newProps);
             if (newGeometry) {
                 renderObject = createComplexRenderObject(newStructure, newGeometry, locationIt, newTheme, newProps, materialId);
                 positionIt = createPositionIterator(newGeometry, renderObject.values);
@@ -156,7 +158,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
 
             if (updateState.updateTransform) {
                 // console.log('update transform')
-                locationIt = createLocationIterator(newStructure);
+                locationIt = createLocationIterator(newStructure, newProps);
                 const { instanceCount, groupCount } = locationIt;
                 if (newProps.instanceGranularity) {
                     createMarkers(instanceCount, 'instance', renderObject.values);
@@ -335,6 +337,24 @@ export function ComplexMeshVisual<P extends ComplexMeshParams>(builder: ComplexM
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true;
         },
         geometryUtils: Mesh.Utils
+    }, materialId);
+}
+
+// spheres
+
+export const ComplexSpheresParams = { ...StructureSpheresParams, ...StructureParams };
+export type ComplexSpheresParams = typeof ComplexSpheresParams
+
+export interface ComplexSpheresVisualBuilder<P extends ComplexSpheresParams> extends ComplexVisualBuilder<P, Spheres> { }
+
+export function ComplexSpheresVisual<P extends ComplexSpheresParams>(builder: ComplexSpheresVisualBuilder<P>, materialId: number): ComplexVisual<P> {
+    return ComplexVisual<Spheres, P>({
+        ...builder,
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructure, currentStructure);
+            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true;
+        },
+        geometryUtils: Spheres.Utils
     }, materialId);
 }
 

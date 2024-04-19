@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -18,6 +18,7 @@ precision highp int;
 #include common_clip
 
 void main() {
+    #include fade_lod
     #include clip_pixel
 
     // Workaround for buggy gl_FrontFacing (e.g. on some integrated Intel GPUs)
@@ -34,6 +35,7 @@ void main() {
 
     float fragmentDepth = gl_FragCoord.z;
     #include assign_material_color
+    #include check_transparency
 
     #if defined(dRenderVariant_pick)
         #include check_picking_alpha

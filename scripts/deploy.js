@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -39,6 +39,14 @@ function copyViewer() {
     addAnalytics(path.resolve(viewerDeployPath, 'index.html'));
 }
 
+function copyMe() {
+    console.log('\n###', 'copy me files');
+    const meBuildPath = path.resolve(buildDir, '../build/mesoscale-explorer/');
+    const meDeployPath = path.resolve(localPath, 'me/');
+    fse.copySync(meBuildPath, meDeployPath, { overwrite: true });
+    addAnalytics(path.resolve(meDeployPath, 'index.html'));
+}
+
 function copyDemos() {
     console.log('\n###', 'copy demos files');
     const lightingBuildPath = path.resolve(buildDir, '../build/examples/lighting/');
@@ -54,6 +62,7 @@ function copyDemos() {
 
 function copyFiles() {
     copyViewer();
+    copyMe();
     copyDemos();
 }
 

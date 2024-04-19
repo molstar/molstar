@@ -9,8 +9,9 @@ import { EmptyLoci } from '../../mol-model/loci';
 import { StructureSelection } from '../../mol-model/structure';
 import { AnimateModelIndex } from '../../mol-plugin-state/animation/built-in/model-index';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
-import { createPluginUI } from '../../mol-plugin-ui/react18';
+import { createPluginUI } from '../../mol-plugin-ui';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
+import { renderReact18 } from '../../mol-plugin-ui/react18';
 import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { Script } from '../../mol-script/script';
@@ -29,16 +30,20 @@ class BasicWrapper {
     plugin: PluginUIContext;
 
     async init(target: string | HTMLElement) {
-        this.plugin = await createPluginUI(typeof target === 'string' ? document.getElementById(target)! : target, {
-            ...DefaultPluginUISpec(),
-            layout: {
-                initial: {
-                    isExpanded: false,
-                    showControls: false
+        this.plugin = await createPluginUI({
+            target: typeof target === 'string' ? document.getElementById(target)! : target,
+            render: renderReact18,
+            spec: {
+                ...DefaultPluginUISpec(),
+                layout: {
+                    initial: {
+                        isExpanded: false,
+                        showControls: false
+                    }
+                },
+                components: {
+                    remoteState: 'none'
                 }
-            },
-            components: {
-                remoteState: 'none'
             }
         });
 
@@ -46,6 +51,14 @@ class BasicWrapper {
         this.plugin.representation.structure.themes.colorThemeRegistry.add(CustomColorThemeProvider);
         this.plugin.managers.lociLabels.addProvider(StripedResidues.labelProvider!);
         this.plugin.customModelProperties.register(StripedResidues.propertyProvider, true);
+
+        this.plugin.managers.dragAndDrop.addHandler('custom-wrapper', (files) => {
+            if (files.some(f => f.name.toLowerCase().endsWith('.testext'))) {
+                console.log('.testext File dropped');
+                return true;
+            }
+            return false;
+        });
     }
 
     async load({ url, format = 'mmcif', isBinary = false, assemblyId = '' }: LoadParams) {

@@ -3,8 +3,141 @@ All notable changes to this project will be documented in this file, following t
 
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
-
 ## [Unreleased]
+
+- Refactor transparency rendering
+    - More uniform behavior for blended, wboit, dpoit
+    - Fix issues with text & image geometry
+    - Return StateTransform selectors from measurements API (addDistance, addAngle, etc.)
+
+## [v4.1.0] - 2023-03-31
+
+- Add `VolumeTransform` to translate/rotate a volume like in a structure superposition
+- Fix BinaryCIF encoder edge cases caused by re-encoding an existing BinaryCIF file
+- Fix edge-case where width/height in InputObserver are not correct
+- Fix transparency rendering fallback (#1058)
+- Fix SSAO broken when `OES_texture_float_linear` is unavailable
+- Add `normalOffset` to `external-volume` color theme
+    - This can give results similar to pymol's surface_ramp_above_mode=1
+- Add `rotation` parameter to skybox background
+
+## [v4.0.1] - 2023-02-19
+
+- Fix BinaryCIF decoder edge cases. Fixes mmCIF model export from data provided by ModelServer.
+- MolViewSpec extension: support for MVSX file format
+- Revert "require WEBGL_depth_texture extension" & "remove renderbuffer use"
+
+## [v4.0.0] - 2023-02-04
+
+- Add Mesoscale Explorer app for investigating large systems
+- [Breaking] Remove `cellpack` extension (superseded by Mesoscale Explorer app)
+- [Breaking] Set minimal node.js version to 18
+- [Breaking] Generalize rcsb/assembly-symmetry/ extension
+    - Move to assembly-symmetry/
+    - Remove RCSB specific dependencies and prefixes
+- [Breaking] Require `WEBGL_depth_texture` webgl extension
+    - Remove `renderbuffer` use
+- [Breaking] Change build target to ES2018
+    - Custom builds only require ES6 for dependencies like immer.js
+- [Breaking] Changed `createPluginUI`
+    - The function now takes a single `options` argument
+    - The caller must specify a `render` method that mounts the Mol* react component to DOM
+        - A default `renderReact18` method is provided, but needs to be imported separately
+        - To support React 16 and 17, `ReactDOM.render` can be passed
+- Improve `SetUtils` performance using ES6 features
+- [Breaking] Reduce memory usage of `SymmetryOperator.ArrayMapping`
+    - Requires calling methods from instance
+- [Breaking] Fix `mol-model/structure/model/properties/seconday-structure.ts` file name (#938)
+- [Breaking] Add `Canvas3DContext` runtime props
+    - Props: pixelScale, pickScale, transparency (blended, wboit, dpoit)
+    - Replaces instantiation-time attribs
+- [Breaking] Change default compile target to ES2018
+- [Breaking] Add culling & LOD support
+    - Cull per-object and per-instance
+    - Cull based on frustum and camera distance
+    - LOD visibility based on camera distance
+    - Special LOD mode for spheres with automatic levels
+    - Occlusion culling (only WebGL2)
+        - Hi-Z pass
+        - Cull based on previous frame's Hi-Z buffer
+- Add stochastic/dithered transparency to fade overlapping LODs in and out
+- Add "Automatic Detail" preset that shows surface/cartoon/ball & stick based on camera distance
+
+## [v3.45.0] - 2023-02-03
+
+- Add color interpolation to impostor cylinders
+- MolViewSpec components are applicable only when the model has been loaded from MolViewSpec
+- Add `snapshotKey` and `tooltip` params to loci `LabelRepresentation`
+- Update `FocusLoci` behavior to support `snapshotKey` param
+  - Clicking a visual with `snapshotKey` will trigger that snapshot
+- Render multiline loci label tooltips as Markdown
+- `ParamDefinition.Text` updates:
+  - Support `multiline` inputs
+  - Support `placeholder` parameter
+  - Support `disableInteractiveUpdates` to only trigger updates once the control loses focus
+- Move dependencies related to the headless context from optional deps to optional peer deps
+
+## [v3.44.0] - 2023-01-06
+
+- Add new `cartoon` visuals to support atomic nucleotide base with sugar
+- Add `thicknessFactor` to `cartoon` representation for scaling nucleotide block/ring/atomic-fill visuals
+- Use bonds from `_struct_conn` in mmCIF files that use `label_seq_id`
+- Fix measurement label `offsetZ` default: not needed when `scaleByRadius` is enbaled
+- Support for label rendering in HeadlessPluginContext
+- MolViewSpec extension
+  - Support all X11 colors
+  - Support relative URIs
+  - CLI tools: mvs-validate, mvs-render, mvs-print-schema
+  - Labels applied in one node
+- ModelServer SDF/MOL2 ligand export: fix atom indices when additional atoms are present
+- Avoid showing (and calculating) inter-unit bonds for huge structures
+- Fixed `DragOverlay` on WebKit/Safari browsers
+
+## [v3.43.1] - 2023-12-04
+
+- Fix `react-markdown` dependency
+
+## [v3.43.0] - 2023-12-02
+
+- Fix `State.tryGetCellData` (return type & data check)
+- Don't change camera.target unless flyMode or pointerLock are enabled
+- Handle empty CIF files
+- Snapshot improvements:
+    - Add `key` property
+    - Ability to existing snapshot name, key, and description
+    - Support markdown in descriptions (ignores all HTML tags)
+    - Ability to link to snapshots by key from descriptions
+    - Separate UI control showing description of the current snapshot
+- Do not activate drag overlay for non-file content
+- Add `structure-element-sphere` visual to `spacefill` representation
+- Fix missing `await` in `HeadlessPluginContext.saveStateSnapshot`
+- Added support for providing custom sequence viewers to the plugin spec
+- MolViewSpec extension (MVS)
+- Add URL parameters `mvs-url`, `mvs-data`, `mvs-format`
+- Add drag&drop for `.mvsj` files
+- Fix `bumpiness` scaling with `ignoreLight` enabled
+- Add `transforms` & `label` params to `ShapeFromPly`
+- Optimize `LociSelectManager.selectOnly` to avoid superfluous loci set operations
+- Dispose of viewer on `unload` event to aid GC
+
+## [v3.42.0] - 2023-11-05
+
+- Fix handling of PDB files with insertion codes (#945)
+- Fix de-/saturate of colors with no hue
+- Improve `distinctColors` function
+    - Add `sort` and `sampleCountFactor` parameters
+    - Fix clustering issues
+- Add `clipPrimitive` option to spheres geometry, clipping whole spheres instead of cutting them
+- Add `DragAndDropManager`
+- Add `options` support for default bond labels
+
+## [v3.41.0] - 2023-10-15
+
+- Add `PluginContext.initialized` promise & support for it in the `Plugin` UI component.
+- Fix undesired interaction between settings panel and the panel on the right.
+- Add ability to customize server parameters for `RCSBAssemblySymmetry`.
+
+## [v3.40.1] - 2023-09-30
 
 - Do not call `updateFocusRepr` if default `StructureFocusRepresentation` isn't present.
 - Treat "tap" as a click in `InputObserver`
@@ -18,7 +151,14 @@ Note that since we don't clearly distinguish between a public and private interf
     - `EXT_clip_control`
 - Add `MultiSampleParams.reduceFlicker` (to be able to switch it off)
 - Add `alphaThickness` parameter to adjust alpha of spheres for radius
-- Return StateTransform selectors from measurements API (addDistance, addAngle, etc.)
+- Ability to hide "right" panel from simplified viewport controls
+- Add `blockIndex` parameter to TrajectoryFromMmCif
+- Fix bounding sphere calculation for "element-like" visuals
+- Fix RCSB PDB validation report URL
+- Add sharpening postprocessing option
+- Take pixel-ratio into account for outline scale
+- Gracefully handle missing HTMLImageElement
+- Fix pixel-ratio changes not applied to all render passes
 
 ## [v3.39.0] - 2023-09-02
 

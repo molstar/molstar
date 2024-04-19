@@ -71,6 +71,10 @@
     width: 50%;
 }
 
+.msp-control-twoline {
+    height: 2 * $row-height !important;
+}
+
 .msp-control-group {
     position: relative;
 }
@@ -416,4 +420,26 @@
     img {
         margin-top: 1px;
     }
+}
+
+.msp-control-text-area-wrapper, .msp-text-area-wrapper {
+    position: relative;
+    textarea {
+        border: none;
+        width: 100%;
+        height: 100%;
+        background: $msp-form-control-background;
+        padding: math.div($control-spacing, 2) $control-spacing;
+        resize: none;
+        font-size: 12px;
+        line-height: 16px;
+    }
+}
+
+.msp-control-text-area-wrapper {
+    height: 2 * $row-height !important;
+}
+
+.msp-text-area-wrapper {
+    height: 3 * $row-height !important;
 }

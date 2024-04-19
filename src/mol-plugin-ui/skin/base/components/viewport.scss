@@ -142,11 +142,17 @@
     padding: $info-vertical-padding $control-spacing;
     background: $default-background; //$highlight-info-background;
     opacity: 90%;
-
-    // min-height: $row-height;
-    text-align: right;
+    max-width: 400px;
 
     @include non-selectable;
+}
+
+.msp-highlight-markdown-row {
+    padding-left: $control-spacing;
+}
+
+.msp-highlight-simple-row {
+    text-align: right;
 }
 
 .msp-highlight-info-hr {
@@ -161,4 +167,29 @@
     font-size: 85%;
     display: inline-block;
     color: $highlight-info-additional-font-color;
+}
+
+.msp-snapshot-description-wrapper {
+    background: rgba(red($default-background), green($default-background), blue($default-background), 0.5);
+
+    position: absolute;
+    left: 0;
+    top: $control-spacing + $row-height;
+    padding: (0.66 * $control-spacing) $control-spacing;
+
+    max-height: 7 * $row-height;
+    overflow: hidden;
+    overflow-y: auto;
+
+    max-width: 400px;
+
+    a {
+        text-decoration: underline;
+        cursor: pointer;
+        color: $font-color;
+    }
+
+    ul, ol {
+        padding-left: $control-spacing + 4px;
+    }
 }

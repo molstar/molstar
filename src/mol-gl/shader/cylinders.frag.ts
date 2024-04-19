@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -237,8 +237,10 @@ void main() {
     vec3 vViewPosition = viewPosition;
     vec3 vModelPosition = modelPosition;
 
+    #include fade_lod
     #include clip_pixel
     #include assign_material_color
+    #include check_transparency
 
     #if defined(dRenderVariant_pick)
         #include check_picking_alpha

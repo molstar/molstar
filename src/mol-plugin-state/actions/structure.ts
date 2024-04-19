@@ -65,11 +65,11 @@ const DownloadStructure = StateAction.build({
                 }, { isFlat: true, label: 'PDB' }),
                 'pdb-dev': PD.Group({
                     provider: PD.Group({
-                        id: PD.Text('PDBDEV_00000001', { label: 'PDBDev Id(s)', description: 'One or more comma/space separated ids.' }),
+                        id: PD.Text('PDBDEV_00000001', { label: 'PDB-Dev Id(s)', description: 'One or more comma/space separated ids.' }),
                         encoding: PD.Select('bcif', PD.arrayToOptions(['cif', 'bcif'] as const)),
                     }, { pivot: 'id' }),
                     options
-                }, { isFlat: true, label: 'PDBDEV' }),
+                }, { isFlat: true, label: 'PDB-Dev' }),
                 'swissmodel': PD.Group({
                     id: PD.Text('Q9Y2I8', { label: 'UniProtKB AC(s)', description: 'One or more comma/space separated ACs.' }),
                     options
@@ -101,7 +101,8 @@ const DownloadStructure = StateAction.build({
 
     const src = params.source;
     let downloadParams: StateTransformer.Params<Download>[];
-    let asTrajectory = false, format: BuiltInTrajectoryFormat | 'auto' = 'mmcif';
+    let asTrajectory = false;
+    let format: BuiltInTrajectoryFormat = 'mmcif';
 
     switch (src.name) {
         case 'url':
@@ -165,14 +166,13 @@ const DownloadStructure = StateAction.build({
     const showUnitcell = representationPreset !== PresetStructureRepresentations.empty.id;
 
     const structure = src.params.options.type.name === 'auto' ? void 0 : src.params.options.type;
-
     await state.transaction(async () => {
         if (downloadParams.length > 0 && asTrajectory) {
             const blob = await plugin.builders.data.downloadBlob({
                 sources: downloadParams.map((src, i) => ({ id: '' + i, url: src.url, isBinary: src.isBinary })),
                 maxConcurrency: 6
             }, { state: { isGhost: true } });
-            const trajectory = await plugin.builders.structure.parseTrajectory(blob, { formats: downloadParams.map((_, i) => ({ id: '' + i, format: 'cif' as 'cif' })) });
+            const trajectory = await plugin.builders.structure.parseTrajectory(blob, { formats: downloadParams.map((_, i) => ({ id: '' + i, format: 'cif' as const })) });
 
             await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default', {
                 structure,
@@ -183,9 +183,7 @@ const DownloadStructure = StateAction.build({
         } else {
             for (const download of downloadParams) {
                 const data = await plugin.builders.data.download(download, { state: { isGhost: true } });
-                const provider = format === 'auto'
-                    ? plugin.dataFormats.auto(getFileNameInfo(Asset.getUrl(download.url)), data.cell?.obj!)
-                    : plugin.dataFormats.get(format);
+                const provider = plugin.dataFormats.get(format);
                 if (!provider) throw new Error('unknown file format');
                 const trajectory = await plugin.builders.structure.parseTrajectory(data, provider);
 

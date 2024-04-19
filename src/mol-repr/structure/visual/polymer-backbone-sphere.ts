@@ -50,11 +50,11 @@ function createPolymerBackboneSphereImpostor(ctx: VisualContext, unit: Unit, str
 
     const builder = SpheresBuilder.create(polymerElementCount, polymerElementCount / 2, spheres);
 
-    const pos = unit.conformation.invariantPosition;
+    const c = unit.conformation;
     const p = Vec3();
 
     const add = (index: ElementIndex, group: number) => {
-        pos(index, p);
+        c.invariantPosition(index, p);
         builder.add(p[0], p[1], p[2], group);
     };
 
@@ -72,7 +72,7 @@ export function PolymerBackboneSphereImpostorVisual(materialId: number): UnitsVi
     return UnitsSpheresVisual<PolymerBackboneSphereParams>({
         defaultProps: PD.getDefaultValues(PolymerBackboneSphereParams),
         createGeometry: createPolymerBackboneSphereImpostor,
-        createLocationIterator: PolymerLocationIterator.fromGroup,
+        createLocationIterator: (structureGroup: StructureGroup) => PolymerLocationIterator.fromGroup(structureGroup),
         getLoci: getPolymerElementLoci,
         eachLocation: eachPolymerElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerBackboneSphereParams>, currentProps: PD.Values<PolymerBackboneSphereParams>) => { },
@@ -91,13 +91,13 @@ function createPolymerBackboneSphereMesh(ctx: VisualContext, unit: Unit, structu
     const vertexCount = polymerElementCount * sphereVertexCount(detail);
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 2, mesh);
 
-    const pos = unit.conformation.invariantPosition;
+    const c = unit.conformation;
     const p = Vec3();
     const center = StructureElement.Location.create(structure, unit);
 
     const add = (index: ElementIndex, group: number) => {
         center.element = index;
-        pos(center.element, p);
+        c.invariantPosition(center.element, p);
         builderState.currentGroup = group;
         addSphere(builderState, p, theme.size.size(center) * sizeFactor, detail);
     };
@@ -116,7 +116,7 @@ export function PolymerBackboneSphereMeshVisual(materialId: number): UnitsVisual
     return UnitsMeshVisual<PolymerBackboneSphereParams>({
         defaultProps: PD.getDefaultValues(PolymerBackboneSphereParams),
         createGeometry: createPolymerBackboneSphereMesh,
-        createLocationIterator: PolymerLocationIterator.fromGroup,
+        createLocationIterator: (structureGroup: StructureGroup) => PolymerLocationIterator.fromGroup(structureGroup),
         getLoci: getPolymerElementLoci,
         eachLocation: eachPolymerElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerBackboneSphereParams>, currentProps: PD.Values<PolymerBackboneSphereParams>) => {

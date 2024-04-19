@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -51,7 +51,7 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
 
     bool objectClipped = false;
 
-    #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+    #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
         if (clipTest(vec4(modelPos, 0.0))) {
             objectClipped = true;
             fragmentDepth = -1.0;
@@ -85,7 +85,6 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
 void main(void){
     vec3 cameraNormal;
     float fragmentDepth;
-    bool clipped = false;
 
     #ifdef dApproximate
         vec3 pointDir = -vPointViewPosition - vPoint;
@@ -112,8 +111,19 @@ void main(void){
         vec3 vViewPosition = cameraPos;
     #endif
 
-    #include clip_pixel
+    #include fade_lod
+    #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
+        #include clip_pixel
+    #endif
     #include assign_material_color
+
+    #if defined(dRenderVariant_color)
+        if (uRenderMask == MaskTransparent && uAlphaThickness > 0.0) {
+            material.a *= min(1.0, vRadius / uAlphaThickness);
+        }
+    #endif
+
+    #include check_transparency
 
     #if defined(dRenderVariant_pick)
         #include check_picking_alpha
@@ -132,10 +142,6 @@ void main(void){
     #elif defined(dRenderVariant_color)
         vec3 normal = -cameraNormal;
         #include apply_light_color
-
-        if (uRenderMask == MaskTransparent && uAlphaThickness > 0.0) {
-            gl_FragColor.a *= min(1.0, vRadius / uAlphaThickness);
-        }
 
         #include apply_interior_color
         #include apply_marker_color

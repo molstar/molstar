@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -264,12 +264,20 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
             this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, button, modifiers }) => {
                 const { clickFocus, clickFocusAdd, clickFocusSelectMode, clickFocusAddSelectMode } = this.params.bindings;
 
+                const binding = this.ctx.selectionMode ? clickFocusSelectMode : clickFocus;
+                const matched = Binding.match(binding, button, modifiers);
+
+                // Support snapshot key property, in which case ignore the focus functionality
+                const snapshotKey = current.repr?.props?.snapshotKey?.trim() ?? '';
+                if (!this.ctx.selectionMode && matched && snapshotKey) {
+                    this.ctx.managers.snapshot.applyKey(snapshotKey);
+                    return;
+                }
+
                 // only apply structure focus for appropriate granularity
                 const { granularity } = this.ctx.managers.interactivity.props;
                 if (granularity !== 'residue' && granularity !== 'element') return;
 
-                const binding = this.ctx.selectionMode ? clickFocusSelectMode : clickFocus;
-                const matched = Binding.match(binding, button, modifiers);
                 const bindingAdd = this.ctx.selectionMode ? clickFocusAddSelectMode : clickFocusAdd;
                 const matchedAdd = Binding.match(bindingAdd, button, modifiers);
                 if (!matched && !matchedAdd) return;

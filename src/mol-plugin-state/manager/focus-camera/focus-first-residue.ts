@@ -28,10 +28,10 @@ function getPolymerResiduePositions(structure: Structure): Float32Array | undefi
     let o = 0;
     for (const unit of structure.units) {
         const { polymerElements } = unit.props;
-        const { position } = unit.conformation;
+        const { conformation } = unit;
         if (polymerElements) {
             for (let i = 0; i < polymerElements.length; i += stride) {
-                position(polymerElements[i], tmpPos);
+                conformation.position(polymerElements[i], tmpPos);
                 Vec3.toArray(tmpPos, positions, 3 * o);
                 o++;
             }
@@ -74,9 +74,9 @@ function getFirstResidueOrAveragePosition(structure: Structure, polymerPositions
         if (firstPolymerUnit) {
             const pos = Vec3();
             const center = Vec3();
-            const { polymerElements, conformation: { position } } = firstPolymerUnit;
+            const { polymerElements, conformation } = firstPolymerUnit;
             for (let i = 0, il = polymerElements.length; i < il; i++) {
-                position(polymerElements[i], pos);
+                conformation.position(polymerElements[i], pos);
                 Vec3.add(center, center, pos);
             }
             return Vec3.scale(center, center, 1 / polymerElements.length);

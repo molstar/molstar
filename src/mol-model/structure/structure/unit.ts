@@ -176,12 +176,12 @@ namespace Unit {
 
     function getSphereRadiusFunc(model: Model) {
         const r = model.coarseConformation.spheres.radius;
-        return (i: number) => r[i];
+        return (i: ElementIndex) => r[i];
     }
 
-    function getGaussianRadiusFunc(model: Model) {
+    function getGaussianRadiusFunc(_model: Model) {
         // TODO: compute radius for gaussians
-        return (i: number) => 0;
+        return (i: ElementIndex) => 0;
     }
 
     /**
@@ -248,7 +248,7 @@ namespace Unit {
             }
 
             const conformation = (this.model.atomicConformation !== model.atomicConformation || operator !== this.conformation.operator)
-                ? SymmetryOperator.createMapping(operator, model.atomicConformation)
+                ? SymmetryOperator.createMapping<ElementIndex>(operator, model.atomicConformation)
                 : this.conformation;
             return new Atomic(this.id, this.invariantId, this.chainGroupId, this.traits, model, this.elements, conformation, props);
         }
@@ -411,7 +411,7 @@ namespace Unit {
             }
 
             const conformation = coarseConformation !== modelCoarseConformation
-                ? SymmetryOperator.createMapping(this.conformation.operator, modelCoarseConformation)
+                ? SymmetryOperator.createMapping(this.conformation.operator, modelCoarseConformation, this.kind === Unit.Kind.Spheres ? getSphereRadiusFunc(model) : getGaussianRadiusFunc(model))
                 : this.conformation;
             return new Coarse(this.id, this.invariantId, this.chainGroupId, this.traits, model, this.kind, this.elements, conformation, props) as Unit.Spheres | Unit.Gaussians; // TODO get rid of casting
         }

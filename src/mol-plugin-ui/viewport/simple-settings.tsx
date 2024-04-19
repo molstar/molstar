@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -7,7 +7,7 @@
 
 import { produce } from 'immer';
 import { throttleTime } from 'rxjs';
-import { Canvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';
+import { Canvas3DContext, Canvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginConfig } from '../../mol-plugin/config';
 import { StateTransform } from '../../mol-state';
@@ -46,7 +46,8 @@ export class SimpleSettingsControl extends PluginUIComponent {
 const LayoutOptions = {
     'sequence': 'Sequence',
     'log': 'Log',
-    'left': 'Left Panel'
+    'left': 'Left Panel',
+    'right': 'Right Panel',
 };
 type LayoutOptions = keyof typeof LayoutOptions
 
@@ -68,6 +69,13 @@ const SimpleSettingsParams = {
         ...Canvas3DParams.cameraClipping.params,
     }, { pivot: 'radius' }),
     layout: PD.MultiSelect([] as LayoutOptions[], PD.objectToOptions(LayoutOptions)),
+    advanced: PD.Group({
+        multiSample: Canvas3DParams.multiSample,
+        hiZ: Canvas3DParams.hiZ,
+        sharpening: Canvas3DParams.postprocessing.params.sharpening,
+        pixelScale: Canvas3DContext.Params.pixelScale,
+        transparency: Canvas3DContext.Params.transparency,
+    }),
 };
 
 type SimpleSettingsParams = typeof SimpleSettingsParams
@@ -80,6 +88,7 @@ const SimpleSettingsMapping = ParamMapping({
             if (controls.top !== 'none') options.push(['sequence', LayoutOptions.sequence]);
             if (controls.bottom !== 'none') options.push(['log', LayoutOptions.log]);
             if (controls.left !== 'none') options.push(['left', LayoutOptions.left]);
+            if (controls.right !== 'none') options.push(['right', LayoutOptions.right]);
             params.layout.options = options;
         }
         const bgStyles = ctx.config.get(PluginConfig.Background.Styles) || [];
@@ -98,7 +107,9 @@ const SimpleSettingsMapping = ParamMapping({
         if (r.top !== 'hidden' && (!c || c.top !== 'none')) layout.push('sequence');
         if (r.bottom !== 'hidden' && (!c || c.bottom !== 'none')) layout.push('log');
         if (r.left !== 'hidden' && (!c || c.left !== 'none')) layout.push('left');
-        return { canvas: ctx.canvas3d?.props!, layout };
+        if (r.right !== 'hidden' && (!c || c.right !== 'none')) layout.push('right');
+        const { pixelScale, transparency } = ctx.canvas3dContext?.props!;
+        return { canvas: ctx.canvas3d?.props!, layout, pixelScale, transparency };
     }
 })({
     values(props, ctx) {
@@ -122,7 +133,14 @@ const SimpleSettingsMapping = ParamMapping({
             },
             clipping: {
                 ...canvas.cameraClipping,
-            }
+            },
+            advanced: {
+                multiSample: canvas.multiSample,
+                hiZ: canvas.hiZ,
+                sharpening: canvas.postprocessing.sharpening,
+                pixelScale: props.pixelScale,
+                transparency: props.transparency,
+            },
         };
     },
     update(s, props) {
@@ -141,8 +159,13 @@ const SimpleSettingsMapping = ParamMapping({
             far: s.clipping.far,
             minNear: s.clipping.minNear,
         };
+        canvas.multiSample = s.advanced.multiSample;
+        canvas.hiZ = s.advanced.hiZ;
+        canvas.postprocessing.sharpening = s.advanced.sharpening;
 
         props.layout = s.layout;
+        props.pixelScale = s.advanced.pixelScale;
+        props.transparency = s.advanced.transparency;
     },
     async apply(props, ctx) {
         await PluginCommands.Canvas3D.SetSettings(ctx, { settings: props.canvas });
@@ -152,11 +175,17 @@ const SimpleSettingsMapping = ParamMapping({
             s.regionState.top = props.layout.indexOf('sequence') >= 0 ? 'full' : 'hidden';
             s.regionState.bottom = props.layout.indexOf('log') >= 0 ? 'full' : 'hidden';
             s.regionState.left = hideLeft ? 'hidden' : ctx.behaviors.layout.leftPanelTabName.value === 'none' ? 'collapsed' : 'full';
+            s.regionState.right = props.layout.indexOf('right') >= 0 ? 'full' : 'hidden';
         });
         await PluginCommands.Layout.Update(ctx, { state });
 
         if (hideLeft) {
             PluginCommands.State.SetCurrentObject(ctx, { state: ctx.state.data, ref: StateTransform.RootRef });
         }
+
+        ctx.canvas3dContext?.setProps({
+            pixelScale: props.pixelScale,
+            transparency: props.transparency,
+        });
     }
 });

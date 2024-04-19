@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
@@ -42,6 +42,21 @@ namespace Lab {
         out[1] = a;
         out[2] = b;
         return out;
+    }
+
+    export function set(out: Lab, l: number, a: number, b: number): Lab {
+        out[0] = l;
+        out[1] = a;
+        out[2] = b;
+        return out;
+    }
+
+    /** simple eucledian distance, not perceptually uniform */
+    export function distance(a: Lab, b: Lab) {
+        const x = b[0] - a[0],
+            y = b[1] - a[1],
+            z = b[2] - a[2];
+        return Math.sqrt(x * x + y * y + z * z);
     }
 
     export function fromColor(out: Lab, color: Color): Lab {

@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Zhenyu Zhang <jump2cn@gmail.com>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Vec3 } from '../../../../mol-math/linear-algebra';
@@ -32,6 +33,7 @@ export const LinkCylinderParams = {
     dashCap: PD.Boolean(true),
     stubCap: PD.Boolean(true),
     radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }, BaseGeometry.CustomQualityParamInfo),
+    colorMode: PD.Select('default', PD.arrayToOptions(['default', 'interpolate'] as const), BaseGeometry.ShadingCategory)
 };
 export const DefaultLinkCylinderProps = PD.getDefaultValues(LinkCylinderParams);
 export type LinkCylinderProps = typeof DefaultLinkCylinderProps
@@ -247,7 +249,7 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
 
     // re-use boundingSphere if it has not changed much
     Vec3.scale(center, center, 1 / count);
-    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
+    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         return { mesh: m, boundingSphere: oldBoundingSphere };
     } else {
         return { mesh: m };
@@ -263,7 +265,9 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
 
     if (!linkCount) return { cylinders: Cylinders.createEmpty(cylinders) };
 
-    const { linkScale, linkSpacing, linkCap, aromaticScale, aromaticSpacing, aromaticDashCount, dashCount, dashScale, dashCap, stubCap } = props;
+    const { linkScale, linkSpacing, linkCap, aromaticScale, aromaticSpacing, aromaticDashCount, dashCount, dashScale, dashCap, stubCap, colorMode } = props;
+    const interpolate = colorMode === 'interpolate';
+    const colorModeFlag = interpolate === true ? 3 : 2;
 
     const cylindersCountEstimate = linkCount * 2;
     const builder = CylindersBuilder.create(cylindersCountEstimate, cylindersCountEstimate / 4, cylinders);
@@ -291,10 +295,10 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
 
         if (linkStyle === LinkStyle.Solid) {
             v3scale(vm, v3add(vm, va, vb), 0.5);
-            builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], 1, linkCap, linkStub, edgeIndex);
+            builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], 1, linkCap, linkStub, colorModeFlag, edgeIndex);
         } else if (linkStyle === LinkStyle.Dashed) {
             v3scale(vm, v3add(vm, va, vb), 0.5);
-            builder.addFixedCountDashes(va, vm, dashCount, dashScale, dashCap, dashCap, linkStub, edgeIndex);
+            builder.addFixedCountDashes(va, vm, dashCount, dashScale, dashCap, dashCap, linkStub, interpolate, edgeIndex);
         } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple || linkStyle === LinkStyle.Aromatic || linkStyle === LinkStyle.MirroredAromatic) {
             const order = (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble) ? 2 :
                 (linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple) ? 3 : 1.5;
@@ -305,7 +309,7 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
             calculateShiftDir(vShift, va, vb, referencePosition ? referencePosition(edgeIndex) : null);
 
             if (linkStyle === LinkStyle.Aromatic || linkStyle === LinkStyle.MirroredAromatic) {
-                builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], 1, linkCap, linkStub, edgeIndex);
+                builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], 1, linkCap, linkStub, colorModeFlag, edgeIndex);
 
                 const aromaticOffset = linkRadius + aromaticScale * linkRadius + aromaticScale * linkRadius * aromaticSpacing;
 
@@ -315,38 +319,38 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
                 v3setMagnitude(vShift, vShift, aromaticOffset);
                 v3sub(va, va, vShift);
                 v3sub(vm, vm, vShift);
-                builder.addFixedCountDashes(va, vm, aromaticDashCount, aromaticScale, dashCap, dashCap, linkStub, edgeIndex);
+                builder.addFixedCountDashes(va, vm, aromaticDashCount, aromaticScale, dashCap, dashCap, linkStub, interpolate, edgeIndex);
 
                 if (linkStyle === LinkStyle.MirroredAromatic) {
                     v3setMagnitude(vShift, vShift, aromaticOffset * 2);
                     v3add(va, va, vShift);
                     v3add(vm, vm, vShift);
-                    builder.addFixedCountDashes(va, vm, aromaticDashCount, aromaticScale, dashCap, dashCap, linkStub, edgeIndex);
+                    builder.addFixedCountDashes(va, vm, aromaticDashCount, aromaticScale, dashCap, dashCap, linkStub, interpolate, edgeIndex);
                 }
             } else if (linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.OffsetTriple) {
                 const multipleOffset = linkRadius + multiScale * linkRadius + linkScale * linkRadius * linkSpacing;
                 v3setMagnitude(vShift, vShift, multipleOffset);
 
-                builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], 1, linkCap, linkStub, edgeIndex);
+                builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], 1, linkCap, linkStub, colorModeFlag, edgeIndex);
 
                 v3setMagnitude(tmpV12, v3sub(tmpV12, va, vm), linkRadius / 1.5);
                 v3sub(va, va, tmpV12);
 
-                if (order === 3) builder.add(va[0] + vShift[0], va[1] + vShift[1], va[2] + vShift[2], vm[0] + vShift[0], vm[1] + vShift[1], vm[2] + vShift[2], multiScale, linkCap, linkStub, edgeIndex);
-                builder.add(va[0] - vShift[0], va[1] - vShift[1], va[2] - vShift[2], vm[0] - vShift[0], vm[1] - vShift[1], vm[2] - vShift[2], multiScale, dashCap, linkStub, edgeIndex);
+                if (order === 3) builder.add(va[0] + vShift[0], va[1] + vShift[1], va[2] + vShift[2], vm[0] + vShift[0], vm[1] + vShift[1], vm[2] + vShift[2], multiScale, linkCap, linkStub, colorModeFlag, edgeIndex);
+                builder.add(va[0] - vShift[0], va[1] - vShift[1], va[2] - vShift[2], vm[0] - vShift[0], vm[1] - vShift[1], vm[2] - vShift[2], multiScale, dashCap, linkStub, colorModeFlag, edgeIndex);
             } else {
                 v3setMagnitude(vShift, vShift, absOffset);
 
-                if (order === 3) builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], multiScale, linkCap, linkStub, edgeIndex);
-                builder.add(va[0] + vShift[0], va[1] + vShift[1], va[2] + vShift[2], vm[0] + vShift[0], vm[1] + vShift[1], vm[2] + vShift[2], multiScale, linkCap, linkStub, edgeIndex);
-                builder.add(va[0] - vShift[0], va[1] - vShift[1], va[2] - vShift[2], vm[0] - vShift[0], vm[1] - vShift[1], vm[2] - vShift[2], multiScale, linkCap, linkStub, edgeIndex);
+                if (order === 3) builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], multiScale, linkCap, linkStub, colorModeFlag, edgeIndex);
+                builder.add(va[0] + vShift[0], va[1] + vShift[1], va[2] + vShift[2], vm[0] + vShift[0], vm[1] + vShift[1], vm[2] + vShift[2], multiScale, linkCap, linkStub, colorModeFlag, edgeIndex);
+                builder.add(va[0] - vShift[0], va[1] - vShift[1], va[2] - vShift[2], vm[0] - vShift[0], vm[1] - vShift[1], vm[2] - vShift[2], multiScale, linkCap, linkStub, colorModeFlag, edgeIndex);
             }
         } else if (linkStyle === LinkStyle.Disk) {
             v3scale(tmpV12, v3sub(tmpV12, vm, va), 0.475);
             v3add(va, va, tmpV12);
             v3sub(vm, vm, tmpV12);
 
-            builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], 1, linkCap, linkStub, edgeIndex);
+            builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], 1, linkCap, linkStub, colorModeFlag, edgeIndex);
         }
     }
 
@@ -356,7 +360,7 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
 
     // re-use boundingSphere if it has not changed much
     Vec3.scale(center, center, 1 / count);
-    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
+    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         return { cylinders: c, boundingSphere: oldBoundingSphere };
     } else {
         return { cylinders: c };
@@ -466,7 +470,7 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
 
     // re-use boundingSphere if it has not changed much
     Vec3.scale(center, center, 1 / count);
-    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
+    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         return { lines: l, boundingSphere: oldBoundingSphere };
     } else {
         return { lines: l };
