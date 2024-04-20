@@ -95,13 +95,16 @@ export const assign_material_color = `
 #endif
 
 // apply per-group transparency
-#if defined(dTransparency) && (defined(dRenderVariant_pick) || defined(dRenderVariant_color))
+#if defined(dTransparency) && (defined(dRenderVariant_pick) || defined(dRenderVariant_color) || defined(dRenderVariant_emissive))
     float ta = 1.0 - vTransparency;
     if (vTransparency < 0.09) ta = 1.0; // hard cutoff looks better
 
     #if defined(dRenderVariant_pick)
         if (ta * uAlpha < uPickingAlphaThreshold)
             discard; // ignore so the element below can be picked
+    #elif defined(dRenderVariant_emissive)
+        if (ta < 1.0)
+            discard; // emissive not supported with transparency
     #elif defined(dRenderVariant_color)
         material.a *= ta;
     #endif
