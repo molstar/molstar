@@ -1,0 +1,29 @@
+# This job installs dependencies, builds the docs, and pushes it to
+# the `gh-pages` branch of *molstar/molstar.github.io*
+jobs:
+  deploy-book:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 👨🏼‍💻 checkout
+        uses: actions/checkout@v4
+
+      - name: 🐍 python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: ⛓️ dependencies
+        run: |
+          pip install mkdocs-material
+
+      - name: 🔧 build site
+        run: |
+          mkdocs build
+
+      - name: 🚢 deploy site
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          deploy_key: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./site
+
