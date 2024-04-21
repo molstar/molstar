@@ -26,4 +26,3 @@ jobs:
           deploy_key: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: ./site
-
