@@ -1,0 +1,58 @@
+site_name: Mol* Developer Documentation
+theme:
+  name: material
+
+  # 404 page
+  static_templates:
+    - 404.html
+
+  # Necessary for search to work properly
+  include_search_page: false
+  search_index_only: true
+
+  # Default values, taken from mkdocs_theme.yml
+  language: en
+  font:
+    text: Roboto
+    code: Roboto Mono
+  favicon: assets/favicon.png
+  icon:
+    logo: logo
+markdown_extensions:
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.arithmatex:
+      generic: true
+# Scripts for rendering Latex equations (in addition to pymdownx.arithmatex):
+extra_javascript:
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+nav:
+  - 'index.md'
+  - Plugin:
+    - Creating Instance: 'plugin/instance.md'
+    - Examples: plugin/examples.md
+    - Selections: 'plugin/selections.md'
+    - Viewer State: 'plugin/viewer-state.md'
+    - Data State: 'plugin/data-state.md'
+    - File Formats: 'plugin/file-formats.md'
+    - CIF Schemas: 'plugin/cif-schemas.md'
+    - State Transforms:
+      - Custom Trajectory: 'plugin/transforms/custom-trajectory.md'
+  - Data Access Tools:
+    - 'data-access-tools/model-server.md'
+    - Volume Server:
+      - Overview: 'data-access-tools/volume-server/index.md'
+      - Examples: 'data-access-tools/volume-server/examples.md'
+      - How it Works: 'data-access-tools/volume-server/how-it-works.md'
+      - Data Format: 'data-access-tools/volume-server/response-data-format.md'
+    - 'data-access-tools/plugin-state-server.md'
+    - 'data-access-tools/convert-to-bcif.md'
+    - 'data-access-tools/create-ccd-table.md'
+    - 'data-access-tools/extract-ccd-ions.md'
+  - Extensions:
+    - MolViewSpec: 'extensions/mvs/index.md'
+    - wwPDB StructConn: 'extensions/struct-conn.md'
+  - Misc:
+    - Interesting PDB entries: misc/interesting-pdb-entries.md
+repo_url: https://github.com/molstar/docs

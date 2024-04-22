@@ -1,3 +1,5 @@
+# Interesting PDB Entries
+
 * Cyclic polymers (1sfi, 6dny, 1HVZ)
 * B-DNA (1bna)
 * Missing carbonyl oxygen (1gfl)
@@ -44,7 +46,6 @@
     * TA1 (e.g. 1JFF) - many fused rings (incl. a 8-member rings)
     * BPA (e.g. 1JDG) - many fused rings
     * CLR (e.g. 3GKI) - four fused rings
-
-Assembly symmetries
-* 5M30 (Assembly 1, C3 local and pseudo)
-* 1RB8 (Assembly 1, I global)
+* Assembly symmetries
+    * 5M30 (Assembly 1, C3 local and pseudo)
+    * 1RB8 (Assembly 1, I global)
