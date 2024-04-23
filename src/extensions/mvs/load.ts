@@ -59,7 +59,7 @@ async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, options
     setCanvas(plugin, context.canvas);
 
     if (options?.keepCamera) {
-        suppressCameraAutoreset(plugin);
+        await suppressCameraAutoreset(plugin);
     } else {
         if (context.focus?.kind === 'camera') {
             await setCamera(plugin, context.focus.params);
