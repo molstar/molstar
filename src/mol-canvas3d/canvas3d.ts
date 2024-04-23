@@ -602,7 +602,8 @@ namespace Canvas3D {
                 const focus = camera.getFocus(center, radius);
                 const next = typeof nextCameraResetSnapshot === 'function' ? nextCameraResetSnapshot(scene, camera) : nextCameraResetSnapshot;
                 const snapshot = next ? { ...focus, ...next } : focus;
-                camera.setState({ ...snapshot, radiusMax: getSceneRadius() }, duration);
+                const offset = snapshot.target ? Vec3.distance(snapshot.target, scene.boundingSphere.center) : 0;
+                camera.setState({ ...snapshot, radiusMax: getSceneRadius() + offset }, duration);
             }
 
             nextCameraResetDuration = void 0;

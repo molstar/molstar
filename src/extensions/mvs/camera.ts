@@ -35,7 +35,7 @@ const _tmpVec = Vec3();
 
 /** Set the camera position to the current position (thus suppress automatic adjustment). */
 export async function suppressCameraAutoreset(plugin: PluginContext) {
-    const snapshot = { ...plugin.canvas3d?.camera.state };
+    const snapshot: Partial<Camera.Snapshot> = { ...plugin.canvas3d?.camera.state, radius: Infinity }; // `radius: Infinity` avoids clipping when the scene expands
     await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
 }
 
@@ -46,7 +46,7 @@ export async function setCamera(plugin: PluginContext, params: ParamsOfKind<Mols
     if (plugin.canvas3d) position = fovAdjustedPosition(target, position, plugin.canvas3d.camera.state.mode, plugin.canvas3d.camera.state.fov);
     const up = Vec3.create(...params.up);
     Vec3.orthogonalize(up, Vec3.sub(_tmpVec, target, position), up);
-    const snapshot: Partial<Camera.Snapshot> = { target, position, up, radius: 10_000, 'radiusMax': 10_000 };
+    const snapshot: Partial<Camera.Snapshot> = { target, position, up, radius: Infinity }; // `radius: Infinity` avoids clipping (ensures covering the whole scene)
     await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
 }
 
