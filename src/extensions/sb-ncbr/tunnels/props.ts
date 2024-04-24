@@ -1,4 +1,6 @@
+import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
+import { Color } from '../../../mol-util/color';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 
 export interface Profile {
@@ -11,20 +13,67 @@ export interface Profile {
     Y: number,
     Z: number,
 }
+export interface Layerweightedproperties{
+    Hydrophobicity: number,
+    Hydropathy: number,
+    Polarity: number,
+    Mutability: number
+};
+export interface LayerGeometry{
+    MinRadius: number,
+    MinFreeRadius: number,
+    StartDistance: number,
+    EndDistance: number,
+    LocalMinimum: boolean,
+    Bottleneck: boolean,
+    bottleneck: boolean
+};
+export interface Properties{
+    Charge: number,
+    NumPositives: number,
+    NumNegatives: number,
+    Hydrophobicity: number,
+    Hydropathy: number,
+    Polarity: number,
+    Mutability: number
+};
+export interface LayersInfo{
+    LayerGeometry: LayerGeometry,
+    Residues: string[],
+    FlowIndices: string[],
+    Properties: Properties
+};
+export interface Layers{
+    ResidueFlow: string[],
+    HetResidues: any[], // Not Used
+    LayerWeightedProperties: Layerweightedproperties
+    LayersInfo: LayersInfo[]
+};
+
+
+export interface TunnelDB{
+    Type: string,
+    Id: string,
+    Cavity: string,
+    Auto: boolean,
+    Properties: Properties,
+    Profile: Profile[],
+    Layers: Layers
+};
 
 export interface Channels{
-    'CSATunnels_MOLE': [],
-    'CSATunnels_Caver': [],
-    'ReviewedChannels_MOLE': [],
-    'ReviewedChannels_Caver': [],
-    'CofactorTunnels_MOLE': [],
-    'CofactorTunnels_Caver': [],
-    'TransmembranePores_MOLE': [],
-    'TransmembranePores_Caver': [],
-    'ProcognateTunnels_MOLE': [],
-    'ProcognateTunnels_Caver': [],
-    'AlphaFillTunnels_MOLE': [],
-    'AlphaFillTunnels_Caver': []
+    'CSATunnels_MOLE': TunnelDB[],
+    'CSATunnels_Caver': TunnelDB[],
+    'ReviewedChannels_MOLE': TunnelDB[],
+    'ReviewedChannels_Caver': TunnelDB[],
+    'CofactorTunnels_MOLE': TunnelDB[],
+    'CofactorTunnels_Caver': TunnelDB[],
+    'TransmembranePores_MOLE': TunnelDB[],
+    'TransmembranePores_Caver': TunnelDB[],
+    'ProcognateTunnels_MOLE': TunnelDB[],
+    'ProcognateTunnels_Caver': TunnelDB[],
+    'AlphaFillTunnels_MOLE': TunnelDB[],
+    'AlphaFillTunnels_Caver': TunnelDB[]
 }
 
 export interface ChannelsCache {
@@ -33,23 +82,29 @@ export interface ChannelsCache {
 
 export interface Tunnel {
     data: Profile[],
-    type: string,
-    id: number | string,
+    props: {
+        loci?: string,
+        type?: string,
+        id?: string,
+        label?: string,
+        description?: string
+    }
 }
 
-export const TunnelParams = {
-    data: PD.Value<any[]>([], { isHidden: true }),
+export const TunnelShapeParams = {
+    webgl: PD.Value<WebGLContext | null>(null),
+    colorTheme: PD.Color(Color(0xff0000)),
     visual: PD.MappedStatic(
         'mesh',
         {
-            mesh: PD.Group({
-                resolution: PD.Numeric(2),
-            }),
-            sphere: PD.Group({
-                resolution: PD.Numeric(2)
-            })
+            mesh: PD.Group({ resolution: PD.Numeric(2) }),
+            spheres: PD.Group({ resolution: PD.Numeric(2) })
         }
-    )
+    ),
+    samplingRate: PD.Numeric(1, { min: 1, max: 20, step: 0.01 }),
+    fillFactor: PD.Numeric(0.1, { min: 0.1, max: 1, step: 0.1 }),
+    showRadii: PD.Boolean(false),
 };
 
 export class TunnelStateObject extends PluginStateObject.Create<{ tunnel: Tunnel }>({ name: 'Tunnel Entry', typeClass: 'Data' }) { }
+export class TunnelsStateObject extends PluginStateObject.Create<{ tunnels: Tunnel[] }>({ name: 'Tunnels', typeClass: 'Data' }) { }

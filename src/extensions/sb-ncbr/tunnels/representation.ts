@@ -1,6 +1,6 @@
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { StateTransformer } from '../../../mol-state';
-import { TunnelStateObject, Tunnel } from './props';
+import { TunnelStateObject, Tunnel, TunnelShapeParams, TunnelsStateObject } from './props';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
