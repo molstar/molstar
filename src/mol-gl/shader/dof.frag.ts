@@ -67,7 +67,7 @@ vec3 getBlurredImage1(vec2 coords){
 
     return blurColor.rgb;
 }
-
+// simplification from https://catlikecoding.com/unity/tutorials/advanced-rendering/depth-of-field/
 void main()
 {
     float u = gl_FragCoord.x/uTexSize.x;
