@@ -24,6 +24,7 @@ import { MarkingPass, MarkingProps } from './marking';
 import { CopyRenderable, createCopyRenderable } from '../../mol-gl/compute/util';
 import { isDebugMode, isTimingMode } from '../../mol-util/debug';
 import { AssetManager } from '../../mol-util/assets';
+import { DofPass } from './dof';
 
 type Props = {
     postprocessing: PostprocessingProps;
@@ -61,6 +62,7 @@ export class DrawPass {
     private readonly marking: MarkingPass;
     readonly postprocessing: PostprocessingPass;
     private readonly antialiasing: AntialiasingPass;
+    private readonly dof: DofPass;
 
     private transparencyMode: TransparencyMode = 'blended';
     setTransparency(transparency: 'wboit' | 'dpoit' | 'blended') {
@@ -104,6 +106,7 @@ export class DrawPass {
         this.marking = new MarkingPass(webgl, width, height);
         this.postprocessing = new PostprocessingPass(webgl, assetManager, this);
         this.antialiasing = new AntialiasingPass(webgl, this);
+        this.dof = new DofPass(webgl, this.postprocessing.target.texture, this.depthTextureOpaque);
 
         this.copyFboTarget = createCopyRenderable(webgl, this.colorTarget.texture);
         this.copyFboPostprocessing = createCopyRenderable(webgl, this.postprocessing.target.texture);
@@ -145,6 +148,7 @@ export class DrawPass {
         this.marking.setSize(width, height);
         this.postprocessing.setSize(width, height);
         this.antialiasing.setSize(width, height);
+        this.dof.setSize(width, height);
     }
 
     private _renderDpoit(renderer: Renderer, camera: ICamera, scene: Scene, iterations: number, transparentBackground: boolean, postprocessingProps: PostprocessingProps) {
@@ -395,6 +399,12 @@ export class DrawPass {
             } else if (volumeRendering || oitEnabled) {
                 this.copyFboTarget.render();
             }
+        }
+
+        if (props.postprocessing.dof.name === 'on') {
+            // const input = antialiasingEnabled ? this.antialiasing.target.texture : (postprocessingEnabled ? this.postprocessing.target.texture : this.drawTarget.texture);
+            this.dof.update(camera, this.postprocessing.target.texture, this.depthTargetOpaque?.texture || this.depthTextureOpaque, props.postprocessing.dof.params);
+            this.dof.render(camera.viewport, toDrawingBuffer ? undefined : this.getColorTarget(props.postprocessing));
         }
 
         this.webgl.gl.flush();
