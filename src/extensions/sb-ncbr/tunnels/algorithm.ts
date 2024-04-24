@@ -8,6 +8,7 @@ import { Texture } from '../../../mol-gl/webgl/texture';
 import { PositionData, Sphere3D, Box3D, GridLookup3D, fillGridDim } from '../../../mol-math/geometry';
 import { Boundary, getBoundary } from '../../../mol-math/geometry/boundary';
 import { DefaultMolecularSurfaceCalculationProps, MolecularSurfaceCalculationProps } from '../../../mol-math/geometry/molecular-surface';
+import { spline } from '../../../mol-math/interpolate';
 import { Vec3, Tensor, Mat4 } from '../../../mol-math/linear-algebra';
 import { Shape } from '../../../mol-model/shape';
 import { ensureReasonableResolution } from '../../../mol-repr/structure/visual/util/common';
@@ -21,40 +22,170 @@ type MolecularSurfaceMeta = {
     colorTexture?: Texture
 }
 
-export async function createSpheresShape(tunnel: Tunnel, color: Color, resolution: number, webgl?: WebGLContext) {
-    const builder = MeshBuilder.createState(512, 512);
+export async function createSpheresShape(tunnel: Tunnel, color: Color, resolution: number, sampleRate: number, fillFactor: number, showRadii: boolean, prev?: Shape<Mesh>) {
+    let builder: MeshBuilder.State;
+    if (prev) {
+        builder = MeshBuilder.createState(512, 512, prev.geometry);
+    } else {
+        builder = MeshBuilder.createState(512, 512);
+    }
 
-    for (let i = 0; i < tunnel.data.length; i += 1) {
-        const p = tunnel.data[i];
-        builder.currentGroup = 1;
-        const center = [p.X, p.Y, p.Z];
-        addSphere(builder, center as Vec3, p.Radius, resolution);
+    const processedData = processProfiles(tunnel.data, sampleRate, fillFactor);
+
+    if (showRadii) {
+        for (let i = 0; i < processedData.length; i += 1) {
+            const p = processedData[i];
+            builder.currentGroup = i;
+            const center = [p.X, p.Y, p.Z];
+            addSphere(builder, center as Vec3, p.Radius, resolution);
+        }
+    } else {
+        for (let i = 0; i < processedData.length; i += 1) {
+            const p = processedData[i];
+            builder.currentGroup = 0;
+            const center = [p.X, p.Y, p.Z];
+            addSphere(builder, center as Vec3, p.Radius, resolution);
+        }
     }
 
     const mesh = MeshBuilder.getMesh(builder);
+    const name = tunnel.props.loci ?
+        tunnel.props.loci :
+        tunnel.props.type && tunnel.props.id ?
+            `${tunnel.props.type} ${tunnel.props.id}` :
+            'Tunnel';
 
+    if (showRadii)
+        return Shape.create(
+            name,
+            tunnel.props,
+            mesh,
+            () => Color(color),
+            () => 1,
+            (i) => `[${processedData[i].X.toFixed(3)}, ${processedData[i].Y.toFixed(3)}, ${processedData[i].Z.toFixed(3)}] - radius: ${processedData[i].Radius.toFixed(3)}`,
+        );
     return Shape.create(
-        `${tunnel.type} ${tunnel.id}`,
-        { channelId: tunnel.id, type: tunnel.type },
+        name,
+        tunnel.props,
         mesh,
         () => Color(color),
         () => 1,
-        () => `${tunnel.type} ${tunnel.id}`
+        () => name,
     );
 }
 
-export async function createTunnelShape(tunnel: Tunnel, color: Color, resolution: number, webgl?: WebGLContext) {
-    const mesh = await createTunnelMesh(tunnel.data, resolution, webgl);
+export async function createTunnelShape(tunnel: Tunnel, color: Color, resolution: number, sampleRate: number, fillFactor: number, webgl: WebGLContext | undefined, prev?: Shape<Mesh>) {
+    let mesh;
+    if (prev) {
+        mesh = await createTunnelMesh(tunnel.data, resolution, sampleRate, fillFactor, webgl, prev.geometry);
+    } else {
+        mesh = await createTunnelMesh(tunnel.data, resolution, sampleRate, fillFactor, webgl);
+    }
+
+
+    const name = tunnel.props.loci ?
+        tunnel.props.loci :
+        tunnel.props.type && tunnel.props.id ?
+            `${tunnel.props.type} ${tunnel.props.id}` :
+            'Tunnel';
 
     return Shape.create(
-        `${tunnel.type} ${tunnel.id}`,
-        { channelId: tunnel.id, type: tunnel.type },
+        name,
+        tunnel.props,
         mesh,
         () => Color(color),
         () => 1,
-        () => `${tunnel.type} ${tunnel.id}`
+        () => name,
     );
 }
+
+function profileToVec3(profile: Profile): Vec3 {
+    return Vec3.create(profile.X, profile.Y, profile.Z);
+}
+
+function calculateCurvature(Pprev: Vec3, Pi: Vec3, Pnext: Vec3) {
+    const V1 = Vec3.sub(Vec3.zero(), Pi, Pprev);
+    const V2 = Vec3.sub(Vec3.zero(), Pnext, Pi);
+    Vec3.normalize(V1, V1);
+    Vec3.normalize(V2, V2);
+    const dotProduct = Vec3.dot(V1, V2); // Cosine of angle between V1 and V2
+    const angle = Math.acos(dotProduct); // Angle in radians
+    return angle; // Higher angle means higher curvature
+}
+
+function determineNumPoints(distance: number, minDistance: number, pointsPerUnitDistance: number) {
+    if (distance <= minDistance) return 1;
+    return Math.ceil(distance * pointsPerUnitDistance);
+}
+
+function shouldInterpolate(Pprev: Vec3, Pi: Vec3, Pnext: Vec3 | undefined, curveThreshold: number, distanceThreshold: number) {
+    const curvature = Pnext ? calculateCurvature(Pprev, Pi, Pnext) : 0;
+    const distance1 = Vec3.distance(Pprev, Pi);
+    const distance2 = Pnext ? Vec3.distance(Pi, Pnext) : 0;
+
+    return curvature > curveThreshold || distance1 > distanceThreshold || distance2 > distanceThreshold;
+}
+
+// Centripetal Catmull–Rom spline interpolation
+function processProfiles(profiles: Profile[], sampleRate: number, fillFactor: number, tension: number = 0.5, numPointsBetween: number = 5): Profile[] {
+    const skipRate = sampleRate;
+    const sampledProfiles = skipRate === 1 ? profiles : profiles.filter((_, index) => index % skipRate === 0 || index === profiles.length - 1); // ensuring the last profile is included
+
+    const interpolatedProfiles: Profile[] = [];
+
+    const curvatureThresholdRadians = Math.PI / 6;
+    const distanceThreshold = 1;
+
+    // Looping over sampled profiles to interpolate additional points
+    for (let i = 0; i < sampledProfiles.length - 1; i++) {
+        interpolatedProfiles.push(sampledProfiles[i]); // Including the current profile in the result
+
+        const P0 = sampledProfiles[Math.max(0, i - 1)];
+        const P1 = sampledProfiles[i];
+        const P2 = sampledProfiles[i + 1];
+        const P3 = sampledProfiles[Math.min(i + 2, sampledProfiles.length - 1)];
+
+        const charge = (P1.Charge + P2.Charge) / 2;
+        const freeRadius = (P1.FreeRadius + P2.FreeRadius) / 2;
+        const T = (P1.T + P2.T) / 2;
+        const distance = (P1.Distance + P2.Distance) / 2;
+
+        const interpolate = sampledProfiles.length > 2
+            ? shouldInterpolate(profileToVec3(P0), profileToVec3(P1), profileToVec3(P2), curvatureThresholdRadians, distanceThreshold) ||
+                shouldInterpolate(profileToVec3(P1), profileToVec3(P2), profileToVec3(P3), curvatureThresholdRadians, distanceThreshold)
+            : shouldInterpolate(profileToVec3(P1), profileToVec3(P2), undefined, curvatureThresholdRadians, distanceThreshold);
+
+        if (interpolate) {
+            numPointsBetween = determineNumPoints(Vec3.distance(profileToVec3(P1), profileToVec3(P2)), 1, fillFactor);
+            // Generate and add interpolated points
+            for (let j = 1; j <= numPointsBetween; j++) {
+                const t = j / (numPointsBetween + 1);
+
+                const x = spline(P0.X, P1.X, P2.X, P3.X, t, tension);
+                const y = spline(P0.Y, P1.Y, P2.Y, P3.Y, t, tension);
+                const z = spline(P0.Z, P1.Z, P2.Z, P3.Z, t, tension);
+
+                const radius = spline(P0.Radius, P1.Radius, P2.Radius, P3.Radius, t, tension);
+
+                interpolatedProfiles.push({
+                    X: x,
+                    Y: y,
+                    Z: z,
+                    Radius: radius,
+                    Charge: charge,
+                    FreeRadius: freeRadius,
+                    T,
+                    Distance: distance
+                });
+            }
+        }
+    }
+
+    interpolatedProfiles.push(sampledProfiles[sampledProfiles.length - 1]); // ensuring the last profile is included
+
+    return interpolatedProfiles;
+}
+
 
 function convertToPositionData(profile: Profile[], probeRadius: number): Required<PositionData> {
     let position = {} as PositionData;
@@ -86,12 +217,16 @@ function convertToPositionData(profile: Profile[], probeRadius: number): Require
 async function createTunnelMesh(
     profile: Profile[],
     detail: number,
+    sampleRate: number,
+    fillFactor: number,
     webgl?: WebGLContext,
+    prev?: Mesh,
 ) {
     const props = {
         ...DefaultMolecularSurfaceCalculationProps,
     };
-    const positions = convertToPositionData(profile, props.probeRadius);
+    const preprocessedData = processProfiles(profile, sampleRate, fillFactor);
+    const positions = convertToPositionData(preprocessedData, props.probeRadius);
     const bounds: Boundary = getBoundary(positions);
 
     let maxR = 0;
@@ -102,7 +237,7 @@ async function createTunnelMesh(
 
     const p = ensureReasonableResolution(bounds.box, props);
 
-    const { field, transform, /* resolution,*/ maxRadius } = await computeTunnelSurface(
+    const { field, transform, /* resolution,*/ maxRadius, /* idField */ } = await computeTunnelSurface(
         positions,
         bounds,
         maxR,
@@ -114,7 +249,7 @@ async function createTunnelMesh(
         isoLevel: p.probeRadius,
         scalarField: field,
     };
-    const surface = await computeMarchingCubesMesh(params).run();
+    const surface = await computeMarchingCubesMesh(params, prev).run();
     const iterations = Math.ceil(2 / 1);
     Mesh.smoothEdges(surface, { iterations, maxNewEdgeLength: Math.sqrt(2) });
 
