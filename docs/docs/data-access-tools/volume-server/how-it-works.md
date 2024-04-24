@@ -1,5 +1,4 @@
-How it works
-============
+## VolumeServer: How it works
 
 This document provides a high level overview of how the DensityServer works.
 
