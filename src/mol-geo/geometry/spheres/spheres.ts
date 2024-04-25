@@ -98,7 +98,7 @@ export namespace Spheres {
             get boundingSphere() {
                 const newHash = hashCode(spheres);
                 if (newHash !== currentHash) {
-                    const b = calculateInvariantBoundingSphere(spheres.centerBuffer.ref.value, spheres.sphereCount * 4, 4);
+                    const b = calculateInvariantBoundingSphere(spheres.centerBuffer.ref.value, spheres.sphereCount, 1);
                     Sphere3D.copy(boundingSphere, b);
                     currentHash = newHash;
                 }
@@ -106,7 +106,7 @@ export namespace Spheres {
             },
             get groupMapping() {
                 if (spheres.groupBuffer.ref.version !== currentGroup) {
-                    groupMapping = createGroupMapping(spheres.groupBuffer.ref.value, spheres.sphereCount, 4);
+                    groupMapping = createGroupMapping(spheres.groupBuffer.ref.value, spheres.sphereCount);
                     currentGroup = spheres.groupBuffer.ref.version;
                 }
                 return groupMapping;
@@ -136,6 +136,7 @@ export namespace Spheres {
                 }
             },
         };
+        spheres.shaderData.update();
         return spheres;
     }
 

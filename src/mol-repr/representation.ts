@@ -469,7 +469,13 @@ namespace Representation {
                 if (state.transparency !== undefined) {
                     // TODO
                 }
+                if (state.emissive !== undefined) {
+                    // TODO
+                }
                 if (state.substance !== undefined) {
+                    // TODO
+                }
+                if (state.clipping !== undefined) {
                     // TODO
                 }
                 if (state.themeStrength !== undefined) Visual.setThemeStrength(renderObject, state.themeStrength);
