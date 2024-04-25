@@ -7,7 +7,6 @@
 import { StateTransforms } from '../../../mol-plugin-state/transforms';
 import { PluginContext } from '../../../mol-plugin/context';
 import { Channels, Tunnel, TunnelDB } from './props';
-import { tunnel_Path55 } from './1ymg_Path55';
 import { TunnelsDataTransformer, TunnelsToTunnelTransformer, TunnelShapeProvider, TunnelDataTransformer } from './representation';
 
 
@@ -48,11 +47,13 @@ export async function runVisualizeTunnel(plugin: PluginContext) {
     const update = plugin.build();
     const webgl = plugin.canvas3dContext?.webgl;
 
-    const tunnel = { data: tunnel_Path55.Profile, props: { id: tunnel_Path55.Id, type: tunnel_Path55.Type } };
+    const response = await (await fetch(URL)).json();
+
+    const tunnel = response.Channels.TransmembranePores_MOLE[0];
 
     update
         .toRoot()
-        .apply(TunnelDataTransformer, { data: tunnel })
+        .apply(TunnelDataTransformer, { data: { data: tunnel.Profile, props: { id: tunnel.Id, type: tunnel.Type } } })
         .apply(TunnelShapeProvider, {
             webgl,
         })
