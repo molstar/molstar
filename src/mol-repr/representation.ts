@@ -464,9 +464,6 @@ namespace Representation {
                 if (state.transparency !== undefined) {
                     // TODO
                 }
-                if (state.emissive !== undefined) {
-                    // TODO
-                }
                 if (state.substance !== undefined) {
                     // TODO
                 }
