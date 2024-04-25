@@ -281,7 +281,8 @@ namespace Renderer {
                 if (d - radius > maxDistance) return;
             }
 
-            if (r.values.instanceGrid.ref.value.cellSize > 1 || r.values.lodLevels) {
+            const hasInstanceGrid = r.values.instanceGrid.ref.value.cellSize > 1;
+            if (hasInstanceGrid || (hasInstanceGrid && r.values.lodLevels)) {
                 r.cull(cameraPlane, frustum, isOccluded, ctx.stats);
             } else {
                 r.uncull();
