@@ -8,7 +8,11 @@ Note that since we don't clearly distinguish between a public and private interf
 - Refactor transparency rendering
     - More uniform behavior for blended, wboit, dpoit
     - Fix issues with text & image geometry
-    - Return StateTransform selectors from measurements API (addDistance, addAngle, etc.)
+
+- Return StateTransform selectors from measurements API (addDistance, addAngle, etc.)
+- Fix render-spheres example (#1100)
+    - Wrong step size in sphere geometry boundingSphere & groupmapping
+    - Handle empty instanceGridin renderer & renderable
 
 ## [v4.1.0] - 2023-03-31
 
