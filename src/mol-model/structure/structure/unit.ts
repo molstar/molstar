@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -282,7 +282,9 @@ namespace Unit {
             let bonds = cache.get(this.elements);
             if (!bonds) {
                 bonds = computeIntraUnitBonds(this);
-                cache.set(this.elements, bonds);
+                if (bonds.props?.cacheable) {
+                    cache.set(this.elements, bonds);
+                }
             }
             this.props.bonds = bonds;
             return this.props.bonds;
