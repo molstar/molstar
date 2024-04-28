@@ -41,6 +41,7 @@ export function getFieldType(type: string, description: string, values?: string[
         case 'pdbx_related_db_id':
         case 'sequence_dep':
         case 'pdb_id':
+        case 'pdb_id_u': // should be case insensitve, but can't express that
         case 'emd_id':
         // todo, consider adding specialised fields
         case 'yyyy-mm-dd':
