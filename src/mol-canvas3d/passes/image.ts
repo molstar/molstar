@@ -118,7 +118,9 @@ export class ImagePass {
         }
         const pixelData = PixelData.create(array, w, h);
         PixelData.flipY(pixelData);
-        PixelData.divideByAlpha(pixelData);
+        const bloomDisabled = this.props.postprocessing.bloom.name !== 'on' || (this.scene.emissiveAverage === 0 && this.props.postprocessing.bloom.params.mode === 'emissive');
+        // can only undo pre-multiplied alpha when bloom pass is disabled
+        if (bloomDisabled) PixelData.divideByAlpha(pixelData);
         return new ImageData(new Uint8ClampedArray(array), w, h);
     }
 }

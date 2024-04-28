@@ -3,8 +3,6 @@ precision highp float;
 precision highp int;
 precision highp sampler2D;
 
-uniform sampler2D tColor;
-uniform sampler2D tEmissive;
 uniform vec2 uTexSizeInv;
 
 uniform sampler2D tBlur1;
@@ -24,7 +22,6 @@ float lerpBloomFactor(const in float factor) {
 
 void main(void) {
     vec2 coords = gl_FragCoord.xy * uTexSizeInv;
-    float emissive = texture2D(tEmissive, coords).a;
 
     gl_FragColor = uBloomStrength * (
         lerpBloomFactor(uBloomFactors[0]) * vec4(uBloomTints[0], 0.0) * texture2D(tBlur1, coords) +

@@ -71,7 +71,7 @@ export class BloomPass {
         const nullTexture = createNullTexture();
         this.luminosityRenderable = getLuminosityRenderable(webgl, nullTexture, nullTexture, nullTexture);
         this.blurRenderable = getBlurRenderable(webgl, nullTexture);
-        this.compositeRenderable = getCompositeRenderable(webgl, width, height, this.verticalBlurTargets[0].texture, this.verticalBlurTargets[1].texture, this.verticalBlurTargets[2].texture, this.verticalBlurTargets[3].texture, this.verticalBlurTargets[4].texture, nullTexture);
+        this.compositeRenderable = getCompositeRenderable(webgl, width, height, this.verticalBlurTargets[0].texture, this.verticalBlurTargets[1].texture, this.verticalBlurTargets[2].texture, this.verticalBlurTargets[3].texture, this.verticalBlurTargets[4].texture);
         this.copyRenderable = createCopyRenderable(webgl, this.compositeTarget.texture);
     }
 
@@ -140,19 +140,6 @@ export class BloomPass {
 
         if (blurNeedsUpdate) {
             this.blurRenderable.update();
-        }
-
-        //
-
-        let compositeNeedsUpdate = false;
-
-        if (this.compositeRenderable.values.tEmissive.ref.value !== emissive) {
-            ValueCell.update(this.compositeRenderable.values.tEmissive, emissive);
-            compositeNeedsUpdate = true;
-        }
-
-        if (compositeNeedsUpdate) {
-            this.compositeRenderable.update();
         }
 
         //
@@ -328,7 +315,6 @@ const CompositeSchema = {
     tBlur3: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
     tBlur4: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
     tBlur5: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
-    tEmissive: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
     uTexSizeInv: UniformSpec('v2'),
 
     uBloomStrength: UniformSpec('f'),
@@ -339,7 +325,7 @@ const CompositeSchema = {
 const CompositeShaderCode = ShaderCode('Bloom Composite', quad_vert, composite_frag);
 type CompositeRenderable = ComputeRenderable<Values<typeof CompositeSchema>>
 
-function getCompositeRenderable(ctx: WebGLContext, width: number, height: number, blurTexture1: Texture, blurTexture2: Texture, blurTexture3: Texture, blurTexture4: Texture, blurTexture5: Texture, emissiveTexture: Texture): CompositeRenderable {
+function getCompositeRenderable(ctx: WebGLContext, width: number, height: number, blurTexture1: Texture, blurTexture2: Texture, blurTexture3: Texture, blurTexture4: Texture, blurTexture5: Texture): CompositeRenderable {
     const values: Values<typeof CompositeSchema> = {
         ...QuadValues,
         uTexSizeInv: ValueCell.create(Vec2.create(width, height)),
@@ -349,7 +335,6 @@ function getCompositeRenderable(ctx: WebGLContext, width: number, height: number
         tBlur3: ValueCell.create(blurTexture3),
         tBlur4: ValueCell.create(blurTexture4),
         tBlur5: ValueCell.create(blurTexture5),
-        tEmissive: ValueCell.create(emissiveTexture),
 
         uBloomStrength: ValueCell.create(1),
         uBloomRadius: ValueCell.create(0),
