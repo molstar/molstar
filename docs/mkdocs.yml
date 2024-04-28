@@ -53,6 +53,7 @@ nav:
   - Extensions:
     - MolViewSpec: 'extensions/mvs/index.md'
     - wwPDB StructConn: 'extensions/struct-conn.md'
+    - Tunnels: 'extensions/tunnels.md'
   - Misc:
     - Interesting PDB entries: misc/interesting-pdb-entries.md
 repo_url: https://github.com/molstar/docs
