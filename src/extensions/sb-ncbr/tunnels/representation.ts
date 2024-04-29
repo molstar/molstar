@@ -83,7 +83,13 @@ export const TunnelShapeProvider = Transform({
                     }
                     return createSpheresShape(data.data.tunnel, data.params.colorTheme, data.params.visual.params.resolution, data.params.samplingRate, data.params.fillFactor, data.params.showRadii, mesh);
                 }
-            }, { label: a.data.tunnel.props.label ?? 'Tunnel', description: a.data.tunnel.props.description ?? '' });
+            }, {
+                label: a.data.tunnel.props.label ?? 'Tunnel',
+                description: a.data.tunnel.props.description
+                ?? (a.data.tunnel.props.type && a.data.tunnel.props.id)
+                    ? `${a.data.tunnel.props.type} ${a.data.tunnel.props.id}`
+                    : '',
+            });
         });
     },
 });
