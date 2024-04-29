@@ -112,7 +112,6 @@ export const TunnelShapeParams = {
         }
     ),
     samplingRate: PD.Numeric(1, { min: 0.05, max: 1, step: 0.05 }),
-    fillFactor: PD.Numeric(0.1, { min: 0.1, max: 1, step: 0.1 }),
     showRadii: PD.Boolean(false),
 };
 
