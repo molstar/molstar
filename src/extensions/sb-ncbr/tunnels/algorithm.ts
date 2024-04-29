@@ -14,7 +14,7 @@ import { Texture } from '../../../mol-gl/webgl/texture';
 import { PositionData, Sphere3D, Box3D, GridLookup3D, fillGridDim } from '../../../mol-math/geometry';
 import { Boundary, getBoundary } from '../../../mol-math/geometry/boundary';
 import { DefaultMolecularSurfaceCalculationProps, MolecularSurfaceCalculationProps } from '../../../mol-math/geometry/molecular-surface';
-import { spline } from '../../../mol-math/interpolate';
+import { lerp, spline } from '../../../mol-math/interpolate';
 import { Vec3, Tensor, Mat4 } from '../../../mol-math/linear-algebra';
 import { Shape } from '../../../mol-model/shape';
 import { ensureReasonableResolution } from '../../../mol-repr/structure/visual/util/common';
@@ -36,7 +36,7 @@ export async function createSpheresShape(tunnel: Tunnel, color: Color, resolutio
         builder = MeshBuilder.createState(512, 512);
     }
 
-    const processedData = processProfiles(tunnel.data, sampleRate, fillFactor);
+    const processedData = interpolateTunnel(tunnel.data, sampleRate);
 
     if (showRadii) {
         for (let i = 0; i < processedData.length; i += 1) {
@@ -109,85 +109,51 @@ function profileToVec3(profile: Profile): Vec3 {
     return Vec3.create(profile.X, profile.Y, profile.Z);
 }
 
-function calculateCurvature(Pprev: Vec3, Pi: Vec3, Pnext: Vec3) {
-    const V1 = Vec3.sub(Vec3.zero(), Pi, Pprev);
-    const V2 = Vec3.sub(Vec3.zero(), Pnext, Pi);
-    Vec3.normalize(V1, V1);
-    Vec3.normalize(V2, V2);
-    const dotProduct = Vec3.dot(V1, V2); // Cosine of angle between V1 and V2
-    const angle = Math.acos(dotProduct); // Angle in radians
-    return angle; // Higher angle means higher curvature
-}
-
-function determineNumPoints(distance: number, minDistance: number, pointsPerUnitDistance: number) {
-    if (distance <= minDistance) return 1;
-    return Math.ceil(distance * pointsPerUnitDistance);
-}
-
-function shouldInterpolate(Pprev: Vec3, Pi: Vec3, Pnext: Vec3 | undefined, curveThreshold: number, distanceThreshold: number) {
-    const curvature = Pnext ? calculateCurvature(Pprev, Pi, Pnext) : 0;
-    const distance1 = Vec3.distance(Pprev, Pi);
-    const distance2 = Pnext ? Vec3.distance(Pi, Pnext) : 0;
-
-    return curvature > curveThreshold || distance1 > distanceThreshold || distance2 > distanceThreshold;
-}
-
 // Centripetal Catmull–Rom spline interpolation
-function processProfiles(profiles: Profile[], sampleRate: number, fillFactor: number, tension: number = 0.5, numPointsBetween: number = 5): Profile[] {
-    const skipRate = sampleRate;
-    const sampledProfiles = skipRate === 1 ? profiles : profiles.filter((_, index) => index % skipRate === 0 || index === profiles.length - 1); // ensuring the last profile is included
-
+function interpolateTunnel(profile: Profile[], sampleRate: number) {
     const interpolatedProfiles: Profile[] = [];
+    if (profile.length < 4) return profile; // Ensuring there are enough points to interpolate
 
-    const curvatureThresholdRadians = Math.PI / 6;
-    const distanceThreshold = 1;
+    interpolatedProfiles.push(profile[0]);
 
-    // Looping over sampled profiles to interpolate additional points
-    for (let i = 0; i < sampledProfiles.length - 1; i++) {
-        interpolatedProfiles.push(sampledProfiles[i]); // Including the current profile in the result
+    let lastPoint = profileToVec3(profile[0]);
+    let currentDistance = 0;
+    const pointInterval = 1 / sampleRate;
 
-        const P0 = sampledProfiles[Math.max(0, i - 1)];
-        const P1 = sampledProfiles[i];
-        const P2 = sampledProfiles[i + 1];
-        const P3 = sampledProfiles[Math.min(i + 2, sampledProfiles.length - 1)];
+    for (let i = 1; i < profile.length - 2; i++) {
+        const P0 = profile[i - 1];
+        const P1 = profile[i];
+        const P2 = profile[i + 1];
+        const P3 = profile[i + 2];
 
-        const charge = (P1.Charge + P2.Charge) / 2;
-        const freeRadius = (P1.FreeRadius + P2.FreeRadius) / 2;
-        const T = (P1.T + P2.T) / 2;
-        const distance = (P1.Distance + P2.Distance) / 2;
+        for (let t = 0; t <= 1; t += 0.05) {
+            const interpolatedX = spline(P0.X, P1.X, P2.X, P3.X, t, 0.5);
+            const interpolatedY = spline(P0.Y, P1.Y, P2.Y, P3.Y, t, 0.5);
+            const interpolatedZ = spline(P0.Z, P1.Z, P2.Z, P3.Z, t, 0.5);
+            const interpolatedPoint = Vec3.create(interpolatedX, interpolatedY, interpolatedZ);
 
-        const interpolate = sampledProfiles.length > 2
-            ? shouldInterpolate(profileToVec3(P0), profileToVec3(P1), profileToVec3(P2), curvatureThresholdRadians, distanceThreshold) ||
-                shouldInterpolate(profileToVec3(P1), profileToVec3(P2), profileToVec3(P3), curvatureThresholdRadians, distanceThreshold)
-            : shouldInterpolate(profileToVec3(P1), profileToVec3(P2), undefined, curvatureThresholdRadians, distanceThreshold);
+            const distanceToAdd = Vec3.distance(lastPoint, interpolatedPoint);
+            currentDistance += distanceToAdd;
 
-        if (interpolate) {
-            numPointsBetween = determineNumPoints(Vec3.distance(profileToVec3(P1), profileToVec3(P2)), 1, fillFactor);
-            // Generate and add interpolated points
-            for (let j = 1; j <= numPointsBetween; j++) {
-                const t = j / (numPointsBetween + 1);
-
-                const x = spline(P0.X, P1.X, P2.X, P3.X, t, tension);
-                const y = spline(P0.Y, P1.Y, P2.Y, P3.Y, t, tension);
-                const z = spline(P0.Z, P1.Z, P2.Z, P3.Z, t, tension);
-
-                const radius = spline(P0.Radius, P1.Radius, P2.Radius, P3.Radius, t, tension);
-
+            if (currentDistance >= pointInterval) {
                 interpolatedProfiles.push({
-                    X: x,
-                    Y: y,
-                    Z: z,
-                    Radius: radius,
-                    Charge: charge,
-                    FreeRadius: freeRadius,
-                    T,
-                    Distance: distance
+                    X: interpolatedX,
+                    Y: interpolatedY,
+                    Z: interpolatedZ,
+                    Radius: spline(P0.Radius, P1.Radius, P2.Radius, P3.Radius, t, 0.5),
+                    Charge: lerp(P1.Charge, P2.Charge, t),
+                    FreeRadius: spline(P0.FreeRadius, P1.FreeRadius, P2.FreeRadius, P3.FreeRadius, t, 0.5),
+                    T: lerp(P1.T, P2.T, t),
+                    Distance: lerp(P1.Distance, P2.Distance, t)
                 });
+                lastPoint = interpolatedPoint;
+                currentDistance -= pointInterval;
             }
         }
     }
 
-    interpolatedProfiles.push(sampledProfiles[sampledProfiles.length - 1]); // ensuring the last profile is included
+    // Ensuring the last profile point is included
+    interpolatedProfiles.push(profile[profile.length - 1]);
 
     return interpolatedProfiles;
 }
@@ -231,7 +197,7 @@ async function createTunnelMesh(
     const props = {
         ...DefaultMolecularSurfaceCalculationProps,
     };
-    const preprocessedData = processProfiles(profile, sampleRate, fillFactor);
+    const preprocessedData = interpolateTunnel(profile, sampleRate);
     const positions = convertToPositionData(preprocessedData, props.probeRadius);
     const bounds: Boundary = getBoundary(positions);
 
