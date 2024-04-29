@@ -9,6 +9,12 @@ Note that since we don't clearly distinguish between a public and private interf
     - More uniform behavior for blended, wboit, dpoit
     - Fix issues with text & image geometry
 
+- Return StateTransform selectors from measurements API (addDistance, addAngle, etc.)
+- Fix render-spheres example (#1100)
+    - Wrong step size in sphere geometry boundingSphere & groupmapping
+    - Handle empty instanceGridin renderer & renderable
+- Fix SSAO artifacts (@corredD, #1082)
+
 ## [v4.1.0] - 2023-03-31
 
 - Add `VolumeTransform` to translate/rotate a volume like in a structure superposition

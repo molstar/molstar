@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -114,7 +114,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
 
             if (values.drawCount.ref.value === 0) return;
             if (values.instanceCount.ref.value === 0) return;
-            if (!values.instanceGrid.ref.value) return;
+            if (values.instanceGrid.ref.value.cellSize <= 1) return;
 
             const { cellOffsets, cellSpheres, cellCount, batchOffsets, batchSpheres, batchCount, batchCell, batchSize } = values.instanceGrid.ref.value;
             const [minDistance, maxDistance] = values.uLod.ref.value;

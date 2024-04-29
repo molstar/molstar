@@ -467,6 +467,9 @@ namespace Representation {
                 if (state.substance !== undefined) {
                     // TODO
                 }
+                if (state.clipping !== undefined) {
+                    // TODO
+                }
                 if (state.themeStrength !== undefined) Visual.setThemeStrength(renderObject, state.themeStrength);
                 if (state.transform !== undefined) Visual.setTransform(renderObject, state.transform);
 

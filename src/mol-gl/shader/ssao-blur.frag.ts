@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Ludovic Autin <ludovic.autin@gmail.com>
  */
 
 export const ssaoBlur_frag = `
@@ -66,7 +67,8 @@ void main(void) {
 
     float selfViewZ = getViewZ(selfDepth);
     float pixelSize = getPixelSize(coords, selfDepth);
-    float maxDiffViewZ = pixelSize * 10.0;
+    // max diff depth between two pixels
+    float maxDiffViewZ = 1.0;
 
     vec2 offset = vec2(uBlurDirectionX, uBlurDirectionY) / uTexSize;
 
@@ -88,11 +90,9 @@ void main(void) {
             continue;
         }
 
-        if (abs(float(i)) > 1.0) {
-            float sampleViewZ = getViewZ(sampleDepth);
-            if (abs(selfViewZ - sampleViewZ) > maxDiffViewZ) {
-                continue;
-            }
+        float sampleViewZ = getViewZ(sampleDepth);
+        if (abs(selfViewZ - sampleViewZ) > maxDiffViewZ) {
+            continue;
         }
 
         float kernel = uKernel[int(abs(float(i)))]; // abs is not defined for int in webgl1
@@ -101,7 +101,6 @@ void main(void) {
         sum += kernel * sampleValue;
         kernelSum += kernel;
     }
-
     gl_FragColor = vec4(packUnitIntervalToRG(sum / kernelSum), packedDepth);
 }
 `;
