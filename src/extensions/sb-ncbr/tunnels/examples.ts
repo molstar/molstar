@@ -23,7 +23,7 @@ export async function runVisualizeTunnels(plugin: PluginContext, url: string = U
     const response = await (await fetch(url)).json();
 
     const tunnels: Tunnel[] = [];
-    Object.entries(response.Channels as Channels).forEach(([key, values]) => {
+    Object.entries(response.Channels as ChannelsDBdata).forEach(([key, values]) => {
         if (values.length > 0) {
             values.forEach((item: TunnelDB) => {
                 tunnels.push({ data: item.Profile, props: { id: item.Id, type: item.Type } });
