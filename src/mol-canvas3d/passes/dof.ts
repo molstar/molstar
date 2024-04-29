@@ -11,7 +11,7 @@ import { ShaderCode } from '../../mol-gl/shader-code';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { createComputeRenderItem } from '../../mol-gl/webgl/render-item';
 import { Texture } from '../../mol-gl/webgl/texture';
-import { Mat4, Vec2, Vec4 } from '../../mol-math/linear-algebra';
+import { Mat4, Vec2, Vec3, Vec4 } from '../../mol-math/linear-algebra';
 import { ValueCell } from '../../mol-util';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { quad_vert } from '../../mol-gl/shader/quad.vert';
@@ -20,12 +20,13 @@ import { Viewport } from '../camera/util';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { isTimingMode } from '../../mol-util/debug';
 import { ICamera } from '../../mol-canvas3d/camera';
+import { Sphere3D } from '../../mol-math/geometry';
 
 export const DofParams = {
     blurSize: PD.Numeric(5, { min: 1, max: 32, step: 1 }),
     blurSpread: PD.Numeric(1.0, { min: 0.0, max: 10.0, step: 0.1 }),
-    inFocus: PD.Numeric(100.0, { min: 0.0, max: 10000.0, step: 0.1 }),
-    PPM: PD.Numeric(20.0, { min: 0.0, max: 5000.0, step: 0.1 }),
+    inFocus: PD.Numeric(0.0, { min: -5000.0, max: 5000.0, step: 1.0 }, { description: 'Distance from the scene center that will be in focus' }),
+    PPM: PD.Numeric(60.0, { min: 0.0, max: 5000.0, step: 0.1 }, { description: 'Size of the area that will be in focus' }),
 };
 
 export type DofProps = PD.Values<typeof DofParams>
@@ -57,7 +58,7 @@ export class DofPass {
         ValueCell.update(this.renderable.values.uTexSize, Vec2.set(this.renderable.values.uTexSize.ref.value, width, height));
     }
 
-    update(camera: ICamera, input: Texture, depth: Texture, props: DofProps) {
+    update(camera: ICamera, input: Texture, depth: Texture, props: DofProps, sphere: Sphere3D) {
         let needsUpdate = false;
         if (this.renderable.values.tColor.ref.value !== input) {
             ValueCell.update(this.renderable.values.tColor, input);
@@ -73,7 +74,8 @@ export class DofPass {
 
         const [w, h] = this.renderable.values.uTexSize.ref.value;
         const v = camera.viewport;
-
+        const distance = Vec3.distance(camera.state.position, sphere.center);
+        const inFocus = distance + props.inFocus;
         ValueCell.update(this.renderable.values.uProjection, camera.projection);
         ValueCell.update(this.renderable.values.uInvProjection, invProjection);
 
@@ -93,14 +95,14 @@ export class DofPass {
         ValueCell.update(this.renderable.values.blurSize, props.blurSize);
         if (this.renderable.values.blurSpread.ref.value !== props.blurSpread) needsUpdate = true;
         ValueCell.update(this.renderable.values.blurSpread, props.blurSpread);
-        if (this.renderable.values.inFocus.ref.value !== props.inFocus) needsUpdate = true;
-        ValueCell.update(this.renderable.values.inFocus, props.inFocus);
+        if (this.renderable.values.inFocus.ref.value !== inFocus) needsUpdate = true;
+        ValueCell.update(this.renderable.values.inFocus, inFocus);
         if (this.renderable.values.PPM.ref.value !== props.PPM) needsUpdate = true;
         ValueCell.update(this.renderable.values.PPM, props.PPM);
 
         this.renderable.update();
         ValueCell.update(this.renderable.values.PPM, props.PPM);
-        ValueCell.update(this.renderable.values.inFocus, props.inFocus);
+        ValueCell.update(this.renderable.values.inFocus, inFocus);
         ValueCell.update(this.renderable.values.blurSpread, props.blurSpread);
         ValueCell.update(this.renderable.values.blurSize, props.blurSize);
 
