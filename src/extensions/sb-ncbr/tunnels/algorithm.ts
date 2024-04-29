@@ -28,6 +28,7 @@ type MolecularSurfaceMeta = {
     colorTexture?: Texture
 }
 
+export async function createSpheresShape(tunnel: Tunnel, color: Color, resolution: number, sampleRate: number, showRadii: boolean, prev?: Shape<Mesh>) {
     const builder = MeshBuilder.createState(512, 512, prev?.geometry);
 
     const processedData = interpolateTunnel(tunnel.data, sampleRate);
@@ -74,6 +75,7 @@ type MolecularSurfaceMeta = {
     );
 }
 
+export async function createTunnelShape(tunnel: Tunnel, color: Color, resolution: number, sampleRate: number, webgl: WebGLContext | undefined, prev?: Shape<Mesh>) {
     const mesh = await createTunnelMesh(tunnel.data, resolution, sampleRate, webgl, prev?.geometry);
 
     const name = tunnel.props.loci ?
@@ -177,7 +179,6 @@ async function createTunnelMesh(
     profile: Profile[],
     detail: number,
     sampleRate: number,
-    fillFactor: number,
     webgl?: WebGLContext,
     prev?: Mesh,
 ) {
