@@ -63,12 +63,7 @@ export const TunnelShapeProvider = Transform({
     display: { name: 'Tunnel' },
     from: TunnelStateObject,
     to: PluginStateObject.Shape.Provider,
-    params: a => {
-        return {
-            ...TunnelShapeParams,
-            samplingRate: PD.Numeric(1, { min: 1, max: a!.data.tunnel.data.length - 1, step: 1 }),
-        };
-    },
+    params: a => { return TunnelShapeParams; },
 })({
     apply({ a, params }) {
         return Task.create('Tunnel Shape Representation', async ctx => {
