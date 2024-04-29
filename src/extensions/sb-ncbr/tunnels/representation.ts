@@ -35,12 +35,12 @@ export const SelectTunnel = Transform({
     to: TunnelStateObject,
     params: a => {
         return {
-            projectTunnel: PD.Numeric(0, { min: 0, max: a!.data.tunnels.length - 1, step: 1 })
+            index: PD.Numeric(0, { min: 0, max: a!.data.tunnels.length - 1, step: 1 })
         };
     }
 })({
     apply({ a, params }) {
-        return new TunnelStateObject({ tunnel: a.data.tunnels[params.projectTunnel] });
+        return new TunnelStateObject({ tunnel: a.data.tunnels[params.index] });
     }
 });
 
