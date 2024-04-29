@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Dušan Veľký <dvelky@mail.muni.cz>
+ */
+
 import { PluginBehavior } from '../../../mol-plugin/behavior';
 import { DownloadTunnels } from './actions';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
