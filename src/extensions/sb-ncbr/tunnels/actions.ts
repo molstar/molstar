@@ -6,6 +6,7 @@
 
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { StateTransforms } from '../../../mol-plugin-state/transforms';
+import { PluginConfigItem } from '../../../mol-plugin/config';
 import { PluginContext } from '../../../mol-plugin/context';
 import { StateAction } from '../../../mol-state';
 import { Task } from '../../../mol-task';
@@ -15,7 +16,11 @@ import { assertUnreachable } from '../../../mol-util/type-helpers';
 import { ChannelsDBdata, Tunnel, TunnelDB } from './data-model';
 import { TunnelsFromRawData, SelectTunnel, TunnelShapeProvider } from './representation';
 
-export const TunnelDownoadServer = {
+export const ChannelsDBServerConfig = {
+    DefaultServer: new PluginConfigItem('channelsdb-server', 'https://channelsdb2.biodata.ceitec.cz/api/'),
+};
+
+export const TunnelDownloadServer = {
     'channelsdb': PD.EmptyGroup({ label: 'ChannelsDB' })
 };
 
@@ -56,12 +61,12 @@ export const DownloadTunnels = StateAction.build({
             break;
         case 'pdb':
             downloadParams = src.params.provider.server.name === 'channelsdb'
-                ? [{ url: `https://channelsdb2.biodata.ceitec.cz/api/channels/pdb/${src.params.provider.id}` }]
+                ? [{ url: `${plugin?.config.get(ChannelsDBServerConfig.DefaultServer)}channels/pdb/${src.params.provider.id}` }]
                 : assertUnreachable(src as never);
             break;
         case 'alphafolddb':
             downloadParams = src.params.provider.server.name === 'channelsdb'
-                ? [{ url: `https://channelsdb2.biodata.ceitec.cz/api/channels/alphafill/${src.params.provider.id.toLowerCase()}` }]
+                ? [{ url: `${plugin?.config.get(ChannelsDBServerConfig.DefaultServer)}channels/alphafill/${src.params.provider.id.toLowerCase()}` }]
                 : assertUnreachable(src as never);
             break;
         default: assertUnreachable(src);
@@ -75,7 +80,7 @@ export const DownloadTunnels = StateAction.build({
             const response = await (await fetch(download.url.toString())).json();
             const tunnels: Tunnel[] = [];
 
-            Object.entries(response.Channels as Channels).forEach(([key, values]) => {
+            Object.entries(response.Channels as ChannelsDBdata).forEach(([key, values]) => {
                 if (values.length > 0) {
                     values.forEach((item: TunnelDB) => {
                         tunnels.push({ data: item.Profile, props: { id: item.Id, type: item.Type } });
