@@ -6,8 +6,7 @@ import { Task } from '../../../mol-task';
 import { Asset } from '../../../mol-util/assets';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { assertUnreachable } from '../../../mol-util/type-helpers';
-import { Channels, Tunnel, TunnelDB } from './props';
-import { TunnelsDataTransformer, TunnelsToTunnelTransformer, TunnelShapeProvider } from './representation';
+import { ChannelsDBdata, Tunnel, TunnelDB } from './data-model';
 
 export const TunnelDownoadServer = {
     'channelsdb': PD.EmptyGroup({ label: 'ChannelsDB' })

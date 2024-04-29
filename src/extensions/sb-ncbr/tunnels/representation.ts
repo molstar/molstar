@@ -6,7 +6,7 @@
 
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { StateTransformer } from '../../../mol-state';
-import { TunnelStateObject, Tunnel, TunnelShapeParams, TunnelsStateObject } from './props';
+import { TunnelStateObject, Tunnel, TunnelShapeParams, TunnelsStateObject } from './data-model';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Task } from '../../../mol-task';

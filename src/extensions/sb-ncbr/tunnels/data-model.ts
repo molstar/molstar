@@ -17,15 +17,17 @@ export interface Profile {
     Distance: number,
     X: number,
     Y: number,
-    Z: number,
+    Z: number
 }
-export interface Layerweightedproperties{
+
+export interface Layerweightedproperties {
     Hydrophobicity: number,
     Hydropathy: number,
     Polarity: number,
     Mutability: number
-};
-export interface LayerGeometry{
+}
+
+export interface LayerGeometry {
     MinRadius: number,
     MinFreeRadius: number,
     StartDistance: number,
@@ -33,8 +35,9 @@ export interface LayerGeometry{
     LocalMinimum: boolean,
     Bottleneck: boolean,
     bottleneck: boolean
-};
-export interface Properties{
+}
+
+export interface Properties {
     Charge: number,
     NumPositives: number,
     NumNegatives: number,
@@ -42,22 +45,23 @@ export interface Properties{
     Hydropathy: number,
     Polarity: number,
     Mutability: number
-};
-export interface LayersInfo{
+}
+
+export interface LayersInfo {
     LayerGeometry: LayerGeometry,
     Residues: string[],
     FlowIndices: string[],
     Properties: Properties
-};
-export interface Layers{
+}
+
+export interface Layers {
     ResidueFlow: string[],
-    HetResidues: any[], // Not Used
+    HetResidues: any[],
     LayerWeightedProperties: Layerweightedproperties
     LayersInfo: LayersInfo[]
-};
+}
 
-
-export interface TunnelDB{
+export interface TunnelDB {
     Type: string,
     Id: string,
     Cavity: string,
@@ -67,7 +71,7 @@ export interface TunnelDB{
     Layers: Layers
 };
 
-export interface Channels{
+export interface ChannelsDBdata {
     'CSATunnels_MOLE': TunnelDB[],
     'CSATunnels_Caver': TunnelDB[],
     'ReviewedChannels_MOLE': TunnelDB[],
@@ -83,7 +87,7 @@ export interface Channels{
 }
 
 export interface ChannelsCache {
-    Channels: Channels,
+    Channels: ChannelsDBdata
 }
 
 export interface Tunnel {
@@ -107,7 +111,7 @@ export const TunnelShapeParams = {
             spheres: PD.Group({ resolution: PD.Numeric(2) })
         }
     ),
-    samplingRate: PD.Numeric(1, { min: 1, max: 20, step: 0.01 }),
+    samplingRate: PD.Numeric(1, { min: 0.05, max: 1, step: 0.05 }),
     fillFactor: PD.Numeric(0.1, { min: 0.1, max: 1, step: 0.1 }),
     showRadii: PD.Boolean(false),
 };

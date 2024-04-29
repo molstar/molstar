@@ -21,7 +21,7 @@ import { ensureReasonableResolution } from '../../../mol-repr/structure/visual/u
 import { Task, RuntimeContext } from '../../../mol-task';
 import { ValueCell } from '../../../mol-util';
 import { Color } from '../../../mol-util/color';
-import { Tunnel, Profile } from './props';
+import { Tunnel, Profile } from './data-model';
 
 type MolecularSurfaceMeta = {
     resolution?: number

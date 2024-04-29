@@ -6,7 +6,7 @@
 
 import { StateTransforms } from '../../../mol-plugin-state/transforms';
 import { PluginContext } from '../../../mol-plugin/context';
-import { Channels, Tunnel, TunnelDB } from './props';
+import { ChannelsDBdata, Tunnel, TunnelDB } from './data-model';
 import { TunnelsDataTransformer, TunnelsToTunnelTransformer, TunnelShapeProvider, TunnelDataTransformer } from './representation';
 
 
