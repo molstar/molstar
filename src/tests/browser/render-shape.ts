@@ -212,6 +212,11 @@ async function changeMeshDetail() {
     setTimeout(changeMeshDetail, 500);
 }
 
+async function toggleSpheresVisibility() {
+    spheresRepr.setState({ visible: !spheresRepr.state.visible });
+    setTimeout(toggleSpheresVisibility, 1000);
+}
+
 export async function init() {
     // Create shape from meshData and add to canvas3d
     await meshRepr.createOrUpdate({ alpha: 0.5 }, meshData).run((p: Progress) => console.log(Progress.format(p)));
@@ -230,5 +235,8 @@ export async function init() {
 
     // Start changing mesh sphereDetail after 1s
     setTimeout(changeMeshDetail, 1000);
+
+    // Start toggling spheres visibility after 1s
+    setTimeout(toggleSpheresVisibility, 1000);
 }
 init();
