@@ -1,6 +1,8 @@
 # Tunnel Visualization Extension
 This documentation outlines the usage of the Mol* extension for visualizing tunnels in molecular structures. The extension integrates with Mol* to render 3D representations of tunnels using specified data sources and properties.
 
+The extension is a key component in ChannelsDB, enabling users to visualize tunnels within molecules directly from the database. While it is used with ChannelsDB, users can also input their own data or connect to different databases, ensuring versatility across various research environments.
+
 ## Data Types
 The primary data types involved in tunnel visualization are:
 
@@ -22,6 +24,41 @@ A `Profile` object in a `Tunnel` holds detailed geometric and physical propertie
 
 These profiles are crucial for understanding the physical and chemical environment inside the tunnel, allowing for detailed analysis and visualization.
 
+Example:
+```json
+"Profile": [
+    {
+        "Radius": 1.49,
+        "FreeRadius": 1.49,
+        "T": 0,
+        "Distance": 0,
+        "X": -19.152,
+        "Y": -22.654,
+        "Z": -13.034,
+        "Charge": 0
+    },
+    {
+        "Radius": 1.524,
+        "FreeRadius": 1.524,
+        "T": 0.00625,
+        "Distance": 0.087,
+        "X": -19.162,
+        "Y": -22.596,
+        "Z": -12.969,
+        "Charge": 0
+    },
+    {
+        "Radius": 1.56,
+        "FreeRadius": 1.56,
+        "T": 0.0125,
+        "Distance": 0.174,
+        "X": -19.171,
+        "Y": -22.539,
+        "Z": -12.905,
+        "Charge": 0
+    }
+]
+```
 ## Transformers Usage
 The extension uses several transformations to process and visualize tunnel data:
 
@@ -57,38 +94,25 @@ The extension uses several transformations to process and visualize tunnel data:
 To help users understand how to use these transformations in practice, include detailed examples:
 
 ### Visualizing Multiple Tunnels
-This example demonstrates how to visualize multiple tunnels from a fetched dataset.
+This example ([runVisualizeTunnels](../../../src/extensions/sb-ncbr/tunnels/examples.ts#L19)) demonstrates how to visualize multiple tunnels from a fetched dataset.
 ```typescript
-async function runVisualizeTunnels(plugin: PluginContext, url: string = URL) {
-    const update = plugin.build();
-    const webgl = plugin.canvas3dContext?.webgl;
-    const response = await (await fetch(url)).json();
-    const tunnels: Tunnel[] = response.Channels.map(channel => ({ data: channel.Profile, props: { id: channel.Id, type: channel.Type } }));
-
-    update.toRoot()
-          .apply(TunnelsDataTransformer, { data: tunnels })
-          .apply(TunnelsToTunnelTransformer)
-          .apply(TunnelShapeProvider, { webgl })
-          .apply(StateTransforms.Representation.ShapeRepresentation3D);
-
-    await update.commit();
-}
+update.toRoot()
+        .apply(TunnelsDataTransformer, { data: tunnels })
+        .apply(TunnelsToTunnelTransformer)
+        .apply(TunnelShapeProvider, { webgl })
+        .apply(StateTransforms.Representation.ShapeRepresentation3D);
 ```
 
 ### Visualizing a Single Tunnel
-This example shows how to visualize a single tunnel.
+This example ([runVisualizeTunnel](../../../src/extensions/sb-ncbr/tunnels/examples.ts#L46)) shows how to visualize a single tunnel.
 ```typescript
-async function runVisualizeTunnel(plugin: PluginContext) {
-    const update = plugin.build();
-    const webgl = plugin.canvas3dContext?.webgl;
-    const response = await (await fetch(URL)).json();
-    const tunnel = response.Channels.TransmembranePores_MOLE[0];
-
-    update.toRoot()
-          .apply(TunnelDataTransformer, { data: { data: tunnel.Profile, props: { id: tunnel.Id, type: tunnel.Type } } })
-          .apply(TunnelShapeProvider, { webgl })
-          .apply(StateTransforms.Representation.ShapeRepresentation3D);
-
-    await update.commit();
-}
+update.toRoot()
+        .apply(TunnelDataTransformer, { 
+            data: { 
+                data: tunnel.Profile,
+                props: { id: tunnel.Id, type: tunnel.Type }
+            }
+        })
+        .apply(TunnelShapeProvider, { webgl })
+        .apply(StateTransforms.Representation.ShapeRepresentation3D);
 ```
