@@ -14,7 +14,7 @@ import { createTunnelShape, createSpheresShape } from './algorithm';
 
 const Transform = StateTransformer.builderFactory('sb-ncbr-tunnels');
 
-export const TunnelsDataTransformer = Transform({
+export const TunnelsFromRawData = Transform({
     name: 'tunnels-from-data',
     display: { name: 'Tunnels' },
     from: PluginStateObject.Root,
@@ -28,7 +28,7 @@ export const TunnelsDataTransformer = Transform({
     },
 });
 
-export const TunnelsToTunnelTransformer = Transform({
+export const SelectTunnel = Transform({
     name: 'tunnel-from-tunnels',
     display: { name: 'Tunnel Selection' },
     from: TunnelsStateObject,
@@ -44,7 +44,7 @@ export const TunnelsToTunnelTransformer = Transform({
     }
 });
 
-export const TunnelDataTransformer = Transform({
+export const TunnelFromRawData = Transform({
     name: 'tunnel-from-data',
     display: { name: 'Tunnel Entry' },
     from: PluginStateObject.Root,

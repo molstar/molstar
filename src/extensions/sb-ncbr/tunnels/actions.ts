@@ -7,6 +7,7 @@ import { Asset } from '../../../mol-util/assets';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { assertUnreachable } from '../../../mol-util/type-helpers';
 import { ChannelsDBdata, Tunnel, TunnelDB } from './data-model';
+import { TunnelsFromRawData, SelectTunnel, TunnelShapeProvider } from './representation';
 
 export const TunnelDownoadServer = {
     'channelsdb': PD.EmptyGroup({ label: 'ChannelsDB' })
@@ -22,13 +23,13 @@ export const DownloadTunnels = StateAction.build({
                 'pdb': PD.Group({
                     provider: PD.Group({
                         id: PD.Text('1tqn', { label: 'PDB Id(s)', description: 'One or more comma/space separated PDB ids.' }),
-                        server: PD.MappedStatic('channelsdb', TunnelDownoadServer),
+                        server: PD.MappedStatic('channelsdb', TunnelDownloadServer),
                     }, { pivot: 'id' }),
                 }, { isFlat: true, label: 'PDB' }),
                 'alphafolddb': PD.Group({
                     provider: PD.Group({
                         id: PD.Text('Q8W3K0', { label: 'UniProtKB AC(s)', description: 'One or more comma/space separated ACs.' }),
-                        server: PD.MappedStatic('channelsdb', TunnelDownoadServer),
+                        server: PD.MappedStatic('channelsdb', TunnelDownloadServer),
                     }, { pivot: 'id' })
                 }, { isFlat: true, label: 'AlphaFold DB', description: 'Loads the predicted model if available' }),
                 'url': PD.Group({
@@ -78,8 +79,8 @@ export const DownloadTunnels = StateAction.build({
 
             update
                 .toRoot()
-                .apply(TunnelsDataTransformer, { data: tunnels })
-                .apply(TunnelsToTunnelTransformer)
+                .apply(TunnelsFromRawData, { data: tunnels })
+                .apply(SelectTunnel)
                 .apply(TunnelShapeProvider, {
                     webgl,
                 })

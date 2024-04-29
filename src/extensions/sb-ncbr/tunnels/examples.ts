@@ -7,7 +7,7 @@
 import { StateTransforms } from '../../../mol-plugin-state/transforms';
 import { PluginContext } from '../../../mol-plugin/context';
 import { ChannelsDBdata, Tunnel, TunnelDB } from './data-model';
-import { TunnelsDataTransformer, TunnelsToTunnelTransformer, TunnelShapeProvider, TunnelDataTransformer } from './representation';
+import { TunnelsFromRawData, SelectTunnel, TunnelShapeProvider, TunnelFromRawData } from './representation';
 
 
 export const DB_URL = 'https://channelsdb2.biodata.ceitec.cz/api/channels/';
@@ -33,8 +33,8 @@ export async function runVisualizeTunnels(plugin: PluginContext, url: string = U
 
     update
         .toRoot()
-        .apply(TunnelsDataTransformer, { data: tunnels })
-        .apply(TunnelsToTunnelTransformer)
+        .apply(TunnelsFromRawData, { data: tunnels })
+        .apply(SelectTunnel)
         .apply(TunnelShapeProvider, {
             webgl,
         })
@@ -53,7 +53,7 @@ export async function runVisualizeTunnel(plugin: PluginContext) {
 
     update
         .toRoot()
-        .apply(TunnelDataTransformer, { data: { data: tunnel.Profile, props: { id: tunnel.Id, type: tunnel.Type } } })
+        .apply(TunnelFromRawData, { data: { data: tunnel.Profile, props: { id: tunnel.Id, type: tunnel.Type } } })
         .apply(TunnelShapeProvider, {
             webgl,
         })
@@ -61,4 +61,3 @@ export async function runVisualizeTunnel(plugin: PluginContext) {
 
     await update.commit();
 }
-

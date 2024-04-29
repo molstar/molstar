@@ -66,14 +66,14 @@ The extension uses several transformations to process and visualize tunnel data:
 - `Purpose`: Converts a collection of Tunnel data into a state object.
 - `Usage`:
     ```typescript
-    update.toRoot().apply(TunnelsDataTransformer, { data: tunnels });
+    update.toRoot().apply(TunnelsFromRawData, { data: tunnels });
     ```
 
 ### Tunnel Data Provider
 - `Purpose`: Converts single Tunnel data into a state object for individual processing.
 - `Usage`:
     ```typescript
-    update.toRoot().apply(TunnelDataTransformer, { 
+    update.toRoot().apply(TunnelFromRawData, { 
         data: { 
             data: tunnel.Profile, 
             props: { id: tunnel.Id, type: tunnel.Type } 
@@ -97,8 +97,8 @@ To help users understand how to use these transformations in practice, include d
 This example ([runVisualizeTunnels](../../../src/extensions/sb-ncbr/tunnels/examples.ts#L19)) demonstrates how to visualize multiple tunnels from a fetched dataset.
 ```typescript
 update.toRoot()
-        .apply(TunnelsDataTransformer, { data: tunnels })
-        .apply(TunnelsToTunnelTransformer)
+        .apply(TunnelsFromRawData, { data: tunnels })
+        .apply(SelectTunnel)
         .apply(TunnelShapeProvider, { webgl })
         .apply(StateTransforms.Representation.ShapeRepresentation3D);
 ```
@@ -107,7 +107,7 @@ update.toRoot()
 This example ([runVisualizeTunnel](../../../src/extensions/sb-ncbr/tunnels/examples.ts#L46)) shows how to visualize a single tunnel.
 ```typescript
 update.toRoot()
-        .apply(TunnelDataTransformer, { 
+        .apply(TunnelFromRawData, { 
             data: { 
                 data: tunnel.Profile,
                 props: { id: tunnel.Id, type: tunnel.Type }
