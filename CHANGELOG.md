@@ -12,6 +12,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix render-spheres example (#1100)
     - Wrong step size in sphere geometry boundingSphere & groupmapping
     - Handle empty `instanceGrid` in renderer & renderable
+- Fix bond assignment from `IndexPairBonds`
+    - Can not always be cached in `ElementSetIntraBondCache`
+    - Wrong operator checks in `findPairBonds`
 - Fix SSAO artifacts (@corredD, #1082)
 - Fix bumpiness artifact (#1107)
 
