@@ -114,7 +114,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
                 ],
                 isTransitive: true,
                 label: 'Distance'
-            }, { dependsOn, tags: options?.selectionTags })
+            }, { dependsOn, tags: options?.selectionTags });
         const representation = selection
             .apply(StateTransforms.Representation.StructureSelectionsDistance3D, {
                 customText: options?.customText || '',
@@ -152,7 +152,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
                 ],
                 isTransitive: true,
                 label: 'Angle'
-            }, { dependsOn, tags: options?.selectionTags })
+            }, { dependsOn, tags: options?.selectionTags });
         const representation = selection
             .apply(StateTransforms.Representation.StructureSelectionsAngle3D, {
                 customText: options?.customText || '',
@@ -192,7 +192,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
                 ],
                 isTransitive: true,
                 label: 'Dihedral'
-            }, { dependsOn, tags: options?.selectionTags })
+            }, { dependsOn, tags: options?.selectionTags });
         const representation = selection.apply(StateTransforms.Representation.StructureSelectionsDihedral3D, {
             customText: options?.customText || '',
             textColor: this.state.options.textColor,
@@ -222,7 +222,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
                 ],
                 isTransitive: true,
                 label: 'Label'
-            }, { dependsOn, tags: options?.selectionTags })
+            }, { dependsOn, tags: options?.selectionTags });
         const representation = selection
             .apply(StateTransforms.Representation.StructureSelectionsLabel3D, {
                 textColor: this.state.options.textColor,
@@ -255,7 +255,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
                 selections,
                 isTransitive: true,
                 label: 'Orientation'
-            }, { dependsOn })
+            }, { dependsOn });
         const representation = selection
             .apply(StateTransforms.Representation.StructureSelectionsOrientation3D);
 
@@ -285,7 +285,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
                 selections,
                 isTransitive: true,
                 label: 'Plane'
-            }, { dependsOn })
+            }, { dependsOn });
         const representation = selection
             .apply(StateTransforms.Representation.StructureSelectionsPlane3D);
 
