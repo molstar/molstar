@@ -27,6 +27,8 @@ export const DofParams = {
     blurSpread: PD.Numeric(1.0, { min: 0.0, max: 10.0, step: 0.1 }),
     inFocus: PD.Numeric(0.0, { min: -5000.0, max: 5000.0, step: 1.0 }, { description: 'Distance from the scene center that will be in focus' }),
     PPM: PD.Numeric(60.0, { min: 0.0, max: 5000.0, step: 0.1 }, { description: 'Size of the area that will be in focus' }),
+    center: PD.Select('scene-center', PD.arrayToOptions(['scene-center', 'camera-target'])),
+    mode: PD.Select('plane', PD.arrayToOptions(['plane', 'sphere'])),
 };
 
 export type DofProps = PD.Values<typeof DofParams>
@@ -71,13 +73,15 @@ export class DofPass {
         const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
         const invProjection = Mat4.identity();
         Mat4.invert(invProjection, camera.projection);
-
+        const center = (props.center === 'scene-center' ? sphere.center : camera.state.target);
         const [w, h] = this.renderable.values.uTexSize.ref.value;
         const v = camera.viewport;
-        const distance = Vec3.distance(camera.state.position, sphere.center);
+        const distance = Vec3.distance(camera.state.position, center);
         const inFocus = distance + props.inFocus;
         ValueCell.update(this.renderable.values.uProjection, camera.projection);
         ValueCell.update(this.renderable.values.uInvProjection, invProjection);
+        ValueCell.update(this.renderable.values.uCenter, center);
+        ValueCell.update(this.renderable.values.uMode, props.mode === 'sphere' ? 1 : 0);
 
         Vec4.set(this.renderable.values.uBounds.ref.value,
             v.x / w,
@@ -135,6 +139,8 @@ const DofSchema = {
     uProjection: UniformSpec('m4'),
     uInvProjection: UniformSpec('m4'),
     uBounds: UniformSpec('v4'),
+    uCenter: UniformSpec('v3'),
+    uMode: UniformSpec('i'),
 
     dOrthographic: DefineSpec('number'),
     uNear: UniformSpec('f'),
@@ -162,6 +168,8 @@ function getDofRenderable(ctx: WebGLContext, colorTexture: Texture, depthTexture
         uProjection: ValueCell.create(Mat4.identity()),
         uInvProjection: ValueCell.create(Mat4.identity()),
         uBounds: ValueCell.create(Vec4()),
+        uCenter: ValueCell.create(Vec3()),
+        uMode: ValueCell.create(0),
 
         dOrthographic: ValueCell.create(0),
         uNear: ValueCell.create(1),

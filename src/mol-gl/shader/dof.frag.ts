@@ -26,6 +26,8 @@ uniform float uFar;// = 100.0; // uFar plane
 uniform mat4 uInvProjection; // Inverse projection
 uniform mat4 uProjection; // projection
 
+uniform int uMode;  // 0-planar,  1-spherical
+uniform vec3 uCenter;
 
 float getViewZ(const in float depth) {
     #if dOrthographic == 1
@@ -86,8 +88,20 @@ void main()
 
     //Bluring
     vec3 blurColor = getBlurredImage1(uv.xy);
-    float coc = (viewDist - inFocus) / PPM;  //focus distance, focus range
-
+    
+    float coc = 0.0; 
+    // planar Depth of field
+    if (uMode == 0)
+    {
+        coc = (viewDist - inFocus) / PPM;  //focus distance, focus range
+    }
+    // spherical Depth of field
+    else if(uMode == 1)
+    {
+        vec3 center = uCenter;
+        float viewDistCenter = distance(center, screenSpaceToViewSpace(vec3(uv.xy, z), uInvProjection));
+        coc = (viewDistCenter - inFocus) / PPM;
+    }
     coc = clamp(coc, -1.0, 1.0);
     // for debugging the coc
     // color.rgb = (coc < 0.0) ? abs(coc) * vec3(1.0,0.0,0.0) : vec3(coc, coc, coc) ;//mix(color.rgb, blurColor.rgb, abs(coc));
