@@ -25,10 +25,12 @@ uniform float uFar;// = 100.0; // uFar plane
 
 uniform mat4 uInvProjection; // Inverse projection
 uniform mat4 uProjection; // projection
+uniform mat4 uModelView; // Model view matrix
 
 uniform int uMode;  // 0-planar,  1-spherical
-uniform vec3 uCenter;
+uniform vec3 uCenter;  // Center of focus sphere in view space
 
+// Function to convert depth value from depth buffer to view space Z
 float getViewZ(const in float depth) {
     #if dOrthographic == 1
         return orthographicDepthToViewZ(depth, uNear, uFar);
@@ -37,7 +39,7 @@ float getViewZ(const in float depth) {
     #endif
 }
 
-
+// Retrieve depth from depth texture
 float getDepthOpaque(const in vec2 coords) {
     #ifdef depthTextureSupport
         return texture2D(tDepth, coords).r;
@@ -69,43 +71,55 @@ vec3 getBlurredImage1(vec2 coords){
 
     return blurColor.rgb;
 }
+
+// Simple box blur for blurring the image
+vec3 getBlurredImage(vec2 coords, int blurSize, float blurSpread) {
+    vec4 blurColor = vec4(0.0);
+    vec2 texelSize = vec2(1.0 / uTexSize.x, 1.0 / uTexSize.y);
+    for (int x = -blurSize / 2; x <= blurSize / 2; ++x) {
+        for (int y = -blurSize / 2; y <= blurSize / 2; ++y) {
+            vec2 offset = vec2(float(x), float(y)) * texelSize * blurSpread;
+            blurColor += texture2D(tColor, coords + offset);
+        }
+    }
+    blurColor /= float((blurSize + 1) * (blurSize + 1));
+    return blurColor.rgb;
+}
+
 // simplification from https://catlikecoding.com/unity/tutorials/advanced-rendering/depth-of-field/
 void main()
 {
-    float u = gl_FragCoord.x/uTexSize.x;
-    float v = gl_FragCoord.y/uTexSize.y;
-    vec2 uv = vec2(u, v);
-    vec2 offset = vec2(0.5, 0.5);
+    vec2 uv = gl_FragCoord.xy / uTexSize;
     vec4 color = texture2D(tColor, uv);
+    float depth = getDepthOpaque(uv);
+    float viewDist = getViewZ(depth);
 
-    float z = getDepthOpaque(uv);
-    float viewDist = abs(getViewZ(z));
-    // if we want to use a focuspoint.
-    //vec3 aposition = screenSpaceToViewSpace(vec3(uv.xy, z), uInvProjection);
-    //float focusdepth = getDepthOpaque(offset);
-    //vec3 focusPoint = screenSpaceToViewSpace(vec3(offset.xy, focusdepth), uInvProjection);
-    //float focusDist = distance(aposition, focusPoint);
-
-    //Bluring
-    vec3 blurColor = getBlurredImage1(uv.xy);
+    vec4 center = uProjection * vec4(uCenter, 1.0);
+    center.xyz = (center.xyz / center.w) * 0.5 + 0.5;
+    float cdepth = getDepthOpaque(center.xy);
+    float cview = getViewZ(cdepth);
     
-    float coc = 0.0; 
+    vec3 aposition = screenSpaceToViewSpace(vec3(uv.xy, depth), uInvProjection);
+    vec4 focusPoint = uModelView * vec4(uCenter, 1.0);
+    float focusDist = length(aposition - focusPoint.xyz); // Adjust the center point if necessary
+    // vec3 blurColor = getBlurredImage(uv, blurSize, blurSpread);
+    vec3 blurColor = getBlurredImage1(uv);
+    float coc = 0.0;  // Circle of Confusion
+
     // planar Depth of field
     if (uMode == 0)
     {
-        coc = (viewDist - inFocus) / PPM;  //focus distance, focus range
+        coc = (abs(viewDist) - inFocus) / PPM;  //focus distance, focus range
     }
     // spherical Depth of field
     else if(uMode == 1)
     {
-        vec3 center = uCenter;
-        float viewDistCenter = distance(center, screenSpaceToViewSpace(vec3(uv.xy, z), uInvProjection));
-        coc = (viewDistCenter - inFocus) / PPM;
+        coc = focusDist / PPM ;
     }
     coc = clamp(coc, -1.0, 1.0);
     // for debugging the coc
-    // color.rgb = (coc < 0.0) ? abs(coc) * vec3(1.0,0.0,0.0) : vec3(coc, coc, coc) ;//mix(color.rgb, blurColor.rgb, abs(coc));
-    color.rgb = mix(color.rgb, blurColor.rgb, abs(coc));
+    // color.rgb = (coc < 0.0) ? (1.0 - abs(coc)) * vec3(1.0,0.0,0.0) : vec3(0.0, 1.0 - coc, 0.0) ;//mix(color.rgb, blurColor.rgb, abs(coc));
+    color.rgb = mix(color.rgb, blurColor, smoothstep(0.0, 1.0, abs(coc)));  // Smooth blending based on CoC
     gl_FragColor  = color;
 }   
 `;

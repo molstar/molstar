@@ -74,13 +74,14 @@ export class DofPass {
         const invProjection = Mat4.identity();
         Mat4.invert(invProjection, camera.projection);
         const center = (props.center === 'scene-center' ? sphere.center : camera.state.target);
+        console.log(center);
         const [w, h] = this.renderable.values.uTexSize.ref.value;
         const v = camera.viewport;
         const distance = Vec3.distance(camera.state.position, center);
         const inFocus = distance + props.inFocus;
+        ValueCell.update(this.renderable.values.uModelView, camera.view);
         ValueCell.update(this.renderable.values.uProjection, camera.projection);
         ValueCell.update(this.renderable.values.uInvProjection, invProjection);
-        ValueCell.update(this.renderable.values.uCenter, center);
         ValueCell.update(this.renderable.values.uMode, props.mode === 'sphere' ? 1 : 0);
 
         Vec4.set(this.renderable.values.uBounds.ref.value,
@@ -94,6 +95,9 @@ export class DofPass {
         ValueCell.updateIfChanged(this.renderable.values.uNear, camera.near);
         ValueCell.updateIfChanged(this.renderable.values.uFar, camera.far);
         ValueCell.updateIfChanged(this.renderable.values.dOrthographic, orthographic);
+
+        if (this.renderable.values.uCenter.ref.value !== center) needsUpdate = true;
+        ValueCell.update(this.renderable.values.uCenter, center);
 
         if (this.renderable.values.blurSize.ref.value !== props.blurSize) needsUpdate = true;
         ValueCell.update(this.renderable.values.blurSize, props.blurSize);
@@ -136,6 +140,7 @@ const DofSchema = {
     tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     uTexSize: UniformSpec('v2'),
 
+    uModelView: UniformSpec('m4'),
     uProjection: UniformSpec('m4'),
     uInvProjection: UniformSpec('m4'),
     uBounds: UniformSpec('v4'),
@@ -165,6 +170,7 @@ function getDofRenderable(ctx: WebGLContext, colorTexture: Texture, depthTexture
         tColor: ValueCell.create(colorTexture),
         uTexSize: ValueCell.create(Vec2.create(width, height)),
 
+        uModelView: ValueCell.create(Mat4.identity()),
         uProjection: ValueCell.create(Mat4.identity()),
         uInvProjection: ValueCell.create(Mat4.identity()),
         uBounds: ValueCell.create(Vec4()),
