@@ -73,13 +73,14 @@ export class DofPass {
         const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
         const invProjection = Mat4.identity();
         Mat4.invert(invProjection, camera.projection);
-        const center = (props.center === 'scene-center' ? sphere.center : camera.state.target);
-        console.log(center);
+        const wolrd_center = (props.center === 'scene-center' ? sphere.center : camera.state.target);
         const [w, h] = this.renderable.values.uTexSize.ref.value;
         const v = camera.viewport;
-        const distance = Vec3.distance(camera.state.position, center);
+        const distance = Vec3.distance(camera.state.position, wolrd_center);
         const inFocus = distance + props.inFocus;
-        ValueCell.update(this.renderable.values.uModelView, camera.view);
+        // transform  center in view space
+        let center = Vec3();
+        center = Vec3.transformMat4(center, wolrd_center, camera.view);
         ValueCell.update(this.renderable.values.uProjection, camera.projection);
         ValueCell.update(this.renderable.values.uInvProjection, invProjection);
         ValueCell.update(this.renderable.values.uMode, props.mode === 'sphere' ? 1 : 0);
@@ -140,7 +141,6 @@ const DofSchema = {
     tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     uTexSize: UniformSpec('v2'),
 
-    uModelView: UniformSpec('m4'),
     uProjection: UniformSpec('m4'),
     uInvProjection: UniformSpec('m4'),
     uBounds: UniformSpec('v4'),
@@ -170,7 +170,6 @@ function getDofRenderable(ctx: WebGLContext, colorTexture: Texture, depthTexture
         tColor: ValueCell.create(colorTexture),
         uTexSize: ValueCell.create(Vec2.create(width, height)),
 
-        uModelView: ValueCell.create(Mat4.identity()),
         uProjection: ValueCell.create(Mat4.identity()),
         uInvProjection: ValueCell.create(Mat4.identity()),
         uBounds: ValueCell.create(Vec4()),
