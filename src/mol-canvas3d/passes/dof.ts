@@ -23,10 +23,10 @@ import { ICamera } from '../../mol-canvas3d/camera';
 import { Sphere3D } from '../../mol-math/geometry';
 
 export const DofParams = {
-    blurSize: PD.Numeric(5, { min: 1, max: 32, step: 1 }),
+    blurSize: PD.Numeric(9, { min: 1, max: 32, step: 1 }),
     blurSpread: PD.Numeric(1.0, { min: 0.0, max: 10.0, step: 0.1 }),
     inFocus: PD.Numeric(0.0, { min: -5000.0, max: 5000.0, step: 1.0 }, { description: 'Distance from the scene center that will be in focus' }),
-    PPM: PD.Numeric(60.0, { min: 0.0, max: 5000.0, step: 0.1 }, { description: 'Size of the area that will be in focus' }),
+    PPM: PD.Numeric(20.0, { min: 0.0, max: 5000.0, step: 0.1 }, { description: 'Size of the area that will be in focus' }),
     center: PD.Select('scene-center', PD.arrayToOptions(['scene-center', 'camera-target'])),
     mode: PD.Select('plane', PD.arrayToOptions(['plane', 'sphere'])),
 };

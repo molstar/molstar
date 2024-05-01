@@ -402,11 +402,11 @@ export class DrawPass {
         }
 
         if (props.postprocessing.dof.name === 'on') {
-            // const input = antialiasingEnabled ? this.antialiasing.target.texture : (postprocessingEnabled ? this.postprocessing.target.texture : this.drawTarget.texture);
-            this.dof.update(camera, this.postprocessing.target.texture, this.depthTargetOpaque?.texture || this.depthTextureOpaque, props.postprocessing.dof.params, scene.boundingSphereVisible);
+            // const input = antialiasingEnabled ? this.antialiasing.target.texture : (postprocessingEnabled ? this.postprocessing.target.texture : this.colorTarget.texture);
+            const input = (postprocessingEnabled ? this.postprocessing.target.texture : this.colorTarget.texture);
+            this.dof.update(camera, input, this.depthTargetOpaque?.texture || this.depthTextureOpaque, props.postprocessing.dof.params, scene.boundingSphereVisible);
             this.dof.render(camera.viewport, toDrawingBuffer ? undefined : this.getColorTarget(props.postprocessing));
         }
-
         this.webgl.gl.flush();
     }
 
