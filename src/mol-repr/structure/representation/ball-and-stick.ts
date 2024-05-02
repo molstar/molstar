@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -43,7 +43,12 @@ export function getBallAndStickParams(ctx: ThemeRegistryContext, structure: Stru
         params.visuals.defaultValue = ['element-sphere', 'intra-bond'];
         return params;
     } else {
-        return BallAndStickParams;
+        if (!structure.hasChemCompBond) return BallAndStickParams;
+
+        // suppress computed bonds if bond order and aromaticity flags are known from chem_comp_bond
+        const params = PD.clone(BallAndStickParams);
+        params.excludeTypes.defaultValue = ['computed'];
+        return params;
     }
 }
 

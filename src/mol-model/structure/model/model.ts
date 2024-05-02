@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -426,5 +426,10 @@ export namespace Model {
                 ))
             )
         );
+    }
+
+    export function hasChemCompBond(model: Model): boolean {
+        if (!MmcifFormat.is(model.sourceData)) return false;
+        return model.sourceData.data.db.chem_comp_bond._rowCount > 0;
     }
 }

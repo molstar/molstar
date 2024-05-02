@@ -17,6 +17,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Wrong operator checks in `findPairBonds`
 - Fix SSAO artifacts (@corredD, #1082)
 - Fix bumpiness artifact (#1107)
+- Stop showing `computed` bonds if `chem_comp_bond` is defined
 
 ## [v4.1.0] - 2023-03-31
 
