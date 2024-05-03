@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -21,7 +21,7 @@ export type IndexPairsProps = {
     readonly flag: ArrayLike<BondType.Flag>
 }
 export type IndexPairs = IntAdjacencyGraph<ElementIndex, IndexPairsProps>
-export type IndexPairBonds = { bonds: IndexPairs, maxDistance: number }
+export type IndexPairBonds = { bonds: IndexPairs, maxDistance: number, cacheable: boolean }
 
 function getGraph(indexA: ArrayLike<ElementIndex>, indexB: ArrayLike<ElementIndex>, props: Partial<IndexPairsProps>, count: number): IndexPairs {
     const builder = new IntAdjacencyGraph.EdgeBuilder(count, indexA, indexB);
@@ -85,7 +85,9 @@ export namespace IndexPairBonds {
          * Note that `Data` has a `distance` field which allows specifying a distance
          * for each bond individually which takes precedence over this option.
          */
-        maxDistance: -1
+        maxDistance: -1,
+        /** Can be cached in `ElementSetIntraBondCache` */
+        cacheable: true,
     };
     export type Props = typeof DefaultProps
 
@@ -102,7 +104,8 @@ export namespace IndexPairBonds {
         const flag = pairs.flag && pairs.flag.toArray();
         return {
             bonds: getGraph(indexA, indexB, { key, operatorA, operatorB, order, distance, flag }, count),
-            maxDistance: p.maxDistance
+            maxDistance: p.maxDistance,
+            cacheable: p.cacheable,
         };
     }
 

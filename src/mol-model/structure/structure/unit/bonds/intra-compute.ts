@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2017-2022 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2024 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { BondType } from '../../../model/types';
-import { IntraUnitBonds } from './data';
+import { IntraUnitBondProps, IntraUnitBonds } from './data';
 import { Unit } from '../../unit';
 import { IntAdjacencyGraph } from '../../../../../mol-math/graph';
 import { BondComputationProps, getElementIdx, MetalsSet, getElementThreshold, isHydrogen, DefaultBondComputationProps, getPairingThreshold } from './common';
@@ -24,7 +24,7 @@ import { Model } from '../../../model/model';
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3distance = Vec3.distance;
 
-function getGraph(atomA: StructureElement.UnitIndex[], atomB: StructureElement.UnitIndex[], _order: number[], _flags: number[], _key: number[], atomCount: number, canRemap: boolean): IntraUnitBonds {
+function getGraph(atomA: StructureElement.UnitIndex[], atomB: StructureElement.UnitIndex[], _order: number[], _flags: number[], _key: number[], atomCount: number, props?: IntraUnitBondProps): IntraUnitBonds {
     const builder = new IntAdjacencyGraph.EdgeBuilder(atomCount, atomA, atomB);
     const flags = new Uint16Array(builder.slotCount);
     const order = new Int8Array(builder.slotCount);
@@ -36,7 +36,7 @@ function getGraph(atomA: StructureElement.UnitIndex[], atomB: StructureElement.U
         builder.assignProperty(key, _key[i]);
     }
 
-    return builder.createGraph({ flags, order, key }, { canRemap });
+    return builder.createGraph({ flags, order, key }, props);
 }
 
 const tmpDistVecA = Vec3();
@@ -118,7 +118,10 @@ function findIndexPairBonds(unit: Unit.Atomic) {
         }
     }
 
-    return getGraph(atomA, atomB, orders, flags, keys, atomCount, false);
+    return getGraph(atomA, atomB, orders, flags, keys, atomCount, {
+        canRemap: false,
+        cacheable: indexPairs.cacheable,
+    });
 }
 
 function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBonds {
@@ -266,8 +269,9 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
         }
     }
 
-    const canRemap = isWatery || (isDictionaryBased && isSequenced);
-    return getGraph(atomA, atomB, order, flags, key, atomCount, canRemap);
+    return getGraph(atomA, atomB, order, flags, key, atomCount, {
+        canRemap: isWatery || (isDictionaryBased && isSequenced),
+    });
 }
 
 function computeIntraUnitBonds(unit: Unit.Atomic, props?: Partial<BondComputationProps>) {
