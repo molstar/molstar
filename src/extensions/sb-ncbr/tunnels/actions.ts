@@ -6,7 +6,6 @@
 
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { StateTransforms } from '../../../mol-plugin-state/transforms';
-import { PluginConfigItem } from '../../../mol-plugin/config';
 import { PluginContext } from '../../../mol-plugin/context';
 import { StateAction } from '../../../mol-state';
 import { Task } from '../../../mol-task';
@@ -14,11 +13,8 @@ import { Asset } from '../../../mol-util/assets';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { assertUnreachable } from '../../../mol-util/type-helpers';
 import { ChannelsDBdata, Tunnel, TunnelDB } from './data-model';
+import { TunnelsServerConfig } from './props';
 import { TunnelsFromRawData, SelectTunnel, TunnelShapeProvider } from './representation';
-
-export const ChannelsDBServerConfig = {
-    DefaultServer: new PluginConfigItem('channelsdb-server', 'https://channelsdb2.biodata.ceitec.cz/api/'),
-};
 
 export const TunnelDownloadServer = {
     'channelsdb': PD.EmptyGroup({ label: 'ChannelsDB' })
@@ -61,12 +57,12 @@ export const DownloadTunnels = StateAction.build({
             break;
         case 'pdb':
             downloadParams = src.params.provider.server.name === 'channelsdb'
-                ? [{ url: `${plugin?.config.get(ChannelsDBServerConfig.DefaultServer)}channels/pdb/${src.params.provider.id}` }]
+                ? [{ url: `${plugin?.config.get(TunnelsServerConfig.DefaultServerUrl)}/channels/pdb/${src.params.provider.id}` }]
                 : assertUnreachable(src as never);
             break;
         case 'alphafolddb':
             downloadParams = src.params.provider.server.name === 'channelsdb'
-                ? [{ url: `${plugin?.config.get(ChannelsDBServerConfig.DefaultServer)}channels/alphafill/${src.params.provider.id.toLowerCase()}` }]
+                ? [{ url: `${plugin?.config.get(TunnelsServerConfig.DefaultServerUrl)}/channels/alphafill/${src.params.provider.id.toLowerCase()}` }]
                 : assertUnreachable(src as never);
             break;
         default: assertUnreachable(src);
