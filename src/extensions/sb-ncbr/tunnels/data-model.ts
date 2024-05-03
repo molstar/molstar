@@ -93,7 +93,7 @@ export interface ChannelsCache {
 export interface Tunnel {
     data: Profile[],
     props: {
-        loci?: string,
+        highlight_label?: string,
         type?: string,
         id?: string,
         label?: string,

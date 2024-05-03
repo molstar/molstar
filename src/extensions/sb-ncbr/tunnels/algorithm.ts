@@ -50,8 +50,8 @@ export async function createSpheresShape(tunnel: Tunnel, color: Color, resolutio
     }
 
     const mesh = MeshBuilder.getMesh(builder);
-    const name = tunnel.props.loci ?
-        tunnel.props.loci :
+    const name = tunnel.props.highlight_label ?
+        tunnel.props.highlight_label :
         tunnel.props.type && tunnel.props.id ?
             `${tunnel.props.type} ${tunnel.props.id}` :
             'Tunnel';
@@ -78,8 +78,8 @@ export async function createSpheresShape(tunnel: Tunnel, color: Color, resolutio
 export async function createTunnelShape(tunnel: Tunnel, color: Color, resolution: number, sampleRate: number, webgl: WebGLContext | undefined, prev?: Shape<Mesh>) {
     const mesh = await createTunnelMesh(tunnel.data, resolution, sampleRate, webgl, prev?.geometry);
 
-    const name = tunnel.props.loci ?
-        tunnel.props.loci :
+    const name = tunnel.props.highlight_label ?
+        tunnel.props.highlight_label :
         tunnel.props.type && tunnel.props.id ?
             `${tunnel.props.type} ${tunnel.props.id}` :
             'Tunnel';
