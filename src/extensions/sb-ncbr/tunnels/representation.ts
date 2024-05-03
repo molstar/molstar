@@ -74,9 +74,21 @@ export const TunnelShapeProvider = Transform({
                 geometryUtils: Mesh.Utils,
                 getShape: (_, data, __, mesh) => {
                     if (data.params.visual.name === 'mesh' && !data.params.showRadii) {
-                        return createTunnelShape(data.data.tunnel, data.params.colorTheme, data.params.visual.params.resolution, data.params.samplingRate, data.params.webgl, mesh);
+                        return createTunnelShape({
+                            tunnel: data.data.tunnel,
+                            color: data.params.colorTheme,
+                            resolution: data.params.visual.params.resolution,
+                            sampleRate: data.params.samplingRate,
+                            webgl: data.params.webgl, prev: mesh
+                        });
                     }
-                    return createSpheresShape(data.data.tunnel, data.params.colorTheme, data.params.visual.params.resolution, data.params.samplingRate, data.params.showRadii, mesh);
+                    return createSpheresShape({
+                        tunnel: data.data.tunnel,
+                        color: data.params.colorTheme,
+                        resolution: data.params.visual.params.resolution,
+                        sampleRate: data.params.samplingRate,
+                        showRadii: data.params.showRadii, prev: mesh
+                    });
                 }
             }, {
                 label: a.data.tunnel.props.label ?? 'Tunnel',
