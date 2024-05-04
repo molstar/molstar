@@ -23,7 +23,7 @@ interface Snapshot {
 
 When defining the state object, all components are optional, i.e., it is possible to define just the ``data`` component.
 
-Example state is available [here](example-state.json). In the plugin, it is possible to create and load these objects using ``Download JSON`` 
+Example state is available [here](./example-state.json). In the plugin, it is possible to create and load these objects using ``Download JSON`` 
 and ``Open JSON`` buttons in the ``State Snapshots`` section.
 
 # State Tree
@@ -69,7 +69,7 @@ interface Transform.Props {
 }
 ```
 
-"Built-in" data state transforms and description of their parameters are defined in ``mol-plugin/state/transforms``. Behavior transforms are defined in ``mol-plugin/behavior``. Auto-generated documentation for the transforms is also [available](transforms.md).
+"Built-in" data state transforms and description of their parameters are defined in ``mol-plugin/state/transforms``. Behavior transforms are defined in ``mol-plugin/behavior``.
 
 # Animation State
 

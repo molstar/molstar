@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -97,7 +97,7 @@ export namespace Spheres {
             get boundingSphere() {
                 const newHash = hashCode(spheres);
                 if (newHash !== currentHash) {
-                    const b = calculateInvariantBoundingSphere(spheres.centerBuffer.ref.value, spheres.sphereCount * 4, 4);
+                    const b = calculateInvariantBoundingSphere(spheres.centerBuffer.ref.value, spheres.sphereCount, 1);
                     Sphere3D.copy(boundingSphere, b);
                     currentHash = newHash;
                 }
@@ -105,7 +105,7 @@ export namespace Spheres {
             },
             get groupMapping() {
                 if (spheres.groupBuffer.ref.version !== currentGroup) {
-                    groupMapping = createGroupMapping(spheres.groupBuffer.ref.value, spheres.sphereCount, 4);
+                    groupMapping = createGroupMapping(spheres.groupBuffer.ref.value, spheres.sphereCount);
                     currentGroup = spheres.groupBuffer.ref.version;
                 }
                 return groupMapping;
@@ -135,6 +135,7 @@ export namespace Spheres {
                 }
             },
         };
+        spheres.shaderData.update();
         return spheres;
     }
 

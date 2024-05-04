@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,6 +13,7 @@ export namespace SetUtils {
 
     /** Test if set a contains all elements of set b. */
     export function isSuperset<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>) {
+        if (setA === setB) return true;
         if (setA.size < setB.size) return false;
         for (const elem of setB) {
             if (!setA.has(elem)) return false;
@@ -31,6 +32,7 @@ export namespace SetUtils {
     /** Create set containing elements of both set a and set b. */
     export function union<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>): Set<T> {
         const union = new Set(setA);
+        if (setA === setB) return union;
         for (const elem of setB) union.add(elem);
         return union;
     }
@@ -55,6 +57,7 @@ export namespace SetUtils {
 
     /** Create set containing elements of set a that are also in set b. */
     export function intersection<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>): Set<T> {
+        if (setA === setB) return new Set(setA);
         const intersection = new Set<T>();
         for (const elem of setB) {
             if (setA.has(elem)) intersection.add(elem);
@@ -63,6 +66,7 @@ export namespace SetUtils {
     }
 
     export function areIntersecting<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>): boolean {
+        if (setA === setB) return setA.size > 0;
         if (setA.size < setB.size) [setA, setB] = [setB, setA];
         for (const elem of setB) {
             if (setA.has(elem)) return true;
@@ -71,6 +75,7 @@ export namespace SetUtils {
     }
 
     export function intersectionSize<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>): number {
+        if (setA === setB) return setA.size;
         if (setA.size < setB.size) [setA, setB] = [setB, setA];
         let count = 0;
         for (const elem of setB) {
@@ -81,6 +86,7 @@ export namespace SetUtils {
 
     /** Create set containing elements of set a that are not in set b. */
     export function difference<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>): Set<T> {
+        if (setA === setB) return new Set();
         const difference = new Set(setA);
         for (const elem of setB) difference.delete(elem);
         return difference;
@@ -88,6 +94,7 @@ export namespace SetUtils {
 
     /** Number of elements that are in set a but not in set b. */
     export function differenceSize<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>): number {
+        if (setA === setB) return 0;
         let count = setA.size;
         for (const elem of setA) {
             if (setB.has(elem)) count -= 1;
@@ -97,6 +104,7 @@ export namespace SetUtils {
 
     /** Test if set a and b contain the same elements. */
     export function areEqual<T>(setA: ReadonlySet<T>, setB: ReadonlySet<T>) {
+        if (setA === setB) return true;
         if (setA.size !== setB.size) return false;
         for (const elem of setB) {
             if (!setA.has(elem)) return false;

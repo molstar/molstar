@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Ryan DiRisio <rjdiris@gmail.com>
  */
 
 import { StructureElement } from '../../../mol-model/structure';
@@ -105,7 +106,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
         arraySetAdd(dependsOn, cellB.transform.ref);
 
         const update = this.getGroup();
-        update
+        const selection = update
             .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
                 selections: [
                     { key: 'a', groupId: 'a', ref: cellA.transform.ref, expression: StructureElement.Loci.toExpression(a) },
@@ -113,7 +114,8 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
                 ],
                 isTransitive: true,
                 label: 'Distance'
-            }, { dependsOn, tags: options?.selectionTags })
+            }, { dependsOn, tags: options?.selectionTags });
+        const representation = selection
             .apply(StateTransforms.Representation.StructureSelectionsDistance3D, {
                 customText: options?.customText || '',
                 unitLabel: this.state.options.distanceUnitLabel,
@@ -124,7 +126,8 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
             }, { tags: options?.reprTags });
 
         const state = this.plugin.state.data;
-        await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
+        await PluginCommands.State.Update(this.plugin, { state, tree: representation, options: { doNotLogTiming: true } });
+        return { selection: selection.selector, representation: representation.selector };
     }
 
     async addAngle(a: StructureElement.Loci, b: StructureElement.Loci, c: StructureElement.Loci,
@@ -140,7 +143,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
         arraySetAdd(dependsOn, cellC.transform.ref);
 
         const update = this.getGroup();
-        update
+        const selection = update
             .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
                 selections: [
                     { key: 'a', ref: cellA.transform.ref, expression: StructureElement.Loci.toExpression(a) },
@@ -149,7 +152,8 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
                 ],
                 isTransitive: true,
                 label: 'Angle'
-            }, { dependsOn, tags: options?.selectionTags })
+            }, { dependsOn, tags: options?.selectionTags });
+        const representation = selection
             .apply(StateTransforms.Representation.StructureSelectionsAngle3D, {
                 customText: options?.customText || '',
                 textColor: this.state.options.textColor,
@@ -159,7 +163,8 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
             }, { tags: options?.reprTags });
 
         const state = this.plugin.state.data;
-        await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
+        await PluginCommands.State.Update(this.plugin, { state, tree: representation, options: { doNotLogTiming: true } });
+        return { selection: selection.selector, representation: representation.selector };
     }
 
     async addDihedral(a: StructureElement.Loci, b: StructureElement.Loci, c: StructureElement.Loci, d: StructureElement.Loci,
@@ -177,7 +182,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
         arraySetAdd(dependsOn, cellD.transform.ref);
 
         const update = this.getGroup();
-        update
+        const selection = update
             .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
                 selections: [
                     { key: 'a', ref: cellA.transform.ref, expression: StructureElement.Loci.toExpression(a) },
@@ -187,17 +192,18 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
                 ],
                 isTransitive: true,
                 label: 'Dihedral'
-            }, { dependsOn, tags: options?.selectionTags })
-            .apply(StateTransforms.Representation.StructureSelectionsDihedral3D, {
-                customText: options?.customText || '',
-                textColor: this.state.options.textColor,
-                ...(options?.lineParams as any),
-                ...options?.labelParams,
-                ...options?.visualParams
-            }, { tags: options?.reprTags });
+            }, { dependsOn, tags: options?.selectionTags });
+        const representation = selection.apply(StateTransforms.Representation.StructureSelectionsDihedral3D, {
+            customText: options?.customText || '',
+            textColor: this.state.options.textColor,
+            ...(options?.lineParams as any),
+            ...options?.labelParams,
+            ...options?.visualParams
+        }, { tags: options?.reprTags });
 
         const state = this.plugin.state.data;
-        await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
+        await PluginCommands.State.Update(this.plugin, { state, tree: representation, options: { doNotLogTiming: true } });
+        return { selection: selection.selector, representation: representation.selector };
     }
 
     async addLabel(a: StructureElement.Loci,
@@ -209,22 +215,23 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
         const dependsOn = [cellA.transform.ref];
 
         const update = this.getGroup();
-        update
+        const selection = update
             .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
                 selections: [
                     { key: 'a', ref: cellA.transform.ref, expression: StructureElement.Loci.toExpression(a) },
                 ],
                 isTransitive: true,
                 label: 'Label'
-            }, { dependsOn, tags: options?.selectionTags })
+            }, { dependsOn, tags: options?.selectionTags });
+        const representation = selection
             .apply(StateTransforms.Representation.StructureSelectionsLabel3D, {
                 textColor: this.state.options.textColor,
                 ...options?.labelParams,
                 ...options?.visualParams
             }, { tags: options?.reprTags });
-
         const state = this.plugin.state.data;
-        await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
+        await PluginCommands.State.Update(this.plugin, { state, tree: representation, options: { doNotLogTiming: true } });
+        return { selection: selection.selector, representation: representation.selector };
     }
 
     async addOrientation(locis: StructureElement.Loci[]) {
@@ -243,16 +250,18 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
         if (selections.length === 0) return;
 
         const update = this.getGroup();
-        update
+        const selection = update
             .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
                 selections,
                 isTransitive: true,
                 label: 'Orientation'
-            }, { dependsOn })
+            }, { dependsOn });
+        const representation = selection
             .apply(StateTransforms.Representation.StructureSelectionsOrientation3D);
 
         const state = this.plugin.state.data;
-        await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
+        await PluginCommands.State.Update(this.plugin, { state, tree: representation, options: { doNotLogTiming: true } });
+        return { selection: selection.selector, representation: representation.selector };
     }
 
     async addPlane(locis: StructureElement.Loci[]) {
@@ -271,16 +280,19 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
         if (selections.length === 0) return;
 
         const update = this.getGroup();
-        update
+        const selection = update
             .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
                 selections,
                 isTransitive: true,
                 label: 'Plane'
-            }, { dependsOn })
+            }, { dependsOn });
+        const representation = selection
             .apply(StateTransforms.Representation.StructureSelectionsPlane3D);
 
         const state = this.plugin.state.data;
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
+        return { selection: selection.selector, representation: representation.selector };
+
     }
 
     async addOrderLabels(locis: StructureElement.Loci[]) {
@@ -317,6 +329,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
 
         const state = this.plugin.state.data;
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
+        return { representation: update.selector };
     }
 
     private _empty: any[] = [];
