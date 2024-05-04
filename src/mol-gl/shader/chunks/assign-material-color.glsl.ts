@@ -29,9 +29,10 @@ export const assign_material_color = `
     float roughness = uRoughness;
     float bumpiness = uBumpiness;
     #ifdef dSubstance
-        metalness = mix(metalness, vSubstance.r, vSubstance.a);
-        roughness = mix(roughness, vSubstance.g, vSubstance.a);
-        bumpiness = mix(bumpiness, vSubstance.b, vSubstance.a);
+        float sf = clamp(vSubstance.a, 0.0, 0.99); // clamp to avoid artifacts
+        metalness = mix(metalness, vSubstance.r, sf);
+        roughness = mix(roughness, vSubstance.g, sf);
+        bumpiness = mix(bumpiness, vSubstance.b, sf);
     #endif
 #elif defined(dRenderVariant_depth)
     if (fragmentDepth > getDepth(gl_FragCoord.xy / uDrawingBufferSize)) {
