@@ -16,7 +16,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Can not always be cached in `ElementSetIntraBondCache`
     - Wrong operator checks in `findPairBonds`
 - Fix SSAO artifacts (@corredD, #1082)
-- Fix bumpiness artifact (#1107)
+- Fix bumpiness artifacts (#1107, #1084)
 
 ## [v4.1.0] - 2023-03-31
 
