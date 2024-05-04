@@ -246,7 +246,7 @@ function getLuminosityRenderable(ctx: WebGLContext, colorTexture: Texture, emiss
         uTexSizeInv: ValueCell.create(Vec2.create(1 / width, 1 / height)),
 
         uDefaultColor: ValueCell.create(Vec3()),
-        uDefaultOpacity: ValueCell.create(1),
+        uDefaultOpacity: ValueCell.create(0),
         uLuminosityThreshold: ValueCell.create(0),
         uSmoothWidth: ValueCell.create(1),
         dMode: ValueCell.create('emissive'),
