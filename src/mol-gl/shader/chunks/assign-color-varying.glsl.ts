@@ -73,8 +73,8 @@ export const assign_color_varying = `
         #elif defined(dEmissiveType_vertexInstance)
             vEmissive = readFromTexture(tEmissive, int(aInstance) * uVertexCount + VertexID, uEmissiveTexDim).a;
         #elif defined(dEmissiveType_volumeInstance)
-            vec3 tgridPos = (uEmissiveGridTransform.w * (vModelPosition - uEmissiveGridTransform.xyz)) / uEmissiveGridDim;
-            vEmissive = texture3dFrom2dLinear(tEmissiveGrid, tgridPos, uEmissiveGridDim, uEmissiveTexDim).a;
+            vec3 egridPos = (uEmissiveGridTransform.w * (vModelPosition - uEmissiveGridTransform.xyz)) / uEmissiveGridDim;
+            vEmissive = texture3dFrom2dLinear(tEmissiveGrid, egridPos, uEmissiveGridDim, uEmissiveTexDim).a;
         #endif
         vEmissive *= uEmissiveStrength;
     #endif
@@ -104,8 +104,8 @@ export const assign_color_varying = `
         #elif defined(dEmissiveType_vertexInstance)
             vEmissive = readFromTexture(tEmissive, int(aInstance) * uVertexCount + VertexID, uEmissiveTexDim).a;
         #elif defined(dEmissiveType_volumeInstance)
-            vec3 tgridPos = (uEmissiveGridTransform.w * (vModelPosition - uEmissiveGridTransform.xyz)) / uEmissiveGridDim;
-            vEmissive = texture3dFrom2dLinear(tEmissiveGrid, tgridPos, uEmissiveGridDim, uEmissiveTexDim).a;
+            vec3 egridPos = (uEmissiveGridTransform.w * (vModelPosition - uEmissiveGridTransform.xyz)) / uEmissiveGridDim;
+            vEmissive = texture3dFrom2dLinear(tEmissiveGrid, egridPos, uEmissiveGridDim, uEmissiveTexDim).a;
         #endif
         vEmissive *= uEmissiveStrength;
     #endif
