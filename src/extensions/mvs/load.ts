@@ -10,7 +10,7 @@ import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/rep
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectSelector } from '../../mol-state';
 import { MolViewSpec } from './behavior';
-import { setCamera, setCanvas, setFocus } from './camera';
+import { setCamera, setCanvas, setFocus, suppressCameraAutoreset } from './camera';
 import { MVSAnnotationsProvider } from './components/annotation-prop';
 import { MVSAnnotationStructureComponent } from './components/annotation-structure-component';
 import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-prop';
@@ -27,9 +27,10 @@ import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 /** Load a MolViewSpec (MVS) tree into the Mol* plugin.
  * If `options.replaceExisting`, remove all objects in the current Mol* state; otherwise add to the current state.
+ * If `options.keepCamera`, ignore any camera positioning from the MVS state and keep the current camera position instead.
  * If `options.sanityChecks`, run some sanity checks and print potential issues to the console.
  * `options.sourceUrl` serves as the base for resolving relative URLs/URIs and may itself be relative to the window URL. */
-export async function loadMVS(plugin: PluginContext, data: MVSData, options: { replaceExisting?: boolean, sanityChecks?: boolean, sourceUrl?: string } = {}) {
+export async function loadMVS(plugin: PluginContext, data: MVSData, options: { replaceExisting?: boolean, keepCamera?: boolean, sanityChecks?: boolean, sourceUrl?: string } = {}) {
     try {
         // console.log(`MVS tree:\n${MVSData.toPrettyString(data)}`)
         validateTree(MVSTreeSchema, data.root, 'MVS');
@@ -47,7 +48,7 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: { r
 
 /** Load a `MolstarTree` into the Mol* plugin.
  * If `replaceExisting`, remove all objects in the current Mol* state; otherwise add to the current state. */
-async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, options?: { replaceExisting?: boolean }) {
+async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, options?: { replaceExisting?: boolean, keepCamera?: boolean }) {
     const mvsExtensionLoaded = plugin.state.hasBehavior(MolViewSpec);
     if (!mvsExtensionLoaded) throw new Error('MolViewSpec extension is not loaded.');
 
@@ -56,12 +57,17 @@ async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, options
     await loadTree(plugin, tree, MolstarLoadingActions, context, options);
 
     setCanvas(plugin, context.canvas);
-    if (context.focus?.kind === 'camera') {
-        await setCamera(plugin, context.focus.params);
-    } else if (context.focus?.kind === 'focus') {
-        await setFocus(plugin, context.focus.focusTarget, context.focus.params);
+
+    if (options?.keepCamera) {
+        await suppressCameraAutoreset(plugin);
     } else {
-        await setFocus(plugin, undefined, undefined);
+        if (context.focus?.kind === 'camera') {
+            await setCamera(plugin, context.focus.params);
+        } else if (context.focus?.kind === 'focus') {
+            await setFocus(plugin, context.focus.focusTarget, context.focus.params);
+        } else {
+            await setFocus(plugin, undefined, undefined);
+        }
     }
 }
 

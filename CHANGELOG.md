@@ -8,6 +8,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Refactor transparency rendering
     - More uniform behavior for blended, wboit, dpoit
     - Fix issues with text & image geometry
+- MolViewSpec extension: `loadMVS` supports `keepCamera` parameter
 - Return StateTransform selectors from measurements API (addDistance, addAngle, etc.)
 - Fix render-spheres example (#1100)
     - Wrong step size in sphere geometry boundingSphere & groupmapping

@@ -58,6 +58,7 @@ export const ParseMVSX = MVSTransform({
 /** Params for the `LoadMvsData` action */
 export const LoadMvsDataParams = {
     replaceExisting: PD.Boolean(false, { description: 'If true, the loaded MVS view will replace the current state; if false, the MVS view will be added to the current state.' }),
+    keepCamera: PD.Boolean(false, { description: 'If true, any camera positioning from the MVS state will be ignored and the current camera position will be kept.' }),
 };
 
 /** State action which loads a MVS view into Mol* */
@@ -67,7 +68,7 @@ export const LoadMvsData = StateAction.build({
     params: LoadMvsDataParams,
 })(({ a, params }, plugin: PluginContext) => Task.create('Load MVS Data', async () => {
     const { mvsData, sourceUrl } = a.data;
-    await loadMVS(plugin, mvsData, { replaceExisting: params.replaceExisting, sourceUrl: sourceUrl });
+    await loadMVS(plugin, mvsData, { replaceExisting: params.replaceExisting, keepCamera: params.keepCamera, sourceUrl: sourceUrl });
 }));
 
 
