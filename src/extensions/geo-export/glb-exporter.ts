@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -170,8 +170,8 @@ export class GlbExporter extends MeshExporter<GlbData> {
         return this.addBuffer(colorBuffer, UNSIGNED_BYTE, 'VEC4', vertexCount, ARRAY_BUFFER, undefined, undefined, true);
     }
 
-    private addMaterial(metalness: number, roughness: number, doubleSided: boolean, alpha: boolean) {
-        const hash = `${metalness}|${roughness}|${doubleSided}`;
+    private addMaterial(metalness: number, roughness: number, emissive: number, doubleSided: boolean, alpha: boolean) {
+        const hash = `${metalness}|${roughness}|${emissive}|${doubleSided}`;
         if (!this.materialMap.has(hash)) {
             this.materialMap.set(hash, this.materials.length);
             this.materials.push({
@@ -180,6 +180,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
                     metallicFactor: metalness,
                     roughnessFactor: roughness
                 },
+                emissiveFactor: [emissive, emissive, emissive],
                 doubleSided,
                 alphaMode: alpha ? 'BLEND' : 'OPAQUE',
             });
@@ -200,10 +201,11 @@ export class GlbExporter extends MeshExporter<GlbData> {
         const instanceCount = values.uInstanceCount.ref.value;
         const metalness = values.uMetalness.ref.value;
         const roughness = values.uRoughness.ref.value;
+        const emissive = values.uEmissive.ref.value;
         const doubleSided = values.uDoubleSided?.ref.value || values.hasReflection.ref.value;
         const alpha = values.uAlpha.ref.value < 1;
 
-        const material = this.addMaterial(metalness, roughness, doubleSided, alpha);
+        const material = this.addMaterial(metalness, roughness, emissive, doubleSided, alpha);
 
         let interpolatedColors: Uint8Array | undefined;
         if (webgl && mesh && (colorType === 'volume' || colorType === 'volumeInstance')) {

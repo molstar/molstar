@@ -139,6 +139,8 @@ void main(void){
         gl_FragColor = material;
     #elif defined(dRenderVariant_marking)
         gl_FragColor = material;
+    #elif defined(dRenderVariant_emissive)
+        gl_FragColor = material;
     #elif defined(dRenderVariant_color)
         vec3 normal = -cameraNormal;
         #include apply_light_color

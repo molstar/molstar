@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -27,6 +27,7 @@ import { WebGLContext } from '../../mol-gl/webgl/context';
 import { StructureGroup } from './visual/util/common';
 import { Substance } from '../../mol-theme/substance';
 import { LocationCallback } from '../util';
+import { Emissive } from '../../mol-theme/emissive';
 
 export interface UnitsVisual<P extends StructureParams> extends Visual<StructureGroup, P> { }
 
@@ -229,13 +230,14 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
     }
 
     function setVisualState(visual: UnitsVisual<P>, group: Unit.SymmetryGroup, state: Partial<StructureRepresentationState>) {
-        const { visible, alphaFactor, pickable, overpaint, transparency, substance, clipping, themeStrength, transform, unitTransforms } = state;
+        const { visible, alphaFactor, pickable, overpaint, transparency, emissive, substance, clipping, themeStrength, transform, unitTransforms } = state;
 
         if (visible !== undefined) visual.setVisibility(visible);
         if (alphaFactor !== undefined) visual.setAlphaFactor(alphaFactor);
         if (pickable !== undefined) visual.setPickable(pickable);
         if (overpaint !== undefined) visual.setOverpaint(overpaint, webgl);
         if (transparency !== undefined) visual.setTransparency(transparency, webgl);
+        if (emissive !== undefined) visual.setEmissive(emissive, webgl);
         if (substance !== undefined) visual.setSubstance(substance, webgl);
         if (clipping !== undefined) visual.setClipping(clipping);
         if (themeStrength !== undefined) visual.setThemeStrength(themeStrength);
@@ -255,7 +257,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
     }
 
     function setState(state: Partial<StructureRepresentationState>) {
-        const { visible, alphaFactor, pickable, overpaint, transparency, substance, clipping, themeStrength, transform, unitTransforms, syncManually, markerActions } = state;
+        const { visible, alphaFactor, pickable, overpaint, transparency, emissive, substance, clipping, themeStrength, transform, unitTransforms, syncManually, markerActions } = state;
         const newState: Partial<StructureRepresentationState> = {};
 
         if (visible !== undefined) newState.visible = visible;
@@ -266,6 +268,9 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         }
         if (transparency !== undefined && _structure) {
             newState.transparency = Transparency.remap(transparency, _structure);
+        }
+        if (emissive !== undefined && _structure) {
+            newState.emissive = Emissive.remap(emissive, _structure);
         }
         if (substance !== undefined && _structure) {
             newState.substance = Substance.remap(substance, _structure);

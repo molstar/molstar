@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -356,6 +356,40 @@ export function applyMeshTransparencySmoothing(values: MeshValues, resolution: n
         ValueCell.updateIfChanged(values.dTransparencyType, smoothingData.type);
         ValueCell.update(values.tTransparency, smoothingData.texture);
         ValueCell.update(values.uTransparencyTexDim, smoothingData.texDim);
+    }
+}
+
+function isSupportedEmissiveType(x: string): x is 'groupInstance' {
+    return x === 'groupInstance';
+}
+
+export function applyMeshEmissiveSmoothing(values: MeshValues, resolution: number, stride: number, webgl?: WebGLContext, colorTexture?: Texture) {
+    if (!isSupportedEmissiveType(values.dEmissiveType.ref.value)) return;
+
+    const smoothingData = calcMeshColorSmoothing({
+        vertexCount: values.uVertexCount.ref.value,
+        instanceCount: values.uInstanceCount.ref.value,
+        groupCount: values.uGroupCount.ref.value,
+        transformBuffer: values.aTransform.ref.value,
+        instanceBuffer: values.aInstance.ref.value,
+        positionBuffer: values.aPosition.ref.value,
+        groupBuffer: values.aGroup.ref.value,
+        colorData: values.tEmissive.ref.value,
+        colorType: values.dEmissiveType.ref.value,
+        boundingSphere: values.boundingSphere.ref.value,
+        invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
+        itemSize: 1
+    }, resolution, stride, webgl, colorTexture);
+    if (smoothingData.kind === 'volume') {
+        ValueCell.updateIfChanged(values.dEmissiveType, smoothingData.type);
+        ValueCell.update(values.tEmissiveGrid, smoothingData.texture);
+        ValueCell.update(values.uEmissiveTexDim, smoothingData.gridTexDim);
+        ValueCell.update(values.uEmissiveGridDim, smoothingData.gridDim);
+        ValueCell.update(values.uEmissiveGridTransform, smoothingData.gridTransform);
+    } else if (smoothingData.kind === 'vertex') {
+        ValueCell.updateIfChanged(values.dEmissiveType, smoothingData.type);
+        ValueCell.update(values.tEmissive, smoothingData.texture);
+        ValueCell.update(values.uEmissiveTexDim, smoothingData.texDim);
     }
 }
 

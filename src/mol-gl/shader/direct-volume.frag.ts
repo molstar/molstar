@@ -67,6 +67,7 @@ uniform int uGroupCount;
 
 uniform float uMetalness;
 uniform float uRoughness;
+uniform float uEmissive;
 
 uniform bool uFog;
 uniform float uFogNear;
@@ -190,6 +191,7 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
     vec4 overpaint;
     float metalness = uMetalness;
     float roughness = uRoughness;
+    float emissive = uEmissive;
 
     vec3 gradient = vec3(1.0);
     vec3 dx = vec3(gradOffset * scaleVol.x, 0.0, 0.0);
@@ -290,7 +292,7 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
             material.rgb = mix(material.rgb, overpaint.rgb, overpaint.a);
         #endif
 
-        #ifdef dIgnoreLight
+        #if defined(dIgnoreLight)
             gl_FragColor.rgb = material.rgb;
         #else
             if (material.a >= 0.01) {
@@ -346,19 +348,23 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
 // TODO: support clipping exclusion texture support
 
 void main() {
-    if (gl_FrontFacing)
+    #if defined(dRenderVariant_emissive)
         discard;
+    #else
+        if (gl_FrontFacing)
+            discard;
 
-    vec3 rayDir = mix(normalize(vOrigPos - uCameraPosition), uCameraDir, uIsOrtho);
-    vec3 step = rayDir * uStepScale;
+        vec3 rayDir = mix(normalize(vOrigPos - uCameraPosition), uCameraDir, uIsOrtho);
+        vec3 step = rayDir * uStepScale;
 
-    float boundingSphereNear = distance(vBoundingSphere.xyz, uCameraPosition) - vBoundingSphere.w;
-    float d = max(uNear, boundingSphereNear) - mix(0.0, distance(vOrigPos, uCameraPosition), uIsOrtho);
-    vec3 start = mix(uCameraPosition, vOrigPos, uIsOrtho) + (d * rayDir);
-    gl_FragColor = raymarch(start, step, rayDir);
+        float boundingSphereNear = distance(vBoundingSphere.xyz, uCameraPosition) - vBoundingSphere.w;
+        float d = max(uNear, boundingSphereNear) - mix(0.0, distance(vOrigPos, uCameraPosition), uIsOrtho);
+        vec3 start = mix(uCameraPosition, vOrigPos, uIsOrtho) + (d * rayDir);
+        gl_FragColor = raymarch(start, step, rayDir);
 
-    float fragmentDepth = calcDepth((uModelView * vec4(start, 1.0)).xyz);
-    float preFogAlpha = clamp(preFogAlphaBlended, 0.0, 1.0);
-    #include wboit_write
+        float fragmentDepth = calcDepth((uModelView * vec4(start, 1.0)).xyz);
+        float preFogAlpha = clamp(preFogAlphaBlended, 0.0, 1.0);
+        #include wboit_write
+    #endif
 }
 `;

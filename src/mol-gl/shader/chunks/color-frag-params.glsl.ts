@@ -6,6 +6,7 @@ uniform float uBumpiness;
     uniform float uBumpFrequency;
     uniform float uBumpAmplitude;
 #endif
+uniform float uEmissive;
 
 #if defined(dRenderVariant_color)
     #if defined(dColorType_uniform)
@@ -23,8 +24,16 @@ uniform float uBumpiness;
         varying vec4 vOverpaint;
     #endif
 
+    #ifdef dEmissive
+        varying float vEmissive;
+    #endif
+
     #ifdef dSubstance
         varying vec4 vSubstance;
+    #endif
+#elif defined(dRenderVariant_emissive)
+    #ifdef dEmissive
+        varying float vEmissive;
     #endif
 #elif defined(dRenderVariant_pick)
     #if __VERSION__ == 100 || !defined(dVaryingGroup)

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -506,6 +506,42 @@ export function applyTextureMeshTransparencySmoothing(values: TextureMeshValues,
     ValueCell.update(values.uTransparencyTexDim, smoothingData.gridTexDim);
     ValueCell.update(values.uTransparencyGridDim, smoothingData.gridDim);
     ValueCell.update(values.uTransparencyGridTransform, smoothingData.gridTransform);
+}
+
+function isSupportedEmissiveType(x: string): x is 'groupInstance' {
+    return x === 'groupInstance';
+}
+
+export function applyTextureMeshEmissiveSmoothing(values: TextureMeshValues, resolution: number, stride: number, webgl: WebGLContext, colorTexture?: Texture) {
+    if (!isSupportedEmissiveType(values.dEmissiveType.ref.value)) return;
+
+    stride *= 3; // triple because TextureMesh is never indexed (no elements buffer)
+
+    if (!webgl.namedTextures[ColorSmoothingAlphaName]) {
+        webgl.namedTextures[ColorSmoothingAlphaName] = webgl.resources.texture('image-uint8', 'alpha', 'ubyte', 'nearest');
+    }
+    const colorData = webgl.namedTextures[ColorSmoothingAlphaName];
+    colorData.load(values.tEmissive.ref.value);
+
+    const smoothingData = calcTextureMeshColorSmoothing({
+        vertexCount: values.uVertexCount.ref.value,
+        instanceCount: values.uInstanceCount.ref.value,
+        groupCount: values.uGroupCount.ref.value,
+        transformBuffer: values.aTransform.ref.value,
+        instanceBuffer: values.aInstance.ref.value,
+        positionTexture: values.tPosition.ref.value,
+        groupTexture: values.tGroup.ref.value,
+        colorData,
+        colorType: values.dEmissiveType.ref.value,
+        boundingSphere: values.boundingSphere.ref.value,
+        invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
+    }, resolution, stride, webgl, colorTexture);
+
+    ValueCell.updateIfChanged(values.dEmissiveType, smoothingData.type);
+    ValueCell.update(values.tEmissiveGrid, smoothingData.texture);
+    ValueCell.update(values.uEmissiveTexDim, smoothingData.gridTexDim);
+    ValueCell.update(values.uEmissiveGridDim, smoothingData.gridDim);
+    ValueCell.update(values.uEmissiveGridTransform, smoothingData.gridTransform);
 }
 
 function isSupportedSubstanceType(x: string): x is 'groupInstance' {

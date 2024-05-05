@@ -44,6 +44,7 @@ import { Substance } from '../../mol-theme/substance';
 import { Material } from '../../mol-util/material';
 import { lerp } from '../../mol-math/interpolate';
 import { MarkerAction, MarkerActions } from '../../mol-util/marker-action';
+import { Emissive } from '../../mol-theme/emissive';
 
 export { StructureRepresentation3D };
 export { ExplodeStructureRepresentation3D };
@@ -53,6 +54,8 @@ export { OverpaintStructureRepresentation3DFromScript };
 export { OverpaintStructureRepresentation3DFromBundle };
 export { TransparencyStructureRepresentation3DFromScript };
 export { TransparencyStructureRepresentation3DFromBundle };
+export { EmissiveStructureRepresentation3DFromScript };
+export { EmissiveStructureRepresentation3DFromBundle };
 export { SubstanceStructureRepresentation3DFromScript };
 export { SubstanceStructureRepresentation3DFromBundle };
 export { ClippingStructureRepresentation3DFromScript };
@@ -535,6 +538,118 @@ const TransparencyStructureRepresentation3DFromBundle = PluginStateTransform.Bui
     }
 });
 
+
+type EmissiveStructureRepresentation3DFromScript = typeof EmissiveStructureRepresentation3DFromScript
+const EmissiveStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn({
+    name: 'emissive-structure-representation-3d-from-script',
+    display: 'Emissive 3D Representation',
+    from: SO.Molecule.Structure.Representation3D,
+    to: SO.Molecule.Structure.Representation3DState,
+    params: () => ({
+        layers: PD.ObjectList({
+            script: PD.Script(Script('(sel.atom.all)', 'mol-script')),
+            value: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }, { label: 'Emissive' }),
+        }, e => `Emissive (${e.value})`, {
+            defaultValue: [{
+                script: Script('(sel.atom.all)', 'mol-script'),
+                value: 0.5,
+            }]
+        })
+    })
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }) {
+        const structure = a.data.sourceData;
+        const geometryVersion = a.data.repr.geometryVersion;
+        const emissive = Emissive.ofScript(params.layers, structure);
+
+        return new SO.Molecule.Structure.Representation3DState({
+            state: { emissive },
+            initialState: { emissive: Emissive.Empty },
+            info: { structure, geometryVersion },
+            repr: a.data.repr
+        }, { label: `Emissive (${emissive.layers.length} Layers)` });
+    },
+    update({ a, b, newParams, oldParams }) {
+        const info = b.data.info as { structure: Structure, geometryVersion: number };
+        const newStructure = a.data.sourceData;
+        if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
+
+        const newGeometryVersion = a.data.repr.geometryVersion;
+        // smoothing needs to be re-calculated when geometry changes
+        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Recreate;
+
+        const oldEmissive = b.data.state.emissive!;
+        const newEmissive = Emissive.ofScript(newParams.layers, newStructure);
+        if (Emissive.areEqual(oldEmissive, newEmissive)) return StateTransformer.UpdateResult.Unchanged;
+
+        info.geometryVersion = newGeometryVersion;
+        b.data.state.emissive = newEmissive;
+        b.data.repr = a.data.repr;
+        b.label = `Emissive (${newEmissive.layers.length} Layers)`;
+        return StateTransformer.UpdateResult.Updated;
+    }
+});
+
+type EmissiveStructureRepresentation3DFromBundle = typeof EmissiveStructureRepresentation3DFromBundle
+const EmissiveStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn({
+    name: 'emissive-structure-representation-3d-from-bundle',
+    display: 'Emissive 3D Representation',
+    from: SO.Molecule.Structure.Representation3D,
+    to: SO.Molecule.Structure.Representation3DState,
+    params: () => ({
+        layers: PD.ObjectList({
+            bundle: PD.Value<StructureElement.Bundle>(StructureElement.Bundle.Empty),
+            value: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }, { label: 'Emissive' }),
+        }, e => `Emissive (${e.value})`, {
+            defaultValue: [{
+                bundle: StructureElement.Bundle.Empty,
+                value: 0.5,
+            }],
+            isHidden: true
+        })
+    })
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }) {
+        const structure = a.data.sourceData;
+        const geometryVersion = a.data.repr.geometryVersion;
+        const emissive = Emissive.ofBundle(params.layers, structure);
+
+        return new SO.Molecule.Structure.Representation3DState({
+            state: { emissive },
+            initialState: { emissive: Emissive.Empty },
+            info: { structure, geometryVersion },
+            repr: a.data.repr
+        }, { label: `Emissive (${emissive.layers.length} Layers)` });
+    },
+    update({ a, b, newParams, oldParams }) {
+        const info = b.data.info as { structure: Structure, geometryVersion: number };
+        const newStructure = a.data.sourceData;
+        if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
+
+        const newGeometryVersion = a.data.repr.geometryVersion;
+        // smoothing needs to be re-calculated when geometry changes
+        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Recreate;
+
+        const oldEmissive = b.data.state.emissive!;
+        const newEmissive = Emissive.ofBundle(newParams.layers, newStructure);
+        if (Emissive.areEqual(oldEmissive, newEmissive)) return StateTransformer.UpdateResult.Unchanged;
+
+        info.geometryVersion = newGeometryVersion;
+        b.data.state.emissive = newEmissive;
+        b.data.repr = a.data.repr;
+        b.label = `Emissive (${newEmissive.layers.length} Layers)`;
+        return StateTransformer.UpdateResult.Updated;
+    }
+});
+
 type SubstanceStructureRepresentation3DFromScript = typeof SubstanceStructureRepresentation3DFromScript
 const SubstanceStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn({
     name: 'substance-structure-representation-3d-from-script',
@@ -756,6 +871,7 @@ const ThemeStrengthRepresentation3D = PluginStateTransform.BuiltIn({
     params: () => ({
         overpaintStrength: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
         transparencyStrength: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+        emissiveStrength: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
         substanceStrength: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
     })
 })({
@@ -768,36 +884,40 @@ const ThemeStrengthRepresentation3D = PluginStateTransform.BuiltIn({
                 themeStrength: {
                     overpaint: params.overpaintStrength,
                     transparency: params.transparencyStrength,
+                    emissive: params.emissiveStrength,
                     substance: params.substanceStrength
                 },
             },
             initialState: {
-                themeStrength: { overpaint: 1, transparency: 1, substance: 1 },
+                themeStrength: { overpaint: 1, transparency: 1, emissive: 1, substance: 1 },
             },
             info: { },
             repr: a.data.repr
-        }, { label: 'Theme Strength', description: `${params.overpaintStrength.toFixed(2)}, ${params.transparencyStrength.toFixed(2)}, ${params.substanceStrength.toFixed(2)}` });
+        }, { label: 'Theme Strength', description: `${params.overpaintStrength.toFixed(2)}, ${params.transparencyStrength.toFixed(2)}, ${params.emissiveStrength.toFixed(2)}, ${params.substanceStrength.toFixed(2)}` });
     },
     update({ a, b, newParams, oldParams }) {
         if (newParams.overpaintStrength === b.data.state.themeStrength?.overpaint &&
             newParams.transparencyStrength === b.data.state.themeStrength?.transparency &&
+            newParams.emissiveStrength === b.data.state.themeStrength?.emissive &&
             newParams.substanceStrength === b.data.state.themeStrength?.substance
         ) return StateTransformer.UpdateResult.Unchanged;
 
         b.data.state.themeStrength = {
             overpaint: newParams.overpaintStrength,
             transparency: newParams.transparencyStrength,
+            emissive: newParams.emissiveStrength,
             substance: newParams.substanceStrength,
         };
         b.data.repr = a.data.repr;
         b.label = 'Theme Strength';
-        b.description = `${newParams.overpaintStrength.toFixed(2)}, ${newParams.transparencyStrength.toFixed(2)}, ${newParams.substanceStrength.toFixed(2)}`;
+        b.description = `${newParams.overpaintStrength.toFixed(2)}, ${newParams.transparencyStrength.toFixed(2)}, ${newParams.emissiveStrength.toFixed(2)}, ${newParams.substanceStrength.toFixed(2)}`;
         return StateTransformer.UpdateResult.Updated;
     },
     interpolate(src, tar, t) {
         return {
             overpaintStrength: lerp(src.overpaintStrength, tar.overpaintStrength, t),
             transparencyStrength: lerp(src.transparencyStrength, tar.transparencyStrength, t),
+            emissiveStrength: lerp(src.emissiveStrength, tar.emissiveStrength, t),
             substanceStrength: lerp(src.substanceStrength, tar.substanceStrength, t),
         };
     }

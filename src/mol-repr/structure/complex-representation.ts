@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -23,6 +23,7 @@ import { Transparency } from '../../mol-theme/transparency';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Substance } from '../../mol-theme/substance';
 import { LocationCallback } from '../util';
+import { Emissive } from '../../mol-theme/emissive';
 
 export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number, structure: Structure, props: PD.Values<P>, webgl?: WebGLContext) => ComplexVisual<P>): StructureRepresentation<P> {
     let version = 0;
@@ -121,6 +122,11 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
             // Remap loci from equivalent structure to the current structure
             const remappedTransparency = Transparency.remap(state.transparency, _structure);
             visual.setTransparency(remappedTransparency, webgl);
+        }
+        if (state.emissive !== undefined && visual) {
+            // Remap loci from equivalent structure to the current structure
+            const remappedEmissive = Emissive.remap(state.emissive, _structure);
+            visual.setEmissive(remappedEmissive, webgl);
         }
         if (state.substance !== undefined && visual) {
             // Remap loci from equivalent structure to the current structure

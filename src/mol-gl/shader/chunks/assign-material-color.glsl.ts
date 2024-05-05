@@ -20,6 +20,11 @@ export const assign_material_color = `
         material.rgb = mix(material.rgb, vOverpaint.rgb, vOverpaint.a);
     #endif
 
+    float emissive = uEmissive;
+    #ifdef dEmissive
+        emissive += vEmissive;
+    #endif
+
     float metalness = uMetalness;
     float roughness = uRoughness;
     float bumpiness = uBumpiness;
@@ -82,16 +87,25 @@ export const assign_material_color = `
             discard;
         material = vec4(0.0, depthTest, isHighlight ? 1.0 : 0.0, 1.0 - fogFactor);
     }
+#elif defined(dRenderVariant_emissive)
+    float emissive = uEmissive;
+    #ifdef dEmissive
+        emissive += vEmissive;
+    #endif
+    vec4 material = vec4(emissive);
 #endif
 
 // apply per-group transparency
-#if defined(dTransparency) && (defined(dRenderVariant_pick) || defined(dRenderVariant_color))
+#if defined(dTransparency) && (defined(dRenderVariant_pick) || defined(dRenderVariant_color) || defined(dRenderVariant_emissive))
     float ta = 1.0 - vTransparency;
     if (vTransparency < 0.09) ta = 1.0; // hard cutoff looks better
 
     #if defined(dRenderVariant_pick)
         if (ta * uAlpha < uPickingAlphaThreshold)
             discard; // ignore so the element below can be picked
+    #elif defined(dRenderVariant_emissive)
+        if (ta < 1.0)
+            discard; // emissive not supported with transparency
     #elif defined(dRenderVariant_color)
         material.a *= ta;
     #endif

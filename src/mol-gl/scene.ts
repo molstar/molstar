@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -84,6 +84,8 @@ interface Scene extends Object3D {
     forEach: (callbackFn: (value: GraphicsRenderable, key: GraphicsRenderObject) => void) => void
     /** Marker average of primitive renderables */
     readonly markerAverage: number
+    /** Emissive average of primitive renderables */
+    readonly emissiveAverage: number
     /** Opacity average of primitive renderables */
     readonly opacityAverage: number
     /** Is `true` if any primitive renderable (possibly) has any opaque part */
@@ -108,10 +110,12 @@ namespace Scene {
         let boundingSphereVisibleDirty = true;
 
         let markerAverageDirty = true;
+        let emissiveAverageDirty = true;
         let opacityAverageDirty = true;
         let hasOpaqueDirty = true;
 
         let markerAverage = 0;
+        let emissiveAverage = 0;
         let opacityAverage = 0;
         let hasOpaque = false;
 
@@ -170,6 +174,7 @@ namespace Scene {
 
             renderables.sort(renderableSort);
             markerAverageDirty = true;
+            emissiveAverageDirty = true;
             opacityAverageDirty = true;
             hasOpaqueDirty = true;
             return true;
@@ -194,6 +199,7 @@ namespace Scene {
             if (newVisibleHash !== visibleHash) {
                 boundingSphereVisibleDirty = true;
                 markerAverageDirty = true;
+                emissiveAverageDirty = true;
                 opacityAverageDirty = true;
                 hasOpaqueDirty = true;
                 visibleHash = newVisibleHash;
@@ -213,6 +219,18 @@ namespace Scene {
                 count += 1;
             }
             return count > 0 ? markerAverage / count : 0;
+        }
+
+        function calculateEmissiveAverage() {
+            if (primitives.length === 0) return 0;
+            let count = 0;
+            let emissiveAverage = 0;
+            for (let i = 0, il = primitives.length; i < il; ++i) {
+                if (!primitives[i].state.visible) continue;
+                emissiveAverage += primitives[i].values.emissiveAverage.ref.value + primitives[i].values.uEmissive.ref.value;
+                count += 1;
+            }
+            return count > 0 ? emissiveAverage / count : 0;
         }
 
         function calculateOpacityAverage() {
@@ -279,6 +297,7 @@ namespace Scene {
                     syncVisibility();
                 }
                 markerAverageDirty = true;
+                emissiveAverageDirty = true;
                 opacityAverageDirty = true;
                 hasOpaqueDirty = true;
             },
@@ -327,6 +346,13 @@ namespace Scene {
                     markerAverageDirty = false;
                 }
                 return markerAverage;
+            },
+            get emissiveAverage() {
+                if (emissiveAverageDirty) {
+                    emissiveAverage = calculateEmissiveAverage();
+                    emissiveAverageDirty = false;
+                }
+                return emissiveAverage;
             },
             get opacityAverage() {
                 if (opacityAverageDirty) {
