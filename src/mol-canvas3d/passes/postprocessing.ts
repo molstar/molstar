@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -35,8 +35,9 @@ import { Light } from '../../mol-gl/renderer';
 import { shadows_frag } from '../../mol-gl/shader/shadows.frag';
 import { CasParams, CasPass } from './cas';
 import { DofParams } from './dof';
+import { BloomParams } from './bloom';
 
-const OutlinesSchema = {
+export const OutlinesSchema = {
     ...QuadSchema,
     tDepthOpaque: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
@@ -50,9 +51,9 @@ const OutlinesSchema = {
     uOutlineThreshold: UniformSpec('f'),
     dTransparentOutline: DefineSpec('boolean'),
 };
-type OutlinesRenderable = ComputeRenderable<Values<typeof OutlinesSchema>>
+export type OutlinesRenderable = ComputeRenderable<Values<typeof OutlinesSchema>>
 
-function getOutlinesRenderable(ctx: WebGLContext, depthTextureOpaque: Texture, depthTextureTransparent: Texture, transparentOutline: boolean): OutlinesRenderable {
+export function getOutlinesRenderable(ctx: WebGLContext, depthTextureOpaque: Texture, depthTextureTransparent: Texture, transparentOutline: boolean): OutlinesRenderable {
     const width = depthTextureOpaque.getWidth();
     const height = depthTextureOpaque.getHeight();
 
@@ -410,6 +411,10 @@ export const PostprocessingParams = {
         off: PD.Group({})
     }, { cycle: true, description: 'Contrast Adaptive Sharpening' }),
     background: PD.Group(BackgroundParams, { isFlat: true }),
+    bloom: PD.MappedStatic('on', {
+        on: PD.Group(BloomParams),
+        off: PD.Group({})
+    }, { cycle: true, description: 'Bloom' }),
 };
 
 export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
@@ -601,7 +606,7 @@ export class PostprocessingPass {
         }
     }
 
-    private updateState(camera: ICamera, transparentBackground: boolean, backgroundColor: Color, props: PostprocessingProps, light: Light) {
+    updateState(camera: ICamera, transparentBackground: boolean, backgroundColor: Color, props: PostprocessingProps, light: Light) {
         let needsUpdateShadows = false;
         let needsUpdateMain = false;
         let needsUpdateSsao = false;
@@ -969,11 +974,7 @@ export class AntialiasingPass {
     private readonly smaa: SmaaPass;
     private readonly cas: CasPass;
 
-    constructor(webgl: WebGLContext, private drawPass: DrawPass) {
-        const { colorTarget } = drawPass;
-        const width = colorTarget.getWidth();
-        const height = colorTarget.getHeight();
-
+    constructor(webgl: WebGLContext, width: number, height: number) {
         this.target = webgl.createRenderTarget(width, height, false);
         this.internalTarget = webgl.createRenderTarget(width, height, false);
 
@@ -995,47 +996,37 @@ export class AntialiasingPass {
         }
     }
 
-    private _renderFxaa(camera: ICamera, target: RenderTarget | undefined, props: PostprocessingProps) {
+    private _renderFxaa(camera: ICamera, input: Texture, target: RenderTarget | undefined, props: PostprocessingProps) {
         if (props.antialiasing.name !== 'fxaa') return;
 
-        const input = PostprocessingPass.isEnabled(props)
-            ? this.drawPass.postprocessing.target.texture
-            : this.drawPass.colorTarget.texture;
         this.fxaa.update(input, props.antialiasing.params);
         this.fxaa.render(camera.viewport, target);
     }
 
-    private _renderSmaa(camera: ICamera, target: RenderTarget | undefined, props: PostprocessingProps) {
+    private _renderSmaa(camera: ICamera, input: Texture, target: RenderTarget | undefined, props: PostprocessingProps) {
         if (props.antialiasing.name !== 'smaa') return;
 
-        const input = PostprocessingPass.isEnabled(props)
-            ? this.drawPass.postprocessing.target.texture
-            : this.drawPass.colorTarget.texture;
         this.smaa.update(input, props.antialiasing.params);
         this.smaa.render(camera.viewport, target);
     }
 
-    private _renderAntialiasing(camera: ICamera, target: RenderTarget | undefined, props: PostprocessingProps) {
+    private _renderAntialiasing(camera: ICamera, input: Texture, target: RenderTarget | undefined, props: PostprocessingProps) {
         if (props.antialiasing.name === 'fxaa') {
-            this._renderFxaa(camera, target, props);
+            this._renderFxaa(camera, input, target, props);
         } else if (props.antialiasing.name === 'smaa') {
-            this._renderSmaa(camera, target, props);
+            this._renderSmaa(camera, input, target, props);
         }
     }
 
-    private _renderCas(camera: ICamera, target: RenderTarget | undefined, props: PostprocessingProps) {
+    private _renderCas(camera: ICamera, input: Texture, target: RenderTarget | undefined, props: PostprocessingProps) {
         if (props.sharpening.name !== 'on') return;
 
-        const input = props.antialiasing.name !== 'off'
-            ? this.internalTarget.texture
-            : PostprocessingPass.isEnabled(props)
-                ? this.drawPass.postprocessing.target.texture
-                : this.drawPass.colorTarget.texture;
+        if (props.antialiasing.name !== 'off') input = this.internalTarget.texture;
         this.cas.update(input, props.sharpening.params);
         this.cas.render(camera.viewport, target);
     }
 
-    render(camera: ICamera, toDrawingBuffer: boolean, props: PostprocessingProps) {
+    render(camera: ICamera, input: Texture, toDrawingBuffer: boolean | RenderTarget, props: PostprocessingProps) {
         if (props.antialiasing.name === 'off' && props.sharpening.name === 'off') return;
 
         if (props.antialiasing.name === 'smaa' && !this.smaa.supported) {
@@ -1043,14 +1034,16 @@ export class AntialiasingPass {
             return;
         }
 
-        const target = toDrawingBuffer ? undefined : this.target;
+        const target = toDrawingBuffer === true
+            ? undefined : toDrawingBuffer === false
+                ? this.target : toDrawingBuffer;
         if (props.sharpening.name === 'off') {
-            this._renderAntialiasing(camera, target, props);
+            this._renderAntialiasing(camera, input, target, props);
         } else if (props.antialiasing.name === 'off') {
-            this._renderCas(camera, target, props);
+            this._renderCas(camera, input, target, props);
         } else {
-            this._renderAntialiasing(camera, this.internalTarget, props);
-            this._renderCas(camera, target, props);
+            this._renderAntialiasing(camera, input, this.internalTarget, props);
+            this._renderCas(camera, input, target, props);
         }
     }
 }

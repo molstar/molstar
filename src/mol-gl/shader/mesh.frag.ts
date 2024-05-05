@@ -51,6 +51,8 @@ void main() {
         gl_FragColor = material;
     #elif defined(dRenderVariant_marking)
         gl_FragColor = material;
+    #elif defined(dRenderVariant_emissive)
+        gl_FragColor = material;
     #elif defined(dRenderVariant_color)
         #if defined(dFlatShaded)
             vec3 normal = -faceNormal;

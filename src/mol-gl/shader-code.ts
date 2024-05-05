@@ -168,13 +168,17 @@ function ignoreDefine(name: string, variant: string, defines: ShaderDefines): bo
             return !!defines.dIgnoreLight?.ref.value;
         }
     } else {
-        return [
+        const ignore = [
             'dColorType', 'dUsePalette',
             'dLightCount', 'dXrayShaded',
             'dOverpaintType', 'dOverpaint',
             'dSubstanceType', 'dSubstance',
             'dColorMarker',
-        ].includes(name);
+        ];
+        if (variant !== 'emissive') {
+            ignore.push('dEmissiveType', 'dEmissive');
+        }
+        return ignore.includes(name);
     }
     return false;
 };

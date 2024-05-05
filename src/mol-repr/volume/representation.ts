@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -34,6 +34,7 @@ import { WebGLContext } from '../../mol-gl/webgl/context';
 import { isPromiseLike } from '../../mol-util/type-helpers';
 import { Substance } from '../../mol-theme/substance';
 import { createMarkers } from '../../mol-geo/geometry/marker-data';
+import { Emissive } from '../../mol-theme/emissive';
 
 export type VolumeKey = { volume: Volume, key: number }
 export interface VolumeVisual<P extends VolumeParams> extends Visual<VolumeKey, P> { }
@@ -264,13 +265,16 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         setTransparency(transparency: Transparency) {
             return Visual.setTransparency(renderObject, transparency, lociApply, true);
         },
+        setEmissive(emissive: Emissive) {
+            return Visual.setEmissive(renderObject, emissive, lociApply, true);
+        },
         setSubstance(substance: Substance) {
             return Visual.setSubstance(renderObject, substance, lociApply, true);
         },
         setClipping(clipping: Clipping) {
             return Visual.setClipping(renderObject, clipping, lociApply, true);
         },
-        setThemeStrength(strength: { overpaint: number, transparency: number, substance: number }) {
+        setThemeStrength(strength: { overpaint: number, transparency: number, emissive: number, substance: number }) {
             Visual.setThemeStrength(renderObject, strength);
         },
         destroy() {
@@ -375,6 +379,7 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         if (state.pickable !== undefined && visual) visual.setPickable(state.pickable);
         if (state.overpaint !== undefined && visual) visual.setOverpaint(state.overpaint);
         if (state.transparency !== undefined && visual) visual.setTransparency(state.transparency);
+        if (state.emissive !== undefined && visual) visual.setEmissive(state.emissive);
         if (state.substance !== undefined && visual) visual.setSubstance(state.substance);
         if (state.clipping !== undefined && visual) visual.setClipping(state.clipping);
         if (state.transform !== undefined && visual) visual.setTransform(state.transform);
@@ -382,7 +387,7 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
     }
 
     function setState(state: Partial<Representation.State>) {
-        const { visible, alphaFactor, pickable, overpaint, transparency, substance, clipping, transform, themeStrength, syncManually, markerActions } = state;
+        const { visible, alphaFactor, pickable, overpaint, transparency, emissive, substance, clipping, transform, themeStrength, syncManually, markerActions } = state;
         const newState: Partial<Representation.State> = {};
 
         if (visible !== undefined) newState.visible = visible;
@@ -390,6 +395,7 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         if (pickable !== undefined) newState.pickable = pickable;
         if (overpaint !== undefined) newState.overpaint = overpaint;
         if (transparency !== undefined) newState.transparency = transparency;
+        if (emissive !== undefined) newState.emissive = emissive;
         if (substance !== undefined) newState.substance = substance;
         if (clipping !== undefined) newState.clipping = clipping;
         if (themeStrength !== undefined) newState.themeStrength = themeStrength;

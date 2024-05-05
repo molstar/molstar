@@ -65,6 +65,20 @@ export const assign_color_varying = `
         vOverpaint *= uOverpaintStrength;
     #endif
 
+    #ifdef dEmissive
+        #if defined(dEmissiveType_instance)
+            vEmissive = readFromTexture(tEmissive, aInstance, uEmissiveTexDim).a;
+        #elif defined(dEmissiveType_groupInstance)
+            vEmissive = readFromTexture(tEmissive, aInstance * float(uGroupCount) + group, uEmissiveTexDim).a;
+        #elif defined(dEmissiveType_vertexInstance)
+            vEmissive = readFromTexture(tEmissive, int(aInstance) * uVertexCount + VertexID, uEmissiveTexDim).a;
+        #elif defined(dEmissiveType_volumeInstance)
+            vec3 egridPos = (uEmissiveGridTransform.w * (vModelPosition - uEmissiveGridTransform.xyz)) / uEmissiveGridDim;
+            vEmissive = texture3dFrom2dLinear(tEmissiveGrid, egridPos, uEmissiveGridDim, uEmissiveTexDim).a;
+        #endif
+        vEmissive *= uEmissiveStrength;
+    #endif
+
     #ifdef dSubstance
         #if defined(dSubstanceType_instance)
             vSubstance = readFromTexture(tSubstance, aInstance, uSubstanceTexDim);
@@ -80,6 +94,20 @@ export const assign_color_varying = `
         // pre-mix to avoid artifacts due to empty substance
         vSubstance.rgb = mix(vec3(uMetalness, uRoughness, uBumpiness), vSubstance.rgb, vSubstance.a);
         vSubstance *= uSubstanceStrength;
+    #endif
+#elif defined(dRenderVariant_emissive)
+    #ifdef dEmissive
+        #if defined(dEmissiveType_instance)
+            vEmissive = readFromTexture(tEmissive, aInstance, uEmissiveTexDim).a;
+        #elif defined(dEmissiveType_groupInstance)
+            vEmissive = readFromTexture(tEmissive, aInstance * float(uGroupCount) + group, uEmissiveTexDim).a;
+        #elif defined(dEmissiveType_vertexInstance)
+            vEmissive = readFromTexture(tEmissive, int(aInstance) * uVertexCount + VertexID, uEmissiveTexDim).a;
+        #elif defined(dEmissiveType_volumeInstance)
+            vec3 egridPos = (uEmissiveGridTransform.w * (vModelPosition - uEmissiveGridTransform.xyz)) / uEmissiveGridDim;
+            vEmissive = texture3dFrom2dLinear(tEmissiveGrid, egridPos, uEmissiveGridDim, uEmissiveTexDim).a;
+        #endif
+        vEmissive *= uEmissiveStrength;
     #endif
 #elif defined(dRenderVariant_pick)
     #ifdef requiredDrawBuffers

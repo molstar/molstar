@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -86,6 +86,7 @@ export namespace BaseGeometry {
         quality: PD.Select<VisualQuality>('auto', VisualQualityOptions, { isEssential: true, description: 'Visual/rendering quality of the representation.' }),
         material: Material.getParam(),
         clip: PD.Group(Clip.Params),
+        emissive: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }),
         instanceGranularity: PD.Boolean(false, { description: 'Use instance granularity for marker, transparency, clipping, overpaint, substance data to save memory.' }),
         lod: PD.Vec3(Vec3(), undefined, { ...CullingLodCategory, description: 'Level of detail.', fieldLabels: { x: 'Min Distance', y: 'Max Distance', z: 'Overlap (Shader)' } }),
         cellSize: PD.Numeric(200, { min: 0, max: 5000, step: 100 }, { ...CullingLodCategory, description: 'Instance grid cell size.' }),
@@ -116,6 +117,7 @@ export namespace BaseGeometry {
             uMetalness: ValueCell.create(props.material.metalness),
             uRoughness: ValueCell.create(props.material.roughness),
             uBumpiness: ValueCell.create(props.material.bumpiness),
+            uEmissive: ValueCell.create(props.emissive),
             dLightCount: ValueCell.create(1),
             dColorMarker: ValueCell.create(true),
 
@@ -137,6 +139,7 @@ export namespace BaseGeometry {
         ValueCell.updateIfChanged(values.uMetalness, props.material.metalness);
         ValueCell.updateIfChanged(values.uRoughness, props.material.roughness);
         ValueCell.updateIfChanged(values.uBumpiness, props.material.bumpiness);
+        ValueCell.updateIfChanged(values.uEmissive, props.emissive);
 
         const clip = Clip.getClip(props.clip);
         ValueCell.updateIfChanged(values.dClipObjectCount, clip.objects.count);
