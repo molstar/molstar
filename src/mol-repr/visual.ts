@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -27,11 +27,13 @@ import { getMarkersAverage } from '../mol-geo/geometry/marker-data';
 import { Texture } from '../mol-gl/webgl/texture';
 import { Geometry } from '../mol-geo/geometry/geometry';
 import { getColorSmoothingProps, hasColorSmoothingProp } from '../mol-geo/geometry/base';
-import { applyMeshOverpaintSmoothing, applyMeshSubstanceSmoothing, applyMeshTransparencySmoothing } from '../mol-geo/geometry/mesh/color-smoothing';
-import { applyTextureMeshOverpaintSmoothing, applyTextureMeshSubstanceSmoothing, applyTextureMeshTransparencySmoothing } from '../mol-geo/geometry/texture-mesh/color-smoothing';
+import { applyMeshEmissiveSmoothing, applyMeshOverpaintSmoothing, applyMeshSubstanceSmoothing, applyMeshTransparencySmoothing } from '../mol-geo/geometry/mesh/color-smoothing';
+import { applyTextureMeshEmissiveSmoothing, applyTextureMeshOverpaintSmoothing, applyTextureMeshSubstanceSmoothing, applyTextureMeshTransparencySmoothing } from '../mol-geo/geometry/texture-mesh/color-smoothing';
 import { Substance } from '../mol-theme/substance';
 import { applySubstanceMaterial, clearSubstance, createSubstance } from '../mol-geo/geometry/substance-data';
 import { LocationCallback } from './util';
+import { Emissive } from '../mol-theme/emissive';
+import { applyEmissiveValue, clearEmissive, createEmissive, getEmissiveAverage } from '../mol-geo/geometry/emissive-data';
 
 export interface VisualContext {
     readonly runtime: RuntimeContext
@@ -55,9 +57,10 @@ interface Visual<D, P extends PD.Params> {
     setTransform: (matrix?: Mat4, instanceMatrices?: Float32Array | null) => void
     setOverpaint: (overpaint: Overpaint, webgl?: WebGLContext) => void
     setTransparency: (transparency: Transparency, webgl?: WebGLContext) => void
+    setEmissive: (emissive: Emissive, webgl?: WebGLContext) => void
     setSubstance: (substance: Substance, webgl?: WebGLContext) => void
     setClipping: (clipping: Clipping) => void
-    setThemeStrength: (strength: { overpaint: number, transparency: number, substance: number }) => void
+    setThemeStrength: (strength: { overpaint: number, transparency: number, emissive: number, substance: number }) => void
     destroy: () => void
     mustRecreate?: (data: D, props: PD.Values<P>, webgl?: WebGLContext) => boolean
 }
@@ -151,6 +154,7 @@ namespace Visual {
         resolution?: number
         overpaintTexture?: Texture
         transparencyTexture?: Texture
+        emissiveTexture?: Texture
         substanceTexture?: Texture
     }
 
@@ -267,6 +271,59 @@ namespace Visual {
         }
     }
 
+    export function setEmissive(renderObject: GraphicsRenderObject | undefined, emissive: Emissive, lociApply: LociApply, clear: boolean, smoothing?: SmoothingContext) {
+        if (!renderObject) return;
+
+        const { tEmissive, dEmissiveType, emissiveAverage, dEmissive, uGroupCount, instanceCount, instanceGranularity: instanceGranularity } = renderObject.values;
+        const count = instanceGranularity.ref.value
+            ? instanceCount.ref.value
+            : uGroupCount.ref.value * instanceCount.ref.value;
+
+        // ensure texture has right size and type
+        const type = instanceGranularity.ref.value ? 'instance' : 'groupInstance';
+        createEmissive(emissive.layers.length ? count : 0, type, renderObject.values);
+        const { array } = tEmissive.ref.value;
+
+        // clear if requested
+        if (clear) clearEmissive(array, 0, count);
+
+        for (let i = 0, il = emissive.layers.length; i < il; ++i) {
+            const { loci, value } = emissive.layers[i];
+            const apply = (interval: Interval) => {
+                const start = Interval.start(interval);
+                const end = Interval.end(interval);
+                return applyEmissiveValue(array, start, end, value);
+            };
+            lociApply(loci, apply, false);
+        }
+        ValueCell.update(tEmissive, tEmissive.ref.value);
+        ValueCell.updateIfChanged(emissiveAverage, getEmissiveAverage(array, count));
+        ValueCell.updateIfChanged(dEmissiveType, type);
+        ValueCell.updateIfChanged(dEmissive, emissive.layers.length > 0);
+
+        if (emissive.layers.length === 0) return;
+        if (type === 'instance') return;
+
+        if (smoothing && hasColorSmoothingProp(smoothing.props)) {
+            const { geometry, props, webgl } = smoothing;
+            if (geometry.kind === 'mesh') {
+                const { resolution, emissiveTexture } = geometry.meta as SurfaceMeta;
+                const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
+                if (csp) {
+                    applyMeshEmissiveSmoothing(renderObject.values as any, csp.resolution, csp.stride, webgl, emissiveTexture);
+                    (geometry.meta as SurfaceMeta).emissiveTexture = renderObject.values.tEmissiveGrid.ref.value;
+                }
+            } else if (webgl && geometry.kind === 'texture-mesh') {
+                const { resolution, emissiveTexture } = geometry.meta as SurfaceMeta;
+                const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
+                if (csp) {
+                    applyTextureMeshEmissiveSmoothing(renderObject.values as any, csp.resolution, csp.stride, webgl, emissiveTexture);
+                    (geometry.meta as SurfaceMeta).emissiveTexture = renderObject.values.tEmissiveGrid.ref.value;
+                }
+            }
+        }
+    }
+
     export function setSubstance(renderObject: GraphicsRenderObject | undefined, substance: Substance, lociApply: LociApply, clear: boolean, smoothing?: SmoothingContext) {
         if (!renderObject) return;
 
@@ -352,10 +409,11 @@ namespace Visual {
         ValueCell.updateIfChanged(dClipping, clipping.layers.length > 0);
     }
 
-    export function setThemeStrength(renderObject: GraphicsRenderObject | undefined, strength: { overpaint: number, transparency: number, substance: number }) {
+    export function setThemeStrength(renderObject: GraphicsRenderObject | undefined, strength: { overpaint: number, transparency: number, emissive: number, substance: number }) {
         if (renderObject) {
             ValueCell.updateIfChanged(renderObject.values.uOverpaintStrength, strength.overpaint);
             ValueCell.updateIfChanged(renderObject.values.uTransparencyStrength, strength.transparency);
+            ValueCell.updateIfChanged(renderObject.values.uEmissiveStrength, strength.emissive);
             ValueCell.updateIfChanged(renderObject.values.uSubstanceStrength, strength.substance);
         }
     }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -27,6 +27,7 @@ import { createEmptyClipping } from '../clipping-data';
 import { NullLocation } from '../../../mol-model/location';
 import { QuadPositions } from '../../../mol-gl/compute/util';
 import { createEmptySubstance } from '../substance-data';
+import { createEmptyEmissive } from '../emissive-data';
 
 const QuadIndices = new Uint32Array([
     0, 1, 2,
@@ -148,6 +149,7 @@ namespace Image {
             : createMarkers(instanceCount * groupCount, 'groupInstance');
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const emissive = createEmptyEmissive();
         const material = createEmptySubstance();
         const clipping = createEmptyClipping();
 
@@ -163,6 +165,7 @@ namespace Image {
             ...marker,
             ...overpaint,
             ...transparency,
+            ...emissive,
             ...material,
             ...clipping,
             ...transform,

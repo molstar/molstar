@@ -470,16 +470,16 @@ export class Viewer {
         return { model, coords, preset };
     }
 
-    async loadMvsFromUrl(url: string, format: 'mvsj' | 'mvsx') {
+    async loadMvsFromUrl(url: string, format: 'mvsj' | 'mvsx', options?: { replaceExisting?: boolean, keepCamera?: boolean }) {
         if (format === 'mvsj') {
             const data = await this.plugin.runTask(this.plugin.fetch({ url, type: 'string' }));
             const mvsData = MVSData.fromMVSJ(data);
-            await loadMVS(this.plugin, mvsData, { sanityChecks: true, sourceUrl: url });
+            await loadMVS(this.plugin, mvsData, { sanityChecks: true, sourceUrl: url, ...options });
         } else if (format === 'mvsx') {
             const data = await this.plugin.runTask(this.plugin.fetch({ url, type: 'binary' }));
             await this.plugin.runTask(Task.create('Load MVSX file', async ctx => {
                 const parsed = await loadMVSX(this.plugin, ctx, data);
-                await loadMVS(this.plugin, parsed.mvsData, { sanityChecks: true, sourceUrl: parsed.sourceUrl });
+                await loadMVS(this.plugin, parsed.mvsData, { sanityChecks: true, sourceUrl: parsed.sourceUrl, ...options });
             }));
         } else {
             throw new Error(`Unknown MolViewSpec format: ${format}`);
@@ -489,7 +489,7 @@ export class Viewer {
     /** Load MolViewSpec from `data`.
      * If `format` is 'mvsj', `data` must be a string or a Uint8Array containing a UTF8-encoded string.
      * If `format` is 'mvsx', `data` must be a Uint8Array or a string containing base64-encoded binary data prefixed with 'base64,'. */
-    async loadMvsData(data: string | Uint8Array, format: 'mvsj' | 'mvsx') {
+    async loadMvsData(data: string | Uint8Array, format: 'mvsj' | 'mvsx', options?: { replaceExisting?: boolean, keepCamera?: boolean }) {
         if (typeof data === 'string' && data.startsWith('base64')) {
             data = Uint8Array.from(atob(data.substring(7)), c => c.charCodeAt(0)); // Decode base64 string to Uint8Array
         }
@@ -498,14 +498,14 @@ export class Viewer {
                 data = new TextDecoder().decode(data); // Decode Uint8Array to string using UTF8
             }
             const mvsData = MVSData.fromMVSJ(data);
-            await loadMVS(this.plugin, mvsData, { sanityChecks: true, sourceUrl: undefined });
+            await loadMVS(this.plugin, mvsData, { sanityChecks: true, sourceUrl: undefined, ...options });
         } else if (format === 'mvsx') {
             if (typeof data === 'string') {
                 throw new Error("loadMvsData: if `format` is 'mvsx', then `data` must be a Uint8Array or a base64-encoded string prefixed with 'base64,'.");
             }
             await this.plugin.runTask(Task.create('Load MVSX file', async ctx => {
                 const parsed = await loadMVSX(this.plugin, ctx, data as Uint8Array);
-                await loadMVS(this.plugin, parsed.mvsData, { sanityChecks: true, sourceUrl: parsed.sourceUrl });
+                await loadMVS(this.plugin, parsed.mvsData, { sanityChecks: true, sourceUrl: parsed.sourceUrl, ...options });
             }));
         } else {
             throw new Error(`Unknown MolViewSpec format: ${format}`);

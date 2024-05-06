@@ -69,6 +69,7 @@ interface Renderer {
     renderDepthTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderMarkingDepth: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderMarkingMask: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
+    renderEmissive: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderBlended: (group: Scene, camera: ICamera) => void
     renderBlendedOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderBlendedTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
@@ -560,6 +561,24 @@ namespace Renderer {
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderMarkingMask');
         };
 
+        const renderEmissive = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+            if (isTimingMode) ctx.timer.mark('Renderer.renderEmissive');
+            state.disable(gl.BLEND);
+            state.enable(gl.DEPTH_TEST);
+            state.depthMask(true);
+
+            updateInternal(group, camera, depthTexture, Mask.Opaque, false);
+
+            const { renderables } = group;
+            for (let i = 0, il = renderables.length; i < il; ++i) {
+                const r = renderables[i];
+                if (checkOpaque(r)) {
+                    renderObject(r, 'emissive', Flag.None);
+                }
+            }
+            if (isTimingMode) ctx.timer.markEnd('Renderer.renderEmissive');
+        };
+
         const renderBlended = (scene: Scene, camera: ICamera) => {
             if (scene.hasOpaque) {
                 renderBlendedOpaque(scene, camera, null);
@@ -762,6 +781,7 @@ namespace Renderer {
             renderDepthTransparent,
             renderMarkingDepth,
             renderMarkingMask,
+            renderEmissive,
             renderBlended,
             renderBlendedOpaque,
             renderBlendedTransparent,

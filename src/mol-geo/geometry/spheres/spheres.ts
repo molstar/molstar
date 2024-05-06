@@ -26,6 +26,7 @@ import { createEmptyClipping } from '../clipping-data';
 import { Vec2, Vec3, Vec4 } from '../../../mol-math/linear-algebra';
 import { RenderableState } from '../../../mol-gl/renderable';
 import { createEmptySubstance } from '../substance-data';
+import { createEmptyEmissive } from '../emissive-data';
 
 export interface Spheres {
     readonly kind: 'spheres',
@@ -308,6 +309,7 @@ export namespace Spheres {
             : createMarkers(instanceCount * groupCount, 'groupInstance');
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const emissive = createEmptyEmissive();
         const material = createEmptySubstance();
         const clipping = createEmptyClipping();
 
@@ -333,6 +335,7 @@ export namespace Spheres {
             ...marker,
             ...overpaint,
             ...transparency,
+            ...emissive,
             ...material,
             ...clipping,
             ...transform,

@@ -5,10 +5,17 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Stop showing `computed` bonds if `chem_comp_bond` is defined
+
+## [v4.2.0] - 2023-04-05
+
+- Add emissive material support
+- Add bloom post-processing
+- MolViewSpec extension: `loadMVS` supports `keepCamera` parameter
+- Return StateTransform selectors from measurements API (addDistance, addAngle, etc.)
 - Refactor transparency rendering
     - More uniform behavior for blended, wboit, dpoit
     - Fix issues with text & image geometry
-- Return StateTransform selectors from measurements API (addDistance, addAngle, etc.)
 - Fix render-spheres example (#1100)
     - Wrong step size in sphere geometry boundingSphere & groupmapping
     - Handle empty `instanceGrid` in renderer & renderable
@@ -16,8 +23,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Can not always be cached in `ElementSetIntraBondCache`
     - Wrong operator checks in `findPairBonds`
 - Fix SSAO artifacts (@corredD, #1082)
-- Fix bumpiness artifact (#1107)
-- Stop showing `computed` bonds if `chem_comp_bond` is defined
+- Fix bumpiness artifacts (#1107, #1084)
 
 ## [v4.1.0] - 2023-03-31
 

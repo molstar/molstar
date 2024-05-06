@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -111,6 +111,7 @@ export const ColorParams = {
     shift: PD.Numeric(0, { min: 0, max: 100, step: 1 }, { hideIf: p => !p.type.includes('generate') }),
     lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }, { hideIf: p => p.type === 'custom' }),
     alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { hideIf: p => p.type === 'custom' }),
+    emissive: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }, { hideIf: p => p.type === 'custom' }),
 };
 export type ColorProps = PD.Values<typeof ColorParams>
 
@@ -123,6 +124,7 @@ export const RootParams = {
     shift: PD.Numeric(0, { min: 0, max: 100, step: 1 }, { hideIf: p => !p.type.includes('generate') }),
     lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }, { hideIf: p => p.type === 'custom' }),
     alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { hideIf: p => p.type === 'custom' }),
+    emissive: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }, { hideIf: p => p.type === 'custom' }),
 };
 
 export const LightnessParams = {
@@ -132,6 +134,10 @@ export const DimLightness = 6;
 
 export const OpacityParams = {
     alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+};
+
+export const EmissiveParams = {
+    emissive: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }),
 };
 
 export const PatternParams = {
@@ -248,6 +254,7 @@ export const MesoscaleGroupParams = {
     color: PD.Group(RootParams),
     lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
     alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+    emissive: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }),
     lod: PD.Group(LodParams),
     clip: PD.Group(SimpleClipParams),
 };
@@ -504,7 +511,7 @@ export function getEntityLabel(plugin: PluginContext, cell: StateObjectCell) {
 
 export async function updateColors(plugin: PluginContext, values: PD.Values, tag: string, filter: string) {
     const update = plugin.state.data.build();
-    const { type, value, shift, lightness, alpha } = values;
+    const { type, value, shift, lightness, alpha, emissive } = values;
 
     if (type === 'group-generate' || type === 'group-uniform') {
         const groups = getAllLeafGroups(plugin, tag);
@@ -528,11 +535,13 @@ export async function updateColors(plugin: PluginContext, values: PD.Values, tag
                         old.colorTheme.params.lightness = lightness;
                         old.type.params.alpha = alpha;
                         old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
+                        old.type.params.emissive = emissive;
                     } else if (old.coloring) {
                         old.coloring.params.color = c;
                         old.coloring.params.lightness = lightness;
                         old.alpha = alpha;
                         old.xrayShaded = alpha < 1 ? true : false;
+                        old.emissive = emissive;
                     }
                 });
             }
@@ -542,6 +551,7 @@ export async function updateColors(plugin: PluginContext, values: PD.Values, tag
                 old.color.value = baseColors[i];
                 old.color.lightness = lightness;
                 old.color.alpha = alpha;
+                old.color.emissive = emissive;
             });
         }
     } else if (type === 'generate' || type === 'uniform') {
@@ -560,11 +570,13 @@ export async function updateColors(plugin: PluginContext, values: PD.Values, tag
                     old.colorTheme.params.lightness = lightness;
                     old.type.params.alpha = alpha;
                     old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
+                    old.type.params.emissive = emissive;
                 } else if (old.coloring) {
                     old.coloring.params.color = c;
                     old.coloring.params.lightness = lightness;
                     old.alpha = alpha;
                     old.xrayShaded = alpha < 1 ? true : false;
+                    old.emissive = emissive;
                 }
             });
         }
@@ -576,6 +588,7 @@ export async function updateColors(plugin: PluginContext, values: PD.Values, tag
                 old.color.value = value;
                 old.color.lightness = lightness;
                 old.color.alpha = alpha;
+                old.color.emissive = emissive;
             });
         }
     }

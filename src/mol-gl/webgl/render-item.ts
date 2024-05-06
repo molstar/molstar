@@ -65,7 +65,7 @@ export interface RenderItem<T extends string> {
 
 //
 
-const GraphicsRenderVariant = { color: '', pick: '', depth: '', marking: '' };
+const GraphicsRenderVariant = { color: '', pick: '', depth: '', marking: '', emissive: '' };
 export type GraphicsRenderVariant = keyof typeof GraphicsRenderVariant
 export const GraphicsRenderVariants = Object.keys(GraphicsRenderVariant) as GraphicsRenderVariant[];
 

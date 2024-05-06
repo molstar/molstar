@@ -112,6 +112,7 @@ vec3 perturbNormal(in vec3 position, in vec3 normal, in float height, in float s
     vec3 r1 = cross(sigmaT, normal);
     vec3 r2 = cross(normal, sigmaS);
     float det = dot(sigmaS, r1);
+    if (det == 0.0) return normal;
 
     float bs = dFdx(height);
     float bt = dFdy(height);

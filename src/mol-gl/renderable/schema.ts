@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -262,6 +262,21 @@ export const TransparencySchema = {
 export type TransparencySchema = typeof TransparencySchema
 export type TransparencyValues = Values<TransparencySchema>
 
+export const EmissiveSchema = {
+    uEmissiveTexDim: UniformSpec('v2'),
+    tEmissive: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
+    dEmissive: DefineSpec('boolean'),
+    emissiveAverage: ValueSpec('number'),
+
+    uEmissiveGridDim: UniformSpec('v3'),
+    uEmissiveGridTransform: UniformSpec('v4'),
+    tEmissiveGrid: TextureSpec('texture', 'alpha', 'ubyte', 'linear'),
+    dEmissiveType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance']),
+    uEmissiveStrength: UniformSpec('f', 'material'),
+} as const;
+export type EmissiveSchema = typeof EmissiveSchema
+export type EmissiveValues = Values<EmissiveSchema>
+
 export const SubstanceSchema = {
     uSubstanceTexDim: UniformSpec('v2'),
     tSubstance: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
@@ -292,6 +307,7 @@ export const BaseSchema = {
     ...MarkerSchema,
     ...OverpaintSchema,
     ...TransparencySchema,
+    ...EmissiveSchema,
     ...SubstanceSchema,
     ...ClippingSchema,
 
@@ -320,6 +336,7 @@ export const BaseSchema = {
     uMetalness: UniformSpec('f', 'material'),
     uRoughness: UniformSpec('f', 'material'),
     uBumpiness: UniformSpec('f', 'material'),
+    uEmissive: UniformSpec('f', 'material'),
 
     uVertexCount: UniformSpec('i'),
     uInstanceCount: UniformSpec('i'),
