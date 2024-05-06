@@ -14,7 +14,8 @@ import { StateObjectRef } from '../../../mol-state';
 import { getTunnelsConfig, TunnelsDataParams } from './props';
 import { StateTransforms } from '../../../mol-plugin-state/transforms';
 import { Tunnel, ChannelsDBdata, TunnelDB } from './data-model';
-import { TunnelsFromRawData, SelectTunnel, TunnelShapeProvider } from './representation';
+import { TunnelShapeProvider, TunnelFromRawData } from './representation';
+import { ColorGenerator } from '../../meshes/mesh-utils';
 
 export const SbNcbrTunnels = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'sb-ncbr-tunnels',
@@ -78,22 +79,21 @@ export const TunnelsPreset = StructureRepresentationPresetProvider({
             }
         });
 
-        const s = await update
-            .toRoot()
-            .apply(TunnelsFromRawData, { data: tunnels })
-            .apply(SelectTunnel)
-            .apply(TunnelShapeProvider, {
-                webgl,
-            })
-            .apply(StateTransforms.Representation.ShapeRepresentation3D);
-
-        const selector = s.selector;
-        await update.commit();
+        await tunnels.forEach(async (tunnel) => {
+            await update
+                .toRoot()
+                .apply(TunnelFromRawData, { data: tunnel })
+                .apply(TunnelShapeProvider, {
+                    webgl,
+                    colorTheme: ColorGenerator.next().value,
+                })
+                .apply(StateTransforms.Representation.ShapeRepresentation3D);
+            await update.commit();
+        });
 
         const preset = await PresetStructureRepresentations.auto.apply(ref, { ...params }, plugin);
 
-        return { components: preset.components, representations: { ...preset.representations, selector } };
-        return {};
+        return { components: preset.components, representations: { ...preset.representations, } };
     }
 });
 
