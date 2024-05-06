@@ -46,10 +46,10 @@ export function isApplicable(structure?: Structure): boolean {
 }
 
 export const TunnelsPreset = StructureRepresentationPresetProvider({
-    id: 'preset-structure-tunnels',
+    id: 'sb-ncbr-preset-structure-tunnels',
     display: {
         name: 'Tunnels', group: 'Annotation',
-        description: 'Shows Tunnels contained in the structure.'
+        description: 'Shows Tunnels from ChannelsDB contained in the structure.'
     },
     isApplicable(a) {
         return isApplicable(a.data);
