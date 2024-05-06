@@ -168,6 +168,7 @@ export namespace Cylinders {
         sizeAspectRatio: PD.Numeric(1, { min: 0, max: 3, step: 0.01 }),
         doubleSided: PD.Boolean(false, BaseGeometry.CustomQualityParamInfo),
         ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
+        quantizedLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
         xrayShaded: PD.Select<boolean | 'inverted'>(false, [[false, 'Off'], [true, 'On'], ['inverted', 'Inverted']], BaseGeometry.ShadingCategory),
         transparentBackfaces: PD.Select('off', PD.arrayToOptions(['off', 'on', 'opaque'] as const), BaseGeometry.ShadingCategory),
         solidInterior: PD.Boolean(true, BaseGeometry.ShadingCategory),
@@ -259,6 +260,7 @@ export namespace Cylinders {
             uSizeFactor: ValueCell.create(props.sizeFactor * props.sizeAspectRatio),
             uDoubleSided: ValueCell.create(props.doubleSided),
             dIgnoreLight: ValueCell.create(props.ignoreLight),
+            dQuantizedLight: ValueCell.create(props.quantizedLight),
             dXrayShaded: ValueCell.create(props.xrayShaded === 'inverted' ? 'inverted' : props.xrayShaded === true ? 'on' : 'off'),
             dTransparentBackfaces: ValueCell.create(props.transparentBackfaces),
             dSolidInterior: ValueCell.create(props.solidInterior),
@@ -279,6 +281,7 @@ export namespace Cylinders {
         ValueCell.updateIfChanged(values.uSizeFactor, props.sizeFactor * props.sizeAspectRatio);
         ValueCell.updateIfChanged(values.uDoubleSided, props.doubleSided);
         ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);
+        ValueCell.updateIfChanged(values.dQuantizedLight, props.quantizedLight);
         ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded === 'inverted' ? 'inverted' : props.xrayShaded === true ? 'on' : 'off');
         ValueCell.updateIfChanged(values.dTransparentBackfaces, props.transparentBackfaces);
         ValueCell.updateIfChanged(values.dSolidInterior, props.solidInterior);

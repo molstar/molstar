@@ -173,7 +173,7 @@ function ignoreDefine(name: string, variant: string, defines: ShaderDefines): bo
             'dLightCount', 'dXrayShaded',
             'dOverpaintType', 'dOverpaint',
             'dSubstanceType', 'dSubstance',
-            'dColorMarker',
+            'dColorMarker', 'dQuantizedLight'
         ];
         if (variant !== 'emissive') {
             ignore.push('dEmissiveType', 'dEmissive');

@@ -148,6 +148,7 @@ export namespace DirectVolume {
     export const Params = {
         ...BaseGeometry.Params,
         ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
+        quantizedLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
         xrayShaded: PD.Select<boolean | 'inverted'>(false, [[false, 'Off'], [true, 'On'], ['inverted', 'Inverted']], BaseGeometry.ShadingCategory),
         controlPoints: PD.LineGraph([
             Vec2.create(0.19, 0.0), Vec2.create(0.2, 0.05), Vec2.create(0.25, 0.05), Vec2.create(0.26, 0.0),
@@ -272,6 +273,7 @@ export namespace DirectVolume {
             dAxisOrder: ValueCell.create(directVolume.axisOrder.ref.value.join('')),
 
             dIgnoreLight: ValueCell.create(props.ignoreLight),
+            dQuantizedLight: ValueCell.create(props.quantizedLight),
             dXrayShaded: ValueCell.create(props.xrayShaded === 'inverted' ? 'inverted' : props.xrayShaded === true ? 'on' : 'off'),
         };
     }
@@ -285,6 +287,7 @@ export namespace DirectVolume {
     function updateValues(values: DirectVolumeValues, props: PD.Values<Params>) {
         BaseGeometry.updateValues(values, props);
         ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);
+        ValueCell.updateIfChanged(values.dQuantizedLight, props.quantizedLight);
         ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded === 'inverted' ? 'inverted' : props.xrayShaded === true ? 'on' : 'off');
 
         const controlPoints = getControlPointsFromVec2Array(props.controlPoints);

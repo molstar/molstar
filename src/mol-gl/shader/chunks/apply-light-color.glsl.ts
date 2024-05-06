@@ -70,10 +70,16 @@ export const apply_light_color = `
     vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular;
     outgoingLight = clamp(outgoingLight, 0.01, 0.99); // prevents black artifacts on specular highlight with transparent background
 
+    #if defined(dQuantizedLight)
+        //quantized light
+        vec3 colorResolution = vec3(8.0, 8.0, 4.0);
+        outgoingLight = floor(outgoingLight * (colorResolution - 1.0) + 0.5) / (colorResolution - 1.0);
+    #endif
+
     #if defined(dRenderVariant_color)
         outgoingLight += color.rgb * emissive;
     #endif
-
+    
     gl_FragColor = vec4(outgoingLight, color.a);
 #endif
 
