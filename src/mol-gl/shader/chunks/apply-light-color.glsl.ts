@@ -2,6 +2,7 @@
  * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  *
  * adapted from three.js (https://github.com/mrdoob/three.js/)
  * which under the MIT License, Copyright © 2010-2021 three.js authors
