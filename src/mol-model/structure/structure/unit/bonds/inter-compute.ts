@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2023 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2024 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -94,8 +94,10 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
 
                 const opA = operatorA[i];
                 const opB = operatorB[i];
-                if ((opA >= 0 && opA !== opKeyA && opA !== opKeyB) ||
-                    (opB >= 0 && opB !== opKeyB && opB !== opKeyA)) continue;
+                if (opA >= 0 && opB >= 0) {
+                    if (opA === opB) continue;
+                    if (opA !== opKeyA || opB !== opKeyB) continue;
+                }
 
                 const beI = getElementIdx(type_symbolA.value(bI));
 
