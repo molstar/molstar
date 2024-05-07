@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -24,6 +24,7 @@ import { MarkingPass, MarkingProps } from './marking';
 import { CopyRenderable, createCopyRenderable } from '../../mol-gl/compute/util';
 import { isDebugMode, isTimingMode } from '../../mol-util/debug';
 import { AssetManager } from '../../mol-util/assets';
+import { BloomPass } from './bloom';
 
 type Props = {
     postprocessing: PostprocessingProps;
@@ -56,11 +57,12 @@ export class DrawPass {
     private copyFboTarget: CopyRenderable;
     private copyFboPostprocessing: CopyRenderable;
 
-    private readonly wboit: WboitPass;
-    private readonly dpoit: DpoitPass;
-    private readonly marking: MarkingPass;
+    readonly wboit: WboitPass;
+    readonly dpoit: DpoitPass;
+    readonly marking: MarkingPass;
     readonly postprocessing: PostprocessingPass;
-    private readonly antialiasing: AntialiasingPass;
+    readonly antialiasing: AntialiasingPass;
+    readonly bloom: BloomPass;
 
     private transparencyMode: TransparencyMode = 'blended';
     setTransparency(transparency: 'wboit' | 'dpoit' | 'blended') {
@@ -103,7 +105,8 @@ export class DrawPass {
         this.dpoit = new DpoitPass(webgl, width, height);
         this.marking = new MarkingPass(webgl, width, height);
         this.postprocessing = new PostprocessingPass(webgl, assetManager, this);
-        this.antialiasing = new AntialiasingPass(webgl, this);
+        this.antialiasing = new AntialiasingPass(webgl, width, height);
+        this.bloom = new BloomPass(webgl, width, height);
 
         this.copyFboTarget = createCopyRenderable(webgl, this.colorTarget.texture);
         this.copyFboPostprocessing = createCopyRenderable(webgl, this.postprocessing.target.texture);
@@ -145,6 +148,7 @@ export class DrawPass {
         this.marking.setSize(width, height);
         this.postprocessing.setSize(width, height);
         this.antialiasing.setSize(width, height);
+        this.bloom.setSize(width, height);
     }
 
     private _renderDpoit(renderer: Renderer, camera: ICamera, scene: Scene, iterations: number, transparentBackground: boolean, postprocessingProps: PostprocessingProps) {
@@ -385,7 +389,10 @@ export class DrawPass {
         }
 
         if (antialiasingEnabled) {
-            this.antialiasing.render(camera, toDrawingBuffer, props.postprocessing);
+            const input = PostprocessingPass.isEnabled(props.postprocessing)
+                ? this.postprocessing.target.texture
+                : this.colorTarget.texture;
+            this.antialiasing.render(camera, input, toDrawingBuffer, props.postprocessing);
         } else if (toDrawingBuffer) {
             this.drawTarget.bind();
 
@@ -394,6 +401,22 @@ export class DrawPass {
                 this.copyFboPostprocessing.render();
             } else if (volumeRendering || oitEnabled) {
                 this.copyFboTarget.render();
+            }
+        }
+
+        if (props.postprocessing.bloom.name === 'on') {
+            const emissiveBloom = props.postprocessing.bloom.params.mode === 'emissive';
+
+            if (emissiveBloom && scene.emissiveAverage > 0) {
+                this.bloom.emissiveTarget.bind();
+                renderer.clear(false, true);
+                renderer.update(camera, scene);
+                renderer.renderEmissive(scene.primitives, camera, null);
+            }
+
+            if (!emissiveBloom || scene.emissiveAverage > 0) {
+                this.bloom.update(this.colorTarget.texture, this.bloom.emissiveTarget.texture, this.depthTargetOpaque?.texture || this.depthTextureOpaque, props.postprocessing.bloom.params);
+                this.bloom.render(camera.viewport, toDrawingBuffer ? undefined : this.getColorTarget(props.postprocessing));
             }
         }
 

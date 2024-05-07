@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
@@ -8,12 +8,16 @@
  */
 
 export const apply_light_color = `
-#ifdef dIgnoreLight
+#if defined(dIgnoreLight)
     #ifdef bumpEnabled
         if (uBumpFrequency > 0.0 && uBumpAmplitude > 0.0 && bumpiness > 0.0) {
             material.rgb += fbm(vModelPosition * uBumpFrequency) * uBumpAmplitude * bumpiness;
             material.rgb -= 0.5 * uBumpAmplitude * bumpiness;
         }
+    #endif
+
+    #if defined(dRenderVariant_color)
+        material.rgb += material.rgb * emissive;
     #endif
 
     gl_FragColor = material;
@@ -65,6 +69,10 @@ export const apply_light_color = `
 
     vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular;
     outgoingLight = clamp(outgoingLight, 0.01, 0.99); // prevents black artifacts on specular highlight with transparent background
+
+    #if defined(dRenderVariant_color)
+        outgoingLight += color.rgb * emissive;
+    #endif
 
     gl_FragColor = vec4(outgoingLight, color.a);
 #endif

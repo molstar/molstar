@@ -256,6 +256,8 @@ void main() {
         gl_FragColor = material;
     #elif defined(dRenderVariant_marking)
         gl_FragColor = material;
+    #elif defined(dRenderVariant_emissive)
+        gl_FragColor = material;
     #elif defined(dRenderVariant_color)
         mat3 normalMatrix = transpose3(inverse3(mat3(uView)));
         vec3 normal = normalize(normalMatrix * -normalize(cameraNormal));

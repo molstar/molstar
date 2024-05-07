@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -26,6 +26,7 @@ import { createEmptyTransparency } from '../transparency-data';
 import { hashFnv32a } from '../../../mol-data/util';
 import { createEmptyClipping } from '../clipping-data';
 import { createEmptySubstance } from '../substance-data';
+import { createEmptyEmissive } from '../emissive-data';
 
 /** Point cloud */
 export interface Points {
@@ -175,6 +176,7 @@ export namespace Points {
             : createMarkers(instanceCount * groupCount, 'groupInstance');
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const emissive = createEmptyEmissive();
         const material = createEmptySubstance();
         const clipping = createEmptyClipping();
 
@@ -196,6 +198,7 @@ export namespace Points {
             ...marker,
             ...overpaint,
             ...transparency,
+            ...emissive,
             ...material,
             ...clipping,
             ...transform,

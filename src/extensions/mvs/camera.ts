@@ -5,6 +5,7 @@
  */
 
 import { Camera } from '../../mol-canvas3d/camera';
+import { Canvas3DParams } from '../../mol-canvas3d/canvas3d';
 import { GraphicsRenderObject } from '../../mol-gl/render-object';
 import { Sphere3D } from '../../mol-math/geometry';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
@@ -33,6 +34,13 @@ const DefaultCanvasBackgroundColor = ColorNames.white;
 
 const _tmpVec = Vec3();
 
+/** Set the camera position to the current position (thus suppress automatic adjustment). */
+export async function suppressCameraAutoreset(plugin: PluginContext) {
+    const snapshot: Partial<Camera.Snapshot> = { ...plugin.canvas3d?.camera.state, radius: Infinity }; // `radius: Infinity` avoids clipping when the scene expands
+    adjustSceneRadiusFactor(plugin, snapshot.target);
+    await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
+}
+
 /** Set the camera based on a camera node params. */
 export async function setCamera(plugin: PluginContext, params: ParamsOfKind<MolstarTree, 'camera'>) {
     const target = Vec3.create(...params.target);
@@ -40,7 +48,8 @@ export async function setCamera(plugin: PluginContext, params: ParamsOfKind<Mols
     if (plugin.canvas3d) position = fovAdjustedPosition(target, position, plugin.canvas3d.camera.state.mode, plugin.canvas3d.camera.state.fov);
     const up = Vec3.create(...params.up);
     Vec3.orthogonalize(up, Vec3.sub(_tmpVec, target, position), up);
-    const snapshot: Partial<Camera.Snapshot> = { target, position, up, radius: 10_000, 'radiusMax': 10_000 };
+    const snapshot: Partial<Camera.Snapshot> = { target, position, up, radius: Infinity }; // `radius: Infinity` avoids clipping (ensures covering the whole scene)
+    adjustSceneRadiusFactor(plugin, snapshot.target);
     await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
 }
 
@@ -69,8 +78,24 @@ export async function setFocus(plugin: PluginContext, structureNodeSelector: Sta
             up,
             direction,
         });
+        resetSceneRadiusFactor(plugin);
         await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
     }
+}
+
+/** Adjust `sceneRadiusFactor` property so that the current scene is not cropped */
+function adjustSceneRadiusFactor(plugin: PluginContext, cameraTarget: Vec3 | undefined) {
+    if (!cameraTarget) return;
+    const boundingSphere = getPluginBoundingSphere(plugin);
+    const offset = Vec3.distance(cameraTarget, boundingSphere.center);
+    const sceneRadiusFactor = boundingSphere.radius > 0 ? ((boundingSphere.radius + offset) / boundingSphere.radius) : 1;
+    plugin.canvas3d?.setProps({ sceneRadiusFactor });
+}
+
+/** Reset `sceneRadiusFactor` property to the default value */
+function resetSceneRadiusFactor(plugin: PluginContext) {
+    const sceneRadiusFactor = Canvas3DParams.sceneRadiusFactor.defaultValue;
+    plugin.canvas3d?.setProps({ sceneRadiusFactor });
 }
 
 /** Return camera snapshot for focusing a sphere with given `center` and `radius`,

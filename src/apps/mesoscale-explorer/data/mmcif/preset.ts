@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -114,7 +114,7 @@ export async function createMmcifHierarchy(plugin: PluginContext, trajectory: St
 
     const entRoot = await state.build()
         .toRoot()
-        .applyOrUpdateTagged('group:ent:', MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `ent:`, label: 'entity', color: { type: 'custom', value: ColorNames.white, variability: 20, shift: 0, lightness: 0, alpha: 1 } }, { tags: 'group:ent:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
+        .applyOrUpdateTagged('group:ent:', MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `ent:`, label: 'entity', color: { type: 'custom', value: ColorNames.white, variability: 20, shift: 0, lightness: 0, alpha: 1, emissive: 0 } }, { tags: 'group:ent:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
         .commit();
 
     const getEntityType = (i: number) => {
@@ -148,7 +148,7 @@ export async function createMmcifHierarchy(plugin: PluginContext, trajectory: St
             const color = colorIdx !== undefined ? baseEntColors[colorIdx] : ColorNames.white;
             const group = await state.build()
                 .to(entRoot)
-                .applyOrUpdateTagged(`group:ent:${t}`, MesoscaleGroup, { ...groupParams, index: colorIdx, tag: `ent:${t}`, label: t, color: { type: 'generate', value: color, variability: 20, shift: 0, lightness: 0, alpha: 1 } }, { tags: `ent:`, state: { isCollapsed: true, isHidden: groupParams.hidden } })
+                .applyOrUpdateTagged(`group:ent:${t}`, MesoscaleGroup, { ...groupParams, index: colorIdx, tag: `ent:${t}`, label: t, color: { type: 'generate', value: color, variability: 20, shift: 0, lightness: 0, alpha: 1, emissive: 0 } }, { tags: `ent:`, state: { isCollapsed: true, isHidden: groupParams.hidden } })
                 .commit({ revertOnError: true });
             entGroups.set(t, group);
         }

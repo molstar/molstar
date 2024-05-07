@@ -27,6 +27,7 @@ import { NullLocation } from '../../../mol-model/location';
 import { createEmptySubstance } from '../substance-data';
 import { RenderableState } from '../../../mol-gl/renderable';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
+import { createEmptyEmissive } from '../emissive-data';
 
 export interface TextureMesh {
     readonly kind: 'texture-mesh',
@@ -189,6 +190,7 @@ export namespace TextureMesh {
             : createMarkers(instanceCount * groupCount, 'groupInstance');
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const emissive = createEmptyEmissive();
         const substance = createEmptySubstance();
         const clipping = createEmptyClipping();
 
@@ -214,6 +216,7 @@ export namespace TextureMesh {
             ...marker,
             ...overpaint,
             ...transparency,
+            ...emissive,
             ...substance,
             ...clipping,
             ...transform,
