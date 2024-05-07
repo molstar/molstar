@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -29,6 +30,7 @@ export const PolymerTraceMeshParams = {
     aspectRatio: PD.Numeric(5, { min: 0.1, max: 10, step: 0.1 }),
     arrowFactor: PD.Numeric(1.5, { min: 0, max: 3, step: 0.1 }, { description: 'Size factor for sheet arrows' }),
     tubularHelices: PD.Boolean(false, { description: 'Draw alpha helices as tubes' }),
+    roundCap: PD.Boolean(false, { description: 'Draw round caps on tubular alpha helices' }),
     helixProfile: PD.Select('elliptical', PD.arrayToOptions(['elliptical', 'rounded', 'square'] as const), { description: 'Protein helix trace profile' }),
     nucleicProfile: PD.Select('square', PD.arrayToOptions(['elliptical', 'rounded', 'square'] as const), { description: 'Nucleic strand trace profile' }),
     detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
@@ -44,7 +46,7 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
     const polymerElementCount = unit.polymerElements.length;
 
     if (!polymerElementCount) return Mesh.createEmpty(mesh);
-    const { sizeFactor, detail, linearSegments, radialSegments, aspectRatio, arrowFactor, tubularHelices, helixProfile, nucleicProfile } = props;
+    const { sizeFactor, detail, linearSegments, radialSegments, aspectRatio, arrowFactor, tubularHelices, roundCap, helixProfile, nucleicProfile } = props;
 
     const vertexCount = linearSegments * radialSegments * polymerElementCount + (radialSegments + 1) * polymerElementCount * 2;
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 10, mesh);
@@ -97,7 +99,6 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
             Vec3.scaleAndAdd(tmpV1, v.p2, tmpV1, w1 * OverhangFactor);
             Vec3.toArray(tmpV1, curvePoints, segmentCount * 3);
         }
-
         if (v.initial === true && v.final === true) {
             addSphere(builderState, v.p2, w1 * 2, detail);
         } else if (isSheet) {
@@ -114,9 +115,10 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
                 addSheet(builderState, curvePoints, normalVectors, binormalVectors, segmentCount, widthValues, heightValues, arrowHeight, startCap, endCap);
             }
         } else {
-            let h0: number, h1: number, h2: number;
+            let h0: number, h1: number, h2: number, roundCapFlag = false;
             if (isHelix && !v.isCoarseBackbone) {
                 if (tubularHelices) {
+                    roundCapFlag = roundCap;
                     w0 *= aspectRatio * 1.5;
                     w1 *= aspectRatio * 1.5;
                     w2 *= aspectRatio * 1.5;
@@ -158,7 +160,7 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
             } else if (radialSegments === 4) {
                 addSheet(builderState, curvePoints, normals, binormals, segmentCount, widthValues, heightValues, 0, startCap, endCap);
             } else if (h1 === w1) {
-                addTube(builderState, curvePoints, normals, binormals, segmentCount, radialSegments, widthValues, heightValues, startCap, endCap, 'elliptical');
+                addTube(builderState, curvePoints, normals, binormals, segmentCount, radialSegments, widthValues, heightValues, startCap, endCap, 'elliptical', roundCapFlag);
             } else if (profile === 'square') {
                 addSheet(builderState, curvePoints, normals, binormals, segmentCount, widthValues, heightValues, 0, startCap, endCap);
             } else {
@@ -194,6 +196,7 @@ export function PolymerTraceVisual(materialId: number): UnitsVisual<PolymerTrace
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.tubularHelices !== currentProps.tubularHelices ||
+                newProps.roundCap !== currentProps.roundCap ||
                 newProps.detail !== currentProps.detail ||
                 newProps.linearSegments !== currentProps.linearSegments ||
                 newProps.radialSegments !== currentProps.radialSegments ||
