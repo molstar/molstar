@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add depth of field (dof) postprocessing effect
+
 ## [v4.2.0] - 2023-04-05
 
 - Add emissive material support
