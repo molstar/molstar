@@ -27,7 +27,7 @@ export const DofParams = {
     blurSpread: PD.Numeric(1.0, { min: 0.0, max: 10.0, step: 0.1 }),
     inFocus: PD.Numeric(0.0, { min: -5000.0, max: 5000.0, step: 1.0 }, { description: 'Distance from the scene center that will be in focus' }),
     PPM: PD.Numeric(20.0, { min: 0.0, max: 5000.0, step: 0.1 }, { description: 'Size of the area that will be in focus' }),
-    center: PD.Select('scene-center', PD.arrayToOptions(['scene-center', 'camera-target'])),
+    center: PD.Select('camera-target', PD.arrayToOptions(['scene-center', 'camera-target'])),
     mode: PD.Select('plane', PD.arrayToOptions(['plane', 'sphere'])),
 };
 
