@@ -19,10 +19,9 @@ uniform sampler2D tDepthTransparent;
 uniform vec2 uTexSize;
 uniform vec4 uBounds;
 
-uniform int blurSize;
-uniform float blurSpread;
-uniform float inFocus;
-uniform float PPM;
+uniform float uBlurSpread;
+uniform float uInFocus;
+uniform float uPPM;
 
 uniform float uNear; // Near plane
 uniform float uFar;  // Far plane
@@ -71,9 +70,9 @@ float getCOC(vec2 uv) {
     float focusDist = length(aposition - uCenter);
     float coc = 0.0;  // Circle of Confusion
     if (uMode == 0) { // planar Depth of field
-        coc = (abs(viewDist) - inFocus) / PPM;  //focus distance, focus range
+        coc = (abs(viewDist) - uInFocus) / uPPM;  //focus distance, focus range
     } else if(uMode == 1) { // spherical Depth of field
-        coc = focusDist / PPM ;
+        coc = focusDist / uPPM ;
     }
     coc = clamp(coc, -1.0, 1.0);
     return coc;
@@ -84,10 +83,10 @@ vec3 getBlurredImage(vec2 coords) {
     vec4 blurColor = vec4(0);
     vec2 texelSize = vec2(1.0 / uTexSize.x, 1.0 / uTexSize.y);
     float count = 0.0;
-    for (int x = 0; x < int(blurSize); x++) {
-        for (int y = 0; y < int(blurSize); y++) {
-            vec2 offset = vec2(float(x) - float(blurSize) / 2.0, float(y) - float(blurSize) / 2.0);
-            vec2 uvPixel = coords.xy + offset * texelSize * blurSpread;
+    for (int x = 0; x < int(dBlurSize); x++) {
+        for (int y = 0; y < int(dBlurSize); y++) {
+            vec2 offset = vec2(float(x) - float(dBlurSize) / 2.0, float(y) - float(dBlurSize) / 2.0);
+            vec2 uvPixel = coords.xy + offset * texelSize * uBlurSpread;
             float coc = getCOC(uvPixel);
             coc = smoothstep(0.0, 1.0, abs(coc));
             // mix blurColor with new color with weight coc

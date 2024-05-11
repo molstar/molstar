@@ -91,16 +91,12 @@ export class DofPass {
             needsUpdate = true;
         }
         const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
-        const invProjection = Mat4.identity();
+        const invProjection = this.renderable.values.uInvProjection.ref.value;
         Mat4.invert(invProjection, camera.projection);
-        const wolrd_center = (props.center === 'scene-center' ? sphere.center : camera.state.target);
+
         const [w, h] = this.renderable.values.uTexSize.ref.value;
         const v = camera.viewport;
-        const distance = Vec3.distance(camera.state.position, wolrd_center);
-        const inFocus = distance + props.inFocus;
-        // transform  center in view space
-        let center = Vec3();
-        center = Vec3.transformMat4(center, wolrd_center, camera.view);
+
         ValueCell.update(this.renderable.values.uProjection, camera.projection);
         ValueCell.update(this.renderable.values.uInvProjection, invProjection);
         ValueCell.update(this.renderable.values.uMode, props.mode === 'sphere' ? 1 : 0);
@@ -117,23 +113,23 @@ export class DofPass {
         ValueCell.updateIfChanged(this.renderable.values.uFar, camera.far);
         ValueCell.updateIfChanged(this.renderable.values.dOrthographic, orthographic);
 
-        if (this.renderable.values.uCenter.ref.value !== center) needsUpdate = true;
+        if (this.renderable.values.dBlurSize.ref.value !== props.blurSize) {
+            ValueCell.update(this.renderable.values.dBlurSize, props.blurSize);
+            needsUpdate = true;
+        }
+
+        const wolrdCenter = (props.center === 'scene-center' ? sphere.center : camera.state.target);
+        const distance = Vec3.distance(camera.state.position, wolrdCenter);
+        const inFocus = distance + props.inFocus;
+        ValueCell.updateIfChanged(this.renderable.values.uInFocus, inFocus);
+
+        // transform center in view space
+        const center = this.renderable.values.uCenter.ref.value;
+        Vec3.transformMat4(center, wolrdCenter, camera.view);
         ValueCell.update(this.renderable.values.uCenter, center);
 
-        if (this.renderable.values.blurSize.ref.value !== props.blurSize) needsUpdate = true;
-        ValueCell.update(this.renderable.values.blurSize, props.blurSize);
-        if (this.renderable.values.blurSpread.ref.value !== props.blurSpread) needsUpdate = true;
-        ValueCell.update(this.renderable.values.blurSpread, props.blurSpread);
-        if (this.renderable.values.inFocus.ref.value !== inFocus) needsUpdate = true;
-        ValueCell.update(this.renderable.values.inFocus, inFocus);
-        if (this.renderable.values.PPM.ref.value !== props.PPM) needsUpdate = true;
-        ValueCell.update(this.renderable.values.PPM, props.PPM);
-
-        this.renderable.update();
-        ValueCell.update(this.renderable.values.PPM, props.PPM);
-        ValueCell.update(this.renderable.values.inFocus, inFocus);
-        ValueCell.update(this.renderable.values.blurSpread, props.blurSpread);
-        ValueCell.update(this.renderable.values.blurSize, props.blurSize);
+        ValueCell.updateIfChanged(this.renderable.values.uBlurSpread, props.blurSpread);
+        ValueCell.updateIfChanged(this.renderable.values.uPPM, props.PPM);
 
         if (needsUpdate) {
             this.renderable.update();
@@ -172,10 +168,10 @@ const DofSchema = {
     uNear: UniformSpec('f'),
     uFar: UniformSpec('f'),
 
-    inFocus: UniformSpec('f'),
-    PPM: UniformSpec('f'),
-    blurSize: UniformSpec('i'),
-    blurSpread: UniformSpec('f'),
+    dBlurSize: DefineSpec('number'),
+    uBlurSpread: UniformSpec('f'),
+    uInFocus: UniformSpec('f'),
+    uPPM: UniformSpec('f'),
 };
 
 const DofShaderCode = ShaderCode('dof', quad_vert, dof_frag);
@@ -202,10 +198,10 @@ function getDofRenderable(ctx: WebGLContext, colorTexture: Texture, depthTexture
         uNear: ValueCell.create(1),
         uFar: ValueCell.create(10000),
 
-        blurSize: ValueCell.create(5),
-        blurSpread: ValueCell.create(300.0),
-        inFocus: ValueCell.create(20.0),
-        PPM: ValueCell.create(20.0),
+        dBlurSize: ValueCell.create(5),
+        uBlurSpread: ValueCell.create(300.0),
+        uInFocus: ValueCell.create(20.0),
+        uPPM: ValueCell.create(20.0),
     };
 
     const schema = { ...DofSchema };
