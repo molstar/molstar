@@ -80,19 +80,19 @@ float screenSpaceShadow(const in vec3 position, const in vec3 lightDirection, co
         rayCoords = uProjection * vec4(rayPos, 1.0);
         rayCoords.xyz = (rayCoords.xyz / rayCoords.w) * 0.5 + 0.5;
 
-        //if (outsideBounds(rayCoords.xy))
-        //    return 1.0;
+        if (outsideBounds(rayCoords.xy))
+            return 1.0;
 
         // Compute the difference between the ray's and the camera's depth
         float depth = getDepth(rayCoords.xy);
-        float sampleViewZ = screenSpaceToViewSpace(vec3(rayCoords.xy, depth), uInvProjection).z;
-        float zDelta = rayPos.z - sampleViewZ;
+        float viewZ = getViewZ(depth);
+        float zDelta = rayPos.z - viewZ;
 
         if (zDelta < uTolerance) {
             occlusion = 1.0;
 
             // Fade out as we approach the edges of the screen
-            // occlusion *= screenFade(rayCoords.xy);
+            occlusion *= screenFade(rayCoords.xy);
 
             break;
         }
