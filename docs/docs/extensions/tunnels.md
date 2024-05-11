@@ -1,7 +1,7 @@
 # Tunnel Visualization Extension
 This documentation outlines the usage of the Mol* extension for visualizing tunnels in molecular structures. The extension integrates with Mol* to render 3D representations of tunnels using specified data sources and properties.
 
-The extension is a key component in ChannelsDB, enabling users to visualize tunnels within molecules directly from the database. While it is used with ChannelsDB, users can also input their own data or connect to different databases, ensuring versatility across various research environments.
+The extension is a key component in ChannelsDB (https://channelsdb2.biodata.ceitec.cz/), enabling users to visualize tunnels within molecules directly from the database. While it is used with ChannelsDB, users can also input their own data or connect to different databases, ensuring versatility across various research environments.
 
 ## Data Types
 The primary data types involved in tunnel visualization are:
@@ -73,11 +73,11 @@ The extension uses several transformations to process and visualize tunnel data:
 - `Purpose`: Converts single Tunnel data into a state object for individual processing.
 - `Usage`:
     ```typescript
-    update.toRoot().apply(TunnelFromRawData, { 
-        data: { 
-            data: tunnel.Profile, 
-            props: { id: tunnel.Id, type: tunnel.Type } 
-        } 
+    update.toRoot().apply(TunnelFromRawData, {
+        data: {
+            data: tunnel.Profile,
+            props: { id: tunnel.Id, type: tunnel.Type }
+        }
     });
     ```
 
@@ -107,8 +107,8 @@ update.toRoot()
 This example ([runVisualizeTunnel](../../../src/extensions/sb-ncbr/tunnels/examples.ts#L46)) shows how to visualize a single tunnel.
 ```typescript
 update.toRoot()
-        .apply(TunnelFromRawData, { 
-            data: { 
+        .apply(TunnelFromRawData, {
+            data: {
                 data: tunnel.Profile,
                 props: { id: tunnel.Id, type: tunnel.Type }
             }
