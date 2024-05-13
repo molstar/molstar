@@ -344,6 +344,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         contextRestored,
         setContextLost: () => {
             isContextLost = true;
+            timer.clear();
         },
         handleContextRestored: (extraResets?: () => void) => {
             Object.assign(extensions, createExtensions(gl));
