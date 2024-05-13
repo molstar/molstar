@@ -77,6 +77,8 @@ uniform vec3 uFogColor;
 uniform float uAlpha;
 uniform bool uTransparentBackground;
 uniform float uXrayEdgeFalloff;
+uniform float uQuantizationSteps;
+uniform vec3 uQuantizationTint;
 uniform float uExposure;
 
 uniform int uRenderMask;

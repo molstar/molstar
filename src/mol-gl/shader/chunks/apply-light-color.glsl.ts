@@ -72,9 +72,9 @@ export const apply_light_color = `
     outgoingLight = clamp(outgoingLight, 0.01, 0.99); // prevents black artifacts on specular highlight with transparent background
 
     #if defined(dQuantizedLight)
-        //quantized light
-        vec3 colorResolution = vec3(8.0, 8.0, 4.0);
-        outgoingLight = floor(outgoingLight * (colorResolution - 1.0) + 0.5) / (colorResolution - 1.0);
+        // quantized light
+        vec3 colorResolution = uQuantizationTint * uQuantizationSteps - 1.0;
+        outgoingLight = floor(outgoingLight * colorResolution + 0.5) / colorResolution;
     #endif
 
     #if defined(dRenderVariant_color)
