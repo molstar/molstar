@@ -34,6 +34,7 @@ import { AssetManager } from '../../mol-util/assets';
 import { Light } from '../../mol-gl/renderer';
 import { shadows_frag } from '../../mol-gl/shader/shadows.frag';
 import { CasParams, CasPass } from './cas';
+import { DofParams } from './dof';
 import { BloomParams } from './bloom';
 
 export const OutlinesSchema = {
@@ -396,6 +397,10 @@ export const PostprocessingParams = {
         }),
         off: PD.Group({})
     }, { cycle: true, description: 'Draw outline around 3D objects' }),
+    dof: PD.MappedStatic('off', {
+        on: PD.Group(DofParams),
+        off: PD.Group({})
+    }, { cycle: true, description: 'DOF' }),
     antialiasing: PD.MappedStatic('smaa', {
         fxaa: PD.Group(FxaaParams),
         smaa: PD.Group(SmaaParams),

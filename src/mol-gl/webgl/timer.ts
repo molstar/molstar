@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -31,6 +31,10 @@ class MovingAverage {
 
     stats() {
         return Object.fromEntries(this.avgs.entries());
+    }
+
+    clear() {
+        this.avgs.clear();
     }
 
     constructor(private count: number) { }
@@ -111,8 +115,13 @@ export function createTimer(gl: GLRenderingContext, extensions: WebGLExtensions,
             dtq.deleteQuery(query);
         });
         pending.clear();
+        stack.length = 0;
+        gpuAvgs.clear();
+        cpuAvgs.clear();
+
         measures = [];
         current = null;
+        capturingStats = false;
     };
 
     const add = () => {
