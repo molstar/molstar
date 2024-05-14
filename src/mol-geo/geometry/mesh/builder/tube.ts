@@ -11,6 +11,7 @@ import { cantorPairing, ChunkedArray } from '../../../../mol-data/util';
 import { MeshBuilder } from '../mesh-builder';
 
 const normalVector = Vec3();
+const normalSmoothingVector = Vec3();
 const surfacePoint = Vec3();
 const controlPoint = Vec3();
 const u = Vec3();
@@ -65,6 +66,13 @@ export function addTube(state: MeshBuilder.State, controlPoints: ArrayLike<numbe
     const q3 = q1 * 3;
 
     const roundCapFlag = roundCap && linearSegments && !(startCap && endCap) && (startCap || endCap); // disabled if both caps are active
+    if (roundCapFlag) {
+        const offset = startCap ? 0 : linearSegments * 3;
+        v3fromArray(u, normalVectors, offset);
+        v3fromArray(v, binormalVectors, offset);
+        v3cross(normalSmoothingVector, v, u);
+        v3normalize(normalSmoothingVector, normalSmoothingVector);
+    }
     for (let i = 0; i <= linearSegments; ++i) {
         const i3 = i * 3;
         v3fromArray(u, normalVectors, i3);
@@ -100,6 +108,9 @@ export function addTube(state: MeshBuilder.State, controlPoints: ArrayLike<numbe
             }
             v3normalize(normalVector, normalVector);
             caAdd3(vertices, surfacePoint[0], surfacePoint[1], surfacePoint[2]);
+            if (roundCapFlag && (startCap && i === 0 || endCap && i === linearSegments)) {
+                add2AndScale2(normalVector, normalSmoothingVector, normalVector, startCap ? 1 : -1, 0.0); // smooth normals
+            }
             caAdd3(normals, normalVector[0], normalVector[1], normalVector[2]);
         }
     }
