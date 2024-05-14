@@ -165,7 +165,7 @@ class Structure {
      * @see Model.hasChemCompBond
      */
     get hasChemCompBond() {
-        return this.models.length && this.models.every(m => Model.hasChemCompBond(m));
+        return !!this.models.length && this.models.every(m => Model.hasChemCompBond(m));
     }
 
     get isEmpty() {
