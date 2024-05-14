@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -45,7 +45,12 @@ export function getLineParams(ctx: ThemeRegistryContext, structure: Structure) {
         params.visuals.defaultValue = ['intra-bond', 'element-point', 'element-cross'];
         return params;
     } else {
-        return LineParams;
+        if (!structure.hasChemCompBond) return LineParams;
+
+        // suppress computed bonds if bond order and aromaticity flags are known from chem_comp_bond
+        const params = PD.clone(LineParams);
+        params.excludeTypes.defaultValue = ['computed'];
+        return params;
     }
 }
 
