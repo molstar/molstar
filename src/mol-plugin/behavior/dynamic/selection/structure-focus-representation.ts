@@ -116,9 +116,16 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
         }
 
         if (components.indexOf('surroundings') >= 0 && !refs[StructureFocusRepresentationTags.SurrRepr]) {
+            const surroundingsParams = this.getReprParams(this.params.surroundingsParams);
+            // suppress computed bonds if bond order and aromaticity flags are known from chem_comp_bond
+            if (cell.obj!.data.hasChemCompBond) {
+                const i = surroundingsParams.type.params.includeTypes.indexOf('computed');
+                if (i !== -1) surroundingsParams.type.params.includeTypes.splice(i, 1);
+            }
+
             refs[StructureFocusRepresentationTags.SurrRepr] = builder
                 .to(refs[StructureFocusRepresentationTags.SurrSel]!)
-                .apply(StateTransforms.Representation.StructureRepresentation3D, this.getReprParams(this.params.surroundingsParams), { tags: StructureFocusRepresentationTags.SurrRepr }).ref;
+                .apply(StateTransforms.Representation.StructureRepresentation3D, surroundingsParams, { tags: StructureFocusRepresentationTags.SurrRepr }).ref;
         }
 
         if (components.indexOf('interactions') >= 0 && !refs[StructureFocusRepresentationTags.SurrNciRepr] && cell.obj && InteractionsRepresentationProvider.isApplicable(cell.obj?.data)) {
