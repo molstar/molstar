@@ -82,22 +82,24 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
         const endCap = v.secStrucLast || v.coarseBackboneLast || v.last;
 
         let segmentCount = linearSegments;
-        if (v.initial) {
-            segmentCount = Math.max(Math.round(linearSegments * shift), 1);
-            const offset = linearSegments - segmentCount;
-            curvePoints.copyWithin(0, offset * 3);
-            binormalVectors.copyWithin(0, offset * 3);
-            normalVectors.copyWithin(0, offset * 3);
-            Vec3.fromArray(tmpV1, curvePoints, 3);
-            Vec3.normalize(tmpV1, Vec3.sub(tmpV1, v.p2, tmpV1));
-            Vec3.scaleAndAdd(tmpV1, v.p2, tmpV1, w1 * OverhangFactor);
-            Vec3.toArray(tmpV1, curvePoints, 0);
-        } else if (v.final) {
-            segmentCount = Math.max(Math.round(linearSegments * (1 - shift)), 1);
-            Vec3.fromArray(tmpV1, curvePoints, segmentCount * 3 - 3);
-            Vec3.normalize(tmpV1, Vec3.sub(tmpV1, v.p2, tmpV1));
-            Vec3.scaleAndAdd(tmpV1, v.p2, tmpV1, w1 * OverhangFactor);
-            Vec3.toArray(tmpV1, curvePoints, segmentCount * 3);
+        if (!(isHelix && !v.isCoarseBackbone && tubularHelices && roundCap)) {
+            if (v.initial) {
+                segmentCount = Math.max(Math.round(linearSegments * shift), 1);
+                const offset = linearSegments - segmentCount;
+                curvePoints.copyWithin(0, offset * 3);
+                binormalVectors.copyWithin(0, offset * 3);
+                normalVectors.copyWithin(0, offset * 3);
+                Vec3.fromArray(tmpV1, curvePoints, 3);
+                Vec3.normalize(tmpV1, Vec3.sub(tmpV1, v.p2, tmpV1));
+                Vec3.scaleAndAdd(tmpV1, v.p2, tmpV1, w1 * OverhangFactor);
+                Vec3.toArray(tmpV1, curvePoints, 0);
+            } else if (v.final) {
+                segmentCount = Math.max(Math.round(linearSegments * (1 - shift)), 1);
+                Vec3.fromArray(tmpV1, curvePoints, segmentCount * 3 - 3);
+                Vec3.normalize(tmpV1, Vec3.sub(tmpV1, v.p2, tmpV1));
+                Vec3.scaleAndAdd(tmpV1, v.p2, tmpV1, w1 * OverhangFactor);
+                Vec3.toArray(tmpV1, curvePoints, segmentCount * 3);
+            }
         }
         if (v.initial === true && v.final === true) {
             addSphere(builderState, v.p2, w1 * 2, detail);
