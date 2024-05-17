@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -70,6 +70,7 @@ export class QuickStyles extends PurePluginUIComponent {
                             radius: 5,
                             bias: 0.8,
                             blurKernelSize: 15,
+                            blurBias: 0.5,
                             samples: 32,
                             resolutionScale: 1,
                             color: Color(0x000000),
@@ -108,6 +109,7 @@ export class QuickStyles extends PurePluginUIComponent {
                                 radius: 5,
                                 bias: 0.8,
                                 blurKernelSize: 15,
+                                blurBias: 0.5,
                                 samples: 32,
                                 resolutionScale: 1,
                                 color: Color(0x000000),

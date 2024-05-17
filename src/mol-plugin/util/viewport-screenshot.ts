@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -116,6 +116,7 @@ class ViewportScreenshotHelper extends PluginComponent {
                 ...c.props.multiSample,
                 mode: multisample ? 'on' : 'off',
                 sampleLevel: colorBufferFloat && textureFloat ? 4 : 2,
+                reuseOcclusion: false,
             },
             postprocessing: {
                 ...c.props.postprocessing,

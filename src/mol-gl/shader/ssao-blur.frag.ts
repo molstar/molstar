@@ -16,6 +16,7 @@ uniform vec2 uTexSize;
 uniform vec4 uBounds;
 
 uniform float uKernel[dOcclusionKernelSize];
+uniform float uBlurBias;
 
 uniform float uBlurDirectionX;
 uniform float uBlurDirectionY;
@@ -68,7 +69,7 @@ void main(void) {
     float selfViewZ = getViewZ(selfDepth);
     float pixelSize = getPixelSize(coords, selfDepth);
     // max diff depth between two pixels
-    float maxDiffViewZ = 1.0;
+    float maxDiffViewZ = 0.1;
 
     vec2 offset = vec2(uBlurDirectionX, uBlurDirectionY) / uTexSize;
 
@@ -91,7 +92,7 @@ void main(void) {
         }
 
         float sampleViewZ = getViewZ(sampleDepth);
-        if (abs(selfViewZ - sampleViewZ) > maxDiffViewZ) {
+        if (abs(selfViewZ - sampleViewZ) >= uBlurBias) {
             continue;
         }
 
