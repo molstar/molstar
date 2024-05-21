@@ -77,7 +77,7 @@ export const AnimateStateSnapshots = PluginStateAnimation.create({
             return { kind: 'skip' };
         }
 
-        setPartialSnapshot(ctx.plugin, animState.snapshots[i]);
+        await setPartialSnapshot(ctx.plugin, animState.snapshots[i]);
 
         return { kind: 'next', state: { ...animState, currentIndex: i } };
     }
