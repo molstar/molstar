@@ -11,7 +11,13 @@ import { PluginStateAnimation } from '../model';
 async function setPartialSnapshot(plugin: PluginContext, entry: PluginStateSnapshotManager.Entry, first = false) {
     if (entry.snapshot.data) {
         await plugin.runTask(plugin.state.data.setSnapshot(entry.snapshot.data));
+        // update the canvas3d trackball with the snapshot
+        plugin.canvas3d?.setProps({
+            trackball: entry.snapshot.canvas3d?.props?.trackball
+        });
+
     }
+
     if (entry.snapshot.camera) {
         plugin.canvas3d?.requestCameraReset({
             snapshot: entry.snapshot.camera.current,
@@ -77,7 +83,7 @@ export const AnimateStateSnapshots = PluginStateAnimation.create({
             return { kind: 'skip' };
         }
 
-        setPartialSnapshot(ctx.plugin, animState.snapshots[i]);
+        await setPartialSnapshot(ctx.plugin, animState.snapshots[i]);
 
         return { kind: 'next', state: { ...animState, currentIndex: i } };
     }
