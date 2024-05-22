@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix State Snapshots export animation (#1140)
 - Add depth of field (dof) postprocessing effect
 - Add `SbNcbrTunnels` extension for for visualizing tunnels in molecular structures from ChannelsDB (more info in [tunnels.md](./docs/docs/extensions/tunnels.md))
 - Fix edge case in minimizing RMSD transform computation

@@ -5,7 +5,6 @@
  */
 
 import { PluginContext } from '../../../mol-plugin/context';
-// import { now } from '../../../mol-util/now';
 import { PluginStateSnapshotManager } from '../../manager/snapshots';
 import { PluginStateAnimation } from '../model';
 
