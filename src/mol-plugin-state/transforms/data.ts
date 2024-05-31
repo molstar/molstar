@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Neli Fonseca <neli@ebi.ac.uk>
  */
 
 import * as CCP4 from '../../mol-io/reader/ccp4/parser';
@@ -27,7 +28,7 @@ import { ungzip } from '../../mol-util/zip/zip';
 
 export { Download };
 export { DownloadBlob };
-export { DecompressGzip };
+export { DeflateData };
 export { RawData };
 export { ReadFile };
 export { ParseBlob };
@@ -136,14 +137,15 @@ const DownloadBlob = PluginStateTransform.BuiltIn({
     // }
 });
 
-type DeflateData = typeof Deflate 
+type DeflateData = typeof DeflateData
 const DeflateData = PluginStateTransform.BuiltIn({
     name: 'defalate-data',
     display: { name: 'Deflate', description: 'Deflate compressed data' },
     params: {
-      method: PD.Select('gzip', [['gzip', 'gzip']]),  // later on we might have to add say brotli
-      isString: PD.Boolean(false),
-      stringEncoding: PD.Optional(PD.Select('utf-8', [['utf-8', 'UTF8']])),
+        method: PD.Select('gzip', [['gzip', 'gzip']]), // later on we might have to add say brotli
+        isString: PD.Boolean(false),
+        stringEncoding: PD.Optional(PD.Select('utf-8', [['utf-8', 'UTF8']])),
+        label: PD.Optional(PD.Text(''))
     },
     from: [SO.Data.Binary],
     to: [SO.Data.Binary, SO.Data.String]
@@ -152,7 +154,7 @@ const DeflateData = PluginStateTransform.BuiltIn({
         return Task.create('Gzip', async ctx => {
             const decompressedData = await ungzip(ctx, a.data);
             // handle decoding based on stringEncoding param
-            return new SO.Data.Binary(decompressedData as Uint8Array);
+            return new SO.Data.Binary(decompressedData as Uint8Array, { label: a.label });
         });
     }
 });
