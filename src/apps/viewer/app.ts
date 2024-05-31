@@ -429,7 +429,7 @@ export class Viewer {
         const url = `https://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-${numericId}/map/emd_${numericId}.map.gz`;
         const data = await plugin.build().toRoot()
             .apply(StateTransforms.Data.Download, { url, isBinary: true, label: emdbId }, { state: { isGhost: true } })
-            .apply(StateTransforms.Data.DecompressGzip, { })
+            .apply(StateTransforms.Data.DecompressGzip)
             .commit();
         const parsed = await plugin.dataFormats.get('ccp4')!.parse(plugin, data, { entryId: emdbId });
         const firstVolume = (parsed.volume || parsed.volumes[0]) as StateObjectSelector<PluginStateObject.Volume.Data>;
