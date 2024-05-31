@@ -23,9 +23,11 @@ import { ColorNames } from '../../mol-util/color/names';
 import { assertUnreachable } from '../../mol-util/type-helpers';
 import { parsePrmtop } from '../../mol-io/reader/prmtop/parser';
 import { parseTop } from '../../mol-io/reader/top/parser';
+import { ungzip } from '../../mol-util/zip/zip';
 
 export { Download };
 export { DownloadBlob };
+export { DecompressGzip };
 export { RawData };
 export { ReadFile };
 export { ParseBlob };
@@ -132,6 +134,21 @@ const DownloadBlob = PluginStateTransform.BuiltIn({
     //     // }
     //     // return StateTransformer.UpdateResult.Unchanged;
     // }
+});
+
+type DecompressGzip = typeof DecompressGzip
+const DecompressGzip = PluginStateTransform.BuiltIn({
+    name: 'decompress-gzip',
+    display: { name: 'Gzip', description: 'Decompress Gzip files' },
+    from: [SO.Data.Binary],
+    to: [SO.Data.Binary]
+})({
+    apply({ a }, plugin: PluginContext) {
+        return Task.create('Gzip', async ctx => {
+            const decompressedData = await ungzip(ctx, a.data);
+            return new SO.Data.Binary(decompressedData as Uint8Array);
+        });
+    }
 });
 
 type RawData = typeof RawData

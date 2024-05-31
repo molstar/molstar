@@ -423,6 +423,28 @@ export class Viewer {
         });
     }
 
+    async loadFullResolutionMap(emdbId: string, iso: number) {
+        const plugin = this.plugin;
+        const numericId = parseInt(emdbId.toUpperCase().replace('EMD-', ''));
+        const url = `https://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-${numericId}/map/emd_${numericId}.map.gz`;
+        const data = await plugin.build().toRoot()
+            .apply(StateTransforms.Data.Download, { url, isBinary: true, label: emdbId }, { state: { isGhost: true } })
+            .apply(StateTransforms.Data.DecompressGzip, { })
+            .commit();
+        const parsed = await plugin.dataFormats.get('ccp4')!.parse(plugin, data, { entryId: emdbId });
+        const firstVolume = (parsed.volume || parsed.volumes[0]) as StateObjectSelector<PluginStateObject.Volume.Data>;
+        if (!firstVolume?.isOk) throw new Error('Failed to parse any volume.');
+        const volume: StateObjectSelector<PluginStateObject.Volume.Data> = parsed.volumes?.[0] ?? parsed.volume;
+        await plugin.build().to(volume)
+            .apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(this.plugin, firstVolume.data!, {
+                type: 'isosurface',
+                typeParams: { alpha: 1, isoValue: { 'kind': 'absolute', 'absoluteValue': iso } },
+                color: 'uniform',
+                colorParams: { value: Color(0x33BB33) }
+            }))
+            .commit();
+    }
+
     /**
      * @example
      *  viewer.loadTrajectory({
