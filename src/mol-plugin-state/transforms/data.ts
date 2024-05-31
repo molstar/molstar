@@ -136,16 +136,22 @@ const DownloadBlob = PluginStateTransform.BuiltIn({
     // }
 });
 
-type DecompressGzip = typeof DecompressGzip
-const DecompressGzip = PluginStateTransform.BuiltIn({
-    name: 'decompress-gzip',
-    display: { name: 'Gzip', description: 'Decompress Gzip files' },
+type DeflateData = typeof Deflate 
+const DeflateData = PluginStateTransform.BuiltIn({
+    name: 'defalate-data',
+    display: { name: 'Deflate', description: 'Deflate compressed data' },
+    params: {
+      method: PD.Select('gzip', [['gzip', 'gzip']]),  // later on we might have to add say brotli
+      isString: PD.Boolean(false),
+      stringEncoding: PD.Optional(PD.Select('utf-8', [['utf-8', 'UTF8']])),
+    },
     from: [SO.Data.Binary],
-    to: [SO.Data.Binary]
+    to: [SO.Data.Binary, SO.Data.String]
 })({
     apply({ a }, plugin: PluginContext) {
         return Task.create('Gzip', async ctx => {
             const decompressedData = await ungzip(ctx, a.data);
+            // handle decoding based on stringEncoding param
             return new SO.Data.Binary(decompressedData as Uint8Array);
         });
     }
