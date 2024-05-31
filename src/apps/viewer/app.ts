@@ -446,7 +446,7 @@ export class Viewer {
                     type: 'isosurface',
                     typeParams: { alpha: 1, isoValue: isoValue },
                     color: 'uniform',
-                    colorParams: { value: Color(0x33BB33) }
+                    colorParams: { value: options.color ?? Color(0x33BB33) }
                 }))
                 .commit();
         });
