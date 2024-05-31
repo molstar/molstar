@@ -423,7 +423,7 @@ export class Viewer {
         });
     }
 
-    async loadFullResolutionMap(emdbId: string, iso: number) {
+    async loadFullResolutionEMDBMap(emdbId: string, options: { isoValue: Volume.IsoValue }) {
         const plugin = this.plugin;
         const numericId = parseInt(emdbId.toUpperCase().replace('EMD-', ''));
         const url = `https://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-${numericId}/map/emd_${numericId}.map.gz`;
