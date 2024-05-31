@@ -425,7 +425,6 @@ export class Viewer {
     }
 
     async loadFullResolutionEMDBMap(emdbId: string, isoValue: Volume.IsoValue) {
-        console.log(isoValue);
         const plugin = this.plugin;
         const numericId = parseInt(emdbId.toUpperCase().replace('EMD-', ''));
         const url = `https://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-${numericId}/map/emd_${numericId}.map.gz`;
