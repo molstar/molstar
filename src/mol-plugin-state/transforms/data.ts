@@ -25,6 +25,7 @@ import { assertUnreachable } from '../../mol-util/type-helpers';
 import { parsePrmtop } from '../../mol-io/reader/prmtop/parser';
 import { parseTop } from '../../mol-io/reader/top/parser';
 import { ungzip } from '../../mol-util/zip/zip';
+import {utf8Read} from "../../mol-io/common/utf8";
 
 export { Download };
 export { DownloadBlob };
@@ -150,11 +151,16 @@ const DeflateData = PluginStateTransform.BuiltIn({
     from: [SO.Data.Binary],
     to: [SO.Data.Binary, SO.Data.String]
 })({
-    apply({ a }, plugin: PluginContext) {
+    apply({ a, params }, plugin: PluginContext) {
         return Task.create('Gzip', async ctx => {
             const decompressedData = await ungzip(ctx, a.data);
+            const label = params.label ? params.label : a.label;
             // handle decoding based on stringEncoding param
-            return new SO.Data.Binary(decompressedData as Uint8Array, { label: a.label });
+            if (params.isString) {
+                const textData = utf8Read(decompressedData, 0, decompressedData.length);
+                return new SO.Data.String(textData, { label });
+            }
+            return new SO.Data.Binary(decompressedData as Uint8Array, { label });
         });
     }
 });
