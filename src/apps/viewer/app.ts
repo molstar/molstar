@@ -444,7 +444,7 @@ export class Viewer {
                 .to(volume)
                 .apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(this.plugin, firstVolume.data!, {
                     type: 'isosurface',
-                    typeParams: { alpha: 1, isoValue: isoValue },
+                    typeParams: { alpha: 1, isoValue },
                     color: 'uniform',
                     colorParams: { value: options.color ?? Color(0x33BB33) }
                 }))
