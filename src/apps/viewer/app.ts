@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Neli Fonseca <neli@ebi.ac.uk>
  */
 
 import { ANVILMembraneOrientation } from '../../extensions/anvil/behavior';
@@ -420,6 +421,34 @@ export class Viewer {
             }
 
             await repr.commit();
+        });
+    }
+
+    loadFullResolutionEMDBMap(emdbId: string, options: { isoValue: Volume.IsoValue, color?: Color }) {
+        const plugin = this.plugin;
+        const numericId = parseInt(emdbId.toUpperCase().replace('EMD-', ''));
+        const url = `https://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-${numericId}/map/emd_${numericId}.map.gz`;
+
+        return plugin.dataTransaction(async () => {
+            const data = await plugin.build().toRoot()
+                .apply(StateTransforms.Data.Download, { url, isBinary: true, label: emdbId }, { state: { isGhost: true } })
+                .apply(StateTransforms.Data.DeflateData)
+                .commit();
+
+            const parsed = await plugin.dataFormats.get('ccp4')!.parse(plugin, data, { entryId: emdbId });
+            const firstVolume = (parsed.volume || parsed.volumes[0]) as StateObjectSelector<PluginStateObject.Volume.Data>;
+            if (!firstVolume?.isOk) throw new Error('Failed to parse any volume.');
+
+            const volume: StateObjectSelector<PluginStateObject.Volume.Data> = parsed.volumes?.[0] ?? parsed.volume;
+            await plugin.build()
+                .to(volume)
+                .apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(this.plugin, firstVolume.data!, {
+                    type: 'isosurface',
+                    typeParams: { alpha: 1, isoValue: options.isoValue },
+                    color: 'uniform',
+                    colorParams: { value: options.color ?? Color(0x33BB33) }
+                }))
+                .commit();
         });
     }
 

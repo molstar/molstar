@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Neli Fonseca <neli@ebi.ac.uk>
  */
 
 import * as CCP4 from '../../mol-io/reader/ccp4/parser';
@@ -23,9 +24,12 @@ import { ColorNames } from '../../mol-util/color/names';
 import { assertUnreachable } from '../../mol-util/type-helpers';
 import { parsePrmtop } from '../../mol-io/reader/prmtop/parser';
 import { parseTop } from '../../mol-io/reader/top/parser';
+import { ungzip } from '../../mol-util/zip/zip';
+import { utf8Read } from "../../mol-io/common/utf8";
 
 export { Download };
 export { DownloadBlob };
+export { DeflateData };
 export { RawData };
 export { ReadFile };
 export { ParseBlob };
@@ -132,6 +136,33 @@ const DownloadBlob = PluginStateTransform.BuiltIn({
     //     // }
     //     // return StateTransformer.UpdateResult.Unchanged;
     // }
+});
+
+type DeflateData = typeof DeflateData
+const DeflateData = PluginStateTransform.BuiltIn({
+    name: 'defalate-data',
+    display: { name: 'Deflate', description: 'Deflate compressed data' },
+    params: {
+        method: PD.Select('gzip', [['gzip', 'gzip']]), // later on we might have to add say brotli
+        isString: PD.Boolean(false),
+        stringEncoding: PD.Optional(PD.Select('utf-8', [['utf-8', 'UTF8']])),
+        label: PD.Optional(PD.Text(''))
+    },
+    from: [SO.Data.Binary],
+    to: [SO.Data.Binary, SO.Data.String]
+})({
+    apply({ a, params }, plugin: PluginContext) {
+        return Task.create('Gzip', async ctx => {
+            const decompressedData = await ungzip(ctx, a.data);
+            const label = params.label ? params.label : a.label;
+            // handle decoding based on stringEncoding param
+            if (params.isString) {
+                const textData = utf8Read(decompressedData, 0, decompressedData.length);
+                return new SO.Data.String(textData, { label });
+            }
+            return new SO.Data.Binary(decompressedData as Uint8Array, { label });
+        });
+    }
 });
 
 type RawData = typeof RawData
