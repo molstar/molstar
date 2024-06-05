@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 - Create a transformer to deflate compressed data.
 
+- Adjust Quick Styles panel button labels
+
 ## [v4.3.0] - 2023-05-26
 
 - Fix State Snapshots export animation (#1140)
