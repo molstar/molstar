@@ -507,12 +507,30 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
             const c = type === 'generate' ? groupColors[i] : value;
             update.to(entities[i]).update(old => {
                 if (old.type) {
+                    if (type === 'illustrative') {
+                        const newvalue = old.colorTheme.name === 'illustrative' ? old.colorTheme.params.style.params.value : old.colorTheme.params.value;
+                        old.colorTheme = { name: 'illustrative', params: { style: { name: 'uniform', params: { value: newvalue } } } };
+                    } else if (type === 'illustrative-chain') {
+                        const newvalue = old.colorTheme.name === 'illustrative' ? old.colorTheme.params.style.params.value : old.colorTheme.params.value;
+                        old.colorTheme = { name: 'illustrative', params: { style: { name: 'chain', params: { value: newvalue } } } };
+                    } else {
+                        old.colorTheme.name = 'uniform';
+                    }
                     old.colorTheme.params.value = c;
                     old.colorTheme.params.lightness = lightness;
                     old.type.params.alpha = alpha;
                     old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
                     old.type.params.emissive = emissive;
                 } else {
+                    if (type === 'illustrative') {
+                        const newvalue = old.colorTheme.name === 'illustrative' ? old.colorTheme.params.style.params.value : old.colorTheme.params.value;
+                        old.colorTheme = { name: 'illustrative', params: { style: { name: 'uniform', params: { value: newvalue } } } };
+                    } else if (type === 'illustrative-chain') {
+                        const newvalue = old.colorTheme.name === 'illustrative' ? old.colorTheme.params.style.params.value : old.colorTheme.params.value;
+                        old.colorTheme = { name: 'illustrative', params: { style: { name: 'chain', params: { value: newvalue } } } };
+                    } else {
+                        old.colorTheme.name = 'uniform';
+                    }
                     old.coloring.params.color = c;
                     old.coloring.params.lightness = lightness;
                     old.alpha = alpha;
@@ -528,7 +546,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
 
         for (const r of this.roots) {
             update.to(r).update(old => {
-                old.color.type = 'custom';
+                if (old.color.type !== 'illustrative') old.color.type = 'custom';
             });
         }
 
@@ -548,7 +566,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
                 const others = getAllLeafGroups(this.plugin, r.params?.values.tag);
                 for (const o of others) {
                     update.to(o).update(old => {
-                        old.color.type = 'custom';
+                        if (old.color.type !== 'illustrative') old.color.type = 'custom';
                     });
                 }
             }
@@ -624,7 +642,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
                 borderRight: `6px solid ${Color.toStyle(Color.lighten(color.value, color.lightness))}`
             };
             return <Button style={style} onClick={this.toggleColor} />;
-        } else if (this.cell.params?.values.color.type === 'generate') {
+        } else if (this.cell.params?.values.color.type === 'generate' || this.cell.params?.values.color.type === 'illustrative' || this.cell.params?.values.color.type === 'illustrative-chain') {
             const style = {
                 minWidth: 32,
                 width: 32,
@@ -779,13 +797,25 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
     };
 
     get colorValue(): Color | undefined {
-        return this.cell.transform.params?.colorTheme?.params.value ?? this.cell.transform.params?.coloring?.params.color;
+        if (this.cell.transform.params?.colorTheme?.params.value) {
+            return this.cell.transform.params?.colorTheme?.params.value;
+        } else if (this.cell.transform.params?.colorTheme?.name === 'illustrative') {
+            return this.cell.transform.params?.colorTheme?.params.style.params.value;
+        } else {
+            return this.cell.transform.params?.colorTheme?.params.value ?? this.cell.transform.params?.coloring?.params.color;
+        }
     }
 
     get lightnessValue(): { lightness: number } | undefined {
-        return {
-            lightness: this.cell.transform.params?.colorTheme?.params.lightness ?? this.cell.transform.params?.coloring?.params.lightness ?? 0
-        };
+        if (this.cell.transform.params?.colorTheme?.name === 'illustrative') {
+            return {
+                lightness: this.cell.transform.params?.colorTheme?.params.style.params.lightness ?? 0
+            };
+        } else {
+            return {
+                lightness: this.cell.transform.params?.colorTheme?.params.lightness ?? this.cell.transform.params?.coloring?.params.lightness ?? 0
+            };
+        }
     }
 
     get opacityValue(): { alpha: number } | undefined {
@@ -828,17 +858,21 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
         const update = this.plugin.state.data.build();
         for (const g of this.groups) {
             update.to(g.transform.ref).update(old => {
-                old.color.type = 'custom';
+                if (old.color.type !== 'illustrative') old.color.type = 'custom';
             });
         }
         for (const r of this.roots) {
             update.to(r).update(old => {
-                old.color.type = 'custom';
+                if (old.color.type !== 'illustrative') old.color.type = 'custom';
             });
         }
         update.to(this.ref).update(old => {
             if (old.colorTheme) {
-                old.colorTheme.params.value = value;
+                if (old.colorTheme.name === 'illustrative') {
+                    old.colorTheme.params.style.params.value = value;
+                } else {
+                    old.colorTheme.params.value = value;
+                }
             } else if (old.coloring) {
                 old.coloring.params.color = value;
             }
@@ -849,7 +883,11 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
     updateLightness = (values: PD.Values) => {
         return this.plugin.build().to(this.ref).update(old => {
             if (old.colorTheme) {
-                old.colorTheme.params.lightness = values.lightness;
+                if (old.colorTheme.name === 'illustrative') {
+                    old.colorTheme.params.style.params.lightness = values.lightness;
+                } else {
+                    old.colorTheme.params.lightness = values.lightness;
+                }
             } else if (old.coloring) {
                 old.coloring.params.lightness = values.lightness;
             }
