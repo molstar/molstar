@@ -4,17 +4,20 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import Markdown from 'react-markdown';
+import React, { useState } from 'react';
 import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
+import { Structure, StructureElement } from '../../../mol-model/structure';
 import { MmcifProvider } from '../../../mol-plugin-state/formats/trajectory';
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
-import { PluginUIComponent } from '../../../mol-plugin-ui/base';
-import { Button, ExpandGroup } from '../../../mol-plugin-ui/controls/common';
-import { GetAppSvg, Icon, OpenInBrowserSvg } from '../../../mol-plugin-ui/controls/icons';
+import { PluginReactContext, PluginUIComponent } from '../../../mol-plugin-ui/base';
+import { Button, ExpandGroup, IconButton } from '../../../mol-plugin-ui/controls/common';
+import { GetAppSvg, Icon, MinusBoxSvg, OpenInBrowserSvg, PlusBoxSvg, TooltipTextOutlineSvg, TooltipTextSvg } from '../../../mol-plugin-ui/controls/icons';
 import { ApplyActionControl } from '../../../mol-plugin-ui/state/apply-action';
 import { LocalStateSnapshotList, LocalStateSnapshotParams, LocalStateSnapshots } from '../../../mol-plugin-ui/state/snapshots';
 import { PluginCommands } from '../../../mol-plugin/commands';
 import { PluginContext } from '../../../mol-plugin/context';
-import { StateAction, StateObjectRef, StateTransform } from '../../../mol-state';
+import { StateAction, StateObjectCell, StateObjectRef, StateTransform } from '../../../mol-state';
 import { Task } from '../../../mol-task';
 import { Color } from '../../../mol-util/color/color';
 import { getFileNameInfo } from '../../../mol-util/file-info';
@@ -24,7 +27,10 @@ import { createCellpackHierarchy } from '../data/cellpack/preset';
 import { createGenericHierarchy } from '../data/generic/preset';
 import { createMmcifHierarchy } from '../data/mmcif/preset';
 import { createPetworldHierarchy } from '../data/petworld/preset';
-import { MesoscaleState, MesoscaleStateObject, setGraphicsCanvas3DProps } from '../data/state';
+import { MesoscaleState, MesoscaleStateObject, setGraphicsCanvas3DProps, getEveryEntities, getAllEntities, getFilteredEntities } from '../data/state';
+import { EveryLoci } from '../../../mol-model/loci';
+import { MarkerAction } from '../../../mol-util/marker-action';
+import { PluginStateObject as PSO } from '../../../mol-plugin-state/objects';
 
 function adjustPluginProps(ctx: PluginContext) {
     ctx.managers.interactivity.setProps({ granularity: 'chain' });
@@ -359,5 +365,233 @@ export class SnapshotControls extends PluginUIComponent<{}> {
                 </ExpandGroup>
             </div>
         </div>;
+    }
+}
+
+export function MesoMarkdownAnchor({ href, children, element }: { href?: string, children?: any, element?: any }) {
+    const plugin = React.useContext(PluginReactContext);
+    if (!href) return element;
+    // Decode the href to handle encoded spaces and other characters
+    const decodedHref = href ? decodeURIComponent(href) : '';
+    const handleHover = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        e.preventDefault();
+        if (decodedHref.startsWith('i')) {
+            e.preventDefault();
+            plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+            const query_names = decodedHref.substring(1).split(',');
+            for (const query_name of query_names) {
+                const entities = getEveryEntities(plugin, query_name);
+                for (const r of entities) {
+                    const repr = r.obj?.data.repr;
+                    if (repr) {
+                        plugin.canvas3d?.mark({ repr, loci: EveryLoci }, MarkerAction.Highlight);
+                    }
+                }
+            }
+        } else if (decodedHref.startsWith('g')) {
+            e.preventDefault();
+            plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+            const qindex = decodedHref.indexOf('.');
+            const query = decodedHref.substring(1, qindex) + ':';
+            const query_names = decodedHref.substring(qindex + 1).split(',');
+            for (const query_name of query_names) {
+                const e = getAllEntities(plugin, query + query_name);
+                for (const r of e) {
+                    const repr = r.obj?.data.repr;
+                    if (repr) {
+                        plugin.canvas3d?.mark({ repr, loci: EveryLoci }, MarkerAction.Highlight);
+                    }
+                }
+            }
+        }
+    };
+    const handleLeave = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        e.preventDefault();
+        // Implement your hover off logic here
+        // console.log('Hovered off:', href);
+        // Example: Perform an action if the href starts with 'h'
+        if (decodedHref.startsWith('i') || decodedHref.startsWith('g')) {
+            // Example hover off action
+            e.preventDefault();
+            plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+        }
+    };
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        e.preventDefault();
+        if (href.startsWith('#')) {
+            plugin.managers.snapshot.applyKey(decodedHref.substring(1));
+        } else if (decodedHref.startsWith('i')) {
+            e.preventDefault();
+            plugin.managers.interactivity.lociSelects.deselectAll();
+            plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+            const query_names = decodedHref.substring(1).split(',');
+            for (const query_name of query_names) {
+                const entities = getFilteredEntities(plugin, '', query_name);
+                for (const r of entities) {
+                    const repr = r.obj?.data.repr;
+                    if (repr) {
+                        plugin.canvas3d?.mark({ repr, loci: EveryLoci }, MarkerAction.Highlight);
+                    }
+                    const cell = r as StateObjectCell<PSO.Molecule.Structure.Representation3D | PSO.Shape.Representation3D> | undefined;
+                    if (!(cell?.obj?.data.sourceData instanceof Structure)) {
+                        console.log('not a structure return');
+                        return;
+                    }
+                    const loci = Structure.toStructureElementLoci(cell.obj.data.sourceData);
+                    plugin.managers.interactivity.lociSelects.toggle({ loci }, false);
+                }
+            }
+        } else if (decodedHref.startsWith('g')) {
+            e.preventDefault();
+            plugin.managers.interactivity.lociSelects.deselectAll();
+            plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+            const qindex = decodedHref.indexOf('.');
+            const query = decodedHref.substring(1, qindex) + ':';
+            const query_names = decodedHref.substring(qindex + 1).split(',');
+            for (const query_name of query_names) {
+                const entities = getAllEntities(plugin, query + query_name);
+                for (const r of entities) {
+                    const repr = r.obj?.data.repr;
+                    if (repr) {
+                        plugin.canvas3d?.mark({ repr, loci: EveryLoci }, MarkerAction.Highlight);
+                    }
+                    const cell = r as StateObjectCell<PSO.Molecule.Structure.Representation3D | PSO.Shape.Representation3D> | undefined;
+                    if (!(cell?.obj?.data.sourceData instanceof Structure)) return;
+                    const loci = Structure.toStructureElementLoci(cell.obj.data.sourceData);
+                    plugin.managers.interactivity.lociSelects.toggle({ loci }, false);
+                }
+            }
+        } else {
+            // open the link in a new tab
+            window.open(decodedHref, '_blank');
+        }
+    };
+
+    if (decodedHref[0] === '#') {
+        return <a href={decodedHref[0]} onMouseOver={handleHover} onClick={handleClick}>{children}</a>;
+    }
+    if (decodedHref[0] === 'i' || decodedHref[0] === 'g') {
+        return <a href={decodedHref[0]} onMouseLeave={handleLeave} onMouseOver={handleHover} onClick={handleClick}>{children}</a>;
+    }
+    if (decodedHref[0] === 'h') {
+        return <a href={decodedHref[0]} onClick={handleClick} rel="noopener noreferrer">{children}</a>;
+    }
+    return element;
+}
+
+export function MesoViewportSnapshotDescription() {
+    let tSize = 14;
+    const plugin = React.useContext(PluginReactContext);
+    if (MesoscaleState.has(plugin)) {
+        const state = MesoscaleState.get(plugin);
+        tSize = state.textSizeDescription;
+    }
+    const [_, setV] = React.useState(0);
+    const [isShown, setIsShown] = useState(true);
+    const [textSize, setTextSize] = useState(tSize);
+    const toggleVisibility = () => {
+        setIsShown(!isShown);
+    };
+    const increaseTextSize = () => {
+        setTextSize(prevSize => prevSize + 2); // Increase the text size by 2px
+    };
+
+    const decreaseTextSize = () => {
+        setTextSize(prevSize => prevSize - 2); // Decrease the text size by 2px
+    };
+
+    React.useEffect(() => {
+        const sub = plugin.managers.snapshot.events.changed.subscribe(() => setV(v => v + 1));
+        return () => sub.unsubscribe();
+    }, [plugin]);
+
+    const current = plugin.managers.snapshot.state.current;
+    if (!current) return null;
+
+    const e = plugin.managers.snapshot.getEntry(current)!;
+    if (!e?.description?.trim()) return null;
+    if (MesoscaleState.has(plugin)) {
+        MesoscaleState.set(plugin, { textSizeDescription: textSize });
+    }
+    const showInfo = <IconButton svg={isShown ? TooltipTextSvg : TooltipTextOutlineSvg} flex='20px' onClick={toggleVisibility} title={isShown ? 'Hide Description' : 'Show Description'}/>;
+    const increasePoliceSize = <IconButton svg={PlusBoxSvg} flex='20px' onClick={increaseTextSize} title='Bigger Text' />;
+    const decreasePoliceSize = <IconButton svg={MinusBoxSvg} flex='20px' onClick={decreaseTextSize} title='Smaller Text' />;
+    return (
+        <>
+            <div id='snapinfoctrl' className="msp-state-snapshot-viewport-controls" style={{ marginRight: '30px' }}>
+                {showInfo}{increasePoliceSize}{decreasePoliceSize}
+            </div>
+            <div id='snapinfo' className={`msp-snapshot-description-wrapper ${isShown ? 'shown' : 'hidden'}`} style={{ fontSize: `${textSize}px` }}>
+                {<Markdown skipHtml={false} components={{ a: MesoMarkdownAnchor }}>{e.description}</Markdown>}
+            </div>
+        </>
+    );
+}
+
+export class CanvasInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
+    state = {
+        isDisabled: false,
+    };
+
+    componentDidMount() {
+        this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
+            this.setState({ isDisabled: v });
+        });
+
+        this.subscribe(this.plugin.state.events.cell.stateUpdated, e => {
+            if (!this.state.isDisabled && MesoscaleState.has(this.plugin) && MesoscaleState.ref(this.plugin) === e.ref) {
+                this.forceUpdate();
+            }
+        });
+
+        this.subscribe(this.plugin.managers.structure.selection.events.changed, e => {
+            if (!this.state.isDisabled) {
+                this.forceUpdate();
+            }
+        });
+    }
+
+    get info() {
+        // const infos: { label: string, key: string, description?: string }[] = [];
+        const info: {textSize: number, selectionDescription: string, infos: { label: string, key: string, description?: string }[] } = {
+            selectionDescription: '', infos: [],
+            textSize: 14
+        };
+        if (MesoscaleState.has(this.plugin)) {
+            const state = MesoscaleState.get(this.plugin);
+            if (state.selectionDescription) info.selectionDescription = state.selectionDescription;
+            info.textSize = state.textSizeDescription;
+        }
+        this.plugin.managers.structure.selection.entries.forEach((e, k) => {
+            if (StructureElement.Loci.is(e.selection) && !StructureElement.Loci.isEmpty(e.selection)) {
+                const cell = this.plugin.helpers.substructureParent.get(e.selection.structure);
+                const { entities } = e.selection.structure.model;
+                // const idx = entities.getEntityIndex(0);
+                // const unitsByEntity = getUnitsByEntity(parent);
+                // const units = unitsByEntity.get(idx) || [];
+                // const structure = Structure.create(units);
+                const description = entities.data.pdbx_description.value(0)[0] || 'model';
+                info.infos.push({
+                    description: description,
+                    label: cell?.obj?.label || 'Unknown',
+                    key: k,
+                });
+            }
+        });
+        return info;
+    }
+
+    renderInfo() {
+        const info = this.info;
+        if (info.selectionDescription === '') return <></>;
+        return <div id='canvainfo' className='msp-highlight-info' style={{ fontSize: `${info.textSize}px` }}>
+            <Markdown skipHtml components={{ a: MesoMarkdownAnchor }}>{info.selectionDescription}</Markdown>
+        </div>;
+    }
+
+    render() {
+        return <>
+            {this.renderInfo()}
+        </>;
     }
 }

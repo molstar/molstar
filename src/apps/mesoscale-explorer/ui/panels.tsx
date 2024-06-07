@@ -4,15 +4,50 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { throttleTime } from 'rxjs';
 import { Mp4EncoderUI } from '../../../extensions/mp4-export/ui';
-import { PluginUIComponent } from '../../../mol-plugin-ui/base';
+import { CollapsableControls, CollapsableState, PluginUIComponent } from '../../../mol-plugin-ui/base';
+import { AnimationViewportControls, LociLabels, SelectionViewportControls, StateSnapshotViewportControls, TrajectoryViewportControls } from '../../../mol-plugin-ui/controls';
 import { SectionHeader } from '../../../mol-plugin-ui/controls/common';
+import { TuneSvg } from '../../../mol-plugin-ui/controls/icons';
+import { StructureMeasurementsControls } from '../../../mol-plugin-ui/structure/measurements';
+import { BackgroundTaskProgress } from '../../../mol-plugin-ui/task';
+import { Toasts } from '../../../mol-plugin-ui/toast';
+import { Viewport, ViewportControls } from '../../../mol-plugin-ui/viewport';
+import { PluginCommands } from '../../../mol-plugin/commands';
+import { StateTree } from '../../../mol-plugin-ui/state/tree';
 import { MesoscaleExplorerState } from '../app';
 import { MesoscaleState } from '../data/state';
 import { EntityControls, ModelInfo, SelectionInfo } from './entities';
-import { LoaderControls, ExampleControls, SessionControls, SnapshotControls, DatabaseControls } from './states';
+import { LoaderControls, ExampleControls, SessionControls, SnapshotControls, DatabaseControls, CanvasInfo, MesoViewportSnapshotDescription } from './states';
+import { ParameterControls } from '../../../mol-plugin-ui/controls/parameters';
+import { Canvas3DContext, Canvas3DParams } from '../../../mol-canvas3d/canvas3d';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 
 const Spacer = () => <div style={{ height: '2em' }} />;
+
+export class MesoScaleViewport extends PluginUIComponent {
+    render() {
+        const VPControls = this.plugin.spec.components?.viewport?.controls || ViewportControls;
+        return <>
+            <Viewport />
+            <div className='msp-viewport-top-left-controls'>
+                <AnimationViewportControls />
+                <TrajectoryViewportControls />
+                <StateSnapshotViewportControls />
+                <MesoViewportSnapshotDescription />
+            </div>
+            <SelectionViewportControls />
+            <VPControls />
+            <BackgroundTaskProgress />
+            <div className='msp-highlight-toast-wrapper'>
+                <LociLabels />
+                <Toasts />
+                <CanvasInfo />
+            </div>
+        </>;
+    }
+}
 
 export class LeftPanel extends PluginUIComponent {
     render() {
@@ -42,6 +77,8 @@ export class LeftPanel extends PluginUIComponent {
             <Spacer />
 
             <Mp4EncoderUI />
+            <ViewportSettingsUI />
+            <BehaviorsSettingsUI />
         </div>;
     }
 }
@@ -89,10 +126,83 @@ export class RightPanel extends PluginUIComponent<{}, { isDisabled: boolean }> {
                 <SectionHeader title='Selection' />
                 <SelectionInfo />
                 <Spacer />
+                <StructureMeasurementsControls />
             </>
 
             <SectionHeader title='Entities' />
             <EntityControls />
         </div>;
+    }
+}
+
+
+class BehaviorsSettingsUI extends CollapsableControls<{}, {}> {
+    protected defaultState(): CollapsableState {
+        return {
+            header: 'Behavior Settings',
+            isCollapsed: true,
+            brand: { accent: 'cyan', svg: TuneSvg }
+        };
+    }
+
+    protected renderControls(): JSX.Element | null {
+        return <>
+            <StateTree state={this.plugin.state.behaviors} />
+        </>;
+    }
+
+    componentDidMount() {
+        this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
+        this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());
+
+        if (this.plugin.canvas3d) {
+            this.subscribe(this.plugin.canvas3d.camera.stateChanged.pipe(throttleTime(500, undefined, { leading: true, trailing: true })), state => {
+                if (state.radiusMax !== undefined || state.radius !== undefined) {
+                    this.forceUpdate();
+                }
+            });
+        }
+    }
+}
+
+class ViewportSettingsUI extends CollapsableControls<{}, {}> {
+    protected defaultState(): CollapsableState {
+        return {
+            header: 'Viewport Settings',
+            isCollapsed: true,
+            brand: { accent: 'cyan', svg: TuneSvg }
+        };
+    }
+
+    protected renderControls(): JSX.Element | null {
+        return <>
+            {this.plugin.canvas3d && this.plugin.canvas3dContext && <>
+                <SectionHeader title='Viewport' />
+                <ParameterControls params={Canvas3DParams} values={this.plugin.canvas3d.props} onChange={this.setSettings} />
+                <ParameterControls params={Canvas3DContext.Params} values={this.plugin.canvas3dContext.props} onChange={this.setCanvas3DContextProps} />
+            </>}
+        </>; // Add closing tag for the JSX element
+    }
+
+    private setSettings = (p: { param: PD.Base<any>, name: string, value: any }) => {
+        PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: { [p.name]: p.value } });
+    };
+
+    private setCanvas3DContextProps = (p: { param: PD.Base<any>, name: string, value: any }) => {
+        this.plugin.canvas3dContext?.setProps({ [p.name]: p.value });
+        this.plugin.events.canvas3d.settingsUpdated.next(void 0);
+    };
+
+    componentDidMount() {
+        this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
+        this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());
+
+        if (this.plugin.canvas3d) {
+            this.subscribe(this.plugin.canvas3d.camera.stateChanged.pipe(throttleTime(500, undefined, { leading: true, trailing: true })), state => {
+                if (state.radiusMax !== undefined || state.radius !== undefined) {
+                    this.forceUpdate();
+                }
+            });
+        }
     }
 }
