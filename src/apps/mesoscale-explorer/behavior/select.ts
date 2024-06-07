@@ -16,7 +16,6 @@ import { StateTreeSpine } from '../../../mol-state/tree/spine';
 import { Representation } from '../../../mol-repr/representation';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { PluginContext } from '../../../mol-plugin/context';
-import { MesoscaleState } from '../data/state';
 
 const B = ButtonsType;
 const M = ModifiersKeys;
