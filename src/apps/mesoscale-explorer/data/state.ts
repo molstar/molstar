@@ -123,8 +123,8 @@ export const RootParams = {
     variability: PD.Numeric(20, { min: 1, max: 180, step: 1 }, { hideIf: p => p.type !== 'group-generate' }),
     shift: PD.Numeric(0, { min: 0, max: 100, step: 1 }, { hideIf: p => !p.type.includes('generate') }),
     lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }, { hideIf: p => p.type === 'custom' || p.type === 'illustrative' }),
-    alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { hideIf: p => p.type === 'custom' || p.type === 'illustrative'  }),
-    emissive: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }, { hideIf: p => p.type === 'custom' || p.type === 'illustrative'  }),
+    alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { hideIf: p => p.type === 'custom' || p.type === 'illustrative' }),
+    emissive: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }, { hideIf: p => p.type === 'custom' || p.type === 'illustrative' }),
 };
 
 export const LightnessParams = {
