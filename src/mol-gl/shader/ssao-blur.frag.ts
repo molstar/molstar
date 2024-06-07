@@ -39,6 +39,10 @@ bool isBackground(const in float depth) {
     return depth == 1.0;
 }
 
+bool isNearClip(const in float depth) {
+    return depth == 0.0;
+}
+
 bool outsideBounds(const in vec2 p) {
     return p.x < uBounds.x || p.y < uBounds.y || p.x > uBounds.z || p.y > uBounds.w;
 }
@@ -60,16 +64,14 @@ void main(void) {
     }
 
     float selfDepth = unpackRGToUnitInterval(packedDepth);
-    // if background and if second pass
-    if (isBackground(selfDepth) && uBlurDirectionY != 0.0) {
+    // (if background and if second pass) or if near clip
+    if ((isBackground(selfDepth) && uBlurDirectionY != 0.0) || isNearClip(selfDepth)) {
         gl_FragColor = vec4(packUnitIntervalToRG(1.0), packedDepth);
         return;
     }
 
     float selfViewZ = getViewZ(selfDepth);
     float pixelSize = getPixelSize(coords, selfDepth);
-    // max diff depth between two pixels
-    float maxDiffViewZ = 0.1;
 
     vec2 offset = vec2(uBlurDirectionX, uBlurDirectionY) / uTexSize;
 
@@ -87,7 +89,7 @@ void main(void) {
         vec4 sampleSsaoDepth = texture2D(tSsaoDepth, sampleCoords);
 
         float sampleDepth = unpackRGToUnitInterval(sampleSsaoDepth.zw);
-        if (isBackground(sampleDepth)) {
+        if (isBackground(sampleDepth) || isNearClip(sampleDepth)) {
             continue;
         }
 

@@ -10,6 +10,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fixes SSAO edge artifacts (#1122)
     - Add `reuseOcclusion` parameter to multi-sample pass
     - Add `blurBias` parameter to occlusion pass
+    - Handle near clip in ssao-blur
 
 ## [v4.2.0] - 2023-04-05
 
