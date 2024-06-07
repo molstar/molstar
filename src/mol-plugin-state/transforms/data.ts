@@ -25,7 +25,7 @@ import { assertUnreachable } from '../../mol-util/type-helpers';
 import { parsePrmtop } from '../../mol-io/reader/prmtop/parser';
 import { parseTop } from '../../mol-io/reader/top/parser';
 import { ungzip } from '../../mol-util/zip/zip';
-import { utf8Read } from "../../mol-io/common/utf8";
+import { utf8Read } from '../../mol-io/common/utf8';
 
 export { Download };
 export { DownloadBlob };
