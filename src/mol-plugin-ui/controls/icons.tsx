@@ -181,13 +181,13 @@ const _Warning = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M1
 export function WarningSvg() { return _Warning; }
 const _ContentCut = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M 9.64 7.64 c 0.23 -0.5 0.36 -1.05 0.36 -1.64 c 0 -2.21 -1.79 -4 -4 -4 S 2 3.79 2 6 s 1.79 4 4 4 c 0.59 0 1.14 -0.13 1.64 -0.36 L 10 12 l -2.36 2.36 C 7.14 14.13 6.59 14 6 14 c -2.21 0 -4 1.79 -4 4 s 1.79 4 4 4 s 4 -1.79 4 -4 c 0 -0.59 -0.13 -1.14 -0.36 -1.64 L 12 14 l 7 7 h 3 v -1 L 9.64 7.64 Z M 6 8 c -1.1 0 -2 -0.89 -2 -2 s 0.9 -2 2 -2 s 2 0.89 2 2 s -0.9 2 -2 2 Z m 0 12 c -1.1 0 -2 -0.89 -2 -2 s 0.9 -2 2 -2 s 2 0.89 2 2 s -0.9 2 -2 2 Z m 6 -7.5 c -0.28 0 -0.5 -0.22 -0.5 -0.5 s 0.22 -0.5 0.5 -0.5 s 0.5 0.22 0.5 0.5 s -0.22 0.5 -0.5 0.5 Z M 19 3 l -6 6 l 2 2 l 7 -7 V 3 Z' /></svg>;
 export function ContentCutSvg() { return _ContentCut; }
-const _TooltipText = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H16L12,22L8,18H4A2,2 0 0,1 2,16V4A2,2 0 0,1 4,2M5,5V7H19V5H5M5,9V11H15V9H5M5,13V15H17V13H5Z' /></svg>;
+const _TooltipText = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2M6 9h12v2H6zm8 5H6v-2h8zm4-6H6V6h12z' /></svg>;
 export function TooltipTextSvg() { return _TooltipText; }
-const _TooltipTextOutline = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H16L12,22L8,18H4A2,2 0 0,1 2,16V4A2,2 0 0,1 4,2M4,4V16H8.83L12,19.17L15.17,16H20V4H4M6,7H18V9H6V7M6,11H16V13H6V11Z' /></svg>;
+const _TooltipTextOutline = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M4 4h16v12H5.17L4 17.17zm0-2c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm2 10h8v2H6zm0-3h12v2H6zm0-3h12v2H6z' /></svg>;
 export function TooltipTextOutlineSvg() { return _TooltipTextOutline; }
-const _PlusBox = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M17,13H13V17H11V13H7V11H11V7H13V11H17M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3Z' /></svg>;
+const _PlusBox = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4z' /></svg>;
 export function PlusBoxSvg() { return _PlusBox; }
-const _MinusBox = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M17,13H7V11H17M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3Z' /></svg>;
+const _MinusBox = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m-2 10H7v-2h10z' /></svg>;
 export function MinusBoxSvg() { return _MinusBox; }
 
 // Aliases
