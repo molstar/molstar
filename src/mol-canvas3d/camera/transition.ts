@@ -108,7 +108,7 @@ namespace CameraTransitionManager {
         const distTarget = Vec3.distance(target.target, target.position);
         const dist = lerp(distSource, distTarget, t);
 
-        // Rotate between source and targer dirction
+        // Rotate between source and targer direction
         Vec3.sub(_sourcePosition, source.position, source.target);
         Vec3.normalize(_sourcePosition, _sourcePosition);
 
@@ -123,11 +123,12 @@ namespace CameraTransitionManager {
 
         Vec3.add(out.position, out.target, _sourcePosition);
 
+        // Interpolate radius
         out.radius = lerp(source.radius, target.radius, t);
         // TODO take change of `clipFar` into account
         out.radiusMax = lerp(source.radiusMax, target.radiusMax, t);
 
-        // Lerp fov & fog
+        // Interpolate fov & fog
         out.fov = lerp(source.fov, target.fov, t);
         out.fog = lerp(source.fog, target.fog, t);
     }
