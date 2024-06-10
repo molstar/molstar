@@ -18,7 +18,7 @@ import { CombinedColorControl } from '../../../mol-plugin-ui/controls/color';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { EveryLoci, Loci } from '../../../mol-model/loci';
 import { deepEqual } from '../../../mol-util';
-import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams, expandAllGroups, EmissiveParams } from '../data/state';
+import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams, expandAllGroups, EmissiveParams, IllustrativeParams } from '../data/state';
 import React from 'react';
 import { MesoscaleExplorerState } from '../app';
 import { StructureElement } from '../../../mol-model/structure/structure/element';
@@ -493,7 +493,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
 
     updateColor = (values: ColorProps) => {
         const update = this.plugin.state.data.build();
-        const { value, type, lightness, alpha, emissive } = values;
+        const { value, illustrative, type, lightness, alpha, emissive } = values;
 
         const entities = this.filteredEntities;
 
@@ -507,30 +507,15 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
             const c = type === 'generate' ? groupColors[i] : value;
             update.to(entities[i]).update(old => {
                 if (old.type) {
-                    if (type === 'illustrative') {
-                        const newvalue = old.colorTheme.name === 'illustrative' ? old.colorTheme.params.style.params.value : old.colorTheme.params.value;
-                        old.colorTheme = { name: 'illustrative', params: { style: { name: 'uniform', params: { value: newvalue } } } };
-                    } else if (type === 'illustrative-chain') {
-                        const newvalue = old.colorTheme.name === 'illustrative' ? old.colorTheme.params.style.params.value : old.colorTheme.params.value;
-                        old.colorTheme = { name: 'illustrative', params: { style: { name: 'chain', params: { value: newvalue } } } };
+                    if (illustrative) {
+                        old.colorTheme = { name: 'illustrative', params: { style: { name: 'uniform', params: { value: c, lightness: lightness } } } };
                     } else {
-                        old.colorTheme.name = 'uniform';
+                        old.colorTheme = { name: 'uniform', params: { value: c, lightness: lightness } };
                     }
-                    old.colorTheme.params.value = c;
-                    old.colorTheme.params.lightness = lightness;
                     old.type.params.alpha = alpha;
                     old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
                     old.type.params.emissive = emissive;
                 } else {
-                    if (type === 'illustrative') {
-                        const newvalue = old.colorTheme.name === 'illustrative' ? old.colorTheme.params.style.params.value : old.colorTheme.params.value;
-                        old.colorTheme = { name: 'illustrative', params: { style: { name: 'uniform', params: { value: newvalue } } } };
-                    } else if (type === 'illustrative-chain') {
-                        const newvalue = old.colorTheme.name === 'illustrative' ? old.colorTheme.params.style.params.value : old.colorTheme.params.value;
-                        old.colorTheme = { name: 'illustrative', params: { style: { name: 'chain', params: { value: newvalue } } } };
-                    } else {
-                        old.colorTheme.name = 'uniform';
-                    }
                     old.coloring.params.color = c;
                     old.coloring.params.lightness = lightness;
                     old.alpha = alpha;
@@ -546,7 +531,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
 
         for (const r of this.roots) {
             update.to(r).update(old => {
-                if (old.color.type !== 'illustrative') old.color.type = 'custom';
+                old.color.type = 'custom';
             });
         }
 
@@ -566,7 +551,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
                 const others = getAllLeafGroups(this.plugin, r.params?.values.tag);
                 for (const o of others) {
                     update.to(o).update(old => {
-                        if (old.color.type !== 'illustrative') old.color.type = 'custom';
+                        old.color.type = 'custom';
                     });
                 }
             }
@@ -642,7 +627,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
                 borderRight: `6px solid ${Color.toStyle(Color.lighten(color.value, color.lightness))}`
             };
             return <Button style={style} onClick={this.toggleColor} />;
-        } else if (this.cell.params?.values.color.type === 'generate' || this.cell.params?.values.color.type === 'illustrative' || this.cell.params?.values.color.type === 'illustrative-chain') {
+        } else if (this.cell.params?.values.color.type === 'generate') {
             const style = {
                 minWidth: 32,
                 width: 32,
@@ -806,6 +791,12 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
         }
     }
 
+    get illustrativeValue(): { illustrative: boolean } | undefined {
+        return {
+            illustrative: (this.cell.transform.params?.colorTheme?.name === 'illustrative')
+        };
+    }
+
     get lightnessValue(): { lightness: number } | undefined {
         if (this.cell.transform.params?.colorTheme?.name === 'illustrative') {
             return {
@@ -858,12 +849,12 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
         const update = this.plugin.state.data.build();
         for (const g of this.groups) {
             update.to(g.transform.ref).update(old => {
-                if (old.color.type !== 'illustrative') old.color.type = 'custom';
+                old.color.type = 'custom';
             });
         }
         for (const r of this.roots) {
             update.to(r).update(old => {
-                if (old.color.type !== 'illustrative') old.color.type = 'custom';
+                old.color.type = 'custom';
             });
         }
         update.to(this.ref).update(old => {
@@ -878,6 +869,18 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
             }
         });
         update.commit();
+    };
+
+    updateIllustrative = (values: PD.Values) => {
+        return this.plugin.build().to(this.ref).update(old => {
+            if (old.colorTheme) {
+                if (old.colorTheme.name !== 'illustrative' && values.illustrative) {
+                    old.colorTheme = { name: 'illustrative', params: { style: { name: 'uniform', params: { value: old.colorTheme.params.value, lightness: old.colorTheme.params.lightness } } } };
+                } else if (old.colorTheme.name === 'illustrative' && !values.illustrative) {
+                    old.colorTheme = { name: 'uniform', params: { value: old.colorTheme.params.style.params.value, lightness: old.colorTheme.params.style.params.lightness } };
+                }
+            }
+        }).commit();
     };
 
     updateLightness = (values: PD.Values) => {
@@ -962,6 +965,7 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
         const depth = this.props.depth;
         const colorValue = this.colorValue;
         const lightnessValue = this.lightnessValue;
+        const illustrativeValue = this.illustrativeValue;
         const opacityValue = this.opacityValue;
         const emissiveValue = this.emissiveValue;
         const lodValue = this.lodValue;
@@ -991,6 +995,7 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
                 <ControlGroup header='Color' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleColor}
                     topRightIcon={CloseSvg} noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
                     <CombinedColorControl param={ColorValueParam} value={colorValue ?? Color(0xFFFFFF)} onChange={this.updateColor} name='color' hideNameRow />
+                    <ParameterControls params={IllustrativeParams} values={illustrativeValue} onChangeValues={this.updateIllustrative} />
                     <ParameterControls params={LightnessParams} values={lightnessValue} onChangeValues={this.updateLightness} />
                     <ParameterControls params={OpacityParams} values={opacityValue} onChangeValues={this.updateOpacity} />
                     <ParameterControls params={EmissiveParams} values={emissiveValue} onChangeValues={this.updateEmissive} />
