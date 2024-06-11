@@ -4,9 +4,9 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
-- Create a transformer to deflate compressed data.
-
+- Create a transformer to deflate compressed data
 - Adjust Quick Styles panel button labels
+- Improve camera interpolation code (interpolate camera rotation instead of just position)
 
 ## [v4.3.0] - 2023-05-26
 
