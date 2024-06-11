@@ -508,9 +508,9 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
             update.to(entities[i]).update(old => {
                 if (old.type) {
                     if (illustrative) {
-                        old.colorTheme = { name: 'illustrative', params: { style: { name: 'uniform', params: { value: c, lightness: lightness } } } };
+                        old.colorTheme = { name: 'illustrative', params: { style: { name: 'uniform', params: { value: c, lightness } } } };
                     } else {
-                        old.colorTheme = { name: 'uniform', params: { value: c, lightness: lightness } };
+                        old.colorTheme = { name: 'uniform', params: { value: c, lightness } };
                     }
                     old.type.params.alpha = alpha;
                     old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;

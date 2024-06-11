@@ -106,7 +106,7 @@ export function getDistinctBaseColors(count: number, shift: number, props?: Part
 
 export const ColorParams = {
     type: PD.Select('generate', PD.arrayToOptions(['generate', 'uniform', 'custom'])),
-    illustrative: PD.Boolean(false, { description: 'Illustrative style' }),
+    illustrative: PD.Boolean(false, { description: 'Illustrative style', hideIf: p => p.type === 'custom' }),
     value: PD.Color(Color(0xFFFFFF), { hideIf: p => p.type === 'custom' }),
     variability: PD.Numeric(20, { min: 1, max: 180, step: 1 }, { hideIf: p => p.type !== 'generate' }),
     shift: PD.Numeric(0, { min: 0, max: 100, step: 1 }, { hideIf: p => !p.type.includes('generate') }),
@@ -120,7 +120,7 @@ export const ColorValueParam = PD.Color(Color(0xFFFFFF));
 
 export const RootParams = {
     type: PD.Select('custom', PD.arrayToOptions(['group-generate', 'group-uniform', 'generate', 'uniform', 'custom'])),
-    illustrative: PD.Boolean(false, { description: 'Illustrative style' }),
+    illustrative: PD.Boolean(false, { description: 'Illustrative style', hideIf: p => p.type === 'custom' }),
     value: PD.Color(Color(0xFFFFFF), { hideIf: p => p.type !== 'uniform' }),
     variability: PD.Numeric(20, { min: 1, max: 180, step: 1 }, { hideIf: p => p.type !== 'group-generate' }),
     shift: PD.Numeric(0, { min: 0, max: 100, step: 1 }, { hideIf: p => !p.type.includes('generate') }),
