@@ -7,7 +7,7 @@
 import Markdown from 'react-markdown';
 import React, { useState } from 'react';
 import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
-import { Structure, StructureElement } from '../../../mol-model/structure';
+import { Structure } from '../../../mol-model/structure';
 import { MmcifProvider } from '../../../mol-plugin-state/formats/trajectory';
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { PluginReactContext, PluginUIComponent } from '../../../mol-plugin-ui/base';
@@ -526,72 +526,4 @@ export function MesoViewportSnapshotDescription() {
             </div>
         </>
     );
-}
-
-export class CanvasInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
-    state = {
-        isDisabled: false,
-    };
-
-    componentDidMount() {
-        this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
-            this.setState({ isDisabled: v });
-        });
-
-        this.subscribe(this.plugin.state.events.cell.stateUpdated, e => {
-            if (!this.state.isDisabled && MesoscaleState.has(this.plugin) && MesoscaleState.ref(this.plugin) === e.ref) {
-                this.forceUpdate();
-            }
-        });
-
-        this.subscribe(this.plugin.managers.structure.selection.events.changed, e => {
-            if (!this.state.isDisabled) {
-                this.forceUpdate();
-            }
-        });
-    }
-
-    get info() {
-        // const infos: { label: string, key: string, description?: string }[] = [];
-        const info: {textSize: number, selectionDescription: string, infos: { label: string, key: string, description?: string }[] } = {
-            selectionDescription: '', infos: [],
-            textSize: 14
-        };
-        if (MesoscaleState.has(this.plugin)) {
-            const state = MesoscaleState.get(this.plugin);
-            if (state.selectionDescription) info.selectionDescription = state.selectionDescription;
-            info.textSize = state.textSizeDescription;
-        }
-        this.plugin.managers.structure.selection.entries.forEach((e, k) => {
-            if (StructureElement.Loci.is(e.selection) && !StructureElement.Loci.isEmpty(e.selection)) {
-                const cell = this.plugin.helpers.substructureParent.get(e.selection.structure);
-                const { entities } = e.selection.structure.model;
-                // const idx = entities.getEntityIndex(0);
-                // const unitsByEntity = getUnitsByEntity(parent);
-                // const units = unitsByEntity.get(idx) || [];
-                // const structure = Structure.create(units);
-                const description = entities.data.pdbx_description.value(0)[0] || 'model';
-                info.infos.push({
-                    description: description,
-                    label: cell?.obj?.label || 'Unknown',
-                    key: k,
-                });
-            }
-        });
-        return info;
-    }
-
-    renderInfo() {
-        const info = this.info;
-        if (info.selectionDescription === '') return <></>;
-        return <div id='canvainfo' className='msp-highlight-info' style={{ fontSize: `${info.textSize}px` }}>
-            <Markdown skipHtml components={{ a: MesoMarkdownAnchor }}>{info.selectionDescription}</Markdown>
-        </div>;
-    }
-
-    render() {
-        return <>
-            {this.renderInfo()}
-        </>;
-    }
 }
