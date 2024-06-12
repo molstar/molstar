@@ -165,11 +165,10 @@ const CellpackStructure = PluginStateTransform.BuiltIn({
             //     console.log(entities.data.pdbx_description.value(idx));
             // }
             const structure = Structure.create(units);
-
-            const description = entities.data.pdbx_description.value(idx)[0] || 'model';
-            const label = description.split('.').at(-1) || a.label;
-
-            return new PSO.Molecule.Structure(structure, { label, description: `${a.description}` });
+            const description_label = entities.data.pdbx_description.value(idx)[0] || 'model';
+            const label = description_label.split('.').at(-1) || a.label;
+            const description = entities.data.pdbx_parent_entity_id.value(idx) || label;
+            return new PSO.Molecule.Structure(structure, { label, description: description }); // `${a.description}`
         });
     },
     dispose({ b }) {

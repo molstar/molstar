@@ -16,12 +16,16 @@ import { StateTreeSpine } from '../../../mol-state/tree/spine';
 import { Representation } from '../../../mol-repr/representation';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { PluginContext } from '../../../mol-plugin/context';
+import { MesoscaleState } from '../data/state';
 
 const B = ButtonsType;
 const M = ModifiersKeys;
 const Trigger = Binding.Trigger;
 
 const DefaultMesoSelectLociBindings = {
+    click: Binding([
+        Trigger(B.Flag.Primary, M.create())
+    ], 'Click', 'Click element using ${triggers}'),
     clickToggleSelect: Binding([
         Trigger(B.Flag.Primary, M.create({ shift: true })),
         Trigger(B.Flag.Primary, M.create({ control: true })),
@@ -63,15 +67,30 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
             this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, button, modifiers }) => {
                 if (!this.ctx.canvas3d || this.ctx.isBusy) return;
 
-                const { clickToggleSelect } = this.params.bindings;
+                const { click, clickToggleSelect } = this.params.bindings;
                 if (Binding.match(clickToggleSelect, button, modifiers)) {
                     if (Loci.isEmpty(current.loci)) {
                         this.ctx.managers.interactivity.lociSelects.deselectAll();
                         return;
                     }
-
                     const loci = Loci.normalize(current.loci, modifiers.control ? 'entity' : 'chain');
                     this.ctx.managers.interactivity.lociSelects.toggle({ loci }, false);
+                    if (StructureElement.Loci.is(current.loci)) {
+                        const cell = this.ctx.helpers.substructureParent.get(current.loci.structure);
+                        const d = '## ' + cell?.obj?.label + '\n\n' + cell?.obj?.description;
+                        MesoscaleState.set(this.ctx, { selectionDescription: `${d}` });
+                    }
+                }
+                if (Binding.match(click, button, modifiers)) {
+                    if (Loci.isEmpty(current.loci)) {
+                        MesoscaleState.set(this.ctx, { selectionDescription: '' });
+                        return;
+                    }
+                    if (StructureElement.Loci.is(current.loci)) {
+                        const cell = this.ctx.helpers.substructureParent.get(current.loci.structure);
+                        const d = '## ' + cell?.obj?.label + '\n\n' + cell?.obj?.description;
+                        MesoscaleState.set(this.ctx, { selectionDescription: `${d}` });
+                    }
                 }
             });
             this.ctx.managers.interactivity.lociSelects.addProvider(this.lociMarkProvider);
@@ -102,7 +121,8 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
                     const labels: string[] = [];
                     if (StructureElement.Loci.is(current.loci)) {
                         const cell = this.ctx.helpers.substructureParent.get(current.loci.structure);
-                        labels.push(cell?.obj?.label || 'Unknown');
+                        const d = '## ' + cell?.obj?.label + '\n\n' + cell?.obj?.description;
+                        labels.push(d);
                     }
                     this.ctx.behaviors.labels.highlight.next({ labels });
                 }

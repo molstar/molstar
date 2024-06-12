@@ -18,7 +18,7 @@ import { CombinedColorControl } from '../../../mol-plugin-ui/controls/color';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { EveryLoci, Loci } from '../../../mol-model/loci';
 import { deepEqual } from '../../../mol-util';
-import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams, expandAllGroups, EmissiveParams } from '../data/state';
+import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams, expandAllGroups, EmissiveParams, getEntityDescription } from '../data/state';
 import React from 'react';
 import { MesoscaleExplorerState } from '../app';
 import { StructureElement } from '../../../mol-model/structure/structure/element';
@@ -26,6 +26,8 @@ import { PluginStateObject as PSO } from '../../../mol-plugin-state/objects';
 import { Structure } from '../../../mol-model/structure';
 import { PluginContext } from '../../../mol-plugin/context';
 import { Sphere3D } from '../../../mol-math/geometry';
+import { MesoFocusLoci } from '../behavior/camera';
+import Markdown from 'react-markdown';
 
 function centerLoci(plugin: PluginContext, loci: Loci, durationMs = 250) {
     const { canvas3d } = plugin;
@@ -60,6 +62,7 @@ export class ModelInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
         if (!state.description && !state.link) return;
 
         return {
+            selectionDescription: state.selectionDescription,
             description: state.description,
             link: state.link,
         };
@@ -83,6 +86,7 @@ const SelectionStyleParam = PD.Select('color+outline', PD.objectToOptions({
 } as const));
 type SelectionStyle = typeof SelectionStyleParam['defaultValue']
 
+
 export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
     state = {
         isDisabled: false,
@@ -101,11 +105,19 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
     }
 
     get info() {
-        const info: { label: string, key: string }[] = [];
+        // const infos: { label: string, key: string, description?: string }[] = [];
+        const info: {selectionDescription: string, infos: { label: string, key: string, description?: string }[] } = { selectionDescription: '', infos: [] };
+        if (MesoscaleState.has(this.plugin)) {
+            const state = MesoscaleState.get(this.plugin);
+            if (state.selectionDescription) info.selectionDescription = state.selectionDescription;
+        }
         this.plugin.managers.structure.selection.entries.forEach((e, k) => {
             if (StructureElement.Loci.is(e.selection) && !StructureElement.Loci.isEmpty(e.selection)) {
                 const cell = this.plugin.helpers.substructureParent.get(e.selection.structure);
-                info.push({
+                const { entities } = e.selection.structure.model;
+                const description = entities.data.pdbx_description.value(0)[0] || 'model';
+                info.infos.push({
+                    description: description,
                     label: cell?.obj?.label || 'Unknown',
                     key: k,
                 });
@@ -133,31 +145,43 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
 
         const loci = Structure.toStructureElementLoci(e.selection.structure);
         centerLoci(this.plugin, loci);
+        const cell = this.plugin.helpers.substructureParent.get(loci.structure);
+        const d = '## ' + cell?.obj?.label + '\n\n' + cell?.obj?.description;
+        MesoscaleState.set(this.plugin, { selectionDescription: `${d}` });
     }
 
     get selection() {
         const info = this.info;
-        if (!info.length) return <>
-            <div className='msp-help-text'>
-                <div>Use <i>ctrl+left click</i> to select entities, either on the 3D canvas or in the tree below</div>
+        const help_selection = <><div>Use <i>ctrl+left</i> to select entities, either on the 3D canvas or in the tree below</div><div>Use <i>shift+left</i> to select individual chain on the 3D canvas</div></>;
+        const description = (info.selectionDescription !== '') ? <Markdown skipHtml>{info.selectionDescription}</Markdown> : help_selection;
+        if (!info.infos.length) return <>
+            <div id='seleinfo' className='msp-help-text'>
+                {description}
             </div>
         </>;
 
         return <>
-            {info.map((entry, index) => {
-                const label = <Button className={`msp-btn-tree-label`} noOverflow disabled={this.state.isDisabled}
-                    onClick={() => this.center(entry.key)}
-                >
-                    <span title={entry.label}>{entry.label}</span>
-                </Button>;
-                const find = <IconButton svg={SearchSvg} toggleState={false} disabled={this.state.isDisabled} small onClick={() => this.find(entry.label)} />;
-                const remove = <IconButton svg={CloseSvg} toggleState={false} disabled={this.state.isDisabled} onClick={() => this.remove(entry.key)} />;
-                return <div key={index} className={`msp-flex-row`} style={{ margin: `1px 5px 1px ${1 * 10 + 5}px` }}>
-                    {label}
-                    {find}
-                    {remove}
-                </div>;
-            })}
+            <div id='seleinfo'>
+                {info.infos.map((entry, index) => {
+                    const label = <Button className={`msp-btn-tree-label`} noOverflow disabled={this.state.isDisabled}
+                        onClick={() => this.center(entry.key)}
+                    >
+                        <span title={entry.label}>
+                            {entry.label}
+                        </span>
+                    </Button>;
+                    const find = <IconButton svg={SearchSvg} toggleState={false} disabled={this.state.isDisabled} small onClick={() => this.find(entry.label)} />;
+                    const remove = <IconButton svg={CloseSvg} toggleState={false} disabled={this.state.isDisabled} onClick={() => this.remove(entry.key)} />;
+                    return <>
+                        <div key={index} className={`msp-flex-row`} style={{ margin: `1px 5px 1px ${1 * 10 + 5}px` }}>
+                            {label}
+                            {find}
+                            {remove}
+                        </div>
+                    </>;
+                })}
+                {description}
+            </div>
         </>;
     }
 
@@ -221,6 +245,14 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
         </div>;
     }
 
+    renderInfo() {
+        const info = this.info;
+        return <div id='seleinfo' className='msp-help-text'>
+            <div>{info.selectionDescription}</div>
+        </div>;
+    }
+
+    // {this.renderInfo()}
     render() {
         return <>
             {this.renderStyle()}
@@ -433,6 +465,12 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
 
     toggleRoot = () => {
         this.setState({ action: this.state.action === 'root' ? undefined : 'root' });
+    };
+
+    showInfo = (e: React.MouseEvent<HTMLElement>) => {
+        e.preventDefault();
+        const d = this.cell.obj!.description || this.cell.obj!.label;
+        MesoscaleState.set(this.plugin, { selectionDescription: `"${d}"` });
     };
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
@@ -655,6 +693,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         const label = <Button className={`msp-btn-tree-label`} noOverflow disabled={disabled}
             onMouseEnter={this.highlight}
             onMouseLeave={this.clearHighlight}
+            onClick={this.showInfo}
         >
             <span title={groupLabel}>{groupLabel}</span>
         </Button>;
@@ -774,7 +813,41 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
         if (e.ctrlKey) {
             this.toggleSelect(e);
         } else {
-            this.center(e);
+            const d = getEntityDescription(this.plugin, this.cell);
+            MesoscaleState.set(this.plugin, { selectionDescription: `"${d}"` });
+            // this.center(e);
+            // center of incremental instance ID
+            // const s = StateObjectRef.resolve(this.plugin.state.data, this.cell.transform.parent)?.obj?.data as Structure; // .sourceData.state
+            if (this.cell?.obj?.data.sourceData.state.models.length !== 0) {
+                const repr = this.cell?.obj?.data.repr;
+                if (repr) {
+                    // for fiber need to think how to handle.
+                    const aloci = repr.getAllLoci()[0];
+                    const locis = Loci.normalize(aloci, 'chainInstances') as StructureElement.Loci;
+                    const nChain = aloci.structure.state.unitSymmetryGroups.length;
+                    let index = MesoscaleState.get(this.plugin).index + 1;
+                    if (index * nChain >= locis.elements.length) index = 0;
+                    const elems = locis.elements.slice(index * nChain, ((index + 1) * nChain)); // end index is not included
+                    const loci = StructureElement.Loci(aloci.structure, elems); // [locis.elements[index]]);
+                    const sphere = Loci.getBoundingSphere(loci) || Sphere3D();
+                    // const snapshot = this.plugin.canvas3d?.camera.getCenter(sphere.center, sphere.radius);
+                    // this.plugin.canvas3d?.requestCameraReset({ durationMs: 250, snapshot });
+                    const state = this.plugin.state.behaviors;
+                    const selections = state.select(StateSelection.Generators.ofTransformer(MesoFocusLoci));
+                    const params = selections.length === 1 ? selections[0].obj?.data.params : undefined;
+                    if (!params.centerOnly) {
+                        this.plugin.managers.camera.focusSphere(sphere, params);
+                    } else {
+                        const snapshot = this.plugin.canvas3d?.camera.getCenter(sphere.center);
+                        this.plugin.canvas3d?.requestCameraReset({ durationMs: params.durationMs, snapshot });
+                    }
+                    MesoscaleState.set(this.plugin, { index: index });
+                    // this.plugin.managers.interactivity.lociSelects.toggle({ loci }, false);
+                    // this.plugin.canvas3d?.setProps({ renderer: { dimStrength: 0 } });
+                    // this.plugin.canvas3d?.setProps({ marking: { enabled: true } }, true);
+                    // this.plugin.managers.interactivity.lociHighlights.highlightOnly({ repr: repr, loci }, false);
+                }
+            }
         }
     };
 

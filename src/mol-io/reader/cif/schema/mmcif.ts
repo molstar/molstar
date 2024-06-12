@@ -788,6 +788,8 @@ export const mmCIF_Schema = {
          * Corresponds to the compound name in the PDB format.
          */
         pdbx_description: List(',', x => x),
+
+        pdbx_parent_entity_id: str,
         /**
          * A place holder for the number of molecules of the entity in
          * the entry.

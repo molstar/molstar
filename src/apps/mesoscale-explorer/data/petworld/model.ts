@@ -39,8 +39,10 @@ const StructureFromPetworld = PluginStateTransform.BuiltIn({
 
             const { frame } = s.model.sourceData.data;
             const pdbx_model = frame.categories.pdbx_model.getField('name')!;
+            const pdbx_description = frame.categories.pdbx_model.getField('description')!;
+            const description = pdbx_description ? pdbx_description.str(params.modelIndex) : Structure.elementDescription(s);
             const label = pdbx_model.str(params.modelIndex);
-            const props = { label, description: Structure.elementDescription(s) };
+            const props = { label, description: description };
             return new SO.Molecule.Structure(s, props);
         });
     },
