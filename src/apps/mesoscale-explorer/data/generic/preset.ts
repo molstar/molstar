@@ -124,7 +124,7 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
     async function addGroup(g: GenericGroup, cell: StateObjectSelector, parent: string) {
         const group = await state.build()
             .to(cell)
-            .apply(MesoscaleGroup, { ...groupParams, index: undefined, tag: `${g.root}:${g.id}`, label: g.label || g.id, description: g.description, color: { type: 'custom', value: ColorNames.white, variability: 20, shift: 0, lightness: 0, alpha: 1, emissive: 0 } }, { tags: [`group:${g.root}:${g.id}`, g.root === parent ? `${g.root}:` : `${g.root}:${parent}`], state: { isCollapsed: true, isHidden: groupParams.hidden } })
+            .apply(MesoscaleGroup, { ...groupParams, index: undefined, tag: `${g.root}:${g.id}`, label: g.label || g.id, description: g.description, color: { type: 'custom', illustrative: false, value: ColorNames.white, variability: 20, shift: 0, lightness: 0, alpha: 1, emissive: 0 } }, { tags: [`group:${g.root}:${g.id}`, g.root === parent ? `${g.root}:` : `${g.root}:${parent}`], state: { isCollapsed: true, isHidden: groupParams.hidden } })
             .commit();
 
         if (g.children) {
@@ -137,7 +137,7 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
     for (const r of manifest.roots) {
         const root = await state.build()
             .toRoot()
-            .apply(MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `${r.id}:`, label: r.label || r.id, description: r.description, color: { type: 'custom', value: ColorNames.white, variability: 20, shift: 0, lightness: 0, alpha: 1, emissive: 0 } }, { tags: `group:${r.id}:`, state: { isCollapsed: false, isHidden: groupParams.hidden } })
+            .apply(MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `${r.id}:`, label: r.label || r.id, description: r.description, color: { type: 'custom', illustrative: false, value: ColorNames.white, variability: 20, shift: 0, lightness: 0, alpha: 1, emissive: 0 } }, { tags: `group:${r.id}:`, state: { isCollapsed: false, isHidden: groupParams.hidden } })
             .commit();
 
         if (r.children) {
