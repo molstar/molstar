@@ -525,11 +525,17 @@ export function getEntityLabel(plugin: PluginContext, cell: StateObjectCell) {
     return StateObjectRef.resolve(plugin.state.data, cell.transform.parent)?.obj?.label || 'Entity';
 }
 
+export function getCellDescription(cell: StateObjectCell) {
+    // markdown style for description
+    return '**' + cell?.obj?.label + '**\n\n' + cell?.obj?.description;
+}
+
 export function getEntityDescription(plugin: PluginContext, cell: StateObjectCell) {
     const s = StateObjectRef.resolve(plugin.state.data, cell.transform.parent);
-    return s?.obj?.description || s?.obj?.label || ' ';
+    const d = getCellDescription(s!);
+    return d;
 }
-//
+
 
 export async function updateColors(plugin: PluginContext, values: PD.Values, tag: string, filter: string) {
     const update = plugin.state.data.build();

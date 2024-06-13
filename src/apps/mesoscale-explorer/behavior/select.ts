@@ -16,7 +16,7 @@ import { StateTreeSpine } from '../../../mol-state/tree/spine';
 import { Representation } from '../../../mol-repr/representation';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { PluginContext } from '../../../mol-plugin/context';
-import { MesoscaleState } from '../data/state';
+import { MesoscaleState, getCellDescription } from '../data/state';
 
 const B = ButtonsType;
 const M = ModifiersKeys;
@@ -77,7 +77,7 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
                     this.ctx.managers.interactivity.lociSelects.toggle({ loci }, false);
                     if (StructureElement.Loci.is(current.loci)) {
                         const cell = this.ctx.helpers.substructureParent.get(current.loci.structure);
-                        const d = '## ' + cell?.obj?.label + '\n\n' + cell?.obj?.description;
+                        const d = getCellDescription(cell!);
                         MesoscaleState.set(this.ctx, { selectionDescription: `${d}` });
                     }
                 }
@@ -88,7 +88,7 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
                     }
                     if (StructureElement.Loci.is(current.loci)) {
                         const cell = this.ctx.helpers.substructureParent.get(current.loci.structure);
-                        const d = '## ' + cell?.obj?.label + '\n\n' + cell?.obj?.description;
+                        const d = getCellDescription(cell!);
                         MesoscaleState.set(this.ctx, { selectionDescription: `${d}` });
                     }
                 }
@@ -121,7 +121,7 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
                     const labels: string[] = [];
                     if (StructureElement.Loci.is(current.loci)) {
                         const cell = this.ctx.helpers.substructureParent.get(current.loci.structure);
-                        const d = '## ' + cell?.obj?.label + '\n\n' + cell?.obj?.description;
+                        const d = getCellDescription(cell!); // '### ' + cell?.obj?.label + '\n\n' + cell?.obj?.description;
                         labels.push(d);
                     }
                     this.ctx.behaviors.labels.highlight.next({ labels });

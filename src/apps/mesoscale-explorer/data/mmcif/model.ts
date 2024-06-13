@@ -186,9 +186,10 @@ const MmcifStructure = PluginStateTransform.BuiltIn({
             } else {
                 structure = Structure.create(units);
             }
-
+            // could also use _struct_ref.pdbx_db_accession to point to uniprot with _struct_ref.db_name == UNP
             const label = entities.data.pdbx_description.value(idx).join(', ') || 'model';
-            return new PSO.Molecule.Structure(structure, { label, description: `${a.description}` });
+            const description = '*Entity id* ' + entities.data.id.value(idx) + ' *src_method* ' + entities.data.src_method.value(idx) + ' *type* ' + entities.data.type.value(idx);
+            return new PSO.Molecule.Structure(structure, { label, description: description });
         });
     },
     update({ newParams, oldParams }) {

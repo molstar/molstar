@@ -161,9 +161,7 @@ const CellpackStructure = PluginStateTransform.BuiltIn({
 
             const unitsByEntity = getUnitsByEntity(parent);
             const units = unitsByEntity.get(idx) || [];
-            // if (!unitsByEntity.get(idx)) {
-            //     console.log(entities.data.pdbx_description.value(idx));
-            // }
+
             const structure = Structure.create(units);
             const description_label = entities.data.pdbx_description.value(idx)[0] || 'model';
             const label = description_label.split('.').at(-1) || a.label;

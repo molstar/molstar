@@ -18,7 +18,7 @@ import { CombinedColorControl } from '../../../mol-plugin-ui/controls/color';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { EveryLoci, Loci } from '../../../mol-model/loci';
 import { deepEqual } from '../../../mol-util';
-import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams, expandAllGroups, EmissiveParams, IllustrativeParams, getEntityDescription } from '../data/state';
+import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams, expandAllGroups, EmissiveParams, IllustrativeParams, getCellDescription, getEntityDescription } from '../data/state';
 import React from 'react';
 import { MesoscaleExplorerState } from '../app';
 import { StructureElement } from '../../../mol-model/structure/structure/element';
@@ -146,7 +146,7 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
         const loci = Structure.toStructureElementLoci(e.selection.structure);
         centerLoci(this.plugin, loci);
         const cell = this.plugin.helpers.substructureParent.get(loci.structure);
-        const d = '## ' + cell?.obj?.label + '\n\n' + cell?.obj?.description;
+        const d = getCellDescription(cell!); // '### ' + cell?.obj?.label + '\n\n' + cell?.obj?.description;
         MesoscaleState.set(this.plugin, { selectionDescription: `${d}` });
     }
 
@@ -245,14 +245,6 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
         </div>;
     }
 
-    renderInfo() {
-        const info = this.info;
-        return <div id='seleinfo' className='msp-help-text'>
-            <div>{info.selectionDescription}</div>
-        </div>;
-    }
-
-    // {this.renderInfo()}
     render() {
         return <>
             {this.renderStyle()}
@@ -469,8 +461,8 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
 
     showInfo = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        const d = this.cell.obj!.description || this.cell.obj!.label;
-        MesoscaleState.set(this.plugin, { selectionDescription: `"${d}"` });
+        const d = getCellDescription(this.cell); // '### ' + this.cell?.obj?.label + '\n\n' + this.cell?.obj?.description;
+        MesoscaleState.set(this.plugin, { selectionDescription: `${d}` });
     };
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
@@ -817,10 +809,6 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
             this.toggleSelect(e);
         } else {
             const d = getEntityDescription(this.plugin, this.cell);
-            MesoscaleState.set(this.plugin, { selectionDescription: `"${d}"` });
-            // this.center(e);
-            // center of incremental instance ID
-            // const s = StateObjectRef.resolve(this.plugin.state.data, this.cell.transform.parent)?.obj?.data as Structure; // .sourceData.state
             if (this.cell?.obj?.data.sourceData.state.models.length !== 0) {
                 const repr = this.cell?.obj?.data.repr;
                 if (repr) {
@@ -831,10 +819,8 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
                     let index = MesoscaleState.get(this.plugin).index + 1;
                     if (index * nChain >= locis.elements.length) index = 0;
                     const elems = locis.elements.slice(index * nChain, ((index + 1) * nChain)); // end index is not included
-                    const loci = StructureElement.Loci(aloci.structure, elems); // [locis.elements[index]]);
+                    const loci = StructureElement.Loci(aloci.structure, elems);
                     const sphere = Loci.getBoundingSphere(loci) || Sphere3D();
-                    // const snapshot = this.plugin.canvas3d?.camera.getCenter(sphere.center, sphere.radius);
-                    // this.plugin.canvas3d?.requestCameraReset({ durationMs: 250, snapshot });
                     const state = this.plugin.state.behaviors;
                     const selections = state.select(StateSelection.Generators.ofTransformer(MesoFocusLoci));
                     const params = selections.length === 1 ? selections[0].obj?.data.params : undefined;
@@ -844,12 +830,11 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
                         const snapshot = this.plugin.canvas3d?.camera.getCenter(sphere.center);
                         this.plugin.canvas3d?.requestCameraReset({ durationMs: params.durationMs, snapshot });
                     }
-                    MesoscaleState.set(this.plugin, { index: index });
-                    // this.plugin.managers.interactivity.lociSelects.toggle({ loci }, false);
-                    // this.plugin.canvas3d?.setProps({ renderer: { dimStrength: 0 } });
-                    // this.plugin.canvas3d?.setProps({ marking: { enabled: true } }, true);
-                    // this.plugin.managers.interactivity.lociHighlights.highlightOnly({ repr: repr, loci }, false);
+                    MesoscaleState.set(this.plugin, { index: index, selectionDescription: `${d}` });
                 }
+            } else {
+                this.center(e);
+                MesoscaleState.set(this.plugin, { selectionDescription: `${d}` });
             }
         }
     };
