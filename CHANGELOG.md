@@ -10,6 +10,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Improve camera interpolation code (interpolate camera rotation instead of just position)
 - Mesoscale Explorer
     - Add `illustrative` coloring option
+    - Press 'C' to toggle between center and zoom & center on click
 
 ## [v4.3.0] - 2023-05-26
 
