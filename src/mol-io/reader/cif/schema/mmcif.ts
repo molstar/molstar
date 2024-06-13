@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.391, IHM 1.25, MA 1.4.6.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.394, IHM 1.25, MA 1.4.6.
  *
  * @author molstar/ciftools package
  */
@@ -788,13 +788,19 @@ export const mmCIF_Schema = {
          * Corresponds to the compound name in the PDB format.
          */
         pdbx_description: List(',', x => x),
-
-        pdbx_parent_entity_id: str,
         /**
          * A place holder for the number of molecules of the entity in
          * the entry.
          */
         pdbx_number_of_molecules: int,
+        /**
+         * An identifier for the parent entity if this entity
+         * is part of a complex entity.  For instance a chimeric
+         * entity may be decomposed into several independent
+         * chemical entities where each component entity was
+         * obtained from a different source.
+         */
+        pdbx_parent_entity_id: str,
         /**
          * Details about any entity mutation(s).
          */
