@@ -367,7 +367,7 @@ export const MesoscaleStateParams = {
     graphics: PD.Select('quality', PD.arrayToOptions(['ultra', 'quality', 'balanced', 'performance', 'custom'] as GraphicsMode[])),
     description: PD.Value<string>('', { isHidden: true }),
     link: PD.Value<string>('', { isHidden: true }),
-};
+    textSizeDescription: PD.Numeric(14, { min: 1, max: 100, step: 1 }, { isHidden: true })};
 
 export class MesoscaleStateObject extends PSO.Create<MesoscaleState>({ name: 'Mesoscale State', typeClass: 'Object' }) { }
 
@@ -507,6 +507,15 @@ export function getAllEntities(plugin: PluginContext, tag?: string) {
 export function getAllFilteredEntities(plugin: PluginContext, tag: string, filter: string) {
     const matcher = getFilterMatcher(filter);
     return getAllEntities(plugin, tag).filter(c => getEntityLabel(plugin, c).match(matcher) !== null);
+}
+
+export function getEveryEntities(plugin: PluginContext, filter?: string, tag?: string) {
+    if (filter) {
+        const matcher = getFilterMatcher(filter);
+        return getAllEntities(plugin, tag).filter(c => getEntityLabel(plugin, c).match(matcher) !== null);
+    } else {
+        return getAllEntities(plugin, tag);
+    }
 }
 
 export function getEntityLabel(plugin: PluginContext, cell: StateObjectCell) {
