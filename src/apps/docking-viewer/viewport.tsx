@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -46,6 +46,7 @@ function occlusionStyle(plugin: PluginContext) {
             ...plugin.canvas3d!.props.postprocessing,
             occlusion: { name: 'on', params: {
                 blurKernelSize: 15,
+                blurDepthBias: 0.5,
                 multiScale: { name: 'off', params: {} },
                 radius: 5,
                 bias: 0.8,

@@ -16,6 +16,7 @@ uniform vec2 uTexSize;
 uniform vec4 uBounds;
 
 uniform float uKernel[dOcclusionKernelSize];
+uniform float uBlurDepthBias;
 
 uniform float uBlurDirectionX;
 uniform float uBlurDirectionY;
@@ -36,6 +37,10 @@ float getViewZ(const in float depth) {
 
 bool isBackground(const in float depth) {
     return depth == 1.0;
+}
+
+bool isNearClip(const in float depth) {
+    return depth == 0.0;
 }
 
 bool outsideBounds(const in vec2 p) {
@@ -59,16 +64,14 @@ void main(void) {
     }
 
     float selfDepth = unpackRGToUnitInterval(packedDepth);
-    // if background and if second pass
-    if (isBackground(selfDepth) && uBlurDirectionY != 0.0) {
+    // (if background and if second pass) or if near clip
+    if ((isBackground(selfDepth) && uBlurDirectionY != 0.0) || isNearClip(selfDepth)) {
         gl_FragColor = vec4(packUnitIntervalToRG(1.0), packedDepth);
         return;
     }
 
     float selfViewZ = getViewZ(selfDepth);
     float pixelSize = getPixelSize(coords, selfDepth);
-    // max diff depth between two pixels
-    float maxDiffViewZ = 1.0;
 
     vec2 offset = vec2(uBlurDirectionX, uBlurDirectionY) / uTexSize;
 
@@ -86,12 +89,12 @@ void main(void) {
         vec4 sampleSsaoDepth = texture2D(tSsaoDepth, sampleCoords);
 
         float sampleDepth = unpackRGToUnitInterval(sampleSsaoDepth.zw);
-        if (isBackground(sampleDepth)) {
+        if (isBackground(sampleDepth) || isNearClip(sampleDepth)) {
             continue;
         }
 
         float sampleViewZ = getViewZ(sampleDepth);
-        if (abs(selfViewZ - sampleViewZ) > maxDiffViewZ) {
+        if (abs(selfViewZ - sampleViewZ) >= uBlurDepthBias) {
             continue;
         }
 

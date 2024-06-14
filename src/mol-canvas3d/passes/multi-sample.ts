@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -54,6 +54,7 @@ export const MultiSampleParams = {
     mode: PD.Select('temporal', [['off', 'Off'], ['on', 'On'], ['temporal', 'Temporal']]),
     sampleLevel: PD.Numeric(2, { min: 0, max: 5, step: 1 }, { description: 'Take level^2 samples.' }),
     reduceFlicker: PD.Boolean(true, { description: 'Reduce flicker in "temporal" mode.' }),
+    reuseOcclusion: PD.Boolean(true, { description: 'Reuse occlusion data. It is faster but has some artefacts.' }),
 };
 export type MultiSampleProps = PD.Values<typeof MultiSampleParams>
 
@@ -161,7 +162,7 @@ export class MultiSamplePass {
             ValueCell.update(compose.values.uWeight, sampleWeight);
 
             // render scene
-            if (i === 0) {
+            if (i === 0 || !props.multiSample.reuseOcclusion) {
                 drawPass.postprocessing.setOcclusionOffset(0, 0);
             } else {
                 drawPass.postprocessing.setOcclusionOffset(
@@ -252,7 +253,7 @@ export class MultiSamplePass {
                 camera.update();
 
                 // render scene
-                if (sampleIndex === 0) {
+                if (sampleIndex === 0 || !props.multiSample.reuseOcclusion) {
                     drawPass.postprocessing.setOcclusionOffset(0, 0);
                 } else {
                     drawPass.postprocessing.setOcclusionOffset(

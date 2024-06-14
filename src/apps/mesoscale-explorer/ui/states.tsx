@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -77,6 +77,7 @@ function adjustPluginProps(ctx: PluginContext) {
                     radius: 5,
                     bias: 1,
                     blurKernelSize: 11,
+                    blurDepthBias: 0.5,
                     resolutionScale: 1,
                     color: Color(0x000000),
                 }

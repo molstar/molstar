@@ -11,6 +11,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Mesoscale Explorer
     - Add `illustrative` coloring option
     - Press 'C' to toggle between center and zoom & center on click
+- Fixes SSAO edge artifacts (#1122)
+    - Add `reuseOcclusion` parameter to multi-sample pass
+    - Add `blurDepthBias` parameter to occlusion pass
+    - Handle near clip in SSAO blur
 
 ## [v4.3.0] - 2023-05-26
 
