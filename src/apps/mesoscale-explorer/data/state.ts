@@ -367,7 +367,7 @@ export const MesoscaleStateParams = {
     graphics: PD.Select('quality', PD.arrayToOptions(['ultra', 'quality', 'balanced', 'performance', 'custom'] as GraphicsMode[])),
     description: PD.Value<string>('', { isHidden: true }),
     link: PD.Value<string>('', { isHidden: true }),
-    textSizeDescription: PD.Numeric(14, { min: 1, max: 100, step: 1 }, { isHidden: true })};
+    textSizeDescription: PD.Numeric(14, { min: 1, max: 100, step: 1 }, { isHidden: true }) };
 
 export class MesoscaleStateObject extends PSO.Create<MesoscaleState>({ name: 'Mesoscale State', typeClass: 'Object' }) { }
 
