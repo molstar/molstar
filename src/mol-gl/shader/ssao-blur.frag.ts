@@ -16,7 +16,7 @@ uniform vec2 uTexSize;
 uniform vec4 uBounds;
 
 uniform float uKernel[dOcclusionKernelSize];
-uniform float uBlurBias;
+uniform float uBlurDepthBias;
 
 uniform float uBlurDirectionX;
 uniform float uBlurDirectionY;
@@ -94,7 +94,7 @@ void main(void) {
         }
 
         float sampleViewZ = getViewZ(sampleDepth);
-        if (abs(selfViewZ - sampleViewZ) >= uBlurBias) {
+        if (abs(selfViewZ - sampleViewZ) >= uBlurDepthBias) {
             continue;
         }
 

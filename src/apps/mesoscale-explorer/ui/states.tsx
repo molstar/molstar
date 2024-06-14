@@ -77,7 +77,7 @@ function adjustPluginProps(ctx: PluginContext) {
                     radius: 5,
                     bias: 1,
                     blurKernelSize: 11,
-                    blurBias: 0.5,
+                    blurDepthBias: 0.5,
                     resolutionScale: 1,
                     color: Color(0x000000),
                 }

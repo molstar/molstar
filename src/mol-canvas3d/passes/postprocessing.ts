@@ -206,7 +206,7 @@ const SsaoBlurSchema = {
 
     uKernel: UniformSpec('f[]'),
     dOcclusionKernelSize: DefineSpec('number'),
-    uBlurBias: UniformSpec('f'),
+    uBlurDepthBias: UniformSpec('f'),
 
     uBlurDirectionX: UniformSpec('f'),
     uBlurDirectionY: UniformSpec('f'),
@@ -228,7 +228,7 @@ function getSsaoBlurRenderable(ctx: WebGLContext, ssaoDepthTexture: Texture, dir
 
         uKernel: ValueCell.create(getBlurKernel(15)),
         dOcclusionKernelSize: ValueCell.create(15),
-        uBlurBias: ValueCell.create(0.5),
+        uBlurDepthBias: ValueCell.create(0.5),
 
         uBlurDirectionX: ValueCell.create(direction === 'horizontal' ? 1 : 0),
         uBlurDirectionY: ValueCell.create(direction === 'vertical' ? 1 : 0),
@@ -376,7 +376,7 @@ export const PostprocessingParams = {
             radius: PD.Numeric(5, { min: 0, max: 20, step: 0.1 }, { description: 'Final occlusion radius is 2^x', hideIf: p => p?.multiScale.name === 'on' }),
             bias: PD.Numeric(0.8, { min: 0, max: 3, step: 0.1 }),
             blurKernelSize: PD.Numeric(15, { min: 1, max: 25, step: 2 }),
-            blurBias: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }),
+            blurDepthBias: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }),
             resolutionScale: PD.Numeric(1, { min: 0.1, max: 1, step: 0.05 }, { description: 'Adjust resolution of occlusion calculation' }),
             color: PD.Color(Color(0x000000)),
         }),
@@ -653,8 +653,8 @@ export class PostprocessingPass {
             ValueCell.update(this.ssaoBlurFirstPassRenderable.values.uInvProjection, invProjection);
             ValueCell.update(this.ssaoBlurSecondPassRenderable.values.uInvProjection, invProjection);
 
-            ValueCell.update(this.ssaoBlurFirstPassRenderable.values.uBlurBias, props.occlusion.params.blurBias);
-            ValueCell.update(this.ssaoBlurSecondPassRenderable.values.uBlurBias, props.occlusion.params.blurBias);
+            ValueCell.update(this.ssaoBlurFirstPassRenderable.values.uBlurDepthBias, props.occlusion.params.blurDepthBias);
+            ValueCell.update(this.ssaoBlurSecondPassRenderable.values.uBlurDepthBias, props.occlusion.params.blurDepthBias);
 
             if (this.ssaoBlurFirstPassRenderable.values.dOrthographic.ref.value !== orthographic) {
                 needsUpdateSsaoBlur = true;

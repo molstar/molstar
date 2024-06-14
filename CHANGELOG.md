@@ -5,14 +5,25 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Add depth of field (dof) postprocessing effect
-- Add `SbNcbrTunnels` extension for for visualizing tunnels in molecular structures from ChannelsDB (more info in [tunnels.md](./docs/docs/extensions/tunnels.md))
+- Create a transformer to deflate compressed data
+- Adjust Quick Styles panel button labels
+- Improve camera interpolation code (interpolate camera rotation instead of just position)
+- Mesoscale Explorer
+    - Add `illustrative` coloring option
+    - Press 'C' to toggle between center and zoom & center on click
 - Fixes SSAO edge artifacts (#1122)
     - Add `reuseOcclusion` parameter to multi-sample pass
-    - Add `blurBias` parameter to occlusion pass
-    - Handle near clip in ssao-blur
+    - Add `blurDepthBias` parameter to occlusion pass
+    - Handle near clip in SSAO blur
 
-## [v4.2.0] - 2023-04-05
+## [v4.3.0] - 2023-05-26
+
+- Fix State Snapshots export animation (#1140)
+- Add depth of field (dof) postprocessing effect
+- Add `SbNcbrTunnels` extension for for visualizing tunnels in molecular structures from ChannelsDB (more info in [tunnels.md](./docs/docs/extensions/tunnels.md))
+- Fix edge case in minimizing RMSD transform computation
+
+## [v4.2.0] - 2023-05-04
 
 - Add emissive material support
 - Add bloom post-processing

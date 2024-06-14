@@ -2,6 +2,7 @@
  * Copyright (c) 2022-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { PresetStructureRepresentations } from '../../mol-plugin-state/builder/structure/representation-preset';
@@ -70,7 +71,7 @@ export class QuickStyles extends PurePluginUIComponent {
                             radius: 5,
                             bias: 0.8,
                             blurKernelSize: 15,
-                            blurBias: 0.5,
+                            blurDepthBias: 0.5,
                             samples: 32,
                             resolutionScale: 1,
                             color: Color(0x000000),
@@ -109,7 +110,7 @@ export class QuickStyles extends PurePluginUIComponent {
                                 radius: 5,
                                 bias: 0.8,
                                 blurKernelSize: 15,
-                                blurBias: 0.5,
+                                blurDepthBias: 0.5,
                                 samples: 32,
                                 resolutionScale: 1,
                                 color: Color(0x000000),
@@ -123,14 +124,14 @@ export class QuickStyles extends PurePluginUIComponent {
 
     render() {
         return <div className='msp-flex-row'>
-            <Button noOverflow title='Applies default representation preset. Set outline and occlusion effects to defaults.' onClick={() => this.default()} style={{ width: 'auto' }}>
+            <Button noOverflow title='Applies default representation preset and sets outline and occlusion effects to default' onClick={() => this.default()} style={{ width: 'auto' }}>
                 Default
             </Button>
-            <Button noOverflow title='Applies no representation preset. Enables outline and occlusion effects. Enables ignore-light representation parameter.' onClick={() => this.stylized()} style={{ width: 'auto' }}>
-                Stylized
-            </Button>
-            <Button noOverflow title='Applies illustrative representation preset. Enables outline and occlusion effects. Enables ignore-light parameter.' onClick={() => this.illustrative()} style={{ width: 'auto' }}>
+            <Button noOverflow title='Applies illustrative representation preset and Stylize it' onClick={() => this.illustrative()} style={{ width: 'auto' }}>
                 Illustrative
+            </Button>
+            <Button noOverflow title='Does not change representation, enables outline and occlusion effects, enables ignore-light representation parameter' onClick={() => this.stylized()} style={{ width: 'auto' }}>
+                Stylize Current
             </Button>
         </div>;
     }

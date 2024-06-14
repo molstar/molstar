@@ -222,7 +222,7 @@ export const STYLIZED_POSTPROCESSING: Partial<PostprocessingProps> = {
             radius: 5,
             bias: 0.8,
             blurKernelSize: 15,
-            blurBias: 0.5,
+            blurDepthBias: 0.5,
             resolutionScale: 1,
             color: ColorNames.black,
         }

@@ -80,7 +80,8 @@ function computeN(state: RmsdTransformState) {
 
     let sizeSq = 0.0;
 
-    for (let i = 0, _l = state.a.x.length; i < _l; i++) {
+    const L = Math.min(state.a.x.length, state.b.x.length);
+    for (let i = 0; i < L; i++) {
         const aX = xsA[i] - cA[0], aY = ysA[i] - cA[1], aZ = zsA[i] - cA[2];
         const bX = xsB[i] - cB[0], bY = ysB[i] - cB[1], bZ = zsB[i] - cB[2];
 

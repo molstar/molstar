@@ -18,7 +18,7 @@ import { CombinedColorControl } from '../../../mol-plugin-ui/controls/color';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { EveryLoci, Loci } from '../../../mol-model/loci';
 import { deepEqual } from '../../../mol-util';
-import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams, expandAllGroups, EmissiveParams } from '../data/state';
+import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams, expandAllGroups, EmissiveParams, IllustrativeParams } from '../data/state';
 import React from 'react';
 import { MesoscaleExplorerState } from '../app';
 import { StructureElement } from '../../../mol-model/structure/structure/element';
@@ -493,7 +493,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
 
     updateColor = (values: ColorProps) => {
         const update = this.plugin.state.data.build();
-        const { value, type, lightness, alpha, emissive } = values;
+        const { value, illustrative, type, lightness, alpha, emissive } = values;
 
         const entities = this.filteredEntities;
 
@@ -507,8 +507,11 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
             const c = type === 'generate' ? groupColors[i] : value;
             update.to(entities[i]).update(old => {
                 if (old.type) {
-                    old.colorTheme.params.value = c;
-                    old.colorTheme.params.lightness = lightness;
+                    if (illustrative) {
+                        old.colorTheme = { name: 'illustrative', params: { style: { name: 'uniform', params: { value: c, lightness } } } };
+                    } else {
+                        old.colorTheme = { name: 'uniform', params: { value: c, lightness } };
+                    }
                     old.type.params.alpha = alpha;
                     old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
                     old.type.params.emissive = emissive;
@@ -779,13 +782,31 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
     };
 
     get colorValue(): Color | undefined {
-        return this.cell.transform.params?.colorTheme?.params.value ?? this.cell.transform.params?.coloring?.params.color;
+        if (this.cell.transform.params?.colorTheme?.params.value) {
+            return this.cell.transform.params?.colorTheme?.params.value;
+        } else if (this.cell.transform.params?.colorTheme?.name === 'illustrative') {
+            return this.cell.transform.params?.colorTheme?.params.style.params.value;
+        } else {
+            return this.cell.transform.params?.colorTheme?.params.value ?? this.cell.transform.params?.coloring?.params.color;
+        }
+    }
+
+    get illustrativeValue(): { illustrative: boolean } | undefined {
+        return {
+            illustrative: (this.cell.transform.params?.colorTheme?.name === 'illustrative')
+        };
     }
 
     get lightnessValue(): { lightness: number } | undefined {
-        return {
-            lightness: this.cell.transform.params?.colorTheme?.params.lightness ?? this.cell.transform.params?.coloring?.params.lightness ?? 0
-        };
+        if (this.cell.transform.params?.colorTheme?.name === 'illustrative') {
+            return {
+                lightness: this.cell.transform.params?.colorTheme?.params.style.params.lightness ?? 0
+            };
+        } else {
+            return {
+                lightness: this.cell.transform.params?.colorTheme?.params.lightness ?? this.cell.transform.params?.coloring?.params.lightness ?? 0
+            };
+        }
     }
 
     get opacityValue(): { alpha: number } | undefined {
@@ -838,7 +859,11 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
         }
         update.to(this.ref).update(old => {
             if (old.colorTheme) {
-                old.colorTheme.params.value = value;
+                if (old.colorTheme.name === 'illustrative') {
+                    old.colorTheme.params.style.params.value = value;
+                } else {
+                    old.colorTheme.params.value = value;
+                }
             } else if (old.coloring) {
                 old.coloring.params.color = value;
             }
@@ -846,10 +871,26 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
         update.commit();
     };
 
+    updateIllustrative = (values: PD.Values) => {
+        return this.plugin.build().to(this.ref).update(old => {
+            if (old.colorTheme) {
+                if (old.colorTheme.name !== 'illustrative' && values.illustrative) {
+                    old.colorTheme = { name: 'illustrative', params: { style: { name: 'uniform', params: { value: old.colorTheme.params.value, lightness: old.colorTheme.params.lightness } } } };
+                } else if (old.colorTheme.name === 'illustrative' && !values.illustrative) {
+                    old.colorTheme = { name: 'uniform', params: { value: old.colorTheme.params.style.params.value, lightness: old.colorTheme.params.style.params.lightness } };
+                }
+            }
+        }).commit();
+    };
+
     updateLightness = (values: PD.Values) => {
         return this.plugin.build().to(this.ref).update(old => {
             if (old.colorTheme) {
-                old.colorTheme.params.lightness = values.lightness;
+                if (old.colorTheme.name === 'illustrative') {
+                    old.colorTheme.params.style.params.lightness = values.lightness;
+                } else {
+                    old.colorTheme.params.lightness = values.lightness;
+                }
             } else if (old.coloring) {
                 old.coloring.params.lightness = values.lightness;
             }
@@ -924,6 +965,7 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
         const depth = this.props.depth;
         const colorValue = this.colorValue;
         const lightnessValue = this.lightnessValue;
+        const illustrativeValue = this.illustrativeValue;
         const opacityValue = this.opacityValue;
         const emissiveValue = this.emissiveValue;
         const lodValue = this.lodValue;
@@ -953,6 +995,7 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
                 <ControlGroup header='Color' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleColor}
                     topRightIcon={CloseSvg} noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
                     <CombinedColorControl param={ColorValueParam} value={colorValue ?? Color(0xFFFFFF)} onChange={this.updateColor} name='color' hideNameRow />
+                    <ParameterControls params={IllustrativeParams} values={illustrativeValue} onChangeValues={this.updateIllustrative} />
                     <ParameterControls params={LightnessParams} values={lightnessValue} onChangeValues={this.updateLightness} />
                     <ParameterControls params={OpacityParams} values={opacityValue} onChangeValues={this.updateOpacity} />
                     <ParameterControls params={EmissiveParams} values={emissiveValue} onChangeValues={this.updateEmissive} />
