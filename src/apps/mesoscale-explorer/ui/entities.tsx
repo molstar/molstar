@@ -62,7 +62,7 @@ export class ModelInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
         if (!state.description && !state.link) return;
 
         return {
-            selectionDescription: state.selectionDescription,
+            selectionDescription: state.focusInfo,
             description: state.description,
             link: state.link,
         };
@@ -104,25 +104,20 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
     }
 
     get info() {
-        // const infos: { label: string, key: string, description?: string }[] = [];
-        const info: { selectionDescription: string, infos: { label: string, key: string, description?: string }[] } = { selectionDescription: '', infos: [] };
-        if (MesoscaleState.has(this.plugin)) {
-            const state = MesoscaleState.get(this.plugin);
-            if (state.selectionDescription) info.selectionDescription = state.selectionDescription;
-        }
+        const infos: { label: string, key: string, description?: string }[] = [];
         this.plugin.managers.structure.selection.entries.forEach((e, k) => {
             if (StructureElement.Loci.is(e.selection) && !StructureElement.Loci.isEmpty(e.selection)) {
                 const cell = this.plugin.helpers.substructureParent.get(e.selection.structure);
                 const { entities } = e.selection.structure.model;
                 const description = entities.data.pdbx_description.value(0)[0] || 'model';
-                info.infos.push({
+                infos.push({
                     description: description,
                     label: cell?.obj?.label || 'Unknown',
                     key: k,
                 });
             }
         });
-        return info;
+        return infos;
     }
 
     find(label: string) {
@@ -146,21 +141,19 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
         centerLoci(this.plugin, loci);
         const cell = this.plugin.helpers.substructureParent.get(loci.structure);
         const d = getCellDescription(cell!); // '### ' + cell?.obj?.label + '\n\n' + cell?.obj?.description;
-        MesoscaleState.set(this.plugin, { selectionDescription: `${d}` });
+        MesoscaleState.set(this.plugin, { focusInfo: `${d}` });
     }
 
     get selection() {
         const info = this.info;
         const help_selection = <><div>Use <i>ctrl+left</i> to select entities, either on the 3D canvas or in the tree below</div><div>Use <i>shift+left</i> to select individual chain on the 3D canvas</div></>;
-        const description = (info.selectionDescription !== '') ? <Markdown skipHtml>{info.selectionDescription}</Markdown> : help_selection;
-        if (!info.infos.length) return <>
+        if (!info.length) return <>
             <div className='msp-help-text'>
-                {description}
+                {help_selection}
             </div>
         </>;
-
         return <>
-            {info.infos.map((entry, index) => {
+            {info.map((entry, index) => {
                 const label = <Button className={`msp-btn-tree-label`} noOverflow disabled={this.state.isDisabled}
                     onClick={() => this.center(entry.key)}
                 >
@@ -178,9 +171,6 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
                     </div>
                 </>;
             })}
-            <div className='msp-help-text' style={{ marginTop: '10px' }}>
-                {description}
-            </div>
         </>;
     }
 
@@ -251,6 +241,46 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
         </>;
     }
 }
+
+
+export class FocusInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
+    state = {
+        isDisabled: false,
+    };
+
+    componentDidMount() {
+        this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
+            this.setState({ isDisabled: v });
+        });
+
+        this.subscribe(this.plugin.managers.structure.selection.events.changed, e => {
+            if (!this.state.isDisabled) {
+                this.forceUpdate();
+            }
+        });
+    }
+
+    get info() {
+        // const infos: { label: string, key: string, description?: string }[] = [];
+        const info: { focusInfo: string } = { focusInfo: '' };
+        if (MesoscaleState.has(this.plugin)) {
+            const state = MesoscaleState.get(this.plugin);
+            if (state.focusInfo) info.focusInfo = state.focusInfo;
+        }
+        return info;
+    }
+
+    render() {
+        const info = this.info;
+        const description = (info.focusInfo !== '') ? <Markdown skipHtml>{info.focusInfo}</Markdown> : '';
+        return <>
+            <div className='msp-help-text'>
+                {description}
+            </div>
+        </>;
+    }
+}
+
 
 export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean }> {
     filterRef = React.createRef<HTMLInputElement>();
@@ -461,7 +491,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
     showInfo = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
         const d = getCellDescription(this.cell); // '### ' + this.cell?.obj?.label + '\n\n' + this.cell?.obj?.description;
-        MesoscaleState.set(this.plugin, { selectionDescription: `${d}` });
+        MesoscaleState.set(this.plugin, { focusInfo: `${d}` });
     };
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
@@ -829,11 +859,11 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
                         const snapshot = this.plugin.canvas3d?.camera.getCenter(sphere.center);
                         this.plugin.canvas3d?.requestCameraReset({ durationMs: params.durationMs, snapshot });
                     }
-                    MesoscaleState.set(this.plugin, { index: index, selectionDescription: `${d}` });
+                    MesoscaleState.set(this.plugin, { index: index, focusInfo: `${d}` });
                 }
             } else {
                 this.center(e);
-                MesoscaleState.set(this.plugin, { selectionDescription: `${d}` });
+                MesoscaleState.set(this.plugin, { focusInfo: `${d}` });
             }
         }
     };

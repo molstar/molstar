@@ -367,7 +367,7 @@ export const MesoscaleStateParams = {
     filter: PD.Value<string>('', { isHidden: true }),
     graphics: PD.Select('quality', PD.arrayToOptions(['ultra', 'quality', 'balanced', 'performance', 'custom'] as GraphicsMode[])),
     description: PD.Value<string>('', { isHidden: true }),
-    selectionDescription: PD.Value<string>('', { isHidden: true }),
+    focusInfo: PD.Value<string>('', { isHidden: true }),
     link: PD.Value<string>('', { isHidden: true }),
     index: PD.Value<number>(-1, { isHidden: true }),
 };

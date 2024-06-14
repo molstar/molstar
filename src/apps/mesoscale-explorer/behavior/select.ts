@@ -16,7 +16,7 @@ import { StateTreeSpine } from '../../../mol-state/tree/spine';
 import { Representation } from '../../../mol-repr/representation';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { PluginContext } from '../../../mol-plugin/context';
-import { MesoscaleState, getCellDescription } from '../data/state';
+import { MesoscaleState, expandAllGroups, getCellDescription } from '../data/state';
 
 const B = ButtonsType;
 const M = ModifiersKeys;
@@ -78,18 +78,19 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
                     if (StructureElement.Loci.is(current.loci)) {
                         const cell = this.ctx.helpers.substructureParent.get(current.loci.structure);
                         const d = getCellDescription(cell!);
-                        MesoscaleState.set(this.ctx, { selectionDescription: `${d}` });
+                        MesoscaleState.set(this.ctx, { focusInfo: `${d}` });
                     }
                 }
                 if (Binding.match(click, button, modifiers)) {
                     if (Loci.isEmpty(current.loci)) {
-                        MesoscaleState.set(this.ctx, { selectionDescription: '' });
+                        MesoscaleState.set(this.ctx, { focusInfo: '', filter: '' });
                         return;
                     }
                     if (StructureElement.Loci.is(current.loci)) {
                         const cell = this.ctx.helpers.substructureParent.get(current.loci.structure);
                         const d = getCellDescription(cell!);
-                        MesoscaleState.set(this.ctx, { selectionDescription: `${d}` });
+                        MesoscaleState.set(this.ctx, { focusInfo: `${d}`, filter: `${cell?.obj?.label}` });
+                        expandAllGroups(this.ctx);
                     }
                 }
             });
