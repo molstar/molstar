@@ -86,7 +86,6 @@ const SelectionStyleParam = PD.Select('color+outline', PD.objectToOptions({
 } as const));
 type SelectionStyle = typeof SelectionStyleParam['defaultValue']
 
-
 export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
     state = {
         isDisabled: false,
@@ -106,7 +105,7 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
 
     get info() {
         // const infos: { label: string, key: string, description?: string }[] = [];
-        const info: {selectionDescription: string, infos: { label: string, key: string, description?: string }[] } = { selectionDescription: '', infos: [] };
+        const info: { selectionDescription: string, infos: { label: string, key: string, description?: string }[] } = { selectionDescription: '', infos: [] };
         if (MesoscaleState.has(this.plugin)) {
             const state = MesoscaleState.get(this.plugin);
             if (state.selectionDescription) info.selectionDescription = state.selectionDescription;
@@ -155,31 +154,31 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
         const help_selection = <><div>Use <i>ctrl+left</i> to select entities, either on the 3D canvas or in the tree below</div><div>Use <i>shift+left</i> to select individual chain on the 3D canvas</div></>;
         const description = (info.selectionDescription !== '') ? <Markdown skipHtml>{info.selectionDescription}</Markdown> : help_selection;
         if (!info.infos.length) return <>
-            <div id='seleinfo' className='msp-help-text'>
+            <div className='msp-help-text'>
                 {description}
             </div>
         </>;
 
         return <>
-            <div id='seleinfo'>
-                {info.infos.map((entry, index) => {
-                    const label = <Button className={`msp-btn-tree-label`} noOverflow disabled={this.state.isDisabled}
-                        onClick={() => this.center(entry.key)}
-                    >
-                        <span title={entry.label}>
-                            {entry.label}
-                        </span>
-                    </Button>;
-                    const find = <IconButton svg={SearchSvg} toggleState={false} disabled={this.state.isDisabled} small onClick={() => this.find(entry.label)} />;
-                    const remove = <IconButton svg={CloseSvg} toggleState={false} disabled={this.state.isDisabled} onClick={() => this.remove(entry.key)} />;
-                    return <>
-                        <div key={index} className={`msp-flex-row`} style={{ margin: `1px 5px 1px ${1 * 10 + 5}px` }}>
-                            {label}
-                            {find}
-                            {remove}
-                        </div>
-                    </>;
-                })}
+            {info.infos.map((entry, index) => {
+                const label = <Button className={`msp-btn-tree-label`} noOverflow disabled={this.state.isDisabled}
+                    onClick={() => this.center(entry.key)}
+                >
+                    <span title={entry.label}>
+                        {entry.label}
+                    </span>
+                </Button>;
+                const find = <IconButton svg={SearchSvg} toggleState={false} disabled={this.state.isDisabled} small onClick={() => this.find(entry.label)} />;
+                const remove = <IconButton svg={CloseSvg} toggleState={false} disabled={this.state.isDisabled} onClick={() => this.remove(entry.key)} />;
+                return <>
+                    <div key={index} className={`msp-flex-row`} style={{ margin: `1px 5px 1px ${1 * 10 + 5}px` }}>
+                        {label}
+                        {find}
+                        {remove}
+                    </div>
+                </>;
+            })}
+            <div className='msp-help-text' style={{ marginTop: '10px' }}>
                 {description}
             </div>
         </>;

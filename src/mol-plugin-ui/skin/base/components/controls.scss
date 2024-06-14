@@ -345,6 +345,12 @@
         text-align: left;
         color: color-lower-contrast($font-color, 15%);
     }
+
+    > p {
+        padding: (math.div($control-spacing, 2)) $control-spacing;
+        text-align: left;
+        color: color-lower-contrast($font-color, 15%);
+    }
 }
 
 .msp-help-description {
