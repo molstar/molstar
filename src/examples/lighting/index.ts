@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -33,6 +33,7 @@ const Canvas3DPresets = {
                         radius: 5,
                         bias: 0.8,
                         blurKernelSize: 15,
+                        blurDepthBias: 0.5,
                         resolutionScale: 1,
                         color: Color(0x000000),
                     }
