@@ -10,7 +10,7 @@ import { SectionHeader } from '../../../mol-plugin-ui/controls/common';
 import { MesoscaleExplorerState } from '../app';
 import { MesoscaleState } from '../data/state';
 import { EntityControls, ModelInfo, SelectionInfo } from './entities';
-import { LoaderControls, ExampleControls, SessionControls, SnapshotControls, DatabaseControls } from './states';
+import { LoaderControls, ExampleControls, SessionControls, SnapshotControls, DatabaseControls, ExplorerInfo } from './states';
 
 const Spacer = () => <div style={{ height: '2em' }} />;
 
@@ -19,6 +19,9 @@ export class LeftPanel extends PluginUIComponent {
         const customState = this.plugin.customState as MesoscaleExplorerState;
 
         return <div className='msp-scrollable-container'>
+            <SectionHeader title='Explorer' />
+            <ExplorerInfo />
+            <Spacer />
             <SectionHeader title='Database' />
             <DatabaseControls />
             <Spacer />

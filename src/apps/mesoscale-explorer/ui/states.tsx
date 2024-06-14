@@ -4,12 +4,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import Markdown from 'react-markdown';
 import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
 import { MmcifProvider } from '../../../mol-plugin-state/formats/trajectory';
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { PluginUIComponent } from '../../../mol-plugin-ui/base';
-import { Button, ExpandGroup } from '../../../mol-plugin-ui/controls/common';
-import { GetAppSvg, Icon, OpenInBrowserSvg } from '../../../mol-plugin-ui/controls/icons';
+import { Button, ExpandGroup, IconButton } from '../../../mol-plugin-ui/controls/common';
+import { GetAppSvg, HelpOutlineSvg, TourSvg, Icon, OpenInBrowserSvg } from '../../../mol-plugin-ui/controls/icons';
 import { ApplyActionControl } from '../../../mol-plugin-ui/state/apply-action';
 import { LocalStateSnapshotList, LocalStateSnapshotParams, LocalStateSnapshots } from '../../../mol-plugin-ui/state/snapshots';
 import { PluginCommands } from '../../../mol-plugin/commands';
@@ -25,6 +26,10 @@ import { createGenericHierarchy } from '../data/generic/preset';
 import { createMmcifHierarchy } from '../data/mmcif/preset';
 import { createPetworldHierarchy } from '../data/petworld/preset';
 import { MesoscaleState, MesoscaleStateObject, setGraphicsCanvas3DProps } from '../data/state';
+import { driver } from 'driver.js';
+import 'driver.js/dist/driver.css';
+
+const driverObj = driver();
 
 function adjustPluginProps(ctx: PluginContext) {
     ctx.managers.interactivity.setProps({ granularity: 'chain' });
@@ -362,3 +367,92 @@ export class SnapshotControls extends PluginUIComponent<{}> {
         </div>;
     }
 }
+
+export class ExplorerInfo extends PluginUIComponent<{}, { isDisabled: boolean, showHelp: boolean }> {
+    state = {
+        isDisabled: false,
+        showHelp: false
+    };
+
+    componentDidMount() {
+        this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
+            this.setState({ isDisabled: v });
+        });
+
+        this.subscribe(this.plugin.state.events.cell.stateUpdated, e => {
+            if (!this.state.isDisabled && MesoscaleState.has(this.plugin) && MesoscaleState.ref(this.plugin) === e.ref) {
+                this.forceUpdate();
+            }
+        });
+    }
+
+    setupDriver = () => {
+        // // setup the tour of the interface
+        driverObj.setSteps([
+            // left panel
+            { element: '#explorerinfo', popover: { title: 'Explorer Header Info', description: 'Here is the header of explorer showing the version and access to the documentation and this tour. You can right and left keyboard key to navigate the tour.', side: 'left', align: 'start' } },
+            { element: '#database', popover: { title: 'Import from PDB', description: 'Here you can load structure directly from PDB and PDB-DEV', side: 'bottom', align: 'start' } },
+            { element: '#loader', popover: { title: 'Importing from file', description: 'Here is the local file loader (.molx, .molj, .zip, .cif and .bcif)', side: 'bottom', align: 'start' } },
+            { element: '#example', popover: { title: 'Example', description: 'You can select one of the example model or tour we provide', side: 'left', align: 'start' } },
+            { element: '#session', popover: { title: 'Session', description: 'Download the current session in .molx format', side: 'top', align: 'start' } },
+            { element: '#snaplist', popover: { title: 'Snapshot List', description: 'Show the current list of snapshot, you can reorder them, and edit the snapshot title, key and description. You cannot edit the state of the snapshot.', side: 'right', align: 'start' } },
+            { element: '#snap', popover: { title: 'Snapshot Add', description: 'Save the current state (e.g. everything you see, camera, color, visiblity, etc..) in a snapshot with optional title, key and description', side: 'right', align: 'start' } },
+            { element: '#snapoption', popover: { title: 'Snapshot options', description: 'Theses options olso get saved in the snapshot, set them prior to add a snapshot to see their effect when playing the animation', side: 'right', align: 'start' } },
+            { element: '#exportanimation', popover: { title: 'Export Animation', description: 'Theses options olso get saved in the snapshot, set them prior to add a snapshot to see their effect when playing the animation', side: 'right', align: 'start' } },
+            // { element: '#viewportsettings', popover: { title: 'Viewport settings', description: 'Theses options olso get saved in the snapshot, set them prior to add a snapshot to see their effect when playing the animation', side: 'right', align: 'start' } },
+            // { element: '#behaviorsettings', popover: { title: 'Behavior settings', description: 'Theses options olso get saved in the snapshot, set them prior to add a snapshot to see their effect when playing the animation', side: 'right', align: 'start' } },
+            // viewport
+            { element: '#snapinfo', popover: { title: 'Snapshot Description', description: 'Save the current state (e.g. everything you see, camera, color, visiblity, etc..) in a snapshot with optional title, key and description', side: 'right', align: 'start' } },
+            // { element: '#snapinfoctrl', popover: { title: 'Snapshot Description Control', description: 'Theses options olso get saved in the snapshot, set them prior to add a snapshot to see their effect when playing the animation', side: 'right', align: 'start' } },
+            // { element: '#canvainfo', popover: { title: 'Selection Description', description: 'Save the current state (e.g. everything you see, camera, color, visiblity, etc..) in a snapshot with optional title, key and description', side: 'right', align: 'start' } },
+            // right panel
+            { element: '#modelinfo', popover: { title: 'Model informations', description: 'Theses options olso get saved in the snapshot, set them prior to add a snapshot to see their effect when playing the animation', side: 'right', align: 'start' } },
+            { element: '#selestyle', popover: { title: 'Seletion style', description: 'Save the current state (e.g. everything you see, camera, color, visiblity, etc..) in a snapshot with optional title, key and description', side: 'right', align: 'start' } },
+            { element: '#seleinfo', popover: { title: 'Seletion List', description: 'Save the current state (e.g. everything you see, camera, color, visiblity, etc..) in a snapshot with optional title, key and description', side: 'right', align: 'start' } },
+            // { element: '#measurement', popover: { title: 'Measurements', description: 'Theses options olso get saved in the snapshot, set them prior to add a snapshot to see their effect when playing the animation', side: 'right', align: 'start' } },
+            { element: '#graphicsquality', popover: { title: 'Graphics quality', description: 'Theses options olso get saved in the snapshot, set them prior to add a snapshot to see their effect when playing the animation', side: 'right', align: 'start' } },
+            { element: '#searchtree', popover: { title: 'Search', description: 'Theses options olso get saved in the snapshot, set them prior to add a snapshot to see their effect when playing the animation', side: 'right', align: 'start' } },
+            { element: '#grouptree', popover: { title: 'Group', description: 'Theses options olso get saved in the snapshot, set them prior to add a snapshot to see their effect when playing the animation', side: 'right', align: 'start' } },
+            { element: '#tree', popover: { title: 'Tree hierarchy', description: 'Theses options olso get saved in the snapshot, set them prior to add a snapshot to see their effect when playing the animation', side: 'right', align: 'start' } },
+            { popover: { title: 'Happy Exploring', description: 'And that is all, go ahead and start exploring or creating mesoscale tours.' } }
+        ]
+        );
+        driverObj.refresh();
+    };
+
+    openHelp = () => {
+        // open a new page with the documentation
+        window.open('https://mesoscope.scripps.edu/explorer/docs/', '_blank');
+    };
+
+    toggleHelp = () => {
+        if (!driverObj || !driverObj.hasNextStep()) {
+            this.setupDriver();
+        }
+        this.setState({ showHelp: !this.state.showHelp }, () => {
+            if (this.state.showHelp && driverObj) {
+                driverObj.drive(); // start at 0
+            }
+        });
+    };
+
+    render() {
+        const legend = `## Welcome to Mol* Mesoscale Explorer
+
+Click (?) below to open the [Documentation](https://mesoscope.scripps.edu/explorer/docs/) in a new tab. 
+
+Click &#9873; below to start a tour of the interface with contextual help.
+
+v0.1`;
+        const help = <IconButton svg={HelpOutlineSvg} toggleState={false} small onClick={this.openHelp} />;
+        const tour = <IconButton svg={TourSvg} toggleState={false} small onClick={this.toggleHelp} />;
+        return <>
+            <div id='explorerinfo' className='msp-help-text'>
+                <Markdown>{legend}</Markdown>
+                {tour}{help}
+            </div>
+        </>;
+    }
+}
+
+

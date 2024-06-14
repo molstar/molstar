@@ -68,7 +68,7 @@ export class ModelInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
     render() {
         const info = this.info;
         return info && <>
-            <div className='msp-help-text'>
+            <div id='modelinfo' className='msp-help-text'>
                 <div>{info.description}</div>
                 <div><a href={info.link} target='_blank'>Source</a></div>
             </div>
@@ -138,26 +138,32 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
     get selection() {
         const info = this.info;
         if (!info.length) return <>
-            <div className='msp-help-text'>
+            <div id='seleinfo' className='msp-help-text'>
                 <div>Use <i>ctrl+left click</i> to select entities, either on the 3D canvas or in the tree below</div>
             </div>
         </>;
 
         return <>
-            {info.map((entry, index) => {
-                const label = <Button className={`msp-btn-tree-label`} noOverflow disabled={this.state.isDisabled}
-                    onClick={() => this.center(entry.key)}
-                >
-                    <span title={entry.label}>{entry.label}</span>
-                </Button>;
-                const find = <IconButton svg={SearchSvg} toggleState={false} disabled={this.state.isDisabled} small onClick={() => this.find(entry.label)} />;
-                const remove = <IconButton svg={CloseSvg} toggleState={false} disabled={this.state.isDisabled} onClick={() => this.remove(entry.key)} />;
-                return <div key={index} className={`msp-flex-row`} style={{ margin: `1px 5px 1px ${1 * 10 + 5}px` }}>
-                    {label}
-                    {find}
-                    {remove}
-                </div>;
-            })}
+            <div id='seleinfo'>
+                {info.map((entry, index) => {
+                    const label = <Button className={`msp-btn-tree-label`} noOverflow disabled={this.state.isDisabled}
+                        onClick={() => this.center(entry.key)}
+                    >
+                        <span title={entry.label}>
+                            {entry.label}
+                        </span>
+                    </Button>;
+                    const find = <IconButton svg={SearchSvg} toggleState={false} disabled={this.state.isDisabled} small onClick={() => this.find(entry.label)} />;
+                    const remove = <IconButton svg={CloseSvg} toggleState={false} disabled={this.state.isDisabled} onClick={() => this.remove(entry.key)} />;
+                    return <>
+                        <div key={index} className={`msp-flex-row`} style={{ margin: `1px 5px 1px ${1 * 10 + 5}px` }}>
+                            {label}
+                            {find}
+                            {remove}
+                        </div>
+                    </>;
+                })}
+            </div>
         </>;
     }
 
@@ -216,7 +222,7 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
 
     renderStyle() {
         const style = this.style || '';
-        return <div style={{ margin: '5px', marginBottom: '10px' }}>
+        return <div id='selestyle' style={{ margin: '5px', marginBottom: '10px' }}>
             <SelectControl name={'Style'} param={SelectionStyleParam} value={style} onChange={(e) => { this.setStyle(e.value); }} />
         </div>;
     }
@@ -336,7 +342,7 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
 
     renderGraphics() {
         const graphics = this.graphics;
-        return <div style={{ margin: '5px', marginBottom: '10px' }}>
+        return <div id='graphicsquality' style={{ margin: '5px', marginBottom: '10px' }}>
             <SelectControl name={'Graphics'} param={MesoscaleStateParams.graphics} value={`${graphics}`} onChange={(e) => { this.setGraphics(e.value); }} />
         </div>;
     }
@@ -363,7 +369,7 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
 
         return <>
             {this.renderGraphics()}
-            <div className={`msp-flex-row msp-control-row`} style={{ margin: '5px', marginBottom: '10px' }}>
+            <div id='searchtree' className={`msp-flex-row msp-control-row`} style={{ margin: '5px', marginBottom: '10px' }}>
                 <input type='text' ref={this.filterRef}
                     value={filter}
                     placeholder='Search'
@@ -373,10 +379,12 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
                 />
                 <IconButton svg={CloseSvg} toggleState={false} disabled={disabled} onClick={() => this.setFilter('')} />
             </div>
-            {options.length > 1 && <div style={{ margin: '5px', marginBottom: '10px' }}>
+            {options.length > 1 && <div id='grouptree' style={{ margin: '5px', marginBottom: '10px' }}>
                 <SelectControl name={'Group By'} param={groupParam} value={`${groupBy}`} onChange={(e) => { this.setGroupBy(parseInt(e.value)); }} />
             </div>}
-            <GroupNode filter={filter} cell={root} depth={0} />
+            <div id='tree' style={{ position: 'relative', overflowY: 'auto', borderBottom: '1px  solid #000', maxHeight: '600px' }}>
+                <GroupNode filter={filter} cell={root} depth={0} />
+            </div>
         </>;
     }
 }
