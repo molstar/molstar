@@ -509,7 +509,7 @@ export function getAllFilteredEntities(plugin: PluginContext, tag: string, filte
     return getAllEntities(plugin, tag).filter(c => getEntityLabel(plugin, c).match(matcher) !== null);
 }
 
-export function getEveryEntities(plugin: PluginContext, filter?: string, tag?: string) {
+export function getEveryEntity(plugin: PluginContext, filter?: string, tag?: string) {
     if (filter) {
         const matcher = getFilterMatcher(filter);
         return getAllEntities(plugin, tag).filter(c => getEntityLabel(plugin, c).match(matcher) !== null);

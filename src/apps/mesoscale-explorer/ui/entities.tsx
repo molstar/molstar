@@ -18,7 +18,7 @@ import { CombinedColorControl } from '../../../mol-plugin-ui/controls/color';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { EveryLoci, Loci } from '../../../mol-model/loci';
 import { deepEqual } from '../../../mol-util';
-import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams, expandAllGroups, EmissiveParams, IllustrativeParams, getEveryEntities } from '../data/state';
+import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams, expandAllGroups, EmissiveParams, IllustrativeParams, getEveryEntity } from '../data/state';
 import React, { useState } from 'react';
 import { MesoscaleExplorerState } from '../app';
 import { StructureElement } from '../../../mol-model/structure/structure/element';
@@ -288,11 +288,10 @@ export function MesoMarkdownAnchor({ href, children, element }: { href?: string,
     const handleHover = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
         e.preventDefault();
         if (decodedHref.startsWith('i')) {
-            e.preventDefault();
             plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
             const query_names = decodedHref.substring(1).split(',');
             for (const query_name of query_names) {
-                const entities = getEveryEntities(plugin, query_name);
+                const entities = getEveryEntity(plugin, query_name);
                 for (const r of entities) {
                     const repr = r.obj?.data.repr;
                     if (repr) {
@@ -301,7 +300,6 @@ export function MesoMarkdownAnchor({ href, children, element }: { href?: string,
                 }
             }
         } else if (decodedHref.startsWith('g')) {
-            e.preventDefault();
             plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
             const qindex = decodedHref.indexOf('.');
             const query = decodedHref.substring(1, qindex) + ':';
@@ -318,7 +316,6 @@ export function MesoMarkdownAnchor({ href, children, element }: { href?: string,
         }
     };
     const handleLeave = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
-        e.preventDefault();
         // Implement your hover off logic here
         // Example: Perform an action if the href starts with 'h'
         if (decodedHref.startsWith('i') || decodedHref.startsWith('g')) {
@@ -332,7 +329,6 @@ export function MesoMarkdownAnchor({ href, children, element }: { href?: string,
         if (href.startsWith('#')) {
             plugin.managers.snapshot.applyKey(decodedHref.substring(1));
         } else if (decodedHref.startsWith('i')) {
-            e.preventDefault();
             plugin.managers.interactivity.lociSelects.deselectAll();
             plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
             const query_names = decodedHref.substring(1).split(',');
@@ -352,7 +348,6 @@ export function MesoMarkdownAnchor({ href, children, element }: { href?: string,
                 }
             }
         } else if (decodedHref.startsWith('g')) {
-            e.preventDefault();
             plugin.managers.interactivity.lociSelects.deselectAll();
             plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
             const qindex = decodedHref.indexOf('.');
