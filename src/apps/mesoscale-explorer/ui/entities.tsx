@@ -28,6 +28,7 @@ import { PluginContext } from '../../../mol-plugin/context';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { MesoFocusLoci } from '../behavior/camera';
 import Markdown from 'react-markdown';
+import { combineLatest } from 'rxjs';
 
 function centerLoci(plugin: PluginContext, loci: Loci, durationMs = 250) {
     const { canvas3d } = plugin;
@@ -246,25 +247,25 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
 export class FocusInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
     componentDidMount() {
         this.subscribe(combineLatest([
-          this.plugin.state.data.behaviors.isUpdating,
-          this.plugin.managers.structure.selection.events.changed
+            this.plugin.state.data.behaviors.isUpdating,
+            this.plugin.managers.structure.selection.events.changed
         ]), ([isUpdating]) => {
-          if (!isUpdating) this.forceUpdate();
+            if (!isUpdating) this.forceUpdate();
         });
     }
 
     get info() {
-        const info: { focusInfo: string } = { focusInfo: '' };
+        let focusInfo = '';
         if (MesoscaleState.has(this.plugin)) {
             const state = MesoscaleState.get(this.plugin);
-            if (state.focusInfo) info.focusInfo = state.focusInfo;
+            if (state.focusInfo) focusInfo = state.focusInfo;
         }
-        return info;
+        return focusInfo;
     }
 
     render() {
-        const info = this.info;
-        const description = (info.focusInfo !== '') ? <Markdown skipHtml>{info.focusInfo}</Markdown> : '';
+        const focusInfo = this.info;
+        const description = (focusInfo !== '') ? <Markdown skipHtml>{focusInfo}</Markdown> : '';
         return <>
             <div className='msp-help-text'>
                 {description}
