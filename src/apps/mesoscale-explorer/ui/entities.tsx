@@ -244,19 +244,12 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
 
 
 export class FocusInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
-    state = {
-        isDisabled: false,
-    };
-
     componentDidMount() {
-        this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
-            this.setState({ isDisabled: v });
-        });
-
-        this.subscribe(this.plugin.managers.structure.selection.events.changed, e => {
-            if (!this.state.isDisabled) {
-                this.forceUpdate();
-            }
+        this.subscribe(combineLatest([
+          this.plugin.state.data.behaviors.isUpdating,
+          this.plugin.managers.structure.selection.events.changed
+        ]), ([isUpdating]) => {
+          if (!isUpdating) this.forceUpdate();
         });
     }
 
