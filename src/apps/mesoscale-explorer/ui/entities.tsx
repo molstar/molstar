@@ -254,7 +254,6 @@ export class FocusInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
     }
 
     get info() {
-        // const infos: { label: string, key: string, description?: string }[] = [];
         const info: { focusInfo: string } = { focusInfo: '' };
         if (MesoscaleState.has(this.plugin)) {
             const state = MesoscaleState.get(this.plugin);
