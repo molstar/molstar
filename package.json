@@ -1,6 +1,6 @@
 {
   "name": "molstar",
-  "version": "4.2.0",
+  "version": "4.3.0",
   "description": "A comprehensive macromolecular library.",
   "homepage": "https://github.com/molstar/molstar#readme",
   "repository": {
@@ -107,7 +107,8 @@
     "Christian Dominguez <christian.99dominguez@gmail.com>",
     "Cai Huiyu <szmun.caihy@gmail.com>",
     "Ryan DiRisio <rjdiris@gmail.com>",
-    "Dušan Veľký <dvelky@mail.muni.cz>"
+    "Dušan Veľký <dvelky@mail.muni.cz>",
+    "Neli Fonseca <neli@ebi.ac.uk>"
   ],
   "license": "MIT",
   "devDependencies": {

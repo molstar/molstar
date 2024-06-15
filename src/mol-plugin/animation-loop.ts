@@ -19,7 +19,7 @@ export class PluginAnimationLoop {
         return this._isAnimating;
     }
 
-    async tick(t: number, options?: { isSynchronous?: boolean, manualDraw?: boolean, animation?: PluginAnimationManager.AnimationInfo }) {
+    async tick(t: number, options?: { isSynchronous?: boolean, manualDraw?: boolean, animation?: PluginAnimationManager.AnimationInfo, updateControls?: boolean}) {
         await this.plugin.managers.animation.tick(t, options?.isSynchronous, options?.animation);
         this.plugin.canvas3d?.tick(t as now.Timestamp, options);
 

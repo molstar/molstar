@@ -278,7 +278,7 @@ interface Canvas3D {
      * Function for external "animation" control
      * Calls commit.
      */
-    tick(t: now.Timestamp, options?: { isSynchronous?: boolean, manualDraw?: boolean }): void
+    tick(t: now.Timestamp, options?: { isSynchronous?: boolean, manualDraw?: boolean, updateControls?: boolean }): void
     update(repr?: Representation.Any, keepBoundingSphere?: boolean): void
     clear(): void
     syncVisibility(): void
@@ -527,9 +527,15 @@ namespace Canvas3D {
 
         let animationFrameHandle = 0;
 
-        function tick(t: now.Timestamp, options?: { isSynchronous?: boolean, manualDraw?: boolean }) {
+        function tick(t: now.Timestamp, options?: { isSynchronous?: boolean, manualDraw?: boolean, updateControls?: boolean }) {
             currentTime = t;
             commit(options?.isSynchronous);
+
+            // update the controler before the camera transition
+            if (options?.updateControls) {
+                controls.update(currentTime);
+            }
+
             camera.transition.tick(currentTime);
             hiZ.tick();
 
