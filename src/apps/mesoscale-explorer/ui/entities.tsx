@@ -384,7 +384,7 @@ export function MesoMarkdownAnchor({ href, children, element }: { href?: string,
         return <a href={decodedHref[0]} onMouseLeave={handleLeave} onMouseOver={handleHover} onClick={handleClick}>{children}</a>;
     }
     if (decodedHref[0] === 'h') {
-        return <a href={decodedHref[0]} onClick={handleClick} rel="noopener noreferrer">{children}</a>;
+        return <a href={decodedHref[0]} onClick={handleClick} rel='noopener noreferrer'>{children}</a>;
     }
     return element;
 }
