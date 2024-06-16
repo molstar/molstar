@@ -247,7 +247,7 @@ export namespace Spheres {
         sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
         doubleSided: PD.Boolean(false, BaseGeometry.CustomQualityParamInfo),
         ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
-        quantizedLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
+        celShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
         xrayShaded: PD.Select<boolean | 'inverted'>(false, [[false, 'Off'], [true, 'On'], ['inverted', 'Inverted']], BaseGeometry.ShadingCategory),
         transparentBackfaces: PD.Select('off', PD.arrayToOptions(['off', 'on', 'opaque'] as const), BaseGeometry.ShadingCategory),
         solidInterior: PD.Boolean(true, BaseGeometry.ShadingCategory),
@@ -347,7 +347,7 @@ export namespace Spheres {
             uSizeFactor: spheres.shaderData.sizeFactor,
             uDoubleSided: ValueCell.create(props.doubleSided),
             dIgnoreLight: ValueCell.create(props.ignoreLight),
-            dQuantizedLight: ValueCell.create(props.quantizedLight),
+            dCelShaded: ValueCell.create(props.celShaded),
             dXrayShaded: ValueCell.create(props.xrayShaded === 'inverted' ? 'inverted' : props.xrayShaded === true ? 'on' : 'off'),
             dTransparentBackfaces: ValueCell.create(props.transparentBackfaces),
             dSolidInterior: ValueCell.create(props.solidInterior),
@@ -374,7 +374,7 @@ export namespace Spheres {
         ValueCell.updateIfChanged(values.uSizeFactor, props.sizeFactor);
         ValueCell.updateIfChanged(values.uDoubleSided, props.doubleSided);
         ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);
-        ValueCell.updateIfChanged(values.dQuantizedLight, props.quantizedLight);
+        ValueCell.updateIfChanged(values.dCelShaded, props.celShaded);
         ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded === 'inverted' ? 'inverted' : props.xrayShaded === true ? 'on' : 'off');
         ValueCell.updateIfChanged(values.dTransparentBackfaces, props.transparentBackfaces);
         ValueCell.updateIfChanged(values.dSolidInterior, props.solidInterior);

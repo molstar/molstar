@@ -76,8 +76,7 @@ uniform vec3 uInteriorColor;
 bool interior;
 
 uniform float uXrayEdgeFalloff;
-uniform float uQuantizationSteps;
-uniform vec3 uQuantizationTint;
+uniform float uCelSteps;
 uniform float uExposure;
 
 uniform mat4 uProjection;

@@ -109,8 +109,7 @@ export const RendererParams = {
     markerPriority: PD.Select(1, [[1, 'Highlight'], [2, 'Select']]),
 
     xrayEdgeFalloff: PD.Numeric(1, { min: 0.0, max: 3.0, step: 0.1 }),
-    quantizationSteps: PD.Numeric(8, { min: 1, max: 32, step: 1 }),
-    quantizationTint: PD.Color(Color.fromNormalizedRgb(1.0, 1.0, 1.0)),
+    celSteps: PD.Numeric(5, { min: 2, max: 16, step: 1 }),
     exposure: PD.Numeric(1, { min: 0.0, max: 3.0, step: 0.01 }),
 
     light: PD.ObjectList({
@@ -260,8 +259,7 @@ namespace Renderer {
             uMarkerAverage: ValueCell.create(0),
 
             uXrayEdgeFalloff: ValueCell.create(p.xrayEdgeFalloff),
-            uQuantizationSteps: ValueCell.create(p.quantizationSteps),
-            uQuantizationTint: ValueCell.create(Color.toVec3Normalized(Vec3(), p.quantizationTint)),
+            uCelSteps: ValueCell.create(p.celSteps),
             uExposure: ValueCell.create(p.exposure),
         };
         const globalUniformList = Object.entries(globalUniforms);
@@ -858,14 +856,9 @@ namespace Renderer {
                     ValueCell.update(globalUniforms.uXrayEdgeFalloff, p.xrayEdgeFalloff);
                 }
 
-                if (props.quantizationSteps !== undefined && props.quantizationSteps !== p.quantizationSteps) {
-                    p.quantizationSteps = props.quantizationSteps;
-                    ValueCell.update(globalUniforms.uQuantizationSteps, p.quantizationSteps);
-                }
-
-                if (props.quantizationTint !== undefined && props.quantizationTint !== p.quantizationTint) {
-                    p.quantizationTint = props.quantizationTint;
-                    ValueCell.update(globalUniforms.uQuantizationTint, Color.toVec3Normalized(globalUniforms.uQuantizationTint.ref.value, p.quantizationTint));
+                if (props.celSteps !== undefined && props.celSteps !== p.celSteps) {
+                    p.celSteps = props.celSteps;
+                    ValueCell.update(globalUniforms.uCelSteps, p.celSteps);
                 }
 
                 if (props.exposure !== undefined && props.exposure !== p.exposure) {

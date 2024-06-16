@@ -21,7 +21,7 @@ export const SpheresSchema = {
     padding: ValueSpec('number'),
     uDoubleSided: UniformSpec('b', 'material'),
     dIgnoreLight: DefineSpec('boolean'),
-    dQuantizedLight: DefineSpec('boolean'),
+    dCelShaded: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('string', ['off', 'on', 'inverted']),
     dTransparentBackfaces: DefineSpec('string', ['off', 'on', 'opaque']),
     dSolidInterior: DefineSpec('boolean'),
