@@ -24,10 +24,43 @@ $logo-background: rgba(0,0,0,0.75);
 }
 
 @import 'mol-plugin-ui/skin/base/base';
+@import 'mol-plugin-ui/skin/base/variables';
 
 a {
     color: $font-color;
     &:hover {
         color: $hover-font-color;
+    }
+}
+
+
+.msp-snapshot-description-me {
+    background: rgba(red($default-background), green($default-background), blue($default-background), 0.5);
+
+    position: absolute;
+    height: 50vh; // 50% of the viewport height
+    left: 0;
+    top: $control-spacing + $row-height;
+    padding: (0.66 * $control-spacing) $control-spacing;
+
+    resize: both; /* Allows resizing in both directions */
+    overflow: auto; /* Adjust as needed */
+
+    a {
+        text-decoration: underline;
+        cursor: pointer;
+        color: $font-color;
+    }
+
+    ul, ol {
+        padding-left: $control-spacing + 4px;
+    }
+
+    &.hidden {
+        display: none;
+    }
+
+    &.shown {
+        display: block; // or 'flex', 'grid', etc. depending on your layout
     }
 }

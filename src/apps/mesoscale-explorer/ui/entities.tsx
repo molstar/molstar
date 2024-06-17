@@ -275,7 +275,7 @@ export function MesoViewportSnapshotDescription() {
             <div id='snapinfoctrl' className="msp-state-snapshot-viewport-controls" style={{ marginRight: '30px' }}>
                 {showInfo}{increasePoliceSize}{decreasePoliceSize}
             </div>
-            <div id='snapinfo' className={`msp-snapshot-description-wrapper ${isShown ? 'shown' : 'hidden'}`} style={{ fontSize: `${textSize}px` }}>
+            <div id='snapinfo' className={`msp-snapshot-description-me ${isShown ? 'shown' : 'hidden'}`} style={{ fontSize: `${textSize}px` }}>
                 {<Markdown skipHtml={false} components={{ a: MesoMarkdownAnchor }}>{e.description}</Markdown>}
             </div>
         </>
