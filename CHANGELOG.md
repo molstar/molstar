@@ -15,6 +15,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Add `reuseOcclusion` parameter to multi-sample pass
     - Add `blurDepthBias` parameter to occlusion pass
     - Handle near clip in SSAO blur
+- Support reading score from B-factor in pLDDT color theme
 
 ## [v4.3.0] - 2023-05-26
 
