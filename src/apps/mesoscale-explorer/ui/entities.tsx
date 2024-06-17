@@ -244,13 +244,15 @@ export function MesoViewportSnapshotDescription() {
     const toggleVisibility = () => {
         setIsShown(!isShown);
     };
+
     const increaseTextSize = () => {
-        setTextSize(prevSize => prevSize + 2); // Increase the text size by 2px
+        setTextSize(prevSize => Math.min(prevSize + 2, 50)); // Increase the text size by 2px, but not above 50px
     };
 
     const decreaseTextSize = () => {
-        setTextSize(prevSize => prevSize - 2); // Decrease the text size by 2px
+        setTextSize(prevSize => Math.max(prevSize - 2, 2)); // Decrease the text size by 2px, but not below 2px
     };
+
 
     React.useEffect(() => {
         const sub = plugin.managers.snapshot.events.changed.subscribe(() => setV(v => v + 1));
