@@ -107,6 +107,7 @@ entity.id
 entity.type
 entity.src_method
 entity.pdbx_description
+entity.pdbx_parent_entity_id
 entity.formula_weight
 entity.pdbx_number_of_molecules
 entity.details

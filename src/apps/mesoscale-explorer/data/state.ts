@@ -256,6 +256,7 @@ export const MesoscaleGroupParams = {
     index: PD.Value<number>(-1, { isHidden: true }),
     tag: PD.Value<string>('', { isHidden: true }),
     label: PD.Value<string>('', { isHidden: true }),
+    description: PD.Value<string>('', { isHidden: true }),
     hidden: PD.Boolean(false),
     color: PD.Group(RootParams),
     lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
@@ -277,7 +278,7 @@ export const MesoscaleGroup = PluginStateTransform.BuiltIn({
 })({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Apply Mesoscale Group', async () => {
-            return new MesoscaleGroupObject({}, { label: params.label });
+            return new MesoscaleGroupObject({}, { label: params.label, description: params.description });
         });
     },
 });
@@ -366,8 +367,11 @@ export const MesoscaleStateParams = {
     filter: PD.Value<string>('', { isHidden: true }),
     graphics: PD.Select('quality', PD.arrayToOptions(['ultra', 'quality', 'balanced', 'performance', 'custom'] as GraphicsMode[])),
     description: PD.Value<string>('', { isHidden: true }),
+    focusInfo: PD.Value<string>('', { isHidden: true }),
     link: PD.Value<string>('', { isHidden: true }),
-    textSizeDescription: PD.Numeric(14, { min: 1, max: 100, step: 1 }, { isHidden: true }) };
+    textSizeDescription: PD.Numeric(14, { min: 1, max: 100, step: 1 }, { isHidden: true }),
+    index: PD.Value<number>(-1, { isHidden: true })
+};
 
 export class MesoscaleStateObject extends PSO.Create<MesoscaleState>({ name: 'Mesoscale State', typeClass: 'Object' }) { }
 
@@ -522,7 +526,17 @@ export function getEntityLabel(plugin: PluginContext, cell: StateObjectCell) {
     return StateObjectRef.resolve(plugin.state.data, cell.transform.parent)?.obj?.label || 'Entity';
 }
 
-//
+export function getCellDescription(cell: StateObjectCell) {
+    // markdown style for description
+    return '**' + cell?.obj?.label + '**\n\n' + cell?.obj?.description;
+}
+
+export function getEntityDescription(plugin: PluginContext, cell: StateObjectCell) {
+    const s = StateObjectRef.resolve(plugin.state.data, cell.transform.parent);
+    const d = getCellDescription(s!);
+    return d;
+}
+
 
 export async function updateColors(plugin: PluginContext, values: PD.Values, tag: string, filter: string) {
     const update = plugin.state.data.build();

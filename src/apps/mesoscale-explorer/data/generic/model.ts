@@ -76,6 +76,7 @@ const StructureFromGeneric = PluginStateTransform.BuiltIn({
     params: {
         instances: PD.Value<GenericInstances<Asset>>(EmptyInstances),
         label: PD.Optional(PD.Text('')),
+        description: PD.Optional(PD.Text('')),
         cellSize: PD.Numeric(500, { min: 0, max: 10000, step: 100 }),
     }
 })({
@@ -111,7 +112,7 @@ const StructureFromGeneric = PluginStateTransform.BuiltIn({
                 structure = assembler.getStructure();
             }
 
-            const props = { label, description: Structure.elementDescription(structure) };
+            const props = { label, description: params.description || Structure.elementDescription(structure) };
             return new SO.Molecule.Structure(structure, props);
         });
     },
