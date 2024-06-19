@@ -243,58 +243,6 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
     }
 }
 
-
-export function MesoViewportSnapshotDescription() {
-    let tSize = 14;
-    const plugin = React.useContext(PluginReactContext);
-    if (MesoscaleState.has(plugin)) {
-        const state = MesoscaleState.get(plugin);
-        tSize = state.textSizeDescription;
-    }
-    const [_, setV] = React.useState(0);
-    const [isShown, setIsShown] = useState(true);
-    const [textSize, setTextSize] = useState(tSize);
-    const toggleVisibility = () => {
-        setIsShown(!isShown);
-    };
-
-    const increaseTextSize = () => {
-        setTextSize(prevSize => Math.min(prevSize + 2, 50)); // Increase the text size by 2px, but not above 50px
-    };
-
-    const decreaseTextSize = () => {
-        setTextSize(prevSize => Math.max(prevSize - 2, 2)); // Decrease the text size by 2px, but not below 2px
-    };
-
-
-    React.useEffect(() => {
-        const sub = plugin.managers.snapshot.events.changed.subscribe(() => setV(v => v + 1));
-        return () => sub.unsubscribe();
-    }, [plugin]);
-
-    const current = plugin.managers.snapshot.state.current;
-    if (!current) return null;
-
-    const e = plugin.managers.snapshot.getEntry(current)!;
-    if (!e?.description?.trim()) return null;
-    if (MesoscaleState.has(plugin)) {
-        MesoscaleState.set(plugin, { textSizeDescription: textSize });
-    }
-    const showInfo = <IconButton svg={isShown ? TooltipTextSvg : TooltipTextOutlineSvg} flex='20px' onClick={toggleVisibility} title={isShown ? 'Hide Description' : 'Show Description'}/>;
-    const increasePoliceSize = <IconButton svg={PlusBoxSvg} flex='20px' onClick={increaseTextSize} title='Bigger Text' />;
-    const decreasePoliceSize = <IconButton svg={MinusBoxSvg} flex='20px' onClick={decreaseTextSize} title='Smaller Text' />;
-    return (
-        <>
-            <div id='snapinfoctrl' className="msp-state-snapshot-viewport-controls" style={{ marginRight: '30px' }}>
-                {showInfo}{increasePoliceSize}{decreasePoliceSize}
-            </div>
-            <div id='snapinfo' className={`msp-snapshot-description-me ${isShown ? 'shown' : 'hidden'}`} style={{ fontSize: `${textSize}px` }}>
-                {<Markdown skipHtml={false} components={{ a: MesoMarkdownAnchor }}>{e.description}</Markdown>}
-            </div>
-        </>
-    );
-}
-
 export function MesoMarkdownAnchor({ href, children, element }: { href?: string, children?: any, element?: any }) {
     const plugin = React.useContext(PluginReactContext);
     if (!href) return element;
@@ -399,6 +347,57 @@ export function MesoMarkdownAnchor({ href, children, element }: { href?: string,
     return element;
 }
 
+export function MesoViewportSnapshotDescription() {
+    let tSize = 14;
+    const plugin = React.useContext(PluginReactContext);
+    if (MesoscaleState.has(plugin)) {
+        const state = MesoscaleState.get(plugin);
+        tSize = state.textSizeDescription;
+    }
+    const [_, setV] = React.useState(0);
+    const [isShown, setIsShown] = useState(true);
+    const [textSize, setTextSize] = useState(tSize);
+    const toggleVisibility = () => {
+        setIsShown(!isShown);
+    };
+
+    const increaseTextSize = () => {
+        setTextSize(prevSize => Math.min(prevSize + 2, 50)); // Increase the text size by 2px, but not above 50px
+    };
+
+    const decreaseTextSize = () => {
+        setTextSize(prevSize => Math.max(prevSize - 2, 2)); // Decrease the text size by 2px, but not below 2px
+    };
+
+
+    React.useEffect(() => {
+        const sub = plugin.managers.snapshot.events.changed.subscribe(() => setV(v => v + 1));
+        return () => sub.unsubscribe();
+    }, [plugin]);
+
+    const current = plugin.managers.snapshot.state.current;
+    if (!current) return null;
+
+    const e = plugin.managers.snapshot.getEntry(current)!;
+    if (!e?.description?.trim()) return null;
+    if (MesoscaleState.has(plugin)) {
+        MesoscaleState.set(plugin, { textSizeDescription: textSize });
+    }
+    const showInfo = <IconButton svg={isShown ? TooltipTextSvg : TooltipTextOutlineSvg} flex='20px' onClick={toggleVisibility} title={isShown ? 'Hide Description' : 'Show Description'}/>;
+    const increasePoliceSize = <IconButton svg={PlusBoxSvg} flex='20px' onClick={increaseTextSize} title='Bigger Text' />;
+    const decreasePoliceSize = <IconButton svg={MinusBoxSvg} flex='20px' onClick={decreaseTextSize} title='Smaller Text' />;
+    return (
+        <>
+            <div id='snapinfoctrl' className="msp-state-snapshot-viewport-controls" style={{ marginRight: '30px' }}>
+                {showInfo}{increasePoliceSize}{decreasePoliceSize}
+            </div>
+            <div id='snapinfo' className={`msp-snapshot-description-me ${isShown ? 'shown' : 'hidden'}`} style={{ fontSize: `${textSize}px` }}>
+                {<Markdown skipHtml={false} components={{ a: MesoMarkdownAnchor }}>{e.description}</Markdown>}
+            </div>
+        </>
+    );
+}
+
 export class FocusInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
     componentDidMount() {
         this.subscribe(combineLatest([
@@ -420,7 +419,7 @@ export class FocusInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
 
     render() {
         const focusInfo = this.info;
-        const description = (focusInfo !== '') ? <Markdown skipHtml>{focusInfo}</Markdown> : '';
+        const description = (focusInfo !== '') ? <Markdown skipHtml components={{ a: MesoMarkdownAnchor }}>{focusInfo}</Markdown> : '';
         return <>
             <div className='msp-help-text'>
                 {description}
