@@ -43,7 +43,7 @@ export function PLDDTConfidenceColorTheme(ctx: ThemeDataContext, props: PD.Value
             if (!Unit.isAtomic(unit)) return DefaultColor;
 
             const qualityAssessment = QualityAssessmentProvider.get(unit.model).value;
-            let score = qualityAssessment?.pLDDT?.get(unit.model.atomicHierarchy.residueAtomSegments.index[element])
+            let score = qualityAssessment?.pLDDT?.get(unit.model.atomicHierarchy.residueAtomSegments.index[element]);
             if (typeof score !== 'number') {
                 score = unit.model.atomicConformation.B_iso_or_equiv.value(element);
             }
