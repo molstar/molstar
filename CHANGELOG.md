@@ -18,6 +18,9 @@ Note that since we don't clearly distinguish between a public and private interf
     - Add `blurDepthBias` parameter to occlusion pass
     - Handle near clip in SSAO blur
 - Support reading score from B-factor in pLDDT color theme
+- Add Cel-shading support
+    - `celShaded` geometry parameter
+    - `celSteps` renderer parameter
 
 ## [v4.3.0] - 2023-05-26
 
