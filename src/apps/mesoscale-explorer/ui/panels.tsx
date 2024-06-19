@@ -9,7 +9,7 @@ import { PluginUIComponent } from '../../../mol-plugin-ui/base';
 import { SectionHeader } from '../../../mol-plugin-ui/controls/common';
 import { MesoscaleExplorerState } from '../app';
 import { MesoscaleState } from '../data/state';
-import { EntityControls, ModelInfo, SelectionInfo } from './entities';
+import { EntityControls, FocusInfo, ModelInfo, SelectionInfo } from './entities';
 import { LoaderControls, ExampleControls, SessionControls, SnapshotControls, DatabaseControls } from './states';
 
 const Spacer = () => <div style={{ height: '2em' }} />;
@@ -59,6 +59,13 @@ export class RightPanel extends PluginUIComponent<{}, { isDisabled: boolean }> {
         );
     }
 
+    get hasFocusInfo() {
+        return (
+            MesoscaleState.has(this.plugin) &&
+            !!(MesoscaleState.get(this.plugin).focusInfo !== '')
+        );
+    }
+
     componentDidMount() {
         this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
             this.setState({ isDisabled: v });
@@ -93,6 +100,12 @@ export class RightPanel extends PluginUIComponent<{}, { isDisabled: boolean }> {
 
             <SectionHeader title='Entities' />
             <EntityControls />
+            <Spacer />
+            {this.hasFocusInfo && <>
+                <SectionHeader title='Focus Info' />
+                <FocusInfo />
+                <Spacer />
+            </>}
         </div>;
     }
 }
