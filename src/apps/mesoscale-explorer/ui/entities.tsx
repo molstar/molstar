@@ -269,7 +269,7 @@ export class FocusInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
         const focusInfo = this.info;
         const description = (focusInfo !== '') ? <Markdown skipHtml>{focusInfo}</Markdown> : '';
         return <>
-            <div className='msp-help-text'>
+            <div id='focusinfo' className='msp-help-text'>
                 {description}
             </div>
         </>;

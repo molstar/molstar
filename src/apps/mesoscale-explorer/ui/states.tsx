@@ -275,7 +275,7 @@ export class DatabaseControls extends PluginUIComponent {
     }
 
     render() {
-        return <div style={{ margin: '5px' }}>
+        return <div id='database' style={{ margin: '5px' }}>
             <ApplyActionControl state={this.plugin.state.data} action={LoadDatabase} nodeRef={this.plugin.state.data.tree.root.ref} applyLabel={'Load'} hideHeader />
         </div>;
     }
@@ -287,7 +287,7 @@ export class LoaderControls extends PluginUIComponent {
     }
 
     render() {
-        return <div style={{ margin: '5px' }}>
+        return <div id='loader' style={{ margin: '5px' }}>
             <ApplyActionControl state={this.plugin.state.data} action={LoadModel} nodeRef={this.plugin.state.data.tree.root.ref} applyLabel={'Load'} hideHeader />
         </div>;
     }
@@ -299,7 +299,7 @@ export class ExampleControls extends PluginUIComponent {
     }
 
     render() {
-        return <div style={{ margin: '5px' }}>
+        return <div id='example' style={{ margin: '5px' }}>
             <ApplyActionControl state={this.plugin.state.data} action={LoadExample} nodeRef={this.plugin.state.data.tree.root.ref} applyLabel={'Load'} hideHeader />
         </div>;
     }
@@ -336,7 +336,7 @@ export class SessionControls extends PluginUIComponent {
     };
 
     render() {
-        return <div style={{ margin: '5px' }}>
+        return <div id='session' style={{ margin: '5px' }}>
             <div className='msp-flex-row'>
                 <Button icon={GetAppSvg} onClick={this.downloadToFileZip} title='Download the state.'>
                     Download
@@ -352,14 +352,14 @@ export class SessionControls extends PluginUIComponent {
 export class SnapshotControls extends PluginUIComponent<{}> {
     render() {
         return <div style={{ margin: '5px' }}>
-            <div style={{ marginBottom: '10px' }}>
+            <div id='snaplist' style={{ marginBottom: '10px' }}>
                 <LocalStateSnapshotList />
             </div>
-            <div style={{ marginBottom: '10px' }}>
+            <div id='snap' style={{ marginBottom: '10px' }}>
                 <LocalStateSnapshots />
             </div>
 
-            <div style={{ marginBottom: '10px' }}>
+            <div id='snapoption' style={{ marginBottom: '10px' }}>
                 <ExpandGroup header='Snapshot Options' initiallyExpanded={false}>
                     <LocalStateSnapshotParams />
                 </ExpandGroup>
@@ -404,7 +404,6 @@ export class ExplorerInfo extends PluginUIComponent<{}, { isDisabled: boolean, s
             // viewport
             { element: '#snapinfo', popover: { title: 'Snapshot Description', description: 'Save the current state (e.g. everything you see, camera, color, visiblity, etc..) in a snapshot with optional title, key and description', side: 'right', align: 'start' } },
             // { element: '#snapinfoctrl', popover: { title: 'Snapshot Description Control', description: 'Theses options olso get saved in the snapshot, set them prior to add a snapshot to see their effect when playing the animation', side: 'right', align: 'start' } },
-            // { element: '#canvainfo', popover: { title: 'Selection Description', description: 'Save the current state (e.g. everything you see, camera, color, visiblity, etc..) in a snapshot with optional title, key and description', side: 'right', align: 'start' } },
             // right panel
             { element: '#modelinfo', popover: { title: 'Model informations', description: 'Theses options olso get saved in the snapshot, set them prior to add a snapshot to see their effect when playing the animation', side: 'right', align: 'start' } },
             { element: '#selestyle', popover: { title: 'Seletion style', description: 'Save the current state (e.g. everything you see, camera, color, visiblity, etc..) in a snapshot with optional title, key and description', side: 'right', align: 'start' } },
@@ -414,7 +413,8 @@ export class ExplorerInfo extends PluginUIComponent<{}, { isDisabled: boolean, s
             { element: '#searchtree', popover: { title: 'Search', description: 'Theses options olso get saved in the snapshot, set them prior to add a snapshot to see their effect when playing the animation', side: 'right', align: 'start' } },
             { element: '#grouptree', popover: { title: 'Group', description: 'Theses options olso get saved in the snapshot, set them prior to add a snapshot to see their effect when playing the animation', side: 'right', align: 'start' } },
             { element: '#tree', popover: { title: 'Tree hierarchy', description: 'Theses options olso get saved in the snapshot, set them prior to add a snapshot to see their effect when playing the animation', side: 'right', align: 'start' } },
-            { popover: { title: 'Happy Exploring', description: 'And that is all, go ahead and start exploring or creating mesoscale tours.' } }
+            { element: '#focusinfo', popover: { title: 'Selection Description', description: 'Selection Description', side: 'right', align: 'start' } },
+            { popover: { title: 'Happy Exploring', description: 'And that is all, go ahead and start exploring or creating mesoscale tours.' } },
         ]
         );
         driverObj.refresh();
