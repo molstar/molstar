@@ -19,7 +19,7 @@ import { Interval, OrderedSet, SortedArray } from '../../../mol-data/int';
 import { Interactions } from '../interactions/interactions';
 import { InteractionsProvider } from '../interactions';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
-import { InteractionFlag, InteractionType } from '../interactions/common';
+import { FeatureType, InteractionFlag, InteractionType } from '../interactions/common';
 import { Unit } from '../../../mol-model/structure/structure';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { assertUnreachable } from '../../../mol-util/type-helpers';
@@ -64,8 +64,9 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
                 let minDistB = minDistA;
                 Vec3.copy(posA, pA);
                 Vec3.copy(posB, pB);
+                const isHydrogenDonorA = fA.types[fA.offsets[indexA]] === FeatureType.HydrogenDonor;
 
-                eachBondedAtom(structure, uA, idxA, (u, idx) => {
+                if (isHydrogenDonorA) eachBondedAtom(structure, uA, idxA, (u, idx) => {
                     const eI = u.elements[idx];
                     if (isHydrogen(structure, u, eI, 'polar')) {
                         u.conformation.position(eI, p);
@@ -77,7 +78,7 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
                     }
                 });
 
-                eachBondedAtom(structure, uB, idxB, (u, idx) => {
+                else eachBondedAtom(structure, uB, idxB, (u, idx) => {
                     const eI = u.elements[idx];
                     if (isHydrogen(structure, u, eI, 'polar')) {
                         u.conformation.position(eI, p);

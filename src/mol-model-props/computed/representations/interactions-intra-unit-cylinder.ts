@@ -19,7 +19,7 @@ import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../../../mol-repr
 import { VisualUpdateState } from '../../../mol-repr/util';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { Interactions } from '../interactions/interactions';
-import { InteractionFlag } from '../interactions/common';
+import { FeatureType, InteractionFlag } from '../interactions/common';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { StructureGroup, isHydrogen } from '../../../mol-repr/structure/visual/util/common';
 import { assertUnreachable } from '../../../mol-util/type-helpers';
@@ -40,7 +40,7 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
     const features = interactions.unitsFeatures.get(unit.id);
     const contacts = interactions.unitsContacts.get(unit.id);
 
-    const { x, y, z, members, offsets } = features;
+    const { x, y, z, members, offsets, types } = features;
     const { edgeCount, a, b, edgeProps: { flag, type } } = contacts;
     const { sizeFactor, ignoreHydrogens, ignoreHydrogensVariant, parentDisplay } = props;
 
@@ -66,8 +66,9 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
                 let minDistB = minDistA;
                 Vec3.copy(posA, pA);
                 Vec3.copy(posB, pB);
+                const isHydrogeDonorA = types[offsets[a[edgeIndex]]] === FeatureType.HydrogenDonor;
 
-                eachIntraBondedAtom(unit, idxA, (_, idx) => {
+                if (isHydrogeDonorA) eachIntraBondedAtom(unit, idxA, (_, idx) => {
                     if (isHydrogen(structure, unit, elements[idx], 'polar')) {
                         c.invariantPosition(elements[idx], p);
                         const dist = Vec3.distance(p, pB);
@@ -78,7 +79,7 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
                     }
                 });
 
-                eachIntraBondedAtom(unit, idxB, (_, idx) => {
+                else eachIntraBondedAtom(unit, idxB, (_, idx) => {
                     if (isHydrogen(structure, unit, elements[idx], 'polar')) {
                         c.invariantPosition(elements[idx], p);
                         const dist = Vec3.distance(p, pA);
