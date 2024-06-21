@@ -153,8 +153,10 @@ void main(void) {
             }
         }
     #endif
-
-    if (!isBackground(opaqueDepth)) color.rgb = pow(color.rgb, vec3(1.0 / uGamma));
+    if (uGamma > 1.0)
+    {
+        if (!isBackground(opaqueDepth)) color.rgb = pow(color.rgb, vec3(1.0 / uGamma));
+    }
     gl_FragColor = color;
 }
 `;
