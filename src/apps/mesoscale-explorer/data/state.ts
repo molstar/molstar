@@ -24,6 +24,7 @@ import { SpacefillRepresentationProvider } from '../../../mol-repr/structure/rep
 import { assertUnreachable } from '../../../mol-util/type-helpers';
 import { MesoscaleExplorerState } from '../app';
 import { saturate } from '../../../mol-math/interpolate';
+import { StructureComponentManager } from '../../../mol-plugin-state/manager/structure/component';
 
 function getHueRange(hue: number, variability: number) {
     let min = hue - variability;
@@ -456,7 +457,7 @@ export function getAllGroups(plugin: PluginContext, tag?: string) {
     return _getAllGroups(plugin, tag, []);
 }
 
-export function getAllLeafGroups(plugin: PluginContext, tag: string) {
+export function getAllLeafGroups(plugin: PluginContext, tag: string | undefined) {
     const allGroups = getAllGroups(plugin, tag);
     allGroups.sort((a, b) => a.params?.values.index - b.params?.values.index);
     return allGroups.filter(g => {
@@ -490,7 +491,8 @@ function getFilterMatcher(filter: string) {
         : new RegExp(escapeRegExp(filter), 'gi');
 }
 
-export function getFilteredEntities(plugin: PluginContext, tag: string, filter: string) {
+export function getFilteredEntities(plugin: PluginContext, tag: string | undefined, filter: string | undefined) {
+    if (!filter) return getEntities(plugin, tag);
     const matcher = getFilterMatcher(filter);
     return getEntities(plugin, tag).filter(c => getEntityLabel(plugin, c).match(matcher) !== null);
 }
@@ -507,7 +509,8 @@ export function getAllEntities(plugin: PluginContext, tag?: string) {
     return _getAllEntities(plugin, tag, []);
 }
 
-export function getAllFilteredEntities(plugin: PluginContext, tag: string, filter: string) {
+export function getAllFilteredEntities(plugin: PluginContext, tag: string | undefined, filter: string | undefined) {
+    if (!filter) return getAllEntities(plugin, tag);
     const matcher = getFilterMatcher(filter);
     return getAllEntities(plugin, tag).filter(c => getEntityLabel(plugin, c).match(matcher) !== null);
 }
@@ -537,10 +540,10 @@ export function getEntityDescription(plugin: PluginContext, cell: StateObjectCel
 }
 
 
-export async function updateColors(plugin: PluginContext, values: PD.Values, tag: string, filter: string) {
+export async function updateColors(plugin: PluginContext, values: PD.Values, options?: PD.Values, tag?: string, filter?: string) {
     const update = plugin.state.data.build();
     const { type, illustrative, value, shift, lightness, alpha, emissive } = values;
-
+    const { ignoreLight, materialStyle: material, celShaded } = options ? options : { ignoreLight: true, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 }, celShaded: false };
     if (type === 'group-generate' || type === 'group-uniform') {
         const groups = getAllLeafGroups(plugin, tag);
         const baseColors = getDistinctBaseColors(groups.length, shift);
@@ -567,6 +570,9 @@ export async function updateColors(plugin: PluginContext, values: PD.Values, tag
                         old.type.params.alpha = alpha;
                         old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
                         old.type.params.emissive = emissive;
+                        old.type.params.ignoreLight = ignoreLight;
+                        old.type.params.material = material;
+                        old.type.params.celShaded = celShaded;
                     } else if (old.coloring) {
                         old.coloring.params.color = c;
                         old.coloring.params.lightness = lightness;
@@ -639,3 +645,17 @@ export function expandAllGroups(plugin: PluginContext) {
         }
     }
 };
+
+export async function updateReprParams(plugin: PluginContext, options: StructureComponentManager.Options) {
+    const update = plugin.state.data.build();
+    const { ignoreLight, materialStyle: material, celShaded } = options;
+    const entities = getAllEntities(plugin);
+    for (let j = 0; j < entities.length; ++j) {
+        update.to(entities[j]).update(old => {
+            old.type.params.ignoreLight = ignoreLight;
+            old.type.params.material = material;
+            old.type.params.celShaded = celShaded;
+        });
+    }
+    await update.commit();
+}

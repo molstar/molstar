@@ -27,6 +27,7 @@ uniform vec3 uOutlineColor;
 uniform vec3 uOcclusionColor;
 uniform bool uTransparentBackground;
 uniform vec2 uOcclusionOffset;
+uniform float uGamma;
 
 #include common
 
@@ -153,6 +154,7 @@ void main(void) {
         }
     #endif
 
+    if (!isBackground(opaqueDepth)) color.rgb = pow(color.rgb, vec3(1.0 / uGamma));
     gl_FragColor = color;
 }
 `;
