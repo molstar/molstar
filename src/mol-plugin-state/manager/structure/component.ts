@@ -480,7 +480,6 @@ namespace StructureComponentManager {
         ),
         visualQuality: PD.Select('auto', VisualQualityOptions, { description: 'Control the visual/rendering quality of representations' }),
         ignoreLight: PD.Boolean(false, { description: 'Ignore light for stylized rendering of representations' }),
-        celShaded: PD.Boolean(false, { description: 'Cell Shading light for stylized rendering of representations' }),
         materialStyle: Material.getParam(),
         clipObjects: PD.Group(Clip.Params),
         interactions: PD.Group(InteractionsProvider.defaultParams, { label: 'Non-covalent Interactions' }),

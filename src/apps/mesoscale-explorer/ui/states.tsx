@@ -11,7 +11,6 @@ import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { CollapsableControls, PluginUIComponent } from '../../../mol-plugin-ui/base';
 import { Button, ExpandGroup } from '../../../mol-plugin-ui/controls/common';
 import { GetAppSvg, Icon, MagicWandSvg, OpenInBrowserSvg } from '../../../mol-plugin-ui/controls/icons';
-import { ParameterControls } from '../../../mol-plugin-ui/controls/parameters';
 import { ApplyActionControl } from '../../../mol-plugin-ui/state/apply-action';
 import { LocalStateSnapshotList, LocalStateSnapshotParams, LocalStateSnapshots } from '../../../mol-plugin-ui/state/snapshots';
 import { PluginCommands } from '../../../mol-plugin/commands';
@@ -26,7 +25,7 @@ import { createCellpackHierarchy } from '../data/cellpack/preset';
 import { createGenericHierarchy } from '../data/generic/preset';
 import { createMmcifHierarchy } from '../data/mmcif/preset';
 import { createPetworldHierarchy } from '../data/petworld/preset';
-import { MesoscaleState, MesoscaleStateObject, setGraphicsCanvas3DProps, updateColors, updateReprParams } from '../data/state';
+import { MesoscaleState, MesoscaleStateObject, setGraphicsCanvas3DProps, updateColors } from '../data/state';
 
 function adjustPluginProps(ctx: PluginContext) {
     ctx.managers.interactivity.setProps({ granularity: 'chain' });
@@ -382,9 +381,35 @@ export class MesoQuickStylesControls extends CollapsableControls {
 }
 
 export class MesoQuickStyles extends PluginUIComponent {
+    state = {
+        celShaded: false,
+    };
+    default_color_values = {
+        type: 'group-generate',
+        illustrative: false,
+        value: [1, 1, 1, 1],
+        variability: 20,
+        shift: 0,
+        lightness: 0,
+        alpha: 1,
+        emissive: 0
+    };
+    illustrative_color_values = {
+        type: 'group-generate',
+        illustrative: true,
+        value: [1, 1, 1, 1],
+        variability: 20,
+        shift: 0,
+        lightness: 0,
+        alpha: 1,
+        emissive: 0
+    };
     async default() {
         if (this.plugin.canvas3d) {
             this.plugin.canvas3d.setProps({
+                renderer: {
+                    exposure: 1.1,
+                },
                 postprocessing: {
                     occlusion: {
                         name: 'on',
@@ -429,29 +454,23 @@ export class MesoQuickStyles extends PluginUIComponent {
                             includeTransparent: false,
                         }
                     },
-                    gamma: 1.0,
                     dof: { name: 'off', params: {} },
                 }
             });
         }
-        const options = { ignoreLight: true, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 }, celShaded: true, };
-        const color_values = {
-            type: 'group-generate',
-            illustrative: false,
-            value: [1, 1, 1, 1],
-            variability: 20,
-            shift: 0,
-            lightness: 0,
-            alpha: 1,
-            emissive: 0
-        };
-        this.plugin.managers.structure.component.setOptions(options as StructureComponentManager.Options);
-        await updateColors(this.plugin, color_values, options);
+        const loptions = { ignoreLight: true, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 } };
+        const options = { ...loptions, celShaded: false, };
+        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
+        console.log('sending options', options);
+        await updateColors(this.plugin, this.default_color_values, options);
     }
 
-    async illustrative() {
+    async cellshading() {
         if (this.plugin.canvas3d) {
             this.plugin.canvas3d.setProps({
+                renderer: {
+                    exposure: 1.5,
+                },
                 postprocessing: {
                     occlusion: {
                         name: 'on',
@@ -488,30 +507,23 @@ export class MesoQuickStyles extends PluginUIComponent {
                         }
                     },
                     outline: { name: 'off', params: {} },
-                    gamma: 2.0,
                     dof: { name: 'off', params: {} },
                 }
             });
         }
         // ignore Light
-        const options = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 }, celShaded: true, };
-        const color_values = {
-            type: 'group-generate',
-            illustrative: true,
-            value: [1, 1, 1, 1],
-            variability: 20,
-            shift: 0,
-            lightness: 0,
-            alpha: 1,
-            emissive: 0
-        };
-        this.plugin.managers.structure.component.setOptions(options as StructureComponentManager.Options);
-        await updateColors(this.plugin, color_values, options);
+        const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 } };
+        const options = { ...loptions, celShaded: true, };
+        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
+        await updateColors(this.plugin, this.illustrative_color_values, options);
     }
 
-    async stylized() {
+    async stylizeddof() {
         if (this.plugin.canvas3d) {
             this.plugin.canvas3d.setProps({
+                renderer: {
+                    exposure: 1.1,
+                },
                 postprocessing: {
                     occlusion: {
                         name: 'on',
@@ -531,7 +543,7 @@ export class MesoQuickStyles extends PluginUIComponent {
                                 }
                             },
                             radius: 5,
-                            bias: 1.0,
+                            bias: 1.3,
                             blurKernelSize: 11,
                             blurDepthBias: 0.5,
                             resolutionScale: 1,
@@ -548,7 +560,6 @@ export class MesoQuickStyles extends PluginUIComponent {
                         }
                     },
                     outline: { name: 'off', params: {} },
-                    gamma: 1.0,
                     dof: {
                         name: 'on',
                         params: {
@@ -564,37 +575,203 @@ export class MesoQuickStyles extends PluginUIComponent {
             });
         }
         // ignore Light
-        const options = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 } };
-        this.update(options);
+        const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 } };
+        const options = { ...loptions, celShaded: false };
+        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
+        await updateColors(this.plugin, this.default_color_values, options);
     }
 
-    update = (options: any) => {
-        this.plugin.managers.structure.component.setOptions(options as StructureComponentManager.Options);
-        // this will make sure its applied to all the entities
-        // clipObject should get updated as well
-        updateReprParams(this.plugin, options);
-    };
+    async illustrative() {
+        if (this.plugin.canvas3d) {
+            this.plugin.canvas3d.setProps({
+                renderer: {
+                    exposure: 1.5,
+                },
+                postprocessing: {
+                    occlusion: {
+                        name: 'on',
+                        params: {
+                            samples: 32,
+                            multiScale: {
+                                name: 'on',
+                                params: {
+                                    levels: [
+                                        { radius: 2, bias: 1.0 },
+                                        { radius: 5, bias: 1.0 },
+                                        { radius: 8, bias: 1.0 },
+                                        { radius: 11, bias: 1.0 },
+                                    ],
+                                    nearThreshold: 10,
+                                    farThreshold: 1500,
+                                }
+                            },
+                            radius: 5,
+                            bias: 2.0,
+                            blurKernelSize: 11,
+                            blurDepthBias: 0.5,
+                            resolutionScale: 1,
+                            color: Color(0x000000),
+                        }
+                    },
+                    shadow: {
+                        name: 'on',
+                        params: {
+                            bias: 0.4,
+                            maxDistance: 256,
+                            steps: 64,
+                            tolerance: 1.0,
+                        }
+                    },
+                    outline: {
+                        name: 'on',
+                        params: {
+                            scale: 1,
+                            threshold: 0.15,
+                            color: Color(0x000000),
+                            includeTransparent: false,
+                        }
+                    },
+                    dof: { name: 'off', params: {} },
+                }
+            });
+        }
+        // ignore Light
+        const loptions = { ignoreLight: true, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 } };
+        const options = { ...loptions, celShaded: false, };
+        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
+        await updateColors(this.plugin, this.illustrative_color_values, options);
+    }
 
+    async metal() {
+        if (this.plugin.canvas3d) {
+            this.plugin.canvas3d.setProps({
+                renderer: {
+                    exposure: 1.5,
+                },
+                postprocessing: {
+                    occlusion: {
+                        name: 'on',
+                        params: {
+                            samples: 32,
+                            multiScale: {
+                                name: 'on',
+                                params: {
+                                    levels: [
+                                        { radius: 2, bias: 1.0 },
+                                        { radius: 5, bias: 1.0 },
+                                        { radius: 8, bias: 1.0 },
+                                        { radius: 11, bias: 1.0 },
+                                    ],
+                                    nearThreshold: 10,
+                                    farThreshold: 1500,
+                                }
+                            },
+                            radius: 5,
+                            bias: 1.3,
+                            blurKernelSize: 11,
+                            blurDepthBias: 0.5,
+                            resolutionScale: 1,
+                            color: Color(0x000000),
+                        }
+                    },
+                    shadow: { name: 'off', params: {} },
+                    outline: { name: 'off', params: {} },
+                    dof: { name: 'off', params: {} },
+                }
+            });
+        }
+        // ignore Light
+        const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 } };
+        const options = { ...loptions, celShaded: false };
+        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
+        await updateColors(this.plugin, this.default_color_values, options);
+    }
+
+    async stylized() {
+        if (this.plugin.canvas3d) {
+            this.plugin.canvas3d.setProps({
+                renderer: {
+                    exposure: 1.1,
+                },
+                postprocessing: {
+                    occlusion: {
+                        name: 'on',
+                        params: {
+                            samples: 32,
+                            multiScale: {
+                                name: 'on',
+                                params: {
+                                    levels: [
+                                        { radius: 2, bias: 1.0 },
+                                        { radius: 5, bias: 1.0 },
+                                        { radius: 8, bias: 1.0 },
+                                        { radius: 11, bias: 1.0 },
+                                    ],
+                                    nearThreshold: 10,
+                                    farThreshold: 1500,
+                                }
+                            },
+                            radius: 5,
+                            bias: 1.3,
+                            blurKernelSize: 11,
+                            blurDepthBias: 0.5,
+                            resolutionScale: 1,
+                            color: Color(0x000000),
+                        }
+                    },
+                    shadow: {
+                        name: 'on',
+                        params: {
+                            bias: 0.4,
+                            maxDistance: 256,
+                            steps: 64,
+                            tolerance: 1.0,
+                        }
+                    },
+                    outline: {
+                        name: 'on',
+                        params: {
+                            scale: 1,
+                            threshold: 0.15,
+                            color: Color(0x000000),
+                            includeTransparent: false,
+                        }
+                    },
+                    dof: { name: 'off', params: {} },
+                }
+            });
+        }
+        // ignore Light
+        const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 } };
+        const options = { ...loptions, celShaded: false };
+        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
+        await updateColors(this.plugin, this.illustrative_color_values, options);
+    }
 
     render() {
-        const style_params = {
-            ignoreLight: StructureComponentManager.OptionsParams.ignoreLight,
-            celShaded: StructureComponentManager.OptionsParams.celShaded,
-            materialStyle: StructureComponentManager.OptionsParams.materialStyle,
-        };
         return <>
             <div className='msp-flex-row'>
                 <Button noOverflow title='Applies default representation preset and sets outline and occlusion effects to default' onClick={() => this.default()} style={{ width: 'auto' }}>
                     Default
                 </Button>
+                <Button noOverflow title='Applies illustrative representation preset and Stylize it with cellShading' onClick={() => this.cellshading()} style={{ width: 'auto' }}>
+                    cellShaded
+                </Button>
+                <Button noOverflow title='Enable DOF and plastic material' onClick={() => this.stylizeddof()} style={{ width: 'auto' }}>
+                    Stylized-DOF
+                </Button>
+            </div>
+            <div className='msp-flex-row'>
+                <Button noOverflow title='Applies default representation preset and sets outline and occlusion effects to default' onClick={() => this.metal()} style={{ width: 'auto' }}>
+                    Metal
+                </Button>
                 <Button noOverflow title='Applies illustrative representation preset and Stylize it with cellShading' onClick={() => this.illustrative()} style={{ width: 'auto' }}>
                     Illustrative
                 </Button>
                 <Button noOverflow title='Enable DOF and plastic material' onClick={() => this.stylized()} style={{ width: 'auto' }}>
-                    Stylized-DOF
+                    Stylized
                 </Button>
             </div>
-            <ParameterControls params={style_params} values={this.plugin.managers.structure.component.state.options} onChangeValues={this.update} />
         </>;
     }
 }

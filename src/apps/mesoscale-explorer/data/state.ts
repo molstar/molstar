@@ -24,7 +24,8 @@ import { SpacefillRepresentationProvider } from '../../../mol-repr/structure/rep
 import { assertUnreachable } from '../../../mol-util/type-helpers';
 import { MesoscaleExplorerState } from '../app';
 import { saturate } from '../../../mol-math/interpolate';
-import { StructureComponentManager } from '../../../mol-plugin-state/manager/structure/component';
+// import { StructureComponentManager } from '../../../mol-plugin-state/manager/structure/component';
+import { Material } from '../../../mol-util/material';
 
 function getHueRange(hue: number, variability: number) {
     let min = hue - variability;
@@ -147,9 +148,22 @@ export const EmissiveParams = {
     emissive: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }),
 };
 
+export const celShaded = {
+    celShaded: PD.Boolean(false, { description: 'Cell Shading light for stylized rendering of representations' })
+};
+
+export type celShadedProps = PD.Values<typeof celShaded>;
+
+
 export const PatternParams = {
     frequency: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
     amplitude: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+};
+
+export const StyleParams = {
+    ignoreLight: PD.Boolean(false, { description: 'Ignore light for stylized rendering of representations' }),
+    materialStyle: Material.getParam(),
+    celShaded: PD.Boolean(false, { description: 'Cell Shading light for stylized rendering of representations' }),
 };
 
 export const LodParams = {
@@ -646,7 +660,7 @@ export function expandAllGroups(plugin: PluginContext) {
     }
 };
 
-export async function updateReprParams(plugin: PluginContext, options: StructureComponentManager.Options) {
+export async function updateReprParams(plugin: PluginContext, options: PD.Values) {
     const update = plugin.state.data.build();
     const { ignoreLight, materialStyle: material, celShaded } = options;
     const entities = getAllEntities(plugin);

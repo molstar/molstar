@@ -306,7 +306,6 @@ const PostprocessingSchema = {
 
     dOcclusionEnable: DefineSpec('boolean'),
     uOcclusionOffset: UniformSpec('v2'),
-    uGamma: UniformSpec('f'),
 
     dShadowEnable: DefineSpec('boolean'),
 
@@ -339,7 +338,6 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
 
         dOcclusionEnable: ValueCell.create(true),
         uOcclusionOffset: ValueCell.create(Vec2.create(0, 0)),
-        uGamma: ValueCell.create(2.0),
 
         dShadowEnable: ValueCell.create(false),
 
@@ -420,7 +418,6 @@ export const PostprocessingParams = {
         on: PD.Group(BloomParams),
         off: PD.Group({})
     }, { cycle: true, description: 'Bloom' }),
-    gamma: PD.Numeric(1.0, { min: 1.0, max: 10.0, step: 0.1 }, { description: 'Gamma correction' }),
 };
 
 export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
@@ -813,7 +810,6 @@ export class PostprocessingPass {
                 ValueCell.update(this.renderable.values.dTransparentOutline, transparentOutline);
             }
         }
-        ValueCell.updateIfChanged(this.renderable.values.uGamma, props.gamma);
         ValueCell.updateIfChanged(this.renderable.values.uFar, camera.far);
         ValueCell.updateIfChanged(this.renderable.values.uNear, camera.near);
         ValueCell.updateIfChanged(this.renderable.values.uFogFar, camera.fogFar);
