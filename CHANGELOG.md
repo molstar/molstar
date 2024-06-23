@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Clean solidInterior transparent cylinders
 - Create a transformer to deflate compressed data
 - Adjust Quick Styles panel button labels
 - Improve camera interpolation code (interpolate camera rotation instead of just position)
