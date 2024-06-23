@@ -268,6 +268,7 @@ export class ControlsWrapper extends PluginUIComponent {
 export class DefaultViewport extends PluginUIComponent {
     render() {
         const VPControls = this.plugin.spec.components?.viewport?.controls || ViewportControls;
+        const SnapshotDescription = this.plugin.spec.components?.viewport?.snapshotDescription || ViewportSnapshotDescription;
 
         return <>
             <Viewport />
@@ -275,7 +276,7 @@ export class DefaultViewport extends PluginUIComponent {
                 <AnimationViewportControls />
                 <TrajectoryViewportControls />
                 <StateSnapshotViewportControls />
-                <ViewportSnapshotDescription />
+                <SnapshotDescription />
             </div>
             <SelectionViewportControls />
             <VPControls />
