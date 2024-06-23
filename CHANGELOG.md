@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Clean solidInterior transparent cylinders
 - Create a transformer to deflate compressed data
 - Adjust Quick Styles panel button labels
 - Improve camera interpolation code (interpolate camera rotation instead of just position)
@@ -13,6 +14,9 @@ Note that since we don't clearly distinguish between a public and private interf
     - Press 'C' to toggle between center and zoom & center on click
     - Add entities selection description
     - Clicking a leaf node in the right panel tree will center each instance in turn
+    - Add measurement controls
+    - Mouse left click on label with snapshot key will load snapshot
+    - Mouse hover over label with protein name highlight entities with the same name
 - Fixes SSAO edge artifacts (#1122)
     - Add `reuseOcclusion` parameter to multi-sample pass
     - Add `blurDepthBias` parameter to occlusion pass
@@ -21,6 +25,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add Cel-shading support
     - `celShaded` geometry parameter
     - `celSteps` renderer parameter
+- Add the ability to customize the Snapshot Description component via `PluginUISpec.components.viewport.snapshotDescription`
 
 ## [v4.3.0] - 2023-05-26
 

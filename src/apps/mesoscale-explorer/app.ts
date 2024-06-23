@@ -17,7 +17,7 @@ import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
 import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/carbohydrates/constants';
 import { Backgrounds } from '../../extensions/backgrounds';
-import { LeftPanel, MesoScaleViewport, RightPanel } from './ui/panels';
+import { LeftPanel, RightPanel } from './ui/panels';
 import { Color } from '../../mol-util/color';
 import { SpacefillRepresentationProvider } from '../../mol-repr/structure/representation/spacefill';
 import { PluginBehaviors } from '../../mol-plugin/behavior';
@@ -30,6 +30,7 @@ import { Asset } from '../../mol-util/assets';
 import { AnimateCameraSpin } from '../../mol-plugin-state/animation/built-in/camera-spin';
 import { AnimateCameraRock } from '../../mol-plugin-state/animation/built-in/camera-rock';
 import { AnimateStateSnapshots } from '../../mol-plugin-state/animation/built-in/state-snapshots';
+import { MesoViewportSnapshotDescription } from './ui/entities';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode, consoleStats } from '../../mol-util/debug';
@@ -171,7 +172,7 @@ export class MesoscaleExplorer {
                 },
                 remoteState: 'none',
                 viewport: {
-                    view: MesoScaleViewport,
+                    snapshotDescription: MesoViewportSnapshotDescription,
                 }
             },
             config: [

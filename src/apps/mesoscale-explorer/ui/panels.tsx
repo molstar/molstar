@@ -6,39 +6,14 @@
 
 import { Mp4EncoderUI } from '../../../extensions/mp4-export/ui';
 import { PluginUIComponent } from '../../../mol-plugin-ui/base';
-import { AnimationViewportControls, LociLabels, SelectionViewportControls, StateSnapshotViewportControls, TrajectoryViewportControls } from '../../../mol-plugin-ui/controls';
 import { SectionHeader } from '../../../mol-plugin-ui/controls/common';
-import { BackgroundTaskProgress } from '../../../mol-plugin-ui/task';
-import { Toasts } from '../../../mol-plugin-ui/toast';
-import { Viewport, ViewportControls } from '../../../mol-plugin-ui/viewport';
+import { StructureMeasurementsControls } from '../../../mol-plugin-ui/structure/measurements';
 import { MesoscaleExplorerState } from '../app';
 import { MesoscaleState } from '../data/state';
-import { EntityControls, FocusInfo, MesoViewportSnapshotDescription, ModelInfo, SelectionInfo } from './entities';
+import { EntityControls, FocusInfo, ModelInfo, SelectionInfo } from './entities';
 import { LoaderControls, ExampleControls, SessionControls, SnapshotControls, DatabaseControls } from './states';
 
 const Spacer = () => <div style={{ height: '2em' }} />;
-
-export class MesoScaleViewport extends PluginUIComponent {
-    render() {
-        const VPControls = this.plugin.spec.components?.viewport?.controls || ViewportControls;
-        return <>
-            <Viewport />
-            <div className='msp-viewport-top-left-controls'>
-                <AnimationViewportControls />
-                <TrajectoryViewportControls />
-                <StateSnapshotViewportControls />
-                <MesoViewportSnapshotDescription />
-            </div>
-            <SelectionViewportControls />
-            <VPControls />
-            <BackgroundTaskProgress />
-            <div className='msp-highlight-toast-wrapper'>
-                <LociLabels />
-                <Toasts />
-            </div>
-        </>;
-    }
-}
 
 export class LeftPanel extends PluginUIComponent {
     render() {
@@ -122,6 +97,7 @@ export class RightPanel extends PluginUIComponent<{}, { isDisabled: boolean }> {
                 <SectionHeader title='Selection' />
                 <SelectionInfo />
                 <Spacer />
+                <StructureMeasurementsControls />
             </>
 
             <SectionHeader title='Entities' />
