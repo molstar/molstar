@@ -9,6 +9,7 @@ import { CollapsableControls, CollapsableState, PluginUIComponent } from '../../
 import { SectionHeader } from '../../../mol-plugin-ui/controls/common';
 import { ParameterControls } from '../../../mol-plugin-ui/controls/parameters';
 import { PluginCommands } from '../../../mol-plugin/commands';
+import { StructureMeasurementsControls } from '../../../mol-plugin-ui/structure/measurements';
 import { MesoscaleExplorerState } from '../app';
 import { MesoscaleState } from '../data/state';
 import { EntityControls, FocusInfo, ModelInfo, SelectionInfo } from './entities';
@@ -135,6 +136,7 @@ export class RightPanel extends PluginUIComponent<{}, { isDisabled: boolean }> {
                 <SectionHeader title='Selection' />
                 <SelectionInfo />
                 <Spacer />
+                <StructureMeasurementsControls />
             </>
             <MesoQuickStylesControls />
             <Spacer />

@@ -11,6 +11,7 @@ import { ButtonsType, ModifiersKeys } from '../../../mol-util/input/input-observ
 import { Binding } from '../../../mol-util/binding';
 import { PluginCommands } from '../../../mol-plugin/commands';
 import { Sphere3D } from '../../../mol-math/geometry';
+import { StructureElement } from '../../../mol-model/structure';
 
 const B = ButtonsType;
 const M = ModifiersKeys;
@@ -58,11 +59,13 @@ export const MesoFocusLoci = PluginBehavior.create<MesoFocusLociProps>({
                         PluginCommands.Camera.Reset(this.ctx, { });
                         return;
                     }
-                    if (centerOnly) {
-                        const snapshot = canvas3d.camera.getCenter(sphere.center);
-                        canvas3d.requestCameraReset({ durationMs, snapshot });
-                    } else {
-                        this.ctx.managers.camera.focusSphere(sphere, this.params);
+                    if (StructureElement.Loci.is(current.loci)) {
+                        if (centerOnly) {
+                            const snapshot = canvas3d.camera.getCenter(sphere.center);
+                            canvas3d.requestCameraReset({ durationMs, snapshot });
+                        } else {
+                            this.ctx.managers.camera.focusSphere(sphere, this.params);
+                        }
                     }
                 } else if (Binding.match(clickCenterFocus, button, modifiers)) {
                     // right mouse button
