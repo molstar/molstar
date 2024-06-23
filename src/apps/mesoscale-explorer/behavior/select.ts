@@ -16,7 +16,7 @@ import { StateTreeSpine } from '../../../mol-state/tree/spine';
 import { Representation } from '../../../mol-repr/representation';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { PluginContext } from '../../../mol-plugin/context';
-import { MesoscaleState, expandAllGroups, getCellDescription, getEveryEntities } from '../data/state';
+import { MesoscaleState, expandAllGroups, getCellDescription, getEveryEntity } from '../data/state';
 
 const B = ButtonsType;
 const M = ModifiersKeys;
@@ -137,7 +137,7 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
                             if ('shape' in current.loci && current.loci.shape.geometry.kind === 'text') {
                                 const qname = current.repr?.props.customText;
                                 // highlight protein with same name
-                                const entities = getEveryEntities(this.ctx, qname);
+                                const entities = getEveryEntity(this.ctx, qname);
                                 for (const r of entities) {
                                     const repr = r.obj?.data.repr;
                                     if (repr) {
