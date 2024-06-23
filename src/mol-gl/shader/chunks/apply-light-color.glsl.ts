@@ -31,6 +31,12 @@ export const apply_light_color = `
 
     vec4 color = material;
 
+    #if defined(dCelShaded)
+        // clamp to avoid artifacts
+        metalness = clamp(metalness, 0.0, 0.99);
+        roughness = clamp(roughness, 0.05, 1.0);
+    #endif
+
     GeometricContext geometry;
     geometry.position = -vViewPosition;
     geometry.normal = normal;
