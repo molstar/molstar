@@ -557,6 +557,7 @@ export function getEntityDescription(plugin: PluginContext, cell: StateObjectCel
 export async function updateColors(plugin: PluginContext, values: PD.Values, options?: PD.Values, tag?: string, filter?: string) {
     const update = plugin.state.data.build();
     const { type, illustrative, value, shift, lightness, alpha, emissive } = values;
+    const dolighting = (options !== undefined);
     const { ignoreLight, materialStyle: material, celShaded } = options ? options : { ignoreLight: true, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 }, celShaded: false };
     if (type === 'group-generate' || type === 'group-uniform') {
         const groups = getAllLeafGroups(plugin, tag);
@@ -584,9 +585,11 @@ export async function updateColors(plugin: PluginContext, values: PD.Values, opt
                         old.type.params.alpha = alpha;
                         old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
                         old.type.params.emissive = emissive;
-                        old.type.params.ignoreLight = ignoreLight;
-                        old.type.params.material = material;
-                        old.type.params.celShaded = celShaded;
+                        if (dolighting) {
+                            old.type.params.ignoreLight = ignoreLight;
+                            old.type.params.material = material;
+                            old.type.params.celShaded = celShaded;
+                        }
                     } else if (old.coloring) {
                         old.coloring.params.color = c;
                         old.coloring.params.lightness = lightness;
@@ -626,6 +629,11 @@ export async function updateColors(plugin: PluginContext, values: PD.Values, opt
                     old.type.params.alpha = alpha;
                     old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
                     old.type.params.emissive = emissive;
+                    if (dolighting) {
+                        old.type.params.ignoreLight = ignoreLight;
+                        old.type.params.material = material;
+                        old.type.params.celShaded = celShaded;
+                    }
                 } else if (old.coloring) {
                     old.coloring.params.color = c;
                     old.coloring.params.lightness = lightness;

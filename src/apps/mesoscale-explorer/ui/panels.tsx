@@ -20,6 +20,11 @@ import { TrackballControlsParams } from '../../../mol-canvas3d/controls/trackbal
 
 const Spacer = () => <div style={{ height: '2em' }} />;
 
+const ViewportParams = {
+    renderer: PD.Group(RendererParams),
+    trackball: PD.Group(TrackballControlsParams),
+};
+
 class ViewportSettingsUI extends CollapsableControls<{}, {}> {
     protected defaultState(): CollapsableState {
         return {
@@ -30,15 +35,11 @@ class ViewportSettingsUI extends CollapsableControls<{}, {}> {
     }
 
     protected renderControls(): JSX.Element | null {
-        const params = {
-            renderer: PD.Group(RendererParams),
-            trackball: PD.Group(TrackballControlsParams),
-        };
         return <>
             {this.plugin.canvas3d && this.plugin.canvas3dContext && <>
-                <ParameterControls params={params} values={this.plugin.canvas3d.props} onChange={this.setSettings} />
+                <ParameterControls params={ViewportParams} values={this.plugin.canvas3d.props} onChange={this.setSettings} />
             </>}
-        </>; // Add closing tag for the JSX element
+        </>;
     }
 
     private setSettings = (p: { param: PD.Base<any>, name: string, value: any }) => {

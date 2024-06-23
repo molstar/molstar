@@ -405,112 +405,110 @@ export class MesoQuickStyles extends PluginUIComponent {
         emissive: 0
     };
     async default() {
-        if (this.plugin.canvas3d) {
-            this.plugin.canvas3d.setProps({
-                renderer: {
-                    exposure: 1.1,
+        if (!this.plugin.canvas3d) return;
+        this.plugin.canvas3d.setProps({
+            renderer: {
+                exposure: 1.1,
+            },
+            postprocessing: {
+                occlusion: {
+                    name: 'on',
+                    params: {
+                        samples: 32,
+                        multiScale: {
+                            name: 'on',
+                            params: {
+                                levels: [
+                                    { radius: 2, bias: 1.0 },
+                                    { radius: 5, bias: 1.0 },
+                                    { radius: 8, bias: 1.0 },
+                                    { radius: 11, bias: 1.0 },
+                                ],
+                                nearThreshold: 10,
+                                farThreshold: 1500,
+                            }
+                        },
+                        radius: 5,
+                        bias: 1,
+                        blurKernelSize: 11,
+                        blurDepthBias: 0.5,
+                        resolutionScale: 1,
+                        color: Color(0x000000),
+                    }
                 },
-                postprocessing: {
-                    occlusion: {
-                        name: 'on',
-                        params: {
-                            samples: 32,
-                            multiScale: {
-                                name: 'on',
-                                params: {
-                                    levels: [
-                                        { radius: 2, bias: 1.0 },
-                                        { radius: 5, bias: 1.0 },
-                                        { radius: 8, bias: 1.0 },
-                                        { radius: 11, bias: 1.0 },
-                                    ],
-                                    nearThreshold: 10,
-                                    farThreshold: 1500,
-                                }
-                            },
-                            radius: 5,
-                            bias: 1,
-                            blurKernelSize: 11,
-                            blurDepthBias: 0.5,
-                            resolutionScale: 1,
-                            color: Color(0x000000),
-                        }
-                    },
-                    shadow: {
-                        name: 'on',
-                        params: {
-                            bias: 0.6,
-                            maxDistance: 80,
-                            steps: 3,
-                            tolerance: 1.0,
-                        }
-                    },
-                    outline: {
-                        name: 'on',
-                        params: {
-                            scale: 1,
-                            threshold: 0.15,
-                            color: Color(0x000000),
-                            includeTransparent: false,
-                        }
-                    },
-                    dof: { name: 'off', params: {} },
-                }
-            });
-        }
+                shadow: {
+                    name: 'on',
+                    params: {
+                        bias: 0.6,
+                        maxDistance: 80,
+                        steps: 3,
+                        tolerance: 1.0,
+                    }
+                },
+                outline: {
+                    name: 'on',
+                    params: {
+                        scale: 1,
+                        threshold: 0.15,
+                        color: Color(0x000000),
+                        includeTransparent: false,
+                    }
+                },
+                dof: { name: 'off', params: {} },
+            }
+        });
+
         const loptions = { ignoreLight: true, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 } };
         const options = { ...loptions, celShaded: false, };
         await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
-        console.log('sending options', options);
         await updateColors(this.plugin, this.default_color_values, options);
     }
 
     async cellshading() {
-        if (this.plugin.canvas3d) {
-            this.plugin.canvas3d.setProps({
-                renderer: {
-                    exposure: 1.5,
+        if (!this.plugin.canvas3d) return;
+        this.plugin.canvas3d.setProps({
+            renderer: {
+                exposure: 1.5,
+            },
+            postprocessing: {
+                occlusion: {
+                    name: 'on',
+                    params: {
+                        samples: 32,
+                        multiScale: {
+                            name: 'on',
+                            params: {
+                                levels: [
+                                    { radius: 2, bias: 1.0 },
+                                    { radius: 5, bias: 1.0 },
+                                    { radius: 8, bias: 1.0 },
+                                    { radius: 11, bias: 1.0 },
+                                ],
+                                nearThreshold: 10,
+                                farThreshold: 1500,
+                            }
+                        },
+                        radius: 5,
+                        bias: 2.0,
+                        blurKernelSize: 11,
+                        blurDepthBias: 0.5,
+                        resolutionScale: 1,
+                        color: Color(0x000000),
+                    }
                 },
-                postprocessing: {
-                    occlusion: {
-                        name: 'on',
-                        params: {
-                            samples: 32,
-                            multiScale: {
-                                name: 'on',
-                                params: {
-                                    levels: [
-                                        { radius: 2, bias: 1.0 },
-                                        { radius: 5, bias: 1.0 },
-                                        { radius: 8, bias: 1.0 },
-                                        { radius: 11, bias: 1.0 },
-                                    ],
-                                    nearThreshold: 10,
-                                    farThreshold: 1500,
-                                }
-                            },
-                            radius: 5,
-                            bias: 2.0,
-                            blurKernelSize: 11,
-                            blurDepthBias: 0.5,
-                            resolutionScale: 1,
-                            color: Color(0x000000),
-                        }
-                    },
-                    shadow: {
-                        name: 'on',
-                        params: {
-                            bias: 0.4,
-                            maxDistance: 256,
-                            steps: 64,
-                            tolerance: 1.0,
-                        }
-                    },
-                    outline: { name: 'off', params: {} },
-                    dof: { name: 'off', params: {} },
-                }
-            });
-        }
+                shadow: {
+                    name: 'on',
+                    params: {
+                        bias: 0.4,
+                        maxDistance: 256,
+                        steps: 64,
+                        tolerance: 1.0,
+                    }
+                },
+                outline: { name: 'off', params: {} },
+                dof: { name: 'off', params: {} },
+            }
+        });
         // ignore Light
         const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 } };
         const options = { ...loptions, celShaded: true, };
@@ -519,61 +517,60 @@ export class MesoQuickStyles extends PluginUIComponent {
     }
 
     async stylizeddof() {
-        if (this.plugin.canvas3d) {
-            this.plugin.canvas3d.setProps({
-                renderer: {
-                    exposure: 1.1,
+        if (!this.plugin.canvas3d) return;
+        this.plugin.canvas3d.setProps({
+            renderer: {
+                exposure: 1.1,
+            },
+            postprocessing: {
+                occlusion: {
+                    name: 'on',
+                    params: {
+                        samples: 32,
+                        multiScale: {
+                            name: 'on',
+                            params: {
+                                levels: [
+                                    { radius: 2, bias: 1.0 },
+                                    { radius: 5, bias: 1.0 },
+                                    { radius: 8, bias: 1.0 },
+                                    { radius: 11, bias: 1.0 },
+                                ],
+                                nearThreshold: 10,
+                                farThreshold: 1500,
+                            }
+                        },
+                        radius: 5,
+                        bias: 1.3,
+                        blurKernelSize: 11,
+                        blurDepthBias: 0.5,
+                        resolutionScale: 1,
+                        color: Color(0x000000),
+                    }
                 },
-                postprocessing: {
-                    occlusion: {
-                        name: 'on',
-                        params: {
-                            samples: 32,
-                            multiScale: {
-                                name: 'on',
-                                params: {
-                                    levels: [
-                                        { radius: 2, bias: 1.0 },
-                                        { radius: 5, bias: 1.0 },
-                                        { radius: 8, bias: 1.0 },
-                                        { radius: 11, bias: 1.0 },
-                                    ],
-                                    nearThreshold: 10,
-                                    farThreshold: 1500,
-                                }
-                            },
-                            radius: 5,
-                            bias: 1.3,
-                            blurKernelSize: 11,
-                            blurDepthBias: 0.5,
-                            resolutionScale: 1,
-                            color: Color(0x000000),
-                        }
-                    },
-                    shadow: {
-                        name: 'on',
-                        params: {
-                            bias: 0.4,
-                            maxDistance: 256,
-                            steps: 64,
-                            tolerance: 1.0,
-                        }
-                    },
-                    outline: { name: 'off', params: {} },
-                    dof: {
-                        name: 'on',
-                        params: {
-                            blurSize: 9,
-                            blurSpread: 1.0,
-                            inFocus: 0.0,
-                            PPM: 200.0,
-                            center: 'camera-target',
-                            mode: 'sphere',
-                        }
+                shadow: {
+                    name: 'on',
+                    params: {
+                        bias: 0.4,
+                        maxDistance: 256,
+                        steps: 64,
+                        tolerance: 1.0,
+                    }
+                },
+                outline: { name: 'off', params: {} },
+                dof: {
+                    name: 'on',
+                    params: {
+                        blurSize: 9,
+                        blurSpread: 1.0,
+                        inFocus: 0.0,
+                        PPM: 200.0,
+                        center: 'camera-target',
+                        mode: 'sphere',
                     }
                 }
-            });
-        }
+            }
+        });
         // ignore Light
         const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 } };
         const options = { ...loptions, celShaded: false };
@@ -582,59 +579,58 @@ export class MesoQuickStyles extends PluginUIComponent {
     }
 
     async illustrative() {
-        if (this.plugin.canvas3d) {
-            this.plugin.canvas3d.setProps({
-                renderer: {
-                    exposure: 1.5,
+        if (!this.plugin.canvas3d) return;
+        this.plugin.canvas3d.setProps({
+            renderer: {
+                exposure: 1.5,
+            },
+            postprocessing: {
+                occlusion: {
+                    name: 'on',
+                    params: {
+                        samples: 32,
+                        multiScale: {
+                            name: 'on',
+                            params: {
+                                levels: [
+                                    { radius: 2, bias: 1.0 },
+                                    { radius: 5, bias: 1.0 },
+                                    { radius: 8, bias: 1.0 },
+                                    { radius: 11, bias: 1.0 },
+                                ],
+                                nearThreshold: 10,
+                                farThreshold: 1500,
+                            }
+                        },
+                        radius: 5,
+                        bias: 2.0,
+                        blurKernelSize: 11,
+                        blurDepthBias: 0.5,
+                        resolutionScale: 1,
+                        color: Color(0x000000),
+                    }
                 },
-                postprocessing: {
-                    occlusion: {
-                        name: 'on',
-                        params: {
-                            samples: 32,
-                            multiScale: {
-                                name: 'on',
-                                params: {
-                                    levels: [
-                                        { radius: 2, bias: 1.0 },
-                                        { radius: 5, bias: 1.0 },
-                                        { radius: 8, bias: 1.0 },
-                                        { radius: 11, bias: 1.0 },
-                                    ],
-                                    nearThreshold: 10,
-                                    farThreshold: 1500,
-                                }
-                            },
-                            radius: 5,
-                            bias: 2.0,
-                            blurKernelSize: 11,
-                            blurDepthBias: 0.5,
-                            resolutionScale: 1,
-                            color: Color(0x000000),
-                        }
-                    },
-                    shadow: {
-                        name: 'on',
-                        params: {
-                            bias: 0.4,
-                            maxDistance: 256,
-                            steps: 64,
-                            tolerance: 1.0,
-                        }
-                    },
-                    outline: {
-                        name: 'on',
-                        params: {
-                            scale: 1,
-                            threshold: 0.15,
-                            color: Color(0x000000),
-                            includeTransparent: false,
-                        }
-                    },
-                    dof: { name: 'off', params: {} },
-                }
-            });
-        }
+                shadow: {
+                    name: 'on',
+                    params: {
+                        bias: 0.4,
+                        maxDistance: 256,
+                        steps: 64,
+                        tolerance: 1.0,
+                    }
+                },
+                outline: {
+                    name: 'on',
+                    params: {
+                        scale: 1,
+                        threshold: 0.15,
+                        color: Color(0x000000),
+                        includeTransparent: false,
+                    }
+                },
+                dof: { name: 'off', params: {} },
+            }
+        });
         // ignore Light
         const loptions = { ignoreLight: true, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 } };
         const options = { ...loptions, celShaded: false, };
@@ -643,43 +639,42 @@ export class MesoQuickStyles extends PluginUIComponent {
     }
 
     async metal() {
-        if (this.plugin.canvas3d) {
-            this.plugin.canvas3d.setProps({
-                renderer: {
-                    exposure: 1.5,
+        if (!this.plugin.canvas3d) return;
+        this.plugin.canvas3d.setProps({
+            renderer: {
+                exposure: 1.5,
+            },
+            postprocessing: {
+                occlusion: {
+                    name: 'on',
+                    params: {
+                        samples: 32,
+                        multiScale: {
+                            name: 'on',
+                            params: {
+                                levels: [
+                                    { radius: 2, bias: 1.0 },
+                                    { radius: 5, bias: 1.0 },
+                                    { radius: 8, bias: 1.0 },
+                                    { radius: 11, bias: 1.0 },
+                                ],
+                                nearThreshold: 10,
+                                farThreshold: 1500,
+                            }
+                        },
+                        radius: 5,
+                        bias: 1.3,
+                        blurKernelSize: 11,
+                        blurDepthBias: 0.5,
+                        resolutionScale: 1,
+                        color: Color(0x000000),
+                    }
                 },
-                postprocessing: {
-                    occlusion: {
-                        name: 'on',
-                        params: {
-                            samples: 32,
-                            multiScale: {
-                                name: 'on',
-                                params: {
-                                    levels: [
-                                        { radius: 2, bias: 1.0 },
-                                        { radius: 5, bias: 1.0 },
-                                        { radius: 8, bias: 1.0 },
-                                        { radius: 11, bias: 1.0 },
-                                    ],
-                                    nearThreshold: 10,
-                                    farThreshold: 1500,
-                                }
-                            },
-                            radius: 5,
-                            bias: 1.3,
-                            blurKernelSize: 11,
-                            blurDepthBias: 0.5,
-                            resolutionScale: 1,
-                            color: Color(0x000000),
-                        }
-                    },
-                    shadow: { name: 'off', params: {} },
-                    outline: { name: 'off', params: {} },
-                    dof: { name: 'off', params: {} },
-                }
-            });
-        }
+                shadow: { name: 'off', params: {} },
+                outline: { name: 'off', params: {} },
+                dof: { name: 'off', params: {} },
+            }
+        });
         // ignore Light
         const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 } };
         const options = { ...loptions, celShaded: false };
@@ -688,59 +683,58 @@ export class MesoQuickStyles extends PluginUIComponent {
     }
 
     async stylized() {
-        if (this.plugin.canvas3d) {
-            this.plugin.canvas3d.setProps({
-                renderer: {
-                    exposure: 1.1,
+        if (!this.plugin.canvas3d) return;
+        this.plugin.canvas3d.setProps({
+            renderer: {
+                exposure: 1.1,
+            },
+            postprocessing: {
+                occlusion: {
+                    name: 'on',
+                    params: {
+                        samples: 32,
+                        multiScale: {
+                            name: 'on',
+                            params: {
+                                levels: [
+                                    { radius: 2, bias: 1.0 },
+                                    { radius: 5, bias: 1.0 },
+                                    { radius: 8, bias: 1.0 },
+                                    { radius: 11, bias: 1.0 },
+                                ],
+                                nearThreshold: 10,
+                                farThreshold: 1500,
+                            }
+                        },
+                        radius: 5,
+                        bias: 1.3,
+                        blurKernelSize: 11,
+                        blurDepthBias: 0.5,
+                        resolutionScale: 1,
+                        color: Color(0x000000),
+                    }
                 },
-                postprocessing: {
-                    occlusion: {
-                        name: 'on',
-                        params: {
-                            samples: 32,
-                            multiScale: {
-                                name: 'on',
-                                params: {
-                                    levels: [
-                                        { radius: 2, bias: 1.0 },
-                                        { radius: 5, bias: 1.0 },
-                                        { radius: 8, bias: 1.0 },
-                                        { radius: 11, bias: 1.0 },
-                                    ],
-                                    nearThreshold: 10,
-                                    farThreshold: 1500,
-                                }
-                            },
-                            radius: 5,
-                            bias: 1.3,
-                            blurKernelSize: 11,
-                            blurDepthBias: 0.5,
-                            resolutionScale: 1,
-                            color: Color(0x000000),
-                        }
-                    },
-                    shadow: {
-                        name: 'on',
-                        params: {
-                            bias: 0.4,
-                            maxDistance: 256,
-                            steps: 64,
-                            tolerance: 1.0,
-                        }
-                    },
-                    outline: {
-                        name: 'on',
-                        params: {
-                            scale: 1,
-                            threshold: 0.15,
-                            color: Color(0x000000),
-                            includeTransparent: false,
-                        }
-                    },
-                    dof: { name: 'off', params: {} },
-                }
-            });
-        }
+                shadow: {
+                    name: 'on',
+                    params: {
+                        bias: 0.4,
+                        maxDistance: 256,
+                        steps: 64,
+                        tolerance: 1.0,
+                    }
+                },
+                outline: {
+                    name: 'on',
+                    params: {
+                        scale: 1,
+                        threshold: 0.15,
+                        color: Color(0x000000),
+                        includeTransparent: false,
+                    }
+                },
+                dof: { name: 'off', params: {} },
+            }
+        });
         // ignore Light
         const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 } };
         const options = { ...loptions, celShaded: false };
@@ -755,7 +749,7 @@ export class MesoQuickStyles extends PluginUIComponent {
                     Default
                 </Button>
                 <Button noOverflow title='Applies illustrative representation preset and Stylize it with cellShading' onClick={() => this.cellshading()} style={{ width: 'auto' }}>
-                    cellShaded
+                    Cell-shaded
                 </Button>
                 <Button noOverflow title='Enable DOF and plastic material' onClick={() => this.stylizeddof()} style={{ width: 'auto' }}>
                     Stylized-DOF
