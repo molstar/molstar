@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -19,13 +19,14 @@ interface PluginUISpec extends PluginSpec {
     components?: {
         controls?: PluginUISpec.LayoutControls
         remoteState?: 'none' | 'default',
-        structureTools?: React.ComponentClass,
+        structureTools?: React.ComponentClass | React.FC,
         viewport?: {
-            view?: React.ComponentClass,
-            controls?: React.ComponentClass
+            view?: React.ComponentClass | React.FC,
+            controls?: React.ComponentClass | React.FC,
+            snapshotDescription?: React.ComponentClass | React.FC,
         },
         sequenceViewer?: {
-            view?: React.ComponentClass
+            view?: React.ComponentClass | React.FC
         }
         hideTaskOverlay?: boolean,
         disableDragOverlay?: boolean,
@@ -34,10 +35,10 @@ interface PluginUISpec extends PluginSpec {
 
 namespace PluginUISpec {
     export interface LayoutControls {
-        top?: React.ComponentClass | 'none',
-        left?: React.ComponentClass | 'none',
-        right?: React.ComponentClass | 'none',
-        bottom?: React.ComponentClass | 'none'
+        top?: React.ComponentClass | React.FC | 'none',
+        left?: React.ComponentClass | React.FC | 'none',
+        right?: React.ComponentClass | React.FC | 'none',
+        bottom?: React.ComponentClass | React.FC | 'none'
     }
 }
 

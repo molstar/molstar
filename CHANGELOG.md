@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Clean solidInterior transparent cylinders
 - Create a transformer to deflate compressed data
 - Adjust Quick Styles panel button labels
 - Improve camera interpolation code (interpolate camera rotation instead of just position)
@@ -24,6 +25,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add Cel-shading support
     - `celShaded` geometry parameter
     - `celSteps` renderer parameter
+- Add the ability to customize the Snapshot Description component via `PluginUISpec.components.viewport.snapshotDescription`
 
 ## [v4.3.0] - 2023-05-26
 
