@@ -7,6 +7,7 @@
 import { Mp4EncoderUI } from '../../../extensions/mp4-export/ui';
 import { PluginUIComponent } from '../../../mol-plugin-ui/base';
 import { SectionHeader } from '../../../mol-plugin-ui/controls/common';
+import { StructureMeasurementsControls } from '../../../mol-plugin-ui/structure/measurements';
 import { MesoscaleExplorerState } from '../app';
 import { MesoscaleState } from '../data/state';
 import { EntityControls, FocusInfo, ModelInfo, SelectionInfo } from './entities';
@@ -96,6 +97,7 @@ export class RightPanel extends PluginUIComponent<{}, { isDisabled: boolean }> {
                 <SectionHeader title='Selection' />
                 <SelectionInfo />
                 <Spacer />
+                <StructureMeasurementsControls />
             </>
 
             <SectionHeader title='Entities' />
