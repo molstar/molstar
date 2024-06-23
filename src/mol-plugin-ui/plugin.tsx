@@ -83,7 +83,7 @@ class Layout extends PluginUIComponent {
         this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());
     }
 
-    region(kind: RegionKind, Element?: React.ComponentClass) {
+    region(kind: RegionKind, Element?: React.ComponentClass | React.FC) {
         return <div className={`msp-layout-region msp-layout-${kind}`}>
             <div className='msp-layout-static'>
                 {Element ? <Element /> : null}
