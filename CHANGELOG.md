@@ -13,6 +13,9 @@ Note that since we don't clearly distinguish between a public and private interf
     - Press 'C' to toggle between center and zoom & center on click
     - Add entities selection description
     - Clicking a leaf node in the right panel tree will center each instance in turn
+    - Add measurement controls
+    - Mouse left click on label with snapshot key will load snapshot
+    - Mouse hover over label with protein name highlight entities with the same name
 - Fixes SSAO edge artifacts (#1122)
     - Add `reuseOcclusion` parameter to multi-sample pass
     - Add `blurDepthBias` parameter to occlusion pass
