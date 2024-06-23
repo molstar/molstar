@@ -464,7 +464,7 @@ export class MesoQuickStyles extends PluginUIComponent {
         await updateColors(this.plugin, this.default_color_values, options);
     }
 
-    async cellshading() {
+    async celshading() {
         if (!this.plugin.canvas3d) return;
         this.plugin.canvas3d.setProps({
             renderer: {
@@ -489,7 +489,7 @@ export class MesoQuickStyles extends PluginUIComponent {
                             }
                         },
                         radius: 5,
-                        bias: 2.0,
+                        bias: 1.5,
                         blurKernelSize: 11,
                         blurDepthBias: 0.5,
                         resolutionScale: 1,
@@ -513,10 +513,10 @@ export class MesoQuickStyles extends PluginUIComponent {
         const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 } };
         const options = { ...loptions, celShaded: true, };
         await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
-        await updateColors(this.plugin, this.illustrative_color_values, options);
+        await updateColors(this.plugin, this.default_color_values, options);
     }
 
-    async stylizeddof() {
+    async stylizedDof() {
         if (!this.plugin.canvas3d) return;
         this.plugin.canvas3d.setProps({
             renderer: {
@@ -603,7 +603,7 @@ export class MesoQuickStyles extends PluginUIComponent {
                             }
                         },
                         radius: 5,
-                        bias: 2.0,
+                        bias: 1.5,
                         blurKernelSize: 11,
                         blurDepthBias: 0.5,
                         resolutionScale: 1,
@@ -748,22 +748,22 @@ export class MesoQuickStyles extends PluginUIComponent {
                 <Button noOverflow title='Applies default representation preset and sets outline and occlusion effects to default' onClick={() => this.default()} style={{ width: 'auto' }}>
                     Default
                 </Button>
-                <Button noOverflow title='Applies illustrative representation preset and Stylize it with cellShading' onClick={() => this.cellshading()} style={{ width: 'auto' }}>
-                    Cell-shaded
+                <Button noOverflow title='Applies celShading' onClick={() => this.celshading()} style={{ width: 'auto' }}>
+                    Cel-shaded
                 </Button>
-                <Button noOverflow title='Enable DOF and plastic material' onClick={() => this.stylizeddof()} style={{ width: 'auto' }}>
-                    Stylized-DOF
+                <Button noOverflow title='Applies illustrative colors preset' onClick={() => this.illustrative()} style={{ width: 'auto' }}>
+                    Illustrative
                 </Button>
             </div>
             <div className='msp-flex-row'>
-                <Button noOverflow title='Applies default representation preset and sets outline and occlusion effects to default' onClick={() => this.metal()} style={{ width: 'auto' }}>
+                <Button noOverflow title='Apply plastic material to default' onClick={() => this.metal()} style={{ width: 'auto' }}>
                     Metal
                 </Button>
-                <Button noOverflow title='Applies illustrative representation preset and Stylize it with cellShading' onClick={() => this.illustrative()} style={{ width: 'auto' }}>
-                    Illustrative
+                <Button noOverflow title='Enable plastic material, outline, and illustrative colors' onClick={() => this.stylized()} style={{ width: 'auto' }}>
+                    Metal-Illustrative
                 </Button>
-                <Button noOverflow title='Enable DOF and plastic material' onClick={() => this.stylized()} style={{ width: 'auto' }}>
-                    Stylized
+                <Button noOverflow title='Enable DOF and plastic material' onClick={() => this.stylizedDof()} style={{ width: 'auto' }}>
+                    Metal-DOF
                 </Button>
             </div>
         </>;

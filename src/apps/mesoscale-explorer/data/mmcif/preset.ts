@@ -172,7 +172,6 @@ export async function createMmcifHierarchy(plugin: PluginContext, trajectory: St
                     .apply(StructureRepresentation3D, getSpacefillParams(color, scaleFactor, graphicsMode, clipVariant), { tags: [`ent:${t}`] });
             }
             await build.commit();
-            // const rootId = `${manifest.roots[0].id}:`;
             const values = { type: 'group-generate', value: ColorNames.white, lightness: 0, alpha: 1 };
             const options = { ignoreLight: true, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 }, celShaded: true, };
             await updateColors(plugin, values, options);

@@ -24,7 +24,6 @@ import { SpacefillRepresentationProvider } from '../../../mol-repr/structure/rep
 import { assertUnreachable } from '../../../mol-util/type-helpers';
 import { MesoscaleExplorerState } from '../app';
 import { saturate } from '../../../mol-math/interpolate';
-// import { StructureComponentManager } from '../../../mol-plugin-state/manager/structure/component';
 import { Material } from '../../../mol-util/material';
 
 function getHueRange(hue: number, variability: number) {
