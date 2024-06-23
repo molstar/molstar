@@ -810,6 +810,7 @@ export class PostprocessingPass {
                 ValueCell.update(this.renderable.values.dTransparentOutline, transparentOutline);
             }
         }
+
         ValueCell.updateIfChanged(this.renderable.values.uFar, camera.far);
         ValueCell.updateIfChanged(this.renderable.values.uNear, camera.near);
         ValueCell.updateIfChanged(this.renderable.values.uFogFar, camera.fogFar);
