@@ -120,7 +120,11 @@ bool CylinderImpostor(
                     #ifdef dSolidInterior
                         if (interior) cameraNormal = -rayDir;
                     #endif
-                    return true;
+                    #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+                        return true;
+                    #else
+                        return !interior;
+                    #endif
                 }
             }
         } else if (bottomCap && y >= 0.0) {
@@ -146,7 +150,11 @@ bool CylinderImpostor(
                     #ifdef dSolidInterior
                         if (interior) cameraNormal = -rayDir;
                     #endif
-                    return true;
+                    #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+                        return true;
+                    #else
+                        return !interior;
+                    #endif
                 }
             }
         }
