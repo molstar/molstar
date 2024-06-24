@@ -5,7 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Clean solidInterior transparent cylinders
+- Clean `solidInterior` transparent cylinders
 - Create a transformer to deflate compressed data
 - Adjust Quick Styles panel button labels
 - Improve camera interpolation code (interpolate camera rotation instead of just position)
@@ -14,7 +14,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Press 'C' to toggle between center and zoom & center on click
     - Add entities selection description
     - Clicking a leaf node in the right panel tree will center each instance in turn
-    - Add measurement controls
+    - Add measurement controls to right panel
     - Mouse left click on label with snapshot key will load snapshot
     - Mouse hover over label with protein name highlight entities with the same name
     - Custom ViewportSnapshotDescription with custom MarkdowAnchor
@@ -23,6 +23,8 @@ Note that since we don't clearly distinguish between a public and private interf
         - g highlight a group with a given group type and group name \[...](ggrouptype.groupname)
         - h URLs with a given link \[...](http...)
     - Snapshot description panel window size and text can be resized and hidden with new icons
+    - Add styles controls to right panel
+    - Add viewport settings to left panel
 - Fixes SSAO edge artifacts (#1122)
     - Add `reuseOcclusion` parameter to multi-sample pass
     - Add `blurDepthBias` parameter to occlusion pass
