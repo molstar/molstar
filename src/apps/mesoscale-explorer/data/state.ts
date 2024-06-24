@@ -383,7 +383,8 @@ export const MesoscaleStateParams = {
     description: PD.Value<string>('', { isHidden: true }),
     focusInfo: PD.Value<string>('', { isHidden: true }),
     link: PD.Value<string>('', { isHidden: true }),
-    index: PD.Value<number>(-1, { isHidden: true }),
+    textSizeDescription: PD.Numeric(14, { min: 1, max: 100, step: 1 }, { isHidden: true }),
+    index: PD.Value<number>(-1, { isHidden: true })
 };
 
 export class MesoscaleStateObject extends PSO.Create<MesoscaleState>({ name: 'Mesoscale State', typeClass: 'Object' }) { }
@@ -528,7 +529,7 @@ export function getAllFilteredEntities(plugin: PluginContext, tag: string | unde
     return getAllEntities(plugin, tag).filter(c => getEntityLabel(plugin, c).match(matcher) !== null);
 }
 
-export function getEveryEntities(plugin: PluginContext, filter?: string, tag?: string) {
+export function getEveryEntity(plugin: PluginContext, filter?: string, tag?: string) {
     if (filter) {
         const matcher = getFilterMatcher(filter);
         return getAllEntities(plugin, tag).filter(c => getEntityLabel(plugin, c).match(matcher) !== null);

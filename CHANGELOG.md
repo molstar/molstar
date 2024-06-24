@@ -17,6 +17,12 @@ Note that since we don't clearly distinguish between a public and private interf
     - Add measurement controls
     - Mouse left click on label with snapshot key will load snapshot
     - Mouse hover over label with protein name highlight entities with the same name
+    - Custom ViewportSnapshotDescription with custom MarkdowAnchor
+        - \# other snapshots with a given key \[...](#key)
+        - i highlight a protein with a given NAME \[...](iNAME)
+        - g highlight a group with a given group type and group name \[...](ggrouptype.groupname)
+        - h URLs with a given link \[...](http...)
+    - Snapshot description panel window size and text can be resized and hidden with new icons
 - Fixes SSAO edge artifacts (#1122)
     - Add `reuseOcclusion` parameter to multi-sample pass
     - Add `blurDepthBias` parameter to occlusion pass
