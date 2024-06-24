@@ -136,7 +136,7 @@ export class RightPanel extends PluginUIComponent<{}, { isDisabled: boolean }> {
                 <SectionHeader title='Selection' />
                 <SelectionInfo />
                 <Spacer />
-                <StructureMeasurementsControls />
+                <StructureMeasurementsControls initiallyCollapsed={true}/>
             </>
             <MesoQuickStylesControls />
             <Spacer />
