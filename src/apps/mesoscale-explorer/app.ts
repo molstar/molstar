@@ -271,9 +271,6 @@ export class MesoscaleExplorer {
             (plugin.customState as MesoscaleExplorerState).stateCache = {};
         });
 
-        // by default ignore light for all structures
-        plugin.managers.structure.component.state.options.ignoreLight = true;
-
         return new MesoscaleExplorer(plugin);
     }
 

@@ -148,7 +148,7 @@ export const EmissiveParams = {
 };
 
 export const celShaded = {
-    celShaded: PD.Boolean(false, { description: 'Cell Shading light for stylized rendering of representations' })
+    celShaded: PD.Boolean(false, { description: 'Cel Shading light for stylized rendering of representations' })
 };
 
 export type celShadedProps = PD.Values<typeof celShaded>;
@@ -162,7 +162,7 @@ export const PatternParams = {
 export const StyleParams = {
     ignoreLight: PD.Boolean(false, { description: 'Ignore light for stylized rendering of representations' }),
     materialStyle: Material.getParam(),
-    celShaded: PD.Boolean(false, { description: 'Cell Shading light for stylized rendering of representations' }),
+    celShaded: PD.Boolean(false, { description: 'Cel Shading light for stylized rendering of representations' }),
 };
 
 export const LodParams = {
@@ -557,7 +557,7 @@ export function getEntityDescription(plugin: PluginContext, cell: StateObjectCel
 export async function updateColors(plugin: PluginContext, values: PD.Values, options?: PD.Values, tag?: string, filter?: string) {
     const update = plugin.state.data.build();
     const { type, illustrative, value, shift, lightness, alpha, emissive } = values;
-    const dolighting = (options !== undefined);
+    const doLighting = (options !== undefined);
     const { ignoreLight, materialStyle: material, celShaded } = options ? options : { ignoreLight: true, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 }, celShaded: false };
     if (type === 'group-generate' || type === 'group-uniform') {
         const groups = getAllLeafGroups(plugin, tag);
@@ -585,7 +585,7 @@ export async function updateColors(plugin: PluginContext, values: PD.Values, opt
                         old.type.params.alpha = alpha;
                         old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
                         old.type.params.emissive = emissive;
-                        if (dolighting) {
+                        if (doLighting) {
                             old.type.params.ignoreLight = ignoreLight;
                             old.type.params.material = material;
                             old.type.params.celShaded = celShaded;
@@ -629,7 +629,7 @@ export async function updateColors(plugin: PluginContext, values: PD.Values, opt
                     old.type.params.alpha = alpha;
                     old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
                     old.type.params.emissive = emissive;
-                    if (dolighting) {
+                    if (doLighting) {
                         old.type.params.ignoreLight = ignoreLight;
                         old.type.params.material = material;
                         old.type.params.celShaded = celShaded;

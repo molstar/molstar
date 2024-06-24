@@ -638,7 +638,7 @@ export class MesoQuickStyles extends PluginUIComponent {
         await updateColors(this.plugin, this.illustrative_color_values, options);
     }
 
-    async metal() {
+    async shiny() {
         if (!this.plugin.canvas3d) return;
         this.plugin.canvas3d.setProps({
             renderer: {
@@ -756,14 +756,14 @@ export class MesoQuickStyles extends PluginUIComponent {
                 </Button>
             </div>
             <div className='msp-flex-row'>
-                <Button noOverflow title='Apply plastic material to default' onClick={() => this.metal()} style={{ width: 'auto' }}>
-                    Metal
+                <Button noOverflow title='Apply shiny material to default' onClick={() => this.shiny()} style={{ width: 'auto' }}>
+                    Shiny
                 </Button>
-                <Button noOverflow title='Enable plastic material, outline, and illustrative colors' onClick={() => this.stylized()} style={{ width: 'auto' }}>
-                    Metal-Illustrative
+                <Button noOverflow title='Enable shiny material, outline, and illustrative colors' onClick={() => this.stylized()} style={{ width: 'auto' }}>
+                    Shiny-Illustrative
                 </Button>
-                <Button noOverflow title='Enable DOF and plastic material' onClick={() => this.stylizedDof()} style={{ width: 'auto' }}>
-                    Metal-DOF
+                <Button noOverflow title='Enable DOF and shiny material' onClick={() => this.stylizedDof()} style={{ width: 'auto' }}>
+                    Shiny-DOF
                 </Button>
             </div>
         </>;
