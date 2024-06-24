@@ -6,10 +6,11 @@
 
 import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
 import { MmcifProvider } from '../../../mol-plugin-state/formats/trajectory';
+import { StructureComponentManager } from '../../../mol-plugin-state/manager/structure/component';
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
-import { PluginUIComponent } from '../../../mol-plugin-ui/base';
+import { CollapsableControls, PluginUIComponent } from '../../../mol-plugin-ui/base';
 import { Button, ExpandGroup } from '../../../mol-plugin-ui/controls/common';
-import { GetAppSvg, Icon, OpenInBrowserSvg } from '../../../mol-plugin-ui/controls/icons';
+import { GetAppSvg, Icon, MagicWandSvg, OpenInBrowserSvg } from '../../../mol-plugin-ui/controls/icons';
 import { ApplyActionControl } from '../../../mol-plugin-ui/state/apply-action';
 import { LocalStateSnapshotList, LocalStateSnapshotParams, LocalStateSnapshots } from '../../../mol-plugin-ui/state/snapshots';
 import { PluginCommands } from '../../../mol-plugin/commands';
@@ -24,7 +25,7 @@ import { createCellpackHierarchy } from '../data/cellpack/preset';
 import { createGenericHierarchy } from '../data/generic/preset';
 import { createMmcifHierarchy } from '../data/mmcif/preset';
 import { createPetworldHierarchy } from '../data/petworld/preset';
-import { MesoscaleState, MesoscaleStateObject, setGraphicsCanvas3DProps } from '../data/state';
+import { MesoscaleState, MesoscaleStateObject, setGraphicsCanvas3DProps, updateColors } from '../data/state';
 
 function adjustPluginProps(ctx: PluginContext) {
     ctx.managers.interactivity.setProps({ granularity: 'chain' });
@@ -360,5 +361,411 @@ export class SnapshotControls extends PluginUIComponent<{}> {
                 </ExpandGroup>
             </div>
         </div>;
+    }
+}
+
+export class MesoQuickStylesControls extends CollapsableControls {
+    defaultState() {
+        return {
+            isCollapsed: true,
+            header: 'Styles',
+            brand: { accent: 'gray' as const, svg: MagicWandSvg }
+        };
+    }
+
+    renderControls() {
+        return <>
+            <MesoQuickStyles />
+        </>;
+    }
+}
+
+export class MesoQuickStyles extends PluginUIComponent {
+    state = {
+        celShaded: false,
+    };
+    default_color_values = {
+        type: 'group-generate',
+        illustrative: false,
+        value: [1, 1, 1, 1],
+        variability: 20,
+        shift: 0,
+        lightness: 0,
+        alpha: 1,
+        emissive: 0
+    };
+    illustrative_color_values = {
+        type: 'group-generate',
+        illustrative: true,
+        value: [1, 1, 1, 1],
+        variability: 20,
+        shift: 0,
+        lightness: 0,
+        alpha: 1,
+        emissive: 0
+    };
+    async default() {
+        if (!this.plugin.canvas3d) return;
+        this.plugin.canvas3d.setProps({
+            renderer: {
+                exposure: 1.1,
+            },
+            postprocessing: {
+                occlusion: {
+                    name: 'on',
+                    params: {
+                        samples: 32,
+                        multiScale: {
+                            name: 'on',
+                            params: {
+                                levels: [
+                                    { radius: 2, bias: 1.0 },
+                                    { radius: 5, bias: 1.0 },
+                                    { radius: 8, bias: 1.0 },
+                                    { radius: 11, bias: 1.0 },
+                                ],
+                                nearThreshold: 10,
+                                farThreshold: 1500,
+                            }
+                        },
+                        radius: 5,
+                        bias: 1,
+                        blurKernelSize: 11,
+                        blurDepthBias: 0.5,
+                        resolutionScale: 1,
+                        color: Color(0x000000),
+                    }
+                },
+                shadow: {
+                    name: 'on',
+                    params: {
+                        bias: 0.6,
+                        maxDistance: 80,
+                        steps: 3,
+                        tolerance: 1.0,
+                    }
+                },
+                outline: {
+                    name: 'on',
+                    params: {
+                        scale: 1,
+                        threshold: 0.15,
+                        color: Color(0x000000),
+                        includeTransparent: false,
+                    }
+                },
+                dof: { name: 'off', params: {} },
+            }
+        });
+
+        const loptions = { ignoreLight: true, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 } };
+        const options = { ...loptions, celShaded: false, };
+        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
+        await updateColors(this.plugin, this.default_color_values, options);
+    }
+
+    async celshading() {
+        if (!this.plugin.canvas3d) return;
+        this.plugin.canvas3d.setProps({
+            renderer: {
+                exposure: 1.5,
+            },
+            postprocessing: {
+                occlusion: {
+                    name: 'on',
+                    params: {
+                        samples: 32,
+                        multiScale: {
+                            name: 'on',
+                            params: {
+                                levels: [
+                                    { radius: 2, bias: 1.0 },
+                                    { radius: 5, bias: 1.0 },
+                                    { radius: 8, bias: 1.0 },
+                                    { radius: 11, bias: 1.0 },
+                                ],
+                                nearThreshold: 10,
+                                farThreshold: 1500,
+                            }
+                        },
+                        radius: 5,
+                        bias: 1.5,
+                        blurKernelSize: 11,
+                        blurDepthBias: 0.5,
+                        resolutionScale: 1,
+                        color: Color(0x000000),
+                    }
+                },
+                shadow: {
+                    name: 'on',
+                    params: {
+                        bias: 0.4,
+                        maxDistance: 256,
+                        steps: 64,
+                        tolerance: 1.0,
+                    }
+                },
+                outline: { name: 'off', params: {} },
+                dof: { name: 'off', params: {} },
+            }
+        });
+        // ignore Light
+        const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 } };
+        const options = { ...loptions, celShaded: true, };
+        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
+        await updateColors(this.plugin, this.default_color_values, options);
+    }
+
+    async stylizedDof() {
+        if (!this.plugin.canvas3d) return;
+        this.plugin.canvas3d.setProps({
+            renderer: {
+                exposure: 1.1,
+            },
+            postprocessing: {
+                occlusion: {
+                    name: 'on',
+                    params: {
+                        samples: 32,
+                        multiScale: {
+                            name: 'on',
+                            params: {
+                                levels: [
+                                    { radius: 2, bias: 1.0 },
+                                    { radius: 5, bias: 1.0 },
+                                    { radius: 8, bias: 1.0 },
+                                    { radius: 11, bias: 1.0 },
+                                ],
+                                nearThreshold: 10,
+                                farThreshold: 1500,
+                            }
+                        },
+                        radius: 5,
+                        bias: 1.3,
+                        blurKernelSize: 11,
+                        blurDepthBias: 0.5,
+                        resolutionScale: 1,
+                        color: Color(0x000000),
+                    }
+                },
+                shadow: {
+                    name: 'on',
+                    params: {
+                        bias: 0.4,
+                        maxDistance: 256,
+                        steps: 64,
+                        tolerance: 1.0,
+                    }
+                },
+                outline: { name: 'off', params: {} },
+                dof: {
+                    name: 'on',
+                    params: {
+                        blurSize: 9,
+                        blurSpread: 1.0,
+                        inFocus: 0.0,
+                        PPM: 200.0,
+                        center: 'camera-target',
+                        mode: 'sphere',
+                    }
+                }
+            }
+        });
+        // ignore Light
+        const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 } };
+        const options = { ...loptions, celShaded: false };
+        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
+        await updateColors(this.plugin, this.default_color_values, options);
+    }
+
+    async illustrative() {
+        if (!this.plugin.canvas3d) return;
+        this.plugin.canvas3d.setProps({
+            renderer: {
+                exposure: 1.5,
+            },
+            postprocessing: {
+                occlusion: {
+                    name: 'on',
+                    params: {
+                        samples: 32,
+                        multiScale: {
+                            name: 'on',
+                            params: {
+                                levels: [
+                                    { radius: 2, bias: 1.0 },
+                                    { radius: 5, bias: 1.0 },
+                                    { radius: 8, bias: 1.0 },
+                                    { radius: 11, bias: 1.0 },
+                                ],
+                                nearThreshold: 10,
+                                farThreshold: 1500,
+                            }
+                        },
+                        radius: 5,
+                        bias: 1.5,
+                        blurKernelSize: 11,
+                        blurDepthBias: 0.5,
+                        resolutionScale: 1,
+                        color: Color(0x000000),
+                    }
+                },
+                shadow: {
+                    name: 'on',
+                    params: {
+                        bias: 0.4,
+                        maxDistance: 256,
+                        steps: 64,
+                        tolerance: 1.0,
+                    }
+                },
+                outline: {
+                    name: 'on',
+                    params: {
+                        scale: 1,
+                        threshold: 0.15,
+                        color: Color(0x000000),
+                        includeTransparent: false,
+                    }
+                },
+                dof: { name: 'off', params: {} },
+            }
+        });
+        // ignore Light
+        const loptions = { ignoreLight: true, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 } };
+        const options = { ...loptions, celShaded: false, };
+        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
+        await updateColors(this.plugin, this.illustrative_color_values, options);
+    }
+
+    async shiny() {
+        if (!this.plugin.canvas3d) return;
+        this.plugin.canvas3d.setProps({
+            renderer: {
+                exposure: 1.5,
+            },
+            postprocessing: {
+                occlusion: {
+                    name: 'on',
+                    params: {
+                        samples: 32,
+                        multiScale: {
+                            name: 'on',
+                            params: {
+                                levels: [
+                                    { radius: 2, bias: 1.0 },
+                                    { radius: 5, bias: 1.0 },
+                                    { radius: 8, bias: 1.0 },
+                                    { radius: 11, bias: 1.0 },
+                                ],
+                                nearThreshold: 10,
+                                farThreshold: 1500,
+                            }
+                        },
+                        radius: 5,
+                        bias: 1.3,
+                        blurKernelSize: 11,
+                        blurDepthBias: 0.5,
+                        resolutionScale: 1,
+                        color: Color(0x000000),
+                    }
+                },
+                shadow: { name: 'off', params: {} },
+                outline: { name: 'off', params: {} },
+                dof: { name: 'off', params: {} },
+            }
+        });
+        // ignore Light
+        const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 } };
+        const options = { ...loptions, celShaded: false };
+        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
+        await updateColors(this.plugin, this.default_color_values, options);
+    }
+
+    async stylized() {
+        if (!this.plugin.canvas3d) return;
+        this.plugin.canvas3d.setProps({
+            renderer: {
+                exposure: 1.1,
+            },
+            postprocessing: {
+                occlusion: {
+                    name: 'on',
+                    params: {
+                        samples: 32,
+                        multiScale: {
+                            name: 'on',
+                            params: {
+                                levels: [
+                                    { radius: 2, bias: 1.0 },
+                                    { radius: 5, bias: 1.0 },
+                                    { radius: 8, bias: 1.0 },
+                                    { radius: 11, bias: 1.0 },
+                                ],
+                                nearThreshold: 10,
+                                farThreshold: 1500,
+                            }
+                        },
+                        radius: 5,
+                        bias: 1.3,
+                        blurKernelSize: 11,
+                        blurDepthBias: 0.5,
+                        resolutionScale: 1,
+                        color: Color(0x000000),
+                    }
+                },
+                shadow: {
+                    name: 'on',
+                    params: {
+                        bias: 0.4,
+                        maxDistance: 256,
+                        steps: 64,
+                        tolerance: 1.0,
+                    }
+                },
+                outline: {
+                    name: 'on',
+                    params: {
+                        scale: 1,
+                        threshold: 0.15,
+                        color: Color(0x000000),
+                        includeTransparent: false,
+                    }
+                },
+                dof: { name: 'off', params: {} },
+            }
+        });
+        // ignore Light
+        const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 } };
+        const options = { ...loptions, celShaded: false };
+        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
+        await updateColors(this.plugin, this.illustrative_color_values, options);
+    }
+
+    render() {
+        return <>
+            <div className='msp-flex-row'>
+                <Button noOverflow title='Applies default representation preset and sets outline and occlusion effects to default' onClick={() => this.default()} style={{ width: 'auto' }}>
+                    Default
+                </Button>
+                <Button noOverflow title='Applies celShading' onClick={() => this.celshading()} style={{ width: 'auto' }}>
+                    Cel-shaded
+                </Button>
+                <Button noOverflow title='Applies illustrative colors preset' onClick={() => this.illustrative()} style={{ width: 'auto' }}>
+                    Illustrative
+                </Button>
+            </div>
+            <div className='msp-flex-row'>
+                <Button noOverflow title='Apply shiny material to default' onClick={() => this.shiny()} style={{ width: 'auto' }}>
+                    Shiny
+                </Button>
+                <Button noOverflow title='Enable shiny material, outline, and illustrative colors' onClick={() => this.stylized()} style={{ width: 'auto' }}>
+                    Shiny-Illustrative
+                </Button>
+                <Button noOverflow title='Enable DOF and shiny material' onClick={() => this.stylizedDof()} style={{ width: 'auto' }}>
+                    Shiny-DOF
+                </Button>
+            </div>
+        </>;
     }
 }
