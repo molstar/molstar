@@ -79,8 +79,9 @@ const tmpPosX = Vec3();
 /**
  * Calculate the angles x-a1-a2 for all x where x is a heavy atom (not H) bonded to ap1.
  */
-export function calcAngles(structure: Structure, unitA: Unit.Atomic, indexA: StructureElement.UnitIndex, unitB: Unit.Atomic, indexB: StructureElement.UnitIndex): number[] {
+export function calcAngles(structure: Structure, unitA: Unit.Atomic, indexA: StructureElement.UnitIndex, unitB: Unit.Atomic, indexB: StructureElement.UnitIndex, ignoreHydrogens = true): [number[], number[]] {
     const angles: number[] = [];
+    const anglesH: number[] = [];
     unitA.conformation.position(unitA.elements[indexA], tmpPosA);
     unitB.conformation.position(unitB.elements[indexB], tmpPosB);
     Vec3.sub(tmpDir1, tmpPosB, tmpPosA);
@@ -90,9 +91,13 @@ export function calcAngles(structure: Structure, unitA: Unit.Atomic, indexA: Str
             unitX.conformation.position(unitX.elements[indexX], tmpPosX);
             Vec3.sub(tmpDir2, tmpPosX, tmpPosA);
             angles.push(Vec3.angle(tmpDir1, tmpDir2));
+        } else if (!ignoreHydrogens) {
+            unitX.conformation.position(unitX.elements[indexX], tmpPosX);
+            Vec3.sub(tmpDir2, tmpPosX, tmpPosA);
+            anglesH.push(Vec3.angle(tmpDir1, tmpDir2));
         }
     });
-    return angles;
+    return [angles, anglesH];
 }
 
 /**
@@ -137,4 +142,23 @@ export function calcPlaneAngle(structure: Structure, unitA: Unit.Atomic, indexA:
 
     Vec3.cross(tmpDir2, neighbours[0], neighbours[1]);
     return Math.abs((Math.PI / 2) - Vec3.angle(tmpDir2, tmpDir1));
+}
+
+export function closestHydrogenIndex(structure: Structure, unitA: Unit.Atomic, indexA: StructureElement.UnitIndex, unitB: Unit.Atomic, indexB: StructureElement.UnitIndex) {
+    let hIndex = indexA;
+    unitA.conformation.position(unitA.elements[indexA], tmpPosA);
+    unitB.conformation.position(unitB.elements[indexB], tmpPosB);
+    Vec3.sub(tmpDir1, tmpPosB, tmpPosA);
+    let minDistSq = Vec3.squaredDistance(tmpPosA, tmpPosB);
+    eachBondedAtom(structure, unitA, indexA, (unitX: Unit.Atomic, indexX: StructureElement.UnitIndex) => {
+        if (typeSymbol(unitX, indexX) === Elements.H) {
+            unitX.conformation.position(unitX.elements[indexX], tmpPosX);
+            const dist = Vec3.squaredDistance(tmpPosX, tmpPosB);
+            if (dist < minDistSq) {
+                minDistSq = dist;
+                hIndex = indexX;
+            }
+        }
+    });
+    return hIndex;
 }

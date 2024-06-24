@@ -9,7 +9,7 @@
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Structure, Unit, StructureElement } from '../../../mol-model/structure';
-import { AtomGeometry, AtomGeometryAngles, calcAngles, calcPlaneAngle } from '../chemistry/geometry';
+import { AtomGeometry, AtomGeometryAngles, calcAngles, calcPlaneAngle, closestHydrogenIndex } from '../chemistry/geometry';
 import { FeaturesBuilder, Features } from './features';
 import { typeSymbol, bondToElementCount, bondCount, formalCharge, compId, atomId } from '../chemistry/util';
 import { Elements } from '../../../mol-model/structure/model/properties/atomic/types';
@@ -230,26 +230,33 @@ type HydrogenBondsOptions = ReturnType<typeof getHydrogenBondsOptions>
 const deg120InRad = degToRad(120);
 
 function checkGeometry(structure: Structure, don: Features.Info, acc: Features.Info, opts: GeometryOptions): true | undefined {
-
+    const ignoreHydrogens = false; // TODO: make this configurable
     const donIndex = don.members[don.offsets[don.feature]];
     const accIndex = acc.members[acc.offsets[acc.feature]];
 
     if (!opts.includeBackbone && isBackboneHydrogenBond(don.unit, donIndex, acc.unit, accIndex)) return;
 
-    const donAngles = calcAngles(structure, don.unit, donIndex, acc.unit, accIndex);
+    const [donAngles, donHAngles] = calcAngles(structure, don.unit, donIndex, acc.unit, accIndex, ignoreHydrogens);
     const idealDonAngle = AtomGeometryAngles.get(don.idealGeometry[donIndex]) || deg120InRad;
     if (donAngles.some(donAngle => Math.abs(idealDonAngle - donAngle) > opts.maxDonAngleDev)) return;
+    if (donHAngles.length && !donHAngles.some(donHAngles => donHAngles < opts.maxDonAngleDev)) return;
 
     if (don.idealGeometry[donIndex] === AtomGeometry.Trigonal) {
         const outOfPlane = calcPlaneAngle(structure, don.unit, donIndex, acc.unit, accIndex);
         if (outOfPlane !== undefined && outOfPlane > opts.maxDonOutOfPlaneAngle) return;
     }
 
-    const accAngles = calcAngles(structure, acc.unit, accIndex, don.unit, donIndex);
+    let donnorIndex = donIndex;
+    if (!ignoreHydrogens && donHAngles.length > 0) {
+        donnorIndex = closestHydrogenIndex(structure, don.unit, donIndex, acc.unit, accIndex);
+    }
+
+    const [accAngles, accHAngles] = calcAngles(structure, acc.unit, accIndex, don.unit, donnorIndex, ignoreHydrogens);
     const idealAccAngle = AtomGeometryAngles.get(acc.idealGeometry[accIndex]) || deg120InRad;
 
     // Do not limit large acceptor angles
     if (accAngles.some(accAngle => idealAccAngle - accAngle > opts.maxAccAngleDev)) return;
+    if (accHAngles.some(accHAngles => idealAccAngle - accHAngles > opts.maxAccAngleDev)) return;
 
     if (acc.idealGeometry[accIndex] === AtomGeometry.Trigonal) {
         const outOfPlane = calcPlaneAngle(structure, acc.unit, accIndex, don.unit, donIndex);

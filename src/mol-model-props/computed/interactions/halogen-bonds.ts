@@ -97,12 +97,12 @@ function testHalogenBond(structure: Structure, infoA: Features.Info, infoB: Feat
     const donIndex = don.members[don.offsets[don.feature]];
     const accIndex = acc.members[acc.offsets[acc.feature]];
 
-    const halogenAngles = calcAngles(structure, don.unit, donIndex, acc.unit, accIndex);
+    const [halogenAngles] = calcAngles(structure, don.unit, donIndex, acc.unit, accIndex);
     // Singly bonded halogen only (not bromide ion for example)
     if (halogenAngles.length !== 1) return;
     if (OptimalHalogenAngle - halogenAngles[0] > opts.angleMax) return;
 
-    const acceptorAngles = calcAngles(structure, acc.unit, accIndex, don.unit, donIndex);
+    const [acceptorAngles] = calcAngles(structure, acc.unit, accIndex, don.unit, donIndex);
     // Angle must be defined. Excludes water as acceptor. Debatable
     if (acceptorAngles.length === 0) return;
     if (acceptorAngles.some(acceptorAngle => OptimalAcceptorAngle - acceptorAngle > opts.angleMax)) return;
