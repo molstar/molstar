@@ -54,7 +54,7 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
             const uB = structure.unitMap.get(unitB) as Unit.Atomic;
 
             if ((!ignoreHydrogens || ignoreHydrogensVariant !== 'all') && (
-                t === InteractionType.HydrogenBond || t === InteractionType.WeakHydrogenBond)
+                t === InteractionType.HydrogenBond || (t === InteractionType.WeakHydrogenBond && ignoreHydrogensVariant !== 'non-polar'))
             ) {
                 const idxA = fA.members[fA.offsets[indexA]];
                 const idxB = fB.members[fB.offsets[indexB]];
@@ -64,11 +64,12 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
                 let minDistB = minDistA;
                 Vec3.copy(posA, pA);
                 Vec3.copy(posB, pB);
-                const isHydrogenDonorA = fA.types[fA.offsets[indexA]] === FeatureType.HydrogenDonor;
+                const donorType = t === InteractionType.HydrogenBond ? FeatureType.HydrogenDonor : FeatureType.WeakHydrogenDonor;
+                const isHydrogenDonorA = fA.types[fA.offsets[indexA]] === donorType;
 
                 if (isHydrogenDonorA) eachBondedAtom(structure, uA, idxA, (u, idx) => {
                     const eI = u.elements[idx];
-                    if (isHydrogen(structure, u, eI, 'polar')) {
+                    if (isHydrogen(structure, u, eI, 'all')) {
                         u.conformation.position(eI, p);
                         const dist = Vec3.distance(p, pB);
                         if (dist < minDistA) {
@@ -80,7 +81,7 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
 
                 else eachBondedAtom(structure, uB, idxB, (u, idx) => {
                     const eI = u.elements[idx];
-                    if (isHydrogen(structure, u, eI, 'polar')) {
+                    if (isHydrogen(structure, u, eI, 'all')) {
                         u.conformation.position(eI, p);
                         const dist = Vec3.distance(p, pA);
                         if (dist < minDistB) {

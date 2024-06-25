@@ -56,7 +56,7 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
             const t = type[edgeIndex];
             if ((!ignoreHydrogens || ignoreHydrogensVariant !== 'all') && (
-                t === InteractionType.HydrogenBond || t === InteractionType.WeakHydrogenBond)
+                t === InteractionType.HydrogenBond || (t === InteractionType.WeakHydrogenBond && ignoreHydrogensVariant !== 'non-polar'))
             ) {
                 const idxA = members[offsets[a[edgeIndex]]];
                 const idxB = members[offsets[b[edgeIndex]]];
@@ -66,10 +66,11 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
                 let minDistB = minDistA;
                 Vec3.copy(posA, pA);
                 Vec3.copy(posB, pB);
-                const isHydrogeDonorA = types[offsets[a[edgeIndex]]] === FeatureType.HydrogenDonor;
+                const donorType = t === InteractionType.HydrogenBond ? FeatureType.HydrogenDonor : FeatureType.WeakHydrogenDonor;
+                const isHydrogenDonorA = types[offsets[a[edgeIndex]]] === donorType;
 
-                if (isHydrogeDonorA) eachIntraBondedAtom(unit, idxA, (_, idx) => {
-                    if (isHydrogen(structure, unit, elements[idx], 'polar')) {
+                if (isHydrogenDonorA) eachIntraBondedAtom(unit, idxA, (_, idx) => {
+                    if (isHydrogen(structure, unit, elements[idx], 'all')) {
                         c.invariantPosition(elements[idx], p);
                         const dist = Vec3.distance(p, pB);
                         if (dist < minDistA) {
@@ -80,7 +81,7 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
                 });
 
                 else eachIntraBondedAtom(unit, idxB, (_, idx) => {
-                    if (isHydrogen(structure, unit, elements[idx], 'polar')) {
+                    if (isHydrogen(structure, unit, elements[idx], 'all')) {
                         c.invariantPosition(elements[idx], p);
                         const dist = Vec3.distance(p, pA);
                         if (dist < minDistB) {
