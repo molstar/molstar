@@ -23,6 +23,7 @@ const GeometryParams = {
     distanceMax: PD.Numeric(3.5, { min: 1, max: 5, step: 0.1 }),
     backbone: PD.Boolean(true, { description: 'Include backbone-to-backbone hydrogen bonds' }),
     accAngleDevMax: PD.Numeric(45, { min: 0, max: 180, step: 1 }, { description: 'Max deviation from ideal acceptor angle' }),
+    ignoreHydrogens: PD.Boolean(false, { description: 'Ignore explicit hydrogens in geometric constraints' }),
     donAngleDevMax: PD.Numeric(45, { min: 0, max: 180, step: 1 }, { description: 'Max deviation from ideal donor angle' }),
     accOutOfPlaneAngleMax: PD.Numeric(90, { min: 0, max: 180, step: 1 }),
     donOutOfPlaneAngleMax: PD.Numeric(45, { min: 0, max: 180, step: 1 }),
@@ -208,6 +209,7 @@ function isWeakHydrogenBond(ti: FeatureType, tj: FeatureType) {
 
 function getGeometryOptions(props: GeometryProps) {
     return {
+        ignoreHydrogens: props.ignoreHydrogens,
         includeBackbone: props.backbone,
         maxAccAngleDev: degToRad(props.accAngleDevMax),
         maxDonAngleDev: degToRad(props.donAngleDevMax),
@@ -230,13 +232,12 @@ type HydrogenBondsOptions = ReturnType<typeof getHydrogenBondsOptions>
 const deg120InRad = degToRad(120);
 
 function checkGeometry(structure: Structure, don: Features.Info, acc: Features.Info, opts: GeometryOptions): true | undefined {
-    const ignoreHydrogens = false; // TODO: make this configurable
     const donIndex = don.members[don.offsets[don.feature]];
     const accIndex = acc.members[acc.offsets[acc.feature]];
 
     if (!opts.includeBackbone && isBackboneHydrogenBond(don.unit, donIndex, acc.unit, accIndex)) return;
 
-    const [donAngles, donHAngles] = calcAngles(structure, don.unit, donIndex, acc.unit, accIndex, ignoreHydrogens);
+    const [donAngles, donHAngles] = calcAngles(structure, don.unit, donIndex, acc.unit, accIndex, opts.ignoreHydrogens);
     const idealDonAngle = AtomGeometryAngles.get(don.idealGeometry[donIndex]) || deg120InRad;
     if (donAngles.some(donAngle => Math.abs(idealDonAngle - donAngle) > opts.maxDonAngleDev)) return;
     if (donHAngles.length && !donHAngles.some(donHAngles => donHAngles < opts.maxDonAngleDev)) return;
@@ -247,11 +248,11 @@ function checkGeometry(structure: Structure, don: Features.Info, acc: Features.I
     }
 
     let donnorIndex = donIndex;
-    if (!ignoreHydrogens && donHAngles.length > 0) {
+    if (!opts.ignoreHydrogens && donHAngles.length > 0) {
         donnorIndex = closestHydrogenIndex(structure, don.unit, donIndex, acc.unit, accIndex);
     }
 
-    const [accAngles, accHAngles] = calcAngles(structure, acc.unit, accIndex, don.unit, donnorIndex, ignoreHydrogens);
+    const [accAngles, accHAngles] = calcAngles(structure, acc.unit, accIndex, don.unit, donnorIndex, opts.ignoreHydrogens);
     const idealAccAngle = AtomGeometryAngles.get(acc.idealGeometry[accIndex]) || deg120InRad;
 
     // Do not limit large acceptor angles
