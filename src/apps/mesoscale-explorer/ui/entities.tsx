@@ -4,9 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PluginUIComponent } from '../../../mol-plugin-ui/base';
+import { PluginReactContext, PluginUIComponent } from '../../../mol-plugin-ui/base';
 import { Button, ControlGroup, IconButton } from '../../../mol-plugin-ui/controls/common';
-import { ArrowDropDownSvg, ArrowRightSvg, CloseSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, ContentCutSvg, BrushSvg, SearchSvg } from '../../../mol-plugin-ui/controls/icons';
+import { ArrowDropDownSvg, ArrowRightSvg, CloseSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, ContentCutSvg, BrushSvg, SearchSvg, TooltipTextSvg, TooltipTextOutlineSvg, PlusBoxSvg, MinusBoxSvg } from '../../../mol-plugin-ui/controls/icons';
 import { PluginCommands } from '../../../mol-plugin/commands';
 import { State, StateObjectCell, StateSelection, StateTransformer } from '../../../mol-state';
 import { ParameterControls, ParameterMappingControl, ParamOnChange, SelectControl } from '../../../mol-plugin-ui/controls/parameters';
@@ -18,8 +18,8 @@ import { CombinedColorControl } from '../../../mol-plugin-ui/controls/color';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { EveryLoci, Loci } from '../../../mol-model/loci';
 import { deepEqual } from '../../../mol-util';
-import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams, expandAllGroups, EmissiveParams, IllustrativeParams, getCellDescription, getEntityDescription } from '../data/state';
-import React from 'react';
+import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams, expandAllGroups, EmissiveParams, IllustrativeParams, getCellDescription, getEntityDescription, getEveryEntity } from '../data/state';
+import React, { useState } from 'react';
 import { MesoscaleExplorerState } from '../app';
 import { StructureElement } from '../../../mol-model/structure/structure/element';
 import { PluginStateObject as PSO } from '../../../mol-plugin-state/objects';
@@ -245,6 +245,160 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
     }
 }
 
+export function MesoMarkdownAnchor({ href, children, element }: { href?: string, children?: any, element?: any }) {
+    const plugin = React.useContext(PluginReactContext);
+    if (!href) return element;
+    // Decode the href to handle encoded spaces and other characters
+    const decodedHref = href ? decodeURIComponent(href) : '';
+    const handleHover = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        e.preventDefault();
+        if (decodedHref.startsWith('i')) {
+            plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+            const query_names = decodedHref.substring(1).split(',');
+            for (const query_name of query_names) {
+                const entities = getEveryEntity(plugin, query_name);
+                for (const r of entities) {
+                    const repr = r.obj?.data.repr;
+                    if (repr) {
+                        plugin.canvas3d?.mark({ repr, loci: EveryLoci }, MarkerAction.Highlight);
+                    }
+                }
+            }
+        } else if (decodedHref.startsWith('g')) {
+            plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+            const qindex = decodedHref.indexOf('.');
+            const query = decodedHref.substring(1, qindex) + ':';
+            const query_names = decodedHref.substring(qindex + 1).split(',');
+            for (const query_name of query_names) {
+                const e = getAllEntities(plugin, query + query_name);
+                for (const r of e) {
+                    const repr = r.obj?.data.repr;
+                    if (repr) {
+                        plugin.canvas3d?.mark({ repr, loci: EveryLoci }, MarkerAction.Highlight);
+                    }
+                }
+            }
+        }
+    };
+    const handleLeave = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        // Implement your hover off logic here
+        // Example: Perform an action if the href starts with 'h'
+        if (decodedHref.startsWith('i') || decodedHref.startsWith('g')) {
+            // Example hover off action
+            e.preventDefault();
+            plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+        }
+    };
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        e.preventDefault();
+        if (href.startsWith('#')) {
+            plugin.managers.snapshot.applyKey(decodedHref.substring(1));
+        } else if (decodedHref.startsWith('i')) {
+            plugin.managers.interactivity.lociSelects.deselectAll();
+            plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+            const query_names = decodedHref.substring(1).split(',');
+            for (const query_name of query_names) {
+                const entities = getFilteredEntities(plugin, '', query_name);
+                for (const r of entities) {
+                    const repr = r.obj?.data.repr;
+                    if (repr) {
+                        plugin.canvas3d?.mark({ repr, loci: EveryLoci }, MarkerAction.Highlight);
+                    }
+                    const cell = r as StateObjectCell<PSO.Molecule.Structure.Representation3D | PSO.Shape.Representation3D> | undefined;
+                    if (!(cell?.obj?.data.sourceData instanceof Structure)) {
+                        return;
+                    }
+                    const loci = Structure.toStructureElementLoci(cell.obj.data.sourceData);
+                    plugin.managers.interactivity.lociSelects.toggle({ loci }, false);
+                }
+            }
+        } else if (decodedHref.startsWith('g')) {
+            plugin.managers.interactivity.lociSelects.deselectAll();
+            plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+            const qindex = decodedHref.indexOf('.');
+            const query = decodedHref.substring(1, qindex) + ':';
+            const query_names = decodedHref.substring(qindex + 1).split(',');
+            for (const query_name of query_names) {
+                const entities = getAllEntities(plugin, query + query_name);
+                for (const r of entities) {
+                    const repr = r.obj?.data.repr;
+                    if (repr) {
+                        plugin.canvas3d?.mark({ repr, loci: EveryLoci }, MarkerAction.Highlight);
+                    }
+                    const cell = r as StateObjectCell<PSO.Molecule.Structure.Representation3D | PSO.Shape.Representation3D> | undefined;
+                    if (!(cell?.obj?.data.sourceData instanceof Structure)) return;
+                    const loci = Structure.toStructureElementLoci(cell.obj.data.sourceData);
+                    plugin.managers.interactivity.lociSelects.toggle({ loci }, false);
+                }
+            }
+        } else {
+            // open the link in a new tab
+            window.open(decodedHref, '_blank');
+        }
+    };
+
+    if (decodedHref[0] === '#') {
+        return <a href={decodedHref[0]} onMouseOver={handleHover} onClick={handleClick}>{children}</a>;
+    }
+    if (decodedHref[0] === 'i' || decodedHref[0] === 'g') {
+        return <a href={decodedHref[0]} onMouseLeave={handleLeave} onMouseOver={handleHover} onClick={handleClick}>{children}</a>;
+    }
+    if (decodedHref[0] === 'h') {
+        return <a href={decodedHref[0]} onClick={handleClick} rel='noopener noreferrer'>{children}</a>;
+    }
+    return element;
+}
+
+export function MesoViewportSnapshotDescription() {
+    let tSize = 14;
+    const plugin = React.useContext(PluginReactContext);
+    if (MesoscaleState.has(plugin)) {
+        const state = MesoscaleState.get(plugin);
+        tSize = state.textSizeDescription;
+    }
+    const [_, setV] = React.useState(0);
+    const [isShown, setIsShown] = useState(true);
+    const [textSize, setTextSize] = useState(tSize);
+    const toggleVisibility = () => {
+        setIsShown(!isShown);
+    };
+
+    const increaseTextSize = () => {
+        setTextSize(prevSize => Math.min(prevSize + 2, 50)); // Increase the text size by 2px, but not above 50px
+    };
+
+    const decreaseTextSize = () => {
+        setTextSize(prevSize => Math.max(prevSize - 2, 2)); // Decrease the text size by 2px, but not below 2px
+    };
+
+
+    React.useEffect(() => {
+        const sub = plugin.managers.snapshot.events.changed.subscribe(() => setV(v => v + 1));
+        return () => sub.unsubscribe();
+    }, [plugin]);
+
+    const current = plugin.managers.snapshot.state.current;
+    if (!current) return null;
+
+    const e = plugin.managers.snapshot.getEntry(current)!;
+    if (!e?.description?.trim()) return null;
+    if (MesoscaleState.has(plugin)) {
+        MesoscaleState.set(plugin, { textSizeDescription: textSize });
+    }
+    const showInfo = <IconButton svg={isShown ? TooltipTextSvg : TooltipTextOutlineSvg} flex='20px' onClick={toggleVisibility} title={isShown ? 'Hide Description' : 'Show Description'}/>;
+    const increasePoliceSize = <IconButton svg={PlusBoxSvg} flex='20px' onClick={increaseTextSize} title='Bigger Text' />;
+    const decreasePoliceSize = <IconButton svg={MinusBoxSvg} flex='20px' onClick={decreaseTextSize} title='Smaller Text' />;
+    return (
+        <>
+            <div id='snapinfoctrl' className="msp-state-snapshot-viewport-controls" style={{ marginRight: '30px' }}>
+                {showInfo}{increasePoliceSize}{decreasePoliceSize}
+            </div>
+            <div id='snapinfo' className={`msp-snapshot-description-me ${isShown ? 'shown' : 'hidden'}`} style={{ fontSize: `${textSize}px` }}>
+                {<Markdown skipHtml={false} components={{ a: MesoMarkdownAnchor }}>{e.description}</Markdown>}
+            </div>
+        </>
+    );
+}
 
 export class FocusInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
     componentDidMount() {
@@ -267,7 +421,7 @@ export class FocusInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
 
     render() {
         const focusInfo = this.info;
-        const description = (focusInfo !== '') ? <Markdown skipHtml>{focusInfo}</Markdown> : '';
+        const description = (focusInfo !== '') ? <Markdown skipHtml components={{ a: MesoMarkdownAnchor }}>{focusInfo}</Markdown> : '';
         return <>
             <div id='focusinfo' className='msp-help-text'>
                 {description}
@@ -595,7 +749,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
     };
 
     updateRoot = async (values: PD.Values) => {
-        await updateColors(this.plugin, values, this.cell.params?.values.tag, this.props.filter);
+        await updateColors(this.plugin, values, undefined, this.cell.params?.values.tag, this.props.filter);
 
         const update = this.plugin.state.data.build();
 

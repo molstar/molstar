@@ -16,7 +16,7 @@ import { StateTreeSpine } from '../../../mol-state/tree/spine';
 import { Representation } from '../../../mol-repr/representation';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { PluginContext } from '../../../mol-plugin/context';
-import { MesoscaleState, expandAllGroups, getCellDescription } from '../data/state';
+import { MesoscaleState, expandAllGroups, getCellDescription, getEveryEntity } from '../data/state';
 
 const B = ButtonsType;
 const M = ModifiersKeys;
@@ -86,11 +86,16 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
                         MesoscaleState.set(this.ctx, { focusInfo: '', filter: '' });
                         return;
                     }
-                    if (StructureElement.Loci.is(current.loci)) {
-                        const cell = this.ctx.helpers.substructureParent.get(current.loci.structure);
-                        const d = getCellDescription(cell!);
-                        MesoscaleState.set(this.ctx, { focusInfo: `${d}`, filter: `${cell?.obj?.label}` });
-                        expandAllGroups(this.ctx);
+                    const snapshotKey = current.repr?.props?.snapshotKey?.trim() ?? '';
+                    if (snapshotKey) {
+                        this.ctx.managers.snapshot.applyKey(snapshotKey);
+                    } else {
+                        if (StructureElement.Loci.is(current.loci)) {
+                            const cell = this.ctx.helpers.substructureParent.get(current.loci.structure);
+                            const d = getCellDescription(cell!);
+                            MesoscaleState.set(this.ctx, { focusInfo: `${d}`, filter: `${cell?.obj?.label}` });
+                            expandAllGroups(this.ctx);
+                        }
                     }
                 }
             });
@@ -107,23 +112,41 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
                         this.ctx.managers.interactivity.lociHighlights.clearHighlights();
                         return;
                     }
-
-                    if (modifiers.control) {
-                        this.ctx.managers.interactivity.lociHighlights.highlightOnly({ repr: current.repr, loci: EveryLoci }, false);
-                    } else {
-                        const loci = Loci.normalize(current.loci, 'chain');
-                        this.ctx.managers.interactivity.lociHighlights.highlightOnly({ repr: current.repr, loci }, false);
+                    if (StructureElement.Loci.is(current.loci)) {
+                        if (modifiers.control) {
+                            this.ctx.managers.interactivity.lociHighlights.highlightOnly({ repr: current.repr, loci: EveryLoci }, false);
+                        } else {
+                            const loci = Loci.normalize(current.loci, 'chain');
+                            this.ctx.managers.interactivity.lociHighlights.highlightOnly({ repr: current.repr, loci }, false);
+                        }
                     }
                 }
 
                 if (Loci.isEmpty(current.loci)) {
                     this.ctx.behaviors.labels.highlight.next({ labels: [] });
+                    this.ctx.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
                 } else {
                     const labels: string[] = [];
                     if (StructureElement.Loci.is(current.loci)) {
                         const cell = this.ctx.helpers.substructureParent.get(current.loci.structure);
-                        const d = getCellDescription(cell!); // '### ' + cell?.obj?.label + '\n\n' + cell?.obj?.description;
+                        const d = getCellDescription(cell!);
                         labels.push(d);
+                    } else {
+                        const loci = Loci.normalize(current.loci, this.ctx.managers.interactivity.props.granularity);
+                        if (loci.kind === 'group-loci') {
+                            if ('shape' in current.loci && current.loci.shape.geometry.kind === 'text') {
+                                const qname = current.repr?.props.customText;
+                                // highlight protein with same name
+                                const entities = getEveryEntity(this.ctx, qname);
+                                for (const r of entities) {
+                                    const repr = r.obj?.data.repr;
+                                    if (repr) {
+                                        this.ctx.canvas3d?.mark({ repr, loci: EveryLoci }, MarkerAction.Highlight);
+                                    }
+                                }
+                            }
+                            labels.push(loci.shape.getLabel(0, 0));
+                        }
                     }
                     this.ctx.behaviors.labels.highlight.next({ labels });
                 }
