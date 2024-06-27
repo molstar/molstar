@@ -34,6 +34,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - `celShaded` geometry parameter
     - `celSteps` renderer parameter
 - Add the ability to customize the Snapshot Description component via `PluginUISpec.components.viewport.snapshotDescription`
+- Add `doNotDisposeCanvas3DContext` option to `PluginContext.dispose` 
 
 ## [v4.3.0] - 2023-05-26
 
