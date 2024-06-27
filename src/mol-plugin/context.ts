@@ -374,7 +374,7 @@ export class PluginContext {
         return PluginCommands.State.RemoveObject(this, { state: this.state.data, ref: StateTransform.RootRef });
     }
 
-    dispose(options?: { doNotForceWebGLContextLoss?: boolean }) {
+    dispose(options?: { doNotForceWebGLContextLoss?: boolean, doNotDisposeCanvas3DContext?: boolean }) {
         if (this.disposed) return;
 
         for (const s of this.subs) {
@@ -385,7 +385,9 @@ export class PluginContext {
         this.animationLoop.stop();
         this.commands.dispose();
         this.canvas3d?.dispose();
-        this.canvas3dContext?.dispose(options);
+        if (!options?.doNotDisposeCanvas3DContext) {
+            this.canvas3dContext?.dispose(options);
+        }
         this.ev.dispose();
         this.state.dispose();
         this.helpers.substructureParent.dispose();
