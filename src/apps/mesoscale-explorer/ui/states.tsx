@@ -27,10 +27,9 @@ import { createGenericHierarchy } from '../data/generic/preset';
 import { createMmcifHierarchy } from '../data/mmcif/preset';
 import { createPetworldHierarchy } from '../data/petworld/preset';
 import { MesoscaleState, MesoscaleStateObject, setGraphicsCanvas3DProps, updateColors } from '../data/state';
-import { driver } from 'driver.js';
-import 'driver.js/dist/driver.css';
-
-const driverObj = driver();
+// import { driver } from 'driver.js';
+// import 'driver.js/dist/driver.css';
+// const driverObj = driver();
 
 function adjustPluginProps(ctx: PluginContext) {
     ctx.managers.interactivity.setProps({ granularity: 'chain' });
@@ -389,6 +388,7 @@ export class ExplorerInfo extends PluginUIComponent<{}, { isDisabled: boolean, s
 
     setupDriver = () => {
         // setup the tour of the interface
+        const driverObj = (this.plugin.customState as MesoscaleExplorerState).driver;
         driverObj.setSteps([
             // Left panel
             { element: '#explorerinfo', popover: { title: 'Explorer Header Info', description: 'This section displays the explorer header with version information, documentation access, and tour navigation. Use the right and left arrow keys to navigate the tour.', side: 'left', align: 'start' } },
@@ -408,7 +408,8 @@ export class ExplorerInfo extends PluginUIComponent<{}, { isDisabled: boolean, s
             { element: '#modelinfo', popover: { title: 'Model Information', description: 'Summary information about the model, if available.', side: 'right', align: 'start' } },
             { element: '#selestyle', popover: { title: 'Selection Style', description: 'Choose the rendering style for entity selection accessed via Shift/Ctrl mouse. Options include: Color & Outline, Color, Outline.', side: 'right', align: 'start' } },
             { element: '#seleinfo', popover: { title: 'Selection List', description: 'View the current list of selected entities.', side: 'right', align: 'start' } },
-            { element: '#measurement', popover: { title: 'Measurements', description: 'Use this widget to create labels, measure distances, angles, dihedral orientations, and planes for the selected entities.', side: 'right', align: 'start' } },
+            { element: '#measurements', popover: { title: 'Measurements', description: 'Use this widget to create labels, measure distances, angles, dihedral orientations, and planes for the selected entities.', side: 'right', align: 'start' } },
+            { element: '#quickstyles', popover: { title: 'Quick Styles', description: 'Change between a selection of style presets.', side: 'right', align: 'start' } },
             { element: '#graphicsquality', popover: { title: 'Graphics Quality', description: 'Adjust the overall graphics quality. Lower quality improves performance. Options are: Ultra, Quality (Default), Balanced, Performance, Custom. Custom settings use the Culling & LOD values set in the Tree.', side: 'right', align: 'start' } },
             { element: '#searchtree', popover: { title: 'Search', description: 'Filter the entity tree based on your queries.', side: 'right', align: 'start' } },
             { element: '#grouptree', popover: { title: 'Group By', description: 'Change the grouping of the hierarchy tree, e.g., group by instance or by compartment.', side: 'right', align: 'start' } },
@@ -421,10 +422,12 @@ export class ExplorerInfo extends PluginUIComponent<{}, { isDisabled: boolean, s
 
     openHelp = () => {
         // open a new page with the documentation
-        window.open('https://corredd.github.io/molstar-me-docs/', '_blank');
+        window.open('https://molstar.com/me/docs', '_blank');
     };
 
     toggleHelp = () => {
+
+        const driverObj = (this.plugin.customState as MesoscaleExplorerState).driver;
         if (!driverObj || !driverObj.hasNextStep()) {
             this.setupDriver();
         }
@@ -436,17 +439,11 @@ export class ExplorerInfo extends PluginUIComponent<{}, { isDisabled: boolean, s
     };
 
     render() {
-        const legend = `## Welcome to Mol* Mesoscale Explorer
-
-Click (?) below to open the [Documentation](https://corredd.github.io/molstar-me-docs/) in a new tab. 
-
-Click &#9873; below to start a tour of the interface with contextual help.
-
-v0.1`;
-        const help = <IconButton svg={HelpOutlineSvg} toggleState={false} small onClick={this.openHelp} />;
-        const tour = <IconButton svg={TourSvg} toggleState={false} small onClick={this.toggleHelp} />;
+        const legend = `## Welcome to Mol* Mesoscale Explorer`;
+        const help = <IconButton svg={HelpOutlineSvg} toggleState={false} small onClick={this.openHelp} title='Open the Documentation' />;
+        const tour = <IconButton svg={TourSvg} toggleState={false} small onClick={this.toggleHelp} title='Start the interactive tour' />;
         return <>
-            <div id='explorerinfo' className='msp-help-text'>
+            <div id='explorerinfo' style={{ paddingLeft: 4 }} className='msp-help-text'>
                 <Markdown>{legend}</Markdown>
                 {tour}{help}
             </div>
@@ -459,7 +456,7 @@ export class MesoQuickStylesControls extends CollapsableControls {
     defaultState() {
         return {
             isCollapsed: true,
-            header: 'Styles',
+            header: 'Quick Styles',
             brand: { accent: 'gray' as const, svg: MagicWandSvg }
         };
     }
