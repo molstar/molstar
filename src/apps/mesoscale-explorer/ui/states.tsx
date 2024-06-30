@@ -389,6 +389,7 @@ export class ExplorerInfo extends PluginUIComponent<{}, { isDisabled: boolean, s
     setupDriver = () => {
         // setup the tour of the interface
         const driverObj = (this.plugin.customState as MesoscaleExplorerState).driver;
+        if (!driverObj) return;
         driverObj.setSteps([
             // Left panel
             { element: '#explorerinfo', popover: { title: 'Explorer Header Info', description: 'This section displays the explorer header with version information, documentation access, and tour navigation. Use the right and left arrow keys to navigate the tour.', side: 'left', align: 'start' } },

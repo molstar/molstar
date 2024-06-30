@@ -35,8 +35,6 @@ import { MesoViewportSnapshotDescription } from './ui/entities';
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode, consoleStats } from '../../mol-util/debug';
 
-import { any } from 'io-ts';
-
 export type ExampleEntry = {
     id: string,
     label: string,
@@ -95,7 +93,7 @@ const DefaultMesoscaleExplorerOptions = {
     saccharideCompIdMapType: 'default' as SaccharideCompIdMapType,
 
     graphicsMode: 'quality' as GraphicsMode,
-    driver: any
+    driver: undefined
 };
 type MesoscaleExplorerOptions = typeof DefaultMesoscaleExplorerOptions;
 
