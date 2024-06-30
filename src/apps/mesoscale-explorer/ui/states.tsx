@@ -4,13 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import Markdown from 'react-markdown';
 import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
 import { MmcifProvider } from '../../../mol-plugin-state/formats/trajectory';
 import { StructureComponentManager } from '../../../mol-plugin-state/manager/structure/component';
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
+import { Button, ExpandGroup, IconButton } from '../../../mol-plugin-ui/controls/common';
+import { GetAppSvg, HelpOutlineSvg, MagicWandSvg, TourSvg, Icon, OpenInBrowserSvg } from '../../../mol-plugin-ui/controls/icons';
 import { CollapsableControls, PluginUIComponent } from '../../../mol-plugin-ui/base';
-import { Button, ExpandGroup } from '../../../mol-plugin-ui/controls/common';
-import { GetAppSvg, Icon, MagicWandSvg, OpenInBrowserSvg } from '../../../mol-plugin-ui/controls/icons';
 import { ApplyActionControl } from '../../../mol-plugin-ui/state/apply-action';
 import { LocalStateSnapshotList, LocalStateSnapshotParams, LocalStateSnapshots } from '../../../mol-plugin-ui/state/snapshots';
 import { PluginCommands } from '../../../mol-plugin/commands';
@@ -271,7 +272,7 @@ export class DatabaseControls extends PluginUIComponent {
     }
 
     render() {
-        return <div style={{ margin: '5px' }}>
+        return <div id='database' style={{ margin: '5px' }}>
             <ApplyActionControl state={this.plugin.state.data} action={LoadDatabase} nodeRef={this.plugin.state.data.tree.root.ref} applyLabel={'Load'} hideHeader />
         </div>;
     }
@@ -283,7 +284,7 @@ export class LoaderControls extends PluginUIComponent {
     }
 
     render() {
-        return <div style={{ margin: '5px' }}>
+        return <div id='loader' style={{ margin: '5px' }}>
             <ApplyActionControl state={this.plugin.state.data} action={LoadModel} nodeRef={this.plugin.state.data.tree.root.ref} applyLabel={'Load'} hideHeader />
         </div>;
     }
@@ -295,7 +296,7 @@ export class ExampleControls extends PluginUIComponent {
     }
 
     render() {
-        return <div style={{ margin: '5px' }}>
+        return <div id='example' style={{ margin: '5px' }}>
             <ApplyActionControl state={this.plugin.state.data} action={LoadExample} nodeRef={this.plugin.state.data.tree.root.ref} applyLabel={'Load'} hideHeader />
         </div>;
     }
@@ -332,7 +333,7 @@ export class SessionControls extends PluginUIComponent {
     };
 
     render() {
-        return <div style={{ margin: '5px' }}>
+        return <div id='session' style={{ margin: '5px' }}>
             <div className='msp-flex-row'>
                 <Button icon={GetAppSvg} onClick={this.downloadToFileZip} title='Download the state.'>
                     Download
@@ -348,14 +349,14 @@ export class SessionControls extends PluginUIComponent {
 export class SnapshotControls extends PluginUIComponent<{}> {
     render() {
         return <div style={{ margin: '5px' }}>
-            <div style={{ marginBottom: '10px' }}>
+            <div id='snaplist' style={{ marginBottom: '10px' }}>
                 <LocalStateSnapshotList />
             </div>
-            <div style={{ marginBottom: '10px' }}>
+            <div id='snap' style={{ marginBottom: '10px' }}>
                 <LocalStateSnapshots />
             </div>
 
-            <div style={{ marginBottom: '10px' }}>
+            <div id='snapoption' style={{ marginBottom: '10px' }}>
                 <ExpandGroup header='Snapshot Options' initiallyExpanded={false}>
                     <LocalStateSnapshotParams />
                 </ExpandGroup>
@@ -364,11 +365,99 @@ export class SnapshotControls extends PluginUIComponent<{}> {
     }
 }
 
+export class ExplorerInfo extends PluginUIComponent<{}, { isDisabled: boolean, showHelp: boolean }> {
+    state = {
+        isDisabled: false,
+        showHelp: false
+    };
+
+    componentDidMount() {
+        this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
+            this.setState({ isDisabled: v });
+        });
+
+        this.subscribe(this.plugin.state.events.cell.stateUpdated, e => {
+            if (!this.state.isDisabled && MesoscaleState.has(this.plugin) && MesoscaleState.ref(this.plugin) === e.ref) {
+                this.forceUpdate();
+            }
+        });
+    }
+
+    setupDriver = () => {
+        // setup the tour of the interface
+        const driver = (this.plugin.customState as MesoscaleExplorerState).driver;
+        if (!driver) return;
+
+        driver.setSteps([
+            // Left panel
+            { element: '#explorerinfo', popover: { title: 'Explorer Header Info', description: 'This section displays the explorer header with version information, documentation access, and tour navigation. Use the right and left arrow keys to navigate the tour.', side: 'left', align: 'start' } },
+            { element: '#database', popover: { title: 'Import from PDB', description: 'Load structures directly from PDB and PDB-DEV databases.', side: 'bottom', align: 'start' } },
+            { element: '#loader', popover: { title: 'Import from File', description: 'Load local files (.molx, .molj, .zip, .cif, .bcif) using this option.', side: 'bottom', align: 'start' } },
+            { element: '#example', popover: { title: 'Example Models and Tours', description: 'Select from a range of example models and tours provided.', side: 'left', align: 'start' } },
+            { element: '#session', popover: { title: 'Session Management', description: 'Download the current session in .molx format.', side: 'top', align: 'start' } },
+            { element: '#snaplist', popover: { title: 'Snapshot List', description: 'View and manage the list of snapshots. You can reorder them and edit their titles, keys, and descriptions. Snapshot states cannot be edited.', side: 'right', align: 'start' } },
+            { element: '#snap', popover: { title: 'Add Snapshot', description: 'Save the current state (e.g., camera position, color, visibility, etc.) in a snapshot with an optional title, key, and description.', side: 'right', align: 'start' } },
+            { element: '#snapoption', popover: { title: 'Snapshot Options', description: 'These options are saved in the snapshot. Set them before adding a snapshot to see their effect during animation playback.', side: 'right', align: 'start' } },
+            { element: '#exportanimation', popover: { title: 'Export Animation', description: 'Create movies or scenes with rocking, rotating, or snapshots animations.', side: 'right', align: 'start' } },
+            { element: '#viewportsettings', popover: { title: 'Viewport Settings', description: 'Advanced settings for the renderer and trackball.', side: 'right', align: 'start' } },
+            // Viewport
+            { element: '#snapinfo', popover: { title: 'Snapshot Description', description: 'Save the current state (e.g., camera position, color, visibility, etc.) in a snapshot with an optional title, key, and description.', side: 'right', align: 'start' } },
+            { element: '#snapinfoctrl', popover: { title: 'Snapshot Description Control', description: 'Control the visibility and text size of the snapshot description widget.', side: 'right', align: 'start' } },
+            // Right panel
+            { element: '#modelinfo', popover: { title: 'Model Information', description: 'Summary information about the model, if available.', side: 'right', align: 'start' } },
+            { element: '#selestyle', popover: { title: 'Selection Style', description: 'Choose the rendering style for entity selection accessed via Shift/Ctrl mouse. Options include: Color & Outline, Color, Outline.', side: 'right', align: 'start' } },
+            { element: '#seleinfo', popover: { title: 'Selection List', description: 'View the current list of selected entities.', side: 'right', align: 'start' } },
+            { element: '#measurements', popover: { title: 'Measurements', description: 'Use this widget to create labels, measure distances, angles, dihedral orientations, and planes for the selected entities.', side: 'right', align: 'start' } },
+            { element: '#quickstyles', popover: { title: 'Quick Styles', description: 'Change between a selection of style presets.', side: 'right', align: 'start' } },
+            { element: '#graphicsquality', popover: { title: 'Graphics Quality', description: 'Adjust the overall graphics quality. Lower quality improves performance. Options are: Ultra, Quality (Default), Balanced, Performance, Custom. Custom settings use the Culling & LOD values set in the Tree.', side: 'right', align: 'start' } },
+            { element: '#searchtree', popover: { title: 'Search', description: 'Filter the entity tree based on your queries.', side: 'right', align: 'start' } },
+            { element: '#grouptree', popover: { title: 'Group By', description: 'Change the grouping of the hierarchy tree, e.g., group by instance or by compartment.', side: 'right', align: 'start' } },
+            { element: '#tree', popover: { title: 'Tree Hierarchy', description: 'View the hierarchical tree of entity types in the model.', side: 'right', align: 'start' } },
+            { element: '#focusinfo', popover: { title: 'Selection Description', description: 'Detailed information about the current selection, if present in the loaded file.', side: 'right', align: 'start' } },
+            { popover: { title: 'Happy Exploring!', description: 'That’s all! Go ahead and start exploring or creating mesoscale tours.' } }
+        ]);
+        driver.refresh();
+    };
+
+    openHelp = () => {
+        // open a new page with the documentation
+        window.open('https://molstar.org/me/docs', '_blank');
+    };
+
+    toggleHelp = () => {
+        const driver = (this.plugin.customState as MesoscaleExplorerState).driver;
+        if (!driver || !driver.hasNextStep()) {
+            this.setupDriver();
+        }
+        this.setState({ showHelp: !this.state.showHelp }, () => {
+            if (this.state.showHelp && driver) {
+                driver.drive(); // start at 0
+            }
+        });
+    };
+
+    render() {
+        const driver = (this.plugin.customState as MesoscaleExplorerState).driver;
+        if (!driver) return;
+
+        const legend = `## Welcome to Mol* Mesoscale Explorer`;
+        const help = <IconButton svg={HelpOutlineSvg} toggleState={false} small onClick={this.openHelp} title='Open the Documentation' />;
+        const tour = <IconButton svg={TourSvg} toggleState={false} small onClick={this.toggleHelp} title='Start the interactive tour' />;
+        return <>
+            <div id='explorerinfo' style={{ paddingLeft: 4 }} className='msp-help-text'>
+                <Markdown>{legend}</Markdown>
+                {tour}{help}
+            </div>
+        </>;
+    }
+}
+
+
 export class MesoQuickStylesControls extends CollapsableControls {
     defaultState() {
         return {
             isCollapsed: true,
-            header: 'Styles',
+            header: 'Quick Styles',
             brand: { accent: 'gray' as const, svg: MagicWandSvg }
         };
     }

@@ -13,7 +13,7 @@ import { StructureMeasurementsControls } from '../../../mol-plugin-ui/structure/
 import { MesoscaleExplorerState } from '../app';
 import { MesoscaleState } from '../data/state';
 import { EntityControls, FocusInfo, ModelInfo, SelectionInfo } from './entities';
-import { LoaderControls, ExampleControls, SessionControls, SnapshotControls, DatabaseControls, MesoQuickStylesControls } from './states';
+import { LoaderControls, ExampleControls, SessionControls, SnapshotControls, DatabaseControls, MesoQuickStylesControls, ExplorerInfo } from './states';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { TuneSvg } from '../../../mol-plugin-ui/controls/icons';
 import { RendererParams } from '../../../mol-gl/renderer';
@@ -58,6 +58,10 @@ export class LeftPanel extends PluginUIComponent {
         const customState = this.plugin.customState as MesoscaleExplorerState;
 
         return <div className='msp-scrollable-container'>
+            {customState.driver && <>
+                <ExplorerInfo />
+                <Spacer />
+            </>}
             <SectionHeader title='Database' />
             <DatabaseControls />
             <Spacer />

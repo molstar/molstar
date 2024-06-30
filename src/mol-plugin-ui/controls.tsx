@@ -207,7 +207,7 @@ export function ViewportSnapshotDescription() {
     const e = plugin.managers.snapshot.getEntry(current)!;
     if (!e?.description?.trim()) return null;
 
-    return <div className='msp-snapshot-description-wrapper'>
+    return <div id='snapinfo' className='msp-snapshot-description-wrapper'>
         <Markdown skipHtml components={{ a: MarkdownAnchor }}>{e.description}</Markdown>
     </div>;
 }

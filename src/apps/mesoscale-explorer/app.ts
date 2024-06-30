@@ -48,6 +48,7 @@ export type MesoscaleExplorerState = {
     examples?: ExampleEntry[],
     graphicsMode: GraphicsMode,
     stateRef?: string,
+    driver?: any,
     stateCache: { [k: string]: any },
 }
 
@@ -91,7 +92,8 @@ const DefaultMesoscaleExplorerOptions = {
     emdbProvider: PluginConfig.Download.DefaultEmdbProvider.defaultValue,
     saccharideCompIdMapType: 'default' as SaccharideCompIdMapType,
 
-    graphicsMode: 'quality' as GraphicsMode
+    graphicsMode: 'quality' as GraphicsMode,
+    driver: undefined
 };
 type MesoscaleExplorerOptions = typeof DefaultMesoscaleExplorerOptions;
 
@@ -224,6 +226,7 @@ export class MesoscaleExplorer {
                 (plugin.customState as MesoscaleExplorerState) = {
                     examples,
                     graphicsMode: o.graphicsMode,
+                    driver: o.driver,
                     stateCache: {},
                 };
 
