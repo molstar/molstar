@@ -5,7 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-## [v4.4.0] - 2023-06-30
+## [v4.4.1] - 2023-06-30
 
 - Clean `solidInterior` transparent cylinders
 - Create a transformer to deflate compressed data
