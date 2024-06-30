@@ -27,9 +27,6 @@ import { createGenericHierarchy } from '../data/generic/preset';
 import { createMmcifHierarchy } from '../data/mmcif/preset';
 import { createPetworldHierarchy } from '../data/petworld/preset';
 import { MesoscaleState, MesoscaleStateObject, setGraphicsCanvas3DProps, updateColors } from '../data/state';
-// import { driver } from 'driver.js';
-// import 'driver.js/dist/driver.css';
-// const driverObj = driver();
 
 function adjustPluginProps(ctx: PluginContext) {
     ctx.managers.interactivity.setProps({ granularity: 'chain' });
@@ -388,9 +385,10 @@ export class ExplorerInfo extends PluginUIComponent<{}, { isDisabled: boolean, s
 
     setupDriver = () => {
         // setup the tour of the interface
-        const driverObj = (this.plugin.customState as MesoscaleExplorerState).driver;
-        if (!driverObj) return;
-        driverObj.setSteps([
+        const driver = (this.plugin.customState as MesoscaleExplorerState).driver;
+        if (!driver) return;
+
+        driver.setSteps([
             // Left panel
             { element: '#explorerinfo', popover: { title: 'Explorer Header Info', description: 'This section displays the explorer header with version information, documentation access, and tour navigation. Use the right and left arrow keys to navigate the tour.', side: 'left', align: 'start' } },
             { element: '#database', popover: { title: 'Import from PDB', description: 'Load structures directly from PDB and PDB-DEV databases.', side: 'bottom', align: 'start' } },
@@ -418,28 +416,30 @@ export class ExplorerInfo extends PluginUIComponent<{}, { isDisabled: boolean, s
             { element: '#focusinfo', popover: { title: 'Selection Description', description: 'Detailed information about the current selection, if present in the loaded file.', side: 'right', align: 'start' } },
             { popover: { title: 'Happy Exploring!', description: 'That’s all! Go ahead and start exploring or creating mesoscale tours.' } }
         ]);
-        driverObj.refresh();
+        driver.refresh();
     };
 
     openHelp = () => {
         // open a new page with the documentation
-        window.open('https://molstar.com/me/docs', '_blank');
+        window.open('https://molstar.org/me/docs', '_blank');
     };
 
     toggleHelp = () => {
-
-        const driverObj = (this.plugin.customState as MesoscaleExplorerState).driver;
-        if (!driverObj || !driverObj.hasNextStep()) {
+        const driver = (this.plugin.customState as MesoscaleExplorerState).driver;
+        if (!driver || !driver.hasNextStep()) {
             this.setupDriver();
         }
         this.setState({ showHelp: !this.state.showHelp }, () => {
-            if (this.state.showHelp && driverObj) {
-                driverObj.drive(); // start at 0
+            if (this.state.showHelp && driver) {
+                driver.drive(); // start at 0
             }
         });
     };
 
     render() {
+        const driver = (this.plugin.customState as MesoscaleExplorerState).driver;
+        if (!driver) return;
+
         const legend = `## Welcome to Mol* Mesoscale Explorer`;
         const help = <IconButton svg={HelpOutlineSvg} toggleState={false} small onClick={this.openHelp} title='Open the Documentation' />;
         const tour = <IconButton svg={TourSvg} toggleState={false} small onClick={this.toggleHelp} title='Start the interactive tour' />;

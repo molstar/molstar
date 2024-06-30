@@ -58,8 +58,10 @@ export class LeftPanel extends PluginUIComponent {
         const customState = this.plugin.customState as MesoscaleExplorerState;
 
         return <div className='msp-scrollable-container'>
-            <ExplorerInfo />
-            <Spacer />
+            {customState.driver && <>
+                <ExplorerInfo />
+                <Spacer />
+            </>}
             <SectionHeader title='Database' />
             <DatabaseControls />
             <Spacer />

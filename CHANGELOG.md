@@ -25,6 +25,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Snapshot description panel window size and text can be resized and hidden with new icons
     - Add styles controls to right panel
     - Add viewport settings to left panel
+    - Add app info component to left panel with interactive tour and doc link
 - Fixes SSAO edge artifacts (#1122)
     - Add `reuseOcclusion` parameter to multi-sample pass
     - Add `blurDepthBias` parameter to occlusion pass
@@ -34,7 +35,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - `celShaded` geometry parameter
     - `celSteps` renderer parameter
 - Add the ability to customize the Snapshot Description component via `PluginUISpec.components.viewport.snapshotDescription`
-- Add `doNotDisposeCanvas3DContext` option to `PluginContext.dispose` 
+- Add `doNotDisposeCanvas3DContext` option to `PluginContext.dispose`
 - Remove support for density data from edmaps.rcsb.org
 
 ## [v4.3.0] - 2023-05-26

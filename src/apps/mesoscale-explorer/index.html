@@ -42,9 +42,8 @@
         <script src="./extras/driver.js.iife.js"></script>
         <script type="text/javascript" src="./molstar.js"></script>
         <script type="text/javascript">
-            const driver = window.driver.js.driver;
-            const driverObj = driver();
-            
+            const driver = window.driver ? window.driver.js.driver() : undefined;
+
             function getParam(name, regex) {
                 var r = new RegExp(name + '=' + '(' + regex + ')[&]?', 'i');
                 return decodeURIComponent(((window.location.search || '').match(r) || [])[1] || '');
@@ -69,7 +68,7 @@
                 allowMajorPerformanceCaveat: allowMajorPerformanceCaveat,
                 powerPreference: powerPreference || 'high-performance',
                 graphicsMode: graphicsMode || 'quality',
-                driver: driverObj
+                driver: driver
             }).then(me => {
                 var example = getParam('example', '[^&]+').trim();
                 if (example) {
