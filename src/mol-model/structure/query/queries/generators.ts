@@ -139,7 +139,7 @@ function atomGroupsSegmented({ unitTest, entityTest, chainTest, residueTest, ato
                     }
                 }
             } else {
-                const { chainElementSegments } = Unit.Kind.Spheres ? model.coarseHierarchy.spheres : model.coarseHierarchy.gaussians;
+                const { chainElementSegments } = unit.kind === Unit.Kind.Spheres ? model.coarseHierarchy.spheres : model.coarseHierarchy.gaussians;
                 const chainsIt = Segmentation.transientSegments(chainElementSegments, elements);
 
                 while (chainsIt.hasNext) {
@@ -213,7 +213,7 @@ function atomGroupsGrouped({ unitTest, entityTest, chainTest, residueTest, atomT
                     }
                 }
             } else {
-                const { chainElementSegments } = Unit.Kind.Spheres ? model.coarseHierarchy.spheres : model.coarseHierarchy.gaussians;
+                const { chainElementSegments } = unit.kind === Unit.Kind.Spheres ? model.coarseHierarchy.spheres : model.coarseHierarchy.gaussians;
                 const chainsIt = Segmentation.transientSegments(chainElementSegments, elements);
                 while (chainsIt.hasNext) {
                     const chainSegment = chainsIt.move();
