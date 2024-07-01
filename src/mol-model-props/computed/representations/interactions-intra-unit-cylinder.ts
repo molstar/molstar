@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { Unit, Structure, StructureElement } from '../../../mol-model/structure';
@@ -19,7 +20,7 @@ import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../../../mol-repr
 import { VisualUpdateState } from '../../../mol-repr/util';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { Interactions } from '../interactions/interactions';
-import { InteractionFlag } from '../interactions/common';
+import { FeatureType, InteractionFlag } from '../interactions/common';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { StructureGroup, isHydrogen } from '../../../mol-repr/structure/visual/util/common';
 import { assertUnreachable } from '../../../mol-util/type-helpers';
@@ -40,7 +41,7 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
     const features = interactions.unitsFeatures.get(unit.id);
     const contacts = interactions.unitsContacts.get(unit.id);
 
-    const { x, y, z, members, offsets } = features;
+    const { x, y, z, members, offsets, types } = features;
     const { edgeCount, a, b, edgeProps: { flag, type } } = contacts;
     const { sizeFactor, ignoreHydrogens, ignoreHydrogensVariant, parentDisplay } = props;
 
@@ -56,7 +57,7 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
             const t = type[edgeIndex];
             if ((!ignoreHydrogens || ignoreHydrogensVariant !== 'all') && (
-                t === InteractionType.HydrogenBond || t === InteractionType.WeakHydrogenBond)
+                t === InteractionType.HydrogenBond || (t === InteractionType.WeakHydrogenBond && ignoreHydrogensVariant !== 'non-polar'))
             ) {
                 const idxA = members[offsets[a[edgeIndex]]];
                 const idxB = members[offsets[b[edgeIndex]]];
@@ -66,28 +67,32 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
                 let minDistB = minDistA;
                 Vec3.copy(posA, pA);
                 Vec3.copy(posB, pB);
+                const donorType = t === InteractionType.HydrogenBond ? FeatureType.HydrogenDonor : FeatureType.WeakHydrogenDonor;
+                const isHydrogenDonorA = types[offsets[a[edgeIndex]]] === donorType;
 
-                eachIntraBondedAtom(unit, idxA, (_, idx) => {
-                    if (isHydrogen(structure, unit, elements[idx], 'polar')) {
-                        c.invariantPosition(elements[idx], p);
-                        const dist = Vec3.distance(p, pB);
-                        if (dist < minDistA) {
-                            minDistA = dist;
-                            Vec3.copy(posA, p);
+                if (isHydrogenDonorA) {
+                    eachIntraBondedAtom(unit, idxA, (_, idx) => {
+                        if (isHydrogen(structure, unit, elements[idx], 'all')) {
+                            c.invariantPosition(elements[idx], p);
+                            const dist = Vec3.distance(p, pB);
+                            if (dist < minDistA) {
+                                minDistA = dist;
+                                Vec3.copy(posA, p);
+                            }
                         }
-                    }
-                });
-
-                eachIntraBondedAtom(unit, idxB, (_, idx) => {
-                    if (isHydrogen(structure, unit, elements[idx], 'polar')) {
-                        c.invariantPosition(elements[idx], p);
-                        const dist = Vec3.distance(p, pA);
-                        if (dist < minDistB) {
-                            minDistB = dist;
-                            Vec3.copy(posB, p);
+                    });
+                } else {
+                    eachIntraBondedAtom(unit, idxB, (_, idx) => {
+                        if (isHydrogen(structure, unit, elements[idx], 'all')) {
+                            c.invariantPosition(elements[idx], p);
+                            const dist = Vec3.distance(p, pA);
+                            if (dist < minDistB) {
+                                minDistB = dist;
+                                Vec3.copy(posB, p);
+                            }
                         }
-                    }
-                });
+                    });
+                }
             } else {
                 Vec3.set(posA, x[a[edgeIndex]], y[a[edgeIndex]], z[a[edgeIndex]]);
                 Vec3.set(posB, x[b[edgeIndex]], y[b[edgeIndex]], z[b[edgeIndex]]);

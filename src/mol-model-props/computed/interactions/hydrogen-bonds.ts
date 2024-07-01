@@ -1,15 +1,16 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Fred Ludlow <Fred.Ludlow@astx.com>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  *
  * based in part on NGL (https://github.com/arose/ngl)
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Structure, Unit, StructureElement } from '../../../mol-model/structure';
-import { AtomGeometry, AtomGeometryAngles, calcAngles, calcPlaneAngle } from '../chemistry/geometry';
+import { AtomGeometry, AtomGeometryAngles, calcAngles, calcPlaneAngle, closestHydrogenIndex } from '../chemistry/geometry';
 import { FeaturesBuilder, Features } from './features';
 import { typeSymbol, bondToElementCount, bondCount, formalCharge, compId, atomId } from '../chemistry/util';
 import { Elements } from '../../../mol-model/structure/model/properties/atomic/types';
@@ -23,6 +24,7 @@ const GeometryParams = {
     distanceMax: PD.Numeric(3.5, { min: 1, max: 5, step: 0.1 }),
     backbone: PD.Boolean(true, { description: 'Include backbone-to-backbone hydrogen bonds' }),
     accAngleDevMax: PD.Numeric(45, { min: 0, max: 180, step: 1 }, { description: 'Max deviation from ideal acceptor angle' }),
+    ignoreHydrogens: PD.Boolean(false, { description: 'Ignore explicit hydrogens in geometric constraints' }),
     donAngleDevMax: PD.Numeric(45, { min: 0, max: 180, step: 1 }, { description: 'Max deviation from ideal donor angle' }),
     accOutOfPlaneAngleMax: PD.Numeric(90, { min: 0, max: 180, step: 1 }),
     donOutOfPlaneAngleMax: PD.Numeric(45, { min: 0, max: 180, step: 1 }),
@@ -208,6 +210,7 @@ function isWeakHydrogenBond(ti: FeatureType, tj: FeatureType) {
 
 function getGeometryOptions(props: GeometryProps) {
     return {
+        ignoreHydrogens: props.ignoreHydrogens,
         includeBackbone: props.backbone,
         maxAccAngleDev: degToRad(props.accAngleDevMax),
         maxDonAngleDev: degToRad(props.donAngleDevMax),
@@ -230,26 +233,32 @@ type HydrogenBondsOptions = ReturnType<typeof getHydrogenBondsOptions>
 const deg120InRad = degToRad(120);
 
 function checkGeometry(structure: Structure, don: Features.Info, acc: Features.Info, opts: GeometryOptions): true | undefined {
-
     const donIndex = don.members[don.offsets[don.feature]];
     const accIndex = acc.members[acc.offsets[acc.feature]];
 
     if (!opts.includeBackbone && isBackboneHydrogenBond(don.unit, donIndex, acc.unit, accIndex)) return;
 
-    const donAngles = calcAngles(structure, don.unit, donIndex, acc.unit, accIndex);
+    const [donAngles, donHAngles] = calcAngles(structure, don.unit, donIndex, acc.unit, accIndex, opts.ignoreHydrogens);
     const idealDonAngle = AtomGeometryAngles.get(don.idealGeometry[donIndex]) || deg120InRad;
     if (donAngles.some(donAngle => Math.abs(idealDonAngle - donAngle) > opts.maxDonAngleDev)) return;
+    if (donHAngles.length && !donHAngles.some(donHAngles => donHAngles < opts.maxDonAngleDev)) return;
 
     if (don.idealGeometry[donIndex] === AtomGeometry.Trigonal) {
         const outOfPlane = calcPlaneAngle(structure, don.unit, donIndex, acc.unit, accIndex);
         if (outOfPlane !== undefined && outOfPlane > opts.maxDonOutOfPlaneAngle) return;
     }
 
-    const accAngles = calcAngles(structure, acc.unit, accIndex, don.unit, donIndex);
+    let donorIndex = donIndex;
+    if (!opts.ignoreHydrogens && donHAngles.length > 0) {
+        donorIndex = closestHydrogenIndex(structure, don.unit, donIndex, acc.unit, accIndex);
+    }
+
+    const [accAngles, accHAngles] = calcAngles(structure, acc.unit, accIndex, don.unit, donorIndex, opts.ignoreHydrogens);
     const idealAccAngle = AtomGeometryAngles.get(acc.idealGeometry[accIndex]) || deg120InRad;
 
     // Do not limit large acceptor angles
     if (accAngles.some(accAngle => idealAccAngle - accAngle > opts.maxAccAngleDev)) return;
+    if (accHAngles.some(accHAngles => idealAccAngle - accHAngles > opts.maxAccAngleDev)) return;
 
     if (acc.idealGeometry[accIndex] === AtomGeometry.Trigonal) {
         const outOfPlane = calcPlaneAngle(structure, acc.unit, accIndex, don.unit, donIndex);
