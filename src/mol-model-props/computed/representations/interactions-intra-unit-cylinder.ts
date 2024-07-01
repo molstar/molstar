@@ -70,27 +70,29 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
                 const donorType = t === InteractionType.HydrogenBond ? FeatureType.HydrogenDonor : FeatureType.WeakHydrogenDonor;
                 const isHydrogenDonorA = types[offsets[a[edgeIndex]]] === donorType;
 
-                if (isHydrogenDonorA) eachIntraBondedAtom(unit, idxA, (_, idx) => {
-                    if (isHydrogen(structure, unit, elements[idx], 'all')) {
-                        c.invariantPosition(elements[idx], p);
-                        const dist = Vec3.distance(p, pB);
-                        if (dist < minDistA) {
-                            minDistA = dist;
-                            Vec3.copy(posA, p);
+                if (isHydrogenDonorA) {
+                    eachIntraBondedAtom(unit, idxA, (_, idx) => {
+                        if (isHydrogen(structure, unit, elements[idx], 'all')) {
+                            c.invariantPosition(elements[idx], p);
+                            const dist = Vec3.distance(p, pB);
+                            if (dist < minDistA) {
+                                minDistA = dist;
+                                Vec3.copy(posA, p);
+                            }
                         }
-                    }
-                });
-
-                else eachIntraBondedAtom(unit, idxB, (_, idx) => {
-                    if (isHydrogen(structure, unit, elements[idx], 'all')) {
-                        c.invariantPosition(elements[idx], p);
-                        const dist = Vec3.distance(p, pA);
-                        if (dist < minDistB) {
-                            minDistB = dist;
-                            Vec3.copy(posB, p);
+                    });
+                } else {
+                    eachIntraBondedAtom(unit, idxB, (_, idx) => {
+                        if (isHydrogen(structure, unit, elements[idx], 'all')) {
+                            c.invariantPosition(elements[idx], p);
+                            const dist = Vec3.distance(p, pA);
+                            if (dist < minDistB) {
+                                minDistB = dist;
+                                Vec3.copy(posB, p);
+                            }
                         }
-                    }
-                });
+                    });
+                }
             } else {
                 Vec3.set(posA, x[a[edgeIndex]], y[a[edgeIndex]], z[a[edgeIndex]]);
                 Vec3.set(posB, x[b[edgeIndex]], y[b[edgeIndex]], z[b[edgeIndex]]);

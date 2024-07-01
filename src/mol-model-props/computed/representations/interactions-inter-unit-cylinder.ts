@@ -68,29 +68,31 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
                 const donorType = t === InteractionType.HydrogenBond ? FeatureType.HydrogenDonor : FeatureType.WeakHydrogenDonor;
                 const isHydrogenDonorA = fA.types[fA.offsets[indexA]] === donorType;
 
-                if (isHydrogenDonorA) eachBondedAtom(structure, uA, idxA, (u, idx) => {
-                    const eI = u.elements[idx];
-                    if (isHydrogen(structure, u, eI, 'all')) {
-                        u.conformation.position(eI, p);
-                        const dist = Vec3.distance(p, pB);
-                        if (dist < minDistA) {
-                            minDistA = dist;
-                            Vec3.copy(posA, p);
+                if (isHydrogenDonorA) {
+                    eachBondedAtom(structure, uA, idxA, (u, idx) => {
+                        const eI = u.elements[idx];
+                        if (isHydrogen(structure, u, eI, 'all')) {
+                            u.conformation.position(eI, p);
+                            const dist = Vec3.distance(p, pB);
+                            if (dist < minDistA) {
+                                minDistA = dist;
+                                Vec3.copy(posA, p);
+                            }
                         }
-                    }
-                });
-
-                else eachBondedAtom(structure, uB, idxB, (u, idx) => {
-                    const eI = u.elements[idx];
-                    if (isHydrogen(structure, u, eI, 'all')) {
-                        u.conformation.position(eI, p);
-                        const dist = Vec3.distance(p, pA);
-                        if (dist < minDistB) {
-                            minDistB = dist;
-                            Vec3.copy(posB, p);
+                    });
+                } else {
+                    eachBondedAtom(structure, uB, idxB, (u, idx) => {
+                        const eI = u.elements[idx];
+                        if (isHydrogen(structure, u, eI, 'all')) {
+                            u.conformation.position(eI, p);
+                            const dist = Vec3.distance(p, pA);
+                            if (dist < minDistB) {
+                                minDistB = dist;
+                                Vec3.copy(posB, p);
+                            }
                         }
-                    }
-                });
+                    });
+                }
             } else {
                 Vec3.set(posA, fA.x[indexA], fA.y[indexA], fA.z[indexA]);
                 Vec3.transformMat4(posA, posA, uA.conformation.operator.matrix);

@@ -248,12 +248,12 @@ function checkGeometry(structure: Structure, don: Features.Info, acc: Features.I
         if (outOfPlane !== undefined && outOfPlane > opts.maxDonOutOfPlaneAngle) return;
     }
 
-    let donnorIndex = donIndex;
+    let donorIndex = donIndex;
     if (!opts.ignoreHydrogens && donHAngles.length > 0) {
-        donnorIndex = closestHydrogenIndex(structure, don.unit, donIndex, acc.unit, accIndex);
+        donorIndex = closestHydrogenIndex(structure, don.unit, donIndex, acc.unit, accIndex);
     }
 
-    const [accAngles, accHAngles] = calcAngles(structure, acc.unit, accIndex, don.unit, donnorIndex, opts.ignoreHydrogens);
+    const [accAngles, accHAngles] = calcAngles(structure, acc.unit, accIndex, don.unit, donorIndex, opts.ignoreHydrogens);
     const idealAccAngle = AtomGeometryAngles.get(acc.idealGeometry[accIndex]) || deg120InRad;
 
     // Do not limit large acceptor angles
