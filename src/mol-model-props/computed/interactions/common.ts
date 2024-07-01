@@ -158,6 +158,8 @@ export function interactionTypeLabel(type: InteractionType): string {
     }
 }
 
+/** For internal use only */
+// eslint-disable-next-line no-restricted-syntax
 export const enum FeatureType {
     None = 0,
     PositiveCharge = 1,
@@ -175,7 +177,7 @@ export const enum FeatureType {
     IonicTypeMetal = 13
 }
 
-// to use with isolatedModules
+/** to use with isolatedModules */
 export enum FeatureTypes {
     None = FeatureType.None,
     PositiveCharge = FeatureType.PositiveCharge,

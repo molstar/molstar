@@ -153,6 +153,8 @@ function getLight(props: RendererProps['light'], light?: Light): Light {
 }
 
 namespace Renderer {
+    /** For internal use only */
+    // eslint-disable-next-line no-restricted-syntax
     const enum Flag {
         None = 0,
         BlendedFront = 1,
@@ -160,6 +162,8 @@ namespace Renderer {
         BlendedVolume = 3,
     }
 
+    /** For internal use only */
+    // eslint-disable-next-line no-restricted-syntax
     const enum Mask {
         All = 0,
         Opaque = 1,
