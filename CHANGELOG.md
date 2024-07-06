@@ -5,6 +5,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix DoF with pixel ratios =! 1
+- Fix DoF missing transparent depth
+
 ## [v4.4.1] - 2023-06-30
 
 - Clean `solidInterior` transparent cylinders
