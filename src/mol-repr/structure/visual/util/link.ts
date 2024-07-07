@@ -80,7 +80,7 @@ export function calculateShiftDir(out: Vec3, v1: Vec3, v2: Vec3, v3: Vec3 | null
 
 export interface LinkBuilderProps {
     linkCount: number
-    position: (posA: Vec3, posB: Vec3, edgeIndex: number) => void
+    position: (posA: Vec3, posB: Vec3, edgeIndex: number, unadjusted?: boolean) => void
     radius: (edgeIndex: number) => number,
     referencePosition?: (edgeIndex: number) => Vec3 | null
     style?: (edgeIndex: number) => LinkStyle
@@ -180,6 +180,8 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
                 addCylinder(builderState, va, vb, 0.5, cylinderProps);
 
                 const aromaticOffset = linkRadius + aromaticScale * linkRadius + aromaticScale * linkRadius * aromaticSpacing;
+
+                position(va, vb, edgeIndex, true);
 
                 v3setMagnitude(tmpV12, v3sub(tmpV12, vb, va), linkRadius * 0.5);
                 v3add(va, va, tmpV12);
@@ -312,6 +314,8 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
                 builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], 1, linkCap, linkStub, colorModeFlag, edgeIndex);
 
                 const aromaticOffset = linkRadius + aromaticScale * linkRadius + aromaticScale * linkRadius * aromaticSpacing;
+
+                position(va, vb, edgeIndex, true);
 
                 v3setMagnitude(tmpV12, v3sub(tmpV12, vb, va), linkRadius * 0.5);
                 v3add(va, va, tmpV12);

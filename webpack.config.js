@@ -4,7 +4,7 @@ const examples = ['proteopedia-wrapper', 'basic-wrapper', 'lighting', 'alpha-orb
 const tests = [
     'font-atlas',
     'marching-cubes',
-    'render-lines', 'render-mesh', 'render-shape', 'render-spheres', 'render-structure', 'render-text',
+    'render-lines', 'render-mesh', 'render-shape', 'render-spheres', 'render-structure', 'render-structure-grid', 'render-text',
     'parse-xtc'
 ];
 
