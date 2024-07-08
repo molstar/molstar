@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Herman Bergwerf <post@hbergwerf.nl>
  *
  * This code has been modified from https://github.com/mrdoob/three.js/,
  * copyright (c) 2010-2018 three.js authors. MIT License
@@ -10,7 +11,7 @@
 
 import { Quat, Vec2, Vec3, EPSILON } from '../../mol-math/linear-algebra';
 import { Viewport } from '../camera/util';
-import { InputObserver, DragInput, WheelInput, PinchInput, ButtonsType, ModifiersKeys, GestureInput, KeyInput, MoveInput } from '../../mol-util/input/input-observer';
+import { InputObserver, DragInput, WheelInput, PinchInput, ButtonsType, ModifiersKeys, KeyInput, MoveInput } from '../../mol-util/input/input-observer';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Camera } from '../camera';
 import { absMax, degToRad } from '../../mol-math/misc';
@@ -134,7 +135,6 @@ namespace TrackballControls {
         const interactionEndSub = input.interactionEnd.subscribe(onInteractionEnd);
         const wheelSub = input.wheel.subscribe(onWheel);
         const pinchSub = input.pinch.subscribe(onPinch);
-        const gestureSub = input.gesture.subscribe(onGesture);
         const keyDownSub = input.keyDown.subscribe(onKeyDown);
         const keyUpSub = input.keyUp.subscribe(onKeyUp);
         const moveSub = input.move.subscribe(onMove);
@@ -614,16 +614,25 @@ namespace TrackballControls {
             }
         }
 
-        function onPinch({ fractionDelta, buttons, modifiers }: PinchInput) {
-            if (Binding.match(b.scrollZoom, buttons, modifiers)) {
-                _isInteracting = true;
+        function onPinch({ isStart, startX, startY, centerPageX, centerPageY, fractionDelta, buttons, modifiers }: PinchInput) {
+            if (outsideViewport(startX, startY)) return;
+
+            const pan = Binding.match(b.dragPan, buttons, modifiers);
+            const zoom = Binding.match(b.scrollZoom, buttons, modifiers);
+            _isInteracting = pan || zoom;
+
+            if (pan) {
+                getMouseOnScreen(centerPageX, centerPageY);
+                if (isStart) {
+                    Vec2.copy(_panStart, mouseOnScreenVec2);
+                    Vec2.copy(_panEnd, _panStart);
+                } else {
+                    Vec2.copy(_panEnd, mouseOnScreenVec2);
+                }
+            }
+            if (zoom) {
                 _zoomEnd[1] += p.gestureScaleFactor * fractionDelta;
             }
-        }
-
-        function onGesture({ deltaScale }: GestureInput) {
-            _isInteracting = true;
-            _zoomEnd[1] += p.gestureScaleFactor * deltaScale;
         }
 
         function onMove({ movementX, movementY }: MoveInput) {
@@ -804,7 +813,6 @@ namespace TrackballControls {
             dragSub.unsubscribe();
             wheelSub.unsubscribe();
             pinchSub.unsubscribe();
-            gestureSub.unsubscribe();
             interactionEndSub.unsubscribe();
             keyDownSub.unsubscribe();
             keyUpSub.unsubscribe();
