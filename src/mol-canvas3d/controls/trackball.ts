@@ -613,27 +613,24 @@ namespace TrackballControls {
             }
         }
 
-        function onPinch({ isStart, firstPointerStart: { x, y }, center: { pageX, pageY }, fractionDelta, buttons, modifiers }: PinchInput) {
-            if (outsideViewport(x, y)) return;
+        function onPinch({ isStart, startX, startY, centerPageX, centerPageY, fractionDelta, buttons, modifiers }: PinchInput) {
+            if (outsideViewport(startX, startY)) return;
 
             const pan = Binding.match(b.dragPan, buttons, modifiers);
             const zoom = Binding.match(b.scrollZoom, buttons, modifiers);
-            if (pan || zoom) {
-                _isInteracting = true;
-                getMouseOnScreen(pageX, pageY);
+            _isInteracting = pan || zoom;
+
+            if (pan) {
+                getMouseOnScreen(centerPageX, centerPageY);
                 if (isStart) {
-                    if (pan) {
-                        Vec2.copy(_panStart, mouseOnScreenVec2);
-                        Vec2.copy(_panEnd, _panStart);
-                    }
+                    Vec2.copy(_panStart, mouseOnScreenVec2);
+                    Vec2.copy(_panEnd, _panStart);
                 } else {
-                    if (pan) {
-                        Vec2.copy(_panEnd, mouseOnScreenVec2);
-                    }
-                    if (zoom) {
-                        _zoomEnd[1] += p.gestureScaleFactor * -fractionDelta;
-                    }
+                    Vec2.copy(_panEnd, mouseOnScreenVec2);
                 }
+            }
+            if (zoom) {
+                _zoomEnd[1] += p.gestureScaleFactor * fractionDelta;
             }
         }
 

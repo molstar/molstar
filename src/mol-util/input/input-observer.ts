@@ -184,14 +184,10 @@ export type PinchInput = {
     delta: number,
     fraction: number,
     fractionDelta: number,
-    firstPointerStart: {
-        x: number,
-        y: number
-    }
-    center: {
-        pageX: number,
-        pageY: number
-    }
+    startX: number,
+    startY: number,
+    centerPageX: number,
+    centerPageY: number,
 } & BaseInput
 
 export type GestureInput = {
@@ -606,8 +602,9 @@ namespace InputObserver {
                 button = ButtonsType.Flag.Secondary;
                 updateModifierKeys(ev);
 
+                lastTouchFraction = 1;
                 initialTouchDistance = getTouchDistance(ev);
-                const { pageX, pageY } = getPagePosition(getCenterTouch(ev));
+                const { pageX: centerPageX, pageY: centerPageY } = getPagePosition(getCenterTouch(ev));
                 if (!firstTouchStartSet) {
                     eventOffset(firstTouchStart, getCenterTouch(ev));
                     firstTouchStartSet = true;
@@ -617,13 +614,12 @@ namespace InputObserver {
                     isStart: true,
                     distance: initialTouchDistance,
                     delta: 0,
-                    fraction: lastTouchFraction = 1,
+                    fraction: lastTouchFraction,
                     fractionDelta: 0,
-                    firstPointerStart: {
-                        x: firstTouchStart[0],
-                        y: firstTouchStart[1]
-                    },
-                    center: { pageX, pageY },
+                    startX: firstTouchStart[0],
+                    startY: firstTouchStart[1],
+                    centerPageX,
+                    centerPageY,
                     buttons,
                     button,
                     modifiers: getModifierKeys()
@@ -674,11 +670,11 @@ namespace InputObserver {
                 button = ButtonsType.Flag.Secondary;
                 updateModifierKeys(ev);
 
-                const { pageX, pageY } = getPagePosition(getCenterTouch(ev));
+                const { pageX: centerPageX, pageY: centerPageY } = getPagePosition(getCenterTouch(ev));
                 const distance = getTouchDistance(ev);
                 const delta = initialTouchDistance - distance;
                 const fraction = initialTouchDistance / distance;
-                const fractionDelta = lastTouchFraction - fraction;
+                const fractionDelta = fraction - lastTouchFraction;
                 lastTouchFraction = fraction;
 
                 pinch.next({
@@ -687,11 +683,10 @@ namespace InputObserver {
                     delta,
                     fraction,
                     fractionDelta,
-                    firstPointerStart: {
-                        x: firstTouchStart[0],
-                        y: firstTouchStart[1]
-                    },
-                    center: { pageX, pageY },
+                    startX: firstTouchStart[0],
+                    startY: firstTouchStart[1],
+                    centerPageX,
+                    centerPageY,
                     buttons,
                     button,
                     modifiers: getModifierKeys()
