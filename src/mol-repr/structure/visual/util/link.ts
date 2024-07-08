@@ -80,7 +80,7 @@ export function calculateShiftDir(out: Vec3, v1: Vec3, v2: Vec3, v3: Vec3 | null
 
 export interface LinkBuilderProps {
     linkCount: number
-    position: (posA: Vec3, posB: Vec3, edgeIndex: number, unadjusted?: boolean) => void
+    position: (posA: Vec3, posB: Vec3, edgeIndex: number, adjust: boolean) => void
     radius: (edgeIndex: number) => number,
     referencePosition?: (edgeIndex: number) => Vec3 | null
     style?: (edgeIndex: number) => LinkStyle
@@ -139,7 +139,7 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
     for (let edgeIndex = 0, _eI = linkCount; edgeIndex < _eI; ++edgeIndex) {
         if (ignore && ignore(edgeIndex)) continue;
 
-        position(va, vb, edgeIndex);
+        position(va, vb, edgeIndex, true);
 
         v3add(center, center, va);
         v3add(center, center, vb);
@@ -181,7 +181,7 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
 
                 const aromaticOffset = linkRadius + aromaticScale * linkRadius + aromaticScale * linkRadius * aromaticSpacing;
 
-                position(va, vb, edgeIndex, true);
+                position(va, vb, edgeIndex, false);
 
                 v3setMagnitude(tmpV12, v3sub(tmpV12, vb, va), linkRadius * 0.5);
                 v3add(va, va, tmpV12);
@@ -285,7 +285,7 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
     for (let edgeIndex = 0, _eI = linkCount; edgeIndex < _eI; ++edgeIndex) {
         if (ignore && ignore(edgeIndex)) continue;
 
-        position(va, vb, edgeIndex);
+        position(va, vb, edgeIndex, true);
 
         v3add(center, center, va);
         v3add(center, center, vb);
@@ -315,7 +315,7 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
 
                 const aromaticOffset = linkRadius + aromaticScale * linkRadius + aromaticScale * linkRadius * aromaticSpacing;
 
-                position(va, vb, edgeIndex, true);
+                position(va, vb, edgeIndex, false);
 
                 v3setMagnitude(tmpV12, v3sub(tmpV12, vb, va), linkRadius * 0.5);
                 v3add(va, va, tmpV12);
@@ -399,7 +399,7 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
     for (let edgeIndex = 0, _eI = linkCount; edgeIndex < _eI; ++edgeIndex) {
         if (ignore && ignore(edgeIndex)) continue;
 
-        position(va, vb, edgeIndex);
+        position(va, vb, edgeIndex, true);
 
         v3add(center, center, va);
         v3add(center, center, vb);

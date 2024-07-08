@@ -115,11 +115,11 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
             }
             return maxSize > 0 ? vRef : null;
         },
-        position: (posA: Vec3, posB: Vec3, edgeIndex: number, unadjusted?: boolean) => {
+        position: (posA: Vec3, posB: Vec3, edgeIndex: number, adjust: boolean) => {
             c.invariantPosition(elements[a[edgeIndex]], posA);
             c.invariantPosition(elements[b[edgeIndex]], posB);
 
-            if (adjustCylinderLength && unadjusted !== true) {
+            if (adjust && adjustCylinderLength) {
                 const rA = radiusA(edgeIndex), rB = radiusB(edgeIndex);
                 const r = Math.min(rA, rB) * sizeAspectRatio;
                 const oA = Math.sqrt(Math.max(0, rA * rA - r * r)) - 0.05;
