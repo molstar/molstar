@@ -9,6 +9,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix DoF with pixel ratios =! 1
 - Fix DoF missing transparent depth
 - Fix trackball pinch zoom and add pan
+- Change trackball animate spin speed unit to radians per second
 
 ## [v4.4.1] - 2023-06-30
 
