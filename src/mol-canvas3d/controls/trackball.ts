@@ -68,7 +68,7 @@ export const TrackballControlsParams = {
     animate: PD.MappedStatic('off', {
         off: PD.EmptyGroup(),
         spin: PD.Group({
-            speed: PD.Numeric(1, { min: -20, max: 20, step: 1 }),
+            speed: PD.Numeric(1, { min: -20, max: 20, step: 1 }, { description: 'Rotation speed in radians per second' }),
         }, { description: 'Spin the 3D scene around the x-axis in view space' }),
         rock: PD.Group({
             speed: PD.Numeric(0.3, { min: -5, max: 5, step: 0.1 }),
@@ -825,8 +825,8 @@ namespace TrackballControls {
         function spin(deltaT: number) {
             if (p.animate.name !== 'spin' || p.animate.params.speed === 0 || _isInteracting) return;
 
-            const frameSpeed = p.animate.params.speed / 1000;
-            _spinSpeed[0] = 60 * Math.min(Math.abs(deltaT), 1000 / 8) / 1000 * frameSpeed;
+            const radPerMs = p.animate.params.speed / 1000;
+            _spinSpeed[0] = deltaT * radPerMs / getRotateFactor();
             Vec2.add(_rotCurr, _rotPrev, _spinSpeed);
         }
 
