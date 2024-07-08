@@ -5,6 +5,7 @@
  * @author Zhenyu Zhang <jump2cn@gmail.com>
  * @author Gianluca Tomasello <giagitom@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Herman Bergwerf <post@hbergwerf.nl>
  */
 
 import { Vec3 } from '../../../../mol-math/linear-algebra';

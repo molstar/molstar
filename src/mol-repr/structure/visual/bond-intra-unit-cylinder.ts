@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author Herman Bergwerf <post@hbergwerf.nl>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';

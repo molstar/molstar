@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Herman Bergwerf <post@hbergwerf.nl>
+ */
+
 import { AssetManager } from '../../mol-util/assets';
 import { Canvas3D, Canvas3DProps, Canvas3DContext } from '../../mol-canvas3d/canvas3d'
 import { resizeCanvas } from '../../mol-canvas3d/util'
