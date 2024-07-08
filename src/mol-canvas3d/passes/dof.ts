@@ -113,8 +113,9 @@ export class DofPass {
         ValueCell.updateIfChanged(this.renderable.values.uFar, camera.far);
         ValueCell.updateIfChanged(this.renderable.values.dOrthographic, orthographic);
 
-        if (this.renderable.values.dBlurSize.ref.value !== props.blurSize) {
-            ValueCell.update(this.renderable.values.dBlurSize, props.blurSize);
+        const blurSize = Math.round(props.blurSize * this.webgl.pixelRatio);
+        if (this.renderable.values.dBlurSize.ref.value !== blurSize) {
+            ValueCell.update(this.renderable.values.dBlurSize, blurSize);
             needsUpdate = true;
         }
 

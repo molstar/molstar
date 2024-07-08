@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Russell Parker <russell@benchling.com>
+ * @author Herman Bergwerf <post@hbergwerf.nl>
  */
 
 import { Subject, Observable } from 'rxjs';
@@ -179,11 +180,15 @@ export type MoveInput = {
 } & BaseInput
 
 export type PinchInput = {
+    isStart: boolean,
+    distance: number,
     delta: number,
     fraction: number,
     fractionDelta: number,
-    distance: number,
-    isStart: boolean
+    startX: number,
+    startY: number,
+    centerPageX: number,
+    centerPageY: number,
 } & BaseInput
 
 export type GestureInput = {
@@ -331,7 +336,6 @@ namespace InputObserver {
         let isLocked = false;
         let lockedViewport = Viewport();
 
-        let lastTouchDistance = 0, lastTouchFraction = 0;
         const pointerDown = Vec2();
         const pointerStart = Vec2();
         const pointerEnd = Vec2();
@@ -575,31 +579,48 @@ namespace InputObserver {
             Vec2.copy(singleTouchPosition, singleTouchTmp);
         }
 
+        const firstTouchStart = Vec2();
+        let firstTouchStartSet = false;
+        let initialTouchDistance = 0, lastTouchFraction = 1;
+
         function onTouchStart(ev: TouchEvent) {
             ev.preventDefault();
 
             lastSingleTouch = undefined;
             singleTouchDistance = -1;
             if (ev.touches.length === 1) {
+                buttons = button = ButtonsType.Flag.Primary;
+
                 singleTouchDistance = 0;
                 Vec2.set(singleTouchPosition, ev.touches[0].pageX, ev.touches[0].pageY);
                 lastSingleTouch = ev.touches[0];
 
-                buttons = button = ButtonsType.Flag.Primary;
                 onPointerDown(ev.touches[0]);
+                Vec2.copy(firstTouchStart, pointerStart);
+                firstTouchStartSet = true;
             } else if (ev.touches.length === 2) {
-                buttons = ButtonsType.Flag.Secondary & ButtonsType.Flag.Auxilary;
+                buttons = ButtonsType.Flag.Secondary | ButtonsType.Flag.Auxilary;
                 button = ButtonsType.Flag.Secondary;
-                onPointerDown(getCenterTouch(ev));
+                updateModifierKeys(ev);
 
-                const touchDistance = getTouchDistance(ev);
-                lastTouchDistance = touchDistance;
+                lastTouchFraction = 1;
+                initialTouchDistance = getTouchDistance(ev);
+                const { pageX: centerPageX, pageY: centerPageY } = getPagePosition(getCenterTouch(ev));
+                if (!firstTouchStartSet) {
+                    eventOffset(firstTouchStart, getCenterTouch(ev));
+                    firstTouchStartSet = true;
+                }
+
                 pinch.next({
-                    distance: touchDistance,
-                    fraction: 1,
-                    fractionDelta: 0,
-                    delta: 0,
                     isStart: true,
+                    distance: initialTouchDistance,
+                    delta: 0,
+                    fraction: lastTouchFraction,
+                    fractionDelta: 0,
+                    startX: firstTouchStart[0],
+                    startY: firstTouchStart[1],
+                    centerPageX,
+                    centerPageY,
                     buttons,
                     button,
                     modifiers: getModifierKeys()
@@ -624,6 +645,7 @@ namespace InputObserver {
                 click.next({ x, y, pageX, pageY, buttons, button, modifiers: getModifierKeys() });
             }
             lastSingleTouch = undefined;
+            firstTouchStartSet = false;
         }
 
         function onTouchMove(ev: TouchEvent) {
@@ -645,28 +667,31 @@ namespace InputObserver {
                 updateSingleTouchDistance(ev);
                 onPointerMove(ev.touches[0]);
             } else if (ev.touches.length === 2) {
-                const touchDistance = getTouchDistance(ev);
-                const touchDelta = lastTouchDistance - touchDistance;
-                if (Math.abs(touchDelta) < 4) {
-                    buttons = ButtonsType.Flag.Secondary;
-                    onPointerMove(getCenterTouch(ev));
-                } else {
-                    buttons = ButtonsType.Flag.Auxilary;
-                    updateModifierKeys(ev);
-                    const fraction = lastTouchDistance / touchDistance;
-                    pinch.next({
-                        delta: touchDelta,
-                        fraction,
-                        fractionDelta: lastTouchFraction - fraction,
-                        distance: touchDistance,
-                        isStart: false,
-                        buttons,
-                        button,
-                        modifiers: getModifierKeys()
-                    });
-                    lastTouchFraction = fraction;
-                }
-                lastTouchDistance = touchDistance;
+                buttons = ButtonsType.Flag.Secondary | ButtonsType.Flag.Auxilary;
+                button = ButtonsType.Flag.Secondary;
+                updateModifierKeys(ev);
+
+                const { pageX: centerPageX, pageY: centerPageY } = getPagePosition(getCenterTouch(ev));
+                const distance = getTouchDistance(ev);
+                const delta = initialTouchDistance - distance;
+                const fraction = initialTouchDistance / distance;
+                const fractionDelta = fraction - lastTouchFraction;
+                lastTouchFraction = fraction;
+
+                pinch.next({
+                    isStart: false,
+                    distance,
+                    delta,
+                    fraction,
+                    fractionDelta,
+                    startX: firstTouchStart[0],
+                    startY: firstTouchStart[1],
+                    centerPageX,
+                    centerPageY,
+                    buttons,
+                    button,
+                    modifiers: getModifierKeys()
+                });
             } else if (ev.touches.length === 3) {
                 buttons = ButtonsType.Flag.Forth;
                 onPointerMove(getCenterTouch(ev));

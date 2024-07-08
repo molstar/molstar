@@ -13,7 +13,6 @@ precision highp sampler2D;
 uniform sampler2D tSsaoDepth;
 uniform sampler2D tColor;
 uniform sampler2D tDepthOpaque;
-uniform sampler2D tDepthTransparent;
 uniform sampler2D tShadows;
 uniform sampler2D tOutlines;
 uniform vec2 uTexSize;
@@ -46,14 +45,6 @@ float getDepthOpaque(const in vec2 coords) {
     #endif
 }
 
-float getDepthTransparent(const in vec2 coords) {
-    #ifdef dTransparentOutline
-        return unpackRGBAToDepth(texture2D(tDepthTransparent, coords));
-    #else
-        return 1.0;
-    #endif
-}
-
 bool isBackground(const in float depth) {
     return depth == 1.0;
 }
@@ -61,11 +52,6 @@ bool isBackground(const in float depth) {
 float getOutline(const in vec2 coords, const in float opaqueDepth, out float closestTexel) {
     float backgroundViewZ = 2.0 * uFar;
     vec2 invTexSize = 1.0 / uTexSize;
-
-    float transparentDepth = getDepthTransparent(coords);
-    float opaqueSelfViewZ = isBackground(opaqueDepth) ? backgroundViewZ : getViewZ(opaqueDepth);
-    float transparentSelfViewZ = isBackground(transparentDepth) ? backgroundViewZ : getViewZ(transparentDepth);
-    float selfDepth = min(opaqueDepth, transparentDepth);
 
     float outline = 1.0;
     closestTexel = 1.0;
@@ -80,9 +66,7 @@ float getOutline(const in vec2 coords, const in float opaqueDepth, out float clo
             vec4 sampleOutlineCombined = texture2D(tOutlines, sampleCoords);
             float sampleOutline = sampleOutlineCombined.r;
             float sampleOutlineDepth = unpackRGToUnitInterval(sampleOutlineCombined.gb);
-            float sampleOutlineViewZ = isBackground(sampleOutlineDepth) ? backgroundViewZ : getViewZ(sampleOutlineDepth);
 
-            float selfViewZ = sampleOutlineCombined.a == 0.0 ? opaqueSelfViewZ : transparentSelfViewZ;
             if (sampleOutline == 0.0 && sampleOutlineDepth < closestTexel) {
                 outline = 0.0;
                 closestTexel = sampleOutlineDepth;
