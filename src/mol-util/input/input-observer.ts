@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Russell Parker <russell@benchling.com>
+ * @author Herman Bergwerf <post@hbergwerf.nl>
  */
 
 import { Subject, Observable } from 'rxjs';

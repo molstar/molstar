@@ -8,6 +8,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Take into account explicit hydrogens when computing hydrogen bonds
 - Fix DoF with pixel ratios =! 1
 - Fix DoF missing transparent depth
+- Fix trackball pinch zoom and add pan
 
 ## [v4.4.1] - 2023-06-30
 

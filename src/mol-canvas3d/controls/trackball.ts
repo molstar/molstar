@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Herman Bergwerf <post@hbergwerf.nl>
  *
  * This code has been modified from https://github.com/mrdoob/three.js/,
  * copyright (c) 2010-2018 three.js authors. MIT License
