@@ -5,6 +5,7 @@
  * @author Zhenyu Zhang <jump2cn@gmail.com>
  * @author Gianluca Tomasello <giagitom@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Herman Bergwerf <post@hbergwerf.nl>
  */
 
 import { Vec3 } from '../../../../mol-math/linear-algebra';
@@ -80,7 +81,7 @@ export function calculateShiftDir(out: Vec3, v1: Vec3, v2: Vec3, v3: Vec3 | null
 
 export interface LinkBuilderProps {
     linkCount: number
-    position: (posA: Vec3, posB: Vec3, edgeIndex: number) => void
+    position: (posA: Vec3, posB: Vec3, edgeIndex: number, adjust: boolean) => void
     radius: (edgeIndex: number) => number,
     referencePosition?: (edgeIndex: number) => Vec3 | null
     style?: (edgeIndex: number) => LinkStyle
@@ -139,7 +140,7 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
     for (let edgeIndex = 0, _eI = linkCount; edgeIndex < _eI; ++edgeIndex) {
         if (ignore && ignore(edgeIndex)) continue;
 
-        position(va, vb, edgeIndex);
+        position(va, vb, edgeIndex, true);
 
         v3add(center, center, va);
         v3add(center, center, vb);
@@ -180,6 +181,8 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
                 addCylinder(builderState, va, vb, 0.5, cylinderProps);
 
                 const aromaticOffset = linkRadius + aromaticScale * linkRadius + aromaticScale * linkRadius * aromaticSpacing;
+
+                position(va, vb, edgeIndex, false);
 
                 v3setMagnitude(tmpV12, v3sub(tmpV12, vb, va), linkRadius * 0.5);
                 v3add(va, va, tmpV12);
@@ -283,7 +286,7 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
     for (let edgeIndex = 0, _eI = linkCount; edgeIndex < _eI; ++edgeIndex) {
         if (ignore && ignore(edgeIndex)) continue;
 
-        position(va, vb, edgeIndex);
+        position(va, vb, edgeIndex, true);
 
         v3add(center, center, va);
         v3add(center, center, vb);
@@ -312,6 +315,8 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
                 builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], 1, linkCap, linkStub, colorModeFlag, edgeIndex);
 
                 const aromaticOffset = linkRadius + aromaticScale * linkRadius + aromaticScale * linkRadius * aromaticSpacing;
+
+                position(va, vb, edgeIndex, false);
 
                 v3setMagnitude(tmpV12, v3sub(tmpV12, vb, va), linkRadius * 0.5);
                 v3add(va, va, tmpV12);
@@ -395,7 +400,7 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
     for (let edgeIndex = 0, _eI = linkCount; edgeIndex < _eI; ++edgeIndex) {
         if (ignore && ignore(edgeIndex)) continue;
 
-        position(va, vb, edgeIndex);
+        position(va, vb, edgeIndex, true);
 
         v3add(center, center, va);
         v3add(center, center, vb);

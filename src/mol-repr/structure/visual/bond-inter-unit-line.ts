@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -64,7 +64,7 @@ function createInterUnitBondLines(ctx: VisualContext, structure: Structure, them
             }
             return setRefPosition(ref, structure, unitA, indexA) || setRefPosition(ref, structure, unitB, indexB);
         },
-        position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
+        position: (posA: Vec3, posB: Vec3, edgeIndex: number, _adjust: boolean) => {
             const b = edges[edgeIndex];
             const uA = structure.unitMap.get(b.unitA);
             const uB = structure.unitMap.get(b.unitB);

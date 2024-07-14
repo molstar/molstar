@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -113,7 +113,7 @@ function getInterUnitBondCylinderBuilderProps(structure: Structure, theme: Theme
             }
             return setRefPosition(tmpRef, structure, unitA, indexA) || setRefPosition(tmpRef, structure, unitB, indexB);
         },
-        position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
+        position: (posA: Vec3, posB: Vec3, edgeIndex: number, adjust: boolean) => {
             const b = edges[edgeIndex];
             const uA = structure.unitMap.get(b.unitA);
             const uB = structure.unitMap.get(b.unitB);
@@ -121,7 +121,7 @@ function getInterUnitBondCylinderBuilderProps(structure: Structure, theme: Theme
             uA.conformation.position(uA.elements[b.indexA], posA);
             uB.conformation.position(uB.elements[b.indexB], posB);
 
-            if (adjustCylinderLength) {
+            if (adjust && adjustCylinderLength) {
                 const rA = radiusA(edgeIndex), rB = radiusB(edgeIndex);
                 const r = Math.min(rA, rB) * sizeAspectRatio;
                 const oA = Math.sqrt(Math.max(0, rA * rA - r * r)) - 0.05;
