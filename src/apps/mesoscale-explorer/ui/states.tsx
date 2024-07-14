@@ -4,7 +4,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Markdown from 'react-markdown';
 import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
 import { MmcifProvider } from '../../../mol-plugin-state/formats/trajectory';
 import { StructureComponentManager } from '../../../mol-plugin-state/manager/structure/component';
@@ -440,12 +439,11 @@ export class ExplorerInfo extends PluginUIComponent<{}, { isDisabled: boolean, s
         const driver = (this.plugin.customState as MesoscaleExplorerState).driver;
         if (!driver) return;
 
-        const legend = `## Welcome to Mol* Mesoscale Explorer`;
         const help = <IconButton svg={HelpOutlineSvg} toggleState={false} small onClick={this.openHelp} title='Open the Documentation' />;
         const tour = <IconButton svg={TourSvg} toggleState={false} small onClick={this.toggleHelp} title='Start the interactive tour' />;
         return <>
-            <div id='explorerinfo' style={{ paddingLeft: 4 }} className='msp-help-text'>
-                <Markdown>{legend}</Markdown>
+            <div id='explorerinfo' style={{ display: 'flex', alignItems: 'center', padding: '4px 0 4px 8px' }} className='msp-help-text'>
+                <h2 style={{ flexGrow: 1 }}>Mol* Mesoscale Explorer</h2>
                 {tour}{help}
             </div>
         </>;

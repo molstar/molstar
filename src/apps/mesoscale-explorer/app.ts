@@ -213,9 +213,9 @@ export class MesoscaleExplorer {
             onBeforeUIRender: async plugin => {
                 let examples: MesoscaleExplorerState['examples'] = undefined;
                 try {
-                    examples = await plugin.fetch({ url: './examples/list.json', type: 'json' }).run();
+                    examples = await plugin.fetch({ url: '../examples/list.json', type: 'json' }).run();
                     // extend the array with file tour.json if it exists
-                    const tour = await plugin.fetch({ url: './examples/tour.json', type: 'json' }).run();
+                    const tour = await plugin.fetch({ url: '../examples/tour.json', type: 'json' }).run();
                     if (tour) {
                         examples = examples?.concat(tour);
                     }
