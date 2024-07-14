@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Herman Bergwerf <post@hbergwerf.nl>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { AssetManager } from '../../mol-util/assets';
@@ -14,6 +15,8 @@ import { ColorTheme } from '../../mol-theme/color';
 import { SizeTheme } from '../../mol-theme/size';
 import { RepresentationContext } from '../../mol-repr/representation';
 import { BallAndStickRepresentationProvider } from '../../mol-repr/structure/representation/ball-and-stick';
+import { StructureRepresentationProvider } from '../../mol-repr/structure/representation';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
 async function downloadPubChemSdf(cid: number) {
     const root = 'https://pubchem.ncbi.nlm.nih.gov/rest';
@@ -30,6 +33,10 @@ async function parseSdf(sdf: string): Promise<SdfFile> {
     }
 }
 
+function getRepr<P extends PD.Params>(provider: StructureRepresentationProvider<P>, reprCtx: RepresentationContext) {
+    return provider.factory(reprCtx, provider.getParams);
+}
+
 function main() {
     const parent = document.body;
     const canvas = document.createElement('canvas');
@@ -43,13 +50,20 @@ function main() {
         2519,
         241
     ];
+
+    const reprCtx: RepresentationContext = {
+        webgl: ctx.webgl,
+        colorThemeRegistry: ColorTheme.createRegistry(),
+        sizeThemeRegistry: SizeTheme.createRegistry()
+    };
+
     const rect = parent.getBoundingClientRect();
     const w = Math.floor(rect.width / 2);
     const h = Math.floor(rect.height / 2);
     for (let i = 0; i < cids.length; i++) {
         const ix = i % 2;
         const iy = Math.floor(i / 2);
-        addViewer(ctx, cids[i], {
+        addViewer(ctx, reprCtx, cids[i], {
             name: 'static-frame',
             params: {
                 x: ix * w,
@@ -65,6 +79,7 @@ function main() {
 
 async function addViewer(
     ctx: Canvas3DContext,
+    reprCtx: RepresentationContext,
     cid: number,
     viewport: Canvas3DProps['viewport'],
     reprValues: Partial<typeof BallAndStickRepresentationProvider.defaultValues>
@@ -72,22 +87,14 @@ async function addViewer(
     const file = await parseSdf(await downloadPubChemSdf(cid));
     const models = await trajectoryFromSdf(file.compounds[0]).run();
     const structure = Structure.ofModel(models.representative);
-    const canvas3d = Canvas3D.create(ctx, { viewport: viewport });
+    const canvas3d = Canvas3D.create(ctx, { viewport });
 
-    const repr_ctx: RepresentationContext = {
-        webgl: canvas3d.webgl,
-        colorThemeRegistry: ColorTheme.createRegistry(),
-        sizeThemeRegistry: SizeTheme.createRegistry()
-    };
-
-    const repr = BallAndStickRepresentationProvider.factory(
-        repr_ctx, BallAndStickRepresentationProvider.getParams);
-
+    const repr = getRepr(BallAndStickRepresentationProvider, reprCtx);
     repr.setTheme({
-        color: repr_ctx.colorThemeRegistry.create('element-symbol', { structure }, {
+        color: reprCtx.colorThemeRegistry.create('element-symbol', { structure }, {
             carbonColor: { name: 'element-symbol' }
         } as ColorTheme.BuiltInParams<'element-symbol'>),
-        size: repr_ctx.sizeThemeRegistry.create('physical', { structure })
+        size: reprCtx.sizeThemeRegistry.create('physical', { structure })
     });
 
     await repr.createOrUpdate({
@@ -96,7 +103,6 @@ async function addViewer(
     }, structure).run();
 
     canvas3d.add(repr);
-    canvas3d.requestCameraReset();
     canvas3d.animate();
 }
 
