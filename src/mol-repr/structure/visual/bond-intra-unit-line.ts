@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -87,7 +87,7 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
             }
             return maxSize > 0 ? vRef : null;
         },
-        position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
+        position: (posA: Vec3, posB: Vec3, edgeIndex: number, _adjust: boolean) => {
             c.invariantPosition(elements[a[edgeIndex]], posA);
             c.invariantPosition(elements[b[edgeIndex]], posB);
         },

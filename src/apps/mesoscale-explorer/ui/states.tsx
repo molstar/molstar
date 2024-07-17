@@ -4,7 +4,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Markdown from 'react-markdown';
 import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
 import { MmcifProvider } from '../../../mol-plugin-state/formats/trajectory';
 import { StructureComponentManager } from '../../../mol-plugin-state/manager/structure/component';
@@ -166,7 +165,19 @@ export async function loadExampleEntry(ctx: PluginContext, entry: ExampleEntry) 
 
 export async function loadUrl(ctx: PluginContext, url: string, type: 'molx' | 'molj' | 'cif' | 'bcif') {
     if (type === 'molx' || type === 'molj') {
+        const customState = ctx.customState as MesoscaleExplorerState;
+        delete customState.stateRef;
+        customState.stateCache = {};
+        ctx.managers.asset.clear();
+
+        await PluginCommands.State.Snapshots.Clear(ctx);
         await PluginCommands.State.Snapshots.OpenUrl(ctx, { url, type });
+
+        const cell = ctx.state.data.selectQ(q => q.ofType(MesoscaleStateObject))[0];
+        if (!cell) throw new Error('Missing MesoscaleState');
+
+        customState.stateRef = cell.transform.ref;
+        customState.graphicsMode = cell.obj?.data.graphics || customState.graphicsMode;
     } else {
         await reset(ctx);
         const isBinary = type === 'bcif';
@@ -421,7 +432,7 @@ export class ExplorerInfo extends PluginUIComponent<{}, { isDisabled: boolean, s
 
     openHelp = () => {
         // open a new page with the documentation
-        window.open('https://molstar.org/me/docs', '_blank');
+        window.open('https://molstar.org/me-docs/', '_blank');
     };
 
     toggleHelp = () => {
@@ -440,12 +451,11 @@ export class ExplorerInfo extends PluginUIComponent<{}, { isDisabled: boolean, s
         const driver = (this.plugin.customState as MesoscaleExplorerState).driver;
         if (!driver) return;
 
-        const legend = `## Welcome to Mol* Mesoscale Explorer`;
         const help = <IconButton svg={HelpOutlineSvg} toggleState={false} small onClick={this.openHelp} title='Open the Documentation' />;
         const tour = <IconButton svg={TourSvg} toggleState={false} small onClick={this.toggleHelp} title='Start the interactive tour' />;
         return <>
-            <div id='explorerinfo' style={{ paddingLeft: 4 }} className='msp-help-text'>
-                <Markdown>{legend}</Markdown>
+            <div id='explorerinfo' style={{ display: 'flex', alignItems: 'center', padding: '4px 0 4px 8px' }} className='msp-help-text'>
+                <h2 style={{ flexGrow: 1 }}>Mol* Mesoscale Explorer</h2>
                 {tour}{help}
             </div>
         </>;

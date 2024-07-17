@@ -42,7 +42,6 @@ const PostprocessingSchema = {
     tSsaoDepth: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tDepthOpaque: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
-    tDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tShadows: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tOutlines: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     uTexSize: UniformSpec('v2'),
@@ -68,13 +67,12 @@ const PostprocessingSchema = {
 };
 type PostprocessingRenderable = ComputeRenderable<Values<typeof PostprocessingSchema>>
 
-function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, depthTextureOpaque: Texture, depthTextureTransparent: Texture, shadowsTexture: Texture, outlinesTexture: Texture, ssaoDepthTexture: Texture, transparentOutline: boolean): PostprocessingRenderable {
+function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, depthTextureOpaque: Texture, shadowsTexture: Texture, outlinesTexture: Texture, ssaoDepthTexture: Texture, transparentOutline: boolean): PostprocessingRenderable {
     const values: Values<typeof PostprocessingSchema> = {
         ...QuadValues,
         tSsaoDepth: ValueCell.create(ssaoDepthTexture),
         tColor: ValueCell.create(colorTexture),
         tDepthOpaque: ValueCell.create(depthTextureOpaque),
-        tDepthTransparent: ValueCell.create(depthTextureTransparent),
         tShadows: ValueCell.create(shadowsTexture),
         tOutlines: ValueCell.create(outlinesTexture),
         uTexSize: ValueCell.create(Vec2.create(colorTexture.getWidth(), colorTexture.getHeight())),
@@ -162,7 +160,7 @@ export class PostprocessingPass {
     readonly background: BackgroundPass;
 
     constructor(private readonly webgl: WebGLContext, assetManager: AssetManager, readonly drawPass: DrawPass) {
-        const { colorTarget, depthTextureTransparent, depthTextureOpaque } = drawPass;
+        const { colorTarget, depthTextureOpaque } = drawPass;
         const width = colorTarget.getWidth();
         const height = colorTarget.getHeight();
 
@@ -173,7 +171,7 @@ export class PostprocessingPass {
         this.shadow = new ShadowPass(webgl, drawPass, width, height);
         this.outline = new OutlinePass(webgl, drawPass, width, height);
 
-        this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTextureOpaque, depthTextureTransparent, this.shadow.shadowsTarget.texture, this.outline.outlinesTarget.texture, this.ssao.ssaoDepthTexture, true);
+        this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTextureOpaque, this.shadow.shadowsTarget.texture, this.outline.outlinesTarget.texture, this.ssao.ssaoDepthTexture, true);
 
         this.background = new BackgroundPass(webgl, assetManager, width, height);
     }

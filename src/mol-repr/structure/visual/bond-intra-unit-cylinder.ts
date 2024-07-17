@@ -1,9 +1,10 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author Herman Bergwerf <post@hbergwerf.nl>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -115,11 +116,11 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
             }
             return maxSize > 0 ? vRef : null;
         },
-        position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
+        position: (posA: Vec3, posB: Vec3, edgeIndex: number, adjust: boolean) => {
             c.invariantPosition(elements[a[edgeIndex]], posA);
             c.invariantPosition(elements[b[edgeIndex]], posB);
 
-            if (adjustCylinderLength) {
+            if (adjust && adjustCylinderLength) {
                 const rA = radiusA(edgeIndex), rB = radiusB(edgeIndex);
                 const r = Math.min(rA, rB) * sizeAspectRatio;
                 const oA = Math.sqrt(Math.max(0, rA * rA - r * r)) - 0.05;

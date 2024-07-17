@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -19,7 +20,7 @@ import { Interval, OrderedSet, SortedArray } from '../../../mol-data/int';
 import { Interactions } from '../interactions/interactions';
 import { InteractionsProvider } from '../interactions';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
-import { InteractionFlag, InteractionType } from '../interactions/common';
+import { FeatureType, InteractionFlag, InteractionType } from '../interactions/common';
 import { Unit } from '../../../mol-model/structure/structure';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { assertUnreachable } from '../../../mol-util/type-helpers';
@@ -54,7 +55,7 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
             const uB = structure.unitMap.get(unitB) as Unit.Atomic;
 
             if ((!ignoreHydrogens || ignoreHydrogensVariant !== 'all') && (
-                t === InteractionType.HydrogenBond || t === InteractionType.WeakHydrogenBond)
+                t === InteractionType.HydrogenBond || (t === InteractionType.WeakHydrogenBond && ignoreHydrogensVariant !== 'non-polar'))
             ) {
                 const idxA = fA.members[fA.offsets[indexA]];
                 const idxB = fB.members[fB.offsets[indexB]];
@@ -64,30 +65,34 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
                 let minDistB = minDistA;
                 Vec3.copy(posA, pA);
                 Vec3.copy(posB, pB);
+                const donorType = t === InteractionType.HydrogenBond ? FeatureType.HydrogenDonor : FeatureType.WeakHydrogenDonor;
+                const isHydrogenDonorA = fA.types[fA.offsets[indexA]] === donorType;
 
-                eachBondedAtom(structure, uA, idxA, (u, idx) => {
-                    const eI = u.elements[idx];
-                    if (isHydrogen(structure, u, eI, 'polar')) {
-                        u.conformation.position(eI, p);
-                        const dist = Vec3.distance(p, pB);
-                        if (dist < minDistA) {
-                            minDistA = dist;
-                            Vec3.copy(posA, p);
+                if (isHydrogenDonorA) {
+                    eachBondedAtom(structure, uA, idxA, (u, idx) => {
+                        const eI = u.elements[idx];
+                        if (isHydrogen(structure, u, eI, 'all')) {
+                            u.conformation.position(eI, p);
+                            const dist = Vec3.distance(p, pB);
+                            if (dist < minDistA) {
+                                minDistA = dist;
+                                Vec3.copy(posA, p);
+                            }
                         }
-                    }
-                });
-
-                eachBondedAtom(structure, uB, idxB, (u, idx) => {
-                    const eI = u.elements[idx];
-                    if (isHydrogen(structure, u, eI, 'polar')) {
-                        u.conformation.position(eI, p);
-                        const dist = Vec3.distance(p, pA);
-                        if (dist < minDistB) {
-                            minDistB = dist;
-                            Vec3.copy(posB, p);
+                    });
+                } else {
+                    eachBondedAtom(structure, uB, idxB, (u, idx) => {
+                        const eI = u.elements[idx];
+                        if (isHydrogen(structure, u, eI, 'all')) {
+                            u.conformation.position(eI, p);
+                            const dist = Vec3.distance(p, pA);
+                            if (dist < minDistB) {
+                                minDistB = dist;
+                                Vec3.copy(posB, p);
+                            }
                         }
-                    }
-                });
+                    });
+                }
             } else {
                 Vec3.set(posA, fA.x[indexA], fA.y[indexA], fA.z[indexA]);
                 Vec3.transformMat4(posA, posA, uA.conformation.operator.matrix);

@@ -42,7 +42,7 @@ function copyViewer() {
 function copyMe() {
     console.log('\n###', 'copy me files');
     const meBuildPath = path.resolve(buildDir, '../build/mesoscale-explorer/');
-    const meDeployPath = path.resolve(localPath, 'me/');
+    const meDeployPath = path.resolve(localPath, 'me/viewer/');
     fse.copySync(meBuildPath, meDeployPath, { overwrite: true });
     addAnalytics(path.resolve(meDeployPath, 'index.html'));
 }
