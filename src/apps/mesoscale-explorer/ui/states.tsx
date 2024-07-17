@@ -432,7 +432,7 @@ export class ExplorerInfo extends PluginUIComponent<{}, { isDisabled: boolean, s
 
     openHelp = () => {
         // open a new page with the documentation
-        window.open('https://molstar.org/me/docs', '_blank');
+        window.open('https://molstar.org/me-docs/', '_blank');
     };
 
     toggleHelp = () => {
