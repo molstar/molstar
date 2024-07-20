@@ -123,6 +123,11 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             updateState.updateColor = true;
         }
 
+        if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) {
+            // console.log('new sizeTheme');
+            updateState.updateSize = true;
+        }
+
         if (currentStructureGroup.structure.child !== newStructureGroup.structure.child) {
             // console.log('new child');
             updateState.createGeometry = true;
@@ -196,9 +201,13 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
                 throw new Error('expected renderObject to be available');
             }
 
+            if (updateState.updateColor || updateState.updateSize || updateState.updateTransform) {
+                // console.log('update locationIterator');
+                locationIt = createLocationIterator(newStructureGroup, newProps);
+            }
+
             if (updateState.updateTransform) {
                 // console.log('update transform');
-                locationIt = createLocationIterator(newStructureGroup, newProps);
                 const { instanceCount, groupCount } = locationIt;
                 if (newProps.instanceGranularity) {
                     createMarkers(instanceCount, 'instance', renderObject.values);
