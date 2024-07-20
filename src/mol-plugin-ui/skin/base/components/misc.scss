@@ -359,7 +359,9 @@
                 font-weight: bold;
             }
 
-            border-radius: 0 !important;
+            & {
+                border-radius: 0 !important;
+            }
         }
     }
 
