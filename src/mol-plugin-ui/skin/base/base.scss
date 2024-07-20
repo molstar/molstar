@@ -34,5 +34,7 @@
         margin: $control-spacing;
     }
 
-    background: $default-background;
+    & {
+        background: $default-background;
+    }
 }
