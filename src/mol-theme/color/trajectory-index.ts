@@ -50,7 +50,7 @@ export function TrajectoryIndexColorTheme(ctx: ThemeDataContext, props: PD.Value
 
         color = (location: Location): Color => {
             if (StructureElement.Location.is(location)) {
-                return modelColor.get(Model.TrajectoryInfo.get(location.unit.model.parent || location.unit.model).index)!;
+                return modelColor.get(Model.TrajectoryInfo.get(location.unit.model).index)!;
             } else if (Bond.isLocation(location)) {
                 return modelColor.get(Model.TrajectoryInfo.get(location.aUnit.model).index)!;
             }
