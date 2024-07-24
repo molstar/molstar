@@ -106,6 +106,7 @@ export class SsaoPass {
 
     private nSamples: number;
     private blurKernelSize: number;
+    private texSize: [number, number];
 
     private ssaoScale: number;
     private calcSsaoScale(resolutionScale: number) {
@@ -121,6 +122,7 @@ export class SsaoPass {
         this.nSamples = 1;
         this.blurKernelSize = 1;
         this.ssaoScale = this.calcSsaoScale(1);
+        this.texSize = [width, height];
         this.levels = [];
 
         this.ssaoFramebuffer = webgl.resources.framebuffer();
@@ -169,9 +171,11 @@ export class SsaoPass {
     }
 
     setSize(width: number, height: number) {
-        const [w, h] = this.ssaoRenderable.values.uTexSize.ref.value;
+        const [w, h] = this.texSize;
         const ssaoScale = this.calcSsaoScale(1);
         if (width !== w || height !== h || this.ssaoScale !== ssaoScale) {
+            this.texSize.splice(0, 2, width, height);
+
             const sw = Math.floor(width * this.ssaoScale);
             const sh = Math.floor(height * this.ssaoScale);
             this.downsampledDepthTarget.setSize(sw, sh);
@@ -212,7 +216,7 @@ export class SsaoPass {
         const invProjection = Mat4.identity();
         Mat4.invert(invProjection, camera.projection);
 
-        const [w, h] = this.ssaoRenderable.values.uTexSize.ref.value;
+        const [w, h] = this.texSize;
         const v = camera.viewport;
 
         ValueCell.update(this.ssaoRenderable.values.uProjection, camera.projection);
