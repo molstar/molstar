@@ -21,6 +21,7 @@ import { Sphere3D } from '../../../mol-math/geometry';
 import { Cylinders } from '../../../mol-geo/geometry/cylinders/cylinders';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { SortedArray } from '../../../mol-data/int/sorted-array';
+import { SizeTheme } from '../../../mol-theme/size';
 
 const tmpRefPosBondIt = new Bond.ElementBondIterator();
 function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
@@ -285,7 +286,8 @@ export function InterUnitBondCylinderMeshVisual(materialId: number): ComplexVisu
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
                 newProps.adjustCylinderLength !== currentProps.adjustCylinderLength ||
-                newProps.multipleBonds !== currentProps.multipleBonds
+                newProps.multipleBonds !== currentProps.multipleBonds ||
+                newProps.adjustCylinderLength && !SizeTheme.areEqual(newTheme.size, currentTheme.size)
             );
 
             if (newStructure.interUnitBonds !== currentStructure.interUnitBonds) {
