@@ -290,7 +290,7 @@ export const mmCIF_Schema = {
         /**
          * Pointer to _atom_site.auth_seq_id
          */
-        pdbx_auth_seq_id: str,
+        pdbx_auth_seq_id: int,
         /**
          * Pointer to _atom_site.auth_asym_id
          */
@@ -1547,7 +1547,7 @@ export const mmCIF_Schema = {
          * This data item is a pointer to _atom_site.auth_seq_id in the
          * ATOM_SITE category.
          */
-        auth_seq_id: str,
+        auth_seq_id: int,
         /**
          * Pointer to _atom_site.auth_asym_id.
          */
@@ -1559,7 +1559,7 @@ export const mmCIF_Schema = {
         /**
          * Pointer to _atom_site.auth_seq_id
          */
-        pdbx_auth_seq_id_2: str,
+        pdbx_auth_seq_id_2: int,
         /**
          * Pointer to _atom_site.label_asym_id.
          */
@@ -1817,7 +1817,7 @@ export const mmCIF_Schema = {
          * This data item is a pointer to _atom_site.auth_seq_id in the
          * ATOM_SITE category.
          */
-        pdbx_auth_seq_id: str,
+        pdbx_auth_seq_id: int,
         /**
          * PDB insertion code for the ligand in the site.
          */
@@ -1904,7 +1904,7 @@ export const mmCIF_Schema = {
          * This data item is a pointer to _atom_site.auth_seq_id in the
          * ATOM_SITE category.
          */
-        auth_seq_id: str,
+        auth_seq_id: int,
         /**
          * This data item is a pointer to _struct_site.id in the STRUCT_SITE
          * category.
@@ -2222,7 +2222,7 @@ export const mmCIF_Schema = {
          * This data item is a pointer to _atom_site.auth_seq_id in the
          * ATOM_SITE category.
          */
-        auth_seq_id: str,
+        auth_seq_id: int,
         /**
          * Part of the identifier for the unobserved or zero occupancy residue.
          *
