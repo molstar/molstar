@@ -28,7 +28,9 @@
         margin: 0;
     }
     
-    color: $log-font-color;
+    & {
+        color: $log-font-color;
+    }
     
     li {
         clear: both;
