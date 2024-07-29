@@ -395,9 +395,9 @@ export class SsaoPass {
 
 const SsaoSchema = {
     ...QuadSchema,
-    tDepth: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
-    tDepthHalf: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
-    tDepthQuarter: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    tDepth: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
+    tDepthHalf: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
+    tDepthQuarter: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
 
     uSamples: UniformSpec('v3[]'),
     dNSamples: DefineSpec('number'),
