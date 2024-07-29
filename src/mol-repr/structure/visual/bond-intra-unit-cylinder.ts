@@ -26,6 +26,7 @@ import { Cylinders } from '../../../mol-geo/geometry/cylinders/cylinders';
 import { SortedArray } from '../../../mol-data/int';
 import { arrayIntersectionSize } from '../../../mol-util/array';
 import { StructureGroup } from './util/common';
+import { SizeTheme } from '../../../mol-theme/size';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const isBondType = BondType.is;
@@ -255,7 +256,8 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
                 newProps.adjustCylinderLength !== currentProps.adjustCylinderLength ||
                 newProps.aromaticBonds !== currentProps.aromaticBonds ||
-                newProps.multipleBonds !== currentProps.multipleBonds
+                newProps.multipleBonds !== currentProps.multipleBonds ||
+                newProps.adjustCylinderLength && !SizeTheme.areEqual(newTheme.size, currentTheme.size)
             );
 
             if (newProps.colorMode !== currentProps.colorMode) {

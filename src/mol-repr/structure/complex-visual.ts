@@ -120,6 +120,10 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
             updateState.updateColor = true;
         }
 
+        if (!SizeTheme.areEqual(theme.size, currentTheme.size)) {
+            updateState.updateSize = true;
+        }
+
         if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) {
             updateState.createGeometry = true;
         }
@@ -157,9 +161,13 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
                 throw new Error('expected renderObject to be available');
             }
 
+            if (updateState.updateColor || updateState.updateSize || updateState.updateTransform) {
+                // console.log('update locationIterator');
+                locationIt = createLocationIterator(newStructure, newProps);
+            }
+
             if (updateState.updateTransform) {
                 // console.log('update transform')
-                locationIt = createLocationIterator(newStructure, newProps);
                 const { instanceCount, groupCount } = locationIt;
                 if (newProps.instanceGranularity) {
                     createMarkers(instanceCount, 'instance', renderObject.values);

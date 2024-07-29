@@ -13,6 +13,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix aromatic link rendering when `adjustCylinderLength` is true
 - Change trackball animate spin speed unit to radians per second
 - Fix `mol-plugin-ui/skin/base/components/misc.scss` syntax to be in line with latest Sass syntax
+- Handle missing theme updates
+    - Fix trajectory-index color-theme not always updated (#896)
+    - Fix bond cylinders not updated on size-theme change with `adjustCylinderLength` enabled (#1215)
 - Use `OES_texture_float_linear` for SSAO when available
 
 ## [v4.4.1] - 2023-06-30

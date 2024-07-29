@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -28,9 +28,11 @@ export function getStructureIndexColorThemeParams(ctx: ThemeDataContext) {
 export function StructureIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<StructureIndexColorThemeParams>): ColorTheme<StructureIndexColorThemeParams> {
     let color: LocationColor;
     let legend: ScaleLegend | TableLegend | undefined;
+    let contextHash = -1;
 
     if (ctx.structure) {
         const size = (Structure.MaxIndex.get(ctx.structure).value ?? -1) + 1;
+        contextHash = size;
 
         const palette = getPalette(size, props);
         legend = palette.legend;
@@ -52,6 +54,7 @@ export function StructureIndexColorTheme(ctx: ThemeDataContext, props: PD.Values
         granularity: 'instance',
         color,
         props,
+        contextHash,
         description: Description,
         legend
     };
