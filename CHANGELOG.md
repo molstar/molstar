@@ -4,8 +4,10 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
-- Separated postprocessing passes
 
+## [v4.5.0] - 2023-07-28
+
+- Separated postprocessing passes
 - Take into account explicit hydrogens when computing hydrogen bonds
 - Fix DoF with pixel ratios =! 1
 - Fix DoF missing transparent depth
