@@ -1,12 +1,14 @@
 
 import * as React from 'react';
 
-import { Vec2 } from '../../../mol-math/linear-algebra';
+import { UUID } from '../../../mol-util';
+import { Color } from '../../../mol-util/color';
+import { ControlPointData } from './line-graph-component';
 
-export class PointComponent extends React.Component<any, {show: boolean}> {
+export class PointComponent extends React.Component<any, {show: boolean, id: UUID, index: number}> {
     constructor(props: any) {
         super(props);
-        this.state = { show: false };
+        this.state = { show: false, id: props.idm, index: props.index };
 
         this.handleHover = this.handleHover.bind(this);
         this.handleHoverOff = this.handleHoverOff.bind(this);
@@ -15,7 +17,10 @@ export class PointComponent extends React.Component<any, {show: boolean}> {
 
     private handleHover() {
         this.setState({ show: true });
-        const point = Vec2.create(this.props.nX, this.props.nY);
+        const point: ControlPointData = {
+            x: this.props.nX,
+            alpha: this.props.nY
+        };
         this.props.onmouseover(point);
     }
 
@@ -29,6 +34,8 @@ export class PointComponent extends React.Component<any, {show: boolean}> {
     }
 
     public render() {
+        const rgb = Color.toRgb(this.props.color);
+        const fill = `rgb(${rgb})`;
         return ([
             <circle
                 r="10"
@@ -41,7 +48,7 @@ export class PointComponent extends React.Component<any, {show: boolean}> {
                 onMouseEnter={this.handleHover}
                 onMouseLeave={this.handleHoverOff}
                 onMouseDown={this.props.onmousedown}
-                fill="black"
+                fill={fill}
             />
         ]);
     }

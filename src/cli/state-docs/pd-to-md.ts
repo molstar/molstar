@@ -34,6 +34,7 @@ function paramInfo(param: PD.Any, offset: number): string {
         case 'mapped': return `Object { name: string, params: object } where name+params are:\n${getMapped(param, offset + 2)}`;
         case 'line-graph': return `A list of 2d vectors [xi, yi][]`;
         case 'object-list': return `Array of\n${paramInfo(PD.Group(param.element), offset + 2)}`;
+        case 'color-list-ranges': return `A list of colors for explicit ranges`;
         // TODO: support more languages
         case 'script': return `An expression in the specified language { language: 'mol-script', expressiong: string }`;
         default:

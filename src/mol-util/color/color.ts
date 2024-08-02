@@ -8,6 +8,7 @@ import { NumberArray } from '../../mol-util/type-helpers';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { Hcl } from './spaces/hcl';
 import { Lab } from './spaces/lab';
+import { UUID } from '../uuid';
 
 /** RGB color triplet expressed as a single number */
 export type Color = { readonly '@type': 'color' } & number
@@ -192,6 +193,18 @@ export namespace Color {
 }
 
 export type ColorListEntry = Color | [Color, number /** normalized value from 0 to 1 */]
+export type ColorListRangesEntry = [ Color, number, UUID ]
+
+export function colorListRangesEntryToColorListEntry(r: ColorListRangesEntry) {
+    const c: ColorListEntry = [r[0], r[1]];
+    return c as ColorListEntry;
+}
+
+export function isColorListRangesEntry(object: object | undefined): object is ColorListRangesEntry {
+    return !!object &&
+    Array.isArray(object) &&
+    object.length === 3;
+};
 
 export interface ColorList {
     label: string

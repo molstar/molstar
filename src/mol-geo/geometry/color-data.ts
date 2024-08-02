@@ -18,7 +18,8 @@ import { createNullTexture, Texture } from '../../mol-gl/webgl/texture';
 export type ColorTypeLocation = 'uniform' | 'instance' | 'group' | 'groupInstance' | 'vertex' | 'vertexInstance';
 export type ColorTypeGrid = 'volume' | 'volumeInstance';
 export type ColorTypeDirect = 'direct';
-export type ColorType = ColorTypeLocation | ColorTypeGrid | ColorTypeDirect;
+export type ColorTypeRanges = 'ranges';
+export type ColorType = ColorTypeLocation | ColorTypeGrid | ColorTypeDirect | ColorTypeRanges;
 
 export type ColorData = {
     uColor: ValueCell<Vec3>,
