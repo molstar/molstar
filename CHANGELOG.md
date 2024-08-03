@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix missing Sequence UI update on state object removal (#1219)
+
 ## [v4.5.0] - 2023-07-28
 
 - Separated postprocessing passes
