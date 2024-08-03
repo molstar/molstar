@@ -7,6 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Fix missing Sequence UI update on state object removal (#1219)
 - Improved prmtop format support (CTITLE, %COMMENT)
+- Improve entity-id coloring for structures with multiple models from the same source (#1221)
 
 ## [v4.5.0] - 2023-07-28
 
