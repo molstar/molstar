@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,6 +13,7 @@ import { ThemeDataContext } from '../../mol-theme/theme';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { ColorThemeCategory } from './categories';
+import { ModelFormat } from '../../mol-model-formats/format';
 
 const DefaultList = 'many-distinct';
 const DefaultColor = Color(0xFAFAFA);
@@ -27,28 +28,39 @@ export function getEntityIdColorThemeParams(ctx: ThemeDataContext) {
     return params;
 }
 
-function key(entityId: string, modelIndex: number) {
-    return `${entityId}|${modelIndex}`;
+function key(entityId: string, sourceSerial: number) {
+    return `${entityId}|${sourceSerial}`;
 }
 
-function getEntityIdSerialMap(structure: Structure) {
+function getSourceSerialMap(structure: Structure) {
+    const map = new WeakMap<ModelFormat, number>();
+    let count = 0;
+    for (let i = 0, il = structure.models.length; i < il; ++i) {
+        const sd = structure.models[i].sourceData;
+        if (!map.has(sd)) map.set(sd, count++);
+    }
+    return map;
+}
+
+function getEntityIdSerialMap(structure: Structure, sourceMap: WeakMap<ModelFormat, number>) {
     const map = new Map<string, number>();
     for (let i = 0, il = structure.models.length; i < il; ++i) {
+        const sourceSerial = sourceMap.get(structure.models[i].sourceData) ?? -1;
         const { label_entity_id } = structure.models[i].atomicHierarchy.chains;
         for (let j = 0, jl = label_entity_id.rowCount; j < jl; ++j) {
-            const k = key(label_entity_id.value(j), i);
+            const k = key(label_entity_id.value(j), sourceSerial);
             if (!map.has(k)) map.set(k, map.size);
         }
         const { coarseHierarchy } = structure.models[i];
         if (coarseHierarchy.isDefined) {
             const { entity_id: spheres_entity_id } = coarseHierarchy.spheres;
             for (let j = 0, jl = spheres_entity_id.rowCount; j < jl; ++j) {
-                const k = key(spheres_entity_id.value(j), i);
+                const k = key(spheres_entity_id.value(j), sourceSerial);
                 if (!map.has(k)) map.set(k, map.size);
             }
             const { entity_id: gaussians_entity_id } = coarseHierarchy.gaussians;
             for (let j = 0, jl = gaussians_entity_id.rowCount; j < jl; ++j) {
-                const k = key(gaussians_entity_id.value(j), i);
+                const k = key(gaussians_entity_id.value(j), sourceSerial);
                 if (!map.has(k)) map.set(k, map.size);
             }
         }
@@ -72,7 +84,8 @@ export function EntityIdColorTheme(ctx: ThemeDataContext, props: PD.Values<Entit
 
     if (ctx.structure) {
         const l = StructureElement.Location.create(ctx.structure.root);
-        const entityIdSerialMap = getEntityIdSerialMap(ctx.structure.root);
+        const sourceSerialMap = getSourceSerialMap(ctx.structure);
+        const entityIdSerialMap = getEntityIdSerialMap(ctx.structure.root, sourceSerialMap);
 
         const labelTable = Array.from(entityIdSerialMap.keys());
         const valueLabel = (i: number) => labelTable[i];
@@ -84,15 +97,15 @@ export function EntityIdColorTheme(ctx: ThemeDataContext, props: PD.Values<Entit
             let serial: number | undefined = undefined;
             if (StructureElement.Location.is(location)) {
                 const entityId = getEntityId(location);
-                const modelIndex = location.structure.models.indexOf(location.unit.model);
-                const k = key(entityId, modelIndex);
+                const sourceSerial = sourceSerialMap.get(location.unit.model.sourceData) ?? -1;
+                const k = key(entityId, sourceSerial);
                 serial = entityIdSerialMap.get(k);
             } else if (Bond.isLocation(location)) {
                 l.unit = location.aUnit;
                 l.element = location.aUnit.elements[location.aIndex];
                 const entityId = getEntityId(l);
-                const modelIndex = l.structure.models.indexOf(l.unit.model);
-                const k = key(entityId, modelIndex);
+                const sourceSerial = sourceSerialMap.get(l.unit.model.sourceData) ?? -1;
+                const k = key(entityId, sourceSerial);
                 serial = entityIdSerialMap.get(k);
             }
             return serial === undefined ? DefaultColor : palette.color(serial);
