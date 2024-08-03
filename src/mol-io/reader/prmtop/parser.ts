@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -126,10 +126,13 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
             result.version = line.substring(8).trim();
         } else if (line.startsWith('%FLAG')) {
             const flag = line.substring(5).trim();
-            const formatLine = readLine(state.tokenizer).trim();
-            if (!formatLine.startsWith('%FORMAT')) throw new Error('expected %FORMAT');
+            let formatLine = readLine(state.tokenizer).trim();
+            while (formatLine.startsWith('%COMMENT')) {
+                formatLine = readLine(state.tokenizer).trim();
+            }
+            if (!formatLine.startsWith('%FORMAT')) throw new Error(`expected %FORMAT got "${formatLine}"`);
 
-            if (flag === 'TITLE') {
+            if (flag === 'TITLE' || flag === 'CTITLE') {
                 result.title = handleTitle(state);
             } else if (flag === 'POINTERS') {
                 result.pointers = handlePointers(state);
