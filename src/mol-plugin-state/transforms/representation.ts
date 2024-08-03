@@ -1013,6 +1013,9 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Volume Representation', async ctx => {
+            if (params.type.name !== 'direct-volume' && params.colorTheme.name === 'ranges') {
+                throw Error('Missing direct volume');
+            }
             if (params.type.name === 'direct-volume' && params.colorTheme.name === 'ranges') {
                 params.type.params.lineGraphData.colored = true;
                 const controlPoints: ControlPoint[] = params.type.params.lineGraphData;
@@ -1036,6 +1039,9 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
                 const oldProvider = plugin.representation.volume.registry.get(oldParams.type.name);
                 oldProvider.ensureCustomProperties?.detach(a.data);
                 return StateTransformer.UpdateResult.Recreate;
+            };
+            if (newParams.type.name !== 'direct-volume' && newParams.colorTheme.name === 'ranges') {
+                throw Error('Missing direct volume');
             };
             if (newParams.type.name === 'direct-volume' && newParams.colorTheme.name === 'ranges') {
                 newParams.type.params.lineGraphData.colored = true;
