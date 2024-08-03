@@ -461,7 +461,6 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     private renderPoints() {
         const points: any[] = [];
         let point: Vec2;
-        debugger;
         for (let i = 0; i < this.state.points.length; i++) {
             if (i !== 0 && i !== this.state.points.length - 1) {
                 const { data, color, id, index } = this.state.points[i];

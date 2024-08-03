@@ -913,8 +913,6 @@ export class OffsetRangesColorListControl extends React.PureComponent<ParamProps
     state = { showHelp: false, show: void 0 as 'edit' | 'presets' | undefined };
 
     protected update(value: PD.ColorListRanges['defaultValue']) {
-        console.log(value);
-        debugger;
         this.props.onChange({ param: this.props.param, name: this.props.name, value });
     }
 
@@ -962,8 +960,6 @@ export class OffsetRangesColorListControl extends React.PureComponent<ParamProps
         if (this.state.show === 'presets') return <ActionMenu items={preset} onSelect={this.selectPreset} />;
         const colors: [Color, number, UUID][] = (this.props.value.colors as [Color, number, UUID][]);
         const values = colors.map((color, i) => {
-            console.log('Rendering color list of 3 members (with id)');
-            debugger;
             const c: [Color, number, UUID] = color;
             return { color: c[0], offset: c[1], id: c[2] };
         });
