@@ -115,6 +115,30 @@ export function LocationIterator(groupCount: number, instanceCount: number, stri
     };
 }
 
+export const EmptyLocationIterator: LocationIterator = {
+    get hasNext() { return false; },
+    get isNextNewInstance() { return false; },
+    groupCount: 0,
+    instanceCount: 0,
+    count: 0,
+    stride: 0,
+    nonInstanceable: false,
+    hasLocation2: false,
+    move() {
+        return {
+            location: NullLocation as Location,
+            location2: NullLocation as Location,
+            index: 0,
+            groupIndex: 0,
+            instanceIndex: 0,
+            isSecondary: false
+        };
+    },
+    reset() {},
+    skipInstance() {},
+    voidInstances() {}
+};
+
 //
 
 /** A position Location */

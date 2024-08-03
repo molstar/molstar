@@ -18,7 +18,7 @@ import { createLinkCylinderImpostors, createLinkCylinderMesh, LinkBuilderProps, 
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, UnitsCylindersParams, UnitsCylindersVisual } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { BondType } from '../../../mol-model/structure/model/types';
-import { BondCylinderParams, BondIterator, eachIntraBond, getIntraBondLoci, ignoreBondType, makeIntraBondIgnoreTest } from './util/bond';
+import { BondCylinderParams, BondIterator, eachIntraBond, getIntraBondLoci, hasUnitVisibleBonds, ignoreBondType, makeIntraBondIgnoreTest } from './util/bond';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { IntAdjacencyGraph } from '../../../mol-math/graph';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
@@ -172,6 +172,7 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
 
 function createIntraUnitBondCylinderImpostors(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondCylinderParams>, cylinders?: Cylinders): Cylinders {
     if (!Unit.isAtomic(unit)) return Cylinders.createEmpty(cylinders);
+    if (!hasUnitVisibleBonds(unit, props)) return Cylinders.createEmpty(cylinders);
     if (!unit.bonds.edgeCount) return Cylinders.createEmpty(cylinders);
 
     const { child } = structure;
@@ -193,6 +194,7 @@ function createIntraUnitBondCylinderImpostors(ctx: VisualContext, unit: Unit, st
 
 function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondCylinderParams>, mesh?: Mesh): Mesh {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh);
+    if (!hasUnitVisibleBonds(unit, props)) return Mesh.createEmpty(mesh);
     if (!unit.bonds.edgeCount) return Mesh.createEmpty(mesh);
 
     const { child } = structure;

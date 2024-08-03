@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -123,6 +123,17 @@ export function makeInterBondIgnoreTest(structure: Structure, props: BondProps):
 
         return false;
     };
+}
+
+export function hasUnitVisibleBonds(unit: Unit.Atomic, props: { ignoreHydrogens: boolean }) {
+    return !(props.ignoreHydrogens && Unit.Traits.is(unit.traits, Unit.Trait.Water));
+}
+
+export function hasStructureVisibleBonds(structure: Structure, props: { ignoreHydrogens: boolean }) {
+    for (const { units } of structure.unitSymmetryGroups) {
+        if (Unit.isAtomic(units[0]) && hasUnitVisibleBonds(units[0], props)) return true;
+    }
+    return false;
 }
 
 export namespace BondIterator {
