@@ -246,12 +246,12 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
         }
     }
 
-    const oldBoundingSphere = mesh ? Sphere3D.clone(mesh.boundingSphere) : undefined;
     const m = MeshBuilder.getMesh(builderState);
     if (count === 0) return { mesh: m };
 
     // re-use boundingSphere if it has not changed much
     Vec3.scale(center, center, 1 / count);
+    const oldBoundingSphere = mesh ? Sphere3D.clone(mesh.boundingSphere) : undefined;
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         return { mesh: m, boundingSphere: oldBoundingSphere };
     } else {
@@ -359,12 +359,12 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
         }
     }
 
-    const oldBoundingSphere = cylinders ? Sphere3D.clone(cylinders.boundingSphere) : undefined;
     const c = builder.getCylinders();
     if (count === 0) return { cylinders: c };
 
     // re-use boundingSphere if it has not changed much
     Vec3.scale(center, center, 1 / count);
+    const oldBoundingSphere = cylinders ? Sphere3D.clone(cylinders.boundingSphere) : undefined;
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         return { cylinders: c, boundingSphere: oldBoundingSphere };
     } else {
@@ -469,12 +469,12 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
         }
     }
 
-    const oldBoundingSphere = lines ? Sphere3D.clone(lines.boundingSphere) : undefined;
     const l = builder.getLines();
     if (count === 0) return { lines: l };
 
     // re-use boundingSphere if it has not changed much
     Vec3.scale(center, center, 1 / count);
+    const oldBoundingSphere = lines ? Sphere3D.clone(lines.boundingSphere) : undefined;
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         return { lines: l, boundingSphere: oldBoundingSphere };
     } else {

@@ -97,13 +97,13 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
         addSphere(builderState, v, size * sizeFactor, detail);
     }
 
-    const oldBoundingSphere = mesh ? Sphere3D.clone(mesh.boundingSphere) : undefined;
     const m = MeshBuilder.getMesh(builderState);
     if (count === 0) return m;
 
     // re-use boundingSphere if it has not changed much
     let boundingSphere: Sphere3D;
     Vec3.scale(center, center, 1 / count);
+    const oldBoundingSphere = mesh ? Sphere3D.clone(mesh.boundingSphere) : undefined;
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         boundingSphere = oldBoundingSphere;
     } else {
@@ -158,13 +158,13 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
         maxSize = themeSize(l);
     }
 
-    const oldBoundingSphere = spheres ? Sphere3D.clone(spheres.boundingSphere) : undefined;
     const s = builder.getSpheres();
     if (count === 0) return s;
 
     // re-use boundingSphere if it has not changed much
     let boundingSphere: Sphere3D;
     Vec3.scale(center, center, 1 / count);
+    const oldBoundingSphere = spheres ? Sphere3D.clone(spheres.boundingSphere) : undefined;
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         boundingSphere = oldBoundingSphere;
     } else {
@@ -261,13 +261,13 @@ export function createStructureElementSphereMesh(ctx: VisualContext, structure: 
         }
     }
 
-    const oldBoundingSphere = mesh ? Sphere3D.clone(mesh.boundingSphere) : undefined;
     const m = MeshBuilder.getMesh(builderState);
     if (count === 0) return m;
 
     // re-use boundingSphere if it has not changed much
     let boundingSphere: Sphere3D;
     Vec3.scale(center, center, 1 / count);
+    const oldBoundingSphere = mesh ? Sphere3D.clone(mesh.boundingSphere) : undefined;
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
         boundingSphere = oldBoundingSphere;
     } else {
@@ -329,13 +329,13 @@ export function createStructureElementSphereImpostor(ctx: VisualContext, structu
         }
     }
 
-    const oldBoundingSphere = spheres ? Sphere3D.clone(spheres.boundingSphere) : undefined;
     const s = builder.getSpheres();
     if (count === 0) return s;
 
     // re-use boundingSphere if it has not changed much
     let boundingSphere: Sphere3D;
     Vec3.scale(center, center, 1 / count);
+    const oldBoundingSphere = spheres ? Sphere3D.clone(spheres.boundingSphere) : undefined;
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
         boundingSphere = oldBoundingSphere;
     } else {

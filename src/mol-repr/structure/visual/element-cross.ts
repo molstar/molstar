@@ -76,18 +76,19 @@ export function createElementCross(ctx: VisualContext, unit: Unit, structure: St
         builder.add(s[0], s[1], s[2], e[0], e[1], e[2], i);
     }
 
-    const oldBoundingSphere = lines ? Sphere3D.clone(lines.boundingSphere) : undefined;
     const l = builder.getLines();
     if (count === 0) return l;
 
     // re-use boundingSphere if it has not changed much
+    let boundingSphere: Sphere3D;
     Vec3.scale(center, center, 1 / count);
+    const oldBoundingSphere = lines ? Sphere3D.clone(lines.boundingSphere) : undefined;
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
-        l.setBoundingSphere(oldBoundingSphere);
+        boundingSphere = oldBoundingSphere;
     } else {
-        const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor);
-        l.setBoundingSphere(sphere);
+        boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor);
     }
+    l.setBoundingSphere(boundingSphere);
 
     return l;
 }
