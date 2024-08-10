@@ -201,7 +201,7 @@ namespace Representation {
         substance: Substance
         /** Bit mask of per group clipping applied to the representation's renderobjects */
         clipping: Clipping
-        /** Strength of the representations overpaint, transparency, emmissive substance*/
+        /** Strength of the representations overpaint, transparency, emmissive, substance*/
         themeStrength: { overpaint: number, transparency: number, emissive: number, substance: number }
         /** Controls if the representation's renderobjects are synced automatically with GPU or not */
         syncManually: boolean
