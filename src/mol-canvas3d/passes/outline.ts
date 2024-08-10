@@ -18,7 +18,6 @@ import { createComputeRenderable, ComputeRenderable } from '../../mol-gl/rendera
 import { Mat4, Vec2 } from '../../mol-math/linear-algebra';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
-import { DrawPass } from './draw';
 import { ICamera } from '../../mol-canvas3d/camera';
 import { quad_vert } from '../../mol-gl/shader/quad.vert';
 import { outlines_frag } from '../../mol-gl/shader/outlines.frag';
@@ -40,58 +39,68 @@ export class OutlinePass {
         return props.outline.name !== 'off';
     }
 
-    readonly outlinesTarget: RenderTarget;
-    private readonly outlinesRenderable: OutlinesRenderable;
+    readonly target: RenderTarget;
+    private readonly renderable: OutlinesRenderable;
 
-    constructor(private readonly webgl: WebGLContext, readonly drawPass: DrawPass, width: number, height: number) {
-        const { depthTextureTransparent, depthTextureOpaque } = drawPass;
-
-        this.outlinesTarget = webgl.createRenderTarget(width, height, false);
-        this.outlinesRenderable = getOutlinesRenderable(webgl, depthTextureOpaque, depthTextureTransparent, true);
+    constructor(private readonly webgl: WebGLContext, width: number, height: number, depthTextureTransparent: Texture, depthTextureOpaque: Texture) {
+        this.target = webgl.createRenderTarget(width, height, false);
+        this.renderable = getOutlinesRenderable(webgl, depthTextureOpaque, depthTextureTransparent, true);
     }
 
     setSize(width: number, height: number) {
-        const [w, h] = this.outlinesRenderable.values.uTexSize.ref.value;
+        const [w, h] = this.renderable.values.uTexSize.ref.value;
         if (width !== w || height !== h) {
-            this.outlinesTarget.setSize(width, height);
-            ValueCell.update(this.outlinesRenderable.values.uTexSize, Vec2.set(this.outlinesRenderable.values.uTexSize.ref.value, width, height));
+            this.target.setSize(width, height);
+            ValueCell.update(this.renderable.values.uTexSize, Vec2.set(this.renderable.values.uTexSize.ref.value, width, height));
         }
     }
 
-    update(camera: ICamera, props: OutlineProps) {
-        let needsUpdateOutlines = false;
+    update(camera: ICamera, props: OutlineProps, depthTextureTransparent: Texture, depthTextureOpaque: Texture) {
+        let needsUpdate = false;
 
         const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
 
-        const invProjection = Mat4.identity();
+        const invProjection = this.renderable.values.uInvProjection.ref.value;
         Mat4.invert(invProjection, camera.projection);
 
         const transparentOutline = props.includeTransparent ?? true;
+        const outlineScale = Math.max(1, Math.round(props.scale * this.webgl.pixelRatio)) - 1;
         const outlineThreshold = 50 * props.threshold * this.webgl.pixelRatio;
 
-        ValueCell.updateIfChanged(this.outlinesRenderable.values.uNear, camera.near);
-        ValueCell.updateIfChanged(this.outlinesRenderable.values.uFar, camera.far);
-        ValueCell.update(this.outlinesRenderable.values.uInvProjection, invProjection);
-        if (this.outlinesRenderable.values.dTransparentOutline.ref.value !== transparentOutline) {
-            needsUpdateOutlines = true;
-            ValueCell.update(this.outlinesRenderable.values.dTransparentOutline, transparentOutline);
+        ValueCell.updateIfChanged(this.renderable.values.uNear, camera.near);
+        ValueCell.updateIfChanged(this.renderable.values.uFar, camera.far);
+        ValueCell.update(this.renderable.values.uInvProjection, invProjection);
+        if (this.renderable.values.dTransparentOutline.ref.value !== transparentOutline) {
+            needsUpdate = true;
+            ValueCell.update(this.renderable.values.dTransparentOutline, transparentOutline);
         }
-        if (this.outlinesRenderable.values.dOrthographic.ref.value !== orthographic) {
-            needsUpdateOutlines = true;
-            ValueCell.update(this.outlinesRenderable.values.dOrthographic, orthographic);
+        if (this.renderable.values.dOrthographic.ref.value !== orthographic) {
+            needsUpdate = true;
+            ValueCell.update(this.renderable.values.dOrthographic, orthographic);
         }
-        ValueCell.updateIfChanged(this.outlinesRenderable.values.uOutlineThreshold, outlineThreshold);
+        ValueCell.updateIfChanged(this.renderable.values.uOutlineThreshold, outlineThreshold);
 
-        if (needsUpdateOutlines) {
-            this.outlinesRenderable.update();
+        if (this.renderable.values.tDepthTransparent.ref.value !== depthTextureTransparent) {
+            needsUpdate = true;
+            ValueCell.update(this.renderable.values.tDepthTransparent, depthTextureTransparent);
         }
+        if (this.renderable.values.tDepthOpaque.ref.value !== depthTextureOpaque) {
+            needsUpdate = true;
+            ValueCell.update(this.renderable.values.tDepthOpaque, depthTextureOpaque);
+        }
+
+        if (needsUpdate) {
+            this.renderable.update();
+        }
+
+        return { transparentOutline, outlineScale };
     }
 
     render() {
-        if (isTimingMode) this.webgl.timer.mark('OUTLINE.render');
-        this.outlinesTarget.bind();
-        this.outlinesRenderable.render();
-        if (isTimingMode) this.webgl.timer.markEnd('OUTLINE.render');
+        if (isTimingMode) this.webgl.timer.mark('OutlinePass.render');
+        this.target.bind();
+        this.renderable.render();
+        if (isTimingMode) this.webgl.timer.markEnd('OutlinePass.render');
     }
 }
 

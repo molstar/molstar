@@ -18,7 +18,6 @@ import { createComputeRenderable, ComputeRenderable } from '../../mol-gl/rendera
 import { Mat4, Vec2, Vec4 } from '../../mol-math/linear-algebra';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
-import { DrawPass } from './draw';
 import { ICamera } from '../../mol-canvas3d/camera';
 import { quad_vert } from '../../mol-gl/shader/quad.vert';
 import { isTimingMode } from '../../mol-util/debug';
@@ -40,21 +39,19 @@ export class ShadowPass {
         return props.shadow.name !== 'off';
     }
 
-    readonly shadowsTarget: RenderTarget;
-    private readonly shadowsRenderable: ShadowsRenderable;
+    readonly target: RenderTarget;
+    private readonly renderable: ShadowsRenderable;
 
-    constructor(readonly webgl: WebGLContext, readonly drawPass: DrawPass, width: number, height: number) {
-        const { depthTextureOpaque } = drawPass;
-
-        this.shadowsTarget = webgl.createRenderTarget(width, height, false);
-        this.shadowsRenderable = getShadowsRenderable(webgl, depthTextureOpaque);
+    constructor(readonly webgl: WebGLContext, width: number, height: number, depthTextureOpaque: Texture) {
+        this.target = webgl.createRenderTarget(width, height, false);
+        this.renderable = getShadowsRenderable(webgl, depthTextureOpaque);
     }
 
     setSize(width: number, height: number) {
-        const [w, h] = this.shadowsRenderable.values.uTexSize.ref.value;
+        const [w, h] = this.renderable.values.uTexSize.ref.value;
         if (width !== w || height !== h) {
-            this.shadowsTarget.setSize(width, height);
-            ValueCell.update(this.shadowsRenderable.values.uTexSize, Vec2.set(this.shadowsRenderable.values.uTexSize.ref.value, width, height));
+            this.target.setSize(width, height);
+            ValueCell.update(this.renderable.values.uTexSize, Vec2.set(this.renderable.values.uTexSize.ref.value, width, height));
         }
     }
 
@@ -66,53 +63,53 @@ export class ShadowPass {
         const invProjection = Mat4.identity();
         Mat4.invert(invProjection, camera.projection);
 
-        const [w, h] = this.shadowsRenderable.values.uTexSize.ref.value;
+        const [w, h] = this.renderable.values.uTexSize.ref.value;
         const v = camera.viewport;
 
 
-        ValueCell.update(this.shadowsRenderable.values.uProjection, camera.projection);
-        ValueCell.update(this.shadowsRenderable.values.uInvProjection, invProjection);
+        ValueCell.update(this.renderable.values.uProjection, camera.projection);
+        ValueCell.update(this.renderable.values.uInvProjection, invProjection);
 
-        Vec4.set(this.shadowsRenderable.values.uBounds.ref.value,
+        Vec4.set(this.renderable.values.uBounds.ref.value,
             v.x / w,
             v.y / h,
             (v.x + v.width) / w,
             (v.y + v.height) / h
         );
-        ValueCell.update(this.shadowsRenderable.values.uBounds, this.shadowsRenderable.values.uBounds.ref.value);
+        ValueCell.update(this.renderable.values.uBounds, this.renderable.values.uBounds.ref.value);
 
-        ValueCell.updateIfChanged(this.shadowsRenderable.values.uNear, camera.near);
-        ValueCell.updateIfChanged(this.shadowsRenderable.values.uFar, camera.far);
-        if (this.shadowsRenderable.values.dOrthographic.ref.value !== orthographic) {
-            ValueCell.update(this.shadowsRenderable.values.dOrthographic, orthographic);
+        ValueCell.updateIfChanged(this.renderable.values.uNear, camera.near);
+        ValueCell.updateIfChanged(this.renderable.values.uFar, camera.far);
+        if (this.renderable.values.dOrthographic.ref.value !== orthographic) {
+            ValueCell.update(this.renderable.values.dOrthographic, orthographic);
             needsUpdateShadows = true;
         }
 
-        ValueCell.updateIfChanged(this.shadowsRenderable.values.uMaxDistance, props.maxDistance);
-        ValueCell.updateIfChanged(this.shadowsRenderable.values.uTolerance, props.tolerance);
-        ValueCell.updateIfChanged(this.shadowsRenderable.values.uBias, props.bias);
-        if (this.shadowsRenderable.values.dSteps.ref.value !== props.steps) {
-            ValueCell.update(this.shadowsRenderable.values.dSteps, props.steps);
+        ValueCell.updateIfChanged(this.renderable.values.uMaxDistance, props.maxDistance);
+        ValueCell.updateIfChanged(this.renderable.values.uTolerance, props.tolerance);
+        ValueCell.updateIfChanged(this.renderable.values.uBias, props.bias);
+        if (this.renderable.values.dSteps.ref.value !== props.steps) {
+            ValueCell.update(this.renderable.values.dSteps, props.steps);
             needsUpdateShadows = true;
         }
 
-        ValueCell.update(this.shadowsRenderable.values.uLightDirection, light.direction);
-        ValueCell.update(this.shadowsRenderable.values.uLightColor, light.color);
-        if (this.shadowsRenderable.values.dLightCount.ref.value !== light.count) {
-            ValueCell.update(this.shadowsRenderable.values.dLightCount, light.count);
+        ValueCell.update(this.renderable.values.uLightDirection, light.direction);
+        ValueCell.update(this.renderable.values.uLightColor, light.color);
+        if (this.renderable.values.dLightCount.ref.value !== light.count) {
+            ValueCell.update(this.renderable.values.dLightCount, light.count);
             needsUpdateShadows = true;
         }
 
         if (needsUpdateShadows) {
-            this.shadowsRenderable.update();
+            this.renderable.update();
         }
     }
 
     render() {
-        if (isTimingMode) this.webgl.timer.mark('SHADOW.render');
-        this.shadowsTarget.bind();
-        this.shadowsRenderable.render();
-        if (isTimingMode) this.webgl.timer.markEnd('SHADOW.render');
+        if (isTimingMode) this.webgl.timer.mark('ShadowPass.render');
+        this.target.bind();
+        this.renderable.render();
+        if (isTimingMode) this.webgl.timer.markEnd('ShadowPass.render');
     }
 }
 
