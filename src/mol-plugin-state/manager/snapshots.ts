@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -17,6 +17,7 @@ import { readFromFile } from '../../mol-util/data-source';
 import { objectForEach } from '../../mol-util/object';
 import { PLUGIN_VERSION } from '../../mol-plugin/version';
 import { canvasToBlob } from '../../mol-canvas3d/util';
+import { Task } from '../../mol-task';
 
 export { PluginStateSnapshotManager };
 
@@ -414,15 +415,17 @@ namespace PluginStateSnapshotManager {
     }
 
     export async function getCanvasImageAsset(ctx: PluginContext, name: string): Promise<Asset | undefined> {
-        if (!ctx.helpers.viewportScreenshot) return;
+        const task = Task.create('Render Screenshot', async runtime => {
+            if (!ctx.helpers.viewportScreenshot) return;
+            const p = await ctx.helpers.viewportScreenshot.getPreview(runtime, 512);
+            if (!p) return;
 
-        const p = ctx.helpers.viewportScreenshot.getPreview(512);
-        if (!p) return;
-
-        const blob = await canvasToBlob(p.canvas, 'png');
-        const file = new File([blob], name);
-        const image: Asset = { kind: 'file', id: UUID.create22(), name };
-        ctx.managers.asset.set(image, file);
-        return image;
+            const blob = await canvasToBlob(p.canvas, 'png');
+            const file = new File([blob], name);
+            const image: Asset = { kind: 'file', id: UUID.create22(), name };
+            ctx.managers.asset.set(image, file);
+            return image;
+        });
+        return ctx.runTask(task);
     }
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -13,6 +13,7 @@ import { PostprocessingProps } from '../mol-canvas3d/passes/postprocessing';
 import { PluginContext } from './context';
 import { PluginSpec } from './spec';
 import { HeadlessScreenshotHelper, HeadlessScreenshotHelperOptions, ExternalModules, RawImageData } from './util/headless-screenshot';
+import { Task } from '../mol-task';
 
 
 /** PluginContext that can be used in Node.js (without DOM) */
@@ -28,26 +29,38 @@ export class HeadlessPluginContext extends PluginContext {
 
     /** Render the current plugin state and save to a PNG or JPEG file */
     async saveImage(outPath: string, imageSize?: { width: number, height: number }, props?: Partial<PostprocessingProps>, format?: 'png' | 'jpeg', jpegQuality = 90) {
-        this.canvas3d!.commit(true);
-        return await this.renderer.saveImage(outPath, imageSize, props, format, jpegQuality);
+        const task = Task.create('Render Screenshot', async ctx => {
+            this.canvas3d!.commit(true);
+            return await this.renderer.saveImage(ctx, outPath, imageSize, props, format, jpegQuality);
+        });
+        return this.runTask(task);
     }
 
     /** Render the current plugin state and return as raw image data */
     async getImageRaw(imageSize?: { width: number, height: number }, props?: Partial<PostprocessingProps>): Promise<RawImageData> {
-        this.canvas3d!.commit(true);
-        return await this.renderer.getImageRaw(imageSize, props);
+        const task = Task.create('Render Screenshot', async ctx => {
+            this.canvas3d!.commit(true);
+            return await this.renderer.getImageRaw(ctx, imageSize, props);
+        });
+        return this.runTask(task);
     }
 
     /** Render the current plugin state and return as a PNG object */
     async getImagePng(imageSize?: { width: number, height: number }, props?: Partial<PostprocessingProps>): Promise<PNG> {
-        this.canvas3d!.commit(true);
-        return await this.renderer.getImagePng(imageSize, props);
+        const task = Task.create('Render Screenshot', async ctx => {
+            this.canvas3d!.commit(true);
+            return await this.renderer.getImagePng(ctx, imageSize, props);
+        });
+        return this.runTask(task);
     }
 
     /** Render the current plugin state and return as a JPEG object */
     async getImageJpeg(imageSize?: { width: number, height: number }, props?: Partial<PostprocessingProps>, jpegQuality: number = 90): Promise<JpegBufferRet> {
-        this.canvas3d!.commit(true);
-        return await this.renderer.getImageJpeg(imageSize, props);
+        const task = Task.create('Render Screenshot', async ctx => {
+            this.canvas3d!.commit(true);
+            return await this.renderer.getImageJpeg(ctx, imageSize, props);
+        });
+        return this.runTask(task);
     }
 
     /** Get the current plugin state */

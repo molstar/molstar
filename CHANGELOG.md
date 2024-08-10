@@ -10,6 +10,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Avoid calculating bonds for water units when `ignoreHydrogens` is on
 - Add `Water` trait to `Unit`
 - Improve entity-id coloring for structures with multiple models from the same source (#1221)
+- Wrap screenshot & image generation in a `Task`
 
 ## [v4.5.0] - 2024-07-28
 
