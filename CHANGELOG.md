@@ -7,6 +7,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Fix missing Sequence UI update on state object removal (#1219)
 - Improved prmtop format support (CTITLE, %COMMENT)
+- Avoid calculating bonds for water units when `ignoreHydrogens` is on
+- Add `Water` trait to `Unit`
 - Improve entity-id coloring for structures with multiple models from the same source (#1221)
 
 ## [v4.5.0] - 2024-07-28

@@ -65,13 +65,13 @@ export function createElementPoint(ctx: VisualContext, unit: Unit, structure: St
         }
     }
 
-    const oldBoundingSphere = points ? Sphere3D.clone(points.boundingSphere) : undefined;
     const pt = builder.getPoints();
     if (count === 0) return pt;
 
     // re-use boundingSphere if it has not changed much
     let boundingSphere: Sphere3D;
     Vec3.scale(center, center, 1 / count);
+    const oldBoundingSphere = points ? Sphere3D.clone(points.boundingSphere) : undefined;
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         boundingSphere = oldBoundingSphere;
     } else {
