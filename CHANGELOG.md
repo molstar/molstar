@@ -9,8 +9,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Improved prmtop format support (CTITLE, %COMMENT)
 - Avoid calculating bonds for water units when `ignoreHydrogens` is on
 - Add `Water` trait to `Unit`
+- Improve entity-id coloring for structures with multiple models from the same source (#1221)
 
-## [v4.5.0] - 2023-07-28
+## [v4.5.0] - 2024-07-28
 
 - Separated postprocessing passes
 - Take into account explicit hydrogens when computing hydrogen bonds
@@ -25,7 +26,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Fix bond cylinders not updated on size-theme change with `adjustCylinderLength` enabled (#1215)
 - Use `OES_texture_float_linear` for SSAO when available
 
-## [v4.4.1] - 2023-06-30
+## [v4.4.1] - 2024-06-30
 
 - Clean `solidInterior` transparent cylinders
 - Create a transformer to deflate compressed data
@@ -60,14 +61,14 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `doNotDisposeCanvas3DContext` option to `PluginContext.dispose`
 - Remove support for density data from edmaps.rcsb.org
 
-## [v4.3.0] - 2023-05-26
+## [v4.3.0] - 2024-05-26
 
 - Fix State Snapshots export animation (#1140)
 - Add depth of field (dof) postprocessing effect
 - Add `SbNcbrTunnels` extension for for visualizing tunnels in molecular structures from ChannelsDB (more info in [tunnels.md](./docs/docs/extensions/tunnels.md))
 - Fix edge case in minimizing RMSD transform computation
 
-## [v4.2.0] - 2023-05-04
+## [v4.2.0] - 2024-05-04
 
 - Add emissive material support
 - Add bloom post-processing
@@ -85,7 +86,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix SSAO artifacts (@corredD, #1082)
 - Fix bumpiness artifacts (#1107, #1084)
 
-## [v4.1.0] - 2023-03-31
+## [v4.1.0] - 2024-03-31
 
 - Add `VolumeTransform` to translate/rotate a volume like in a structure superposition
 - Fix BinaryCIF encoder edge cases caused by re-encoding an existing BinaryCIF file
@@ -96,13 +97,13 @@ Note that since we don't clearly distinguish between a public and private interf
     - This can give results similar to pymol's surface_ramp_above_mode=1
 - Add `rotation` parameter to skybox background
 
-## [v4.0.1] - 2023-02-19
+## [v4.0.1] - 2024-02-19
 
 - Fix BinaryCIF decoder edge cases. Fixes mmCIF model export from data provided by ModelServer.
 - MolViewSpec extension: support for MVSX file format
 - Revert "require WEBGL_depth_texture extension" & "remove renderbuffer use"
 
-## [v4.0.0] - 2023-02-04
+## [v4.0.0] - 2024-02-04
 
 - Add Mesoscale Explorer app for investigating large systems
 - [Breaking] Remove `cellpack` extension (superseded by Mesoscale Explorer app)
@@ -138,7 +139,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add stochastic/dithered transparency to fade overlapping LODs in and out
 - Add "Automatic Detail" preset that shows surface/cartoon/ball & stick based on camera distance
 
-## [v3.45.0] - 2023-02-03
+## [v3.45.0] - 2024-02-03
 
 - Add color interpolation to impostor cylinders
 - MolViewSpec components are applicable only when the model has been loaded from MolViewSpec
@@ -152,7 +153,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Support `disableInteractiveUpdates` to only trigger updates once the control loses focus
 - Move dependencies related to the headless context from optional deps to optional peer deps
 
-## [v3.44.0] - 2023-01-06
+## [v3.44.0] - 2024-01-06
 
 - Add new `cartoon` visuals to support atomic nucleotide base with sugar
 - Add `thicknessFactor` to `cartoon` representation for scaling nucleotide block/ring/atomic-fill visuals
