@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -31,7 +31,7 @@ const DownloadDensity = StateAction.build({
                 'pdb-xray': PD.Group({
                     provider: PD.Group({
                         id: PD.Text('1tqn', { label: 'Id' }),
-                        server: PD.Select('rcsb', [['pdbe', 'PDBe'], ['rcsb', 'RCSB PDB']]),
+                        server: PD.Select('pdbe', [['pdbe', 'PDBe']]),
                     }, { pivot: 'id' }),
                     type: PD.Select('2fofc', [['2fofc', '2Fo-Fc'], ['fofc', 'Fo-Fc']]),
                 }, { isFlat: true }),
@@ -74,18 +74,12 @@ const DownloadDensity = StateAction.build({
             downloadParams = src.params;
             break;
         case 'pdb-xray':
-            downloadParams = src.params.provider.server === 'pdbe' ? {
+            downloadParams = {
                 url: Asset.Url(src.params.type === '2fofc'
                     ? `https://www.ebi.ac.uk/pdbe/coordinates/files/${src.params.provider.id.toLowerCase()}.ccp4`
                     : `https://www.ebi.ac.uk/pdbe/coordinates/files/${src.params.provider.id.toLowerCase()}_diff.ccp4`),
                 isBinary: true,
                 label: `PDBe X-ray map: ${src.params.provider.id}`
-            } : {
-                url: Asset.Url(src.params.type === '2fofc'
-                    ? `https://edmaps.rcsb.org/maps/${src.params.provider.id.toLowerCase()}_2fofc.dsn6`
-                    : `https://edmaps.rcsb.org/maps/${src.params.provider.id.toLowerCase()}_fofc.dsn6`),
-                isBinary: true,
-                label: `RCSB X-ray map: ${src.params.provider.id}`
             };
             break;
         case 'pdb-emd-ds':
@@ -123,9 +117,7 @@ const DownloadDensity = StateAction.build({
             break;
         case 'pdb-xray':
             entryId = src.params.provider.id;
-            provider = src.params.provider.server === 'pdbe'
-                ? plugin.dataFormats.get('ccp4')
-                : plugin.dataFormats.get('dsn6');
+            provider = plugin.dataFormats.get('ccp4');
             break;
         case 'pdb-emd-ds':
         case 'pdb-xray-ds':

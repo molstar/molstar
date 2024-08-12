@@ -13,7 +13,7 @@ import { StateObjectRef, StateObjectSelector, StateBuilder } from '../../../../m
 import { Clip } from '../../../../mol-util/clip';
 import { Color } from '../../../../mol-util/color';
 import { ColorNames } from '../../../../mol-util/color/names';
-import { GraphicsMode, MesoscaleGroup, MesoscaleState, getDistinctBaseColors, getDistinctGroupColors, getGraphicsModeProps, getMesoscaleGroupParams } from '../state';
+import { GraphicsMode, MesoscaleGroup, MesoscaleState, getDistinctBaseColors, getDistinctGroupColors, getGraphicsModeProps, getMesoscaleGroupParams, updateColors } from '../state';
 import { MmcifAssembly, MmcifStructure } from './model';
 
 function getSpacefillParams(color: Color, scaleFactor: number, graphics: GraphicsMode, clipVariant: Clip.Variant) {
@@ -114,7 +114,7 @@ export async function createMmcifHierarchy(plugin: PluginContext, trajectory: St
 
     const entRoot = await state.build()
         .toRoot()
-        .applyOrUpdateTagged('group:ent:', MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `ent:`, label: 'entity', color: { type: 'custom', value: ColorNames.white, variability: 20, shift: 0, lightness: 0, alpha: 1, emissive: 0 } }, { tags: 'group:ent:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
+        .applyOrUpdateTagged('group:ent:', MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `ent:`, label: 'entity', color: { type: 'custom', illustrative: false, value: ColorNames.white, variability: 20, shift: 0, lightness: 0, alpha: 1, emissive: 0 } }, { tags: 'group:ent:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
         .commit();
 
     const getEntityType = (i: number) => {
@@ -148,7 +148,7 @@ export async function createMmcifHierarchy(plugin: PluginContext, trajectory: St
             const color = colorIdx !== undefined ? baseEntColors[colorIdx] : ColorNames.white;
             const group = await state.build()
                 .to(entRoot)
-                .applyOrUpdateTagged(`group:ent:${t}`, MesoscaleGroup, { ...groupParams, index: colorIdx, tag: `ent:${t}`, label: t, color: { type: 'generate', value: color, variability: 20, shift: 0, lightness: 0, alpha: 1, emissive: 0 } }, { tags: `ent:`, state: { isCollapsed: true, isHidden: groupParams.hidden } })
+                .applyOrUpdateTagged(`group:ent:${t}`, MesoscaleGroup, { ...groupParams, index: colorIdx, tag: `ent:${t}`, label: t, color: { type: 'generate', illustrative: false, value: color, variability: 20, shift: 0, lightness: 0, alpha: 1, emissive: 0 } }, { tags: `ent:`, state: { isCollapsed: true, isHidden: groupParams.hidden } })
                 .commit({ revertOnError: true });
             entGroups.set(t, group);
         }
@@ -172,6 +172,9 @@ export async function createMmcifHierarchy(plugin: PluginContext, trajectory: St
                     .apply(StructureRepresentation3D, getSpacefillParams(color, scaleFactor, graphicsMode, clipVariant), { tags: [`ent:${t}`] });
             }
             await build.commit();
+            const values = { type: 'group-generate', value: ColorNames.white, lightness: 0, alpha: 1 };
+            const options = { ignoreLight: true, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 }, celShaded: true, };
+            await updateColors(plugin, values, options);
         } catch (e) {
             console.error(e);
             plugin.log.error(e);

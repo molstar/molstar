@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -14,7 +14,7 @@ import { LinkStyle, createLinkLines, LinkBuilderProps } from './util/link';
 import { UnitsVisual, UnitsLinesParams, UnitsLinesVisual } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { BondType } from '../../../mol-model/structure/model/types';
-import { BondIterator, BondLineParams, getIntraBondLoci, eachIntraBond, makeIntraBondIgnoreTest, ignoreBondType } from './util/bond';
+import { BondIterator, BondLineParams, getIntraBondLoci, eachIntraBond, makeIntraBondIgnoreTest, ignoreBondType, hasUnitVisibleBonds } from './util/bond';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 import { IntAdjacencyGraph } from '../../../mol-math/graph';
@@ -26,6 +26,7 @@ const isBondType = BondType.is;
 
 function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondLineParams>, lines?: Lines) {
     if (!Unit.isAtomic(unit)) return Lines.createEmpty(lines);
+    if (!hasUnitVisibleBonds(unit, props)) return Lines.createEmpty(lines);
 
     const { child } = structure;
     const childUnit = child?.unitMap.get(unit.id);
@@ -87,7 +88,7 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
             }
             return maxSize > 0 ? vRef : null;
         },
-        position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
+        position: (posA: Vec3, posB: Vec3, edgeIndex: number, _adjust: boolean) => {
             c.invariantPosition(elements[a[edgeIndex]], posA);
             c.invariantPosition(elements[b[edgeIndex]], posB);
         },

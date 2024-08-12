@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Mandar Deshpande <mandar@ebi.ac.uk>
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
@@ -41,8 +41,13 @@ export function PLDDTConfidenceColorTheme(ctx: ThemeDataContext, props: PD.Value
         const getColor = (location: StructureElement.Location): Color => {
             const { unit, element } = location;
             if (!Unit.isAtomic(unit)) return DefaultColor;
+
             const qualityAssessment = QualityAssessmentProvider.get(unit.model).value;
-            const score = qualityAssessment?.pLDDT?.get(unit.model.atomicHierarchy.residueAtomSegments.index[element]) ?? -1;
+            let score = qualityAssessment?.pLDDT?.get(unit.model.atomicHierarchy.residueAtomSegments.index[element]);
+            if (typeof score !== 'number') {
+                score = unit.model.atomicConformation.B_iso_or_equiv.value(element);
+            }
+
             if (score < 0) {
                 return DefaultColor;
             } else if (score <= 50) {
@@ -74,7 +79,7 @@ export function PLDDTConfidenceColorTheme(ctx: ThemeDataContext, props: PD.Value
         preferSmoothing: true,
         color,
         props,
-        description: 'Assigns residue colors according to the pLDDT Confidence score.',
+        description: 'Assigns residue colors according to the pLDDT Confidence score. If no Model Archive quality assessment score is available, the B-factor value is used instead.',
         legend: ConfidenceColorLegend
     };
 }
@@ -86,7 +91,7 @@ export const PLDDTConfidenceColorThemeProvider: ColorTheme.Provider<PLDDTConfide
     factory: PLDDTConfidenceColorTheme,
     getParams: getPLDDTConfidenceColorThemeParams,
     defaultValues: PD.getDefaultValues(getPLDDTConfidenceColorThemeParams({})),
-    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure?.models.some(m => QualityAssessment.isApplicable(m, 'pLDDT')),
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure?.models.some(m => QualityAssessment.isApplicable(m, 'pLDDT') || m.atomicConformation.B_iso_or_equiv.isDefined),
     ensureCustomProperties: {
         attach: async (ctx: CustomProperty.Context, data: ThemeDataContext) => {
             if (data.structure) {

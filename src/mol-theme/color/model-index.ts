@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Jason Pattle <jpattle@exscientia.co.uk>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -29,10 +29,12 @@ export function getModelIndexColorThemeParams(ctx: ThemeDataContext) {
 export function ModelIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<ModelIndexColorThemeParams>): ColorTheme<ModelIndexColorThemeParams> {
     let color: LocationColor;
     let legend: ScaleLegend | TableLegend | undefined;
+    let contextHash = -1;
 
     if (ctx.structure) {
         // max-index is the same for all models
         const size = (Model.MaxIndex.get(ctx.structure.models[0]).value ?? -1) + 1;
+        contextHash = size;
 
         const palette = getPalette(size, props);
         legend = palette.legend;
@@ -54,6 +56,7 @@ export function ModelIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<Mod
         granularity: 'instance',
         color,
         props,
+        contextHash,
         description: Description,
         legend
     };

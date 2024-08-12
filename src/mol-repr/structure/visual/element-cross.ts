@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -16,8 +16,10 @@ import { Sphere3D } from '../../../mol-math/geometry';
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 import { LinesBuilder } from '../../../mol-geo/geometry/lines/lines-builder';
 import { bondCount } from '../../../mol-model-props/computed/chemistry/util';
+import { hasUnitVisibleBonds } from './util/bond';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const v3add = Vec3.add;
 const v3scaleAndAdd = Vec3.scaleAndAdd;
 const v3unitX = Vec3.unitX;
 const v3unitY = Vec3.unitY;
@@ -52,11 +54,17 @@ export function createElementCross(ctx: VisualContext, unit: Unit, structure: St
     const r = props.crossSize / 2;
     const lone = props.crosses === 'lone';
 
+    const center = Vec3();
+    let count = 0;
+
     for (let i = 0 as StructureElement.UnitIndex; i < n; ++i) {
         if (ignore && ignore(elements[i])) continue;
-        if (lone && Unit.isAtomic(unit) && bondCount(structure, unit, i) !== 0) continue;
+        if (lone && Unit.isAtomic(unit) && hasUnitVisibleBonds(unit, props) && bondCount(structure, unit, i) !== 0) continue;
 
         c.invariantPosition(elements[i], p);
+        v3add(center, center, p);
+        count += 1;
+
         v3scaleAndAdd(s, p, v3unitX, r);
         v3scaleAndAdd(e, p, v3unitX, -r);
         builder.add(s[0], s[1], s[2], e[0], e[1], e[2], i);
@@ -69,9 +77,18 @@ export function createElementCross(ctx: VisualContext, unit: Unit, structure: St
     }
 
     const l = builder.getLines();
+    if (count === 0) return l;
 
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor);
-    l.setBoundingSphere(sphere);
+    // re-use boundingSphere if it has not changed much
+    let boundingSphere: Sphere3D;
+    Vec3.scale(center, center, 1 / count);
+    const oldBoundingSphere = lines ? Sphere3D.clone(lines.boundingSphere) : undefined;
+    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
+        boundingSphere = oldBoundingSphere;
+    } else {
+        boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor);
+    }
+    l.setBoundingSphere(boundingSphere);
 
     return l;
 }

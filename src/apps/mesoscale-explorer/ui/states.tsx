@@ -1,15 +1,16 @@
 /**
- * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
 import { MmcifProvider } from '../../../mol-plugin-state/formats/trajectory';
+import { StructureComponentManager } from '../../../mol-plugin-state/manager/structure/component';
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
-import { PluginUIComponent } from '../../../mol-plugin-ui/base';
-import { Button, ExpandGroup } from '../../../mol-plugin-ui/controls/common';
-import { GetAppSvg, Icon, OpenInBrowserSvg } from '../../../mol-plugin-ui/controls/icons';
+import { Button, ExpandGroup, IconButton } from '../../../mol-plugin-ui/controls/common';
+import { GetAppSvg, HelpOutlineSvg, MagicWandSvg, TourSvg, Icon, OpenInBrowserSvg } from '../../../mol-plugin-ui/controls/icons';
+import { CollapsableControls, PluginUIComponent } from '../../../mol-plugin-ui/base';
 import { ApplyActionControl } from '../../../mol-plugin-ui/state/apply-action';
 import { LocalStateSnapshotList, LocalStateSnapshotParams, LocalStateSnapshots } from '../../../mol-plugin-ui/state/snapshots';
 import { PluginCommands } from '../../../mol-plugin/commands';
@@ -24,7 +25,7 @@ import { createCellpackHierarchy } from '../data/cellpack/preset';
 import { createGenericHierarchy } from '../data/generic/preset';
 import { createMmcifHierarchy } from '../data/mmcif/preset';
 import { createPetworldHierarchy } from '../data/petworld/preset';
-import { MesoscaleState, MesoscaleStateObject, setGraphicsCanvas3DProps } from '../data/state';
+import { MesoscaleState, MesoscaleStateObject, setGraphicsCanvas3DProps, updateColors } from '../data/state';
 
 function adjustPluginProps(ctx: PluginContext) {
     ctx.managers.interactivity.setProps({ granularity: 'chain' });
@@ -77,6 +78,7 @@ function adjustPluginProps(ctx: PluginContext) {
                     radius: 5,
                     bias: 1,
                     blurKernelSize: 11,
+                    blurDepthBias: 0.5,
                     resolutionScale: 1,
                     color: Color(0x000000),
                 }
@@ -163,7 +165,19 @@ export async function loadExampleEntry(ctx: PluginContext, entry: ExampleEntry) 
 
 export async function loadUrl(ctx: PluginContext, url: string, type: 'molx' | 'molj' | 'cif' | 'bcif') {
     if (type === 'molx' || type === 'molj') {
+        const customState = ctx.customState as MesoscaleExplorerState;
+        delete customState.stateRef;
+        customState.stateCache = {};
+        ctx.managers.asset.clear();
+
+        await PluginCommands.State.Snapshots.Clear(ctx);
         await PluginCommands.State.Snapshots.OpenUrl(ctx, { url, type });
+
+        const cell = ctx.state.data.selectQ(q => q.ofType(MesoscaleStateObject))[0];
+        if (!cell) throw new Error('Missing MesoscaleState');
+
+        customState.stateRef = cell.transform.ref;
+        customState.graphicsMode = cell.obj?.data.graphics || customState.graphicsMode;
     } else {
         await reset(ctx);
         const isBinary = type === 'bcif';
@@ -269,7 +283,7 @@ export class DatabaseControls extends PluginUIComponent {
     }
 
     render() {
-        return <div style={{ margin: '5px' }}>
+        return <div id='database' style={{ margin: '5px' }}>
             <ApplyActionControl state={this.plugin.state.data} action={LoadDatabase} nodeRef={this.plugin.state.data.tree.root.ref} applyLabel={'Load'} hideHeader />
         </div>;
     }
@@ -281,7 +295,7 @@ export class LoaderControls extends PluginUIComponent {
     }
 
     render() {
-        return <div style={{ margin: '5px' }}>
+        return <div id='loader' style={{ margin: '5px' }}>
             <ApplyActionControl state={this.plugin.state.data} action={LoadModel} nodeRef={this.plugin.state.data.tree.root.ref} applyLabel={'Load'} hideHeader />
         </div>;
     }
@@ -293,7 +307,7 @@ export class ExampleControls extends PluginUIComponent {
     }
 
     render() {
-        return <div style={{ margin: '5px' }}>
+        return <div id='example' style={{ margin: '5px' }}>
             <ApplyActionControl state={this.plugin.state.data} action={LoadExample} nodeRef={this.plugin.state.data.tree.root.ref} applyLabel={'Load'} hideHeader />
         </div>;
     }
@@ -330,7 +344,7 @@ export class SessionControls extends PluginUIComponent {
     };
 
     render() {
-        return <div style={{ margin: '5px' }}>
+        return <div id='session' style={{ margin: '5px' }}>
             <div className='msp-flex-row'>
                 <Button icon={GetAppSvg} onClick={this.downloadToFileZip} title='Download the state.'>
                     Download
@@ -346,18 +360,511 @@ export class SessionControls extends PluginUIComponent {
 export class SnapshotControls extends PluginUIComponent<{}> {
     render() {
         return <div style={{ margin: '5px' }}>
-            <div style={{ marginBottom: '10px' }}>
+            <div id='snaplist' style={{ marginBottom: '10px' }}>
                 <LocalStateSnapshotList />
             </div>
-            <div style={{ marginBottom: '10px' }}>
+            <div id='snap' style={{ marginBottom: '10px' }}>
                 <LocalStateSnapshots />
             </div>
 
-            <div style={{ marginBottom: '10px' }}>
+            <div id='snapoption' style={{ marginBottom: '10px' }}>
                 <ExpandGroup header='Snapshot Options' initiallyExpanded={false}>
                     <LocalStateSnapshotParams />
                 </ExpandGroup>
             </div>
         </div>;
+    }
+}
+
+export class ExplorerInfo extends PluginUIComponent<{}, { isDisabled: boolean, showHelp: boolean }> {
+    state = {
+        isDisabled: false,
+        showHelp: false
+    };
+
+    componentDidMount() {
+        this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
+            this.setState({ isDisabled: v });
+        });
+
+        this.subscribe(this.plugin.state.events.cell.stateUpdated, e => {
+            if (!this.state.isDisabled && MesoscaleState.has(this.plugin) && MesoscaleState.ref(this.plugin) === e.ref) {
+                this.forceUpdate();
+            }
+        });
+    }
+
+    setupDriver = () => {
+        // setup the tour of the interface
+        const driver = (this.plugin.customState as MesoscaleExplorerState).driver;
+        if (!driver) return;
+
+        driver.setSteps([
+            // Left panel
+            { element: '#explorerinfo', popover: { title: 'Explorer Header Info', description: 'This section displays the explorer header with version information, documentation access, and tour navigation. Use the right and left arrow keys to navigate the tour.', side: 'left', align: 'start' } },
+            { element: '#database', popover: { title: 'Import from PDB', description: 'Load structures directly from PDB and PDB-DEV databases.', side: 'bottom', align: 'start' } },
+            { element: '#loader', popover: { title: 'Import from File', description: 'Load local files (.molx, .molj, .zip, .cif, .bcif) using this option.', side: 'bottom', align: 'start' } },
+            { element: '#example', popover: { title: 'Example Models and Tours', description: 'Select from a range of example models and tours provided.', side: 'left', align: 'start' } },
+            { element: '#session', popover: { title: 'Session Management', description: 'Download the current session in .molx format.', side: 'top', align: 'start' } },
+            { element: '#snaplist', popover: { title: 'Snapshot List', description: 'View and manage the list of snapshots. You can reorder them and edit their titles, keys, and descriptions. Snapshot states cannot be edited.', side: 'right', align: 'start' } },
+            { element: '#snap', popover: { title: 'Add Snapshot', description: 'Save the current state (e.g., camera position, color, visibility, etc.) in a snapshot with an optional title, key, and description.', side: 'right', align: 'start' } },
+            { element: '#snapoption', popover: { title: 'Snapshot Options', description: 'These options are saved in the snapshot. Set them before adding a snapshot to see their effect during animation playback.', side: 'right', align: 'start' } },
+            { element: '#exportanimation', popover: { title: 'Export Animation', description: 'Create movies or scenes with rocking, rotating, or snapshots animations.', side: 'right', align: 'start' } },
+            { element: '#viewportsettings', popover: { title: 'Viewport Settings', description: 'Advanced settings for the renderer and trackball.', side: 'right', align: 'start' } },
+            // Viewport
+            { element: '#snapinfo', popover: { title: 'Snapshot Description', description: 'Save the current state (e.g., camera position, color, visibility, etc.) in a snapshot with an optional title, key, and description.', side: 'right', align: 'start' } },
+            { element: '#snapinfoctrl', popover: { title: 'Snapshot Description Control', description: 'Control the visibility and text size of the snapshot description widget.', side: 'right', align: 'start' } },
+            // Right panel
+            { element: '#modelinfo', popover: { title: 'Model Information', description: 'Summary information about the model, if available.', side: 'right', align: 'start' } },
+            { element: '#selestyle', popover: { title: 'Selection Style', description: 'Choose the rendering style for entity selection accessed via Shift/Ctrl mouse. Options include: Color & Outline, Color, Outline.', side: 'right', align: 'start' } },
+            { element: '#seleinfo', popover: { title: 'Selection List', description: 'View the current list of selected entities.', side: 'right', align: 'start' } },
+            { element: '#measurements', popover: { title: 'Measurements', description: 'Use this widget to create labels, measure distances, angles, dihedral orientations, and planes for the selected entities.', side: 'right', align: 'start' } },
+            { element: '#quickstyles', popover: { title: 'Quick Styles', description: 'Change between a selection of style presets.', side: 'right', align: 'start' } },
+            { element: '#graphicsquality', popover: { title: 'Graphics Quality', description: 'Adjust the overall graphics quality. Lower quality improves performance. Options are: Ultra, Quality (Default), Balanced, Performance, Custom. Custom settings use the Culling & LOD values set in the Tree.', side: 'right', align: 'start' } },
+            { element: '#searchtree', popover: { title: 'Search', description: 'Filter the entity tree based on your queries.', side: 'right', align: 'start' } },
+            { element: '#grouptree', popover: { title: 'Group By', description: 'Change the grouping of the hierarchy tree, e.g., group by instance or by compartment.', side: 'right', align: 'start' } },
+            { element: '#tree', popover: { title: 'Tree Hierarchy', description: 'View the hierarchical tree of entity types in the model.', side: 'right', align: 'start' } },
+            { element: '#focusinfo', popover: { title: 'Selection Description', description: 'Detailed information about the current selection, if present in the loaded file.', side: 'right', align: 'start' } },
+            { popover: { title: 'Happy Exploring!', description: 'That’s all! Go ahead and start exploring or creating mesoscale tours.' } }
+        ]);
+        driver.refresh();
+    };
+
+    openHelp = () => {
+        // open a new page with the documentation
+        window.open('https://molstar.org/me-docs/', '_blank');
+    };
+
+    toggleHelp = () => {
+        const driver = (this.plugin.customState as MesoscaleExplorerState).driver;
+        if (!driver || !driver.hasNextStep()) {
+            this.setupDriver();
+        }
+        this.setState({ showHelp: !this.state.showHelp }, () => {
+            if (this.state.showHelp && driver) {
+                driver.drive(); // start at 0
+            }
+        });
+    };
+
+    render() {
+        const driver = (this.plugin.customState as MesoscaleExplorerState).driver;
+        if (!driver) return;
+
+        const help = <IconButton svg={HelpOutlineSvg} toggleState={false} small onClick={this.openHelp} title='Open the Documentation' />;
+        const tour = <IconButton svg={TourSvg} toggleState={false} small onClick={this.toggleHelp} title='Start the interactive tour' />;
+        return <>
+            <div id='explorerinfo' style={{ display: 'flex', alignItems: 'center', padding: '4px 0 4px 8px' }} className='msp-help-text'>
+                <h2 style={{ flexGrow: 1 }}>Mol* Mesoscale Explorer</h2>
+                {tour}{help}
+            </div>
+        </>;
+    }
+}
+
+
+export class MesoQuickStylesControls extends CollapsableControls {
+    defaultState() {
+        return {
+            isCollapsed: true,
+            header: 'Quick Styles',
+            brand: { accent: 'gray' as const, svg: MagicWandSvg }
+        };
+    }
+
+    renderControls() {
+        return <>
+            <MesoQuickStyles />
+        </>;
+    }
+}
+
+export class MesoQuickStyles extends PluginUIComponent {
+    state = {
+        celShaded: false,
+    };
+    default_color_values = {
+        type: 'group-generate',
+        illustrative: false,
+        value: [1, 1, 1, 1],
+        variability: 20,
+        shift: 0,
+        lightness: 0,
+        alpha: 1,
+        emissive: 0
+    };
+    illustrative_color_values = {
+        type: 'group-generate',
+        illustrative: true,
+        value: [1, 1, 1, 1],
+        variability: 20,
+        shift: 0,
+        lightness: 0,
+        alpha: 1,
+        emissive: 0
+    };
+    async default() {
+        if (!this.plugin.canvas3d) return;
+        this.plugin.canvas3d.setProps({
+            renderer: {
+                exposure: 1.1,
+            },
+            postprocessing: {
+                occlusion: {
+                    name: 'on',
+                    params: {
+                        samples: 32,
+                        multiScale: {
+                            name: 'on',
+                            params: {
+                                levels: [
+                                    { radius: 2, bias: 1.0 },
+                                    { radius: 5, bias: 1.0 },
+                                    { radius: 8, bias: 1.0 },
+                                    { radius: 11, bias: 1.0 },
+                                ],
+                                nearThreshold: 10,
+                                farThreshold: 1500,
+                            }
+                        },
+                        radius: 5,
+                        bias: 1,
+                        blurKernelSize: 11,
+                        blurDepthBias: 0.5,
+                        resolutionScale: 1,
+                        color: Color(0x000000),
+                    }
+                },
+                shadow: {
+                    name: 'on',
+                    params: {
+                        bias: 0.6,
+                        maxDistance: 80,
+                        steps: 3,
+                        tolerance: 1.0,
+                    }
+                },
+                outline: {
+                    name: 'on',
+                    params: {
+                        scale: 1,
+                        threshold: 0.15,
+                        color: Color(0x000000),
+                        includeTransparent: false,
+                    }
+                },
+                dof: { name: 'off', params: {} },
+            }
+        });
+
+        const loptions = { ignoreLight: true, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 } };
+        const options = { ...loptions, celShaded: false, };
+        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
+        await updateColors(this.plugin, this.default_color_values, options);
+    }
+
+    async celshading() {
+        if (!this.plugin.canvas3d) return;
+        this.plugin.canvas3d.setProps({
+            renderer: {
+                exposure: 1.5,
+            },
+            postprocessing: {
+                occlusion: {
+                    name: 'on',
+                    params: {
+                        samples: 32,
+                        multiScale: {
+                            name: 'on',
+                            params: {
+                                levels: [
+                                    { radius: 2, bias: 1.0 },
+                                    { radius: 5, bias: 1.0 },
+                                    { radius: 8, bias: 1.0 },
+                                    { radius: 11, bias: 1.0 },
+                                ],
+                                nearThreshold: 10,
+                                farThreshold: 1500,
+                            }
+                        },
+                        radius: 5,
+                        bias: 1.5,
+                        blurKernelSize: 11,
+                        blurDepthBias: 0.5,
+                        resolutionScale: 1,
+                        color: Color(0x000000),
+                    }
+                },
+                shadow: {
+                    name: 'on',
+                    params: {
+                        bias: 0.4,
+                        maxDistance: 256,
+                        steps: 64,
+                        tolerance: 1.0,
+                    }
+                },
+                outline: { name: 'off', params: {} },
+                dof: { name: 'off', params: {} },
+            }
+        });
+        // ignore Light
+        const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 } };
+        const options = { ...loptions, celShaded: true, };
+        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
+        await updateColors(this.plugin, this.default_color_values, options);
+    }
+
+    async stylizedDof() {
+        if (!this.plugin.canvas3d) return;
+        this.plugin.canvas3d.setProps({
+            renderer: {
+                exposure: 1.1,
+            },
+            postprocessing: {
+                occlusion: {
+                    name: 'on',
+                    params: {
+                        samples: 32,
+                        multiScale: {
+                            name: 'on',
+                            params: {
+                                levels: [
+                                    { radius: 2, bias: 1.0 },
+                                    { radius: 5, bias: 1.0 },
+                                    { radius: 8, bias: 1.0 },
+                                    { radius: 11, bias: 1.0 },
+                                ],
+                                nearThreshold: 10,
+                                farThreshold: 1500,
+                            }
+                        },
+                        radius: 5,
+                        bias: 1.3,
+                        blurKernelSize: 11,
+                        blurDepthBias: 0.5,
+                        resolutionScale: 1,
+                        color: Color(0x000000),
+                    }
+                },
+                shadow: {
+                    name: 'on',
+                    params: {
+                        bias: 0.4,
+                        maxDistance: 256,
+                        steps: 64,
+                        tolerance: 1.0,
+                    }
+                },
+                outline: { name: 'off', params: {} },
+                dof: {
+                    name: 'on',
+                    params: {
+                        blurSize: 9,
+                        blurSpread: 1.0,
+                        inFocus: 0.0,
+                        PPM: 200.0,
+                        center: 'camera-target',
+                        mode: 'sphere',
+                    }
+                }
+            }
+        });
+        // ignore Light
+        const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 } };
+        const options = { ...loptions, celShaded: false };
+        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
+        await updateColors(this.plugin, this.default_color_values, options);
+    }
+
+    async illustrative() {
+        if (!this.plugin.canvas3d) return;
+        this.plugin.canvas3d.setProps({
+            renderer: {
+                exposure: 1.5,
+            },
+            postprocessing: {
+                occlusion: {
+                    name: 'on',
+                    params: {
+                        samples: 32,
+                        multiScale: {
+                            name: 'on',
+                            params: {
+                                levels: [
+                                    { radius: 2, bias: 1.0 },
+                                    { radius: 5, bias: 1.0 },
+                                    { radius: 8, bias: 1.0 },
+                                    { radius: 11, bias: 1.0 },
+                                ],
+                                nearThreshold: 10,
+                                farThreshold: 1500,
+                            }
+                        },
+                        radius: 5,
+                        bias: 1.5,
+                        blurKernelSize: 11,
+                        blurDepthBias: 0.5,
+                        resolutionScale: 1,
+                        color: Color(0x000000),
+                    }
+                },
+                shadow: {
+                    name: 'on',
+                    params: {
+                        bias: 0.4,
+                        maxDistance: 256,
+                        steps: 64,
+                        tolerance: 1.0,
+                    }
+                },
+                outline: {
+                    name: 'on',
+                    params: {
+                        scale: 1,
+                        threshold: 0.15,
+                        color: Color(0x000000),
+                        includeTransparent: false,
+                    }
+                },
+                dof: { name: 'off', params: {} },
+            }
+        });
+        // ignore Light
+        const loptions = { ignoreLight: true, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 } };
+        const options = { ...loptions, celShaded: false, };
+        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
+        await updateColors(this.plugin, this.illustrative_color_values, options);
+    }
+
+    async shiny() {
+        if (!this.plugin.canvas3d) return;
+        this.plugin.canvas3d.setProps({
+            renderer: {
+                exposure: 1.5,
+            },
+            postprocessing: {
+                occlusion: {
+                    name: 'on',
+                    params: {
+                        samples: 32,
+                        multiScale: {
+                            name: 'on',
+                            params: {
+                                levels: [
+                                    { radius: 2, bias: 1.0 },
+                                    { radius: 5, bias: 1.0 },
+                                    { radius: 8, bias: 1.0 },
+                                    { radius: 11, bias: 1.0 },
+                                ],
+                                nearThreshold: 10,
+                                farThreshold: 1500,
+                            }
+                        },
+                        radius: 5,
+                        bias: 1.3,
+                        blurKernelSize: 11,
+                        blurDepthBias: 0.5,
+                        resolutionScale: 1,
+                        color: Color(0x000000),
+                    }
+                },
+                shadow: { name: 'off', params: {} },
+                outline: { name: 'off', params: {} },
+                dof: { name: 'off', params: {} },
+            }
+        });
+        // ignore Light
+        const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 } };
+        const options = { ...loptions, celShaded: false };
+        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
+        await updateColors(this.plugin, this.default_color_values, options);
+    }
+
+    async stylized() {
+        if (!this.plugin.canvas3d) return;
+        this.plugin.canvas3d.setProps({
+            renderer: {
+                exposure: 1.1,
+            },
+            postprocessing: {
+                occlusion: {
+                    name: 'on',
+                    params: {
+                        samples: 32,
+                        multiScale: {
+                            name: 'on',
+                            params: {
+                                levels: [
+                                    { radius: 2, bias: 1.0 },
+                                    { radius: 5, bias: 1.0 },
+                                    { radius: 8, bias: 1.0 },
+                                    { radius: 11, bias: 1.0 },
+                                ],
+                                nearThreshold: 10,
+                                farThreshold: 1500,
+                            }
+                        },
+                        radius: 5,
+                        bias: 1.3,
+                        blurKernelSize: 11,
+                        blurDepthBias: 0.5,
+                        resolutionScale: 1,
+                        color: Color(0x000000),
+                    }
+                },
+                shadow: {
+                    name: 'on',
+                    params: {
+                        bias: 0.4,
+                        maxDistance: 256,
+                        steps: 64,
+                        tolerance: 1.0,
+                    }
+                },
+                outline: {
+                    name: 'on',
+                    params: {
+                        scale: 1,
+                        threshold: 0.15,
+                        color: Color(0x000000),
+                        includeTransparent: false,
+                    }
+                },
+                dof: { name: 'off', params: {} },
+            }
+        });
+        // ignore Light
+        const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 } };
+        const options = { ...loptions, celShaded: false };
+        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
+        await updateColors(this.plugin, this.illustrative_color_values, options);
+    }
+
+    render() {
+        return <>
+            <div className='msp-flex-row'>
+                <Button noOverflow title='Applies default representation preset and sets outline and occlusion effects to default' onClick={() => this.default()} style={{ width: 'auto' }}>
+                    Default
+                </Button>
+                <Button noOverflow title='Applies celShading' onClick={() => this.celshading()} style={{ width: 'auto' }}>
+                    Cel-shaded
+                </Button>
+                <Button noOverflow title='Applies illustrative colors preset' onClick={() => this.illustrative()} style={{ width: 'auto' }}>
+                    Illustrative
+                </Button>
+            </div>
+            <div className='msp-flex-row'>
+                <Button noOverflow title='Apply shiny material to default' onClick={() => this.shiny()} style={{ width: 'auto' }}>
+                    Shiny
+                </Button>
+                <Button noOverflow title='Enable shiny material, outline, and illustrative colors' onClick={() => this.stylized()} style={{ width: 'auto' }}>
+                    Shiny-Illustrative
+                </Button>
+                <Button noOverflow title='Enable DOF and shiny material' onClick={() => this.stylizedDof()} style={{ width: 'auto' }}>
+                    Shiny-DOF
+                </Button>
+            </div>
+        </>;
     }
 }

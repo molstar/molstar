@@ -310,8 +310,29 @@ export class BackgroundPass {
         );
     }
 
-    render() {
-        if (!this.isReady()) return;
+    private readonly bgColor = Vec3();
+
+    clear(props: BackgroundProps, transparentBackground: boolean, backgroundColor: Color) {
+        const { gl, state } = this.webgl;
+
+        if (this.isEnabled(props)) {
+            if (transparentBackground) {
+                state.clearColor(0, 0, 0, 0);
+            } else {
+                Color.toVec3Normalized(this.bgColor, backgroundColor);
+                state.clearColor(this.bgColor[0], this.bgColor[1], this.bgColor[2], 1);
+            }
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            state.enable(gl.BLEND);
+            state.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+        } else {
+            state.clearColor(0, 0, 0, 1);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+        }
+    }
+
+    render(props: BackgroundProps) {
+        if (!this.isEnabled(props) || !this.isReady()) return;
 
         if (this.renderable.values.dVariant.ref.value === 'image') {
             this.updateImageScaling();

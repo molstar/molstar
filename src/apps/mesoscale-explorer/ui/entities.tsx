@@ -4,9 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PluginUIComponent } from '../../../mol-plugin-ui/base';
+import { PluginReactContext, PluginUIComponent } from '../../../mol-plugin-ui/base';
 import { Button, ControlGroup, IconButton } from '../../../mol-plugin-ui/controls/common';
-import { ArrowDropDownSvg, ArrowRightSvg, CloseSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, ContentCutSvg, BrushSvg, SearchSvg } from '../../../mol-plugin-ui/controls/icons';
+import { ArrowDropDownSvg, ArrowRightSvg, CloseSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, ContentCutSvg, BrushSvg, SearchSvg, TooltipTextSvg, TooltipTextOutlineSvg, PlusBoxSvg, MinusBoxSvg } from '../../../mol-plugin-ui/controls/icons';
 import { PluginCommands } from '../../../mol-plugin/commands';
 import { State, StateObjectCell, StateSelection, StateTransformer } from '../../../mol-state';
 import { ParameterControls, ParameterMappingControl, ParamOnChange, SelectControl } from '../../../mol-plugin-ui/controls/parameters';
@@ -18,14 +18,17 @@ import { CombinedColorControl } from '../../../mol-plugin-ui/controls/color';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { EveryLoci, Loci } from '../../../mol-model/loci';
 import { deepEqual } from '../../../mol-util';
-import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams, expandAllGroups, EmissiveParams } from '../data/state';
-import React from 'react';
+import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams, expandAllGroups, EmissiveParams, IllustrativeParams, getCellDescription, getEntityDescription, getEveryEntity } from '../data/state';
+import React, { useState } from 'react';
 import { MesoscaleExplorerState } from '../app';
 import { StructureElement } from '../../../mol-model/structure/structure/element';
 import { PluginStateObject as PSO } from '../../../mol-plugin-state/objects';
 import { Structure } from '../../../mol-model/structure';
 import { PluginContext } from '../../../mol-plugin/context';
 import { Sphere3D } from '../../../mol-math/geometry';
+import { MesoFocusLoci } from '../behavior/camera';
+import Markdown from 'react-markdown';
+import { combineLatest } from 'rxjs';
 
 function centerLoci(plugin: PluginContext, loci: Loci, durationMs = 250) {
     const { canvas3d } = plugin;
@@ -60,6 +63,7 @@ export class ModelInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
         if (!state.description && !state.link) return;
 
         return {
+            selectionDescription: state.focusInfo,
             description: state.description,
             link: state.link,
         };
@@ -68,7 +72,7 @@ export class ModelInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
     render() {
         const info = this.info;
         return info && <>
-            <div className='msp-help-text'>
+            <div id='modelinfo' className='msp-help-text'>
                 <div>{info.description}</div>
                 <div><a href={info.link} target='_blank'>Source</a></div>
             </div>
@@ -101,17 +105,20 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
     }
 
     get info() {
-        const info: { label: string, key: string }[] = [];
+        const infos: { label: string, key: string, description?: string }[] = [];
         this.plugin.managers.structure.selection.entries.forEach((e, k) => {
             if (StructureElement.Loci.is(e.selection) && !StructureElement.Loci.isEmpty(e.selection)) {
                 const cell = this.plugin.helpers.substructureParent.get(e.selection.structure);
-                info.push({
+                const { entities } = e.selection.structure.model;
+                const description = entities.data.pdbx_description.value(0)[0] || 'model';
+                infos.push({
+                    description: description,
                     label: cell?.obj?.label || 'Unknown',
                     key: k,
                 });
             }
         });
-        return info;
+        return infos;
     }
 
     find(label: string) {
@@ -133,31 +140,40 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
 
         const loci = Structure.toStructureElementLoci(e.selection.structure);
         centerLoci(this.plugin, loci);
+        const cell = this.plugin.helpers.substructureParent.get(loci.structure);
+        const d = getCellDescription(cell!); // '### ' + cell?.obj?.label + '\n\n' + cell?.obj?.description;
+        MesoscaleState.set(this.plugin, { focusInfo: `${d}` });
     }
 
     get selection() {
         const info = this.info;
+        const help_selection = <><div>Use <i>ctrl+left</i> to select entities, either on the 3D canvas or in the tree below</div><div>Use <i>shift+left</i> to select individual chain on the 3D canvas</div></>;
         if (!info.length) return <>
-            <div className='msp-help-text'>
-                <div>Use <i>ctrl+left click</i> to select entities, either on the 3D canvas or in the tree below</div>
+            <div id='seleinfo' className='msp-help-text'>
+                {help_selection}
             </div>
         </>;
-
         return <>
-            {info.map((entry, index) => {
-                const label = <Button className={`msp-btn-tree-label`} noOverflow disabled={this.state.isDisabled}
-                    onClick={() => this.center(entry.key)}
-                >
-                    <span title={entry.label}>{entry.label}</span>
-                </Button>;
-                const find = <IconButton svg={SearchSvg} toggleState={false} disabled={this.state.isDisabled} small onClick={() => this.find(entry.label)} />;
-                const remove = <IconButton svg={CloseSvg} toggleState={false} disabled={this.state.isDisabled} onClick={() => this.remove(entry.key)} />;
-                return <div key={index} className={`msp-flex-row`} style={{ margin: `1px 5px 1px ${1 * 10 + 5}px` }}>
-                    {label}
-                    {find}
-                    {remove}
-                </div>;
-            })}
+            <div id='seleinfo'>
+                {info.map((entry, index) => {
+                    const label = <Button className={`msp-btn-tree-label`} noOverflow disabled={this.state.isDisabled}
+                        onClick={() => this.center(entry.key)}
+                    >
+                        <span title={entry.label}>
+                            {entry.label}
+                        </span>
+                    </Button>;
+                    const find = <IconButton svg={SearchSvg} toggleState={false} disabled={this.state.isDisabled} small onClick={() => this.find(entry.label)} />;
+                    const remove = <IconButton svg={CloseSvg} toggleState={false} disabled={this.state.isDisabled} onClick={() => this.remove(entry.key)} />;
+                    return <>
+                        <div key={index} className={`msp-flex-row`} style={{ margin: `1px 5px 1px ${1 * 10 + 5}px` }}>
+                            {label}
+                            {find}
+                            {remove}
+                        </div>
+                    </>;
+                })};
+            </div>
         </>;
     }
 
@@ -216,7 +232,7 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
 
     renderStyle() {
         const style = this.style || '';
-        return <div style={{ margin: '5px', marginBottom: '10px' }}>
+        return <div id='selestyle' style={{ margin: '5px', marginBottom: '10px' }}>
             <SelectControl name={'Style'} param={SelectionStyleParam} value={style} onChange={(e) => { this.setStyle(e.value); }} />
         </div>;
     }
@@ -228,6 +244,192 @@ export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }
         </>;
     }
 }
+
+export function MesoMarkdownAnchor({ href, children, element }: { href?: string, children?: any, element?: any }) {
+    const plugin = React.useContext(PluginReactContext);
+    if (!href) return element;
+    // Decode the href to handle encoded spaces and other characters
+    const decodedHref = href ? decodeURIComponent(href) : '';
+    const handleHover = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        e.preventDefault();
+        if (decodedHref.startsWith('i')) {
+            plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+            const query_names = decodedHref.substring(1).split(',');
+            for (const query_name of query_names) {
+                const entities = getEveryEntity(plugin, query_name);
+                for (const r of entities) {
+                    const repr = r.obj?.data.repr;
+                    if (repr) {
+                        plugin.canvas3d?.mark({ repr, loci: EveryLoci }, MarkerAction.Highlight);
+                    }
+                }
+            }
+        } else if (decodedHref.startsWith('g')) {
+            plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+            const qindex = decodedHref.indexOf('.');
+            const query = decodedHref.substring(1, qindex) + ':';
+            const query_names = decodedHref.substring(qindex + 1).split(',');
+            for (const query_name of query_names) {
+                const e = getAllEntities(plugin, query + query_name);
+                for (const r of e) {
+                    const repr = r.obj?.data.repr;
+                    if (repr) {
+                        plugin.canvas3d?.mark({ repr, loci: EveryLoci }, MarkerAction.Highlight);
+                    }
+                }
+            }
+        }
+    };
+    const handleLeave = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        // Implement your hover off logic here
+        // Example: Perform an action if the href starts with 'h'
+        if (decodedHref.startsWith('i') || decodedHref.startsWith('g')) {
+            // Example hover off action
+            e.preventDefault();
+            plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+        }
+    };
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        e.preventDefault();
+        if (href.startsWith('#')) {
+            plugin.managers.snapshot.applyKey(decodedHref.substring(1));
+        } else if (decodedHref.startsWith('i')) {
+            plugin.managers.interactivity.lociSelects.deselectAll();
+            plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+            const query_names = decodedHref.substring(1).split(',');
+            for (const query_name of query_names) {
+                const entities = getFilteredEntities(plugin, '', query_name);
+                for (const r of entities) {
+                    const repr = r.obj?.data.repr;
+                    if (repr) {
+                        plugin.canvas3d?.mark({ repr, loci: EveryLoci }, MarkerAction.Highlight);
+                    }
+                    const cell = r as StateObjectCell<PSO.Molecule.Structure.Representation3D | PSO.Shape.Representation3D> | undefined;
+                    if (!(cell?.obj?.data.sourceData instanceof Structure)) {
+                        return;
+                    }
+                    const loci = Structure.toStructureElementLoci(cell.obj.data.sourceData);
+                    plugin.managers.interactivity.lociSelects.toggle({ loci }, false);
+                }
+            }
+        } else if (decodedHref.startsWith('g')) {
+            plugin.managers.interactivity.lociSelects.deselectAll();
+            plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+            const qindex = decodedHref.indexOf('.');
+            const query = decodedHref.substring(1, qindex) + ':';
+            const query_names = decodedHref.substring(qindex + 1).split(',');
+            for (const query_name of query_names) {
+                const entities = getAllEntities(plugin, query + query_name);
+                for (const r of entities) {
+                    const repr = r.obj?.data.repr;
+                    if (repr) {
+                        plugin.canvas3d?.mark({ repr, loci: EveryLoci }, MarkerAction.Highlight);
+                    }
+                    const cell = r as StateObjectCell<PSO.Molecule.Structure.Representation3D | PSO.Shape.Representation3D> | undefined;
+                    if (!(cell?.obj?.data.sourceData instanceof Structure)) return;
+                    const loci = Structure.toStructureElementLoci(cell.obj.data.sourceData);
+                    plugin.managers.interactivity.lociSelects.toggle({ loci }, false);
+                }
+            }
+        } else {
+            // open the link in a new tab
+            window.open(decodedHref, '_blank');
+        }
+    };
+
+    if (decodedHref[0] === '#') {
+        return <a href={decodedHref[0]} onMouseOver={handleHover} onClick={handleClick}>{children}</a>;
+    }
+    if (decodedHref[0] === 'i' || decodedHref[0] === 'g') {
+        return <a href={decodedHref[0]} onMouseLeave={handleLeave} onMouseOver={handleHover} onClick={handleClick}>{children}</a>;
+    }
+    if (decodedHref[0] === 'h') {
+        return <a href={decodedHref[0]} onClick={handleClick} rel='noopener noreferrer'>{children}</a>;
+    }
+    return element;
+}
+
+export function MesoViewportSnapshotDescription() {
+    let tSize = 14;
+    const plugin = React.useContext(PluginReactContext);
+    if (MesoscaleState.has(plugin)) {
+        const state = MesoscaleState.get(plugin);
+        tSize = state.textSizeDescription;
+    }
+    const [_, setV] = React.useState(0);
+    const [isShown, setIsShown] = useState(true);
+    const [textSize, setTextSize] = useState(tSize);
+    const toggleVisibility = () => {
+        setIsShown(!isShown);
+    };
+
+    const increaseTextSize = () => {
+        setTextSize(prevSize => Math.min(prevSize + 2, 50)); // Increase the text size by 2px, but not above 50px
+    };
+
+    const decreaseTextSize = () => {
+        setTextSize(prevSize => Math.max(prevSize - 2, 2)); // Decrease the text size by 2px, but not below 2px
+    };
+
+
+    React.useEffect(() => {
+        const sub = plugin.managers.snapshot.events.changed.subscribe(() => setV(v => v + 1));
+        return () => sub.unsubscribe();
+    }, [plugin]);
+
+    const current = plugin.managers.snapshot.state.current;
+    if (!current) return null;
+
+    const e = plugin.managers.snapshot.getEntry(current)!;
+    if (!e?.description?.trim()) return null;
+    if (MesoscaleState.has(plugin)) {
+        MesoscaleState.set(plugin, { textSizeDescription: textSize });
+    }
+    const showInfo = <IconButton svg={isShown ? TooltipTextSvg : TooltipTextOutlineSvg} flex='20px' onClick={toggleVisibility} title={isShown ? 'Hide Description' : 'Show Description'}/>;
+    const increasePoliceSize = <IconButton svg={PlusBoxSvg} flex='20px' onClick={increaseTextSize} title='Bigger Text' />;
+    const decreasePoliceSize = <IconButton svg={MinusBoxSvg} flex='20px' onClick={decreaseTextSize} title='Smaller Text' />;
+    return (
+        <>
+            <div id='snapinfoctrl' className="msp-state-snapshot-viewport-controls" style={{ marginRight: '30px' }}>
+                {showInfo}{increasePoliceSize}{decreasePoliceSize}
+            </div>
+            <div id='snapinfo' className={`msp-snapshot-description-me ${isShown ? 'shown' : 'hidden'}`} style={{ fontSize: `${textSize}px` }}>
+                {<Markdown skipHtml={false} components={{ a: MesoMarkdownAnchor }}>{e.description}</Markdown>}
+            </div>
+        </>
+    );
+}
+
+export class FocusInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
+    componentDidMount() {
+        this.subscribe(combineLatest([
+            this.plugin.state.data.behaviors.isUpdating,
+            this.plugin.managers.structure.selection.events.changed
+        ]), ([isUpdating]) => {
+            if (!isUpdating) this.forceUpdate();
+        });
+    }
+
+    get info() {
+        let focusInfo = '';
+        if (MesoscaleState.has(this.plugin)) {
+            const state = MesoscaleState.get(this.plugin);
+            if (state.focusInfo) focusInfo = state.focusInfo;
+        }
+        return focusInfo;
+    }
+
+    render() {
+        const focusInfo = this.info;
+        const description = (focusInfo !== '') ? <Markdown skipHtml components={{ a: MesoMarkdownAnchor }}>{focusInfo}</Markdown> : '';
+        return <>
+            <div id='focusinfo' className='msp-help-text'>
+                {description}
+            </div>
+        </>;
+    }
+}
+
 
 export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean }> {
     filterRef = React.createRef<HTMLInputElement>();
@@ -336,7 +538,7 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
 
     renderGraphics() {
         const graphics = this.graphics;
-        return <div style={{ margin: '5px', marginBottom: '10px' }}>
+        return <div id='graphicsquality' style={{ margin: '5px', marginBottom: '10px' }}>
             <SelectControl name={'Graphics'} param={MesoscaleStateParams.graphics} value={`${graphics}`} onChange={(e) => { this.setGraphics(e.value); }} />
         </div>;
     }
@@ -363,7 +565,7 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
 
         return <>
             {this.renderGraphics()}
-            <div className={`msp-flex-row msp-control-row`} style={{ margin: '5px', marginBottom: '10px' }}>
+            <div id='searchtree' className={`msp-flex-row msp-control-row`} style={{ margin: '5px', marginBottom: '10px' }}>
                 <input type='text' ref={this.filterRef}
                     value={filter}
                     placeholder='Search'
@@ -373,10 +575,12 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
                 />
                 <IconButton svg={CloseSvg} toggleState={false} disabled={disabled} onClick={() => this.setFilter('')} />
             </div>
-            {options.length > 1 && <div style={{ margin: '5px', marginBottom: '10px' }}>
+            {options.length > 1 && <div id='grouptree' style={{ margin: '5px', marginBottom: '10px' }}>
                 <SelectControl name={'Group By'} param={groupParam} value={`${groupBy}`} onChange={(e) => { this.setGroupBy(parseInt(e.value)); }} />
             </div>}
-            <GroupNode filter={filter} cell={root} depth={0} />
+            <div id='tree' style={{ position: 'relative', overflowY: 'auto', borderBottom: '1px  solid #000', maxHeight: '600px' }}>
+                <GroupNode filter={filter} cell={root} depth={0} />
+            </div>
         </>;
     }
 }
@@ -433,6 +637,12 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
 
     toggleRoot = () => {
         this.setState({ action: this.state.action === 'root' ? undefined : 'root' });
+    };
+
+    showInfo = (e: React.MouseEvent<HTMLElement>) => {
+        e.preventDefault();
+        const d = getCellDescription(this.cell); // '### ' + this.cell?.obj?.label + '\n\n' + this.cell?.obj?.description;
+        MesoscaleState.set(this.plugin, { focusInfo: `${d}` });
     };
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
@@ -493,7 +703,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
 
     updateColor = (values: ColorProps) => {
         const update = this.plugin.state.data.build();
-        const { value, type, lightness, alpha, emissive } = values;
+        const { value, illustrative, type, lightness, alpha, emissive } = values;
 
         const entities = this.filteredEntities;
 
@@ -507,8 +717,11 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
             const c = type === 'generate' ? groupColors[i] : value;
             update.to(entities[i]).update(old => {
                 if (old.type) {
-                    old.colorTheme.params.value = c;
-                    old.colorTheme.params.lightness = lightness;
+                    if (illustrative) {
+                        old.colorTheme = { name: 'illustrative', params: { style: { name: 'uniform', params: { value: c, lightness } } } };
+                    } else {
+                        old.colorTheme = { name: 'uniform', params: { value: c, lightness } };
+                    }
                     old.type.params.alpha = alpha;
                     old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
                     old.type.params.emissive = emissive;
@@ -536,7 +749,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
     };
 
     updateRoot = async (values: PD.Values) => {
-        await updateColors(this.plugin, values, this.cell.params?.values.tag, this.props.filter);
+        await updateColors(this.plugin, values, undefined, this.cell.params?.values.tag, this.props.filter);
 
         const update = this.plugin.state.data.build();
 
@@ -655,6 +868,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         const label = <Button className={`msp-btn-tree-label`} noOverflow disabled={disabled}
             onMouseEnter={this.highlight}
             onMouseLeave={this.clearHighlight}
+            onClick={this.showInfo}
         >
             <span title={groupLabel}>{groupLabel}</span>
         </Button>;
@@ -774,18 +988,63 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
         if (e.ctrlKey) {
             this.toggleSelect(e);
         } else {
-            this.center(e);
+            const d = getEntityDescription(this.plugin, this.cell);
+            if (this.cell?.obj?.data.sourceData.state.models.length !== 0) {
+                const repr = this.cell?.obj?.data.repr;
+                if (repr) {
+                    // for fiber need to think how to handle.
+                    const aloci = repr.getAllLoci()[0];
+                    const locis = Loci.normalize(aloci, 'chainInstances') as StructureElement.Loci;
+                    const nChain = aloci.structure.state.unitSymmetryGroups.length;
+                    let index = MesoscaleState.get(this.plugin).index + 1;
+                    if (index * nChain >= locis.elements.length) index = 0;
+                    const elems = locis.elements.slice(index * nChain, ((index + 1) * nChain)); // end index is not included
+                    const loci = StructureElement.Loci(aloci.structure, elems);
+                    const sphere = Loci.getBoundingSphere(loci) || Sphere3D();
+                    const state = this.plugin.state.behaviors;
+                    const selections = state.select(StateSelection.Generators.ofTransformer(MesoFocusLoci));
+                    const params = selections.length === 1 ? selections[0].obj?.data.params : undefined;
+                    if (!params.centerOnly) {
+                        this.plugin.managers.camera.focusSphere(sphere, params);
+                    } else {
+                        const snapshot = this.plugin.canvas3d?.camera.getCenter(sphere.center);
+                        this.plugin.canvas3d?.requestCameraReset({ durationMs: params.durationMs, snapshot });
+                    }
+                    MesoscaleState.set(this.plugin, { index: index, focusInfo: `${d}` });
+                }
+            } else {
+                this.center(e);
+                MesoscaleState.set(this.plugin, { focusInfo: `${d}` });
+            }
         }
     };
 
     get colorValue(): Color | undefined {
-        return this.cell.transform.params?.colorTheme?.params.value ?? this.cell.transform.params?.coloring?.params.color;
+        if (this.cell.transform.params?.colorTheme?.params.value) {
+            return this.cell.transform.params?.colorTheme?.params.value;
+        } else if (this.cell.transform.params?.colorTheme?.name === 'illustrative') {
+            return this.cell.transform.params?.colorTheme?.params.style.params.value;
+        } else {
+            return this.cell.transform.params?.colorTheme?.params.value ?? this.cell.transform.params?.coloring?.params.color;
+        }
+    }
+
+    get illustrativeValue(): { illustrative: boolean } | undefined {
+        return {
+            illustrative: (this.cell.transform.params?.colorTheme?.name === 'illustrative')
+        };
     }
 
     get lightnessValue(): { lightness: number } | undefined {
-        return {
-            lightness: this.cell.transform.params?.colorTheme?.params.lightness ?? this.cell.transform.params?.coloring?.params.lightness ?? 0
-        };
+        if (this.cell.transform.params?.colorTheme?.name === 'illustrative') {
+            return {
+                lightness: this.cell.transform.params?.colorTheme?.params.style.params.lightness ?? 0
+            };
+        } else {
+            return {
+                lightness: this.cell.transform.params?.colorTheme?.params.lightness ?? this.cell.transform.params?.coloring?.params.lightness ?? 0
+            };
+        }
     }
 
     get opacityValue(): { alpha: number } | undefined {
@@ -838,7 +1097,11 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
         }
         update.to(this.ref).update(old => {
             if (old.colorTheme) {
-                old.colorTheme.params.value = value;
+                if (old.colorTheme.name === 'illustrative') {
+                    old.colorTheme.params.style.params.value = value;
+                } else {
+                    old.colorTheme.params.value = value;
+                }
             } else if (old.coloring) {
                 old.coloring.params.color = value;
             }
@@ -846,10 +1109,26 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
         update.commit();
     };
 
+    updateIllustrative = (values: PD.Values) => {
+        return this.plugin.build().to(this.ref).update(old => {
+            if (old.colorTheme) {
+                if (old.colorTheme.name !== 'illustrative' && values.illustrative) {
+                    old.colorTheme = { name: 'illustrative', params: { style: { name: 'uniform', params: { value: old.colorTheme.params.value, lightness: old.colorTheme.params.lightness } } } };
+                } else if (old.colorTheme.name === 'illustrative' && !values.illustrative) {
+                    old.colorTheme = { name: 'uniform', params: { value: old.colorTheme.params.style.params.value, lightness: old.colorTheme.params.style.params.lightness } };
+                }
+            }
+        }).commit();
+    };
+
     updateLightness = (values: PD.Values) => {
         return this.plugin.build().to(this.ref).update(old => {
             if (old.colorTheme) {
-                old.colorTheme.params.lightness = values.lightness;
+                if (old.colorTheme.name === 'illustrative') {
+                    old.colorTheme.params.style.params.lightness = values.lightness;
+                } else {
+                    old.colorTheme.params.lightness = values.lightness;
+                }
             } else if (old.coloring) {
                 old.coloring.params.lightness = values.lightness;
             }
@@ -924,6 +1203,7 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
         const depth = this.props.depth;
         const colorValue = this.colorValue;
         const lightnessValue = this.lightnessValue;
+        const illustrativeValue = this.illustrativeValue;
         const opacityValue = this.opacityValue;
         const emissiveValue = this.emissiveValue;
         const lodValue = this.lodValue;
@@ -953,6 +1233,7 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
                 <ControlGroup header='Color' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleColor}
                     topRightIcon={CloseSvg} noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
                     <CombinedColorControl param={ColorValueParam} value={colorValue ?? Color(0xFFFFFF)} onChange={this.updateColor} name='color' hideNameRow />
+                    <ParameterControls params={IllustrativeParams} values={illustrativeValue} onChangeValues={this.updateIllustrative} />
                     <ParameterControls params={LightnessParams} values={lightnessValue} onChangeValues={this.updateLightness} />
                     <ParameterControls params={OpacityParams} values={opacityValue} onChangeValues={this.updateOpacity} />
                     <ParameterControls params={EmissiveParams} values={emissiveValue} onChangeValues={this.updateEmissive} />

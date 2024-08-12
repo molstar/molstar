@@ -83,7 +83,7 @@ class Layout extends PluginUIComponent {
         this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());
     }
 
-    region(kind: RegionKind, Element?: React.ComponentClass) {
+    region(kind: RegionKind, Element?: React.ComponentClass | React.FC) {
         return <div className={`msp-layout-region msp-layout-${kind}`}>
             <div className='msp-layout-static'>
                 {Element ? <Element /> : null}
@@ -268,6 +268,7 @@ export class ControlsWrapper extends PluginUIComponent {
 export class DefaultViewport extends PluginUIComponent {
     render() {
         const VPControls = this.plugin.spec.components?.viewport?.controls || ViewportControls;
+        const SnapshotDescription = this.plugin.spec.components?.viewport?.snapshotDescription || ViewportSnapshotDescription;
 
         return <>
             <Viewport />
@@ -275,7 +276,7 @@ export class DefaultViewport extends PluginUIComponent {
                 <AnimationViewportControls />
                 <TrajectoryViewportControls />
                 <StateSnapshotViewportControls />
-                <ViewportSnapshotDescription />
+                <SnapshotDescription />
             </div>
             <SelectionViewportControls />
             <VPControls />

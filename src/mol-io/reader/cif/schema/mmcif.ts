@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.391, IHM 1.25, MA 1.4.6.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.395, IHM 1.26, MA 1.4.6.
  *
  * @author molstar/ciftools package
  */
@@ -290,7 +290,7 @@ export const mmCIF_Schema = {
         /**
          * Pointer to _atom_site.auth_seq_id
          */
-        pdbx_auth_seq_id: str,
+        pdbx_auth_seq_id: int,
         /**
          * Pointer to _atom_site.auth_asym_id
          */
@@ -793,6 +793,14 @@ export const mmCIF_Schema = {
          * the entry.
          */
         pdbx_number_of_molecules: int,
+        /**
+         * An identifier for the parent entity if this entity
+         * is part of a complex entity.  For instance a chimeric
+         * entity may be decomposed into several independent
+         * chemical entities where each component entity was
+         * obtained from a different source.
+         */
+        pdbx_parent_entity_id: str,
         /**
          * Details about any entity mutation(s).
          */
@@ -1484,6 +1492,116 @@ export const mmCIF_Schema = {
         pdbx_keywords: str,
     },
     /**
+     * Data items in the STRUCT_MON_PROT_CIS category identify
+     * monomers that have been found to have the peptide bond in the cis
+     * conformation. The criterion used to select residues to be
+     * designated as containing cis peptide bonds is given in
+     * _struct_mon_details.prot_cis.
+     */
+    struct_mon_prot_cis: {
+        /**
+         * A component of the identifier for the monomer.
+         *
+         * This data item is a pointer to _atom_sites_alt.id in the
+         * ATOM_SITES_ALT category.
+         */
+        label_alt_id: str,
+        /**
+         * A component of the identifier for the monomer.
+         *
+         * This data item is a pointer to _atom_site.label_asym_id in the
+         * ATOM_SITE category.
+         */
+        label_asym_id: str,
+        /**
+         * A component of the identifier for the monomer.
+         *
+         * This data item is a pointer to _atom_site.label_comp_id in the
+         * ATOM_SITE category.
+         */
+        label_comp_id: str,
+        /**
+         * A component of the identifier for the monomer.
+         *
+         * This data item is a pointer to _atom_site.label_seq_id in the
+         * ATOM_SITE category.
+         */
+        label_seq_id: int,
+        /**
+         * A component of the identifier for the monomer.
+         *
+         * This data item is a pointer to _atom_site.auth_asym_id in the
+         * ATOM_SITE category.
+         */
+        auth_asym_id: str,
+        /**
+         * A component of the identifier for the monomer.
+         *
+         * This data item is a pointer to _atom_site.auth_comp_id in the
+         * ATOM_SITE category.
+         */
+        auth_comp_id: str,
+        /**
+         * A component of the identifier for the monomer.
+         *
+         * This data item is a pointer to _atom_site.auth_seq_id in the
+         * ATOM_SITE category.
+         */
+        auth_seq_id: int,
+        /**
+         * Pointer to _atom_site.auth_asym_id.
+         */
+        pdbx_auth_asym_id_2: str,
+        /**
+         * Pointer to _atom_site.auth_comp_id.
+         */
+        pdbx_auth_comp_id_2: str,
+        /**
+         * Pointer to _atom_site.auth_seq_id
+         */
+        pdbx_auth_seq_id_2: int,
+        /**
+         * Pointer to _atom_site.label_asym_id.
+         */
+        pdbx_label_asym_id_2: str,
+        /**
+         * Pointer to _atom_site.label_comp_id.
+         */
+        pdbx_label_comp_id_2: str,
+        /**
+         * Pointer to _atom_site.label_seq_id
+         */
+        pdbx_label_seq_id_2: int,
+        /**
+         * Pointer to _atom_site.pdbx_PDB_ins_code
+         */
+        pdbx_PDB_ins_code: str,
+        /**
+         * Pointer to _atom_site.pdbx_PDB_ins_code
+         */
+        pdbx_PDB_ins_code_2: str,
+        /**
+         * Pointer to _atom_site.pdbx_PDB_model_num
+         */
+        pdbx_PDB_model_num: int,
+        /**
+         * omega torsion angle
+         */
+        pdbx_omega_angle: str,
+        /**
+         * ordinal index
+         */
+        pdbx_id: str,
+        /**
+         * PDB Insertion code
+         */
+        pdbx_auth_ins_code: str,
+        /**
+         * PDB Insertion code
+         */
+        pdbx_auth_ins_code_2: str,
+    },
+    /**
      * Data items in the STRUCT_NCS_OPER category describe the
      * noncrystallographic symmetry operations.
      *
@@ -1699,7 +1817,7 @@ export const mmCIF_Schema = {
          * This data item is a pointer to _atom_site.auth_seq_id in the
          * ATOM_SITE category.
          */
-        pdbx_auth_seq_id: str,
+        pdbx_auth_seq_id: int,
         /**
          * PDB insertion code for the ligand in the site.
          */
@@ -1769,6 +1887,13 @@ export const mmCIF_Schema = {
         /**
          * A component of the identifier for participants in the site.
          *
+         * This data item is a pointer to _atom_site.auth_atom_id in the
+         * ATOM_SITE category.
+         */
+        auth_atom_id: str,
+        /**
+         * A component of the identifier for participants in the site.
+         *
          * This data item is a pointer to _atom_site.auth_comp_id in the
          * ATOM_SITE category.
          */
@@ -1779,7 +1904,7 @@ export const mmCIF_Schema = {
          * This data item is a pointer to _atom_site.auth_seq_id in the
          * ATOM_SITE category.
          */
-        auth_seq_id: str,
+        auth_seq_id: int,
         /**
          * This data item is a pointer to _struct_site.id in the STRUCT_SITE
          * category.
@@ -1799,6 +1924,21 @@ export const mmCIF_Schema = {
          * Number of residues in the site.
          */
         pdbx_num_res: int,
+    },
+    /**
+     * Data items in the STRUCT_SITE_KEYWORDS category record
+     * keywords describing the site.
+     */
+    struct_site_keywords: {
+        /**
+         * This data item is a pointer to _struct_site.id in the STRUCT_SITE
+         * category.
+         */
+        site_id: str,
+        /**
+         * Keywords describing this site.
+         */
+        text: str,
     },
     /**
      * Data items in the SYMMETRY category record details about the
@@ -2082,7 +2222,7 @@ export const mmCIF_Schema = {
          * This data item is a pointer to _atom_site.auth_seq_id in the
          * ATOM_SITE category.
          */
-        auth_seq_id: str,
+        auth_seq_id: int,
         /**
          * Part of the identifier for the unobserved or zero occupancy residue.
          *
@@ -3508,7 +3648,7 @@ export const mmCIF_Schema = {
     },
     /**
      * Data items in the IHM_MODEL_LIST category record the
-     * details of the models being deposited.
+     * details of the structure models being deposited.
      */
     ihm_model_list: {
         /**
@@ -3540,7 +3680,7 @@ export const mmCIF_Schema = {
     },
     /**
      * IHM_MODEL_GROUP category defines collections or groups of integrative
-     * structural models.
+     * structure models.
      */
     ihm_model_group: {
         /**
@@ -3568,8 +3708,8 @@ export const mmCIF_Schema = {
         details: str,
     },
     /**
-     * IHM_MODEL_GROUP_LINK category provides the list of models present in
-     * a particular model group.
+     * IHM_MODEL_GROUP_LINK category provides the list of structure models present in
+     * a particular structure model group.
      */
     ihm_model_group_link: {
         /**
@@ -3587,7 +3727,7 @@ export const mmCIF_Schema = {
     },
     /**
      * Data items in the IHM_MODEL_REPRESENTATIVE category record the
-     * details of the representative model in an ensemble or cluster.
+     * details of the representative structure model in an ensemble or cluster.
      */
     ihm_model_representative: {
         /**
@@ -3628,7 +3768,7 @@ export const mmCIF_Schema = {
         /**
          * The type of data held in the dataset.
          */
-        data_type: Aliased<'NMR data' | '3DEM volume' | '2DEM class average' | 'EM raw micrographs' | 'X-ray diffraction data' | 'SAS data' | 'CX-MS data' | 'Mass Spectrometry data' | 'EPR data' | 'H/D exchange data' | 'Single molecule FRET data' | 'Ensemble FRET data' | 'Experimental model' | 'Comparative model' | 'Integrative model' | 'De Novo model' | 'Predicted contacts' | 'Mutagenesis data' | 'DNA footprinting data' | 'Hydroxyl radical footprinting data' | 'Yeast two-hybrid screening data' | 'Quantitative measurements of genetic interactions' | 'Other'>(str),
+        data_type: Aliased<'NMR data' | '3DEM volume' | '2DEM class average' | 'EM raw micrographs' | 'X-ray diffraction data' | 'SAS data' | 'CX-MS data' | 'Crosslinking-MS data' | 'Mass Spectrometry data' | 'EPR data' | 'H/D exchange data' | 'Single molecule FRET data' | 'Ensemble FRET data' | 'Experimental model' | 'Comparative model' | 'Integrative model' | 'De Novo model' | 'Predicted contacts' | 'Mutagenesis data' | 'DNA footprinting data' | 'Hydroxyl radical footprinting data' | 'Yeast two-hybrid screening data' | 'Quantitative measurements of genetic interactions' | 'Other'>(str),
         /**
          * A flag that indicates whether the dataset is archived in
          * an IHM related database or elsewhere.
@@ -3650,7 +3790,7 @@ export const mmCIF_Schema = {
         /**
          * The application / utilization of the dataset group in modeling.
          */
-        application: Aliased<'restraint' | 'validation' | 'filter' | 'representation' | 'sampling' | 'other'>(str),
+        application: Aliased<'restraint' | 'validation' | 'filter' | 'representation' | 'sampling' | 'modeling' | 'other'>(str),
         /**
          * Additional details regarding the dataset group.
          */
@@ -3710,7 +3850,7 @@ export const mmCIF_Schema = {
         /**
          * The name of the database containing the dataset entry.
          */
-        db_name: Aliased<'PDB' | 'PDB-Dev' | 'BMRB' | 'EMDB' | 'EMPIAR' | 'SASBDB' | 'PRIDE' | 'MODEL ARCHIVE' | 'MASSIVE' | 'BioGRID' | 'ProXL' | 'jPOSTrepo' | 'iProX' | 'AlphaFoldDB' | 'Other'>(str),
+        db_name: Aliased<'PDB' | 'PDB-Dev' | 'BMRB' | 'EMDB' | 'EMPIAR' | 'SASBDB' | 'PRIDE' | 'MODEL ARCHIVE' | 'MASSIVE' | 'BioGRID' | 'ProXL' | 'jPOSTrepo' | 'iProX' | 'AlphaFoldDB' | 'ProteomeXchange' | 'Other'>(str),
         /**
          * The accession code for the database entry.
          */
@@ -4037,7 +4177,7 @@ export const mmCIF_Schema = {
         /**
          * The type of crosslinker used.
          */
-        linker_type: Aliased<'EDC' | 'DSS' | 'EGS' | 'BS3' | 'BS2G' | 'DST' | 'sulfo-SDA' | 'sulfo-SMCC' | 'DSSO' | 'DSG' | 'BSP' | 'BMSO' | 'DHSO' | 'CYS' | 'SDA' | 'DSA' | 'BrdU' | 'LCSDA' | 'CDI' | 'ADH' | 'L-Photo-Leucine' | 'KArGO' | 'BrEtY' | 'DSBU' | 'DSPP' | 'TBDSPP' | 'Other'>(str),
+        linker_type: Aliased<'EDC' | 'DSS' | 'EGS' | 'BS3' | 'BS2G' | 'DST' | 'sulfo-SDA' | 'sulfo-SMCC' | 'DSSO' | 'DSG' | 'BSP' | 'BMSO' | 'DHSO' | 'CYS' | 'SDA' | 'DSA' | 'BrdU' | 'LCSDA' | 'CDI' | 'ADH' | 'L-Photo-Leucine' | 'KArGO' | 'BrEtY' | 'DSBU' | 'DSPP' | 'TBDSPP' | 'DMTMM' | 'PDH' | 'Other'>(str),
         /**
          * Identifier to the crosslinking dataset.
          * This data item is a pointer to the _ihm_dataset_list.id in the

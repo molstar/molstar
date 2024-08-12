@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -87,22 +87,48 @@ class CameraTransitionManager {
 namespace CameraTransitionManager {
     export type TransitionFunc = (out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot) => void
 
-    const _rot = Quat.identity();
+    const _rotUp = Quat.identity();
+    const _rotDist = Quat.identity();
+
+    const _sourcePosition = Vec3();
+    const _targetPosition = Vec3();
+
     export function defaultTransition(out: Camera.Snapshot, t: number, source: Camera.Snapshot, target: Camera.Snapshot): void {
         Camera.copySnapshot(out, target);
 
         // Rotate up
-        Quat.slerp(_rot, Quat.Identity, Quat.rotationTo(_rot, source.up, target.up), t);
-        Vec3.transformQuat(out.up, source.up, _rot);
+        Quat.slerp(_rotUp, Quat.Identity, Quat.rotationTo(_rotUp, source.up, target.up), t);
+        Vec3.transformQuat(out.up, source.up, _rotUp);
 
         // Lerp target, position & radius
         Vec3.lerp(out.target, source.target, target.target, t);
-        Vec3.lerp(out.position, source.position, target.position, t);
+
+        // Interpolate distance
+        const distSource = Vec3.distance(source.target, source.position);
+        const distTarget = Vec3.distance(target.target, target.position);
+        const dist = lerp(distSource, distTarget, t);
+
+        // Rotate between source and targer direction
+        Vec3.sub(_sourcePosition, source.position, source.target);
+        Vec3.normalize(_sourcePosition, _sourcePosition);
+
+        Vec3.sub(_targetPosition, target.position, target.target);
+        Vec3.normalize(_targetPosition, _targetPosition);
+
+        Quat.rotationTo(_rotDist, _sourcePosition, _targetPosition);
+        Quat.slerp(_rotDist, Quat.Identity, _rotDist, t);
+
+        Vec3.transformQuat(_sourcePosition, _sourcePosition, _rotDist);
+        Vec3.scale(_sourcePosition, _sourcePosition, dist);
+
+        Vec3.add(out.position, out.target, _sourcePosition);
+
+        // Interpolate radius
         out.radius = lerp(source.radius, target.radius, t);
         // TODO take change of `clipFar` into account
         out.radiusMax = lerp(source.radiusMax, target.radiusMax, t);
 
-        // Lerp fov & fog
+        // Interpolate fov & fog
         out.fov = lerp(source.fov, target.fov, t);
         out.fog = lerp(source.fog, target.fog, t);
     }

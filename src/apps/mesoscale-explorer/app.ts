@@ -30,6 +30,7 @@ import { Asset } from '../../mol-util/assets';
 import { AnimateCameraSpin } from '../../mol-plugin-state/animation/built-in/camera-spin';
 import { AnimateCameraRock } from '../../mol-plugin-state/animation/built-in/camera-rock';
 import { AnimateStateSnapshots } from '../../mol-plugin-state/animation/built-in/state-snapshots';
+import { MesoViewportSnapshotDescription } from './ui/entities';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode, consoleStats } from '../../mol-util/debug';
@@ -47,6 +48,7 @@ export type MesoscaleExplorerState = {
     examples?: ExampleEntry[],
     graphicsMode: GraphicsMode,
     stateRef?: string,
+    driver?: any,
     stateCache: { [k: string]: any },
 }
 
@@ -90,7 +92,8 @@ const DefaultMesoscaleExplorerOptions = {
     emdbProvider: PluginConfig.Download.DefaultEmdbProvider.defaultValue,
     saccharideCompIdMapType: 'default' as SaccharideCompIdMapType,
 
-    graphicsMode: 'quality' as GraphicsMode
+    graphicsMode: 'quality' as GraphicsMode,
+    driver: undefined
 };
 type MesoscaleExplorerOptions = typeof DefaultMesoscaleExplorerOptions;
 
@@ -170,6 +173,9 @@ export class MesoscaleExplorer {
                     right: RightPanel,
                 },
                 remoteState: 'none',
+                viewport: {
+                    snapshotDescription: MesoViewportSnapshotDescription,
+                }
             },
             config: [
                 [PluginConfig.General.DisableAntialiasing, o.disableAntialiasing],
@@ -207,7 +213,12 @@ export class MesoscaleExplorer {
             onBeforeUIRender: async plugin => {
                 let examples: MesoscaleExplorerState['examples'] = undefined;
                 try {
-                    examples = await plugin.fetch({ url: './examples/list.json', type: 'json' }).run();
+                    examples = await plugin.fetch({ url: '../examples/list.json', type: 'json' }).run();
+                    // extend the array with file tour.json if it exists
+                    const tour = await plugin.fetch({ url: '../examples/tour.json', type: 'json' }).run();
+                    if (tour) {
+                        examples = examples?.concat(tour);
+                    }
                 } catch (e) {
                     console.log(e);
                 }
@@ -215,6 +226,7 @@ export class MesoscaleExplorer {
                 (plugin.customState as MesoscaleExplorerState) = {
                     examples,
                     graphicsMode: o.graphicsMode,
+                    driver: o.driver,
                     stateCache: {},
                 };
 

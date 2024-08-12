@@ -16,12 +16,16 @@ import { StateTreeSpine } from '../../../mol-state/tree/spine';
 import { Representation } from '../../../mol-repr/representation';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { PluginContext } from '../../../mol-plugin/context';
+import { MesoscaleState, expandAllGroups, getCellDescription, getEveryEntity } from '../data/state';
 
 const B = ButtonsType;
 const M = ModifiersKeys;
 const Trigger = Binding.Trigger;
 
 const DefaultMesoSelectLociBindings = {
+    click: Binding([
+        Trigger(B.Flag.Primary, M.create())
+    ], 'Click', 'Click element using ${triggers}'),
     clickToggleSelect: Binding([
         Trigger(B.Flag.Primary, M.create({ shift: true })),
         Trigger(B.Flag.Primary, M.create({ control: true })),
@@ -63,15 +67,36 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
             this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, button, modifiers }) => {
                 if (!this.ctx.canvas3d || this.ctx.isBusy) return;
 
-                const { clickToggleSelect } = this.params.bindings;
+                const { click, clickToggleSelect } = this.params.bindings;
                 if (Binding.match(clickToggleSelect, button, modifiers)) {
                     if (Loci.isEmpty(current.loci)) {
                         this.ctx.managers.interactivity.lociSelects.deselectAll();
                         return;
                     }
-
                     const loci = Loci.normalize(current.loci, modifiers.control ? 'entity' : 'chain');
                     this.ctx.managers.interactivity.lociSelects.toggle({ loci }, false);
+                    if (StructureElement.Loci.is(current.loci)) {
+                        const cell = this.ctx.helpers.substructureParent.get(current.loci.structure);
+                        const d = getCellDescription(cell!);
+                        MesoscaleState.set(this.ctx, { focusInfo: `${d}` });
+                    }
+                }
+                if (Binding.match(click, button, modifiers)) {
+                    if (Loci.isEmpty(current.loci)) {
+                        MesoscaleState.set(this.ctx, { focusInfo: '', filter: '' });
+                        return;
+                    }
+                    const snapshotKey = current.repr?.props?.snapshotKey?.trim() ?? '';
+                    if (snapshotKey) {
+                        this.ctx.managers.snapshot.applyKey(snapshotKey);
+                    } else {
+                        if (StructureElement.Loci.is(current.loci)) {
+                            const cell = this.ctx.helpers.substructureParent.get(current.loci.structure);
+                            const d = getCellDescription(cell!);
+                            MesoscaleState.set(this.ctx, { focusInfo: `${d}`, filter: `${cell?.obj?.label}` });
+                            expandAllGroups(this.ctx);
+                        }
+                    }
                 }
             });
             this.ctx.managers.interactivity.lociSelects.addProvider(this.lociMarkProvider);
@@ -87,22 +112,41 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
                         this.ctx.managers.interactivity.lociHighlights.clearHighlights();
                         return;
                     }
-
-                    if (modifiers.control) {
-                        this.ctx.managers.interactivity.lociHighlights.highlightOnly({ repr: current.repr, loci: EveryLoci }, false);
-                    } else {
-                        const loci = Loci.normalize(current.loci, 'chain');
-                        this.ctx.managers.interactivity.lociHighlights.highlightOnly({ repr: current.repr, loci }, false);
+                    if (StructureElement.Loci.is(current.loci)) {
+                        if (modifiers.control) {
+                            this.ctx.managers.interactivity.lociHighlights.highlightOnly({ repr: current.repr, loci: EveryLoci }, false);
+                        } else {
+                            const loci = Loci.normalize(current.loci, 'chain');
+                            this.ctx.managers.interactivity.lociHighlights.highlightOnly({ repr: current.repr, loci }, false);
+                        }
                     }
                 }
 
                 if (Loci.isEmpty(current.loci)) {
                     this.ctx.behaviors.labels.highlight.next({ labels: [] });
+                    this.ctx.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
                 } else {
                     const labels: string[] = [];
                     if (StructureElement.Loci.is(current.loci)) {
                         const cell = this.ctx.helpers.substructureParent.get(current.loci.structure);
-                        labels.push(cell?.obj?.label || 'Unknown');
+                        const d = getCellDescription(cell!);
+                        labels.push(d);
+                    } else {
+                        const loci = Loci.normalize(current.loci, this.ctx.managers.interactivity.props.granularity);
+                        if (loci.kind === 'group-loci') {
+                            if ('shape' in current.loci && current.loci.shape.geometry.kind === 'text') {
+                                const qname = current.repr?.props.customText;
+                                // highlight protein with same name
+                                const entities = getEveryEntity(this.ctx, qname);
+                                for (const r of entities) {
+                                    const repr = r.obj?.data.repr;
+                                    if (repr) {
+                                        this.ctx.canvas3d?.mark({ repr, loci: EveryLoci }, MarkerAction.Highlight);
+                                    }
+                                }
+                            }
+                            labels.push(loci.shape.getLabel(0, 0));
+                        }
                     }
                     this.ctx.behaviors.labels.highlight.next({ labels });
                 }

@@ -2,6 +2,7 @@
  * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 export const cylinders_frag = `
@@ -120,7 +121,11 @@ bool CylinderImpostor(
                     #ifdef dSolidInterior
                         if (interior) cameraNormal = -rayDir;
                     #endif
-                    return true;
+                    #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+                        return true;
+                    #else
+                        return !interior;
+                    #endif
                 }
             }
         } else if (bottomCap && y >= 0.0) {
@@ -146,7 +151,11 @@ bool CylinderImpostor(
                     #ifdef dSolidInterior
                         if (interior) cameraNormal = -rayDir;
                     #endif
-                    return true;
+                    #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+                        return true;
+                    #else
+                        return !interior;
+                    #endif
                 }
             }
         }

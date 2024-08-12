@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -22,6 +22,8 @@ import { ResidueNameColorTheme, ResidueNameColorThemeParams } from './residue-na
 import { ScaleLegend, TableLegend } from '../../mol-util/legend';
 import { SecondaryStructureColorTheme, SecondaryStructureColorThemeParams } from './secondary-structure';
 import { ElementSymbolColorTheme, ElementSymbolColorThemeParams } from './element-symbol';
+import { TrajectoryIndexColorTheme, TrajectoryIndexColorThemeParams } from './trajectory-index';
+import { hash2 } from '../../mol-data/util';
 
 const Description = 'Uses separate themes for coloring mainchain and sidechain visuals.';
 
@@ -35,6 +37,7 @@ export const CartoonColorThemeParams = {
         'model-index': PD.Group(ModelIndexColorThemeParams),
         'structure-index': PD.Group(StructureIndexColorThemeParams),
         'secondary-structure': PD.Group(SecondaryStructureColorThemeParams),
+        'trajectory-index': PD.Group(TrajectoryIndexColorThemeParams),
     }),
     sidechain: PD.MappedStatic('residue-name', {
         uniform: PD.Group(UniformColorThemeParams),
@@ -60,6 +63,7 @@ function getMainchainTheme(ctx: ThemeDataContext, props: CartoonColorThemeProps[
         case 'model-index': return ModelIndexColorTheme(ctx, props.params);
         case 'structure-index': return StructureIndexColorTheme(ctx, props.params);
         case 'secondary-structure': return SecondaryStructureColorTheme(ctx, props.params);
+        case 'trajectory-index': return TrajectoryIndexColorTheme(ctx, props.params);
         default: assertUnreachable(props);
     }
 }
@@ -76,6 +80,8 @@ function getSidechainTheme(ctx: ThemeDataContext, props: CartoonColorThemeProps[
 export function CartoonColorTheme(ctx: ThemeDataContext, props: PD.Values<CartoonColorThemeParams>): ColorTheme<CartoonColorThemeParams> {
     const mainchain = getMainchainTheme(ctx, props.mainchain);
     const sidechain = getSidechainTheme(ctx, props.sidechain);
+
+    const contextHash = hash2(mainchain.contextHash ?? 0, sidechain.contextHash ?? 0);
 
     function color(location: Location, isSecondary: boolean): Color {
         return isSecondary ? mainchain.color(location, false) : sidechain.color(location, false);
@@ -95,6 +101,7 @@ export function CartoonColorTheme(ctx: ThemeDataContext, props: PD.Values<Cartoo
         preferSmoothing: false,
         color,
         props,
+        contextHash,
         description: Description,
         legend,
     };

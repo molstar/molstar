@@ -1,9 +1,10 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author Herman Bergwerf <post@hbergwerf.nl>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -17,7 +18,7 @@ import { createLinkCylinderImpostors, createLinkCylinderMesh, LinkBuilderProps, 
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, UnitsCylindersParams, UnitsCylindersVisual } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { BondType } from '../../../mol-model/structure/model/types';
-import { BondCylinderParams, BondIterator, eachIntraBond, getIntraBondLoci, ignoreBondType, makeIntraBondIgnoreTest } from './util/bond';
+import { BondCylinderParams, BondIterator, eachIntraBond, getIntraBondLoci, hasUnitVisibleBonds, ignoreBondType, makeIntraBondIgnoreTest } from './util/bond';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { IntAdjacencyGraph } from '../../../mol-math/graph';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
@@ -25,6 +26,7 @@ import { Cylinders } from '../../../mol-geo/geometry/cylinders/cylinders';
 import { SortedArray } from '../../../mol-data/int';
 import { arrayIntersectionSize } from '../../../mol-util/array';
 import { StructureGroup } from './util/common';
+import { SizeTheme } from '../../../mol-theme/size';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const isBondType = BondType.is;
@@ -115,11 +117,11 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
             }
             return maxSize > 0 ? vRef : null;
         },
-        position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
+        position: (posA: Vec3, posB: Vec3, edgeIndex: number, adjust: boolean) => {
             c.invariantPosition(elements[a[edgeIndex]], posA);
             c.invariantPosition(elements[b[edgeIndex]], posB);
 
-            if (adjustCylinderLength) {
+            if (adjust && adjustCylinderLength) {
                 const rA = radiusA(edgeIndex), rB = radiusB(edgeIndex);
                 const r = Math.min(rA, rB) * sizeAspectRatio;
                 const oA = Math.sqrt(Math.max(0, rA * rA - r * r)) - 0.05;
@@ -170,6 +172,7 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
 
 function createIntraUnitBondCylinderImpostors(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondCylinderParams>, cylinders?: Cylinders): Cylinders {
     if (!Unit.isAtomic(unit)) return Cylinders.createEmpty(cylinders);
+    if (!hasUnitVisibleBonds(unit, props)) return Cylinders.createEmpty(cylinders);
     if (!unit.bonds.edgeCount) return Cylinders.createEmpty(cylinders);
 
     const { child } = structure;
@@ -191,6 +194,7 @@ function createIntraUnitBondCylinderImpostors(ctx: VisualContext, unit: Unit, st
 
 function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondCylinderParams>, mesh?: Mesh): Mesh {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh);
+    if (!hasUnitVisibleBonds(unit, props)) return Mesh.createEmpty(mesh);
     if (!unit.bonds.edgeCount) return Mesh.createEmpty(mesh);
 
     const { child } = structure;
@@ -254,7 +258,8 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
                 newProps.adjustCylinderLength !== currentProps.adjustCylinderLength ||
                 newProps.aromaticBonds !== currentProps.aromaticBonds ||
-                newProps.multipleBonds !== currentProps.multipleBonds
+                newProps.multipleBonds !== currentProps.multipleBonds ||
+                newProps.adjustCylinderLength && !SizeTheme.areEqual(newTheme.size, currentTheme.size)
             );
 
             if (newProps.colorMode !== currentProps.colorMode) {

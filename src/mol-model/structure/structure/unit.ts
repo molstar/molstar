@@ -130,6 +130,7 @@ namespace Unit {
         MultiChain = 0x1,
         Partitioned = 0x2,
         FastBoundary = 0x4,
+        Water = 0x8,
     }
     export namespace Traits {
         export const is: (t: Traits, f: Trait) => boolean = BitFlags.has;

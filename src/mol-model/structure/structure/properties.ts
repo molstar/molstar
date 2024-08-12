@@ -161,7 +161,7 @@ const entity = {
     pdbx_mutation: p(l => l.unit.model.entities.data.pdbx_mutation.value(eK(l))),
     pdbx_fragment: p(l => l.unit.model.entities.data.pdbx_fragment.value(eK(l))),
     pdbx_ec: p(l => l.unit.model.entities.data.pdbx_ec.value(eK(l))),
-
+    pdbx_parent_entity_id: p(l => l.unit.model.entities.data.pdbx_parent_entity_id.value(eK(l))),
     subtype: p(l => l.unit.model.entities.subtype.value(eK(l))),
     prd_id: p(l => l.unit.model.entities.prd_id?.value(eK(l)) ?? ''),
 };

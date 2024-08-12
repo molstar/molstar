@@ -237,7 +237,7 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
         });
 
         this.subscribe(this.plugin.state.events.object.removed, ({ obj }) => {
-            if (obj && obj.type === PSO.Molecule.Structure.type && obj.data === this.state.structure) {
+            if (obj && obj.type === PSO.Molecule.Structure.type) {
                 this.sync();
             }
         });

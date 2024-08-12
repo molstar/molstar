@@ -11,7 +11,7 @@ import { SpacefillRepresentationProvider } from '../../../../mol-repr/structure/
 import { StructureRepresentation3D } from '../../../../mol-plugin-state/transforms/representation';
 import { PluginContext } from '../../../../mol-plugin/context';
 import { PluginStateObject } from '../../../../mol-plugin-state/objects';
-import { GraphicsMode, MesoscaleGroup, MesoscaleState, getDistinctBaseColors, getGraphicsModeProps, getMesoscaleGroupParams } from '../state';
+import { GraphicsMode, MesoscaleGroup, MesoscaleState, getDistinctBaseColors, getGraphicsModeProps, getMesoscaleGroupParams, updateColors } from '../state';
 import { ColorNames } from '../../../../mol-util/color/names';
 import { MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
 import { Task } from '../../../../mol-task';
@@ -97,12 +97,12 @@ export async function createPetworldHierarchy(plugin: PluginContext, trajectory:
 
     const group = await state.build()
         .toRoot()
-        .applyOrUpdateTagged('group:ent:', MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `ent:`, label: 'entity', color: { type: 'generate', value: ColorNames.white, variability: 20, shift: 0, lightness: 0, alpha: 1, emissive: 0 } }, { tags: 'group:ent:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
+        .applyOrUpdateTagged('group:ent:', MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `ent:`, label: 'entity', color: { type: 'generate', illustrative: false, value: ColorNames.white, variability: 20, shift: 0, lightness: 0, alpha: 1, emissive: 0 } }, { tags: 'group:ent:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
         .commit({ revertOnError: true });
 
     await state.build()
         .to(group)
-        .applyOrUpdateTagged(`group:ent:mem`, MesoscaleGroup, { ...groupParams, index: undefined, tag: `ent:mem`, label: 'Membrane', color: { type: 'uniform', value: ColorNames.lightgrey, variability: 20, shift: 0, lightness: 0, alpha: 1, emissive: 0 } }, { tags: `ent:`, state: { isCollapsed: true, isHidden: groupParams.hidden } })
+        .applyOrUpdateTagged(`group:ent:mem`, MesoscaleGroup, { ...groupParams, index: undefined, tag: `ent:mem`, label: 'Membrane', color: { type: 'uniform', illustrative: false, value: ColorNames.lightgrey, variability: 20, shift: 0, lightness: 0, alpha: 1, emissive: 0 } }, { tags: `ent:`, state: { isCollapsed: true, isHidden: groupParams.hidden } })
         .commit();
 
     const colors = getDistinctBaseColors(other.length, 0);
@@ -124,6 +124,9 @@ export async function createPetworldHierarchy(plugin: PluginContext, trajectory:
                     .apply(StructureRepresentation3D, getSpacefillParams(colors[i], graphicsMode), { tags: [`ent:`] });
             }
             await build.commit();
+            const values = { type: 'group-generate', value: ColorNames.white, lightness: 0, alpha: 1 };
+            const options = { ignoreLight: true, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 }, celShaded: true, };
+            await updateColors(plugin, values, options);
         } catch (e) {
             console.error(e);
             plugin.log.error(e);

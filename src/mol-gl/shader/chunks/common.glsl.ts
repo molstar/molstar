@@ -103,6 +103,12 @@ vec4 linearTosRGB(const in vec4 c) {
     return vec4(mix(pow(c.rgb, vec3(0.41666)) * 1.055 - vec3(0.055), c.rgb * 12.92, vec3(lessThanEqual(c.rgb, vec3(0.0031308)))), c.a);
 }
 
+float luminance(vec3 c) {
+    // https://www.w3.org/TR/WCAG21/#dfn-relative-luminance
+    const vec3 W = vec3(0.2125, 0.7154, 0.0721);
+    return dot(c, W);
+}
+
 float linearizeDepth(const in float depth, const in float near, const in float far) {
     return (2.0 * near) / (far + near - depth * (far - near));
 }

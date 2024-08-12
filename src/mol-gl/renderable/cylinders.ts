@@ -26,6 +26,7 @@ export const CylindersSchema = {
     padding: ValueSpec('number'),
     uDoubleSided: UniformSpec('b', 'material'),
     dIgnoreLight: DefineSpec('boolean'),
+    dCelShaded: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('string', ['off', 'on', 'inverted']),
     dTransparentBackfaces: DefineSpec('string', ['off', 'on', 'opaque']),
     dSolidInterior: DefineSpec('boolean'),

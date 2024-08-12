@@ -40,6 +40,7 @@ export const DirectVolumeSchema = {
     dAxisOrder: DefineSpec('string', ['012', '021', '102', '120', '201', '210']),
 
     dIgnoreLight: DefineSpec('boolean'),
+    dCelShaded: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('string', ['off', 'on', 'inverted']),
 };
 export type DirectVolumeSchema = typeof DirectVolumeSchema

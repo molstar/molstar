@@ -24,6 +24,7 @@ import { SpacefillRepresentationProvider } from '../../../mol-repr/structure/rep
 import { assertUnreachable } from '../../../mol-util/type-helpers';
 import { MesoscaleExplorerState } from '../app';
 import { saturate } from '../../../mol-math/interpolate';
+import { Material } from '../../../mol-util/material';
 
 function getHueRange(hue: number, variability: number) {
     let min = hue - variability;
@@ -106,6 +107,7 @@ export function getDistinctBaseColors(count: number, shift: number, props?: Part
 
 export const ColorParams = {
     type: PD.Select('generate', PD.arrayToOptions(['generate', 'uniform', 'custom'])),
+    illustrative: PD.Boolean(false, { description: 'Illustrative style', hideIf: p => p.type === 'custom' }),
     value: PD.Color(Color(0xFFFFFF), { hideIf: p => p.type === 'custom' }),
     variability: PD.Numeric(20, { min: 1, max: 180, step: 1 }, { hideIf: p => p.type !== 'generate' }),
     shift: PD.Numeric(0, { min: 0, max: 100, step: 1 }, { hideIf: p => !p.type.includes('generate') }),
@@ -119,6 +121,7 @@ export const ColorValueParam = PD.Color(Color(0xFFFFFF));
 
 export const RootParams = {
     type: PD.Select('custom', PD.arrayToOptions(['group-generate', 'group-uniform', 'generate', 'uniform', 'custom'])),
+    illustrative: PD.Boolean(false, { description: 'Illustrative style', hideIf: p => p.type === 'custom' }),
     value: PD.Color(Color(0xFFFFFF), { hideIf: p => p.type !== 'uniform' }),
     variability: PD.Numeric(20, { min: 1, max: 180, step: 1 }, { hideIf: p => p.type !== 'group-generate' }),
     shift: PD.Numeric(0, { min: 0, max: 100, step: 1 }, { hideIf: p => !p.type.includes('generate') }),
@@ -132,6 +135,10 @@ export const LightnessParams = {
 };
 export const DimLightness = 6;
 
+export const IllustrativeParams = {
+    illustrative: PD.Boolean(false, { description: 'Illustrative style' }),
+};
+
 export const OpacityParams = {
     alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
 };
@@ -140,9 +147,22 @@ export const EmissiveParams = {
     emissive: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }),
 };
 
+export const celShaded = {
+    celShaded: PD.Boolean(false, { description: 'Cel Shading light for stylized rendering of representations' })
+};
+
+export type celShadedProps = PD.Values<typeof celShaded>;
+
+
 export const PatternParams = {
     frequency: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
     amplitude: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+};
+
+export const StyleParams = {
+    ignoreLight: PD.Boolean(false, { description: 'Ignore light for stylized rendering of representations' }),
+    materialStyle: Material.getParam(),
+    celShaded: PD.Boolean(false, { description: 'Cel Shading light for stylized rendering of representations' }),
 };
 
 export const LodParams = {
@@ -250,6 +270,7 @@ export const MesoscaleGroupParams = {
     index: PD.Value<number>(-1, { isHidden: true }),
     tag: PD.Value<string>('', { isHidden: true }),
     label: PD.Value<string>('', { isHidden: true }),
+    description: PD.Value<string>('', { isHidden: true }),
     hidden: PD.Boolean(false),
     color: PD.Group(RootParams),
     lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
@@ -271,7 +292,7 @@ export const MesoscaleGroup = PluginStateTransform.BuiltIn({
 })({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Apply Mesoscale Group', async () => {
-            return new MesoscaleGroupObject({}, { label: params.label });
+            return new MesoscaleGroupObject({}, { label: params.label, description: params.description });
         });
     },
 });
@@ -360,7 +381,10 @@ export const MesoscaleStateParams = {
     filter: PD.Value<string>('', { isHidden: true }),
     graphics: PD.Select('quality', PD.arrayToOptions(['ultra', 'quality', 'balanced', 'performance', 'custom'] as GraphicsMode[])),
     description: PD.Value<string>('', { isHidden: true }),
+    focusInfo: PD.Value<string>('', { isHidden: true }),
     link: PD.Value<string>('', { isHidden: true }),
+    textSizeDescription: PD.Numeric(14, { min: 1, max: 100, step: 1 }, { isHidden: true }),
+    index: PD.Value<number>(-1, { isHidden: true })
 };
 
 export class MesoscaleStateObject extends PSO.Create<MesoscaleState>({ name: 'Mesoscale State', typeClass: 'Object' }) { }
@@ -447,7 +471,7 @@ export function getAllGroups(plugin: PluginContext, tag?: string) {
     return _getAllGroups(plugin, tag, []);
 }
 
-export function getAllLeafGroups(plugin: PluginContext, tag: string) {
+export function getAllLeafGroups(plugin: PluginContext, tag: string | undefined) {
     const allGroups = getAllGroups(plugin, tag);
     allGroups.sort((a, b) => a.params?.values.index - b.params?.values.index);
     return allGroups.filter(g => {
@@ -481,7 +505,8 @@ function getFilterMatcher(filter: string) {
         : new RegExp(escapeRegExp(filter), 'gi');
 }
 
-export function getFilteredEntities(plugin: PluginContext, tag: string, filter: string) {
+export function getFilteredEntities(plugin: PluginContext, tag: string | undefined, filter: string | undefined) {
+    if (!filter) return getEntities(plugin, tag);
     const matcher = getFilterMatcher(filter);
     return getEntities(plugin, tag).filter(c => getEntityLabel(plugin, c).match(matcher) !== null);
 }
@@ -498,21 +523,42 @@ export function getAllEntities(plugin: PluginContext, tag?: string) {
     return _getAllEntities(plugin, tag, []);
 }
 
-export function getAllFilteredEntities(plugin: PluginContext, tag: string, filter: string) {
+export function getAllFilteredEntities(plugin: PluginContext, tag: string | undefined, filter: string | undefined) {
+    if (!filter) return getAllEntities(plugin, tag);
     const matcher = getFilterMatcher(filter);
     return getAllEntities(plugin, tag).filter(c => getEntityLabel(plugin, c).match(matcher) !== null);
+}
+
+export function getEveryEntity(plugin: PluginContext, filter?: string, tag?: string) {
+    if (filter) {
+        const matcher = getFilterMatcher(filter);
+        return getAllEntities(plugin, tag).filter(c => getEntityLabel(plugin, c).match(matcher) !== null);
+    } else {
+        return getAllEntities(plugin, tag);
+    }
 }
 
 export function getEntityLabel(plugin: PluginContext, cell: StateObjectCell) {
     return StateObjectRef.resolve(plugin.state.data, cell.transform.parent)?.obj?.label || 'Entity';
 }
 
-//
+export function getCellDescription(cell: StateObjectCell) {
+    // markdown style for description
+    return '**' + cell?.obj?.label + '**\n\n' + cell?.obj?.description;
+}
 
-export async function updateColors(plugin: PluginContext, values: PD.Values, tag: string, filter: string) {
+export function getEntityDescription(plugin: PluginContext, cell: StateObjectCell) {
+    const s = StateObjectRef.resolve(plugin.state.data, cell.transform.parent);
+    const d = getCellDescription(s!);
+    return d;
+}
+
+
+export async function updateColors(plugin: PluginContext, values: PD.Values, options?: PD.Values, tag?: string, filter?: string) {
     const update = plugin.state.data.build();
-    const { type, value, shift, lightness, alpha, emissive } = values;
-
+    const { type, illustrative, value, shift, lightness, alpha, emissive } = values;
+    const doLighting = (options !== undefined);
+    const { ignoreLight, materialStyle: material, celShaded } = options ? options : { ignoreLight: true, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 }, celShaded: false };
     if (type === 'group-generate' || type === 'group-uniform') {
         const groups = getAllLeafGroups(plugin, tag);
         const baseColors = getDistinctBaseColors(groups.length, shift);
@@ -531,11 +577,19 @@ export async function updateColors(plugin: PluginContext, values: PD.Values, tag
                 const c = type === 'group-generate' ? groupColors[j] : baseColors[i];
                 update.to(entities[j]).update(old => {
                     if (old.type) {
-                        old.colorTheme.params.value = c;
-                        old.colorTheme.params.lightness = lightness;
+                        if (illustrative) {
+                            old.colorTheme = { name: 'illustrative', params: { style: { name: 'uniform', params: { value: c, lightness: lightness } } } };
+                        } else {
+                            old.colorTheme = { name: 'uniform', params: { value: c, lightness: lightness } };
+                        }
                         old.type.params.alpha = alpha;
                         old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
                         old.type.params.emissive = emissive;
+                        if (doLighting) {
+                            old.type.params.ignoreLight = ignoreLight;
+                            old.type.params.material = material;
+                            old.type.params.celShaded = celShaded;
+                        }
                     } else if (old.coloring) {
                         old.coloring.params.color = c;
                         old.coloring.params.lightness = lightness;
@@ -548,6 +602,7 @@ export async function updateColors(plugin: PluginContext, values: PD.Values, tag
 
             update.to(g.transform.ref).update(old => {
                 old.color.type = type === 'group-generate' ? 'generate' : 'uniform';
+                old.color.illustrative = illustrative;
                 old.color.value = baseColors[i];
                 old.color.lightness = lightness;
                 old.color.alpha = alpha;
@@ -566,11 +621,19 @@ export async function updateColors(plugin: PluginContext, values: PD.Values, tag
             const c = type === 'generate' ? groupColors[j] : value;
             update.to(entities[j]).update(old => {
                 if (old.type) {
-                    old.colorTheme.params.value = c;
-                    old.colorTheme.params.lightness = lightness;
+                    if (illustrative) {
+                        old.colorTheme = { name: 'illustrative', params: { style: { name: 'uniform', params: { value: c, lightness: lightness } } } };
+                    } else {
+                        old.colorTheme = { name: 'uniform', params: { value: c, lightness: lightness } };
+                    }
                     old.type.params.alpha = alpha;
                     old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
                     old.type.params.emissive = emissive;
+                    if (doLighting) {
+                        old.type.params.ignoreLight = ignoreLight;
+                        old.type.params.material = material;
+                        old.type.params.celShaded = celShaded;
+                    }
                 } else if (old.coloring) {
                     old.coloring.params.color = c;
                     old.coloring.params.lightness = lightness;
@@ -585,6 +648,7 @@ export async function updateColors(plugin: PluginContext, values: PD.Values, tag
         for (const o of others) {
             update.to(o).update(old => {
                 old.color.type = type === 'generate' ? 'custom' : 'uniform';
+                old.color.illustrative = illustrative;
                 old.color.value = value;
                 old.color.lightness = lightness;
                 old.color.alpha = alpha;
@@ -603,3 +667,17 @@ export function expandAllGroups(plugin: PluginContext) {
         }
     }
 };
+
+export async function updateReprParams(plugin: PluginContext, options: PD.Values) {
+    const update = plugin.state.data.build();
+    const { ignoreLight, materialStyle: material, celShaded } = options;
+    const entities = getAllEntities(plugin);
+    for (let j = 0; j < entities.length; ++j) {
+        update.to(entities[j]).update(old => {
+            old.type.params.ignoreLight = ignoreLight;
+            old.type.params.material = material;
+            old.type.params.celShaded = celShaded;
+        });
+    }
+    await update.commit();
+}
