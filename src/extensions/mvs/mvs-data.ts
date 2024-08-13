@@ -10,26 +10,69 @@ import { Root, createMVSBuilder } from './tree/mvs/mvs-builder';
 import { MVSTree, MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 
-/** Top level of the MolViewSpec (MVS) data format. */
-export interface MVSData {
-    /** MolViewSpec tree */
-    root: MVSTree,
-    /** Associated metadata */
-    metadata: MVSMetadata,
-}
-
-interface MVSMetadata {
+/** Metadata describing global properties relating to the format specification. */
+interface FormatMetadata {
+    /** Timestamp when this view was exported */
+    timestamp: string,
     /** Version of the spec used to write this tree */
     version: string,
-    /** Name of this view */
+    /** Name of this MVSData */
     title?: string,
+}
+/** Metadata describing details of an individual state/snapshot */
+interface SnapshotMetadata {
     /** Detailed description of this view */
     description?: string,
     /** Format of the description */
     description_format?: 'markdown' | 'plaintext',
-    /** Timestamp when this view was exported */
-    timestamp: string,
+    /** Unique identifier of this state, useful when working with collections of states */
+    key?: string,
+    /** Name of this view */
+    title?: string,
+    /** How long to linger on one snapshot. Leave empty to not transition automatically */
+    lingerDurationMs?: number,
+    /** Timespan for the animation to the next snapshot. Leave empty to skip animations */
+    transitionDurationMs?: number,
 }
+interface Snapshot {
+    root: MVSTree,
+    /** Associated metadata */
+    metadata: SnapshotMetadata,
+}
+export interface MVSData_State extends Snapshot {
+    kind?: 'single',
+    /** Associated metadata */
+    metadata: SnapshotMetadata & FormatMetadata,
+}
+export interface MVSData_States {
+    kind: 'multiple',
+    /** MolViewSpec tree */
+    snapshots: Snapshot[],
+    /** Associated metadata */
+    metadata: FormatMetadata,
+}
+
+export type MVSData = MVSData_State
+
+// /** Top level of the MolViewSpec (MVS) data format. */
+// export interface MVSData {
+//     /** MolViewSpec tree */
+//     root: MVSTree,
+//     /** Associated metadata */
+//     metadata: MVSMetadata,
+// }
+// interface MVSMetadata {
+//     /** Version of the spec used to write this tree */
+//     version: string,
+//     /** Name of this view */
+//     title?: string,
+//     /** Detailed description of this view */
+//     description?: string,
+//     /** Format of the description */
+//     description_format?: 'markdown' | 'plaintext',
+//     /** Timestamp when this view was exported */
+//     timestamp: string,
+// }
 
 export const MVSData = {
     /** Currently supported major version of MolViewSpec format (e.g. 1 for version '1.0.8') */
