@@ -9,7 +9,9 @@ import { StructureComponentParams } from '../../mol-plugin-state/helpers/structu
 import { StructureFromModel, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { PluginContext } from '../../mol-plugin/context';
-import { StateBuilder, StateObject, StateObjectSelector, StateTransform, StateTransformer } from '../../mol-state';
+import { PluginState } from '../../mol-plugin/state';
+import { State, StateBuilder, StateObject, StateObjectSelector, StateTransform, StateTransformer, StateTree } from '../../mol-state';
+import { UUID } from '../../mol-util';
 import { arrayDistinct } from '../../mol-util/array';
 import { canonicalJsonString } from '../../mol-util/json';
 import { stringToWords } from '../../mol-util/string';
@@ -43,8 +45,26 @@ export type LoadingActions<TTree extends Tree, TContext> = { [kind in Kind<SubTr
 /** Load a tree into Mol*, by applying loading actions in DFS order and then commiting at once.
  * If `options.replaceExisting`, remove all objects in the current Mol* state; otherwise add to the current state. */
 export async function loadTree<TTree extends Tree, TContext>(plugin: PluginContext, tree: TTree, loadingActions: LoadingActions<TTree, TContext>, context: TContext, options?: { replaceExisting?: boolean }) {
-    const mapping = new Map<SubTree<TTree>, UpdateTarget | undefined>();
     const updateRoot: UpdateTarget = UpdateTarget.create(plugin, options?.replaceExisting ?? false);
+    loadTreeInUpdate(updateRoot, tree, loadingActions, context, options);
+    await UpdateTarget.commit(updateRoot);
+}
+
+export function loadTreeVirtual<TTree extends Tree, TContext>(plugin: PluginContext, tree: TTree, loadingActions: LoadingActions<TTree, TContext>, context: TContext, options?: { replaceExisting?: boolean }) {
+    const updateRoot: UpdateTarget = UpdateTarget.create(plugin, options?.replaceExisting ?? false);
+    loadTreeInUpdate(updateRoot, tree, loadingActions, context, options);
+    const stateTree: StateTree = updateRoot.update.getTree();
+    const stateSnapshot: State.Snapshot = { tree: StateTree.toJSON(stateTree) };
+    // const pluginStateSnapshot: PluginState.Snapshot = {
+    //     ...plugin.state.getSnapshot({ data: false }),
+    //     data: stateSnapshot,
+    // };
+    const pluginStateSnapshot: PluginState.Snapshot = { id: UUID.create22(), data: stateSnapshot };
+    return pluginStateSnapshot;
+}
+
+function loadTreeInUpdate<TTree extends Tree, TContext>(updateRoot: UpdateTarget, tree: TTree, loadingActions: LoadingActions<TTree, TContext>, context: TContext, options?: { replaceExisting?: boolean }) {
+    const mapping = new Map<SubTree<TTree>, UpdateTarget | undefined>();
     if (options?.replaceExisting) {
         UpdateTarget.deleteChildren(updateRoot);
     }
@@ -62,8 +82,9 @@ export async function loadTree<TTree extends Tree, TContext>(plugin: PluginConte
             }
         }
     });
-    await UpdateTarget.commit(updateRoot);
 }
+
+
 
 
 /** A wrapper for updating Mol* state, while using deterministic transform refs.

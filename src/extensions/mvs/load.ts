@@ -4,10 +4,13 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { PluginStateSnapshotManager } from '../../mol-plugin-state/manager/snapshots';
 import { Download, ParseCif } from '../../mol-plugin-state/transforms/data';
 import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromMmCif, TrajectoryFromPDB, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
+import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
+import { PluginState } from '../../mol-plugin/state';
 import { StateObjectSelector } from '../../mol-state';
 import { MolViewSpec } from './behavior';
 import { setCamera, setCanvas, setFocus, suppressCameraAutoreset } from './camera';
@@ -17,7 +20,7 @@ import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-
 import { CustomLabelProps, CustomLabelRepresentationProvider } from './components/custom-label/representation';
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
 import { IsMVSModelProps, IsMVSModelProvider } from './components/is-mvs-model-prop';
-import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, UpdateTarget, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps } from './load-helpers';
+import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, UpdateTarget, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, loadTreeVirtual, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps } from './load-helpers';
 import { MVSData } from './mvs-data';
 import { ParamsOfKind, SubTreeOfKind, validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
@@ -32,13 +35,27 @@ import { MVSTreeSchema } from './tree/mvs/mvs-tree';
  * `options.sourceUrl` serves as the base for resolving relative URLs/URIs and may itself be relative to the window URL. */
 export async function loadMVS(plugin: PluginContext, data: MVSData, options: { replaceExisting?: boolean, keepCamera?: boolean, sanityChecks?: boolean, sourceUrl?: string } = {}) {
     try {
+        const mvsExtensionLoaded = plugin.state.hasBehavior(MolViewSpec);
+        if (!mvsExtensionLoaded) throw new Error('MolViewSpec extension is not loaded.');
         // console.log(`MVS tree:\n${MVSData.toPrettyString(data)}`)
-        validateTree(MVSTreeSchema, data.root, 'MVS');
-        if (options.sanityChecks) mvsSanityCheck(data.root);
-        const molstarTree = convertMvsToMolstar(data.root, options.sourceUrl);
-        // console.log(`Converted MolStar tree:\n${MVSData.toPrettyString({ root: molstarTree, metadata: { version: 'x', timestamp: 'x' } })}`)
-        validateTree(MolstarTreeSchema, molstarTree, 'Converted Molstar');
-        await loadMolstarTree(plugin, molstarTree, options);
+        if (data.kind === 'multiple') {
+            const molstarTrees: MolstarTree[] = [];
+            for (const snapshot of data.snapshots) {
+                validateTree(MVSTreeSchema, snapshot.root, 'MVS');
+                if (options.sanityChecks) mvsSanityCheck(snapshot.root);
+                const molstarTree = convertMvsToMolstar(snapshot.root, options.sourceUrl);
+                validateTree(MolstarTreeSchema, molstarTree, 'Converted Molstar');
+                molstarTrees.push(molstarTree);
+            }
+            await loadMolstarTrees(plugin, molstarTrees, options);
+        } else {
+            validateTree(MVSTreeSchema, data.root, 'MVS');
+            if (options.sanityChecks) mvsSanityCheck(data.root);
+            const molstarTree = convertMvsToMolstar(data.root, options.sourceUrl);
+            // console.log(`Converted MolStar tree:\n${MVSData.toPrettyString({ root: molstarTree, metadata: { version: 'x', timestamp: 'x' } })}`)
+            validateTree(MolstarTreeSchema, molstarTree, 'Converted Molstar');
+            await loadMolstarTree(plugin, molstarTree, options);
+        }
     } catch (err) {
         plugin.log.error(`${err}`);
         throw err;
@@ -49,9 +66,6 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: { r
 /** Load a `MolstarTree` into the Mol* plugin.
  * If `replaceExisting`, remove all objects in the current Mol* state; otherwise add to the current state. */
 async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, options?: { replaceExisting?: boolean, keepCamera?: boolean }) {
-    const mvsExtensionLoaded = plugin.state.hasBehavior(MolViewSpec);
-    if (!mvsExtensionLoaded) throw new Error('MolViewSpec extension is not loaded.');
-
     const context: MolstarLoadingContext = {};
 
     await loadTree(plugin, tree, MolstarLoadingActions, context, options);
@@ -68,6 +82,26 @@ async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, options
         } else {
             await setFocus(plugin, undefined, undefined);
         }
+    }
+}
+
+async function loadMolstarTrees(plugin: PluginContext, trees: MolstarTree[], options?: { replaceExisting?: boolean, keepCamera?: boolean }) {
+    plugin.managers.snapshot.clear();
+    let firstSnapshot: PluginState.Snapshot | undefined = undefined;
+    for (let i = 0; i < trees.length; i++) {
+        const tree = trees[i];
+        const context: MolstarLoadingContext = {};
+        const snapshot = loadTreeVirtual(plugin, tree, MolstarLoadingActions, context, options);
+        snapshot.durationInMs = 3000;
+        snapshot.camera ??= {} as any;
+        snapshot.camera!.transitionStyle = 'animate';
+        snapshot.camera!.transitionDurationInMs = 1000;
+        const entry: PluginStateSnapshotManager.Entry = PluginStateSnapshotManager.Entry(snapshot, { name: `Snapshot #${i}` });
+        plugin.managers.snapshot.add(entry);
+        firstSnapshot ??= snapshot;
+    }
+    if (firstSnapshot) {
+        await PluginCommands.State.Snapshots.Apply(plugin, { id: firstSnapshot.id });
     }
 }
 
