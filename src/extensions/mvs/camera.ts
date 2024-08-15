@@ -43,14 +43,19 @@ export async function suppressCameraAutoreset(plugin: PluginContext) {
 
 /** Set the camera based on a camera node params. */
 export async function setCamera(plugin: PluginContext, params: ParamsOfKind<MolstarTree, 'camera'>) {
+    const snapshot = cameraParamsToCameraSnapshot(plugin, params);
+    adjustSceneRadiusFactor(plugin, snapshot.target);
+    await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
+}
+
+export function cameraParamsToCameraSnapshot(plugin: PluginContext, params: ParamsOfKind<MolstarTree, 'camera'>): Partial<Camera.Snapshot> {
     const target = Vec3.create(...params.target);
     let position = Vec3.create(...params.position);
     if (plugin.canvas3d) position = fovAdjustedPosition(target, position, plugin.canvas3d.camera.state.mode, plugin.canvas3d.camera.state.fov);
     const up = Vec3.create(...params.up);
     Vec3.orthogonalize(up, Vec3.sub(_tmpVec, target, position), up);
     const snapshot: Partial<Camera.Snapshot> = { target, position, up, radius: Infinity }; // `radius: Infinity` avoids clipping (ensures covering the whole scene)
-    adjustSceneRadiusFactor(plugin, snapshot.target);
-    await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
+    return snapshot;
 }
 
 /** Focus the camera on the bounding sphere of a (sub)structure (or on the whole scene if `structureNodeSelector` is null).

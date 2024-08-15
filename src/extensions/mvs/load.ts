@@ -10,10 +10,9 @@ import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, 
 import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
-import { PluginState } from '../../mol-plugin/state';
 import { StateObjectSelector } from '../../mol-state';
 import { MolViewSpec } from './behavior';
-import { setCamera, setCanvas, setFocus, suppressCameraAutoreset } from './camera';
+import { cameraParamsToCameraSnapshot, setCamera, setCanvas, setFocus, suppressCameraAutoreset } from './camera';
 import { MVSAnnotationsProvider } from './components/annotation-prop';
 import { MVSAnnotationStructureComponent } from './components/annotation-structure-component';
 import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-prop';
@@ -21,7 +20,7 @@ import { CustomLabelProps, CustomLabelRepresentationProvider } from './component
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
 import { IsMVSModelProps, IsMVSModelProvider } from './components/is-mvs-model-prop';
 import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, UpdateTarget, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, loadTreeVirtual, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps } from './load-helpers';
-import { MVSData } from './mvs-data';
+import { MVSData, SnapshotMetadata } from './mvs-data';
 import { ParamsOfKind, SubTreeOfKind, validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
 import { MolstarNode, MolstarTree, MolstarTreeSchema } from './tree/molstar/molstar-tree';
@@ -39,15 +38,24 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: { r
         if (!mvsExtensionLoaded) throw new Error('MolViewSpec extension is not loaded.');
         // console.log(`MVS tree:\n${MVSData.toPrettyString(data)}`)
         if (data.kind === 'multiple') {
-            const molstarTrees: MolstarTree[] = [];
-            for (const snapshot of data.snapshots) {
+            const entries: PluginStateSnapshotManager.Entry[] = [];
+            for (let i = 0; i < data.snapshots.length; i++) {
+                const snapshot = data.snapshots[i];
+                const previousSnapshot = i > 0 ? data.snapshots[i - 1] : data.snapshots[data.snapshots.length - 1];
                 validateTree(MVSTreeSchema, snapshot.root, 'MVS');
                 if (options.sanityChecks) mvsSanityCheck(snapshot.root);
                 const molstarTree = convertMvsToMolstar(snapshot.root, options.sourceUrl);
                 validateTree(MolstarTreeSchema, molstarTree, 'Converted Molstar');
-                molstarTrees.push(molstarTree);
+                const entry = molstarTreeToEntry(plugin, molstarTree, { ...snapshot.metadata, previousTransitionDurationMs: previousSnapshot.metadata.transitionDurationMs }, options);
+                entries.push(entry);
             }
-            await loadMolstarTrees(plugin, molstarTrees, options);
+            plugin.managers.snapshot.clear();
+            for (const entry of entries) {
+                plugin.managers.snapshot.add(entry);
+            }
+            if (entries.length > 0) {
+                await PluginCommands.State.Snapshots.Apply(plugin, { id: entries[0].snapshot.id });
+            }
         } else {
             validateTree(MVSTreeSchema, data.root, 'MVS');
             if (options.sanityChecks) mvsSanityCheck(data.root);
@@ -85,24 +93,29 @@ async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, options
     }
 }
 
-async function loadMolstarTrees(plugin: PluginContext, trees: MolstarTree[], options?: { replaceExisting?: boolean, keepCamera?: boolean }) {
-    plugin.managers.snapshot.clear();
-    let firstSnapshot: PluginState.Snapshot | undefined = undefined;
-    for (let i = 0; i < trees.length; i++) {
-        const tree = trees[i];
-        const context: MolstarLoadingContext = {};
-        const snapshot = loadTreeVirtual(plugin, tree, MolstarLoadingActions, context, options);
-        snapshot.durationInMs = 3000;
-        snapshot.camera ??= {} as any;
-        snapshot.camera!.transitionStyle = 'animate';
-        snapshot.camera!.transitionDurationInMs = 1000;
-        const entry: PluginStateSnapshotManager.Entry = PluginStateSnapshotManager.Entry(snapshot, { name: `Snapshot #${i}` });
-        plugin.managers.snapshot.add(entry);
-        firstSnapshot ??= snapshot;
+function molstarTreeToEntry(plugin: PluginContext, tree: MolstarTree, metadata: SnapshotMetadata & { previousTransitionDurationMs?: number }, options?: { replaceExisting?: boolean, keepCamera?: boolean }) {
+    const context: MolstarLoadingContext = {};
+    const snapshot = loadTreeVirtual(plugin, tree, MolstarLoadingActions, context, options);
+    snapshot.camera ??= {} as any;
+    snapshot.camera!.transitionStyle = 'animate';
+    snapshot.camera!.transitionDurationInMs = metadata.previousTransitionDurationMs ?? 0;
+    snapshot.durationInMs = (metadata.lingerDurationMs ?? 24 * 60 * 60 * 1000) // we want to stop animation here, TODO how (Infinity doesn't work)
+        + (metadata.previousTransitionDurationMs ?? 0);
+
+    if (context.focus?.kind === 'camera') {
+        const currentCameraSnapshot = plugin.canvas3d!.camera.getSnapshot();
+        const cameraSnapshot = cameraParamsToCameraSnapshot(plugin, context.focus.params);
+        snapshot.camera!.current = { ...currentCameraSnapshot, ...cameraSnapshot };
+    } else if (context.focus?.kind === 'focus') {
+        throw new Error('NotImplementedError: Camera specification with `focus` node not implemented for multi-state MVS');
+        // await setFocus(plugin, context.focus.focusTarget, context.focus.params);
+    } else {
+        throw new Error('NotImplementedError: Implicit camera specification not implemented for multi-state MVS');
+        // await setFocus(plugin, undefined, undefined);
     }
-    if (firstSnapshot) {
-        await PluginCommands.State.Snapshots.Apply(plugin, { id: firstSnapshot.id });
-    }
+    const entry: PluginStateSnapshotManager.Entry = PluginStateSnapshotManager.Entry(snapshot, { key: metadata.key, name: metadata.title, description: metadata.description });
+    // TODO escape markdown if description_format==='plaintext'
+    return entry;
 }
 
 /** Mutable context for loading a `MolstarTree`, available throughout the loading. */

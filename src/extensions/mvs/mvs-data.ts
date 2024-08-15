@@ -26,7 +26,7 @@ interface FormatMetadata {
     description_format?: 'markdown' | 'plaintext',
 }
 /** Metadata describing details of an individual state/snapshot */
-interface SnapshotMetadata {
+export interface SnapshotMetadata {
     /** Detailed description of this view */
     description?: string,
     /** Format of the description */
