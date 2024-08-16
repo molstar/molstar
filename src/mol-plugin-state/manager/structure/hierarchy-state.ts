@@ -157,6 +157,7 @@ interface BuildState {
     currentModel?: ModelRef,
     currentStructure?: StructureRef,
     currentComponent?: StructureComponentRef,
+    parentComponents?: StructureComponentRef[],
 
     changed: boolean,
     added: Set<StateTransform.Ref>
@@ -263,13 +264,21 @@ const Mapping: [TestCell, ApplyRef, LeaveRef][] = [
 
     // Component
     [(cell, state) => {
-        if (state.currentComponent || !state.currentStructure || cell.transform.transformer.definition.isDecorator) return false;
+        if (!state.currentStructure || cell.transform.transformer.definition.isDecorator) return false;
         return SO.Molecule.Structure.is(cell.obj);
     }, (state, cell) => {
         if (state.currentStructure) {
+            if (state.currentComponent) {
+                if (!state.parentComponents) state.parentComponents = [];
+                state.parentComponents.push(state.currentComponent);
+            }
             state.currentComponent = createOrUpdateRefList(state, cell, state.currentStructure.components, StructureComponentRef, cell, state.currentStructure);
         }
-    }, state => state.currentComponent = void 0],
+    }, state => {
+        if (state.parentComponents && state.parentComponents.length > 0) {
+            state.currentComponent = state.parentComponents.pop();
+        } else state.currentComponent = void 0;
+    }],
 
     // Component Representation
     [(cell, state) => {
