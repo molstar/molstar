@@ -30,12 +30,13 @@ import { Grid } from '../../../mol-model/volume';
 import { createEmptySubstance } from '../substance-data';
 import { createEmptyEmissive } from '../emissive-data';
 import { ControlPoint, ControlPointData } from '../../../mol-plugin-ui/controls/line-graph/line-graph-component';
-import { getRandomColor } from '../../../mol-util/color/names';
-import { defaultControlPoints } from '../../../mol-theme/color/ranges';
+import { ColorNames, getRandomColor } from '../../../mol-util/color/names';
 
 const VolumeBox = Box();
 
-export function generateDefaultControlPoints() {
+export const defaultControlPoints = generateDefaultControlPoints(ColorNames.black);
+
+export function generateDefaultControlPoints(color?: Color) {
     const vec2data = [
         Vec2.create(0.19, 0.0), Vec2.create(0.2, 0.05), Vec2.create(0.25, 0.05), Vec2.create(0.26, 0.0),
         Vec2.create(0.79, 0.0), Vec2.create(0.8, 0.05), Vec2.create(0.85, 0.05), Vec2.create(0.86, 0.0),
@@ -50,7 +51,7 @@ export function generateDefaultControlPoints() {
             data: data,
             id: UUID.create22(),
             // need random color
-            color: getRandomColor(),
+            color: color !== undefined ? color : getRandomColor(),
             index: i + 1
         };
         points.push(point);

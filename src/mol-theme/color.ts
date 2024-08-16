@@ -6,7 +6,7 @@
 
 import { Color } from '../mol-util/color';
 import { Location } from '../mol-model/location';
-import { ColorType, ColorTypeDirect, ColorTypeGrid, ColorTypeLocation, ColorTypeRanges } from '../mol-geo/geometry/color-data';
+import { ColorType, ColorTypeDirect, ColorTypeGrid, ColorTypeLocation, ColorTypeControlPoints } from '../mol-geo/geometry/color-data';
 import { CarbohydrateSymbolColorThemeProvider } from './color/carbohydrate-symbol';
 import { UniformColorThemeProvider } from './color/uniform';
 import { deepEqual } from '../mol-util';
@@ -44,7 +44,7 @@ import { VolumeSegmentColorThemeProvider } from './color/volume-segment';
 import { ExternalVolumeColorThemeProvider } from './color/external-volume';
 import { ColorThemeCategory } from './color/categories';
 import { CartoonColorThemeProvider } from './color/cartoon';
-import { RangesColorThemeProvider } from './color/ranges';
+import { ControlPointsThemeProvider } from './color/control-points';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -95,7 +95,7 @@ type ColorTheme<P extends PD.Params, G extends ColorType = ColorTypeLocation> =
     G extends ColorTypeLocation ? ColorThemeLocation<P> :
         G extends ColorTypeGrid ? ColorThemeGrid<P> :
             G extends ColorTypeDirect ? ColorThemeDirect<P> :
-                G extends ColorTypeRanges ? ColorThemeRanges<P> : never
+                G extends ColorTypeControlPoints ? ColorThemeRanges<P> : never
 
 namespace ColorTheme {
     export const Category = ColorThemeCategory;
@@ -167,7 +167,7 @@ namespace ColorTheme {
         'volume-segment': VolumeSegmentColorThemeProvider,
         'volume-value': VolumeValueColorThemeProvider,
         'external-volume': ExternalVolumeColorThemeProvider,
-        'ranges': RangesColorThemeProvider
+        'control-points': ControlPointsThemeProvider
     };
     type _BuiltIn = typeof BuiltIn
     export type BuiltIn = keyof _BuiltIn

@@ -147,7 +147,7 @@ export namespace ParamDefinition {
         return setInfo<ColorList>({ type: 'color-list', presetKind: info?.presetKind || 'all', defaultValue: def, offsets: !!info?.offsets }, info);
     }
 
-    export function ColorListRanges(defaultValue: { kind: 'interpolate' | 'set', colors: ColorListRangesEntry[] }, info?: Info & { presetKind?: ColorList['presetKind'], offsets?: boolean }): ColorListRanges {
+    export function ColorListControlPoints(defaultValue: { kind: 'interpolate' | 'set', colors: ColorListRangesEntry[] }, info?: Info & { presetKind?: ColorList['presetKind'], offsets?: boolean }): ColorListRanges {
         const def = defaultValue;
         return setInfo<ColorListRanges>({ type: 'color-list-ranges', presetKind: info?.presetKind || 'all', defaultValue: def, offsets: !!info?.offsets }, info);
     }

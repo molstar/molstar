@@ -47,6 +47,7 @@ import { MarkerAction, MarkerActions } from '../../mol-util/marker-action';
 import { Emissive } from '../../mol-theme/emissive';
 import { ControlPoint, cpsToColorListRangesEntry } from '../../mol-plugin-ui/controls/line-graph/line-graph-component';
 import { ColorListRangesEntry } from '../../mol-util/color/color';
+import { ControlPointsThemeName } from '../../mol-theme/color/control-points';
 
 export { StructureRepresentation3D };
 export { ExplodeStructureRepresentation3D };
@@ -1013,14 +1014,15 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Volume Representation', async ctx => {
-            if (params.type.name !== 'direct-volume' && params.colorTheme.name === 'ranges') {
+            console.log('Apply Volume Representation');
+            if (params.type.name !== 'direct-volume' && params.colorTheme.name === ControlPointsThemeName) {
                 throw Error('Missing direct volume');
             }
-            if (params.type.name === 'direct-volume' && params.colorTheme.name === 'ranges') {
-                params.type.params.lineGraphData.colored = true;
+            if (params.type.name === 'direct-volume' && params.colorTheme.name === ControlPointsThemeName) {
+                // params.type.params.lineGraphData.colored = true;
                 const controlPoints: ControlPoint[] = params.type.params.lineGraphData;
                 const colors = cpsToColorListRangesEntry(controlPoints);
-                params.colorTheme.params.rangesColorList.colors = colors;
+                params.colorTheme.params.controlPointsColorList.colors = colors;
             }
             const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset };
             const provider = plugin.representation.volume.registry.get(params.type.name);
@@ -1040,17 +1042,16 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
                 oldProvider.ensureCustomProperties?.detach(a.data);
                 return StateTransformer.UpdateResult.Recreate;
             };
-            if (newParams.type.name !== 'direct-volume' && newParams.colorTheme.name === 'ranges') {
+            if (newParams.type.name !== 'direct-volume' && newParams.colorTheme.name === ControlPointsThemeName) {
                 throw Error('Missing direct volume');
             };
-            if (newParams.type.name === 'direct-volume' && newParams.colorTheme.name === 'ranges') {
-                newParams.type.params.lineGraphData.colored = true;
+            if (newParams.type.name === 'direct-volume' && newParams.colorTheme.name === ControlPointsThemeName) {
                 const controlPoints: ControlPoint[] = newParams.type.params.lineGraphData;
-                if (newParams.colorTheme.params.rangesColorList && oldParams.colorTheme.params.rangesColorList) {
-                    if (newParams.colorTheme.params.rangesColorList.colors !== oldParams.colorTheme.params.rangesColorList.colors) {
+                if (newParams.colorTheme.params.controlPointsColorList && oldParams.colorTheme.params.controlPointsColorList) {
+                    if (newParams.colorTheme.params.controlPointsColorList.colors !== oldParams.colorTheme.params.controlPointsColorList.colors) {
                         const newPoints: ControlPoint[] = [];
 
-                        for (const i of newParams.colorTheme.params.rangesColorList.colors) {
+                        for (const i of newParams.colorTheme.params.controlPointsColorList.colors) {
                             const item: ColorListRangesEntry = i;
                             const id = item[2];
                             const targetPoint = controlPoints.find(p => p.id === id);
@@ -1063,9 +1064,9 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
 
                         newParams.type.params.lineGraphData = newPoints;
                     }
-                }
 
-                newParams.colorTheme.params.rangesColorList.colors = cpsToColorListRangesEntry(controlPoints);
+                    newParams.colorTheme.params.controlPointsColorList.colors = cpsToColorListRangesEntry(controlPoints);
+                }
             }
 
             const props = { ...b.data.repr.props, ...newParams.type.params };

@@ -20,6 +20,18 @@ import { UUID } from '../../../mol-util';
 import { ParamOnChange } from '../parameters';
 import { ColorListRangesEntry } from '../../../mol-util/color/color';
 
+export function areControlPointsColorsSame(newControlPoints: ControlPoint[], oldControlPoints: ControlPoint[]) {
+    const newSorted = newControlPoints.sort((a, b) => a.index - b.index);
+    const oldSorted = oldControlPoints.sort((a, b) => a.index - b.index);
+    debugger;
+    for (let i = 0, il = newSorted.length; i < il; ++i) {
+        const newPoint = newSorted[i];
+        const oldPoint = oldSorted[i];
+        if (newPoint.color !== oldPoint.color) {
+            return false;
+        }
+    }
+};
 
 export function cpsToColorListRangesEntry(controlPoints: ControlPoint[]): ColorListRangesEntry[] {
     const colors: ColorListRangesEntry[] = [];
@@ -47,7 +59,7 @@ interface LineGraphComponentState {
     copyPoint: any,
     canSelectMultiple: boolean,
     showColorPicker: boolean,
-    colored: boolean,
+    // colored: boolean,
     clickedPointId?: UUID
 }
 
@@ -105,7 +117,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             copyPoint: undefined,
             canSelectMultiple: false,
             showColorPicker: false,
-            colored: this.props.colored
+            // colored: this.props.colored
         };
         this.height = 400;
         this.width = 600;
@@ -177,9 +189,9 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
 
     componentDidMount() {
         this.gElement = document.getElementsByClassName('ghost-points')[0] as SVGElement;
-        this.setState({
-            colored: this.props.colored
-        });
+        // this.setState({
+        //     colored: this.props.colored
+        // });
     }
 
     private change(points: ControlPoint[]) {
@@ -209,19 +221,12 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         // TODO: SET canSelectMultiple = fasle
     };
 
-    setColored() {
-        this.setState({ colored: true });
-    }
-
     private handleClick = (point: ControlPoint) => (event: any) => {
         this.setState({ clickedPointId: point.id });
-        if (this.state.colored) {
-            if (this.state.showColorPicker) {
-                // TODO: what should happen there?
-            } else {
-                this.toggleColorPicker();
-            }
-
+        if (this.state.showColorPicker) {
+            // TODO: what should happen there?
+        } else {
+            this.toggleColorPicker();
         }
     };
 
@@ -464,10 +469,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         for (let i = 0; i < this.state.points.length; i++) {
             if (i !== 0 && i !== this.state.points.length - 1) {
                 const { data, color, id, index } = this.state.points[i];
-                let finalColor = color;
-                if (!this.state.colored) {
-                    finalColor = ColorNames.black;
-                };
+                const finalColor = color;
                 point = this.normalizePoint(data);
                 points.push(<PointComponent
                     index={index}
