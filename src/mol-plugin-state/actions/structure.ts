@@ -75,7 +75,10 @@ const DownloadStructure = StateAction.build({
                     options
                 }, { isFlat: true, label: 'SWISS-MODEL', description: 'Loads the best homology model or experimental structure' }),
                 'alphafolddb': PD.Group({
-                    id: PD.Text('Q8W3K0', { label: 'UniProtKB AC(s)', description: 'One or more comma/space separated ACs.' }),
+                    provider: PD.Group({
+                        id: PD.Text('Q8W3K0', { label: 'UniProtKB AC(s)', description: 'One or more comma/space separated ACs.' }),
+                        encoding: PD.Select('bcif', PD.arrayToOptions(['cif', 'bcif'] as const)),
+                    }, { pivot: 'id' }),
                     options
                 }, { isFlat: true, label: 'AlphaFold DB', description: 'Loads the predicted model if available' }),
                 'modelarchive': PD.Group({
@@ -140,12 +143,19 @@ const DownloadStructure = StateAction.build({
             format = 'pdb';
             break;
         case 'alphafolddb':
-            downloadParams = await getDownloadParams(src.params.id, async id => {
-                const url = `https://www.alphafold.ebi.ac.uk/api/prediction/${id.toUpperCase()}`;
-                const info = await plugin.runTask(plugin.fetch({ url, type: 'json' }));
-                if (Array.isArray(info) && info.length > 0) return info[0].cifUrl;
-                throw new Error(`No AlphaFold DB entry for '${id}'`);
-            }, id => `AlphaFold DB: ${id}`, false);
+            downloadParams = await getDownloadParams(src.params.provider.id,
+                async id => {
+                    const url = `https://www.alphafold.ebi.ac.uk/api/prediction/${id.toUpperCase()}`;
+                    const info = await plugin.runTask(plugin.fetch({ url, type: 'json' }));
+                    if (Array.isArray(info) && info.length > 0) {
+                        const prop = src.params.provider.encoding === 'bcif' ? 'bcifUrl' : 'cifUrl';
+                        return info[0][prop];
+                    }
+                    throw new Error(`No AlphaFold DB entry for '${id}'`);
+                },
+                id => `AlphaFold DB: ${id}`,
+                src.params.provider.encoding === 'bcif'
+            );
             asTrajectory = !!src.params.options.asTrajectory;
             format = 'mmcif';
             break;
@@ -199,6 +209,7 @@ const DownloadStructure = StateAction.build({
 }));
 
 async function getDownloadParams(src: string, url: (id: string) => string | Promise<string>, label: (id: string) => string, isBinary: boolean): Promise<StateTransformer.Params<Download>[]> {
+    console.log(src);
     const ids = src.split(/[,\s]/).map(id => id.trim()).filter(id => !!id && (id.length >= 4 || /^[1-9][0-9]*$/.test(id)));
     const ret: StateTransformer.Params<Download>[] = [];
     for (const id of ids) {
