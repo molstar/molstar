@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -40,7 +40,7 @@ export const PdbDownloadProvider = {
         encoding: PD.Select('bcif', PD.arrayToOptions(['cif', 'bcif'] as const)),
     }, { label: 'RCSB PDB', isFlat: true }),
     'pdbe': PD.Group({
-        variant: PD.Select('updated-bcif', [['updated-bcif', 'Updated (bcif)'], ['updated', 'Updated'], ['archival', 'Archival']] as ['updated' | 'updtaed-bcif' | 'archival', string][]),
+        variant: PD.Select('updated-bcif', [['updated-bcif', 'Updated (bcif)'], ['updated', 'Updated'], ['archival', 'Archival']] as ['updated' | 'updated-bcif' | 'archival', string][]),
     }, { label: 'PDBe', isFlat: true }),
     'pdbj': PD.EmptyGroup({ label: 'PDBj' }),
 };
