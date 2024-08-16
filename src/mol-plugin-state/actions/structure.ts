@@ -125,14 +125,21 @@ const DownloadStructure = StateAction.build({
             asTrajectory = !!src.params.options.asTrajectory;
             break;
         case 'pdb-dev':
+            const map = (id: string) => id.startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`;
             downloadParams = await getDownloadParams(src.params.provider.id,
                 id => {
-                    const nId = id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`;
+                    // 4 character PDB id, TODO: support extended PDB ID
+                    if (id.match(/^[1-9][A-Z0-9]{3}$/i) !== null) {
+                        return src.params.provider.encoding === 'bcif'
+                            ? `https://pdb-dev.wwpdb.org/bcif/${id.toLowerCase()}.bcif`
+                            : `https://pdb-dev.wwpdb.org/cif/${id.toLowerCase()}.cif`;
+                    }
+                    const nId = map(id.toUpperCase());
                     return src.params.provider.encoding === 'bcif'
-                        ? `https://pdb-dev.wwpdb.org/bcif/${nId.toUpperCase()}.bcif`
-                        : `https://pdb-dev.wwpdb.org/cif/${nId.toUpperCase()}.cif`;
+                        ? `https://pdb-dev.wwpdb.org/bcif/${nId}.bcif`
+                        : `https://pdb-dev.wwpdb.org/cif/${nId}.cif`;
                 },
-                id => id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`,
+                id => { const nId = id.toUpperCase(); return nId.match(/^[1-9][A-Z0-9]{3}$/) ? `PDB-Dev: ${nId}` : map(nId); },
                 src.params.provider.encoding === 'bcif'
             );
             asTrajectory = !!src.params.options.asTrajectory;
@@ -209,7 +216,6 @@ const DownloadStructure = StateAction.build({
 }));
 
 async function getDownloadParams(src: string, url: (id: string) => string | Promise<string>, label: (id: string) => string, isBinary: boolean): Promise<StateTransformer.Params<Download>[]> {
-    console.log(src);
     const ids = src.split(/[,\s]/).map(id => id.trim()).filter(id => !!id && (id.length >= 4 || /^[1-9][0-9]*$/.test(id)));
     const ret: StateTransformer.Params<Download>[] = [];
     for (const id of ids) {
