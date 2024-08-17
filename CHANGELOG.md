@@ -15,6 +15,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - PDB-Dev: Add support for 4-character PDB IDs (e.g., 8ZZC)
 - Fix polymer-gap visual coloring with cartoon theme
 - Add formal-charge color theme (#328)
+- Add more coloring options to cartoon theme
 
 ## [v4.5.0] - 2024-07-28
 
