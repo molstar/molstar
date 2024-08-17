@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -80,9 +80,10 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
 
         const startCap = v.secStrucFirst || v.coarseBackboneFirst || v.first;
         const endCap = v.secStrucLast || v.coarseBackboneLast || v.last;
+        const hasRoundCap = isHelix && !v.isCoarseBackbone && tubularHelices && roundCap;
 
         let segmentCount = linearSegments;
-        if (!(isHelix && !v.isCoarseBackbone && tubularHelices && roundCap)) {
+        if (!hasRoundCap) {
             if (v.initial) {
                 segmentCount = Math.max(Math.round(linearSegments * shift), 1);
                 const offset = linearSegments - segmentCount;
@@ -101,6 +102,7 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
                 Vec3.toArray(tmpV1, curvePoints, segmentCount * 3);
             }
         }
+
         if (v.initial === true && v.final === true) {
             addSphere(builderState, v.p2, w1 * 2, detail);
         } else if (isSheet) {
@@ -117,10 +119,9 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
                 addSheet(builderState, curvePoints, normalVectors, binormalVectors, segmentCount, widthValues, heightValues, arrowHeight, startCap, endCap);
             }
         } else {
-            let h0: number, h1: number, h2: number, roundCapFlag = false;
+            let h0: number, h1: number, h2: number;
             if (isHelix && !v.isCoarseBackbone) {
                 if (tubularHelices) {
-                    roundCapFlag = roundCap;
                     w0 *= aspectRatio * 1.5;
                     w1 *= aspectRatio * 1.5;
                     w2 *= aspectRatio * 1.5;
@@ -162,7 +163,7 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
             } else if (radialSegments === 4) {
                 addSheet(builderState, curvePoints, normals, binormals, segmentCount, widthValues, heightValues, 0, startCap, endCap);
             } else if (h1 === w1) {
-                addTube(builderState, curvePoints, normals, binormals, segmentCount, radialSegments, widthValues, heightValues, startCap, endCap, 'elliptical', roundCapFlag);
+                addTube(builderState, curvePoints, normals, binormals, segmentCount, radialSegments, widthValues, heightValues, startCap, endCap, 'elliptical', hasRoundCap);
             } else if (profile === 'square') {
                 addSheet(builderState, curvePoints, normals, binormals, segmentCount, widthValues, heightValues, 0, startCap, endCap);
             } else {

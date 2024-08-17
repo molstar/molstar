@@ -5,7 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Add round caps option on tubular alpha helices
+- Add round-caps option on tubular alpha helices
 - Fix missing Sequence UI update on state object removal (#1219)
 - Improved prmtop format support (CTITLE, %COMMENT)
 - Avoid calculating bonds for water units when `ignoreHydrogens` is on
