@@ -10,6 +10,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Avoid calculating bonds for water units when `ignoreHydrogens` is on
 - Add `Water` trait to `Unit`
 - Improve entity-id coloring for structures with multiple models from the same source (#1221)
+- AlphaFold DB: Add BinaryCIF support when fetching data
+- PDB-Dev: Add support for 4-character PDB IDs (e.g., 8ZZC)
 
 ## [v4.5.0] - 2024-07-28
 

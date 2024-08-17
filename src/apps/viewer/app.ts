@@ -318,7 +318,10 @@ export class Viewer {
             source: {
                 name: 'alphafolddb' as const,
                 params: {
-                    id: afdb,
+                    provider: {
+                        id: afdb,
+                        encoding: 'bcif'
+                    },
                     options: {
                         ...params.source.params.options,
                         representation: 'preset-structure-representation-ma-quality-assessment-plddt'
