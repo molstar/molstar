@@ -16,6 +16,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix polymer-gap visual coloring with cartoon theme
 - Add formal-charge color theme (#328)
 - Add more coloring options to cartoon theme
+- Use `CompressionStream` Browser API when available
 
 ## [v4.5.0] - 2024-07-28
 

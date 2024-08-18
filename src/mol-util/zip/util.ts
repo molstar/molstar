@@ -1,11 +1,24 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
  * ported from https://github.com/photopea/UZIP.js/blob/master/UZIP.js
  * MIT License, Copyright (c) 2018 Photopea
  */
+
+let hasCompressionStreamSupport: boolean | undefined = undefined;
+export function checkCompressionStreamSupport(format: 'deflate' | 'deflate-raw' | 'gzip'): boolean {
+    if (hasCompressionStreamSupport === undefined) {
+        try {
+            new CompressionStream(format);
+            hasCompressionStreamSupport = true;
+        } catch (e) {
+            hasCompressionStreamSupport = false;
+        }
+    }
+    return hasCompressionStreamSupport;
+}
 
 export const U = (function () {
     const u16 = Uint16Array, u32 = Uint32Array;
