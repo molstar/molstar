@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -180,9 +180,6 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
         };
 
         const structure = structureCell.obj!.data;
-        const cartoonProps = {
-            sizeFactor: structure.isCoarseGrained ? 0.8 : 0.2,
-        };
 
         // TODO make configurable
         const waterType = (components.water?.obj?.data?.elementCount || 0) > 50_000 ? 'line' : 'ball-and-stick';
@@ -191,7 +188,7 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
         const { update, builder, typeParams, color, symmetryColor, symmetryColorParams, globalColorParams, ballAndStickColor } = reprBuilder(plugin, params, structure);
 
         const representations = {
-            polymer: builder.buildRepresentation(update, components.polymer, { type: 'cartoon', typeParams: { ...typeParams, ...cartoonProps }, color: symmetryColor, colorParams: symmetryColorParams }, { tag: 'polymer' }),
+            polymer: builder.buildRepresentation(update, components.polymer, { type: 'cartoon', typeParams, color: symmetryColor, colorParams: symmetryColorParams }, { tag: 'polymer' }),
             ligand: builder.buildRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams, color, colorParams: ballAndStickColor }, { tag: 'ligand' }),
             nonStandard: builder.buildRepresentation(update, components.nonStandard, { type: 'ball-and-stick', typeParams, color, colorParams: ballAndStickColor }, { tag: 'non-standard' }),
             branchedBallAndStick: builder.buildRepresentation(update, components.branched, { type: 'ball-and-stick', typeParams: { ...typeParams, alpha: 0.3 }, color, colorParams: ballAndStickColor }, { tag: 'branched-ball-and-stick' }),
@@ -226,9 +223,6 @@ const proteinAndNucleic = StructureRepresentationPresetProvider({
         };
 
         const structure = structureCell.obj!.data;
-        const cartoonProps = {
-            sizeFactor: structure.isCoarseGrained ? 0.8 : 0.2,
-        };
         const gaussianProps = {
             radiusOffset: structure.isCoarseGrained ? 2 : 0,
             smoothness: structure.isCoarseGrained ? 1.0 : 1.5,
@@ -237,7 +231,7 @@ const proteinAndNucleic = StructureRepresentationPresetProvider({
         const { update, builder, typeParams, symmetryColor, symmetryColorParams } = reprBuilder(plugin, params, structure);
 
         const representations = {
-            protein: builder.buildRepresentation(update, components.protein, { type: 'cartoon', typeParams: { ...typeParams, ...cartoonProps }, color: symmetryColor, colorParams: symmetryColorParams }, { tag: 'protein' }),
+            protein: builder.buildRepresentation(update, components.protein, { type: 'cartoon', typeParams, color: symmetryColor, colorParams: symmetryColorParams }, { tag: 'protein' }),
             nucleic: builder.buildRepresentation(update, components.nucleic, { type: 'gaussian-surface', typeParams: { ...typeParams, ...gaussianProps }, color: symmetryColor, colorParams: symmetryColorParams }, { tag: 'nucleic' })
         };
 
@@ -317,14 +311,11 @@ const polymerCartoon = StructureRepresentationPresetProvider({
         };
 
         const structure = structureCell.obj!.data;
-        const cartoonProps = {
-            sizeFactor: structure.isCoarseGrained ? 0.8 : 0.2
-        };
 
         const { update, builder, typeParams, symmetryColor, symmetryColorParams } = reprBuilder(plugin, params, structure);
 
         const representations = {
-            polymer: builder.buildRepresentation(update, components.polymer, { type: 'cartoon', typeParams: { ...typeParams, ...cartoonProps }, color: symmetryColor, colorParams: symmetryColorParams }, { tag: 'polymer' })
+            polymer: builder.buildRepresentation(update, components.polymer, { type: 'cartoon', typeParams, color: symmetryColor, colorParams: symmetryColorParams }, { tag: 'polymer' })
         };
 
         await update.commit({ revertOnError: true });
@@ -449,15 +440,12 @@ const autoLod = StructureRepresentationPresetProvider({
         };
 
         const structure = structureCell.obj!.data;
-        const cartoonProps = {
-            sizeFactor: structure.isCoarseGrained ? 0.8 : 0.2,
-        };
 
         const { update, builder, typeParams, color, symmetryColor, symmetryColorParams, ballAndStickColor } = reprBuilder(plugin, params, structure);
 
         const representations = {
             gaussianSurface: builder.buildRepresentation(update, components.all, { type: 'gaussian-surface', typeParams: { ...typeParams, lod: Vec3.create(30, 10000000, 100) }, color: symmetryColor, colorParams: symmetryColorParams }, { tag: 'gaussian-surface' }),
-            cartoon: builder.buildRepresentation(update, components.all, { type: 'cartoon', typeParams: { ...typeParams, ...cartoonProps, lod: Vec3.create(-20, 300, 100) }, color: symmetryColor, colorParams: symmetryColorParams }, { tag: 'cartoon' }),
+            cartoon: builder.buildRepresentation(update, components.all, { type: 'cartoon', typeParams: { ...typeParams, lod: Vec3.create(-20, 300, 100) }, color: symmetryColor, colorParams: symmetryColorParams }, { tag: 'cartoon' }),
             ballAndStick: builder.buildRepresentation(update, components.all, { type: 'ball-and-stick', typeParams: { ...typeParams, lod: Vec3.create(-20, 40, 20) }, color, colorParams: ballAndStickColor }, { tag: 'ball-and-stick' }),
         };
 

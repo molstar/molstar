@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -251,16 +251,22 @@ export namespace Model {
         }
     };
     /**
-     * Has typical coarse grained atom names (BB, SC1) or less than three times as many
-     * atoms as polymer residues (C-alpha only models).
+     * Mark as coarse grained if any of the following conditions are met:
+     * - has typical coarse grained atom names (BB, SC1)
+     * - has less than three times as many atoms as polymer residues (C-alpha only models)
+     * - has no standard sidechain atoms
      */
     export function isCoarseGrained(model: Model): boolean {
         let coarseGrained = CoarseGrained.get(model);
         if (coarseGrained === undefined) {
             let polymerResidueCount = 0;
-            const { polymerType } = model.atomicHierarchy.derived.residue;
+            let polymerDirectionCount = 0;
+            const { polymerType, directionToElementIndex } = model.atomicHierarchy.derived.residue;
             for (let i = 0; i < polymerType.length; ++i) {
-                if (polymerType[i] !== PolymerType.NA) polymerResidueCount += 1;
+                if (polymerType[i] !== PolymerType.NA) {
+                    polymerResidueCount += 1;
+                    if (directionToElementIndex[i] !== -1) polymerDirectionCount += 1;
+                }
             }
 
             // check for coarse grained atom names
@@ -273,11 +279,16 @@ export namespace Model {
                 if (hasBB && hasSC1) break;
             }
 
-            coarseGrained = (hasBB && hasSC1) || (
-                polymerResidueCount && atomCount
-                    ? atomCount / polymerResidueCount < 3
-                    : false
-            );
+            coarseGrained = false;
+            if (atomCount > 0 && polymerResidueCount > 0) {
+                if (hasBB && hasSC1) {
+                    coarseGrained = true;
+                } else if (atomCount / polymerResidueCount < 3) {
+                    coarseGrained = true;
+                } else if (polymerDirectionCount === 0) {
+                    coarseGrained = true;
+                }
+            }
             CoarseGrained.set(model, coarseGrained);
         }
         return coarseGrained;

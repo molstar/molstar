@@ -80,7 +80,7 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
 
         const startCap = v.secStrucFirst || v.coarseBackboneFirst || v.first;
         const endCap = v.secStrucLast || v.coarseBackboneLast || v.last;
-        const hasRoundCap = isHelix && !v.isCoarseBackbone && tubularHelices && roundCap;
+        const hasRoundCap = isHelix && tubularHelices && roundCap;
 
         let segmentCount = linearSegments;
         if (!hasRoundCap) {
@@ -120,7 +120,7 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
             }
         } else {
             let h0: number, h1: number, h2: number;
-            if (isHelix && !v.isCoarseBackbone) {
+            if (isHelix) {
                 if (tubularHelices) {
                     w0 *= aspectRatio * 1.5;
                     w1 *= aspectRatio * 1.5;
@@ -134,7 +134,7 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
                     h1 = w1 * aspectRatio;
                     h2 = w2 * aspectRatio;
                 }
-            } else if (isNucleicType && !v.isCoarseBackbone) {
+            } else if (isNucleicType) {
                 h0 = w0 * aspectRatio;
                 h1 = w1 * aspectRatio;
                 h2 = w2 * aspectRatio;
@@ -146,8 +146,8 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
 
             interpolateSizes(state, w0, w1, w2, h0, h1, h2, shift);
 
-            const [normals, binormals] = isNucleicType && !v.isCoarseBackbone ? [binormalVectors, normalVectors] : [normalVectors, binormalVectors];
-            if (isNucleicType && !v.isCoarseBackbone) {
+            const [normals, binormals] = isNucleicType ? [binormalVectors, normalVectors] : [normalVectors, binormalVectors];
+            if (isNucleicType) {
                 // TODO: find a cleaner way to swap normal and binormal for nucleic types
                 for (let i = 0, il = normals.length; i < il; i++) normals[i] *= -1;
             }
@@ -155,7 +155,7 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
             const profile = isNucleicType ? nucleicProfile : helixProfile;
 
             if (radialSegments === 2) {
-                if (isNucleicType && !v.isCoarseBackbone) {
+                if (isNucleicType) {
                     addRibbon(builderState, curvePoints, normals, binormals, segmentCount, heightValues, widthValues, 0);
                 } else {
                     addRibbon(builderState, curvePoints, normals, binormals, segmentCount, widthValues, heightValues, 0);
