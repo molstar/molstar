@@ -17,6 +17,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add formal-charge color theme (#328)
 - Add more coloring options to cartoon theme
 - Add `pdbx_structure_determination_methodology` mmcif field and `Model` helpers
+- Fix cartoon representation not updated when secondary structure changes
 
 ## [v4.5.0] - 2024-07-28
 

@@ -214,6 +214,10 @@ export function PolymerTraceVisual(materialId: number): UnitsVisual<PolymerTrace
                 if (state.info.secondaryStructureHash !== undefined) state.createGeometry = true;
                 state.info.secondaryStructureHash = secondaryStructureHash;
             }
+        },
+        initUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerTraceParams>, newTheme: Theme, newStructureGroup: StructureGroup) => {
+            const secondaryStructureHash = SecondaryStructureProvider.get(newStructureGroup.structure).version;
+            state.info.secondaryStructureHash = secondaryStructureHash;
         }
     }, materialId);
 }

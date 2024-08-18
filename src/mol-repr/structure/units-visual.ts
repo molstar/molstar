@@ -61,6 +61,7 @@ interface UnitsVisualBuilder<P extends StructureParams, G extends Geometry> {
     getLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number): Loci
     eachLocation(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean, isMarking: boolean): boolean
     setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup): void
+    initUpdateState?: (state: VisualUpdateState, newProps: PD.Values<P>, newTheme: Theme, newStructureGroup: StructureGroup) => void
     mustRecreate?: (structureGroup: StructureGroup, props: PD.Values<P>) => boolean
     processValues?: (values: RenderObjectValues<G['kind']>, geometry: G, props: PD.Values<P>, theme: Theme, webgl?: WebGLContext) => void
     dispose?: (geometry: G) => void
@@ -71,7 +72,7 @@ interface UnitsVisualGeometryBuilder<P extends StructureParams, G extends Geomet
 }
 
 export function UnitsVisual<G extends Geometry, P extends StructureParams & Geometry.Params<G>>(builder: UnitsVisualGeometryBuilder<P, G>, materialId: number): UnitsVisual<P> {
-    const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState, mustRecreate, processValues, dispose } = builder;
+    const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState, initUpdateState, mustRecreate, processValues, dispose } = builder;
     const { createEmpty: createEmptyGeometry, updateValues, updateBoundingSphere, updateRenderableState, createPositionIterator } = builder.geometryUtils;
     const updateState = VisualUpdateState.create();
     const previousMark: Visual.PreviousMark = { loci: EmptyLoci, action: MarkerAction.None, status: -1 };
@@ -103,6 +104,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         VisualUpdateState.reset(updateState);
 
         if (!renderObject || !currentStructureGroup) {
+            initUpdateState?.(updateState, newProps, newTheme, newStructureGroup);
             // console.log('create new');
             updateState.createNew = true;
             updateState.createGeometry = true;
