@@ -378,6 +378,33 @@ export namespace Model {
         return false;
     }
 
+    export function isExperimental(model: Model): boolean {
+        if (!MmcifFormat.is(model.sourceData)) return false;
+        const { db } = model.sourceData.data;
+        for (let i = 0; i < db.struct.pdbx_structure_determination_methodology.rowCount; i++) {
+            if (db.struct.pdbx_structure_determination_methodology.value(i).toLowerCase() === 'experimental') return true;
+        }
+        return false;
+    }
+
+    export function isIntegrative(model: Model): boolean {
+        if (!MmcifFormat.is(model.sourceData)) return false;
+        const { db } = model.sourceData.data;
+        for (let i = 0; i < db.struct.pdbx_structure_determination_methodology.rowCount; i++) {
+            if (db.struct.pdbx_structure_determination_methodology.value(i).toLowerCase() === 'integrative') return true;
+        }
+        return false;
+    }
+
+    export function isComputational(model: Model): boolean {
+        if (!MmcifFormat.is(model.sourceData)) return false;
+        const { db } = model.sourceData.data;
+        for (let i = 0; i < db.struct.pdbx_structure_determination_methodology.rowCount; i++) {
+            if (db.struct.pdbx_structure_determination_methodology.value(i).toLowerCase() === 'computational') return true;
+        }
+        return false;
+    }
+
     export function hasXrayMap(model: Model): boolean {
         if (!MmcifFormat.is(model.sourceData)) return false;
         // Check exprimental method to exclude models solved with
