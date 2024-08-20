@@ -1034,6 +1034,10 @@ export const mmCIF_Schema = {
          */
         title: str,
         /**
+         * Indicates if the structure was determined using experimental, computational, or integrative methods
+         */
+        pdbx_structure_determination_methodology: Aliased<'experimental' | 'integrative' | 'computational'>(str),
+        /**
          * An automatically generated descriptor for an NDB structure or
          * the unstructured content of the PDB COMPND record.
          */
