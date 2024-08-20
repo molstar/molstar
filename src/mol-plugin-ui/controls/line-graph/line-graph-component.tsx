@@ -7,6 +7,7 @@
 import { PointComponent } from './point-component';
 
 import * as React from 'react';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Vec2 } from '../../../mol-math/linear-algebra';
 import { Grid } from '../../../mol-model/volume';
 import { arrayMax, arrayMin } from '../../../mol-util/array';
@@ -21,6 +22,9 @@ import { ParamOnChange } from '../parameters';
 import { ColorListRangesEntry } from '../../../mol-util/color/color';
 import { generateGaussianControlPoints } from '../../../mol-geo/geometry/direct-volume/direct-volume';
 import { capitalize } from '../../../mol-util/string';
+import { WaitingParameterControls } from '../../../extensions/volumes-and-segmentations/ui';
+import { sleep } from '../../../mol-util/sleep';
+import { Choice } from '../../../mol-util/param-choice';
 
 class TFButton extends React.Component<any> {
     handleClick = () => {
@@ -119,6 +123,18 @@ function ColorPicker(props: any) {
         </ControlGroup>
     </div> : null);
 }
+
+export const GaussianTFCenterChoice = new Choice(
+    { '1-sigma': 'Center at 1 Sigma', '2-sigma': 'Center at 2 Sigma', '3-sigma': 'Center at 3 sigma' }, '1-sigma');
+
+
+export const GaussianTFSpreadChoice = new Choice(
+    { '1-sigma': 'Spread +-1 Sigma', '2-sigma': 'Spread +-2 Sigma', '3-sigma': 'Spread +-3 sigma' }, '1-sigma');
+
+export const GaussianTFParams = {
+    gaussianCenter: GaussianTFCenterChoice.PDSelect(),
+    gaussianExtent: GaussianTFSpreadChoice.PDSelect(),
+};
 
 export class LineGraphComponent extends React.Component<any, LineGraphComponentState> {
     private myRef: any;
@@ -247,6 +263,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                 </>
                 <>
                     {/* can be select instead, then on select etc. */}
+                    {/* <WaitingParameterControls params={GaussianTFParams} values={} onChangeValues={async next => { await sleep(20); }} /> */}
                     <TFButton onClick={this.setPredefinedTransferFunction} kind={'gaussian'} sigmaMultiplierExtent={0.25} sigmaMultiplierCenter={1.5}></TFButton>
                     {/* <Button onClick={() => this.setPredefinedTransferFunction('gaussian')}>Apply Gaussian Transfer Function</Button> */}
                 </>

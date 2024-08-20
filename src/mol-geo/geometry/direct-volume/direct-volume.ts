@@ -38,8 +38,12 @@ export const defaultControlPoints = generateControlPoints(ColorNames.black);
 
 function generateNormalizedGaussianPositions(numberOfPoints: number, a: number, b: number, c: number, TFextent: number): Vec2[] {
     const arr: Vec2[] = [];
-    // and move b as well
-    const interval = 1 / (numberOfPoints) / 2;
+    // works
+    // const interval = 1 / (numberOfPoints) / 4;
+    // for now like this
+    const interval = 1 / (numberOfPoints) / 3;
+    // const interval = 1 / (numberOfPoints) / 2;
+    // const interval = 1 * 4 * c / (numberOfPoints);
     for (let i = 1; i <= numberOfPoints; i ++) {
         // const x = (1 / (numberOfPoints + 1)) * i;
         // instead of this, equally divide the 2c interval
@@ -69,7 +73,7 @@ function gaussianParametrized(x: number, a: number, b: number, c: number) {
 }
 
 export function generateGaussianControlPoints(a: number, b: number, c: number, TFextent: number) {
-    const numberOfPoints = 9;
+    const numberOfPoints = 8;
     const positions = generateNormalizedGaussianPositions(numberOfPoints, a, b, c, TFextent);
     const controlPoints = generateControlPoints(ColorNames.black, positions);
     return controlPoints;
