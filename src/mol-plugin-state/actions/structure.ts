@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -40,7 +40,7 @@ export const PdbDownloadProvider = {
         encoding: PD.Select('bcif', PD.arrayToOptions(['cif', 'bcif'] as const)),
     }, { label: 'RCSB PDB', isFlat: true }),
     'pdbe': PD.Group({
-        variant: PD.Select('updated-bcif', [['updated-bcif', 'Updated (bcif)'], ['updated', 'Updated'], ['archival', 'Archival']] as ['updated' | 'updtaed-bcif' | 'archival', string][]),
+        variant: PD.Select('updated-bcif', [['updated-bcif', 'Updated (bcif)'], ['updated', 'Updated'], ['archival', 'Archival']] as ['updated' | 'updated-bcif' | 'archival', string][]),
     }, { label: 'PDBe', isFlat: true }),
     'pdbj': PD.EmptyGroup({ label: 'PDBj' }),
 };
@@ -75,7 +75,10 @@ const DownloadStructure = StateAction.build({
                     options
                 }, { isFlat: true, label: 'SWISS-MODEL', description: 'Loads the best homology model or experimental structure' }),
                 'alphafolddb': PD.Group({
-                    id: PD.Text('Q8W3K0', { label: 'UniProtKB AC(s)', description: 'One or more comma/space separated ACs.' }),
+                    provider: PD.Group({
+                        id: PD.Text('Q8W3K0', { label: 'UniProtKB AC(s)', description: 'One or more comma/space separated ACs.' }),
+                        encoding: PD.Select('bcif', PD.arrayToOptions(['cif', 'bcif'] as const)),
+                    }, { pivot: 'id' }),
                     options
                 }, { isFlat: true, label: 'AlphaFold DB', description: 'Loads the predicted model if available' }),
                 'modelarchive': PD.Group({
@@ -122,14 +125,21 @@ const DownloadStructure = StateAction.build({
             asTrajectory = !!src.params.options.asTrajectory;
             break;
         case 'pdb-dev':
+            const map = (id: string) => id.startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`;
             downloadParams = await getDownloadParams(src.params.provider.id,
                 id => {
-                    const nId = id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`;
+                    // 4 character PDB id, TODO: support extended PDB ID
+                    if (id.match(/^[1-9][A-Z0-9]{3}$/i) !== null) {
+                        return src.params.provider.encoding === 'bcif'
+                            ? `https://pdb-dev.wwpdb.org/bcif/${id.toLowerCase()}.bcif`
+                            : `https://pdb-dev.wwpdb.org/cif/${id.toLowerCase()}.cif`;
+                    }
+                    const nId = map(id.toUpperCase());
                     return src.params.provider.encoding === 'bcif'
-                        ? `https://pdb-dev.wwpdb.org/bcif/${nId.toUpperCase()}.bcif`
-                        : `https://pdb-dev.wwpdb.org/cif/${nId.toUpperCase()}.cif`;
+                        ? `https://pdb-dev.wwpdb.org/bcif/${nId}.bcif`
+                        : `https://pdb-dev.wwpdb.org/cif/${nId}.cif`;
                 },
-                id => id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`,
+                id => { const nId = id.toUpperCase(); return nId.match(/^[1-9][A-Z0-9]{3}$/) ? `PDB-Dev: ${nId}` : map(nId); },
                 src.params.provider.encoding === 'bcif'
             );
             asTrajectory = !!src.params.options.asTrajectory;
@@ -140,12 +150,19 @@ const DownloadStructure = StateAction.build({
             format = 'pdb';
             break;
         case 'alphafolddb':
-            downloadParams = await getDownloadParams(src.params.id, async id => {
-                const url = `https://www.alphafold.ebi.ac.uk/api/prediction/${id.toUpperCase()}`;
-                const info = await plugin.runTask(plugin.fetch({ url, type: 'json' }));
-                if (Array.isArray(info) && info.length > 0) return info[0].cifUrl;
-                throw new Error(`No AlphaFold DB entry for '${id}'`);
-            }, id => `AlphaFold DB: ${id}`, false);
+            downloadParams = await getDownloadParams(src.params.provider.id,
+                async id => {
+                    const url = `https://www.alphafold.ebi.ac.uk/api/prediction/${id.toUpperCase()}`;
+                    const info = await plugin.runTask(plugin.fetch({ url, type: 'json' }));
+                    if (Array.isArray(info) && info.length > 0) {
+                        const prop = src.params.provider.encoding === 'bcif' ? 'bcifUrl' : 'cifUrl';
+                        return info[0][prop];
+                    }
+                    throw new Error(`No AlphaFold DB entry for '${id}'`);
+                },
+                id => `AlphaFold DB: ${id}`,
+                src.params.provider.encoding === 'bcif'
+            );
             asTrajectory = !!src.params.options.asTrajectory;
             format = 'mmcif';
             break;
