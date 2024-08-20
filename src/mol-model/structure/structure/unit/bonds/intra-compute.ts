@@ -24,6 +24,10 @@ import { Model } from '../../../model/model';
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3distance = Vec3.distance;
 
+const CoarseGrainedBondMaxRadius = 6;
+const CoarseGrainedIntraResidueBondMaxDistance = 5.5;
+const CoarseGrainedInterResidueBondMaxDistance = 3.9;
+
 function getGraph(atomA: StructureElement.UnitIndex[], atomB: StructureElement.UnitIndex[], _order: number[], _flags: number[], _key: number[], atomCount: number, props?: IntraUnitBondProps): IntraUnitBonds {
     const builder = new IntAdjacencyGraph.EdgeBuilder(atomCount, atomA, atomB);
     const flags = new Uint16Array(builder.slotCount);
@@ -125,13 +129,15 @@ function findIndexPairBonds(unit: Unit.Atomic) {
 }
 
 function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBonds {
-    const { maxRadius } = props;
+    const isCoarseGrained = Model.isCoarseGrained(unit.model);
+    const maxRadius = isCoarseGrained ? CoarseGrainedBondMaxRadius : props.maxRadius;
 
     const { x, y, z } = unit.model.atomicConformation;
     const atomCount = unit.elements.length;
     const { elements: atoms, residueIndex, chainIndex } = unit;
     const { type_symbol, label_atom_id, label_alt_id, label_comp_id } = unit.model.atomicHierarchy.atoms;
     const { label_seq_id } = unit.model.atomicHierarchy.residues;
+    const { traceElementIndex } = unit.model.atomicHierarchy.derived.residue;
     const { index } = unit.model.atomicHierarchy;
     const { byEntityKey } = unit.model.sequence;
     const query3d = unit.lookup3d;
@@ -253,8 +259,21 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
             const dist = Math.sqrt(squaredDistances[ni]);
             if (dist === 0) continue;
 
-            const pairingThreshold = getPairingThreshold(aeI, beI, thresholdA, getElementThreshold(beI));
-            if (dist <= pairingThreshold) {
+            let flag = false;
+            if (isCoarseGrained) {
+                if (raI === rbI) {
+                    // intra residue bonds
+                    flag = dist <= CoarseGrainedIntraResidueBondMaxDistance;
+                } else {
+                    // inter residue "backbone" bonds
+                    flag = dist <= CoarseGrainedInterResidueBondMaxDistance && traceElementIndex[raI] === aI && traceElementIndex[rbI] === bI;
+                }
+            } else {
+                const pairingThreshold = getPairingThreshold(aeI, beI, thresholdA, getElementThreshold(beI));
+                flag = dist <= pairingThreshold;
+            }
+
+            if (flag) {
                 atomA[atomA.length] = _aI;
                 atomB[atomB.length] = _bI;
                 order[order.length] = getIntraBondOrderFromTable(compId, atomIdA, label_atom_id.value(bI));
@@ -276,9 +295,7 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
 
 function computeIntraUnitBonds(unit: Unit.Atomic, props?: Partial<BondComputationProps>) {
     const p = { ...DefaultBondComputationProps, ...props };
-    if (p.noCompute || (Model.isCoarseGrained(unit.model) && !IndexPairBonds.Provider.get(unit.model) && !StructConn.isExhaustive(unit.model))) {
-        return IntraUnitBonds.Empty;
-    }
+    if (p.noCompute) return IntraUnitBonds.Empty;
 
     if (!p.forceCompute && IndexPairBonds.Provider.get(unit.model)) {
         return findIndexPairBonds(unit);
