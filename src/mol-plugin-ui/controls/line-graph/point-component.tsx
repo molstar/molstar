@@ -49,7 +49,8 @@ export class PointComponent extends React.Component<any, {show: boolean, id: UUI
                 onMouseLeave={this.handleHoverOff}
                 onMouseDown={this.props.onmousedown}
                 fill={fill}
-            />
+            >
+            </circle>
         ]);
     }
 }

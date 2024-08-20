@@ -266,13 +266,12 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const max = this.descriptiveStatistics.max;
         const sigma = this.descriptiveStatistics.sigma;
         const TFextent = max - min;
-        // now it sort of works
+        // make it spread the points equally
         console.log(this.descriptiveStatistics);
         const b = sigmaMultiplierCenter * (mean + sigma) / TFextent;
         // fix this, should be just sigma,
         const c = sigmaMultiplierExtent * sigma / TFextent;
         // const l = (this.width * 2 * c / extent);
-        debugger;
         switch (type) {
             case 'gaussian':
                 const gaussianPoints: ControlPoint[] = generateGaussianControlPoints(a, b, c, TFextent);
@@ -647,7 +646,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const sigma = this.descriptiveStatistics.sigma;
         const extent = max - min;
         const x = this.width * (mean / extent);
-        const w = offset / 5;
+        const w = offset / 4;
         const bars = [];
         const y1 = this.height + offset;
         const y2 = offset;
@@ -655,10 +654,14 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const xNegative = this.width * ((mean - sigma) / extent);
         bars.push(
             <line key={'meanBar'} x1={x} x2={x} y1={y1} y2={y2} stroke="#000000" strokeWidth={w}>
-                <title>`Mean: ${mean}`</title>
+                <title>Mean: {mean}</title>
             </line>);
-        bars.push(<line key={'positiveSigmaBar'} x1={xPositive} x2={xPositive} y1={y1} y2={y2} stroke="#808080" strokeWidth={w} />);
-        bars.push(<line key={'negativeSigmaBar'} x1={xNegative} x2={xNegative} y1={y1} y2={y2} stroke="#808080" strokeWidth={w} />);
+        bars.push(<line key={'positiveSigmaBar'} x1={xPositive} x2={xPositive} y1={y1} y2={y2} stroke="#808080" strokeWidth={w}>
+            <title>+ Sigma: {sigma}</title>
+        </line>);
+        bars.push(<line key={'negativeSigmaBar'} x1={xNegative} x2={xNegative} y1={y1} y2={y2} stroke="#808080" strokeWidth={w}>
+            <title>- Sigma: {-sigma}</title>
+        </line>);
         return bars;
     }
 
