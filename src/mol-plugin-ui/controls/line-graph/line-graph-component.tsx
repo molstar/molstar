@@ -24,7 +24,7 @@ import { capitalize } from '../../../mol-util/string';
 
 class TFButton extends React.Component<any> {
     handleClick = () => {
-        this.props.onClick(this.props.kind, this.props.sigmaMultiplierExtent);
+        this.props.onClick(this.props.kind, this.props.sigmaMultiplierExtent, this.props.sigmaMultiplierCenter);
     };
 
     render() {
@@ -175,16 +175,16 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         return d;
     }
 
-    private setPredefinedTransferFunction(type: 'gaussian', sigmaMultiplierExtent: number) {
+    private setPredefinedTransferFunction(type: 'gaussian', sigmaMultiplierExtent: number, sigmaMultiplierCenter: number) {
         const a = 0.2;
         const mean = this.descriptiveStatistics.mean;
         const min = this.descriptiveStatistics.min;
         const max = this.descriptiveStatistics.max;
         const sigma = this.descriptiveStatistics.sigma;
         const TFextent = max - min;
-
+        // now it sort of works
         console.log(this.descriptiveStatistics);
-        const b = (mean + 2.5 * sigma) / TFextent;
+        const b = sigmaMultiplierCenter * (mean + sigma) / TFextent;
         // fix this, should be just sigma,
         const c = sigmaMultiplierExtent * sigma / TFextent;
         // const l = (this.width * 2 * c / extent);
@@ -247,7 +247,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                 </>
                 <>
                     {/* can be select instead, then on select etc. */}
-                    <TFButton onClick={this.setPredefinedTransferFunction} kind={'gaussian'} sigmaMultiplierExtent={1.0}></TFButton>
+                    <TFButton onClick={this.setPredefinedTransferFunction} kind={'gaussian'} sigmaMultiplierExtent={0.25} sigmaMultiplierCenter={1.5}></TFButton>
                     {/* <Button onClick={() => this.setPredefinedTransferFunction('gaussian')}>Apply Gaussian Transfer Function</Button> */}
                 </>
             </div>,
