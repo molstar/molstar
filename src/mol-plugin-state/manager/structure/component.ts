@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Cai Huiyu <szmun.caihy@gmail.com>
  */
 
 import { VisualQualityOptions } from '../../../mol-geo/geometry/base';
