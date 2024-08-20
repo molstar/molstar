@@ -7,17 +7,23 @@
  * MIT License, Copyright (c) 2018 Photopea
  */
 
-let hasCompressionStreamSupport: boolean | undefined = undefined;
-export function checkCompressionStreamSupport(format: 'deflate' | 'deflate-raw' | 'gzip'): boolean {
-    if (hasCompressionStreamSupport === undefined) {
+type CompressionStreamFormat = 'deflate' | 'deflate-raw' | 'gzip';
+
+const hasCompressionStreamSupport: { [k in CompressionStreamFormat]: boolean | undefined } = {
+    deflate: undefined,
+    'deflate-raw': undefined,
+    gzip: undefined
+};
+export function checkCompressionStreamSupport(format: CompressionStreamFormat): boolean {
+    if (hasCompressionStreamSupport[format] === undefined) {
         try {
             new CompressionStream(format);
-            hasCompressionStreamSupport = true;
+            hasCompressionStreamSupport[format] = true;
         } catch (e) {
-            hasCompressionStreamSupport = false;
+            hasCompressionStreamSupport[format] = false;
         }
     }
-    return hasCompressionStreamSupport;
+    return hasCompressionStreamSupport[format];
 }
 
 export const U = (function () {
