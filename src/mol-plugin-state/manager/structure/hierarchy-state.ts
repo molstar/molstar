@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Cai Huiyu <szmun.caihy@gmail.com>
  */
 
 import { PluginStateObject as SO } from '../../objects';
