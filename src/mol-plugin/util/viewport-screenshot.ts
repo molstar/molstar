@@ -31,7 +31,11 @@ type ViewportScreenshotHelperParams = PD.Values<ReturnType<ViewportScreenshotHel
 
 class ViewportScreenshotHelper extends PluginComponent {
     private createParams() {
-        const max = Math.min(this.plugin.canvas3d ? this.plugin.canvas3d.webgl.maxRenderbufferSize : 4096, 4096);
+        let max = 8192;
+        if (this.plugin.canvas3d) {
+            const { webgl } = this.plugin.canvas3d;
+            max = Math.floor(Math.min(webgl.maxRenderbufferSize, webgl.maxTextureSize) / 2);
+        }
         return {
             resolution: PD.MappedStatic('viewport', {
                 viewport: PD.Group({}),
@@ -105,7 +109,7 @@ class ViewportScreenshotHelper extends PluginComponent {
         }
     }
 
-    private createPass(multisample: boolean) {
+    private createPass(isPreview: boolean) {
         const c = this.plugin.canvas3d!;
         const { colorBufferFloat, textureFloat } = c.webgl.extensions;
         const aoProps = c.props.postprocessing.occlusion;
@@ -114,7 +118,7 @@ class ViewportScreenshotHelper extends PluginComponent {
             cameraHelper: { axes: this.values.axes },
             multiSample: {
                 ...c.props.multiSample,
-                mode: multisample ? 'on' : 'off',
+                mode: isPreview ? 'off' : 'on',
                 sampleLevel: colorBufferFloat && textureFloat ? 4 : 2,
                 reuseOcclusion: false,
             },
@@ -124,13 +128,13 @@ class ViewportScreenshotHelper extends PluginComponent {
                     ? { name: 'on', params: { ...aoProps.params, samples: 128, resolutionScale: c.webgl.pixelRatio } }
                     : aoProps
             },
-            marking: { ...c.props.marking }
+            marking: { ...c.props.marking },
         });
     }
 
     private _previewPass: ImagePass;
     private get previewPass() {
-        return this._previewPass || (this._previewPass = this.createPass(false));
+        return this._previewPass || (this._previewPass = this.createPass(true));
     }
 
     private _imagePass: ImagePass;
@@ -148,11 +152,11 @@ class ViewportScreenshotHelper extends PluginComponent {
                         ? { name: 'on', params: { ...aoProps.params, samples: 128, resolutionScale: c.webgl.pixelRatio } }
                         : aoProps
                 },
-                marking: { ...c.props.marking }
+                marking: { ...c.props.marking },
             });
             return this._imagePass;
         }
-        return this._imagePass = this.createPass(true);
+        return this._imagePass = this.createPass(false);
     }
 
     getFilename(extension = '.png') {
@@ -251,7 +255,7 @@ class ViewportScreenshotHelper extends PluginComponent {
         this.behaviors.relativeCrop.next(crop);
     }
 
-    getPreview(maxDim = 320) {
+    async getPreview(ctx: RuntimeContext, maxDim = 320) {
         const { width, height } = this.getSize();
         if (width <= 0 || height <= 0) return;
 
@@ -272,9 +276,9 @@ class ViewportScreenshotHelper extends PluginComponent {
             transparentBackground: this.values.transparent,
             // TODO: optimize because this creates a copy of a large object!
             postprocessing: canvasProps.postprocessing,
-            marking: canvasProps.marking
+            marking: canvasProps.marking,
         });
-        const imageData = this.previewPass.getImageData(w, h);
+        const imageData = await this.previewPass.getImageData(ctx, w, h);
         const canvas = this.previewCanvas;
         canvas.width = imageData.width;
         canvas.height = imageData.height;
@@ -313,7 +317,7 @@ class ViewportScreenshotHelper extends PluginComponent {
         await ctx.update('Rendering image...');
         const pass = this.imagePass;
         await pass.updateBackground();
-        const imageData = pass.getImageData(width, height, viewport);
+        const imageData = await pass.getImageData(ctx, width, height, viewport);
 
         await ctx.update('Encoding image...');
         const canvas = this.canvas;
@@ -367,7 +371,7 @@ class ViewportScreenshotHelper extends PluginComponent {
     }
 
     download(filename?: string) {
-        this.plugin.runTask(this.downloadTask(filename));
+        this.plugin.runTask(this.downloadTask(filename), { useOverlay: true });
     }
 
     constructor(private plugin: PluginContext) {

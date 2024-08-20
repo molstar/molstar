@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -19,6 +19,9 @@ import { Helper } from '../helper/helper';
 import { CameraHelper, CameraHelperParams } from '../helper/camera-helper';
 import { MarkingParams } from './marking';
 import { AssetManager } from '../../mol-util/assets';
+import { RuntimeContext } from '../../mol-task';
+import { isTimingMode } from '../../mol-util/debug';
+import { printTimerResults } from '../../mol-gl/webgl/timer';
 
 export const ImageParams = {
     transparentBackground: PD.Boolean(false),
@@ -88,12 +91,13 @@ export class ImagePass {
         if (props.cameraHelper) this.helper.camera.setProps(props.cameraHelper);
     }
 
-    render() {
+    async render(_runtime: RuntimeContext) {
         Camera.copySnapshot(this._camera.state, this.camera.state);
         Viewport.set(this._camera.viewport, 0, 0, this._width, this._height);
         this._camera.update();
 
         const ctx = { renderer: this.renderer, camera: this._camera, scene: this.scene, helper: this.helper };
+        if (isTimingMode) this.webgl.timer.mark('ImagePass.render', true);
         if (MultiSamplePass.isEnabled(this.props.multiSample)) {
             this.multiSampleHelper.render(ctx, this.props, false);
             this._colorTarget = this.multiSamplePass.colorTarget;
@@ -101,11 +105,21 @@ export class ImagePass {
             this.drawPass.render(ctx, this.props, false);
             this._colorTarget = this.drawPass.getColorTarget(this.props.postprocessing);
         }
+        if (isTimingMode) this.webgl.timer.markEnd('ImagePass.render');
+
+        if (isTimingMode) {
+            const timerResults = this.webgl.timer.resolve();
+            if (timerResults) {
+                for (const result of timerResults) {
+                    printTimerResults([result]);
+                }
+            }
+        }
     }
 
-    getImageData(width: number, height: number, viewport?: Viewport) {
+    async getImageData(runtime: RuntimeContext, width: number, height: number, viewport?: Viewport) {
         this.setSize(width, height);
-        this.render();
+        await this.render(runtime);
         this.colorTarget.bind();
 
         const w = viewport?.width ?? width, h = viewport?.height ?? height;
