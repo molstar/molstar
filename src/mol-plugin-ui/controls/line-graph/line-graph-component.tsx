@@ -73,6 +73,30 @@ function useAsyncChange<T>(initialValue: T) {
     return [isExecuting, value, execute] as const;
 }
 
+class TFParamsWrapper extends React.Component<any> {
+    // should accept params or rather use params from control
+    state = {
+        gaussianTFParamsValues: {
+            gaussianCenter: 1.0,
+            gaussianExtent: 1.0
+        }
+    };
+
+    handleChange = (next: GaussianTFParamsValues) => {
+        this.props.onChange('gaussian', next.gaussianExtent, next.gaussianCenter);
+
+    };
+
+    // check if need to hanlde state change
+    render() {
+        return <WaitingParameterControls params={GaussianTFParams} values={this.state.gaussianTFParamsValues} onChangeValues={async next => { await sleep(20); console.log(next); this.handleChange(next); }} />;
+
+        // return (
+        //     <Button onClick={this.handleChange}>{`Apply ${capitalize(this.props.kind)} Transfer Function`}</Button>
+        // );
+    }
+}
+
 
 
 class TFButton extends React.Component<any> {
@@ -173,25 +197,12 @@ function ColorPicker(props: any) {
     </div> : null);
 }
 
-
-// TODO: make it numeric instead
-// export const GaussianTFCenterChoice = new Choice(
-//     { '1-sigma': 'Center at 1 Sigma', '2-sigma': 'Center at 2 Sigma', '3-sigma': 'Center at 3 sigma' }, '1-sigma');
-
-
-// export const GaussianTFSpreadChoice = new Choice(
-//     { '1-sigma': 'Spread +-1 Sigma', '2-sigma': 'Spread +-2 Sigma', '3-sigma': 'Spread +-3 sigma' }, '1-sigma');
-
 export const GaussianTFParams = {
     gaussianCenter: PD.Numeric(0.2, { min: 0, max: 3, step: 0.05 }),
     gaussianExtent: PD.Numeric(0.2, { min: 0, max: 3, step: 0.05 })
 };
 
 export type GaussianTFParamsValues = PD.Values<typeof GaussianTFParams>;
-const GaussianTFParamsValues: GaussianTFParamsValues = {
-    gaussianCenter: 1.0,
-    gaussianExtent: 1.0,
-};
 
 export class LineGraphComponent extends React.Component<any, LineGraphComponentState> {
     private myRef: any;
@@ -321,7 +332,10 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                 <>
                     {/* can be select instead, then on select etc. */}
                     {/* change data in the UI somehow */}
-                    <WaitingParameterControls params={GaussianTFParams} values={GaussianTFParamsValues} onChangeValues={async next => { await sleep(20); console.log('stuff'); }} />
+                    {/* change gaussian on change of this */}
+                    {/* make wrapper component similar to TFButton */}
+                    {/* <WaitingParameterControls params={GaussianTFParams} values={GaussianTFParamsValues} onChangeValues={async next => { await sleep(20); console.log('stuff'); }} /> */}
+                    <TFParamsWrapper onChange={this.setPredefinedTransferFunction}></TFParamsWrapper>
                     <TFButton onClick={this.setPredefinedTransferFunction} kind={'gaussian'} sigmaMultiplierExtent={0.25} sigmaMultiplierCenter={1.5}></TFButton>
                     {/* <Button onClick={() => this.setPredefinedTransferFunction('gaussian')}>Apply Gaussian Transfer Function</Button> */}
                 </>
