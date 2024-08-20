@@ -18,13 +18,62 @@ import { Color } from '../../../mol-util/color';
 import { CombinedColorControl } from '../color';
 import { ColorNames, getRandomColor } from '../../../mol-util/color/names';
 import { UUID } from '../../../mol-util';
-import { ParamOnChange } from '../parameters';
+import { ParameterControls, ParamOnChange } from '../parameters';
 import { ColorListRangesEntry } from '../../../mol-util/color/color';
 import { generateGaussianControlPoints } from '../../../mol-geo/geometry/direct-volume/direct-volume';
 import { capitalize } from '../../../mol-util/string';
-import { WaitingParameterControls } from '../../../extensions/volumes-and-segmentations/ui';
+// import { WaitingParameterControls } from '../../../extensions/volumes-and-segmentations/ui';
 import { sleep } from '../../../mol-util/sleep';
-import { Choice } from '../../../mol-util/param-choice';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+type ComponentParams<T extends React.Component<any, any, any> | ((props: any) => JSX.Element)> =
+    T extends React.Component<infer P, any, any> ? P : T extends (props: infer P) => JSX.Element ? P : never;
+
+
+
+function WaitingParameterControls<T extends PD.Params>({ values, onChangeValues, ...etc }: { values: PD.ValuesFor<T>, onChangeValues: (values: PD.ValuesFor<T>) => any } & ComponentParams<ParameterControls<T>>) {
+    const [changing, currentValues, execute] = useAsyncChange(values);
+
+    return <ParameterControls isDisabled={changing} values={currentValues} onChangeValues={newValue => execute(onChangeValues, newValue)} {...etc} />;
+}
+
+
+function useAsyncChange<T>(initialValue: T) {
+    const [isExecuting, setIsExecuting] = useState(false);
+    const [value, setValue] = useState(initialValue);
+    const isMounted = useRef(false);
+
+    useEffect(() => setValue(initialValue), [initialValue]);
+
+    useEffect(() => {
+        isMounted.current = true;
+        return () => { isMounted.current = false; };
+    }, []);
+
+    const execute = useCallback(
+        async (func: (val: T) => Promise<any>, val: T) => {
+            setIsExecuting(true);
+            setValue(val);
+            try {
+                await func(val);
+            } catch (err) {
+                if (isMounted.current) {
+                    setValue(initialValue);
+                }
+                throw err;
+            } finally {
+                if (isMounted.current) {
+                    setIsExecuting(false);
+                }
+            }
+        },
+        []
+    );
+
+    return [isExecuting, value, execute] as const;
+}
+
+
 
 class TFButton extends React.Component<any> {
     handleClick = () => {
@@ -124,16 +173,24 @@ function ColorPicker(props: any) {
     </div> : null);
 }
 
-export const GaussianTFCenterChoice = new Choice(
-    { '1-sigma': 'Center at 1 Sigma', '2-sigma': 'Center at 2 Sigma', '3-sigma': 'Center at 3 sigma' }, '1-sigma');
+
+// TODO: make it numeric instead
+// export const GaussianTFCenterChoice = new Choice(
+//     { '1-sigma': 'Center at 1 Sigma', '2-sigma': 'Center at 2 Sigma', '3-sigma': 'Center at 3 sigma' }, '1-sigma');
 
 
-export const GaussianTFSpreadChoice = new Choice(
-    { '1-sigma': 'Spread +-1 Sigma', '2-sigma': 'Spread +-2 Sigma', '3-sigma': 'Spread +-3 sigma' }, '1-sigma');
+// export const GaussianTFSpreadChoice = new Choice(
+//     { '1-sigma': 'Spread +-1 Sigma', '2-sigma': 'Spread +-2 Sigma', '3-sigma': 'Spread +-3 sigma' }, '1-sigma');
 
 export const GaussianTFParams = {
-    gaussianCenter: GaussianTFCenterChoice.PDSelect(),
-    gaussianExtent: GaussianTFSpreadChoice.PDSelect(),
+    gaussianCenter: PD.Numeric(0.2, { min: 0, max: 3, step: 0.05 }),
+    gaussianExtent: PD.Numeric(0.2, { min: 0, max: 3, step: 0.05 })
+};
+
+export type GaussianTFParamsValues = PD.Values<typeof GaussianTFParams>;
+const GaussianTFParamsValues: GaussianTFParamsValues = {
+    gaussianCenter: 1.0,
+    gaussianExtent: 1.0,
 };
 
 export class LineGraphComponent extends React.Component<any, LineGraphComponentState> {
@@ -263,7 +320,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                 </>
                 <>
                     {/* can be select instead, then on select etc. */}
-                    {/* <WaitingParameterControls params={GaussianTFParams} values={} onChangeValues={async next => { await sleep(20); }} /> */}
+                    {/* change data in the UI somehow */}
+                    <WaitingParameterControls params={GaussianTFParams} values={GaussianTFParamsValues} onChangeValues={async next => { await sleep(20); console.log('stuff'); }} />
                     <TFButton onClick={this.setPredefinedTransferFunction} kind={'gaussian'} sigmaMultiplierExtent={0.25} sigmaMultiplierCenter={1.5}></TFButton>
                     {/* <Button onClick={() => this.setPredefinedTransferFunction('gaussian')}>Apply Gaussian Transfer Function</Button> */}
                 </>
