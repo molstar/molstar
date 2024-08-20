@@ -17,6 +17,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix polymer-gap visual coloring with cartoon theme
 - Add formal-charge color theme (#328)
 - Add more coloring options to cartoon theme
+- Use `CompressionStream` Browser API when available
 - Add `pdbx_structure_determination_methodology` mmcif field and `Model` helpers
 - Fix cartoon representation not updated when secondary structure changes
 - Add Zhang-Skolnick secondary-structure assignment method which handles coarse-grained models (#49)
