@@ -11,7 +11,7 @@ import { ThemeDataContext } from '../theme';
 import { ColorTypeControlPoints } from '../../mol-geo/geometry/color-data';
 import { Volume } from '../../mol-model/volume/volume';
 import { ColorThemeCategory } from './categories';
-import { cpsToColorListRangesEntry as ControlPointsToColorListControlPointsEntry } from '../../mol-plugin-ui/controls/line-graph/line-graph-component';
+import { controlPointsToColorListControlPointsEntry as ControlPointsToColorListControlPointsEntry } from '../../mol-plugin-ui/controls/line-graph/line-graph-component';
 import { defaultControlPoints } from '../../mol-geo/geometry/direct-volume/direct-volume';
 
 const Description = 'Assign color based on the given value for each volume region defined by control points';

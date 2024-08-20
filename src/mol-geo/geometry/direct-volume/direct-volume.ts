@@ -34,18 +34,63 @@ import { ColorNames, getRandomColor } from '../../../mol-util/color/names';
 
 const VolumeBox = Box();
 
-export const defaultControlPoints = generateDefaultControlPoints(ColorNames.black);
+export const defaultControlPoints = generateControlPoints(ColorNames.black);
 
-export function generateDefaultControlPoints(color?: Color) {
-    const vec2data = [
-        Vec2.create(0.19, 0.0), Vec2.create(0.2, 0.05), Vec2.create(0.25, 0.05), Vec2.create(0.26, 0.0),
-        Vec2.create(0.79, 0.0), Vec2.create(0.8, 0.05), Vec2.create(0.85, 0.05), Vec2.create(0.86, 0.0),
-    ];
+function generateNormalizedGaussianPositions(numberOfPoints: number, a: number, b: number, c: number, TFextent: number): Vec2[] {
+    const arr: Vec2[] = [];
+    console.log(a, b, c);
+    // need to do something with last 4 points
+    // more specifically with xs provided, the last 4 xs are such that y = 0
+    // interval should be twice lower or?
+    // sort of works, but the last point should be with y = 0
+    const interval = 1 / (numberOfPoints) / 2;
+    for (let i = 1; i <= numberOfPoints; i ++) {
+        // const x = (1 / (numberOfPoints + 1)) * i;
+        // instead of this, equally divide the 2c interval
+        const x = interval * i;
+        // basically stil the same, need to make it even thiner
+        // the higer multiplier the sharper
+        const y = gaussianParametrized(x, a, b, c);
+        const vector = Vec2.create(x, y);
+        arr.push(vector);
+        console.log(arr);
+    }
+    return arr;
+}
+
+function gaussian(x: number) {
+    const y = Math.exp(-(x ** 2));
+    return y;
+}
+
+function gaussianParametrized(x: number, a: number, b: number, c: number) {
+    const y = a * Math.exp(-(
+        (x - b) ** 2
+        /
+        (2 * (c ** 2))
+    ));
+    return y;
+}
+
+export function generateGaussianControlPoints(a: number, b: number, c: number, TFextent: number) {
+    const numberOfPoints = 8;
+    const positions = generateNormalizedGaussianPositions(numberOfPoints, a, b, c, TFextent);
+    const controlPoints = generateControlPoints(ColorNames.black, positions);
+    return controlPoints;
+}
+
+export function generateControlPoints(color?: Color, positions?: Vec2[]) {
+    if (!positions) {
+        positions = [
+            Vec2.create(0.19, 0.0), Vec2.create(0.2, 0.05), Vec2.create(0.25, 0.05), Vec2.create(0.26, 0.0),
+            Vec2.create(0.79, 0.0), Vec2.create(0.8, 0.05), Vec2.create(0.85, 0.05), Vec2.create(0.86, 0.0),
+        ];
+    }
     const points: ControlPoint[] = [];
-    for (let i = 0, il = vec2data.length; i < il; ++i) {
+    for (let i = 0, il = positions.length; i < il; ++i) {
         const data: ControlPointData = {
-            x: vec2data[i][0],
-            alpha: vec2data[i][1]
+            x: positions[i][0],
+            alpha: positions[i][1]
         };
         const point: ControlPoint = {
             data: data,

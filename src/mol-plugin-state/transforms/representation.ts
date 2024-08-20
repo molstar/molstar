@@ -45,7 +45,7 @@ import { Material } from '../../mol-util/material';
 import { lerp } from '../../mol-math/interpolate';
 import { MarkerAction, MarkerActions } from '../../mol-util/marker-action';
 import { Emissive } from '../../mol-theme/emissive';
-import { ControlPoint, cpsToColorListRangesEntry } from '../../mol-plugin-ui/controls/line-graph/line-graph-component';
+import { ControlPoint, controlPointsToColorListControlPointsEntry } from '../../mol-plugin-ui/controls/line-graph/line-graph-component';
 import { ColorListRangesEntry } from '../../mol-util/color/color';
 import { ControlPointsThemeName } from '../../mol-theme/color/control-points';
 
@@ -1014,14 +1014,13 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Volume Representation', async ctx => {
-            console.log('Apply Volume Representation');
             if (params.type.name !== 'direct-volume' && params.colorTheme.name === ControlPointsThemeName) {
                 throw Error('Missing direct volume');
             }
             if (params.type.name === 'direct-volume' && params.colorTheme.name === ControlPointsThemeName) {
                 // params.type.params.lineGraphData.colored = true;
                 const controlPoints: ControlPoint[] = params.type.params.lineGraphData;
-                const colors = cpsToColorListRangesEntry(controlPoints);
+                const colors = controlPointsToColorListControlPointsEntry(controlPoints);
                 params.colorTheme.params.controlPointsColorList.colors = colors;
             }
             const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset };
@@ -1065,7 +1064,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
                         newParams.type.params.lineGraphData = newPoints;
                     }
 
-                    newParams.colorTheme.params.controlPointsColorList.colors = cpsToColorListRangesEntry(controlPoints);
+                    newParams.colorTheme.params.controlPointsColorList.colors = controlPointsToColorListControlPointsEntry(controlPoints);
                 }
             }
 

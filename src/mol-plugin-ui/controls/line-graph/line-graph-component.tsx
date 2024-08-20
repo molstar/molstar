@@ -9,8 +9,8 @@ import { PointComponent } from './point-component';
 import * as React from 'react';
 import { Vec2 } from '../../../mol-math/linear-algebra';
 import { Grid } from '../../../mol-model/volume';
-import { arrayMax } from '../../../mol-util/array';
-import { ControlGroup } from '../common';
+import { arrayMax, arrayMin } from '../../../mol-util/array';
+import { Button, ControlGroup } from '../common';
 import { CloseSvg } from '../icons';
 import { ParamDefinition } from '../../../mol-util/param-definition';
 import { Color } from '../../../mol-util/color';
@@ -19,6 +19,21 @@ import { ColorNames, getRandomColor } from '../../../mol-util/color/names';
 import { UUID } from '../../../mol-util';
 import { ParamOnChange } from '../parameters';
 import { ColorListRangesEntry } from '../../../mol-util/color/color';
+import { generateGaussianControlPoints } from '../../../mol-geo/geometry/direct-volume/direct-volume';
+import { capitalize } from '../../../mol-util/string';
+
+class TFButton extends React.Component<any> {
+    handleClick = () => {
+        this.props.onClick(this.props.kind, this.props.sigmaMultiplierExtent);
+    };
+
+    render() {
+        return (
+            <Button onClick={this.handleClick}>{`Apply ${capitalize(this.props.kind)} Transfer Function`}</Button>
+        );
+    }
+}
+
 
 export function areControlPointsColorsSame(newControlPoints: ControlPoint[], oldControlPoints: ControlPoint[]) {
     const newSorted = newControlPoints.sort((a, b) => a.index - b.index);
@@ -33,7 +48,7 @@ export function areControlPointsColorsSame(newControlPoints: ControlPoint[], old
     }
 };
 
-export function cpsToColorListRangesEntry(controlPoints: ControlPoint[]): ColorListRangesEntry[] {
+export function controlPointsToColorListControlPointsEntry(controlPoints: ControlPoint[]): ColorListRangesEntry[] {
     const colors: ColorListRangesEntry[] = [];
     for (const controlPoint of controlPoints) {
         const { color, data, id } = controlPoint;
@@ -52,6 +67,13 @@ export interface ControlPoint {
     color: Color,
     data: ControlPointData
     index: number
+}
+
+interface VolumeDescriptiveStatistics {
+    min: number,
+    max: number,
+    mean: number,
+    sigma: number
 }
 
 interface LineGraphComponentState {
@@ -109,6 +131,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     private ghostPoints: SVGElement[];
     private gElement: SVGElement;
     private namespace: string;
+    private descriptiveStatistics: VolumeDescriptiveStatistics;
     constructor(props: any) {
         super(props);
         this.myRef = React.createRef();
@@ -125,6 +148,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         this.selectedPointId = undefined;
         this.ghostPoints = [];
         this.namespace = 'http://www.w3.org/2000/svg';
+        this.descriptiveStatistics = this.getDescriptiveStatistics();
 
         this.sortPoints(this.state.points);
 
@@ -137,8 +161,49 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         this.handleKeyUp = this.handleKeyUp.bind(this);
         this.handleLeave = this.handleLeave.bind(this);
         this.handleEnter = this.handleEnter.bind(this);
-
+        this.setPredefinedTransferFunction = this.setPredefinedTransferFunction.bind(this);
     }
+
+    private getDescriptiveStatistics() {
+        const s = this.props.volume.grid.stats;
+        const d: VolumeDescriptiveStatistics = {
+            min: s.min,
+            max: s.max,
+            mean: s.mean,
+            sigma: s.sigma
+        };
+        return d;
+    }
+
+    private setPredefinedTransferFunction(type: 'gaussian', sigmaMultiplierExtent: number) {
+        const a = 0.2;
+        const mean = this.descriptiveStatistics.mean;
+        const min = this.descriptiveStatistics.min;
+        const max = this.descriptiveStatistics.max;
+        const sigma = this.descriptiveStatistics.sigma;
+        const TFextent = max - min;
+
+        console.log(this.descriptiveStatistics);
+        const b = (mean + 2.5 * sigma) / TFextent;
+        // fix this, should be just sigma,
+        const c = sigmaMultiplierExtent * sigma / TFextent;
+        // const l = (this.width * 2 * c / extent);
+        debugger;
+        switch (type) {
+            case 'gaussian':
+                const gaussianPoints: ControlPoint[] = generateGaussianControlPoints(a, b, c, TFextent);
+                const currentPoints = this.state.points;
+                gaussianPoints.push(currentPoints[currentPoints.length - 1]);
+                gaussianPoints.unshift(currentPoints[0]);
+                this.setState({
+                    points: gaussianPoints
+                });
+                this.change(gaussianPoints);
+                break;
+            default: throw Error(`Transfer function type ${type} is not supported`);
+        };
+    }
+
     private getPoint(id: UUID) {
         const points = this.state.points;
         const point = points.find(p => p.id === id);
@@ -150,6 +215,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const points = this.renderPoints();
         const lines = this.renderLines();
         const histogram = this.renderHistogram();
+        const descriptiveStatisticsBars = this.renderDescriptiveStatisticsBars();
         const color = this.state.clickedPointId ? this.getPoint(this.state.clickedPointId).color : void 0;
         const defaultColor = ParamDefinition.Color(Color(0x121212));
         return ([
@@ -171,12 +237,18 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                         {histogram}
                         {lines}
                         {points}
+                        {descriptiveStatisticsBars}
                     </g>
                     <g className="ghost-points" stroke="black" fill="black">
                     </g>
                 </svg>
                 <>
                     <ColorPicker isActive={this.state.showColorPicker} defaultColor={defaultColor} color={color} updateColor={this.updateColor} toggleColorPicker={this.toggleColorPicker}/>
+                </>
+                <>
+                    {/* can be select instead, then on select etc. */}
+                    <TFButton onClick={this.setPredefinedTransferFunction} kind={'gaussian'} sigmaMultiplierExtent={1.0}></TFButton>
+                    {/* <Button onClick={() => this.setPredefinedTransferFunction('gaussian')}>Apply Gaussian Transfer Function</Button> */}
                 </>
             </div>,
             <div key="modal" id="modal-root" />
@@ -454,12 +526,50 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const w = this.width / N;
         const offset = this.padding / 2;
         const max = arrayMax(histogram.counts) || 1;
+        const data: number[] = this.props.volume.grid.cells.data;
+        const bins = [];
+        const increment = data.length / N;
+        data.sort((a, b) => a - b);
+        for (let i = 0; i < N; ++i) {
+            // sort
+            const chunk = data.slice(i * increment, (i + 1) * increment);
+            bins.push(chunk);
+        };
+        debugger;
         for (let i = 0; i < N; i++) {
+            const fromValue = arrayMin(bins[i]);
+            const toValue = arrayMax(bins[i]);
             const x = this.width * i / (N - 1) + offset;
             const y1 = this.height + offset;
             const y2 = this.height * (1 - histogram.counts[i] / max) + offset;
-            bars.push(<line key={`histogram${i}`} x1={x} x2={x} y1={y1} y2={y2} stroke="#ded9ca" strokeWidth={w} />);
+            bars.push(<line key={`histogram${i}`} x1={x} x2={x} y1={y1} y2={y2} stroke="#ded9ca" strokeWidth={w}>
+                <title>[{fromValue}; {toValue}]</title>
+            </line>);
         }
+        return bars;
+    }
+
+    private renderDescriptiveStatisticsBars() {
+        if (!this.props.volume) return null;
+        const offset = this.padding / 2;
+        const mean = this.descriptiveStatistics.mean;
+        const min = this.descriptiveStatistics.min;
+        const max = this.descriptiveStatistics.max;
+        const sigma = this.descriptiveStatistics.sigma;
+        const extent = max - min;
+        const x = this.width * (mean / extent);
+        const w = offset / 5;
+        const bars = [];
+        const y1 = this.height + offset;
+        const y2 = offset;
+        const xPositive = this.width * ((mean + sigma) / extent);
+        const xNegative = this.width * ((mean - sigma) / extent);
+        bars.push(
+            <line key={'meanBar'} x1={x} x2={x} y1={y1} y2={y2} stroke="#000000" strokeWidth={w}>
+                <title>`Mean: ${mean}`</title>
+            </line>);
+        bars.push(<line key={'positiveSigmaBar'} x1={xPositive} x2={xPositive} y1={y1} y2={y2} stroke="#808080" strokeWidth={w} />);
+        bars.push(<line key={'negativeSigmaBar'} x1={xNegative} x2={xNegative} y1={y1} y2={y2} stroke="#808080" strokeWidth={w} />);
         return bars;
     }
 
