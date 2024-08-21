@@ -1,13 +1,15 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * Taken/adapted from DensityServer (https://github.com/dsehnal/DensityServer)
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
 import * as express from 'express';
+import { promises, constants } from 'fs';
 
 import * as Api from './api';
 import * as Data from './query/data-model';
@@ -31,6 +33,9 @@ export function init(app: express.Express) {
     app.get(makePath(':source/:id/box/:a1,:a2,:a3/:b1,:b2,:b3/?'), (req, res) => queryBox(req, res, getQueryParams(req, false)));
     // Cell /:src/:id/cell/?text=0|1&space=cartesian|fractional
     app.get(makePath(':source/:id/cell/?'), (req, res) => queryBox(req, res, getQueryParams(req, true)));
+
+    // Reports server health depending on `healthCheckPaths` config prop
+    app.get(makePath('health-check'), (_, res) => healthCheck(res));
 
     app.get(makePath('openapi.json'), (req, res) => {
         res.writeHead(200, {
@@ -206,4 +211,33 @@ function queryDone() {
     if (State.shutdownOnZeroPending) {
         process.exit(0);
     }
+}
+
+async function healthCheck(res: express.Response) {
+    if (ServerConfig.healthCheckPath?.length === 0) {
+        healthCheckResponse(res, true);
+        return;
+    }
+
+    for (const path of ServerConfig.healthCheckPath) {
+        try {
+            // assert readable file
+            await promises.access(path, constants.R_OK);
+        } catch (e) {
+            ConsoleLogger.error(`Error accessing path ${path}:`, e);
+            healthCheckResponse(res, false, 'Failed to access data from file system.');
+            return;
+        }
+    }
+    healthCheckResponse(res, true);
+}
+
+function healthCheckResponse(res: express.Response, success: boolean, msg?: string) {
+    res.writeHead(success ? 200 : 500, {
+        'Content-Type': 'text/plain',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'X-Requested-With',
+    });
+    res.write(success ? msg || 'true' : msg || 'false');
+    res.end();
 }
