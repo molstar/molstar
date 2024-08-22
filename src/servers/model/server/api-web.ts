@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -19,6 +19,7 @@ import { swaggerUiAssetsHandler, swaggerUiIndexHandler } from '../../common/swag
 import { MultipleQuerySpec, getMultiQuerySpecFilename } from './api-web-multiple';
 import { SimpleResponseResultWriter, WebResutlWriter, TarballResponseResultWriter } from '../utils/writer';
 import { splitCamelCase } from '../../../mol-util/string';
+import { healthCheck } from '../../common/util';
 
 function makePath(p: string) {
     return Config.apiPrefix + '/' + p;
@@ -168,6 +169,9 @@ export function initWebApi(app: express.Express) {
     for (const q of QueryList) {
         mapQuery(app, q.name, q.definition);
     }
+
+    // Reports server health depending on `healthCheckPath` config prop
+    app.get(makePath('health-check'), (_, res) => healthCheck(res, ModelServerConfig.healthCheckPath));
 
     const schema = getApiSchema();
 
