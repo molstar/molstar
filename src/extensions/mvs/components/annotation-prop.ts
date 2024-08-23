@@ -106,6 +106,8 @@ export class MVSAnnotations {
                 if (!file.ok) throw file.error;
                 annots[spec.id] = await MVSAnnotation.fromSpec(ctx, spec, file.value);
             } catch (err) {
+                const params = JSON.stringify(spec.source.params);
+                alert(`Failed to obtain annotation (${err}).\nAnnotation specification source params: ${params}`);
                 console.error(`Failed to obtain annotation (${err}).\nAnnotation specification:`, spec);
                 annots[spec.id] = MVSAnnotation.createEmpty(spec.schema);
             }
