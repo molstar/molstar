@@ -13,6 +13,8 @@ import { CustomProperty } from '../../../mol-model-props/common/custom-property'
 import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
 import { Model } from '../../../mol-model/structure';
 import { Structure, StructureElement } from '../../../mol-model/structure/structure';
+import { PluginCommands } from '../../../mol-plugin/commands';
+import { PluginContext } from '../../../mol-plugin/context';
 import { UUID } from '../../../mol-util';
 import { arrayExtend } from '../../../mol-util/array';
 import { Asset } from '../../../mol-util/assets';
@@ -83,10 +85,11 @@ export const MVSAnnotationsProvider: CustomModelProperty.Provider<MVSAnnotations
     defaultParams: MVSAnnotationsParams,
     getParams: (data: Model) => MVSAnnotationsParams,
     isApplicable: (data: Model) => true,
-    obtain: async (ctx: CustomProperty.Context, data: Model, props: Partial<MVSAnnotationsProps>) => {
+    obtain: async (ctx: CustomProperty.Context, data: Model, props: Partial<MVSAnnotationsProps>, plugin?: PluginContext) => {
+        if (!plugin) throw Error('Plugin instance must be provided');
         props = { ...PD.getDefaultValues(MVSAnnotationsParams), ...props };
         const specs: MVSAnnotationSpec[] = props.annotations ?? [];
-        const annots = await MVSAnnotations.fromSpecs(ctx, specs, data);
+        const annots = await MVSAnnotations.fromSpecs(ctx, specs, data, plugin);
         return { value: annots } satisfies CustomProperty.Data<MVSAnnotations>;
     }
 });
@@ -95,7 +98,7 @@ export const MVSAnnotationsProvider: CustomModelProperty.Provider<MVSAnnotations
 /** Represents multiple annotations retrievable by their ID */
 export class MVSAnnotations {
     private constructor(private dict: { [id: string]: MVSAnnotation }) { }
-    static async fromSpecs(ctx: CustomProperty.Context, specs: MVSAnnotationSpec[], model?: Model): Promise<MVSAnnotations> {
+    static async fromSpecs(ctx: CustomProperty.Context, specs: MVSAnnotationSpec[], model?: Model, plugin?: PluginContext): Promise<MVSAnnotations> {
         const sources: MVSAnnotationSource[] = specs.map(annotationSourceFromSpec);
         const files = await getFilesFromSources(ctx, sources, model);
         const annots: { [id: string]: MVSAnnotation } = {};
@@ -107,7 +110,15 @@ export class MVSAnnotations {
                 annots[spec.id] = await MVSAnnotation.fromSpec(ctx, spec, file.value);
             } catch (err) {
                 const params = JSON.stringify(spec.source.params);
-                alert(`Failed to obtain annotation (${err}).\nAnnotation specification source params: ${params}`);
+                const errorMessage = `Failed to obtain annotation (${err}).\nAnnotation specification source params: ${params}`;
+                if (plugin) {
+                    PluginCommands.Toast.Show(plugin, {
+                        title: 'Error',
+                        message: errorMessage
+                    });
+                } else {
+                    alert(errorMessage);
+                }
                 console.error(`Failed to obtain annotation (${err}).\nAnnotation specification:`, spec);
                 annots[spec.id] = MVSAnnotation.createEmpty(spec.schema);
             }

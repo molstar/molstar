@@ -1020,7 +1020,7 @@ async function attachModelProps(model: Model, ctx: PluginContext, taskCtx: Runti
         const props = properties[name];
         if (autoAttach.includes(name) || property.isHidden) {
             try {
-                await property.attach(propertyCtx, model, props, true);
+                await property.attach(propertyCtx, model, props, true, ctx);
             } catch (e) {
                 ctx.log.warn(`Error attaching model prop '${name}': ${e}`);
             }
