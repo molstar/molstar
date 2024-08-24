@@ -112,6 +112,7 @@ export class MVSAnnotations {
                 const params = JSON.stringify(spec.source.params);
                 const errorMessage = `Failed to obtain annotation (${err}).\nAnnotation specification source params: ${params}`;
                 if (plugin) {
+                    plugin.log.warn(errorMessage);
                     PluginCommands.Toast.Show(plugin, {
                         title: 'Error',
                         message: errorMessage
