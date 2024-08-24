@@ -115,7 +115,8 @@ export class MVSAnnotations {
                     plugin.log.warn(errorMessage);
                     PluginCommands.Toast.Show(plugin, {
                         title: 'Error',
-                        message: errorMessage
+                        message: errorMessage,
+                        timeoutMs: 10000
                     });
                 } else {
                     alert(errorMessage);
