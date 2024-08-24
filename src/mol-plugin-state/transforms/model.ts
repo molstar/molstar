@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Aliaksei Chareshneu <chareshneu.tech@gmail.com>
  */
 
 import { parseDcd } from '../../mol-io/reader/dcd/parser';
