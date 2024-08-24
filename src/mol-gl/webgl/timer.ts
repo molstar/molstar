@@ -141,7 +141,8 @@ export function createTimer(gl: GLRenderingContext, extensions: WebGLExtensions,
     return {
         resolve: () => {
             const results: TimerResult[] = [];
-            if (!dtq || !measures.length) return results;
+            if (!dtq || !measures.length || capturingStats) return results;
+
             // console.log('resolve');
             queries.forEach((result, query) => {
                 if (result.timeElapsed !== undefined) return;
