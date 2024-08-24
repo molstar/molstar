@@ -22,7 +22,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix cartoon representation not updated when secondary structure changes
 - Add Zhang-Skolnick secondary-structure assignment method which handles coarse-grained models (#49)
 - Calculate bonds for coarse-grained models
-- MolViewSpec extension: Toast and record in log if `MVSJ` references unavailable annotations   
+- VolumeServer: Add `health-check` endpoint + `healthCheckPath` config prop to report service health
+- ModelServer: Add `health-check` endpoint + `healthCheckPath` config prop to report service health
+- MolViewSpec extension: Toast and record in log if `MVSJ` references unavailable annotations
 
 ## [v4.5.0] - 2024-07-28
 

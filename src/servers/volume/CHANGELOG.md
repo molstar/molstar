@@ -1,3 +1,6 @@
+# 0.9.6
+* Add `health-check` endpoint + `healthCheckPath` config prop to report service health.
+
 # 0.9.5
 * Better query response box resolution.
 
