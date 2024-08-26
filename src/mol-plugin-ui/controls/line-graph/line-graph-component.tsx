@@ -686,10 +686,10 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         // const yah5 = this.height + offset;
 
 
-        const x1VerticalBar = 0;
-        const x2VerticalBar = 0;
-        const y1VerticalBar = 0;
-        const y2VerticalBar = this.height + offset;
+        const x2VerticalBar = 2;
+        const x1VerticalBar = 2;
+        const y2VerticalBar = 20;
+        const y1VerticalBar = this.height + offset;
         const w = offset / 5;
         const bars = [];
         // const hd = `M ${xh1} ${yh1} L ${xh2} ${yh2} L ${xh3} ${yh3} L ${xh4} ${yh4} L ${xh5} ${yh5} Z`;
@@ -698,19 +698,6 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             // TODO: color
             // TODO: may not work with <>/</>
             <>
-                {/* <defs>
-                    <marker
-                        id='head-horizontal'
-                        orient="auto"
-                        markerWidth='3'
-                        markerHeight='4'
-                        // tune refX and refY
-                        refX='0.1'
-                        refY='2'
-                    >
-                        <path d={arrowheadd} fill="black" />
-                    </marker>
-                </defs> */}
                 <defs>
                     <marker
                         id="head-horizontal"
@@ -724,15 +711,32 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                     </marker>
                 </defs>
 
-                <line key={'horizontalBar'} x1={x1HorizontalBar} x2={x2HorizontalBar}
+                <line key={'horizontalAxis'} x1={x1HorizontalBar} x2={x2HorizontalBar}
                     y1={y1HorizontalBar} y2={y2HorizontalBar} stroke="#000000" strokeWidth={w} markerEnd="url(#head-horizontal)">
                 </line>
             </>
         );
-        // bars.push(<line key={'verticalBar'} x1={x1VerticalBar} x2={x2VerticalBar}
-        //     y1={y1VerticalBar} y2={y2VerticalBar} stroke="#000000" strokeWidth={w}>
-        //     {/* <title>+ Sigma: {sigma}</title> */}
-        // </line>);
+        bars.push(
+            <>
+                <defs>
+                    <marker
+                        id="head-vertical"
+                        viewBox="0 0 10 10"
+                        refX="5"
+                        refY="5"
+                        markerWidth="6"
+                        markerHeight="6"
+                        orient="auto-start-reverse">
+                        <path d="M 0 2 L 10 5 L 0 8 z" />
+                        {/* <path d="M 2 10 L 5 0 L 8 10 z" /> */}
+                    </marker>
+                </defs>
+                <line key={'verticalAxis'} x1={x1VerticalBar} x2={x2VerticalBar}
+                    y1={y1VerticalBar} y2={y2VerticalBar} stroke="#000000" strokeWidth={w} markerEnd="url(#head-vertical)">
+                    {/* <title>+ Sigma: {sigma}</title> */}
+                </line>
+            </>
+        );
         return bars;
     }
 
@@ -752,7 +756,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const xPositive = this.width * ((mean + sigma) / extent);
         const xNegative = this.width * ((mean - sigma) / extent);
         bars.push(
-            <line key={'meanBar'} x1={x} x2={x} y1={y1} y2={y2} stroke="#000000" strokeWidth={w}>
+            <line key={'meanBar'} x1={x} x2={x} y1={y1} y2={y2} stroke="#808080" strokeDasharray="5, 5" strokeWidth={w}>
                 <title>Mean: {mean}</title>
             </line>);
         bars.push(<line key={'positiveSigmaBar'} x1={xPositive} x2={xPositive} y1={y1} y2={y2} stroke="#808080" strokeWidth={w}>
