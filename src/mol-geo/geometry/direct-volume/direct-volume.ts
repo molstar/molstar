@@ -36,20 +36,18 @@ const VolumeBox = Box();
 
 export const defaultControlPoints = generateControlPoints(ColorNames.black);
 
+function _f(c: number) {
+    // const f = 1 / 3;
+    const f = 5 * c;
+    return f;
+}
+
 function generateNormalizedGaussianPositions(numberOfPoints: number, a: number, b: number, c: number, TFextent: number): Vec2[] {
     const arr: Vec2[] = [];
-    // works
-    // const interval = 1 / (numberOfPoints) / 4;
-    // for now like this
-    const interval = 1 / (numberOfPoints) / 3;
-    // const interval = 1 / (numberOfPoints) / 2;
-    // const interval = 1 * 4 * c / (numberOfPoints);
+    // const interval = 1 / (numberOfPoints) / 3;
+    const interval = 1 * _f(c) / (numberOfPoints);
     for (let i = 1; i <= numberOfPoints; i ++) {
-        // const x = (1 / (numberOfPoints + 1)) * i;
-        // instead of this, equally divide the 2c interval
         const x = interval * i;
-        // basically stil the same, need to make it even thiner
-        // the higer multiplier the sharper
         const y = gaussianParametrized(x, a, b, c);
         const vector = Vec2.create(x, y);
         arr.push(vector);

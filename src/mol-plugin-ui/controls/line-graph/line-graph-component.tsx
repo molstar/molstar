@@ -11,7 +11,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Vec2 } from '../../../mol-math/linear-algebra';
 import { Grid } from '../../../mol-model/volume';
 import { arrayMax, arrayMin } from '../../../mol-util/array';
-import { Button, ControlGroup } from '../common';
+import { Button, ControlGroup, ExpandGroup } from '../common';
 import { CloseSvg } from '../icons';
 import { ParamDefinition } from '../../../mol-util/param-definition';
 import { Color } from '../../../mol-util/color';
@@ -87,13 +87,31 @@ class TFParamsWrapper extends React.Component<any> {
 
     };
 
-    // check if need to hanlde state change
-    render() {
-        return <WaitingParameterControls params={GaussianTFParams} values={this.state.gaussianTFParamsValues} onChangeValues={async next => { await sleep(20); console.log(next); this.handleChange(next); }} />;
+    handleClick = () => {
+        this.props.onChange('gaussian', 0.25, 1.0);
+        this.setState({ gaussianTFParamsValues: {
+            gaussianCenter: 1.0,
+            gaussianExtent: 0.25
+        } });
+    };
 
-        // return (
-        //     <Button onClick={this.handleChange}>{`Apply ${capitalize(this.props.kind)} Transfer Function`}</Button>
-        // );
+    private adjustParams = () => {
+        // TODO: set to actual ED values
+        const max = this.props.descriptiveStatistics.max;
+        const min = this.props.descriptiveStatistics.min;
+        GaussianTFParams.gaussianCenter.max = max;
+        GaussianTFParams.gaussianCenter.min = min;
+        GaussianTFParams.gaussianExtent.max = max / 2;
+        GaussianTFParams.gaussianCenter.min = 0;
+        return GaussianTFParams;
+    };
+
+    render() {
+        const adjustedParams = this.adjustParams();
+        return (<ExpandGroup header='Transfer Function Settings' initiallyExpanded>
+            <WaitingParameterControls params={adjustedParams} values={this.state.gaussianTFParamsValues} onChangeValues={async next => { await sleep(20); console.log(next); this.handleChange(next); }} />
+            <Button onClick={this.handleClick}>{`Apply Gaussian Transfer Function`}</Button>
+        </ExpandGroup>);
     }
 }
 
@@ -198,8 +216,8 @@ function ColorPicker(props: any) {
 }
 
 export const GaussianTFParams = {
-    gaussianCenter: PD.Numeric(0.2, { min: 0, max: 3, step: 0.05 }),
-    gaussianExtent: PD.Numeric(0.2, { min: 0, max: 3, step: 0.05 })
+    gaussianCenter: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
+    gaussianExtent: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 })
 };
 
 export type GaussianTFParamsValues = PD.Values<typeof GaussianTFParams>;
@@ -259,19 +277,20 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         return d;
     }
 
-    private setPredefinedTransferFunction(type: 'gaussian', sigmaMultiplierExtent: number, sigmaMultiplierCenter: number) {
+    private setPredefinedTransferFunction(type: 'gaussian', gaussianExtent: number, gaussianCenter: number) {
         const a = 0.2;
-        const mean = this.descriptiveStatistics.mean;
+        // const mean = this.descriptiveStatistics.mean;
         const min = this.descriptiveStatistics.min;
         const max = this.descriptiveStatistics.max;
-        const sigma = this.descriptiveStatistics.sigma;
+        // const sigma = this.descriptiveStatistics.sigma;
         const TFextent = max - min;
         // make it spread the points equally
         console.log(this.descriptiveStatistics);
-        const b = sigmaMultiplierCenter * (mean + sigma) / TFextent;
-        // fix this, should be just sigma,
-        const c = sigmaMultiplierExtent * sigma / TFextent;
+        const b = gaussianCenter / TFextent;
+        // const b = gaussianCenter * (mean + sigma) / TFextent;
+        const c = gaussianExtent / TFextent;
         // const l = (this.width * 2 * c / extent);
+        console.log(a, b, c);
         switch (type) {
             case 'gaussian':
                 const gaussianPoints: ControlPoint[] = generateGaussianControlPoints(a, b, c, TFextent);
@@ -329,13 +348,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                     <ColorPicker isActive={this.state.showColorPicker} defaultColor={defaultColor} color={color} updateColor={this.updateColor} toggleColorPicker={this.toggleColorPicker}/>
                 </>
                 <>
-                    {/* can be select instead, then on select etc. */}
-                    {/* change data in the UI somehow */}
-                    {/* change gaussian on change of this */}
-                    {/* make wrapper component similar to TFButton */}
-                    {/* <WaitingParameterControls params={GaussianTFParams} values={GaussianTFParamsValues} onChangeValues={async next => { await sleep(20); console.log('stuff'); }} /> */}
-                    <TFParamsWrapper onChange={this.setPredefinedTransferFunction}></TFParamsWrapper>
-                    <TFButton onClick={this.setPredefinedTransferFunction} kind={'gaussian'} sigmaMultiplierExtent={0.25} sigmaMultiplierCenter={1.5}></TFButton>
+                    <TFParamsWrapper onChange={this.setPredefinedTransferFunction} descriptiveStatistics={this.descriptiveStatistics}></TFParamsWrapper>
+                    <TFButton onClick={this.setPredefinedTransferFunction} kind={'gaussian'} sigmaMultiplierExtent={0.25} sigmaMultiplierCenter={1.0}></TFButton>
                     {/* <Button onClick={() => this.setPredefinedTransferFunction('gaussian')}>Apply Gaussian Transfer Function</Button> */}
                 </>
             </div>,
@@ -623,7 +637,6 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             const chunk = data.slice(i * increment, (i + 1) * increment);
             bins.push(chunk);
         };
-        debugger;
         for (let i = 0; i < N; i++) {
             const fromValue = arrayMin(bins[i]);
             const toValue = arrayMax(bins[i]);
