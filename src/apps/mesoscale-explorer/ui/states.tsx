@@ -26,6 +26,7 @@ import { createGenericHierarchy } from '../data/generic/preset';
 import { createMmcifHierarchy } from '../data/mmcif/preset';
 import { createPetworldHierarchy } from '../data/petworld/preset';
 import { MesoscaleState, MesoscaleStateObject, setGraphicsCanvas3DProps, updateColors } from '../data/state';
+import { isTimingMode } from '../../../mol-util/debug';
 
 function adjustPluginProps(ctx: PluginContext) {
     ctx.managers.interactivity.setProps({ granularity: 'chain' });
@@ -164,6 +165,7 @@ export async function loadExampleEntry(ctx: PluginContext, entry: ExampleEntry) 
 }
 
 export async function loadUrl(ctx: PluginContext, url: string, type: 'molx' | 'molj' | 'cif' | 'bcif') {
+    if (isTimingMode) ctx.canvas3dContext?.webgl.timer.mark('loadMesoscaleModel');
     if (type === 'molx' || type === 'molj') {
         const customState = ctx.customState as MesoscaleExplorerState;
         delete customState.stateRef;
@@ -184,6 +186,7 @@ export async function loadUrl(ctx: PluginContext, url: string, type: 'molx' | 'm
         const data = await ctx.builders.data.download({ url, isBinary });
         await createHierarchy(ctx, data.ref);
     }
+    if (isTimingMode) ctx.canvas3dContext?.webgl.timer.markEnd('loadMesoscaleModel');
 }
 
 export async function loadPdb(ctx: PluginContext, id: string) {
