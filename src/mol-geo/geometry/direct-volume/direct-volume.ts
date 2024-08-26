@@ -38,16 +38,15 @@ export const defaultControlPoints = generateControlPoints(ColorNames.black);
 
 function generateNormalizedGaussianPositions(numberOfPoints: number, a: number, b: number, c: number, TFextent: number): Vec2[] {
     const arr: Vec2[] = [];
-    // const interval = 1 / (numberOfPoints) / 3;
     const center = b * TFextent;
     const extent = c * TFextent;
-    const start = center - extent;
-    const end = center + extent;
-    // const interval = 1 * _f(c) / (numberOfPoints);
-    // TODO: possibly need to normalize / unnormalize (/ by TFextent)
-    const interval = (end - start) / numberOfPoints;
-    for (let i = 1; i <= numberOfPoints; i ++) {
-        const x = start + (interval * i);
+    // kind of 3 sigma
+    const start = center - 3 * extent;
+    const end = center + 3 * extent;
+    const interval = ((end - start) / (numberOfPoints - 1)) / TFextent;
+    for (let i = 0; i < numberOfPoints; i ++) {
+        const x = start / TFextent + (interval * i);
+        // const x = start + (interval * i);
         const y = gaussianParametrized(x, a, b, c);
         // vectors are created on the space of HTML canvas
         // so it should be normalized somehow

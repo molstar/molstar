@@ -78,12 +78,13 @@ class TFParamsWrapper extends React.Component<any> {
     state = {
         gaussianTFParamsValues: {
             gaussianCenter: 1.0,
-            gaussianExtent: 1.0
+            gaussianExtent: 1.0,
+            gaussianHeight: 0.2
         }
     };
 
     handleChange = (next: GaussianTFParamsValues) => {
-        this.props.onChange('gaussian', next.gaussianExtent, next.gaussianCenter);
+        this.props.onChange('gaussian', next.gaussianExtent, next.gaussianCenter, next.gaussianHeight);
 
     };
 
@@ -91,7 +92,8 @@ class TFParamsWrapper extends React.Component<any> {
         this.props.onChange('gaussian', 0.25, 1.0);
         this.setState({ gaussianTFParamsValues: {
             gaussianCenter: 1.0,
-            gaussianExtent: 0.25
+            gaussianExtent: 0.25,
+            gaussianHeight: 0.2
         } });
     };
 
@@ -217,7 +219,8 @@ function ColorPicker(props: any) {
 
 export const GaussianTFParams = {
     gaussianCenter: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
-    gaussianExtent: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 })
+    gaussianExtent: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
+    gaussianHeight: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 })
 };
 
 export type GaussianTFParamsValues = PD.Values<typeof GaussianTFParams>;
@@ -277,8 +280,9 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         return d;
     }
 
-    private setPredefinedTransferFunction(type: 'gaussian', gaussianExtent: number, gaussianCenter: number) {
-        const a = 0.2;
+    private setPredefinedTransferFunction(type: 'gaussian', gaussianExtent: number, gaussianCenter: number, gaussianHeight: number) {
+        // const a = gaussianHeight;
+        const a = gaussianHeight;
         // const mean = this.descriptiveStatistics.mean;
         const min = this.descriptiveStatistics.min;
         const max = this.descriptiveStatistics.max;
