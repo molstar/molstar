@@ -321,6 +321,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const points = this.renderPoints();
         const lines = this.renderLines();
         const histogram = this.renderHistogram();
+        const axes = this.renderAxes();
         const descriptiveStatisticsBars = this.renderDescriptiveStatisticsBars();
         const color = this.state.clickedPointId ? this.getPoint(this.state.clickedPointId).color : void 0;
         const defaultColor = ParamDefinition.Color(Color(0x121212));
@@ -344,6 +345,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                         {lines}
                         {points}
                         {descriptiveStatisticsBars}
+                        {axes}
                     </g>
                     <g className="ghost-points" stroke="black" fill="black">
                     </g>
@@ -651,6 +653,50 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                 <title>[{fromValue}; {toValue}]</title>
             </line>);
         }
+        return bars;
+    }
+
+    private renderAxes() {
+        // two markers for x and for y
+        // path
+
+        if (!this.props.volume) return null;
+        const offset = this.padding / 2;
+        const mean = this.descriptiveStatistics.mean;
+        const min = this.descriptiveStatistics.min;
+        const max = this.descriptiveStatistics.max;
+        // X: horizontal bar with arrow
+        // need min max
+        const x1HorizontalBar = 0;
+        const x2HorizontalBar = this.width;
+        const y1HorizontalBar = this.height + offset;
+        const y2HorizontalBar = this.height + offset;
+        // vertical bar with arrow
+        // x and y letters
+        const x1VerticalBar = 0;
+        const x2VerticalBar = 0;
+        const y1VerticalBar = 0;
+        const y2VerticalBar = this.height + offset;
+
+
+
+        // const x = this.width * (mean / extent);
+        const w = offset / 5;
+        const bars = [];
+        // const y1 = this.height + offset;
+        // const y2 = offset;
+        // const xPositive = this.width * ((mean + sigma) / extent);
+        // const xNegative = this.width * ((mean - sigma) / extent);
+        bars.push(
+            // TODO: color
+            <line key={'horizontalBar'} x1={x1HorizontalBar} x2={x2HorizontalBar}
+                y1={y1HorizontalBar} y2={y2HorizontalBar} stroke="#000000" strokeWidth={w}>
+                {/* <title>Mean: {mean}</title> */}
+            </line>);
+        bars.push(<line key={'verticalBar'} x1={x1VerticalBar} x2={x2VerticalBar}
+            y1={y1VerticalBar} y2={y2VerticalBar} stroke="#000000" strokeWidth={w}>
+            {/* <title>+ Sigma: {sigma}</title> */}
+        </line>);
         return bars;
     }
 
