@@ -89,7 +89,7 @@ class TFParamsWrapper extends React.Component<any> {
     };
 
     handleClick = () => {
-        this.props.onChange('gaussian', 0.25, 1.0);
+        this.props.onChange('gaussian', 0.25, 1.0, 0.2);
         this.setState({ gaussianTFParamsValues: {
             gaussianCenter: 1.0,
             gaussianExtent: 0.25,
