@@ -749,7 +749,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const sigma = this.descriptiveStatistics.sigma;
         const extent = max - min;
         const x = this.width * (mean / extent);
-        const w = offset / 4;
+        const w = offset / 10;
         const bars = [];
         const y1 = this.height + offset;
         const y2 = offset;
