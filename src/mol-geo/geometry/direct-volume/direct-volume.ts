@@ -36,19 +36,21 @@ const VolumeBox = Box();
 
 export const defaultControlPoints = generateControlPoints(ColorNames.black);
 
-function _f(c: number) {
-    // const f = 1 / 3;
-    const f = 5 * c;
-    return f;
-}
-
 function generateNormalizedGaussianPositions(numberOfPoints: number, a: number, b: number, c: number, TFextent: number): Vec2[] {
     const arr: Vec2[] = [];
     // const interval = 1 / (numberOfPoints) / 3;
-    const interval = 1 * _f(c) / (numberOfPoints);
+    const center = b * TFextent;
+    const extent = c * TFextent;
+    const start = center - extent;
+    const end = center + extent;
+    // const interval = 1 * _f(c) / (numberOfPoints);
+    // TODO: possibly need to normalize / unnormalize (/ by TFextent)
+    const interval = (end - start) / numberOfPoints;
     for (let i = 1; i <= numberOfPoints; i ++) {
-        const x = interval * i;
+        const x = start + (interval * i);
         const y = gaussianParametrized(x, a, b, c);
+        // vectors are created on the space of HTML canvas
+        // so it should be normalized somehow
         const vector = Vec2.create(x, y);
         arr.push(vector);
         console.log(arr);

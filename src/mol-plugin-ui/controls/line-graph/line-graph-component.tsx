@@ -349,7 +349,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                 </>
                 <>
                     <TFParamsWrapper onChange={this.setPredefinedTransferFunction} descriptiveStatistics={this.descriptiveStatistics}></TFParamsWrapper>
-                    <TFButton onClick={this.setPredefinedTransferFunction} kind={'gaussian'} sigmaMultiplierExtent={0.25} sigmaMultiplierCenter={1.0}></TFButton>
+                    {/* <TFButton onClick={this.setPredefinedTransferFunction} kind={'gaussian'} sigmaMultiplierExtent={0.25} sigmaMultiplierCenter={1.0}></TFButton> */}
                     {/* <Button onClick={() => this.setPredefinedTransferFunction('gaussian')}>Apply Gaussian Transfer Function</Button> */}
                 </>
             </div>,
