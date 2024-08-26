@@ -667,8 +667,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const max = this.descriptiveStatistics.max;
         // X: horizontal bar with arrow
         // need min max
-        const x1HorizontalBar = 0;
-        const x2HorizontalBar = this.width;
+        const x1HorizontalBar = offset;
+        const x2HorizontalBar = this.width + offset;
         const y1HorizontalBar = this.height + offset;
         const y2HorizontalBar = this.height + offset;
         // vertical bar with arrow
@@ -686,11 +686,11 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         // const yah5 = this.height + offset;
 
 
-        const x2VerticalBar = 2;
-        const x1VerticalBar = 2;
-        const y2VerticalBar = 20;
+        const x2VerticalBar = offset;
+        const x1VerticalBar = offset;
+        const y2VerticalBar = 25;
         const y1VerticalBar = this.height + offset;
-        const w = offset / 5;
+        const w = offset / 10;
         const bars = [];
         // const hd = `M ${xh1} ${yh1} L ${xh2} ${yh2} L ${xh3} ${yh3} L ${xh4} ${yh4} L ${xh5} ${yh5} Z`;
         // const arrowheadd = `M ${xah1} ${yah1} L ${xah2} ${yah2} L ${xah3} ${yah3} L ${xah4} ${yah4} L ${xah5} ${yah5} Z`;
