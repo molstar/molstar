@@ -673,30 +673,66 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const y2HorizontalBar = this.height + offset;
         // vertical bar with arrow
         // x and y letters
+
+        // const xah1 = this.width + offset;
+        // const yah1 = this.height + offset;
+        // const xah2 = this.width + offset;
+        // const yah2 = this.height + offset + arrowEdge;
+        // const xah3 = this.width + offset + arrowEdge;
+        // const yah3 = this.height + offset;
+        // const xah4 = this.width + offset;
+        // const yah4 = this.height + offset + arrowEdge;
+        // const xah5 = this.width + offset;
+        // const yah5 = this.height + offset;
+
+
         const x1VerticalBar = 0;
         const x2VerticalBar = 0;
         const y1VerticalBar = 0;
         const y2VerticalBar = this.height + offset;
-
-
-
-        // const x = this.width * (mean / extent);
         const w = offset / 5;
         const bars = [];
-        // const y1 = this.height + offset;
-        // const y2 = offset;
-        // const xPositive = this.width * ((mean + sigma) / extent);
-        // const xNegative = this.width * ((mean - sigma) / extent);
+        // const hd = `M ${xh1} ${yh1} L ${xh2} ${yh2} L ${xh3} ${yh3} L ${xh4} ${yh4} L ${xh5} ${yh5} Z`;
+        // const arrowheadd = `M ${xah1} ${yah1} L ${xah2} ${yah2} L ${xah3} ${yah3} L ${xah4} ${yah4} L ${xah5} ${yah5} Z`;
         bars.push(
             // TODO: color
-            <line key={'horizontalBar'} x1={x1HorizontalBar} x2={x2HorizontalBar}
-                y1={y1HorizontalBar} y2={y2HorizontalBar} stroke="#000000" strokeWidth={w}>
-                {/* <title>Mean: {mean}</title> */}
-            </line>);
-        bars.push(<line key={'verticalBar'} x1={x1VerticalBar} x2={x2VerticalBar}
-            y1={y1VerticalBar} y2={y2VerticalBar} stroke="#000000" strokeWidth={w}>
-            {/* <title>+ Sigma: {sigma}</title> */}
-        </line>);
+            // TODO: may not work with <>/</>
+            <>
+                {/* <defs>
+                    <marker
+                        id='head-horizontal'
+                        orient="auto"
+                        markerWidth='3'
+                        markerHeight='4'
+                        // tune refX and refY
+                        refX='0.1'
+                        refY='2'
+                    >
+                        <path d={arrowheadd} fill="black" />
+                    </marker>
+                </defs> */}
+                <defs>
+                    <marker
+                        id="head-horizontal"
+                        viewBox="0 0 10 10"
+                        refX="5"
+                        refY="5"
+                        markerWidth="6"
+                        markerHeight="6"
+                        orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" />
+                    </marker>
+                </defs>
+
+                <line key={'horizontalBar'} x1={x1HorizontalBar} x2={x2HorizontalBar}
+                    y1={y1HorizontalBar} y2={y2HorizontalBar} stroke="#000000" strokeWidth={w} markerEnd="url(#head-horizontal)">
+                </line>
+            </>
+        );
+        // bars.push(<line key={'verticalBar'} x1={x1VerticalBar} x2={x2VerticalBar}
+        //     y1={y1VerticalBar} y2={y2VerticalBar} stroke="#000000" strokeWidth={w}>
+        //     {/* <title>+ Sigma: {sigma}</title> */}
+        // </line>);
         return bars;
     }
 
