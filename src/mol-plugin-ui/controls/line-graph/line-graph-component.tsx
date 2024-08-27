@@ -267,6 +267,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         this.handleLeave = this.handleLeave.bind(this);
         this.handleEnter = this.handleEnter.bind(this);
         this.setPredefinedTransferFunction = this.setPredefinedTransferFunction.bind(this);
+        this.deleteAllPoints = this.deleteAllPoints.bind(this);
     }
 
     private getDescriptiveStatistics() {
@@ -280,10 +281,19 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         return d;
     }
 
+    private deleteAllPoints() {
+        const points = this.state.points;
+        const ghostPoints = [];
+        for (const point of points) {
+            if (point.index === 0 || point.index === this.state.points.length - 1) { ghostPoints.push(point); }
+        };
+        const ghostPointsSorted = this.sortPoints(ghostPoints);
+        this.setState({ points: ghostPointsSorted, clickedPointId: undefined, showColorPicker: false });
+        this.change([]);
+    }
+
     private setPredefinedTransferFunction(type: 'gaussian', gaussianExtent: number, gaussianCenter: number, gaussianHeight: number) {
-        // const a = gaussianHeight;
         const a = gaussianHeight;
-        // const mean = this.descriptiveStatistics.mean;
         const min = this.descriptiveStatistics.min;
         const max = this.descriptiveStatistics.max;
         // const sigma = this.descriptiveStatistics.sigma;
@@ -355,8 +365,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                 </>
                 <>
                     <TFParamsWrapper onChange={this.setPredefinedTransferFunction} descriptiveStatistics={this.descriptiveStatistics}></TFParamsWrapper>
-                    {/* <TFButton onClick={this.setPredefinedTransferFunction} kind={'gaussian'} sigmaMultiplierExtent={0.25} sigmaMultiplierCenter={1.0}></TFButton> */}
-                    {/* <Button onClick={() => this.setPredefinedTransferFunction('gaussian')}>Apply Gaussian Transfer Function</Button> */}
+                    <Button onClick={this.deleteAllPoints}>Remove All Points</Button>
                 </>
             </div>,
             <div key="modal" id="modal-root" />
@@ -674,16 +683,6 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         // vertical bar with arrow
         // x and y letters
 
-        // const xah1 = this.width + offset;
-        // const yah1 = this.height + offset;
-        // const xah2 = this.width + offset;
-        // const yah2 = this.height + offset + arrowEdge;
-        // const xah3 = this.width + offset + arrowEdge;
-        // const yah3 = this.height + offset;
-        // const xah4 = this.width + offset;
-        // const yah4 = this.height + offset + arrowEdge;
-        // const xah5 = this.width + offset;
-        // const yah5 = this.height + offset;
 
 
         const x2VerticalBar = offset;
