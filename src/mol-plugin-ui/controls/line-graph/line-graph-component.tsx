@@ -91,7 +91,7 @@ class TFParamsWrapper extends React.Component<any> {
     handleClick = () => {
         this.props.onChange('gaussian', 0.25, 1.0, 0.2);
         this.setState({ gaussianTFParamsValues: {
-            gaussianCenter: 1.0,
+            gaussianCenter: this.props.descriptiveStatistics.mean + 2 * this.props.descriptiveStatistics.sigma,
             gaussianExtent: 0.25,
             gaussianHeight: 0.2
         } });
@@ -667,7 +667,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const max = this.descriptiveStatistics.max;
         // X: horizontal bar with arrow
         // need min max
-        const x1HorizontalBar = offset;
+        const x1HorizontalBar = 0;
         const x2HorizontalBar = this.width + offset;
         const y1HorizontalBar = this.height + offset;
         const y2HorizontalBar = this.height + offset;
@@ -752,7 +752,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const w = offset / 10;
         const bars = [];
         const y1 = this.height + offset;
-        const y2 = offset;
+        const y2 = 0;
         const xPositive = this.width * ((mean + sigma) / extent);
         const xNegative = this.width * ((mean - sigma) / extent);
         bars.push(
