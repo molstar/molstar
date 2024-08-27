@@ -32,6 +32,7 @@ nav:
   - Plugin:
     - Creating Instance: 'plugin/instance.md'
     - Examples: plugin/examples.md
+    - Custom Library: 'plugin/custom-library.md'
     - Selections: 'plugin/selections.md'
     - Viewer State: 'plugin/viewer-state.md'
     - Data State: 'plugin/data-state.md'
