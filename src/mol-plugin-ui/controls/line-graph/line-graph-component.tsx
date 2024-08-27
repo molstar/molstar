@@ -111,7 +111,7 @@ class TFParamsWrapper extends React.Component<any> {
     render() {
         const adjustedParams = this.adjustParams();
         return (<ExpandGroup header='Transfer Function Settings' initiallyExpanded>
-            <WaitingParameterControls params={adjustedParams} values={this.state.gaussianTFParamsValues} onChangeValues={async next => { await sleep(20); console.log(next); this.handleChange(next); }} />
+            <WaitingParameterControls params={adjustedParams} values={this.state.gaussianTFParamsValues} onChangeValues={async next => { this.handleChange(next); }} />
             <Button onClick={this.handleClick}>{`Apply Gaussian Transfer Function`}</Button>
         </ExpandGroup>);
     }
