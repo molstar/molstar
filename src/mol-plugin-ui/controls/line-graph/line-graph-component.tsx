@@ -179,7 +179,7 @@ interface LineGraphComponentState {
     canSelectMultiple: boolean,
     showColorPicker: boolean,
     // colored: boolean,
-    clickedPointId?: UUID
+    clickedPointIds?: UUID[]
 }
 
 const startEndPoints = [
@@ -288,7 +288,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             if (point.index === 0 || point.index === this.state.points.length - 1) { ghostPoints.push(point); }
         };
         const ghostPointsSorted = this.sortPoints(ghostPoints);
-        this.setState({ points: ghostPointsSorted, clickedPointId: undefined, showColorPicker: false });
+        this.setState({ points: ghostPointsSorted, clickedPointIds: undefined, showColorPicker: false });
         this.change([]);
     }
 
@@ -322,9 +322,16 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
 
     private getPoint(id: UUID) {
         const points = this.state.points;
-        const point = points.find(p => p.id === id);
-        if (!point) throw Error(`Point with id ${id} does not exist`);
-        return point;
+        const selectedPoints = points.find(p => p.id === id);
+        if (!selectedPoints) throw Error(`Points with ids ${id} do not exist`);
+        return selectedPoints;
+    }
+
+    private getPoints(id: UUID[]) {
+        const points = this.state.points;
+        const selectedPoints = points.filter(p => id.includes(p.id));
+        if (!selectedPoints) throw Error(`Point with id ${id} does not exist`);
+        return selectedPoints;
     }
 
     public render() {
@@ -333,7 +340,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const histogram = this.renderHistogram();
         const axes = this.renderAxes();
         const descriptiveStatisticsBars = this.renderDescriptiveStatisticsBars();
-        const color = this.state.clickedPointId ? this.getPoint(this.state.clickedPointId).color : void 0;
+        const firstPoint = this.state.clickedPointIds ? this.getPoint(this.state.clickedPointIds[0]) : void 0;
+        const color = firstPoint ? firstPoint.color : void 0;
         const defaultColor = ParamDefinition.Color(Color(0x121212));
         return ([
             <div key="LineGraph">
@@ -391,27 +399,56 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     }
 
     private updateColor: ParamOnChange = ({ value }: { value: Color }) => {
-        if (!this.state.clickedPointId) throw Error('No point is selected');
-        const point = this.getPoint(this.state.clickedPointId);
-        if (!point) throw Error('Point should be selected');
-        point.color = value;
-        const points = this.state.points.map(p => p.id === this.state.clickedPointId ? point : p);
-        this.setState({
-            points: points
-        });
-        this.change(points);
+        const clickedPointIds = this.state.clickedPointIds;
+        const currentPoints = this.state.points;
+        if (!clickedPointIds || clickedPointIds.length === 0) throw Error('No point is selected');
+        const clickedPoints = this.getPoints(clickedPointIds);
+        if (!clickedPoints) throw Error('Point should be selected');
+        for (const point of clickedPoints) {
+            point.color = value;
+        }
+        // need to change just points in ps
+        const clickedPointsIds = clickedPoints.map(p => p.id);
+        const notClickedPoints = currentPoints.filter(p => !clickedPointsIds.includes(p.id));
+        const newPoints = clickedPoints.concat(notClickedPoints);
+        console.log('Points before color change', currentPoints);
+        console.log('Points with color changed', newPoints);
+        this.handleChangePoints(newPoints);
+        debugger;
     };
 
     private handleKeyDown = (event: any) => {
         // TODO: set canSelectMultiple = true
+        if (event.key === 'Shift') {
+            this.setState({ canSelectMultiple: true });
+            console.log('Shift is pressed');
+            // TODO: allow to select another point
+        } else {
+            // console.log(`${event} is pressed`);
+        }
     };
 
     private handleKeyUp = (event: any) => {
         // TODO: SET canSelectMultiple = fasle
+        this.setState({ canSelectMultiple: false });
+        if (event.shiftKey) {
+            // do something
+            console.log('Shift is released');
+            // TODO: allow to select another point
+        } else {
+            // console.log(`${event} is released`);
+        }
     };
 
     private handleClick = (point: ControlPoint) => (event: any) => {
-        this.setState({ clickedPointId: point.id });
+        this.setState({ clickedPointIds: [point.id] });
+
+        if (this.state.canSelectMultiple) {
+            debugger;
+            if (event.shiftKey) return;
+            // TODO: function to execute on this
+        }
+
         if (this.state.showColorPicker) {
             // TODO: what should happen there?
         } else {
@@ -582,7 +619,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         if (point.index === 0 || point.index === this.state.points.length - 1) { return; }
         let points = this.state.points.filter(p => p.id !== point.id);
         points = this.sortPoints(points);
-        this.setState({ points: points, clickedPointId: undefined, showColorPicker: false });
+        this.setState({ points: points, clickedPointIds: undefined, showColorPicker: false });
         this.change(points);
         console.log('Point', id, ' is deleted');
         event.stopPropagation();
