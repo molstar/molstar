@@ -12,7 +12,7 @@ import { Vec2 } from '../../../mol-math/linear-algebra';
 import { Grid } from '../../../mol-model/volume';
 import { arrayMax, arrayMin } from '../../../mol-util/array';
 import { Button, ControlGroup, ExpandGroup, IconButton } from '../common';
-import { BrushSvg, CloseSvg, MinusBoxSvg, PlusBoxSvg } from '../icons';
+import { BrushSvg, CloseSvg, DeleteSvg, MinusBoxSvg, PlusBoxSvg } from '../icons';
 import { ParamDefinition } from '../../../mol-util/param-definition';
 import { Color } from '../../../mol-util/color';
 import { CombinedColorControl } from '../color';
@@ -29,7 +29,84 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 type ComponentParams<T extends React.Component<any, any, any> | ((props: any) => JSX.Element)> =
     T extends React.Component<infer P, any, any> ? P : T extends (props: infer P) => JSX.Element ? P : never;
 
+class PointButton extends React.Component<any> {
+    handleClick = () => {
+        debugger;
+        this.props.onClick(this.props.point.id);
+        // this.props.onClick(this.props.kind, this.props.sigmaMultiplierExtent, this.props.sigmaMultiplierCenter);
+    };
+    // TODO: pass the removePoint
+    render() {
+        return (
+            <div style={{ display: 'flex', marginBottom: 1, marginTop: 1 }} key={this.props.point.id}>
+                {/* TODO: on click select  */}
+                {/* TODO: aligment of text */}
+                <Button style={{ margin: 1, textAlign: 'start', textIndent: '20px' }}>Point {`(${this.props.point.data.x}; ${this.props.point.data.alpha})`}</Button>
+                <IconButton style={{ margin: 1 }}title={'Remove point'} svg={DeleteSvg} onClick={this.handleClick}></IconButton>
+            </div>
+        );
+    }
+}
 
+class PointsPanel extends React.Component<any> {
+    // handleClick = () => {
+    //     // this.props.onClick(this.props.kind, this.props.sigmaMultiplierExtent, this.props.sigmaMultiplierCenter);
+    // };
+
+    render() {
+        const points: ControlPoint[] = this.props.points;
+        const controlPointsButtons = points.map(p => {
+            return <PointButton point={p} onClick={this.props.onPointButtonClick}></PointButton>;
+        });
+        return (
+            <ExpandGroup header='Control Points Panel' initiallyExpanded={true}>
+                {controlPointsButtons}
+            </ExpandGroup>
+        );
+    }
+}
+
+class TFMethodPanel extends React.Component<any> {
+    // handleClick = () => {
+    //     // this.props.onClick(this.props.kind, this.props.sigmaMultiplierExtent, this.props.sigmaMultiplierCenter);
+    // };
+
+    render() {
+        return <ExpandGroup header={this.props.params.name} initiallyExpanded={true}>
+            {/* render params */}
+            <TFParamsWrapper params={this.props.params} descriptiveStatistics={this.props.descriptiveStatistics}></TFParamsWrapper>
+        </ExpandGroup>;
+    }
+}
+
+export type TFName = 'gaussian' | 'method2';
+
+export interface TFMethod {
+    name: TFName
+    // TODO: find params
+    params: TFParamsValues
+}
+
+class HelpersPanel extends React.Component<any> {
+    // handleClick = () => {
+    //     // this.props.onClick(this.props.kind, this.props.sigmaMultiplierExtent, this.props.sigmaMultiplierCenter);
+    // };
+
+    render() {
+        const methods: TFMethod[] = this.props.methods;
+        // const points: ControlPoint[] = this.props.points;
+        // methods undefined
+        const methodsUI = methods.map(p => {
+            // should be expandgroup
+            return <TFMethodPanel params={p} descriptiveStatistics={this.props.descriptiveStatistics}></TFMethodPanel>;
+        });
+        return (
+            <ExpandGroup header='Helpers' initiallyExpanded={true}>
+                {methodsUI}
+            </ExpandGroup>
+        );
+    }
+}
 
 function WaitingParameterControls<T extends PD.Params>({ values, onChangeValues, ...etc }: { values: PD.ValuesFor<T>, onChangeValues: (values: PD.ValuesFor<T>) => any } & ComponentParams<ParameterControls<T>>) {
     const [changing, currentValues, execute] = useAsyncChange(values);
@@ -74,18 +151,11 @@ function useAsyncChange<T>(initialValue: T) {
 }
 
 class TFParamsWrapper extends React.Component<any> {
-    // should accept params or rather use params from control
-    state = {
-        gaussianTFParamsValues: {
-            gaussianCenter: 1.0,
-            gaussianExtent: 1.0,
-            gaussianHeight: 0.2
-        }
-    };
+    state = this.props.params;
 
-    handleChange = (next: GaussianTFParamsValues) => {
-        this.props.onChange('gaussian', next.gaussianExtent, next.gaussianCenter, next.gaussianHeight);
-
+    handleChange = (next: TFParamsValues) => {
+        // on change should be generic as well
+        this.props.onChange(this.props.params);
     };
 
     handleClick = () => {
@@ -98,7 +168,7 @@ class TFParamsWrapper extends React.Component<any> {
     };
 
     private adjustParams = () => {
-        // TODO: set to actual ED values
+        // this.props.descriptiveStatistics undefined
         const max = this.props.descriptiveStatistics.max;
         const min = this.props.descriptiveStatistics.min;
         GaussianTFParams.gaussianCenter.max = max;
@@ -116,21 +186,6 @@ class TFParamsWrapper extends React.Component<any> {
         </ExpandGroup>);
     }
 }
-
-
-
-class TFButton extends React.Component<any> {
-    handleClick = () => {
-        this.props.onClick(this.props.kind, this.props.sigmaMultiplierExtent, this.props.sigmaMultiplierCenter);
-    };
-
-    render() {
-        return (
-            <Button onClick={this.handleClick}>{`Apply ${capitalize(this.props.kind)} Transfer Function`}</Button>
-        );
-    }
-}
-
 
 export function areControlPointsColorsSame(newControlPoints: ControlPoint[], oldControlPoints: ControlPoint[]) {
     const newSorted = newControlPoints.sort((a, b) => a.index - b.index);
@@ -179,7 +234,8 @@ interface LineGraphComponentState {
     canSelectMultiple: boolean,
     showColorPicker: boolean,
     // colored: boolean,
-    clickedPointIds?: UUID[]
+    clickedPointIds?: UUID[],
+    methodsParams: TFParamsValues[]
 }
 
 const startEndPoints = [
@@ -220,10 +276,42 @@ function ColorPicker(props: any) {
 export const GaussianTFParams = {
     gaussianCenter: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
     gaussianExtent: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
-    gaussianHeight: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 })
+    gaussianHeight: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
+    // TODO: PD from object or something
+    name: PD.Text('gaussian', { isHidden: true })
+};
+
+export const Method2TFParams = {
+    param1: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
+    param2: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
+    // TODO: PD from object or something
+    name: PD.Text('method2', { isHidden: true })
+    // gaussianHeight: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 })
 };
 
 export type GaussianTFParamsValues = PD.Values<typeof GaussianTFParams>;
+
+export type TFParamsValues = GaussianTFParamsValues | Method2ParamsValues;
+
+export type Method2ParamsValues = PD.Values<typeof Method2TFParams>;
+
+const DefaultGaussianParams: GaussianTFParamsValues = {
+    gaussianCenter: 1.0,
+    gaussianExtent: 0.25,
+    gaussianHeight: 0.2,
+    name: 'gaussian'
+};
+
+const DefaultMethod2Params: Method2ParamsValues = {
+    name: 'method2',
+    param1: 1.0,
+    param2: 2.0
+};
+
+const DefaultTFParams: TFParamsValues[] = [
+    DefaultGaussianParams,
+    DefaultMethod2Params
+];
 
 export class LineGraphComponent extends React.Component<any, LineGraphComponentState> {
     private myRef: any;
@@ -245,6 +333,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             copyPoint: undefined,
             canSelectMultiple: false,
             showColorPicker: false,
+            methodsParams: DefaultTFParams
             // colored: this.props.colored
         };
         this.height = 400;
@@ -268,7 +357,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         this.handleKeyUp = this.handleKeyUp.bind(this);
         this.handleLeave = this.handleLeave.bind(this);
         this.handleEnter = this.handleEnter.bind(this);
-        this.setPredefinedTransferFunction = this.setPredefinedTransferFunction.bind(this);
+        this.setTF = this.setTF.bind(this);
         this.deleteAllPoints = this.deleteAllPoints.bind(this);
     }
 
@@ -294,31 +383,44 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         this.change([]);
     }
 
-    private setPredefinedTransferFunction(type: 'gaussian', gaussianExtent: number, gaussianCenter: number, gaussianHeight: number) {
+    private _setMethod2TF(params: Method2ParamsValues) {
+        // TODO: implement
+    }
+
+    private _setGaussianTF(params: GaussianTFParamsValues) {
+        const { name, gaussianExtent, gaussianCenter, gaussianHeight } = params;
         const a = gaussianHeight;
         const min = this.descriptiveStatistics.min;
         const max = this.descriptiveStatistics.max;
         // const sigma = this.descriptiveStatistics.sigma;
         const TFextent = max - min;
         // make it spread the points equally
-        console.log(this.descriptiveStatistics);
+        // console.log(this.descriptiveStatistics);
         const b = gaussianCenter / TFextent;
         // const b = gaussianCenter * (mean + sigma) / TFextent;
         const c = gaussianExtent / TFextent;
         // const l = (this.width * 2 * c / extent);
-        console.log(a, b, c);
-        switch (type) {
+        // console.log(a, b, c);
+        const gaussianPoints: ControlPoint[] = generateGaussianControlPoints(a, b, c, TFextent);
+        const currentPoints = this.state.points;
+        gaussianPoints.push(currentPoints[currentPoints.length - 1]);
+        gaussianPoints.unshift(currentPoints[0]);
+        this.setState({
+            points: gaussianPoints
+        });
+        this.change(gaussianPoints);
+    }
+
+    private setTF(params: TFParamsValues) {
+        const name = params.name;
+        switch (name) {
             case 'gaussian':
-                const gaussianPoints: ControlPoint[] = generateGaussianControlPoints(a, b, c, TFextent);
-                const currentPoints = this.state.points;
-                gaussianPoints.push(currentPoints[currentPoints.length - 1]);
-                gaussianPoints.unshift(currentPoints[0]);
-                this.setState({
-                    points: gaussianPoints
-                });
-                this.change(gaussianPoints);
+                this._setGaussianTF(params as GaussianTFParamsValues);
                 break;
-            default: throw Error(`Transfer function type ${type} is not supported`);
+            case 'method2':
+                this._setMethod2TF(params as Method2ParamsValues);
+                break;
+            default: throw Error(`Transfer function ${name} is not supported`);
         };
     }
 
@@ -341,6 +443,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const lines = this.renderLines();
         const histogram = this.renderHistogram();
         const axes = this.renderAxes();
+        // const pointsButtons = this.renderPointsButtons();
         const descriptiveStatisticsBars = this.renderDescriptiveStatisticsBars();
         const firstPoint = this.state.clickedPointIds ? this.getPoint(this.state.clickedPointIds[0]) : void 0;
         const color = firstPoint ? firstPoint.color : void 0;
@@ -350,15 +453,15 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const _removePoint = this.removeRightmostPoint;
         const plusIconButtonStyle = {
             position: ('absolute' as any),
-            top: '20%',
-            right: '10%',
+            top: '100px',
+            right: '30px',
             // transform: 'translate(-50%, -50%)'
         };
         // TODO: fix style
         const minusIconButtonStyle = {
             position: ('absolute' as any),
-            top: '20%',
-            right: '0%',
+            top: '100px',
+            right: '5px',
             // transform: 'translate(-50%, -50%)'
         };
 
@@ -395,12 +498,19 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                     <g className="ghost-points" stroke="black" fill="black">
                     </g>
                 </svg>
-                <>
-                    <ColorPicker isActive={this.state.showColorPicker} defaultColor={defaultColor} color={color} updateColor={this.updateColor} toggleColorPicker={this.toggleColorPicker}/>
+                {/* TODO: div with the same height as color picker */}
+                <>{this.state.showColorPicker ? <ColorPicker isActive={this.state.showColorPicker} defaultColor={defaultColor} color={color} updateColor={this.updateColor} toggleColorPicker={this.toggleColorPicker}/> : <div>Select point to change color</div>}
+
                 </>
                 <>
-                    <TFParamsWrapper onChange={this.setPredefinedTransferFunction} descriptiveStatistics={this.descriptiveStatistics}></TFParamsWrapper>
+                    {/* <TFParamsWrapper onChange={this.setTF} descriptiveStatistics={this.descriptiveStatistics}></TFParamsWrapper> */}
                     <Button onClick={this.deleteAllPoints}>Remove All Points</Button>
+                    <PointsPanel points={this.state.points} onPointButtonClick={this.removePoint}></PointsPanel>
+                    {/* Connect this to existing code */}
+                    {/* should render actual state of all methods
+                    // add this to state then, params of all methods */}
+                    {/* TODO: debug */}
+                    {/* <HelpersPanel methods={this.state.methodsParams} descriptiveStatistics={this.descriptiveStatistics}></HelpersPanel> */}
                 </>
             </div>,
             <div key="modal" id="modal-root" />
@@ -748,6 +858,14 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             this.myRef = element;
         }
     }
+
+    // private renderPointsButtons() {
+    //     const points = this.state.points;
+    //     const pbs = points.map(p => {
+    //         return <PointButton point={p}></PointButton>;
+    //     });
+    //     return pbs;
+    // }
 
     private renderHistogram() {
         if (!this.props.volume) return null;
