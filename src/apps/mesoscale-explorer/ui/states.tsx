@@ -165,7 +165,10 @@ export async function loadExampleEntry(ctx: PluginContext, entry: ExampleEntry) 
 }
 
 export async function loadUrl(ctx: PluginContext, url: string, type: 'molx' | 'molj' | 'cif' | 'bcif') {
-    if (isTimingMode) ctx.canvas3dContext?.webgl.timer.mark('loadMesoscaleModel');
+    let startTime = 0;
+    if (isTimingMode) {
+        startTime = performance.now();
+    }
     if (type === 'molx' || type === 'molj') {
         const customState = ctx.customState as MesoscaleExplorerState;
         delete customState.stateRef;
@@ -186,7 +189,12 @@ export async function loadUrl(ctx: PluginContext, url: string, type: 'molx' | 'm
         const data = await ctx.builders.data.download({ url, isBinary });
         await createHierarchy(ctx, data.ref);
     }
-    if (isTimingMode) ctx.canvas3dContext?.webgl.timer.markEnd('loadMesoscaleModel');
+    if (isTimingMode) {
+        const endTime = performance.now();
+        // Calculate the elapsed time
+        const timeTaken = endTime - startTime;
+        console.log(`Model loaded in ${timeTaken} milliseconds`);
+    }
 }
 
 export async function loadPdb(ctx: PluginContext, id: string) {
@@ -250,7 +258,7 @@ export const LoadModel = StateAction.build({
     }
 
     await reset(ctx);
-    if (isTimingMode) ctx.canvas3dContext?.webgl.timer.mark('loadMesoscaleModel');
+
     const firstFile = params.files[0];
     const firstInfo = getFileNameInfo(firstFile.file!.name);
 
@@ -276,7 +284,6 @@ export const LoadModel = StateAction.build({
             }
         }
     }
-    if (isTimingMode) ctx.canvas3dContext?.webgl.timer.markEnd('loadMesoscaleModel');
 }));
 
 //
@@ -323,7 +330,7 @@ export async function openState(ctx: PluginContext, file: File) {
     delete customState.stateRef;
     customState.stateCache = {};
     ctx.managers.asset.clear();
-    if (isTimingMode) ctx.canvas3dContext?.webgl.timer.mark('loadMesoscaleModel');
+
     await PluginCommands.State.Snapshots.Clear(ctx);
     await PluginCommands.State.Snapshots.OpenFile(ctx, { file });
 
@@ -332,7 +339,6 @@ export async function openState(ctx: PluginContext, file: File) {
 
     customState.stateRef = cell.transform.ref;
     customState.graphicsMode = cell.obj?.data.graphics || customState.graphicsMode;
-    if (isTimingMode) ctx.canvas3dContext?.webgl.timer.markEnd('loadMesoscaleModel');
 }
 
 export class SessionControls extends PluginUIComponent {
