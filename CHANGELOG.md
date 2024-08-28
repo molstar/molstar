@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v4.6.0] - 2024-08-28
+
 - Add round-caps option on tubular alpha helices
 - Fix missing Sequence UI update on state object removal (#1219)
 - Improved prmtop format support (CTITLE, %COMMENT)
