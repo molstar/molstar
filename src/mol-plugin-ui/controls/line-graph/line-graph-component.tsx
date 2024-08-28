@@ -257,7 +257,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
 
         this.sortPoints(this.state.points);
 
-        this.removePoint = this.removePoint.bind(this);
+        this.removeRightmostPoint = this.removeRightmostPoint.bind(this);
         this.createPoint = this.createPoint.bind(this);
         this.handleDrag = this.handleDrag.bind(this);
         this.handleMultipleDrag = this.handleMultipleDrag.bind(this);
@@ -347,7 +347,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const defaultColor = ParamDefinition.Color(Color(0x121212));
         // bind this
         const _createPoint = this.createPoint;
-        const _removePoint = this.removePoint;
+        const _removePoint = this.removeRightmostPoint;
         const plusIconButtonStyle = {
             position: ('absolute' as any),
             top: '20%',
@@ -613,10 +613,28 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         document.removeEventListener('mouseup', this.handlePointUpdate, true);
     }
 
-    private removePoint() {
-        // TODO: implement
-        // last index I guess
-        // TODO:! implement indices update upon drag or delete
+    private removePoint(id: UUID) {
+        const point = this.getPoint(id);
+        if (point.index === 0 || point.index === this.state.points.length - 1) { return; }
+        let points = this.state.points.filter(p => p.id !== point.id);
+        points = this.sortPoints(points);
+        this.setState({ points: points, clickedPointIds: undefined, showColorPicker: false });
+        this.change(points);
+    }
+
+    // TODO: fix movement of plus and minus sign buttons upon creation of points
+    private removeRightmostPoint() {
+        // remove based on data
+        const points = this.state.points;
+        const sortedPs = this.sortPoints(points);
+        debugger;
+        // rightmost is undefined
+        // last is ghost
+        // const rightmostP = sortedPs.slice(-1)[0];
+        const rightmostP = sortedPs[sortedPs.length - 2];
+        debugger;
+        this.removePoint(rightmostP.id);
+        debugger;
     };
 
     private createPoint() {
@@ -679,12 +697,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     }
 
     private deletePoint = (id: UUID) => (event: any) => {
-        const point = this.getPoint(id);
-        if (point.index === 0 || point.index === this.state.points.length - 1) { return; }
-        let points = this.state.points.filter(p => p.id !== point.id);
-        points = this.sortPoints(points);
-        this.setState({ points: points, clickedPointIds: undefined, showColorPicker: false });
-        this.change(points);
+        this.removePoint(id);
         console.log('Point', id, ' is deleted');
         event.stopPropagation();
     };
