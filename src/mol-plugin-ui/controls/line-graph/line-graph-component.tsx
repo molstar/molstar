@@ -11,8 +11,8 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Vec2 } from '../../../mol-math/linear-algebra';
 import { Grid } from '../../../mol-model/volume';
 import { arrayMax, arrayMin } from '../../../mol-util/array';
-import { Button, ControlGroup, ExpandGroup } from '../common';
-import { CloseSvg } from '../icons';
+import { Button, ControlGroup, ExpandGroup, IconButton } from '../common';
+import { BrushSvg, CloseSvg, MinusBoxSvg, PlusBoxSvg } from '../icons';
 import { ParamDefinition } from '../../../mol-util/param-definition';
 import { Color } from '../../../mol-util/color';
 import { CombinedColorControl } from '../color';
@@ -257,6 +257,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
 
         this.sortPoints(this.state.points);
 
+        this.removePoint = this.removePoint.bind(this);
+        this.createPoint = this.createPoint.bind(this);
         this.handleDrag = this.handleDrag.bind(this);
         this.handleMultipleDrag = this.handleMultipleDrag.bind(this);
         this.handleDoubleClick = this.handleDoubleClick.bind(this);
@@ -343,8 +345,33 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const firstPoint = this.state.clickedPointIds ? this.getPoint(this.state.clickedPointIds[0]) : void 0;
         const color = firstPoint ? firstPoint.color : void 0;
         const defaultColor = ParamDefinition.Color(Color(0x121212));
+        // bind this
+        const _createPoint = this.createPoint;
+        const _removePoint = this.removePoint;
+        const plusIconButtonStyle = {
+            position: ('absolute' as any),
+            top: '20%',
+            right: '10%',
+            // transform: 'translate(-50%, -50%)'
+        };
+        // TODO: fix style
+        const minusIconButtonStyle = {
+            position: ('absolute' as any),
+            top: '20%',
+            right: '0%',
+            // transform: 'translate(-50%, -50%)'
+        };
+
         return ([
             <div key="LineGraph">
+                <IconButton style={plusIconButtonStyle} small svg={PlusBoxSvg} onClick={function (e: React.MouseEvent<HTMLButtonElement>): void {
+                    // throw new Error('Function not implemented.');
+                    _createPoint();
+                } } ></IconButton>
+                <IconButton style={minusIconButtonStyle} small svg={MinusBoxSvg} onClick={function (e: React.MouseEvent<HTMLButtonElement>): void {
+                    // throw new Error('Function not implemented.');
+                    _removePoint();
+                } } ></IconButton>
                 <svg
                     className="msp-canvas"
                     ref={this.refCallBack}
@@ -444,7 +471,6 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         this.setState({ clickedPointIds: [point.id] });
 
         if (this.state.canSelectMultiple) {
-            debugger;
             if (event.shiftKey) return;
             // TODO: function to execute on this
         }
@@ -587,6 +613,44 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         document.removeEventListener('mouseup', this.handlePointUpdate, true);
     }
 
+    private removePoint() {
+        // TODO: implement
+        // last index I guess
+        // TODO:! implement indices update upon drag or delete
+    };
+
+    private createPoint() {
+        const svgP = this.myRef.createSVGPoint();
+        // TODO: resolve location, do something like this.width, height...
+        svgP.x = this.width - 100;
+        svgP.y = this.height - 100;
+
+        // const svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
+        const points = this.state.points;
+        // const padding = this.padding / 2;
+        // debugger;
+        // // resolve this
+        // const svtP = 0;
+        // if (svgP.x < (padding) ||
+        //     svgP.x > (this.width + (padding)) ||
+        //     svgP.y > (this.height + (padding)) ||
+        //     svgP.y < (this.padding / 2)) {
+        //     debugger;
+        //     return;
+        // }
+        const newPointData = this.unNormalizePoint(Vec2.create(svgP.x, svgP.y));
+        // problem with index
+        // should be the last one
+        // find the last index and do + 1?
+        const newPoint: ControlPoint = {
+            data: newPointData,
+            id: UUID.create22(),
+            color: getRandomColor(),
+            index: points.slice(-1)[0].index + 1
+        };
+        this.addPoint(newPoint);
+    }
+
     private handleDoubleClick(event: any) {
         const pt = this.myRef.createSVGPoint();
         pt.x = event.clientX;
@@ -691,7 +755,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         // };
         for (let i = 0; i < N; i++) {
             const fromValue = histogram.min + histogram.binWidth * i;
-            const toValue = histogram.min + histogram.binWidth * (i + 1)
+            const toValue = histogram.min + histogram.binWidth * (i + 1);
             // const fromValue = arrayMin(bins[i]);
             // const toValue = arrayMax(bins[i]);
             const x = this.width * i / (N - 1) + offset;
@@ -778,6 +842,12 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         return bars;
     }
 
+    private makeXAxisLabel(value: number, x: number, y: number) {
+        // TODO: make constants be dependant on precision and font size
+        // TODO: font size
+        return <text x={x - 20} y={y + 25}>{parseFloat(value.toFixed(5))} </text>;
+    }
+
     private renderDescriptiveStatisticsBars() {
         if (!this.props.volume) return null;
         const offset = this.padding / 2;
@@ -787,22 +857,32 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const sigma = this.descriptiveStatistics.sigma;
         const extent = max - min;
         const x = this.width * ((mean + Math.abs(min)) / extent) + offset;
-        const w = offset / 10;
+        const w = offset / 5;
         const bars = [];
         const y1 = this.height + offset;
         const y2 = 0;
         const xPositive = this.width * ((mean + sigma + Math.abs(min)) / extent) + offset;
-        // const xNegative = this.width * ((mean - sigma) / extent) + offset;
+        const xNegative = this.width * ((mean - sigma + Math.abs(min)) / extent) + offset;
         bars.push(
-            <line key={'meanBar'} x1={x} x2={x} y1={y1} y2={y2} stroke="#808080" strokeDasharray="5, 5" strokeWidth={w}>
-                <title>Mean: {mean}</title>
-            </line>);
-        bars.push(<line key={'positiveSigmaBar'} x1={xPositive} x2={xPositive} y1={y1} y2={y2} stroke="#808080" strokeWidth={w}>
+            <>
+                <line key={'meanBar'} x1={x} x2={x} y1={y1} y2={y2} stroke="#808080" strokeDasharray="5, 5" strokeWidth={w}>
+                    <title>Mean: {mean}</title>
+                </line>
+                {/* TODO: center */}
+                {this.makeXAxisLabel(mean, x, y1)}
+                {/* <text x={x - 40} y={y1 + 25}>{parseFloat(mean.toFixed(7))} </text> */}
+            </>);
+        bars.push(<><line key={'positiveSigmaBar'} x1={xPositive} x2={xPositive} y1={y1} y2={y2} stroke="#808080" strokeWidth={w}>
             <title>+Sigma: {mean + sigma}</title>
-        </line>);
-        // bars.push(<line key={'negativeSigmaBar'} x1={xNegative} x2={xNegative} y1={y1} y2={y2} stroke="#808080" strokeWidth={w}>
-        //     <title>- Sigma: {-sigma}</title>
-        // </line>);
+        </line>
+        {this.makeXAxisLabel(mean + sigma, xPositive, y1)}
+        </>);
+        bars.push(
+            <><line key={'negativeSigmaBar'} x1={xNegative} x2={xNegative} y1={y1} y2={y2} stroke="#808080" strokeWidth={w}>
+                <title>-Sigma: {-sigma}</title>
+            </line>
+            {this.makeXAxisLabel(mean - sigma, xNegative, y1)}
+            </>);
         return bars;
     }
 
