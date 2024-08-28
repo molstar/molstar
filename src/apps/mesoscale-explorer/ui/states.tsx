@@ -26,6 +26,8 @@ import { createGenericHierarchy } from '../data/generic/preset';
 import { createMmcifHierarchy } from '../data/mmcif/preset';
 import { createPetworldHierarchy } from '../data/petworld/preset';
 import { MesoscaleState, MesoscaleStateObject, setGraphicsCanvas3DProps, updateColors } from '../data/state';
+import { isTimingMode } from '../../../mol-util/debug';
+import { now } from '../../../mol-util/now';
 
 function adjustPluginProps(ctx: PluginContext) {
     ctx.managers.interactivity.setProps({ granularity: 'chain' });
@@ -164,6 +166,10 @@ export async function loadExampleEntry(ctx: PluginContext, entry: ExampleEntry) 
 }
 
 export async function loadUrl(ctx: PluginContext, url: string, type: 'molx' | 'molj' | 'cif' | 'bcif') {
+    let startTime = 0;
+    if (isTimingMode) {
+        startTime = now();
+    }
     if (type === 'molx' || type === 'molj') {
         const customState = ctx.customState as MesoscaleExplorerState;
         delete customState.stateRef;
@@ -183,6 +189,12 @@ export async function loadUrl(ctx: PluginContext, url: string, type: 'molx' | 'm
         const isBinary = type === 'bcif';
         const data = await ctx.builders.data.download({ url, isBinary });
         await createHierarchy(ctx, data.ref);
+    }
+    if (isTimingMode) {
+        const endTime = now();
+        // Calculate the elapsed time
+        const timeTaken = endTime - startTime;
+        console.log(`Model loaded in ${timeTaken} milliseconds`);
     }
 }
 

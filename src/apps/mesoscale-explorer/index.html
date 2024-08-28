@@ -94,7 +94,8 @@
                     me.loadPdbDev(pdbdev);
                     return;
                 }
-
+                // load a default tour if no param provided
+                me.loadExample('machineryoflife-tour');
                 window.addEventListener('unload', () => {
                     // to aid GC
                     me.dispose();
