@@ -786,19 +786,19 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const max = this.descriptiveStatistics.max;
         const sigma = this.descriptiveStatistics.sigma;
         const extent = max - min;
-        const x = this.width * (mean / extent) + offset;
+        const x = this.width * ((mean + Math.abs(min)) / extent) + offset;
         const w = offset / 10;
         const bars = [];
         const y1 = this.height + offset;
         const y2 = 0;
-        const xPositive = this.width * ((mean + sigma) / extent) + offset;
+        const xPositive = this.width * ((mean + sigma + Math.abs(min)) / extent) + offset;
         // const xNegative = this.width * ((mean - sigma) / extent) + offset;
         bars.push(
             <line key={'meanBar'} x1={x} x2={x} y1={y1} y2={y2} stroke="#808080" strokeDasharray="5, 5" strokeWidth={w}>
                 <title>Mean: {mean}</title>
             </line>);
         bars.push(<line key={'positiveSigmaBar'} x1={xPositive} x2={xPositive} y1={y1} y2={y2} stroke="#808080" strokeWidth={w}>
-            <title>+Sigma: {sigma}</title>
+            <title>+Sigma: {mean + sigma}</title>
         </line>);
         // bars.push(<line key={'negativeSigmaBar'} x1={xNegative} x2={xNegative} y1={y1} y2={y2} stroke="#808080" strokeWidth={w}>
         //     <title>- Sigma: {-sigma}</title>
