@@ -680,18 +680,20 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const w = this.width / N;
         const offset = this.padding / 2;
         const max = arrayMax(histogram.counts) || 1;
-        const data: number[] = this.props.volume.grid.cells.data;
-        const bins = [];
-        const increment = data.length / N;
-        data.sort((a, b) => a - b);
-        for (let i = 0; i < N; ++i) {
-            // sort
-            const chunk = data.slice(i * increment, (i + 1) * increment);
-            bins.push(chunk);
-        };
+        // const data: number[] = this.props.volume.grid.cells.data;
+        // const bins = [];
+        // const increment = data.length / N;
+        // data.sort((a, b) => a - b);
+        // for (let i = 0; i < N; ++i) {
+        //     // sort
+        //     const chunk = data.slice(i * increment, (i + 1) * increment);
+        //     bins.push(chunk);
+        // };
         for (let i = 0; i < N; i++) {
-            const fromValue = arrayMin(bins[i]);
-            const toValue = arrayMax(bins[i]);
+            const fromValue = histogram.min + histogram.binWidth * i;
+            const toValue = histogram.min + histogram.binWidth * (i + 1)
+            // const fromValue = arrayMin(bins[i]);
+            // const toValue = arrayMax(bins[i]);
             const x = this.width * i / (N - 1) + offset;
             const y1 = this.height + offset;
             const y2 = this.height * (1 - histogram.counts[i] / max) + offset;
@@ -784,23 +786,23 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const max = this.descriptiveStatistics.max;
         const sigma = this.descriptiveStatistics.sigma;
         const extent = max - min;
-        const x = this.width * (mean / extent);
+        const x = this.width * (mean / extent) + offset;
         const w = offset / 10;
         const bars = [];
         const y1 = this.height + offset;
         const y2 = 0;
-        const xPositive = this.width * ((mean + sigma) / extent);
-        const xNegative = this.width * ((mean - sigma) / extent);
+        const xPositive = this.width * ((mean + sigma) / extent) + offset;
+        // const xNegative = this.width * ((mean - sigma) / extent) + offset;
         bars.push(
             <line key={'meanBar'} x1={x} x2={x} y1={y1} y2={y2} stroke="#808080" strokeDasharray="5, 5" strokeWidth={w}>
                 <title>Mean: {mean}</title>
             </line>);
         bars.push(<line key={'positiveSigmaBar'} x1={xPositive} x2={xPositive} y1={y1} y2={y2} stroke="#808080" strokeWidth={w}>
-            <title>+ Sigma: {sigma}</title>
+            <title>+Sigma: {sigma}</title>
         </line>);
-        bars.push(<line key={'negativeSigmaBar'} x1={xNegative} x2={xNegative} y1={y1} y2={y2} stroke="#808080" strokeWidth={w}>
-            <title>- Sigma: {-sigma}</title>
-        </line>);
+        // bars.push(<line key={'negativeSigmaBar'} x1={xNegative} x2={xNegative} y1={y1} y2={y2} stroke="#808080" strokeWidth={w}>
+        //     <title>- Sigma: {-sigma}</title>
+        // </line>);
         return bars;
     }
 
