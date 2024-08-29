@@ -26,7 +26,7 @@ import { TransformData } from '../transform-data';
 import { createEmptyTransparency } from '../transparency-data';
 import { createTransferFunctionTexture } from './transfer-function';
 import { createEmptyClipping } from '../clipping-data';
-import { Grid } from '../../../mol-model/volume';
+import { Grid, Volume } from '../../../mol-model/volume';
 import { createEmptySubstance } from '../substance-data';
 import { createEmptyEmissive } from '../emissive-data';
 import { ControlPoint, ControlPointData } from '../../../mol-plugin-ui/controls/line-graph/line-graph-component';
@@ -45,6 +45,13 @@ function generateNormalizedGaussianPositions(numberOfPoints: number, a: number, 
     const end = center + 3 * extent;
     const interval = ((end - start) / (numberOfPoints - 1)) / TFextent;
     for (let i = 0; i < numberOfPoints; i ++) {
+        // TODO: obtain point data here
+        // point data is x * or / by some coefficient
+        // TF extent is max - min
+        // TODO: alternatively get this info from message of whatever is displayed above the graph
+        // while hovering over a point
+        // may modify point data before this one
+        // move this part to some other part of code
         const x = start / TFextent + (interval * i);
         // const x = start + (interval * i);
         const y = gaussianParametrized(x, a, b, c);
@@ -72,14 +79,16 @@ function gaussianParametrized(x: number, a: number, b: number, c: number) {
     return y;
 }
 
-export function generateGaussianControlPoints(a: number, b: number, c: number, TFextent: number, yOffset: number) {
+export function generateGaussianControlPoints(a: number, b: number, c: number, TFextent: number, yOffset: number, volume: Volume) {
     const numberOfPoints = 8;
+    // TODO: can extend point data dynamically with absolute values based on volume attribute (data) or based on some
+    // calculations
     const positions = generateNormalizedGaussianPositions(numberOfPoints, a, b, c, TFextent, yOffset);
-    const controlPoints = generateControlPoints(ColorNames.black, positions, yOffset);
+    const controlPoints = generateControlPoints(ColorNames.black, positions, yOffset, volume);
     return controlPoints;
 }
 
-export function generateControlPoints(color?: Color, positions?: Vec2[], yOffset?: number) {
+export function generateControlPoints(color?: Color, positions?: Vec2[], yOffset?: number, volume?: Volume) {
     if (!yOffset) yOffset = 35 / 400;
     // normalize yOffset to height
     if (!positions) {
@@ -92,17 +101,40 @@ export function generateControlPoints(color?: Color, positions?: Vec2[], yOffset
     // TODO: maybe they got moved to bottom during some post-normalization?
     console.log(positions);
     const points: ControlPoint[] = [];
+    // if (volume) {
+    //     // This one
+    //     const v = min + (max - min) * x;
+    //     const s = (v - mean) / sigma;
+    //     const xAbs = v.toFixed(2);
+    //     const sRelative = s.toFixed(2);
+    //     // return `(${v.toFixed(2)} | ${s.toFixed(2)}σ, ${data.alpha.toFixed(2)})`;
+    // } else {
+    //     // return `(${data.x.toFixed(2)}, ${data.alpha.toFixed(2)})`;
+    // }
     for (let i = 0, il = positions.length; i < il; ++i) {
         const data: ControlPointData = {
             x: positions[i][0],
             alpha: positions[i][1]
         };
+        if (volume) {
+            const { min, max, mean, sigma } = volume.grid.stats;
+
+            // stuff
+            const v = min + (max - min) * data.x;
+            const s = (v - mean) / sigma;
+            // TODO: optimize this
+            data.absValue = v;
+            data.relativeValue = s;
+        } else {
+            // data.absValue = data.x;
+            // data.relativeValue = data.alpha;
+        }
+
         const point: ControlPoint = {
             data: data,
             id: UUID.create22(),
-            // need random color
             color: color !== undefined ? color : getRandomColor(),
-            index: i + 1
+            index: i + 1,
         };
         points.push(point);
     }

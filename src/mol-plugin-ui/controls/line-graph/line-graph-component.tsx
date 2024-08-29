@@ -11,7 +11,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Vec2 } from '../../../mol-math/linear-algebra';
 import { Grid } from '../../../mol-model/volume';
 import { arrayMax } from '../../../mol-util/array';
-import { Button, ControlGroup, ExpandGroup, IconButton } from '../common';
+import { Button, ControlGroup, ExpandGroup, IconButton, TextInput } from '../common';
 import { CloseSvg, DeleteSvg, MinusBoxSvg, PlusBoxSvg } from '../icons';
 import { ParamDefinition } from '../../../mol-util/param-definition';
 import { Color } from '../../../mol-util/color';
@@ -31,16 +31,33 @@ class PointButton extends React.Component<any> {
         this.props.onClick(this.props.point.id);
         // this.props.onClick(this.props.kind, this.props.sigmaMultiplierExtent, this.props.sigmaMultiplierCenter);
     };
-    // baseline
-    // TODO: pass the removePoint
     render() {
+        // add to point a prop with actual point data
+        const absValue = this.props.point.data.absValue;
+        // use that one to show data
+        const relativeValue = this.props.point.data.absValue;
         const x = (this.props.point.data.x as number).toFixed(3);
         const alpha = (this.props.point.data.alpha as number).toFixed(3);
         return (
-            <div style={{ display: 'flex', marginBottom: 1, marginTop: 1 }} key={this.props.point.id}>
+            <div style={{ display: 'flex', marginBottom: 1 }} key={this.props.point.id}>
                 {/* TODO: on click select  */}
                 {/* TODO: aligment of text */}
-                <Button style={{ margin: 1, textAlign: 'start', textIndent: '20px' }}>Point {`(${x}; ${alpha})`}</Button>
+                {/* check flex */}
+                {/* TODO: fix gridlines */}
+                {/* TODO: add relative field as well dependant on this */}
+                <TextInput numeric
+                // onChange should change the points themselves in state
+                // value is x which is ED value
+                // TODO: abs value undefined, check cacl
+                    style={{ order: 1, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
+                    value={absValue} placeholder={'Some text'}
+                    isDisabled={false} onChange={(value) => { this.props.changeXValue(this.props.point.id, value); }} />
+                <TextInput numeric
+                // value is x which is alpha value
+                    style={{ order: 1, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
+                    value={alpha} placeholder={'Some text'}
+                    isDisabled={false} onChange={(value) => { this.props.changeAlphaValue(this.props.point.id, value); }} />
+                <Button style={{ marginBottom: 1, textAlign: 'start', textIndent: '20px' }}>Point</Button>
                 <IconButton style={{ margin: 1 }}title={'Remove point'} svg={DeleteSvg} onClick={this.handleClick}></IconButton>
             </div>
         );
@@ -92,12 +109,21 @@ class PointsPanel extends React.Component<any> {
         // const realPoints = points.filter();
         // TODO: add ghost prop to points
         const controlPointsButtons = points.map(p => {
-            return <PointButton key={p.id} point={p} onClick={this.props.onPointButtonClick}></PointButton>;
+            return <PointButton key={p.id} point={p}
+                onClick={this.props.onPointButtonClick}
+                changeXValue={this.props.changeXValue}
+                changeAlphaValue={this.props.changeAlphaValue}
+            ></PointButton>;
         });
         return (
-            <ExpandGroup header='Control Points Panel' initiallyExpanded={false}>
+            <><ExpandGroup header='Control Points Panel' initiallyExpanded={false}>
                 {controlPointsButtons}
             </ExpandGroup>
+            {/* TODO: flex? */}
+            <IconButton small onClick={function (e: React.MouseEvent<HTMLButtonElement>): void {
+                throw new Error('Function not implemented.');
+            } }></IconButton>
+            </>
         );
     }
 }
@@ -138,7 +164,7 @@ class HelpersPanel extends React.Component<any> {
             return <TFMethodPanel key={p.name} onChange={this.props.onChange} params={p} descriptiveStatistics={this.props.descriptiveStatistics}></TFMethodPanel>;
         });
         return (
-            <ExpandGroup header='Helpers' initiallyExpanded={true}>
+            <ExpandGroup header='Helpers' initiallyExpanded={false}>
                 {methodsUI}
             </ExpandGroup>
         );
@@ -214,7 +240,7 @@ class TFParamsWrapper extends React.Component<any> {
         return (<ExpandGroup header='Transfer Function Settings' initiallyExpanded>
             {/* TODO: fix that as any */}
             <WaitingParameterControls params={adjustedParams} values={this.state.params} onChangeValues={async next => { this.handleChange(next as any); }} />
-            <Button onClick={this.handleClick}>{`Apply Gaussian Transfer Function`}</Button>
+            <Button onClick={this.handleClick}>{`Apply ${this.props.params} Transfer Function`}</Button>
         </ExpandGroup>);
     }
 }
@@ -244,6 +270,8 @@ export function controlPointsToColorListControlPointsEntry(controlPoints: Contro
 export interface ControlPointData {
     x: number,
     alpha: number
+    absValue?: number
+    relativeValue?: number
 }
 
 export interface ControlPoint {
@@ -390,6 +418,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         this.handleLeave = this.handleLeave.bind(this);
         this.handleEnter = this.handleEnter.bind(this);
         this.setTF = this.setTF.bind(this);
+        this.changeXValue = this.changeXValue.bind(this);
+        this.changeAlphaValue = this.changeAlphaValue.bind(this);
         this.deleteAllPoints = this.deleteAllPoints.bind(this);
     }
 
@@ -434,7 +464,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const c = gaussianExtent / TFextent;
         // const l = (this.width * 2 * c / extent);
         // console.log(a, b, c);
-        const gaussianPoints: ControlPoint[] = generateGaussianControlPoints(a, b, c, TFextent, yOffset);
+        const gaussianPoints: ControlPoint[] = generateGaussianControlPoints(a, b, c, TFextent, yOffset, this.props.volume);
         const currentPoints = this.state.points;
         gaussianPoints.push(currentPoints[currentPoints.length - 1]);
         gaussianPoints.unshift(currentPoints[0]);
@@ -444,6 +474,52 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         this.change(gaussianPoints);
     }
 
+    changeAlphaValue(pointId: UUID, alpha: number) {
+        const points = this.state.points;
+        const modifiedPoints = points.map(p => {
+            if (p.id === pointId) {
+                const modifiedData: ControlPointData = {
+                    x: p.data.x,
+                    alpha: alpha
+                };
+                const modifiedP: ControlPoint = {
+                    id: p.id,
+                    color: p.color,
+                    index: p.index,
+                    data: modifiedData
+                };
+                return modifiedP;
+            } else {
+                return p;
+            }
+        });
+        console.log(modifiedPoints);
+        this.handleChangePoints(modifiedPoints);
+    }
+
+    // TODO: refactor to remove duplication with above function
+    changeXValue(pointId: UUID, x: number) {
+        const points = this.state.points;
+        const modifiedPoints = points.map(p => {
+            if (p.id === pointId) {
+                const modifiedData: ControlPointData = {
+                    x: x,
+                    alpha: p.data.alpha
+                };
+                const modifiedP: ControlPoint = {
+                    id: p.id,
+                    color: p.color,
+                    index: p.index,
+                    data: modifiedData
+                };
+                return modifiedP;
+            } else {
+                return p;
+            }
+        });
+        console.log(modifiedPoints);
+        this.handleChangePoints(modifiedPoints);
+    }
 
     private setTF(params: TFParamsValues) {
         const name = params.name;
@@ -543,8 +619,11 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                 </>
                 <>
                     {/* <TFParamsWrapper onChange={this.setTF} descriptiveStatistics={this.descriptiveStatistics}></TFParamsWrapper> */}
-                    <Button onClick={this.deleteAllPoints}>Remove All Points</Button>
-                    <PointsPanel points={this.state.points} onPointButtonClick={this.removePoint}></PointsPanel>
+                    {/* <Button onClick={this.deleteAllPoints}>Remove All Points</Button> */}
+                    <PointsPanel points={this.state.points}
+                        changeXValue={this.changeXValue}
+                        changeAlphaValue={this.changeAlphaValue}
+                        onPointButtonClick={this.removePoint}></PointsPanel>
                     {/* Connect this to existing code */}
                     {/* should render actual state of all methods
                     // add this to state then, params of all methods */}
@@ -901,26 +980,25 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         }
     }
 
-    // private renderPointsButtons() {
-    //     const points = this.state.points;
-    //     const pbs = points.map(p => {
-    //         return <PointButton point={p}></PointButton>;
-    //     });
-    //     return pbs;
-    // }
-
     private renderGridLines() {
-        const count = 5;
+        const count = 4;
         const bars: any = [];
         const offset = this.padding / 2;
         const x1 = offset;
         const w = offset / 10;
+        // TODO: consider adding baseline height as attribute of LineGraphComponent
         const x2 = this.width + offset;
-        for (let i = 1; i <= count; ++i) {
+        // fix that
+        const overallHeight = this.height;
+        // TODO: limit the height of histogram bars
+        for (let i = 1; i < count; ++i) {
             // adjust + - 1 etc.
-            const y = this.height + offset * 2 - i * this.height / count;
+            // since we have risen all elements, need to probably increase height or
+            // decrease it by - offset everywhere where it is used
+            const y = overallHeight * i / count;
+            // const y = this.height + offset * 2 - i * this.height / count;
             bars.push(
-                <line key={i / count} x1={x1} x2={x2} y1={y} y2={y}
+                <line key={`${i / count}gridline`} x1={x1} x2={x2} y1={y} y2={y}
                     stroke="#A9A9A9" strokeWidth={w} strokeDasharray="15, 15">
                     <title>{(i / count).toFixed(1)}</title>
                 </line>
@@ -1085,7 +1163,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             {/* TODO: tune height need to be higher */}
             {this.makeYAxisLabel(0, offset / 2, this.height - offset)}
             {/*  */}
-            {this.makeYAxisLabel(1, offset / 2, offset + 10)}
+            {this.makeYAxisLabel(1, offset / 2, offset)}
             {/* TODO: 0.2 0.4 etc. */}
         </>;
     }
