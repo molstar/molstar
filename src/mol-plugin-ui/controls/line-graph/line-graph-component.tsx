@@ -10,9 +10,9 @@ import * as React from 'react';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Vec2 } from '../../../mol-math/linear-algebra';
 import { Grid } from '../../../mol-model/volume';
-import { arrayMax, arrayMin } from '../../../mol-util/array';
+import { arrayMax } from '../../../mol-util/array';
 import { Button, ControlGroup, ExpandGroup, IconButton } from '../common';
-import { BrushSvg, CloseSvg, DeleteSvg, MinusBoxSvg, PlusBoxSvg } from '../icons';
+import { CloseSvg, DeleteSvg, MinusBoxSvg, PlusBoxSvg } from '../icons';
 import { ParamDefinition } from '../../../mol-util/param-definition';
 import { Color } from '../../../mol-util/color';
 import { CombinedColorControl } from '../color';
@@ -21,9 +21,6 @@ import { UUID } from '../../../mol-util';
 import { ParameterControls, ParamOnChange } from '../parameters';
 import { ColorListRangesEntry } from '../../../mol-util/color/color';
 import { generateGaussianControlPoints } from '../../../mol-geo/geometry/direct-volume/direct-volume';
-import { capitalize } from '../../../mol-util/string';
-// import { WaitingParameterControls } from '../../../extensions/volumes-and-segmentations/ui';
-import { sleep } from '../../../mol-util/sleep';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type ComponentParams<T extends React.Component<any, any, any> | ((props: any) => JSX.Element)> =
@@ -68,22 +65,19 @@ function adjustTFParams(name: TFName, ds: VolumeDescriptiveStatistics) {
     }
 }
 
-// TODO: fix default gaussian points by adding a baseline somehow? This.height is defined I guess
 class BaseLine extends React.Component<any> {
     // handleClick = () => {
     //     // this.props.onClick(this.props.kind, this.props.sigmaMultiplierExtent, this.props.sigmaMultiplierCenter);
     // };
 
     render() {
-        const points: ControlPoint[] = this.props.points;
-        // const realPoints = points.filter();
-        const controlPointsButtons = points.map(p => {
-            return <PointButton point={p} onClick={this.props.onPointButtonClick}></PointButton>;
-        });
+        const y = this.props.height;
+        const x1 = this.props.offset;
+        const x2 = this.props.offset + this.props.width;
         return (
-            <ExpandGroup header='Control Points Panel' initiallyExpanded={true}>
-                {controlPointsButtons}
-            </ExpandGroup>
+            <>
+                <line y1={y} y2={y} x1={x1} x2={x2} stroke='black' fill='black'></line>
+            </>
         );
     }
 }
@@ -479,6 +473,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
 
     public render() {
         const points = this.renderPoints();
+        const baseline = this.renderBaseline();
         const lines = this.renderLines();
         const histogram = this.renderHistogram();
         const axes = this.renderAxes();
@@ -529,6 +524,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                     onDoubleClick={this.handleDoubleClick}>
                     {/* renders points */}
                     <g stroke="black" fill="black">
+                        {baseline}
                         {histogram}
                         {lines}
                         {points}
@@ -748,7 +744,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         }
         // "unselects" points
         // do not need to raise points, simply generate their original position
-        // as x + offset 
+        // as x + offset
         this.selectedPointId = undefined;
         const pointData = this.getPoint(selected);
         const updatedPointData = this.unNormalizePoint(Vec2.create(this.updatedX, this.updatedY));
@@ -920,7 +916,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const x2 = this.width + offset;
         for (let i = 1; i <= count; ++i) {
             // adjust + - 1 etc.
-            const y = this.height + offset - i * this.height / count;
+            const y = this.height + offset * 2 - i * this.height / count;
             bars.push(
                 <line x1={x1} x2={x2} y1={y} y2={y}
                     stroke="#A9A9A9" strokeWidth={w} strokeDasharray="15, 15">
@@ -954,8 +950,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             // const fromValue = arrayMin(bins[i]);
             // const toValue = arrayMax(bins[i]);
             const x = this.width * i / (N - 1) + offset;
-            const y1 = this.height// + 2 * offset;
-            const y2 = this.height * (1 - histogram.counts[i] / max)// + 2 * offset;
+            const y1 = this.height;// + 2 * offset;
+            const y2 = this.height * (1 - histogram.counts[i] / max);// + 2 * offset;
             bars.push(<line key={`histogram${i}`} x1={x} x2={x} y1={y1} y2={y2} stroke="#ded9ca" strokeWidth={w}>
                 <title>[{fromValue}; {toValue}]</title>
             </line>);
@@ -1040,7 +1036,15 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     private makeXAxisLabel(value: number, x: number, y: number) {
         // TODO: make constants be dependant on precision and font size
         // TODO: font size
+        // TODO: remove y dep
         return <text x={x - 20} y={y + 25}>{parseFloat(value.toFixed(5))} </text>;
+    }
+
+    private makeYAxisLabel(value: number, x: number, y: number) {
+        // TODO: make constants be dependant on precision and font size
+        // TODO: font size
+        // TODO: remove x dep
+        return <text x={x} y={y + 25} fontSize={25}>{parseFloat(value.toFixed(1))} </text>;
     }
 
     private renderDescriptiveStatisticsBars() {
@@ -1054,13 +1058,13 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const x = this.width * ((mean + Math.abs(min)) / extent) + offset;
         const w = offset / 5;
         const bars = [];
-        const y1 = this.height// + offset * 2;
-        const y2 = 0//offset;
+        const y1 = this.height;// + offset * 2;
+        const y2 = 0;// offset;
         const xPositive = this.width * ((mean + sigma + Math.abs(min)) / extent) + offset;
         const xNegative = this.width * ((mean - sigma + Math.abs(min)) / extent) + offset;
         bars.push(
             // raise points and lines
-            // 
+            //
             <>
                 <line key={'meanBar'} x1={x} x2={x} y1={y1} y2={y2} stroke="#808080" strokeDasharray="5, 5" strokeWidth={w}>
                     <title>Mean: {mean}</title>
@@ -1081,6 +1085,18 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             {this.makeXAxisLabel(mean - sigma, xNegative, y1)}
             </>);
         return bars;
+    }
+
+    private renderBaseline() {
+        const offset = this.padding / 2;
+        return <>
+            <BaseLine height={this.height} offset={this.padding / 2} width={this.width} />
+            {/* TODO: tune height need to be higher */}
+            {this.makeYAxisLabel(0, offset / 2, this.height - offset)}
+            {/*  */}
+            {this.makeYAxisLabel(1, offset / 2, offset + 10)}
+            {/* TODO: 0.2 0.4 etc. */}
+        </>;
     }
 
     private renderPoints() {
