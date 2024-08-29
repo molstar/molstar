@@ -40,9 +40,7 @@ export function getAtomSiteTemplate(data: string, count: number) {
 }
 
 export class LabelAsymIdHelper {
-    constructor (private asymIds: Column<string>, private modelNums: string[], private terIndices: Set<number>, private hasAssemblies: boolean) {
-        console.log(terIndices, hasAssemblies)
-    }
+    constructor(private asymIds: Column<string>, private modelNums: string[], private terIndices: Set<number>, private hasAssemblies: boolean) { }
 
     private asymIdCounts = new Map<string, number>();
     private currModelNum: string | undefined = undefined;
