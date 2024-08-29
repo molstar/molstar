@@ -31,7 +31,6 @@ type ComponentParams<T extends React.Component<any, any, any> | ((props: any) =>
 
 class PointButton extends React.Component<any> {
     handleClick = () => {
-        debugger;
         this.props.onClick(this.props.point.id);
         // this.props.onClick(this.props.kind, this.props.sigmaMultiplierExtent, this.props.sigmaMultiplierCenter);
     };
@@ -48,6 +47,24 @@ class PointButton extends React.Component<any> {
     }
 }
 
+function adjustTFParams(name: TFName, ds: VolumeDescriptiveStatistics) {
+    switch (name) {
+        // TODO: type for that
+        case 'gaussian':
+            const max = ds.max;
+            const min = ds.min;
+            // TODO: copy?
+            GaussianTFParams.gaussianCenter.max = max;
+            GaussianTFParams.gaussianCenter.min = min;
+            GaussianTFParams.gaussianExtent.max = max / 2;
+            GaussianTFParams.gaussianCenter.min = 0;
+            return GaussianTFParams;
+        case 'method2':
+            return Method2TFParams;
+        default: throw Error(`Transfer function ${name} is not supported`);
+    }
+}
+
 class PointsPanel extends React.Component<any> {
     // handleClick = () => {
     //     // this.props.onClick(this.props.kind, this.props.sigmaMultiplierExtent, this.props.sigmaMultiplierCenter);
@@ -55,6 +72,7 @@ class PointsPanel extends React.Component<any> {
 
     render() {
         const points: ControlPoint[] = this.props.points;
+        // const realPoints = points.filter();
         const controlPointsButtons = points.map(p => {
             return <PointButton point={p} onClick={this.props.onPointButtonClick}></PointButton>;
         });
@@ -74,7 +92,7 @@ class TFMethodPanel extends React.Component<any> {
     render() {
         return <ExpandGroup header={this.props.params.name} initiallyExpanded={true}>
             {/* render params */}
-            <TFParamsWrapper params={this.props.params} descriptiveStatistics={this.props.descriptiveStatistics}></TFParamsWrapper>
+            <TFParamsWrapper onChange={this.props.onChange} params={this.props.params} descriptiveStatistics={this.props.descriptiveStatistics}></TFParamsWrapper>
         </ExpandGroup>;
     }
 }
@@ -98,7 +116,8 @@ class HelpersPanel extends React.Component<any> {
         // methods undefined
         const methodsUI = methods.map(p => {
             // should be expandgroup
-            return <TFMethodPanel params={p} descriptiveStatistics={this.props.descriptiveStatistics}></TFMethodPanel>;
+            // pass on change method around
+            return <TFMethodPanel onChange={this.props.onChange} params={p} descriptiveStatistics={this.props.descriptiveStatistics}></TFMethodPanel>;
         });
         return (
             <ExpandGroup header='Helpers' initiallyExpanded={true}>
@@ -150,38 +169,33 @@ function useAsyncChange<T>(initialValue: T) {
     return [isExecuting, value, execute] as const;
 }
 
+// TODO: add explicit state type to it
 class TFParamsWrapper extends React.Component<any> {
-    state = this.props.params;
+    state = { params: this.props.params };
 
+    // TODO: check if the above is correct
     handleChange = (next: TFParamsValues) => {
         // on change should be generic as well
-        this.props.onChange(this.props.params);
+        this.props.onChange(next);
     };
+
+    // rework for generic tf
 
     handleClick = () => {
-        this.props.onChange('gaussian', 0.25, 1.0, 0.2);
-        this.setState({ gaussianTFParamsValues: {
-            gaussianCenter: this.props.descriptiveStatistics.mean + 2 * this.props.descriptiveStatistics.sigma,
-            gaussianExtent: 0.25,
-            gaussianHeight: 0.2
-        } });
-    };
-
-    private adjustParams = () => {
-        // this.props.descriptiveStatistics undefined
-        const max = this.props.descriptiveStatistics.max;
-        const min = this.props.descriptiveStatistics.min;
-        GaussianTFParams.gaussianCenter.max = max;
-        GaussianTFParams.gaussianCenter.min = min;
-        GaussianTFParams.gaussianExtent.max = max / 2;
-        GaussianTFParams.gaussianCenter.min = 0;
-        return GaussianTFParams;
+        this.props.onChange(this.props.params);
+        this.setState({ params: this.props.params });
+        // this.setState({ gaussianTFParamsValues: {
+        //     gaussianCenter: this.props.descriptiveStatistics.mean + 2 * this.props.descriptiveStatistics.sigma,
+        //     gaussianExtent: 0.25,
+        //     gaussianHeight: 0.2
+        // } });
     };
 
     render() {
-        const adjustedParams = this.adjustParams();
+        const adjustedParams = adjustTFParams(this.props.params.name, this.props.descriptiveStatistics);
         return (<ExpandGroup header='Transfer Function Settings' initiallyExpanded>
-            <WaitingParameterControls params={adjustedParams} values={this.state.gaussianTFParamsValues} onChangeValues={async next => { this.handleChange(next); }} />
+            {/* TODO: fix that as any */}
+            <WaitingParameterControls params={adjustedParams} values={this.state.params} onChangeValues={async next => { this.handleChange(next as any); }} />
             <Button onClick={this.handleClick}>{`Apply Gaussian Transfer Function`}</Button>
         </ExpandGroup>);
     }
@@ -343,9 +357,9 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         this.ghostPoints = [];
         this.namespace = 'http://www.w3.org/2000/svg';
         this.descriptiveStatistics = this.getDescriptiveStatistics();
-
+        // TODO: do not show last and first point (shadow) in the list of point buttons
         this.sortPoints(this.state.points);
-
+        this.removePoint = this.removePoint.bind(this);
         this.removeRightmostPoint = this.removeRightmostPoint.bind(this);
         this.createPoint = this.createPoint.bind(this);
         this.handleDrag = this.handleDrag.bind(this);
@@ -388,6 +402,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     }
 
     private _setGaussianTF(params: GaussianTFParamsValues) {
+        debugger;
         const { name, gaussianExtent, gaussianCenter, gaussianHeight } = params;
         const a = gaussianHeight;
         const min = this.descriptiveStatistics.min;
@@ -410,6 +425,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         });
         this.change(gaussianPoints);
     }
+
 
     private setTF(params: TFParamsValues) {
         const name = params.name;
@@ -510,7 +526,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                     {/* should render actual state of all methods
                     // add this to state then, params of all methods */}
                     {/* TODO: debug */}
-                    {/* <HelpersPanel methods={this.state.methodsParams} descriptiveStatistics={this.descriptiveStatistics}></HelpersPanel> */}
+                    <HelpersPanel onChange={this.setTF} methods={this.state.methodsParams} descriptiveStatistics={this.descriptiveStatistics}></HelpersPanel>
                 </>
             </div>,
             <div key="modal" id="modal-root" />
