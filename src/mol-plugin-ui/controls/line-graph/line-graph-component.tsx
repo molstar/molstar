@@ -68,7 +68,7 @@ function adjustTFParams(name: TFName, ds: VolumeDescriptiveStatistics) {
     }
 }
 
-class PointsPanel extends React.Component<any> {
+class BaseLine extends React.Component<any> {
     // handleClick = () => {
     //     // this.props.onClick(this.props.kind, this.props.sigmaMultiplierExtent, this.props.sigmaMultiplierCenter);
     // };
@@ -81,6 +81,25 @@ class PointsPanel extends React.Component<any> {
         });
         return (
             <ExpandGroup header='Control Points Panel' initiallyExpanded={true}>
+                {controlPointsButtons}
+            </ExpandGroup>
+        );
+    }
+}
+
+class PointsPanel extends React.Component<any> {
+    // handleClick = () => {
+    //     // this.props.onClick(this.props.kind, this.props.sigmaMultiplierExtent, this.props.sigmaMultiplierCenter);
+    // };
+
+    render() {
+        const points: ControlPoint[] = this.props.points;
+        // const realPoints = points.filter();
+        const controlPointsButtons = points.map(p => {
+            return <PointButton point={p} onClick={this.props.onPointButtonClick}></PointButton>;
+        });
+        return (
+            <ExpandGroup header='Control Points Panel' initiallyExpanded={false}>
                 {controlPointsButtons}
             </ExpandGroup>
         );
@@ -405,7 +424,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     }
 
     private _setGaussianTF(params: GaussianTFParamsValues) {
-        debugger;
+        const yOffset = this.padding / 2 / this.height;
         const { name, gaussianExtent, gaussianCenter, gaussianHeight } = params;
         const a = gaussianHeight;
         const min = this.descriptiveStatistics.min;
@@ -419,7 +438,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const c = gaussianExtent / TFextent;
         // const l = (this.width * 2 * c / extent);
         // console.log(a, b, c);
-        const gaussianPoints: ControlPoint[] = generateGaussianControlPoints(a, b, c, TFextent);
+        const gaussianPoints: ControlPoint[] = generateGaussianControlPoints(a, b, c, TFextent, yOffset);
         const currentPoints = this.state.points;
         gaussianPoints.push(currentPoints[currentPoints.length - 1]);
         gaussianPoints.unshift(currentPoints[0]);
@@ -727,6 +746,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             return;
         }
         // "unselects" points
+        // do not need to raise points, simply generate their original position
+        // as x + offset 
         this.selectedPointId = undefined;
         const pointData = this.getPoint(selected);
         const updatedPointData = this.unNormalizePoint(Vec2.create(this.updatedX, this.updatedY));
@@ -847,6 +868,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         document.removeEventListener('mouseup', this.handlePointUpdate, true);
     }
 
+    // find another place to raise points
     private normalizePoint(controlPointData: ControlPointData): Vec2 {
         const offset = this.padding / 2;
         const maxX = this.width + offset;
@@ -931,8 +953,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             // const fromValue = arrayMin(bins[i]);
             // const toValue = arrayMax(bins[i]);
             const x = this.width * i / (N - 1) + offset;
-            const y1 = this.height + offset;
-            const y2 = this.height * (1 - histogram.counts[i] / max) + offset;
+            const y1 = this.height// + 2 * offset;
+            const y2 = this.height * (1 - histogram.counts[i] / max)// + 2 * offset;
             bars.push(<line key={`histogram${i}`} x1={x} x2={x} y1={y1} y2={y2} stroke="#ded9ca" strokeWidth={w}>
                 <title>[{fromValue}; {toValue}]</title>
             </line>);
@@ -1031,11 +1053,13 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const x = this.width * ((mean + Math.abs(min)) / extent) + offset;
         const w = offset / 5;
         const bars = [];
-        const y1 = this.height + offset;
-        const y2 = 0;
+        const y1 = this.height// + offset * 2;
+        const y2 = 0//offset;
         const xPositive = this.width * ((mean + sigma + Math.abs(min)) / extent) + offset;
         const xNegative = this.width * ((mean - sigma + Math.abs(min)) / extent) + offset;
         bars.push(
+            // raise points and lines
+            // 
             <>
                 <line key={'meanBar'} x1={x} x2={x} y1={y1} y2={y2} stroke="#808080" strokeDasharray="5, 5" strokeWidth={w}>
                     <title>Mean: {mean}</title>

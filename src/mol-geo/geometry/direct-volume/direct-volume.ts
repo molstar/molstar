@@ -36,7 +36,7 @@ const VolumeBox = Box();
 
 export const defaultControlPoints = generateControlPoints(ColorNames.black);
 
-function generateNormalizedGaussianPositions(numberOfPoints: number, a: number, b: number, c: number, TFextent: number): Vec2[] {
+function generateNormalizedGaussianPositions(numberOfPoints: number, a: number, b: number, c: number, TFextent: number, yOffset: number): Vec2[] {
     const arr: Vec2[] = [];
     const center = b * TFextent;
     const extent = c * TFextent;
@@ -50,9 +50,10 @@ function generateNormalizedGaussianPositions(numberOfPoints: number, a: number, 
         const y = gaussianParametrized(x, a, b, c);
         // vectors are created on the space of HTML canvas
         // so it should be normalized somehow
-        const vector = Vec2.create(x, y);
+        // TODO: debug this
+        // const vector = Vec2.create(x, y + yOffset / 10);
+        const vector = Vec2.create(x, y + yOffset);
         arr.push(vector);
-        console.log(arr);
     }
     return arr;
 }
@@ -71,20 +72,25 @@ function gaussianParametrized(x: number, a: number, b: number, c: number) {
     return y;
 }
 
-export function generateGaussianControlPoints(a: number, b: number, c: number, TFextent: number) {
+export function generateGaussianControlPoints(a: number, b: number, c: number, TFextent: number, yOffset: number) {
     const numberOfPoints = 8;
-    const positions = generateNormalizedGaussianPositions(numberOfPoints, a, b, c, TFextent);
-    const controlPoints = generateControlPoints(ColorNames.black, positions);
+    const positions = generateNormalizedGaussianPositions(numberOfPoints, a, b, c, TFextent, yOffset);
+    const controlPoints = generateControlPoints(ColorNames.black, positions, yOffset);
     return controlPoints;
 }
 
-export function generateControlPoints(color?: Color, positions?: Vec2[]) {
+export function generateControlPoints(color?: Color, positions?: Vec2[], yOffset?: number) {
+    if (!yOffset) yOffset = 0;
+    // normalize yOffset to height
     if (!positions) {
+        // add positions here and maybe yOffset
         positions = [
-            Vec2.create(0.19, 0.0), Vec2.create(0.2, 0.05), Vec2.create(0.25, 0.05), Vec2.create(0.26, 0.0),
-            Vec2.create(0.79, 0.0), Vec2.create(0.8, 0.05), Vec2.create(0.85, 0.05), Vec2.create(0.86, 0.0),
+            Vec2.create(0.19, 0.0 + yOffset), Vec2.create(0.2, 0.05 + yOffset), Vec2.create(0.25, 0.05 + yOffset), Vec2.create(0.26, 0.0 + yOffset),
+            Vec2.create(0.79, 0.0 + yOffset), Vec2.create(0.8, 0.05 + yOffset), Vec2.create(0.85, 0.05 + yOffset), Vec2.create(0.86, 0.0 + yOffset),
         ];
     }
+    // TODO: maybe they got moved to bottom during some post-normalization?
+    console.log(positions);
     const points: ControlPoint[] = [];
     for (let i = 0, il = positions.length; i < il; ++i) {
         const data: ControlPointData = {
