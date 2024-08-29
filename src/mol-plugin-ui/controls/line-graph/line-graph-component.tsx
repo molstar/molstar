@@ -90,8 +90,9 @@ class PointsPanel extends React.Component<any> {
     render() {
         const points: ControlPoint[] = this.props.points;
         // const realPoints = points.filter();
+        // TODO: add ghost prop to points
         const controlPointsButtons = points.map(p => {
-            return <PointButton point={p} onClick={this.props.onPointButtonClick}></PointButton>;
+            return <PointButton key={p.id} point={p} onClick={this.props.onPointButtonClick}></PointButton>;
         });
         return (
             <ExpandGroup header='Control Points Panel' initiallyExpanded={false}>
@@ -134,7 +135,7 @@ class HelpersPanel extends React.Component<any> {
         const methodsUI = methods.map(p => {
             // should be expandgroup
             // pass on change method around
-            return <TFMethodPanel onChange={this.props.onChange} params={p} descriptiveStatistics={this.props.descriptiveStatistics}></TFMethodPanel>;
+            return <TFMethodPanel key={p.name} onChange={this.props.onChange} params={p} descriptiveStatistics={this.props.descriptiveStatistics}></TFMethodPanel>;
         });
         return (
             <ExpandGroup header='Helpers' initiallyExpanded={true}>
@@ -472,6 +473,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     }
 
     public render() {
+        // TODO: fix keys somewhere here
         const points = this.renderPoints();
         const baseline = this.renderBaseline();
         const lines = this.renderLines();
@@ -918,7 +920,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             // adjust + - 1 etc.
             const y = this.height + offset * 2 - i * this.height / count;
             bars.push(
-                <line x1={x1} x2={x2} y1={y} y2={y}
+                <line key={i / count} x1={x1} x2={x2} y1={y} y2={y}
                     stroke="#A9A9A9" strokeWidth={w} strokeDasharray="15, 15">
                     <title>{(i / count).toFixed(1)}</title>
                 </line>
@@ -935,20 +937,9 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const w = this.width / N;
         const offset = this.padding / 2;
         const max = arrayMax(histogram.counts) || 1;
-        // const data: number[] = this.props.volume.grid.cells.data;
-        // const bins = [];
-        // const increment = data.length / N;
-        // data.sort((a, b) => a - b);
-        // for (let i = 0; i < N; ++i) {
-        //     // sort
-        //     const chunk = data.slice(i * increment, (i + 1) * increment);
-        //     bins.push(chunk);
-        // };
         for (let i = 0; i < N; i++) {
             const fromValue = histogram.min + histogram.binWidth * i;
             const toValue = histogram.min + histogram.binWidth * (i + 1);
-            // const fromValue = arrayMin(bins[i]);
-            // const toValue = arrayMax(bins[i]);
             const x = this.width * i / (N - 1) + offset;
             const y1 = this.height;// + 2 * offset;
             const y2 = this.height * (1 - histogram.counts[i] / max);// + 2 * offset;
