@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Sequence Panel: Improve visuals of unmodeled sequence positions (#1248)
+
 ## [v4.6.0] - 2024-08-28
 
 - Add round-caps option on tubular alpha helices
