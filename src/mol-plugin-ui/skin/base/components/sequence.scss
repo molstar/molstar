@@ -122,5 +122,6 @@ $sequence-select-height: 24px;
 
     .msp-sequence-missing {
         color: color-lower-contrast($font-color, 33%);
+        cursor: default;
     }
 }
