@@ -317,6 +317,22 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
         isOverPoint: false,
         message: `${this.props.param.defaultValue.length} points`,
     };
+
+    private pointToValues(data?: ControlPointData) {
+        if (!data) return '';
+        debugger;
+        const volume = this.props.param.getVolume?.() as Volume;
+        if (volume) {
+            const { min, max, mean, sigma } = volume.grid.stats;
+            const v = min + (max - min) * data.x;
+            const s = (v - mean) / sigma;
+            return [v, s];
+        } else {
+            // TODO: optimize this
+            return [data.x, data.x];
+        }
+    }
+
     private pointToLabel(data?: ControlPointData) {
         if (!data) return '';
         const volume = this.props.param.getVolume?.() as Volume;
@@ -327,6 +343,18 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
             return `(${v.toFixed(2)} | ${s.toFixed(2)}σ, ${data.alpha.toFixed(2)})`;
         } else {
             return `(${data.x.toFixed(2)}, ${data.alpha.toFixed(2)})`;
+        }
+    }
+
+    // TODO: need to create a function that will be called only
+    // when the user e.g. opens an expand group for example
+
+    onExpandGroupOpen = (data?: ControlPointData) => {
+        debugger;
+        if (data) {
+            return this.pointToValues(data);
+        } else {
+            throw Error('No data is provided');
         }
     }
 
@@ -373,6 +401,7 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
                     onHover={this.onHover}
                     onDrag={this.onDrag}
                     colored={this.props.param.colored}
+                    onExpandGroupOpen={this.onExpandGroupOpen}
                 />
             </div>
         </>;

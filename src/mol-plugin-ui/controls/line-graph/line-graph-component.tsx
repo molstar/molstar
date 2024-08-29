@@ -29,14 +29,12 @@ type ComponentParams<T extends React.Component<any, any, any> | ((props: any) =>
 class PointButton extends React.Component<any> {
     handleClick = () => {
         this.props.onClick(this.props.point.id);
-        // this.props.onClick(this.props.kind, this.props.sigmaMultiplierExtent, this.props.sigmaMultiplierCenter);
     };
     render() {
-        // add to point a prop with actual point data
-        const absValue = this.props.point.data.absValue;
-        // use that one to show data
-        const relativeValue = this.props.point.data.absValue;
-        const x = (this.props.point.data.x as number).toFixed(3);
+        debugger;
+        const [absValue, relativeValue] = this.props.onExpandGroupOpen(this.props.point.data);
+        debugger;
+        console.log(absValue, relativeValue);
         const alpha = (this.props.point.data.alpha as number).toFixed(3);
         return (
             <div style={{ display: 'flex', marginBottom: 1 }} key={this.props.point.id}>
@@ -48,7 +46,7 @@ class PointButton extends React.Component<any> {
                 <TextInput numeric
                 // onChange should change the points themselves in state
                 // value is x which is ED value
-                // TODO: abs value undefined, check cacl
+                // TODO:abs value undefined, check cacl
                     style={{ order: 1, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
                     value={absValue} placeholder={'Some text'}
                     isDisabled={false} onChange={(value) => { this.props.changeXValue(this.props.point.id, value); }} />
@@ -111,6 +109,7 @@ class PointsPanel extends React.Component<any> {
         const controlPointsButtons = points.map(p => {
             return <PointButton key={p.id} point={p}
                 onClick={this.props.onPointButtonClick}
+                onExpandGroupOpen={this.props.onExpandGroupOpen}
                 changeXValue={this.props.changeXValue}
                 changeAlphaValue={this.props.changeAlphaValue}
             ></PointButton>;
@@ -621,6 +620,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                     {/* <TFParamsWrapper onChange={this.setTF} descriptiveStatistics={this.descriptiveStatistics}></TFParamsWrapper> */}
                     {/* <Button onClick={this.deleteAllPoints}>Remove All Points</Button> */}
                     <PointsPanel points={this.state.points}
+                        onExpandGroupOpen={this.props.onExpandGroupOpen}
                         changeXValue={this.changeXValue}
                         changeAlphaValue={this.changeAlphaValue}
                         onPointButtonClick={this.removePoint}></PointsPanel>

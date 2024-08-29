@@ -92,30 +92,24 @@ export function generateControlPoints(color?: Color, positions?: Vec2[], yOffset
     if (!yOffset) yOffset = 35 / 400;
     // normalize yOffset to height
     if (!positions) {
-        // add positions here and maybe yOffset
         positions = [
             Vec2.create(0.19, 0.0 + yOffset), Vec2.create(0.2, 0.05 + yOffset), Vec2.create(0.25, 0.05 + yOffset), Vec2.create(0.26, 0.0 + yOffset),
             Vec2.create(0.79, 0.0 + yOffset), Vec2.create(0.8, 0.05 + yOffset), Vec2.create(0.85, 0.05 + yOffset), Vec2.create(0.86, 0.0 + yOffset),
         ];
     }
-    // TODO: maybe they got moved to bottom during some post-normalization?
     console.log(positions);
+    // so volume is not provided initially, which should be okay but
+    // need to handle that when volume is rendered or something
+    // could do it in the same place where messages are generated for each point (parameters.tsx)
+    // could create a function to do that
+    // similar to the one used in linegraphcontrol
     const points: ControlPoint[] = [];
-    // if (volume) {
-    //     // This one
-    //     const v = min + (max - min) * x;
-    //     const s = (v - mean) / sigma;
-    //     const xAbs = v.toFixed(2);
-    //     const sRelative = s.toFixed(2);
-    //     // return `(${v.toFixed(2)} | ${s.toFixed(2)}σ, ${data.alpha.toFixed(2)})`;
-    // } else {
-    //     // return `(${data.x.toFixed(2)}, ${data.alpha.toFixed(2)})`;
-    // }
     for (let i = 0, il = positions.length; i < il; ++i) {
         const data: ControlPointData = {
             x: positions[i][0],
             alpha: positions[i][1]
         };
+        debugger;
         if (volume) {
             const { min, max, mean, sigma } = volume.grid.stats;
 
@@ -126,6 +120,7 @@ export function generateControlPoints(color?: Color, positions?: Vec2[], yOffset
             data.absValue = v;
             data.relativeValue = s;
         } else {
+            // throw Error('Volume was not provided');
             // data.absValue = data.x;
             // data.relativeValue = data.alpha;
         }
