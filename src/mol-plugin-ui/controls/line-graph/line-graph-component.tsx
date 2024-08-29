@@ -34,13 +34,16 @@ class PointButton extends React.Component<any> {
         this.props.onClick(this.props.point.id);
         // this.props.onClick(this.props.kind, this.props.sigmaMultiplierExtent, this.props.sigmaMultiplierCenter);
     };
+    // baseline
     // TODO: pass the removePoint
     render() {
+        const x = (this.props.point.data.x as number).toFixed(3);
+        const alpha = (this.props.point.data.alpha as number).toFixed(3);
         return (
             <div style={{ display: 'flex', marginBottom: 1, marginTop: 1 }} key={this.props.point.id}>
                 {/* TODO: on click select  */}
                 {/* TODO: aligment of text */}
-                <Button style={{ margin: 1, textAlign: 'start', textIndent: '20px' }}>Point {`(${this.props.point.data.x}; ${this.props.point.data.alpha})`}</Button>
+                <Button style={{ margin: 1, textAlign: 'start', textIndent: '20px' }}>Point {`(${x}; ${alpha})`}</Button>
                 <IconButton style={{ margin: 1 }}title={'Remove point'} svg={DeleteSvg} onClick={this.handleClick}></IconButton>
             </div>
         );
@@ -459,6 +462,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const lines = this.renderLines();
         const histogram = this.renderHistogram();
         const axes = this.renderAxes();
+        const gridLines = this.renderGridLines();
         // const pointsButtons = this.renderPointsButtons();
         const descriptiveStatisticsBars = this.renderDescriptiveStatisticsBars();
         const firstPoint = this.state.clickedPointIds ? this.getPoint(this.state.clickedPointIds[0]) : void 0;
@@ -510,6 +514,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                         {points}
                         {descriptiveStatisticsBars}
                         {axes}
+                        {gridLines}
                     </g>
                     <g className="ghost-points" stroke="black" fill="black">
                     </g>
@@ -882,6 +887,26 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     //     });
     //     return pbs;
     // }
+
+    private renderGridLines() {
+        const count = 5;
+        const bars: any = [];
+        const offset = this.padding / 2;
+        const x1 = offset;
+        const w = offset / 10;
+        const x2 = this.width + offset;
+        for (let i = 1; i <= count; ++i) {
+            // adjust + - 1 etc.
+            const y = this.height + offset - i * this.height / count;
+            bars.push(
+                <line x1={x1} x2={x2} y1={y} y2={y}
+                    stroke="#A9A9A9" strokeWidth={w} strokeDasharray="15, 15">
+                    <title>{(i / count).toFixed(1)}</title>
+                </line>
+            );
+        }
+        return bars;
+    }
 
     private renderHistogram() {
         if (!this.props.volume) return null;
