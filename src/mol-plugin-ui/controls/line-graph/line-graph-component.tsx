@@ -68,6 +68,7 @@ function adjustTFParams(name: TFName, ds: VolumeDescriptiveStatistics) {
     }
 }
 
+// TODO: fix default gaussian points by adding a baseline somehow? This.height is defined I guess
 class BaseLine extends React.Component<any> {
     // handleClick = () => {
     //     // this.props.onClick(this.props.kind, this.props.sigmaMultiplierExtent, this.props.sigmaMultiplierCenter);

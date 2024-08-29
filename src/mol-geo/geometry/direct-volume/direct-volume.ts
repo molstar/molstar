@@ -80,7 +80,7 @@ export function generateGaussianControlPoints(a: number, b: number, c: number, T
 }
 
 export function generateControlPoints(color?: Color, positions?: Vec2[], yOffset?: number) {
-    if (!yOffset) yOffset = 0;
+    if (!yOffset) yOffset = 35 / 400;
     // normalize yOffset to height
     if (!positions) {
         // add positions here and maybe yOffset
