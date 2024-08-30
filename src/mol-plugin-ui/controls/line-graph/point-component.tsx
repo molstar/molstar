@@ -30,7 +30,7 @@ export class PointComponent extends React.Component<any, {show: boolean, id: UUI
     }
 
     private deletePoint() {
-        this.props.delete(this.props.id);
+        // this.props.delete(this.props.id);
     }
 
     public render() {

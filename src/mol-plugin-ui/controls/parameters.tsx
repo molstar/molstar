@@ -333,6 +333,9 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
         }
     }
 
+    // TODO: fix x so that here it is still 0 for point on baseline
+    // basically keep data x alpha as they are
+    // but when rendering a point add to it a baseline level (this.padding/2)
     private pointToLabel(data?: ControlPointData) {
         if (!data) return '';
         const volume = this.props.param.getVolume?.() as Volume;
@@ -346,20 +349,18 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
         }
     }
 
-    // TODO: need to create a function that will be called only
-    // when the user e.g. opens an expand group for example
-
     onExpandGroupOpen = (data?: ControlPointData) => {
         if (data) {
             return this.pointToValues(data);
         } else {
             throw Error('No data is provided');
         }
-    }
+    };
 
     onHover = (data?: ControlPointData) => {
         this.setState({ isOverPoint: !this.state.isOverPoint });
         if (data) {
+            // converts point to label
             this.setState({ message: this.pointToLabel(data) });
         } else {
             this.setState({ message: `${this.props.value.length} points` });

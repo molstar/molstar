@@ -116,7 +116,7 @@ class PointsPanel extends React.Component<any> {
         const points: ControlPoint[] = this.props.points;
         // const realPoints = points.filter();
         // TODO: add ghost prop to points
-        const removeAllPointsButton = <Button style={{marginTop: 1, marginBottom: 1}} onClick={this.props.removeAllPoints}>Remove All Points</Button>;
+        const removeAllPointsButton = <Button style={{ marginTop: 1, marginBottom: 1 }} onClick={this.props.removeAllPoints}>Remove All Points</Button>;
         const controlPointsButtons = points.map(p => {
             return <PointButton key={p.id} point={p}
                 onClick={this.props.onPointButtonClick}
@@ -557,7 +557,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     public render() {
         // TODO: fix keys somewhere here
         const points = this.renderPoints();
-        const baseline = this.renderBaseline();
+        // const baseline = this.renderBaseline();
         const lines = this.renderLines();
         const histogram = this.renderHistogram();
         const axes = this.renderAxes();
@@ -597,6 +597,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                 <svg
                     className="msp-canvas"
                     ref={this.refCallBack}
+                    // TODO: can e.g. change viewbox
                     viewBox={`0 0 ${this.width + this.padding} ${this.height + this.padding}`}
                     onMouseMove={this.handleDrag}
                     onMouseUp={this.handlePointUpdate}
@@ -608,7 +609,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                     onDoubleClick={this.handleDoubleClick}>
                     {/* renders points */}
                     <g stroke="black" fill="black">
-                        {baseline}
+                        {/* {baseline} */}
                         {histogram}
                         {lines}
                         {points}
@@ -909,30 +910,31 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     }
 
     private handleDoubleClick(event: any) {
-        const pt = this.myRef.createSVGPoint();
-        pt.x = event.clientX;
-        pt.y = event.clientY;
-        const svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
-        const points = this.state.points;
-        const padding = this.padding / 2;
+        return;
+        // const pt = this.myRef.createSVGPoint();
+        // pt.x = event.clientX;
+        // pt.y = event.clientY;
+        // const svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
+        // const points = this.state.points;
+        // const padding = this.padding / 2;
 
-        if (svgP.x < (padding) ||
-            svgP.x > (this.width + (padding)) ||
-            svgP.y > (this.height + (padding)) ||
-            svgP.y < (this.padding / 2)) {
-            return;
-        }
-        const newPointData = this.unNormalizePoint(Vec2.create(svgP.x, svgP.y));
-        // problem with index
-        // should be the last one
-        // find the last index and do + 1?
-        const newPoint: ControlPoint = {
-            data: newPointData,
-            id: UUID.create22(),
-            color: getRandomColor(),
-            index: points.slice(-1)[0].index + 1
-        };
-        this.addPoint(newPoint);
+        // if (svgP.x < (padding) ||
+        //     svgP.x > (this.width + (padding)) ||
+        //     svgP.y > (this.height + (padding)) ||
+        //     svgP.y < (this.padding / 2)) {
+        //     return;
+        // }
+        // const newPointData = this.unNormalizePoint(Vec2.create(svgP.x, svgP.y));
+        // // problem with index
+        // // should be the last one
+        // // find the last index and do + 1?
+        // const newPoint: ControlPoint = {
+        //     data: newPointData,
+        //     id: UUID.create22(),
+        //     color: getRandomColor(),
+        //     index: points.slice(-1)[0].index + 1
+        // };
+        // this.addPoint(newPoint);
     }
 
     private deletePoint = (id: UUID) => (event: any) => {
@@ -955,7 +957,6 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         document.removeEventListener('mouseup', this.handlePointUpdate, true);
     }
 
-    // find another place to raise points
     private normalizePoint(controlPointData: ControlPointData): Vec2 {
         const offset = this.padding / 2;
         const maxX = this.width + offset;
@@ -996,7 +997,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const x1 = offset;
         const w = offset / 10;
         // TODO: allow editing text field, may need some function similar to what is with RGB thing
-        // 
+        //
         // TODO: consider adding baseline height as attribute of LineGraphComponent
         const x2 = this.width + offset;
         // fix that
@@ -1032,9 +1033,10 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             const fromValue = histogram.min + histogram.binWidth * i;
             const toValue = histogram.min + histogram.binWidth * (i + 1);
             const x = this.width * i / (N - 1) + offset;
-            const y1 = this.height + offset;// + 2 * offset;
+            // may need to do +-offset on y1 or y2
+            const y1 = this.height;// + 2 * offset;
             const y2 = this.height * (1 - histogram.counts[i] / max);// + 2 * offset;
-            console.log(y1, y2);
+            // console.log(y1, y2);
             bars.push(<line key={`histogram${i}`} x1={x} x2={x} y1={y1} y2={y2} stroke="#A9A9A9" strokeWidth={w}>
                 <title>[{fromValue}; {toValue}]</title>
             </line>);
@@ -1168,6 +1170,9 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         return bars;
     }
 
+    // fix gridlines and labels
+    // first fix points, allow them in area above and recalc the message or something
+    // remove ghost points from the list
     private renderBaseline() {
         const offset = this.padding / 2;
         return <>
@@ -1180,6 +1185,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         </>;
     }
 
+    // turn off handleclick too
     private renderPoints() {
         const points: any[] = [];
         let point: Vec2;
@@ -1193,6 +1199,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                     key={id}
                     id={id}
                     x={point[0]}
+                    // same for lines
                     y={point[1]}
                     nX={data.x}
                     nY={data.alpha}
