@@ -27,10 +27,6 @@ type ComponentParams<T extends React.Component<any, any, any> | ((props: any) =>
     T extends React.Component<infer P, any, any> ? P : T extends (props: infer P) => JSX.Element ? P : never;
 
 class PointButton extends React.Component<any> {
-    // protected update(value: Color) {
-    //     this.props.onChange({ param: this.props.param, name: this.props.name, value });
-    // }
-
     onAbs = (v: number) => {
         // this changes that point in the state of linegraph component.points
         this.props.changeXValue(this.props.point.id, v);
@@ -61,7 +57,6 @@ class PointButton extends React.Component<any> {
                     // and assign that value to one of the props (value)
                     isDisabled={false} onChange={(value) => { this.onAbs(value); }} />
                 <TextInput numeric
-                // value is x which is alpha value
                     style={{ minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
                     value={alpha} placeholder={'Some text'}
                     isDisabled={false} onChange={(value) => { this.onAlpha(value as any); }} />
@@ -114,10 +109,12 @@ class PointsPanel extends React.Component<any> {
 
     render() {
         const points: ControlPoint[] = this.props.points;
+        const realPoints = points.filter(p => p.ghost !== true);
+        debugger;
         // const realPoints = points.filter();
         // TODO: add ghost prop to points
         const removeAllPointsButton = <Button style={{ marginTop: 1, marginBottom: 1 }} onClick={this.props.removeAllPoints}>Remove All Points</Button>;
-        const controlPointsButtons = points.map(p => {
+        const controlPointsButtons = realPoints.map(p => {
             return <PointButton key={p.id} point={p}
                 onClick={this.props.onPointButtonClick}
                 onExpandGroupOpen={this.props.onExpandGroupOpen}
@@ -284,7 +281,8 @@ export interface ControlPoint {
     id: UUID,
     color: Color,
     data: ControlPointData
-    index: number
+    index: number,
+    ghost?: boolean
 }
 
 interface VolumeDescriptiveStatistics {
@@ -304,7 +302,7 @@ interface LineGraphComponentState {
     methodsParams: TFParamsValues[]
 }
 
-const startEndPoints = [
+const startEndPoints: ControlPoint[] = [
     {
         data: {
             x: 0,
@@ -312,7 +310,8 @@ const startEndPoints = [
         },
         id: UUID.create22(),
         color: ColorNames.black,
-        index: 0
+        index: 0,
+        ghost: true
     },
     {
         data: {
@@ -321,7 +320,8 @@ const startEndPoints = [
         },
         id: UUID.create22(),
         color: ColorNames.black,
-        index: 9
+        index: 9,
+        ghost: true
     }
 ];
 
