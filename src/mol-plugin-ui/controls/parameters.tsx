@@ -350,7 +350,6 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
     // when the user e.g. opens an expand group for example
 
     onExpandGroupOpen = (data?: ControlPointData) => {
-        debugger;
         if (data) {
             return this.pointToValues(data);
         } else {

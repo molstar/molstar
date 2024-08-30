@@ -27,6 +27,20 @@ type ComponentParams<T extends React.Component<any, any, any> | ((props: any) =>
     T extends React.Component<infer P, any, any> ? P : T extends (props: infer P) => JSX.Element ? P : never;
 
 class PointButton extends React.Component<any> {
+    // protected update(value: Color) {
+    //     this.props.onChange({ param: this.props.param, name: this.props.name, value });
+    // }
+
+    onAbs = (v: number) => {
+        // this changes that point in the state of linegraph component.points
+        this.props.changeXValue(this.props.point.id, v);
+        // this.props.value = v;
+    };
+
+    onAlpha = (v: number) => {
+        this.props.changeAlphaValue(this.props.point.id, v);
+    };
+
     handleClick = () => {
         this.props.onClick(this.props.point.id);
     };
@@ -38,25 +52,21 @@ class PointButton extends React.Component<any> {
         const alpha = (this.props.point.data.alpha as number).toFixed(3);
         return (
             <div style={{ display: 'flex', marginBottom: 1 }} key={this.props.point.id}>
-                {/* TODO: on click select  */}
-                {/* TODO: aligment of text */}
-                {/* check flex */}
-                {/* TODO: fix gridlines */}
-                {/* TODO: add relative field as well dependant on this */}
+                <Button style={{ textAlign: 'start', textIndent: '20px' }}>Point</Button>
                 <TextInput numeric
-                // onChange should change the points themselves in state
-                // value is x which is ED value
-                // TODO:abs value undefined, check cacl
-                    style={{ order: 1, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
+                    style={{ minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
                     value={absValue} placeholder={'Some text'}
-                    isDisabled={false} onChange={(value) => { this.props.changeXValue(this.props.point.id, value); }} />
+                    // not directly
+                    // first onAbs, inside onAbs do call to this.props.changeXValue(this.props.point.id, value)
+                    // and assign that value to one of the props (value)
+                    isDisabled={false} onChange={(value) => { this.onAbs(value); }} />
                 <TextInput numeric
                 // value is x which is alpha value
-                    style={{ order: 1, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
+                    style={{ minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
                     value={alpha} placeholder={'Some text'}
-                    isDisabled={false} onChange={(value) => { this.props.changeAlphaValue(this.props.point.id, value); }} />
-                <Button style={{ marginBottom: 1, textAlign: 'start', textIndent: '20px' }}>Point</Button>
-                <IconButton style={{ margin: 1 }}title={'Remove point'} svg={DeleteSvg} onClick={this.handleClick}></IconButton>
+                    isDisabled={false} onChange={(value) => { this.onAlpha(value as any); }} />
+
+                <IconButton title={'Remove point'} svg={DeleteSvg} onClick={this.handleClick}></IconButton>
             </div>
         );
     }
@@ -106,6 +116,7 @@ class PointsPanel extends React.Component<any> {
         const points: ControlPoint[] = this.props.points;
         // const realPoints = points.filter();
         // TODO: add ghost prop to points
+        const removeAllPointsButton = <Button style={{marginTop: 1, marginBottom: 1}} onClick={this.props.removeAllPoints}>Remove All Points</Button>;
         const controlPointsButtons = points.map(p => {
             return <PointButton key={p.id} point={p}
                 onClick={this.props.onPointButtonClick}
@@ -116,12 +127,13 @@ class PointsPanel extends React.Component<any> {
         });
         return (
             <><ExpandGroup header='Control Points Panel' initiallyExpanded={false}>
+                {removeAllPointsButton}
                 {controlPointsButtons}
             </ExpandGroup>
             {/* TODO: flex? */}
-            <IconButton small onClick={function (e: React.MouseEvent<HTMLButtonElement>): void {
-                throw new Error('Function not implemented.');
-            } }></IconButton>
+            {/* <IconButton small onClick={() => {
+                this.props.removeAllPoints();
+            } }></IconButton> */}
             </>
         );
     }
@@ -615,6 +627,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                     {/* <TFParamsWrapper onChange={this.setTF} descriptiveStatistics={this.descriptiveStatistics}></TFParamsWrapper> */}
                     {/* <Button onClick={this.deleteAllPoints}>Remove All Points</Button> */}
                     <PointsPanel points={this.state.points}
+                        removeAllPoints={this.deleteAllPoints}
                         onExpandGroupOpen={this.props.onExpandGroupOpen}
                         changeXValue={this.changeXValue}
                         changeAlphaValue={this.changeAlphaValue}
