@@ -12,6 +12,7 @@ export { Tokenizer };
 
 interface Tokenizer {
     data: string,
+    dataLines?: string[],
 
     position: number,
     length: number,
@@ -30,6 +31,7 @@ export interface Tokens {
 function Tokenizer(data: string): Tokenizer {
     return {
         data,
+        dataLines: data.split(/\r?\n/),
         position: 0,
         length: data.length,
         lineNumber: 1,
@@ -95,6 +97,15 @@ namespace Tokenizer {
     export function readLine(state: Tokenizer): string {
         markLine(state);
         return getTokenString(state);
+    }
+
+    /** Read a string line and return line elements as string array */
+    export function readLineElements(state: Tokenizer): string[] {
+        if (!state.dataLines) return [];
+        const line = state.dataLines[state.lineNumber - 1];
+        if (!line) return [];
+        const result = line.split(/\s+/g).filter(Boolean);
+        return result;
     }
 
     /** Advance the state and return trimmed line as string. */

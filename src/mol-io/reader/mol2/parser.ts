@@ -18,7 +18,7 @@ import * as Schema from './schema';
 import { ReaderResult as Result } from '../result';
 import { Task, RuntimeContext, chunkedSubtask } from '../../../mol-task';
 
-const { skipWhitespace, eatValue, markLine, getTokenString, readLine } = Tokenizer;
+const { skipWhitespace, eatValue, markLine, getTokenString, readLine, readLineElements } = Tokenizer;
 
 interface State {
     tokenizer: Tokenizer,
@@ -102,7 +102,7 @@ async function handleAtoms(state: State): Promise<Schema.Mol2Atoms> {
     const initialTokenizerLineNumber = tokenizer.lineNumber;
     const firstLine = readLine(tokenizer);
     const firstLineArray = firstLine.trim().split(/\s+/g);
-    const columnCount = firstLineArray.length;
+    let columnCount = firstLineArray.length;
 
     // columns
     const atom_idTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
@@ -128,7 +128,10 @@ async function handleAtoms(state: State): Promise<Schema.Mol2Atoms> {
     await chunkedSubtask(state.runtimeCtx, 100000, void 0, chunkSize => {
         const linesToRead = Math.min(molecule.num_atoms - linesAlreadyRead, chunkSize);
         for (let i = 0; i < linesToRead; i++) {
-            for (let j = 0; j < columnCount; j++) {
+            skipWhitespace(tokenizer);
+            const _lineColumnCount = readLineElements(tokenizer).length;
+            if (_lineColumnCount > columnCount) columnCount = _lineColumnCount;
+            for (let j = 0; j < _lineColumnCount; j++) {
                 skipWhitespace(tokenizer);
                 tokenizer.tokenStart = tokenizer.position;
                 eatValue(tokenizer);
@@ -199,7 +202,7 @@ async function handleBonds(state: State): Promise<Schema.Mol2Bonds> {
     const initialTokenizerLineNumber = tokenizer.lineNumber;
     const firstLine = readLine(tokenizer);
     const firstLineArray = firstLine.trim().split(/\s+/g);
-    const columnCount = firstLineArray.length;
+    let columnCount = firstLineArray.length;
 
     // columns
     const bond_idTokens = TokenBuilder.create(tokenizer.data, molecule.num_bonds * 2);
@@ -213,10 +216,14 @@ async function handleBonds(state: State): Promise<Schema.Mol2Bonds> {
 
     const { length } = tokenizer;
     let linesAlreadyRead = 0;
+
     await chunkedSubtask(state.runtimeCtx, 100000, void 0, chunkSize => {
         const linesToRead = Math.min(molecule.num_bonds - linesAlreadyRead, chunkSize);
         for (let i = 0; i < linesToRead; i++) {
-            for (let j = 0; j < columnCount; j++) {
+            skipWhitespace(tokenizer);
+            const _lineColumnCount = readLineElements(tokenizer).length;
+            if (_lineColumnCount > columnCount) columnCount = _lineColumnCount;
+            for (let j = 0; j < _lineColumnCount; j++) {
                 skipWhitespace(tokenizer);
                 tokenizer.tokenStart = tokenizer.position;
                 eatValue(tokenizer);
