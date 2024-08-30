@@ -776,17 +776,20 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
         updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
 
-        if ((svgP.x < (padding) || svgP.x > (this.width + (padding))) && (svgP.y > (this.height + (padding)) || svgP.y < (padding))) {
+        if ((svgP.x < (padding) || svgP.x > (this.width + (padding))) &&
+        (svgP.y > (this.height + (0)) || svgP.y < (0))) {
             updatedCopyPoint = Vec2.create(this.updatedX, this.updatedY);
         } else if (svgP.x < padding) {
             // TODO: fix lines to start from true 0
             updatedCopyPoint = Vec2.create(padding, svgP.y);
         } else if (svgP.x > (this.width + (padding))) {
             updatedCopyPoint = Vec2.create(this.width + padding, svgP.y);
-        } else if (svgP.y > (this.height + (padding))) {
-            updatedCopyPoint = Vec2.create(svgP.x, this.height + padding);
-        } else if (svgP.y < (padding)) {
-            updatedCopyPoint = Vec2.create(svgP.x, padding);
+        } else if (svgP.y > (this.height + (0))) {
+            // does not allow into such area
+            // fix viewbox or?
+            updatedCopyPoint = Vec2.create(svgP.x, this.height + 0);
+        } else if (svgP.y < (0)) {
+            updatedCopyPoint = Vec2.create(svgP.x, 0);
         } else {
             updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
         }
