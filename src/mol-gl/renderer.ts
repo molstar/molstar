@@ -764,14 +764,14 @@ namespace Renderer {
             },
             clearDepth: (packed = false) => {
                 state.enable(gl.SCISSOR_TEST);
+                state.enable(gl.DEPTH_TEST);
+                state.depthMask(true);
 
                 if (packed) {
                     state.colorMask(true, true, true, true);
                     state.clearColor(1, 1, 1, 1);
                     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
                 } else {
-                    state.enable(gl.DEPTH_TEST);
-                    state.depthMask(true);
                     gl.clear(gl.DEPTH_BUFFER_BIT);
                 }
             },
