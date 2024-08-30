@@ -109,7 +109,7 @@ class PointsPanel extends React.Component<any> {
 
     render() {
         const points: ControlPoint[] = this.props.points;
-        const realPoints = points.filter(p => p.ghost !== true);
+        const realPoints = points.filter(p => p.isGhost !== true);
         debugger;
         // const realPoints = points.filter();
         // TODO: add ghost prop to points
@@ -282,7 +282,7 @@ export interface ControlPoint {
     color: Color,
     data: ControlPointData
     index: number,
-    ghost?: boolean
+    isGhost?: boolean
 }
 
 interface VolumeDescriptiveStatistics {
@@ -311,7 +311,7 @@ const startEndPoints: ControlPoint[] = [
         id: UUID.create22(),
         color: ColorNames.black,
         index: 0,
-        ghost: true
+        isGhost: true
     },
     {
         data: {
@@ -321,7 +321,7 @@ const startEndPoints: ControlPoint[] = [
         id: UUID.create22(),
         color: ColorNames.black,
         index: 9,
-        ghost: true
+        isGhost: true
     }
 ];
 
@@ -444,7 +444,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const points = this.state.points;
         const ghostPoints = [];
         for (const point of points) {
-            if (point.index === 0 || point.index === this.state.points.length - 1) { ghostPoints.push(point); }
+            if (point.isGhost === true) { ghostPoints.push(point); }
         };
         const ghostPointsSorted = this.sortPoints(ghostPoints);
         this.setState({ points: ghostPointsSorted, clickedPointIds: undefined, showColorPicker: false });
