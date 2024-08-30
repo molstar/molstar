@@ -227,11 +227,6 @@ class TFParamsWrapper extends React.Component<any> {
     handleClick = () => {
         this.props.onChange(this.props.params);
         this.setState({ params: this.props.params });
-        // this.setState({ gaussianTFParamsValues: {
-        //     gaussianCenter: this.props.descriptiveStatistics.mean + 2 * this.props.descriptiveStatistics.sigma,
-        //     gaussianExtent: 0.25,
-        //     gaussianHeight: 0.2
-        // } });
     };
 
     render() {
@@ -239,7 +234,7 @@ class TFParamsWrapper extends React.Component<any> {
         return (<ExpandGroup header='Transfer Function Settings' initiallyExpanded>
             {/* TODO: fix that as any */}
             <WaitingParameterControls params={adjustedParams} values={this.state.params} onChangeValues={async next => { this.handleChange(next as any); }} />
-            <Button onClick={this.handleClick}>{`Apply ${this.props.params} Transfer Function`}</Button>
+            <Button onClick={this.handleClick}>{`Apply ${this.props.params.name} Transfer Function`}</Button>
         </ExpandGroup>);
     }
 }
@@ -770,6 +765,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         if ((svgP.x < (padding) || svgP.x > (this.width + (padding))) && (svgP.y > (this.height + (padding)) || svgP.y < (padding))) {
             updatedCopyPoint = Vec2.create(this.updatedX, this.updatedY);
         } else if (svgP.x < padding) {
+            // TODO: fix lines to start from true 0
             updatedCopyPoint = Vec2.create(padding, svgP.y);
         } else if (svgP.x > (this.width + (padding))) {
             updatedCopyPoint = Vec2.create(this.width + padding, svgP.y);
@@ -981,17 +977,21 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     }
 
     private renderGridLines() {
-        const count = 4;
+        const count = 5;
         const bars: any = [];
         const offset = this.padding / 2;
         const x1 = offset;
         const w = offset / 10;
+        // TODO: allow editing text field, may need some function similar to what is with RGB thing
+        // 
         // TODO: consider adding baseline height as attribute of LineGraphComponent
         const x2 = this.width + offset;
         // fix that
         const overallHeight = this.height;
         // TODO: limit the height of histogram bars
-        for (let i = 1; i < count; ++i) {
+        // 1, 2, 3, should be 4
+        // get histogram bars back
+        for (let i = 0; i < count; ++i) {
             // adjust + - 1 etc.
             // since we have risen all elements, need to probably increase height or
             // decrease it by - offset everywhere where it is used
@@ -1019,9 +1019,10 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             const fromValue = histogram.min + histogram.binWidth * i;
             const toValue = histogram.min + histogram.binWidth * (i + 1);
             const x = this.width * i / (N - 1) + offset;
-            const y1 = this.height;// + 2 * offset;
+            const y1 = this.height + offset;// + 2 * offset;
             const y2 = this.height * (1 - histogram.counts[i] / max);// + 2 * offset;
-            bars.push(<line key={`histogram${i}`} x1={x} x2={x} y1={y1} y2={y2} stroke="#ded9ca" strokeWidth={w}>
+            console.log(y1, y2);
+            bars.push(<line key={`histogram${i}`} x1={x} x2={x} y1={y1} y2={y2} stroke="#A9A9A9" strokeWidth={w}>
                 <title>[{fromValue}; {toValue}]</title>
             </line>);
         }
@@ -1029,9 +1030,6 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     }
 
     private renderAxes() {
-        // two markers for x and for y
-        // path
-
         if (!this.props.volume) return null;
         const offset = this.padding / 2;
         const mean = this.descriptiveStatistics.mean;
@@ -1074,10 +1072,11 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                 </defs>
 
                 <line key={'horizontalAxis'} x1={x1HorizontalBar} x2={x2HorizontalBar}
-                    y1={y1HorizontalBar} y2={y2HorizontalBar} stroke="#000000" strokeWidth={w} markerEnd="url(#head-horizontal)">
+                    y1={y1HorizontalBar} y2={y2HorizontalBar} stroke="#7d7f7c" strokeWidth={w} markerEnd="url(#head-horizontal)">
                 </line>
             </>
         );
+        // raise histogram above the base line somehow
         bars.push(
             <>
                 <defs>
@@ -1094,7 +1093,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                     </marker>
                 </defs>
                 <line key={'verticalAxis'} x1={x1VerticalBar} x2={x2VerticalBar}
-                    y1={y1VerticalBar} y2={y2VerticalBar} stroke="#000000" strokeWidth={w} markerEnd="url(#head-vertical)">
+                    y1={y1VerticalBar} y2={y2VerticalBar} stroke="#7d7f7c" strokeWidth={w} markerEnd="url(#head-vertical)">
                     {/* <title>+ Sigma: {sigma}</title> */}
                 </line>
             </>
@@ -1125,9 +1124,9 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const sigma = this.descriptiveStatistics.sigma;
         const extent = max - min;
         const x = this.width * ((mean + Math.abs(min)) / extent) + offset;
-        const w = offset / 5;
+        const w = offset / 10;
         const bars = [];
-        const y1 = this.height;// + offset * 2;
+        const y1 = this.height + offset;// + offset * 2;
         const y2 = 0;// offset;
         const xPositive = this.width * ((mean + sigma + Math.abs(min)) / extent) + offset;
         const xNegative = this.width * ((mean - sigma + Math.abs(min)) / extent) + offset;
@@ -1135,20 +1134,20 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             // raise points and lines
             //
             <>
-                <line key={'meanBar'} x1={x} x2={x} y1={y1} y2={y2} stroke="#808080" strokeDasharray="5, 5" strokeWidth={w}>
+                <line key={'meanBar'} x1={x} x2={x} y1={y1} y2={y2} stroke="#D3D3D3" strokeDasharray="5, 5" strokeWidth={w}>
                     <title>Mean: {mean}</title>
                 </line>
                 {/* TODO: center */}
                 {this.makeXAxisLabel(mean, x, y1)}
                 {/* <text x={x - 40} y={y1 + 25}>{parseFloat(mean.toFixed(7))} </text> */}
             </>);
-        bars.push(<><line key={'positiveSigmaBar'} x1={xPositive} x2={xPositive} y1={y1} y2={y2} stroke="#808080" strokeWidth={w}>
+        bars.push(<><line key={'positiveSigmaBar'} x1={xPositive} x2={xPositive} y1={y1} y2={y2} stroke="#D3D3D3" strokeWidth={w}>
             <title>+Sigma: {mean + sigma}</title>
         </line>
         {this.makeXAxisLabel(mean + sigma, xPositive, y1)}
         </>);
         bars.push(
-            <><line key={'negativeSigmaBar'} x1={xNegative} x2={xNegative} y1={y1} y2={y2} stroke="#808080" strokeWidth={w}>
+            <><line key={'negativeSigmaBar'} x1={xNegative} x2={xNegative} y1={y1} y2={y2} stroke="#D3D3D3" strokeWidth={w}>
                 <title>-Sigma: {-sigma}</title>
             </line>
             {this.makeXAxisLabel(mean - sigma, xNegative, y1)}
