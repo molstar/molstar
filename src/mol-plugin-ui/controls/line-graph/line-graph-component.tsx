@@ -113,7 +113,10 @@ class PointsPanel extends React.Component<any> {
         debugger;
         // const realPoints = points.filter();
         // TODO: add ghost prop to points
-        const removeAllPointsButton = <Button style={{ position: 'absolute', top: 0, right: 0 }} onClick={this.props.removeAllPoints}>Remove All Points</Button>;
+        // const removeAllPointsButton = <Button style={{ position: 'absolute', top: 0, right: 0 }} onClick={this.props.removeAllPoints}>Remove All Points</Button>;
+        const removeAllPointsButton = <IconButton style={{ position: 'absolute', top: 0, right: 0 }} svg={DeleteSvg} small onClick={() => {
+            this.props.removeAllPoints();
+        } }></IconButton>;
         const controlPointsButtons = realPoints.map(p => {
             return <PointButton key={p.id} point={p}
                 onClick={this.props.onPointButtonClick}
@@ -123,12 +126,13 @@ class PointsPanel extends React.Component<any> {
             ></PointButton>;
         });
         return (
-            <div style={{ position: 'relative' }}><ExpandGroup header='Control Points Panel' initiallyExpanded={false}>
-                {controlPointsButtons}
-            </ExpandGroup>
-            {removeAllPointsButton}
-            {/* TODO: flex? */}
-            {/* <IconButton small onClick={() => {
+            <div style={{ position: 'relative' }}>
+                <ExpandGroup header='Control Points Panel' initiallyExpanded={false}>
+                    {controlPointsButtons}
+                </ExpandGroup>
+                {removeAllPointsButton}
+                {/* TODO: flex? */}
+                {/* <IconButton small onClick={() => {
                 this.props.removeAllPoints();
             } }></IconButton> */}
             </div>
