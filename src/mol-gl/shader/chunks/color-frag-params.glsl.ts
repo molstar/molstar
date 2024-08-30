@@ -8,7 +8,9 @@ uniform float uBumpiness;
 #endif
 uniform float uEmissive;
 
-#if defined(dRenderVariant_color)
+// Density value to estimate object thickness
+uniform float uDensity;
+
     #if defined(dColorType_uniform)
         uniform vec3 uColor;
     #elif defined(dColorType_varying)

@@ -339,6 +339,9 @@ export const BaseSchema = {
     uBumpiness: UniformSpec('f', 'material'),
     uEmissive: UniformSpec('f', 'material'),
 
+    /** density value to estimate object thickness */
+    uDensity: UniformSpec('f', 'material'),
+
     uVertexCount: UniformSpec('i'),
     uInstanceCount: UniformSpec('i'),
     uGroupCount: UniformSpec('i'),

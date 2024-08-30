@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
@@ -68,6 +68,9 @@ uniform int uGroupCount;
 uniform float uMetalness;
 uniform float uRoughness;
 uniform float uEmissive;
+
+// Density value to estimate object thickness
+uniform float uDensity;
 
 uniform bool uFog;
 uniform float uFogNear;
