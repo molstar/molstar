@@ -20,13 +20,19 @@ import { ColorNames, getRandomColor } from '../../../mol-util/color/names';
 import { UUID } from '../../../mol-util';
 import { ParameterControls, ParamOnChange } from '../parameters';
 import { ColorListRangesEntry } from '../../../mol-util/color/color';
-import { generateGaussianControlPoints } from '../../../mol-geo/geometry/direct-volume/direct-volume';
+import { generateControlPoints, generateGaussianControlPoints } from '../../../mol-geo/geometry/direct-volume/direct-volume';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type ComponentParams<T extends React.Component<any, any, any> | ((props: any) => JSX.Element)> =
     T extends React.Component<infer P, any, any> ? P : T extends (props: infer P) => JSX.Element ? P : never;
 
 class PointButton extends React.Component<any> {
+    // state = {
+    //     absValue: this.props.trueAbsValue,
+    //     alphaValue: this.props.trueAlpha
+    // };
+    // 
+
     onAbs = (v: number) => {
         // this changes that point in the state of linegraph component.points
         this.props.changeXValue(this.props.point.id, v);
@@ -34,6 +40,7 @@ class PointButton extends React.Component<any> {
     };
 
     onAlpha = (v: number) => {
+        // set here based on value, that is fine, just truncate it then in visual
         this.props.changeAlphaValue(this.props.point.id, v);
     };
 
@@ -41,22 +48,23 @@ class PointButton extends React.Component<any> {
         this.props.onClick(this.props.point.id);
     };
     render() {
-        debugger;
         const [absValue, relativeValue] = this.props.onExpandGroupOpen(this.props.point.data);
-        debugger;
-        console.log(absValue, relativeValue);
+        const truncatedAbsValue = (absValue as number).toFixed(3);
+        // console.log(absValue, relativeValue);
         const alpha = (this.props.point.data.alpha as number).toFixed(3);
         return (
             <div style={{ display: 'flex', marginBottom: 1 }} key={this.props.point.id}>
                 <Button style={{ textAlign: 'start', textIndent: '20px' }}>Point</Button>
+                {/* fix here number of points */}
                 <TextInput numeric
                     style={{ minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
-                    value={absValue} placeholder={'Some text'}
-                    // not directly
-                    // first onAbs, inside onAbs do call to this.props.changeXValue(this.props.point.id, value)
-                    // and assign that value to one of the props (value)
+                    value={truncatedAbsValue} placeholder={'Some text'}
+                    // fix that 
+                    // TODO: string to number?
                     isDisabled={false} onChange={(value) => { this.onAbs(value); }} />
                 <TextInput numeric
+                // ok set value to string repr parseFloat and toFixed, but store in state the true value instead
+                // and set the value based on the state inside onAlpha onAbs
                     style={{ minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
                     value={alpha} placeholder={'Some text'}
                     isDisabled={false} onChange={(value) => { this.onAlpha(value as any); }} />
@@ -81,6 +89,8 @@ function adjustTFParams(name: TFName, ds: VolumeDescriptiveStatistics) {
             return GaussianTFParams;
         case 'method2':
             return Method2TFParams;
+        case 'defaults':
+            return DefaultParams;
         default: throw Error(`Transfer function ${name} is not supported`);
     }
 }
@@ -114,7 +124,8 @@ class PointsPanel extends React.Component<any> {
         // const realPoints = points.filter();
         // TODO: add ghost prop to points
         // const removeAllPointsButton = <Button style={{ position: 'absolute', top: 0, right: 0 }} onClick={this.props.removeAllPoints}>Remove All Points</Button>;
-        const removeAllPointsButton = <IconButton style={{ position: 'absolute', top: 0, right: 0 }} svg={DeleteSvg} small onClick={() => {
+        const iconStyle = { position: 'absolute', top: 0, right: 0, lineHeight: '24px', height: '24px', textAlign: 'right', width: '32px', paddingRight: '6px', background: 'none' };
+        const removeAllPointsButton = <IconButton title='Remove All Points' style={iconStyle as any} svg={DeleteSvg} small onClick={() => {
             this.props.removeAllPoints();
         } }></IconButton>;
         const controlPointsButtons = realPoints.map(p => {
@@ -126,6 +137,7 @@ class PointsPanel extends React.Component<any> {
             ></PointButton>;
         });
         return (
+            // TODO: may need this className='msp-representation-entry'
             <div style={{ position: 'relative' }}>
                 <ExpandGroup header='Control Points Panel' initiallyExpanded={false}>
                     {controlPointsButtons}
@@ -153,7 +165,7 @@ class TFMethodPanel extends React.Component<any> {
     }
 }
 
-export type TFName = 'gaussian' | 'method2';
+export type TFName = 'gaussian' | 'method2' | 'defaults';
 
 export interface TFMethod {
     name: TFName
@@ -303,7 +315,7 @@ interface LineGraphComponentState {
     showColorPicker: boolean,
     // colored: boolean,
     clickedPointIds?: UUID[],
-    methodsParams: TFParamsValues[]
+    methodsParams: TFParamsValues[],
 }
 
 const startEndPoints: ControlPoint[] = [
@@ -351,6 +363,10 @@ export const GaussianTFParams = {
     name: PD.Text('gaussian', { isHidden: true })
 };
 
+export const DefaultParams = {
+    name: PD.Text('defaults', { isHidden: true })
+};
+
 export const Method2TFParams = {
     param1: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
     param2: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
@@ -361,8 +377,8 @@ export const Method2TFParams = {
 
 export type GaussianTFParamsValues = PD.Values<typeof GaussianTFParams>;
 
-export type TFParamsValues = GaussianTFParamsValues | Method2ParamsValues;
-
+export type TFParamsValues = GaussianTFParamsValues | Method2ParamsValues | DefaultParamsValues;
+export type DefaultParamsValues = PD.Values<typeof DefaultParams>;
 export type Method2ParamsValues = PD.Values<typeof Method2TFParams>;
 
 const DefaultGaussianParams: GaussianTFParamsValues = {
@@ -378,9 +394,14 @@ const DefaultMethod2Params: Method2ParamsValues = {
     param2: 2.0
 };
 
+const DefaultDefaultParams: DefaultParamsValues = {
+    name: 'defaults'
+}
+
 const DefaultTFParams: TFParamsValues[] = [
     DefaultGaussianParams,
-    DefaultMethod2Params
+    DefaultMethod2Params,
+    DefaultDefaultParams
 ];
 
 export class LineGraphComponent extends React.Component<any, LineGraphComponentState> {
@@ -395,6 +416,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     private gElement: SVGElement;
     private namespace: string;
     private descriptiveStatistics: VolumeDescriptiveStatistics;
+    private offsetY: number;
     constructor(props: any) {
         super(props);
         this.myRef = React.createRef();
@@ -409,6 +431,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         this.height = 400;
         this.width = 600;
         this.padding = 70;
+        this.offsetY = this.padding / 2;
+        // this.offsetY = 0;
         this.selectedPointId = undefined;
         this.ghostPoints = [];
         this.namespace = 'http://www.w3.org/2000/svg';
@@ -459,8 +483,33 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         // TODO: implement
     }
 
+    private _setDefaultsTF(params: DefaultParamsValues) {
+        // TODO: implement
+        // yOffset, volume, padding
+        const offsetYNormalized = this.padding / 2;
+        const paddingNormalized = this.padding;
+        const offsetYUnnormalized = (offsetYNormalized - this.padding / 2) / this.height;
+        const paddingUnnormalized = (paddingNormalized - this.padding / 2) / this.height;
+        const points = generateControlPoints(ColorNames.black, undefined, offsetYUnnormalized, this.props.volume, paddingUnnormalized);
+        const currentPoints = this.state.points;
+        points.push(currentPoints[currentPoints.length - 1]);
+        points.unshift(currentPoints[0]);
+        this.setState({
+            points: points
+        });
+        this.change(points);
+        // TODO: set points to points similar to the below function
+    }
+
     private _setGaussianTF(params: GaussianTFParamsValues) {
-        const yOffset = this.padding / 2 / this.height;
+        // TODO: simplify this
+        const offsetYNormalized = this.padding / 2;
+        const paddingNormalized = this.padding;
+        // will be 0
+        const offsetYUnnormalized = (offsetYNormalized - this.padding / 2) / this.height;
+        // will be ~0.09
+        const paddingUnnormalized = (paddingNormalized - this.padding / 2) / this.height;
+        // normalizedY = ([0;1] value * (this.height)) + offset
         const { name, gaussianExtent, gaussianCenter, gaussianHeight } = params;
         const a = gaussianHeight;
         const min = this.descriptiveStatistics.min;
@@ -474,13 +523,14 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const c = gaussianExtent / TFextent;
         // const l = (this.width * 2 * c / extent);
         // console.log(a, b, c);
-        const gaussianPoints: ControlPoint[] = generateGaussianControlPoints(a, b, c, TFextent, yOffset, this.props.volume);
+        const gaussianPoints: ControlPoint[] = generateGaussianControlPoints(a, b, c, TFextent, offsetYUnnormalized, this.props.volume, paddingUnnormalized);
         const currentPoints = this.state.points;
         gaussianPoints.push(currentPoints[currentPoints.length - 1]);
         gaussianPoints.unshift(currentPoints[0]);
         this.setState({
             points: gaussianPoints
         });
+        // TODO: maybe add handleChange points instead?
         this.change(gaussianPoints);
     }
 
@@ -534,11 +584,15 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     private setTF(params: TFParamsValues) {
         const name = params.name;
         switch (name) {
+            // TODO: separate into type
             case 'gaussian':
                 this._setGaussianTF(params as GaussianTFParamsValues);
                 break;
             case 'method2':
                 this._setMethod2TF(params as Method2ParamsValues);
+                break;
+            case 'defaults':
+                this._setDefaultsTF(params as DefaultParamsValues);
                 break;
             default: throw Error(`Transfer function ${name} is not supported`);
         };
@@ -561,7 +615,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     public render() {
         // TODO: fix keys somewhere here
         const points = this.renderPoints();
-        // const baseline = this.renderBaseline();
+        const baseline = this.renderBaseline();
         const lines = this.renderLines();
         const histogram = this.renderHistogram();
         const axes = this.renderAxes();
@@ -613,7 +667,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                     onDoubleClick={this.handleDoubleClick}>
                     {/* renders points */}
                     <g stroke="black" fill="black">
-                        {/* {baseline} */}
+                        {baseline}
                         {histogram}
                         {lines}
                         {points}
@@ -968,6 +1022,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const offset = this.padding / 2;
         const maxX = this.width + offset;
         const maxY = this.height + offset;
+        // normalizedY = ([0;1] value * (this.height)) + offset
         const normalizedX = (controlPointData.x * (maxX - offset)) + offset;
         const normalizedY = (controlPointData.alpha * (maxY - offset)) + offset;
         const reverseY = (this.height + this.padding) - normalizedY;
@@ -1019,9 +1074,9 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             const y = overallHeight * i / count;
             // const y = this.height + offset * 2 - i * this.height / count;
             bars.push(
-                <line key={`${i / count}gridline`} x1={x1} x2={x2} y1={y} y2={y}
+                <line key={`${1 - i / count}gridline`} x1={x1} x2={x2} y1={y} y2={y}
                     stroke="#A9A9A9" strokeWidth={w} strokeDasharray="15, 15">
-                    <title>{(i / count).toFixed(1)}</title>
+                    <title>{(1 - i / count).toFixed(1)}</title>
                 </line>
             );
         }
@@ -1041,8 +1096,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             const toValue = histogram.min + histogram.binWidth * (i + 1);
             const x = this.width * i / (N - 1) + offset;
             // may need to do +-offset on y1 or y2
-            const y1 = this.height;// + 2 * offset;
-            const y2 = this.height * (1 - histogram.counts[i] / max);// + 2 * offset;
+            const y1 = this.height + offset - this.offsetY;// + 2 * offset;
+            const y2 = this.height * (1 - histogram.counts[i] / max) + offset - this.offsetY;// + 2 * offset;
             // console.log(y1, y2);
             bars.push(<line key={`histogram${i}`} x1={x} x2={x} y1={y1} y2={y2} stroke="#A9A9A9" strokeWidth={w}>
                 <title>[{fromValue}; {toValue}]</title>
@@ -1059,7 +1114,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const max = this.descriptiveStatistics.max;
         // X: horizontal bar with arrow
         // need min max
-        const x1HorizontalBar = 0;
+        const x1HorizontalBar = offset;
         const x2HorizontalBar = this.width + offset;
         const y1HorizontalBar = this.height + offset;
         const y2HorizontalBar = this.height + offset;
@@ -1185,7 +1240,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         return <>
             <BaseLine height={this.height} offset={this.padding / 2} width={this.width} />
             {/* TODO: tune height need to be higher */}
-            {this.makeYAxisLabel(0, offset / 2, this.height - offset)}
+            {/* or + offset */}
+            {this.makeYAxisLabel(0, offset / 2, this.height)}
             {/*  */}
             {this.makeYAxisLabel(1, offset / 2, offset)}
             {/* TODO: 0.2 0.4 etc. */}
@@ -1198,8 +1254,10 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         let point: Vec2;
         for (let i = 0; i < this.state.points.length; i++) {
             if (i !== 0 && i !== this.state.points.length - 1) {
+                // render points such that they are at baseline
                 const { data, color, id, index } = this.state.points[i];
                 const finalColor = color;
+                // generated here
                 point = this.normalizePoint(data);
                 points.push(<PointComponent
                     index={index}
@@ -1207,6 +1265,9 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                     id={id}
                     x={point[0]}
                     // same for lines
+                    // set 0 to true 0 not something above
+                    // make sure that when the user drags a point it rendered where it should be
+                    // add  - this.offsetY + this.padding / 2 when generating points
                     y={point[1]}
                     nX={data.x}
                     nY={data.alpha}

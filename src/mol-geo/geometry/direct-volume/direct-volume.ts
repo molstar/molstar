@@ -79,25 +79,34 @@ function gaussianParametrized(x: number, a: number, b: number, c: number) {
     return y;
 }
 
-export function generateGaussianControlPoints(a: number, b: number, c: number, TFextent: number, yOffset: number, volume: Volume) {
+export function generateGaussianControlPoints(a: number, b: number, c: number, TFextent: number, yOffset: number, volume: Volume, padding: number) {
     const numberOfPoints = 8;
     // TODO: can extend point data dynamically with absolute values based on volume attribute (data) or based on some
     // calculations
     const positions = generateNormalizedGaussianPositions(numberOfPoints, a, b, c, TFextent, yOffset);
-    const controlPoints = generateControlPoints(ColorNames.black, positions, yOffset, volume);
+    const controlPoints = generateControlPoints(ColorNames.black, positions, yOffset, volume, padding);
+    console.log(controlPoints);
     return controlPoints;
 }
 
-export function generateControlPoints(color?: Color, positions?: Vec2[], yOffset?: number, volume?: Volume) {
-    if (!yOffset) yOffset = 35 / 400;
+export function generateControlPoints(color?: Color, positions?: Vec2[], offsetY?: number, volume?: Volume, padding?: number) {
+    // TODO: normalize prior to doing this, we work in [0; 1] range
+    // TODO: fix this
+    if (!offsetY) offsetY = 35 / 400;
+    if (!padding) padding = 70 / 400;
+    const L = padding / 2 - offsetY;
     // normalize yOffset to height
     if (!positions) {
+        // TODO: optimized this by vec operations
         positions = [
-            Vec2.create(0.19, 0.0 + yOffset), Vec2.create(0.2, 0.05 + yOffset), Vec2.create(0.25, 0.05 + yOffset), Vec2.create(0.26, 0.0 + yOffset),
-            Vec2.create(0.79, 0.0 + yOffset), Vec2.create(0.8, 0.05 + yOffset), Vec2.create(0.85, 0.05 + yOffset), Vec2.create(0.86, 0.0 + yOffset),
+            Vec2.create(0.19, 0.0), Vec2.create(0.2, 0.05), Vec2.create(0.25, 0.05), Vec2.create(0.26, 0.0),
+            Vec2.create(0.79, 0.0), Vec2.create(0.8, 0.05), Vec2.create(0.85, 0.05), Vec2.create(0.86, 0.0),
         ];
     }
-    console.log(positions);
+    // } else {
+    positions = positions.map(p => Vec2.create(p[0], p[1] - 2 * L));
+    // }
+    // console.log(positions);
     // so volume is not provided initially, which should be okay but
     // need to handle that when volume is rendered or something
     // could do it in the same place where messages are generated for each point (parameters.tsx)
