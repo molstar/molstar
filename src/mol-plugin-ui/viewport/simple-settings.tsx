@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -74,6 +74,7 @@ const SimpleSettingsParams = {
         multiSample: Canvas3DParams.multiSample,
         hiZ: Canvas3DParams.hiZ,
         sharpening: Canvas3DParams.postprocessing.params.sharpening,
+        bloom: Canvas3DParams.postprocessing.params.bloom,
         pixelScale: Canvas3DContext.Params.pixelScale,
         transparency: Canvas3DContext.Params.transparency,
     }),
@@ -140,6 +141,7 @@ const SimpleSettingsMapping = ParamMapping({
                 multiSample: canvas.multiSample,
                 hiZ: canvas.hiZ,
                 sharpening: canvas.postprocessing.sharpening,
+                bloom: canvas.postprocessing.bloom,
                 pixelScale: props.pixelScale,
                 transparency: props.transparency,
             },
@@ -164,6 +166,7 @@ const SimpleSettingsMapping = ParamMapping({
         canvas.multiSample = s.advanced.multiSample;
         canvas.hiZ = s.advanced.hiZ;
         canvas.postprocessing.sharpening = s.advanced.sharpening;
+        canvas.postprocessing.bloom = s.advanced.bloom;
         canvas.postprocessing.dof = s.lighting.dof;
 
         props.layout = s.layout;
