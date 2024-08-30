@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix handling of PDB files that have chains with same id separated by TER record (#1245)
 - Sequence Panel: Improve visuals of unmodeled sequence positions (#1248)
 
 ## [v4.6.0] - 2024-08-28
