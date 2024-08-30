@@ -113,7 +113,7 @@ class PointsPanel extends React.Component<any> {
         debugger;
         // const realPoints = points.filter();
         // TODO: add ghost prop to points
-        const removeAllPointsButton = <Button style={{ marginTop: 1, marginBottom: 1 }} onClick={this.props.removeAllPoints}>Remove All Points</Button>;
+        const removeAllPointsButton = <Button style={{ position: 'absolute', top: 0, right: 0 }} onClick={this.props.removeAllPoints}>Remove All Points</Button>;
         const controlPointsButtons = realPoints.map(p => {
             return <PointButton key={p.id} point={p}
                 onClick={this.props.onPointButtonClick}
@@ -123,15 +123,15 @@ class PointsPanel extends React.Component<any> {
             ></PointButton>;
         });
         return (
-            <><ExpandGroup header='Control Points Panel' initiallyExpanded={false}>
-                {removeAllPointsButton}
+            <div style={{ position: 'relative' }}><ExpandGroup header='Control Points Panel' initiallyExpanded={false}>
                 {controlPointsButtons}
             </ExpandGroup>
+            {removeAllPointsButton}
             {/* TODO: flex? */}
             {/* <IconButton small onClick={() => {
                 this.props.removeAllPoints();
             } }></IconButton> */}
-            </>
+            </div>
         );
     }
 }
@@ -998,7 +998,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const bars: any = [];
         const offset = this.padding / 2;
         const x1 = offset;
-        const w = offset / 10;
+        const w = 0.5;
         // TODO: allow editing text field, may need some function similar to what is with RGB thing
         //
         // TODO: consider adding baseline height as attribute of LineGraphComponent
