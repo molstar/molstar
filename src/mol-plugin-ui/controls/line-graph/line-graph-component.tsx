@@ -823,7 +823,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         }
 
         // resolve this too
-        const copyPoint: Vec2 = this.normalizePoint(this.getPoint(id).data);
+        const copyPoint: Vec2 = this.controlPointDataToSVGCoords(this.getPoint(id).data);
         this.ghostPoints.push(document.createElementNS(this.namespace, 'circle') as SVGElement);
         this.ghostPoints[0].setAttribute('r', '10');
         this.ghostPoints[0].setAttribute('fill', 'orange');
@@ -1055,9 +1055,11 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         document.removeEventListener('mouseup', this.handlePointUpdate, true);
     }
 
-    private normalizePoint(controlPointData: ControlPointData): Vec2 {
+    // this function prouces actual SVG coordinates (pixels from top left corner)
+    private controlPointDataToSVGCoords(controlPointData: ControlPointData): Vec2 {
         const offset = this.padding / 2;
         const maxX = this.width + offset;
+        // fix this
         const maxY = this.height + offset;
         // normalizedY = ([0;1] value * (this.height)) + offset
         const normalizedX = (controlPointData.x * (maxX - offset)) + offset;
@@ -1070,9 +1072,35 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             // fix lines
             throw Error('Adjusted alpha should be provided');
         }
-        const normalizedY = (controlPointData.adjustedAlpha * (maxY - offset)) + offset;
-        const reverseY = (this.height + this.padding) - normalizedY;
-        const newPoint = Vec2.create(normalizedX, reverseY);
+        const space = this.height - this.baseline - this.roof;
+        // should be reversed or?
+        // before
+        // normalizedY = (point[1] * (maxY - o)) + o;
+        // reverseY = this.height + this.padding - normalizedY;
+        const normalizedY = controlPointData.adjustedAlpha * space;
+        // ok so here it is e.g. 0.2 alpha
+        // then space is e.g 350
+        // 0.2 * 350 = 70
+        // 70 is linear size from the baseline to the point
+        // nothing to do with the roof
+        // 70 so we need to place this 70 
+        // such that it is calculated from the top corner
+        // i.e. get the distance from 0 0 to this 70
+        // to do this
+        const fromTopToBaseline = this.height - this.baseline;
+        const correctY = fromTopToBaseline - normalizedY;
+        // right so if this above is 200 and e.g. 300
+        // (based on e.g. 0.2 and 0.3 adjusted alpha)
+        // below it will become 350 - 200 = 150 and 350 - 300 = 50
+        // i.e. need to be reversed
+        // const y = (this.height - this.baseline) + normalizedY;
+        // const reverseY = this.hegight 
+        // try adding removing baseline here or whatever
+        // const normalizedY = (controlPointData.adjustedAlpha * (maxY - offset)) + offset;
+        // const reverseY = (this.height + this.padding) - normalizedY;
+        // here we should provide something like
+        // baseline +
+        const newPoint = Vec2.create(normalizedX, correctY);
         return newPoint;
     }
 
@@ -1149,7 +1177,6 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             // const y1 = this.height + offset - this.baseline;// + 2 * offset;
             // lowest point
             // for some reason, maybe this got divided by 2 somewhere
-            
             const y1 = this.height - this.baseline;
             // highest point
             // 1. get the distance between roofline and baseline
@@ -1325,16 +1352,18 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                 const finalColor = color;
                 // TODO: here there is no adjusted alpha for some reason
                 // here
-                point = this.normalizePoint(data);
+                point = this.controlPointDataToSVGCoords(data);
                 points.push(<PointComponent
                     index={index}
                     key={id}
                     id={id}
+                    // so here you should provide correct positions
+                    // actual ones I mean
+                    // from the top left corner
+                    // of the SVG!
+                    // x={50}
+                    // y={50}
                     x={point[0]}
-                    // same for lines
-                    // set 0 to true 0 not something above
-                    // make sure that when the user drags a point it rendered where it should be
-                    // add  - this.offsetY + this.padding / 2 when generating points
                     y={point[1]}
                     nX={data.x}
                     nY={data.alpha}
@@ -1364,6 +1393,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const o = this.padding / 2;
         for (const point of this.state.points) {
             maxX = this.width + o;
+            // render lines is ~ fine
+            // not padding I guess, or maybe padding + baseline and or roof
             maxY = this.height + this.padding;
             normalizedX = (point.data.x * (maxX - o)) + o;
             if (point.data.adjustedAlpha === void 0) throw Error('Adjusted alpha is not provided');

@@ -109,6 +109,8 @@ export function generateControlPoints(baselineUnnormalized: number, color?: Colo
         const data: ControlPointData = {
             x: positions[i][0],
             alpha: positions[i][1],
+            // without this gonna be on the bottom edge of the svg
+            // maybe is correct, who knows,
             adjustedAlpha: (positions[i][1] + baselineUnnormalized)
         };
         debugger;
