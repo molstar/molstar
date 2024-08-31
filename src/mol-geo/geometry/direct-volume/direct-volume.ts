@@ -40,7 +40,7 @@ const VolumeBox = Box();
 // else
 // have a normalized version of padding ins
 // TODO: or maybe offset / 2
-export const defaultControlPoints = generateControlPoints(LineGraphParams.paddingYUnnormalized / 2, ColorNames.black);
+export const defaultControlPoints = generateControlPoints(LineGraphParams.baselineUnnormalized, ColorNames.black);
 
 function generateNormalizedGaussianPositions(numberOfPoints: number, a: number, b: number, c: number, TFextent: number, yOffset: number): Vec2[] {
     const arr: Vec2[] = [];
@@ -96,7 +96,7 @@ export function generateGaussianControlPoints(a: number, b: number, c: number, T
 }
 
 // TODO: destructuring params or something
-export function generateControlPoints(paddingYUnnormalized: number, color?: Color, positions?: Vec2[], volume?: Volume) {
+export function generateControlPoints(baselineUnnormalized: number, color?: Color, positions?: Vec2[], volume?: Volume) {
     if (!positions) {
         // TODO: optimized this by vec operations
         positions = [
@@ -109,7 +109,7 @@ export function generateControlPoints(paddingYUnnormalized: number, color?: Colo
         const data: ControlPointData = {
             x: positions[i][0],
             alpha: positions[i][1],
-            adjustedAlpha: (positions[i][1] + paddingYUnnormalized)
+            adjustedAlpha: (positions[i][1] + baselineUnnormalized)
         };
         debugger;
         if (volume) {
