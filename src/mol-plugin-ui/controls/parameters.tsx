@@ -29,6 +29,7 @@ import { legendFor } from './legend';
 import { ControlPointData, LineGraphComponent } from './line-graph/line-graph-component';
 import { Slider, Slider2 } from './slider';
 import { UUID } from '../../mol-util';
+import { urlToHttpOptions } from 'url';
 
 export type ParameterControlsCategoryFilter = string | null | (string | null)[]
 
@@ -333,6 +334,30 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
         }
     }
 
+    private absValueToPointValue(v: number) {
+        // converts abs value to point value [0; 1]
+        // if (!data) return '';
+        // debugger;
+        const volume = this.props.param.getVolume?.() as Volume;
+        if (volume) {
+            const { min, max, mean, sigma } = volume.grid.stats;
+            // do revers of this
+            // we have v, we do not have data.x
+            // v - min = (max - min)*x
+            // (v - min) / (max - min) = x
+            // x = (v - min) / (max - min);
+            // const v = min + (max - min) * data.x;
+            const x = (v - min) / (max - min);
+            // const s = (v - mean) / sigma;
+            return x;
+        } else {
+            throw Error('No volume available');
+            // TODO: optimize this
+            // return [data.x, data.x];
+        }
+    }
+
+
     // TODO: fix x so that here it is still 0 for point on baseline
     // basically keep data x alpha as they are
     // but when rendering a point add to it a baseline level (this.padding/2)
@@ -355,6 +380,10 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
         } else {
             throw Error('No data is provided');
         }
+    };
+
+    onAbsValueToPointValue = (v: number) => {
+        return this.absValueToPointValue(v);
     };
 
     onHover = (data?: ControlPointData) => {
@@ -402,6 +431,7 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
                     onDrag={this.onDrag}
                     colored={this.props.param.colored}
                     onExpandGroupOpen={this.onExpandGroupOpen}
+                    onAbsValueToPointValue={this.onAbsValueToPointValue}
                 />
             </div>
         </>;

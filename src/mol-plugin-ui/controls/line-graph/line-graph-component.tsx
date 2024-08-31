@@ -37,6 +37,8 @@ class PointButton extends React.Component<any> {
 
     onAbs = (v: number) => {
         // this changes that point in the state of linegraph component.points
+        // look at what happens here
+        // so nothing
         this.props.changeXValue(this.props.point.id, v);
         // this.props.value = v;
     };
@@ -51,13 +53,16 @@ class PointButton extends React.Component<any> {
     };
     render() {
         const [absValue, relativeValue] = this.props.onExpandGroupOpen(this.props.point.data);
-        const truncatedAbsValue = (absValue as number).toFixed(3);
+        const truncatedAbsValue = parseFloat((absValue as number).toFixed(3));
         // console.log(absValue, relativeValue);
         const alpha = (this.props.point.data.alpha as number).toFixed(3);
         return (
             <div style={{ display: 'flex', marginBottom: 1 }} key={this.props.point.id}>
                 <Button style={{ textAlign: 'start', textIndent: '20px' }}>Point</Button>
                 {/* fix here number of points */}
+                {/* so decouple from the values */}
+                {/* just change it */}
+                {/* got it need at list parsefloat */}
                 <TextInput numeric
                     style={{ minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
                     value={truncatedAbsValue} placeholder={'Some text'}
@@ -291,7 +296,7 @@ export function controlPointsToColorListControlPointsEntry(controlPoints: Contro
 export interface ControlPointData {
     x: number,
     alpha: number
-    adjustedAlpha?: number
+    // adjustedAlpha?: number
     absValue?: number
     relativeValue?: number
 }
@@ -327,7 +332,7 @@ const startEndPoints: ControlPoint[] = [
         data: {
             x: 0,
             alpha: 0,
-            adjustedAlpha: LineGraphParams.baselineUnnormalized,
+            // adjustedAlpha: LineGraphParams.baselineUnnormalized,
         },
         id: UUID.create22(),
         color: ColorNames.black,
@@ -338,7 +343,7 @@ const startEndPoints: ControlPoint[] = [
         data: {
             x: 1,
             alpha: 0,
-            adjustedAlpha: LineGraphParams.baselineUnnormalized,
+            // adjustedAlpha: LineGraphParams.baselineUnnormalized,
         },
         id: UUID.create22(),
         color: ColorNames.black,
@@ -569,7 +574,12 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     }
 
     // TODO: refactor to remove duplication with above function
-    changeXValue(pointId: UUID, x: number) {
+    changeXValue(pointId: UUID, absValue: number) {
+        // got it, we have to convert abs value back to relative [0;1] value
+        // need value to point function
+        // now need to pass absValueToPointValue
+        // so that it reaches here;
+        const x = this.props.onAbsValueToPointValue(absValue);
         const points = this.state.points;
         const modifiedPoints = points.map(p => {
             if (p.id === pointId) {
@@ -845,16 +855,14 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const pt = this.myRef.createSVGPoint();
         let updatedCopyPoint;
         const padding = this.padding / 2;
+        // this is true coords from the top left corner of svg
         pt.x = event.clientX;
         pt.y = event.clientY;
         // still wrong poisition, shifted above on drag
         const svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
+        // coords from top left corner of svg
         updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
-
-        // may need to user here adjusted alpha or something
-        // on each drag! not only when crossing a border
-        // ok so we touch y
-        // if y > this height + this.baseline
+        console.log('created a svg point with coords', svgP.x, svgP.y);
         if ((svgP.x < (padding) || svgP.x > (this.width + (padding))) &&
         (svgP.y > (this.height - this.baseline) || svgP.y < (0))) {
             debugger;
@@ -881,14 +889,13 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             debugger;
             updatedCopyPoint = Vec2.create(svgP.x, 0);
         } else {
-            // this is triggered I guess
-            debugger;
+            // console.log('Point within the constraints, creating normally');
             updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
         }
 
         this.updatedX = updatedCopyPoint[0];
         this.updatedY = updatedCopyPoint[1];
-        // then you do unnormalize and this probably somehow affects?
+        // TODO
         const unNormalizePoint = this.unNormalizePoint(updatedCopyPoint);
         // TODO: this.ghostPoints[0] is undefined when dragging a point towards right
         // border, why?
@@ -898,6 +905,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
 
 
         this.props.onDrag(unNormalizePoint);
+        // ok got it then point is "normalized" and thus got raised up or something
     }
 
     private handleMultipleDrag() {
@@ -1065,19 +1073,25 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const normalizedX = (controlPointData.x * (maxX - offset)) + offset;
         // const normalizedY = (controlPointData.alpha * (maxY - offset)) + offset;
         debugger;
-        if (controlPointData.adjustedAlpha === void 0) {
-            debugger;
-            console.log(controlPointData);
-            // TODO: add this adjusted alpha thing to copy point etc.
-            // fix lines
-            throw Error('Adjusted alpha should be provided');
-        }
+        // I guess should not be adjusted here or?
+        // if (controlPointData.adjustedAlpha === void 0) {
+        //     debugger;
+        //     console.log(controlPointData);
+        //     // TODO: add this adjusted alpha thing to copy point etc.
+        //     // fix lines
+        //     throw Error('Adjusted alpha should be provided');
+        // }
         const space = this.height - this.baseline - this.roof;
         // should be reversed or?
         // before
         // normalizedY = (point[1] * (maxY - o)) + o;
         // reverseY = this.height + this.padding - normalizedY;
-        const normalizedY = controlPointData.adjustedAlpha * space;
+
+        // Ok found a mistake
+        // alpha / adjusted alpha is proportion
+        // so we should stick to using just alpha
+        // adjustment is not needed anymore
+        const normalizedY = controlPointData.alpha * space;
         // ok so here it is e.g. 0.2 alpha
         // then space is e.g 350
         // 0.2 * 350 = 70
@@ -1119,7 +1133,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         return {
             x: unNormalizedX,
             alpha: unNormalizedY,
-            adjustedAlpha: unNormalizedY// + this.baselineUnnormalized
+            // adjustedAlpha: unNormalizedY// + this.baselineUnnormalized
         };
     }
 
@@ -1397,8 +1411,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             // not padding I guess, or maybe padding + baseline and or roof
             maxY = this.height + this.padding;
             normalizedX = (point.data.x * (maxX - o)) + o;
-            if (point.data.adjustedAlpha === void 0) throw Error('Adjusted alpha is not provided');
-            normalizedY = (point.data.adjustedAlpha * (maxY - o)) + o;
+            // if (point.data.adjustedAlpha === void 0) throw Error('Adjusted alpha is not provided');
+            normalizedY = (point.data.alpha * (maxY - o)) + o;
             // normalizedY = (point.data.alpha * (maxY - o)) + o;
             reverseY = this.height + this.padding - normalizedY;
             points.push(Vec2.create(normalizedX, reverseY));
