@@ -818,6 +818,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             return;
         }
 
+        // resolve this too
         const copyPoint: Vec2 = this.normalizePoint(this.getPoint(id).data);
         this.ghostPoints.push(document.createElementNS(this.namespace, 'circle') as SVGElement);
         this.ghostPoints[0].setAttribute('r', '10');
@@ -842,25 +843,40 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const padding = this.padding / 2;
         pt.x = event.clientX;
         pt.y = event.clientY;
+        // still wrong poisition, shifted above on drag
         const svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
         updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
 
         // may need to user here adjusted alpha or something
+        // on each drag! not only when crossing a border
+        // ok so we touch y
+        // if y > this height + this.baseline
         if ((svgP.x < (padding) || svgP.x > (this.width + (padding))) &&
-        (svgP.y > (this.height + (0)) || svgP.y < (0))) {
+        (svgP.y > (this.height - this.baseline) || svgP.y < (0))) {
+            debugger;
             updatedCopyPoint = Vec2.create(this.updatedX, this.updatedY);
         } else if (svgP.x < padding) {
+            debugger;
             // TODO: fix lines to start from true 0
             updatedCopyPoint = Vec2.create(padding, svgP.y);
         } else if (svgP.x > (this.width + (padding))) {
+            debugger;
             updatedCopyPoint = Vec2.create(this.width + padding, svgP.y);
-        } else if (svgP.y > (this.height + (0))) {
+            // touch this
+        } else if (svgP.y > (this.height - this.baseline)) {
+            debugger;
             // does not allow into such area
             // fix viewbox or?
             updatedCopyPoint = Vec2.create(svgP.x, this.height + 0);
         } else if (svgP.y < (0)) {
+            debugger;
             updatedCopyPoint = Vec2.create(svgP.x, 0);
         } else {
+            // this is triggered I guess
+            debugger;
+            // still raised
+            // so here is is created with wrong svgP.y;
+            console.log('Regular point creation within the borders');
             updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
         }
 
@@ -1066,7 +1082,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         return {
             x: unNormalizedX,
             alpha: unNormalizedY,
-            adjustedAlpha: unNormalizedY + this.baselineUnnormalized
+            adjustedAlpha: unNormalizedY// + this.baselineUnnormalized
         };
     }
 
