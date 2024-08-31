@@ -422,9 +422,11 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     private gElement: SVGElement;
     private namespace: string;
     private descriptiveStatistics: VolumeDescriptiveStatistics;
-    private offsetY: number;
+    // private offsetY: number;
     private baseline: number;
     private baselineUnnormalized: number;
+    private roof: number;
+    private roofUnnormalized: number;
     constructor(props: any) {
         super(props);
         this.myRef = React.createRef();
@@ -436,12 +438,14 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             methodsParams: DefaultTFParams
             // colored: this.props.colored
         };
+        this.roof = LineGraphParams.roof;
+        this.roofUnnormalized = LineGraphParams.roofUnnormalized;
         this.baseline = LineGraphParams.baseline;
         this.baselineUnnormalized = LineGraphParams.baselineUnnormalized;
         this.height = LineGraphParams.height;
         this.width = LineGraphParams.width;
         this.padding = LineGraphParams.padding;
-        this.offsetY = LineGraphParams.offsetY;
+        // this.offsetY = LineGraphParams.offsetY;
         // this.offsetY = 0;
         this.selectedPointId = undefined;
         this.ghostPoints = [];
@@ -855,12 +859,17 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         (svgP.y > (this.height - this.baseline) || svgP.y < (0))) {
             debugger;
             updatedCopyPoint = Vec2.create(this.updatedX, this.updatedY);
+        // right border is X > something
         } else if (svgP.x < padding) {
             debugger;
             // TODO: fix lines to start from true 0
             updatedCopyPoint = Vec2.create(padding, svgP.y);
+            // this probably
         } else if (svgP.x > (this.width + (padding))) {
-            debugger;
+            // this
+            console.log('Creating a point while crossing right border');
+            // should create on the same x that is fine, but on correct y
+            console.log(this.width + padding, svgP.y);
             updatedCopyPoint = Vec2.create(this.width + padding, svgP.y);
             // touch this
         } else if (svgP.y > (this.height - this.baseline)) {
@@ -874,15 +883,15 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         } else {
             // this is triggered I guess
             debugger;
-            // still raised
-            // so here is is created with wrong svgP.y;
-            console.log('Regular point creation within the borders');
             updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
         }
 
         this.updatedX = updatedCopyPoint[0];
         this.updatedY = updatedCopyPoint[1];
+        // then you do unnormalize and this probably somehow affects?
         const unNormalizePoint = this.unNormalizePoint(updatedCopyPoint);
+        // TODO: this.ghostPoints[0] is undefined when dragging a point towards right
+        // border, why?
         this.ghostPoints[0].setAttribute('style', 'display: visible');
         this.ghostPoints[0].setAttribute('cx', `${updatedCopyPoint[0]}`);
         this.ghostPoints[0].setAttribute('cy', `${updatedCopyPoint[1]}`);
@@ -1135,10 +1144,24 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             const fromValue = histogram.min + histogram.binWidth * i;
             const toValue = histogram.min + histogram.binWidth * (i + 1);
             const x = this.width * i / (N - 1) + offset;
-            // may need to do +-offset on y1 or y2
-            const y1 = this.height + offset - this.offsetY;// + 2 * offset;
-            const y2 = this.height * (1 - histogram.counts[i] / max) + offset - this.offsetY;// + 2 * offset;
+            // add roof
+            // MAYBE remove offset from here
+            // const y1 = this.height + offset - this.baseline;// + 2 * offset;
+            // lowest point
+            const y1 = this.height - this.baseline;
+            // highest point
+            // 1. get the distance between roofline and baseline
+            const space = this.height - this.baseline - this.roof;
+            // 2. get a fraction of that distance based on histogram counts etc.
+            // 2.5. do 1 - that fraction
+            const fraction = space * (1 - histogram.counts[i] / max)
+            // 3. add it to this.roof
+            const y2 = fraction + this.roof;
+            // you got y2
+            // const 
+            // const y2 = (this.height - this.baseline + this.roof) * (1 - histogram.counts[i] / max);// + 2 * offset;
             // console.log(y1, y2);
+            // console.log(this.height, this.roof, this.baseline);
             bars.push(<line key={`histogram${i}`} x1={x} x2={x} y1={y1} y2={y2} stroke="#A9A9A9" strokeWidth={w}>
                 <title>[{fromValue}; {toValue}]</title>
             </line>);
