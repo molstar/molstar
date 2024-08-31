@@ -23,6 +23,7 @@ import { ColorListRangesEntry } from '../../../mol-util/color/color';
 import { generateControlPoints, generateGaussianControlPoints } from '../../../mol-geo/geometry/direct-volume/direct-volume';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { LineGraphParams } from './line-graph-params';
+import { throwError } from 'rxjs';
 
 type ComponentParams<T extends React.Component<any, any, any> | ((props: any) => JSX.Element)> =
     T extends React.Component<infer P, any, any> ? P : T extends (props: infer P) => JSX.Element ? P : never;
@@ -120,7 +121,7 @@ class PointsPanel extends React.Component<any> {
 
     render() {
         const points: ControlPoint[] = this.props.points;
-        const realPoints = points.filter(p => p.isGhost !== true);
+        const realPoints = points.filter(p => p.isTerminal !== true);
         debugger;
         // const realPoints = points.filter();
         // TODO: add ghost prop to points
@@ -300,7 +301,7 @@ export interface ControlPoint {
     color: Color,
     data: ControlPointData
     index: number,
-    isGhost?: boolean
+    isTerminal?: boolean
 }
 
 interface VolumeDescriptiveStatistics {
@@ -326,25 +327,23 @@ const startEndPoints: ControlPoint[] = [
         data: {
             x: 0,
             alpha: 0,
-            // TODO: determine values
-            // 
-            adjustedAlpha: 0.2
+            adjustedAlpha: LineGraphParams.baselineUnnormalized,
         },
         id: UUID.create22(),
         color: ColorNames.black,
         index: 0,
-        isGhost: true
+        isTerminal: true
     },
     {
         data: {
             x: 1,
             alpha: 0,
-            adjustedAlpha: 0.2
+            adjustedAlpha: LineGraphParams.baselineUnnormalized,
         },
         id: UUID.create22(),
         color: ColorNames.black,
         index: 9,
-        isGhost: true
+        isTerminal: true
     }
 ];
 
@@ -424,6 +423,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     private namespace: string;
     private descriptiveStatistics: VolumeDescriptiveStatistics;
     private offsetY: number;
+    private baseline: number;
+    private baselineUnnormalized: number;
     constructor(props: any) {
         super(props);
         this.myRef = React.createRef();
@@ -435,6 +436,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             methodsParams: DefaultTFParams
             // colored: this.props.colored
         };
+        this.baseline = LineGraphParams.baseline;
+        this.baselineUnnormalized = LineGraphParams.baselineUnnormalized;
         this.height = LineGraphParams.height;
         this.width = LineGraphParams.width;
         this.padding = LineGraphParams.padding;
@@ -479,7 +482,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const points = this.state.points;
         const ghostPoints = [];
         for (const point of points) {
-            if (point.isGhost === true) { ghostPoints.push(point); }
+            if (point.isTerminal === true) { ghostPoints.push(point); }
         };
         const ghostPointsSorted = this.sortPoints(ghostPoints);
         this.setState({ points: ghostPointsSorted, clickedPointIds: undefined, showColorPicker: false });
@@ -619,6 +622,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     public render() {
         // TODO: how points get there?
         // from the state
+        debugger;
+        // no adjusted alpha here for some reason
         const points = this.renderPoints();
         const baseline = this.renderBaseline();
         const lines = this.renderLines();
@@ -831,6 +836,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             return;
         }
 
+        // here use adjusted alpha
         const pt = this.myRef.createSVGPoint();
         let updatedCopyPoint;
         const padding = this.padding / 2;
@@ -839,6 +845,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
         updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
 
+        // may need to user here adjusted alpha or something
         if ((svgP.x < (padding) || svgP.x > (this.width + (padding))) &&
         (svgP.y > (this.height + (0)) || svgP.y < (0))) {
             updatedCopyPoint = Vec2.create(this.updatedX, this.updatedY);
@@ -1032,6 +1039,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         // const normalizedY = (controlPointData.alpha * (maxY - offset)) + offset;
         debugger;
         if (controlPointData.adjustedAlpha === void 0) {
+            debugger;
             console.log(controlPointData);
             // TODO: add this adjusted alpha thing to copy point etc.
             // fix lines
@@ -1054,9 +1062,11 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         // we have to take into account that we reversed y when we first normalized it.
         const unNormalizedY = ((this.height + this.padding) - vec2[1] - min) / (maxY - min);
 
+        // TODO: may need to make adjusted ALPHA obligatory
         return {
             x: unNormalizedX,
-            alpha: unNormalizedY
+            alpha: unNormalizedY,
+            adjustedAlpha: unNormalizedY + this.baselineUnnormalized
         };
     }
 
@@ -1314,7 +1324,9 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             maxX = this.width + o;
             maxY = this.height + this.padding;
             normalizedX = (point.data.x * (maxX - o)) + o;
-            normalizedY = (point.data.alpha * (maxY - o)) + o;
+            if (point.data.adjustedAlpha === void 0) throw Error('Adjusted alpha is not provided');
+            normalizedY = (point.data.adjustedAlpha * (maxY - o)) + o;
+            // normalizedY = (point.data.alpha * (maxY - o)) + o;
             reverseY = this.height + this.padding - normalizedY;
             points.push(Vec2.create(normalizedX, reverseY));
         }
