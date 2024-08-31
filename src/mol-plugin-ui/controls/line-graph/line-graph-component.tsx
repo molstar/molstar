@@ -22,6 +22,7 @@ import { ParameterControls, ParamOnChange } from '../parameters';
 import { ColorListRangesEntry } from '../../../mol-util/color/color';
 import { generateControlPoints, generateGaussianControlPoints } from '../../../mol-geo/geometry/direct-volume/direct-volume';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { LineGraphParams } from './line-graph-params';
 
 type ComponentParams<T extends React.Component<any, any, any> | ((props: any) => JSX.Element)> =
     T extends React.Component<infer P, any, any> ? P : T extends (props: infer P) => JSX.Element ? P : never;
@@ -31,7 +32,7 @@ class PointButton extends React.Component<any> {
     //     absValue: this.props.trueAbsValue,
     //     alphaValue: this.props.trueAlpha
     // };
-    // 
+    //
 
     onAbs = (v: number) => {
         // this changes that point in the state of linegraph component.points
@@ -59,7 +60,7 @@ class PointButton extends React.Component<any> {
                 <TextInput numeric
                     style={{ minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
                     value={truncatedAbsValue} placeholder={'Some text'}
-                    // fix that 
+                    // fix that
                     // TODO: string to number?
                     isDisabled={false} onChange={(value) => { this.onAbs(value); }} />
                 <TextInput numeric
@@ -289,6 +290,7 @@ export function controlPointsToColorListControlPointsEntry(controlPoints: Contro
 export interface ControlPointData {
     x: number,
     alpha: number
+    adjustedAlpha?: number
     absValue?: number
     relativeValue?: number
 }
@@ -319,10 +321,14 @@ interface LineGraphComponentState {
 }
 
 const startEndPoints: ControlPoint[] = [
+    // modify this
     {
         data: {
             x: 0,
-            alpha: 0
+            alpha: 0,
+            // TODO: determine values
+            // 
+            adjustedAlpha: 0.2
         },
         id: UUID.create22(),
         color: ColorNames.black,
@@ -332,7 +338,8 @@ const startEndPoints: ControlPoint[] = [
     {
         data: {
             x: 1,
-            alpha: 0
+            alpha: 0,
+            adjustedAlpha: 0.2
         },
         id: UUID.create22(),
         color: ColorNames.black,
@@ -396,7 +403,7 @@ const DefaultMethod2Params: Method2ParamsValues = {
 
 const DefaultDefaultParams: DefaultParamsValues = {
     name: 'defaults'
-}
+};
 
 const DefaultTFParams: TFParamsValues[] = [
     DefaultGaussianParams,
@@ -428,10 +435,10 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             methodsParams: DefaultTFParams
             // colored: this.props.colored
         };
-        this.height = 400;
-        this.width = 600;
-        this.padding = 70;
-        this.offsetY = this.padding / 2;
+        this.height = LineGraphParams.height;
+        this.width = LineGraphParams.width;
+        this.padding = LineGraphParams.padding;
+        this.offsetY = LineGraphParams.offsetY;
         // this.offsetY = 0;
         this.selectedPointId = undefined;
         this.ghostPoints = [];
@@ -484,13 +491,10 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     }
 
     private _setDefaultsTF(params: DefaultParamsValues) {
-        // TODO: implement
-        // yOffset, volume, padding
-        const offsetYNormalized = this.padding / 2;
-        const paddingNormalized = this.padding;
-        const offsetYUnnormalized = (offsetYNormalized - this.padding / 2) / this.height;
-        const paddingUnnormalized = (paddingNormalized - this.padding / 2) / this.height;
-        const points = generateControlPoints(ColorNames.black, undefined, offsetYUnnormalized, this.props.volume, paddingUnnormalized);
+        const paddingUnnormalized = this.padding / this.height;
+        // there two are the same values, reduce to a single one, e.g. could be be just padding, why not
+        // should be e.g.
+        const points = generateControlPoints(paddingUnnormalized, ColorNames.black, undefined, this.props.volume);
         const currentPoints = this.state.points;
         points.push(currentPoints[currentPoints.length - 1]);
         points.unshift(currentPoints[0]);
@@ -613,7 +617,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     }
 
     public render() {
-        // TODO: fix keys somewhere here
+        // TODO: how points get there?
+        // from the state
         const points = this.renderPoints();
         const baseline = this.renderBaseline();
         const lines = this.renderLines();
@@ -1024,12 +1029,21 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const maxY = this.height + offset;
         // normalizedY = ([0;1] value * (this.height)) + offset
         const normalizedX = (controlPointData.x * (maxX - offset)) + offset;
-        const normalizedY = (controlPointData.alpha * (maxY - offset)) + offset;
+        // const normalizedY = (controlPointData.alpha * (maxY - offset)) + offset;
+        debugger;
+        if (controlPointData.adjustedAlpha === void 0) {
+            console.log(controlPointData);
+            // TODO: add this adjusted alpha thing to copy point etc.
+            // fix lines
+            throw Error('Adjusted alpha should be provided');
+        }
+        const normalizedY = (controlPointData.adjustedAlpha * (maxY - offset)) + offset;
         const reverseY = (this.height + this.padding) - normalizedY;
         const newPoint = Vec2.create(normalizedX, reverseY);
         return newPoint;
     }
 
+    // TODO: modify this too
     private unNormalizePoint(vec2: Vec2): ControlPointData {
         // creates x and alpha from cartisian
         const min = this.padding / 2;
@@ -1257,7 +1271,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                 // render points such that they are at baseline
                 const { data, color, id, index } = this.state.points[i];
                 const finalColor = color;
-                // generated here
+                // TODO: here there is no adjusted alpha for some reason
+                // here
                 point = this.normalizePoint(data);
                 points.push(<PointComponent
                     index={index}

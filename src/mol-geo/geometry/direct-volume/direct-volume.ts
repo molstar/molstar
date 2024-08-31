@@ -31,10 +31,16 @@ import { createEmptySubstance } from '../substance-data';
 import { createEmptyEmissive } from '../emissive-data';
 import { ControlPoint, ControlPointData } from '../../../mol-plugin-ui/controls/line-graph/line-graph-component';
 import { ColorNames, getRandomColor } from '../../../mol-util/color/names';
+import { LineGraphParams } from '../../../mol-plugin-ui/controls/line-graph/line-graph-params';
 
 const VolumeBox = Box();
 
-export const defaultControlPoints = generateControlPoints(ColorNames.black);
+// we do not provide neither padding nor offset here
+// need to tune it based on linegraph thing since this is not used anywhere
+// else
+// have a normalized version of padding ins
+// TODO: or maybe offset / 2
+export const defaultControlPoints = generateControlPoints(LineGraphParams.paddingYUnnormalized / 2, ColorNames.black);
 
 function generateNormalizedGaussianPositions(numberOfPoints: number, a: number, b: number, c: number, TFextent: number, yOffset: number): Vec2[] {
     const arr: Vec2[] = [];
@@ -79,23 +85,18 @@ function gaussianParametrized(x: number, a: number, b: number, c: number) {
     return y;
 }
 
-export function generateGaussianControlPoints(a: number, b: number, c: number, TFextent: number, yOffset: number, volume: Volume, padding: number) {
+export function generateGaussianControlPoints(a: number, b: number, c: number, TFextent: number, yOffset: number, volume: Volume, paddingYUnnormalized: number) {
     const numberOfPoints = 8;
     // TODO: can extend point data dynamically with absolute values based on volume attribute (data) or based on some
     // calculations
     const positions = generateNormalizedGaussianPositions(numberOfPoints, a, b, c, TFextent, yOffset);
-    const controlPoints = generateControlPoints(ColorNames.black, positions, yOffset, volume, padding);
+    const controlPoints = generateControlPoints(paddingYUnnormalized, ColorNames.black, positions, volume);
     console.log(controlPoints);
     return controlPoints;
 }
 
-export function generateControlPoints(color?: Color, positions?: Vec2[], offsetY?: number, volume?: Volume, padding?: number) {
-    // TODO: normalize prior to doing this, we work in [0; 1] range
-    // TODO: fix this
-    if (!offsetY) offsetY = 35 / 400;
-    if (!padding) padding = 70 / 400;
-    const L = padding / 2 - offsetY;
-    // normalize yOffset to height
+// TODO: destructuring params or something
+export function generateControlPoints(paddingYUnnormalized: number, color?: Color, positions?: Vec2[], volume?: Volume) {
     if (!positions) {
         // TODO: optimized this by vec operations
         positions = [
@@ -103,20 +104,12 @@ export function generateControlPoints(color?: Color, positions?: Vec2[], offsetY
             Vec2.create(0.79, 0.0), Vec2.create(0.8, 0.05), Vec2.create(0.85, 0.05), Vec2.create(0.86, 0.0),
         ];
     }
-    // } else {
-    positions = positions.map(p => Vec2.create(p[0], p[1] - 2 * L));
-    // }
-    // console.log(positions);
-    // so volume is not provided initially, which should be okay but
-    // need to handle that when volume is rendered or something
-    // could do it in the same place where messages are generated for each point (parameters.tsx)
-    // could create a function to do that
-    // similar to the one used in linegraphcontrol
     const points: ControlPoint[] = [];
     for (let i = 0, il = positions.length; i < il; ++i) {
         const data: ControlPointData = {
             x: positions[i][0],
-            alpha: positions[i][1]
+            alpha: positions[i][1],
+            adjustedAlpha: (positions[i][1] + paddingYUnnormalized)
         };
         debugger;
         if (volume) {
@@ -126,6 +119,8 @@ export function generateControlPoints(color?: Color, positions?: Vec2[], offsetY
             const v = min + (max - min) * data.x;
             const s = (v - mean) / sigma;
             // TODO: optimize this
+            // need this too I guess
+            // even at this point
             data.absValue = v;
             data.relativeValue = s;
         } else {
@@ -142,6 +137,7 @@ export function generateControlPoints(color?: Color, positions?: Vec2[], offsetY
         };
         points.push(point);
     }
+    console.log('Generated control points', points);
     return points;
 }
 
@@ -264,6 +260,7 @@ export namespace DirectVolume {
         celShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
         xrayShaded: PD.Select<boolean | 'inverted'>(false, [[false, 'Off'], [true, 'On'], ['inverted', 'Inverted']], BaseGeometry.ShadingCategory),
         lineGraphData: PD.LineGraph(
+            // this
             defaultControlPoints, { isEssential: true }
         ),
         stepsPerCell: PD.Numeric(3, { min: 1, max: 10, step: 1 }),
