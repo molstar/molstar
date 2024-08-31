@@ -1148,6 +1148,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             // MAYBE remove offset from here
             // const y1 = this.height + offset - this.baseline;// + 2 * offset;
             // lowest point
+            // for some reason, maybe this got divided by 2 somewhere
+            
             const y1 = this.height - this.baseline;
             // highest point
             // 1. get the distance between roofline and baseline
@@ -1299,14 +1301,15 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     // first fix points, allow them in area above and recalc the message or something
     // remove ghost points from the list
     private renderBaseline() {
-        const offset = this.padding / 2;
+        // TODO: fix this function
+        const baseline = this.baseline;
         return <>
-            <BaseLine height={this.height} offset={this.padding / 2} width={this.width} />
+            <BaseLine height={this.height - baseline} offset={this.padding / 2} width={this.width} />
             {/* TODO: tune height need to be higher */}
             {/* or + offset */}
-            {this.makeYAxisLabel(0, offset / 2, this.height)}
+            {this.makeYAxisLabel(0, baseline / 2, this.height)}
             {/*  */}
-            {this.makeYAxisLabel(1, offset / 2, offset)}
+            {this.makeYAxisLabel(1, baseline / 2, baseline)}
             {/* TODO: 0.2 0.4 etc. */}
         </>;
     }

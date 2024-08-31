@@ -15,19 +15,25 @@ export interface LineGraphParams {
 }
 
 
+const Baseline = 35 / 2;
+const Roof = 35;
+const Padding = 70;
+const Height = 400;
+const Width = 600;
+
 export const LineGraphParams: LineGraphParams = {
-    height: 400,
-    width: 600,
-    padding: 70,
+    height: Height,
+    width: Width,
+    padding: Padding,
     // TODO: function that caclulates this based on height etc.
     // or rather contant numbers as const vars above that 
-    paddingYUnnormalized: 70 / 400,
-    paddingXUnnormalized: 70 / 600,
+    paddingYUnnormalized: Padding / Height,
+    paddingXUnnormalized: Padding / Width,
     // TODO: add offset unnormalized or
     // offsetY: 35,
-    baseline: 35,
-    baselineUnnormalized: 35 / 400,
-    roof: 35,
+    baseline: Baseline,
+    baselineUnnormalized: Baseline / Height,
+    roof: Roof,
     // [0; 1]
-    roofUnnormalized: 35 / 400
+    roofUnnormalized: Roof / Height
 };
