@@ -59,7 +59,7 @@ interface Renderer {
     readonly props: Readonly<RendererProps>
     readonly light: Readonly<Light>
 
-    clear: (toBackgroundColor: boolean, ignoreTransparentBackground?: boolean) => void
+    clear: (toBackgroundColor: boolean, ignoreTransparentBackground?: boolean, forceToTransparency?: boolean) => void
     clearDepth: (packed?: boolean) => void
     update: (camera: ICamera, scene: Scene) => void
 
@@ -70,13 +70,11 @@ interface Renderer {
     renderMarkingDepth: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderMarkingMask: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderEmissive: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
+    renderOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderBlended: (group: Scene, camera: ICamera) => void
-    renderBlendedOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderBlendedTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderBlendedVolume: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
-    renderWboitOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderWboitTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
-    renderDpoitOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderDpoitTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null, dpoitTextures: { depth: Texture, frontColor: Texture, backColor: Texture }) => void
     renderDpoitVolume: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
 
@@ -583,29 +581,11 @@ namespace Renderer {
 
         const renderBlended = (scene: Scene, camera: ICamera) => {
             if (scene.hasOpaque) {
-                renderBlendedOpaque(scene, camera, null);
+                renderOpaque(scene, camera, null);
             }
             if (scene.opacityAverage < 1) {
                 renderBlendedTransparent(scene, camera, null);
             }
-        };
-
-        const renderBlendedOpaque = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
-            if (isTimingMode) ctx.timer.mark('Renderer.renderBlendedOpaque');
-            state.disable(gl.BLEND);
-            state.enable(gl.DEPTH_TEST);
-            state.depthMask(true);
-
-            updateInternal(group, camera, depthTexture, Mask.Opaque, false);
-
-            const { renderables } = group;
-            for (let i = 0, il = renderables.length; i < il; ++i) {
-                const r = renderables[i];
-                if (checkOpaque(r)) {
-                    renderObject(r, 'color', Flag.None);
-                }
-            }
-            if (isTimingMode) ctx.timer.markEnd('Renderer.renderBlendedOpaque');
         };
 
         const renderBlendedTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
@@ -657,8 +637,8 @@ namespace Renderer {
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderBlendedVolume');
         };
 
-        const renderWboitOpaque = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
-            if (isTimingMode) ctx.timer.mark('Renderer.renderWboitOpaque');
+        const renderOpaque = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+            if (isTimingMode) ctx.timer.mark('Renderer.renderOpaque');
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
             state.depthMask(true);
@@ -672,7 +652,7 @@ namespace Renderer {
                     renderObject(r, 'color', Flag.None);
                 }
             }
-            if (isTimingMode) ctx.timer.markEnd('Renderer.renderWboitOpaque');
+            if (isTimingMode) ctx.timer.markEnd('Renderer.renderOpaque');
         };
 
         const renderWboitTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
@@ -687,24 +667,6 @@ namespace Renderer {
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderWboitTransparent');
-        };
-
-        const renderDpoitOpaque = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
-            if (isTimingMode) ctx.timer.mark('Renderer.renderDpoitOpaque');
-            state.disable(gl.BLEND);
-            state.enable(gl.DEPTH_TEST);
-            state.depthMask(true);
-
-            updateInternal(group, camera, depthTexture, Mask.Opaque, false);
-
-            const { renderables } = group;
-            for (let i = 0, il = renderables.length; i < il; ++i) {
-                const r = renderables[i];
-                if (checkOpaque(r)) {
-                    renderObject(r, 'color', Flag.None);
-                }
-            }
-            if (isTimingMode) ctx.timer.markEnd('Renderer.renderDpoitOpaque');
         };
 
         const renderDpoitTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null, dpoitTextures: { depth: Texture, frontColor: Texture, backColor: Texture }) => {
@@ -747,13 +709,13 @@ namespace Renderer {
         };
 
         return {
-            clear: (toBackgroundColor: boolean, ignoreTransparentBackground?: boolean) => {
+            clear: (toBackgroundColor: boolean, ignoreTransparentBackground?: boolean, forceToTransparency?: boolean) => {
                 state.enable(gl.SCISSOR_TEST);
                 state.enable(gl.DEPTH_TEST);
                 state.colorMask(true, true, true, true);
                 state.depthMask(true);
 
-                if (transparentBackground && !ignoreTransparentBackground) {
+                if (forceToTransparency || transparentBackground && !ignoreTransparentBackground) {
                     state.clearColor(0, 0, 0, 0);
                 } else if (toBackgroundColor) {
                     state.clearColor(bgColor[0], bgColor[1], bgColor[2], 1);
@@ -784,13 +746,11 @@ namespace Renderer {
             renderMarkingDepth,
             renderMarkingMask,
             renderEmissive,
+            renderOpaque,
             renderBlended,
-            renderBlendedOpaque,
             renderBlendedTransparent,
             renderBlendedVolume,
-            renderWboitOpaque,
             renderWboitTransparent,
-            renderDpoitOpaque,
             renderDpoitTransparent,
             renderDpoitVolume,
 

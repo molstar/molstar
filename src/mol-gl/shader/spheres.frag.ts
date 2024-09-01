@@ -115,6 +115,14 @@ void main(void){
     #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
         #include clip_pixel
     #endif
+
+    vec3 normal;
+    #if defined(dRenderVariant_depth) && defined(dXrayShaded)
+        if (uRenderMask == MaskTransparent) {
+            normal = -cameraNormal;
+        }
+    #endif
+
     #include assign_material_color
 
     #if defined(dRenderVariant_color)
@@ -142,7 +150,7 @@ void main(void){
     #elif defined(dRenderVariant_emissive)
         gl_FragColor = material;
     #elif defined(dRenderVariant_color)
-        vec3 normal = -cameraNormal;
+        normal = -cameraNormal;
         #include apply_light_color
 
         #include apply_interior_color

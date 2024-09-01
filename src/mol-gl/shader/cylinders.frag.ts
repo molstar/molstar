@@ -248,6 +248,15 @@ void main() {
 
     #include fade_lod
     #include clip_pixel
+    vec3 normal;
+    mat3 normalMatrix;
+    #if defined(dRenderVariant_depth) && defined(dXrayShaded)
+        if (uRenderMask == MaskTransparent) {
+            normalMatrix = transpose3(inverse3(mat3(uView)));
+            normal = normalize(normalMatrix * -normalize(cameraNormal));
+        }
+    #endif
+
     #include assign_material_color
     #include check_transparency
 
@@ -268,8 +277,8 @@ void main() {
     #elif defined(dRenderVariant_emissive)
         gl_FragColor = material;
     #elif defined(dRenderVariant_color)
-        mat3 normalMatrix = transpose3(inverse3(mat3(uView)));
-        vec3 normal = normalize(normalMatrix * -normalize(cameraNormal));
+        normalMatrix = transpose3(inverse3(mat3(uView)));
+        normal = normalize(normalMatrix * -normalize(cameraNormal));
         #include apply_light_color
 
         #include apply_interior_color

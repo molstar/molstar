@@ -81,6 +81,9 @@ function adjustPluginProps(ctx: PluginContext) {
                     blurDepthBias: 0.5,
                     resolutionScale: 1,
                     color: Color(0x000000),
+                    includeOpacity: true,
+                    includeTransparency: false,
+                    separatedTransparency: true
                 }
             },
             shadow: {
@@ -533,6 +536,9 @@ export class MesoQuickStyles extends PluginUIComponent {
                         blurDepthBias: 0.5,
                         resolutionScale: 1,
                         color: Color(0x000000),
+                        includeOpacity: true,
+                        includeTransparency: false,
+                        separatedTransparency: true
                     }
                 },
                 shadow: {
@@ -593,6 +599,9 @@ export class MesoQuickStyles extends PluginUIComponent {
                         blurDepthBias: 0.5,
                         resolutionScale: 1,
                         color: Color(0x000000),
+                        includeOpacity: true,
+                        includeTransparency: false,
+                        separatedTransparency: true
                     }
                 },
                 shadow: {
@@ -645,6 +654,9 @@ export class MesoQuickStyles extends PluginUIComponent {
                         blurDepthBias: 0.5,
                         resolutionScale: 1,
                         color: Color(0x000000),
+                        includeOpacity: true,
+                        includeTransparency: false,
+                        separatedTransparency: true
                     }
                 },
                 shadow: {
@@ -707,6 +719,9 @@ export class MesoQuickStyles extends PluginUIComponent {
                         blurDepthBias: 0.5,
                         resolutionScale: 1,
                         color: Color(0x000000),
+                        includeOpacity: true,
+                        includeTransparency: false,
+                        separatedTransparency: true
                     }
                 },
                 shadow: {
@@ -767,6 +782,9 @@ export class MesoQuickStyles extends PluginUIComponent {
                         blurDepthBias: 0.5,
                         resolutionScale: 1,
                         color: Color(0x000000),
+                        includeOpacity: true,
+                        includeTransparency: false,
+                        separatedTransparency: true
                     }
                 },
                 shadow: { name: 'off', params: {} },
@@ -811,6 +829,9 @@ export class MesoQuickStyles extends PluginUIComponent {
                         blurDepthBias: 0.5,
                         resolutionScale: 1,
                         color: Color(0x000000),
+                        includeOpacity: true,
+                        includeTransparency: false,
+                        separatedTransparency: true
                     }
                 },
                 shadow: {

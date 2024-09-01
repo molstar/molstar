@@ -96,6 +96,15 @@ float unpackRGBAToDepth(const in vec4 v) {
     return dot(v, UnpackFactors);
 }
 
+vec4 packDepthWithAlphaToRGBA(const in float depth, const in float alpha){
+    vec3 r = vec3(fract(depth * PackFactors.yz), depth);
+    r.yz -= r.xy * ShiftRight8; // tidy overflow
+    return vec4(r * PackUpscale, alpha);
+}
+vec2 unpackRGBAToDepthWithAlpha(const in vec4 v) {
+    return vec2(dot(v.xyz, UnpackFactors.yzw), v.w);
+}
+
 vec4 sRGBToLinear(const in vec4 c) {
     return vec4(mix(pow(c.rgb * 0.9478672986 + vec3(0.0521327014), vec3(2.4)), c.rgb * 0.0773993808, vec3(lessThanEqual(c.rgb, vec3(0.04045)))), c.a);
 }

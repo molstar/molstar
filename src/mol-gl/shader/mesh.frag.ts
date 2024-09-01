@@ -34,6 +34,17 @@ void main() {
     #endif
 
     float fragmentDepth = gl_FragCoord.z;
+
+    vec3 normal;
+    #if defined(dRenderVariant_depth) && defined(dXrayShaded)
+        #if defined(dFlatShaded)
+            normal = -faceNormal;
+        #else
+            normal = -normalize(vNormal);
+            if (uDoubleSided) normal *= float(frontFacing) * 2.0 - 1.0;
+        #endif
+    #endif
+
     #include assign_material_color
     #include check_transparency
 
@@ -55,9 +66,9 @@ void main() {
         gl_FragColor = material;
     #elif defined(dRenderVariant_color)
         #if defined(dFlatShaded)
-            vec3 normal = -faceNormal;
+            normal = -faceNormal;
         #else
-            vec3 normal = -normalize(vNormal);
+            normal = -normalize(vNormal);
             if (uDoubleSided) normal *= float(frontFacing) * 2.0 - 1.0;
         #endif
         #include apply_light_color
