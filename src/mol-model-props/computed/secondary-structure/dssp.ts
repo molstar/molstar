@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
@@ -37,6 +37,7 @@ export const DSSPComputationParams = {
 };
 export type DSSPComputationParams = typeof DSSPComputationParams
 export type DSSPComputationProps = PD.Values<DSSPComputationParams>
+export const DefaultDSSPComputationProps = PD.getDefaultValues(DSSPComputationParams);
 
 export async function computeUnitDSSP(unit: Unit.Atomic, params: DSSPComputationProps): Promise<SecondaryStructure> {
     const proteinInfo = getUnitProteinInfo(unit);

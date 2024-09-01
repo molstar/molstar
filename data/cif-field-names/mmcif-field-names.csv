@@ -263,6 +263,7 @@ software.version
 struct.entry_id
 struct.title
 struct.pdbx_descriptor
+struct.pdbx_structure_determination_methodology
 
 struct_asym.id
 struct_asym.pdbx_blank_PDB_chainid_flag

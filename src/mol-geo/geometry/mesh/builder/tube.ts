@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { Vec3 } from '../../../../mol-math/linear-algebra';
@@ -10,6 +11,7 @@ import { cantorPairing, ChunkedArray } from '../../../../mol-data/util';
 import { MeshBuilder } from '../mesh-builder';
 
 const normalVector = Vec3();
+const capNormalSmoothingVector = Vec3();
 const surfacePoint = Vec3();
 const controlPoint = Vec3();
 const u = Vec3();
@@ -32,6 +34,7 @@ const v3fromArray = Vec3.fromArray;
 const v3normalize = Vec3.normalize;
 const v3scaleAndAdd = Vec3.scaleAndAdd;
 const v3cross = Vec3.cross;
+const v3slerp = Vec3.slerp;
 const v3dot = Vec3.dot;
 const v3unitX = Vec3.unitX;
 const caAdd3 = ChunkedArray.add3;
@@ -53,7 +56,7 @@ function getCosSin(radialSegments: number, shift: boolean) {
     return CosSinCache.get(hash)!;
 }
 
-export function addTube(state: MeshBuilder.State, controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, linearSegments: number, radialSegments: number, widthValues: ArrayLike<number>, heightValues: ArrayLike<number>, startCap: boolean, endCap: boolean, crossSection: 'elliptical' | 'rounded') {
+export function addTube(state: MeshBuilder.State, controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, linearSegments: number, radialSegments: number, widthValues: ArrayLike<number>, heightValues: ArrayLike<number>, startCap: boolean, endCap: boolean, crossSection: 'elliptical' | 'rounded', roundCap = false) {
     const { currentGroup, vertices, normals, indices, groups } = state;
 
     let vertexCount = vertices.elementCount;
@@ -63,14 +66,23 @@ export function addTube(state: MeshBuilder.State, controlPoints: ArrayLike<numbe
     const q1 = Math.round(radialSegments / 4);
     const q3 = q1 * 3;
 
+    const roundCapFlag = roundCap && linearSegments && !(startCap && endCap) && (startCap || endCap); // disabled if both caps are active
     for (let i = 0; i <= linearSegments; ++i) {
         const i3 = i * 3;
         v3fromArray(u, normalVectors, i3);
         v3fromArray(v, binormalVectors, i3);
         v3fromArray(controlPoint, controlPoints, i3);
 
-        const width = widthValues[i];
-        const height = heightValues[i];
+        let width = widthValues[i];
+        let height = heightValues[i];
+        let capSmoothingFactor: number;
+        if (roundCapFlag) {
+            capSmoothingFactor = Math.max(Number.EPSILON, Math.sqrt(1 - Math.pow((startCap ? linearSegments - i : i) / (linearSegments), 2)));
+            width *= capSmoothingFactor;
+            height *= capSmoothingFactor;
+            v3cross(capNormalSmoothingVector, startCap ? v : u, startCap ? u : v);
+            v3normalize(capNormalSmoothingVector, capNormalSmoothingVector);
+        }
         const rounded = crossSection === 'rounded' && height > width;
 
         for (let j = 0; j < radialSegments; ++j) {
@@ -94,6 +106,9 @@ export function addTube(state: MeshBuilder.State, controlPoints: ArrayLike<numbe
             v3normalize(normalVector, normalVector);
 
             caAdd3(vertices, surfacePoint[0], surfacePoint[1], surfacePoint[2]);
+            if (roundCapFlag) {
+                v3slerp(normalVector, capNormalSmoothingVector, normalVector, capSmoothingFactor!);
+            }
             caAdd3(normals, normalVector[0], normalVector[1], normalVector[2]);
         }
     }
@@ -144,8 +159,8 @@ export function addTube(state: MeshBuilder.State, controlPoints: ArrayLike<numbe
         caAdd3(vertices, controlPoint[0], controlPoint[1], controlPoint[2]);
         caAdd3(normals, normalVector[0], normalVector[1], normalVector[2]);
 
-        const width = widthValues[0];
-        let height = heightValues[0];
+        const width = roundCapFlag ? 0 : widthValues[0];
+        let height = roundCapFlag ? 0 : heightValues[0];
         const rounded = crossSection === 'rounded' && height > width;
         if (rounded) height -= width;
 
@@ -181,8 +196,8 @@ export function addTube(state: MeshBuilder.State, controlPoints: ArrayLike<numbe
         caAdd3(vertices, controlPoint[0], controlPoint[1], controlPoint[2]);
         caAdd3(normals, normalVector[0], normalVector[1], normalVector[2]);
 
-        const width = widthValues[linearSegments];
-        let height = heightValues[linearSegments];
+        const width = roundCapFlag ? 0 : widthValues[linearSegments];
+        let height = roundCapFlag ? 0 : heightValues[linearSegments];
         const rounded = crossSection === 'rounded' && height > width;
         if (rounded) height -= width;
 

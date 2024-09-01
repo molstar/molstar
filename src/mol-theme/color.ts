@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -44,6 +44,7 @@ import { VolumeSegmentColorThemeProvider } from './color/volume-segment';
 import { ExternalVolumeColorThemeProvider } from './color/external-volume';
 import { ColorThemeCategory } from './color/categories';
 import { CartoonColorThemeProvider } from './color/cartoon';
+import { FormalChargeColorThemeProvider } from './color/formal-charge';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -130,6 +131,7 @@ namespace ColorTheme {
         'element-symbol': ElementSymbolColorThemeProvider,
         'entity-id': EntityIdColorThemeProvider,
         'entity-source': EntitySourceColorThemeProvider,
+        'formal-charge': FormalChargeColorThemeProvider,
         'hydrophobicity': HydrophobicityColorThemeProvider,
         'illustrative': IllustrativeColorThemeProvider,
         'model-index': ModelIndexColorThemeProvider,

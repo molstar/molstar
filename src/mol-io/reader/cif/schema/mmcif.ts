@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.395, IHM 1.26, MA 1.4.6.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.396, IHM 1.26, MA 1.4.6.
  *
  * @author molstar/ciftools package
  */
@@ -1033,6 +1033,10 @@ export const mmCIF_Schema = {
          * and to distinguish this structural result from others.
          */
         title: str,
+        /**
+         * Indicates if the structure was determined using experimental, computational, or integrative methods
+         */
+        pdbx_structure_determination_methodology: Aliased<'experimental' | 'integrative' | 'computational'>(str),
         /**
          * An automatically generated descriptor for an NDB structure or
          * the unstructured content of the PDB COMPND record.

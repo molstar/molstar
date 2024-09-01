@@ -22,7 +22,7 @@
 * Discontinuous chains, i.e. gaps in the sequence (3sn6)
 * Lots of sheets (1cbs)
 * DNA (2np2, 1d66)
-* C-alpha only (2rcj)
+* C-alpha only (2RCJ, 6ZIG, 5AJ2)
 * Not cyclic, but termini are backbone-only and within distance but seqIds are not compatible (6SW3)
 * Close backbone atoms but not linked (e.g. 4HIV)
 * Non-standard residues

@@ -339,10 +339,10 @@ export function getLodLevels(graphicsMode: Exclude<GraphicsMode, 'custom'>): Lod
             ];
         case 'ultra':
             return [
-                { minDistance: 1, maxDistance: 2000, overlap: 0, stride: 1, scaleBias: 1 },
-                { minDistance: 2000, maxDistance: 8000, overlap: 0, stride: 10, scaleBias: 3 },
-                { minDistance: 8000, maxDistance: 20000, overlap: 0, stride: 50, scaleBias: 2.5 },
-                { minDistance: 20000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2 },
+                { minDistance: 1, maxDistance: 5000, overlap: 0, stride: 1, scaleBias: 1 },
+                { minDistance: 5000, maxDistance: 10000, overlap: 0, stride: 10, scaleBias: 3 },
+                { minDistance: 10000, maxDistance: 30000, overlap: 0, stride: 50, scaleBias: 2.5 },
+                { minDistance: 30000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2 },
             ];
         default:
             assertUnreachable(graphicsMode);

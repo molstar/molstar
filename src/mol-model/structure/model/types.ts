@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -103,8 +103,8 @@ export const PolymerTypeAtomRoleId: { [k in PolymerType]: { [k in AtomRole]: Set
         backboneStart: new Set(['N']),
         backboneEnd: new Set(['C']),
         // CA1 is used e.g. in GFP chromophores
-        // BB is often used for coarse grained models
-        coarseBackbone: new Set(['CA', 'BB', 'CA1'])
+        // BB, BAS are often used for coarse grained models
+        coarseBackbone: new Set(['CA', 'CA1', 'BB', 'BAS'])
     },
     [PolymerType.GammaProtein]: {
         trace: new Set(['CA']),

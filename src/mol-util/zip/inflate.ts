@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
@@ -8,7 +8,7 @@
  */
 
 import { NumberArray } from '../type-helpers';
-import { U, makeCodes, codes2map } from './util';
+import { U, makeCodes, codes2map, checkCompressionStreamSupport } from './util';
 import { RuntimeContext } from '../../mol-task';
 
 function InflateContext(data: Uint8Array, buf?: Uint8Array) {
@@ -140,9 +140,61 @@ function inflateBlocks(ctx: InflateContext, count: number) {
     ctx.pos = pos;
 }
 
+// inflating a 44 MB gzip file to 225 MB.
+
+// Using JS
+// inflate: 570.8759765625 ms
+// inflate: 562.950927734375 ms
+// inflate: 595.06591796875 ms
+// inflate: 584.8740234375 ms
+// inflate: 583.31396484375 ms
+
+// Using DecompressionStream
+// inflate: 502.001953125 ms
+// inflate: 476.818115234375 ms
+// inflate: 476.68701171875 ms
+// inflate: 422.319091796875 ms
+// inflate: 428.925048828125 ms
+
 // https://tools.ietf.org/html/rfc1951
 export async function _inflate(runtime: RuntimeContext, data: Uint8Array, buf?: Uint8Array) {
     if (data[0] === 3 && data[1] === 0) return (buf ? buf : new Uint8Array(0));
+
+    if (checkCompressionStreamSupport('deflate-raw')) {
+        const ds = new DecompressionStream('deflate-raw');
+        const blob = new Blob([data]);
+        const decompressedStream = blob.stream().pipeThrough(ds);
+
+        let offset = 0;
+        const chunks: Uint8Array[] = [];
+        const reader = decompressedStream.getReader();
+
+        const readChunk = async (): Promise<undefined> => {
+            const { done, value } = await reader.read();
+            if (done) return;
+
+            if (runtime.shouldUpdate) {
+                await runtime.update({ message: 'Inflating blocks...', current: offset, max: buf?.length });
+            }
+            if (buf) {
+                buf.set(value, offset);
+            } else {
+                chunks.push(value);
+            }
+            offset += value.length;
+            return readChunk();
+        };
+        await readChunk();
+
+        if (!buf) {
+            buf = new Uint8Array(offset);
+            for (let i = 0, j = 0; i < chunks.length; i++) {
+                buf.set(chunks[i], j);
+                j += chunks[i].length;
+            }
+        }
+        return buf;
+    }
 
     const ctx = InflateContext(data, buf);
     while (ctx.BFINAL === 0) {
