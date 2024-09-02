@@ -42,6 +42,11 @@ class PointButton extends React.Component<any> {
     handleClick = () => {
         this.props.onClick(this.props.point.id);
     };
+
+    onPointIndexClick = (pointId: UUID) => {
+        this.props.onPointIndexClick(pointId);
+    };
+
     render() {
         const [absValue, relativeValue] = this.props.onExpandGroupOpen(this.props.point.data);
         const truncatedAbsValue = parseFloat((absValue as number).toFixed(3));
@@ -51,7 +56,7 @@ class PointButton extends React.Component<any> {
         return (
             <div style={{ display: 'flex', marginBottom: 1 }} key={this.props.point.id}>
                 {/* TODO: fix indices */}
-                <Button style={{ textAlign: 'start', textIndent: '20px' }}>Point</Button>
+                <Button style={{ textAlign: 'start', textIndent: '20px' }}>{this.props.point.index}</Button>
                 {/* TODO: pass to onColorSquareClick prop a function to invoke colorpicker */}
                 {/* toggleColorPicker */}
                 {<Button style={{ backgroundColor: Color.toStyle(color), minWidth: 32, width: 32 }}
@@ -134,6 +139,7 @@ class PointsPanel extends React.Component<any> {
         } }></IconButton>;
         const controlPointsButtons = realPoints.map(p => {
             return <PointButton key={p.id} point={p}
+                onPointIndexClick={this.props.onPointIndexClick}
                 onColorSquareClick={this.props.onColorSquareClick}
                 onClick={this.props.onPointButtonClick}
                 onExpandGroupOpen={this.props.onExpandGroupOpen}
@@ -345,7 +351,7 @@ const startEndPoints: ControlPoint[] = [
         },
         id: UUID.create22(),
         color: ColorNames.black,
-        index: 9,
+        index: 99999999,
         isTerminal: true
     }
 ];
@@ -455,7 +461,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         this.namespace = 'http://www.w3.org/2000/svg';
         this.descriptiveStatistics = this.getDescriptiveStatistics();
         // TODO: do not show last and first point (shadow) in the list of point buttons
-        this.sortPoints(this.state.points);
+        this.sortPointsByXValues(this.state.points);
+        this.highlightPoint = this.highlightPoint.bind(this);
         this.removePoint = this.removePoint.bind(this);
         this.removeRightmostPoint = this.removeRightmostPoint.bind(this);
         this.createPoint = this.createPoint.bind(this);
@@ -493,9 +500,16 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         for (const point of points) {
             if (point.isTerminal === true) { ghostPoints.push(point); }
         };
-        const ghostPointsSorted = this.sortPoints(ghostPoints);
+        const ghostPointsSorted = this.sortPointsByXValues(ghostPoints);
         this.setState({ points: ghostPointsSorted, clickedPointIds: undefined, showColorPicker: false });
         this.change([]);
+    }
+
+    private highlightPoint(pointId: UUID) {
+        const points = this.state.points;
+        const targetPoint = points.find(p => p.id === pointId);
+        if (!targetPoint) throw Error('Cannot highlight inexisting point exist');
+        // TODO: highlight
     }
 
     private _setMethod2TF(params: Method2ParamsValues) {
@@ -709,6 +723,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                     {/* <TFParamsWrapper onChange={this.setTF} descriptiveStatistics={this.descriptiveStatistics}></TFParamsWrapper> */}
                     {/* <Button onClick={this.deleteAllPoints}>Remove All Points</Button> */}
                     <PointsPanel points={this.state.points}
+                        onPointIndexClick={this.highlightPoint}
                         removeAllPoints={this.deleteAllPoints}
                         onExpandGroupOpen={this.props.onExpandGroupOpen}
                         changeXValue={this.changeXValue}
@@ -806,7 +821,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         }
     };
 
-    private sortPoints(points: ControlPoint[]) {
+    private sortPointsByXValues(points: ControlPoint[]) {
         points.sort((a, b) => {
             if (a.data.x === b.data.x) {
                 if (a.data.x === 0) {
@@ -822,8 +837,25 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         return points;
     }
 
+    private sortPointsByIndices(points: ControlPoint[]) {
+        points.sort((a, b) => {
+            return a.index - b.index;
+            // if (a.data.x === b.data.x) {
+            //     if (a.data.x === 0) {
+            //         return a.data.alpha - b.data.alpha;
+            //     }
+            //     if (a.data.alpha === 1) {
+            //         return b.data.alpha - a.data.alpha;
+            //     }
+            //     return a.data.alpha - b.data.alpha;
+            // }
+            // return a.data.x - b.data.x;
+        });
+        return points;
+    }
+
     private handleChangePoints(points: ControlPoint[]) {
-        const pointsSorted = this.sortPoints(points);
+        const pointsSorted = this.sortPointsByXValues(points);
         this.setState({ points: pointsSorted });
         this.change(points);
     }
@@ -832,19 +864,16 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         // this is called once
         debugger;
         console.log('handleMouseDown');
-        const { id, index } = point;
-        if (index === 0 || index === this.state.points.length - 1) {
+        const { id, isTerminal } = point;
+        // if (index === 0 || index === this.state.points.length - 1) {
+        if (isTerminal === true) {
             return;
         }
         if (this.state.canSelectMultiple) {
             return;
         }
 
-        // resolve this too
-        // getting
         const copyPoint: Vec2 = this.controlPointDataToSVGCoords(this.getPoint(id).data);
-        // const
-        // possibly this is wrong (copyPoint)
         this.ghostPoints.push(document.createElementNS(this.namespace, 'circle') as SVGElement);
         this.ghostPoints[0].setAttribute('r', '10');
         this.ghostPoints[0].setAttribute('fill', 'orange');
@@ -933,7 +962,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         // can get id from it
         let points = this.state.points.filter(p => p.id !== point.id);
         points.push(point);
-        points = this.sortPoints(points);
+        points = this.sortPointsByXValues(points);
         this.setState({
             points,
         });
@@ -946,7 +975,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             return;
         }
         // or here
-        if (selected === undefined || this.getPoint(selected).index === 0 || this.getPoint(selected).index === this.state.points.length - 1) {
+        if (selected === undefined || this.getPoint(selected).isTerminal === true) {
             this.setState({
                 copyPoint: undefined,
             });
@@ -975,9 +1004,9 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
 
     private removePoint(id: UUID) {
         const point = this.getPoint(id);
-        if (point.index === 0 || point.index === this.state.points.length - 1) { return; }
+        if (point.isTerminal === true) { return; }
         let points = this.state.points.filter(p => p.id !== point.id);
-        points = this.sortPoints(points);
+        points = this.sortPointsByXValues(points);
         this.setState({ points: points, clickedPointIds: undefined, showColorPicker: false });
         this.change(points);
     }
@@ -986,7 +1015,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     private removeRightmostPoint() {
         // remove based on data
         const points = this.state.points;
-        const sortedPs = this.sortPoints(points);
+        const sortedPs = this.sortPointsByXValues(points);
         debugger;
         // rightmost is undefined
         // last is ghost
@@ -1005,26 +1034,16 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
 
         // const svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
         const points = this.state.points;
-        // const padding = this.padding / 2;
-        // debugger;
-        // // resolve this
-        // const svtP = 0;
-        // if (svgP.x < (padding) ||
-        //     svgP.x > (this.width + (padding)) ||
-        //     svgP.y > (this.height + (padding)) ||
-        //     svgP.y < (this.padding / 2)) {
-        //     debugger;
-        //     return;
-        // }
         const newPointData = this.svgCoordsToPointData(Vec2.create(svgP.x, svgP.y));
-        // problem with index
-        // should be the last one
-        // find the last index and do + 1?
+        const sorted = this.sortPointsByXValues(points);
+        const realPoints = sorted.filter(p => p.isTerminal === undefined || false);
+        const maxIndex = realPoints[realPoints.length - 1].index;
+        // const 
         const newPoint: ControlPoint = {
             data: newPointData,
             id: UUID.create22(),
             color: getRandomColor(),
-            index: points.slice(-1)[0].index + 1
+            index: maxIndex + 1
         };
         this.addPoint(newPoint);
     }
