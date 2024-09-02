@@ -266,7 +266,7 @@ class TFParamsWrapper extends React.Component<any> {
         return (<ExpandGroup header='Transfer Function Settings' initiallyExpanded>
             {/* TODO: fix that as any */}
             <WaitingParameterControls params={adjustedParams} values={this.state.params} onChangeValues={async next => { this.handleChange(next as any); }} />
-            <Button onClick={this.handleClick}>{`Apply ${this.props.params.name} Transfer Function`}</Button>
+            <Button style={{ marginTop: 1 }} onClick={this.handleClick}>{`Apply ${this.props.params.name} Transfer Function`}</Button>
         </ExpandGroup>);
     }
 }
