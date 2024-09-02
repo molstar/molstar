@@ -29,16 +29,7 @@ type ComponentParams<T extends React.Component<any, any, any> | ((props: any) =>
     T extends React.Component<infer P, any, any> ? P : T extends (props: infer P) => JSX.Element ? P : never;
 
 class PointButton extends React.Component<any> {
-    // state = {
-    //     absValue: this.props.trueAbsValue,
-    //     alphaValue: this.props.trueAlpha
-    // };
-    //
-
     onAbs = (v: number) => {
-        // this changes that point in the state of linegraph component.points
-        // look at what happens here
-        // so nothing
         this.props.changeXValue(this.props.point.id, v);
         // this.props.value = v;
     };
@@ -56,9 +47,15 @@ class PointButton extends React.Component<any> {
         const truncatedAbsValue = parseFloat((absValue as number).toFixed(3));
         // console.log(absValue, relativeValue);
         const alpha = (this.props.point.data.alpha as number).toFixed(3);
+        const color = this.props.point.color as Color;
         return (
             <div style={{ display: 'flex', marginBottom: 1 }} key={this.props.point.id}>
+                {/* TODO: fix indices */}
                 <Button style={{ textAlign: 'start', textIndent: '20px' }}>Point</Button>
+                {/* TODO: pass to onColorSquareClick prop a function to invoke colorpicker */}
+                {/* toggleColorPicker */}
+                {<Button style={{ backgroundColor: Color.toStyle(color), minWidth: 32, width: 32 }}
+                    onClick={() => { this.props.onColorSquareClick(this.props.point.id); } } />}
                 {/* fix here number of points */}
                 {/* so decouple from the values */}
                 {/* just change it */}
@@ -137,6 +134,7 @@ class PointsPanel extends React.Component<any> {
         } }></IconButton>;
         const controlPointsButtons = realPoints.map(p => {
             return <PointButton key={p.id} point={p}
+                onColorSquareClick={this.props.onColorSquareClick}
                 onClick={this.props.onPointButtonClick}
                 onExpandGroupOpen={this.props.onExpandGroupOpen}
                 changeXValue={this.props.changeXValue}
@@ -474,6 +472,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         this.changeXValue = this.changeXValue.bind(this);
         this.changeAlphaValue = this.changeAlphaValue.bind(this);
         this.deleteAllPoints = this.deleteAllPoints.bind(this);
+        this.toggleColorPicker = this.toggleColorPicker.bind(this);
+        this.onColorSquareClick = this.onColorSquareClick.bind(this);
     }
 
     private getDescriptiveStatistics() {
@@ -713,7 +713,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                         onExpandGroupOpen={this.props.onExpandGroupOpen}
                         changeXValue={this.changeXValue}
                         changeAlphaValue={this.changeAlphaValue}
-                        onPointButtonClick={this.removePoint}></PointsPanel>
+                        onPointButtonClick={this.removePoint}
+                        onColorSquareClick={this.onColorSquareClick}></PointsPanel>
                     {/* Connect this to existing code */}
                     {/* should render actual state of all methods
                     // add this to state then, params of all methods */}
@@ -727,6 +728,11 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
 
     toggleColorPicker = () => {
         this.setState({ showColorPicker: this.state.showColorPicker === true ? false : true });
+    };
+
+    private onColorSquareClick = (pointId: UUID) => {
+        this.setState({ clickedPointIds: [pointId] });
+        this.toggleColorPicker();
     };
 
     componentDidMount() {
@@ -835,9 +841,9 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         }
 
         // resolve this too
-        // getting 
+        // getting
         const copyPoint: Vec2 = this.controlPointDataToSVGCoords(this.getPoint(id).data);
-        // const 
+        // const
         // possibly this is wrong (copyPoint)
         this.ghostPoints.push(document.createElementNS(this.namespace, 'circle') as SVGElement);
         this.ghostPoints[0].setAttribute('r', '10');
@@ -1106,7 +1112,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         // 0.2 * 350 = 70
         // 70 is linear size from the baseline to the point
         // nothing to do with the roof
-        // 70 so we need to place this 70 
+        // 70 so we need to place this 70
         // such that it is calculated from the top corner
         // i.e. get the distance from 0 0 to this 70
         // to do this
@@ -1117,7 +1123,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         // below it will become 350 - 200 = 150 and 350 - 300 = 50
         // i.e. need to be reversed
         // const y = (this.height - this.baseline) + normalizedY;
-        // const reverseY = this.hegight 
+        // const reverseY = this.hegight
         // try adding removing baseline here or whatever
         // const normalizedY = (controlPointData.adjustedAlpha * (maxY - offset)) + offset;
         // const reverseY = (this.height + this.padding) - normalizedY;
@@ -1223,11 +1229,11 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             const space = this.height - this.baseline - this.roof;
             // 2. get a fraction of that distance based on histogram counts etc.
             // 2.5. do 1 - that fraction
-            const fraction = space * (1 - histogram.counts[i] / max)
+            const fraction = space * (1 - histogram.counts[i] / max);
             // 3. add it to this.roof
             const y2 = fraction + this.roof;
             // you got y2
-            // const 
+            // const
             // const y2 = (this.height - this.baseline + this.roof) * (1 - histogram.counts[i] / max);// + 2 * offset;
             // console.log(y1, y2);
             // console.log(this.height, this.roof, this.baseline);
@@ -1449,7 +1455,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             // TODO: may need to add padding
             const pointHeightBelowSVGOrigin = pointHeightRealBelowRoof + this.roof;
             // this gonna be fraction [0;1];
-            // const fraction 
+            // const fraction
             // const a = 0;
             // normalizedY = point.data.alpha;
             // normalizedY = ratio
