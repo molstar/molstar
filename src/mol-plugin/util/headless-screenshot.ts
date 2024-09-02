@@ -228,7 +228,7 @@ export const STYLIZED_POSTPROCESSING: Partial<PostprocessingProps> = {
             color: ColorNames.black,
             includeOpacity: true,
             includeTransparency: true,
-            separatedTransparency: true
+            separatedTransparency: false
         }
     }, outline: {
         name: 'on' as const, params: {

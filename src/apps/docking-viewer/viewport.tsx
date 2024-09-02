@@ -54,8 +54,8 @@ function occlusionStyle(plugin: PluginContext) {
                 resolutionScale: 1,
                 color: Color(0x000000),
                 includeOpacity: true,
-                includeTransparency: false,
-                separatedTransparency: true
+                includeTransparency: true,
+                separatedTransparency: false
             } },
             outline: { name: 'on', params: {
                 scale: 1.0,

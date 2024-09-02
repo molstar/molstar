@@ -84,8 +84,8 @@ function adjustPluginProps(ctx: PluginContext) {
                     resolutionScale: 1,
                     color: Color(0x000000),
                     includeOpacity: true,
-                    includeTransparency: false,
-                    separatedTransparency: true
+                    includeTransparency: true,
+                    separatedTransparency: false
                 }
             },
             shadow: {
@@ -549,8 +549,8 @@ export class MesoQuickStyles extends PluginUIComponent {
                         resolutionScale: 1,
                         color: Color(0x000000),
                         includeOpacity: true,
-                        includeTransparency: false,
-                        separatedTransparency: true
+                        includeTransparency: true,
+                        separatedTransparency: false
                     }
                 },
                 shadow: {
@@ -612,8 +612,8 @@ export class MesoQuickStyles extends PluginUIComponent {
                         resolutionScale: 1,
                         color: Color(0x000000),
                         includeOpacity: true,
-                        includeTransparency: false,
-                        separatedTransparency: true
+                        includeTransparency: true,
+                        separatedTransparency: false
                     }
                 },
                 shadow: {
@@ -667,8 +667,8 @@ export class MesoQuickStyles extends PluginUIComponent {
                         resolutionScale: 1,
                         color: Color(0x000000),
                         includeOpacity: true,
-                        includeTransparency: false,
-                        separatedTransparency: true
+                        includeTransparency: true,
+                        separatedTransparency: false
                     }
                 },
                 shadow: {
@@ -732,8 +732,8 @@ export class MesoQuickStyles extends PluginUIComponent {
                         resolutionScale: 1,
                         color: Color(0x000000),
                         includeOpacity: true,
-                        includeTransparency: false,
-                        separatedTransparency: true
+                        includeTransparency: true,
+                        separatedTransparency: false
                     }
                 },
                 shadow: {
@@ -795,8 +795,8 @@ export class MesoQuickStyles extends PluginUIComponent {
                         resolutionScale: 1,
                         color: Color(0x000000),
                         includeOpacity: true,
-                        includeTransparency: false,
-                        separatedTransparency: true
+                        includeTransparency: true,
+                        separatedTransparency: false
                     }
                 },
                 shadow: { name: 'off', params: {} },
@@ -842,8 +842,8 @@ export class MesoQuickStyles extends PluginUIComponent {
                         resolutionScale: 1,
                         color: Color(0x000000),
                         includeOpacity: true,
-                        includeTransparency: false,
-                        separatedTransparency: true
+                        includeTransparency: true,
+                        separatedTransparency: false
                     }
                 },
                 shadow: {

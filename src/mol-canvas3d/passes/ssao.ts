@@ -54,7 +54,7 @@ export const SsaoParams = {
     color: PD.Color(Color(0x000000)),
     includeOpacity: PD.Boolean(true),
     includeTransparency: PD.Boolean(true),
-    separatedTransparency: PD.Boolean(true),
+    separatedTransparency: PD.Boolean(false),
 };
 
 export type SsaoProps = PD.Values<typeof SsaoParams>
