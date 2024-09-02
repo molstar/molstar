@@ -11,6 +11,7 @@ uniform float uEmissive;
 // Density value to estimate object thickness
 uniform float uDensity;
 
+#if defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
     #if defined(dColorType_uniform)
         uniform vec3 uColor;
     #elif defined(dColorType_varying)

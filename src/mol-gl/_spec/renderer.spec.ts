@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -53,17 +53,17 @@ describe('renderer', () => {
         scene.commit();
         expect(ctx.stats.resourceCounts.attribute).toBe(ctx.isWebGL2 ? 4 : 5);
         expect(ctx.stats.resourceCounts.texture).toBe(10);
-        expect(ctx.stats.resourceCounts.vertexArray).toBe(ctx.extensions.vertexArrayObject ? 5 : 0);
-        expect(ctx.stats.resourceCounts.program).toBe(5);
-        expect(ctx.stats.resourceCounts.shader).toBe(10);
+        expect(ctx.stats.resourceCounts.vertexArray).toBe(ctx.extensions.vertexArrayObject ? 6 : 0);
+        expect(ctx.stats.resourceCounts.program).toBe(6);
+        expect(ctx.stats.resourceCounts.shader).toBe(12);
 
         scene.remove(points);
         scene.commit();
         expect(ctx.stats.resourceCounts.attribute).toBe(0);
         expect(ctx.stats.resourceCounts.texture).toBe(1);
         expect(ctx.stats.resourceCounts.vertexArray).toBe(0);
-        expect(ctx.stats.resourceCounts.program).toBe(5);
-        expect(ctx.stats.resourceCounts.shader).toBe(10);
+        expect(ctx.stats.resourceCounts.program).toBe(6);
+        expect(ctx.stats.resourceCounts.shader).toBe(12);
 
         ctx.resources.destroy();
         expect(ctx.stats.resourceCounts.program).toBe(0);
@@ -90,8 +90,8 @@ describe('renderer', () => {
 
         expect(ctx.stats.resourceCounts.attribute).toBe(ctx.isWebGL2 ? 12 : 15);
         expect(ctx.stats.resourceCounts.texture).toBe(28);
-        expect(ctx.stats.resourceCounts.vertexArray).toBe(ctx.extensions.vertexArrayObject ? 15 : 0);
-        expect(ctx.stats.resourceCounts.program).toBe(7);
-        expect(ctx.stats.resourceCounts.shader).toBe(14);
+        expect(ctx.stats.resourceCounts.vertexArray).toBe(ctx.extensions.vertexArrayObject ? 18 : 0);
+        expect(ctx.stats.resourceCounts.program).toBe(8);
+        expect(ctx.stats.resourceCounts.shader).toBe(16);
     });
 });

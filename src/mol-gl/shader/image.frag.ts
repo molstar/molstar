@@ -156,7 +156,7 @@ void main() {
         }
     #elif defined(dRenderVariant_emissive)
         gl_FragColor = vec4(0.0);
-    #elif defined(dRenderVariant_color)
+    #elif defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
         gl_FragColor = imageData;
 
         float marker = uMarker;
@@ -167,9 +167,15 @@ void main() {
         }
 
         #include apply_marker_color
-        #include apply_fog
-        #include wboit_write
-        #include dpoit_write
+
+        #if defined(dRenderVariant_color)
+            #include apply_fog
+            #include wboit_write
+            #include dpoit_write
+        #elif defined(dRenderVariant_tracing)
+            gl_FragData[1] = vec4(normalize(vViewPosition), 0.0);
+            gl_FragData[2] = vec4(imageData.rgb, uDensity);
+        #endif
     #endif
 }
 `;

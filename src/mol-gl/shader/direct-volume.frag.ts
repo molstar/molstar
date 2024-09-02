@@ -352,7 +352,7 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
 // TODO: support clipping exclusion texture support
 
 void main() {
-    #if defined(dRenderVariant_emissive)
+    #if defined(dRenderVariant_tracing) || defined(dRenderVariant_emissive)
         discard;
     #else
         if (gl_FrontFacing)
