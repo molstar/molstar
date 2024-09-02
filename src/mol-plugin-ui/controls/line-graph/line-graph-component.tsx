@@ -891,9 +891,9 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             // does not allow into such area
             // fix viewbox or?
             updatedCopyPoint = Vec2.create(svgP.x, this.height - this.baseline);
-        } else if (svgP.y < (this.baseline)) {
+        } else if (svgP.y < (this.roof)) {
             debugger;
-            updatedCopyPoint = Vec2.create(svgP.x, this.baseline);
+            updatedCopyPoint = Vec2.create(svgP.x, this.roof);
         } else {
             // console.log('Point within the constraints, creating normally');
             updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
