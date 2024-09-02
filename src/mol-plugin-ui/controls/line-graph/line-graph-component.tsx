@@ -636,7 +636,6 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     public render() {
         // TODO: how points get there?
         // from the state
-        debugger;
         // no adjusted alpha here for some reason
         const points = this.renderPoints();
         const baseline = this.renderBaseline();
@@ -824,6 +823,9 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     }
 
     private handleMouseDown = (point: ControlPoint) => (event: any) => {
+        // this is called once
+        debugger;
+        console.log('handleMouseDown');
         const { id, index } = point;
         if (index === 0 || index === this.state.points.length - 1) {
             return;
@@ -833,7 +835,10 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         }
 
         // resolve this too
+        // getting 
         const copyPoint: Vec2 = this.controlPointDataToSVGCoords(this.getPoint(id).data);
+        // const 
+        // possibly this is wrong (copyPoint)
         this.ghostPoints.push(document.createElementNS(this.namespace, 'circle') as SVGElement);
         this.ghostPoints[0].setAttribute('r', '10');
         this.ghostPoints[0].setAttribute('fill', 'orange');
@@ -844,6 +849,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         this.updatedX = copyPoint[0];
         this.updatedY = copyPoint[1];
         this.selectedPointId = point.id;
+        debugger;
     };
 
     private handleDrag(event: any) {
@@ -896,7 +902,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         this.updatedX = updatedCopyPoint[0];
         this.updatedY = updatedCopyPoint[1];
         // TODO
-        const unNormalizePoint = this.unNormalizePoint(updatedCopyPoint);
+        const unNormalizePoint = this.svgCoordsToPointData(updatedCopyPoint);
         // TODO: this.ghostPoints[0] is undefined when dragging a point towards right
         // border, why?
         this.ghostPoints[0].setAttribute('style', 'display: visible');
@@ -933,6 +939,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         if (this.state.canSelectMultiple) {
             return;
         }
+        // or here
         if (selected === undefined || this.getPoint(selected).index === 0 || this.getPoint(selected).index === this.state.points.length - 1) {
             this.setState({
                 copyPoint: undefined,
@@ -944,7 +951,8 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         // as x + offset
         this.selectedPointId = undefined;
         const pointData = this.getPoint(selected);
-        const updatedPointData = this.unNormalizePoint(Vec2.create(this.updatedX, this.updatedY));
+        // I guess this one
+        const updatedPointData = this.svgCoordsToPointData(Vec2.create(this.updatedX, this.updatedY));
         const updatedPoint: ControlPoint = {
             data: updatedPointData,
             id: pointData.id,
@@ -1002,7 +1010,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         //     debugger;
         //     return;
         // }
-        const newPointData = this.unNormalizePoint(Vec2.create(svgP.x, svgP.y));
+        const newPointData = this.svgCoordsToPointData(Vec2.create(svgP.x, svgP.y));
         // problem with index
         // should be the last one
         // find the last index and do + 1?
@@ -1065,6 +1073,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
 
     // this function prouces actual SVG coordinates (pixels from top left corner)
     private controlPointDataToSVGCoords(controlPointData: ControlPointData): Vec2 {
+        console.log('controlPointDataToSVGCoords');
         const offset = this.padding / 2;
         const maxX = this.width + offset;
         // fix this
@@ -1093,7 +1102,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         // adjustment is not needed anymore
         const normalizedY = controlPointData.alpha * space;
         // ok so here it is e.g. 0.2 alpha
-        // then space is e.g 350
+        // thefn space is e.g 350
         // 0.2 * 350 = 70
         // 70 is linear size from the baseline to the point
         // nothing to do with the roof
@@ -1118,16 +1127,33 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         return newPoint;
     }
 
-    // TODO: modify this too
-    private unNormalizePoint(vec2: Vec2): ControlPointData {
+    // TODO: TODO: TODO: modify this too
+    private svgCoordsToPointData(vec2: Vec2): ControlPointData {
+        // vec2 are the coordinates of the point, real ones
+        // from svg
         // creates x and alpha from cartisian
+        // leverage baseline
+        const space = this.height - this.baseline - this.roof;
         const min = this.padding / 2;
         const maxX = this.width + min;
         const maxY = this.height + min;
+        // this we keep
         const unNormalizedX = (vec2[0] - min) / (maxX - min);
 
+        // I guess the
         // we have to take into account that we reversed y when we first normalized it.
-        const unNormalizedY = ((this.height + this.padding) - vec2[1] - min) / (maxY - min);
+        // this we update
+        // ok we have now what, we have space in pixels
+        // and we have real coordinate which is vec2[1]
+        // from the top left corner
+        // need to get 1
+        // 1. The cartesian distance between point and baseline
+        const cartesianDistanceBetweenPointAndBaseline = (this.height - this.baseline - vec2[1]);
+        // 2. divide that distance by space
+        const dividedBySpace = cartesianDistanceBetweenPointAndBaseline / space;
+        // this will give us alpha [0;1]
+        const unNormalizedY = dividedBySpace;
+        // const unNormalizedY = ((this.height + this.padding) - vec2[1] - min) / (maxY - min);
 
         // TODO: may need to make adjusted ALPHA obligatory
         return {
@@ -1377,6 +1403,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                     // of the SVG!
                     // x={50}
                     // y={50}
+                    // so we push here coords
                     x={point[0]}
                     y={point[1]}
                     nX={data.x}
@@ -1408,14 +1435,29 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         for (const point of this.state.points) {
             maxX = this.width + o;
             // render lines is ~ fine
+            // so introduce here baseline and roof
             // not padding I guess, or maybe padding + baseline and or roof
             maxY = this.height + this.padding;
+            // normalize point data using a function
             normalizedX = (point.data.x * (maxX - o)) + o;
             // if (point.data.adjustedAlpha === void 0) throw Error('Adjusted alpha is not provided');
-            normalizedY = (point.data.alpha * (maxY - o)) + o;
+            // this is [0;1] thing
+            const alpha = point.data.alpha;
+            const space = this.height - this.baseline - this.roof;
+            const pointHeightRealAboveBaseline = alpha * space;
+            const pointHeightRealBelowRoof = space - pointHeightRealAboveBaseline;
+            // TODO: may need to add padding
+            const pointHeightBelowSVGOrigin = pointHeightRealBelowRoof + this.roof;
+            // this gonna be fraction [0;1];
+            // const fraction 
+            // const a = 0;
+            // normalizedY = point.data.alpha;
+            // normalizedY = ratio
+            // normalizedY = (ratio * (maxY - o)) + o;
             // normalizedY = (point.data.alpha * (maxY - o)) + o;
-            reverseY = this.height + this.padding - normalizedY;
-            points.push(Vec2.create(normalizedX, reverseY));
+            // normalizedY = (point.data.alpha * (maxY - o)) + o;
+            // reverseY = this.height + this.padding - normalizedY;
+            points.push(Vec2.create(normalizedX, pointHeightBelowSVGOrigin));
         }
 
         const data = points;
