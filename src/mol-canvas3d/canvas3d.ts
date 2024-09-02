@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -44,6 +44,7 @@ import { degToRad, radToDeg } from '../mol-math/misc';
 import { AssetManager } from '../mol-util/assets';
 import { deepClone } from '../mol-util/object';
 import { HiZParams, HiZPass } from './passes/hi-z';
+import { IlluminationParams } from './passes/illumination';
 
 export const Canvas3DParams = {
     camera: PD.Group({
@@ -92,6 +93,7 @@ export const Canvas3DParams = {
     multiSample: PD.Group(MultiSampleParams),
     postprocessing: PD.Group(PostprocessingParams),
     marking: PD.Group(MarkingParams),
+    illumination: PD.Group(IlluminationParams),
     hiZ: PD.Group(HiZParams),
     renderer: PD.Group(RendererParams),
     trackball: PD.Group(TrackballControlsParams),
@@ -483,29 +485,49 @@ namespace Canvas3D {
             const shouldRender = force || cameraChanged || resized || forceNextRender;
             forceNextRender = false;
 
-            const multiSampleChanged = multiSampleHelper.update(markingUpdated || shouldRender, p.multiSample);
-
-            if (shouldRender || multiSampleChanged || markingUpdated) {
-                let cam: Camera | StereoCamera = camera;
-                if (p.camera.stereo.name === 'on') {
-                    stereoCamera.update();
-                    cam = stereoCamera;
+            if (passes.illumination.supported && p.illumination.enabled) {
+                if (shouldRender || markingUpdated) {
+                    renderer.setOcclusionTest(null);
+                    passes.illumination.reset();
                 }
 
-                if (isTimingMode) webgl.timer.mark('Canvas3D.render', true);
-                const ctx = { renderer, camera: cam, scene, helper };
-                if (MultiSamplePass.isEnabled(p.multiSample)) {
-                    const forceOn = p.multiSample.reduceFlicker && !cameraChanged && markingUpdated && !controls.isAnimating;
-                    multiSampleHelper.render(ctx, p, true, forceOn);
-                } else {
-                    passes.draw.render(ctx, p, true);
-                }
-                hiZ.render(camera);
-                if (isTimingMode) webgl.timer.markEnd('Canvas3D.render');
+                if (passes.illumination.shouldRender(p)) {
+                    if (isTimingMode) webgl.timer.mark('Canvas3D.render', true);
+                    const ctx = { renderer, camera, scene, helper };
+                    passes.illumination.render(ctx, p, true);
+                    if (isTimingMode) webgl.timer.markEnd('Canvas3D.render');
 
-                // if only marking has updated, do not set the flag to dirty
-                pickHelper.dirty = pickHelper.dirty || shouldRender;
-                didRender = true;
+                    // if only marking has updated, do not set the flag to dirty
+                    pickHelper.dirty = pickHelper.dirty || shouldRender;
+                    didRender = true;
+                }
+            } else {
+                const multiSampleChanged = multiSampleHelper.update(markingUpdated || shouldRender, p.multiSample);
+
+                if (shouldRender || multiSampleChanged || markingUpdated) {
+                    renderer.setOcclusionTest(hiZ.isOccluded);
+
+                    let cam: Camera | StereoCamera = camera;
+                    if (p.camera.stereo.name === 'on') {
+                        stereoCamera.update();
+                        cam = stereoCamera;
+                    }
+
+                    if (isTimingMode) webgl.timer.mark('Canvas3D.render', true);
+                    const ctx = { renderer, camera: cam, scene, helper };
+                    if (MultiSamplePass.isEnabled(p.multiSample)) {
+                        const forceOn = p.multiSample.reduceFlicker && !cameraChanged && markingUpdated && !controls.isAnimating;
+                        multiSampleHelper.render(ctx, p, true, forceOn);
+                    } else {
+                        passes.draw.render(ctx, p, true);
+                    }
+                    hiZ.render(camera);
+                    if (isTimingMode) webgl.timer.markEnd('Canvas3D.render');
+
+                    // if only marking has updated, do not set the flag to dirty
+                    pickHelper.dirty = pickHelper.dirty || shouldRender;
+                    didRender = true;
+                }
             }
 
             return didRender;
@@ -779,6 +801,7 @@ namespace Canvas3D {
                 postprocessing: { ...p.postprocessing },
                 marking: { ...p.marking },
                 multiSample: { ...p.multiSample },
+                illumination: { ...p.illumination },
                 hiZ: { ...hiZ.props },
                 renderer: { ...renderer.props },
                 trackball: { ...controls.props },
@@ -981,6 +1004,7 @@ namespace Canvas3D {
                 }
                 if (props.postprocessing) Object.assign(p.postprocessing, props.postprocessing);
                 if (props.marking) Object.assign(p.marking, props.marking);
+                if (props.illumination) Object.assign(p.illumination, props.illumination);
                 if (props.multiSample) Object.assign(p.multiSample, props.multiSample);
                 if (props.hiZ) hiZ.setProps(props.hiZ);
                 if (props.renderer) renderer.setProps(props.renderer);

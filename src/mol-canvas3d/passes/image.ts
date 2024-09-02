@@ -6,7 +6,7 @@
 
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
-import { Renderer } from '../../mol-gl/renderer';
+import { Renderer, RendererParams } from '../../mol-gl/renderer';
 import { Scene } from '../../mol-gl/scene';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { DrawPass } from './draw';
@@ -19,9 +19,22 @@ import { Helper } from '../helper/helper';
 import { CameraHelper, CameraHelperParams } from '../helper/camera-helper';
 import { MarkingParams } from './marking';
 import { AssetManager } from '../../mol-util/assets';
+import { IlluminationParams, IlluminationPass } from './illumination';
 import { RuntimeContext } from '../../mol-task';
 import { isTimingMode } from '../../mol-util/debug';
 import { printTimerResults } from '../../mol-gl/webgl/timer';
+
+const requestAnimationFrame = typeof window !== 'undefined'
+    ? window.requestAnimationFrame
+    : (f: (time: number) => void) => setImmediate(() => f(Date.now())) as unknown as number;
+
+function waitForRequestAnimationFrame(): Promise<number> {
+    return new Promise((resolve) => {
+        requestAnimationFrame((timestamp) => {
+            resolve(timestamp);
+        });
+    });
+}
 
 export const ImageParams = {
     transparentBackground: PD.Boolean(false),
@@ -29,8 +42,10 @@ export const ImageParams = {
     multiSample: PD.Group(MultiSampleParams),
     postprocessing: PD.Group(PostprocessingParams),
     marking: PD.Group(MarkingParams),
+    illumination: PD.Group(IlluminationParams),
 
     cameraHelper: PD.Group(CameraHelperParams),
+    renderer: PD.Group(RendererParams),
 };
 export type ImageProps = PD.Values<typeof ImageParams>
 
@@ -45,6 +60,7 @@ export class ImagePass {
     get colorTarget() { return this._colorTarget; }
 
     private readonly drawPass: DrawPass;
+    private readonly illuminationPass: IlluminationPass;
     private readonly multiSamplePass: MultiSamplePass;
     private readonly multiSampleHelper: MultiSampleHelper;
     private readonly helper: Helper;
@@ -56,6 +72,7 @@ export class ImagePass {
         this.props = { ...PD.getDefaultValues(ImageParams), ...props };
 
         this.drawPass = new DrawPass(webgl, assetManager, 128, 128, transparency);
+        this.illuminationPass = new IlluminationPass(webgl, this.drawPass);
         this.multiSamplePass = new MultiSamplePass(webgl, this.drawPass);
         this.multiSampleHelper = new MultiSampleHelper(this.multiSamplePass);
 
@@ -83,6 +100,7 @@ export class ImagePass {
         this._height = height;
 
         this.drawPass.setSize(width, height);
+        this.illuminationPass.setSize(width, height);
         this.multiSamplePass.syncSize();
     }
 
@@ -91,21 +109,45 @@ export class ImagePass {
         if (props.cameraHelper) this.helper.camera.setProps(props.cameraHelper);
     }
 
-    async render(_runtime: RuntimeContext) {
+    async render(runtime: RuntimeContext) {
         Camera.copySnapshot(this._camera.state, this.camera.state);
         Viewport.set(this._camera.viewport, 0, 0, this._width, this._height);
         this._camera.update();
 
         const ctx = { renderer: this.renderer, camera: this._camera, scene: this.scene, helper: this.helper };
-        if (isTimingMode) this.webgl.timer.mark('ImagePass.render', true);
-        if (MultiSamplePass.isEnabled(this.props.multiSample)) {
-            this.multiSampleHelper.render(ctx, this.props, false);
-            this._colorTarget = this.multiSamplePass.colorTarget;
+        if (this.illuminationPass.supported && this.props.illumination.enabled) {
+            await runtime.update({ message: 'Tracing...', current: 1, max: Math.pow(2, this.props.illumination.maxIterations) });
+            this.illuminationPass.reset();
+            while (this.illuminationPass.shouldRender(this.props)) {
+                if (isTimingMode) this.webgl.timer.mark('ImagePass.render', true);
+                this.illuminationPass.render(ctx, this.props, false);
+                if (isTimingMode) this.webgl.timer.markEnd('ImagePass.render');
+                if (runtime.shouldUpdate) {
+                    await runtime.update({ current: this.illuminationPass.iteration });
+                }
+                await waitForRequestAnimationFrame(); // allow GPU to render
+            }
+            this._colorTarget = this.illuminationPass.colorTarget;
         } else {
-            this.drawPass.render(ctx, this.props, false);
-            this._colorTarget = this.drawPass.getColorTarget(this.props.postprocessing);
+            if (isTimingMode) this.webgl.timer.mark('ImagePass.render', true);
+            if (MultiSamplePass.isEnabled(this.props.multiSample)) {
+                this.multiSampleHelper.render(ctx, this.props, false);
+                this._colorTarget = this.multiSamplePass.colorTarget;
+            } else {
+                this.drawPass.render(ctx, this.props, false);
+                this._colorTarget = this.drawPass.getColorTarget(this.props.postprocessing);
+            }
+            if (isTimingMode) this.webgl.timer.markEnd('ImagePass.render');
         }
-        if (isTimingMode) this.webgl.timer.markEnd('ImagePass.render');
+
+        if (isTimingMode) {
+            const timerResults = this.webgl.timer.resolve();
+            if (timerResults) {
+                for (const result of timerResults) {
+                    printTimerResults([result]);
+                }
+            }
+        }
 
         if (isTimingMode) {
             const timerResults = this.webgl.timer.resolve();

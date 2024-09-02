@@ -113,6 +113,7 @@ class ViewportScreenshotHelper extends PluginComponent {
         const c = this.plugin.canvas3d!;
         const { colorBufferFloat, textureFloat } = c.webgl.extensions;
         const aoProps = c.props.postprocessing.occlusion;
+        const giProps = c.props.illumination;
         return c.getImagePass({
             transparentBackground: this.values.transparent,
             cameraHelper: { axes: this.values.axes },
@@ -129,6 +130,12 @@ class ViewportScreenshotHelper extends PluginComponent {
                     : aoProps
             },
             marking: { ...c.props.marking },
+            illumination: {
+                ...giProps,
+                enabled: isPreview ? false : giProps.enabled,
+                maxIterations: giProps.maxIterations + 1,
+                rendersPerFrame: [giProps.rendersPerFrame[1], giProps.rendersPerFrame[1]],
+            },
         });
     }
 
@@ -142,6 +149,7 @@ class ViewportScreenshotHelper extends PluginComponent {
         if (this._imagePass) {
             const c = this.plugin.canvas3d!;
             const aoProps = c.props.postprocessing.occlusion;
+            const giProps = c.props.illumination;
             this._imagePass.setProps({
                 cameraHelper: { axes: this.values.axes },
                 transparentBackground: this.values.transparent,
@@ -153,6 +161,11 @@ class ViewportScreenshotHelper extends PluginComponent {
                         : aoProps
                 },
                 marking: { ...c.props.marking },
+                illumination: {
+                    ...giProps,
+                    maxIterations: giProps.maxIterations + 1,
+                    rendersPerFrame: [giProps.rendersPerFrame[1], giProps.rendersPerFrame[1]],
+                },
             });
             return this._imagePass;
         }
