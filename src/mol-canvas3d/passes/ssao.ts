@@ -143,7 +143,7 @@ export class SsaoPass {
     }
 
     private getTransparentDepthTexture() {
-        return this.ssaoScale === 1 ? (this.separatedTransparencyPass ? this.mergedDepthTarget.texture : this.depthTextureTransparent) : this.downsampledDepthTarget2.texture;
+        return this.ssaoScale === 1 ? (this.separatedTransparencyPass ? this.depthTextureTransparent : this.mergedDepthTarget.texture) : this.downsampledDepthTarget2.texture;
     }
 
     constructor(private readonly webgl: WebGLContext, width: number, height: number, packedDepth: boolean, depthTextureOpaque: Texture, depthTextureTransparent: Texture) {
@@ -191,11 +191,11 @@ export class SsaoPass {
             : webgl.createRenderTarget(qw, qh, false, 'float32', filter, webgl.isWebGL2 ? 'alpha' : 'rgba');
         this.depthQuarterRenderable1 = createCopyRenderable(webgl, this.depthHalfTarget1.texture);
 
-        this.downsampledDepthTarget2 = webgl.createRenderTarget(sw, sh, false, 'uint8', filter, 'rgba');
-        this.downsampleDepthRenderable2 = createCopyRenderable(webgl, depthTextureTransparent);
-
         this.mergedDepthTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'nearest', 'rgba');
         this.mergedDephtPassRenderable = getSsaoMergeDepthRenderable(webgl, depthTextureOpaque, depthTextureTransparent);
+
+        this.downsampledDepthTarget2 = webgl.createRenderTarget(sw, sh, false, 'uint8', filter, 'rgba');
+        this.downsampleDepthRenderable2 = createCopyRenderable(webgl, this.separatedTransparencyPass ? depthTextureTransparent : this.mergedDepthTarget.texture);
 
         this.depthHalfTarget2 = webgl.createRenderTarget(hw, hh, false, 'uint8', filter, 'rgba');
         this.depthHalfRenderable2 = createCopyRenderable(webgl, this.getTransparentDepthTexture());
@@ -261,11 +261,14 @@ export class SsaoPass {
             ValueCell.update(this.blurFirstPassRenderable.values.uTexSize, Vec2.set(this.blurFirstPassRenderable.values.uTexSize.ref.value, sw, sh));
             ValueCell.update(this.blurSecondPassRenderable.values.uTexSize, Vec2.set(this.blurSecondPassRenderable.values.uTexSize.ref.value, sw, sh));
 
-            ValueCell.update(this.depthHalfRenderable1.values.tColor, this.getDepthTexture());
-            ValueCell.update(this.depthHalfRenderable2.values.tColor, this.getTransparentDepthTexture());
+            const depthTexture = this.getDepthTexture();
+            const transparentDepthTexture = this.getTransparentDepthTexture();
 
-            ValueCell.update(this.renderable.values.tDepth, this.getDepthTexture());
-            ValueCell.update(this.renderable.values.tDepthTransparent, this.getTransparentDepthTexture());
+            ValueCell.update(this.depthHalfRenderable1.values.tColor, depthTexture);
+            ValueCell.update(this.depthHalfRenderable2.values.tColor, transparentDepthTexture);
+
+            ValueCell.update(this.renderable.values.tDepth, depthTexture);
+            ValueCell.update(this.renderable.values.tDepthTransparent, transparentDepthTexture);
 
             this.mergedDephtPassRenderable.update();
             this.depthHalfRenderable1.update();
@@ -345,9 +348,10 @@ export class SsaoPass {
 
             this.separatedTransparencyPass = separatedTransparency;
             ValueCell.update(this.renderable.values.dSeparatedTransparency, separatedTransparency);
-            ValueCell.update(this.renderable.values.tDepthTransparent, this.getTransparentDepthTexture());
+            const transparentDepthTexture = this.getTransparentDepthTexture();
+            ValueCell.update(this.renderable.values.tDepthTransparent, transparentDepthTexture);
+            ValueCell.update(this.depthHalfRenderable2.values.tColor, transparentDepthTexture);
             ValueCell.update(this.downsampleDepthRenderable2.values.tColor, separatedTransparency ? this.depthTextureTransparent : this.mergedDepthTarget.texture);
-            ValueCell.update(this.depthHalfRenderable2.values.tColor, separatedTransparency ? this.depthTextureTransparent : this.mergedDepthTarget.texture);
             if (!separatedTransparency) {
                 needsUpdateSsaoBlur = true;
 
