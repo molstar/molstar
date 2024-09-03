@@ -6,7 +6,7 @@
  * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
-import { BehaviorSubject, Subscription } from 'rxjs';
+import { BehaviorSubject, Subject, Subscription, debounceTime, merge } from 'rxjs';
 import { now } from '../mol-util/now';
 import { Vec3, Vec2 } from '../mol-math/linear-algebra';
 import { InputObserver, ModifiersKeys, ButtonsType } from '../mol-util/input/input-observer';
@@ -348,6 +348,7 @@ namespace Canvas3D {
         const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>();
         const reprUpdatedSubscriptions = new Map<Representation.Any, Subscription>();
         const reprCount = new BehaviorSubject(0);
+        const interactionEvent = new Subject<void>();
 
         let startTime = now();
         const didDraw = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp);
@@ -445,6 +446,8 @@ namespace Canvas3D {
                 scene.update(void 0, true);
                 helper.handle.scene.update(void 0, true);
                 helper.camera.scene.update(void 0, true);
+
+                interactionEvent.next();
             }
             return changed;
         }
@@ -485,7 +488,7 @@ namespace Canvas3D {
             const shouldRender = force || cameraChanged || resized || forceNextRender;
             forceNextRender = false;
 
-            if (passes.illumination.supported && p.illumination.enabled) {
+            if (passes.illumination.supported && p.illumination.enabled && !isActivelyInteracting) {
                 if (shouldRender || markingUpdated) {
                     renderer.setOcclusionTest(null);
                     passes.illumination.reset();
@@ -837,6 +840,36 @@ namespace Canvas3D {
             requestDraw();
         });
 
+        // Monitor user interactions
+        let isDragging = false;
+        let isActivelyInteracting = false;
+        let interactionSubs = [
+            input.drag.subscribe(() => {
+                isDragging = true;
+            }),
+            input.interactionEnd.subscribe(() => {
+                isDragging = false;
+            }),
+            merge(
+                input.drag,
+                input.pinch,
+                input.wheel,
+                input.interactionEnd,
+            ).subscribe(() => {
+                interactionEvent.next();
+            }),
+            interactionEvent.subscribe(() => {
+                isActivelyInteracting = true;
+            }),
+            interactionEvent.pipe(
+                debounceTime(666)
+            ).subscribe(() => {
+                isActivelyInteracting = isDragging;
+                if (!isDragging) requestDraw();
+            }),
+        ];
+
+
         //
 
         if (isDebugMode && canvas) {
@@ -1051,6 +1084,10 @@ namespace Canvas3D {
             dispose: () => {
                 contextRestoredSub.unsubscribe();
                 ctxChangedSub?.unsubscribe();
+
+                for (const s of interactionSubs) s.unsubscribe();
+                interactionSubs = [];
+
                 cancelAnimationFrame(animationFrameHandle);
 
                 markBuffer = [];

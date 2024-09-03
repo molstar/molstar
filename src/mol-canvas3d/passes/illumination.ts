@@ -86,6 +86,10 @@ export class IlluminationPass {
         return this._supported;
     }
 
+    private getMaxIterations(props: Props) {
+        return Math.pow(2, props.illumination.maxIterations);
+    }
+
     static isSupported(webgl: WebGLContext) {
         const { drawBuffers, textureFloat, colorBufferFloat, depthTexture } = webgl.extensions;
         if (!textureFloat || !colorBufferFloat || !depthTexture || !drawBuffers) {
@@ -242,7 +246,7 @@ export class IlluminationPass {
     }
 
     shouldRender(props: Props) {
-        return this._supported && props.illumination.enabled && this._iteration < Math.pow(2, props.illumination.maxIterations);
+        return this._supported && props.illumination.enabled && this._iteration < this.getMaxIterations(props);
     }
 
     setSize(width: number, height: number) {
@@ -450,8 +454,9 @@ export class IlluminationPass {
         // each sample with camera jitter and accumulates the results.
         const offsetList = JitterVectors[Math.max(0, Math.min(props.multiSample.sampleLevel, 5))];
 
-        const maxIterations = Math.pow(2, props.illumination.maxIterations);
-        const iteration = this._iteration;
+        const maxIterations = this.getMaxIterations(props);
+        const iteration = Math.min(this._iteration, maxIterations);
+
         const sampleIndex = Math.floor((iteration / maxIterations) * offsetList.length);
 
         const { x, y, width, height } = camera.viewport;

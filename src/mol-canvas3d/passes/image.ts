@@ -20,21 +20,9 @@ import { CameraHelper, CameraHelperParams } from '../helper/camera-helper';
 import { MarkingParams } from './marking';
 import { AssetManager } from '../../mol-util/assets';
 import { IlluminationParams, IlluminationPass } from './illumination';
-import { RuntimeContext } from '../../mol-task';
+import { RuntimeContext, Scheduler } from '../../mol-task';
 import { isTimingMode } from '../../mol-util/debug';
 import { printTimerResults } from '../../mol-gl/webgl/timer';
-
-const requestAnimationFrame = typeof window !== 'undefined'
-    ? window.requestAnimationFrame
-    : (f: (time: number) => void) => setImmediate(() => f(Date.now())) as unknown as number;
-
-function waitForRequestAnimationFrame(): Promise<number> {
-    return new Promise((resolve) => {
-        requestAnimationFrame((timestamp) => {
-            resolve(timestamp);
-        });
-    });
-}
 
 export const ImageParams = {
     transparentBackground: PD.Boolean(false),
@@ -124,8 +112,9 @@ export class ImagePass {
                 if (isTimingMode) this.webgl.timer.markEnd('ImagePass.render');
                 if (runtime.shouldUpdate) {
                     await runtime.update({ current: this.illuminationPass.iteration });
+                    await Scheduler.requestAnimationFramePromise(); // allow UI to render
                 }
-                await waitForRequestAnimationFrame(); // allow GPU to render
+                await Scheduler.immediatePromise(); // allow GPU to render
             }
             this._colorTarget = this.illuminationPass.colorTarget;
         } else {
