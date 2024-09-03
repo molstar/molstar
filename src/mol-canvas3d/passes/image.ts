@@ -112,9 +112,8 @@ export class ImagePass {
                 if (isTimingMode) this.webgl.timer.markEnd('ImagePass.render');
                 if (runtime.shouldUpdate) {
                     await runtime.update({ current: this.illuminationPass.iteration });
-                    await Scheduler.requestAnimationFramePromise(); // allow UI to render
                 }
-                await Scheduler.immediatePromise(); // allow GPU to render
+                await Scheduler.requestAnimationFramePromise(); // allow GPU to render
             }
             this._colorTarget = this.illuminationPass.colorTarget;
         } else {
