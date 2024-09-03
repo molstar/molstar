@@ -9,7 +9,7 @@ import { PointComponent } from './point-component';
 import * as React from 'react';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Vec2 } from '../../../mol-math/linear-algebra';
-import { Grid } from '../../../mol-model/volume';
+import { Grid, Volume } from '../../../mol-model/volume';
 import { arrayMax } from '../../../mol-util/array';
 import { Button, ControlGroup, ExpandGroup, IconButton, TextInput } from '../common';
 import { CloseSvg, DeleteSvg, MinusBoxSvg, PlusBoxSvg } from '../icons';
@@ -22,7 +22,7 @@ import { ParameterControls, ParamOnChange } from '../parameters';
 import { ColorListRangesEntry } from '../../../mol-util/color/color';
 import { generateControlPoints, generateGaussianControlPoints } from '../../../mol-geo/geometry/direct-volume/direct-volume';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { LineGraphParams } from './line-graph-params';
+import { LineGraphParams, startEndPoints } from './line-graph-params';
 import { throwError } from 'rxjs';
 
 type ComponentParams<T extends React.Component<any, any, any> | ((props: any) => JSX.Element)> =
@@ -330,32 +330,6 @@ interface LineGraphComponentState {
     methodsParams: TFParamsValues[],
 }
 
-const startEndPoints: ControlPoint[] = [
-    // modify this
-    {
-        data: {
-            x: 0,
-            alpha: 0,
-            // adjustedAlpha: LineGraphParams.baselineUnnormalized,
-        },
-        id: UUID.create22(),
-        color: ColorNames.black,
-        index: 0,
-        isTerminal: true
-    },
-    {
-        data: {
-            x: 1,
-            alpha: 0,
-            // adjustedAlpha: LineGraphParams.baselineUnnormalized,
-        },
-        id: UUID.create22(),
-        color: ColorNames.black,
-        index: 99999999,
-        isTerminal: true
-    }
-];
-
 function ColorPicker(props: any) {
     const isActive = props.isActive;
     const defaultColor = props.defaultColor;
@@ -419,6 +393,105 @@ const DefaultTFParams: TFParamsValues[] = [
     DefaultDefaultParams
 ];
 
+export interface LineGraphComponentProps {
+    // TODO: better name
+    data: ControlPoint[]
+    // TODO: may need to have it as any
+    volume: Volume | undefined
+    // TODO: function types
+    onChange: any
+    onHover: any
+    onDrag: any
+    // TODO: why undefined?
+    colored: boolean | undefined
+    // TODO: better name
+    onExpandGroupOpen: any
+    onAbsValueToPointValue: any
+};
+
+export function LineGraphComponent(props: LineGraphComponentProps) {
+    const [points, setPoints] = useState(startEndPoints.concat(props.data));
+    const [copyPoint, setCopyPoint] = useState<Vec2 | undefined >(undefined);
+    const [canSelectMultiple, setCanSelectMultiple] = useState(false);
+    const [showColorPicker, setShowColorPicker] = useState(false);
+    // TODO: correct type
+    const [clickedPointIds, setClickedPointIds] = useState<UUID[]>([]);
+    const [methodsParams, setMethodsParams] = useState(DefaultTFParams);
+
+    const myRef = useRef<React.RefObject<any> | undefined>(undefined);
+    const height = useRef(LineGraphParams.height);
+    const width = useRef(LineGraphParams.width);
+    // TODO: revisit padding
+    const padding = useRef(LineGraphParams.padding);
+    // TODO: may have issues if should be undefined instead
+    const updatedX = useRef(0);
+    const updatedY = useRef(0);
+    // TODO: compare with clickedPointIds
+    const selectedPointId = useRef<UUID | undefined>(undefined);
+    const ghostPoints = useRef<SVGElement[]>([]);
+    const gElement = useRef<SVGElement | undefined>(undefined);
+    const namespace = useRef('http://www.w3.org/2000/svg');
+    const descriptiveStatistics = useRef(getDescriptiveStatistics());
+    const baseline = useRef(LineGraphParams.baseline);
+    const roof = useRef(LineGraphParams.roof);
+
+    function getDescriptiveStatistics() {
+        const v = props.volume;
+        if (!v) throw Error('No volume is provided');
+        const s = v.grid.stats;
+        const d: VolumeDescriptiveStatistics = {
+            min: s.min,
+            max: s.max,
+            mean: s.mean,
+            sigma: s.sigma
+        };
+        return d;
+    }
+
+    function deleteAllPoints() {
+        const terminalPoints = [];
+        for (const point of points) {
+            if (point.isTerminal === true) { terminalPoints.push(point); }
+        };
+        const terminalPointsSorted = sortPointsByXValues(terminalPoints);
+        setPoints(terminalPointsSorted);
+        setClickedPointIds([]);
+        setShowColorPicker(false);
+        // this.setState({ points: terminalPointsSorted, clickedPointIds: undefined, showColorPicker: false });
+        change([]);
+    }
+
+    function highlightPoint(pointId: UUID) {
+        const targetPoint = points.find(p => p.id === pointId);
+        throw Error('Not implemented');
+        // if (!targetPoint) throw Error('Cannot highlight inexisting point exist');
+    }
+
+    function _setMethod2TF(params: Method2ParamsValues) {
+        // TODO: implement
+    }
+
+    function _setDefaultsTF(params: DefaultParamsValues) {
+        const paddingUnnormalized = padding.current / height.current;
+        // there two are the same values, reduce to a single one, e.g. could be be just padding, why not
+        // should be e.g.
+        const generatedPoints = generateControlPoints(paddingUnnormalized, ColorNames.black, undefined, props.volume);
+        const currentPoints = points;
+        generatedPoints.push(currentPoints[currentPoints.length - 1]);
+        generatedPoints.unshift(currentPoints[0]);
+        setPoints(generatedPoints);
+        change(generatedPoints);
+    }
+
+    function change(points: ControlPoint[]) {
+        const copyPoints = points.slice();
+        copyPoints.shift();
+        copyPoints.pop();
+        props.onChange(copyPoints);
+    }
+
+}
+
 export class LineGraphComponent extends React.Component<any, LineGraphComponentState> {
     private myRef: any;
     private height: number;
@@ -460,7 +533,6 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         this.ghostPoints = [];
         this.namespace = 'http://www.w3.org/2000/svg';
         this.descriptiveStatistics = this.getDescriptiveStatistics();
-        // TODO: do not show last and first point (shadow) in the list of point buttons
         this.sortPointsByXValues(this.state.points);
         this.highlightPoint = this.highlightPoint.bind(this);
         this.removePoint = this.removePoint.bind(this);

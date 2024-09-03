@@ -37,3 +37,29 @@ export const LineGraphParams: LineGraphParams = {
     // [0; 1]
     roofUnnormalized: Roof / Height
 };
+
+export const startEndPoints: ControlPoint[] = [
+    // modify this
+    {
+        data: {
+            x: 0,
+            alpha: 0,
+            // adjustedAlpha: LineGraphParams.baselineUnnormalized,
+        },
+        id: UUID.create22(),
+        color: ColorNames.black,
+        index: 0,
+        isTerminal: true
+    },
+    {
+        data: {
+            x: 1,
+            alpha: 0,
+            // adjustedAlpha: LineGraphParams.baselineUnnormalized,
+        },
+        id: UUID.create22(),
+        color: ColorNames.black,
+        index: 99999999,
+        isTerminal: true
+    }
+];
