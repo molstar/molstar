@@ -1004,7 +1004,13 @@ namespace Canvas3D {
                 }
                 if (props.postprocessing) Object.assign(p.postprocessing, props.postprocessing);
                 if (props.marking) Object.assign(p.marking, props.marking);
-                if (props.illumination) Object.assign(p.illumination, props.illumination);
+                if (props.illumination) {
+                    // TODO: temp for dev compatibility
+                    if (!Array.isArray(props.illumination.rendersPerFrame)) {
+                        props.illumination.rendersPerFrame = [1, 16];
+                    }
+                    Object.assign(p.illumination, props.illumination);
+                }
                 if (props.multiSample) Object.assign(p.multiSample, props.multiSample);
                 if (props.hiZ) hiZ.setProps(props.hiZ);
                 if (props.renderer) renderer.setProps(props.renderer);
