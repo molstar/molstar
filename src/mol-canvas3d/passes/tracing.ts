@@ -227,7 +227,7 @@ export class TracingPass {
 
         const ambientColor = Vec3();
         Vec3.scale(ambientColor, Color.toArrayNormalized(renderer.props.ambientColor, ambientColor, 0), renderer.props.ambientIntensity);
-        let lightStrength = Vec3.clone(ambientColor);
+        const lightStrength = Vec3.clone(ambientColor);
         for (let i = 0, il = renderer.light.count; i < il; ++i) {
             const light = Vec3.fromArray(Vec3(), renderer.light.color, i * 3);
             Vec3.add(lightStrength, lightStrength, light);
