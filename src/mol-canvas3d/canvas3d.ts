@@ -488,13 +488,15 @@ namespace Canvas3D {
             const shouldRender = force || cameraChanged || resized || forceNextRender;
             forceNextRender = false;
 
-            if (passes.illumination.supported && p.illumination.enabled && !isActivelyInteracting) {
+            if (passes.illumination.supported && p.illumination.enabled) {
                 if (shouldRender || markingUpdated) {
                     renderer.setOcclusionTest(null);
                     passes.illumination.reset();
                 }
 
-                if (passes.illumination.shouldRender(p)) {
+                if (passes.illumination.shouldRender(p)
+                    && (!isActivelyInteracting || passes.illumination.iteration === 0)
+                ) {
                     if (isTimingMode) webgl.timer.mark('Canvas3D.render', true);
                     const ctx = { renderer, camera, scene, helper };
                     passes.illumination.render(ctx, p, true);
