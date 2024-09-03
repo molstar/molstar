@@ -12,6 +12,9 @@ precision highp int;
 #include common_frag_params
 #include common_clip
 
+// Density value to estimate object thickness
+uniform float uDensity;
+
 uniform vec2 uImageTexDim;
 uniform sampler2D tImageTex;
 uniform sampler2D tGroupTex;
