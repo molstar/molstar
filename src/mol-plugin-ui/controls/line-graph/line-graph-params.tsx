@@ -1,3 +1,6 @@
+import { UUID } from '../../../mol-util';
+import { ColorNames } from '../../../mol-util/color/names';
+import { ControlPoint } from './line-graph-component';
 
 export interface LineGraphParams {
     height: number,
@@ -26,7 +29,7 @@ export const LineGraphParams: LineGraphParams = {
     width: Width,
     padding: Padding,
     // TODO: function that caclulates this based on height etc.
-    // or rather contant numbers as const vars above that 
+    // or rather contant numbers as const vars above that
     paddingYUnnormalized: Padding / Height,
     paddingXUnnormalized: Padding / Width,
     // TODO: add offset unnormalized or

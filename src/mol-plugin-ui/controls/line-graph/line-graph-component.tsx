@@ -348,7 +348,7 @@ export const GaussianTFParams = {
     gaussianCenter: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
     gaussianExtent: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
     gaussianHeight: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
-    // TODO: PD from object or something
+    // TODO: PD from object or something, need list of values
     name: PD.Text('gaussian', { isHidden: true })
 };
 
@@ -409,14 +409,43 @@ export interface LineGraphComponentProps {
     onAbsValueToPointValue: any
 };
 
+export interface LineGraphAttrs {
+    // TODO: correct types
+    myRef = React.createRef();
+    this.state = {
+        points: startEndPoints.concat(this.props.data),
+        copyPoint: undefined,
+        canSelectMultiple: false,
+        showColorPicker: false,
+        methodsParams: DefaultTFParams
+        // colored: this.props.colored
+    };
+    this.roof = LineGraphParams.roof;
+    this.roofUnnormalized = LineGraphParams.roofUnnormalized;
+    this.baseline = LineGraphParams.baseline;
+    this.baselineUnnormalized = LineGraphParams.baselineUnnormalized;
+    this.height = LineGraphParams.height;
+    this.width = LineGraphParams.width;
+    this.padding = LineGraphParams.padding;
+    // this.offsetY = LineGraphParams.offsetY;
+    // this.offsetY = 0;
+    this.selectedPointId = undefined;
+    this.ghostPoints = [];
+    this.namespace = 'http://www.w3.org/2000/svg';
+    this.descriptiveStatistics = this.getDescriptiveStatistics();
+    
+}
+
 export function LineGraphComponent(props: LineGraphComponentProps) {
-    const [points, setPoints] = useState(startEndPoints.concat(props.data));
+    const [controlPoints, setControlPoints] = useState(startEndPoints.concat(props.data));
     const [copyPoint, setCopyPoint] = useState<Vec2 | undefined >(undefined);
     const [canSelectMultiple, setCanSelectMultiple] = useState(false);
     const [showColorPicker, setShowColorPicker] = useState(false);
     // TODO: correct type
     const [clickedPointIds, setClickedPointIds] = useState<UUID[]>([]);
     const [methodsParams, setMethodsParams] = useState(DefaultTFParams);
+
+    const attrs = useRef<LineGraphAttrs | undefined>();
 
     const myRef = useRef<React.RefObject<any> | undefined>(undefined);
     const height = useRef(LineGraphParams.height);
@@ -450,11 +479,11 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
 
     function deleteAllPoints() {
         const terminalPoints = [];
-        for (const point of points) {
+        for (const point of controlPoints) {
             if (point.isTerminal === true) { terminalPoints.push(point); }
         };
         const terminalPointsSorted = sortPointsByXValues(terminalPoints);
-        setPoints(terminalPointsSorted);
+        setControlPoints(terminalPointsSorted);
         setClickedPointIds([]);
         setShowColorPicker(false);
         // this.setState({ points: terminalPointsSorted, clickedPointIds: undefined, showColorPicker: false });
@@ -462,7 +491,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     }
 
     function highlightPoint(pointId: UUID) {
-        const targetPoint = points.find(p => p.id === pointId);
+        const targetPoint = controlPoints.find(p => p.id === pointId);
         throw Error('Not implemented');
         // if (!targetPoint) throw Error('Cannot highlight inexisting point exist');
     }
@@ -476,10 +505,10 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         // there two are the same values, reduce to a single one, e.g. could be be just padding, why not
         // should be e.g.
         const generatedPoints = generateControlPoints(paddingUnnormalized, ColorNames.black, undefined, props.volume);
-        const currentPoints = points;
+        const currentPoints = controlPoints;
         generatedPoints.push(currentPoints[currentPoints.length - 1]);
         generatedPoints.unshift(currentPoints[0]);
-        setPoints(generatedPoints);
+        setControlPoints(generatedPoints);
         change(generatedPoints);
     }
 
@@ -490,6 +519,282 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         props.onChange(copyPoints);
     }
 
+    function _setGaussianTF(params: GaussianTFParamsValues) {
+        const p = padding.current;
+        const h = height.current;
+        const paddingUnnormalized = (p / 2) / h;
+        const { gaussianExtent, gaussianCenter, gaussianHeight } = params;
+        const a = gaussianHeight;
+        const ds = descriptiveStatistics.current;
+        const min = ds.min;
+        const max = ds.max;
+        const TFextent = max - min;
+        const b = gaussianCenter / TFextent;
+        const c = gaussianExtent / TFextent;
+        const gaussianPoints: ControlPoint[] = generateGaussianControlPoints(a, b, c, TFextent, 0, this.props.volume, paddingUnnormalized);
+        const currentPoints = controlPoints;
+        gaussianPoints.push(currentPoints[currentPoints.length - 1]);
+        gaussianPoints.unshift(currentPoints[0]);
+        setControlPoints(gaussianPoints);
+        change(gaussianPoints);
+    }
+
+    function changeAlphaValue(pointId: UUID, alpha: number) {
+        const modifiedPoints = controlPoints.map(p => {
+            if (p.id === pointId) {
+                const modifiedData: ControlPointData = {
+                    x: p.data.x,
+                    alpha: alpha
+                };
+                const modifiedP: ControlPoint = {
+                    id: p.id,
+                    color: p.color,
+                    index: p.index,
+                    data: modifiedData
+                };
+                return modifiedP;
+            } else {
+                return p;
+            }
+        });
+        handleChangePoints(modifiedPoints);
+    }
+
+    function handleChangePoints(points: ControlPoint[]) {
+        const pointsSorted = sortPointsByXValues(points);
+        setControlPoints(pointsSorted);
+        change(pointsSorted);
+    }
+
+    function sortPointsByXValues(points: ControlPoint[]) {
+        points.sort((a, b) => {
+            if (a.data.x === b.data.x) {
+                if (a.data.x === 0) {
+                    return a.data.alpha - b.data.alpha;
+                }
+                if (a.data.alpha === 1) {
+                    return b.data.alpha - a.data.alpha;
+                }
+                return a.data.alpha - b.data.alpha;
+            }
+            return a.data.x - b.data.x;
+        });
+        return points;
+    }
+
+    // TODO: refactor to remove duplication with changeAlphaValue function
+    function changeXValue(pointId: UUID, absValue: number) {
+        const x = props.onAbsValueToPointValue(absValue);
+        const points = controlPoints;
+        const modifiedPoints = points.map(p => {
+            if (p.id === pointId) {
+                const modifiedData: ControlPointData = {
+                    x: x,
+                    alpha: p.data.alpha
+                };
+                const modifiedP: ControlPoint = {
+                    id: p.id,
+                    color: p.color,
+                    index: p.index,
+                    data: modifiedData
+                };
+                return modifiedP;
+            } else {
+                return p;
+            }
+        });
+        handleChangePoints(modifiedPoints);
+    }
+
+    function setTF(params: TFParamsValues) {
+        const name = params.name as TFName;
+        switch (name) {
+            // TODO: separate into type
+            case 'gaussian':
+                _setGaussianTF(params as GaussianTFParamsValues);
+                break;
+            case 'method2':
+                _setMethod2TF(params as Method2ParamsValues);
+                break;
+            case 'defaults':
+                _setDefaultsTF(params as DefaultParamsValues);
+                break;
+            default: throw Error(`Transfer function ${name} is not supported`);
+        };
+    }
+
+    function getPoint(id: UUID) {
+        const selectedPoint: ControlPoint = controlPoints.find(p => p.id === id);
+        if (!selectedPoint) throw Error(`Point with id ${id} does not exist`);
+        return selectedPoint;
+    }
+
+    function getPoints(ids: UUID[]) {
+        const selectedPoints = controlPoints.filter(p => ids.includes(p.id));
+        if (!selectedPoints) throw Error(`Points with ids ${ids} do not exist`);
+        return selectedPoints;
+    }
+
+    function controlPointDataToSVGCoords(controlPointData: ControlPointData): Vec2 {
+        const p = padding.current;
+        const w = width.current;
+        const h = height.current;
+        const b = baseline.current;
+        const r = roof.current;
+        const offset = p / 2;
+        const maxX = w + offset;
+        const normalizedX = (controlPointData.x * (maxX - offset)) + offset;
+        const space = h - b - r;
+        const yFromBottom = controlPointData.alpha * space;
+        const fromTopToBaseline = h - b;
+        const yFromTop = fromTopToBaseline - yFromBottom;
+        const newPoint = Vec2.create(normalizedX, yFromTop);
+        return newPoint;
+    }
+
+    const deletePoint = (id: UUID) => (event: any) => {
+        removePoint(id);
+        event.stopPropagation();
+    };
+
+    function removePoint(id: UUID) {
+        const point = getPoint(id);
+        if (point.isTerminal === true) { return; }
+        let points = controlPoints.filter(p => p.id !== point.id);
+        points = sortPointsByXValues(points);
+        setControlPoints(points);
+        // TODO: may not work, if it is the case - add undefined option to setState init
+        setClickedPointIds([]);
+        setShowColorPicker(false);
+        change(points);
+    }
+
+    function handleLeave() {
+        if (selectedPointId === undefined) {
+            return;
+        }
+
+        document.addEventListener('mousemove', handleDrag, true);
+        document.addEventListener('mouseup', handlePointUpdate, true);
+    }
+
+    function handleDrag(event: any) {
+        if (selectedPointId.current === undefined || !myRef.current) {
+            return;
+        }
+        const w = width.current;
+        const mr = (myRef.current as any);
+        const pt = mr.createSVGPoint();
+        let updatedCopyPoint;
+        const offset = padding.current / 2;
+        pt.x = event.clientX;
+        pt.y = event.clientY;
+        const svgP = pt.matrixTransform(mr.getScreenCTM().inverse());
+        updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
+        if ((svgP.x < (offset) || svgP.x > (this.width + (offset))) &&
+        (svgP.y > (this.height - this.baseline) || svgP.y < (0))) {
+            debugger;
+            updatedCopyPoint = Vec2.create(this.updatedX, this.updatedY);
+        // right border is X > something
+        } else if (svgP.x < offset) {
+            debugger;
+            // TODO: fix lines to start from true 0
+            updatedCopyPoint = Vec2.create(offset, svgP.y);
+            // this probably
+        } else if (svgP.x > (this.width + (offset))) {
+            // this
+            console.log('Creating a point while crossing right border');
+            // should create on the same x that is fine, but on correct y
+            console.log(this.width + offset, svgP.y);
+            updatedCopyPoint = Vec2.create(this.width + offset, svgP.y);
+            // touch this
+        } else if (svgP.y > (this.height - this.baseline)) {
+            debugger;
+            // does not allow into such area
+            // fix viewbox or?
+            updatedCopyPoint = Vec2.create(svgP.x, this.height - this.baseline);
+        } else if (svgP.y < (this.roof)) {
+            debugger;
+            updatedCopyPoint = Vec2.create(svgP.x, this.roof);
+        } else {
+            // console.log('Point within the constraints, creating normally');
+            updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
+        }
+
+        this.updatedX = updatedCopyPoint[0];
+        this.updatedY = updatedCopyPoint[1];
+        // TODO
+        const unNormalizePoint = this.svgCoordsToPointData(updatedCopyPoint);
+        // TODO: this.ghostPoints[0] is undefined when dragging a point towards right
+        // border, why?
+        this.ghostPoints[0].setAttribute('style', 'display: visible');
+        this.ghostPoints[0].setAttribute('cx', `${updatedCopyPoint[0]}`);
+        this.ghostPoints[0].setAttribute('cy', `${updatedCopyPoint[1]}`);
+
+
+        this.props.onDrag(unNormalizePoint);
+        // ok got it then point is "normalized" and thus got raised up or something
+    }
+
+    function renderPoints() {
+        const points: any[] = [];
+        let point: Vec2;
+        for (let i = 0; i < controlPoints.length; i++) {
+            if (i !== 0 && i !== controlPoints.length - 1) {
+                const { data, color, id, index } = controlPoints[i];
+                const finalColor = color;
+                point = controlPointDataToSVGCoords(data);
+                points.push(<PointComponent
+                    index={index}
+                    key={id}
+                    id={id}
+                    x={point[0]}
+                    y={point[1]}
+                    nX={data.x}
+                    nY={data.alpha}
+                    selected={false}
+                    delete={deletePoint}
+                    // onmouseover we provide props.onHover of line graph component
+                    onmouseover={this.props.onHover}
+                    onmousedown={this.handleMouseDown(this.state.points[i])}
+                    onclick={this.handleClick(this.state.points[i])}
+                    color={finalColor}
+                />);
+            }
+        }
+        return points;
+    }
+
+    const LineGraphRendered = (props: any) => {
+        const points = renderPoints();
+        const baseline = renderBaseline();
+        const lines = renderLines();
+        const histogram = renderHistogram();
+        const axes = renderAxes();
+        const gridLines = renderGridLines();
+        // const pointsButtons = this.renderPointsButtons();
+        const descriptiveStatisticsBars = renderDescriptiveStatisticsBars();
+        const firstPoint = clickedPointIds.length > 0 ? getPoint(clickedPointIds[0]) : void 0;
+        const color = firstPoint ? firstPoint.color : void 0;
+        const defaultColor = ParamDefinition.Color(ColorNames.black);
+        const _createPoint = createPoint;
+        const _removePoint = removeRightmostPoint;
+        const plusIconButtonStyle = {
+            position: ('absolute' as any),
+            top: '100px',
+            right: '30px',
+            // transform: 'translate(-50%, -50%)'
+        };
+        // TODO: fix style
+        const minusIconButtonStyle = {
+            position: ('absolute' as any),
+            top: '100px',
+            right: '5px',
+            // transform: 'translate(-50%, -50%)'
+        };
+    }
+
+    return 
 }
 
 export class LineGraphComponent extends React.Component<any, LineGraphComponentState> {
@@ -720,9 +1025,6 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     }
 
     public render() {
-        // TODO: how points get there?
-        // from the state
-        // no adjusted alpha here for some reason
         const points = this.renderPoints();
         const baseline = this.renderBaseline();
         const lines = this.renderLines();
