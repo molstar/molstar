@@ -6,17 +6,29 @@
  * @author Aliaksei Chareshneu <chareshneu.tech@gmail.com>
  */
 
+import { PluginCommands } from '../../../mol-plugin/commands';
 import { PluginContext } from '../../../mol-plugin/context';
 
 
 class _MVSErrorContext {
-    add(error: any) {
+    errors: string[];
 
+    add(error: string) {
+        this.errors.push(error);
     }
     reset() {
         // Reset errors
+        this.errors = [];
     }
     report(ctx: PluginContext) {
+        for (const error of this.errors) {
+            ctx.log.warn(error);
+            PluginCommands.Toast.Show(ctx, {
+                title: 'Error',
+                message: error,
+                timeoutMs: 10000
+            });
+        }
 
     }
 }

@@ -111,16 +111,6 @@ export class MVSAnnotations {
                 const params = JSON.stringify(spec.source.params);
                 const errorMessage = `Failed to obtain annotation (${err}).\nAnnotation specification source params: ${params}`;
                 MVSErrorContext.add(errorMessage);
-                // if (plugin) {
-                //     plugin.log.warn(errorMessage);
-                //     PluginCommands.Toast.Show(plugin, {
-                //         title: 'Error',
-                //         message: errorMessage,
-                //         timeoutMs: 10000
-                //     });
-                // } else {
-                //     alert(errorMessage);
-                // }
                 console.error(`Failed to obtain annotation (${err}).\nAnnotation specification:`, spec);
                 annots[spec.id] = MVSAnnotation.createEmpty(spec.schema);
             }
