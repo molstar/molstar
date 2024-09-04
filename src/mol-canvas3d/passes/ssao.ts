@@ -181,10 +181,11 @@ export class SsaoPass {
             : webgl.createRenderTarget(sw, sh, false, 'float32', filter, webgl.isWebGL2 ? 'alpha' : 'rgba');
         this.downsampleDepthRenderable1 = createCopyRenderable(webgl, depthTextureOpaque);
 
+        const depthTexture = this.getDepthTexture();
         this.depthHalfTarget1 = packedDepth
             ? webgl.createRenderTarget(hw, hh, false, 'uint8', filter, 'rgba')
             : webgl.createRenderTarget(hw, hh, false, 'float32', filter, webgl.isWebGL2 ? 'alpha' : 'rgba');
-        this.depthHalfRenderable1 = createCopyRenderable(webgl, this.getDepthTexture());
+        this.depthHalfRenderable1 = createCopyRenderable(webgl, depthTexture);
 
         this.depthQuarterTarget1 = packedDepth
             ? webgl.createRenderTarget(qw, qh, false, 'uint8', filter, 'rgba')
@@ -197,8 +198,9 @@ export class SsaoPass {
         this.downsampledDepthTarget2 = webgl.createRenderTarget(sw, sh, false, 'uint8', filter, 'rgba');
         this.downsampleDepthRenderable2 = createCopyRenderable(webgl, this.separatedTransparencyPass ? depthTextureTransparent : this.mergedDepthTarget.texture);
 
+        const transparentDepthTexture = this.getTransparentDepthTexture();
         this.depthHalfTarget2 = webgl.createRenderTarget(hw, hh, false, 'uint8', filter, 'rgba');
-        this.depthHalfRenderable2 = createCopyRenderable(webgl, this.getTransparentDepthTexture());
+        this.depthHalfRenderable2 = createCopyRenderable(webgl, transparentDepthTexture);
 
         this.depthQuarterTarget2 = webgl.createRenderTarget(qw, qh, false, 'uint8', filter, 'rgba');
         this.depthQuarterRenderable2 = createCopyRenderable(webgl, this.depthHalfTarget2.texture);
@@ -209,15 +211,17 @@ export class SsaoPass {
 
         this.ssaoDepthTransparentTexture = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', filter);
         this.ssaoDepthTransparentTexture.define(sw, sh);
+        if (!this.separatedTransparencyPass) {
+            this.ssaoDepthTransparentTexture.attachFramebuffer(this.framebuffer, 'color0');
+            this.ssaoDepthTransparentTexture.attachFramebuffer(this.blurSecondPassFramebuffer, 'color0');
+        }
 
         this.depthBlurProxyTexture = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', filter);
         this.depthBlurProxyTexture.define(sw, sh);
         this.depthBlurProxyTexture.attachFramebuffer(this.blurFirstPassFramebuffer, 'color0');
 
-        this.ssaoDepthTexture.attachFramebuffer(this.blurSecondPassFramebuffer, 'color0');
-
-        this.renderable = getSsaoRenderable(webgl, this.getDepthTexture(), this.depthHalfTarget1.texture, this.depthQuarterTarget1.texture, this.getTransparentDepthTexture(), this.depthHalfTarget2.texture, this.depthQuarterTarget2.texture);
-        this.blurFirstPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthTexture, 'horizontal');
+        this.renderable = getSsaoRenderable(webgl, depthTexture, this.depthHalfTarget1.texture, this.depthQuarterTarget1.texture, transparentDepthTexture, this.depthHalfTarget2.texture, this.depthQuarterTarget2.texture);
+        this.blurFirstPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthTransparentTexture, 'horizontal');
         this.blurSecondPassRenderable = getSsaoBlurRenderable(webgl, this.depthBlurProxyTexture, 'vertical');
     }
 
@@ -626,7 +630,7 @@ function getSsaoRenderable(ctx: WebGLContext, depthTexture: Texture, depthHalfTe
         tDepthHalf: ValueCell.create(depthHalfTexture),
         tDepthQuarter: ValueCell.create(depthQuarterTexture),
 
-        dIncludeTransparency: ValueCell.create(false),
+        dIncludeTransparency: ValueCell.create(true),
         dSeparatedTransparency: ValueCell.create(false),
         uTransparencyFlag: ValueCell.create(0),
         dIncludeOpacity: ValueCell.create(true),
