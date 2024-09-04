@@ -2,6 +2,8 @@
  * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Aliaksei Chareshneu <chareshneu.tech@gmail.com>
  */
 
 import { Download, ParseCif } from '../../mol-plugin-state/transforms/data';
@@ -17,6 +19,7 @@ import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-
 import { CustomLabelProps, CustomLabelRepresentationProvider } from './components/custom-label/representation';
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
 import { IsMVSModelProps, IsMVSModelProvider } from './components/is-mvs-model-prop';
+import { MVSErrorContext } from './helpers/errors';
 import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, UpdateTarget, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps } from './load-helpers';
 import { MVSData } from './mvs-data';
 import { ParamsOfKind, SubTreeOfKind, validateTree } from './tree/generic/tree-schema';
@@ -30,7 +33,8 @@ import { MVSTreeSchema } from './tree/mvs/mvs-tree';
  * If `options.keepCamera`, ignore any camera positioning from the MVS state and keep the current camera position instead.
  * If `options.sanityChecks`, run some sanity checks and print potential issues to the console.
  * `options.sourceUrl` serves as the base for resolving relative URLs/URIs and may itself be relative to the window URL. */
-export async function loadMVS(plugin: PluginContext, data: MVSData, options: { replaceExisting?: boolean, keepCamera?: boolean, sanityChecks?: boolean, sourceUrl?: string } = {}) {
+export async function loadMVS(plugin: PluginContext, data: MVSData, options: { replaceExisting?: boolean, keepCamera?: boolean, sanityChecks?: boolean, sourceUrl?: string, doNotReportErrors?: boolean } = {}) {
+    MVSErrorContext.reset();
     try {
         // console.log(`MVS tree:\n${MVSData.toPrettyString(data)}`)
         validateTree(MVSTreeSchema, data.root, 'MVS');
@@ -42,6 +46,11 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: { r
     } catch (err) {
         plugin.log.error(`${err}`);
         throw err;
+    } finally {
+        if (!options.doNotReportErrors) { // new parameter in options
+            MVSErrorContext.report(plugin);
+        }
+        MVSErrorContext.reset();
     }
 }
 
