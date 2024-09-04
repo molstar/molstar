@@ -2,7 +2,6 @@
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
- * @author Aliaksei Chareshneu <chareshneu.tech@gmail.com>
  */
 
 import { Model } from '../../mol-model/structure';
@@ -11,7 +10,6 @@ import { ValueBox } from '../../mol-util';
 import { CustomProperty } from './custom-property';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 import { stringToWords } from '../../mol-util/string';
-import { PluginContext } from '../../mol-plugin/context';
 
 export { CustomModelProperty };
 
@@ -25,7 +23,7 @@ namespace CustomModelProperty {
         readonly defaultParams: Params
         readonly getParams: (data: Model) => Params
         readonly isApplicable: (data: Model) => boolean
-        readonly obtain: (ctx: CustomProperty.Context, data: Model, props: PD.Values<Params>, plugin?: PluginContext) => Promise<CustomProperty.Data<Value>>
+        readonly obtain: (ctx: CustomProperty.Context, data: Model, props: PD.Values<Params>) => Promise<CustomProperty.Data<Value>>
         readonly type: 'static' | 'dynamic'
     }
 
@@ -61,12 +59,12 @@ namespace CustomModelProperty {
             },
             defaultParams: builder.defaultParams,
             isApplicable: builder.isApplicable,
-            attach: async (ctx: CustomProperty.Context, data: Model, props: Partial<PD.Values<Params>> = {}, addRef, plugin?: PluginContext) => {
+            attach: async (ctx: CustomProperty.Context, data: Model, props: Partial<PD.Values<Params>> = {}, addRef) => {
                 if (addRef) data.customProperties.reference(builder.descriptor, true);
                 const property = get(data);
                 const p = PD.merge(builder.defaultParams, property.props, props);
                 if (property.data.value && PD.areEqual(builder.defaultParams, property.props, p)) return;
-                const { value, assets } = await builder.obtain(ctx, data, p, plugin);
+                const { value, assets } = await builder.obtain(ctx, data, p);
                 data.customProperties.add(builder.descriptor);
                 data.customProperties.assets(builder.descriptor, assets);
                 set(data, p, value);

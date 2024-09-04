@@ -14,8 +14,6 @@ import { CustomProperty } from '../../../mol-model-props/common/custom-property'
 import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
 import { Model } from '../../../mol-model/structure';
 import { Structure, StructureElement } from '../../../mol-model/structure/structure';
-import { PluginCommands } from '../../../mol-plugin/commands';
-import { PluginContext } from '../../../mol-plugin/context';
 import { UUID } from '../../../mol-util';
 import { arrayExtend } from '../../../mol-util/array';
 import { Asset } from '../../../mol-util/assets';
@@ -24,6 +22,7 @@ import { pickObjectKeys, promiseAllObj } from '../../../mol-util/object';
 import { Choice } from '../../../mol-util/param-choice';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { AtomRanges } from '../helpers/atom-ranges';
+import { MVSErrorContext } from '../helpers/errors';
 import { IndicesAndSortings } from '../helpers/indexing';
 import { MaybeStringParamDefinition } from '../helpers/param-definition';
 import { MVSAnnotationRow, MVSAnnotationSchema, getCifAnnotationSchema } from '../helpers/schemas';
@@ -86,11 +85,10 @@ export const MVSAnnotationsProvider: CustomModelProperty.Provider<MVSAnnotations
     defaultParams: MVSAnnotationsParams,
     getParams: (data: Model) => MVSAnnotationsParams,
     isApplicable: (data: Model) => true,
-    obtain: async (ctx: CustomProperty.Context, data: Model, props: Partial<MVSAnnotationsProps>, plugin?: PluginContext) => {
-        if (!plugin) throw Error('Plugin instance must be provided');
+    obtain: async (ctx: CustomProperty.Context, data: Model, props: Partial<MVSAnnotationsProps>) => {
         props = { ...PD.getDefaultValues(MVSAnnotationsParams), ...props };
         const specs: MVSAnnotationSpec[] = props.annotations ?? [];
-        const annots = await MVSAnnotations.fromSpecs(ctx, specs, data, plugin);
+        const annots = await MVSAnnotations.fromSpecs(ctx, specs, data);
         return { value: annots } satisfies CustomProperty.Data<MVSAnnotations>;
     }
 });
@@ -99,7 +97,7 @@ export const MVSAnnotationsProvider: CustomModelProperty.Provider<MVSAnnotations
 /** Represents multiple annotations retrievable by their ID */
 export class MVSAnnotations {
     private constructor(private dict: { [id: string]: MVSAnnotation }) { }
-    static async fromSpecs(ctx: CustomProperty.Context, specs: MVSAnnotationSpec[], model?: Model, plugin?: PluginContext): Promise<MVSAnnotations> {
+    static async fromSpecs(ctx: CustomProperty.Context, specs: MVSAnnotationSpec[], model?: Model): Promise<MVSAnnotations> {
         const sources: MVSAnnotationSource[] = specs.map(annotationSourceFromSpec);
         const files = await getFilesFromSources(ctx, sources, model);
         const annots: { [id: string]: MVSAnnotation } = {};
@@ -112,16 +110,17 @@ export class MVSAnnotations {
             } catch (err) {
                 const params = JSON.stringify(spec.source.params);
                 const errorMessage = `Failed to obtain annotation (${err}).\nAnnotation specification source params: ${params}`;
-                if (plugin) {
-                    plugin.log.warn(errorMessage);
-                    PluginCommands.Toast.Show(plugin, {
-                        title: 'Error',
-                        message: errorMessage,
-                        timeoutMs: 10000
-                    });
-                } else {
-                    alert(errorMessage);
-                }
+                MVSErrorContext.add(errorMessage);
+                // if (plugin) {
+                //     plugin.log.warn(errorMessage);
+                //     PluginCommands.Toast.Show(plugin, {
+                //         title: 'Error',
+                //         message: errorMessage,
+                //         timeoutMs: 10000
+                //     });
+                // } else {
+                //     alert(errorMessage);
+                // }
                 console.error(`Failed to obtain annotation (${err}).\nAnnotation specification:`, spec);
                 annots[spec.id] = MVSAnnotation.createEmpty(spec.schema);
             }

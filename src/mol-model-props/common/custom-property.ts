@@ -2,7 +2,6 @@
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
- * @author Aliaksei Chareshneu <chareshneu.tech@gmail.com>
  */
 
 import { RuntimeContext } from '../../mol-task';
@@ -11,7 +10,6 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ValueBox } from '../../mol-util';
 import { OrderedMap } from 'immutable';
 import { AssetManager, Asset } from '../../mol-util/assets';
-import { PluginContext } from '../../mol-plugin/context';
 
 export { CustomProperty };
 
@@ -36,7 +34,7 @@ namespace CustomProperty {
         readonly getParams: (data: Data) => Params
         readonly defaultParams: Params
         readonly isApplicable: (data: Data) => boolean
-        readonly attach: (ctx: Context, data: Data, props?: Partial<PD.Values<Params>>, addRef?: boolean, plugin?: PluginContext) => Promise<void>
+        readonly attach: (ctx: Context, data: Data, props?: Partial<PD.Values<Params>>, addRef?: boolean) => Promise<void>
         readonly ref: (data: Data, add: boolean) => void
         readonly get: (data: Data) => ValueBox<Value | undefined>
         readonly set: (data: Data, props: PD.Values<Params>, value?: Value) => void

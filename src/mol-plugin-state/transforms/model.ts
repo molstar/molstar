@@ -4,7 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
- * @author Aliaksei Chareshneu <chareshneu.tech@gmail.com>
  */
 
 import { parseDcd } from '../../mol-io/reader/dcd/parser';
@@ -1021,7 +1020,7 @@ async function attachModelProps(model: Model, ctx: PluginContext, taskCtx: Runti
         const props = properties[name];
         if (autoAttach.includes(name) || property.isHidden) {
             try {
-                await property.attach(propertyCtx, model, props, true, ctx);
+                await property.attach(propertyCtx, model, props, true);
             } catch (e) {
                 ctx.log.warn(`Error attaching model prop '${name}': ${e}`);
             }
