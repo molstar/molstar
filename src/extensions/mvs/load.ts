@@ -2,11 +2,14 @@
  * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Aliaksei Chareshneu <chareshneu.tech@gmail.com>
  */
 
 import { Download, ParseCif } from '../../mol-plugin-state/transforms/data';
 import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromMmCif, TrajectoryFromPDB, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
+import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectSelector } from '../../mol-state';
 import { MolViewSpec } from './behavior';
@@ -30,7 +33,8 @@ import { MVSTreeSchema } from './tree/mvs/mvs-tree';
  * If `options.keepCamera`, ignore any camera positioning from the MVS state and keep the current camera position instead.
  * If `options.sanityChecks`, run some sanity checks and print potential issues to the console.
  * `options.sourceUrl` serves as the base for resolving relative URLs/URIs and may itself be relative to the window URL. */
-export async function loadMVS(plugin: PluginContext, data: MVSData, options: { replaceExisting?: boolean, keepCamera?: boolean, sanityChecks?: boolean, sourceUrl?: string } = {}) {
+export async function loadMVS(plugin: PluginContext, data: MVSData, options: { replaceExisting?: boolean, keepCamera?: boolean, sanityChecks?: boolean, sourceUrl?: string, doNotReportErrors?: boolean } = {}) {
+    plugin.errorContext.clear('mvs');
     try {
         // console.log(`MVS tree:\n${MVSData.toPrettyString(data)}`)
         validateTree(MVSTreeSchema, data.root, 'MVS');
@@ -42,6 +46,18 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: { r
     } catch (err) {
         plugin.log.error(`${err}`);
         throw err;
+    } finally {
+        if (!options.doNotReportErrors) {
+            for (const error of plugin.errorContext.get('mvs')) {
+                plugin.log.warn(error);
+                PluginCommands.Toast.Show(plugin, {
+                    title: 'Error',
+                    message: error,
+                    timeoutMs: 10000
+                });
+            }
+        }
+        plugin.errorContext.clear('mvs');
     }
 }
 

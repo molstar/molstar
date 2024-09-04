@@ -30,7 +30,7 @@ export const ConfalPyramidsPreset = StructureRepresentationPresetProvider({
         if (!structureCell || !model) return {};
 
         await plugin.runTask(Task.create('Confal Pyramids', async runtime => {
-            await ConfalPyramidsProvider.attach({ runtime, assetManager: plugin.managers.asset }, model);
+            await ConfalPyramidsProvider.attach({ runtime, assetManager: plugin.managers.asset, errorContext: plugin.errorContext }, model);
         }));
 
         const { components, representations } = await PresetStructureRepresentations.auto.apply(ref, { ...params }, plugin);

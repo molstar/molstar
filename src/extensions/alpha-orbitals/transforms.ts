@@ -182,7 +182,7 @@ export const CreateOrbitalRepresentation3D = PluginStateTransform.BuiltIn({
         return Task.create('Orbitals Representation 3D', async ctx => {
             const params = volumeParams(plugin, a, srcParams);
 
-            const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset };
+            const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset, errorContext: plugin.errorContext };
             const provider = plugin.representation.volume.registry.get(params.type.name);
             if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data);
             const props = params.type.params || {};

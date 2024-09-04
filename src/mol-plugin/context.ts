@@ -62,6 +62,7 @@ import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { setSaccharideCompIdMapType } from '../mol-model/structure/structure/carbohydrates/constants';
 import { DragAndDropManager } from '../mol-plugin-state/manager/drag-and-drop';
+import { ErrorContext } from '../mol-util/error-context';
 
 export type PluginInitializedState =
     | { kind: 'no' }
@@ -205,6 +206,15 @@ export class PluginContext {
     readonly customStructureControls = new Map<string, { new(): any /* constructible react components with <action.customControl /> */ }>();
     readonly customImportControls = new Map<string, { new(): any /* constructible react components with <action.customControl /> */ }>();
     readonly genericRepresentationControls = new Map<string, (selection: StructureHierarchyManager['selection']) => [StructureHierarchyRef[], string]>();
+
+    /**
+     * A helper for collecting and notifying errors
+     * in async contexts such as custom properties.
+     *
+     * Individual extensions are responsible for using this
+     * context and displaying the errors in appropriate ways.
+     */
+    readonly errorContext = new ErrorContext();
 
     /**
      * Used to store application specific custom state which is then available
