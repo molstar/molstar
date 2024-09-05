@@ -409,32 +409,32 @@ export interface LineGraphComponentProps {
     onAbsValueToPointValue: any
 };
 
-export interface LineGraphAttrs {
-    // TODO: correct types
-    myRef = React.createRef();
-    this.state = {
-        points: startEndPoints.concat(this.props.data),
-        copyPoint: undefined,
-        canSelectMultiple: false,
-        showColorPicker: false,
-        methodsParams: DefaultTFParams
-        // colored: this.props.colored
-    };
-    this.roof = LineGraphParams.roof;
-    this.roofUnnormalized = LineGraphParams.roofUnnormalized;
-    this.baseline = LineGraphParams.baseline;
-    this.baselineUnnormalized = LineGraphParams.baselineUnnormalized;
-    this.height = LineGraphParams.height;
-    this.width = LineGraphParams.width;
-    this.padding = LineGraphParams.padding;
-    // this.offsetY = LineGraphParams.offsetY;
-    // this.offsetY = 0;
-    this.selectedPointId = undefined;
-    this.ghostPoints = [];
-    this.namespace = 'http://www.w3.org/2000/svg';
-    this.descriptiveStatistics = this.getDescriptiveStatistics();
+// export interface LineGraphAttrs {
+//     // TODO: correct types
+//     myRef = React.createRef();
+//     this.state = {
+//         points: startEndPoints.concat(this.props.data),
+//         copyPoint: undefined,
+//         canSelectMultiple: false,
+//         showColorPicker: false,
+//         methodsParams: DefaultTFParams
+//         // colored: this.props.colored
+//     };
+//     this.roof = LineGraphParams.roof;
+//     this.roofUnnormalized = LineGraphParams.roofUnnormalized;
+//     this.baseline = LineGraphParams.baseline;
+//     this.baselineUnnormalized = LineGraphParams.baselineUnnormalized;
+//     this.height = LineGraphParams.height;
+//     this.width = LineGraphParams.width;
+//     this.padding = LineGraphParams.padding;
+//     // this.offsetY = LineGraphParams.offsetY;
+//     // this.offsetY = 0;
+//     this.selectedPointId = undefined;
+//     this.ghostPoints = [];
+//     this.namespace = 'http://www.w3.org/2000/svg';
+//     this.descriptiveStatistics = this.getDescriptiveStatistics();
     
-}
+// }
 
 export function LineGraphComponent(props: LineGraphComponentProps) {
     const [controlPoints, setControlPoints] = useState(startEndPoints.concat(props.data));
@@ -445,7 +445,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     const [clickedPointIds, setClickedPointIds] = useState<UUID[]>([]);
     const [methodsParams, setMethodsParams] = useState(DefaultTFParams);
 
-    const attrs = useRef<LineGraphAttrs | undefined>();
+    // const attrs = useRef<LineGraphAttrs | undefined>();
 
     const myRef = useRef<React.RefObject<any> | undefined>(undefined);
     const height = useRef(LineGraphParams.height);
@@ -1058,6 +1058,11 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         return bars;
     }
 
+    function addPoint(point: ControlPoint) {
+        controlPoints.push(point);
+        handleChangePoints(controlPoints);
+    }
+
     function createPoint() {
         const svgP = (myRef.current as any).createSVGPoint();
         // TODO: address constant 100, perhaps should be dependant on baseline, roof etc.
@@ -1079,14 +1084,74 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         addPoint(newPoint);
     }
 
-    const LineGraphRendered = (props: any) => {
+    // TODO: fix movement of plus and minus sign buttons upon creation of points
+    function removeRightmostPoint() {
+        const points = controlPoints;
+        const sortedPs = sortPointsByXValues(points);
+        const rightmostP = sortedPs[sortedPs.length - 2];
+        removePoint(rightmostP.id);
+    };
+
+    function refCallBack(element: any) {
+        if (element) {
+            myRef.current = element;
+        }
+    }
+
+    function handleEnter() {
+        document.removeEventListener('mousemove', handleDrag, true);
+        document.removeEventListener('mouseup', handlePointUpdate, true);
+    }
+
+    const handleKeyDown = (event: any) => {
+        // TODO: set canSelectMultiple = true
+        if (event.key === 'Shift') {
+            setCanSelectMultiple(true);
+            // TODO: allow to select another point
+        } else {
+            // console.log(`${event} is pressed`);
+        }
+    };
+
+    const handleKeyUp = (event: any) => {
+        // TODO: SET canSelectMultiple = fasle
+        setCanSelectMultiple(false);
+        if (event.shiftKey) {
+            // TODO: allow to select another point
+        } else {
+            // console.log(`${event} is released`);
+        }
+    };
+
+    const updateColor: ParamOnChange = ({ value }: { value: Color }) => {
+        const currentPoints = controlPoints;
+        if (!clickedPointIds || clickedPointIds.length === 0) throw Error('No point is selected');
+        const clickedPoints = getPoints(clickedPointIds);
+        if (!clickedPoints) throw Error('Point should be selected');
+        for (const point of clickedPoints) {
+            point.color = value;
+        }
+        const clickedPointsIds = clickedPoints.map(p => p.id);
+        const notClickedPoints = currentPoints.filter(p => !clickedPointsIds.includes(p.id));
+        const newPoints = clickedPoints.concat(notClickedPoints);
+        handleChangePoints(newPoints);
+    };
+
+    const onColorSquareClick = (pointId: UUID) => {
+        // TODO: change color
+        // use .change method
+        // perhaps handle Change point or something
+        setClickedPointIds([pointId]);
+        toggleColorPicker();
+    };
+
+    const LineGraphRendered = () => {
         const points = renderPoints();
         const baseline = renderBaseline();
         const lines = renderLines();
         const histogram = renderHistogram();
         const axes = renderAxes();
         const gridLines = renderGridLines();
-        // const pointsButtons = this.renderPointsButtons();
         const descriptiveStatisticsBars = renderDescriptiveStatisticsBars();
         const firstPoint = clickedPointIds.length > 0 ? getPoint(clickedPointIds[0]) : void 0;
         const color = firstPoint ? firstPoint.color : void 0;
@@ -1097,18 +1162,79 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
             position: ('absolute' as any),
             top: '100px',
             right: '30px',
-            // transform: 'translate(-50%, -50%)'
         };
-        // TODO: fix style
         const minusIconButtonStyle = {
             position: ('absolute' as any),
             top: '100px',
             right: '5px',
-            // transform: 'translate(-50%, -50%)'
         };
+
+        const { h, b, r, w, p } = _getLineGraphAttributes();
+        
+        const rendered = ([
+            <div key="LineGraph">
+                <IconButton style={plusIconButtonStyle} small svg={PlusBoxSvg} onClick={function (e: React.MouseEvent<HTMLButtonElement>): void {
+                    _createPoint();
+                } } ></IconButton>
+                <IconButton style={minusIconButtonStyle} small svg={MinusBoxSvg} onClick={function (e: React.MouseEvent<HTMLButtonElement>): void {
+                    _removePoint();
+                } } ></IconButton>
+                <svg
+                    className="msp-canvas"
+                    ref={refCallBack}
+                    viewBox={`0 0 ${w + p} ${h + p}`}
+                    onMouseMove={handleDrag}
+                    onMouseUp={handlePointUpdate}
+                    onMouseLeave={handleLeave}
+                    onMouseEnter={handleEnter}
+                    tabIndex={0}
+                    onKeyDown={handleKeyDown}
+                    onKeyUp={handleKeyUp}
+                    // onDoubleClick={handleDoubleClick}
+                    >
+                    <g stroke="black" fill="black">
+                        {baseline}
+                        {histogram}
+                        {lines}
+                        {points}
+                        {descriptiveStatisticsBars}
+                        {axes}
+                        {gridLines}
+                    </g>
+                    <g className="ghost-points" stroke="black" fill="black">
+                    </g>
+                </svg>
+                {/* TODO: div with the same height as color picker */}
+                <>{showColorPicker ? <ColorPicker isActive={showColorPicker} defaultColor={defaultColor}
+                    color={color} updateColor={updateColor} toggleColorPicker={toggleColorPicker}/> :
+                    // TODO: fix this div
+                    <div>Select point to change color</div>}
+                </>
+                <>
+                    {/* <TFParamsWrapper onChange={this.setTF} descriptiveStatistics={this.descriptiveStatistics}></TFParamsWrapper> */}
+                    {/* <Button onClick={this.deleteAllPoints}>Remove All Points</Button> */}
+                    <PointsPanel points={controlPoints}
+                        onPointIndexClick={highlightPoint}
+                        removeAllPoints={deleteAllPoints}
+                        onExpandGroupOpen={props.onExpandGroupOpen}
+                        changeXValue={changeXValue}
+                        changeAlphaValue={changeAlphaValue}
+                        onPointButtonClick={removePoint}
+                        onColorSquareClick={this.onColorSquareClick}></PointsPanel>
+                    {/* Connect this to existing code */}
+                    {/* should render actual state of all methods
+                    // add this to state then, params of all methods */}
+                    {/* TODO: debug */}
+                    <HelpersPanel onChange={this.setTF} methods={this.state.methodsParams} descriptiveStatistics={this.descriptiveStatistics}></HelpersPanel>
+                </>
+            </div>,
+            <div key="modal" id="modal-root" />
+        ]);
+        
+        return rendered;
     }
 
-    return 
+    return LineGraphRendered();
 }
 
 export class LineGraphComponent extends React.Component<any, LineGraphComponentState> {
