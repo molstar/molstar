@@ -644,7 +644,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         const offset = p / 2;
         const maxX = w + offset;
         const normalizedX = (controlPointData.x * (maxX - offset)) + offset;
-        const space = h - b - r;
+        const space = _getYSpace();
         const yFromBottom = controlPointData.alpha * space;
         const fromTopToBaseline = h - b;
         const yFromTop = fromTopToBaseline - yFromBottom;
@@ -677,12 +677,33 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         document.addEventListener('mousemove', handleDrag, true);
         document.addEventListener('mouseup', handlePointUpdate, true);
     }
+    function svgCoordsToPointData(vec2: Vec2): ControlPointData {
+        const h = height.current;
+        const b = baseline.current;
+        const r = roof.current;
+        const w = width.current;
+        const p = padding.current;
+        const space = _getYSpace();
+        const min = p / 2;
+        const maxX = w + min;
+        const unNormalizedX = (vec2[0] - min) / (maxX - min);
+        const cartesianDistanceBetweenPointAndBaseline = (h - b - vec2[1]);
+        const dividedBySpace = cartesianDistanceBetweenPointAndBaseline / space;
+        const unNormalizedY = dividedBySpace;
+        return {
+            x: unNormalizedX,
+            alpha: unNormalizedY
+        };
+    }
 
     function handleDrag(event: any) {
         if (selectedPointId.current === undefined || !myRef.current) {
             return;
         }
         const w = width.current;
+        const h = height.current;
+        const b = baseline.current;
+        const r = roof.current;
         const mr = (myRef.current as any);
         const pt = mr.createSVGPoint();
         let updatedCopyPoint;
@@ -691,50 +712,109 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         pt.y = event.clientY;
         const svgP = pt.matrixTransform(mr.getScreenCTM().inverse());
         updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
-        if ((svgP.x < (offset) || svgP.x > (this.width + (offset))) &&
-        (svgP.y > (this.height - this.baseline) || svgP.y < (0))) {
-            debugger;
-            updatedCopyPoint = Vec2.create(this.updatedX, this.updatedY);
-        // right border is X > something
+        if ((svgP.x < (offset) || svgP.x > (w + (offset))) &&
+        (svgP.y > (h - b) || svgP.y < (0))) {
+            updatedCopyPoint = Vec2.create(updatedX.current, updatedY.current);
         } else if (svgP.x < offset) {
-            debugger;
-            // TODO: fix lines to start from true 0
             updatedCopyPoint = Vec2.create(offset, svgP.y);
-            // this probably
-        } else if (svgP.x > (this.width + (offset))) {
-            // this
-            console.log('Creating a point while crossing right border');
-            // should create on the same x that is fine, but on correct y
-            console.log(this.width + offset, svgP.y);
-            updatedCopyPoint = Vec2.create(this.width + offset, svgP.y);
-            // touch this
-        } else if (svgP.y > (this.height - this.baseline)) {
-            debugger;
-            // does not allow into such area
-            // fix viewbox or?
-            updatedCopyPoint = Vec2.create(svgP.x, this.height - this.baseline);
-        } else if (svgP.y < (this.roof)) {
-            debugger;
-            updatedCopyPoint = Vec2.create(svgP.x, this.roof);
+        } else if (svgP.x > (w + (offset))) {
+            updatedCopyPoint = Vec2.create(w + offset, svgP.y);
+        } else if (svgP.y > (h - b)) {
+            updatedCopyPoint = Vec2.create(svgP.x, h - b);
+        } else if (svgP.y < (r) {
+            updatedCopyPoint = Vec2.create(svgP.x, r);
         } else {
-            // console.log('Point within the constraints, creating normally');
             updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
         }
 
-        this.updatedX = updatedCopyPoint[0];
-        this.updatedY = updatedCopyPoint[1];
-        // TODO
-        const unNormalizePoint = this.svgCoordsToPointData(updatedCopyPoint);
+        updatedX.current = updatedCopyPoint[0];
+        updatedY.current = updatedCopyPoint[1];
+        const unNormalizePoint = svgCoordsToPointData(updatedCopyPoint);
         // TODO: this.ghostPoints[0] is undefined when dragging a point towards right
         // border, why?
-        this.ghostPoints[0].setAttribute('style', 'display: visible');
-        this.ghostPoints[0].setAttribute('cx', `${updatedCopyPoint[0]}`);
-        this.ghostPoints[0].setAttribute('cy', `${updatedCopyPoint[1]}`);
+        ghostPoints.current[0].setAttribute('style', 'display: visible');
+        ghostPoints.current[0].setAttribute('cx', `${updatedCopyPoint[0]}`);
+        ghostPoints.current[0].setAttribute('cy', `${updatedCopyPoint[1]}`);
 
-
-        this.props.onDrag(unNormalizePoint);
-        // ok got it then point is "normalized" and thus got raised up or something
+        props.onDrag(unNormalizePoint);
     }
+
+    function replacePoint(point: ControlPoint) {
+        let points = controlPoints.filter(p => p.id !== point.id);
+        points.push(point);
+        points = sortPointsByXValues(points);
+        setControlPoints(points);
+        change(points);
+    }
+
+    function handlePointUpdate(event: any) {
+        const selected = selectedPointId.current;
+        if (canSelectMultiple) {
+            return;
+        }
+        if (selected === undefined || getPoint(selected).isTerminal === true) {
+            setCopyPoint(undefined);
+            return;
+        }
+        selectedPointId.current = undefined;
+        const pointData = getPoint(selected);
+        const updatedPointData = svgCoordsToPointData(Vec2.create(updatedX.current, updatedY.current));
+        const updatedPoint: ControlPoint = {
+            data: updatedPointData,
+            id: pointData.id,
+            color: pointData.color,
+            index: pointData.index
+        };
+
+        replacePoint(updatedPoint);
+        if (!gElement.current) throw Error('No gElement (SVGElement)');
+        gElement.current.innerHTML = '';
+        ghostPoints.current = [];
+        document.removeEventListener('mousemove', handleDrag, true);
+        document.removeEventListener('mouseup', handlePointUpdate, true);
+    }
+
+    const handleMouseDown = (point: ControlPoint) => (event: any) => {
+        const { id, isTerminal } = point;
+        if (isTerminal === true) {
+            return;
+        }
+        if (canSelectMultiple) {
+            return;
+        }
+        const gps = ghostPoints.current;
+        const copyPoint: Vec2 = controlPointDataToSVGCoords(getPoint(id).data);
+        gps.push(document.createElementNS(namespace.current, 'circle') as SVGElement);
+        gps[0].setAttribute('r', '10');
+        gps[0].setAttribute('fill', 'orange');
+        gps[0].setAttribute('cx', `${copyPoint[0]}`);
+        gps[0].setAttribute('cy', `${copyPoint[1]}`);
+        gps[0].setAttribute('style', 'display: none');
+        if (!gElement.current) throw Error('No gElement (SVGElement)');
+        gElement.current.appendChild(gps[0]);
+        updatedX.current = copyPoint[0];
+        updatedY.current = copyPoint[1];
+        selectedPointId.current = point.id;
+    };
+
+    const toggleColorPicker = () => {
+        setShowColorPicker(showColorPicker === true ? false : true);
+    };
+
+    const handleClick = (point: ControlPoint) => (event: any) => {
+        setClickedPointIds([point.id]);
+        
+        if (canSelectMultiple) {
+            if (event.shiftKey) return;
+            // TODO: function to execute on this
+        }
+
+        if (showColorPicker) {
+            // TODO: what should happen there?
+        } else {
+            toggleColorPicker();
+        }
+    };
 
     function renderPoints() {
         const points: any[] = [];
@@ -755,14 +835,248 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
                     selected={false}
                     delete={deletePoint}
                     // onmouseover we provide props.onHover of line graph component
-                    onmouseover={this.props.onHover}
-                    onmousedown={this.handleMouseDown(this.state.points[i])}
-                    onclick={this.handleClick(this.state.points[i])}
+                    onmouseover={props.onHover}
+                    onmousedown={handleMouseDown(controlPoints[i])}
+                    onclick={handleClick(controlPoints[i])}
                     color={finalColor}
                 />);
             }
         }
         return points;
+    }
+
+    function makeYAxisLabel(value: number, x: number, y: number) {
+        // TODO: make constants be dependant on precision and font size
+        // TODO: font size
+        // TODO: remove x dep
+        return <text x={x} y={y + 25} fontSize={25}>{parseFloat(value.toFixed(1))} </text>;
+    }
+
+    function renderBaseline() {
+        const { h, b, r, w, p } = _getLineGraphAttributes();
+        return <>
+            <BaseLine height={h - b} offset={p / 2} width={w} />
+            {makeYAxisLabel(0, b / 2, h)}
+            {makeYAxisLabel(1, b / 2, b)}
+        </>;
+    }
+
+    function _getYSpace() {
+        const { h, b, r, w, p } = _getLineGraphAttributes();
+        const space = h - b - r;
+        return space;
+    }
+
+    function _getLineGraphAttributes() {
+        const h = height.current;
+        const b = baseline.current;
+        const r = roof.current;
+        const w = width.current;
+        const p = padding.current;
+        return { h, b, r, w, p };
+    }
+
+    function renderLines() {
+        const points: Vec2[] = [];
+        const lines = [];
+        let maxX: number;
+        let maxY: number;
+        let normalizedX: number;
+        let normalizedY: number;
+        let reverseY: number;
+
+        const { h, b, r, w, p } = _getLineGraphAttributes();
+        
+        const o = p / 2;
+        for (const point of controlPoints) {
+            maxX = w + o;
+            maxY = h + p;
+            normalizedX = (point.data.x * (maxX - o)) + o;
+            const alpha = point.data.alpha;
+            const space = _getYSpace();
+            const pointHeightRealAboveBaseline = alpha * space;
+            const pointHeightRealBelowRoof = space - pointHeightRealAboveBaseline;
+            const pointHeightBelowSVGOrigin = pointHeightRealBelowRoof + r;
+            points.push(Vec2.create(normalizedX, pointHeightBelowSVGOrigin));
+        }
+
+        const data = points;
+        const size = data.length;
+
+        for (let i = 0; i < size - 1; i++) {
+            const x1 = data[i][0];
+            const y1 = data[i][1];
+            const x2 = data[i + 1][0];
+            const y2 = data[i + 1][1];
+            lines.push(<line key={`lineOf${i}`} x1={x1} x2={x2} y1={y1} y2={y2} stroke="#cec9ba" strokeWidth="5"/>);
+        }
+
+        return lines;
+    }
+
+    function renderHistogram() {
+        if (!props.volume) return null;
+        const { h, b, r, w, p } = _getLineGraphAttributes();
+        const histogram = Grid.getHistogram(props.volume.grid, 40);
+        const bars = [];
+        const N = histogram.counts.length;
+        const histogramW = w / N;
+        const offset = p / 2;
+        const max = arrayMax(histogram.counts) || 1;
+        for (let i = 0; i < N; i++) {
+            const fromValue = histogram.min + histogram.binWidth * i;
+            const toValue = histogram.min + histogram.binWidth * (i + 1);
+            const x = w * i / (N - 1) + offset;
+            const y1 = h - b;
+            const space = _getYSpace();
+            const fraction = space * (1 - histogram.counts[i] / max);
+            const y2 = fraction + r;
+            bars.push(<line key={`histogram${i}`} x1={x} x2={x} y1={y1} y2={y2} stroke="#A9A9A9" strokeWidth={histogramW}>
+                <title>[{fromValue}; {toValue}]</title>
+            </line>);
+        }
+        return bars;
+    }
+
+    function renderAxes() {
+        if (!props.volume) return null;
+        const { h, b, r, w, p } = _getLineGraphAttributes();
+        const offset = p / 2;
+        const x1HorizontalBar = offset;
+        const x2HorizontalBar = w + offset;
+        const y1HorizontalBar = h + offset;
+        const y2HorizontalBar = h + offset;
+        const x2VerticalBar = offset;
+        const x1VerticalBar = offset;
+        const y2VerticalBar = 25;
+        const y1VerticalBar = h + offset;
+        const barW = offset / 10;
+        const bars = [];
+        bars.push(
+            <>
+                <defs>
+                    <marker
+                        id="head-horizontal"
+                        viewBox="0 0 10 10"
+                        refX="5"
+                        refY="5"
+                        markerWidth="6"
+                        markerHeight="6"
+                        orient="auto-start-reverse">
+                        <path d="M 0 2 L 10 5 L 0 8 z" />
+                    </marker>
+                </defs>
+
+                <line key={'horizontalAxis'} x1={x1HorizontalBar} x2={x2HorizontalBar}
+                    y1={y1HorizontalBar} y2={y2HorizontalBar} stroke="#7d7f7c" strokeWidth={barW} markerEnd="url(#head-horizontal)">
+                </line>
+            </>
+        );
+        bars.push(
+            <>
+                <defs>
+                    <marker
+                        id="head-vertical"
+                        viewBox="0 0 10 10"
+                        refX="5"
+                        refY="5"
+                        markerWidth="6"
+                        markerHeight="6"
+                        orient="auto-start-reverse">
+                        <path d="M 0 2 L 10 5 L 0 8 z" />
+                        {/* <path d="M 2 10 L 5 0 L 8 10 z" /> */}
+                    </marker>
+                </defs>
+                <line key={'verticalAxis'} x1={x1VerticalBar} x2={x2VerticalBar}
+                    y1={y1VerticalBar} y2={y2VerticalBar} stroke="#7d7f7c" strokeWidth={barW} markerEnd="url(#head-vertical)">
+                    {/* <title>+ Sigma: {sigma}</title> */}
+                </line>
+            </>
+        );
+        return bars;
+    }
+
+    function makeXAxisLabel(value: number, x: number, y: number) {
+        // TODO: make constants be dependant on precision and font size
+        // TODO: font size
+        // TODO: remove y dep
+        return <text x={x - 20} y={y + 25}>{parseFloat(value.toFixed(5))} </text>;
+    }
+
+    function renderGridLines() {
+        const { h, b, r, w, p } = _getLineGraphAttributes();
+        const count = 5;
+        const bars: any = [];
+        const offset = p / 2;
+        const x1 = offset;
+        const lineW = 0.5;
+        const x2 = w + offset;
+        for (let i = 0; i < count; ++i) {
+            const y = h * i / count;
+            bars.push(
+                <line key={`${1 - i / count}gridline`} x1={x1} x2={x2} y1={y} y2={y}
+                    stroke="#A9A9A9" strokeWidth={lineW} strokeDasharray="15, 15">
+                    <title>{(1 - i / count).toFixed(1)}</title>
+                </line>
+            );
+        }
+        return bars;
+    }
+
+    function renderDescriptiveStatisticsBars() {
+        if (!props.volume) return null;
+        const { h, b, r, w, p } = _getLineGraphAttributes();
+        const offset = p / 2;
+        const { mean, min, max, sigma } = descriptiveStatistics.current;
+        const extent = max - min;
+        const x = w * ((mean + Math.abs(min)) / extent) + offset;
+        const barW = offset / 10;
+        const bars = [];
+        const y1 = h + offset;// + offset * 2;
+        const y2 = 0;// offset;
+        const xPositive = w * ((mean + sigma + Math.abs(min)) / extent) + offset;
+        const xNegative = w * ((mean - sigma + Math.abs(min)) / extent) + offset;
+        bars.push(
+            <>
+                <line key={'meanBar'} x1={x} x2={x} y1={y1} y2={y2} stroke="#D3D3D3" strokeDasharray="5, 5" strokeWidth={barW}>
+                    <title>Mean: {mean}</title>
+                </line>
+                {makeXAxisLabel(mean, x, y1)}
+            </>);
+        bars.push(<>
+        <line key={'positiveSigmaBar'} x1={xPositive} x2={xPositive} y1={y1} y2={y2} stroke="#D3D3D3" strokeWidth={barW}>
+            <title>+Sigma: {mean + sigma}</title>
+        </line>
+        {makeXAxisLabel(mean + sigma, xPositive, y1)}
+        </>);
+        bars.push(
+            <><line key={'negativeSigmaBar'} x1={xNegative} x2={xNegative} y1={y1} y2={y2} stroke="#D3D3D3" strokeWidth={barW}>
+                <title>-Sigma: {-sigma}</title>
+            </line>
+            {makeXAxisLabel(mean - sigma, xNegative, y1)}
+            </>);
+        return bars;
+    }
+
+    function createPoint() {
+        const svgP = (myRef.current as any).createSVGPoint();
+        // TODO: address constant 100, perhaps should be dependant on baseline, roof etc.
+        const { h, b, r, w, p } = _getLineGraphAttributes();
+        svgP.x = w - 100;
+        svgP.y = h - 100;
+
+        const points = controlPoints;
+        const newPointData = svgCoordsToPointData(Vec2.create(svgP.x, svgP.y));
+        const sorted = sortPointsByXValues(points);
+        const realPoints = sorted.filter(p => p.isTerminal === undefined || false);
+        const maxIndex = realPoints[realPoints.length - 1].index;
+        const newPoint: ControlPoint = {
+            data: newPointData,
+            id: UUID.create22(),
+            color: getRandomColor(),
+            index: maxIndex + 1
+        };
+        addPoint(newPoint);
     }
 
     const LineGraphRendered = (props: any) => {
@@ -1235,11 +1549,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     }
 
     private handleMouseDown = (point: ControlPoint) => (event: any) => {
-        // this is called once
-        debugger;
-        console.log('handleMouseDown');
         const { id, isTerminal } = point;
-        // if (index === 0 || index === this.state.points.length - 1) {
         if (isTerminal === true) {
             return;
         }
@@ -1258,7 +1568,6 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         this.updatedX = copyPoint[0];
         this.updatedY = copyPoint[1];
         this.selectedPointId = point.id;
-        debugger;
     };
 
     private handleDrag(event: any) {
@@ -1528,37 +1837,17 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
 
     // TODO: TODO: TODO: modify this too
     private svgCoordsToPointData(vec2: Vec2): ControlPointData {
-        // vec2 are the coordinates of the point, real ones
-        // from svg
-        // creates x and alpha from cartisian
-        // leverage baseline
         const space = this.height - this.baseline - this.roof;
         const min = this.padding / 2;
         const maxX = this.width + min;
         const maxY = this.height + min;
-        // this we keep
         const unNormalizedX = (vec2[0] - min) / (maxX - min);
-
-        // I guess the
-        // we have to take into account that we reversed y when we first normalized it.
-        // this we update
-        // ok we have now what, we have space in pixels
-        // and we have real coordinate which is vec2[1]
-        // from the top left corner
-        // need to get 1
-        // 1. The cartesian distance between point and baseline
         const cartesianDistanceBetweenPointAndBaseline = (this.height - this.baseline - vec2[1]);
-        // 2. divide that distance by space
         const dividedBySpace = cartesianDistanceBetweenPointAndBaseline / space;
-        // this will give us alpha [0;1]
         const unNormalizedY = dividedBySpace;
-        // const unNormalizedY = ((this.height + this.padding) - vec2[1] - min) / (maxY - min);
-
-        // TODO: may need to make adjusted ALPHA obligatory
         return {
             x: unNormalizedX,
-            alpha: unNormalizedY,
-            // adjustedAlpha: unNormalizedY// + this.baselineUnnormalized
+            alpha: unNormalizedY
         };
     }
 
