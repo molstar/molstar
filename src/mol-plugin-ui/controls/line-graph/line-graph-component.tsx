@@ -320,16 +320,6 @@ interface VolumeDescriptiveStatistics {
     sigma: number
 }
 
-interface LineGraphComponentState {
-    points: ControlPoint[],
-    copyPoint: any,
-    canSelectMultiple: boolean,
-    showColorPicker: boolean,
-    // colored: boolean,
-    clickedPointIds?: UUID[],
-    methodsParams: TFParamsValues[],
-}
-
 function ColorPicker(props: any) {
     const isActive = props.isActive;
     const defaultColor = props.defaultColor;
@@ -824,7 +814,6 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     function renderPoints() {
         const points: any[] = [];
         let point: Vec2;
-        console.log(controlPoints);
         for (let i = 0; i < controlPoints.length; i++) {
             if (controlPoints[i].isTerminal !== true) {
             // if (i !== 0 && i !== controlPoints.length - 1) {
@@ -1149,7 +1138,11 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         // use .change method
         // perhaps handle Change point or something
         setClickedPointIds([pointId]);
-        toggleColorPicker();
+        if (showColorPicker) {
+            // TODO: what should happen there?
+        } else {
+            toggleColorPicker();
+        }
     };
 
     const LineGraphRendered = () => {
@@ -1215,7 +1208,8 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
                 <>{showColorPicker ? <ColorPicker isActive={showColorPicker} defaultColor={defaultColor}
                     color={color} updateColor={updateColor} toggleColorPicker={toggleColorPicker}/> :
                     // TODO: fix this div
-                    <div>Select point to change color</div>}
+                    // <div>Select point to change color</div>}
+                    <Button disabled >Select point to change color</Button>}
                 </>
                 <>
                     {/* <TFParamsWrapper onChange={this.setTF} descriptiveStatistics={this.descriptiveStatistics}></TFParamsWrapper> */}
