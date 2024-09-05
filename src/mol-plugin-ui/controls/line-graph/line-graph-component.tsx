@@ -87,55 +87,6 @@ function PointButton(props: PointButtonProps) {
     return render();
 }
 
-// class PointButton extends React.Component<any> {
-//     onAbs = (v: number) => {
-//         this.props.changeXValue(this.props.point.id, v);
-//         // this.props.value = v;
-//     };
-
-//     onAlpha = (v: number) => {
-//         // set here based on value, that is fine, just truncate it then in visual
-//         this.props.changeAlphaValue(this.props.point.id, v);
-//     };
-
-//     handleClick = () => {
-//         this.props.onClick(this.props.point.id);
-//     };
-
-//     onPointIndexClick = (pointId: UUID) => {
-//         this.props.onPointIndexClick(pointId);
-//     };
-
-//     render() {
-//         const [absValue, relativeValue] = this.props.onExpandGroupOpen(this.props.point.data);
-//         const truncatedAbsValue = parseFloat((absValue as number).toFixed(3));
-//         // console.log(absValue, relativeValue);
-//         const alpha = (this.props.point.data.alpha as number).toFixed(3);
-//         const color = this.props.point.color as Color;
-//         return (
-//             <div style={{ display: 'flex', marginBottom: 1 }} key={this.props.point.id}>
-//                 <Button style={{ textAlign: 'start', textIndent: '20px' }}>{this.props.point.index}</Button>
-//                 {<Button style={{ backgroundColor: Color.toStyle(color), minWidth: 32, width: 32 }}
-//                     onClick={() => { this.props.onColorSquareClick(this.props.point.id); } } />}
-//                 <TextInput numeric
-//                     style={{ minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
-//                     value={truncatedAbsValue} placeholder={'Some text'}
-//                     // fix that
-//                     // TODO: string to number?
-//                     isDisabled={false} onChange={(value) => { this.onAbs(value); }} />
-//                 <TextInput numeric
-//                 // ok set value to string repr parseFloat and toFixed, but store in state the true value instead
-//                 // and set the value based on the state inside onAlpha onAbs
-//                     style={{ minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
-//                     value={alpha} placeholder={'Some text'}
-//                     isDisabled={false} onChange={(value) => { this.onAlpha(value as any); }} />
-
-//                 <IconButton title={'Remove point'} svg={DeleteSvg} onClick={this.handleClick}></IconButton>
-//             </div>
-//         );
-//     }
-// }
-
 function adjustTFParams(name: TFName, ds: VolumeDescriptiveStatistics) {
     switch (name) {
         // TODO: type for that
@@ -156,47 +107,54 @@ function adjustTFParams(name: TFName, ds: VolumeDescriptiveStatistics) {
     }
 }
 
-class BaseLine extends React.Component<any> {
-    // handleClick = () => {
-    //     // this.props.onClick(this.props.kind, this.props.sigmaMultiplierExtent, this.props.sigmaMultiplierCenter);
-    // };
+interface BaselineProps {
+    height: number
+    offset: number
+    width: number
+} 
 
-    render() {
-        const y = this.props.height;
-        const x1 = this.props.offset;
-        const x2 = this.props.offset + this.props.width;
+function BaseLine(props: BaselineProps) {
+    const render = () => {
+        const y = props.height;
+        const x1 = props.offset;
+        const x2 = props.offset + props.width;
         return (
             <>
                 <line y1={y} y2={y} x1={x1} x2={x2} stroke='black' fill='black'></line>
             </>
         );
     }
+    return render();
 }
 
-class PointsPanel extends React.Component<any> {
-    // handleClick = () => {
-    //     // this.props.onClick(this.props.kind, this.props.sigmaMultiplierExtent, this.props.sigmaMultiplierCenter);
-    // };
 
-    render() {
-        const points: ControlPoint[] = this.props.points;
+interface PointPanelProps {
+    points: ControlPoint[]
+    removeAllPoints: any
+    onPointIndexClick: any
+    onColorSquareClick: any
+    onPointButtonClick: any
+    onExpandGroupOpen: any
+    changeXValue: any
+    changeAlphaValue: any
+}
+
+function PointsPanel(props: PointPanelProps) {
+    const render = () => {
+        const points: ControlPoint[] = props.points;
         const realPoints = points.filter(p => p.isTerminal !== true);
-        debugger;
-        // const realPoints = points.filter();
-        // TODO: add ghost prop to points
-        // const removeAllPointsButton = <Button style={{ position: 'absolute', top: 0, right: 0 }} onClick={this.props.removeAllPoints}>Remove All Points</Button>;
         const iconStyle = { position: 'absolute', top: 0, right: 0, lineHeight: '24px', height: '24px', textAlign: 'right', width: '32px', paddingRight: '6px', background: 'none' };
         const removeAllPointsButton = <IconButton title='Remove All Points' style={iconStyle as any} svg={DeleteSvg} small onClick={() => {
-            this.props.removeAllPoints();
+            props.removeAllPoints();
         } }></IconButton>;
         const controlPointsButtons = realPoints.map(p => {
             return <PointButton key={p.id} point={p}
-                onPointIndexClick={this.props.onPointIndexClick}
-                onColorSquareClick={this.props.onColorSquareClick}
-                onClick={this.props.onPointButtonClick}
-                onExpandGroupOpen={this.props.onExpandGroupOpen}
-                changeXValue={this.props.changeXValue}
-                changeAlphaValue={this.props.changeAlphaValue}
+                onPointIndexClick={props.onPointIndexClick}
+                onColorSquareClick={props.onColorSquareClick}
+                onClick={props.onPointButtonClick}
+                onExpandGroupOpen={props.onExpandGroupOpen}
+                changeXValue={props.changeXValue}
+                changeAlphaValue={props.changeAlphaValue}
                 // TODO: highlight point on enter
                 onEnter={() => {}}
             ></PointButton>;
@@ -209,20 +167,24 @@ class PointsPanel extends React.Component<any> {
                 {removeAllPointsButton}
             </div>
         );
-    }
+    };
+    return render();
 }
 
-class TFMethodPanel extends React.Component<any> {
-    // handleClick = () => {
-    //     // this.props.onClick(this.props.kind, this.props.sigmaMultiplierExtent, this.props.sigmaMultiplierCenter);
-    // };
+interface TFMethodPanelProps {
+    params: TFParamsValues
+    descriptiveStatistics: VolumeDescriptiveStatistics
+    onChange: any
+}
 
-    render() {
-        return <ExpandGroup header={this.props.params.name} initiallyExpanded={true}>
+function TFMethodPanel(props: TFMethodPanelProps) {
+    const render = () => {
+        return <ExpandGroup header={props.params.name} initiallyExpanded={true}>
             {/* render params */}
-            <TFParamsWrapper onChange={this.props.onChange} params={this.props.params} descriptiveStatistics={this.props.descriptiveStatistics}></TFParamsWrapper>
+            <TFParamsWrapper onChange={props.onChange} params={props.params} descriptiveStatistics={props.descriptiveStatistics}></TFParamsWrapper>
         </ExpandGroup>;
-    }
+    };
+    return render();
 }
 
 export type TFName = 'gaussian' | 'method2' | 'defaults';
@@ -327,7 +289,6 @@ class TFParamsWrapper extends React.Component<any> {
 export function areControlPointsColorsSame(newControlPoints: ControlPoint[], oldControlPoints: ControlPoint[]) {
     const newSorted = newControlPoints.sort((a, b) => a.index - b.index);
     const oldSorted = oldControlPoints.sort((a, b) => a.index - b.index);
-    debugger;
     for (let i = 0, il = newSorted.length; i < il; ++i) {
         const newPoint = newSorted[i];
         const oldPoint = oldSorted[i];
@@ -436,7 +397,7 @@ export interface LineGraphComponentProps {
     // TODO: better name
     data: ControlPoint[]
     // TODO: may need to have it as any
-    volume: Volume | undefined
+    volume: Volume | undefined | unknown
     // TODO: function types
     onChange: any
     onHover: any
