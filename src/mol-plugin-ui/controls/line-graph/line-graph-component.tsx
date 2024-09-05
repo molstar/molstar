@@ -447,6 +447,10 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
 
     // const attrs = useRef<LineGraphAttrs | undefined>();
 
+    useEffect(() => {
+        gElement.current = document.getElementsByClassName('ghost-points')[0] as SVGElement;
+    });
+
     const myRef = useRef<React.RefObject<any> | undefined>(undefined);
     const height = useRef(LineGraphParams.height);
     const width = useRef(LineGraphParams.width);
@@ -820,8 +824,10 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     function renderPoints() {
         const points: any[] = [];
         let point: Vec2;
+        console.log(controlPoints);
         for (let i = 0; i < controlPoints.length; i++) {
-            if (i !== 0 && i !== controlPoints.length - 1) {
+            if (controlPoints[i].isTerminal !== true) {
+            // if (i !== 0 && i !== controlPoints.length - 1) {
                 const { data, color, id, index } = controlPoints[i];
                 const finalColor = color;
                 point = controlPointDataToSVGCoords(data);
