@@ -52,6 +52,7 @@ function PointButton(props: PointButtonProps) {
         props.onClick(props.point.id);
     };
 
+    // TODO: highlight the point
     const onPointIndexClick = (pointId: UUID) => {
         props.onPointIndexClick(pointId);
     };
@@ -82,56 +83,58 @@ function PointButton(props: PointButtonProps) {
             </div>
         );
     };
+
+    return render();
 }
 
-class PointButton extends React.Component<any> {
-    onAbs = (v: number) => {
-        this.props.changeXValue(this.props.point.id, v);
-        // this.props.value = v;
-    };
+// class PointButton extends React.Component<any> {
+//     onAbs = (v: number) => {
+//         this.props.changeXValue(this.props.point.id, v);
+//         // this.props.value = v;
+//     };
 
-    onAlpha = (v: number) => {
-        // set here based on value, that is fine, just truncate it then in visual
-        this.props.changeAlphaValue(this.props.point.id, v);
-    };
+//     onAlpha = (v: number) => {
+//         // set here based on value, that is fine, just truncate it then in visual
+//         this.props.changeAlphaValue(this.props.point.id, v);
+//     };
 
-    handleClick = () => {
-        this.props.onClick(this.props.point.id);
-    };
+//     handleClick = () => {
+//         this.props.onClick(this.props.point.id);
+//     };
 
-    onPointIndexClick = (pointId: UUID) => {
-        this.props.onPointIndexClick(pointId);
-    };
+//     onPointIndexClick = (pointId: UUID) => {
+//         this.props.onPointIndexClick(pointId);
+//     };
 
-    render() {
-        const [absValue, relativeValue] = this.props.onExpandGroupOpen(this.props.point.data);
-        const truncatedAbsValue = parseFloat((absValue as number).toFixed(3));
-        // console.log(absValue, relativeValue);
-        const alpha = (this.props.point.data.alpha as number).toFixed(3);
-        const color = this.props.point.color as Color;
-        return (
-            <div style={{ display: 'flex', marginBottom: 1 }} key={this.props.point.id}>
-                <Button style={{ textAlign: 'start', textIndent: '20px' }}>{this.props.point.index}</Button>
-                {<Button style={{ backgroundColor: Color.toStyle(color), minWidth: 32, width: 32 }}
-                    onClick={() => { this.props.onColorSquareClick(this.props.point.id); } } />}
-                <TextInput numeric
-                    style={{ minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
-                    value={truncatedAbsValue} placeholder={'Some text'}
-                    // fix that
-                    // TODO: string to number?
-                    isDisabled={false} onChange={(value) => { this.onAbs(value); }} />
-                <TextInput numeric
-                // ok set value to string repr parseFloat and toFixed, but store in state the true value instead
-                // and set the value based on the state inside onAlpha onAbs
-                    style={{ minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
-                    value={alpha} placeholder={'Some text'}
-                    isDisabled={false} onChange={(value) => { this.onAlpha(value as any); }} />
+//     render() {
+//         const [absValue, relativeValue] = this.props.onExpandGroupOpen(this.props.point.data);
+//         const truncatedAbsValue = parseFloat((absValue as number).toFixed(3));
+//         // console.log(absValue, relativeValue);
+//         const alpha = (this.props.point.data.alpha as number).toFixed(3);
+//         const color = this.props.point.color as Color;
+//         return (
+//             <div style={{ display: 'flex', marginBottom: 1 }} key={this.props.point.id}>
+//                 <Button style={{ textAlign: 'start', textIndent: '20px' }}>{this.props.point.index}</Button>
+//                 {<Button style={{ backgroundColor: Color.toStyle(color), minWidth: 32, width: 32 }}
+//                     onClick={() => { this.props.onColorSquareClick(this.props.point.id); } } />}
+//                 <TextInput numeric
+//                     style={{ minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
+//                     value={truncatedAbsValue} placeholder={'Some text'}
+//                     // fix that
+//                     // TODO: string to number?
+//                     isDisabled={false} onChange={(value) => { this.onAbs(value); }} />
+//                 <TextInput numeric
+//                 // ok set value to string repr parseFloat and toFixed, but store in state the true value instead
+//                 // and set the value based on the state inside onAlpha onAbs
+//                     style={{ minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
+//                     value={alpha} placeholder={'Some text'}
+//                     isDisabled={false} onChange={(value) => { this.onAlpha(value as any); }} />
 
-                <IconButton title={'Remove point'} svg={DeleteSvg} onClick={this.handleClick}></IconButton>
-            </div>
-        );
-    }
-}
+//                 <IconButton title={'Remove point'} svg={DeleteSvg} onClick={this.handleClick}></IconButton>
+//             </div>
+//         );
+//     }
+// }
 
 function adjustTFParams(name: TFName, ds: VolumeDescriptiveStatistics) {
     switch (name) {
@@ -194,19 +197,16 @@ class PointsPanel extends React.Component<any> {
                 onExpandGroupOpen={this.props.onExpandGroupOpen}
                 changeXValue={this.props.changeXValue}
                 changeAlphaValue={this.props.changeAlphaValue}
+                // TODO: highlight point on enter
+                onEnter={() => {}}
             ></PointButton>;
         });
         return (
-            // TODO: may need this className='msp-representation-entry'
             <div style={{ position: 'relative' }}>
                 <ExpandGroup header='Control Points Panel' initiallyExpanded={false}>
                     {controlPointsButtons}
                 </ExpandGroup>
                 {removeAllPointsButton}
-                {/* TODO: flex? */}
-                {/* <IconButton small onClick={() => {
-                this.props.removeAllPoints();
-            } }></IconButton> */}
             </div>
         );
     }
