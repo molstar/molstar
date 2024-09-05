@@ -433,7 +433,7 @@ export interface LineGraphComponentProps {
 //     this.ghostPoints = [];
 //     this.namespace = 'http://www.w3.org/2000/svg';
 //     this.descriptiveStatistics = this.getDescriptiveStatistics();
-    
+
 // }
 
 export function LineGraphComponent(props: LineGraphComponentProps) {
@@ -531,7 +531,8 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         const TFextent = max - min;
         const b = gaussianCenter / TFextent;
         const c = gaussianExtent / TFextent;
-        const gaussianPoints: ControlPoint[] = generateGaussianControlPoints(a, b, c, TFextent, 0, this.props.volume, paddingUnnormalized);
+        if (!props.volume) throw Error('No volume');
+        const gaussianPoints: ControlPoint[] = generateGaussianControlPoints(a, b, c, TFextent, 0, props.volume, paddingUnnormalized);
         const currentPoints = controlPoints;
         gaussianPoints.push(currentPoints[currentPoints.length - 1]);
         gaussianPoints.unshift(currentPoints[0]);
@@ -624,7 +625,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     }
 
     function getPoint(id: UUID) {
-        const selectedPoint: ControlPoint = controlPoints.find(p => p.id === id);
+        const selectedPoint = controlPoints.find(p => p.id === id);
         if (!selectedPoint) throw Error(`Point with id ${id} does not exist`);
         return selectedPoint;
     }
@@ -721,7 +722,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
             updatedCopyPoint = Vec2.create(w + offset, svgP.y);
         } else if (svgP.y > (h - b)) {
             updatedCopyPoint = Vec2.create(svgP.x, h - b);
-        } else if (svgP.y < (r) {
+        } else if (svgP.y < (r)) {
             updatedCopyPoint = Vec2.create(svgP.x, r);
         } else {
             updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
@@ -803,7 +804,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
 
     const handleClick = (point: ControlPoint) => (event: any) => {
         setClickedPointIds([point.id]);
-        
+
         if (canSelectMultiple) {
             if (event.shiftKey) return;
             // TODO: function to execute on this
@@ -886,7 +887,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         let reverseY: number;
 
         const { h, b, r, w, p } = _getLineGraphAttributes();
-        
+
         const o = p / 2;
         for (const point of controlPoints) {
             maxX = w + o;
@@ -1044,10 +1045,10 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
                 {makeXAxisLabel(mean, x, y1)}
             </>);
         bars.push(<>
-        <line key={'positiveSigmaBar'} x1={xPositive} x2={xPositive} y1={y1} y2={y2} stroke="#D3D3D3" strokeWidth={barW}>
-            <title>+Sigma: {mean + sigma}</title>
-        </line>
-        {makeXAxisLabel(mean + sigma, xPositive, y1)}
+            <line key={'positiveSigmaBar'} x1={xPositive} x2={xPositive} y1={y1} y2={y2} stroke="#D3D3D3" strokeWidth={barW}>
+                <title>+Sigma: {mean + sigma}</title>
+            </line>
+            {makeXAxisLabel(mean + sigma, xPositive, y1)}
         </>);
         bars.push(
             <><line key={'negativeSigmaBar'} x1={xNegative} x2={xNegative} y1={y1} y2={y2} stroke="#D3D3D3" strokeWidth={barW}>
@@ -1170,7 +1171,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         };
 
         const { h, b, r, w, p } = _getLineGraphAttributes();
-        
+
         const rendered = ([
             <div key="LineGraph">
                 <IconButton style={plusIconButtonStyle} small svg={PlusBoxSvg} onClick={function (e: React.MouseEvent<HTMLButtonElement>): void {
@@ -1191,7 +1192,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
                     onKeyDown={handleKeyDown}
                     onKeyUp={handleKeyUp}
                     // onDoubleClick={handleDoubleClick}
-                    >
+                >
                     <g stroke="black" fill="black">
                         {baseline}
                         {histogram}
@@ -1220,1071 +1221,1069 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
                         changeXValue={changeXValue}
                         changeAlphaValue={changeAlphaValue}
                         onPointButtonClick={removePoint}
-                        onColorSquareClick={this.onColorSquareClick}></PointsPanel>
-                    {/* Connect this to existing code */}
-                    {/* should render actual state of all methods
-                    // add this to state then, params of all methods */}
-                    {/* TODO: debug */}
-                    <HelpersPanel onChange={this.setTF} methods={this.state.methodsParams} descriptiveStatistics={this.descriptiveStatistics}></HelpersPanel>
+                        onColorSquareClick={onColorSquareClick}></PointsPanel>
+                    <HelpersPanel onChange={setTF}
+                        methods={methodsParams}
+                        descriptiveStatistics={descriptiveStatistics}></HelpersPanel>
                 </>
             </div>,
             <div key="modal" id="modal-root" />
         ]);
-        
+
         return rendered;
     }
 
     return LineGraphRendered();
 }
 
-export class LineGraphComponent extends React.Component<any, LineGraphComponentState> {
-    private myRef: any;
-    private height: number;
-    private width: number;
-    private padding: number;
-    private updatedX: number;
-    private updatedY: number;
-    private selectedPointId?: UUID;
-    private ghostPoints: SVGElement[];
-    private gElement: SVGElement;
-    private namespace: string;
-    private descriptiveStatistics: VolumeDescriptiveStatistics;
-    // private offsetY: number;
-    private baseline: number;
-    private baselineUnnormalized: number;
-    private roof: number;
-    private roofUnnormalized: number;
-    constructor(props: any) {
-        super(props);
-        this.myRef = React.createRef();
-        this.state = {
-            points: startEndPoints.concat(this.props.data),
-            copyPoint: undefined,
-            canSelectMultiple: false,
-            showColorPicker: false,
-            methodsParams: DefaultTFParams
-            // colored: this.props.colored
-        };
-        this.roof = LineGraphParams.roof;
-        this.roofUnnormalized = LineGraphParams.roofUnnormalized;
-        this.baseline = LineGraphParams.baseline;
-        this.baselineUnnormalized = LineGraphParams.baselineUnnormalized;
-        this.height = LineGraphParams.height;
-        this.width = LineGraphParams.width;
-        this.padding = LineGraphParams.padding;
-        // this.offsetY = LineGraphParams.offsetY;
-        // this.offsetY = 0;
-        this.selectedPointId = undefined;
-        this.ghostPoints = [];
-        this.namespace = 'http://www.w3.org/2000/svg';
-        this.descriptiveStatistics = this.getDescriptiveStatistics();
-        this.sortPointsByXValues(this.state.points);
-        this.highlightPoint = this.highlightPoint.bind(this);
-        this.removePoint = this.removePoint.bind(this);
-        this.removeRightmostPoint = this.removeRightmostPoint.bind(this);
-        this.createPoint = this.createPoint.bind(this);
-        this.handleDrag = this.handleDrag.bind(this);
-        this.handleMultipleDrag = this.handleMultipleDrag.bind(this);
-        this.handleDoubleClick = this.handleDoubleClick.bind(this);
-        this.refCallBack = this.refCallBack.bind(this);
-        this.handlePointUpdate = this.handlePointUpdate.bind(this);
-        this.change = this.change.bind(this);
-        this.handleKeyUp = this.handleKeyUp.bind(this);
-        this.handleLeave = this.handleLeave.bind(this);
-        this.handleEnter = this.handleEnter.bind(this);
-        this.setTF = this.setTF.bind(this);
-        this.changeXValue = this.changeXValue.bind(this);
-        this.changeAlphaValue = this.changeAlphaValue.bind(this);
-        this.deleteAllPoints = this.deleteAllPoints.bind(this);
-        this.toggleColorPicker = this.toggleColorPicker.bind(this);
-        this.onColorSquareClick = this.onColorSquareClick.bind(this);
-    }
-
-    private getDescriptiveStatistics() {
-        const s = this.props.volume.grid.stats;
-        const d: VolumeDescriptiveStatistics = {
-            min: s.min,
-            max: s.max,
-            mean: s.mean,
-            sigma: s.sigma
-        };
-        return d;
-    }
-
-    private deleteAllPoints() {
-        const points = this.state.points;
-        const ghostPoints = [];
-        for (const point of points) {
-            if (point.isTerminal === true) { ghostPoints.push(point); }
-        };
-        const ghostPointsSorted = this.sortPointsByXValues(ghostPoints);
-        this.setState({ points: ghostPointsSorted, clickedPointIds: undefined, showColorPicker: false });
-        this.change([]);
-    }
-
-    private highlightPoint(pointId: UUID) {
-        const points = this.state.points;
-        const targetPoint = points.find(p => p.id === pointId);
-        if (!targetPoint) throw Error('Cannot highlight inexisting point exist');
-        // TODO: highlight
-    }
-
-    private _setMethod2TF(params: Method2ParamsValues) {
-        // TODO: implement
-    }
-
-    private _setDefaultsTF(params: DefaultParamsValues) {
-        const paddingUnnormalized = this.padding / this.height;
-        // there two are the same values, reduce to a single one, e.g. could be be just padding, why not
-        // should be e.g.
-        const points = generateControlPoints(paddingUnnormalized, ColorNames.black, undefined, this.props.volume);
-        const currentPoints = this.state.points;
-        points.push(currentPoints[currentPoints.length - 1]);
-        points.unshift(currentPoints[0]);
-        this.setState({
-            points: points
-        });
-        this.change(points);
-        // TODO: set points to points similar to the below function
-    }
-
-    private _setGaussianTF(params: GaussianTFParamsValues) {
-        // TODO: simplify this
-        const offsetYNormalized = this.padding / 2;
-        const paddingNormalized = this.padding;
-        // will be 0
-        const offsetYUnnormalized = (offsetYNormalized - this.padding / 2) / this.height;
-        // will be ~0.09
-        const paddingUnnormalized = (paddingNormalized - this.padding / 2) / this.height;
-        // normalizedY = ([0;1] value * (this.height)) + offset
-        const { name, gaussianExtent, gaussianCenter, gaussianHeight } = params;
-        const a = gaussianHeight;
-        const min = this.descriptiveStatistics.min;
-        const max = this.descriptiveStatistics.max;
-        // const sigma = this.descriptiveStatistics.sigma;
-        const TFextent = max - min;
-        // make it spread the points equally
-        // console.log(this.descriptiveStatistics);
-        const b = gaussianCenter / TFextent;
-        // const b = gaussianCenter * (mean + sigma) / TFextent;
-        const c = gaussianExtent / TFextent;
-        // const l = (this.width * 2 * c / extent);
-        // console.log(a, b, c);
-        const gaussianPoints: ControlPoint[] = generateGaussianControlPoints(a, b, c, TFextent, offsetYUnnormalized, this.props.volume, paddingUnnormalized);
-        const currentPoints = this.state.points;
-        gaussianPoints.push(currentPoints[currentPoints.length - 1]);
-        gaussianPoints.unshift(currentPoints[0]);
-        this.setState({
-            points: gaussianPoints
-        });
-        // TODO: maybe add handleChange points instead?
-        this.change(gaussianPoints);
-    }
-
-    changeAlphaValue(pointId: UUID, alpha: number) {
-        const points = this.state.points;
-        const modifiedPoints = points.map(p => {
-            if (p.id === pointId) {
-                const modifiedData: ControlPointData = {
-                    x: p.data.x,
-                    alpha: alpha
-                };
-                const modifiedP: ControlPoint = {
-                    id: p.id,
-                    color: p.color,
-                    index: p.index,
-                    data: modifiedData
-                };
-                return modifiedP;
-            } else {
-                return p;
-            }
-        });
-        console.log(modifiedPoints);
-        this.handleChangePoints(modifiedPoints);
-    }
-
-    // TODO: refactor to remove duplication with above function
-    changeXValue(pointId: UUID, absValue: number) {
-        // got it, we have to convert abs value back to relative [0;1] value
-        // need value to point function
-        // now need to pass absValueToPointValue
-        // so that it reaches here;
-        const x = this.props.onAbsValueToPointValue(absValue);
-        const points = this.state.points;
-        const modifiedPoints = points.map(p => {
-            if (p.id === pointId) {
-                const modifiedData: ControlPointData = {
-                    x: x,
-                    alpha: p.data.alpha
-                };
-                const modifiedP: ControlPoint = {
-                    id: p.id,
-                    color: p.color,
-                    index: p.index,
-                    data: modifiedData
-                };
-                return modifiedP;
-            } else {
-                return p;
-            }
-        });
-        console.log(modifiedPoints);
-        this.handleChangePoints(modifiedPoints);
-    }
-
-    private setTF(params: TFParamsValues) {
-        const name = params.name;
-        switch (name) {
-            // TODO: separate into type
-            case 'gaussian':
-                this._setGaussianTF(params as GaussianTFParamsValues);
-                break;
-            case 'method2':
-                this._setMethod2TF(params as Method2ParamsValues);
-                break;
-            case 'defaults':
-                this._setDefaultsTF(params as DefaultParamsValues);
-                break;
-            default: throw Error(`Transfer function ${name} is not supported`);
-        };
-    }
-
-    private getPoint(id: UUID) {
-        const points = this.state.points;
-        const selectedPoints = points.find(p => p.id === id);
-        if (!selectedPoints) throw Error(`Points with ids ${id} do not exist`);
-        return selectedPoints;
-    }
-
-    private getPoints(id: UUID[]) {
-        const points = this.state.points;
-        const selectedPoints = points.filter(p => id.includes(p.id));
-        if (!selectedPoints) throw Error(`Point with id ${id} does not exist`);
-        return selectedPoints;
-    }
-
-    public render() {
-        const points = this.renderPoints();
-        const baseline = this.renderBaseline();
-        const lines = this.renderLines();
-        const histogram = this.renderHistogram();
-        const axes = this.renderAxes();
-        const gridLines = this.renderGridLines();
-        // const pointsButtons = this.renderPointsButtons();
-        const descriptiveStatisticsBars = this.renderDescriptiveStatisticsBars();
-        const firstPoint = this.state.clickedPointIds ? this.getPoint(this.state.clickedPointIds[0]) : void 0;
-        const color = firstPoint ? firstPoint.color : void 0;
-        const defaultColor = ParamDefinition.Color(Color(0x121212));
-        // bind this
-        const _createPoint = this.createPoint;
-        const _removePoint = this.removeRightmostPoint;
-        const plusIconButtonStyle = {
-            position: ('absolute' as any),
-            top: '100px',
-            right: '30px',
-            // transform: 'translate(-50%, -50%)'
-        };
-        // TODO: fix style
-        const minusIconButtonStyle = {
-            position: ('absolute' as any),
-            top: '100px',
-            right: '5px',
-            // transform: 'translate(-50%, -50%)'
-        };
-
-        return ([
-            <div key="LineGraph">
-                <IconButton style={plusIconButtonStyle} small svg={PlusBoxSvg} onClick={function (e: React.MouseEvent<HTMLButtonElement>): void {
-                    // throw new Error('Function not implemented.');
-                    _createPoint();
-                } } ></IconButton>
-                <IconButton style={minusIconButtonStyle} small svg={MinusBoxSvg} onClick={function (e: React.MouseEvent<HTMLButtonElement>): void {
-                    // throw new Error('Function not implemented.');
-                    _removePoint();
-                } } ></IconButton>
-                <svg
-                    className="msp-canvas"
-                    ref={this.refCallBack}
-                    // TODO: can e.g. change viewbox
-                    viewBox={`0 0 ${this.width + this.padding} ${this.height + this.padding}`}
-                    onMouseMove={this.handleDrag}
-                    onMouseUp={this.handlePointUpdate}
-                    onMouseLeave={this.handleLeave}
-                    onMouseEnter={this.handleEnter}
-                    tabIndex={0}
-                    onKeyDown={this.handleKeyDown}
-                    onKeyUp={this.handleKeyUp}
-                    onDoubleClick={this.handleDoubleClick}>
-                    {/* renders points */}
-                    <g stroke="black" fill="black">
-                        {baseline}
-                        {histogram}
-                        {lines}
-                        {points}
-                        {descriptiveStatisticsBars}
-                        {axes}
-                        {gridLines}
-                    </g>
-                    <g className="ghost-points" stroke="black" fill="black">
-                    </g>
-                </svg>
-                {/* TODO: div with the same height as color picker */}
-                <>{this.state.showColorPicker ? <ColorPicker isActive={this.state.showColorPicker} defaultColor={defaultColor} color={color} updateColor={this.updateColor} toggleColorPicker={this.toggleColorPicker}/> : <div>Select point to change color</div>}
-
-                </>
-                <>
-                    {/* <TFParamsWrapper onChange={this.setTF} descriptiveStatistics={this.descriptiveStatistics}></TFParamsWrapper> */}
-                    {/* <Button onClick={this.deleteAllPoints}>Remove All Points</Button> */}
-                    <PointsPanel points={this.state.points}
-                        onPointIndexClick={this.highlightPoint}
-                        removeAllPoints={this.deleteAllPoints}
-                        onExpandGroupOpen={this.props.onExpandGroupOpen}
-                        changeXValue={this.changeXValue}
-                        changeAlphaValue={this.changeAlphaValue}
-                        onPointButtonClick={this.removePoint}
-                        onColorSquareClick={this.onColorSquareClick}></PointsPanel>
-                    {/* Connect this to existing code */}
-                    {/* should render actual state of all methods
-                    // add this to state then, params of all methods */}
-                    {/* TODO: debug */}
-                    <HelpersPanel onChange={this.setTF} methods={this.state.methodsParams} descriptiveStatistics={this.descriptiveStatistics}></HelpersPanel>
-                </>
-            </div>,
-            <div key="modal" id="modal-root" />
-        ]);
-    }
-
-    toggleColorPicker = () => {
-        this.setState({ showColorPicker: this.state.showColorPicker === true ? false : true });
-    };
-
-    private onColorSquareClick = (pointId: UUID) => {
-        this.setState({ clickedPointIds: [pointId] });
-        this.toggleColorPicker();
-    };
-
-    componentDidMount() {
-        this.gElement = document.getElementsByClassName('ghost-points')[0] as SVGElement;
-        // this.setState({
-        //     colored: this.props.colored
-        // });
-    }
-
-    private change(points: ControlPoint[]) {
-        const copyPoints = points.slice();
-        copyPoints.shift();
-        copyPoints.pop();
-        this.props.onChange(copyPoints);
-    }
-
-    private updateColor: ParamOnChange = ({ value }: { value: Color }) => {
-        const clickedPointIds = this.state.clickedPointIds;
-        const currentPoints = this.state.points;
-        if (!clickedPointIds || clickedPointIds.length === 0) throw Error('No point is selected');
-        const clickedPoints = this.getPoints(clickedPointIds);
-        if (!clickedPoints) throw Error('Point should be selected');
-        for (const point of clickedPoints) {
-            point.color = value;
-        }
-        // need to change just points in ps
-        const clickedPointsIds = clickedPoints.map(p => p.id);
-        const notClickedPoints = currentPoints.filter(p => !clickedPointsIds.includes(p.id));
-        const newPoints = clickedPoints.concat(notClickedPoints);
-        console.log('Points before color change', currentPoints);
-        console.log('Points with color changed', newPoints);
-        this.handleChangePoints(newPoints);
-        debugger;
-    };
-
-    private handleKeyDown = (event: any) => {
-        // TODO: set canSelectMultiple = true
-        if (event.key === 'Shift') {
-            this.setState({ canSelectMultiple: true });
-            console.log('Shift is pressed');
-            // TODO: allow to select another point
-        } else {
-            // console.log(`${event} is pressed`);
-        }
-    };
-
-    private handleKeyUp = (event: any) => {
-        // TODO: SET canSelectMultiple = fasle
-        this.setState({ canSelectMultiple: false });
-        if (event.shiftKey) {
-            // do something
-            console.log('Shift is released');
-            // TODO: allow to select another point
-        } else {
-            // console.log(`${event} is released`);
-        }
-    };
-
-    private handleClick = (point: ControlPoint) => (event: any) => {
-        this.setState({ clickedPointIds: [point.id] });
-
-        if (this.state.canSelectMultiple) {
-            if (event.shiftKey) return;
-            // TODO: function to execute on this
-        }
-
-        if (this.state.showColorPicker) {
-            // TODO: what should happen there?
-        } else {
-            this.toggleColorPicker();
-        }
-    };
-
-    private sortPointsByXValues(points: ControlPoint[]) {
-        points.sort((a, b) => {
-            if (a.data.x === b.data.x) {
-                if (a.data.x === 0) {
-                    return a.data.alpha - b.data.alpha;
-                }
-                if (a.data.alpha === 1) {
-                    return b.data.alpha - a.data.alpha;
-                }
-                return a.data.alpha - b.data.alpha;
-            }
-            return a.data.x - b.data.x;
-        });
-        return points;
-    }
-
-    private sortPointsByIndices(points: ControlPoint[]) {
-        points.sort((a, b) => {
-            return a.index - b.index;
-            // if (a.data.x === b.data.x) {
-            //     if (a.data.x === 0) {
-            //         return a.data.alpha - b.data.alpha;
-            //     }
-            //     if (a.data.alpha === 1) {
-            //         return b.data.alpha - a.data.alpha;
-            //     }
-            //     return a.data.alpha - b.data.alpha;
-            // }
-            // return a.data.x - b.data.x;
-        });
-        return points;
-    }
-
-    private handleChangePoints(points: ControlPoint[]) {
-        const pointsSorted = this.sortPointsByXValues(points);
-        this.setState({ points: pointsSorted });
-        this.change(points);
-    }
-
-    private handleMouseDown = (point: ControlPoint) => (event: any) => {
-        const { id, isTerminal } = point;
-        if (isTerminal === true) {
-            return;
-        }
-        if (this.state.canSelectMultiple) {
-            return;
-        }
-
-        const copyPoint: Vec2 = this.controlPointDataToSVGCoords(this.getPoint(id).data);
-        this.ghostPoints.push(document.createElementNS(this.namespace, 'circle') as SVGElement);
-        this.ghostPoints[0].setAttribute('r', '10');
-        this.ghostPoints[0].setAttribute('fill', 'orange');
-        this.ghostPoints[0].setAttribute('cx', `${copyPoint[0]}`);
-        this.ghostPoints[0].setAttribute('cy', `${copyPoint[1]}`);
-        this.ghostPoints[0].setAttribute('style', 'display: none');
-        this.gElement.appendChild(this.ghostPoints[0]);
-        this.updatedX = copyPoint[0];
-        this.updatedY = copyPoint[1];
-        this.selectedPointId = point.id;
-    };
-
-    private handleDrag(event: any) {
-        if (this.selectedPointId === undefined) {
-            return;
-        }
-
-        // here use adjusted alpha
-        const pt = this.myRef.createSVGPoint();
-        let updatedCopyPoint;
-        const padding = this.padding / 2;
-        // this is true coords from the top left corner of svg
-        pt.x = event.clientX;
-        pt.y = event.clientY;
-        // still wrong poisition, shifted above on drag
-        const svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
-        // coords from top left corner of svg
-        updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
-        console.log('created a svg point with coords', svgP.x, svgP.y);
-        if ((svgP.x < (padding) || svgP.x > (this.width + (padding))) &&
-        (svgP.y > (this.height - this.baseline) || svgP.y < (0))) {
-            debugger;
-            updatedCopyPoint = Vec2.create(this.updatedX, this.updatedY);
-        // right border is X > something
-        } else if (svgP.x < padding) {
-            debugger;
-            // TODO: fix lines to start from true 0
-            updatedCopyPoint = Vec2.create(padding, svgP.y);
-            // this probably
-        } else if (svgP.x > (this.width + (padding))) {
-            // this
-            console.log('Creating a point while crossing right border');
-            // should create on the same x that is fine, but on correct y
-            console.log(this.width + padding, svgP.y);
-            updatedCopyPoint = Vec2.create(this.width + padding, svgP.y);
-            // touch this
-        } else if (svgP.y > (this.height - this.baseline)) {
-            debugger;
-            // does not allow into such area
-            // fix viewbox or?
-            updatedCopyPoint = Vec2.create(svgP.x, this.height - this.baseline);
-        } else if (svgP.y < (this.roof)) {
-            debugger;
-            updatedCopyPoint = Vec2.create(svgP.x, this.roof);
-        } else {
-            // console.log('Point within the constraints, creating normally');
-            updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
-        }
-
-        this.updatedX = updatedCopyPoint[0];
-        this.updatedY = updatedCopyPoint[1];
-        // TODO
-        const unNormalizePoint = this.svgCoordsToPointData(updatedCopyPoint);
-        // TODO: this.ghostPoints[0] is undefined when dragging a point towards right
-        // border, why?
-        this.ghostPoints[0].setAttribute('style', 'display: visible');
-        this.ghostPoints[0].setAttribute('cx', `${updatedCopyPoint[0]}`);
-        this.ghostPoints[0].setAttribute('cy', `${updatedCopyPoint[1]}`);
-
-
-        this.props.onDrag(unNormalizePoint);
-        // ok got it then point is "normalized" and thus got raised up or something
-    }
-
-    private handleMultipleDrag() {
-        // TODO
-    };
-
-    private addPoint(point: ControlPoint) {
-        this.state.points.push(point);
-        this.handleChangePoints(this.state.points);
-    }
-
-    private replacePoint(point: ControlPoint) {
-        // can get id from it
-        let points = this.state.points.filter(p => p.id !== point.id);
-        points.push(point);
-        points = this.sortPointsByXValues(points);
-        this.setState({
-            points,
-        });
-        this.change(points);
-    }
-
-    private handlePointUpdate(event: any) {
-        const selected = this.selectedPointId;
-        if (this.state.canSelectMultiple) {
-            return;
-        }
-        // or here
-        if (selected === undefined || this.getPoint(selected).isTerminal === true) {
-            this.setState({
-                copyPoint: undefined,
-            });
-            return;
-        }
-        // "unselects" points
-        // do not need to raise points, simply generate their original position
-        // as x + offset
-        this.selectedPointId = undefined;
-        const pointData = this.getPoint(selected);
-        // I guess this one
-        const updatedPointData = this.svgCoordsToPointData(Vec2.create(this.updatedX, this.updatedY));
-        const updatedPoint: ControlPoint = {
-            data: updatedPointData,
-            id: pointData.id,
-            color: pointData.color,
-            index: pointData.index
-        };
-
-        this.replacePoint(updatedPoint);
-        this.gElement.innerHTML = '';
-        this.ghostPoints = [];
-        document.removeEventListener('mousemove', this.handleDrag, true);
-        document.removeEventListener('mouseup', this.handlePointUpdate, true);
-    }
-
-    private removePoint(id: UUID) {
-        const point = this.getPoint(id);
-        if (point.isTerminal === true) { return; }
-        let points = this.state.points.filter(p => p.id !== point.id);
-        points = this.sortPointsByXValues(points);
-        this.setState({ points: points, clickedPointIds: undefined, showColorPicker: false });
-        this.change(points);
-    }
-
-    // TODO: fix movement of plus and minus sign buttons upon creation of points
-    private removeRightmostPoint() {
-        // remove based on data
-        const points = this.state.points;
-        const sortedPs = this.sortPointsByXValues(points);
-        debugger;
-        // rightmost is undefined
-        // last is ghost
-        // const rightmostP = sortedPs.slice(-1)[0];
-        const rightmostP = sortedPs[sortedPs.length - 2];
-        debugger;
-        this.removePoint(rightmostP.id);
-        debugger;
-    };
-
-    private createPoint() {
-        const svgP = this.myRef.createSVGPoint();
-        // TODO: resolve location, do something like this.width, height...
-        svgP.x = this.width - 100;
-        svgP.y = this.height - 100;
-
-        // const svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
-        const points = this.state.points;
-        const newPointData = this.svgCoordsToPointData(Vec2.create(svgP.x, svgP.y));
-        const sorted = this.sortPointsByXValues(points);
-        const realPoints = sorted.filter(p => p.isTerminal === undefined || false);
-        const maxIndex = realPoints[realPoints.length - 1].index;
-        // const 
-        const newPoint: ControlPoint = {
-            data: newPointData,
-            id: UUID.create22(),
-            color: getRandomColor(),
-            index: maxIndex + 1
-        };
-        this.addPoint(newPoint);
-    }
-
-    private handleDoubleClick(event: any) {
-        return;
-        // const pt = this.myRef.createSVGPoint();
-        // pt.x = event.clientX;
-        // pt.y = event.clientY;
-        // const svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
-        // const points = this.state.points;
-        // const padding = this.padding / 2;
-
-        // if (svgP.x < (padding) ||
-        //     svgP.x > (this.width + (padding)) ||
-        //     svgP.y > (this.height + (padding)) ||
-        //     svgP.y < (this.padding / 2)) {
-        //     return;
-        // }
-        // const newPointData = this.unNormalizePoint(Vec2.create(svgP.x, svgP.y));
-        // // problem with index
-        // // should be the last one
-        // // find the last index and do + 1?
-        // const newPoint: ControlPoint = {
-        //     data: newPointData,
-        //     id: UUID.create22(),
-        //     color: getRandomColor(),
-        //     index: points.slice(-1)[0].index + 1
-        // };
-        // this.addPoint(newPoint);
-    }
-
-    private deletePoint = (id: UUID) => (event: any) => {
-        this.removePoint(id);
-        console.log('Point', id, ' is deleted');
-        event.stopPropagation();
-    };
-
-    private handleLeave() {
-        if (this.selectedPointId === undefined) {
-            return;
-        }
-
-        document.addEventListener('mousemove', this.handleDrag, true);
-        document.addEventListener('mouseup', this.handlePointUpdate, true);
-    }
-
-    private handleEnter() {
-        document.removeEventListener('mousemove', this.handleDrag, true);
-        document.removeEventListener('mouseup', this.handlePointUpdate, true);
-    }
-
-    // this function prouces actual SVG coordinates (pixels from top left corner)
-    private controlPointDataToSVGCoords(controlPointData: ControlPointData): Vec2 {
-        console.log('controlPointDataToSVGCoords');
-        const offset = this.padding / 2;
-        const maxX = this.width + offset;
-        // fix this
-        const maxY = this.height + offset;
-        // normalizedY = ([0;1] value * (this.height)) + offset
-        const normalizedX = (controlPointData.x * (maxX - offset)) + offset;
-        // const normalizedY = (controlPointData.alpha * (maxY - offset)) + offset;
-        debugger;
-        // I guess should not be adjusted here or?
-        // if (controlPointData.adjustedAlpha === void 0) {
-        //     debugger;
-        //     console.log(controlPointData);
-        //     // TODO: add this adjusted alpha thing to copy point etc.
-        //     // fix lines
-        //     throw Error('Adjusted alpha should be provided');
-        // }
-        const space = this.height - this.baseline - this.roof;
-        // should be reversed or?
-        // before
-        // normalizedY = (point[1] * (maxY - o)) + o;
-        // reverseY = this.height + this.padding - normalizedY;
-
-        // Ok found a mistake
-        // alpha / adjusted alpha is proportion
-        // so we should stick to using just alpha
-        // adjustment is not needed anymore
-        const normalizedY = controlPointData.alpha * space;
-        // ok so here it is e.g. 0.2 alpha
-        // thefn space is e.g 350
-        // 0.2 * 350 = 70
-        // 70 is linear size from the baseline to the point
-        // nothing to do with the roof
-        // 70 so we need to place this 70
-        // such that it is calculated from the top corner
-        // i.e. get the distance from 0 0 to this 70
-        // to do this
-        const fromTopToBaseline = this.height - this.baseline;
-        const correctY = fromTopToBaseline - normalizedY;
-        // right so if this above is 200 and e.g. 300
-        // (based on e.g. 0.2 and 0.3 adjusted alpha)
-        // below it will become 350 - 200 = 150 and 350 - 300 = 50
-        // i.e. need to be reversed
-        // const y = (this.height - this.baseline) + normalizedY;
-        // const reverseY = this.hegight
-        // try adding removing baseline here or whatever
-        // const normalizedY = (controlPointData.adjustedAlpha * (maxY - offset)) + offset;
-        // const reverseY = (this.height + this.padding) - normalizedY;
-        // here we should provide something like
-        // baseline +
-        const newPoint = Vec2.create(normalizedX, correctY);
-        return newPoint;
-    }
-
-    // TODO: TODO: TODO: modify this too
-    private svgCoordsToPointData(vec2: Vec2): ControlPointData {
-        const space = this.height - this.baseline - this.roof;
-        const min = this.padding / 2;
-        const maxX = this.width + min;
-        const maxY = this.height + min;
-        const unNormalizedX = (vec2[0] - min) / (maxX - min);
-        const cartesianDistanceBetweenPointAndBaseline = (this.height - this.baseline - vec2[1]);
-        const dividedBySpace = cartesianDistanceBetweenPointAndBaseline / space;
-        const unNormalizedY = dividedBySpace;
-        return {
-            x: unNormalizedX,
-            alpha: unNormalizedY
-        };
-    }
-
-    private refCallBack(element: any) {
-        if (element) {
-            this.myRef = element;
-        }
-    }
-
-    private renderGridLines() {
-        const count = 5;
-        const bars: any = [];
-        const offset = this.padding / 2;
-        const x1 = offset;
-        const w = 0.5;
-        // TODO: allow editing text field, may need some function similar to what is with RGB thing
-        //
-        // TODO: consider adding baseline height as attribute of LineGraphComponent
-        const x2 = this.width + offset;
-        // fix that
-        const overallHeight = this.height;
-        // TODO: limit the height of histogram bars
-        // 1, 2, 3, should be 4
-        // get histogram bars back
-        for (let i = 0; i < count; ++i) {
-            // adjust + - 1 etc.
-            // since we have risen all elements, need to probably increase height or
-            // decrease it by - offset everywhere where it is used
-            const y = overallHeight * i / count;
-            // const y = this.height + offset * 2 - i * this.height / count;
-            bars.push(
-                <line key={`${1 - i / count}gridline`} x1={x1} x2={x2} y1={y} y2={y}
-                    stroke="#A9A9A9" strokeWidth={w} strokeDasharray="15, 15">
-                    <title>{(1 - i / count).toFixed(1)}</title>
-                </line>
-            );
-        }
-        return bars;
-    }
-
-    private renderHistogram() {
-        if (!this.props.volume) return null;
-        const histogram = Grid.getHistogram(this.props.volume.grid, 40);
-        const bars = [];
-        const N = histogram.counts.length;
-        const w = this.width / N;
-        const offset = this.padding / 2;
-        const max = arrayMax(histogram.counts) || 1;
-        for (let i = 0; i < N; i++) {
-            const fromValue = histogram.min + histogram.binWidth * i;
-            const toValue = histogram.min + histogram.binWidth * (i + 1);
-            const x = this.width * i / (N - 1) + offset;
-            // add roof
-            // MAYBE remove offset from here
-            // const y1 = this.height + offset - this.baseline;// + 2 * offset;
-            // lowest point
-            // for some reason, maybe this got divided by 2 somewhere
-            const y1 = this.height - this.baseline;
-            // highest point
-            // 1. get the distance between roofline and baseline
-            const space = this.height - this.baseline - this.roof;
-            // 2. get a fraction of that distance based on histogram counts etc.
-            // 2.5. do 1 - that fraction
-            const fraction = space * (1 - histogram.counts[i] / max);
-            // 3. add it to this.roof
-            const y2 = fraction + this.roof;
-            // you got y2
-            // const
-            // const y2 = (this.height - this.baseline + this.roof) * (1 - histogram.counts[i] / max);// + 2 * offset;
-            // console.log(y1, y2);
-            // console.log(this.height, this.roof, this.baseline);
-            bars.push(<line key={`histogram${i}`} x1={x} x2={x} y1={y1} y2={y2} stroke="#A9A9A9" strokeWidth={w}>
-                <title>[{fromValue}; {toValue}]</title>
-            </line>);
-        }
-        return bars;
-    }
-
-    private renderAxes() {
-        if (!this.props.volume) return null;
-        const offset = this.padding / 2;
-        const mean = this.descriptiveStatistics.mean;
-        const min = this.descriptiveStatistics.min;
-        const max = this.descriptiveStatistics.max;
-        // X: horizontal bar with arrow
-        // need min max
-        const x1HorizontalBar = offset;
-        const x2HorizontalBar = this.width + offset;
-        const y1HorizontalBar = this.height + offset;
-        const y2HorizontalBar = this.height + offset;
-        // vertical bar with arrow
-        // x and y letters
-
-
-
-        const x2VerticalBar = offset;
-        const x1VerticalBar = offset;
-        const y2VerticalBar = 25;
-        const y1VerticalBar = this.height + offset;
-        const w = offset / 10;
-        const bars = [];
-        // const hd = `M ${xh1} ${yh1} L ${xh2} ${yh2} L ${xh3} ${yh3} L ${xh4} ${yh4} L ${xh5} ${yh5} Z`;
-        // const arrowheadd = `M ${xah1} ${yah1} L ${xah2} ${yah2} L ${xah3} ${yah3} L ${xah4} ${yah4} L ${xah5} ${yah5} Z`;
-        bars.push(
-            // TODO: color
-            // TODO: may not work with <>/</>
-            <>
-                <defs>
-                    <marker
-                        id="head-horizontal"
-                        viewBox="0 0 10 10"
-                        refX="5"
-                        refY="5"
-                        markerWidth="6"
-                        markerHeight="6"
-                        orient="auto-start-reverse">
-                        <path d="M 0 2 L 10 5 L 0 8 z" />
-                    </marker>
-                </defs>
-
-                <line key={'horizontalAxis'} x1={x1HorizontalBar} x2={x2HorizontalBar}
-                    y1={y1HorizontalBar} y2={y2HorizontalBar} stroke="#7d7f7c" strokeWidth={w} markerEnd="url(#head-horizontal)">
-                </line>
-            </>
-        );
-        // raise histogram above the base line somehow
-        bars.push(
-            <>
-                <defs>
-                    <marker
-                        id="head-vertical"
-                        viewBox="0 0 10 10"
-                        refX="5"
-                        refY="5"
-                        markerWidth="6"
-                        markerHeight="6"
-                        orient="auto-start-reverse">
-                        <path d="M 0 2 L 10 5 L 0 8 z" />
-                        {/* <path d="M 2 10 L 5 0 L 8 10 z" /> */}
-                    </marker>
-                </defs>
-                <line key={'verticalAxis'} x1={x1VerticalBar} x2={x2VerticalBar}
-                    y1={y1VerticalBar} y2={y2VerticalBar} stroke="#7d7f7c" strokeWidth={w} markerEnd="url(#head-vertical)">
-                    {/* <title>+ Sigma: {sigma}</title> */}
-                </line>
-            </>
-        );
-        return bars;
-    }
-
-    private makeXAxisLabel(value: number, x: number, y: number) {
-        // TODO: make constants be dependant on precision and font size
-        // TODO: font size
-        // TODO: remove y dep
-        return <text x={x - 20} y={y + 25}>{parseFloat(value.toFixed(5))} </text>;
-    }
-
-    private makeYAxisLabel(value: number, x: number, y: number) {
-        // TODO: make constants be dependant on precision and font size
-        // TODO: font size
-        // TODO: remove x dep
-        return <text x={x} y={y + 25} fontSize={25}>{parseFloat(value.toFixed(1))} </text>;
-    }
-
-    private renderDescriptiveStatisticsBars() {
-        if (!this.props.volume) return null;
-        const offset = this.padding / 2;
-        const mean = this.descriptiveStatistics.mean;
-        const min = this.descriptiveStatistics.min;
-        const max = this.descriptiveStatistics.max;
-        const sigma = this.descriptiveStatistics.sigma;
-        const extent = max - min;
-        const x = this.width * ((mean + Math.abs(min)) / extent) + offset;
-        const w = offset / 10;
-        const bars = [];
-        const y1 = this.height + offset;// + offset * 2;
-        const y2 = 0;// offset;
-        const xPositive = this.width * ((mean + sigma + Math.abs(min)) / extent) + offset;
-        const xNegative = this.width * ((mean - sigma + Math.abs(min)) / extent) + offset;
-        bars.push(
-            // raise points and lines
-            //
-            <>
-                <line key={'meanBar'} x1={x} x2={x} y1={y1} y2={y2} stroke="#D3D3D3" strokeDasharray="5, 5" strokeWidth={w}>
-                    <title>Mean: {mean}</title>
-                </line>
-                {/* TODO: center */}
-                {this.makeXAxisLabel(mean, x, y1)}
-                {/* <text x={x - 40} y={y1 + 25}>{parseFloat(mean.toFixed(7))} </text> */}
-            </>);
-        bars.push(<><line key={'positiveSigmaBar'} x1={xPositive} x2={xPositive} y1={y1} y2={y2} stroke="#D3D3D3" strokeWidth={w}>
-            <title>+Sigma: {mean + sigma}</title>
-        </line>
-        {this.makeXAxisLabel(mean + sigma, xPositive, y1)}
-        </>);
-        bars.push(
-            <><line key={'negativeSigmaBar'} x1={xNegative} x2={xNegative} y1={y1} y2={y2} stroke="#D3D3D3" strokeWidth={w}>
-                <title>-Sigma: {-sigma}</title>
-            </line>
-            {this.makeXAxisLabel(mean - sigma, xNegative, y1)}
-            </>);
-        return bars;
-    }
-
-    // fix gridlines and labels
-    // first fix points, allow them in area above and recalc the message or something
-    // remove ghost points from the list
-    private renderBaseline() {
-        // TODO: fix this function
-        const baseline = this.baseline;
-        return <>
-            <BaseLine height={this.height - baseline} offset={this.padding / 2} width={this.width} />
-            {/* TODO: tune height need to be higher */}
-            {/* or + offset */}
-            {this.makeYAxisLabel(0, baseline / 2, this.height)}
-            {/*  */}
-            {this.makeYAxisLabel(1, baseline / 2, baseline)}
-            {/* TODO: 0.2 0.4 etc. */}
-        </>;
-    }
-
-    // turn off handleclick too
-    private renderPoints() {
-        const points: any[] = [];
-        let point: Vec2;
-        for (let i = 0; i < this.state.points.length; i++) {
-            if (i !== 0 && i !== this.state.points.length - 1) {
-                // render points such that they are at baseline
-                const { data, color, id, index } = this.state.points[i];
-                const finalColor = color;
-                // TODO: here there is no adjusted alpha for some reason
-                // here
-                point = this.controlPointDataToSVGCoords(data);
-                points.push(<PointComponent
-                    index={index}
-                    key={id}
-                    id={id}
-                    // so here you should provide correct positions
-                    // actual ones I mean
-                    // from the top left corner
-                    // of the SVG!
-                    // x={50}
-                    // y={50}
-                    // so we push here coords
-                    x={point[0]}
-                    y={point[1]}
-                    nX={data.x}
-                    nY={data.alpha}
-                    selected={false}
-                    // should be able to delete point
-                    delete={this.deletePoint}
-                    // onmouseover we provide props.onHover of line graph component
-                    onmouseover={this.props.onHover}
-                    onmousedown={this.handleMouseDown(this.state.points[i])}
-                    onclick={this.handleClick(this.state.points[i])}
-                    color={finalColor}
-                />);
-            }
-        }
-        return points;
-    }
-
-    private renderLines() {
-        const points: Vec2[] = [];
-        const lines = [];
-        let maxX: number;
-        let maxY: number;
-        let normalizedX: number;
-        let normalizedY: number;
-        let reverseY: number;
-
-        const o = this.padding / 2;
-        for (const point of this.state.points) {
-            maxX = this.width + o;
-            // render lines is ~ fine
-            // so introduce here baseline and roof
-            // not padding I guess, or maybe padding + baseline and or roof
-            maxY = this.height + this.padding;
-            // normalize point data using a function
-            normalizedX = (point.data.x * (maxX - o)) + o;
-            // if (point.data.adjustedAlpha === void 0) throw Error('Adjusted alpha is not provided');
-            // this is [0;1] thing
-            const alpha = point.data.alpha;
-            const space = this.height - this.baseline - this.roof;
-            const pointHeightRealAboveBaseline = alpha * space;
-            const pointHeightRealBelowRoof = space - pointHeightRealAboveBaseline;
-            // TODO: may need to add padding
-            const pointHeightBelowSVGOrigin = pointHeightRealBelowRoof + this.roof;
-            // this gonna be fraction [0;1];
-            // const fraction
-            // const a = 0;
-            // normalizedY = point.data.alpha;
-            // normalizedY = ratio
-            // normalizedY = (ratio * (maxY - o)) + o;
-            // normalizedY = (point.data.alpha * (maxY - o)) + o;
-            // normalizedY = (point.data.alpha * (maxY - o)) + o;
-            // reverseY = this.height + this.padding - normalizedY;
-            points.push(Vec2.create(normalizedX, pointHeightBelowSVGOrigin));
-        }
-
-        const data = points;
-        const size = data.length;
-
-        for (let i = 0; i < size - 1; i++) {
-            const x1 = data[i][0];
-            const y1 = data[i][1];
-            const x2 = data[i + 1][0];
-            const y2 = data[i + 1][1];
-            lines.push(<line key={`lineOf${i}`} x1={x1} x2={x2} y1={y1} y2={y2} stroke="#cec9ba" strokeWidth="5"/>);
-        }
-
-        return lines;
-    }
-}
+// export class LineGraphComponent extends React.Component<any, LineGraphComponentState> {
+//     private myRef: any;
+//     private height: number;
+//     private width: number;
+//     private padding: number;
+//     private updatedX: number;
+//     private updatedY: number;
+//     private selectedPointId?: UUID;
+//     private ghostPoints: SVGElement[];
+//     private gElement: SVGElement;
+//     private namespace: string;
+//     private descriptiveStatistics: VolumeDescriptiveStatistics;
+//     // private offsetY: number;
+//     private baseline: number;
+//     private baselineUnnormalized: number;
+//     private roof: number;
+//     private roofUnnormalized: number;
+//     constructor(props: any) {
+//         super(props);
+//         this.myRef = React.createRef();
+//         this.state = {
+//             points: startEndPoints.concat(this.props.data),
+//             copyPoint: undefined,
+//             canSelectMultiple: false,
+//             showColorPicker: false,
+//             methodsParams: DefaultTFParams
+//             // colored: this.props.colored
+//         };
+//         this.roof = LineGraphParams.roof;
+//         this.roofUnnormalized = LineGraphParams.roofUnnormalized;
+//         this.baseline = LineGraphParams.baseline;
+//         this.baselineUnnormalized = LineGraphParams.baselineUnnormalized;
+//         this.height = LineGraphParams.height;
+//         this.width = LineGraphParams.width;
+//         this.padding = LineGraphParams.padding;
+//         // this.offsetY = LineGraphParams.offsetY;
+//         // this.offsetY = 0;
+//         this.selectedPointId = undefined;
+//         this.ghostPoints = [];
+//         this.namespace = 'http://www.w3.org/2000/svg';
+//         this.descriptiveStatistics = this.getDescriptiveStatistics();
+//         this.sortPointsByXValues(this.state.points);
+//         this.highlightPoint = this.highlightPoint.bind(this);
+//         this.removePoint = this.removePoint.bind(this);
+//         this.removeRightmostPoint = this.removeRightmostPoint.bind(this);
+//         this.createPoint = this.createPoint.bind(this);
+//         this.handleDrag = this.handleDrag.bind(this);
+//         this.handleMultipleDrag = this.handleMultipleDrag.bind(this);
+//         this.handleDoubleClick = this.handleDoubleClick.bind(this);
+//         this.refCallBack = this.refCallBack.bind(this);
+//         this.handlePointUpdate = this.handlePointUpdate.bind(this);
+//         this.change = this.change.bind(this);
+//         this.handleKeyUp = this.handleKeyUp.bind(this);
+//         this.handleLeave = this.handleLeave.bind(this);
+//         this.handleEnter = this.handleEnter.bind(this);
+//         this.setTF = this.setTF.bind(this);
+//         this.changeXValue = this.changeXValue.bind(this);
+//         this.changeAlphaValue = this.changeAlphaValue.bind(this);
+//         this.deleteAllPoints = this.deleteAllPoints.bind(this);
+//         this.toggleColorPicker = this.toggleColorPicker.bind(this);
+//         this.onColorSquareClick = this.onColorSquareClick.bind(this);
+//     }
+
+//     private getDescriptiveStatistics() {
+//         const s = this.props.volume.grid.stats;
+//         const d: VolumeDescriptiveStatistics = {
+//             min: s.min,
+//             max: s.max,
+//             mean: s.mean,
+//             sigma: s.sigma
+//         };
+//         return d;
+//     }
+
+//     private deleteAllPoints() {
+//         const points = this.state.points;
+//         const ghostPoints = [];
+//         for (const point of points) {
+//             if (point.isTerminal === true) { ghostPoints.push(point); }
+//         };
+//         const ghostPointsSorted = this.sortPointsByXValues(ghostPoints);
+//         this.setState({ points: ghostPointsSorted, clickedPointIds: undefined, showColorPicker: false });
+//         this.change([]);
+//     }
+
+//     private highlightPoint(pointId: UUID) {
+//         const points = this.state.points;
+//         const targetPoint = points.find(p => p.id === pointId);
+//         if (!targetPoint) throw Error('Cannot highlight inexisting point exist');
+//         // TODO: highlight
+//     }
+
+//     private _setMethod2TF(params: Method2ParamsValues) {
+//         // TODO: implement
+//     }
+
+//     private _setDefaultsTF(params: DefaultParamsValues) {
+//         const paddingUnnormalized = this.padding / this.height;
+//         // there two are the same values, reduce to a single one, e.g. could be be just padding, why not
+//         // should be e.g.
+//         const points = generateControlPoints(paddingUnnormalized, ColorNames.black, undefined, this.props.volume);
+//         const currentPoints = this.state.points;
+//         points.push(currentPoints[currentPoints.length - 1]);
+//         points.unshift(currentPoints[0]);
+//         this.setState({
+//             points: points
+//         });
+//         this.change(points);
+//         // TODO: set points to points similar to the below function
+//     }
+
+//     private _setGaussianTF(params: GaussianTFParamsValues) {
+//         // TODO: simplify this
+//         const offsetYNormalized = this.padding / 2;
+//         const paddingNormalized = this.padding;
+//         // will be 0
+//         const offsetYUnnormalized = (offsetYNormalized - this.padding / 2) / this.height;
+//         // will be ~0.09
+//         const paddingUnnormalized = (paddingNormalized - this.padding / 2) / this.height;
+//         // normalizedY = ([0;1] value * (this.height)) + offset
+//         const { name, gaussianExtent, gaussianCenter, gaussianHeight } = params;
+//         const a = gaussianHeight;
+//         const min = this.descriptiveStatistics.min;
+//         const max = this.descriptiveStatistics.max;
+//         // const sigma = this.descriptiveStatistics.sigma;
+//         const TFextent = max - min;
+//         // make it spread the points equally
+//         // console.log(this.descriptiveStatistics);
+//         const b = gaussianCenter / TFextent;
+//         // const b = gaussianCenter * (mean + sigma) / TFextent;
+//         const c = gaussianExtent / TFextent;
+//         // const l = (this.width * 2 * c / extent);
+//         // console.log(a, b, c);
+//         const gaussianPoints: ControlPoint[] = generateGaussianControlPoints(a, b, c, TFextent, offsetYUnnormalized, this.props.volume, paddingUnnormalized);
+//         const currentPoints = this.state.points;
+//         gaussianPoints.push(currentPoints[currentPoints.length - 1]);
+//         gaussianPoints.unshift(currentPoints[0]);
+//         this.setState({
+//             points: gaussianPoints
+//         });
+//         // TODO: maybe add handleChange points instead?
+//         this.change(gaussianPoints);
+//     }
+
+//     changeAlphaValue(pointId: UUID, alpha: number) {
+//         const points = this.state.points;
+//         const modifiedPoints = points.map(p => {
+//             if (p.id === pointId) {
+//                 const modifiedData: ControlPointData = {
+//                     x: p.data.x,
+//                     alpha: alpha
+//                 };
+//                 const modifiedP: ControlPoint = {
+//                     id: p.id,
+//                     color: p.color,
+//                     index: p.index,
+//                     data: modifiedData
+//                 };
+//                 return modifiedP;
+//             } else {
+//                 return p;
+//             }
+//         });
+//         console.log(modifiedPoints);
+//         this.handleChangePoints(modifiedPoints);
+//     }
+
+//     // TODO: refactor to remove duplication with above function
+//     changeXValue(pointId: UUID, absValue: number) {
+//         // got it, we have to convert abs value back to relative [0;1] value
+//         // need value to point function
+//         // now need to pass absValueToPointValue
+//         // so that it reaches here;
+//         const x = this.props.onAbsValueToPointValue(absValue);
+//         const points = this.state.points;
+//         const modifiedPoints = points.map(p => {
+//             if (p.id === pointId) {
+//                 const modifiedData: ControlPointData = {
+//                     x: x,
+//                     alpha: p.data.alpha
+//                 };
+//                 const modifiedP: ControlPoint = {
+//                     id: p.id,
+//                     color: p.color,
+//                     index: p.index,
+//                     data: modifiedData
+//                 };
+//                 return modifiedP;
+//             } else {
+//                 return p;
+//             }
+//         });
+//         console.log(modifiedPoints);
+//         this.handleChangePoints(modifiedPoints);
+//     }
+
+//     private setTF(params: TFParamsValues) {
+//         const name = params.name;
+//         switch (name) {
+//             // TODO: separate into type
+//             case 'gaussian':
+//                 this._setGaussianTF(params as GaussianTFParamsValues);
+//                 break;
+//             case 'method2':
+//                 this._setMethod2TF(params as Method2ParamsValues);
+//                 break;
+//             case 'defaults':
+//                 this._setDefaultsTF(params as DefaultParamsValues);
+//                 break;
+//             default: throw Error(`Transfer function ${name} is not supported`);
+//         };
+//     }
+
+//     private getPoint(id: UUID) {
+//         const points = this.state.points;
+//         const selectedPoints = points.find(p => p.id === id);
+//         if (!selectedPoints) throw Error(`Points with ids ${id} do not exist`);
+//         return selectedPoints;
+//     }
+
+//     private getPoints(id: UUID[]) {
+//         const points = this.state.points;
+//         const selectedPoints = points.filter(p => id.includes(p.id));
+//         if (!selectedPoints) throw Error(`Point with id ${id} does not exist`);
+//         return selectedPoints;
+//     }
+
+//     public render() {
+//         const points = this.renderPoints();
+//         const baseline = this.renderBaseline();
+//         const lines = this.renderLines();
+//         const histogram = this.renderHistogram();
+//         const axes = this.renderAxes();
+//         const gridLines = this.renderGridLines();
+//         // const pointsButtons = this.renderPointsButtons();
+//         const descriptiveStatisticsBars = this.renderDescriptiveStatisticsBars();
+//         const firstPoint = this.state.clickedPointIds ? this.getPoint(this.state.clickedPointIds[0]) : void 0;
+//         const color = firstPoint ? firstPoint.color : void 0;
+//         const defaultColor = ParamDefinition.Color(Color(0x121212));
+//         // bind this
+//         const _createPoint = this.createPoint;
+//         const _removePoint = this.removeRightmostPoint;
+//         const plusIconButtonStyle = {
+//             position: ('absolute' as any),
+//             top: '100px',
+//             right: '30px',
+//             // transform: 'translate(-50%, -50%)'
+//         };
+//         // TODO: fix style
+//         const minusIconButtonStyle = {
+//             position: ('absolute' as any),
+//             top: '100px',
+//             right: '5px',
+//             // transform: 'translate(-50%, -50%)'
+//         };
+
+//         return ([
+//             <div key="LineGraph">
+//                 <IconButton style={plusIconButtonStyle} small svg={PlusBoxSvg} onClick={function (e: React.MouseEvent<HTMLButtonElement>): void {
+//                     // throw new Error('Function not implemented.');
+//                     _createPoint();
+//                 } } ></IconButton>
+//                 <IconButton style={minusIconButtonStyle} small svg={MinusBoxSvg} onClick={function (e: React.MouseEvent<HTMLButtonElement>): void {
+//                     // throw new Error('Function not implemented.');
+//                     _removePoint();
+//                 } } ></IconButton>
+//                 <svg
+//                     className="msp-canvas"
+//                     ref={this.refCallBack}
+//                     // TODO: can e.g. change viewbox
+//                     viewBox={`0 0 ${this.width + this.padding} ${this.height + this.padding}`}
+//                     onMouseMove={this.handleDrag}
+//                     onMouseUp={this.handlePointUpdate}
+//                     onMouseLeave={this.handleLeave}
+//                     onMouseEnter={this.handleEnter}
+//                     tabIndex={0}
+//                     onKeyDown={this.handleKeyDown}
+//                     onKeyUp={this.handleKeyUp}
+//                     onDoubleClick={this.handleDoubleClick}>
+//                     {/* renders points */}
+//                     <g stroke="black" fill="black">
+//                         {baseline}
+//                         {histogram}
+//                         {lines}
+//                         {points}
+//                         {descriptiveStatisticsBars}
+//                         {axes}
+//                         {gridLines}
+//                     </g>
+//                     <g className="ghost-points" stroke="black" fill="black">
+//                     </g>
+//                 </svg>
+//                 {/* TODO: div with the same height as color picker */}
+//                 <>{this.state.showColorPicker ? <ColorPicker isActive={this.state.showColorPicker} defaultColor={defaultColor} color={color} updateColor={this.updateColor} toggleColorPicker={this.toggleColorPicker}/> : <div>Select point to change color</div>}
+
+//                 </>
+//                 <>
+//                     {/* <TFParamsWrapper onChange={this.setTF} descriptiveStatistics={this.descriptiveStatistics}></TFParamsWrapper> */}
+//                     {/* <Button onClick={this.deleteAllPoints}>Remove All Points</Button> */}
+//                     <PointsPanel points={this.state.points}
+//                         onPointIndexClick={this.highlightPoint}
+//                         removeAllPoints={this.deleteAllPoints}
+//                         onExpandGroupOpen={this.props.onExpandGroupOpen}
+//                         changeXValue={this.changeXValue}
+//                         changeAlphaValue={this.changeAlphaValue}
+//                         onPointButtonClick={this.removePoint}
+//                         onColorSquareClick={this.onColorSquareClick}></PointsPanel>
+//                     {/* Connect this to existing code */}
+//                     {/* should render actual state of all methods
+//                     // add this to state then, params of all methods */}
+//                     {/* TODO: debug */}
+//                     <HelpersPanel onChange={this.setTF} methods={this.state.methodsParams} descriptiveStatistics={this.descriptiveStatistics}></HelpersPanel>
+//                 </>
+//             </div>,
+//             <div key="modal" id="modal-root" />
+//         ]);
+//     }
+
+//     toggleColorPicker = () => {
+//         this.setState({ showColorPicker: this.state.showColorPicker === true ? false : true });
+//     };
+
+//     private onColorSquareClick = (pointId: UUID) => {
+//         this.setState({ clickedPointIds: [pointId] });
+//         this.toggleColorPicker();
+//     };
+
+//     componentDidMount() {
+//         this.gElement = document.getElementsByClassName('ghost-points')[0] as SVGElement;
+//         // this.setState({
+//         //     colored: this.props.colored
+//         // });
+//     }
+
+//     private change(points: ControlPoint[]) {
+//         const copyPoints = points.slice();
+//         copyPoints.shift();
+//         copyPoints.pop();
+//         this.props.onChange(copyPoints);
+//     }
+
+//     private updateColor: ParamOnChange = ({ value }: { value: Color }) => {
+//         const clickedPointIds = this.state.clickedPointIds;
+//         const currentPoints = this.state.points;
+//         if (!clickedPointIds || clickedPointIds.length === 0) throw Error('No point is selected');
+//         const clickedPoints = this.getPoints(clickedPointIds);
+//         if (!clickedPoints) throw Error('Point should be selected');
+//         for (const point of clickedPoints) {
+//             point.color = value;
+//         }
+//         // need to change just points in ps
+//         const clickedPointsIds = clickedPoints.map(p => p.id);
+//         const notClickedPoints = currentPoints.filter(p => !clickedPointsIds.includes(p.id));
+//         const newPoints = clickedPoints.concat(notClickedPoints);
+//         console.log('Points before color change', currentPoints);
+//         console.log('Points with color changed', newPoints);
+//         this.handleChangePoints(newPoints);
+//         debugger;
+//     };
+
+//     private handleKeyDown = (event: any) => {
+//         // TODO: set canSelectMultiple = true
+//         if (event.key === 'Shift') {
+//             this.setState({ canSelectMultiple: true });
+//             console.log('Shift is pressed');
+//             // TODO: allow to select another point
+//         } else {
+//             // console.log(`${event} is pressed`);
+//         }
+//     };
+
+//     private handleKeyUp = (event: any) => {
+//         // TODO: SET canSelectMultiple = fasle
+//         this.setState({ canSelectMultiple: false });
+//         if (event.shiftKey) {
+//             // do something
+//             console.log('Shift is released');
+//             // TODO: allow to select another point
+//         } else {
+//             // console.log(`${event} is released`);
+//         }
+//     };
+
+//     private handleClick = (point: ControlPoint) => (event: any) => {
+//         this.setState({ clickedPointIds: [point.id] });
+
+//         if (this.state.canSelectMultiple) {
+//             if (event.shiftKey) return;
+//             // TODO: function to execute on this
+//         }
+
+//         if (this.state.showColorPicker) {
+//             // TODO: what should happen there?
+//         } else {
+//             this.toggleColorPicker();
+//         }
+//     };
+
+//     private sortPointsByXValues(points: ControlPoint[]) {
+//         points.sort((a, b) => {
+//             if (a.data.x === b.data.x) {
+//                 if (a.data.x === 0) {
+//                     return a.data.alpha - b.data.alpha;
+//                 }
+//                 if (a.data.alpha === 1) {
+//                     return b.data.alpha - a.data.alpha;
+//                 }
+//                 return a.data.alpha - b.data.alpha;
+//             }
+//             return a.data.x - b.data.x;
+//         });
+//         return points;
+//     }
+
+//     private sortPointsByIndices(points: ControlPoint[]) {
+//         points.sort((a, b) => {
+//             return a.index - b.index;
+//             // if (a.data.x === b.data.x) {
+//             //     if (a.data.x === 0) {
+//             //         return a.data.alpha - b.data.alpha;
+//             //     }
+//             //     if (a.data.alpha === 1) {
+//             //         return b.data.alpha - a.data.alpha;
+//             //     }
+//             //     return a.data.alpha - b.data.alpha;
+//             // }
+//             // return a.data.x - b.data.x;
+//         });
+//         return points;
+//     }
+
+//     private handleChangePoints(points: ControlPoint[]) {
+//         const pointsSorted = this.sortPointsByXValues(points);
+//         this.setState({ points: pointsSorted });
+//         this.change(points);
+//     }
+
+//     private handleMouseDown = (point: ControlPoint) => (event: any) => {
+//         const { id, isTerminal } = point;
+//         if (isTerminal === true) {
+//             return;
+//         }
+//         if (this.state.canSelectMultiple) {
+//             return;
+//         }
+
+//         const copyPoint: Vec2 = this.controlPointDataToSVGCoords(this.getPoint(id).data);
+//         this.ghostPoints.push(document.createElementNS(this.namespace, 'circle') as SVGElement);
+//         this.ghostPoints[0].setAttribute('r', '10');
+//         this.ghostPoints[0].setAttribute('fill', 'orange');
+//         this.ghostPoints[0].setAttribute('cx', `${copyPoint[0]}`);
+//         this.ghostPoints[0].setAttribute('cy', `${copyPoint[1]}`);
+//         this.ghostPoints[0].setAttribute('style', 'display: none');
+//         this.gElement.appendChild(this.ghostPoints[0]);
+//         this.updatedX = copyPoint[0];
+//         this.updatedY = copyPoint[1];
+//         this.selectedPointId = point.id;
+//     };
+
+//     private handleDrag(event: any) {
+//         if (this.selectedPointId === undefined) {
+//             return;
+//         }
+
+//         // here use adjusted alpha
+//         const pt = this.myRef.createSVGPoint();
+//         let updatedCopyPoint;
+//         const padding = this.padding / 2;
+//         // this is true coords from the top left corner of svg
+//         pt.x = event.clientX;
+//         pt.y = event.clientY;
+//         // still wrong poisition, shifted above on drag
+//         const svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
+//         // coords from top left corner of svg
+//         updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
+//         console.log('created a svg point with coords', svgP.x, svgP.y);
+//         if ((svgP.x < (padding) || svgP.x > (this.width + (padding))) &&
+//         (svgP.y > (this.height - this.baseline) || svgP.y < (0))) {
+//             debugger;
+//             updatedCopyPoint = Vec2.create(this.updatedX, this.updatedY);
+//         // right border is X > something
+//         } else if (svgP.x < padding) {
+//             debugger;
+//             // TODO: fix lines to start from true 0
+//             updatedCopyPoint = Vec2.create(padding, svgP.y);
+//             // this probably
+//         } else if (svgP.x > (this.width + (padding))) {
+//             // this
+//             console.log('Creating a point while crossing right border');
+//             // should create on the same x that is fine, but on correct y
+//             console.log(this.width + padding, svgP.y);
+//             updatedCopyPoint = Vec2.create(this.width + padding, svgP.y);
+//             // touch this
+//         } else if (svgP.y > (this.height - this.baseline)) {
+//             debugger;
+//             // does not allow into such area
+//             // fix viewbox or?
+//             updatedCopyPoint = Vec2.create(svgP.x, this.height - this.baseline);
+//         } else if (svgP.y < (this.roof)) {
+//             debugger;
+//             updatedCopyPoint = Vec2.create(svgP.x, this.roof);
+//         } else {
+//             // console.log('Point within the constraints, creating normally');
+//             updatedCopyPoint = Vec2.create(svgP.x, svgP.y);
+//         }
+
+//         this.updatedX = updatedCopyPoint[0];
+//         this.updatedY = updatedCopyPoint[1];
+//         // TODO
+//         const unNormalizePoint = this.svgCoordsToPointData(updatedCopyPoint);
+//         // TODO: this.ghostPoints[0] is undefined when dragging a point towards right
+//         // border, why?
+//         this.ghostPoints[0].setAttribute('style', 'display: visible');
+//         this.ghostPoints[0].setAttribute('cx', `${updatedCopyPoint[0]}`);
+//         this.ghostPoints[0].setAttribute('cy', `${updatedCopyPoint[1]}`);
+
+
+//         this.props.onDrag(unNormalizePoint);
+//         // ok got it then point is "normalized" and thus got raised up or something
+//     }
+
+//     private handleMultipleDrag() {
+//         // TODO
+//     };
+
+//     private addPoint(point: ControlPoint) {
+//         this.state.points.push(point);
+//         this.handleChangePoints(this.state.points);
+//     }
+
+//     private replacePoint(point: ControlPoint) {
+//         // can get id from it
+//         let points = this.state.points.filter(p => p.id !== point.id);
+//         points.push(point);
+//         points = this.sortPointsByXValues(points);
+//         this.setState({
+//             points,
+//         });
+//         this.change(points);
+//     }
+
+//     private handlePointUpdate(event: any) {
+//         const selected = this.selectedPointId;
+//         if (this.state.canSelectMultiple) {
+//             return;
+//         }
+//         // or here
+//         if (selected === undefined || this.getPoint(selected).isTerminal === true) {
+//             this.setState({
+//                 copyPoint: undefined,
+//             });
+//             return;
+//         }
+//         // "unselects" points
+//         // do not need to raise points, simply generate their original position
+//         // as x + offset
+//         this.selectedPointId = undefined;
+//         const pointData = this.getPoint(selected);
+//         // I guess this one
+//         const updatedPointData = this.svgCoordsToPointData(Vec2.create(this.updatedX, this.updatedY));
+//         const updatedPoint: ControlPoint = {
+//             data: updatedPointData,
+//             id: pointData.id,
+//             color: pointData.color,
+//             index: pointData.index
+//         };
+
+//         this.replacePoint(updatedPoint);
+//         this.gElement.innerHTML = '';
+//         this.ghostPoints = [];
+//         document.removeEventListener('mousemove', this.handleDrag, true);
+//         document.removeEventListener('mouseup', this.handlePointUpdate, true);
+//     }
+
+//     private removePoint(id: UUID) {
+//         const point = this.getPoint(id);
+//         if (point.isTerminal === true) { return; }
+//         let points = this.state.points.filter(p => p.id !== point.id);
+//         points = this.sortPointsByXValues(points);
+//         this.setState({ points: points, clickedPointIds: undefined, showColorPicker: false });
+//         this.change(points);
+//     }
+
+//     // TODO: fix movement of plus and minus sign buttons upon creation of points
+//     private removeRightmostPoint() {
+//         // remove based on data
+//         const points = this.state.points;
+//         const sortedPs = this.sortPointsByXValues(points);
+//         debugger;
+//         // rightmost is undefined
+//         // last is ghost
+//         // const rightmostP = sortedPs.slice(-1)[0];
+//         const rightmostP = sortedPs[sortedPs.length - 2];
+//         debugger;
+//         this.removePoint(rightmostP.id);
+//         debugger;
+//     };
+
+//     private createPoint() {
+//         const svgP = this.myRef.createSVGPoint();
+//         // TODO: resolve location, do something like this.width, height...
+//         svgP.x = this.width - 100;
+//         svgP.y = this.height - 100;
+
+//         // const svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
+//         const points = this.state.points;
+//         const newPointData = this.svgCoordsToPointData(Vec2.create(svgP.x, svgP.y));
+//         const sorted = this.sortPointsByXValues(points);
+//         const realPoints = sorted.filter(p => p.isTerminal === undefined || false);
+//         const maxIndex = realPoints[realPoints.length - 1].index;
+//         // const
+//         const newPoint: ControlPoint = {
+//             data: newPointData,
+//             id: UUID.create22(),
+//             color: getRandomColor(),
+//             index: maxIndex + 1
+//         };
+//         this.addPoint(newPoint);
+//     }
+
+//     private handleDoubleClick(event: any) {
+//         return;
+//         // const pt = this.myRef.createSVGPoint();
+//         // pt.x = event.clientX;
+//         // pt.y = event.clientY;
+//         // const svgP = pt.matrixTransform(this.myRef.getScreenCTM().inverse());
+//         // const points = this.state.points;
+//         // const padding = this.padding / 2;
+
+//         // if (svgP.x < (padding) ||
+//         //     svgP.x > (this.width + (padding)) ||
+//         //     svgP.y > (this.height + (padding)) ||
+//         //     svgP.y < (this.padding / 2)) {
+//         //     return;
+//         // }
+//         // const newPointData = this.unNormalizePoint(Vec2.create(svgP.x, svgP.y));
+//         // // problem with index
+//         // // should be the last one
+//         // // find the last index and do + 1?
+//         // const newPoint: ControlPoint = {
+//         //     data: newPointData,
+//         //     id: UUID.create22(),
+//         //     color: getRandomColor(),
+//         //     index: points.slice(-1)[0].index + 1
+//         // };
+//         // this.addPoint(newPoint);
+//     }
+
+//     private deletePoint = (id: UUID) => (event: any) => {
+//         this.removePoint(id);
+//         console.log('Point', id, ' is deleted');
+//         event.stopPropagation();
+//     };
+
+//     private handleLeave() {
+//         if (this.selectedPointId === undefined) {
+//             return;
+//         }
+
+//         document.addEventListener('mousemove', this.handleDrag, true);
+//         document.addEventListener('mouseup', this.handlePointUpdate, true);
+//     }
+
+//     private handleEnter() {
+//         document.removeEventListener('mousemove', this.handleDrag, true);
+//         document.removeEventListener('mouseup', this.handlePointUpdate, true);
+//     }
+
+//     // this function prouces actual SVG coordinates (pixels from top left corner)
+//     private controlPointDataToSVGCoords(controlPointData: ControlPointData): Vec2 {
+//         console.log('controlPointDataToSVGCoords');
+//         const offset = this.padding / 2;
+//         const maxX = this.width + offset;
+//         // fix this
+//         const maxY = this.height + offset;
+//         // normalizedY = ([0;1] value * (this.height)) + offset
+//         const normalizedX = (controlPointData.x * (maxX - offset)) + offset;
+//         // const normalizedY = (controlPointData.alpha * (maxY - offset)) + offset;
+//         debugger;
+//         // I guess should not be adjusted here or?
+//         // if (controlPointData.adjustedAlpha === void 0) {
+//         //     debugger;
+//         //     console.log(controlPointData);
+//         //     // TODO: add this adjusted alpha thing to copy point etc.
+//         //     // fix lines
+//         //     throw Error('Adjusted alpha should be provided');
+//         // }
+//         const space = this.height - this.baseline - this.roof;
+//         // should be reversed or?
+//         // before
+//         // normalizedY = (point[1] * (maxY - o)) + o;
+//         // reverseY = this.height + this.padding - normalizedY;
+
+//         // Ok found a mistake
+//         // alpha / adjusted alpha is proportion
+//         // so we should stick to using just alpha
+//         // adjustment is not needed anymore
+//         const normalizedY = controlPointData.alpha * space;
+//         // ok so here it is e.g. 0.2 alpha
+//         // thefn space is e.g 350
+//         // 0.2 * 350 = 70
+//         // 70 is linear size from the baseline to the point
+//         // nothing to do with the roof
+//         // 70 so we need to place this 70
+//         // such that it is calculated from the top corner
+//         // i.e. get the distance from 0 0 to this 70
+//         // to do this
+//         const fromTopToBaseline = this.height - this.baseline;
+//         const correctY = fromTopToBaseline - normalizedY;
+//         // right so if this above is 200 and e.g. 300
+//         // (based on e.g. 0.2 and 0.3 adjusted alpha)
+//         // below it will become 350 - 200 = 150 and 350 - 300 = 50
+//         // i.e. need to be reversed
+//         // const y = (this.height - this.baseline) + normalizedY;
+//         // const reverseY = this.hegight
+//         // try adding removing baseline here or whatever
+//         // const normalizedY = (controlPointData.adjustedAlpha * (maxY - offset)) + offset;
+//         // const reverseY = (this.height + this.padding) - normalizedY;
+//         // here we should provide something like
+//         // baseline +
+//         const newPoint = Vec2.create(normalizedX, correctY);
+//         return newPoint;
+//     }
+
+//     // TODO: TODO: TODO: modify this too
+//     private svgCoordsToPointData(vec2: Vec2): ControlPointData {
+//         const space = this.height - this.baseline - this.roof;
+//         const min = this.padding / 2;
+//         const maxX = this.width + min;
+//         const maxY = this.height + min;
+//         const unNormalizedX = (vec2[0] - min) / (maxX - min);
+//         const cartesianDistanceBetweenPointAndBaseline = (this.height - this.baseline - vec2[1]);
+//         const dividedBySpace = cartesianDistanceBetweenPointAndBaseline / space;
+//         const unNormalizedY = dividedBySpace;
+//         return {
+//             x: unNormalizedX,
+//             alpha: unNormalizedY
+//         };
+//     }
+
+//     private refCallBack(element: any) {
+//         if (element) {
+//             this.myRef = element;
+//         }
+//     }
+
+//     private renderGridLines() {
+//         const count = 5;
+//         const bars: any = [];
+//         const offset = this.padding / 2;
+//         const x1 = offset;
+//         const w = 0.5;
+//         // TODO: allow editing text field, may need some function similar to what is with RGB thing
+//         //
+//         // TODO: consider adding baseline height as attribute of LineGraphComponent
+//         const x2 = this.width + offset;
+//         // fix that
+//         const overallHeight = this.height;
+//         // TODO: limit the height of histogram bars
+//         // 1, 2, 3, should be 4
+//         // get histogram bars back
+//         for (let i = 0; i < count; ++i) {
+//             // adjust + - 1 etc.
+//             // since we have risen all elements, need to probably increase height or
+//             // decrease it by - offset everywhere where it is used
+//             const y = overallHeight * i / count;
+//             // const y = this.height + offset * 2 - i * this.height / count;
+//             bars.push(
+//                 <line key={`${1 - i / count}gridline`} x1={x1} x2={x2} y1={y} y2={y}
+//                     stroke="#A9A9A9" strokeWidth={w} strokeDasharray="15, 15">
+//                     <title>{(1 - i / count).toFixed(1)}</title>
+//                 </line>
+//             );
+//         }
+//         return bars;
+//     }
+
+//     private renderHistogram() {
+//         if (!this.props.volume) return null;
+//         const histogram = Grid.getHistogram(this.props.volume.grid, 40);
+//         const bars = [];
+//         const N = histogram.counts.length;
+//         const w = this.width / N;
+//         const offset = this.padding / 2;
+//         const max = arrayMax(histogram.counts) || 1;
+//         for (let i = 0; i < N; i++) {
+//             const fromValue = histogram.min + histogram.binWidth * i;
+//             const toValue = histogram.min + histogram.binWidth * (i + 1);
+//             const x = this.width * i / (N - 1) + offset;
+//             // add roof
+//             // MAYBE remove offset from here
+//             // const y1 = this.height + offset - this.baseline;// + 2 * offset;
+//             // lowest point
+//             // for some reason, maybe this got divided by 2 somewhere
+//             const y1 = this.height - this.baseline;
+//             // highest point
+//             // 1. get the distance between roofline and baseline
+//             const space = this.height - this.baseline - this.roof;
+//             // 2. get a fraction of that distance based on histogram counts etc.
+//             // 2.5. do 1 - that fraction
+//             const fraction = space * (1 - histogram.counts[i] / max);
+//             // 3. add it to this.roof
+//             const y2 = fraction + this.roof;
+//             // you got y2
+//             // const
+//             // const y2 = (this.height - this.baseline + this.roof) * (1 - histogram.counts[i] / max);// + 2 * offset;
+//             // console.log(y1, y2);
+//             // console.log(this.height, this.roof, this.baseline);
+//             bars.push(<line key={`histogram${i}`} x1={x} x2={x} y1={y1} y2={y2} stroke="#A9A9A9" strokeWidth={w}>
+//                 <title>[{fromValue}; {toValue}]</title>
+//             </line>);
+//         }
+//         return bars;
+//     }
+
+//     private renderAxes() {
+//         if (!this.props.volume) return null;
+//         const offset = this.padding / 2;
+//         const mean = this.descriptiveStatistics.mean;
+//         const min = this.descriptiveStatistics.min;
+//         const max = this.descriptiveStatistics.max;
+//         // X: horizontal bar with arrow
+//         // need min max
+//         const x1HorizontalBar = offset;
+//         const x2HorizontalBar = this.width + offset;
+//         const y1HorizontalBar = this.height + offset;
+//         const y2HorizontalBar = this.height + offset;
+//         // vertical bar with arrow
+//         // x and y letters
+
+
+
+//         const x2VerticalBar = offset;
+//         const x1VerticalBar = offset;
+//         const y2VerticalBar = 25;
+//         const y1VerticalBar = this.height + offset;
+//         const w = offset / 10;
+//         const bars = [];
+//         // const hd = `M ${xh1} ${yh1} L ${xh2} ${yh2} L ${xh3} ${yh3} L ${xh4} ${yh4} L ${xh5} ${yh5} Z`;
+//         // const arrowheadd = `M ${xah1} ${yah1} L ${xah2} ${yah2} L ${xah3} ${yah3} L ${xah4} ${yah4} L ${xah5} ${yah5} Z`;
+//         bars.push(
+//             // TODO: color
+//             // TODO: may not work with <>/</>
+//             <>
+//                 <defs>
+//                     <marker
+//                         id="head-horizontal"
+//                         viewBox="0 0 10 10"
+//                         refX="5"
+//                         refY="5"
+//                         markerWidth="6"
+//                         markerHeight="6"
+//                         orient="auto-start-reverse">
+//                         <path d="M 0 2 L 10 5 L 0 8 z" />
+//                     </marker>
+//                 </defs>
+
+//                 <line key={'horizontalAxis'} x1={x1HorizontalBar} x2={x2HorizontalBar}
+//                     y1={y1HorizontalBar} y2={y2HorizontalBar} stroke="#7d7f7c" strokeWidth={w} markerEnd="url(#head-horizontal)">
+//                 </line>
+//             </>
+//         );
+//         // raise histogram above the base line somehow
+//         bars.push(
+//             <>
+//                 <defs>
+//                     <marker
+//                         id="head-vertical"
+//                         viewBox="0 0 10 10"
+//                         refX="5"
+//                         refY="5"
+//                         markerWidth="6"
+//                         markerHeight="6"
+//                         orient="auto-start-reverse">
+//                         <path d="M 0 2 L 10 5 L 0 8 z" />
+//                         {/* <path d="M 2 10 L 5 0 L 8 10 z" /> */}
+//                     </marker>
+//                 </defs>
+//                 <line key={'verticalAxis'} x1={x1VerticalBar} x2={x2VerticalBar}
+//                     y1={y1VerticalBar} y2={y2VerticalBar} stroke="#7d7f7c" strokeWidth={w} markerEnd="url(#head-vertical)">
+//                     {/* <title>+ Sigma: {sigma}</title> */}
+//                 </line>
+//             </>
+//         );
+//         return bars;
+//     }
+
+//     private makeXAxisLabel(value: number, x: number, y: number) {
+//         // TODO: make constants be dependant on precision and font size
+//         // TODO: font size
+//         // TODO: remove y dep
+//         return <text x={x - 20} y={y + 25}>{parseFloat(value.toFixed(5))} </text>;
+//     }
+
+//     private makeYAxisLabel(value: number, x: number, y: number) {
+//         // TODO: make constants be dependant on precision and font size
+//         // TODO: font size
+//         // TODO: remove x dep
+//         return <text x={x} y={y + 25} fontSize={25}>{parseFloat(value.toFixed(1))} </text>;
+//     }
+
+//     private renderDescriptiveStatisticsBars() {
+//         if (!this.props.volume) return null;
+//         const offset = this.padding / 2;
+//         const mean = this.descriptiveStatistics.mean;
+//         const min = this.descriptiveStatistics.min;
+//         const max = this.descriptiveStatistics.max;
+//         const sigma = this.descriptiveStatistics.sigma;
+//         const extent = max - min;
+//         const x = this.width * ((mean + Math.abs(min)) / extent) + offset;
+//         const w = offset / 10;
+//         const bars = [];
+//         const y1 = this.height + offset;// + offset * 2;
+//         const y2 = 0;// offset;
+//         const xPositive = this.width * ((mean + sigma + Math.abs(min)) / extent) + offset;
+//         const xNegative = this.width * ((mean - sigma + Math.abs(min)) / extent) + offset;
+//         bars.push(
+//             // raise points and lines
+//             //
+//             <>
+//                 <line key={'meanBar'} x1={x} x2={x} y1={y1} y2={y2} stroke="#D3D3D3" strokeDasharray="5, 5" strokeWidth={w}>
+//                     <title>Mean: {mean}</title>
+//                 </line>
+//                 {/* TODO: center */}
+//                 {this.makeXAxisLabel(mean, x, y1)}
+//                 {/* <text x={x - 40} y={y1 + 25}>{parseFloat(mean.toFixed(7))} </text> */}
+//             </>);
+//         bars.push(<><line key={'positiveSigmaBar'} x1={xPositive} x2={xPositive} y1={y1} y2={y2} stroke="#D3D3D3" strokeWidth={w}>
+//             <title>+Sigma: {mean + sigma}</title>
+//         </line>
+//         {this.makeXAxisLabel(mean + sigma, xPositive, y1)}
+//         </>);
+//         bars.push(
+//             <><line key={'negativeSigmaBar'} x1={xNegative} x2={xNegative} y1={y1} y2={y2} stroke="#D3D3D3" strokeWidth={w}>
+//                 <title>-Sigma: {-sigma}</title>
+//             </line>
+//             {this.makeXAxisLabel(mean - sigma, xNegative, y1)}
+//             </>);
+//         return bars;
+//     }
+
+//     // fix gridlines and labels
+//     // first fix points, allow them in area above and recalc the message or something
+//     // remove ghost points from the list
+//     private renderBaseline() {
+//         // TODO: fix this function
+//         const baseline = this.baseline;
+//         return <>
+//             <BaseLine height={this.height - baseline} offset={this.padding / 2} width={this.width} />
+//             {/* TODO: tune height need to be higher */}
+//             {/* or + offset */}
+//             {this.makeYAxisLabel(0, baseline / 2, this.height)}
+//             {/*  */}
+//             {this.makeYAxisLabel(1, baseline / 2, baseline)}
+//             {/* TODO: 0.2 0.4 etc. */}
+//         </>;
+//     }
+
+//     // turn off handleclick too
+//     private renderPoints() {
+//         const points: any[] = [];
+//         let point: Vec2;
+//         for (let i = 0; i < this.state.points.length; i++) {
+//             if (i !== 0 && i !== this.state.points.length - 1) {
+//                 // render points such that they are at baseline
+//                 const { data, color, id, index } = this.state.points[i];
+//                 const finalColor = color;
+//                 // TODO: here there is no adjusted alpha for some reason
+//                 // here
+//                 point = this.controlPointDataToSVGCoords(data);
+//                 points.push(<PointComponent
+//                     index={index}
+//                     key={id}
+//                     id={id}
+//                     // so here you should provide correct positions
+//                     // actual ones I mean
+//                     // from the top left corner
+//                     // of the SVG!
+//                     // x={50}
+//                     // y={50}
+//                     // so we push here coords
+//                     x={point[0]}
+//                     y={point[1]}
+//                     nX={data.x}
+//                     nY={data.alpha}
+//                     selected={false}
+//                     // should be able to delete point
+//                     delete={this.deletePoint}
+//                     // onmouseover we provide props.onHover of line graph component
+//                     onmouseover={this.props.onHover}
+//                     onmousedown={this.handleMouseDown(this.state.points[i])}
+//                     onclick={this.handleClick(this.state.points[i])}
+//                     color={finalColor}
+//                 />);
+//             }
+//         }
+//         return points;
+//     }
+
+//     private renderLines() {
+//         const points: Vec2[] = [];
+//         const lines = [];
+//         let maxX: number;
+//         let maxY: number;
+//         let normalizedX: number;
+//         let normalizedY: number;
+//         let reverseY: number;
+
+//         const o = this.padding / 2;
+//         for (const point of this.state.points) {
+//             maxX = this.width + o;
+//             // render lines is ~ fine
+//             // so introduce here baseline and roof
+//             // not padding I guess, or maybe padding + baseline and or roof
+//             maxY = this.height + this.padding;
+//             // normalize point data using a function
+//             normalizedX = (point.data.x * (maxX - o)) + o;
+//             // if (point.data.adjustedAlpha === void 0) throw Error('Adjusted alpha is not provided');
+//             // this is [0;1] thing
+//             const alpha = point.data.alpha;
+//             const space = this.height - this.baseline - this.roof;
+//             const pointHeightRealAboveBaseline = alpha * space;
+//             const pointHeightRealBelowRoof = space - pointHeightRealAboveBaseline;
+//             // TODO: may need to add padding
+//             const pointHeightBelowSVGOrigin = pointHeightRealBelowRoof + this.roof;
+//             // this gonna be fraction [0;1];
+//             // const fraction
+//             // const a = 0;
+//             // normalizedY = point.data.alpha;
+//             // normalizedY = ratio
+//             // normalizedY = (ratio * (maxY - o)) + o;
+//             // normalizedY = (point.data.alpha * (maxY - o)) + o;
+//             // normalizedY = (point.data.alpha * (maxY - o)) + o;
+//             // reverseY = this.height + this.padding - normalizedY;
+//             points.push(Vec2.create(normalizedX, pointHeightBelowSVGOrigin));
+//         }
+
+//         const data = points;
+//         const size = data.length;
+
+//         for (let i = 0; i < size - 1; i++) {
+//             const x1 = data[i][0];
+//             const y1 = data[i][1];
+//             const x2 = data[i + 1][0];
+//             const y2 = data[i + 1][1];
+//             lines.push(<line key={`lineOf${i}`} x1={x1} x2={x2} y1={y1} y2={y2} stroke="#cec9ba" strokeWidth="5"/>);
+//         }
+
+//         return lines;
+//     }
+// }
