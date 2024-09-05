@@ -321,7 +321,6 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
 
     private pointToValues(data?: ControlPointData) {
         if (!data) return '';
-        debugger;
         const volume = this.props.param.getVolume?.() as Volume;
         if (volume) {
             const { min, max, mean, sigma } = volume.grid.stats;
@@ -335,9 +334,6 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
     }
 
     private absValueToPointValue(v: number) {
-        // converts abs value to point value [0; 1]
-        // if (!data) return '';
-        // debugger;
         const volume = this.props.param.getVolume?.() as Volume;
         if (volume) {
             const { min, max, mean, sigma } = volume.grid.stats;
