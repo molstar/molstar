@@ -370,7 +370,7 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
         }
     }
 
-    onExpandGroupOpen = (data?: ControlPointData) => {
+    getValueFromPoint = (data?: ControlPointData) => {
         if (data) {
             return this.pointToValues(data);
         } else {
@@ -426,7 +426,7 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
                     onHover={this.onHover}
                     onDrag={this.onDrag}
                     colored={this.props.param.colored}
-                    onExpandGroupOpen={this.onExpandGroupOpen}
+                    getValueFromPoint={this.getValueFromPoint}
                     onAbsValueToPointValue={this.onAbsValueToPointValue}
                 />
             </div>

@@ -33,7 +33,7 @@ export interface PointButtonProps {
     onClick: any
     onPointIndexClick: any
     // TODO: better name
-    onExpandGroupOpen: any
+    getValueFromPoint: any
     onColorSquareClick: any
     onEnter: any
     point: ControlPoint
@@ -58,7 +58,7 @@ function PointButton(props: PointButtonProps) {
     };
 
     const render = () => {
-        const [absValue, relativeValue] = props.onExpandGroupOpen(props.point.data);
+        const [absValue, relativeValue] = props.getValueFromPoint(props.point.data);
         const truncatedAbsValue = parseFloat((absValue as number).toFixed(3));
         // console.log(absValue, relativeValue);
         const alpha = (props.point.data.alpha as number).toFixed(3);
@@ -134,7 +134,7 @@ interface PointPanelProps {
     onPointIndexClick: any
     onColorSquareClick: any
     onPointButtonClick: any
-    onExpandGroupOpen: any
+    getValueFromPoint: any
     changeXValue: any
     changeAlphaValue: any
 }
@@ -152,7 +152,7 @@ function PointsPanel(props: PointPanelProps) {
                 onPointIndexClick={props.onPointIndexClick}
                 onColorSquareClick={props.onColorSquareClick}
                 onClick={props.onPointButtonClick}
-                onExpandGroupOpen={props.onExpandGroupOpen}
+                getValueFromPoint={props.getValueFromPoint}
                 changeXValue={props.changeXValue}
                 changeAlphaValue={props.changeAlphaValue}
                 // TODO: highlight point on enter
@@ -405,7 +405,7 @@ export interface LineGraphComponentProps {
     // TODO: why undefined?
     colored: boolean | undefined
     // TODO: better name
-    onExpandGroupOpen: any
+    getValueFromPoint: any
     onAbsValueToPointValue: any
 };
 
@@ -1221,7 +1221,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
                     <PointsPanel points={controlPoints}
                         onPointIndexClick={highlightPoint}
                         removeAllPoints={deleteAllPoints}
-                        onExpandGroupOpen={props.onExpandGroupOpen}
+                        getValueFromPoint={props.getValueFromPoint}
                         changeXValue={changeXValue}
                         changeAlphaValue={changeAlphaValue}
                         onPointButtonClick={removePoint}
