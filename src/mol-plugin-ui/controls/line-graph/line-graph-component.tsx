@@ -34,6 +34,8 @@ export interface PointButtonProps {
     onPointIndexClick: any
     // TODO: better name
     onExpandGroupOpen: any
+    onColorSquareClick: any
+    onEnter: any
     point: ControlPoint
 }
 
@@ -62,26 +64,24 @@ function PointButton(props: PointButtonProps) {
         const color = props.point.color as Color;
         return (
             <div style={{ display: 'flex', marginBottom: 1 }} key={props.point.id}>
-                <Button style={{ textAlign: 'start', textIndent: '20px' }}>{this.props.point.index}</Button>
+                <Button style={{ textAlign: 'start', textIndent: '20px' }}>{props.point.index}</Button>
                 {<Button style={{ backgroundColor: Color.toStyle(color), minWidth: 32, width: 32 }}
-                    onClick={() => { this.props.onColorSquareClick(this.props.point.id); } } />}
+                    onClick={() => { props.onColorSquareClick(props.point.id); } } />}
                 <TextInput numeric
-                    style={{ minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
+                    style={{ minWidth: 0 }} className='msp-form-control' onEnter={props.onEnter} blurOnEnter={true} blurOnEscape={true}
                     value={truncatedAbsValue} placeholder={'Some text'}
-                    // fix that
-                    // TODO: string to number?
-                    isDisabled={false} onChange={(value) => { this.onAbs(value); }} />
+                    isDisabled={false} onChange={(value) => { onAbs(value); }} />
                 <TextInput numeric
                 // ok set value to string repr parseFloat and toFixed, but store in state the true value instead
                 // and set the value based on the state inside onAlpha onAbs
-                    style={{ minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true}
+                    style={{ minWidth: 0 }} className='msp-form-control' onEnter={props.onEnter} blurOnEnter={true} blurOnEscape={true}
                     value={alpha} placeholder={'Some text'}
-                    isDisabled={false} onChange={(value) => { this.onAlpha(value as any); }} />
+                    isDisabled={false} onChange={(value) => { onAlpha(value as any); }} />
 
-                <IconButton title={'Remove point'} svg={DeleteSvg} onClick={this.handleClick}></IconButton>
+                <IconButton title={'Remove point'} svg={DeleteSvg} onClick={handleClick}></IconButton>
             </div>
         );
-    }
+    };
 }
 
 class PointButton extends React.Component<any> {
