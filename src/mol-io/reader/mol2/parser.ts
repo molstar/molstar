@@ -12,13 +12,13 @@
 // const undefPooledStr = UndefinedColumn(molecule.num_atoms, ColumnType.pooledStr);
 // because latter actuall return a column of zeros
 import { Column } from '../../../mol-data/db';
-import { TokenBuilder, Tokenizer } from '../common/text/tokenizer';
+import { TokenBuilder, Tokenizer, Tokens } from '../common/text/tokenizer';
 import { TokenColumnProvider as TokenColumn } from '../common/text/column/token';
 import * as Schema from './schema';
 import { ReaderResult as Result } from '../result';
 import { Task, RuntimeContext, chunkedSubtask } from '../../../mol-task';
 
-const { skipWhitespace, eatValue, markLine, getTokenString, readLine, readLineElements } = Tokenizer;
+const { skipWhitespace, eatValue, markLine, getTokenString, skipStrictWhitespace } = Tokenizer;
 
 interface State {
     tokenizer: Tokenizer,
@@ -90,6 +90,36 @@ function handleMolecule(state: State) {
     molecule.mol_comment = mol_comment;
 }
 
+/**
+ * Just read the columns and get the max count of columns for the **atoms** and **bonds**
+ * @param linesToRead The total lines
+ * @param tokenIndexColums
+ * @param tokenizer
+ * @description
+ * !!!This function has side effects!!!
+ * 1. Called inside of the `chunkedSubtask`
+ * 2. It will change the parameters of the `tokenIndexColums` , `tokenizer` and `linesToRead`
+ * @returns The max count of columns
+ */
+function _readColumnsAndGetMaxCount(linesToRead: number, tokenIndexColums: Tokens[], tokenizer: Tokenizer): number {
+    let maxColumnCount = 0;
+    for (let i = 0; i < linesToRead; i++) {
+        let tokenIndex = 0;
+        skipWhitespace(tokenizer);
+        while (true) {
+            skipStrictWhitespace(tokenizer);
+            tokenizer.tokenStart = tokenizer.position;
+            eatValue(tokenizer);
+            if (tokenizer.tokenStart === tokenizer.tokenEnd) break;
+            const col = tokenIndexColums[tokenIndex++];
+            if (!col) continue;
+            TokenBuilder.addUnchecked(col, tokenizer.tokenStart, tokenizer.tokenEnd);
+        }
+        if (tokenIndex > maxColumnCount) maxColumnCount = tokenIndex;
+    }
+    return maxColumnCount + 1;
+}
+
 async function handleAtoms(state: State): Promise<Schema.Mol2Atoms> {
     const { tokenizer, molecule } = state;
 
@@ -100,9 +130,6 @@ async function handleAtoms(state: State): Promise<Schema.Mol2Atoms> {
 
     const initialTokenizerPosition = tokenizer.position;
     const initialTokenizerLineNumber = tokenizer.lineNumber;
-    const firstLine = readLine(tokenizer);
-    const firstLineArray = firstLine.trim().split(/\s+/g);
-    let columnCount = firstLineArray.length;
 
     // columns
     const atom_idTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
@@ -123,52 +150,26 @@ async function handleAtoms(state: State): Promise<Schema.Mol2Atoms> {
     tokenizer.position = initialTokenizerPosition;
     tokenizer.lineNumber = initialTokenizerLineNumber;
 
+    let maxColumnCount = 0;
+    const tokenIndexToColumn = [
+        atom_idTokens,
+        atom_nameTokens,
+        xTokens,
+        yTokens,
+        zTokens,
+        atom_typeTokens,
+        subst_idTokens,
+        subst_nameTokens,
+        chargeTokens,
+        status_bitTokens
+    ];
+
     const { length } = tokenizer;
     let linesAlreadyRead = 0;
+
     await chunkedSubtask(state.runtimeCtx, 100000, void 0, chunkSize => {
         const linesToRead = Math.min(molecule.num_atoms - linesAlreadyRead, chunkSize);
-        for (let i = 0; i < linesToRead; i++) {
-            skipWhitespace(tokenizer);
-            const _lineColumnCount = readLineElements(tokenizer).length;
-            if (_lineColumnCount > columnCount) columnCount = _lineColumnCount;
-            for (let j = 0; j < _lineColumnCount; j++) {
-                skipWhitespace(tokenizer);
-                tokenizer.tokenStart = tokenizer.position;
-                eatValue(tokenizer);
-                switch (j) {
-                    case 0:
-                        TokenBuilder.addUnchecked(atom_idTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                        break;
-                    case 1:
-                        TokenBuilder.addUnchecked(atom_nameTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                        break;
-                    case 2:
-                        TokenBuilder.addUnchecked(xTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                        break;
-                    case 3:
-                        TokenBuilder.addUnchecked(yTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                        break;
-                    case 4:
-                        TokenBuilder.addUnchecked(zTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                        break;
-                    case 5:
-                        TokenBuilder.addUnchecked(atom_typeTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                        break;
-                    case 6:
-                        TokenBuilder.addUnchecked(subst_idTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                        break;
-                    case 7:
-                        TokenBuilder.addUnchecked(subst_nameTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                        break;
-                    case 8:
-                        TokenBuilder.addUnchecked(chargeTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                        break;
-                    case 9:
-                        TokenBuilder.addUnchecked(status_bitTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                        break;
-                }
-            }
-        }
+        maxColumnCount = _readColumnsAndGetMaxCount(linesToRead, tokenIndexToColumn, tokenizer);
         linesAlreadyRead += linesToRead;
         return linesToRead;
     }, ctx => ctx.update({ message: 'Parsing...', current: tokenizer.position, max: length }));
@@ -182,11 +183,11 @@ async function handleAtoms(state: State): Promise<Schema.Mol2Atoms> {
         y: TokenColumn(yTokens)(Column.Schema.float),
         z: TokenColumn(zTokens)(Column.Schema.float),
 
-        atom_type: columnCount > 5 ? TokenColumn(atom_typeTokens)(Column.Schema.str) : undefStr,
-        subst_id: columnCount > 6 ? TokenColumn(subst_idTokens)(Column.Schema.int) : undefInt,
-        subst_name: columnCount > 7 ? TokenColumn(subst_nameTokens)(Column.Schema.str) : undefStr,
-        charge: columnCount > 8 ? TokenColumn(chargeTokens)(Column.Schema.float) : undefFloat,
-        status_bit: columnCount > 9 ? TokenColumn(status_bitTokens)(Column.Schema.str) : undefStr,
+        atom_type: maxColumnCount > 5 ? TokenColumn(atom_typeTokens)(Column.Schema.str) : undefStr,
+        subst_id: maxColumnCount > 6 ? TokenColumn(subst_idTokens)(Column.Schema.int) : undefInt,
+        subst_name: maxColumnCount > 7 ? TokenColumn(subst_nameTokens)(Column.Schema.str) : undefStr,
+        charge: maxColumnCount > 8 ? TokenColumn(chargeTokens)(Column.Schema.float) : undefFloat,
+        status_bit: maxColumnCount > 9 ? TokenColumn(status_bitTokens)(Column.Schema.str) : undefStr,
     };
     return ret;
 }
@@ -200,9 +201,6 @@ async function handleBonds(state: State): Promise<Schema.Mol2Bonds> {
 
     const initialTokenizerPosition = tokenizer.position;
     const initialTokenizerLineNumber = tokenizer.lineNumber;
-    const firstLine = readLine(tokenizer);
-    const firstLineArray = firstLine.trim().split(/\s+/g);
-    let columnCount = firstLineArray.length;
 
     // columns
     const bond_idTokens = TokenBuilder.create(tokenizer.data, molecule.num_bonds * 2);
@@ -214,38 +212,22 @@ async function handleBonds(state: State): Promise<Schema.Mol2Bonds> {
     tokenizer.position = initialTokenizerPosition;
     tokenizer.lineNumber = initialTokenizerLineNumber;
 
+
+    let maxColumnCount = 0;
+    const tokenIndexToColumn = [
+        bond_idTokens,
+        origin_bond_idTokens,
+        target_bond_idTokens,
+        bondTypeTokens,
+        status_bitTokens
+    ];
+
     const { length } = tokenizer;
     let linesAlreadyRead = 0;
 
     await chunkedSubtask(state.runtimeCtx, 100000, void 0, chunkSize => {
         const linesToRead = Math.min(molecule.num_bonds - linesAlreadyRead, chunkSize);
-        for (let i = 0; i < linesToRead; i++) {
-            skipWhitespace(tokenizer);
-            const _lineColumnCount = readLineElements(tokenizer).length;
-            if (_lineColumnCount > columnCount) columnCount = _lineColumnCount;
-            for (let j = 0; j < _lineColumnCount; j++) {
-                skipWhitespace(tokenizer);
-                tokenizer.tokenStart = tokenizer.position;
-                eatValue(tokenizer);
-                switch (j) {
-                    case 0:
-                        TokenBuilder.addUnchecked(bond_idTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                        break;
-                    case 1:
-                        TokenBuilder.addUnchecked(origin_bond_idTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                        break;
-                    case 2:
-                        TokenBuilder.addUnchecked(target_bond_idTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                        break;
-                    case 3:
-                        TokenBuilder.addUnchecked(bondTypeTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                        break;
-                    default:
-                        TokenBuilder.addUnchecked(status_bitTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                        break;
-                }
-            }
-        }
+        maxColumnCount = _readColumnsAndGetMaxCount(linesToRead, tokenIndexToColumn, tokenizer);
         linesAlreadyRead += linesToRead;
         return linesToRead;
     }, ctx => ctx.update({ message: 'Parsing...', current: tokenizer.position, max: length }));
@@ -258,7 +240,7 @@ async function handleBonds(state: State): Promise<Schema.Mol2Bonds> {
         target_atom_id: TokenColumn(target_bond_idTokens)(Column.Schema.int),
         bond_type: TokenColumn(bondTypeTokens)(Column.Schema.str),
 
-        status_bits: columnCount > 4
+        status_bits: maxColumnCount > 4
             ? TokenColumn(status_bitTokens)(Column.Schema.str)
             : Column.Undefined(molecule.num_bonds, Column.Schema.str),
     };

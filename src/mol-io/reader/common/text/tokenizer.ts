@@ -99,15 +99,6 @@ namespace Tokenizer {
         return getTokenString(state);
     }
 
-    /** Read a string line and return line elements as string array */
-    export function readLineElements(state: Tokenizer): string[] {
-        if (!state.dataLines) return [];
-        const line = state.dataLines[state.lineNumber - 1];
-        if (!line) return [];
-        const result = line.split(/\s+/g).filter(Boolean);
-        return result;
-    }
-
     /** Advance the state and return trimmed line as string. */
     export function readLineTrim(state: Tokenizer): string {
         markLine(state);
@@ -235,6 +226,24 @@ namespace Tokenizer {
                     prev = c;
                     ++state.position;
                     ++state.lineNumber;
+                    break;
+                default:
+                    return prev;
+            }
+        }
+        return prev;
+    }
+
+    /** Skips all the whitespace */
+    export function skipStrictWhitespace(state: Tokenizer): number {
+        let prev = -1;
+        while (state.position < state.length) {
+            const c = state.data.charCodeAt(state.position);
+            switch (c) {
+                case 9: // '\t'
+                case 32: // ' '
+                    prev = c;
+                    ++state.position;
                     break;
                 default:
                     return prev;
