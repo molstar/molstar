@@ -111,7 +111,7 @@ interface BaselineProps {
     height: number
     offset: number
     width: number
-} 
+}
 
 function BaseLine(props: BaselineProps) {
     const render = () => {
@@ -397,7 +397,7 @@ export interface LineGraphComponentProps {
     // TODO: better name
     data: ControlPoint[]
     // TODO: may need to have it as any
-    volume: Volume | undefined | unknown
+    volume: Volume | undefined
     // TODO: function types
     onChange: any
     onHover: any

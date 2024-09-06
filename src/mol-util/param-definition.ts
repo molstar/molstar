@@ -130,8 +130,8 @@ export namespace ParamDefinition {
         presetKind: 'all' | 'scale' | 'set'
     }
 
-    export interface ColorListRanges extends Base<{ kind: 'interpolate' | 'set', colors: ColorListRangesEntry[] }> {
-        type: 'color-list-ranges'
+    export interface ColorListControlPoints extends Base<{ kind: 'interpolate' | 'set', colors: ColorListRangesEntry[] }> {
+        type: 'color-list-control-points'
         offsets: boolean
         presetKind: 'all' | 'scale' | 'set'
     }
@@ -147,9 +147,9 @@ export namespace ParamDefinition {
         return setInfo<ColorList>({ type: 'color-list', presetKind: info?.presetKind || 'all', defaultValue: def, offsets: !!info?.offsets }, info);
     }
 
-    export function ColorListControlPoints(defaultValue: { kind: 'interpolate' | 'set', colors: ColorListRangesEntry[] }, info?: Info & { presetKind?: ColorList['presetKind'], offsets?: boolean }): ColorListRanges {
+    export function ColorListControlPoints(defaultValue: { kind: 'interpolate' | 'set', colors: ColorListRangesEntry[] }, info?: Info & { presetKind?: ColorList['presetKind'], offsets?: boolean }): ColorListControlPoints {
         const def = defaultValue;
-        return setInfo<ColorListRanges>({ type: 'color-list-ranges', presetKind: info?.presetKind || 'all', defaultValue: def, offsets: !!info?.offsets }, info);
+        return setInfo<ColorListControlPoints>({ type: 'color-list-control-points', presetKind: info?.presetKind || 'all', defaultValue: def, offsets: !!info?.offsets }, info);
     }
 
     export interface Vec3 extends Base<Vec3Data>, Range {
@@ -360,7 +360,7 @@ export namespace ParamDefinition {
 
     export type Any =
         | Value<any> | Select<any> | MultiSelect<any> | BooleanParam | Text | Color | Vec3 | Mat4 | Numeric | FileParam | UrlParam | FileListParam | Interval | LineGraph
-        | ColorList | ColorListRanges | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | Script | ObjectList | ValueRef | DataRef
+        | ColorList | ColorListControlPoints | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | Script | ObjectList | ValueRef | DataRef
 
     export type Params = { [k: string]: Any }
     export type Values<T extends Params = Params> = { [k in keyof T]: T[k]['defaultValue'] }

@@ -12,7 +12,6 @@ export class PointComponent extends React.Component<any, {show: boolean, id: UUI
 
         this.handleHover = this.handleHover.bind(this);
         this.handleHoverOff = this.handleHoverOff.bind(this);
-        this.deletePoint = this.deletePoint.bind(this);
     }
 
     private handleHover() {
@@ -29,10 +28,6 @@ export class PointComponent extends React.Component<any, {show: boolean, id: UUI
         this.props.onmouseover(undefined);
     }
 
-    private deletePoint() {
-        // this.props.delete(this.props.id);
-    }
-
     public render() {
         const rgb = Color.toRgb(this.props.color);
         const fill = `rgb(${rgb})`;
@@ -44,7 +39,7 @@ export class PointComponent extends React.Component<any, {show: boolean, id: UUI
                 cx={this.props.x}
                 cy={this.props.y}
                 onClick={this.props.onclick}
-                onDoubleClick={this.props.delete(this.props.id)}
+                // onDoubleClick={this.props.delete(this.props.id)}
                 onMouseEnter={this.handleHover}
                 onMouseLeave={this.handleHoverOff}
                 onMouseDown={this.props.onmousedown}

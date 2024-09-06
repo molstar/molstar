@@ -188,7 +188,7 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         case 'conditioned': return ConditionedControl;
         case 'multi-select': return MultiSelectControl;
         case 'color': return CombinedColorControl;
-        case 'color-list-ranges': return OffsetControlPointsColorList;
+        case 'color-list-control-points': return OffsetControlPointsColorList;
         case 'color-list': return param.offsets ? OffsetColorListControl : ColorListControl;
         case 'vec3': return Vec3Control;
         case 'mat4': return Mat4Control;
@@ -964,10 +964,10 @@ export class OffsetColorListControl extends React.PureComponent<ParamProps<PD.Co
     }
 }
 
-export class OffsetControlPointsColorList extends React.PureComponent<ParamProps<PD.ColorListRanges>, { showHelp: boolean, show?: 'edit' | 'presets' }> {
+export class OffsetControlPointsColorList extends React.PureComponent<ParamProps<PD.ColorListControlPoints>, { showHelp: boolean, show?: 'edit' | 'presets' }> {
     state = { showHelp: false, show: void 0 as 'edit' | 'presets' | undefined };
 
-    protected update(value: PD.ColorListRanges['defaultValue']) {
+    protected update(value: PD.ColorListControlPoints['defaultValue']) {
         this.props.onChange({ param: this.props.param, name: this.props.name, value });
     }
 

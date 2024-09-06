@@ -46,7 +46,7 @@ import { lerp } from '../../mol-math/interpolate';
 import { MarkerAction, MarkerActions } from '../../mol-util/marker-action';
 import { Emissive } from '../../mol-theme/emissive';
 import { ControlPoint, controlPointsToColorListControlPointsEntry } from '../../mol-plugin-ui/controls/line-graph/line-graph-component';
-import { ColorListRangesEntry } from '../../mol-util/color/color';
+import { ColorListRangesEntry as ColorListControlPointsEntry } from '../../mol-util/color/color';
 import { ControlPointsThemeName } from '../../mol-theme/color/control-points';
 
 export { StructureRepresentation3D };
@@ -1051,7 +1051,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
                         const newPoints: ControlPoint[] = [];
 
                         for (const i of newParams.colorTheme.params.controlPointsColorList.colors) {
-                            const item: ColorListRangesEntry = i;
+                            const item: ColorListControlPointsEntry = i;
                             const id = item[2];
                             const targetPoint = controlPoints.find(p => p.id === id);
                             if (!targetPoint) throw Error(`Target point with id: ${id} was not found`);
