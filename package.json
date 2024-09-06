@@ -15,7 +15,6 @@
     "lint-fix": "eslint . --fix",
     "test": "npm install --no-save \"gl@^6.0.2\" && npm run lint && jest",
     "jest": "jest",
-    "jest:mol2": "jest ./src/mol-io/reader/_spec/mol2-sts.spec.ts",
     "build": "npm run build-tsc && npm run build-extra && npm run build-webpack",
     "clean": "node ./scripts/clean.js",
     "rebuild": "npm run clean && npm run build",
