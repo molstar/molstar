@@ -354,9 +354,6 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
     }
 
 
-    // TODO: fix x so that here it is still 0 for point on baseline
-    // basically keep data x alpha as they are
-    // but when rendering a point add to it a baseline level (this.padding/2)
     private pointToLabel(data?: ControlPointData) {
         if (!data) return '';
         const volume = this.props.param.getVolume?.() as Volume;
@@ -421,7 +418,7 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
             <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none', marginTop: 1 }}>
                 <LineGraphComponent
                     data={this.props.value}
-                    volume={this.props.param.getVolume?.()}
+                    volume={this.props.param.getVolume?.() as Volume}
                     onChange={this.onChange}
                     onHover={this.onHover}
                     onDrag={this.onDrag}

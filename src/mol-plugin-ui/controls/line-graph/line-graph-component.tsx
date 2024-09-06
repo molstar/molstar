@@ -180,7 +180,6 @@ interface TFMethodPanelProps {
 function TFMethodPanel(props: TFMethodPanelProps) {
     const render = () => {
         return <ExpandGroup header={props.params.name} initiallyExpanded={true}>
-            {/* render params */}
             <TFParamsWrapper onChange={props.onChange} params={props.params} descriptiveStatistics={props.descriptiveStatistics}></TFParamsWrapper>
         </ExpandGroup>;
     };
@@ -191,31 +190,44 @@ export type TFName = 'gaussian' | 'method2' | 'defaults';
 
 export interface TFMethod {
     name: TFName
-    // TODO: find params
     params: TFParamsValues
 }
 
-class HelpersPanel extends React.Component<any> {
-    // handleClick = () => {
-    //     // this.props.onClick(this.props.kind, this.props.sigmaMultiplierExtent, this.props.sigmaMultiplierCenter);
-    // };
+interface HelpersPanelProps {
+    methodsParams: TFParamsValues[]
+    onChange: any
+    descriptiveStatistics: VolumeDescriptiveStatistics
+}
 
-    render() {
-        const methods: TFMethod[] = this.props.methods;
-        // const points: ControlPoint[] = this.props.points;
-        // methods undefined
-        const methodsUI = methods.map(p => {
-            // should be expandgroup
-            // pass on change method around
-            return <TFMethodPanel key={p.name} onChange={this.props.onChange} params={p} descriptiveStatistics={this.props.descriptiveStatistics}></TFMethodPanel>;
+function HelpersPanel(props: HelpersPanelProps) {
+    const render = () => {
+        const methodsParams: TFParamsValues[] = props.methodsParams;
+        const methodsUI = methodsParams.map(p => {
+            return <TFMethodPanel key={p.name} onChange={props.onChange} params={p} descriptiveStatistics={props.descriptiveStatistics}></TFMethodPanel>;
         });
         return (
             <ExpandGroup header='Helpers' initiallyExpanded={false}>
                 {methodsUI}
             </ExpandGroup>
         );
-    }
+    };
+
+    return render();
 }
+
+// class HelpersPanel extends React.Component<any> {
+//     render() {
+//         const methods: TFMethod[] = this.props.methods;
+//         const methodsUI = methods.map(p => {
+//             return <TFMethodPanel key={p.name} onChange={this.props.onChange} params={p} descriptiveStatistics={this.props.descriptiveStatistics}></TFMethodPanel>;
+//         });
+//         return (
+//             <ExpandGroup header='Helpers' initiallyExpanded={false}>
+//                 {methodsUI}
+//             </ExpandGroup>
+//         );
+//     }
+// }
 
 function WaitingParameterControls<T extends PD.Params>({ values, onChangeValues, ...etc }: { values: PD.ValuesFor<T>, onChangeValues: (values: PD.ValuesFor<T>) => any } & ComponentParams<ParameterControls<T>>) {
     const [changing, currentValues, execute] = useAsyncChange(values);
@@ -259,32 +271,58 @@ function useAsyncChange<T>(initialValue: T) {
     return [isExecuting, value, execute] as const;
 }
 
-// TODO: add explicit state type to it
-class TFParamsWrapper extends React.Component<any> {
-    state = { params: this.props.params };
-
-    // TODO: check if the above is correct
-    handleChange = (next: TFParamsValues) => {
-        // on change should be generic as well
-        this.props.onChange(next);
-    };
-
-    // rework for generic tf
-
-    handleClick = () => {
-        this.props.onChange(this.props.params);
-        this.setState({ params: this.props.params });
-    };
-
-    render() {
-        const adjustedParams = adjustTFParams(this.props.params.name, this.props.descriptiveStatistics);
-        return (<ExpandGroup header='Transfer Function Settings' initiallyExpanded>
-            {/* TODO: fix that as any */}
-            <WaitingParameterControls params={adjustedParams} values={this.state.params} onChangeValues={async next => { this.handleChange(next as any); }} />
-            <Button style={{ marginTop: 1 }} onClick={this.handleClick}>{`Apply ${this.props.params.name} Transfer Function`}</Button>
-        </ExpandGroup>);
-    }
+interface TFParamsWrapperProps {
+    params: TFParamsValues
+    onChange: any
+    descriptiveStatistics: VolumeDescriptiveStatistics
 }
+
+function TFParamsWrapper(props: TFParamsWrapperProps) {
+    const [params, setParams] = useState(props.params);
+
+    const handleChange = (next: TFParamsValues) => {
+        props.onChange(next);
+    };
+
+    const handleClick = () => {
+        props.onChange(props.params);
+        setParams(props.params);
+    };
+
+    const render = () => {
+        // TODO: Make PD from TFName type if possible instead of "as"
+        debugger;
+        const adjustedParams = adjustTFParams((props.params.name as TFName), props.descriptiveStatistics);
+        return (<ExpandGroup header='Transfer Function Settings' initiallyExpanded>
+            <WaitingParameterControls params={adjustedParams} values={params} onChangeValues={async next => { handleChange(next as any); }} />
+            <Button style={{ marginTop: 1 }} onClick={handleClick}>{`Apply ${props.params.name} Transfer Function`}</Button>
+        </ExpandGroup>);
+    };
+
+    return render();
+
+}
+
+// class TFParamsWrapper extends React.Component<any> {
+//     state = { params: this.props.params };
+
+//     handleChange = (next: TFParamsValues) => {
+//         this.props.onChange(next);
+//     };
+
+//     handleClick = () => {
+//         this.props.onChange(this.props.params);
+//         this.setState({ params: this.props.params });
+//     };
+
+//     render() {
+//         const adjustedParams = adjustTFParams(this.props.params.name, this.props.descriptiveStatistics);
+//         return (<ExpandGroup header='Transfer Function Settings' initiallyExpanded>
+//             <WaitingParameterControls params={adjustedParams} values={this.state.params} onChangeValues={async next => { this.handleChange(next as any); }} />
+//             <Button style={{ marginTop: 1 }} onClick={this.handleClick}>{`Apply ${this.props.params.name} Transfer Function`}</Button>
+//         </ExpandGroup>);
+//     }
+// }
 
 export function areControlPointsColorsSame(newControlPoints: ControlPoint[], oldControlPoints: ControlPoint[]) {
     const newSorted = newControlPoints.sort((a, b) => a.index - b.index);
@@ -735,8 +773,6 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         updatedX.current = updatedCopyPoint[0];
         updatedY.current = updatedCopyPoint[1];
         const unNormalizePoint = svgCoordsToPointData(updatedCopyPoint);
-        // TODO: this.ghostPoints[0] is undefined when dragging a point towards right
-        // border, why?
         ghostPoints.current[0].setAttribute('style', 'display: visible');
         ghostPoints.current[0].setAttribute('cx', `${updatedCopyPoint[0]}`);
         ghostPoints.current[0].setAttribute('cy', `${updatedCopyPoint[1]}`);
@@ -1227,8 +1263,8 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
                         onPointButtonClick={removePoint}
                         onColorSquareClick={onColorSquareClick}></PointsPanel>
                     <HelpersPanel onChange={setTF}
-                        methods={methodsParams}
-                        descriptiveStatistics={descriptiveStatistics}></HelpersPanel>
+                        methodsParams={methodsParams}
+                        descriptiveStatistics={descriptiveStatistics.current}></HelpersPanel>
                 </>
             </div>,
             <div key="modal" id="modal-root" />
