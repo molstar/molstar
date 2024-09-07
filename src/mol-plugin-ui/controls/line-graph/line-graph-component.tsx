@@ -423,8 +423,7 @@ export interface LineGraphComponentProps {
     onChange: any
     onHover: any
     onDrag: any
-    // TODO: why undefined?
-    colored: boolean
+    colored: boolean | undefined
     getValueFromPoint: any
     onAbsValueToPointValue: any
 };
@@ -916,7 +915,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
                 // const ref = useRef();
                 // const ref = React.createRef();
                 // if ref found replace or something
-                // e.g. update refs 
+                // e.g. update refs
                 // // or as object with Id
                 // const pointRef: PointRef = {
                 //     ref: ref,

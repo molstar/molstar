@@ -30,6 +30,7 @@ import { ControlPointData, LineGraphComponent } from './line-graph/line-graph-co
 import { Slider, Slider2 } from './slider';
 import { UUID } from '../../mol-util';
 import { urlToHttpOptions } from 'url';
+import { useState } from 'react';
 
 export type ParameterControlsCategoryFilter = string | null | (string | null)[]
 
@@ -237,7 +238,7 @@ export interface ParamProps<P extends PD.Base<any> = PD.Base<any>> {
     onChange: ParamOnChange,
     onEnter?: () => void
 }
-export type ParamControl = React.ComponentClass<ParamProps<any>>
+export type ParamControl = React.ComponentClass<ParamProps<any>> | React.FC<any>
 
 function renderSimple(options: { props: ParamProps<any>, state: { showHelp: boolean }, control: JSX.Element, addOn: JSX.Element | null, toggleHelp: () => void }) {
     const { props, state, control, toggleHelp, addOn } = options;
@@ -312,16 +313,132 @@ export class BoolControl extends SimpleParam<PD.BooleanParam> {
     }
 }
 
-export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGraph>, { isExpanded: boolean, isOverPoint: boolean, message: string}> {
-    state = {
-        isExpanded: false,
-        isOverPoint: false,
-        message: `${this.props.param.defaultValue.length} points`,
-    };
+// export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGraph>, { isExpanded: boolean, isOverPoint: boolean, message: string}> {
+//     state = {
+//         isExpanded: false,
+//         isOverPoint: false,
+//         message: `${this.props.param.defaultValue.length} points`,
+//     };
 
-    private pointToValues(data?: ControlPointData) {
+//     private pointToValues(data?: ControlPointData) {
+//         if (!data) return '';
+//         const volume = this.props.param.getVolume?.() as Volume;
+//         if (volume) {
+//             const { min, max, mean, sigma } = volume.grid.stats;
+//             const v = min + (max - min) * data.x;
+//             const s = (v - mean) / sigma;
+//             return [v, s];
+//         } else {
+//             // TODO: optimize this
+//             return [data.x, data.x];
+//         }
+//     }
+
+//     private absValueToPointValue(v: number) {
+//         const volume = this.props.param.getVolume?.() as Volume;
+//         if (volume) {
+//             const { min, max, mean, sigma } = volume.grid.stats;
+//             // do revers of this
+//             // we have v, we do not have data.x
+//             // v - min = (max - min)*x
+//             // (v - min) / (max - min) = x
+//             // x = (v - min) / (max - min);
+//             // const v = min + (max - min) * data.x;
+//             const x = (v - min) / (max - min);
+//             // const s = (v - mean) / sigma;
+//             return x;
+//         } else {
+//             throw Error('No volume available');
+//             // TODO: optimize this
+//             // return [data.x, data.x];
+//         }
+//     }
+
+
+//     private pointToLabel(data?: ControlPointData) {
+//         if (!data) return '';
+//         const volume = this.props.param.getVolume?.() as Volume;
+//         if (volume) {
+//             const { min, max, mean, sigma } = volume.grid.stats;
+//             const v = min + (max - min) * data.x;
+//             const s = (v - mean) / sigma;
+//             return `(${v.toFixed(2)} | ${s.toFixed(2)}σ, ${data.alpha.toFixed(2)})`;
+//         } else {
+//             return `(${data.x.toFixed(2)}, ${data.alpha.toFixed(2)})`;
+//         }
+//     }
+
+//     getValueFromPoint = (data?: ControlPointData) => {
+//         if (data) {
+//             return this.pointToValues(data);
+//         } else {
+//             throw Error('No data is provided');
+//         }
+//     };
+
+//     onAbsValueToPointValue = (v: number) => {
+//         return this.absValueToPointValue(v);
+//     };
+
+//     onHover = (data?: ControlPointData) => {
+//         this.setState({ isOverPoint: !this.state.isOverPoint });
+//         if (data) {
+//             // converts point to label
+//             this.setState({ message: this.pointToLabel(data) });
+//         } else {
+//             this.setState({ message: `${this.props.value.length} points` });
+//         }
+//     };
+
+//     onClick = (data?: ControlPointData) => {
+//         this.setState({ isOverPoint: !this.state.isOverPoint });
+//         if (data) {
+//             this.setState({ message: this.pointToLabel(data) });
+//         } else {
+//             this.setState({ message: `${this.props.value.length} points` });
+//         }
+//     };
+
+//     onDrag = (data: ControlPointData) => {
+//         this.setState({ message: this.pointToLabel(data) });
+//     };
+
+//     onChange = (value: PD.LineGraph['defaultValue']) => {
+//         this.props.onChange({ name: this.props.name, param: this.props.param, value: value });
+//     };
+
+//     toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
+//         this.setState({ isExpanded: !this.state.isExpanded });
+//         e.currentTarget.blur();
+//     };
+
+//     render() {
+//         const label = this.props.param.label || camelCaseToWords(this.props.name);
+//         return <>
+//             <ControlRow label={label} control={<button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>{`${this.state.message}`}</button>} />
+//             <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none', marginTop: 1 }}>
+//                 <LineGraphComponent
+//                     controlPoints={this.props.value}
+//                     volume={this.props.param.getVolume?.() as Volume}
+//                     onChange={this.onChange}
+//                     onHover={this.onHover}
+//                     onDrag={this.onDrag}
+//                     colored={this.props.param.colored}
+//                     getValueFromPoint={this.getValueFromPoint}
+//                     onAbsValueToPointValue={this.onAbsValueToPointValue}
+//                 />
+//             </div>
+//         </>;
+//     }
+// }
+
+export const LineGraphControl = (props: ParamProps<PD.LineGraph>) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [isOverPoint, setIsOverPoint] = useState(false);
+    const [message, setMessage] = useState(`${props.param.defaultValue.length} points`);
+    const pointToValues = (data?: ControlPointData) => {
         if (!data) return '';
-        const volume = this.props.param.getVolume?.() as Volume;
+        const volume = props.param.getVolume?.() as Volume;
         if (volume) {
             const { min, max, mean, sigma } = volume.grid.stats;
             const v = min + (max - min) * data.x;
@@ -333,30 +450,22 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
         }
     }
 
-    private absValueToPointValue(v: number) {
-        const volume = this.props.param.getVolume?.() as Volume;
+    const absValueToPointValue = (v: number) => {
+        const volume = props.param.getVolume?.() as Volume;
         if (volume) {
             const { min, max, mean, sigma } = volume.grid.stats;
-            // do revers of this
-            // we have v, we do not have data.x
-            // v - min = (max - min)*x
-            // (v - min) / (max - min) = x
-            // x = (v - min) / (max - min);
-            // const v = min + (max - min) * data.x;
             const x = (v - min) / (max - min);
-            // const s = (v - mean) / sigma;
             return x;
         } else {
+            // TODO: fix?
             throw Error('No volume available');
-            // TODO: optimize this
-            // return [data.x, data.x];
         }
     }
 
 
-    private pointToLabel(data?: ControlPointData) {
+    const pointToLabel = (data?: ControlPointData) => {
         if (!data) return '';
-        const volume = this.props.param.getVolume?.() as Volume;
+        const volume = props.param.getVolume?.() as Volume;
         if (volume) {
             const { min, max, mean, sigma } = volume.grid.stats;
             const v = min + (max - min) * data.x;
@@ -367,69 +476,76 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
         }
     }
 
-    getValueFromPoint = (data?: ControlPointData) => {
+    const getValueFromPoint = (data?: ControlPointData) => {
         if (data) {
-            return this.pointToValues(data);
+            return pointToValues(data);
         } else {
             throw Error('No data is provided');
         }
     };
 
-    onAbsValueToPointValue = (v: number) => {
-        return this.absValueToPointValue(v);
+    const onAbsValueToPointValue = (v: number) => {
+        return absValueToPointValue(v);
     };
 
-    onHover = (data?: ControlPointData) => {
-        this.setState({ isOverPoint: !this.state.isOverPoint });
+    const onHover = (data?: ControlPointData) => {
+        // this.setState({ isOverPoint: !this.state.isOverPoint });
+        setIsOverPoint(!isOverPoint);
         if (data) {
             // converts point to label
-            this.setState({ message: this.pointToLabel(data) });
+            setMessage(pointToLabel(data));
         } else {
-            this.setState({ message: `${this.props.value.length} points` });
+            setMessage(`${props.value.length} points`);
+            // this.setState({ message: `${this.props.value.length} points` });
         }
     };
 
-    onClick = (data?: ControlPointData) => {
-        this.setState({ isOverPoint: !this.state.isOverPoint });
+    const onClick = (data?: ControlPointData) => {
+        setIsOverPoint(!isOverPoint);
         if (data) {
-            this.setState({ message: this.pointToLabel(data) });
+            setMessage(pointToLabel(data));
+            // this.setState({ message: this.pointToLabel(data) });
         } else {
-            this.setState({ message: `${this.props.value.length} points` });
+            setMessage(`${props.value.length} points`);
+            // this.setState({ message: `${this.props.value.length} points` });
         }
     };
 
-    onDrag = (data: ControlPointData) => {
-        this.setState({ message: this.pointToLabel(data) });
+    const onDrag = (data: ControlPointData) => {
+        setMessage(pointToLabel(data));
+        // this.setState({ message: this.pointToLabel(data) });
     };
 
-    onChange = (value: PD.LineGraph['defaultValue']) => {
-        this.props.onChange({ name: this.props.name, param: this.props.param, value: value });
+    const onChange = (value: PD.LineGraph['defaultValue']) => {
+        props.onChange({ name: props.name, param: props.param, value: value });
     };
 
-    toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
-        this.setState({ isExpanded: !this.state.isExpanded });
+    const toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
+        setIsExpanded(!isExpanded);
+        // this.setState({ isExpanded: !this.state.isExpanded });
         e.currentTarget.blur();
     };
 
-    render() {
-        const label = this.props.param.label || camelCaseToWords(this.props.name);
+    const render = () => {
+        const label = props.param.label || camelCaseToWords(props.name);
         return <>
-            <ControlRow label={label} control={<button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>{`${this.state.message}`}</button>} />
-            <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none', marginTop: 1 }}>
+            <ControlRow label={label} control={<button onClick={toggleExpanded} disabled={props.isDisabled}>{`${message}`}</button>} />
+            <div className='msp-control-offset' style={{ display: isExpanded ? 'block' : 'none', marginTop: 1 }}>
                 <LineGraphComponent
-                    controlPoints={this.props.value}
-                    volume={this.props.param.getVolume?.() as Volume}
-                    onChange={this.onChange}
-                    onHover={this.onHover}
-                    onDrag={this.onDrag}
-                    colored={this.props.param.colored}
-                    getValueFromPoint={this.getValueFromPoint}
-                    onAbsValueToPointValue={this.onAbsValueToPointValue}
+                    controlPoints={props.value}
+                    volume={props.param.getVolume?.() as Volume}
+                    onChange={onChange}
+                    onHover={onHover}
+                    onDrag={onDrag}
+                    colored={props.param.colored}
+                    getValueFromPoint={getValueFromPoint}
+                    onAbsValueToPointValue={onAbsValueToPointValue}
                 />
             </div>
         </>;
-    }
-}
+    };
+    return render();
+};
 
 export class NumberInputControl extends React.PureComponent<ParamProps<PD.Numeric>> {
     state = { value: '0' };
