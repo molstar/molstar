@@ -32,7 +32,6 @@ export interface PointButtonProps {
     changeAlphaValue: any
     onClick: any
     onPointIndexClick: any
-    // TODO: better name
     getValueFromPoint: any
     onColorSquareClick: any
     onEnter: any
@@ -52,7 +51,6 @@ function PointButton(props: PointButtonProps) {
         props.onClick(props.point.id);
     };
 
-    // TODO: highlight the point
     const onPointIndexClick = (pointId: UUID) => {
         props.onPointIndexClick(pointId);
     };
@@ -89,11 +87,9 @@ function PointButton(props: PointButtonProps) {
 
 function adjustTFParams(name: TFName, ds: VolumeDescriptiveStatistics) {
     switch (name) {
-        // TODO: type for that
         case 'gaussian':
             const max = ds.max;
             const min = ds.min;
-            // TODO: copy?
             GaussianTFParams.gaussianCenter.max = max;
             GaussianTFParams.gaussianCenter.min = min;
             GaussianTFParams.gaussianExtent.max = max / 2;
@@ -155,7 +151,6 @@ function PointsPanel(props: PointPanelProps) {
                 getValueFromPoint={props.getValueFromPoint}
                 changeXValue={props.changeXValue}
                 changeAlphaValue={props.changeAlphaValue}
-                // TODO: highlight point on enter
                 onEnter={() => {}}
             ></PointButton>;
         });
@@ -1352,23 +1347,25 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
             position: ('absolute' as any),
             top: '100px',
             right: '30px',
-            border: '2px solid black',
+            // backgroundColor: 'transparent'
+            // border: '2px solid black',
         };
         const minusIconButtonStyle = {
             position: ('absolute' as any),
             top: '100px',
             right: '5px',
-            border: '2px solid black',
+            // backgroundColor: 'transparent'
+            // border: '2px solid black',
         };
 
         const { h, b, r, w, p } = _getLineGraphAttributes();
 
         const rendered = ([
             <div key="LineGraph">
-                <IconButton transparent={true} style={plusIconButtonStyle} small svg={PlusBoxSvg} onClick={function (e: React.MouseEvent<HTMLButtonElement>): void {
+                <IconButton style={plusIconButtonStyle} small svg={PlusBoxSvg} onClick={function (e: React.MouseEvent<HTMLButtonElement>): void {
                     createPoint();
                 } } ></IconButton>
-                <IconButton transparent={true} style={minusIconButtonStyle} small svg={MinusBoxSvg} onClick={function (e: React.MouseEvent<HTMLButtonElement>): void {
+                <IconButton style={minusIconButtonStyle} small svg={MinusBoxSvg} onClick={function (e: React.MouseEvent<HTMLButtonElement>): void {
                     removeRightmostPoint();
                 } } ></IconButton>
                 <svg
