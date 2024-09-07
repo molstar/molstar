@@ -88,7 +88,8 @@ export const Canvas3DParams = {
     sceneRadiusFactor: PD.Numeric(1, { min: 1, max: 10, step: 0.1 }),
     transparentBackground: PD.Boolean(false),
     dpoitIterations: PD.Numeric(2, { min: 1, max: 10, step: 1 }),
-    pickPadding: PD.Numeric(3, { min: 0, max: 10, step: 1 }, { description: 'extra pixels to around target to check in case target is empty' }),
+    pickPadding: PD.Numeric(3, { min: 0, max: 10, step: 1 }, { description: 'Extra pixels to around target to check in case target is empty.' }),
+    userInteractionReleaseMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'The time before the user is not considered interacting anymore.' }),
 
     multiSample: PD.Group(MultiSampleParams),
     postprocessing: PD.Group(PostprocessingParams),
@@ -495,7 +496,7 @@ namespace Canvas3D {
                 }
 
                 if (passes.illumination.shouldRender(p)
-                    && (!isActivelyInteracting || passes.illumination.iteration === 0)
+                    && ((!isActivelyInteracting && scene.count > 0) || passes.illumination.iteration === 0 || p.userInteractionReleaseMs === 0)
                 ) {
                     if (isTimingMode) webgl.timer.mark('Canvas3D.render', { captureStats: true });
                     const ctx = { renderer, camera, scene, helper };
@@ -801,6 +802,7 @@ namespace Canvas3D {
                 transparentBackground: p.transparentBackground,
                 dpoitIterations: p.dpoitIterations,
                 pickPadding: p.pickPadding,
+                userInteractionReleaseMs: p.userInteractionReleaseMs,
                 viewport: p.viewport,
 
                 postprocessing: { ...p.postprocessing },
@@ -864,7 +866,7 @@ namespace Canvas3D {
                 isActivelyInteracting = true;
             }),
             interactionEvent.pipe(
-                debounceTime(666)
+                debounceTime(p.userInteractionReleaseMs)
             ).subscribe(() => {
                 isActivelyInteracting = isDragging;
                 if (!isDragging) requestDraw();
@@ -1020,6 +1022,7 @@ namespace Canvas3D {
                 if (props.transparentBackground !== undefined) p.transparentBackground = props.transparentBackground;
                 if (props.dpoitIterations !== undefined) p.dpoitIterations = props.dpoitIterations;
                 if (props.pickPadding !== undefined) p.pickPadding = props.pickPadding;
+                if (props.userInteractionReleaseMs !== undefined) p.userInteractionReleaseMs = props.userInteractionReleaseMs;
                 if (props.viewport !== undefined) {
                     const doNotUpdate = p.viewport === props.viewport ||
                         (p.viewport.name === props.viewport.name && shallowEqual(p.viewport.params, props.viewport.params));
