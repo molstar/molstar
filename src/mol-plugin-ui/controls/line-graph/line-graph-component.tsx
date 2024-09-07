@@ -937,7 +937,6 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
 
     function renderPoints() {
         // debugger;
-        debugger;
         const refs = controlPoints.map(a => {
             const r: PointRef = {
                 id: a.id,
@@ -1211,8 +1210,13 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     }
 
     function addPoint(point: ControlPoint) {
-        controlPoints.push(point);
-        handleChangePoints(controlPoints);
+        // setControlPoints([...controlPoints, point]);
+        // setControlPoints((oldArray) => [...oldArray, point]);
+        // controlPoints.push(point);
+        debugger;
+        const points = controlPoints;
+        points.push(point);
+        handleChangePoints(points);
     }
 
     function createPoint() {
@@ -1332,8 +1336,8 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     }
 
     const LineGraphRendered = () => {
-        // debugger;
         console.log(pointRefs);
+        console.log(`Rendering ${controlPoints.length} points`, controlPoints);
         const points = renderPoints();
         const baseline = renderBaseline();
         const lines = renderLines();
@@ -1348,11 +1352,13 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
             position: ('absolute' as any),
             top: '100px',
             right: '30px',
+            border: '2px solid black',
         };
         const minusIconButtonStyle = {
             position: ('absolute' as any),
             top: '100px',
             right: '5px',
+            border: '2px solid black',
         };
 
         const { h, b, r, w, p } = _getLineGraphAttributes();
