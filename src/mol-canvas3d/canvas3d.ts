@@ -466,6 +466,8 @@ namespace Canvas3D {
             return changed;
         }
 
+        let fenceSync: WebGLSync | null = null;
+
         function render(force: boolean) {
             if (webgl.isContextLost) return false;
 
@@ -498,10 +500,19 @@ namespace Canvas3D {
                 if (passes.illumination.shouldRender(p)
                     && ((!isActivelyInteracting && scene.count > 0) || passes.illumination.iteration === 0 || p.userInteractionReleaseMs === 0)
                 ) {
+                    if (fenceSync !== null) {
+                        if (webgl.checkSyncStatus(fenceSync)) {
+                            fenceSync = null;
+                        } else {
+                            return false;
+                        }
+                    }
                     if (isTimingMode) webgl.timer.mark('Canvas3D.render', { captureStats: true });
                     const ctx = { renderer, camera, scene, helper };
                     passes.illumination.render(ctx, p, true);
                     if (isTimingMode) webgl.timer.markEnd('Canvas3D.render');
+
+                    fenceSync = webgl.getFenceSync();
 
                     // if only marking has updated, do not set the flag to dirty
                     pickHelper.dirty = pickHelper.dirty || shouldRender;
@@ -929,6 +940,7 @@ namespace Canvas3D {
                 reprRenderObjects.clear();
                 scene.clear();
                 helper.debug.clear();
+                if (fenceSync !== null) webgl.deleteSync(fenceSync);
                 requestDraw();
                 reprCount.next(reprRenderObjects.size);
             },
@@ -1103,6 +1115,7 @@ namespace Canvas3D {
                 renderer.dispose();
                 interactionHelper.dispose();
                 hiZ.dispose();
+                if (fenceSync !== null) webgl.deleteSync(fenceSync);
 
                 removeConsoleStatsProvider(consoleStats);
             }
