@@ -367,7 +367,7 @@ function ColorPicker(props: any) {
             </ControlGroup>
         </div>;
     } else {
-        return <div></div>;
+        return <Button disabled >Select point to change color</Button>;
     }
 }
 
@@ -1352,10 +1352,8 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
                     <g className="ghost-points" stroke="black" fill="black">
                     </g>
                 </svg>
-                <>
-                    <ColorPicker isActive={showColorPicker} defaultColor={defaultColor}
-                        color={color} updateColor={updateColor} toggleColorPicker={toggleColorPicker}/> :
-                    <Button disabled >Select point to change color</Button></>
+                <ColorPicker isActive={showColorPicker} defaultColor={defaultColor}
+                    color={color} updateColor={updateColor} toggleColorPicker={toggleColorPicker}/>
                 {/* <>{showColorPicker ? <ColorPicker isActive={showColorPicker} defaultColor={defaultColor}
                     color={color} updateColor={updateColor} toggleColorPicker={toggleColorPicker}/> :
                     <Button disabled >Select point to change color</Button>}
