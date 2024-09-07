@@ -492,9 +492,9 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     }, []);
 
     // TODO:  remove
-    useEffect(() => { console.log(controlPoints.length)}, [controlPoints]);
+    // useEffect(() => { console.log(controlPoints.length)}, [controlPoints]);
     const pointRefs = useRef<PointRef[]>([]);
-    useEffect(() => { console.log(pointRefs)}, [pointRefs]);
+    // useEffect(() => { console.log(pointRefs)}, [pointRefs]);
     const myRef = useRef<React.RefObject<any> | undefined>(undefined);
     const height = useRef(LineGraphParams.height);
     const width = useRef(LineGraphParams.width);
@@ -545,6 +545,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         if (!targetPoint) throw Error('Cannot highlight inexisting point exist');
         // get ref
         const ref = pointRefs.current.find(r => r.id === pointId);
+        debugger;
         if (!ref) throw Error(`No ref for point ID ${pointId}`);
         // hover
         const event = new MouseEvent('mouseover', {
@@ -553,7 +554,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
             'cancelable': true
         });
         // DISPATCHING THE EVENT, i.e., ACTUALLY HOVERING
-        ref.ref.dispatchEvent(event);
+        ref.ref.current.dispatchEvent(event);
     }
 
     function _setMethod2TF(params: Method2ParamsValues) {
@@ -622,8 +623,11 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     }
 
     function handleChangePoints(points: ControlPoint[]) {
+        debugger;
         const pointsSorted = sortPointsByXValues(points);
+        debugger;
         setControlPoints(pointsSorted);
+        debugger;
         change(pointsSorted);
     }
 
@@ -901,7 +905,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         // if there are no refs, add one
         // if there are some refs
         // check if it exists 
-        debugger;
+        // debugger;
         const refs = pointRefs.current;
         const newRefs = [];
         if (refs.length === 0) {
@@ -913,7 +917,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
             }
         }
         // so it replaces each time with a new one
-        pointRefs.current = newRefs;
+        pointRefs.current = pointRefs.current.concat(newRefs);
     };
 
     function renderPoints() {
@@ -926,7 +930,10 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
                 const { data, color, id, index } = controlPoints[i];
                 const finalColor = color;
                 point = controlPointDataToSVGCoords(data);
-                const ref = useRef();
+                // cannot do it this way
+                // need to render refs statically outside of this
+                // const ref = useRef();
+                const ref = React.createRef();
                 // if ref found replace or something
                 // e.g. update refs 
                 // or as object with Id
@@ -936,7 +943,6 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
                 };
                 // pointRefs.current.push(pointRef);
                 addPointRef(pointRef);
-                debugger;
                 if (!ref) throw Error('Point should contain ref');
                 points.push(<PointComponent
                 // use ref ref instead of state
@@ -1173,6 +1179,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     }
 
     function addPoint(point: ControlPoint) {
+        debugger;
         controlPoints.push(point);
         handleChangePoints(controlPoints);
     }
@@ -1183,7 +1190,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         const { h, b, r, w, p } = _getLineGraphAttributes();
         svgP.x = w - 100;
         svgP.y = h - 100;
-
+        debugger;
         const points = controlPoints;
         const newPointData = svgCoordsToPointData(Vec2.create(svgP.x, svgP.y));
         const sorted = sortPointsByXValues(points);
@@ -1195,6 +1202,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
             color: getRandomColor(),
             index: maxIndex + 1
         };
+        debugger;
         addPoint(newPoint);
     }
 
@@ -1322,10 +1330,10 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
 
         const rendered = ([
             <div key="LineGraph">
-                <IconButton style={plusIconButtonStyle} small svg={PlusBoxSvg} onClick={function (e: React.MouseEvent<HTMLButtonElement>): void {
+                <IconButton transparent={true} style={plusIconButtonStyle} small svg={PlusBoxSvg} onClick={function (e: React.MouseEvent<HTMLButtonElement>): void {
                     createPoint();
                 } } ></IconButton>
-                <IconButton style={minusIconButtonStyle} small svg={MinusBoxSvg} onClick={function (e: React.MouseEvent<HTMLButtonElement>): void {
+                <IconButton transparent={true} style={minusIconButtonStyle} small svg={MinusBoxSvg} onClick={function (e: React.MouseEvent<HTMLButtonElement>): void {
                     removeRightmostPoint();
                 } } ></IconButton>
                 <svg
