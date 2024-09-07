@@ -23,6 +23,7 @@ import { ColorListRangesEntry } from '../../../mol-util/color/color';
 import { generateControlPoints, generateGaussianControlPoints } from '../../../mol-geo/geometry/direct-volume/direct-volume';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { LineGraphParams, startEndPoints } from './line-graph-params';
+import { refinement } from 'io-ts';
 
 type ComponentParams<T extends React.Component<any, any, any> | ((props: any) => JSX.Element)> =
     T extends React.Component<infer P, any, any> ? P : T extends (props: infer P) => JSX.Element ? P : never;
@@ -123,7 +124,7 @@ function BaseLine(props: BaselineProps) {
                 <line y1={y} y2={y} x1={x1} x2={x2} stroke='black' fill='black'></line>
             </>
         );
-    }
+    };
     return render();
 }
 
@@ -215,20 +216,6 @@ function HelpersPanel(props: HelpersPanelProps) {
     return render();
 }
 
-// class HelpersPanel extends React.Component<any> {
-//     render() {
-//         const methods: TFMethod[] = this.props.methods;
-//         const methodsUI = methods.map(p => {
-//             return <TFMethodPanel key={p.name} onChange={this.props.onChange} params={p} descriptiveStatistics={this.props.descriptiveStatistics}></TFMethodPanel>;
-//         });
-//         return (
-//             <ExpandGroup header='Helpers' initiallyExpanded={false}>
-//                 {methodsUI}
-//             </ExpandGroup>
-//         );
-//     }
-// }
-
 function WaitingParameterControls<T extends PD.Params>({ values, onChangeValues, ...etc }: { values: PD.ValuesFor<T>, onChangeValues: (values: PD.ValuesFor<T>) => any } & ComponentParams<ParameterControls<T>>) {
     const [changing, currentValues, execute] = useAsyncChange(values);
 
@@ -291,7 +278,6 @@ function TFParamsWrapper(props: TFParamsWrapperProps) {
 
     const render = () => {
         // TODO: Make PD from TFName type if possible instead of "as"
-        debugger;
         const adjustedParams = adjustTFParams((props.params.name as TFName), props.descriptiveStatistics);
         return (<ExpandGroup header='Transfer Function Settings' initiallyExpanded>
             <WaitingParameterControls params={adjustedParams} values={params} onChangeValues={async next => { handleChange(next as any); }} />
@@ -369,6 +355,7 @@ interface VolumeDescriptiveStatistics {
 }
 
 function ColorPicker(props: any) {
+    debugger;
     const isActive = props.isActive;
     const defaultColor = props.defaultColor;
     const color = props.color;
@@ -474,6 +461,11 @@ export interface LineGraphComponentProps {
 
 // }
 
+interface PointRef {
+    ref: any
+    id: UUID
+}
+
 export function LineGraphComponent(props: LineGraphComponentProps) {
     const [controlPoints, setControlPoints] = useState(startEndPoints.concat(props.data));
     const [copyPoint, setCopyPoint] = useState<Vec2 | undefined >(undefined);
@@ -482,13 +474,25 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     // TODO: correct type
     const [clickedPointIds, setClickedPointIds] = useState<UUID[]>([]);
     const [methodsParams, setMethodsParams] = useState(DefaultTFParams);
+    // const [pointRefs, setPointRefs] = useState<any>([]);
 
     // const attrs = useRef<LineGraphAttrs | undefined>();
 
+    // const NOfRealPoints = controlPoints.filter(p => p.isTerminal !== true).length;
+    // ref should be a 
+    // const linkRefs = Array.from({ length: NOfRealPoints }, () =>
+    //     React.createRef()
+    // );
+    // useEffect(() => (childRef.current as []).map(r => r.hover(), []);
+
     useEffect(() => {
         gElement.current = document.getElementsByClassName('ghost-points')[0] as SVGElement;
-    });
+    }, []);
 
+    // TODO:  remove
+    useEffect(() => { console.log(controlPoints.length)}, [controlPoints]);
+    const pointRefs = useRef<PointRef[]>([]);
+    useEffect(() => { console.log(pointRefs)}, [pointRefs]);
     const myRef = useRef<React.RefObject<any> | undefined>(undefined);
     const height = useRef(LineGraphParams.height);
     const width = useRef(LineGraphParams.width);
@@ -534,8 +538,19 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
 
     function highlightPoint(pointId: UUID) {
         const targetPoint = controlPoints.find(p => p.id === pointId);
-        throw Error('Not implemented');
-        // if (!targetPoint) throw Error('Cannot highlight inexisting point exist');
+        // throw Error('Not implemented');
+        if (!targetPoint) throw Error('Cannot highlight inexisting point exist');
+        // get ref
+        const ref = pointRefs.current.find(r => r.id === pointId);
+        if (!ref) throw Error(`No ref for point ID ${pointId}`);
+        // hover
+        const event = new MouseEvent('mouseover', {
+            'view': window,
+            'bubbles': true,
+            'cancelable': true
+        });
+        // DISPATCHING THE EVENT, i.e., ACTUALLY HOVERING
+        ref.ref.dispatchEvent(event);
     }
 
     function _setMethod2TF(params: Method2ParamsValues) {
@@ -705,11 +720,10 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         if (point.isTerminal === true) { return; }
         let points = controlPoints.filter(p => p.id !== point.id);
         points = sortPointsByXValues(points);
-        setControlPoints(points);
         // TODO: may not work, if it is the case - add undefined option to setState init
         setClickedPointIds([]);
         setShowColorPicker(false);
-        change(points);
+        handleChangePoints(points);
     }
 
     function handleLeave() {
@@ -740,6 +754,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     }
 
     function handleDrag(event: any) {
+        debugger;
         if (selectedPointId.current === undefined || !myRef.current) {
             return;
         }
@@ -778,6 +793,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         ghostPoints.current[0].setAttribute('cy', `${updatedCopyPoint[1]}`);
 
         props.onDrag(unNormalizePoint);
+        debugger;
     }
 
     function replacePoint(point: ControlPoint) {
@@ -806,7 +822,6 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
             color: pointData.color,
             index: pointData.index
         };
-
         replacePoint(updatedPoint);
         if (!gElement.current) throw Error('No gElement (SVGElement)');
         gElement.current.innerHTML = '';
@@ -858,6 +873,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     };
 
     function renderPoints() {
+        debugger;
         const points: any[] = [];
         let point: Vec2;
         for (let i = 0; i < controlPoints.length; i++) {
@@ -866,7 +882,19 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
                 const { data, color, id, index } = controlPoints[i];
                 const finalColor = color;
                 point = controlPointDataToSVGCoords(data);
+                const ref = useRef();
+                // or as object with Id
+                const pointRef: PointRef = {
+                    ref: ref,
+                    id: id
+                };
+                pointRefs.current.push(pointRef);
+                // setPointRefs((refs: any[]) => [...refs, ref]);
+                // add to state
+                if (!ref) throw Error('Point should contain ref');
                 points.push(<PointComponent
+                // use ref ref instead of state
+                    ref={ref}
                     index={index}
                     key={id}
                     id={id}
@@ -874,8 +902,6 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
                     y={point[1]}
                     nX={data.x}
                     nY={data.alpha}
-                    selected={false}
-                    delete={deletePoint}
                     // onmouseover we provide props.onHover of line graph component
                     onmouseover={props.onHover}
                     onmousedown={handleMouseDown(controlPoints[i])}
@@ -1192,6 +1218,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     };
 
     const LineGraphRendered = () => {
+        debugger;
         const points = renderPoints();
         const baseline = renderBaseline();
         const lines = renderLines();
@@ -1202,8 +1229,6 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         const firstPoint = clickedPointIds.length > 0 ? getPoint(clickedPointIds[0]) : void 0;
         const color = firstPoint ? firstPoint.color : void 0;
         const defaultColor = ParamDefinition.Color(ColorNames.black);
-        const _createPoint = createPoint;
-        const _removePoint = removeRightmostPoint;
         const plusIconButtonStyle = {
             position: ('absolute' as any),
             top: '100px',
@@ -1220,10 +1245,10 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         const rendered = ([
             <div key="LineGraph">
                 <IconButton style={plusIconButtonStyle} small svg={PlusBoxSvg} onClick={function (e: React.MouseEvent<HTMLButtonElement>): void {
-                    _createPoint();
+                    createPoint();
                 } } ></IconButton>
                 <IconButton style={minusIconButtonStyle} small svg={MinusBoxSvg} onClick={function (e: React.MouseEvent<HTMLButtonElement>): void {
-                    _removePoint();
+                    removeRightmostPoint();
                 } } ></IconButton>
                 <svg
                     className="msp-canvas"
