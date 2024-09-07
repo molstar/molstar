@@ -91,9 +91,9 @@ void main(void){
         if (dot(pointDir, pointDir) > vRadius * vRadius) discard;
         vec3 vViewPosition = -vPointViewPosition;
         fragmentDepth = gl_FragCoord.z;
-        #if !defined(dIgnoreLight) || defined(dXrayShaded)
-            pointDir.z -= cos(length(pointDir) / vRadius);
-            cameraNormal = -normalize(pointDir / vRadius);
+        #if !defined(dIgnoreLight) || defined(dXrayShaded) || defined(dRenderVariant_tracing)
+            pointDir.z -= cos(length(pointDir));
+            cameraNormal = -normalize(pointDir);
         #endif
         interior = false;
     #else
