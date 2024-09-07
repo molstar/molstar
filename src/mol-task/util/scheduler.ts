@@ -192,21 +192,10 @@ function resolveImmediate(res: () => void) {
     immediateActions.setImmediate(res);
 }
 
-const requestAnimationFrame = typeof window !== 'undefined'
-    ? window.requestAnimationFrame
-    : (f: (time: number) => void) => immediateActions.setImmediate(() => f(Date.now())) as unknown as number;
-
 const Scheduler = {
     setImmediate: immediateActions.setImmediate,
     clearImmediate: immediateActions.clearImmediate,
     immediatePromise() { return new Promise<void>(resolveImmediate); },
-    requestAnimationFramePromise(): Promise<number> {
-        return new Promise((resolve) => {
-            requestAnimationFrame((timestamp) => {
-                resolve(timestamp);
-            });
-        });
-    },
 
     delay<T>(timeout: number, value: T | undefined = void 0): Promise<T> { return new Promise(r => setTimeout(r, timeout, value)); }
 };

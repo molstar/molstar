@@ -20,7 +20,7 @@ import { CameraHelper, CameraHelperParams } from '../helper/camera-helper';
 import { MarkingParams } from './marking';
 import { AssetManager } from '../../mol-util/assets';
 import { IlluminationParams, IlluminationPass } from './illumination';
-import { RuntimeContext, Scheduler } from '../../mol-task';
+import { RuntimeContext } from '../../mol-task';
 import { isTimingMode } from '../../mol-util/debug';
 import { printTimerResults } from '../../mol-gl/webgl/timer';
 
@@ -113,7 +113,7 @@ export class ImagePass {
                 if (runtime.shouldUpdate) {
                     await runtime.update({ current: this.illuminationPass.iteration });
                 }
-                await Scheduler.requestAnimationFramePromise(); // allow GPU to render
+                await this.webgl.waitForGpuCommandsComplete();
             }
             this._colorTarget = this.illuminationPass.colorTarget;
         } else {
