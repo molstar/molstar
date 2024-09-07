@@ -31,6 +31,7 @@ import { DofPass } from './dof';
 import { TracingParams, TracingPass } from './tracing';
 import { JitterVectors, MultiSampleProps } from './multi-sample';
 import { compose_frag as multiSample_compose_frag } from '../../mol-gl/shader/compose.frag';
+import { clamp, lerp } from '../../mol-math/interpolate';
 
 type Props = {
     transparentBackground: boolean;
@@ -53,6 +54,7 @@ export const IlluminationParams = {
     enabled: PD.Boolean(false),
     maxIterations: PD.Numeric(6, { min: 0, max: 16, step: 1 }),
     denoise: PD.Boolean(true),
+    denoiseThreshold: PD.Interval([0.1, 1], { min: 0, max: 4, step: 0.01 }, { description: 'Threshold for denoising. Automatically adjusted within given interval based on current iteration.' }),
     ignoreOutline: PD.Boolean(true),
     ...TracingParams,
 };
@@ -373,6 +375,8 @@ export class IlluminationPass {
             ValueCell.update(this.composeRenderable.values.dDenoise, props.illumination.denoise);
             needsUpdateCompose = true;
         }
+        const denoiseThreshold = lerp(props.illumination.denoiseThreshold[1], props.illumination.denoiseThreshold[0], clamp(this.iteration / (this.getMaxIterations(props) / 2), 0, 1));
+        ValueCell.updateIfChanged(this.composeRenderable.values.uDenoiseThreshold, denoiseThreshold);
         if (needsUpdateCompose) this.composeRenderable.update();
         this.composeRenderable.render();
 
@@ -581,7 +585,9 @@ const ComposeSchema = {
     tDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tOutlines: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     uTexSize: UniformSpec('v2'),
+
     dDenoise: DefineSpec('boolean'),
+    uDenoiseThreshold: UniformSpec('f'),
 
     dOrthographic: DefineSpec('number'),
     uNear: UniformSpec('f'),
@@ -609,7 +615,9 @@ function getComposeRenderable(ctx: WebGLContext, colorTexture: Texture, normalTe
         tDepthTransparent: ValueCell.create(depthTextureTransparent),
         tOutlines: ValueCell.create(outlinesTexture),
         uTexSize: ValueCell.create(Vec2.create(colorTexture.getWidth(), colorTexture.getHeight())),
+
         dDenoise: ValueCell.create(true),
+        uDenoiseThreshold: ValueCell.create(0.1),
 
         dOrthographic: ValueCell.create(0),
         uNear: ValueCell.create(1),

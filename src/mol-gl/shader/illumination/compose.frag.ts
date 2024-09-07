@@ -18,6 +18,8 @@ uniform vec3 uFogColor;
 uniform vec3 uOutlineColor;
 uniform bool uTransparentBackground;
 
+uniform float uDenoiseThreshold;
+
 #include common
 
 float getViewZ(const in float depth) {
@@ -76,9 +78,7 @@ vec4 smartDeNoise(sampler2D tex, vec2 uv)
 {
     float sigma = 3.0;
     float kSigma = 2.0;
-    float threshold = 0.1;
-    float radius = sigma * kSigma;
-    float radQ = radius * radius;
+    float threshold = uDenoiseThreshold;
 
     float invSigmaQx2 = 0.5 / (sigma * sigma);      // 1.0 / (sigma^2 * 2.0)
     float invSigmaQx2PI = INV_PI * invSigmaQx2;    // 1.0 / (sqrt(PI) * sigma)
