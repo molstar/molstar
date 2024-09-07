@@ -327,18 +327,23 @@ class ViewportScreenshotHelper extends PluginComponent {
         const { width, height, viewport } = this.getSizeAndViewport();
         if (width <= 0 || height <= 0) return;
 
-        await ctx.update('Rendering image...');
-        const pass = this.imagePass;
-        await pass.updateBackground();
-        const imageData = await pass.getImageData(ctx, width, height, viewport);
+        this.plugin.canvas3d?.pause(true);
+        try {
+            await ctx.update('Rendering image...');
+            const pass = this.imagePass;
+            await pass.updateBackground();
+            const imageData = await pass.getImageData(ctx, width, height, viewport);
 
-        await ctx.update('Encoding image...');
-        const canvas = this.canvas;
-        canvas.width = imageData.width;
-        canvas.height = imageData.height;
-        const canvasCtx = canvas.getContext('2d');
-        if (!canvasCtx) throw new Error('Could not create canvas 2d context');
-        canvasCtx.putImageData(imageData, 0, 0);
+            await ctx.update('Encoding image...');
+            const canvas = this.canvas;
+            canvas.width = imageData.width;
+            canvas.height = imageData.height;
+            const canvasCtx = canvas.getContext('2d');
+            if (!canvasCtx) throw new Error('Could not create canvas 2d context');
+            canvasCtx.putImageData(imageData, 0, 0);
+        } finally {
+            this.plugin.canvas3d?.animate();
+        }
         return;
     }
 
