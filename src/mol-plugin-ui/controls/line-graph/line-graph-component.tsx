@@ -23,7 +23,6 @@ import { ColorListRangesEntry } from '../../../mol-util/color/color';
 import { generateControlPoints, generateGaussianControlPoints } from '../../../mol-geo/geometry/direct-volume/direct-volume';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { LineGraphParams, startEndPoints } from './line-graph-params';
-import { refinement } from 'io-ts';
 
 type ComponentParams<T extends React.Component<any, any, any> | ((props: any) => JSX.Element)> =
     T extends React.Component<infer P, any, any> ? P : T extends (props: infer P) => JSX.Element ? P : never;
@@ -355,18 +354,21 @@ interface VolumeDescriptiveStatistics {
 }
 
 function ColorPicker(props: any) {
-    debugger;
     const isActive = props.isActive;
     const defaultColor = props.defaultColor;
     const color = props.color;
     const updateColor = props.updateColor;
     const toggleColorPicker = props.toggleColorPicker;
-    return (isActive ? <div style={{ marginBottom: '6px', marginTop: 1 }} className='msp-accent-offset'>
-        <ControlGroup header='Select Color' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={toggleColorPicker}
-            topRightIcon={CloseSvg} noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
-            <CombinedColorControl param={defaultColor} value={color} onChange={updateColor} name='color' hideNameRow />
-        </ControlGroup>
-    </div> : null);
+    if (isActive) {
+        return <div style={{ marginBottom: '6px', marginTop: 1 }} className='msp-accent-offset'>
+            <ControlGroup header='Select Color' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={toggleColorPicker}
+                topRightIcon={CloseSvg} noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
+                <CombinedColorControl param={defaultColor} value={color} onChange={updateColor} name='color' hideNameRow />
+            </ControlGroup>
+        </div>;
+    } else {
+        return <div></div>;
+    }
 }
 
 export const GaussianTFParams = {
@@ -537,6 +539,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     }
 
     function highlightPoint(pointId: UUID) {
+        console.log(`Highlighted point with ID ${pointId}`);
         const targetPoint = controlPoints.find(p => p.id === pointId);
         // throw Error('Not implemented');
         if (!targetPoint) throw Error('Cannot highlight inexisting point exist');
@@ -754,7 +757,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     }
 
     function handleDrag(event: any) {
-        debugger;
+        console.log('handle drag');
         if (selectedPointId.current === undefined || !myRef.current) {
             return;
         }
@@ -793,7 +796,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         ghostPoints.current[0].setAttribute('cy', `${updatedCopyPoint[1]}`);
 
         props.onDrag(unNormalizePoint);
-        debugger;
+        // debugger;
     }
 
     function replacePoint(point: ControlPoint) {
@@ -829,6 +832,28 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         document.removeEventListener('mousemove', handleDrag, true);
         document.removeEventListener('mouseup', handlePointUpdate, true);
     }
+    // const _handleMouseDown = (point: ControlPoint) => {
+    //     const { id, isTerminal } = point;
+    //     if (isTerminal === true) {
+    //         return;
+    //     }
+    //     if (canSelectMultiple) {
+    //         return;
+    //     }
+    //     const gps = ghostPoints.current;
+    //     const copyPoint: Vec2 = controlPointDataToSVGCoords(getPoint(id).data);
+    //     gps.push(document.createElementNS(namespace.current, 'circle') as SVGElement);
+    //     gps[0].setAttribute('r', '10');
+    //     gps[0].setAttribute('fill', 'orange');
+    //     gps[0].setAttribute('cx', `${copyPoint[0]}`);
+    //     gps[0].setAttribute('cy', `${copyPoint[1]}`);
+    //     gps[0].setAttribute('style', 'display: none');
+    //     if (!gElement.current) throw Error('No gElement (SVGElement)');
+    //     gElement.current.appendChild(gps[0]);
+    //     updatedX.current = copyPoint[0];
+    //     updatedY.current = copyPoint[1];
+    //     selectedPointId.current = point.id;
+    // };
 
     const handleMouseDown = (point: ControlPoint) => (event: any) => {
         const { id, isTerminal } = point;
@@ -872,8 +897,27 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         }
     };
 
-    function renderPoints() {
+    function addPointRef(ref: PointRef) {
+        // if there are no refs, add one
+        // if there are some refs
+        // check if it exists 
         debugger;
+        const refs = pointRefs.current;
+        const newRefs = [];
+        if (refs.length === 0) {
+            newRefs.push(ref);
+        } else {
+            const exists = refs.find(r => r.id === ref.id);
+            if (!exists) {
+                newRefs.push(ref);
+            }
+        }
+        // so it replaces each time with a new one
+        pointRefs.current = newRefs;
+    };
+
+    function renderPoints() {
+        // debugger;
         const points: any[] = [];
         let point: Vec2;
         for (let i = 0; i < controlPoints.length; i++) {
@@ -883,14 +927,16 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
                 const finalColor = color;
                 point = controlPointDataToSVGCoords(data);
                 const ref = useRef();
+                // if ref found replace or something
+                // e.g. update refs 
                 // or as object with Id
                 const pointRef: PointRef = {
                     ref: ref,
                     id: id
                 };
-                pointRefs.current.push(pointRef);
-                // setPointRefs((refs: any[]) => [...refs, ref]);
-                // add to state
+                // pointRefs.current.push(pointRef);
+                addPointRef(pointRef);
+                debugger;
                 if (!ref) throw Error('Point should contain ref');
                 points.push(<PointComponent
                 // use ref ref instead of state
@@ -924,7 +970,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         const { h, b, r, w, p } = _getLineGraphAttributes();
         return <>
             <BaseLine height={h - b} offset={p / 2} width={w} />
-            {makeYAxisLabel(0, b / 2, h)}
+            {makeYAxisLabel(0, b / 2, h - b)}
             {makeYAxisLabel(1, b / 2, b)}
         </>;
     }
@@ -1203,6 +1249,10 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         const notClickedPoints = currentPoints.filter(p => !clickedPointsIds.includes(p.id));
         const newPoints = clickedPoints.concat(notClickedPoints);
         handleChangePoints(newPoints);
+        console.log('Color updated');
+        const shakedPoint = _shake();
+        _revertShake(shakedPoint);
+        // _handleMouseDown(clickedPoints[0]);
     };
 
     const onColorSquareClick = (pointId: UUID) => {
@@ -1216,9 +1266,37 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
             toggleColorPicker();
         }
     };
+    function _shake() {
+        const points = controlPoints;
+        const realPoints = points.filter(p => p.isTerminal !== true);
+        const randomPoint = realPoints[Math.floor(Math.random() * realPoints.length)];
+        randomPoint.data.x = randomPoint.data.x + 0.01;
+        const otherPoints = points.filter(p => p.id !== randomPoint.id);
+        const newPoints = [...otherPoints, randomPoint];
+        setControlPoints(otherPoints);
+        handleChangePoints(otherPoints);
+        // setControlPoints(newPoints);
+        // handleChangePoints(newPoints);
+        console.log('Shaked point', randomPoint, randomPoint.data.x);
+        return randomPoint;
+    }
+
+    function _revertShake(randomPoint: ControlPoint) {
+        const points = controlPoints;
+        // const realPoints = points.filter(p => p.isTerminal !== true);
+        // const randomPoint = realPoints[Math.floor(Math.random() * realPoints.length)];
+        // randomPoint.data.x = randomPoint.data.x - 0.01;
+        const otherPoints = points.filter(p => p.id !== randomPoint.id);
+        randomPoint.data.x = randomPoint.data.x - 0.01;
+        const newPoints = [...otherPoints, randomPoint];
+        console.log('Revert shaked point', randomPoint, randomPoint.data.x);
+        setControlPoints(newPoints);
+        handleChangePoints(newPoints);
+    }
 
     const LineGraphRendered = () => {
-        debugger;
+        // debugger;
+        console.log(pointRefs);
         const points = renderPoints();
         const baseline = renderBaseline();
         const lines = renderLines();
@@ -1274,10 +1352,14 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
                     <g className="ghost-points" stroke="black" fill="black">
                     </g>
                 </svg>
-                <>{showColorPicker ? <ColorPicker isActive={showColorPicker} defaultColor={defaultColor}
+                <>
+                    <ColorPicker isActive={showColorPicker} defaultColor={defaultColor}
+                        color={color} updateColor={updateColor} toggleColorPicker={toggleColorPicker}/> :
+                    <Button disabled >Select point to change color</Button></>
+                {/* <>{showColorPicker ? <ColorPicker isActive={showColorPicker} defaultColor={defaultColor}
                     color={color} updateColor={updateColor} toggleColorPicker={toggleColorPicker}/> :
                     <Button disabled >Select point to change color</Button>}
-                </>
+                </> */}
                 <>
                     <PointsPanel points={controlPoints}
                         onPointIndexClick={highlightPoint}
