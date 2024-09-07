@@ -417,7 +417,7 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
             <ControlRow label={label} control={<button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>{`${this.state.message}`}</button>} />
             <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none', marginTop: 1 }}>
                 <LineGraphComponent
-                    data={this.props.value}
+                    controlPoints={this.props.value}
                     volume={this.props.param.getVolume?.() as Volume}
                     onChange={this.onChange}
                     onHover={this.onHover}

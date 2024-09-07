@@ -417,7 +417,7 @@ const DefaultTFParams: TFParamsValues[] = [
 
 export interface LineGraphComponentProps {
     // TODO: better name
-    data: ControlPoint[]
+    controlPoints: ControlPoint[]
     // TODO: may need to have it as any
     volume: Volume | undefined
     // TODO: function types
@@ -464,7 +464,7 @@ interface PointRef {
 }
 
 export function LineGraphComponent(props: LineGraphComponentProps) {
-    const [controlPoints, setControlPoints] = useState(startEndPoints.concat(props.data));
+    const [controlPoints, setControlPoints] = useState(startEndPoints.concat(props.controlPoints));
     const [copyPoint, setCopyPoint] = useState<Vec2 | undefined >(undefined);
     const [canSelectMultiple, setCanSelectMultiple] = useState(false);
     const [showColorPicker, setShowColorPicker] = useState(false);
