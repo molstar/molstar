@@ -125,6 +125,7 @@ export class TracingPass {
     }
 
     private renderInput(renderer: Renderer, camera: ICamera, scene: Scene, props: TracingProps) {
+        if (isTimingMode) this.webgl.timer.mark('TracePass.renderInput');
         const { gl, state } = this.webgl;
 
         this.framebuffer.bind();
@@ -140,6 +141,7 @@ export class TracingPass {
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
             renderer.renderDepthOpaqueBack(scene.primitives, camera, null);
         }
+        if (isTimingMode) this.webgl.timer.markEnd('TracePass.renderInput');
     }
 
     setSize(width: number, height: number) {
@@ -198,6 +200,13 @@ export class TracingPass {
     }
 
     render(ctx: RenderContext, transparentBackground: boolean, props: TracingProps, iteration: number, forceRenderInput: boolean) {
+        const { rendersPerFrame, refineSteps } = this.getAdjustedProps(props, iteration);
+
+        if (isTimingMode) {
+            this.webgl.timer.mark('TracePass.render', {
+                note: `${rendersPerFrame} rendersPerFrame, ${refineSteps} refineSteps`
+            });
+        }
         const { renderer, camera, scene } = ctx;
         const { gl, state } = this.webgl;
         const { x, y, width, height } = camera.viewport;
@@ -232,8 +241,6 @@ export class TracingPass {
             const light = Vec3.fromArray(Vec3(), renderer.light.color, i * 3);
             Vec3.add(lightStrength, lightStrength, light);
         }
-
-        const { rendersPerFrame, refineSteps } = this.getAdjustedProps(props, iteration);
 
         // trace
         this.holdTarget.bind();
@@ -300,13 +307,14 @@ export class TracingPass {
         ValueCell.updateIfChanged(this.traceRenderable.values.uShadowSoftness, props.shadowSoftness);
         ValueCell.updateIfChanged(this.traceRenderable.values.uShadowThickness, props.shadowThickness);
         if (needsUpdateTrace) this.traceRenderable.update();
-        if (isTimingMode) this.webgl.timer.mark('TracePass.render');
+        if (isTimingMode) this.webgl.timer.mark('TracePass.renderTrace');
         this.traceRenderable.render();
-        if (isTimingMode) this.webgl.timer.markEnd('TracePass.render');
+        if (isTimingMode) this.webgl.timer.markEnd('TracePass.renderTrace');
 
         // accumulate
         this.accumulateTarget.bind();
         this.accumulateRenderable.render();
+        if (isTimingMode) this.webgl.timer.markEnd('TracePass.render');
     }
 }
 

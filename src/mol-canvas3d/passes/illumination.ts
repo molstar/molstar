@@ -86,7 +86,7 @@ export class IlluminationPass {
         return this._supported;
     }
 
-    private getMaxIterations(props: Props) {
+    getMaxIterations(props: Props) {
         return Math.pow(2, props.illumination.maxIterations);
     }
 
@@ -133,6 +133,7 @@ export class IlluminationPass {
     }
 
     private renderInput(renderer: Renderer, camera: ICamera, scene: Scene, props: Props) {
+        if (isTimingMode) this.webgl.timer.mark('IlluminationPass.renderInput');
         const { gl, state } = this.webgl;
 
         const antialiasingEnabled = AntialiasingPass.isEnabled(props.postprocessing);
@@ -243,6 +244,7 @@ export class IlluminationPass {
         this.tracing.composeTarget.bind();
         state.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        if (isTimingMode) this.webgl.timer.markEnd('IlluminationPass.renderInput');
     }
 
     shouldRender(props: Props) {
@@ -285,7 +287,11 @@ export class IlluminationPass {
     private renderInternal(ctx: RenderContext, props: Props, toDrawingBuffer: boolean, forceRenderInput: boolean) {
         if (!this.shouldRender(props)) return;
 
-        if (isTimingMode) this.webgl.timer.mark('IlluminationPass.render');
+        if (isTimingMode) {
+            this.webgl.timer.mark('IlluminationPass.render', {
+                note: `iteration ${this._iteration + 1} of ${this.getMaxIterations(props)}`
+            });
+        }
         this.tracing.render(ctx, props.transparentBackground, props.illumination, this._iteration, forceRenderInput);
 
         const { renderer, camera, scene, helper } = ctx;
@@ -458,6 +464,12 @@ export class IlluminationPass {
         const iteration = Math.min(this._iteration, maxIterations);
 
         const sampleIndex = Math.floor((iteration / maxIterations) * offsetList.length);
+
+        if (isTimingMode) {
+            webgl.timer.mark('IlluminationPass.renderMultiSample', {
+                note: `sampleIndex ${sampleIndex + 1} of ${offsetList.length}`
+            });
+        }
 
         const { x, y, width, height } = camera.viewport;
         const sampleWeight = 1.0 / maxIterations;

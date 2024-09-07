@@ -497,7 +497,7 @@ namespace Canvas3D {
                 if (passes.illumination.shouldRender(p)
                     && (!isActivelyInteracting || passes.illumination.iteration === 0)
                 ) {
-                    if (isTimingMode) webgl.timer.mark('Canvas3D.render', true);
+                    if (isTimingMode) webgl.timer.mark('Canvas3D.render', { captureStats: true });
                     const ctx = { renderer, camera, scene, helper };
                     passes.illumination.render(ctx, p, true);
                     if (isTimingMode) webgl.timer.markEnd('Canvas3D.render');
@@ -518,7 +518,7 @@ namespace Canvas3D {
                         cam = stereoCamera;
                     }
 
-                    if (isTimingMode) webgl.timer.mark('Canvas3D.render', true);
+                    if (isTimingMode) webgl.timer.mark('Canvas3D.render', { captureStats: true });
                     const ctx = { renderer, camera: cam, scene, helper };
                     if (MultiSamplePass.isEnabled(p.multiSample)) {
                         const forceOn = p.multiSample.reduceFlicker && !cameraChanged && markingUpdated && !controls.isAnimating;
