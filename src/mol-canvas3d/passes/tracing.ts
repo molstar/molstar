@@ -39,16 +39,17 @@ type RenderContext = {
 }
 
 export const TracingParams = {
-    rendersPerFrame: PD.Interval([1, 16], { min: 1, max: 64, step: 1 }),
+    rendersPerFrame: PD.Interval([1, 16], { min: 1, max: 64, step: 1 }, { description: 'Number of rays per pixel each frame. May be lower to reach targetFps.' }),
     steps: PD.Numeric(32, { min: 1, max: 1024, step: 1 }),
     firstStepSize: PD.Numeric(0.01, { min: 0.001, max: 1, step: 0.001 }),
-    refineSteps: PD.Numeric(4, { min: 0, max: 32, step: 1 }),
-    rayDistance: PD.Numeric(1024, { min: 1, max: 8192, step: 1 }),
+    refineSteps: PD.Numeric(4, { min: 0, max: 8, step: 1 }, { description: 'Number of refine steps per ray hit. May be lower to reach targetFps.' }),
+    rayDistance: PD.Numeric(256, { min: 1, max: 8192, step: 1 }, { description: 'Maximum distance a ray can travel (in world units).' }),
     thicknessMode: PD.Select('auto', PD.arrayToOptions(['auto', 'fixed'] as const)),
     minThickness: PD.Numeric(0.5, { min: 0.1, max: 16, step: 0.1 }, { hideIf: p => p.thicknessMode === 'fixed' }),
     thicknessFactor: PD.Numeric(1, { min: 0.1, max: 2, step: 0.05 }, { hideIf: p => p.thicknessMode === 'fixed' }),
     thickness: PD.Numeric(4, { min: 0.1, max: 512, step: 0.1 }, { hideIf: p => p.thicknessMode === 'auto' }),
-    bounces: PD.Numeric(4, { min: 1, max: 32, step: 1 }),
+    bounces: PD.Numeric(4, { min: 1, max: 32, step: 1 }, { description: 'Number of bounces for each ray.' }),
+    glow: PD.Boolean(true, { description: 'Bounced rays always get the full light. This produces a slight glowing effect.' }),
     shadowEnable: PD.Boolean(false),
     shadowSoftness: PD.Numeric(0.1, { min: 0.01, max: 1.0, step: 0.01 }),
     shadowThickness: PD.Numeric(0.5, { min: 0.1, max: 32, step: 0.1 }),
@@ -207,6 +208,7 @@ export class TracingPass {
                 note: `${rendersPerFrame} rendersPerFrame, ${refineSteps} refineSteps`
             });
         }
+
         const { renderer, camera, scene } = ctx;
         const { gl, state } = this.webgl;
         const { x, y, width, height } = camera.viewport;
@@ -276,6 +278,10 @@ export class TracingPass {
         }
         ValueCell.update(this.traceRenderable.values.uAmbientColor, ambientColor);
         ValueCell.update(this.traceRenderable.values.uLightStrength, lightStrength);
+        if (this.traceRenderable.values.dGlow.ref.value !== props.glow) {
+            ValueCell.update(this.traceRenderable.values.dGlow, props.glow);
+            needsUpdateTrace = true;
+        }
         if (this.traceRenderable.values.dBounces.ref.value !== props.bounces) {
             ValueCell.update(this.traceRenderable.values.dBounces, props.bounces);
             needsUpdateTrace = true;
@@ -350,6 +356,7 @@ const TraceSchema = {
     uFrameNo: UniformSpec('i'),
     dRendersPerFrame: DefineSpec('number'),
 
+    dGlow: DefineSpec('boolean'),
     dBounces: DefineSpec('number'),
     dSteps: DefineSpec('number'),
     dFirstStepSize: DefineSpec('number'),
@@ -399,11 +406,12 @@ function getTraceRenderable(ctx: WebGLContext, colorTexture: Texture, normalText
         uFrameNo: ValueCell.create(0),
         dRendersPerFrame: ValueCell.create(1),
 
-        dBounces: ValueCell.create(8),
-        dSteps: ValueCell.create(640),
+        dGlow: ValueCell.create(true),
+        dBounces: ValueCell.create(4),
+        dSteps: ValueCell.create(32),
         dFirstStepSize: ValueCell.create(0.01),
-        dRefineSteps: ValueCell.create(16),
-        uRayDistance: ValueCell.create(160),
+        dRefineSteps: ValueCell.create(4),
+        uRayDistance: ValueCell.create(256),
 
         dThicknessMode: ValueCell.create('auto'),
         uMinThickness: ValueCell.create(0.5),

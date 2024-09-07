@@ -275,11 +275,28 @@ vec3 colorForRay(in vec3 startRayPos, in vec3 startRayDir, inout StateType rngSt
 
         // if the ray missed, we are done
         if (hitInfo.missed) {
-            if (bounceIndex > 1) {
-                throughput *= uLightStrength;
-            }
-
-            ret += prevHitInfo.color * throughput;
+            vec3 accIrradiance = vec3(1.0);
+            #ifdef dGlow
+                if (bounceIndex > 1) {
+                    accIrradiance = uLightStrength;
+                }
+            #else
+                if (bounceIndex > 1) {
+                    accIrradiance = uAmbientColor;
+                    #if dLightCount != 0
+                        #pragma unroll_loop_start
+                        float dotNL;
+                        vec3 irradiance;
+                        for (int i = 0; i < dLightCount; ++i) {
+                            dotNL = saturate(dot(prevHitInfo.normal, -uLightDirection[i]));
+                            irradiance = dotNL * uLightColor[i];
+                            accIrradiance += irradiance;
+                        }
+                        #pragma unroll_loop_end
+                    #endif
+                }
+            #endif
+            ret += prevHitInfo.color * accIrradiance * throughput;
             break;
         }
 
