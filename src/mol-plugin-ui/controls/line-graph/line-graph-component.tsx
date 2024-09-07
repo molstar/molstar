@@ -493,7 +493,24 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
 
     // TODO:  remove
     // useEffect(() => { console.log(controlPoints.length)}, [controlPoints]);
+
     const pointRefs = useRef<PointRef[]>([]);
+    useEffect(() => {
+        // set refs according to points
+        const refs = controlPoints.map(a => {
+            const r: PointRef = {
+                id: a.id,
+                ref: React.createRef()
+            };
+            return r;
+        });
+        // new refs each time
+        pointRefs.current = refs;
+        debugger;
+        // pointRefs.current = pointRefs.current.slice(0, props.items.length);
+    }, [controlPoints]);
+
+
     // useEffect(() => { console.log(pointRefs)}, [pointRefs]);
     const myRef = useRef<React.RefObject<any> | undefined>(undefined);
     const height = useRef(LineGraphParams.height);
@@ -553,6 +570,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
             'bubbles': true,
             'cancelable': true
         });
+        debugger;
         // DISPATCHING THE EVENT, i.e., ACTUALLY HOVERING
         ref.ref.current.dispatchEvent(event);
     }
@@ -623,11 +641,8 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     }
 
     function handleChangePoints(points: ControlPoint[]) {
-        debugger;
         const pointsSorted = sortPointsByXValues(points);
-        debugger;
         setControlPoints(pointsSorted);
-        debugger;
         change(pointsSorted);
     }
 
@@ -922,6 +937,18 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
 
     function renderPoints() {
         // debugger;
+        debugger;
+        const refs = controlPoints.map(a => {
+            const r: PointRef = {
+                id: a.id,
+                ref: React.createRef()
+            };
+            return r;
+        });
+        // new refs each time
+        pointRefs.current = refs;
+        debugger;
+        // pointRefs.current = pointRefs.current.slice(0, props.items.length);
         const points: any[] = [];
         let point: Vec2;
         for (let i = 0; i < controlPoints.length; i++) {
@@ -933,20 +960,25 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
                 // cannot do it this way
                 // need to render refs statically outside of this
                 // const ref = useRef();
-                const ref = React.createRef();
+                // const ref = React.createRef();
                 // if ref found replace or something
                 // e.g. update refs 
-                // or as object with Id
-                const pointRef: PointRef = {
-                    ref: ref,
-                    id: id
-                };
+                // // or as object with Id
+                // const pointRef: PointRef = {
+                //     ref: ref,
+                //     id: id
+                // };
                 // pointRefs.current.push(pointRef);
-                addPointRef(pointRef);
-                if (!ref) throw Error('Point should contain ref');
+                // addPointRef(pointRef);
+                // if (!ref) throw Error('Point should contain ref');
+                debugger;
+                const targetRef = pointRefs.current.find(r => r.id === id);
+                console.log(targetRef);
+                if (!targetRef) throw Error(`No ref for point id ${id} was found`);
                 points.push(<PointComponent
                 // use ref ref instead of state
-                    ref={ref}
+                    // ref={ref}
+                    ref={targetRef.ref}
                     index={index}
                     key={id}
                     id={id}
@@ -1179,7 +1211,6 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     }
 
     function addPoint(point: ControlPoint) {
-        debugger;
         controlPoints.push(point);
         handleChangePoints(controlPoints);
     }
@@ -1190,7 +1221,6 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         const { h, b, r, w, p } = _getLineGraphAttributes();
         svgP.x = w - 100;
         svgP.y = h - 100;
-        debugger;
         const points = controlPoints;
         const newPointData = svgCoordsToPointData(Vec2.create(svgP.x, svgP.y));
         const sorted = sortPointsByXValues(points);
@@ -1202,7 +1232,6 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
             color: getRandomColor(),
             index: maxIndex + 1
         };
-        debugger;
         addPoint(newPoint);
     }
 
