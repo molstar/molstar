@@ -416,7 +416,6 @@ const DefaultTFParams: TFParamsValues[] = [
 ];
 
 export interface LineGraphComponentProps {
-    // TODO: better name
     controlPoints: ControlPoint[]
     // TODO: may need to have it as any
     volume: Volume | undefined
@@ -425,8 +424,7 @@ export interface LineGraphComponentProps {
     onHover: any
     onDrag: any
     // TODO: why undefined?
-    colored: boolean | undefined
-    // TODO: better name
+    colored: boolean
     getValueFromPoint: any
     onAbsValueToPointValue: any
 };
@@ -468,30 +466,17 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     const [copyPoint, setCopyPoint] = useState<Vec2 | undefined >(undefined);
     const [canSelectMultiple, setCanSelectMultiple] = useState(false);
     const [showColorPicker, setShowColorPicker] = useState(false);
-    // TODO: correct type
     const [clickedPointIds, setClickedPointIds] = useState<UUID[]>([]);
+    // TODO: remove from state
+    // try t
     const [methodsParams, setMethodsParams] = useState(DefaultTFParams);
-    // const [pointRefs, setPointRefs] = useState<any>([]);
-
-    // const attrs = useRef<LineGraphAttrs | undefined>();
-
-    // const NOfRealPoints = controlPoints.filter(p => p.isTerminal !== true).length;
-    // ref should be a 
-    // const linkRefs = Array.from({ length: NOfRealPoints }, () =>
-    //     React.createRef()
-    // );
-    // useEffect(() => (childRef.current as []).map(r => r.hover(), []);
 
     useEffect(() => {
         gElement.current = document.getElementsByClassName('ghost-points')[0] as SVGElement;
     }, []);
 
-    // TODO:  remove
-    // useEffect(() => { console.log(controlPoints.length)}, [controlPoints]);
-
     const pointRefs = useRef<PointRef[]>([]);
     useEffect(() => {
-        // set refs according to points
         const refs = controlPoints.map(a => {
             const r: PointRef = {
                 id: a.id,
@@ -502,11 +487,8 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         // new refs each time
         pointRefs.current = refs;
         debugger;
-        // pointRefs.current = pointRefs.current.slice(0, props.items.length);
     }, [controlPoints]);
 
-
-    // useEffect(() => { console.log(pointRefs)}, [pointRefs]);
     const myRef = useRef<React.RefObject<any> | undefined>(undefined);
     const height = useRef(LineGraphParams.height);
     const width = useRef(LineGraphParams.width);
@@ -911,27 +893,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         }
     };
 
-    function addPointRef(ref: PointRef) {
-        // if there are no refs, add one
-        // if there are some refs
-        // check if it exists 
-        // debugger;
-        const refs = pointRefs.current;
-        const newRefs = [];
-        if (refs.length === 0) {
-            newRefs.push(ref);
-        } else {
-            const exists = refs.find(r => r.id === ref.id);
-            if (!exists) {
-                newRefs.push(ref);
-            }
-        }
-        // so it replaces each time with a new one
-        pointRefs.current = pointRefs.current.concat(newRefs);
-    };
-
     function renderPoints() {
-        // debugger;
         const refs = controlPoints.map(a => {
             const r: PointRef = {
                 id: a.id,
@@ -941,8 +903,6 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         });
         // new refs each time
         pointRefs.current = refs;
-        debugger;
-        // pointRefs.current = pointRefs.current.slice(0, props.items.length);
         const points: any[] = [];
         let point: Vec2;
         for (let i = 0; i < controlPoints.length; i++) {
@@ -1224,7 +1184,10 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         const newPointData = svgCoordsToPointData(Vec2.create(svgP.x, svgP.y));
         const sorted = sortPointsByXValues(points);
         const realPoints = sorted.filter(p => p.isTerminal === undefined || false);
-        const maxIndex = realPoints[realPoints.length - 1].index;
+        let maxIndex = 0;
+        if (realPoints.length > 0) {
+            maxIndex = realPoints[realPoints.length - 1].index;
+        }
         const newPoint: ControlPoint = {
             data: newPointData,
             id: UUID.create22(),
