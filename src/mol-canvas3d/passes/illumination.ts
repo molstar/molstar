@@ -451,7 +451,6 @@ export class IlluminationPass {
         const { camera } = ctx;
         const { multiSampleCompose, multiSampleComposeTarget, multiSampleHoldTarget, webgl } = this;
         const { gl, state } = webgl;
-        if (isTimingMode) webgl.timer.mark('IlluminationPass.renderMultiSample');
 
         // based on the Multisample Anti-Aliasing Render Pass
         // contributed to three.js by bhouston / http://clara.io/
