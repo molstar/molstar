@@ -65,7 +65,7 @@ function PointButton(props: PointButtonProps) {
         const color = props.point.color as Color;
         return (
             <div style={{ display: 'flex', marginBottom: 1 }} key={props.point.id}>
-                <Button style={{ textAlign: 'start', textIndent: '20px' }}>{props.point.index}</Button>
+                <Button onClick={() => onPointIndexClick(props.point.id)} style={{ textAlign: 'start', textIndent: '20px' }}>{props.point.index}</Button>
                 {<Button style={{ backgroundColor: Color.toStyle(color), minWidth: 32, width: 32 }}
                     onClick={() => { props.onColorSquareClick(props.point.id); } } />}
                 <TextInput numeric
