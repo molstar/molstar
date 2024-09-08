@@ -278,10 +278,10 @@ export class IlluminationPass {
         this.drawPass.setSize(width, height);
     }
 
-    reset() {
+    reset(clearAdjustedProps = false) {
         if (!this._supported) return;
 
-        this.tracing.reset();
+        this.tracing.reset(clearAdjustedProps);
         this._iteration = 0;
         this.prevSampleIndex = -1;
     }
@@ -375,7 +375,9 @@ export class IlluminationPass {
             ValueCell.update(this.composeRenderable.values.dDenoise, props.illumination.denoise);
             needsUpdateCompose = true;
         }
-        const denoiseThreshold = lerp(props.illumination.denoiseThreshold[1], props.illumination.denoiseThreshold[0], clamp(this.iteration / (this.getMaxIterations(props) / 2), 0, 1));
+        const denoiseThreshold = props.multiSample.mode === 'on'
+            ? props.illumination.denoiseThreshold[0]
+            : lerp(props.illumination.denoiseThreshold[1], props.illumination.denoiseThreshold[0], clamp(this.iteration / (this.getMaxIterations(props) / 2), 0, 1));
         ValueCell.updateIfChanged(this.composeRenderable.values.uDenoiseThreshold, denoiseThreshold);
         if (needsUpdateCompose) this.composeRenderable.update();
         this.composeRenderable.render();

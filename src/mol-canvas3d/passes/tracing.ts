@@ -40,6 +40,7 @@ type RenderContext = {
 
 export const TracingParams = {
     rendersPerFrame: PD.Interval([1, 16], { min: 1, max: 64, step: 1 }, { description: 'Number of rays per pixel each frame. May be lower to reach targetFps.' }),
+    targetFps: PD.Numeric(30, { min: 0, max: 120, step: 0.1 }, { description: 'Target FPS per frame. If lower or higher, some parameters will get adjusted.' }),
     steps: PD.Numeric(32, { min: 1, max: 1024, step: 1 }),
     firstStepSize: PD.Numeric(0.01, { min: 0.001, max: 1, step: 0.001 }),
     refineSteps: PD.Numeric(4, { min: 0, max: 8, step: 1 }, { description: 'Number of refine steps per ray hit. May be lower to reach targetFps.' }),
@@ -165,7 +166,9 @@ export class TracingPass {
         }
     }
 
-    reset() {
+    private clearAdjustedProps = true;
+
+    reset(clearAdjustedProps = false) {
         const { gl, state } = this.webgl;
 
         this.accumulateTarget.bind();
@@ -175,37 +178,87 @@ export class TracingPass {
         this.composeTarget.bind();
         state.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
+
+        if (clearAdjustedProps) {
+            this.prevTime = 0;
+            this.currTime = 0;
+            this.clearAdjustedProps = true;
+        }
     }
 
     private prevTime = 0;
     private currTime = 0;
     private rendersPerFrame = 1;
+    private refineSteps = 1;
+    private steps = 16;
+
+    private increaseAdjustedProps(props: TracingProps) {
+        this.steps += 1;
+        if (this.steps > props.steps) {
+            this.refineSteps += 1;
+        }
+        if (this.refineSteps > props.refineSteps) {
+            this.rendersPerFrame += 1;
+        }
+    }
+
+    private decreaseAdjustedProps(props: TracingProps) {
+        const minRefineSteps = Math.min(1, props.refineSteps);
+        this.rendersPerFrame -= 1;
+        if (this.rendersPerFrame < 1) {
+            this.refineSteps -= 1;
+        }
+        if (this.refineSteps < minRefineSteps) {
+            this.steps -= 1;
+        }
+    }
 
     private getAdjustedProps(props: TracingProps, iteration: number) {
         this.currTime = now();
+        const minRefineSteps = Math.min(1, props.refineSteps);
+        const minSteps = Math.round(props.steps / 2);
+
+        if (this.clearAdjustedProps) {
+            this.rendersPerFrame = props.rendersPerFrame[0];
+            this.refineSteps = minRefineSteps;
+            this.steps = minSteps;
+            this.clearAdjustedProps = false;
+        }
+
         if (iteration > 0) {
+            const targetTimeMs = 1000 / props.targetFps;
             const deltaTime = this.currTime - this.prevTime;
-            if (deltaTime < 16.5) {
-                this.rendersPerFrame += 1;
-            } else if (deltaTime > 17) {
-                this.rendersPerFrame -= 1;
+            let f = Math.round(deltaTime / targetTimeMs);
+            if (f >= 2) {
+                while (f > 0) {
+                    this.decreaseAdjustedProps(props);
+                    f -= 1;
+                }
+            } else if (deltaTime < targetTimeMs) {
+                this.increaseAdjustedProps(props);
+            } else if (deltaTime > targetTimeMs + 0.5) {
+                this.decreaseAdjustedProps(props);
             }
         }
+
         this.prevTime = this.currTime;
         this.rendersPerFrame = clamp(this.rendersPerFrame, props.rendersPerFrame[0], props.rendersPerFrame[1]);
+        this.refineSteps = clamp(this.refineSteps, minRefineSteps, props.refineSteps);
+        this.steps = clamp(this.steps, minSteps, props.steps);
 
         return {
             rendersPerFrame: iteration === 0 ? Math.ceil(this.rendersPerFrame / 2) : this.rendersPerFrame,
-            refineSteps: iteration === 0 ? 1 : props.refineSteps,
+            refineSteps: iteration === 0 ? minRefineSteps : this.refineSteps,
+            steps: iteration === 0 ? minSteps : this.steps,
         };
     }
 
     render(ctx: RenderContext, transparentBackground: boolean, props: TracingProps, iteration: number, forceRenderInput: boolean) {
-        const { rendersPerFrame, refineSteps } = this.getAdjustedProps(props, iteration);
+        const { rendersPerFrame, refineSteps, steps } = this.getAdjustedProps(props, iteration);
 
         if (isTimingMode) {
             this.webgl.timer.mark('TracePass.render', {
-                note: `${rendersPerFrame} rendersPerFrame, ${refineSteps} refineSteps`
+                note: `${rendersPerFrame} rendersPerFrame, ${refineSteps} refineSteps, ${steps} steps`
             });
         }
 
@@ -286,8 +339,8 @@ export class TracingPass {
             ValueCell.update(this.traceRenderable.values.dBounces, props.bounces);
             needsUpdateTrace = true;
         }
-        if (this.traceRenderable.values.dSteps.ref.value !== props.steps) {
-            ValueCell.update(this.traceRenderable.values.dSteps, props.steps);
+        if (this.traceRenderable.values.dSteps.ref.value !== steps) {
+            ValueCell.update(this.traceRenderable.values.dSteps, steps);
             needsUpdateTrace = true;
         }
         if (this.traceRenderable.values.dFirstStepSize.ref.value !== props.firstStepSize) {

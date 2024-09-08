@@ -57,6 +57,10 @@ class ViewportScreenshotHelper extends PluginComponent {
             }),
             transparent: PD.Boolean(false),
             axes: CameraHelperParams.axes,
+            illumination: PD.Group({
+                extraIterations: PD.Numeric(1, { min: 0, max: 5, step: 1 }),
+                targetIterationTimeMs: PD.Numeric(300, { min: 100, max: 3000, step: 10 }),
+            }),
         };
     }
     private _params: ReturnType<ViewportScreenshotHelper['createParams']> = void 0 as any;
@@ -69,7 +73,8 @@ class ViewportScreenshotHelper extends PluginComponent {
         values: this.ev.behavior<ViewportScreenshotHelperParams>({
             transparent: this.params.transparent.defaultValue,
             axes: { name: 'off', params: {} },
-            resolution: this.params.resolution.defaultValue
+            resolution: this.params.resolution.defaultValue,
+            illumination: this.params.illumination.defaultValue,
         }),
         cropParams: this.ev.behavior<{ auto: boolean, relativePadding: number }>({ auto: true, relativePadding: 0.1 }),
         relativeCrop: this.ev.behavior<Viewport>({ x: 0, y: 0, width: 1, height: 1 }),
@@ -114,6 +119,7 @@ class ViewportScreenshotHelper extends PluginComponent {
         const { colorBufferFloat, textureFloat } = c.webgl.extensions;
         const aoProps = c.props.postprocessing.occlusion;
         const giProps = c.props.illumination;
+        const values = this.values;
         return c.getImagePass({
             transparentBackground: this.values.transparent,
             cameraHelper: { axes: this.values.axes },
@@ -133,8 +139,9 @@ class ViewportScreenshotHelper extends PluginComponent {
             illumination: {
                 ...giProps,
                 enabled: isPreview ? false : giProps.enabled,
-                maxIterations: giProps.maxIterations + 1,
-                rendersPerFrame: [giProps.rendersPerFrame[1], giProps.rendersPerFrame[1]],
+                maxIterations: giProps.maxIterations + values.illumination.extraIterations,
+                targetFps: 1000 / values.illumination.targetIterationTimeMs,
+                denoiseThreshold: [giProps.denoiseThreshold[0], giProps.denoiseThreshold[0]],
             },
         });
     }
@@ -150,6 +157,7 @@ class ViewportScreenshotHelper extends PluginComponent {
             const c = this.plugin.canvas3d!;
             const aoProps = c.props.postprocessing.occlusion;
             const giProps = c.props.illumination;
+            const values = this.values;
             this._imagePass.setProps({
                 cameraHelper: { axes: this.values.axes },
                 transparentBackground: this.values.transparent,
@@ -163,8 +171,9 @@ class ViewportScreenshotHelper extends PluginComponent {
                 marking: { ...c.props.marking },
                 illumination: {
                     ...giProps,
-                    maxIterations: giProps.maxIterations + 1,
-                    rendersPerFrame: [giProps.rendersPerFrame[1], giProps.rendersPerFrame[1]],
+                    maxIterations: giProps.maxIterations + values.illumination.extraIterations,
+                    targetFps: 1000 / values.illumination.targetIterationTimeMs,
+                    denoiseThreshold: [giProps.denoiseThreshold[0], giProps.denoiseThreshold[0]],
                 },
             });
             return this._imagePass;
