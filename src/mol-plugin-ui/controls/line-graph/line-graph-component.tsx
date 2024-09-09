@@ -469,24 +469,49 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     const [clickedPointIds, setClickedPointIds] = useState<UUID[]>([]);
     // TODO: remove from state
     const [methodsParams, setMethodsParams] = useState(DefaultTFParams);
+    
+
+  
+    useEffect(() => {
+        console.log(`Control points changed: number ${controlPoints.length}, ${controlPoints}`);
+    }, [controlPoints]);
 
     useEffect(() => {
         gElement.current = document.getElementsByClassName('ghost-points')[0] as SVGElement;
     }, []);
 
-    const pointRefs = useRef<PointRef[]>([]);
-    useEffect(() => {
-        const refs = controlPoints.map(a => {
-            const r: PointRef = {
-                id: a.id,
-                ref: React.createRef()
-            };
-            return r;
-        });
-        // new refs each time
-        pointRefs.current = refs;
-        debugger;
-    }, [controlPoints]);
+
+    // https://stackoverflow.com/a/73796936/13136429
+    const useRefs = () => {
+        const refsByKey = useRef<Record<UUID, HTMLElement | null>>({});
+
+        const setRef = (element: HTMLElement | null, key: UUID) => {
+            refsByKey.current[key] = element;
+        };
+
+        return { refsByKey: refsByKey.current, setRef };
+    };
+
+    const { refsByKey, setRef } = useRefs();
+
+    // const refs = Object.values(refsByKey).filter(Boolean);
+
+    // const pointRefs = useRef<PointRef[]>([]);
+    // useEffect(() => {
+    //     const refs = controlPoints.map(a => {
+    //         const r: PointRef = {
+    //             id: a.id,
+    //             ref: React.createRef()
+    //         };
+    //         return r;
+    //     });
+    //     // new refs each time
+    //     pointRefs.current = refs;
+    // }, [controlPoints]);
+
+    // useEffect(() => {
+    //     console.log(pointRefs.current)
+    // }, [pointRefs]);
 
     const myRef = useRef<React.RefObject<any> | undefined>(undefined);
     const height = useRef(LineGraphParams.height);
@@ -537,8 +562,9 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         // throw Error('Not implemented');
         if (!targetPoint) throw Error('Cannot highlight inexisting point exist');
         // get ref
-        const ref = pointRefs.current.find(r => r.id === pointId);
-        debugger;
+        // const ref = pointRefs.current.find(r => r.id === pointId);
+        const ref = refsByKey[pointId];
+        console.log('Highlighting ref', ref);
         if (!ref) throw Error(`No ref for point ID ${pointId}`);
         // hover
         const event = new MouseEvent('mouseover', {
@@ -546,9 +572,8 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
             'bubbles': true,
             'cancelable': true
         });
-        debugger;
         // DISPATCHING THE EVENT, i.e., ACTUALLY HOVERING
-        ref.ref.current.dispatchEvent(event);
+        ref.dispatchEvent(event);
     }
 
     function _setMethod2TF(params: Method2ParamsValues) {
@@ -670,7 +695,6 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     function setTF(params: TFParamsValues) {
         const name = params.name as TFName;
         switch (name) {
-            // TODO: separate into type
             case 'gaussian':
                 _setGaussianTF(params as GaussianTFParamsValues);
                 break;
@@ -723,7 +747,6 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         if (point.isTerminal === true) { return; }
         let points = controlPoints.filter(p => p.id !== point.id);
         points = sortPointsByXValues(points);
-        // TODO: may not work, if it is the case - add undefined option to setState init
         setClickedPointIds([]);
         setShowColorPicker(false);
         handleChangePoints(points);
@@ -797,6 +820,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
 
         props.onDrag(unNormalizePoint);
         // debugger;
+        debugger;
     }
 
     function replacePoint(point: ControlPoint) {
@@ -906,7 +930,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
             return r;
         });
         // new refs each time
-        pointRefs.current = refs;
+        // pointRefs.current = refs;
         const points: any[] = [];
         let point: Vec2;
         for (let i = 0; i < controlPoints.length; i++) {
@@ -915,28 +939,14 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
                 const { data, color, id, index } = controlPoints[i];
                 const finalColor = color;
                 point = controlPointDataToSVGCoords(data);
-                // cannot do it this way
-                // need to render refs statically outside of this
-                // const ref = useRef();
-                // const ref = React.createRef();
-                // if ref found replace or something
-                // e.g. update refs
-                // // or as object with Id
-                // const pointRef: PointRef = {
-                //     ref: ref,
-                //     id: id
-                // };
-                // pointRefs.current.push(pointRef);
-                // addPointRef(pointRef);
-                // if (!ref) throw Error('Point should contain ref');
-                debugger;
-                const targetRef = pointRefs.current.find(r => r.id === id);
-                console.log(targetRef);
-                if (!targetRef) throw Error(`No ref for point id ${id} was found`);
+                // const targetRef = pointRefs.current.find(r => r.id === id);
+                // console.log(targetRef);
+                // if (!targetRef) throw Error(`No ref for point id ${id} was found`);
                 points.push(<PointComponent
                 // use ref ref instead of state
                     // ref={ref}
-                    ref={targetRef.ref}
+                    // ref={targetRef.ref}
+                    ref={(element: HTMLElement) => setRef(element, id)}
                     index={index}
                     key={id}
                     id={id}
@@ -950,6 +960,8 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
                     onclick={handleClick(controlPoints[i])}
                     color={finalColor}
                 />);
+                console.log(`Just pushed ${i}st/th control point`);
+                debugger;
             }
         }
         return points;
@@ -1294,7 +1306,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     }
 
     const LineGraphRendered = () => {
-        console.log(pointRefs);
+        // console.log(pointRefs);
         console.log(`Rendering ${controlPoints.length} points`, controlPoints);
         const points = renderPoints();
         const baseline = renderBaseline();
