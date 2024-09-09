@@ -575,7 +575,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         const paddingUnnormalized = padding.current / height.current;
         // there two are the same values, reduce to a single one, e.g. could be be just padding, why not
         // should be e.g.
-        const generatedPoints = generateControlPoints(paddingUnnormalized, ColorNames.black, undefined, props.volume);
+        const generatedPoints = generateControlPoints(ColorNames.black, undefined, props.volume);
         const currentPoints = controlPoints;
         generatedPoints.push(currentPoints[currentPoints.length - 1]);
         generatedPoints.unshift(currentPoints[0]);
@@ -611,27 +611,6 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         change(gaussianPoints);
     }
 
-    function changeAlphaValue(pointId: UUID, alpha: number) {
-        const modifiedPoints = controlPoints.map(p => {
-            if (p.id === pointId) {
-                const modifiedData: ControlPointData = {
-                    x: p.data.x,
-                    alpha: alpha
-                };
-                const modifiedP: ControlPoint = {
-                    id: p.id,
-                    color: p.color,
-                    index: p.index,
-                    data: modifiedData
-                };
-                return modifiedP;
-            } else {
-                return p;
-            }
-        });
-        handleChangePoints(modifiedPoints);
-    }
-
     function handleChangePoints(points: ControlPoint[]) {
         const pointsSorted = sortPointsByXValues(points);
         const oldNumberOfPoints = controlPoints.filter(p => p.isTerminal !== true).length;
@@ -657,6 +636,45 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
             return a.data.x - b.data.x;
         });
         return points;
+    }
+
+    function _changePointDataInState(pointId: UUID, data: ControlPointData) {
+        const modifiedPoints = controlPoints.map(p => {
+            if (p.id === pointId) {
+
+                const modifiedP: ControlPoint = {
+                    id: p.id,
+                    color: p.color,
+                    index: p.index,
+                    data: data
+                };
+                return modifiedP;
+            } else {
+                return p;
+            }
+        });
+        handleChangePoints(modifiedPoints);
+    }
+
+    function changeAlphaValue(pointId: UUID, alpha: number) {
+        const modifiedPoints = controlPoints.map(p => {
+            if (p.id === pointId) {
+                const modifiedData: ControlPointData = {
+                    x: p.data.x,
+                    alpha: alpha
+                };
+                const modifiedP: ControlPoint = {
+                    id: p.id,
+                    color: p.color,
+                    index: p.index,
+                    data: modifiedData
+                };
+                return modifiedP;
+            } else {
+                return p;
+            }
+        });
+        handleChangePoints(modifiedPoints);
     }
 
     // TODO: refactor to remove duplication with changeAlphaValue function
@@ -747,7 +765,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         if (selectedPointId === undefined) {
             return;
         }
-
+        debugger;
         document.addEventListener('mousemove', handleDrag, true);
         document.addEventListener('mouseup', handlePointUpdate, true);
     }
@@ -771,7 +789,6 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     }
 
     function handleDrag(event: any) {
-        console.log('handle drag');
         if (selectedPointId.current === undefined || !myRef.current) {
             return;
         }
@@ -810,8 +827,6 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         ghostPoints.current[0].setAttribute('cy', `${updatedCopyPoint[1]}`);
 
         props.onDrag(unNormalizePoint);
-        // debugger;
-        debugger;
     }
 
     function replacePoint(point: ControlPoint) {
@@ -913,30 +928,14 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     };
 
     function renderPoints() {
-        const refs = controlPoints.map(a => {
-            const r: PointRef = {
-                id: a.id,
-                ref: React.createRef()
-            };
-            return r;
-        });
-        // new refs each time
-        // pointRefs.current = refs;
         const points: any[] = [];
         let point: Vec2;
         for (let i = 0; i < controlPoints.length; i++) {
             if (controlPoints[i].isTerminal !== true) {
-            // if (i !== 0 && i !== controlPoints.length - 1) {
                 const { data, color, id, index } = controlPoints[i];
                 const finalColor = color;
                 point = controlPointDataToSVGCoords(data);
-                // const targetRef = pointRefs.current.find(r => r.id === id);
-                // console.log(targetRef);
-                // if (!targetRef) throw Error(`No ref for point id ${id} was found`);
                 points.push(<PointComponent
-                // use ref ref instead of state
-                    // ref={ref}
-                    // ref={targetRef.ref}
                     ref={(element: HTMLElement) => setRef(element, id)}
                     index={index}
                     key={id}
@@ -995,9 +994,6 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         let maxX: number;
         let maxY: number;
         let normalizedX: number;
-        let normalizedY: number;
-        let reverseY: number;
-
         const { h, b, r, w, p } = _getLineGraphAttributes();
 
         const o = p / 2;
@@ -1172,6 +1168,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     }
 
     function addPoint(point: ControlPoint) {
+        console.log('addPoint, points', controlPoints);
         // const points = controlPoints;
         // points.push(point);
         handleChangePoints([...controlPoints, point]);
@@ -1202,6 +1199,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
 
     // TODO: fix movement of plus and minus sign buttons upon creation of points
     function removeRightmostPoint() {
+        console.log('removeRightmostPoint, points', controlPoints);
         const points = controlPoints;
         const sortedPs = sortPointsByXValues(points);
         const rightmostP = sortedPs[sortedPs.length - 2];
@@ -1215,11 +1213,13 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     }
 
     function handleEnter() {
+        console.log('Handle enter, points', controlPoints);
         document.removeEventListener('mousemove', handleDrag, true);
         document.removeEventListener('mouseup', handlePointUpdate, true);
     }
 
     const handleKeyDown = (event: any) => {
+        console.log('handlekeydown, points', controlPoints);
         // TODO: set canSelectMultiple = true
         if (event.key === 'Shift') {
             setCanSelectMultiple(true);
@@ -1230,6 +1230,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     };
 
     const handleKeyUp = (event: any) => {
+        console.log('handlekeyup, points', controlPoints);
         // TODO: SET canSelectMultiple = fasle
         setCanSelectMultiple(false);
         if (event.shiftKey) {
@@ -1247,13 +1248,16 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
         for (const point of clickedPoints) {
             point.color = value;
         }
+        // remove point and add it again?
         const clickedPointsIds = clickedPoints.map(p => p.id);
         const notClickedPoints = currentPoints.filter(p => !clickedPointsIds.includes(p.id));
+        handleChangePoints(notClickedPoints);
         const newPoints = clickedPoints.concat(notClickedPoints);
         handleChangePoints(newPoints);
         console.log('Color updated');
-        const shakedPoint = _shake();
-        _revertShake(shakedPoint);
+        props.onDrag(clickedPoints[0].data);
+        // const shakedPoint = _shake();
+        // _revertShake(shakedPoint);
         // _handleMouseDown(clickedPoints[0]);
     };
 
@@ -1265,33 +1269,33 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
             toggleColorPicker();
         }
     };
-    function _shake() {
-        const points = controlPoints;
-        const realPoints = points.filter(p => p.isTerminal !== true);
-        const randomPoint = realPoints[Math.floor(Math.random() * realPoints.length)];
-        randomPoint.data.x = randomPoint.data.x + 0.01;
-        const otherPoints = points.filter(p => p.id !== randomPoint.id);
-        const newPoints = [...otherPoints, randomPoint];
-        setControlPoints(otherPoints);
-        handleChangePoints(otherPoints);
-        // setControlPoints(newPoints);
-        // handleChangePoints(newPoints);
-        console.log('Shaked point', randomPoint, randomPoint.data.x);
-        return randomPoint;
-    }
+    // function _shake() {
+    //     const points = controlPoints;
+    //     const realPoints = points.filter(p => p.isTerminal !== true);
+    //     const randomPoint = realPoints[Math.floor(Math.random() * realPoints.length)];
+    //     randomPoint.data.x = randomPoint.data.x + 0.01;
+    //     const otherPoints = points.filter(p => p.id !== randomPoint.id);
+    //     const newPoints = [...otherPoints, randomPoint];
+    //     setControlPoints(otherPoints);
+    //     handleChangePoints(otherPoints);
+    //     // setControlPoints(newPoints);
+    //     // handleChangePoints(newPoints);
+    //     console.log('Shaked point', randomPoint, randomPoint.data.x);
+    //     return randomPoint;
+    // }
 
-    function _revertShake(randomPoint: ControlPoint) {
-        const points = controlPoints;
-        // const realPoints = points.filter(p => p.isTerminal !== true);
-        // const randomPoint = realPoints[Math.floor(Math.random() * realPoints.length)];
-        // randomPoint.data.x = randomPoint.data.x - 0.01;
-        const otherPoints = points.filter(p => p.id !== randomPoint.id);
-        randomPoint.data.x = randomPoint.data.x - 0.01;
-        const newPoints = [...otherPoints, randomPoint];
-        console.log('Revert shaked point', randomPoint, randomPoint.data.x);
-        setControlPoints(newPoints);
-        handleChangePoints(newPoints);
-    }
+    // function _revertShake(randomPoint: ControlPoint) {
+    //     const points = controlPoints;
+    //     // const realPoints = points.filter(p => p.isTerminal !== true);
+    //     // const randomPoint = realPoints[Math.floor(Math.random() * realPoints.length)];
+    //     // randomPoint.data.x = randomPoint.data.x - 0.01;
+    //     const otherPoints = points.filter(p => p.id !== randomPoint.id);
+    //     randomPoint.data.x = randomPoint.data.x - 0.01;
+    //     const newPoints = [...otherPoints, randomPoint];
+    //     console.log('Revert shaked point', randomPoint, randomPoint.data.x);
+    //     setControlPoints(newPoints);
+    //     handleChangePoints(newPoints);
+    // }
 
     const LineGraphRendered = () => {
         // console.log(pointRefs);
@@ -1357,10 +1361,6 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
                 </svg>
                 <ColorPicker isActive={showColorPicker} defaultColor={defaultColor}
                     color={color} updateColor={updateColor} toggleColorPicker={toggleColorPicker}/>
-                {/* <>{showColorPicker ? <ColorPicker isActive={showColorPicker} defaultColor={defaultColor}
-                    color={color} updateColor={updateColor} toggleColorPicker={toggleColorPicker}/> :
-                    <Button disabled >Select point to change color</Button>}
-                </> */}
                 <>
                     <PointsPanel points={controlPoints}
                         onPointIndexClick={highlightPoint}

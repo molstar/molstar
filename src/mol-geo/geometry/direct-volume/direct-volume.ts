@@ -31,16 +31,9 @@ import { createEmptySubstance } from '../substance-data';
 import { createEmptyEmissive } from '../emissive-data';
 import { ControlPoint, ControlPointData } from '../../../mol-plugin-ui/controls/line-graph/line-graph-component';
 import { ColorNames, getRandomColor } from '../../../mol-util/color/names';
-import { LineGraphParams } from '../../../mol-plugin-ui/controls/line-graph/line-graph-params';
 
 const VolumeBox = Box();
-
-// we do not provide neither padding nor offset here
-// need to tune it based on linegraph thing since this is not used anywhere
-// else
-// have a normalized version of padding ins
-// TODO: or maybe offset / 2
-export const defaultControlPoints = generateControlPoints(LineGraphParams.baselineUnnormalized, ColorNames.black);
+export const defaultControlPoints = generateControlPoints(ColorNames.black);
 
 function generateNormalizedGaussianPositions(numberOfPoints: number, a: number, b: number, c: number, TFextent: number, yOffset: number): Vec2[] {
     const arr: Vec2[] = [];
@@ -51,20 +44,8 @@ function generateNormalizedGaussianPositions(numberOfPoints: number, a: number, 
     const end = center + 3 * extent;
     const interval = ((end - start) / (numberOfPoints - 1)) / TFextent;
     for (let i = 0; i < numberOfPoints; i ++) {
-        // TODO: obtain point data here
-        // point data is x * or / by some coefficient
-        // TF extent is max - min
-        // TODO: alternatively get this info from message of whatever is displayed above the graph
-        // while hovering over a point
-        // may modify point data before this one
-        // move this part to some other part of code
         const x = start / TFextent + (interval * i);
-        // const x = start + (interval * i);
         const y = gaussianParametrized(x, a, b, c);
-        // vectors are created on the space of HTML canvas
-        // so it should be normalized somehow
-        // TODO: debug this
-        // const vector = Vec2.create(x, y + yOffset / 10);
         const vector = Vec2.create(x, y + yOffset);
         arr.push(vector);
     }
@@ -87,17 +68,13 @@ function gaussianParametrized(x: number, a: number, b: number, c: number) {
 
 export function generateGaussianControlPoints(a: number, b: number, c: number, TFextent: number, yOffset: number, volume: Volume, paddingYUnnormalized: number) {
     const numberOfPoints = 8;
-    // TODO: can extend point data dynamically with absolute values based on volume attribute (data) or based on some
-    // calculations
     const positions = generateNormalizedGaussianPositions(numberOfPoints, a, b, c, TFextent, yOffset);
-    const controlPoints = generateControlPoints(paddingYUnnormalized, ColorNames.black, positions, volume);
-    console.log(controlPoints);
+    const controlPoints = generateControlPoints(ColorNames.black, positions, volume);
     return controlPoints;
 }
 
 // TODO: destructuring params or something
-// TODO: remove unused params
-export function generateControlPoints(baselineUnnormalized: number, color?: Color, positions?: Vec2[], volume?: Volume) {
+export function generateControlPoints(color?: Color, positions?: Vec2[], volume?: Volume) {
     if (!positions) {
         positions = [
             Vec2.create(0.19, 0.0), Vec2.create(0.2, 0.05), Vec2.create(0.25, 0.05), Vec2.create(0.26, 0.0),
@@ -116,15 +93,10 @@ export function generateControlPoints(baselineUnnormalized: number, color?: Colo
             // stuff
             const v = min + (max - min) * data.x;
             const s = (v - mean) / sigma;
-            // TODO: optimize this
-            // need this too I guess
-            // even at this point
             data.absValue = v;
             data.relativeValue = s;
         } else {
-            // throw Error('Volume was not provided');
-            // data.absValue = data.x;
-            // data.relativeValue = data.alpha;
+            // TODO: optimize this
         }
 
         const point: ControlPoint = {
@@ -135,7 +107,6 @@ export function generateControlPoints(baselineUnnormalized: number, color?: Colo
         };
         points.push(point);
     }
-    console.log('Generated control points', points);
     return points;
 }
 
