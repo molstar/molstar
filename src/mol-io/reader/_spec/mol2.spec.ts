@@ -734,8 +734,11 @@ describe('mol2 reader', () => {
         const mol2File = parsed.result;
         const data = mol2File.structures[0];
         const statusBits = data.atoms.status_bit.toArray();
-        expect(statusBits.length).toEqual(1);
-        expect(statusBits[0]).toEqual('BACKBONE|DICT|DIRECT');
+        expect(statusBits.length).toEqual(data.atoms.count);
+        expect(statusBits[1]).toEqual('BACKBONE|DICT|DIRECT');
+        for (let i = 0; i < data.atoms.count; i++) {
+            if (i !== 1) expect(statusBits[i]).toEqual('');
+        }
     });
 
     it('bond status_bit', async () => {
@@ -746,8 +749,11 @@ describe('mol2 reader', () => {
         const mol2File = parsed.result;
         const data = mol2File.structures[0];
         const statusBits = data.bonds.status_bits.toArray();
-        expect(statusBits.length).toEqual(1);
-        expect(statusBits[0]).toEqual('BACKBONE|DICT|INTERRES');
+        expect(statusBits.length).toEqual(data.bonds.count);
+        expect(statusBits[17]).toEqual('BACKBONE|DICT|INTERRES');
+        for (let i = 0; i < data.bonds.count; i++) {
+            if (i !== 17) expect(statusBits[i]).toEqual('');
+        }
     });
 
     it('crysin', async () => {

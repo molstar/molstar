@@ -116,6 +116,9 @@ function _readColumnsAndGetMaxCount(linesToRead: number, tokenIndexColums: Token
             TokenBuilder.addUnchecked(col, tokenizer.tokenStart, tokenizer.tokenEnd);
         }
         if (tokenIndex > maxColumnCount) maxColumnCount = tokenIndex;
+        for (let cI = tokenIndex; cI < tokenIndexColums.length; cI++) {
+            TokenBuilder.addUnchecked(tokenIndexColums[cI], 0, 0);
+        }
     }
     return maxColumnCount + 1;
 }
