@@ -271,7 +271,6 @@ function TFParamsWrapper(props: TFParamsWrapperProps) {
     };
 
     const render = () => {
-        // TODO: Make PD from TFName type if possible instead of "as"
         const adjustedParams = adjustTFParams((props.params.name as TFName), props.descriptiveStatistics);
         return (<ExpandGroup header='Transfer Function Settings' initiallyExpanded>
             <WaitingParameterControls params={adjustedParams} values={params} onChangeValues={async next => { handleChange(next as any); }} />
@@ -370,7 +369,6 @@ export const GaussianTFParams = {
     gaussianCenter: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
     gaussianExtent: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
     gaussianHeight: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
-    // TODO: PD from object or something, need list of values
     name: PD.Text('gaussian', { isHidden: true })
 };
 
@@ -381,9 +379,7 @@ export const DefaultParams = {
 export const Method2TFParams = {
     param1: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
     param2: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }),
-    // TODO: PD from object or something
     name: PD.Text('method2', { isHidden: true })
-    // gaussianHeight: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 })
 };
 
 export type GaussianTFParamsValues = PD.Values<typeof GaussianTFParams>;
@@ -417,7 +413,6 @@ const DefaultTFParams: TFParamsValues[] = [
 
 export interface LineGraphComponentProps {
     controlPoints: ControlPoint[]
-    // TODO: may need to have it as any
     volume: Volume | undefined
     // TODO: function types
     onChange: any
@@ -467,11 +462,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     const [canSelectMultiple, setCanSelectMultiple] = useState(false);
     const [showColorPicker, setShowColorPicker] = useState(false);
     const [clickedPointIds, setClickedPointIds] = useState<UUID[]>([]);
-    // TODO: remove from state
-    const [methodsParams, setMethodsParams] = useState(DefaultTFParams);
-    
 
-  
     useEffect(() => {
         console.log(`Control points changed: number ${controlPoints.length}, ${controlPoints}`);
     }, [controlPoints]);
@@ -1267,9 +1258,6 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     };
 
     const onColorSquareClick = (pointId: UUID) => {
-        // TODO: change color
-        // use .change method
-        // perhaps handle Change point or something
         setClickedPointIds([pointId]);
         if (showColorPicker) {
             // TODO: what should happen there?
@@ -1383,7 +1371,7 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
                         onPointButtonClick={removePoint}
                         onColorSquareClick={onColorSquareClick}></PointsPanel>
                     <HelpersPanel onChange={setTF}
-                        methodsParams={methodsParams}
+                        methodsParams={DefaultTFParams}
                         descriptiveStatistics={descriptiveStatistics.current}></HelpersPanel>
                 </>
             </div>,
