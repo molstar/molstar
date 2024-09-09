@@ -426,6 +426,7 @@ export interface LineGraphComponentProps {
     colored: boolean | undefined
     getValueFromPoint: any
     onAbsValueToPointValue: any
+    onNumberOfPointsChange: any
 };
 
 // export interface LineGraphAttrs {
@@ -467,7 +468,6 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     const [showColorPicker, setShowColorPicker] = useState(false);
     const [clickedPointIds, setClickedPointIds] = useState<UUID[]>([]);
     // TODO: remove from state
-    // try t
     const [methodsParams, setMethodsParams] = useState(DefaultTFParams);
 
     useEffect(() => {
@@ -618,6 +618,11 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
 
     function handleChangePoints(points: ControlPoint[]) {
         const pointsSorted = sortPointsByXValues(points);
+        const oldNumberOfPoints = controlPoints.filter(p => p.isTerminal !== true).length;
+        const newNumberOfPoints = points.filter(p => p.isTerminal !== true).length;
+        if (oldNumberOfPoints !== newNumberOfPoints) {
+            props.onNumberOfPointsChange(newNumberOfPoints);
+        }
         setControlPoints(pointsSorted);
         change(pointsSorted);
     }
@@ -1164,13 +1169,9 @@ export function LineGraphComponent(props: LineGraphComponentProps) {
     }
 
     function addPoint(point: ControlPoint) {
-        // setControlPoints([...controlPoints, point]);
-        // setControlPoints((oldArray) => [...oldArray, point]);
-        // controlPoints.push(point);
-        debugger;
-        const points = controlPoints;
-        points.push(point);
-        handleChangePoints(points);
+        // const points = controlPoints;
+        // points.push(point);
+        handleChangePoints([...controlPoints, point]);
     }
 
     function createPoint() {

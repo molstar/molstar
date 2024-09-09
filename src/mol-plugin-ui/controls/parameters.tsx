@@ -488,6 +488,10 @@ export const LineGraphControl = (props: ParamProps<PD.LineGraph>) => {
         return absValueToPointValue(v);
     };
 
+    const onNumberOfPointsChange = (newNumberOfPoints: number) => {
+        setMessage(`${newNumberOfPoints} points`);
+    };
+
     const onHover = (data?: ControlPointData) => {
         // this.setState({ isOverPoint: !this.state.isOverPoint });
         setIsOverPoint(!isOverPoint);
@@ -540,6 +544,7 @@ export const LineGraphControl = (props: ParamProps<PD.LineGraph>) => {
                     colored={props.param.colored}
                     getValueFromPoint={getValueFromPoint}
                     onAbsValueToPointValue={onAbsValueToPointValue}
+                    onNumberOfPointsChange={onNumberOfPointsChange}
                 />
             </div>
         </>;
