@@ -210,12 +210,13 @@ async function parseInternal(ctx: RuntimeContext, data: Uint8Array) {
         boxes.push(box as unknown as number[]);
 
         if (natoms <= 9) { // no compression
-            frameCoords = { count: natoms / 3, x: new Float32Array(natoms / 3), y: new Float32Array(natoms / 3), z: new Float32Array(natoms / 3) };
-            for (let i = 0; i < natoms / 3; ++i) {
+            frameCoords = { count: natoms, x: new Float32Array(natoms), y: new Float32Array(natoms), z: new Float32Array(natoms) };
+            offset += 4;
+            for (let i = 0; i < natoms; ++i) {
                 frameCoords.x[i] = dv.getFloat32(offset);
-                frameCoords.y[i] = dv.getFloat32(offset);
-                frameCoords.z[i] = dv.getFloat32(offset);
-                offset += 4;
+                frameCoords.y[i] = dv.getFloat32(offset + 4);
+                frameCoords.z[i] = dv.getFloat32(offset + 8);
+                offset += 12;
             }
         } else {
             buf[0] = buf[1] = buf[2] = 0;
