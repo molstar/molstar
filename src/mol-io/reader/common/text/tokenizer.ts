@@ -12,7 +12,6 @@ export { Tokenizer };
 
 interface Tokenizer {
     data: string,
-    dataLines?: string[],
 
     position: number,
     length: number,
@@ -31,7 +30,6 @@ export interface Tokens {
 function Tokenizer(data: string): Tokenizer {
     return {
         data,
-        dataLines: data.split(/\r?\n/),
         position: 0,
         length: data.length,
         lineNumber: 1,
