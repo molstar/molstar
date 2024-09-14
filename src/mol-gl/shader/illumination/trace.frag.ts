@@ -264,7 +264,7 @@ vec3 colorForRay(in vec3 startRayPos, in vec3 startRayDir, inout StateType rngSt
                         if (missed) directLight += uLightColor[i];
                     }
                     #pragma unroll_loop_end
-                    hitInfo.color *= directLight;
+                    hitInfo.color *= directLight / uLightStrength;
                 #endif
             #endif
 
