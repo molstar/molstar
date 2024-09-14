@@ -205,7 +205,8 @@ void main(void) {
             offset = uProjection * offset;
             offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
 
-            float sampleDepth = getMappedDepth(offset.xy, selfCoords);
+            // NOTE: using getMappedDepth here causes issues on some mobile devices
+            float sampleDepth = getDepth(offset.xy);
             float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
 
             occlusion += step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ));

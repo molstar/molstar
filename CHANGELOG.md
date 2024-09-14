@@ -15,6 +15,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Enables dXrayShaded define when rendering depth
 - Fix handling of PDB files that have chains with same id separated by TER record (#1245)
 - Sequence Panel: Improve visuals of unmodeled sequence positions (#1248)
+- Fix no-compression xtc parser (#1258)
+- Mol2 Reader: Fix mol2 status_bit read error (#1251)
 
 ## [v4.6.0] - 2024-08-28
 
