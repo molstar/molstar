@@ -7,7 +7,9 @@
 
 import { Viewport } from '../../mol-canvas3d/camera/util';
 import { CameraHelperParams } from '../../mol-canvas3d/helper/camera-helper';
+import { IlluminationProps } from '../../mol-canvas3d/passes/illumination';
 import { ImagePass } from '../../mol-canvas3d/passes/image';
+import { PostprocessingProps } from '../../mol-canvas3d/passes/postprocessing';
 import { canvasToBlob } from '../../mol-canvas3d/util';
 import { equalEps } from '../../mol-math/linear-algebra/3d/common';
 import { PluginComponent } from '../../mol-plugin-state/component';
@@ -114,12 +116,34 @@ class ViewportScreenshotHelper extends PluginComponent {
         }
     }
 
+    private getPostprocessingProps() {
+        const c = this.plugin.canvas3d!;
+        const aoProps = c.props.postprocessing.occlusion;
+        return {
+            ...c.props.postprocessing,
+            occlusion: aoProps.name === 'on'
+                ? { name: 'on', params: { ...aoProps.params, samples: 128, resolutionScale: c.webgl.pixelRatio } }
+                : aoProps
+        } as PostprocessingProps;
+    }
+
+    private getIlluminationProps(isPreview: boolean) {
+        const c = this.plugin.canvas3d!;
+        const giProps = c.props.illumination;
+        const { extraIterations, targetIterationTimeMs } = this.values.illumination;
+        return {
+            ...giProps,
+            enabled: isPreview ? false : giProps.enabled,
+            maxIterations: Math.ceil(Math.log2(Math.pow(2, giProps.maxIterations + extraIterations) * giProps.rendersPerFrame[1])),
+            targetFps: 1000 / targetIterationTimeMs,
+            denoiseThreshold: [giProps.denoiseThreshold[0], giProps.denoiseThreshold[0]],
+            rendersPerFrame: [1, 1],
+        } as IlluminationProps;
+    }
+
     private createPass(isPreview: boolean) {
         const c = this.plugin.canvas3d!;
         const { colorBufferFloat, textureFloat } = c.webgl.extensions;
-        const aoProps = c.props.postprocessing.occlusion;
-        const giProps = c.props.illumination;
-        const values = this.values;
         return c.getImagePass({
             transparentBackground: this.values.transparent,
             cameraHelper: { axes: this.values.axes },
@@ -129,20 +153,9 @@ class ViewportScreenshotHelper extends PluginComponent {
                 sampleLevel: colorBufferFloat && textureFloat ? 4 : 2,
                 reuseOcclusion: false,
             },
-            postprocessing: {
-                ...c.props.postprocessing,
-                occlusion: aoProps.name === 'on'
-                    ? { name: 'on', params: { ...aoProps.params, samples: 128, resolutionScale: c.webgl.pixelRatio } }
-                    : aoProps
-            },
+            postprocessing: this.getPostprocessingProps(),
             marking: { ...c.props.marking },
-            illumination: {
-                ...giProps,
-                enabled: isPreview ? false : giProps.enabled,
-                maxIterations: giProps.maxIterations + values.illumination.extraIterations,
-                targetFps: 1000 / values.illumination.targetIterationTimeMs,
-                denoiseThreshold: [giProps.denoiseThreshold[0], giProps.denoiseThreshold[0]],
-            },
+            illumination: this.getIlluminationProps(isPreview),
         });
     }
 
@@ -155,26 +168,12 @@ class ViewportScreenshotHelper extends PluginComponent {
     get imagePass() {
         if (this._imagePass) {
             const c = this.plugin.canvas3d!;
-            const aoProps = c.props.postprocessing.occlusion;
-            const giProps = c.props.illumination;
-            const values = this.values;
             this._imagePass.setProps({
                 cameraHelper: { axes: this.values.axes },
                 transparentBackground: this.values.transparent,
-                // TODO: optimize because this creates a copy of a large object!
-                postprocessing: {
-                    ...c.props.postprocessing,
-                    occlusion: aoProps.name === 'on'
-                        ? { name: 'on', params: { ...aoProps.params, samples: 128, resolutionScale: c.webgl.pixelRatio } }
-                        : aoProps
-                },
+                postprocessing: this.getPostprocessingProps(),
                 marking: { ...c.props.marking },
-                illumination: {
-                    ...giProps,
-                    maxIterations: giProps.maxIterations + values.illumination.extraIterations,
-                    targetFps: 1000 / values.illumination.targetIterationTimeMs,
-                    denoiseThreshold: [giProps.denoiseThreshold[0], giProps.denoiseThreshold[0]],
-                },
+                illumination: this.getIlluminationProps(false),
             });
             return this._imagePass;
         }
@@ -296,7 +295,6 @@ class ViewportScreenshotHelper extends PluginComponent {
         this.previewPass.setProps({
             cameraHelper: { axes: this.values.axes },
             transparentBackground: this.values.transparent,
-            // TODO: optimize because this creates a copy of a large object!
             postprocessing: canvasProps.postprocessing,
             marking: canvasProps.marking,
         });
