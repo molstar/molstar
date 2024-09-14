@@ -252,6 +252,7 @@ vec3 colorForRay(in vec3 startRayPos, in vec3 startRayDir, inout StateType rngSt
             // shadow
             #ifdef dShadowEnable
                 #if dLightCount != 0
+                    vec3 directLight = vec3(uAmbientColor);
                     #pragma unroll_loop_start
                     bool missed;
                     vec3 hitPos;
@@ -260,9 +261,10 @@ vec3 colorForRay(in vec3 startRayPos, in vec3 startRayDir, inout StateType rngSt
                         hitPos = viewPos + hitInfo.normal * RayPosNormalNudge;
                         hitPos += -uLightDirection[i] * (randomFloat(rngState));
                         rayMarch(-uLightDirection[i] + randomUnitVector(rngState) * uShadowSoftness, uShadowThickness, hitPos, missed);
-                        if (!missed) hitInfo.color = texture2D(tColor, coords).rgb * (uAmbientColor / float(dLightCount));
+                        if (missed) directLight += uLightColor[i];
                     }
                     #pragma unroll_loop_end
+                    hitInfo.color *= directLight;
                 #endif
             #endif
 
