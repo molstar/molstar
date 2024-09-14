@@ -5,6 +5,7 @@
  */
 
 export const trace_frag = `
+precision highp int;
 precision highp float;
 precision highp sampler2D;
 
