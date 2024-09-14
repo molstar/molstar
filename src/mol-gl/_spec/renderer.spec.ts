@@ -90,7 +90,7 @@ describe('renderer', () => {
 
         expect(ctx.stats.resourceCounts.attribute).toBe(ctx.isWebGL2 ? 12 : 15);
         expect(ctx.stats.resourceCounts.texture).toBe(28);
-        expect(ctx.stats.resourceCounts.vertexArray).toBe(ctx.extensions.vertexArrayObject ? 18 : 0);
+        expect(ctx.stats.resourceCounts.vertexArray).toBe(ctx.extensions.vertexArrayObject ? 15 : 0);
         expect(ctx.stats.resourceCounts.program).toBe(7);
         expect(ctx.stats.resourceCounts.shader).toBe(14);
     });

@@ -9,7 +9,7 @@ import { createAttributeBuffers, ElementsBuffer, AttributeKind, AttributeBuffers
 import { createTextures, Texture } from './texture';
 import { WebGLContext, checkError } from './context';
 import { ShaderCode, DefineValues } from '../shader-code';
-import { NullProgram, Program, Programs } from './program';
+import { Program, Programs } from './program';
 import { RenderableSchema, RenderableValues, AttributeSpec, getValueVersions, splitValues, DefineSpec } from '../renderable/schema';
 import { idFactory } from '../../mol-util/id-factory';
 import { ValueCell } from '../../mol-util';
@@ -74,11 +74,6 @@ export type ComputeRenderVariant = keyof typeof ComputeRenderVariant
 export const ComputeRenderVariants = Object.keys(ComputeRenderVariant) as ComputeRenderVariant[];
 
 function createProgramVariant(ctx: WebGLContext, variant: string, defineValues: DefineValues, shaderCode: ShaderCode, schema: RenderableSchema) {
-    if (variant === 'tracing' && !ctx.extensions.drawBuffers) {
-        // unsupported, cannot compile
-        return NullProgram;
-    }
-
     defineValues = { ...defineValues, dRenderVariant: ValueCell.create(variant) };
     if (schema.dRenderVariant === undefined) {
         Object.defineProperty(schema, 'dRenderVariant', { value: DefineSpec('string') });
@@ -139,6 +134,12 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
     const id = getNextRenderItemId();
     const { stats, state, resources } = ctx;
     const { instancedArrays, vertexArrayObject, multiDrawInstancedBaseVertexBaseInstance, drawInstancedBaseVertexBaseInstance } = ctx.extensions;
+
+    // filter out unsupported variants
+    renderVariants = renderVariants.filter(v => {
+        if (v === 'tracing') return !!ctx.extensions.drawBuffers;
+        return true;
+    });
 
     // emulate gl_VertexID when needed
     if (values.uVertexCount && !ctx.extensions.noNonInstancedActiveAttribs) {

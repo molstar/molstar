@@ -254,17 +254,3 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
         }
     };
 }
-
-export const NullProgram: Program = {
-    id: -1,
-
-    use: () => {},
-    setUniforms: () => {},
-    uniform: () => {},
-    bindAttributes: () => {},
-    offsetAttributes: () => {},
-    bindTextures: () => {},
-
-    reset: () => {},
-    destroy: () => {}
-};
