@@ -385,9 +385,6 @@ export class SsaoPass {
         this.depthQuarterRenderable.render();
         if (isTimingMode) this.webgl.timer.markEnd('SsaoPass.quarter');
 
-        console.log('depthHalfTarget', this.depthHalfTarget.getWidth(), this.depthHalfTarget.getHeight());
-        console.log('depthQuarterTarget', this.depthQuarterTarget.getWidth(), this.depthQuarterTarget.getHeight());
-
         this.framebuffer.bind();
         this.renderable.render();
 
