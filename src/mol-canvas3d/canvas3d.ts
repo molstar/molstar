@@ -482,6 +482,14 @@ namespace Canvas3D {
                 y > gl.drawingBufferHeight || y + height < 0
             ) return false;
 
+            if (fenceSync !== null) {
+                if (webgl.checkSyncStatus(fenceSync)) {
+                    fenceSync = null;
+                } else {
+                    return false;
+                }
+            }
+
             const markingUpdated = resolveMarking() && (renderer.props.colorMarker || p.marking.enabled);
 
             let didRender = false;
@@ -500,19 +508,10 @@ namespace Canvas3D {
                 if (passes.illumination.shouldRender(p)
                     && ((!isActivelyInteracting && scene.count > 0) || passes.illumination.iteration === 0 || p.userInteractionReleaseMs === 0)
                 ) {
-                    if (fenceSync !== null) {
-                        if (webgl.checkSyncStatus(fenceSync)) {
-                            fenceSync = null;
-                        } else {
-                            return false;
-                        }
-                    }
                     if (isTimingMode) webgl.timer.mark('Canvas3D.render', { captureStats: true });
                     const ctx = { renderer, camera, scene, helper };
                     passes.illumination.render(ctx, p, true);
                     if (isTimingMode) webgl.timer.markEnd('Canvas3D.render');
-
-                    fenceSync = webgl.getFenceSync();
 
                     // if only marking has updated, do not set the flag to dirty
                     pickHelper.dirty = pickHelper.dirty || shouldRender;
@@ -545,6 +544,10 @@ namespace Canvas3D {
                     pickHelper.dirty = pickHelper.dirty || shouldRender;
                     didRender = true;
                 }
+            }
+
+            if (didRender) {
+                fenceSync = webgl.getFenceSync();
             }
 
             return didRender;
