@@ -10,6 +10,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Sequence Panel: Improve visuals of unmodeled sequence positions (#1248)
 - Fix no-compression xtc parser (#1258)
 - Mol2 Reader: Fix mol2 status_bit read error (#1251)
+- Fix shadows with multiple lights
 
 ## [v4.6.0] - 2024-08-28
 

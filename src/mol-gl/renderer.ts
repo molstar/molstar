@@ -58,6 +58,7 @@ interface Renderer {
     readonly stats: RendererStats
     readonly props: Readonly<RendererProps>
     readonly light: Readonly<Light>
+    readonly ambientColor: Vec3
 
     clear: (toBackgroundColor: boolean, ignoreTransparentBackground?: boolean) => void
     clearDepth: (packed?: boolean) => void
@@ -926,6 +927,9 @@ namespace Renderer {
             },
             get light(): Light {
                 return light;
+            },
+            get ambientColor(): Vec3 {
+                return globalUniforms.uAmbientColor.ref.value;
             },
             dispose: () => {
                 // TODO
