@@ -90,7 +90,6 @@ function adjustPluginProps(ctx: PluginContext) {
             shadow: {
                 name: 'on',
                 params: {
-                    bias: 0.6,
                     maxDistance: 80,
                     steps: 3,
                     tolerance: 1.0,
@@ -557,7 +556,6 @@ export class MesoQuickStyles extends PluginUIComponent {
                 shadow: {
                     name: 'on',
                     params: {
-                        bias: 0.6,
                         maxDistance: 80,
                         steps: 3,
                         tolerance: 1.0,
@@ -617,7 +615,6 @@ export class MesoQuickStyles extends PluginUIComponent {
                 shadow: {
                     name: 'on',
                     params: {
-                        bias: 0.4,
                         maxDistance: 256,
                         steps: 64,
                         tolerance: 1.0,
@@ -669,7 +666,6 @@ export class MesoQuickStyles extends PluginUIComponent {
                 shadow: {
                     name: 'on',
                     params: {
-                        bias: 0.4,
                         maxDistance: 256,
                         steps: 64,
                         tolerance: 1.0,
@@ -731,7 +727,6 @@ export class MesoQuickStyles extends PluginUIComponent {
                 shadow: {
                     name: 'on',
                     params: {
-                        bias: 0.4,
                         maxDistance: 256,
                         steps: 64,
                         tolerance: 1.0,
@@ -835,7 +830,6 @@ export class MesoQuickStyles extends PluginUIComponent {
                 shadow: {
                     name: 'on',
                     params: {
-                        bias: 0.4,
                         maxDistance: 256,
                         steps: 64,
                         tolerance: 1.0,
