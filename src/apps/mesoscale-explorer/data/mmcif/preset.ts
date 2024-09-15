@@ -13,7 +13,7 @@ import { StateObjectRef, StateObjectSelector, StateBuilder } from '../../../../m
 import { Clip } from '../../../../mol-util/clip';
 import { Color } from '../../../../mol-util/color';
 import { ColorNames } from '../../../../mol-util/color/names';
-import { GraphicsMode, MesoscaleGroup, MesoscaleState, getDistinctBaseColors, getDistinctGroupColors, getGraphicsModeProps, getMesoscaleGroupParams, updateColors } from '../state';
+import { GraphicsMode, MesoscaleGroup, MesoscaleState, getDistinctBaseColors, getDistinctGroupColors, getGraphicsModeProps, getMesoscaleGroupParams } from '../state';
 import { MmcifAssembly, MmcifStructure } from './model';
 
 function getSpacefillParams(color: Color, scaleFactor: number, graphics: GraphicsMode, clipVariant: Clip.Variant) {
@@ -172,9 +172,6 @@ export async function createMmcifHierarchy(plugin: PluginContext, trajectory: St
                     .apply(StructureRepresentation3D, getSpacefillParams(color, scaleFactor, graphicsMode, clipVariant), { tags: [`ent:${t}`] });
             }
             await build.commit();
-            const values = { type: 'group-generate', value: ColorNames.white, lightness: 0, alpha: 1 };
-            const options = { ignoreLight: true, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 }, celShaded: true, };
-            await updateColors(plugin, values, options);
         } catch (e) {
             console.error(e);
             plugin.log.error(e);
