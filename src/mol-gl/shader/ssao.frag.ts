@@ -93,6 +93,12 @@ float getDepth(const in vec2 coords, const in int transparentFlag) {
     }    
 }
 
+#if defined(dIncludeTransparency) || defined(singleDepthWithAlpha) && defined(dIncludeOpacity)
+    vec2 getDepthTransparentWithAlpha(const in vec2 coords){
+        return unpackRGBAToDepthWithAlpha(texture2D(tDepthTransparent, coords));
+    }
+#endif
+
 #define dQuarterThreshold 0.1
 #define dHalfThreshold 0.05
 
@@ -274,13 +280,14 @@ void main(void) {
             offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
 
             #if !defined(singleDepthWithAlpha) && defined(dIncludeOpacity)
-                float sampleDepth = getMappedDepth(offset.xy, selfCoords);
+                // NOTE: using getMappedDepth here causes issues on some mobile devices
+                float sampleDepth = getDepth(offset.xy, 0);
                 float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
                 occlusion += step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ));
             #endif
 
             #if defined(dIncludeTransparency) || defined(singleDepthWithAlpha) && defined(dIncludeOpacity)
-                vec2 sampleDepthWithAlpha = getMappedDepthTransparentWithAlpha(offset.xy, selfCoords);
+                vec2 sampleDepthWithAlpha = getDepthTransparentWithAlpha(offset.xy);
                 if (!isBackground(sampleDepthWithAlpha.x)) {
                     float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepthWithAlpha.x), uInvProjection).z;
                     occlusion += step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ)) * sampleDepthWithAlpha.y;

@@ -162,6 +162,25 @@ function getDrawingBufferPixelData(gl: GLRenderingContext, state: WebGLState) {
     return PixelData.flipY(PixelData.create(buffer, w, h));
 }
 
+function getShaderPrecisionFormat(gl: GLRenderingContext, shader: 'vertex' | 'fragment', precision: 'low' | 'medium' | 'high', type: 'float' | 'int') {
+    const glShader = shader === 'vertex' ? gl.VERTEX_SHADER : gl.FRAGMENT_SHADER;
+    const glPrecisionType = gl[`${precision.toUpperCase()}_${type.toUpperCase()}` as 'LOW_FLOAT' | 'MEDIUM_FLOAT' | 'HIGH_FLOAT' | 'LOW_INT' | 'MEDIUM_INT' | 'HIGH_INT'];
+    return gl.getShaderPrecisionFormat(glShader, glPrecisionType);
+}
+
+function getShaderPrecisionFormats(gl: GLRenderingContext, shader: 'vertex' | 'fragment') {
+    return {
+        lowFloat: getShaderPrecisionFormat(gl, shader, 'low', 'float'),
+        mediumFloat: getShaderPrecisionFormat(gl, shader, 'medium', 'float'),
+        highFloat: getShaderPrecisionFormat(gl, shader, 'high', 'float'),
+        lowInt: getShaderPrecisionFormat(gl, shader, 'low', 'int'),
+        mediumInt: getShaderPrecisionFormat(gl, shader, 'medium', 'int'),
+        highInt: getShaderPrecisionFormat(gl, shader, 'high', 'int'),
+    };
+}
+
+type WebGLShaderPrecisionFormats = ReturnType<typeof getShaderPrecisionFormats>
+
 //
 
 function createStats() {
@@ -219,6 +238,7 @@ export interface WebGLContext {
     readonly maxRenderbufferSize: number
     readonly maxDrawBuffers: number
     readonly maxTextureImageUnits: number
+    readonly shaderPrecisionFormats: { vertex: WebGLShaderPrecisionFormats, fragment: WebGLShaderPrecisionFormats }
 
     readonly isContextLost: boolean
     readonly contextRestored: BehaviorSubject<now.Timestamp>
@@ -263,6 +283,15 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
 
     if (parameters.maxVertexTextureImageUnits < 8) {
         throw new Error('Need "MAX_VERTEX_TEXTURE_IMAGE_UNITS" >= 8');
+    }
+
+    const shaderPrecisionFormats = {
+        vertex: getShaderPrecisionFormats(gl, 'vertex'),
+        fragment: getShaderPrecisionFormats(gl, 'fragment'),
+    };
+
+    if (isDebugMode) {
+        console.log({ parameters, shaderPrecisionFormats });
     }
 
     // optimize assuming flats first and last data are same or differences don't matter
@@ -333,6 +362,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         get maxRenderbufferSize() { return parameters.maxRenderbufferSize; },
         get maxDrawBuffers() { return parameters.maxDrawBuffers; },
         get maxTextureImageUnits() { return parameters.maxTextureImageUnits; },
+        get shaderPrecisionFormats() { return shaderPrecisionFormats; },
 
         namedComputeRenderables: Object.create(null),
         namedFramebuffers: Object.create(null),

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Ludovic Autin <ludovic.autin@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -23,13 +23,13 @@ uniform float uFar;
     uniform vec3 uLightDirection[dLightCount];
     uniform vec3 uLightColor[dLightCount];
 #endif
+uniform vec3 uAmbientColor;
 
 uniform mat4 uProjection;
 uniform mat4 uInvProjection;
 
 uniform float uMaxDistance;
 uniform float uTolerance;
-uniform float uBias;
 
 bool isBackground(const in float depth) {
     return depth == 1.0;
@@ -62,7 +62,7 @@ float screenFade(const in vec2 coords) {
 }
 
 // based on https://panoskarabelas.com/posts/screen_space_shadows/
-float screenSpaceShadow(const in vec3 position, const in vec3 lightDirection, const in float stepLength) {
+vec3 screenSpaceShadow(const in vec3 position, const in vec3 lightDirection, const in vec3 lightColor, const in float stepLength) {
     // Ray position and direction (in view-space)
     vec3 rayPos = position;
     vec3 rayDir = -lightDirection;
@@ -71,7 +71,6 @@ float screenSpaceShadow(const in vec3 position, const in vec3 lightDirection, co
     vec3 rayStep = rayDir * stepLength;
 
     // Ray march towards the light
-    float occlusion = 0.0;
     vec4 rayCoords = vec4(0.0);
     for (int i = 0; i < dSteps; ++i) {
         // Step the ray
@@ -80,8 +79,9 @@ float screenSpaceShadow(const in vec3 position, const in vec3 lightDirection, co
         rayCoords = uProjection * vec4(rayPos, 1.0);
         rayCoords.xyz = (rayCoords.xyz / rayCoords.w) * 0.5 + 0.5;
 
-        if (outsideBounds(rayCoords.xy))
-            return 1.0;
+        if (outsideBounds(rayCoords.xy)) {
+            return lightColor;
+        }
 
         // Compute the difference between the ray's and the camera's depth
         float depth = getDepth(rayCoords.xy);
@@ -89,16 +89,12 @@ float screenSpaceShadow(const in vec3 position, const in vec3 lightDirection, co
         float zDelta = rayPos.z - viewZ;
 
         if (zDelta < uTolerance) {
-            occlusion = 1.0;
-
             // Fade out as we approach the edges of the screen
-            occlusion *= screenFade(rayCoords.xy);
-
-            break;
+            return mix(vec3(0.0), lightColor, 1.0 - screenFade(rayCoords.xy));
         }
     }
 
-    return 1.0 - (uBias * occlusion);
+    return lightColor;
 }
 
 void main(void) {
@@ -115,17 +111,19 @@ void main(void) {
     vec3 selfViewPos = screenSpaceToViewSpace(vec3(selfCoords, selfDepth), uInvProjection);
     float stepLength = uMaxDistance / float(dSteps);
 
-    float o = 1.0;
+    float l = length(uAmbientColor);
+    float a = l;
     #if dLightCount != 0
-        float sh[dLightCount];
+        vec3 s;
         #pragma unroll_loop_start
         for (int i = 0; i < dLightCount; ++i) {
-            sh[i] = screenSpaceShadow(selfViewPos, uLightDirection[i], stepLength);
-            o = min(o, sh[i]);
+            s = screenSpaceShadow(selfViewPos, uLightDirection[i], uLightColor[i], stepLength);
+            l += length(s);
+            a += length(uLightColor[i]);
         }
         #pragma unroll_loop_end
     #endif
 
-    gl_FragColor = vec4(o);
+    gl_FragColor = vec4(l / a);
 }
 `;
