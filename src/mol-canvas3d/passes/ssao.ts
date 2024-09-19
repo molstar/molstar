@@ -136,6 +136,7 @@ export class SsaoPass {
         return Math.min(1, 1 / this.webgl.pixelRatio) * resolutionScale;
     }
 
+    private multiScale: boolean;
     private levels: { radius: number, bias: number }[];
 
     private getDepthTexture() {
@@ -159,6 +160,7 @@ export class SsaoPass {
         this.includeOpacity = true;
         this.includeTransparency = false;
         this.separatedTransparencyPass = false;
+        this.multiScale = false;
         this.levels = [];
 
         this.framebuffer = webgl.resources.framebuffer();
@@ -192,7 +194,7 @@ export class SsaoPass {
             : webgl.createRenderTarget(qw, qh, false, 'float32', filter, webgl.isWebGL2 ? 'alpha' : 'rgba');
         this.depthQuarterRenderable1 = createCopyRenderable(webgl, this.depthHalfTarget1.texture);
 
-        this.mergedDepthTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'nearest', 'rgba');
+        this.mergedDepthTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'linear', 'rgba');
         this.mergedDephtPassRenderable = getSsaoMergeDepthRenderable(webgl, depthTextureOpaque, depthTextureTransparent);
 
         this.downsampledDepthTarget2 = webgl.createRenderTarget(sw, sh, false, 'uint8', 'linear', 'rgba');
@@ -376,11 +378,13 @@ export class SsaoPass {
         const multiScale = props.multiScale.name === 'on';
         if (this.renderable.values.dMultiScale.ref.value !== multiScale) {
             needsUpdateSsao = true;
+
+            this.multiScale = multiScale;
             ValueCell.update(this.renderable.values.dMultiScale, multiScale);
         }
 
         if (props.multiScale.name === 'on') {
-            const mp = props.multiScale.params;
+            const mp = props.multiScale!.params;
             if (!deepEqual(this.levels, mp.levels)) {
                 needsUpdateSsao = true;
 
@@ -520,24 +524,25 @@ export class SsaoPass {
             }
             if (isTimingMode) this.webgl.timer.markEnd('SSAO.downsample');
         }
-
+        const renderMappedDepthTarget1 = this.multiScale && separatedTransparency && includeOpacity;
+        const renderMappedDepthTarget2 = this.multiScale && (includeTransparency || !separatedTransparency && includeOpacity);
         if (isTimingMode) this.webgl.timer.mark('SSAO.half');
-        if (separatedTransparency && includeOpacity) {
+        if (renderMappedDepthTarget1) {
             this.depthHalfTarget1.bind();
             this.depthHalfRenderable1.render();
         }
-        if (includeTransparency || !separatedTransparency && includeOpacity) {
+        if (renderMappedDepthTarget2) {
             this.depthHalfTarget2.bind();
             this.depthHalfRenderable2.render();
         }
         if (isTimingMode) this.webgl.timer.markEnd('SSAO.half');
 
         if (isTimingMode) this.webgl.timer.mark('SSAO.quarter');
-        if (separatedTransparency && includeOpacity) {
+        if (renderMappedDepthTarget1) {
             this.depthQuarterTarget1.bind();
             this.depthQuarterRenderable1.render();
         }
-        if (includeTransparency || !separatedTransparency && includeOpacity) {
+        if (renderMappedDepthTarget2) {
             this.depthQuarterTarget2.bind();
             this.depthQuarterRenderable2.render();
         }
