@@ -12,6 +12,7 @@ Note that since we don't clearly distinguish between a public and private interf
         - Per object density factor to adjust thickness
     - Progressively trace samples to keep viewport interactive
     - Toggle on/off by pressing "G"
+    - `illumination` Viewer GET param
 - Enables dXrayShaded define when rendering depth
 - Fix handling of PDB files that have chains with same id separated by TER record (#1245)
 - Sequence Panel: Improve visuals of unmodeled sequence positions (#1248)
