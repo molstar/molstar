@@ -164,7 +164,7 @@ export function ShaderCode(name: string, vert: string, frag: string, extensions:
 // Note: `drawBuffers` need to be 'optional' for wboit
 
 function ignoreDefine(name: string, variant: string, defines: ShaderDefines): boolean {
-    if (variant.startsWith('color')) {
+    if (variant.startsWith('color') || variant === 'tracing') {
         if (name === 'dLightCount') {
             return !!defines.dIgnoreLight?.ref.value;
         }

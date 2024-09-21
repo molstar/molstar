@@ -30,6 +30,8 @@ import { isTimingMode } from '../../../mol-util/debug';
 import { now } from '../../../mol-util/now';
 
 function adjustPluginProps(ctx: PluginContext) {
+    const customState = ctx.customState as MesoscaleExplorerState;
+
     ctx.managers.interactivity.setProps({ granularity: 'chain' });
     ctx.canvas3d?.setProps({
         multiSample: { mode: 'off' },
@@ -101,8 +103,13 @@ function adjustPluginProps(ctx: PluginContext) {
                     color: Color(0x000000),
                     includeTransparent: false,
                 }
-            }
-        }
+            },
+        },
+        illumination: {
+            enabled: customState.illumination,
+            firstStepSize: 0.1,
+            rayDistance: 1024,
+        },
     });
 
     const { graphics } = MesoscaleState.get(ctx);

@@ -71,6 +71,7 @@ const SimpleSettingsParams = {
     }, { pivot: 'radius' }),
     layout: PD.MultiSelect([] as LayoutOptions[], PD.objectToOptions(LayoutOptions)),
     advanced: PD.Group({
+        illumination: Canvas3DParams.illumination,
         multiSample: Canvas3DParams.multiSample,
         hiZ: Canvas3DParams.hiZ,
         sharpening: Canvas3DParams.postprocessing.params.sharpening,
@@ -138,6 +139,7 @@ const SimpleSettingsMapping = ParamMapping({
                 ...canvas.cameraClipping,
             },
             advanced: {
+                illumination: canvas.illumination,
                 multiSample: canvas.multiSample,
                 hiZ: canvas.hiZ,
                 sharpening: canvas.postprocessing.sharpening,
@@ -163,6 +165,7 @@ const SimpleSettingsMapping = ParamMapping({
             far: s.clipping.far,
             minNear: s.clipping.minNear,
         };
+        canvas.illumination = s.advanced.illumination;
         canvas.multiSample = s.advanced.multiSample;
         canvas.hiZ = s.advanced.hiZ;
         canvas.postprocessing.sharpening = s.advanced.sharpening;
