@@ -11,6 +11,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix no-compression xtc parser (#1258)
 - Mol2 Reader: Fix mol2 status_bit read error (#1251)
 - Fix shadows with multiple lights
+- Fix impostor sphere interior normal when using orthographic projection
 
 ## [v4.6.0] - 2024-08-28
 
