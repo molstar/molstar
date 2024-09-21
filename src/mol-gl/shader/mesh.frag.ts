@@ -53,7 +53,7 @@ void main() {
         gl_FragColor = material;
     #elif defined(dRenderVariant_emissive)
         gl_FragColor = material;
-    #elif defined(dRenderVariant_color)
+    #elif defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
         #if defined(dFlatShaded)
             vec3 normal = -faceNormal;
         #else
@@ -61,12 +61,17 @@ void main() {
             if (uDoubleSided) normal *= float(frontFacing) * 2.0 - 1.0;
         #endif
         #include apply_light_color
-
         #include apply_interior_color
         #include apply_marker_color
-        #include apply_fog
-        #include wboit_write
-        #include dpoit_write
+
+        #if defined(dRenderVariant_color)
+            #include apply_fog
+            #include wboit_write
+            #include dpoit_write
+        #elif defined(dRenderVariant_tracing)
+            gl_FragData[1] = vec4(normal, emissive);
+            gl_FragData[2] = vec4(material.rgb, uDensity);
+        #endif
     #endif
 }
 `;

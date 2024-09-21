@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -120,7 +120,6 @@ let SentWebglSyncObjectNotSupportedInWebglMessage = false;
 function waitForGpuCommandsComplete(gl: GLRenderingContext): Promise<void> {
     return new Promise(resolve => {
         if (isWebGL2(gl)) {
-            // TODO seems quite slow
             fence(gl, resolve);
         } else {
             if (!SentWebglSyncObjectNotSupportedInWebglMessage) {
@@ -260,6 +259,9 @@ export interface WebGLContext {
     readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>
     waitForGpuCommandsComplete: () => Promise<void>
     waitForGpuCommandsCompleteSync: () => void
+    getFenceSync: () => WebGLSync | null
+    checkSyncStatus: (sync: WebGLSync) => boolean
+    deleteSync: (sync: WebGLSync) => void
     getDrawingBufferPixelData: () => PixelData
     clear: (red: number, green: number, blue: number, alpha: number) => void
     destroy: (options?: Partial<{ doNotForceWebGLContextLoss: boolean }>) => void
@@ -414,6 +416,22 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         readPixelsAsync,
         waitForGpuCommandsComplete: () => waitForGpuCommandsComplete(gl),
         waitForGpuCommandsCompleteSync: () => waitForGpuCommandsCompleteSync(gl),
+        getFenceSync: () => {
+            return isWebGL2(gl) ? gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0) : null;
+        },
+        checkSyncStatus: (sync: WebGLSync) => {
+            if (!isWebGL2(gl)) return true;
+
+            if (gl.getSyncParameter(sync, gl.SYNC_STATUS) === gl.SIGNALED) {
+                gl.deleteSync(sync);
+                return true;
+            } else {
+                return false;
+            }
+        },
+        deleteSync: (sync: WebGLSync) => {
+            if (isWebGL2(gl)) gl.deleteSync(sync);
+        },
         getDrawingBufferPixelData: () => getDrawingBufferPixelData(gl, state),
         clear: (red: number, green: number, blue: number, alpha: number) => {
             unbindFramebuffer(gl);
