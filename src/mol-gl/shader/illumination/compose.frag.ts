@@ -74,19 +74,19 @@ bool isBackground(const in float depth) {
 
 float NormalWeightStrength = 6.0;
 
-vec4 smartDeNoise(sampler2D tex, vec2 uv)
-{
+vec4 smartDeNoise(sampler2D tex, vec2 uv) {
     float sigma = 3.0;
     float kSigma = 2.0;
     float threshold = uDenoiseThreshold;
+
+    vec4 centrPx = texture2D(tex, uv);
+    if (threshold == 0.0) return centrPx;
 
     float invSigmaQx2 = 0.5 / (sigma * sigma);      // 1.0 / (sigma^2 * 2.0)
     float invSigmaQx2PI = INV_PI * invSigmaQx2;    // 1.0 / (sqrt(PI) * sigma)
 
     float invThresholdSqx2 = 0.5 / (threshold * threshold);     // 1.0 / (sigma^2 * 2.0)
     float invThresholdSqrt2PI = INV_SQRT_OF_2PI / threshold;   // 1.0 / (sqrt(2*PI) * sigma)
-
-    vec4 centrPx = texture2D(tex, uv);
 
     float zBuff = 0.0;
     vec4 aBuff = vec4(0.0);
