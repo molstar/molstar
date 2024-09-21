@@ -19,6 +19,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Mol2 Reader: Fix mol2 status_bit read error (#1251)
 - Fix shadows with multiple lights
 - Fix impostor sphere interior normal when using orthographic projection
+- Add `resolutionMode` parameter to `Canvas3DContext`
+    - `scaled`, divides by `devicePixelRatio`
+    - `native`, no changes
 
 ## [v4.6.0] - 2024-08-28
 
