@@ -119,7 +119,9 @@ interface Canvas3DContext {
     readonly contextRestored?: BehaviorSubject<now.Timestamp>
     readonly assetManager: AssetManager
     readonly changed?: BehaviorSubject<undefined>
+    readonly pixelScale: number
 
+    syncPixelScale(): void
     setProps: (props?: Partial<Canvas3DContext.Props>) => void
     dispose: (options?: Partial<{ doNotForceWebGLContextLoss: boolean }>) => void
 }
@@ -139,6 +141,7 @@ namespace Canvas3DContext {
     export type Attribs = typeof DefaultAttribs
 
     export const Params = {
+        resolutionMode: PD.Select('scaled', PD.arrayToOptions(['scaled', 'native'] as const)),
         pixelScale: PD.Numeric(1, { min: 0.1, max: 2, step: 0.05 }),
         pickScale: PD.Numeric(0.25, { min: 0.1, max: 1, step: 0.05 }),
         transparency: PD.Select('wboit', [['blended', 'Blended'], ['wboit', 'Weighted, Blended'], ['dpoit', 'Depth Peeling']] as const),
@@ -163,7 +166,15 @@ namespace Canvas3DContext {
         });
         if (gl === null) throw new Error('Could not create a WebGL rendering context');
 
-        const { pixelScale, pickScale, transparency } = p;
+        const getPixelScale = () => p.resolutionMode === 'native' ? p.pixelScale : (p.pixelScale / window?.devicePixelRatio || 1);
+        const syncPixelScale = () => {
+            const pixelScale = getPixelScale();
+            input.setPixelScale(pixelScale);
+            webgl.setPixelScale(pixelScale);
+        };
+
+        const { pickScale, transparency } = p;
+        const pixelScale = getPixelScale();
         const input = InputObserver.fromElement(canvas, { pixelScale, preventGestures: true });
         const webgl = createContext(gl, { pixelScale });
         const passes = new Passes(webgl, assetManager, { pickScale, transparency });
@@ -224,16 +235,27 @@ namespace Canvas3DContext {
             contextRestored: webgl.contextRestored,
             assetManager,
             changed,
+            get pixelScale() { return getPixelScale(); },
 
+            syncPixelScale,
             setProps: (props?: Partial<Props>) => {
                 if (!props) return;
 
                 let hasChanged = false;
+                let pixelScaleNeedsUpdate = false;
+
+                if (props.resolutionMode !== undefined && props.resolutionMode !== p.resolutionMode) {
+                    p.resolutionMode = props.resolutionMode;
+                    pixelScaleNeedsUpdate = true;
+                }
 
                 if (props.pixelScale !== undefined && props.pixelScale !== p.pixelScale) {
                     p.pixelScale = props.pixelScale;
-                    input.setPixelScale(props.pixelScale);
-                    webgl.setPixelScale(props.pixelScale);
+                    pixelScaleNeedsUpdate = true;
+                }
+
+                if (pixelScaleNeedsUpdate) {
+                    syncPixelScale();
                     a.handleResize();
                     hasChanged = true;
                 }
