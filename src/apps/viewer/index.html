@@ -63,6 +63,7 @@
             var preferWebgl1 = getParam('prefer-webgl1', '[^&]+').trim() === '1' || void 0;
             var allowMajorPerformanceCaveat = getParam('allow-major-performance-caveat', '[^&]+').trim() === '1';
             var powerPreference = getParam('power-preference', '[^&]+').trim().toLowerCase();
+            var illumination = getParam('illumination', '[^&]+').trim() === '1';
 
             // console.log('Available extensions: ', Object.keys(molstar.ExtensionMap));
 
@@ -83,6 +84,7 @@
                 preferWebgl1: preferWebgl1,
                 allowMajorPerformanceCaveat: allowMajorPerformanceCaveat,
                 powerPreference: powerPreference || 'high-performance',
+                illumination: illumination
             }).then(viewer => {
                 var snapshotId = getParam('snapshot-id', '[^&]+').trim();
                 if (snapshotId) viewer.setRemoteSnapshot(snapshotId);

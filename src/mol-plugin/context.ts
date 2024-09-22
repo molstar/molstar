@@ -342,7 +342,8 @@ export class PluginContext {
         const canvas = this.canvas3dContext?.canvas;
         const container = this.layout.root;
         if (container && canvas) {
-            resizeCanvas(canvas, container, this.canvas3dContext.props.pixelScale);
+            resizeCanvas(canvas, container, this.canvas3dContext.pixelScale);
+            this.canvas3dContext.syncPixelScale();
             this.canvas3d?.requestResize();
         }
     };

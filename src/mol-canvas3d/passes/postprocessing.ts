@@ -188,7 +188,7 @@ export class PostprocessingPass {
         this.background.setSize(width, height);
     }
 
-    updateState(camera: ICamera, transparentBackground: boolean, backgroundColor: Color, props: PostprocessingProps, light: Light) {
+    updateState(camera: ICamera, transparentBackground: boolean, backgroundColor: Color, props: PostprocessingProps, light: Light, ambientColor: Vec3) {
         let needsUpdateMain = false;
 
         const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
@@ -201,7 +201,7 @@ export class PostprocessingPass {
         }
 
         if (shadowsEnabled) {
-            this.shadow.update(camera, light, props.shadow.params as ShadowProps);
+            this.shadow.update(camera, light, ambientColor, props.shadow.params as ShadowProps);
         }
 
         if (outlinesEnabled) {
@@ -269,9 +269,9 @@ export class PostprocessingPass {
         this.transparentBackground = value;
     }
 
-    render(camera: ICamera, toDrawingBuffer: boolean, transparentBackground: boolean, backgroundColor: Color, props: PostprocessingProps, light: Light) {
+    render(camera: ICamera, toDrawingBuffer: boolean, transparentBackground: boolean, backgroundColor: Color, props: PostprocessingProps, light: Light, ambientColor: Vec3) {
         if (isTimingMode) this.webgl.timer.mark('PostprocessingPass.render');
-        this.updateState(camera, transparentBackground, backgroundColor, props, light);
+        this.updateState(camera, transparentBackground, backgroundColor, props, light, ambientColor);
 
         const { state } = this.webgl;
         const { x, y, width, height } = camera.viewport;

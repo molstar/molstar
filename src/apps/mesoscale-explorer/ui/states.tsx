@@ -30,6 +30,8 @@ import { isTimingMode } from '../../../mol-util/debug';
 import { now } from '../../../mol-util/now';
 
 function adjustPluginProps(ctx: PluginContext) {
+    const customState = ctx.customState as MesoscaleExplorerState;
+
     ctx.managers.interactivity.setProps({ granularity: 'chain' });
     ctx.canvas3d?.setProps({
         multiSample: { mode: 'off' },
@@ -88,7 +90,6 @@ function adjustPluginProps(ctx: PluginContext) {
             shadow: {
                 name: 'on',
                 params: {
-                    bias: 0.6,
                     maxDistance: 80,
                     steps: 3,
                     tolerance: 1.0,
@@ -102,8 +103,13 @@ function adjustPluginProps(ctx: PluginContext) {
                     color: Color(0x000000),
                     includeTransparent: false,
                 }
-            }
-        }
+            },
+        },
+        illumination: {
+            enabled: customState.illumination,
+            firstStepSize: 0.1,
+            rayDistance: 1024,
+        },
     });
 
     const { graphics } = MesoscaleState.get(ctx);
@@ -550,7 +556,6 @@ export class MesoQuickStyles extends PluginUIComponent {
                 shadow: {
                     name: 'on',
                     params: {
-                        bias: 0.6,
                         maxDistance: 80,
                         steps: 3,
                         tolerance: 1.0,
@@ -572,7 +577,7 @@ export class MesoQuickStyles extends PluginUIComponent {
         const loptions = { ignoreLight: true, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 } };
         const options = { ...loptions, celShaded: false, };
         await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
-        await updateColors(this.plugin, this.default_color_values, options);
+        await updateColors(this.plugin, this.default_color_values, options, 'ent:');
     }
 
     async celshading() {
@@ -610,7 +615,6 @@ export class MesoQuickStyles extends PluginUIComponent {
                 shadow: {
                     name: 'on',
                     params: {
-                        bias: 0.4,
                         maxDistance: 256,
                         steps: 64,
                         tolerance: 1.0,
@@ -624,7 +628,7 @@ export class MesoQuickStyles extends PluginUIComponent {
         const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 } };
         const options = { ...loptions, celShaded: true, };
         await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
-        await updateColors(this.plugin, this.default_color_values, options);
+        await updateColors(this.plugin, this.default_color_values, options, 'ent:');
     }
 
     async stylizedDof() {
@@ -662,7 +666,6 @@ export class MesoQuickStyles extends PluginUIComponent {
                 shadow: {
                     name: 'on',
                     params: {
-                        bias: 0.4,
                         maxDistance: 256,
                         steps: 64,
                         tolerance: 1.0,
@@ -686,7 +689,7 @@ export class MesoQuickStyles extends PluginUIComponent {
         const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 } };
         const options = { ...loptions, celShaded: false };
         await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
-        await updateColors(this.plugin, this.default_color_values, options);
+        await updateColors(this.plugin, this.default_color_values, options, 'ent:');
     }
 
     async illustrative() {
@@ -724,7 +727,6 @@ export class MesoQuickStyles extends PluginUIComponent {
                 shadow: {
                     name: 'on',
                     params: {
-                        bias: 0.4,
                         maxDistance: 256,
                         steps: 64,
                         tolerance: 1.0,
@@ -746,7 +748,7 @@ export class MesoQuickStyles extends PluginUIComponent {
         const loptions = { ignoreLight: true, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 } };
         const options = { ...loptions, celShaded: false, };
         await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
-        await updateColors(this.plugin, this.illustrative_color_values, options);
+        await updateColors(this.plugin, this.illustrative_color_values, options, 'ent:');
     }
 
     async shiny() {
@@ -790,7 +792,7 @@ export class MesoQuickStyles extends PluginUIComponent {
         const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 } };
         const options = { ...loptions, celShaded: false };
         await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
-        await updateColors(this.plugin, this.default_color_values, options);
+        await updateColors(this.plugin, this.default_color_values, options, 'ent:');
     }
 
     async stylized() {
@@ -828,7 +830,6 @@ export class MesoQuickStyles extends PluginUIComponent {
                 shadow: {
                     name: 'on',
                     params: {
-                        bias: 0.4,
                         maxDistance: 256,
                         steps: 64,
                         tolerance: 1.0,
@@ -850,7 +851,7 @@ export class MesoQuickStyles extends PluginUIComponent {
         const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 } };
         const options = { ...loptions, celShaded: false };
         await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
-        await updateColors(this.plugin, this.illustrative_color_values, options);
+        await updateColors(this.plugin, this.illustrative_color_values, options, 'ent:');
     }
 
     render() {

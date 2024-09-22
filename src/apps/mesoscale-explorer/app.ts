@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -47,6 +47,7 @@ export type ExampleEntry = {
 export type MesoscaleExplorerState = {
     examples?: ExampleEntry[],
     graphicsMode: GraphicsMode,
+    illumination: boolean,
     stateRef?: string,
     driver?: any,
     stateCache: { [k: string]: any },
@@ -93,6 +94,7 @@ const DefaultMesoscaleExplorerOptions = {
     saccharideCompIdMapType: 'default' as SaccharideCompIdMapType,
 
     graphicsMode: 'quality' as GraphicsMode,
+    illumination: false,
     driver: undefined
 };
 type MesoscaleExplorerOptions = typeof DefaultMesoscaleExplorerOptions;
@@ -226,6 +228,7 @@ export class MesoscaleExplorer {
                 (plugin.customState as MesoscaleExplorerState) = {
                     examples,
                     graphicsMode: o.graphicsMode,
+                    illumination: o.illumination,
                     driver: o.driver,
                     stateCache: {},
                 };

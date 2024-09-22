@@ -105,6 +105,7 @@ const DefaultViewerOptions = {
     preferWebgl1: PluginConfig.General.PreferWebGl1.defaultValue,
     allowMajorPerformanceCaveat: PluginConfig.General.AllowMajorPerformanceCaveat.defaultValue,
     powerPreference: PluginConfig.General.PowerPreference.defaultValue,
+    illumination: false,
 
     viewportShowExpand: PluginConfig.Viewport.ShowExpand.defaultValue,
     viewportShowControls: PluginConfig.Viewport.ShowControls.defaultValue,
@@ -217,6 +218,7 @@ export class Viewer {
                 plugin.builders.structure.representation.registerPreset(ViewerAutoPreset);
             }
         });
+        plugin.canvas3d?.setProps({ illumination: { enabled: o.illumination } });
         return new Viewer(plugin);
     }
 

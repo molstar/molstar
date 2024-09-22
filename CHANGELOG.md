@@ -5,8 +5,24 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add illumiation mode
+    - Path-traced SSGI
+    - Automatic thickness (estimate)
+        - Base thickness as max(backface depth) - min(frontface depth)
+        - Per object density factor to adjust thickness
+    - Progressively trace samples to keep viewport interactive
+    - Toggle on/off by pressing "G"
+    - `illumination` Viewer GET param
+- Enables dXrayShaded define when rendering depth
 - Fix handling of PDB files that have chains with same id separated by TER record (#1245)
 - Sequence Panel: Improve visuals of unmodeled sequence positions (#1248)
+- Fix no-compression xtc parser (#1258)
+- Mol2 Reader: Fix mol2 status_bit read error (#1251)
+- Fix shadows with multiple lights
+- Fix impostor sphere interior normal when using orthographic projection
+- Add `resolutionMode` parameter to `Canvas3DContext`
+    - `scaled`, divides by `devicePixelRatio`
+    - `native`, no changes
 
 ## [v4.6.0] - 2024-08-28
 

@@ -37,7 +37,7 @@ void main(){
     #include assign_material_color
 
     if (vTexCoord.x > 1.0) {
-        #if defined(dRenderVariant_color)
+        #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
             material = vec4(uBackgroundColor, uBackgroundOpacity * material.a);
         #endif
     } else {
@@ -53,7 +53,7 @@ void main(){
 
         if (a < 0.5) discard;
 
-        #if defined(dRenderVariant_color)
+        #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
             // add border
             float t = 0.5 + uBorderWidth;
             if (uBorderWidth > 0.0 && sdf < t) {
@@ -80,13 +80,18 @@ void main(){
         gl_FragColor = material;
     #elif defined(dRenderVariant_emissive)
         gl_FragColor = material;
-    #elif defined(dRenderVariant_color)
+    #elif defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
         gl_FragColor = material;
-
         #include apply_marker_color
-        #include apply_fog
-        #include wboit_write
-        #include dpoit_write
+
+        #if defined(dRenderVariant_color)
+            #include apply_fog
+            #include wboit_write
+            #include dpoit_write
+        #elif defined(dRenderVariant_tracing)
+            gl_FragData[1] = vec4(-normalize(vViewPosition), emissive);
+            gl_FragData[2] = vec4(material.rgb, uDensity);
+        #endif
     #endif
 }
 `;

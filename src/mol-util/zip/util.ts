@@ -23,7 +23,7 @@ export function checkCompressionStreamSupport(format: CompressionStreamFormat): 
             hasCompressionStreamSupport[format] = false;
         }
     }
-    return hasCompressionStreamSupport[format];
+    return !!hasCompressionStreamSupport[format];
 }
 
 export const U = (function () {
