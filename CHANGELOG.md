@@ -5,7 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Add illumiation mode
+- Add illumination mode
     - Path-traced SSGI
     - Automatic thickness (estimate)
         - Base thickness as max(backface depth) - min(frontface depth)
@@ -23,6 +23,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `resolutionMode` parameter to `Canvas3DContext`
     - `scaled`, divides by `devicePixelRatio`
     - `native`, no changes
+- Add `CustomProperty.Context.errorContext` to support reporting errors during loading of custom properties (#1254)
+  - Use in MolViewSpec extension
 
 ## [v4.6.0] - 2024-08-28
 
