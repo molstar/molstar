@@ -173,7 +173,7 @@ export class StructureBuilder {
                 };
 
             if (selection.ensureCustomProperties) {
-                await selection.ensureCustomProperties({ runtime: taskCtx, assetManager: this.plugin.managers.asset }, structureData);
+                await selection.ensureCustomProperties({ runtime: taskCtx, assetManager: this.plugin.managers.asset, errorContext: this.plugin.errorContext }, structureData);
             }
 
             return this.tryCreateComponent(structure, transformParams, key, tags);
