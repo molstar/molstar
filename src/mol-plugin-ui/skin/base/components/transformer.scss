@@ -59,7 +59,7 @@
         text-align: left;
         padding-left: $row-height;
         line-height: 24px;
-        background: color-lower-contrast($control-background, 4%); // $control-background; // color-lower-contrast($default-background, 4%);
+        background: color.adjust($control-background, $lightness: -4%, $space: hsl); // $control-background; // color-lower-contrast($default-background, 4%);
         // font-weight: bold;
     }
 }
@@ -94,7 +94,7 @@
     }
 
     > button:hover {
-        color: color-lower-contrast($font-color, 15%);
+        color: color.adjust($font-color, $lightness: -15%, $space: hsl);
     }
 }
 
@@ -130,7 +130,7 @@
 }
 
 .msp-transform-default-params:hover {
-    background: color-lower-contrast($default-background, 20%);
+    background: color.adjust($default-background, $lightness: -20%, $space: hsl);
 }
 
 .msp-transform-apply-wrap {

@@ -24,22 +24,22 @@ $standard-bottom-height: 8 * ($row-height + 1) + 3 * $control-spacing + 1;
 $standard-top-height:    3 * $row-height + 1;
 
 
-$color-accent-cyan:      color-lower-contrast(#95a5a6, 15%);
-$color-accent-red:       color-lower-contrast(#e74c3c, 15%);
-$color-accent-gray:      color-lower-contrast(#34495e, 10%);
-$color-accent-green:     color-lower-contrast(#2ecc71, 10%);
-$color-accent-purple:    color-lower-contrast(#9b59b6, 10%);
-$color-accent-blue:      color-lower-contrast(#3498db, 5%);
-$color-accent-orange:    color-lower-contrast(#e67e22, 5%);
+$color-accent-cyan:      color.adjust(#95a5a6, $lightness: -15%, $space: hsl);
+$color-accent-red:       color.adjust(#e74c3c, $lightness: -15%, $space: hsl);
+$color-accent-gray:      color.adjust(#34495e, $lightness: -10%, $space: hsl);
+$color-accent-green:     color.adjust(#2ecc71, $lightness: -10%, $space: hsl);
+$color-accent-purple:    color.adjust(#9b59b6, $lightness: -10%, $space: hsl);
+$color-accent-blue:      color.adjust(#3498db, $lightness: -5%, $space: hsl);
+$color-accent-orange:    color.adjust(#e67e22, $lightness: -5%, $space: hsl);
 
 // TypeClass = 'Root' | 'Group' | 'Data' | 'Object' | 'Representation3D' | 'Behavior'
 
 $type-class-Root:             $default-background;
-$type-class-Data:             color-lower-contrast(#95a5a6, 15%);
-$type-class-Object:           color-lower-contrast(#2ecc71, 10%);
-$type-class-Behavior:         color-lower-contrast(#9b59b6, 10%);
-$type-class-Representation3D: color-lower-contrast(#3498db, 5%);
-$type-class-Group:            color-lower-contrast(#e67e22, 5%);
+$type-class-Data:             color.adjust(#95a5a6, $lightness: -15%, $space: hsl);
+$type-class-Object:           color.adjust(#2ecc71, $lightness: -10%, $space: hsl);
+$type-class-Behavior:         color.adjust(#9b59b6, $lightness: -10%, $space: hsl);
+$type-class-Representation3D: color.adjust(#3498db, $lightness: -5%, $space: hsl);
+$type-class-Group:            color.adjust(#e67e22, $lightness: -5%, $space: hsl);
 
 //////////////////////////////////////////////////
 // COLORS and COMPUTED COLORS
@@ -48,12 +48,12 @@ $slider-disabledColor: #ccc;
 
 $control-background: color-increase-contrast($default-background, 6.5%);
 $border-color: color-increase-contrast($default-background, 15%);
-$msp-form-control-background: color-lower-contrast($default-background, 2.5%);
+$msp-form-control-background: color.adjust($default-background, $lightness: -2.5%, $space: hsl);
 
 // buttons
 $msp-btn-link-font-color: $font-color;
 $msp-btn-link-toggle-on-font-color: $font-color;
-$msp-btn-link-toggle-off-font-color: color-lower-contrast($font-color, 33%);
+$msp-btn-link-toggle-off-font-color: color.adjust($font-color, $lightness: -33%, $space: hsl);
 
 // used for "actions" -- i.e. + in selection
 $msp-btn-remove-font-color: $font-color;
@@ -62,24 +62,24 @@ $msp-btn-action-background: $msp-form-control-background;
 
 // update selection etc
 //!! $msp-btn-commit-on-font-color: $entity-current-font-color;
-$msp-btn-commit-on-hover-font-color: color-lower-contrast($msp-btn-commit-on-font-color, 20%); //!!Change
-$msp-btn-commit-on-background: color-lower-contrast($default-background, 2%);
-$msp-btn-commit-off-background:  color-lower-contrast($default-background, 4%); //$control-background;
+$msp-btn-commit-on-hover-font-color: color.adjust($msp-btn-commit-on-font-color, $lightness: -20%, $space: hsl); //!!Change
+$msp-btn-commit-on-background: color.adjust($default-background, $lightness: -2%, $space: hsl);
+$msp-btn-commit-off-background:  color.adjust($default-background, $lightness: -4%, $space: hsl); //$control-background;
 $msp-btn-commit-off-font-color: $font-color;
 
 // log
-$log-font-color: color-lower-contrast($font-color, 5%);
-$log-timestamp-font-color: color-lower-contrast($font-color, 20%);
+$log-font-color: color.adjust($font-color, $lightness: -5%, $space: hsl);
+$log-timestamp-font-color: color.adjust($font-color, $lightness: -20%, $space: hsl);
 
 // highlight
 $highlight-info-font-color: $hover-font-color;
-$highlight-info-additional-font-color: color-lower-contrast($hover-font-color, 20%);
+$highlight-info-additional-font-color: color.adjust($hover-font-color, $lightness: -20%, $space: hsl);
 
 // entity state
 $entity-color-fully-visible: $font-color;
-$entity-color-not-visible: color-lower-contrast($font-color, 66%);
-$entity-color-partialy-visible: color-lower-contrast($font-color, 33%);
-$entity-tag-color: color-lower-contrast($font-color, 20%);
+$entity-color-not-visible: color.adjust($font-color, $lightness: -66%, $space: hsl);
+$entity-color-partialy-visible: color.adjust($font-color, $lightness: -33%, $space: hsl);
+$entity-tag-color: color.adjust($font-color, $lightness: -20%, $space: hsl);
 
 // sequence
 $sequence-background: $default-background;

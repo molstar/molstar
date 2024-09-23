@@ -11,7 +11,7 @@
         width: $control-label-width + $control-spacing;
         text-align: right;
         padding: $info-vertical-padding $control-spacing; 
-        color: color-lower-contrast($font-color, 15%);
+        color: color.adjust($font-color, $lightness: -15%, $space: hsl);
         display: table-cell;
         font-weight: bold;
         

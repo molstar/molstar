@@ -19,11 +19,11 @@
 
     // Firefox
     &::-moz-placeholder {
-        color: color-lower-contrast($font-color, 33%);
+        color: color.adjust($font-color, $lightness: -33%, $space: hsl);
         opacity: 1; // Override Firefox's unusual default opacity; see https://github.com/twbs/bootstrap/pull/11526
     }
-    &:-ms-input-placeholder { color: color-lower-contrast($font-color, 33%); } // Internet Explorer 10+
-    &::-webkit-input-placeholder  { color: color-lower-contrast($font-color, 33%); } // Safari and Chrome
+    &:-ms-input-placeholder { color: color.adjust($font-color, $lightness: -33%, $space: hsl); } // Internet Explorer 10+
+    &::-webkit-input-placeholder  { color: color.adjust($font-color, $lightness: -33%, $space: hsl); } // Safari and Chrome
 
     &:hover {
         color: $hover-font-color;
@@ -226,12 +226,12 @@
     }
     .msp-btn-#{$name}:hover {
         color: $hover-font-color;
-        background: color-lower-contrast($bg, 2.5%);
+        background: color.adjust($bg, $lightness: -2.5%, $space: hsl);
     }
 
     .msp-btn-#{$name}[disabled], .msp-btn-#{$name}[disabled]:hover,
     .msp-btn-#{$name}[disabled]:active, .msp-btn-#{$name}[disabled]:focus {
-        color: color-lower-contrast($font, 1%);
+        color: color.adjust($font, $lightness: -1%, $space: hsl);
     }
 }
 

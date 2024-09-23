@@ -121,7 +121,7 @@ $sequence-select-height: 24px;
     }
 
     .msp-sequence-missing {
-        color: color-lower-contrast($font-color, 45%);
+        color: color.adjust($font-color, $lightness: -45%, $space: hsl);
         cursor: default;
     }
 }

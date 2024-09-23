@@ -18,13 +18,13 @@
 ::-webkit-scrollbar-track {
     //-webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.8);
     border-radius: 0;
-    background-color: color-lower-contrast($control-background, 4%);
+    background-color: color.adjust($control-background, $lightness: -4%, $space: hsl);
 }
 
 ::-webkit-scrollbar-thumb {
     border-radius: 0;
     //-webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.9);
-    background-color: color-lower-contrast($control-background, 8%);
+    background-color: color.adjust($control-background, $lightness: -8%, $space: hsl);
 }
 
 @import 'components/controls-base';
