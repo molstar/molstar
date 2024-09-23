@@ -304,7 +304,19 @@ export class DrawPass {
                 }
             }
 
-            if (PostprocessingPass.isEnabled(postprocessingProps)) {
+            // render transparent primitives
+            const isPostprocessingEnabled = PostprocessingPass.isEnabled(postprocessingProps);
+            if (scene.opacityAverage < 1) {
+                const target = isPostprocessingEnabled ? this.transparentColorTarget : this.colorTarget;
+                if (isPostprocessingEnabled) {
+                    target.bind();
+                    renderer.clear(false, false, true);
+                }
+
+                renderer.renderBlendedTransparent(scene.primitives, camera, this.depthTextureOpaque);
+            }
+
+            if (isPostprocessingEnabled) {
                 if (!this.packedDepth) {
                     this.depthTextureOpaque.detachFramebuffer(this.postprocessing.target.framebuffer, 'depth');
                 } else {
@@ -340,10 +352,10 @@ export class DrawPass {
                 }
                 target.bind();
             }
-        }
-
-        if (scene.opacityAverage < 1) {
-            renderer.renderBlendedTransparent(scene.primitives, camera, null);
+        } else {
+            if (scene.opacityAverage < 1) {
+                renderer.renderBlendedTransparent(scene.primitives, camera, null);
+            }
         }
     }
 
