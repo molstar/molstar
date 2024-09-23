@@ -46,8 +46,8 @@ $type-class-Group:            color.adjust(#e67e22, $lightness: -5%, $space: hsl
 
 $slider-disabledColor: #ccc;
 
-$control-background: color-increase-contrast($default-background, 6.5%);
-$border-color: color-increase-contrast($default-background, 15%);
+$control-background: color.adjust($default-background, $lightness: 6.5%, $space: hsl);
+$border-color: color.adjust($default-background, $lightness: 15%, $space: hsl);
 $msp-form-control-background: color.adjust($default-background, $lightness: -2.5%, $space: hsl);
 
 // buttons

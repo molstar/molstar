@@ -84,10 +84,10 @@
     padding-left: $control-spacing;
 
     &:hover {
-        border-color: color-increase-contrast($msp-form-control-background, 5%) !important;
+        border-color: color.adjust($msp-form-control-background, $lightness: 5%, $space: hsl) !important;
         border: none;
         outline-offset: -1px  !important;
-        outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;
+        outline: 1px solid color.adjust($msp-form-control-background, $lightness: 20%, $space: hsl) !important;
     }
 }
 
@@ -100,7 +100,7 @@
     .msp-btn {
         &:hover {
             outline-offset: -1px  !important;
-            outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;
+            outline: 1px solid color.adjust($msp-form-control-background, $lightness: 20%, $space: hsl) !important;
         }
     }
 }
@@ -316,7 +316,7 @@
 
         > button:first-child {
             text-align: left;
-            border-left: $control-spacing solid color-increase-contrast($default-background, 12%) !important;
+            border-left: $control-spacing solid color.adjust($default-background, $lightness: 12%, $space: hsl) !important;
         }
 
         > div {

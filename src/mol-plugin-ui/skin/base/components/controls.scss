@@ -86,10 +86,10 @@
     }
 
     > div > button:hover {
-        border-color: color-increase-contrast($msp-form-control-background, 5%) !important;
+        border-color: color.adjust($msp-form-control-background, $lightness: 5%, $space: hsl) !important;
         border: none;
         outline-offset: -1px  !important;
-        outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;
+        outline: 1px solid color.adjust($msp-form-control-background, $lightness: 20%, $space: hsl) !important;
     }
 }
 
@@ -178,10 +178,10 @@
         padding-left: $control-spacing;
 
         &:hover {
-            border-color: color-increase-contrast($msp-form-control-background, 5%) !important;
+            border-color: color.adjust($msp-form-control-background, $lightness: 5%, $space: hsl) !important;
             border: none;
             outline-offset: -1px  !important;
-            outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;
+            outline: 1px solid color.adjust($msp-form-control-background, $lightness: 20%, $space: hsl) !important;
         }
     }
 
@@ -232,7 +232,7 @@
 .msp-control-group-wrapper {
     //border-left-width: math.div($control-spacing, 2);
     //border-left-style: solid;
-    //border-left-color: color-increase-contrast($default-background, 10%);
+    //border-left-color: color.adjust($default-background, $lightness: 10%, $space: hsl);
 
     margin-bottom: 0px;
     margin-top: 1px;
@@ -268,7 +268,7 @@
 }
 
 .msp-control-group-footer {
-    background: color-increase-contrast($default-background, 5%);
+    background: color.adjust($default-background, $lightness: 5%, $space: hsl);
     height: math.div($control-spacing, 2);
     font-size: 1px;
     margin-top: 1px;

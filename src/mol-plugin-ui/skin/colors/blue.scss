@@ -14,7 +14,3 @@ $log-warning:          #FCC937;
 $log-error:            #FD354B;
 
 $logo-background: rgba(0,0,0,0.75);
-
-@function color-increase-contrast($color, $amount) {
-    @return lighten($color, $amount);
-}
