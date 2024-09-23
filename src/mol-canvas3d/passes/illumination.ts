@@ -52,10 +52,10 @@ type RenderContext = {
 
 export const IlluminationParams = {
     enabled: PD.Boolean(false),
-    maxIterations: PD.Numeric(5, { min: 0, max: 16, step: 1 }),
+    maxIterations: PD.Numeric(5, { min: 0, max: 16, step: 1 }, { description: 'Maximum number of tracing iterations. Final iteration count is 2^x.' }),
     denoise: PD.Boolean(true),
     denoiseThreshold: PD.Interval([0.15, 1], { min: 0, max: 4, step: 0.01 }, { description: 'Threshold for denoising. Automatically adjusted within given interval based on current iteration.' }),
-    ignoreOutline: PD.Boolean(true),
+    ignoreOutline: PD.Boolean(true, { description: 'Ignore outline in illumination pass where it is generally not needed for visual clarity. Useful when illumination is often toggled on/off.' }),
     ...TracingParams,
 };
 export type IlluminationProps = PD.Values<typeof IlluminationParams>
