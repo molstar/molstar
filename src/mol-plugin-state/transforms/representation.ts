@@ -139,7 +139,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     },
     apply({ a, params, cache }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
-            const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset };
+            const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset, errorContext: plugin.errorContext };
             const provider = plugin.representation.structure.registry.get(params.type.name);
             const data = provider.getData?.(a.data, params.type.params) || a.data;
             if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, data);
@@ -160,7 +160,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             if (provider.mustRecreate?.(oldParams.type.params, newParams.type.params)) return StateTransformer.UpdateResult.Recreate;
 
             const data = provider.getData?.(a.data, newParams.type.params) || a.data;
-            const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset };
+            const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset, errorContext: plugin.errorContext };
             if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, data);
 
             // TODO: if themes had a .needsUpdate method the following block could
@@ -1011,7 +1011,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Volume Representation', async ctx => {
-            const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset };
+            const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset, errorContext: plugin.errorContext };
             const provider = plugin.representation.volume.registry.get(params.type.name);
             if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data);
             const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.volume.themes }, provider.getParams);

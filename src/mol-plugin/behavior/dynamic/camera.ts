@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -158,6 +158,7 @@ const DefaultCameraControlsBindings = {
     keyRockAnimation: Binding([Key('O')], 'Rock Animation', 'Press ${triggers}'),
     keyToggleFlyMode: Binding([Key('Space', M.create({ shift: true }))], 'Toggle Fly Mode', 'Press ${triggers}'),
     keyResetView: Binding([Key('T')], 'Reset View', 'Press ${triggers}'),
+    keyGlobalIllumination: Binding([Key('G')], 'Gobal Illumination', 'Press ${triggers}'),
 };
 const CameraControlsParams = {
     bindings: PD.Value(DefaultCameraControlsBindings, { isHidden: true }),
@@ -174,10 +175,11 @@ export const CameraControls = PluginBehavior.create<CameraControlsProps>({
 
                 // include defaults for backwards state compatibility
                 const b = { ...DefaultCameraControlsBindings, ...this.params.bindings };
-                const p = this.ctx.canvas3d.props.trackball;
+                const tp = this.ctx.canvas3d.props.trackball;
+                const ip = this.ctx.canvas3d.props.illumination;
 
                 if (Binding.matchKey(b.keySpinAnimation, code, modifiers, key)) {
-                    const name = p.animate.name !== 'spin' ? 'spin' : 'off';
+                    const name = tp.animate.name !== 'spin' ? 'spin' : 'off';
                     if (name === 'off') {
                         this.ctx.canvas3d.setProps({
                             trackball: { animate: { name, params: {} } }
@@ -192,7 +194,7 @@ export const CameraControls = PluginBehavior.create<CameraControlsProps>({
                 }
 
                 if (Binding.matchKey(b.keyRockAnimation, code, modifiers, key)) {
-                    const name = p.animate.name !== 'rock' ? 'rock' : 'off';
+                    const name = tp.animate.name !== 'rock' ? 'rock' : 'off';
                     if (name === 'off') {
                         this.ctx.canvas3d.setProps({
                             trackball: { animate: { name, params: {} } }
@@ -207,7 +209,7 @@ export const CameraControls = PluginBehavior.create<CameraControlsProps>({
                 }
 
                 if (Binding.matchKey(b.keyToggleFlyMode, code, modifiers, key)) {
-                    const flyMode = !p.flyMode;
+                    const flyMode = !tp.flyMode;
 
                     this.ctx.canvas3d.setProps({
                         trackball: { flyMode }
@@ -220,6 +222,15 @@ export const CameraControls = PluginBehavior.create<CameraControlsProps>({
 
                 if (Binding.matchKey(b.keyResetView, code, modifiers, key)) {
                     PluginCommands.Camera.Reset(this.ctx, {});
+                }
+
+                if (Binding.matchKey(b.keyGlobalIllumination, code, modifiers, key)) {
+                    this.ctx.canvas3d.setProps({
+                        illumination: {
+                            ...ip,
+                            enabled: !ip.enabled,
+                        }
+                    });
                 }
             });
         }

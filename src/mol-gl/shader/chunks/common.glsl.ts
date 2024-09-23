@@ -17,7 +17,7 @@ export const common = `
     #define dColorType_varying
 #endif
 
-#if (defined(dRenderVariant_color) && defined(dColorMarker)) || defined(dRenderVariant_marking)
+#if ((defined(dRenderVariant_color) || defined(dRenderVariant_tracing)) && defined(dColorMarker)) || defined(dRenderVariant_marking)
     #define dNeedsMarker
 #endif
 
@@ -34,6 +34,9 @@ export const common = `
 #define PI 3.14159265
 #define RECIPROCAL_PI 0.31830988618
 #define EPSILON 1e-6
+#define ONE_MINUS_EPSILON 1.0 - EPSILON
+#define TWO_PI 6.2831853
+#define HALF_PI 1.570796325
 
 #define saturate(a) clamp(a, 0.0, 1.0)
 

@@ -6,7 +6,7 @@ export const assign_material_color = `
     }
 #endif
 
-#if defined(dRenderVariant_color)
+#if defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
     #if defined(dUsePalette)
         vec4 material = vec4(texture2D(tPalette, vec2(vPaletteV, 0.5)).rgb, uAlpha);
     #elif defined(dColorType_uniform)
@@ -106,7 +106,7 @@ export const assign_material_color = `
 #endif
 
 // apply per-group transparency
-#if defined(dTransparency) && (defined(dRenderVariant_pick) || defined(dRenderVariant_color) || defined(dRenderVariant_emissive))
+#if defined(dTransparency) && (defined(dRenderVariant_pick) || defined(dRenderVariant_color) || defined(dRenderVariant_emissive) || defined(dRenderVariant_tracing))
     float ta = 1.0 - vTransparency;
     if (vTransparency < 0.09) ta = 1.0; // hard cutoff looks better
 
@@ -116,7 +116,7 @@ export const assign_material_color = `
     #elif defined(dRenderVariant_emissive)
         if (ta < 1.0)
             discard; // emissive not supported with transparency
-    #elif defined(dRenderVariant_color)
+    #elif defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
         material.a *= ta;
     #endif
 #endif

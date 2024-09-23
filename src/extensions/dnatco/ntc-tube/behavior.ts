@@ -30,7 +30,7 @@ export const NtCTubePreset = StructureRepresentationPresetProvider({
         if (!structureCell || !model) return {};
 
         await plugin.runTask(Task.create('NtC tube', async runtime => {
-            await NtCTubeProvider.attach({ runtime, assetManager: plugin.managers.asset }, model);
+            await NtCTubeProvider.attach({ runtime, assetManager: plugin.managers.asset, errorContext: plugin.errorContext }, model);
         }));
 
         const { components, representations } = await PresetStructureRepresentations.auto.apply(ref, { ...params }, plugin);
