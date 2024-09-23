@@ -1,3 +1,5 @@
+@use "sass:color";
+
 $default-background:         #2D3E50;
 $font-color:                 #EDF1F2;
 $hover-font-color:           #3B9AD9;
@@ -35,7 +37,7 @@ a {
 
 
 .msp-snapshot-description-me {
-    background: rgba(red($default-background), green($default-background), blue($default-background), 0.5);
+    background: color.change($default-background, $alpha: 0.5, $space: rgb);
 
     position: absolute;
     height: 50vh; // 50% of the viewport height

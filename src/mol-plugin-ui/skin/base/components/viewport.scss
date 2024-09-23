@@ -170,7 +170,7 @@
 }
 
 .msp-snapshot-description-wrapper {
-    background: rgba(red($default-background), green($default-background), blue($default-background), 0.5);
+    background: color.change($default-background, $alpha: 0.5, $space: rgb);
 
     position: absolute;
     left: 0;
