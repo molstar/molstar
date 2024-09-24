@@ -119,57 +119,27 @@ void main(void) {
     vec4 transparentColor = texture2D(tTransparentColor, coords);
     float alpha = transparentColor.a;
 
-    #if defined(dOcclusionEnable) && (defined(dOcclusionIncludeOpacity) || defined(dOcclusionIncludeTransparency))
-        #ifdef dOcclusionSingleDepth
-            float occlusionFactor = getSsaoTransparent(coords + uOcclusionOffset);
+    #if defined(dOcclusionEnable)
+        if (!isBackground(opaqueDepth)) {
+            viewDist = abs(getViewZ(opaqueDepth));
+            fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
+            float occlusionFactor = getSsao(coords + uOcclusionOffset);
+            
+            if (!uTransparentBackground) {
+                color.rgb = mix(mix(uOcclusionColor, uFogColor, fogFactor), color.rgb, occlusionFactor);
+            } else {
+                color.rgb = mix(uOcclusionColor * (1.0 - fogFactor), color.rgb, occlusionFactor);
+            }
+        }
+        #ifdef dOcclusionIncludeTransparency
             float transparentDepth = getDepthTransparent(coords);
-            #ifdef dOcclusionIncludeOpacity
-                if (!isBackground(opaqueDepth)) {
-                    viewDist = abs(getViewZ(opaqueDepth));
-                    fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
-                    /*float opaqueOcclusionFactor = occlusionFactor;
-                    if (alpha != 0.0) {
-                        //when transparency is on top of opaque, use alpha as occlusion factor
-                        opaqueOcclusionFactor = alpha;
-                    }*/
-                    if (!uTransparentBackground) {
-                        color.rgb = mix(mix(uOcclusionColor, uFogColor, fogFactor), color.rgb, occlusionFactor);
-                    } else {
-                        color.rgb = mix(uOcclusionColor * (1.0 - fogFactor), color.rgb, occlusionFactor);
-                    }
-                }
-            #endif
-            #ifdef dOcclusionIncludeTransparency                
-                if (!isBackground(transparentDepth)) {
-                    viewDist = abs(getViewZ(transparentDepth));
-                    fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
-                    transparentColor.rgb = mix(uOcclusionColor * (1.0 - fogFactor), transparentColor.rgb, occlusionFactor);
-                }
-            #endif
-        #else
-            #ifdef dOcclusionIncludeOpacity
-                if (!isBackground(opaqueDepth)) {
-                    viewDist = abs(getViewZ(opaqueDepth));
-                    fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
-                    float occlusionFactor = getSsao(coords + uOcclusionOffset);
-                    
-                    if (!uTransparentBackground) {
-                        color.rgb = mix(mix(uOcclusionColor, uFogColor, fogFactor), color.rgb, occlusionFactor);
-                    } else {
-                        color.rgb = mix(uOcclusionColor * (1.0 - fogFactor), color.rgb, occlusionFactor);
-                    }
-                }
-            #endif
-            #ifdef dOcclusionIncludeTransparency
-                float transparentDepth = getDepthTransparent(coords);
-                if (!isBackground(transparentDepth)) {
-                    viewDist = abs(getViewZ(transparentDepth));
-                    fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
-                    float occlusionFactor = getSsaoTransparent(coords + uOcclusionOffset);
-                    transparentColor.rgb = mix(uOcclusionColor * (1.0 - fogFactor), transparentColor.rgb, occlusionFactor);
-                }
-            #endif
-        #endif        
+            if (!isBackground(transparentDepth)) {
+                viewDist = abs(getViewZ(transparentDepth));
+                fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
+                float occlusionFactor = getSsaoTransparent(coords + uOcclusionOffset);
+                transparentColor.rgb = mix(uOcclusionColor * (1.0 - fogFactor), transparentColor.rgb, occlusionFactor);
+            }
+        #endif      
     #endif
 
     #ifdef dShadowEnable

@@ -221,16 +221,6 @@ export class PostprocessingPass {
         if (occlusionEnabled) {
             const params = props.occlusion.params as SsaoProps;
             this.ssao.update(camera, params);
-            const singleDepth = !params.separatedTransparency;
-            if (this.renderable.values.dOcclusionSingleDepth.ref.value !== singleDepth) {
-                needsUpdateMain = true;
-                ValueCell.update(this.renderable.values.dOcclusionSingleDepth, singleDepth);
-            }
-            const includeOpacity = params.includeOpacity;
-            if (this.renderable.values.dOcclusionIncludeOpacity.ref.value !== includeOpacity) {
-                needsUpdateMain = true;
-                ValueCell.update(this.renderable.values.dOcclusionIncludeOpacity, includeOpacity);
-            }
             const includeTransparency = params.includeTransparency;
             if (this.renderable.values.dOcclusionIncludeTransparency.ref.value !== includeTransparency) {
                 needsUpdateMain = true;

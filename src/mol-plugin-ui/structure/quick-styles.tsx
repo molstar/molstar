@@ -75,9 +75,7 @@ export class QuickStyles extends PurePluginUIComponent {
                             samples: 32,
                             resolutionScale: 1,
                             color: Color(0x000000),
-                            includeOpacity: true,
                             includeTransparency: true,
-                            separatedTransparency: false
                         }
                     },
                     shadow: { name: 'off', params: {} },
@@ -117,9 +115,7 @@ export class QuickStyles extends PurePluginUIComponent {
                                 samples: 32,
                                 resolutionScale: 1,
                                 color: Color(0x000000),
-                                includeOpacity: true,
                                 includeTransparency: true,
-                                separatedTransparency: false
                             }
                     },
                     shadow: { name: 'off', params: {} },

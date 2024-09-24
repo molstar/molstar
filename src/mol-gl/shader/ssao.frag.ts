@@ -14,17 +14,12 @@ precision highp sampler2D;
 
 #include common
 
-#if !defined(dSeparatedTransparency)
-    #define singleDepthWithAlpha
-#endif
 
-#if !defined(singleDepthWithAlpha) && defined(dIncludeOpacity)
-    uniform sampler2D tDepth;
-    uniform sampler2D tDepthHalf;
-    uniform sampler2D tDepthQuarter;
-#endif
+uniform sampler2D tDepth;
+uniform sampler2D tDepthHalf;
+uniform sampler2D tDepthQuarter;
 
-#if defined(singleDepthWithAlpha) || defined(dIncludeTransparency)
+#if defined(dIncludeTransparency)
     uniform sampler2D tDepthTransparent;
     uniform sampler2D tDepthHalfTransparent;
     uniform sampler2D tDepthQuarterTransparent;
@@ -74,26 +69,22 @@ bool isBackground(const in float depth) {
 
 float getDepth(const in vec2 coords, const in int transparentFlag) {    
     if (transparentFlag == 1){
-        #if defined(singleDepthWithAlpha) || defined(dIncludeTransparency)
+        #if defined(dIncludeTransparency)
             return unpackRGBAToDepthWithAlpha(texture2D(tDepthTransparent, coords)).x;
         #else 
             return 1.0;
         #endif
     } else {
-        #if !defined(singleDepthWithAlpha) && defined(dIncludeOpacity)
-            vec2 c = vec2(clamp(coords.x, uBounds.x, uBounds.z), clamp(coords.y, uBounds.y, uBounds.w));
-            #ifdef depthTextureSupport
-                return texture2D(tDepth, c).r;
-            #else
-                return unpackRGBAToDepth(texture2D(tDepth, c));
-            #endif
+        vec2 c = vec2(clamp(coords.x, uBounds.x, uBounds.z), clamp(coords.y, uBounds.y, uBounds.w));
+        #ifdef depthTextureSupport
+            return texture2D(tDepth, c).r;
         #else
-            return 1.0;
-        #endif    
+            return unpackRGBAToDepth(texture2D(tDepth, c));
+        #endif
     }    
 }
 
-#if defined(dIncludeTransparency) || defined(singleDepthWithAlpha) && defined(dIncludeOpacity)
+#if defined(dIncludeTransparency)
     vec2 getDepthTransparentWithAlpha(const in vec2 coords){
         return unpackRGBAToDepthWithAlpha(texture2D(tDepthTransparent, coords));
     }
@@ -102,35 +93,29 @@ float getDepth(const in vec2 coords, const in int transparentFlag) {
 #define dQuarterThreshold 0.1
 #define dHalfThreshold 0.05
 
-#ifndef singleDepthWithAlpha 
-    float getMappedDepth(const in vec2 coords, const in vec2 selfCoords) {
-        #ifdef dIncludeOpacity
-            vec2 c = vec2(clamp(coords.x, uBounds.x, uBounds.z), clamp(coords.y, uBounds.y, uBounds.w));
-            float d = distance(coords, selfCoords);
-            #ifdef depthTextureSupport
-                if (d > dQuarterThreshold) {
-                    return texture2D(tDepthQuarter, c).r;
-                } else if (d > dHalfThreshold) {
-                    return texture2D(tDepthHalf, c).r;
-                } else {
-                    return texture2D(tDepth, c).r;
-                }
-            #else
-                if (d > dQuarterThreshold) {
-                    return unpackRGBAToDepth(texture2D(tDepthQuarter, c));
-                } else if (d > dHalfThreshold) {
-                    return unpackRGBAToDepth(texture2D(tDepthHalf, c));
-                } else {
-                    return unpackRGBAToDepth(texture2D(tDepth, c));
-                }
-            #endif
-        #else
-            return 1.0;
-        #endif
-    }
-#endif
+float getMappedDepth(const in vec2 coords, const in vec2 selfCoords) {
+    vec2 c = vec2(clamp(coords.x, uBounds.x, uBounds.z), clamp(coords.y, uBounds.y, uBounds.w));
+    float d = distance(coords, selfCoords);
+    #ifdef depthTextureSupport
+        if (d > dQuarterThreshold) {
+            return texture2D(tDepthQuarter, c).r;
+        } else if (d > dHalfThreshold) {
+            return texture2D(tDepthHalf, c).r;
+        } else {
+            return texture2D(tDepth, c).r;
+        }
+    #else
+        if (d > dQuarterThreshold) {
+            return unpackRGBAToDepth(texture2D(tDepthQuarter, c));
+        } else if (d > dHalfThreshold) {
+            return unpackRGBAToDepth(texture2D(tDepthHalf, c));
+        } else {
+            return unpackRGBAToDepth(texture2D(tDepth, c));
+        }
+    #endif
+}
 
-#if defined(singleDepthWithAlpha) || defined(dIncludeTransparency)
+#if defined(dIncludeTransparency)
     vec2 getMappedDepthTransparentWithAlpha(const in vec2 coords, const in vec2 selfCoords) {
         vec2 c = vec2(clamp(coords.x, uBounds.x, uBounds.z), clamp(coords.y, uBounds.y, uBounds.w));
         float d = distance(coords, selfCoords);
@@ -206,13 +191,7 @@ float getPixelSize(const in vec2 coords, const in float depth) {
 void main(void) {
     vec2 invTexSize = 1.0 / uTexSize;
     vec2 selfCoords = gl_FragCoord.xy * invTexSize;
-
-    #ifdef singleDepthWithAlpha
-        float selfDepth = getDepth(selfCoords, 1);
-    #else
-        float selfDepth = getDepth(selfCoords, uTransparencyFlag);
-    #endif
-
+    float selfDepth = getDepth(selfCoords, uTransparencyFlag);
     vec2 selfPackedDepth = packUnitIntervalToRG(selfDepth);
 
     if (isBackground(selfDepth)) {
@@ -220,12 +199,7 @@ void main(void) {
         return;
     }
 
-    #ifdef singleDepthWithAlpha
-        vec3 selfViewNormal = viewNormalAtPixelPositionAccurate(selfCoords, 1);
-    #else
-        vec3 selfViewNormal = viewNormalAtPixelPositionAccurate(selfCoords, uTransparencyFlag);
-    #endif
-    
+    vec3 selfViewNormal = viewNormalAtPixelPositionAccurate(selfCoords, uTransparencyFlag);    
     vec3 selfViewPos = screenSpaceToViewSpace(vec3(selfCoords, selfDepth), uInvProjection);
 
     vec3 randomVec = normalize(vec3(getNoiseVec2(selfCoords) * 2.0 - 1.0, 0.0));
@@ -254,13 +228,11 @@ void main(void) {
                 offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
 
                 // get sample depth:
-                #if !defined(singleDepthWithAlpha) && defined(dIncludeOpacity)
-                    float sampleDepth = getMappedDepth(offset.xy, selfCoords);
-                    float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
-                    levelOcclusion += step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uLevelRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uLevelBias[l];
-                #endif
+                float sampleDepth = getMappedDepth(offset.xy, selfCoords);
+                float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
+                levelOcclusion += step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uLevelRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uLevelBias[l];
 
-                #if defined(dIncludeTransparency) || defined(singleDepthWithAlpha) && defined(dIncludeOpacity)
+                #if defined(dIncludeTransparency)
                     vec2 sampleDepthWithAlpha = getMappedDepthTransparentWithAlpha(offset.xy, selfCoords);
                     if (!isBackground(sampleDepthWithAlpha.x)) {
                         float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepthWithAlpha.x), uInvProjection).z;
@@ -279,14 +251,12 @@ void main(void) {
             offset = uProjection * offset;
             offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
 
-            #if !defined(singleDepthWithAlpha) && defined(dIncludeOpacity)
-                // NOTE: using getMappedDepth here causes issues on some mobile devices
-                float sampleDepth = getDepth(offset.xy, 0);
-                float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
-                occlusion += step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ));
-            #endif
+            // NOTE: using getMappedDepth here causes issues on some mobile devices
+            float sampleDepth = getDepth(offset.xy, 0);
+            float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
+            occlusion += step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ));
 
-            #if defined(dIncludeTransparency) || defined(singleDepthWithAlpha) && defined(dIncludeOpacity)
+            #if defined(dIncludeTransparency)
                 vec2 sampleDepthWithAlpha = getDepthTransparentWithAlpha(offset.xy);
                 if (!isBackground(sampleDepthWithAlpha.x)) {
                     float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepthWithAlpha.x), uInvProjection).z;
