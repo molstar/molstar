@@ -116,11 +116,8 @@ void main(void){
         #include clip_pixel
     #endif
 
-    vec3 normal;
-    #if defined(dRenderVariant_depth) && defined(dXrayShaded)
-        if (uRenderMask == MaskTransparent) {
-            normal = -cameraNormal;
-        }
+    #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_depth) && defined(dXrayShaded)
+        vec3 normal = -cameraNormal;
     #endif
 
     #include assign_material_color
@@ -150,7 +147,6 @@ void main(void){
     #elif defined(dRenderVariant_emissive)
         gl_FragColor = material;
     #elif defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
-        normal = -cameraNormal;
         #include apply_light_color
         #include apply_interior_color
         #include apply_marker_color

@@ -121,7 +121,6 @@ export class SsaoPass {
     private nSamples: number;
     private blurKernelSize: number;
     private texSize: [number, number];
-    private includeTransparency: boolean;
 
     private ssaoScale: number;
     private calcSsaoScale(resolutionScale: number) {
@@ -129,7 +128,6 @@ export class SsaoPass {
         return Math.min(1, 1 / this.webgl.pixelRatio) * resolutionScale;
     }
 
-    private multiScale: boolean;
     private levels: { radius: number, bias: number }[];
 
     private getDepthTexture() {
@@ -150,8 +148,6 @@ export class SsaoPass {
         this.blurKernelSize = 1;
         this.ssaoScale = this.calcSsaoScale(1);
         this.texSize = [width, height];
-        this.includeTransparency = false;
-        this.multiScale = false;
         this.levels = [];
 
         this.framebuffer = webgl.resources.framebuffer();
@@ -309,12 +305,10 @@ export class SsaoPass {
             ValueCell.update(this.blurSecondPassRenderable.values.dOrthographic, orthographic);
         }
 
-        const includeTransparency = props.includeTransparency;
-        if (this.includeTransparency !== includeTransparency) {
+        if (this.renderable.values.dIncludeTransparency.ref.value !== props.includeTransparency) {
             needsUpdateSsao = true;
 
-            this.includeTransparency = includeTransparency;
-            ValueCell.update(this.renderable.values.dIncludeTransparency, includeTransparency);
+            ValueCell.update(this.renderable.values.dIncludeTransparency, props.includeTransparency);
         }
 
         if (this.nSamples !== props.samples) {
@@ -329,7 +323,6 @@ export class SsaoPass {
         if (this.renderable.values.dMultiScale.ref.value !== multiScale) {
             needsUpdateSsao = true;
 
-            this.multiScale = multiScale;
             ValueCell.update(this.renderable.values.dMultiScale, multiScale);
         }
 
@@ -438,7 +431,8 @@ export class SsaoPass {
         const { state } = this.webgl;
         const { x, y, width, height } = camera.viewport;
 
-        const includeTransparency = this.includeTransparency;
+        const includeTransparency = this.renderable.values.dIncludeTransparency.ref.value;
+        const multiScale = this.renderable.values.dMultiScale.ref.value;
 
         const sx = Math.floor(x * this.ssaoScale);
         const sy = Math.floor(y * this.ssaoScale);
@@ -460,22 +454,22 @@ export class SsaoPass {
         }
 
         if (isTimingMode) this.webgl.timer.mark('SSAO.half');
-        if (this.multiScale) {
+        if (multiScale) {
             this.depthHalfTarget1.bind();
             this.depthHalfRenderable1.render();
         }
-        if (this.multiScale && includeTransparency) {
+        if (multiScale && includeTransparency) {
             this.depthHalfTarget2.bind();
             this.depthHalfRenderable2.render();
         }
         if (isTimingMode) this.webgl.timer.markEnd('SSAO.half');
 
         if (isTimingMode) this.webgl.timer.mark('SSAO.quarter');
-        if (this.multiScale) {
+        if (multiScale) {
             this.depthQuarterTarget1.bind();
             this.depthQuarterRenderable1.render();
         }
-        if (this.multiScale && includeTransparency) {
+        if (multiScale && includeTransparency) {
             this.depthQuarterTarget2.bind();
             this.depthQuarterRenderable2.render();
         }
@@ -494,6 +488,7 @@ export class SsaoPass {
         this.ssaoDepthTexture.attachFramebuffer(this.blurSecondPassFramebuffer, 'color0');
         this.blurSecondPassFramebuffer.bind();
         this.blurSecondPassRenderable.render();
+
         if (includeTransparency) {
             this.ssaoDepthTransparentTexture.attachFramebuffer(this.framebuffer, 'color0');
             ValueCell.update(this.renderable.values.uTransparencyFlag, 1);

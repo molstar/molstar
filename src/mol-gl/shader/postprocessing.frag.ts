@@ -124,7 +124,7 @@ void main(void) {
             viewDist = abs(getViewZ(opaqueDepth));
             fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
             float occlusionFactor = getSsao(coords + uOcclusionOffset);
-            
+
             if (!uTransparentBackground) {
                 color.rgb = mix(mix(uOcclusionColor, uFogColor, fogFactor), color.rgb, occlusionFactor);
             } else {
@@ -139,7 +139,7 @@ void main(void) {
                 float occlusionFactor = getSsaoTransparent(coords + uOcclusionOffset);
                 transparentColor.rgb = mix(uOcclusionColor * (1.0 - fogFactor), transparentColor.rgb, occlusionFactor);
             }
-        #endif      
+        #endif
     #endif
 
     #ifdef dShadowEnable
@@ -170,16 +170,16 @@ void main(void) {
                     color.a = 1.0 - fogFactor;
                     color.rgb = mix(uOutlineColor, color.rgb, fogFactor);
                 }
-            }            
+            }
         }
     #endif
 
     if (alpha != 0.0) {
-        //blending
+        // blending
         color = transparentColor + color * (1.0 -  alpha);
     }
-    
-    //apply transparent outlines after blending transparent color
+
+    // apply transparent outlines after blending transparent color
     #ifdef dOutlineEnable
         if (isTransparentOutline == 1.0){
             color.a = 1.0 - fogFactor;

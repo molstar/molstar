@@ -214,6 +214,8 @@ export class DrawPass {
 
         // render transparent volumes
         if (scene.volumes.renderables.length > 0) {
+            const target = isPostprocessingEnabled ? this.postprocessing.target : this.colorTarget;
+            target.bind();
             renderer.renderDpoitVolume(scene.volumes, camera, this.depthTextureOpaque);
         }
     }
@@ -264,7 +266,8 @@ export class DrawPass {
             renderer.renderWboitTransparent(scene.volumes, camera, this.depthTextureOpaque);
 
             // evaluate wboit
-            this.colorTarget.bind();
+            const target = isPostprocessingEnabled ? this.postprocessing.target : this.colorTarget;
+            target.bind();
             this.wboit.render();
         }
 
@@ -307,13 +310,26 @@ export class DrawPass {
             // render transparent primitives
             const isPostprocessingEnabled = PostprocessingPass.isEnabled(postprocessingProps);
             if (scene.opacityAverage < 1) {
-                const target = isPostprocessingEnabled ? this.transparentColorTarget : this.colorTarget;
                 if (isPostprocessingEnabled) {
-                    target.bind();
+                    this.transparentColorTarget.bind();
                     renderer.clear(false, false, true);
+
+                    if (!this.packedDepth) {
+                        this.depthTextureOpaque.attachFramebuffer(this.transparentColorTarget.framebuffer, 'depth');
+                    } else {
+                        this.colorTarget.depthRenderbuffer?.detachFramebuffer(this.transparentColorTarget.framebuffer);
+                    }
                 }
 
                 renderer.renderBlendedTransparent(scene.primitives, camera, this.depthTextureOpaque);
+
+                if (isPostprocessingEnabled) {
+                    if (!this.packedDepth) {
+                        this.depthTextureOpaque.detachFramebuffer(this.transparentColorTarget.framebuffer, 'depth');
+                    } else {
+                        this.colorTarget.depthRenderbuffer?.detachFramebuffer(this.transparentColorTarget.framebuffer);
+                    }
+                }
             }
 
             if (isPostprocessingEnabled) {

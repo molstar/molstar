@@ -35,8 +35,8 @@ void main() {
 
     float fragmentDepth = gl_FragCoord.z;
 
-    vec3 normal;
-    #if defined(dRenderVariant_depth) && defined(dXrayShaded)
+    #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || (defined(dRenderVariant_depth) && defined(dXrayShaded))
+        vec3 normal;
         #if defined(dFlatShaded)
             normal = -faceNormal;
         #else
@@ -65,12 +65,6 @@ void main() {
     #elif defined(dRenderVariant_emissive)
         gl_FragColor = material;
     #elif defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
-        #if defined(dFlatShaded)
-            normal = -faceNormal;
-        #else
-            normal = -normalize(vNormal);
-            if (uDoubleSided) normal *= float(frontFacing) * 2.0 - 1.0;
-        #endif
         #include apply_light_color
         #include apply_interior_color
         #include apply_marker_color
