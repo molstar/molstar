@@ -171,6 +171,8 @@ export class DrawPass {
             renderer.renderOpaque(scene.primitives, camera, null);
         }
 
+        this.depthTextureOpaque.detachFramebuffer(this.colorTarget.framebuffer, 'depth');
+
         if (PostprocessingPass.isTransparentDepthRequired(postprocessingProps)) {
             this.depthTargetTransparent.bind();
             renderer.clearDepth(true);
@@ -209,8 +211,6 @@ export class DrawPass {
         if (PostprocessingPass.isEnabled(postprocessingProps)) {
             this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps, renderer.light, renderer.ambientColor);
         }
-
-        this.depthTextureOpaque.detachFramebuffer(this.colorTarget.framebuffer, 'depth');
 
         // render transparent volumes
         if (scene.volumes.renderables.length > 0) {
