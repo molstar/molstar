@@ -57,6 +57,7 @@ bool isBackground(const in float depth) {
     return depth > 0.999; // handle depth packing precision issues
 }
 
+int squaredOutlineScale = dOutlineScale * dOutlineScale;
 float getOutline(const in vec2 coords, const in float opaqueDepth, out float closestTexel, out float isTransparent) {
     float backgroundViewZ = 2.0 * uFar;
     vec2 invTexSize = 1.0 / uTexSize;
@@ -66,7 +67,7 @@ float getOutline(const in vec2 coords, const in float opaqueDepth, out float clo
     isTransparent = 0.0;
     for (int y = -dOutlineScale; y <= dOutlineScale; y++) {
         for (int x = -dOutlineScale; x <= dOutlineScale; x++) {
-            if (x * x + y * y > dOutlineScale * dOutlineScale) {
+            if (x * x + y * y > squaredOutlineScale) {
                 continue;
             }
 
@@ -111,18 +112,23 @@ float getSsaoTransparent(vec2 coords) {
 void main(void) {
     vec2 coords = gl_FragCoord.xy / uTexSize;
     vec4 color = texture2D(tColor, coords);
-
-    float viewDist;
-    float fogFactor;
-    float opaqueDepth = getDepthOpaque(coords);
-
     vec4 transparentColor = texture2D(tTransparentColor, coords);
-    float alpha = transparentColor.a;
+    bool blendTransparency = true;
+
+    float opaqueDepth = getDepthOpaque(coords); 
+
+    #if defined(dOutlineEnable) || defined(dOcclusionEnable) && defined(dOcclusionIncludeTransparency)
+        float transparentDepth = getDepthTransparent(coords);
+    #endif
+
+    #if defined(dOcclusionEnable) || defined(dShadowEnable)
+        bool isOpaqueBackground = isBackground(opaqueDepth);
+        float viewDist = abs(getViewZ(opaqueDepth));
+        float fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
+    #endif   
 
     #if defined(dOcclusionEnable)
-        if (!isBackground(opaqueDepth)) {
-            viewDist = abs(getViewZ(opaqueDepth));
-            fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
+        if (!isOpaqueBackground) {
             float occlusionFactor = getSsao(coords + uOcclusionOffset);
 
             if (!uTransparentBackground) {
@@ -132,10 +138,9 @@ void main(void) {
             }
         }
         #ifdef dOcclusionIncludeTransparency
-            float transparentDepth = getDepthTransparent(coords);
             if (!isBackground(transparentDepth)) {
-                viewDist = abs(getViewZ(transparentDepth));
-                fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
+                float viewDist = abs(getViewZ(transparentDepth));
+                float fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
                 float occlusionFactor = getSsaoTransparent(coords + uOcclusionOffset);
                 transparentColor.rgb = mix(uOcclusionColor * (1.0 - fogFactor), transparentColor.rgb, occlusionFactor);
             }
@@ -143,9 +148,7 @@ void main(void) {
     #endif
 
     #ifdef dShadowEnable
-        if (!isBackground(opaqueDepth)) {
-            viewDist = abs(getViewZ(opaqueDepth));
-            fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
+        if (!isOpaqueBackground) {
             vec4 shadow = texture2D(tShadows, coords);
             if (!uTransparentBackground) {
                 color.rgb = mix(mix(vec3(0), uFogColor, fogFactor), color.rgb, shadow.a);
@@ -155,37 +158,34 @@ void main(void) {
         }
     #endif
 
-    // outline needs to be handled after occlusion and shadow to keep them clean
+    // outline needs to be handled after occlusion and shadow to keep them clean    
     #ifdef dOutlineEnable
         float closestTexel;
         float isTransparentOutline;
         float outline = getOutline(coords, opaqueDepth, closestTexel, isTransparentOutline);
+        float outlineFogFactor;
         if (outline == 0.0) {
-            viewDist = abs(getViewZ(closestTexel));
-            fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
-            if (isTransparentOutline == 0.0){
-                if (!uTransparentBackground) {
+            float viewDist = abs(getViewZ(closestTexel));
+            float fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
+            if (!uTransparentBackground) {
                     color.rgb = mix(uOutlineColor, uFogColor, fogFactor);
-                } else {
-                    color.a = 1.0 - fogFactor;
-                    color.rgb = mix(uOutlineColor, color.rgb, fogFactor);
-                }
+            } else {
+                color.a = 1.0 - fogFactor;
+                color.rgb = mix(uOutlineColor, vec3(0.0), fogFactor);
+            }
+            if (isTransparentOutline != 0.0 || transparentDepth > closestTexel) {
+                blendTransparency = false;
             }
         }
     #endif
-
-    if (alpha != 0.0) {
-        // blending
-        color = transparentColor + color * (1.0 -  alpha);
-    }
-
-    // apply transparent outlines after blending transparent color
-    #ifdef dOutlineEnable
-        if (isTransparentOutline == 1.0){
-            color.a = 1.0 - fogFactor;
-            color.rgb = mix(uOutlineColor, color.rgb, fogFactor);
+    
+    if (blendTransparency) {
+        float alpha = transparentColor.a;
+        if (alpha != 0.0) {
+            // blending
+            color = transparentColor + color * (1.0 - alpha);
         }
-    #endif
+    } 
 
     gl_FragColor = color;
 }
