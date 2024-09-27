@@ -577,7 +577,7 @@ export class MesoQuickStyles extends PluginUIComponent {
         const loptions = { ignoreLight: true, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 } };
         const options = { ...loptions, celShaded: false, };
         await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
-        await updateColors(this.plugin, this.default_color_values, options);
+        await updateColors(this.plugin, this.default_color_values, options, 'ent:');
     }
 
     async celshading() {
@@ -628,7 +628,7 @@ export class MesoQuickStyles extends PluginUIComponent {
         const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 } };
         const options = { ...loptions, celShaded: true, };
         await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
-        await updateColors(this.plugin, this.default_color_values, options);
+        await updateColors(this.plugin, this.default_color_values, options, 'ent:');
     }
 
     async stylizedDof() {
@@ -689,7 +689,7 @@ export class MesoQuickStyles extends PluginUIComponent {
         const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 } };
         const options = { ...loptions, celShaded: false };
         await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
-        await updateColors(this.plugin, this.default_color_values, options);
+        await updateColors(this.plugin, this.default_color_values, options, 'ent:');
     }
 
     async illustrative() {
@@ -748,7 +748,7 @@ export class MesoQuickStyles extends PluginUIComponent {
         const loptions = { ignoreLight: true, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 } };
         const options = { ...loptions, celShaded: false, };
         await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
-        await updateColors(this.plugin, this.illustrative_color_values, options);
+        await updateColors(this.plugin, this.illustrative_color_values, options, 'ent:');
     }
 
     async shiny() {
@@ -792,7 +792,7 @@ export class MesoQuickStyles extends PluginUIComponent {
         const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 } };
         const options = { ...loptions, celShaded: false };
         await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
-        await updateColors(this.plugin, this.default_color_values, options);
+        await updateColors(this.plugin, this.default_color_values, options, 'ent:');
     }
 
     async stylized() {
@@ -851,7 +851,7 @@ export class MesoQuickStyles extends PluginUIComponent {
         const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 } };
         const options = { ...loptions, celShaded: false };
         await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
-        await updateColors(this.plugin, this.illustrative_color_values, options);
+        await updateColors(this.plugin, this.illustrative_color_values, options, 'ent:');
     }
 
     render() {
