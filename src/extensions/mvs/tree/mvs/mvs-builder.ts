@@ -183,6 +183,15 @@ export class Structure extends _Base<'structure'> {
     }
 }
 
+/** MVS builder pointing to a 'structure' node */
+export class RawVolume extends _Base<'raw_volume'> {
+    /** Add a 'volume_representation' node and return builder pointing to it. 'volume_representation' node instructs to create a visual representation of a component. */
+    volume_representation(params: Partial<ParamsOfKind<MVSTree, 'volume_representation'>> = {}): VolumeRepresentation {
+        const fullParams: ParamsOfKind<MVSTree, 'volume_representation'> = { ...params, type: params.type ?? 'isosurface' };
+        return new VolumeRepresentation(this._root, this.addChild('volume_representation', fullParams));
+    }
+}
+
 
 /** MVS builder pointing to a 'component' or 'component_from_uri' or 'component_from_source' node */
 export class Component extends _Base<'component' | 'component_from_uri' | 'component_from_source'> {
