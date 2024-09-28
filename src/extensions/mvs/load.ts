@@ -8,12 +8,11 @@
 
 import { Download, ParseCcp4, ParseCif } from '../../mol-plugin-state/transforms/data';
 import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromMmCif, TrajectoryFromPDB, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
-import { StructureRepresentation3D, VolumeRepresentation3D, VolumeRepresentation3DHelpers } from '../../mol-plugin-state/transforms/representation';
+import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { VolumeFromCcp4 } from '../../mol-plugin-state/transforms/volume';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectSelector } from '../../mol-state';
-import { ColorNames } from '../../mol-util/color/names';
 import { MolViewSpec } from './behavior';
 import { setCamera, setCanvas, setFocus, suppressCameraAutoreset } from './camera';
 import { MVSAnnotationsProvider } from './components/annotation-prop';

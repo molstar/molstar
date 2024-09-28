@@ -412,6 +412,10 @@ export function volumeRepresentationProps(params: ParamsOfKind<MolstarTree, 'vol
             return {
                 type: { name: 'direct-volume', params: {} },
             };
+        case 'slice':
+            return {
+                type: { name: 'slice', params: {} },
+            };
         default:
             throw new Error('NotImplementedError');
     }
