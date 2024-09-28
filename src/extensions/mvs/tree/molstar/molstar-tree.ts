@@ -5,10 +5,10 @@
  */
 
 import { omitObjectKeys, pickObjectKeys } from '../../../../mol-util/object';
-import { RequiredField, bool } from '../generic/params-schema';
+import { OptionalField, RequiredField, bool } from '../generic/params-schema';
 import { NodeFor, TreeFor, TreeSchema } from '../generic/tree-schema';
 import { FullMVSTreeSchema } from '../mvs/mvs-tree';
-import { MolstarParseFormatT } from '../mvs/param-types';
+import { MolstarParseFormatT, RawVolumeOptionsT, RawVolumeSourceT } from '../mvs/param-types';
 
 
 /** Schema for `MolstarTree` (intermediate tree representation between `MVSTree` and a real Molstar state) */
@@ -28,6 +28,13 @@ export const MolstarTreeSchema = TreeSchema({
             params: {
                 format: RequiredField(MolstarParseFormatT),
             },
+        },
+        raw_volume: {
+            ...FullMVSTreeSchema.nodes.raw_volume,
+            params: {
+                source: RequiredField(RawVolumeSourceT),
+                options: OptionalField(RawVolumeOptionsT)
+            }
         },
         /** Auxiliary node corresponding to Molstar's TrajectoryFrom*. */
         trajectory: {

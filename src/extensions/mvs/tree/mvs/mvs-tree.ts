@@ -6,7 +6,7 @@
 
 import { OptionalField, RequiredField, float, int, list, nullable, str, tuple, union } from '../generic/params-schema';
 import { NodeFor, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
-import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, RepresentationTypeT, SchemaFormatT, SchemaT, StructureTypeT, Vector3 } from './param-types';
+import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, RawVolumeOptionsT, RawVolumeSourceT, RepresentationTypeT, SchemaFormatT, SchemaT, StructureTypeT, Vector3, VolumeRepresentationTypeT } from './param-types';
 
 
 const _DataFromUriParams = {
@@ -68,6 +68,15 @@ export const MVSTreeSchema = TreeSchema({
                 /** Format of the input data resource. */
                 format: RequiredField(ParseFormatT, 'Format of the input data resource.'),
             },
+        },
+        /** This node instructs to create a volume from a parsed data resource. */
+        raw_volume: {
+            description: 'This node instructs to create a volume from a parsed data resource. "raw_volume" refers to an internal representation of volumetric data without any visual representation.',
+            parent: ['parse'],
+            params: {
+                source: RequiredField(RawVolumeSourceT, 'Specifies the type of the raw input file with volumetric data (“map” for electron density maps, “omezarr” of OME NGFF in OMEZarr format, “ometiff” for OME TIFF image files, “tiff_stack” for a stack (i.e., a large number of) TIFF files).'),
+                options: OptionalField(RawVolumeOptionsT, 'Specifies the desired voxel size and custom channel IDs in case of multichannel raw input data (e.g., OMEZarr with multiple channels).')
+            }
         },
         /** This node instructs to create a structure from a parsed data resource. "Structure" refers to an internal representation of molecular coordinates without any visual representation. */
         structure: {
@@ -139,6 +148,15 @@ export const MVSTreeSchema = TreeSchema({
             params: {
                 /** Method of visual representation of the component. */
                 type: RequiredField(RepresentationTypeT, 'Method of visual representation of the component.'),
+            },
+        },
+        /** This node instructs to create a visual representation of a volume. */
+        volume_representation: {
+            description: 'This node instructs to create a visual representation of a volume.',
+            parent: ['raw_volume'],
+            params: {
+                /** Method of visual representation of the component. */
+                type: RequiredField(VolumeRepresentationTypeT, 'Method of visual representation of the volume.'),
             },
         },
         /** This node instructs to apply color to a visual representation. */

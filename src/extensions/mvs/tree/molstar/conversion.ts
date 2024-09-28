@@ -18,6 +18,7 @@ export const ParseFormatMvsToMolstar = {
     mmcif: { format: 'cif', is_binary: false },
     bcif: { format: 'cif', is_binary: true },
     pdb: { format: 'pdb', is_binary: false },
+    map: { format: 'map', is_binary: true }
 } satisfies { [p in ParseFormatT]: { format: MolstarParseFormatT, is_binary: boolean } };
 
 
@@ -46,6 +47,13 @@ const mvsToMolstarConversionRules: ConversionRules<FullMVSTree, MolstarTree> = {
             { kind: 'structure', params: omitObjectKeys(node.params, ['block_header', 'block_index', 'model_index']) },
         ] satisfies MolstarNode[];
     },
+    'raw_volume': (node, parent) => {
+        if (parent?.kind !== 'parse') throw new Error('Parent of "structure" must be "parse".');
+        const { format } = ParseFormatMvsToMolstar[parent.params.format];
+        return [
+            { kind: 'raw_volume', params: { source: node.params.source, options: node.params.options } }
+        ] satisfies MolstarNode[];
+    }
 };
 
 /** Node kinds in `MolstarTree` that it makes sense to condense */
@@ -72,6 +80,7 @@ const StructureFormatExtensions: Record<ParseFormatT, (FileExtension | '*')[]> =
     mmcif: ['.cif', '.mmif'],
     bcif: ['.bcif'],
     pdb: ['.pdb', '.ent'],
+    map: ['.map', '.ccp4', '.mrc', '.rec']
 };
 
 /** Run some sanity check on a MVSTree. Return a list of potential problems (`undefined` if there are none) */
