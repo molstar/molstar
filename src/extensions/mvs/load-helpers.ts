@@ -408,6 +408,10 @@ export function volumeRepresentationProps(params: ParamsOfKind<MolstarTree, 'vol
             return {
                 type: { name: 'isosurface', params: {} },
             };
+        case 'direct_volume':
+            return {
+                type: { name: 'direct-volume', params: {} },
+            };
         default:
             throw new Error('NotImplementedError');
     }

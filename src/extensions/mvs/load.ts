@@ -228,10 +228,11 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     volume_representation(updateParent: UpdateTarget, node: MolstarNode<'volume_representation'>): UpdateTarget {
         const visualParams = {
             'type': {
-                'name': 'isosurface',
+                'name': node.params.type,
                 'params': {}
             },
             'colorTheme': {
+                // TODO: color
                 'name': 'uniform',
                 'params': {
                     'value': 32896,
