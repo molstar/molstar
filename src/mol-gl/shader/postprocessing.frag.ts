@@ -163,7 +163,6 @@ void main(void) {
         float closestTexel;
         float isTransparentOutline;
         float outline = getOutline(coords, opaqueDepth, closestTexel, isTransparentOutline);
-        float outlineFogFactor;
         if (outline == 0.0) {
             float viewDist = abs(getViewZ(closestTexel));
             float fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
