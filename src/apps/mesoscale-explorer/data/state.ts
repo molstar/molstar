@@ -553,6 +553,37 @@ export function getEntityDescription(plugin: PluginContext, cell: StateObjectCel
     return d;
 }
 
+export async function updateStyle(plugin: PluginContext, options: { ignoreLight: boolean, material: Material, celShaded: boolean, illustrative: boolean }) {
+    const update = plugin.state.data.build();
+    const { ignoreLight, material, celShaded, illustrative } = options;
+
+    const entities = getAllEntities(plugin);
+
+    for (let j = 0; j < entities.length; ++j) {
+        update.to(entities[j]).update(old => {
+            if (old.type) {
+                const value = old.colorTheme.name === 'illustrative'
+                    ? old.colorTheme.params.style.params.value
+                    : old.colorTheme.params.value;
+                const lightness = old.colorTheme.name === 'illustrative'
+                    ? old.colorTheme.params.style.params.lightness
+                    : old.colorTheme.params.lightness;
+                if (illustrative) {
+                    old.colorTheme = { name: 'illustrative', params: { style: { name: 'uniform', params: { value, lightness } } } };
+                } else {
+                    old.colorTheme = { name: 'uniform', params: { value, lightness } };
+                }
+                old.type.params.ignoreLight = ignoreLight;
+                old.type.params.material = material;
+                old.type.params.celShaded = celShaded;
+            }
+        });
+    }
+
+    // TODO: set groups color type to 'custom'
+
+    await update.commit();
+};
 
 export async function updateColors(plugin: PluginContext, values: PD.Values, options?: PD.Values, tag?: string, filter?: string) {
     const update = plugin.state.data.build();
