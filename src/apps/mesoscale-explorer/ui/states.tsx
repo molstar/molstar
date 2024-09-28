@@ -563,7 +563,7 @@ export class MesoQuickStyles extends PluginUIComponent {
         });
     }
 
-    async stylizedDof() {
+    async shinyDof() {
         if (!this.plugin.canvas3d) return;
         const p = this.plugin.canvas3d.props;
         this.plugin.canvas3d.setProps({
@@ -597,7 +597,7 @@ export class MesoQuickStyles extends PluginUIComponent {
         await updateStyle(this.plugin, {
             ignoreLight: false,
             material: { metalness: 0, roughness: 0.2, bumpiness: 0 },
-            celShaded: true,
+            celShaded: false,
             illustrative: false,
         });
     }
@@ -718,7 +718,7 @@ export class MesoQuickStyles extends PluginUIComponent {
                 <Button noOverflow title='Enable shiny material, outline, and illustrative colors' onClick={() => this.stylized()} style={{ width: 'auto' }}>
                     Shiny-Illustrative
                 </Button>
-                <Button noOverflow title='Enable DOF and shiny material' onClick={() => this.stylizedDof()} style={{ width: 'auto' }}>
+                <Button noOverflow title='Enable DOF and shiny material' onClick={() => this.shinyDof()} style={{ width: 'auto' }}>
                     Shiny-DOF
                 </Button>
             </div>
