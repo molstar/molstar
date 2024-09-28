@@ -49,7 +49,7 @@ const mvsToMolstarConversionRules: ConversionRules<FullMVSTree, MolstarTree> = {
     },
     'raw_volume': (node, parent) => {
         if (parent?.kind !== 'parse') throw new Error('Parent of "structure" must be "parse".');
-        const { format } = ParseFormatMvsToMolstar[parent.params.format];
+        // const { format } = ParseFormatMvsToMolstar[parent.params.format];
         return [
             { kind: 'raw_volume', params: { source: node.params.source, options: node.params.options } }
         ] satisfies MolstarNode[];

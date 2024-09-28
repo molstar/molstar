@@ -224,21 +224,13 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
             colorTheme: colorThemeForNode(node, context),
         });
     },
-    volume_representation(updateParent: UpdateTarget, node: MolstarNode<'volume_representation'>): UpdateTarget {
+    volume_representation(updateParent: UpdateTarget, node: MolstarNode<'volume_representation'>, context: MolstarLoadingContext): UpdateTarget {
         const visualParams = {
             'type': {
                 'name': node.params.type,
                 'params': {}
             },
-            'colorTheme': {
-                // TODO: color
-                'name': 'uniform',
-                'params': {
-                    'value': 32896,
-                    'saturation': 0,
-                    'lightness': 0
-                }
-            },
+            'colorTheme': colorThemeForNode(node, context),
             'sizeTheme': {
                 'name': 'uniform',
                 'params': {
