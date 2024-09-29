@@ -97,12 +97,12 @@ export async function createPetworldHierarchy(plugin: PluginContext, trajectory:
 
     const group = await state.build()
         .toRoot()
-        .applyOrUpdateTagged('group:ent:', MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `ent:`, label: 'entity', color: { type: 'generate', illustrative: false, value: ColorNames.white, variability: 20, shift: 0, lightness: 0, alpha: 1, emissive: 0 } }, { tags: 'group:ent:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
+        .apply(MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `ent:`, label: 'entity', color: { type: 'generate', illustrative: false, value: ColorNames.white, variability: 20, shift: 0, lightness: 0, alpha: 1, emissive: 0 } }, { tags: ['group:ent:'], state: { isCollapsed: false, isHidden: groupParams.hidden } })
         .commit({ revertOnError: true });
 
     await state.build()
         .to(group)
-        .applyOrUpdateTagged(`group:ent:mem`, MesoscaleGroup, { ...groupParams, index: undefined, tag: `ent:mem`, label: 'Membrane', color: { type: 'uniform', illustrative: false, value: ColorNames.lightgrey, variability: 20, shift: 0, lightness: 0, alpha: 1, emissive: 0 } }, { tags: `ent:`, state: { isCollapsed: true, isHidden: groupParams.hidden } })
+        .apply(MesoscaleGroup, { ...groupParams, index: undefined, tag: `ent:mem`, label: 'Membrane', color: { type: 'uniform', illustrative: false, value: ColorNames.lightgrey, variability: 20, shift: 0, lightness: 0, alpha: 1, emissive: 0 } }, { tags: ['group:ent:mem', 'ent:', '__no_group_color__'], state: { isCollapsed: true, isHidden: groupParams.hidden } })
         .commit();
 
     const colors = getDistinctBaseColors(other.length, 0);
@@ -115,13 +115,13 @@ export async function createPetworldHierarchy(plugin: PluginContext, trajectory:
                 build = build
                     .to(cell)
                     .apply(StructureFromPetworld, membrane[i])
-                    .apply(StructureRepresentation3D, getSpacefillParams(ColorNames.lightgrey, graphicsMode), { tags: [`ent:mem`] });
+                    .apply(StructureRepresentation3D, getSpacefillParams(ColorNames.lightgrey, graphicsMode), { tags: ['ent:mem', '__no_group_color__'] });
             }
             for (let i = 0, il = other.length; i < il; ++i) {
                 build = build
                     .to(cell)
                     .apply(StructureFromPetworld, other[i])
-                    .apply(StructureRepresentation3D, getSpacefillParams(colors[i], graphicsMode), { tags: [`ent:`] });
+                    .apply(StructureRepresentation3D, getSpacefillParams(colors[i], graphicsMode), { tags: ['ent:'] });
             }
             await build.commit();
         } catch (e) {
