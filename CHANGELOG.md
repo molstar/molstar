@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v4.7.0] - 2024-09-29
+
 - Add illumination mode
     - Path-traced SSGI
     - Automatic thickness (estimate)
