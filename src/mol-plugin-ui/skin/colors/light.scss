@@ -18,3 +18,7 @@ $log-warning:          #FCC937;
 $log-error:            #FD354B;
 
 $logo-background: color.invert(#111318, $space: rgb);
+
+@function color-increase-contrast($color, $amount) {
+    @return darken($color, $amount);
+}

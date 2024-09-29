@@ -17,6 +17,9 @@ $log-error:            #FD354B;
 
 $logo-background: rgba(0,0,0,0.75);
 
+@function color-increase-contrast($color, $amount) {
+    @return lighten($color, $amount);
+}
 
 @import 'mol-plugin-ui/skin/base/base';
 @import 'mol-plugin-ui/skin/base/variables';

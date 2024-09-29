@@ -27,10 +27,10 @@
 
     &:hover {
         color: $hover-font-color;
-        background-color: color.adjust($msp-form-control-background, $lightness: 5%, $space: hsl);
+        background-color: color-increase-contrast($msp-form-control-background, 5%);
         border: none;
         outline-offset: -1px !important;
-        outline: 1px solid color.adjust($msp-form-control-background, $lightness: 20%, $space: hsl) !important;
+        outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;
     }
 
     &:active, &:focus {
@@ -127,10 +127,10 @@
 
     &:hover {
         color: $hover-font-color;
-        background-color: color.adjust($msp-form-control-background, $lightness: 5%, $space: hsl);
+        background-color: color-increase-contrast($msp-form-control-background, 5%);
         border: none;
         outline-offset: -1px !important;
-        outline: 1px solid color.adjust($msp-form-control-background, $lightness: 20%, $space: hsl) !important;
+        outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;
     }
 
     &[disabled], &[disabled]:hover, &[disabled]:active {
@@ -149,10 +149,10 @@
 
     &:hover {
         color: $hover-font-color;
-        background-color: color.adjust($msp-form-control-background, $lightness: 5%, $space: hsl);
+        background-color: color-increase-contrast($msp-form-control-background, 5%);
         border: none;
         outline-offset: -1px !important;
-        outline: 1px solid color.adjust($msp-form-control-background, $lightness: 20%, $space: hsl) !important;
+        outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;
     }
 
     &[disabled], &[disabled]:hover, &[disabled]:active {
