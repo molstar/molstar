@@ -749,7 +749,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
     };
 
     updateRoot = async (values: PD.Values) => {
-        await updateColors(this.plugin, values, undefined, this.cell.params?.values.tag, this.props.filter);
+        await updateColors(this.plugin, values, this.cell.params?.values.tag, this.props.filter);
 
         const update = this.plugin.state.data.build();
 
