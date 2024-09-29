@@ -27,6 +27,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Use in MolViewSpec extension
 - Mesoscale Explorer: fix color & style issues
 - Remove use of deprecated SASS explicit color functions
+- Allow "Components" section to display nested components created by "Apply Action > Selection".
 
 ## [v4.6.0] - 2024-08-28
 
