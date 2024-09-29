@@ -46,7 +46,7 @@
     
     .msp-log-entry {
         margin-left: $control-label-width;
-        background: color.adjust($control-background, $lightness: -5%, $space: hsl);
+        background: color-lower-contrast($control-background, 5%);
         padding: $info-vertical-padding ($control-spacing + 15px) $info-vertical-padding $control-spacing ;
     }
     

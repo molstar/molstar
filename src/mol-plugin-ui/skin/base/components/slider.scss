@@ -109,7 +109,7 @@
     
     .msp-slider-base-handle, .msp-slider-base-dot {
       // border-color: $slider-disabledColor;
-      // background-color: color.adjust($font-color, $lightness: -10%, $space: hsl);
+      // background-color: color-lower-contrast($font-color, 10%);
       cursor: not-allowed;
     }
 

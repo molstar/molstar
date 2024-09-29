@@ -113,7 +113,7 @@
     }
 
     option:first-child {
-        color: color.adjust($font-color, $lightness: -15%, $space: hsl);
+        color: color-lower-contrast($font-color, 15%);
     }
 
     > .msp-icon {
@@ -210,7 +210,7 @@
 }
 
 .msp-25-lower-contrast-text {
-    color: color.adjust($font-color, $lightness: -25%, $space: hsl);
+    color: color-lower-contrast($font-color, 25%);
 }
 
 .msp-expandable-group-color-stripe {
@@ -373,7 +373,7 @@
     }
 
     .msp-btn-tree-label > small {
-        color: color.adjust($font-color, $lightness: -20%, $space: hsl);
+        color: color-lower-contrast($font-color, 20%);
     }
 }
 

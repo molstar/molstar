@@ -22,7 +22,7 @@
         width: $control-label-width + $control-spacing;
         text-align: right;
         padding: 0 $control-spacing;
-        color: color.adjust($font-color, $lightness: -15%, $space: hsl);
+        color: color-lower-contrast($font-color, 15%);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -249,7 +249,7 @@
         line-height: 24px !important;
         font-size: 85% !important;
         background: $default-background !important;
-        color: color.adjust($font-color, $lightness: -15%, $space: hsl);
+        color: color-lower-contrast($font-color, 15%);
     }
     .msp-icon {
         height: 24px !important;
@@ -260,7 +260,7 @@
         line-height: math.div(2 * $row-height, 3);
         font-size: 70%;
         background: $default-background;
-        color: color.adjust($font-color, $lightness: -15%, $space: hsl);
+        color: color-lower-contrast($font-color, 15%);
     }
 }
 
@@ -323,7 +323,7 @@
     > div {
         line-height: $row-height;
         text-align: center;
-        color: color.adjust($font-color, $lightness: -15%, $space: hsl);
+        color: color-lower-contrast($font-color, 15%);
     }
 }
 
@@ -344,13 +344,13 @@
     > div {
         padding: (math.div($control-spacing, 2)) $control-spacing;
         text-align: left;
-        color: color.adjust($font-color, $lightness: -15%, $space: hsl);
+        color: color-lower-contrast($font-color, 15%);
     }
 
     > p {
         padding: (math.div($control-spacing, 2)) $control-spacing;
         text-align: left;
-        color: color.adjust($font-color, $lightness: -15%, $space: hsl);
+        color: color-lower-contrast($font-color, 15%);
     }
 }
 
