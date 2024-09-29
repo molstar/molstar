@@ -20,9 +20,9 @@ $log-error:            #FD354B;
 $logo-background: color.invert(#111318, $space: rgb);
 
 @function color-lower-contrast($color, $amount) {
-    @return lighten($color, $amount);
+    @return color.adjust($color, $lightness: $amount, $space: hsl);
 }
 
 @function color-increase-contrast($color, $amount) {
-    @return darken($color, $amount);
+    @return color.adjust($color, $lightness: -$amount, $space: hsl);
 }
