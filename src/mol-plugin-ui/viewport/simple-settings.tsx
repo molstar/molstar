@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -71,9 +71,12 @@ const SimpleSettingsParams = {
     }, { pivot: 'radius' }),
     layout: PD.MultiSelect([] as LayoutOptions[], PD.objectToOptions(LayoutOptions)),
     advanced: PD.Group({
+        illumination: Canvas3DParams.illumination,
         multiSample: Canvas3DParams.multiSample,
         hiZ: Canvas3DParams.hiZ,
         sharpening: Canvas3DParams.postprocessing.params.sharpening,
+        bloom: Canvas3DParams.postprocessing.params.bloom,
+        resolutionMode: Canvas3DContext.Params.resolutionMode,
         pixelScale: Canvas3DContext.Params.pixelScale,
         transparency: Canvas3DContext.Params.transparency,
     }),
@@ -109,8 +112,8 @@ const SimpleSettingsMapping = ParamMapping({
         if (r.bottom !== 'hidden' && (!c || c.bottom !== 'none')) layout.push('log');
         if (r.left !== 'hidden' && (!c || c.left !== 'none')) layout.push('left');
         if (r.right !== 'hidden' && (!c || c.right !== 'none')) layout.push('right');
-        const { pixelScale, transparency } = ctx.canvas3dContext?.props!;
-        return { canvas: ctx.canvas3d?.props!, layout, pixelScale, transparency };
+        const { pixelScale, transparency, resolutionMode } = ctx.canvas3dContext?.props!;
+        return { canvas: ctx.canvas3d?.props!, layout, resolutionMode, pixelScale, transparency };
     }
 })({
     values(props, ctx) {
@@ -137,9 +140,12 @@ const SimpleSettingsMapping = ParamMapping({
                 ...canvas.cameraClipping,
             },
             advanced: {
+                illumination: canvas.illumination,
                 multiSample: canvas.multiSample,
                 hiZ: canvas.hiZ,
                 sharpening: canvas.postprocessing.sharpening,
+                bloom: canvas.postprocessing.bloom,
+                resolutionMode: props.resolutionMode,
                 pixelScale: props.pixelScale,
                 transparency: props.transparency,
             },
@@ -161,12 +167,15 @@ const SimpleSettingsMapping = ParamMapping({
             far: s.clipping.far,
             minNear: s.clipping.minNear,
         };
+        canvas.illumination = s.advanced.illumination;
         canvas.multiSample = s.advanced.multiSample;
         canvas.hiZ = s.advanced.hiZ;
         canvas.postprocessing.sharpening = s.advanced.sharpening;
+        canvas.postprocessing.bloom = s.advanced.bloom;
         canvas.postprocessing.dof = s.lighting.dof;
 
         props.layout = s.layout;
+        props.resolutionMode = s.advanced.resolutionMode;
         props.pixelScale = s.advanced.pixelScale;
         props.transparency = s.advanced.transparency;
     },
@@ -187,6 +196,7 @@ const SimpleSettingsMapping = ParamMapping({
         }
 
         ctx.canvas3dContext?.setProps({
+            resolutionMode: props.resolutionMode,
             pixelScale: props.pixelScale,
             transparency: props.transparency,
         });

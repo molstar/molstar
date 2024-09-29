@@ -1,3 +1,9 @@
+# 0.9.12
+* add `health-check` endpoint + `healthCheckPath` config prop to report service health
+
+# 0.9.11
+# SDF/MOL2 ligand export: fix atom indices when additional atoms are present
+
 # 0.9.10
 * /ligand queries: fix atom count reported by SDF/MOL/MOL2 export
 

@@ -300,7 +300,7 @@ export class PickHelper {
     }
 
     private render(camera: Camera | StereoCamera) {
-        if (isTimingMode) this.webgl.timer.mark('PickHelper.render', true);
+        if (isTimingMode) this.webgl.timer.mark('PickHelper.render', { captureStats: true });
         const { pickX, pickY, pickWidth, pickHeight, halfPickWidth } = this;
         const { renderer, scene, helper } = this;
 

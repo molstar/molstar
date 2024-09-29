@@ -60,6 +60,7 @@
             var allowMajorPerformanceCaveat = getParam('allow-major-performance-caveat', '[^&]+').trim() === '1';
             var powerPreference = getParam('power-preference', '[^&]+').trim().toLowerCase();
             var graphicsMode = getParam('graphics-mode', '[^&]+').trim().toLowerCase();
+            var illumination = getParam('illumination', '[^&]+').trim() === '1';
 
             molstar.MesoscaleExplorer.create('app', {
                 layoutShowControls: !hideControls,
@@ -68,6 +69,7 @@
                 allowMajorPerformanceCaveat: allowMajorPerformanceCaveat,
                 powerPreference: powerPreference || 'high-performance',
                 graphicsMode: graphicsMode || 'quality',
+                illumination: illumination,
                 driver: driver
             }).then(me => {
                 var example = getParam('example', '[^&]+').trim();
@@ -94,7 +96,6 @@
                     me.loadPdbDev(pdbdev);
                     return;
                 }
-
                 window.addEventListener('unload', () => {
                     // to aid GC
                     me.dispose();

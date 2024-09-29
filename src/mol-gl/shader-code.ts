@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ValueCell } from '../mol-util';
@@ -163,18 +164,21 @@ export function ShaderCode(name: string, vert: string, frag: string, extensions:
 // Note: `drawBuffers` need to be 'optional' for wboit
 
 function ignoreDefine(name: string, variant: string, defines: ShaderDefines): boolean {
-    if (variant.startsWith('color')) {
+    if (variant.startsWith('color') || variant === 'tracing') {
         if (name === 'dLightCount') {
             return !!defines.dIgnoreLight?.ref.value;
         }
     } else {
         const ignore = [
             'dColorType', 'dUsePalette',
-            'dLightCount', 'dXrayShaded',
             'dOverpaintType', 'dOverpaint',
             'dSubstanceType', 'dSubstance',
-            'dColorMarker', 'dCelShaded'
+            'dColorMarker', 'dCelShaded',
+            'dLightCount',
         ];
+        if (variant !== 'depth') {
+            ignore.push('dXrayShaded');
+        }
         if (variant !== 'emissive') {
             ignore.push('dEmissiveType', 'dEmissive');
         }

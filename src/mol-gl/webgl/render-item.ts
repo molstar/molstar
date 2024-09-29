@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -65,7 +65,7 @@ export interface RenderItem<T extends string> {
 
 //
 
-const GraphicsRenderVariant = { color: '', pick: '', depth: '', marking: '', emissive: '' };
+const GraphicsRenderVariant = { color: '', pick: '', depth: '', marking: '', emissive: '', tracing: '' };
 export type GraphicsRenderVariant = keyof typeof GraphicsRenderVariant
 export const GraphicsRenderVariants = Object.keys(GraphicsRenderVariant) as GraphicsRenderVariant[];
 
@@ -134,6 +134,12 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
     const id = getNextRenderItemId();
     const { stats, state, resources } = ctx;
     const { instancedArrays, vertexArrayObject, multiDrawInstancedBaseVertexBaseInstance, drawInstancedBaseVertexBaseInstance } = ctx.extensions;
+
+    // filter out unsupported variants
+    renderVariants = renderVariants.filter(v => {
+        if (v === 'tracing') return !!ctx.extensions.drawBuffers;
+        return true;
+    });
 
     // emulate gl_VertexID when needed
     if (values.uVertexCount && !ctx.extensions.noNonInstancedActiveAttribs) {

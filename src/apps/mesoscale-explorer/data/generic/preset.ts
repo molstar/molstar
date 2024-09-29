@@ -11,7 +11,7 @@ import { SpacefillRepresentationProvider } from '../../../../mol-repr/structure/
 import { Color } from '../../../../mol-util/color';
 import { utf8Read } from '../../../../mol-io/common/utf8';
 import { Mat3, Quat, Vec3 } from '../../../../mol-math/linear-algebra';
-import { GraphicsMode, MesoscaleGroup, MesoscaleState, getGraphicsModeProps, getMesoscaleGroupParams, updateColors } from '../state';
+import { GraphicsMode, MesoscaleGroup, MesoscaleState, getGraphicsModeProps, getMesoscaleGroupParams } from '../state';
 import { ColorNames } from '../../../../mol-util/color/names';
 import { ShapeRepresentation3D, StructureRepresentation3D } from '../../../../mol-plugin-state/transforms/representation';
 import { ParseCif, ParsePly, ReadFile } from '../../../../mol-plugin-state/transforms/data';
@@ -250,10 +250,6 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
                 }
             }
             await build.commit();
-
-            const values = { type: 'group-generate', value: ColorNames.white, lightness: 0, alpha: 1 };
-            const options = { ignoreLight: true, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 }, celShaded: true, };
-            await updateColors(plugin, values, options);
         } catch (e) {
             console.error(e);
             plugin.log.error(e);

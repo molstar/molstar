@@ -118,7 +118,7 @@ const MembraneOrientation3D = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Membrane Orientation', async ctx => {
-            await MembraneOrientationProvider.attach({ runtime: ctx, assetManager: plugin.managers.asset }, a.data);
+            await MembraneOrientationProvider.attach({ runtime: ctx, assetManager: plugin.managers.asset, errorContext: plugin.errorContext }, a.data);
             const repr = MembraneOrientationRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => MembraneOrientationParams);
             await repr.createOrUpdate(params, a.data).runInContext(ctx);
             return new PluginStateObject.Shape.Representation3D({ repr, sourceData: a.data }, { label: 'Membrane Orientation' });
@@ -126,7 +126,7 @@ const MembraneOrientation3D = PluginStateTransform.BuiltIn({
     },
     update({ a, b, newParams }, plugin: PluginContext) {
         return Task.create('Membrane Orientation', async ctx => {
-            await MembraneOrientationProvider.attach({ runtime: ctx, assetManager: plugin.managers.asset }, a.data);
+            await MembraneOrientationProvider.attach({ runtime: ctx, assetManager: plugin.managers.asset, errorContext: plugin.errorContext }, a.data);
             const props = { ...b.data.repr.props, ...newParams };
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
             b.data.sourceData = a.data;
@@ -155,7 +155,7 @@ export const MembraneOrientationPreset = StructureRepresentationPresetProvider({
 
         if (!MembraneOrientationProvider.get(structure).value) {
             await plugin.runTask(Task.create('Membrane Orientation', async runtime => {
-                await MembraneOrientationProvider.attach({ runtime, assetManager: plugin.managers.asset }, structure);
+                await MembraneOrientationProvider.attach({ runtime, assetManager: plugin.managers.asset, errorContext: plugin.errorContext }, structure);
             }));
         }
 

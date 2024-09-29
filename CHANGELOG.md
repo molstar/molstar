@@ -5,6 +5,32 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add illumination mode
+    - Path-traced SSGI
+    - Automatic thickness (estimate)
+        - Base thickness as max(backface depth) - min(frontface depth)
+        - Per object density factor to adjust thickness
+    - Progressively trace samples to keep viewport interactive
+    - Toggle on/off by pressing "G"
+    - `illumination` Viewer GET param
+- Enables dXrayShaded define when rendering depth
+- Fix handling of PDB files that have chains with same id separated by TER record (#1245)
+- Sequence Panel: Improve visuals of unmodeled sequence positions (#1248)
+- Fix no-compression xtc parser (#1258)
+- Mol2 Reader: Fix mol2 status_bit read error (#1251)
+- Fix shadows with multiple lights
+- Fix impostor sphere interior normal when using orthographic projection
+- Add `resolutionMode` parameter to `Canvas3DContext`
+    - `scaled`, divides by `devicePixelRatio`
+    - `native`, no changes
+- Add `CustomProperty.Context.errorContext` to support reporting errors during loading of custom properties (#1254)
+    - Use in MolViewSpec extension
+- Mesoscale Explorer: fix color & style issues
+- Remove use of deprecated SASS explicit color functions
+- Allow "Components" section to display nested components created by "Apply Action > Selection".
+
+## [v4.6.0] - 2024-08-28
+
 - Add round-caps option on tubular alpha helices
 - Fix missing Sequence UI update on state object removal (#1219)
 - Improved prmtop format support (CTITLE, %COMMENT)
@@ -22,7 +48,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix cartoon representation not updated when secondary structure changes
 - Add Zhang-Skolnick secondary-structure assignment method which handles coarse-grained models (#49)
 - Calculate bonds for coarse-grained models
-- Allow "Components" section to display nested components created by "Apply Action > Selection".
+- VolumeServer: Add `health-check` endpoint + `healthCheckPath` config prop to report service health
+- ModelServer: Add `health-check` endpoint + `healthCheckPath` config prop to report service health
 
 ## [v4.5.0] - 2024-07-28
 

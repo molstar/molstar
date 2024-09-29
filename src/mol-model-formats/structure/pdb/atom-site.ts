@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+     * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -39,7 +39,52 @@ export function getAtomSiteTemplate(data: string, count: number) {
     };
 }
 
-export function getAtomSite(sites: AtomSiteTemplate, terIndices: Set<number>, options: { hasAssemblies: boolean }): { [K in keyof mmCIF_Schema['atom_site'] | 'partial_charge']?: CifField } {
+export class LabelAsymIdHelper {
+    constructor(private asymIds: Column<string>, private modelNums: string[], private terIndices: Set<number>, private hasAssemblies: boolean) { }
+
+    private asymIdCounts = new Map<string, number>();
+    private currModelNum: string | undefined = undefined;
+    private currAsymId = '';
+    private currLabelAsymId = '';
+
+    clear() {
+        this.asymIdCounts.clear();
+        this.currModelNum = undefined;
+    }
+
+    get(i: number) {
+        const asymId = this.asymIds.value(i);
+        if (this.hasAssemblies) return asymId;
+
+        const modelNum = this.modelNums[i];
+        if (modelNum !== this.currModelNum) {
+            this.asymIdCounts.clear();
+            this.currModelNum = modelNum;
+            this.currLabelAsymId = asymId;
+        } else if (this.currAsymId !== asymId) {
+            this.currAsymId = asymId;
+            this.currLabelAsymId = asymId;
+        }
+        if (this.asymIdCounts.has(asymId)) {
+            // only change the chains name if there are TER records
+            // otherwise assume repeated chain name use is from interleaved chains
+            // also don't change the chains name if there are assemblies
+            // as those require the original chain name
+            if (this.terIndices.has(i)) {
+                const asymIdCount = this.asymIdCounts.get(asymId)! + 1;
+                this.asymIdCounts.set(asymId, asymIdCount);
+                this.currLabelAsymId = `${asymId}_${asymIdCount}`;
+            }
+        } else {
+            this.asymIdCounts.set(asymId, 0);
+        }
+        return this.currLabelAsymId;
+    }
+}
+
+export function getAtomSite(sites: AtomSiteTemplate, labelAsymIdHelper: LabelAsymIdHelper, options: { hasAssemblies: boolean }): { [K in keyof mmCIF_Schema['atom_site'] | 'partial_charge']?: CifField } {
+    labelAsymIdHelper.clear();
+
     const pdbx_PDB_model_num = CifField.ofStrings(sites.pdbx_PDB_model_num);
     const auth_asym_id = CifField.ofTokens(sites.auth_asym_id);
     const auth_seq_id = CifField.ofTokens(sites.auth_seq_id);
@@ -54,7 +99,6 @@ export function getAtomSite(sites: AtomSiteTemplate, terIndices: Set<number>, op
     let currAsymId = auth_asym_id.str(0);
     let currSeqId = auth_seq_id.int(0);
     let currInsCode = pdbx_PDB_ins_code.str(0);
-    let currLabelAsymId = currAsymId;
     let currLabelSeqId = currSeqId;
 
     const asymIdCounts = new Map<string, number>();
@@ -88,14 +132,12 @@ export function getAtomSite(sites: AtomSiteTemplate, terIndices: Set<number>, op
             currAsymId = asymId;
             currSeqId = seqId;
             currInsCode = insCode;
-            currLabelAsymId = asymId;
             currLabelSeqId = seqId;
         } else if (currAsymId !== asymId) {
             atomIdCounts.clear();
             currAsymId = asymId;
             currSeqId = seqId;
             currInsCode = insCode;
-            currLabelAsymId = asymId;
             currLabelSeqId = seqId;
         } else if (currSeqId !== seqId) {
             atomIdCounts.clear();
@@ -112,20 +154,7 @@ export function getAtomSite(sites: AtomSiteTemplate, terIndices: Set<number>, op
             currLabelSeqId += 1;
         }
 
-        if (asymIdCounts.has(asymId)) {
-            // only change the chains name if there are TER records
-            // otherwise assume repeated chain name use is from interleaved chains
-            // also don't change the chains name if there are assemblies
-            // as those require the original chain name
-            if (terIndices.has(i) && !options.hasAssemblies) {
-                const asymIdCount = asymIdCounts.get(asymId)! + 1;
-                asymIdCounts.set(asymId, asymIdCount);
-                currLabelAsymId = `${asymId}_${asymIdCount}`;
-            }
-        } else {
-            asymIdCounts.set(asymId, 0);
-        }
-        labelAsymIds[i] = currLabelAsymId;
+        labelAsymIds[i] = labelAsymIdHelper.get(i);
 
         if (atomIdCounts.has(atomId)) {
             const atomIdCount = atomIdCounts.get(atomId)! + 1;

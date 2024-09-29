@@ -148,25 +148,25 @@ export class SsaoPass {
         const filter = textureFloatLinear ? 'linear' : 'nearest';
 
         this.downsampledDepthTarget = packedDepth
-            ? webgl.createRenderTarget(sw, sh, false, 'uint8', filter, 'rgba')
+            ? webgl.createRenderTarget(sw, sh, false, 'uint8', 'linear', 'rgba')
             : webgl.createRenderTarget(sw, sh, false, 'float32', filter, webgl.isWebGL2 ? 'alpha' : 'rgba');
         this.downsampleDepthRenderable = createCopyRenderable(webgl, depthTexture);
 
         this.depthHalfTarget = packedDepth
-            ? webgl.createRenderTarget(hw, hh, false, 'uint8', filter, 'rgba')
+            ? webgl.createRenderTarget(hw, hh, false, 'uint8', 'linear', 'rgba')
             : webgl.createRenderTarget(hw, hh, false, 'float32', filter, webgl.isWebGL2 ? 'alpha' : 'rgba');
         this.depthHalfRenderable = createCopyRenderable(webgl, this.getDepthTexture());
 
         this.depthQuarterTarget = packedDepth
-            ? webgl.createRenderTarget(qw, qh, false, 'uint8', filter, 'rgba')
+            ? webgl.createRenderTarget(qw, qh, false, 'uint8', 'linear', 'rgba')
             : webgl.createRenderTarget(qw, qh, false, 'float32', filter, webgl.isWebGL2 ? 'alpha' : 'rgba');
         this.depthQuarterRenderable = createCopyRenderable(webgl, this.depthHalfTarget.texture);
 
-        this.ssaoDepthTexture = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', filter);
+        this.ssaoDepthTexture = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
         this.ssaoDepthTexture.define(sw, sh);
         this.ssaoDepthTexture.attachFramebuffer(this.framebuffer, 'color0');
 
-        this.depthBlurProxyTexture = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', filter);
+        this.depthBlurProxyTexture = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
         this.depthBlurProxyTexture.define(sw, sh);
         this.depthBlurProxyTexture.attachFramebuffer(this.blurFirstPassFramebuffer, 'color0');
 

@@ -1013,7 +1013,7 @@ const CustomModelProperties = PluginStateTransform.BuiltIn({
     }
 });
 async function attachModelProps(model: Model, ctx: PluginContext, taskCtx: RuntimeContext, params: ReturnType<CustomModelProperties['createDefaultParams']>) {
-    const propertyCtx = { runtime: taskCtx, assetManager: ctx.managers.asset };
+    const propertyCtx = { runtime: taskCtx, assetManager: ctx.managers.asset, errorContext: ctx.errorContext };
     const { autoAttach, properties } = params;
     for (const name of Object.keys(properties)) {
         const property = ctx.customModelProperties.get(name)!;
@@ -1068,7 +1068,7 @@ const CustomStructureProperties = PluginStateTransform.BuiltIn({
     }
 });
 async function attachStructureProps(structure: Structure, ctx: PluginContext, taskCtx: RuntimeContext, params: ReturnType<CustomStructureProperties['createDefaultParams']>) {
-    const propertyCtx = { runtime: taskCtx, assetManager: ctx.managers.asset };
+    const propertyCtx = { runtime: taskCtx, assetManager: ctx.managers.asset, errorContext: ctx.errorContext };
     const { autoAttach, properties } = params;
     for (const name of Object.keys(properties)) {
         const property = ctx.customStructureProperties.get(name)!;

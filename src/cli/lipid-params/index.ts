@@ -13,8 +13,8 @@ import { UniqueArray } from '../../mol-data/generic';
 
 const LIPIDS_DIR = path.resolve(__dirname, '../../../../build/lipids/');
 
-const MARTINI_LIPIDS_PATH = path.resolve(LIPIDS_DIR, 'martini_lipids.itp');
-const MARTINI_LIPIDS_URL = 'http://www.cgmartini.nl/images/parameters/lipids/Collections/martini_v2.0_lipids_all_201506.itp';
+const MARTINI_LIPIDS_PATH = path.resolve(LIPIDS_DIR, 'martini_lipids_v3.itp');
+const MARTINI_LIPIDS_URL = 'https://cgmartini-library.s3.ca-central-1.amazonaws.com/1_Downloads/ff_parameters/martini3/martini_v3.0.0_phospholipids_v1.itp';
 
 async function ensureAvailable(path: string, url: string) {
     if (FORCE_DOWNLOAD || !fs.existsSync(path)) {
@@ -32,6 +32,7 @@ async function ensureAvailable(path: string, url: string) {
 async function ensureLipidsAvailable() { await ensureAvailable(MARTINI_LIPIDS_PATH, MARTINI_LIPIDS_URL); }
 
 const extraLipids = ['DMPC'];
+const v2lipids = ['DAPC', 'DBPC', 'DFPC', 'DGPC', 'DIPC', 'DLPC', 'DNPC', 'DOPC', 'DPPC', 'DRPC', 'DTPC', 'DVPC', 'DXPC', 'DYPC', 'LPPC', 'PAPC', 'PEPC', 'PGPC', 'PIPC', 'POPC', 'PRPC', 'PUPC', 'DAPE', 'DBPE', 'DFPE', 'DGPE', 'DIPE', 'DLPE', 'DNPE', 'DOPE', 'DPPE', 'DRPE', 'DTPE', 'DUPE', 'DVPE', 'DXPE', 'DYPE', 'LPPE', 'PAPE', 'PGPE', 'PIPE', 'POPE', 'PQPE', 'PRPE', 'PUPE', 'DAPS', 'DBPS', 'DFPS', 'DGPS', 'DIPS', 'DLPS', 'DNPS', 'DOPS', 'DPPS', 'DRPS', 'DTPS', 'DUPS', 'DVPS', 'DXPS', 'DYPS', 'LPPS', 'PAPS', 'PGPS', 'PIPS', 'POPS', 'PQPS', 'PRPS', 'PUPS', 'DAPG', 'DBPG', 'DFPG', 'DGPG', 'DIPG', 'DLPG', 'DNPG', 'DOPG', 'DPPG', 'DRPG', 'DTPG', 'DVPG', 'DXPG', 'DYPG', 'LPPG', 'PAPG', 'PGPG', 'PIPG', 'POPG', 'PRPG', 'DAPA', 'DBPA', 'DFPA', 'DGPA', 'DIPA', 'DLPA', 'DNPA', 'DOPA', 'DPPA', 'DRPA', 'DTPA', 'DVPA', 'DXPA', 'DYPA', 'LPPA', 'PAPA', 'PGPA', 'PIPA', 'POPA', 'PRPA', 'PUPA', 'DPP', 'DPPI', 'PAPI', 'PIPI', 'POP', 'POPI', 'PUPI', 'PVP', 'PVPI', 'PADG', 'PIDG', 'PODG', 'PUDG', 'PVDG', 'APC', 'CPC', 'IPC', 'LPC', 'OPC', 'PPC', 'TPC', 'UPC', 'VPC', 'BNSM', 'DBSM', 'DPSM', 'DXSM', 'PGSM', 'PNSM', 'POSM', 'PVSM', 'XNSM', 'DPCE', 'DXCE', 'PNCE', 'XNCE'];
 
 async function run(out: string) {
     await ensureLipidsAvailable();
@@ -50,11 +51,15 @@ async function run(out: string) {
         UniqueArray.add(lipids, v, v);
     }
 
+    for (const v of v2lipids) {
+        UniqueArray.add(lipids, v, v);
+    }
+
     const lipidNames = JSON.stringify(lipids.array);
 
     if (out) {
         const output = `/**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * Code-generated lipid params file. Names extracted from Martini FF lipids itp.
  *
