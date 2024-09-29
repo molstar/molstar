@@ -114,7 +114,7 @@ export async function createMmcifHierarchy(plugin: PluginContext, trajectory: St
 
     const entRoot = await state.build()
         .toRoot()
-        .applyOrUpdateTagged('group:ent:', MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `ent:`, label: 'entity', color: { type: 'custom', illustrative: false, value: ColorNames.white, variability: 20, shift: 0, lightness: 0, alpha: 1, emissive: 0 } }, { tags: 'group:ent:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
+        .apply(MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: 'ent:', label: 'entity', color: { type: 'custom', illustrative: false, value: ColorNames.white, variability: 20, shift: 0, lightness: 0, alpha: 1, emissive: 0 } }, { tags: 'group:ent:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
         .commit();
 
     const getEntityType = (i: number) => {
