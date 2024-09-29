@@ -18,11 +18,11 @@ $log-error:            #FD354B;
 $logo-background: rgba(0,0,0,0.75);
 
 @function color-lower-contrast($color, $amount) {
-    @return darken($color, $amount);
+    @return color.adjust($color, $lightness: -$amount, $space: hsl);
 }
 
 @function color-increase-contrast($color, $amount) {
-    @return lighten($color, $amount);
+    @return color.adjust($color, $lightness: $amount, $space: hsl);
 }
 
 @import 'mol-plugin-ui/skin/base/base';
