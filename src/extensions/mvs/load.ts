@@ -92,7 +92,6 @@ export interface MolstarLoadingContext {
     nearestReprMap?: Map<MolstarNode, MolstarNode<'representation'>>,
     focus?: { kind: 'camera', params: ParamsOfKind<MolstarTree, 'camera'> } | { kind: 'focus', focusTarget: StateObjectSelector, params: ParamsOfKind<MolstarTree, 'focus'> },
     canvas?: ParamsOfKind<MolstarTree, 'canvas'>,
-    pluginContext?: PluginContext
 }
 
 
@@ -155,6 +154,7 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         return model;
     },
     raw_volume(updateParent: UpdateTarget, node: SubTreeOfKind<MolstarTree, 'raw_volume'>, context: MolstarLoadingContext): UpdateTarget {
+        // TODO: write map metadata to the context
         const props = rawVolumeProps(node);
         const rawVolume = UpdateTarget.apply(updateParent, VolumeFromCcp4, props);
         // TODO: tooltips, labels, etc.
