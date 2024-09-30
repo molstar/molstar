@@ -45,6 +45,7 @@ import { AssetManager } from '../mol-util/assets';
 import { deepClone } from '../mol-util/object';
 import { HiZParams, HiZPass } from './passes/hi-z';
 import { IlluminationParams } from './passes/illumination';
+import { isMobileBrowser } from '../mol-util/browser';
 
 export const Canvas3DParams = {
     camera: PD.Group({
@@ -144,7 +145,7 @@ namespace Canvas3DContext {
     export type Attribs = typeof DefaultAttribs
 
     export const Params = {
-        resolutionMode: PD.Select('scaled', PD.arrayToOptions(['scaled', 'native'] as const)),
+        resolutionMode: PD.Select('auto', PD.arrayToOptions(['auto', 'scaled', 'native'] as const)),
         pixelScale: PD.Numeric(1, { min: 0.1, max: 2, step: 0.05 }),
         pickScale: PD.Numeric(0.25, { min: 0.1, max: 1, step: 0.05 }),
         transparency: PD.Select('wboit', [['blended', 'Blended'], ['wboit', 'Weighted, Blended'], ['dpoit', 'Depth Peeling']] as const),
@@ -169,7 +170,13 @@ namespace Canvas3DContext {
         });
         if (gl === null) throw new Error('Could not create a WebGL rendering context');
 
-        const getPixelScale = () => p.resolutionMode === 'native' ? p.pixelScale : (p.pixelScale / window?.devicePixelRatio || 1);
+        const getPixelScale = () => {
+            const scaled = (p.pixelScale / (typeof window !== 'undefined' ? (window?.devicePixelRatio || 1) : 1));
+            if (p.resolutionMode === 'auto') {
+                return isMobileBrowser() ? scaled : p.pixelScale;
+            }
+            return p.resolutionMode === 'native' ? p.pixelScale : scaled;
+        };
         const syncPixelScale = () => {
             const pixelScale = getPixelScale();
             input.setPixelScale(pixelScale);
