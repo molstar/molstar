@@ -25,6 +25,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - `native`, no changes
 - Add `CustomProperty.Context.errorContext` to support reporting errors during loading of custom properties (#1254)
   - Use in MolViewSpec extension
+- Add basic support for volumetric data
 
 ## [v4.6.0] - 2024-08-28
 
