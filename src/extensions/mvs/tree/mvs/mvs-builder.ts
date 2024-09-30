@@ -183,6 +183,15 @@ export class Structure extends _Base<'structure'> {
     }
 }
 
+/** MVS builder pointing to a 'structure' node */
+export class RawVolume extends _Base<'raw_volume'> {
+    /** Add a 'volume_representation' node and return builder pointing to it. 'volume_representation' node instructs to create a visual representation of a component. */
+    volume_representation(params: Partial<ParamsOfKind<MVSTree, 'volume_representation'>> = {}): VolumeRepresentation {
+        const fullParams: ParamsOfKind<MVSTree, 'volume_representation'> = { ...params, type: params.type ?? 'isosurface' };
+        return new VolumeRepresentation(this._root, this.addChild('volume_representation', fullParams));
+    }
+}
+
 
 /** MVS builder pointing to a 'component' or 'component_from_uri' or 'component_from_source' node */
 export class Component extends _Base<'component' | 'component_from_uri' | 'component_from_source'> {
@@ -208,6 +217,20 @@ export class Component extends _Base<'component' | 'component_from_uri' | 'compo
     }
 }
 
+
+/** MVS builder pointing to a 'volume_representation' node */
+export class VolumeRepresentation extends _Base<'volume_representation'> {
+    /** Add a 'color' node and return builder pointing back to the volume_representation node. 'color' node instructs to apply color to a visual representation. */
+    color(params: ParamsOfKind<MVSTree, 'color'>): VolumeRepresentation {
+        this.addChild('color', params);
+        return this;
+    }
+    /** Add a 'color_from_uri' node and return builder pointing back to the volume_representation node. 'color_from_uri' node instructs to apply colors to a visual representation. The colors are defined by an external annotation resource. */
+    colorFromUri(params: ParamsOfKind<MVSTree, 'color_from_uri'>): VolumeRepresentation {
+        this.addChild('color_from_uri', params);
+        return this;
+    }
+}
 
 /** MVS builder pointing to a 'representation' node */
 export class Representation extends _Base<'representation'> {

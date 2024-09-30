@@ -6,9 +6,10 @@
  * @author Aliaksei Chareshneu <chareshneu.tech@gmail.com>
  */
 
-import { Download, ParseCif } from '../../mol-plugin-state/transforms/data';
+import { Download, ParseCcp4, ParseCif } from '../../mol-plugin-state/transforms/data';
 import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromMmCif, TrajectoryFromPDB, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
-import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
+import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
+import { VolumeFromCcp4 } from '../../mol-plugin-state/transforms/volume';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectSelector } from '../../mol-state';
@@ -20,7 +21,7 @@ import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-
 import { CustomLabelProps, CustomLabelRepresentationProvider } from './components/custom-label/representation';
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
 import { IsMVSModelProps, IsMVSModelProvider } from './components/is-mvs-model-prop';
-import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, UpdateTarget, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps } from './load-helpers';
+import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, UpdateTarget, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, makeNearestReprMap, prettyNameFromSelector, rawVolumeProps, representationProps, structureProps, transformProps, volumeRepresentationProps } from './load-helpers';
 import { MVSData } from './mvs-data';
 import { ParamsOfKind, SubTreeOfKind, validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
@@ -61,7 +62,6 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: { r
     }
 }
 
-
 /** Load a `MolstarTree` into the Mol* plugin.
  * If `replaceExisting`, remove all objects in the current Mol* state; otherwise add to the current state. */
 async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, options?: { replaceExisting?: boolean, keepCamera?: boolean }) {
@@ -69,11 +69,8 @@ async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, options
     if (!mvsExtensionLoaded) throw new Error('MolViewSpec extension is not loaded.');
 
     const context: MolstarLoadingContext = {};
-
     await loadTree(plugin, tree, MolstarLoadingActions, context, options);
-
     setCanvas(plugin, context.canvas);
-
     if (options?.keepCamera) {
         await suppressCameraAutoreset(plugin);
     } else {
@@ -116,6 +113,10 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
             return UpdateTarget.apply(updateParent, ParseCif, {});
         } else if (format === 'pdb') {
             return updateParent;
+        } else if (format === 'map') {
+            // return updateParent;
+            // return UpdateTarget.apply(updateParent, ParseCif, {});
+            return UpdateTarget.apply(updateParent, ParseCcp4, {});
         } else {
             console.error(`Unknown format in "parse" node: "${format}"`);
             return undefined;
@@ -151,6 +152,13 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
             ],
         });
         return model;
+    },
+    raw_volume(updateParent: UpdateTarget, node: SubTreeOfKind<MolstarTree, 'raw_volume'>, context: MolstarLoadingContext): UpdateTarget {
+        // TODO: write map metadata to the context
+        const props = rawVolumeProps(node);
+        const rawVolume = UpdateTarget.apply(updateParent, VolumeFromCcp4, props);
+        // TODO: tooltips, labels, etc.
+        return rawVolume;
     },
     structure(updateParent: UpdateTarget, node: SubTreeOfKind<MolstarTree, 'structure'>, context: MolstarLoadingContext): UpdateTarget {
         const props = structureProps(node);
@@ -215,6 +223,29 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
             ...representationProps(node.params),
             colorTheme: colorThemeForNode(node, context),
         });
+    },
+    volume_representation(updateParent: UpdateTarget, node: MolstarNode<'volume_representation'>, context: MolstarLoadingContext): UpdateTarget {
+        const visualParams = {
+            'type': {
+                'name': node.params.type,
+                'params': {}
+            },
+            'colorTheme': colorThemeForNode(node, context),
+            'sizeTheme': {
+                'name': 'uniform',
+                'params': {
+                    'value': 1
+                }
+            }
+        };
+        const params = {
+            ...visualParams,
+            ...volumeRepresentationProps(node.params),
+        };
+        const update = UpdateTarget.apply(updateParent, VolumeRepresentation3D, {
+            ...params
+        });
+        return update;
     },
     color: undefined, // No action needed, already loaded in `representation`
     color_from_uri: undefined, // No action needed, already loaded in `representation`

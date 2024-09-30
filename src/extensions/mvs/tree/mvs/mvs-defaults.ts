@@ -27,6 +27,9 @@ export const MVSDefaults = {
     component: {
         selector: 'all' as const,
     },
+    raw_volume: {
+        options: {}
+    },
     component_from_uri: {
         block_header: null,
         block_index: 0,
@@ -42,6 +45,8 @@ export const MVSDefaults = {
         field_values: null,
     },
     representation: {
+    },
+    volume_representation: {
     },
     color: {
         selector: 'all' as const,

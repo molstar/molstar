@@ -7,7 +7,8 @@
 import { Mat3, Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { StructureComponentParams } from '../../mol-plugin-state/helpers/structure-component';
 import { StructureFromModel, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
-import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
+import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
+import { VolumeFromCcp4 } from '../../mol-plugin-state/transforms/volume';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateBuilder, StateObject, StateObjectSelector, StateTransform, StateTransformer } from '../../mol-state';
 import { arrayDistinct } from '../../mol-util/array';
@@ -304,7 +305,15 @@ export function isPhantomComponent(node: SubTreeOfKind<MolstarTree, 'component' 
     return node.children && node.children.every(child => child.kind === 'tooltip' || child.kind === 'label');
     // These nodes could theoretically be removed when converting MVS to Molstar tree, but would get very tricky if we allow nested components
 }
-
+/** Create props for `VolumeFromCcp4` transformer from a raw_volume node. */
+export function rawVolumeProps(node: MolstarNode<'raw_volume'>): StateTransformer.Params<VolumeFromCcp4> | {} {
+    const params = node.params;
+    if (!params.options || !params.options.voxel_size) return {};
+    return {
+        voxelSize: params.options.voxel_size
+    };
+    // TODO: support channel_ids_mapping when other volume types (e.g., omezarr) are implemented
+}
 /** Create props for `StructureFromModel` transformer from a structure node. */
 export function structureProps(node: MolstarNode<'structure'>): StateTransformer.Params<StructureFromModel> {
     const params = node.params;
@@ -391,6 +400,27 @@ export function componentFromXProps(node: MolstarNode<'component_from_uri' | 'co
     };
 }
 
+
+/** Create props for `StructureRepresentation3D` transformer from a representation node. */
+export function volumeRepresentationProps(params: ParamsOfKind<MolstarTree, 'volume_representation'>): Partial<StateTransformer.Params<VolumeRepresentation3D>> {
+    switch (params.type) {
+        case 'isosurface':
+            return {
+                type: { name: 'isosurface', params: {} },
+            };
+        case 'direct_volume':
+            return {
+                type: { name: 'direct-volume', params: {} },
+            };
+        case 'slice':
+            return {
+                type: { name: 'slice', params: {} },
+            };
+        default:
+            throw new Error('NotImplementedError');
+    }
+}
+
 /** Create props for `StructureRepresentation3D` transformer from a representation node. */
 export function representationProps(params: ParamsOfKind<MolstarTree, 'representation'>): Partial<StateTransformer.Params<StructureRepresentation3D>> {
     switch (params.type) {
@@ -413,8 +443,8 @@ export function representationProps(params: ParamsOfKind<MolstarTree, 'represent
 }
 
 /** Create value for `colorTheme` prop for `StructureRepresentation3D` transformer from a representation node based on color* nodes in its subtree. */
-export function colorThemeForNode(node: SubTreeOfKind<MolstarTree, 'color' | 'color_from_uri' | 'color_from_source' | 'representation'> | undefined, context: MolstarLoadingContext): StateTransformer.Params<StructureRepresentation3D>['colorTheme'] {
-    if (node?.kind === 'representation') {
+export function colorThemeForNode(node: SubTreeOfKind<MolstarTree, 'color' | 'color_from_uri' | 'color_from_source' | 'representation' | 'volume_representation'> | undefined, context: MolstarLoadingContext): StateTransformer.Params<StructureRepresentation3D>['colorTheme'] {
+    if (node?.kind === 'representation' || node?.kind === 'volume_representation') {
         const children = getChildren(node).filter(c => c.kind === 'color' || c.kind === 'color_from_uri' || c.kind === 'color_from_source') as MolstarNode<'color' | 'color_from_uri' | 'color_from_source'>[];
         if (children.length === 0) {
             return {
