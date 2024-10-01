@@ -79,6 +79,8 @@ const DefaultMesoscaleExplorerOptions = {
     preferWebgl1: PluginConfig.General.PreferWebGl1.defaultValue,
     allowMajorPerformanceCaveat: PluginConfig.General.AllowMajorPerformanceCaveat.defaultValue,
     powerPreference: PluginConfig.General.PowerPreference.defaultValue,
+    resolutionMode: PluginConfig.General.ResolutionMode.defaultValue,
+    illumination: false,
 
     viewportShowExpand: PluginConfig.Viewport.ShowExpand.defaultValue,
     viewportShowControls: PluginConfig.Viewport.ShowControls.defaultValue,
@@ -94,7 +96,6 @@ const DefaultMesoscaleExplorerOptions = {
     saccharideCompIdMapType: 'default' as SaccharideCompIdMapType,
 
     graphicsMode: 'quality' as GraphicsMode,
-    illumination: false,
     driver: undefined
 };
 type MesoscaleExplorerOptions = typeof DefaultMesoscaleExplorerOptions;
@@ -187,6 +188,7 @@ export class MesoscaleExplorer {
                 [PluginConfig.General.PreferWebGl1, o.preferWebgl1],
                 [PluginConfig.General.AllowMajorPerformanceCaveat, o.allowMajorPerformanceCaveat],
                 [PluginConfig.General.PowerPreference, o.powerPreference],
+                [PluginConfig.General.ResolutionMode, o.resolutionMode],
                 [PluginConfig.Viewport.ShowExpand, o.viewportShowExpand],
                 [PluginConfig.Viewport.ShowControls, o.viewportShowControls],
                 [PluginConfig.Viewport.ShowSettings, o.viewportShowSettings],
