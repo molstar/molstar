@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -166,6 +166,15 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['representation'],
             params: {
                 ..._DataFromSourceParams,
+            },
+        },
+        /** This node instructs to apply transparency to a visual representation. */
+        transparency: {
+            description: 'This node instructs to apply transparency to a visual representation.',
+            parent: ['representation'],
+            params: {
+                /** Transparency of the representation. 0.0: fully opaque, 1.0: fully transparent. */
+                transparency: RequiredField(float, 'Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
             },
         },
         /** This node instructs to add a label (textual visual representation) to a component. */

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -392,19 +392,20 @@ export function componentFromXProps(node: MolstarNode<'component_from_uri' | 'co
 }
 
 /** Create props for `StructureRepresentation3D` transformer from a representation node. */
-export function representationProps(params: ParamsOfKind<MolstarTree, 'representation'>): Partial<StateTransformer.Params<StructureRepresentation3D>> {
-    switch (params.type) {
+export function representationProps(node: SubTreeOfKind<MolstarTree, 'representation'>): Partial<StateTransformer.Params<StructureRepresentation3D>> {
+    const alpha = alphaForNode(node);
+    switch (node.params.type) {
         case 'cartoon':
             return {
-                type: { name: 'cartoon', params: {} },
+                type: { name: 'cartoon', params: { alpha } },
             };
         case 'ball_and_stick':
             return {
-                type: { name: 'ball-and-stick', params: { sizeFactor: 0.5, sizeAspectRatio: 0.5 } },
+                type: { name: 'ball-and-stick', params: { sizeFactor: 0.5, sizeAspectRatio: 0.5, alpha } },
             };
         case 'surface':
             return {
-                type: { name: 'molecular-surface', params: {} },
+                type: { name: 'molecular-surface', params: { alpha } },
                 sizeTheme: { name: 'physical', params: { scale: 1 } },
             };
         default:
@@ -412,6 +413,16 @@ export function representationProps(params: ParamsOfKind<MolstarTree, 'represent
     }
 }
 
+/** Create value for `type.params.alpha` prop for `StructureRepresentation3D` transformer from a representation node based on 'transparency' nodes in its subtree. */
+export function alphaForNode(node: SubTreeOfKind<MolstarTree, 'representation'>): number {
+    const children = getChildren(node).filter(c => c.kind === 'transparency');
+    if (children.length > 0) {
+        const transparency = children[children.length - 1].params.transparency;
+        return 1 - transparency;
+    } else {
+        return 1;
+    }
+}
 /** Create value for `colorTheme` prop for `StructureRepresentation3D` transformer from a representation node based on color* nodes in its subtree. */
 export function colorThemeForNode(node: SubTreeOfKind<MolstarTree, 'color' | 'color_from_uri' | 'color_from_source' | 'representation'> | undefined, context: MolstarLoadingContext): StateTransformer.Params<StructureRepresentation3D>['colorTheme'] {
     if (node?.kind === 'representation') {

@@ -40,7 +40,7 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: { r
         validateTree(MVSTreeSchema, data.root, 'MVS');
         if (options.sanityChecks) mvsSanityCheck(data.root);
         const molstarTree = convertMvsToMolstar(data.root, options.sourceUrl);
-        // console.log(`Converted MolStar tree:\n${MVSData.toPrettyString({ root: molstarTree, metadata: { version: 'x', timestamp: 'x' } })}`)
+        // console.log(`Converted MolStar tree:\n${MVSData.toPrettyString({ root: molstarTree as any, metadata: { version: 'x', timestamp: 'x' } })}`)
         validateTree(MolstarTreeSchema, molstarTree, 'Converted Molstar');
         await loadMolstarTree(plugin, molstarTree, options);
     } catch (err) {
@@ -212,7 +212,7 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     },
     representation(updateParent: UpdateTarget, node: MolstarNode<'representation'>, context: MolstarLoadingContext): UpdateTarget {
         return UpdateTarget.apply(updateParent, StructureRepresentation3D, {
-            ...representationProps(node.params),
+            ...representationProps(node),
             colorTheme: colorThemeForNode(node, context),
         });
     },
