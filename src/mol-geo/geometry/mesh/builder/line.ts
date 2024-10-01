@@ -59,23 +59,24 @@ function getLinePropsKey(props: LineProps) {
 function getLine(props: LineProps) {
     const radiusTop = 1;
     const key = getLinePropsKey(props);
-    let cylinder = lineMap.get(key);
-    if (cylinder === undefined) {
+    let line = lineMap.get(key);
+    if (line === undefined) {
         if (props.radialSegments && props.radialSegments <= 4) {
             const sideCount = Math.max(3, props.radialSegments);
             const prism = Prism(polygon(sideCount, true, radiusTop), props);
-            cylinder = transformPrimitive(prism, Mat4.rotX90);
+            line = transformPrimitive(prism, Mat4.rotX90);
         } else {
-            cylinder = Line(props);
+            line = Line(props);
         }
-        lineMap.set(key, cylinder);
+        lineMap.set(key, line);
     }
-    return cylinder;
+    return line;
 }
 
 export type BasicLineProps = Omit<LineProps, 'height'>
+export type StrokeDasharray = number | number[];
 
-export function addLine(state: MeshBuilder.State, start: Vec3, end: Vec3, lengthScale: number, props: BasicLineProps) {
+export function addLine(state: MeshBuilder.State, start: Vec3, end: Vec3, lengthScale: number, props: BasicLineProps, strokeDasharray?: StrokeDasharray) {
     const d = Vec3.distance(start, end) * lengthScale;
     Vec3.sub(tmpLineDir, end, start);
     setLineMat(tmpLineMat, start, tmpLineDir, d, true);
