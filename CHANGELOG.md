@@ -5,7 +5,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Add `resolutionMode.auto` that picks scaled for `mobile` devices and `native` elsewhere
+- Improve `resolutionMode` (#1279)
+    - Add `auto` that picks `scaled` for mobile devices and `native` elsewhere
+    - Add `resolution-mode` Viewer GET param
+    - Add `PluginConfig.General.ResolutionMode` config item
 
 ## [v4.7.0] - 2024-09-29
 
