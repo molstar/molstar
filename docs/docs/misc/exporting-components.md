@@ -47,7 +47,7 @@ for (const structure of componentManager.currentStructures) {
       const colorThemeParams = rep.cell.transform.params?.colorTheme.params;
       const theme = plugin.representation.structure.themes.colorThemeRegistry.create(
         colorThemeName || '',
-        { structure: realStructure },
+        { structure: structureData },
         colorThemeParams
       ) as ColorTheme<typeof colorThemeParams>;
       Structure.eachAtomicHierarchyElement(component.cell.obj.data, {
