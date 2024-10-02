@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -49,7 +49,7 @@ class _Base<TKind extends MVSKind> {
 /** MVS builder pointing to the 'root' node */
 export class Root extends _Base<'root'> {
     constructor() {
-        const node: MVSNode<'root'> = { kind: 'root' };
+        const node: MVSNode<'root'> = { kind: 'root', params: {}, additional_properties: undefined };
         super(undefined as any, node);
         (this._root as Root) = this;
     }

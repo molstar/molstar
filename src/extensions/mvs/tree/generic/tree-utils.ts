@@ -1,11 +1,11 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { canonicalJsonString } from '../../../../mol-util/json';
-import { DefaultsForTree, Kind, SubTree, SubTreeOfKind, Tree, TreeFor, TreeSchema, TreeSchemaWithAllRequired, getParams } from './tree-schema';
+import { AdditionalProperties, DefaultsForTree, Kind, Node, SubTree, SubTreeOfKind, Tree, TreeFor, TreeSchema, TreeSchemaWithAllRequired, getParams } from './tree-schema';
 
 
 /** Run DFS (depth-first search) algorithm on a rooted tree.
@@ -26,8 +26,11 @@ function _dfs<TTree extends Tree>(root: TTree, parent: SubTree<TTree> | undefine
 export function treeToString(tree: Tree) {
     let level = 0;
     const lines: string[] = [];
-    dfs(tree, node => lines.push('  '.repeat(level++) + `- ${node.kind} ${formatObject(node.params ?? {})}`), node => level--);
+    dfs(tree, node => lines.push('  '.repeat(level++) + nodeToString(node)), node => level--);
     return lines.join('\n');
+}
+function nodeToString(node: Node) {
+    return `- ${node.kind} ${formatObject(node.params ?? {})}${formatAdditionalProperties(node.additional_properties)}`;
 }
 
 /** Convert object to a human-friendly string (similar to JSON.stringify but without quoting keys) */
@@ -36,12 +39,19 @@ export function formatObject(obj: {} | undefined): string {
     return JSON.stringify(obj).replace(/,("\w+":)/g, ', $1').replace(/"(\w+)":/g, '$1: ');
 }
 
+/** Return human-friendly string with node additional properties, if any */
+function formatAdditionalProperties(additionalProps: AdditionalProperties | undefined): string {
+    if (!additionalProps || Object.keys(additionalProps).length === 0) return '';
+    return `, additional properties: ${formatObject(additionalProps)}`;
+}
+
 
 /** Create a copy of a tree node, ignoring children. */
 export function copyNodeWithoutChildren<TTree extends Tree>(node: TTree): TTree {
     return {
         kind: node.kind,
         params: node.params ? { ...node.params } : undefined,
+        additional_properties: node.additional_properties ? { ...node.additional_properties } : undefined,
     } as TTree;
 }
 /** Create a copy of a tree node, including a shallow copy of children. */
@@ -49,6 +59,7 @@ export function copyNode<TTree extends Tree>(node: TTree): TTree {
     return {
         kind: node.kind,
         params: node.params ? { ...node.params } : undefined,
+        additional_properties: node.additional_properties ? { ...node.additional_properties } : undefined,
         children: node.children ? [...node.children] : undefined,
     } as TTree;
 }
@@ -132,7 +143,11 @@ export function condenseTree<T extends Tree>(root: T, condenseNodes?: Set<Kind<T
 export function addDefaults<S extends TreeSchema>(tree: TreeFor<S>, defaults: DefaultsForTree<S>): TreeFor<TreeSchemaWithAllRequired<S>> {
     const rules: ConversionRules<TreeFor<S>, TreeFor<S>> = {};
     for (const kind in defaults) {
-        rules[kind] = node => [{ kind: node.kind, params: { ...defaults[kind], ...node.params } } as any];
+        rules[kind] = node => [{
+            kind: node.kind,
+            params: { ...defaults[kind], ...node.params },
+            additional_properties: node.additional_properties,
+        } as Node as any];
     }
     return convertTree(tree, rules) as any;
 }

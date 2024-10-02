@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -10,14 +10,19 @@ import { AllRequired, DefaultsFor, ParamsSchema, ValuesFor, paramsValidationIssu
 import { treeToString } from './tree-utils';
 
 
+/** Type of additional_properties of a tree node (key-value storage with arbitrary JSONable values) */
+export type AdditionalProperties = Partial<Record<string, any>>
+
 /** Tree node without children */
 export type Node<TKind extends string = string, TParams extends {} = {}> =
     {} extends TParams ? {
         kind: TKind,
-        params?: TParams,
+        params: TParams | undefined,
+        additional_properties: AdditionalProperties | undefined,
     } : {
         kind: TKind,
         params: TParams,
+        additional_properties: AdditionalProperties | undefined,
     } // params can be dropped if {} is valid value for params
 
 /** Kind type for a tree node */
@@ -48,6 +53,10 @@ export type ParamsOfKind<TTree extends Tree, TKind extends Kind<SubTree<TTree>> 
 /** Get params from a tree node */
 export function getParams<TNode extends Node>(node: TNode): Params<TNode> {
     return node.params ?? {};
+}
+/** Get additional_properties from a tree node */
+export function getAdditionalProperties<TNode extends Node>(node: TNode): AdditionalProperties {
+    return node.additional_properties ?? {};
 }
 /** Get children from a tree node */
 export function getChildren<TTree extends Tree>(tree: TTree): SubTree<TTree>[] {
@@ -123,6 +132,9 @@ export function treeValidationIssues(schema: TreeSchema, tree: Tree, options: { 
     }
     const issues = paramsValidationIssues(nodeSchema.params, getParams(tree), options);
     if (issues) return [`Invalid parameters for node of kind "${tree.kind}":`, ...issues.map(s => '  ' + s)];
+    if (tree.additional_properties !== undefined && (typeof tree.additional_properties !== 'object' || tree.additional_properties === null)) {
+        return [`Invalid additional_properties for node of kind "${tree.kind}": must be an object, not ${tree.additional_properties}.`];
+    }
     for (const child of getChildren(tree)) {
         const issues = treeValidationIssues(schema, child, { ...options, anyRoot: true, parent: tree.kind });
         if (issues) return issues;
