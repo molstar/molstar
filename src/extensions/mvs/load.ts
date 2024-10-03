@@ -242,9 +242,7 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
             ...visualParams,
             ...volumeRepresentationProps(node.params),
         };
-        const update = UpdateTarget.apply(updateParent, VolumeRepresentation3D, {
-            ...params
-        });
+        const update = UpdateTarget.apply(updateParent, VolumeRepresentation3D, params);
         return update;
     },
     color: undefined, // No action needed, already loaded in `representation`
