@@ -6,7 +6,7 @@
 
 import { deepClone, pickObjectKeys } from '../../../../mol-util/object';
 import { MVSData } from '../../mvs-data';
-import { ParamsOfKind, SubTreeOfKind } from '../generic/tree-schema';
+import { AdditionalProperties, ParamsOfKind, SubTreeOfKind } from '../generic/tree-schema';
 import { MVSDefaults } from './mvs-defaults';
 import { MVSKind, MVSNode, MVSTree, MVSTreeSchema } from './mvs-tree';
 
@@ -42,6 +42,23 @@ class _Base<TKind extends MVSKind> {
         this._node.children ??= [];
         this._node.children.push(node);
         return node;
+    }
+    /** Adds provided key-value pairs as additional properties to this node. Use value `null` to remove a property. */
+    additionalProperties(props: AdditionalProperties) {
+        this._node.additional_properties ??= {};
+        for (const key in props) {
+            const value = props[key];
+            if (value === undefined) {
+                // Do nothing, this should be equivalent to `key` not being there
+            } else if (value === null) {
+                // Remove property
+                delete this._node.additional_properties[key];
+            } else {
+                // Add property
+                this._node.additional_properties[key] = value;
+            }
+        }
+        return this;
     }
 }
 
@@ -236,6 +253,7 @@ export function builderDemo() {
     const struct = builder.download({ url: 'https://www.ebi.ac.uk/pdbe/entry-files/download/1og2_updated.cif' }).parse({ format: 'mmcif' }).modelStructure();
     struct.component().representation().color({ color: 'white' });
     struct.component({ selector: 'ligand' }).representation({ type: 'ball_and_stick' })
+        .additionalProperties({ repr_quality: 'high' })
         .color({ color: '#555555' })
         .color({ selector: { type_symbol: 'N' }, color: '#3050F8' })
         .color({ selector: { type_symbol: 'O' }, color: '#FF0D0D' })
