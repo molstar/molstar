@@ -6,6 +6,19 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Add transparent ssao support
+    - Fix ssao color not updating
+    - Refactor postprocessing
+    - Improve outlines     
+
+## [v4.7.1] - 2024-09-30
+
+- Improve `resolutionMode` (#1279)
+    - Add `auto` that picks `scaled` for mobile devices and `native` elsewhere
+    - Add `resolution-mode` Viewer GET param
+    - Add `PluginConfig.General.ResolutionMode` config item
+
+## [v4.7.0] - 2024-09-29
+
 - Add illumination mode
     - Path-traced SSGI
     - Automatic thickness (estimate)
@@ -25,7 +38,10 @@ Note that since we don't clearly distinguish between a public and private interf
     - `scaled`, divides by `devicePixelRatio`
     - `native`, no changes
 - Add `CustomProperty.Context.errorContext` to support reporting errors during loading of custom properties (#1254)
-  - Use in MolViewSpec extension
+    - Use in MolViewSpec extension
+- Mesoscale Explorer: fix color & style issues
+- Remove use of deprecated SASS explicit color functions
+- Allow "Components" section to display nested components created by "Apply Action > Selection".
 
 ## [v4.6.0] - 2024-08-28
 

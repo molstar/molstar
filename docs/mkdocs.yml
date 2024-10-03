@@ -57,4 +57,5 @@ nav:
     - Tunnels: 'extensions/tunnels.md'
   - Misc:
     - Interesting PDB entries: misc/interesting-pdb-entries.md
+    - Exporting component data: exporting-components.md
 repo_url: https://github.com/molstar/docs
