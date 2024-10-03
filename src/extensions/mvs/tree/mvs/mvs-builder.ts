@@ -226,11 +226,6 @@ export class VolumeRepresentation extends _Base<'volume_representation'> {
         this.addChild('color', params);
         return this;
     }
-    /** Add a 'color_from_uri' node and return builder pointing back to the volume_representation node. 'color_from_uri' node instructs to apply colors to a visual representation. The colors are defined by an external annotation resource. */
-    colorFromUri(params: ParamsOfKind<MVSTree, 'color_from_uri'>): VolumeRepresentation {
-        this.addChild('color_from_uri', params);
-        return this;
-    }
 }
 
 /** MVS builder pointing to a 'representation' node */
