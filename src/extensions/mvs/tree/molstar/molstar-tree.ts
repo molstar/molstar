@@ -29,13 +29,6 @@ export const MolstarTreeSchema = TreeSchema({
                 format: RequiredField(MolstarParseFormatT),
             },
         },
-        raw_volume: {
-            ...FullMVSTreeSchema.nodes.raw_volume,
-            params: {
-                source: RequiredField(RawVolumeSourceT),
-                options: OptionalField(RawVolumeOptionsT)
-            }
-        },
         /** Auxiliary node corresponding to Molstar's TrajectoryFrom*. */
         trajectory: {
             description: "Auxiliary node corresponding to Molstar's TrajectoryFrom*.",
