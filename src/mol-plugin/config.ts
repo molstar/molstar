@@ -30,7 +30,7 @@ export const PluginConfig = {
         DisablePreserveDrawingBuffer: item('plugin-config.disable-preserve-drawing-buffer', false),
         PixelScale: item('plugin-config.pixel-scale', 1),
         PickScale: item('plugin-config.pick-scale', 0.25),
-        Transparency: item<'blended' | 'wboit' | 'dpoit'>('plugin-config.transparency', 'wboit'),
+        Transparency: item<'blended' | 'wboit' | 'dpoit'>('plugin-config.transparency', PluginFeatureDetection.defaultTransparency),
         // as of Oct 1 2021, WebGL 2 doesn't work on iOS 15.
         // TODO: check back in a few weeks to see if it was fixed
         PreferWebGl1: item('plugin-config.prefer-webgl1', PluginFeatureDetection.preferWebGl1),

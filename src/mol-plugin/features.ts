@@ -5,7 +5,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { is_iOS } from '../mol-util/browser';
+
 export const PluginFeatureDetection = {
+    get defaultTransparency(): 'blended' | 'wboit' | 'dpoit' {
+        return is_iOS() ? 'blended' : 'wboit';
+    },
     get preferWebGl1() {
         if (typeof navigator === 'undefined' || typeof window === 'undefined') return false;
 
@@ -20,13 +25,6 @@ export const PluginFeatureDetection = {
             return true;
         }
 
-        // Check for iOS device which enabled WebGL2 recently but it doesn't seem
-        // to be full up to speed yet.
-
-        // adapted from https://stackoverflow.com/questions/9038625/detect-if-device-is-ios
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        const isAppleDevice = navigator.userAgent.includes('Macintosh');
-        const isTouchScreen = navigator.maxTouchPoints >= 4; // true for iOS 13 (and hopefully beyond)
-        return !(window as any).MSStream && (isIOS || (isAppleDevice && isTouchScreen));
+        return is_iOS();
     },
 };
