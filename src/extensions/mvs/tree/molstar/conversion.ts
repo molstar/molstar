@@ -46,13 +46,6 @@ const mvsToMolstarConversionRules: ConversionRules<FullMVSTree, MolstarTree> = {
             { kind: 'model', params: pickObjectKeys(node.params, ['model_index']) },
             { kind: 'structure', params: omitObjectKeys(node.params, ['block_header', 'block_index', 'model_index']) },
         ] satisfies MolstarNode[];
-    },
-    'raw_volume': (node, parent) => {
-        if (parent?.kind !== 'parse') throw new Error('Parent of "structure" must be "parse".');
-        // const { format } = ParseFormatMvsToMolstar[parent.params.format];
-        return [
-            { kind: 'raw_volume', params: { source: node.params.source, options: node.params.options } }
-        ] satisfies MolstarNode[];
     }
 };
 
