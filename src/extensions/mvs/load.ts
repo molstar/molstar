@@ -154,11 +154,15 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         return model;
     },
     raw_volume(updateParent: UpdateTarget, node: SubTreeOfKind<MolstarTree, 'raw_volume'>, context: MolstarLoadingContext): UpdateTarget {
-        // TODO: write map metadata to the context
-        const props = rawVolumeProps(node);
-        const rawVolume = UpdateTarget.apply(updateParent, VolumeFromCcp4, props);
-        // TODO: tooltips, labels, etc.
-        return rawVolume;
+        const source = node.params.source;
+        switch (source) {
+            case 'map':
+                const props = rawVolumeProps(node);
+                // TODO: tooltips, labels, etc.
+                return UpdateTarget.apply(updateParent, VolumeFromCcp4, props);
+            default:
+                throw Error(`Source ${source} is not supported yet.`);
+        }
     },
     structure(updateParent: UpdateTarget, node: SubTreeOfKind<MolstarTree, 'structure'>, context: MolstarLoadingContext): UpdateTarget {
         const props = structureProps(node);
