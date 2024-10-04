@@ -55,8 +55,8 @@ export function getParams<TNode extends Node>(node: TNode): Params<TNode> {
     return node.params ?? {};
 }
 /** Get additional_properties from a tree node */
-export function getAdditionalProperties<TNode extends Node>(node: TNode): AdditionalProperties {
-    return node.additional_properties ?? {};
+export function getAdditionalProperties<TAdditionalProperties extends AdditionalProperties = AdditionalProperties>(node: Node): TAdditionalProperties {
+    return (node.additional_properties ?? {}) as TAdditionalProperties;
 }
 /** Get children from a tree node */
 export function getChildren<TTree extends Tree>(tree: TTree): SubTree<TTree>[] {

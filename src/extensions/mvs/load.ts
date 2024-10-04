@@ -20,7 +20,8 @@ import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-
 import { CustomLabelProps, CustomLabelRepresentationProvider } from './components/custom-label/representation';
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
 import { IsMVSModelProps, IsMVSModelProvider } from './components/is-mvs-model-prop';
-import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, UpdateTarget, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps } from './load-helpers';
+import { NonCovalentInteractionsExtension } from './load-extensions/non-covalent-interactions';
+import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, LoadingExtension, UpdateTarget, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps } from './load-helpers';
 import { MVSData } from './mvs-data';
 import { ParamsOfKind, SubTreeOfKind, validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
@@ -32,8 +33,9 @@ import { MVSTreeSchema } from './tree/mvs/mvs-tree';
  * If `options.replaceExisting`, remove all objects in the current Mol* state; otherwise add to the current state.
  * If `options.keepCamera`, ignore any camera positioning from the MVS state and keep the current camera position instead.
  * If `options.sanityChecks`, run some sanity checks and print potential issues to the console.
+ * If `options.extensions` is provided, apply specified set of MVS-loading extensions (not a part of standard MVS specification); default: apply all builtin extensions; use `extensions: []` to avoid applying builtin extensions.
  * `options.sourceUrl` serves as the base for resolving relative URLs/URIs and may itself be relative to the window URL. */
-export async function loadMVS(plugin: PluginContext, data: MVSData, options: { replaceExisting?: boolean, keepCamera?: boolean, sanityChecks?: boolean, sourceUrl?: string, doNotReportErrors?: boolean } = {}) {
+export async function loadMVS(plugin: PluginContext, data: MVSData, options: { replaceExisting?: boolean, keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[], sanityChecks?: boolean, sourceUrl?: string, doNotReportErrors?: boolean } = {}) {
     plugin.errorContext.clear('mvs');
     try {
         // console.log(`MVS tree:\n${MVSData.toPrettyString(data)}`)
@@ -64,13 +66,13 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: { r
 
 /** Load a `MolstarTree` into the Mol* plugin.
  * If `replaceExisting`, remove all objects in the current Mol* state; otherwise add to the current state. */
-async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, options?: { replaceExisting?: boolean, keepCamera?: boolean }) {
+async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, options?: { replaceExisting?: boolean, keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
     const mvsExtensionLoaded = plugin.state.hasBehavior(MolViewSpec);
     if (!mvsExtensionLoaded) throw new Error('MolViewSpec extension is not loaded.');
 
     const context: MolstarLoadingContext = {};
 
-    await loadTree(plugin, tree, MolstarLoadingActions, context, options);
+    await loadTree(plugin, tree, MolstarLoadingActions, context, { ...options, extensions: options?.extensions ?? BuiltinLoadingExtensions });
 
     setCanvas(plugin, context.canvas);
 
@@ -241,3 +243,10 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         return updateParent;
     },
 };
+
+
+export type MolstarLoadingExtension<TExtensionContext> = LoadingExtension<MolstarTree, MolstarLoadingContext, TExtensionContext>;
+
+export const BuiltinLoadingExtensions: MolstarLoadingExtension<any>[] = [
+    NonCovalentInteractionsExtension,
+];

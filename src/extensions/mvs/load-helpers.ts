@@ -40,28 +40,55 @@ export type LoadingAction<TNode extends Tree, TContext> = (updateParent: UpdateT
 /** Loading actions for loading a tree into Mol*, per node kind. */
 export type LoadingActions<TTree extends Tree, TContext> = { [kind in Kind<SubTree<TTree>>]?: LoadingAction<SubTreeOfKind<TTree, kind>, TContext> }
 
+/** Type for defining custom behavior when loading trees, usually based on node additional properties. */
+export interface LoadingExtension<TTree extends Tree, TContext, TExtensionContext> {
+    id: string,
+    description: string,
+    /** Runs before the tree is loaded */
+    createExtensionContext: (tree: TTree, context: TContext) => TExtensionContext,
+    /** Runs after the tree is loaded */
+    disposeExtensionContext?: (extensionContext: TExtensionContext, tree: TTree, context: TContext) => void,
+    /** Runs on every node of the tree */
+    action: (updateTarget: UpdateTarget, node: SubTree<TTree>, context: TContext, extensionContext: TExtensionContext) => void,
+}
+
+
 /** Load a tree into Mol*, by applying loading actions in DFS order and then commiting at once.
  * If `options.replaceExisting`, remove all objects in the current Mol* state; otherwise add to the current state. */
-export async function loadTree<TTree extends Tree, TContext>(plugin: PluginContext, tree: TTree, loadingActions: LoadingActions<TTree, TContext>, context: TContext, options?: { replaceExisting?: boolean }) {
+export async function loadTree<TTree extends Tree, TContext>(
+    plugin: PluginContext,
+    tree: TTree,
+    loadingActions: LoadingActions<TTree, TContext>,
+    context: TContext,
+    options?: { replaceExisting?: boolean, extensions?: LoadingExtension<TTree, TContext, any>[] }
+) {
     const mapping = new Map<SubTree<TTree>, UpdateTarget | undefined>();
     const updateRoot: UpdateTarget = UpdateTarget.create(plugin, options?.replaceExisting ?? false);
     if (options?.replaceExisting) {
         UpdateTarget.deleteChildren(updateRoot);
     }
+    const extensionContexts = (options?.extensions ?? []).map(ext => ({ ext, extCtx: ext.createExtensionContext(tree, context) }));
     dfs<TTree>(tree, (node, parent) => {
         const kind: Kind<typeof node> = node.kind;
+        let msNode: UpdateTarget | undefined;
+        const updateParent = parent ? mapping.get(parent) : updateRoot;
         const action = loadingActions[kind] as LoadingAction<typeof node, TContext> | undefined;
         if (action) {
-            const updateParent = parent ? mapping.get(parent) : updateRoot;
             if (updateParent) {
-                const msNode = action(updateParent, node, context);
+                msNode = action(updateParent, node, context);
                 mapping.set(node, msNode);
             } else {
                 console.warn(`No target found for this "${node.kind}" node`);
                 return;
             }
         }
+        if (updateParent) {
+            for (const { ext, extCtx } of extensionContexts) {
+                ext.action(msNode ?? updateParent, node, context, extCtx);
+            }
+        }
     });
+    extensionContexts.forEach(e => e.ext.disposeExtensionContext?.(e.extCtx, tree, context));
     await UpdateTarget.commit(updateRoot);
 }
 
