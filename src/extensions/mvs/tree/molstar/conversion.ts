@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -26,10 +26,10 @@ const mvsToMolstarConversionRules: ConversionRules<FullMVSTree, MolstarTree> = {
     'download': node => [],
     'parse': (node, parent) => {
         const { format, is_binary } = ParseFormatMvsToMolstar[node.params.format];
-        const convertedNode: MolstarNode<'parse'> = { kind: 'parse', params: { ...node.params, format } };
+        const convertedNode: MolstarNode<'parse'> = { kind: 'parse', params: { ...node.params, format }, additional_properties: node.additional_properties };
         if (parent?.kind === 'download') {
             return [
-                { kind: 'download', params: { ...parent.params, is_binary } },
+                { kind: 'download', params: { ...parent.params, is_binary }, additional_properties: parent.additional_properties },
                 convertedNode,
             ] satisfies MolstarNode[];
         } else {
@@ -38,12 +38,12 @@ const mvsToMolstarConversionRules: ConversionRules<FullMVSTree, MolstarTree> = {
         }
     },
     'structure': (node, parent) => {
-        if (parent?.kind !== 'parse') throw new Error('Parent of "structure" must be "parse".');
+        if (parent?.kind !== 'parse') throw new Error(`Parent of "structure" must be "parse", not "${parent?.kind}".`);
         const { format } = ParseFormatMvsToMolstar[parent.params.format];
         return [
-            { kind: 'trajectory', params: { format, ...pickObjectKeys(node.params, ['block_header', 'block_index']) } },
-            { kind: 'model', params: pickObjectKeys(node.params, ['model_index']) },
-            { kind: 'structure', params: omitObjectKeys(node.params, ['block_header', 'block_index', 'model_index']) },
+            { kind: 'trajectory', params: { format, ...pickObjectKeys(node.params, ['block_header', 'block_index']) }, additional_properties: undefined },
+            { kind: 'model', params: pickObjectKeys(node.params, ['model_index']), additional_properties: undefined },
+            { kind: 'structure', params: omitObjectKeys(node.params, ['block_header', 'block_index', 'model_index']), additional_properties: node.additional_properties },
         ] satisfies MolstarNode[];
     },
 };

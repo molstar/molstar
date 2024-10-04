@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -57,6 +57,8 @@ export const MVSDefaults = {
         block_index: 0,
         category_name: null,
         field_name: 'color',
+    },
+    transparency: {
     },
     label: {
     },
