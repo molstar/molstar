@@ -5,13 +5,14 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Default to `blended` transparency on iOS due to `wboit` not being supported.
+
 ## [v4.7.1] - 2024-09-30
 
 - Improve `resolutionMode` (#1279)
     - Add `auto` that picks `scaled` for mobile devices and `native` elsewhere
     - Add `resolution-mode` Viewer GET param
     - Add `PluginConfig.General.ResolutionMode` config item
-- Default to `blended` transparency on iOS due to `wboit` not being supported.
 
 ## [v4.7.0] - 2024-09-29
 
