@@ -7,7 +7,7 @@
 import { StateTransforms } from '../../../mol-plugin-state/transforms';
 import { StructureSurroundings } from '../components/surroundings';
 import { MolstarLoadingExtension } from '../load';
-import { UpdateTarget } from '../load-helpers';
+import { UpdateTarget } from '../load-generic';
 import { getAdditionalProperties } from '../tree/generic/tree-schema';
 
 

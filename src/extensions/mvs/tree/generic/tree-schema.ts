@@ -39,15 +39,15 @@ export type Tree<TNode extends Node<string, {}> = Node<string, {}>, TRoot extend
     }
 
 /** Type of any subtree that can occur within given `TTree` tree type */
-export type SubTree<TTree extends Tree> = NonNullable<TTree['children']>[number]
+export type Subtree<TTree extends Tree> = NonNullable<TTree['children']>[number]
 
 /** Type of any subtree that can occur within given `TTree` tree type and has kind type `TKind` */
-export type SubTreeOfKind<TTree extends Tree, TKind extends Kind<SubTree<TTree>> = Kind<SubTree<TTree>>> = RootOfKind<SubTree<TTree>, TKind>
+export type SubtreeOfKind<TTree extends Tree, TKind extends Kind<Subtree<TTree>> = Kind<Subtree<TTree>>> = RootOfKind<Subtree<TTree>, TKind>
 
 type RootOfKind<TTree extends Tree, TKind extends Kind<TTree>> = Extract<TTree, Tree<any, Node<TKind>>>
 
 /** Params type for a given kind type within a tree */
-export type ParamsOfKind<TTree extends Tree, TKind extends Kind<SubTree<TTree>> = Kind<SubTree<TTree>>> = NonNullable<SubTreeOfKind<TTree, TKind>['params']>
+export type ParamsOfKind<TTree extends Tree, TKind extends Kind<Subtree<TTree>> = Kind<Subtree<TTree>>> = NonNullable<SubtreeOfKind<TTree, TKind>['params']>
 
 
 /** Get params from a tree node */
@@ -59,7 +59,7 @@ export function getAdditionalProperties<TAdditionalProperties extends Additional
     return (node.additional_properties ?? {}) as TAdditionalProperties;
 }
 /** Get children from a tree node */
-export function getChildren<TTree extends Tree>(tree: TTree): SubTree<TTree>[] {
+export function getChildren<TTree extends Tree>(tree: TTree): Subtree<TTree>[] {
     return tree.children ?? [];
 }
 

@@ -6,9 +6,9 @@
 
 import { deepClone, pickObjectKeys } from '../../../../mol-util/object';
 import { MVSData } from '../../mvs-data';
-import { AdditionalProperties, ParamsOfKind, SubTreeOfKind } from '../generic/tree-schema';
+import { AdditionalProperties, ParamsOfKind } from '../generic/tree-schema';
 import { MVSDefaults } from './mvs-defaults';
-import { MVSKind, MVSNode, MVSTree, MVSTreeSchema } from './mvs-tree';
+import { MVSKind, MVSNode, MVSSubtree, MVSTree, MVSTreeSchema } from './mvs-tree';
 
 
 /** Create a new MolViewSpec builder containing only a root node. Example of MVS builder usage:
@@ -30,7 +30,7 @@ export function createMVSBuilder() {
 class _Base<TKind extends MVSKind> {
     protected constructor(
         protected readonly _root: Root,
-        protected readonly _node: SubTreeOfKind<MVSTree, TKind>,
+        protected readonly _node: MVSSubtree<TKind>,
     ) { }
     /** Create a new node, append as child to current _node, and return the new node */
     protected addChild<TChildKind extends MVSKind>(kind: TChildKind, params: ParamsOfKind<MVSTree, TChildKind>) {
@@ -38,7 +38,7 @@ class _Base<TKind extends MVSKind> {
         const node = {
             kind,
             params: pickObjectKeys(params, allowedParamNames) as unknown,
-        } as SubTreeOfKind<MVSTree, TChildKind>;
+        } as MVSSubtree<TChildKind>;
         this._node.children ??= [];
         this._node.children.push(node);
         return node;

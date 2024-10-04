@@ -5,7 +5,7 @@
  */
 
 import { OptionalField, RequiredField, float, int, list, nullable, str, tuple, union } from '../generic/params-schema';
-import { NodeFor, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
+import { NodeFor, SubtreeOfKind, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
 import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, RepresentationTypeT, SchemaFormatT, SchemaT, StructureTypeT, Vector3 } from './param-types';
 
 
@@ -272,6 +272,9 @@ export type MVSNode<TKind extends MVSKind = MVSKind> = NodeFor<typeof MVSTreeSch
 
 /** MolViewSpec tree */
 export type MVSTree = TreeFor<typeof MVSTreeSchema>
+
+/** Any subtree in a `MVSTree` (e.g. its root doesn't need to be 'root') */
+export type MVSSubtree<TKind extends MVSKind = MVSKind> = SubtreeOfKind<MVSTree, TKind>
 
 
 /** Schema for `MVSTree` (MolViewSpec tree with all params provided) */

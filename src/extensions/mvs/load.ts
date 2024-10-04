@@ -21,11 +21,12 @@ import { CustomLabelProps, CustomLabelRepresentationProvider } from './component
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
 import { IsMVSModelProps, IsMVSModelProvider } from './components/is-mvs-model-prop';
 import { NonCovalentInteractionsExtension } from './load-extensions/non-covalent-interactions';
-import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, LoadingExtension, UpdateTarget, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps } from './load-helpers';
+import { LoadingActions, LoadingExtension, UpdateTarget, loadTree } from './load-generic';
+import { AnnotationFromSourceKind, AnnotationFromUriKind, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps } from './load-helpers';
 import { MVSData } from './mvs-data';
-import { ParamsOfKind, SubTreeOfKind, validateTree } from './tree/generic/tree-schema';
+import { ParamsOfKind, validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
-import { MolstarNode, MolstarTree, MolstarTreeSchema } from './tree/molstar/molstar-tree';
+import { MolstarNode, MolstarSubtree, MolstarTree, MolstarTreeSchema } from './tree/molstar/molstar-tree';
 import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 
@@ -137,7 +138,7 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
             return undefined;
         }
     },
-    model(updateParent: UpdateTarget, node: SubTreeOfKind<MolstarTree, 'model'>, context: MolstarLoadingContext): UpdateTarget {
+    model(updateParent: UpdateTarget, node: MolstarSubtree<'model'>, context: MolstarLoadingContext): UpdateTarget {
         const annotations = collectAnnotationReferences(node, context);
         const model = UpdateTarget.apply(updateParent, ModelFromTrajectory, {
             modelIndex: node.params.model_index,
@@ -154,7 +155,7 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         });
         return model;
     },
-    structure(updateParent: UpdateTarget, node: SubTreeOfKind<MolstarTree, 'structure'>, context: MolstarLoadingContext): UpdateTarget {
+    structure(updateParent: UpdateTarget, node: MolstarSubtree<'structure'>, context: MolstarLoadingContext): UpdateTarget {
         const props = structureProps(node);
         const struct = UpdateTarget.apply(updateParent, StructureFromModel, props);
         let transformed = struct;
@@ -191,7 +192,7 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     tooltip: undefined, // No action needed, already loaded in `structure`
     tooltip_from_uri: undefined, // No action needed, already loaded in `structure`
     tooltip_from_source: undefined, // No action needed, already loaded in `structure`
-    component(updateParent: UpdateTarget, node: SubTreeOfKind<MolstarTree, 'component'>): UpdateTarget | undefined {
+    component(updateParent: UpdateTarget, node: MolstarSubtree<'component'>): UpdateTarget | undefined {
         if (isPhantomComponent(node)) {
             return updateParent;
         }
@@ -202,12 +203,12 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
             nullIfEmpty: false,
         });
     },
-    component_from_uri(updateParent: UpdateTarget, node: SubTreeOfKind<MolstarTree, 'component_from_uri'>, context: MolstarLoadingContext): UpdateTarget | undefined {
+    component_from_uri(updateParent: UpdateTarget, node: MolstarSubtree<'component_from_uri'>, context: MolstarLoadingContext): UpdateTarget | undefined {
         if (isPhantomComponent(node)) return undefined;
         const props = componentFromXProps(node, context);
         return UpdateTarget.apply(updateParent, MVSAnnotationStructureComponent, props);
     },
-    component_from_source(updateParent: UpdateTarget, node: SubTreeOfKind<MolstarTree, 'component_from_source'>, context: MolstarLoadingContext): UpdateTarget | undefined {
+    component_from_source(updateParent: UpdateTarget, node: MolstarSubtree<'component_from_source'>, context: MolstarLoadingContext): UpdateTarget | undefined {
         if (isPhantomComponent(node)) return undefined;
         const props = componentFromXProps(node, context);
         return UpdateTarget.apply(updateParent, MVSAnnotationStructureComponent, props);
