@@ -133,7 +133,7 @@ export class TracingPass {
         this.framebuffer.bind();
         this.depthTextureOpaque.attachFramebuffer(this.framebuffer, 'depth');
         renderer.clear(true);
-        renderer.renderTracing(scene.primitives, camera, null);
+        renderer.renderTracing(scene.primitives, camera);
 
         //
 
@@ -141,7 +141,7 @@ export class TracingPass {
             this.thicknessTarget.bind();
             state.clearColor(0, 0, 0, 0);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-            renderer.renderDepthOpaqueBack(scene.primitives, camera, null);
+            renderer.renderDepthOpaqueBack(scene.primitives, camera);
         }
         if (isTimingMode) this.webgl.timer.markEnd('TracePass.renderInput');
     }
