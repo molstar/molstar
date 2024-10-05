@@ -28,5 +28,10 @@ if (uFog) {
             gl_FragColor.a = fogAlpha;
         #endif
     }
+} else if (uTransparentBackground) {
+    #if !defined(dRenderVariant_colorDpoit) && !defined(dGeometryType_directVolume)
+        // pre-multiplied alpha expected for transparent background
+        gl_FragColor.rgb *= gl_FragColor.a;
+    #endif
 }
 `;
