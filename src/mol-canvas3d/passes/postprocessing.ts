@@ -157,13 +157,15 @@ export class PostprocessingPass {
     }
 
     static isTransparentDepthRequired(props: PostprocessingProps) {
-        return DofPass.isEnabled(props) ||
-            OutlinePass.isEnabled(props) && (props.outline.params as OutlineProps).includeTransparent ||
-            SsaoPass.isEnabled(props) && (props.occlusion.params as SsaoProps).includeTransparency;
+        return DofPass.isEnabled(props) || PostprocessingPass.isTransparentOutlineEnabled(props) || PostprocessingPass.isTransparentSsaoEnabled(props);
     }
 
     static isTransparentOutlineEnabled(props: PostprocessingProps) {
         return OutlinePass.isEnabled(props) && (props.outline.params as OutlineProps).includeTransparent;
+    }
+
+    static isTransparentSsaoEnabled(props: PostprocessingProps) {
+        return SsaoPass.isEnabled(props) && (props.occlusion.params as SsaoProps).includeTransparency;
     }
 
     static isSsaoEnabled(props: PostprocessingProps) {

@@ -48,13 +48,12 @@ export class DrawPass {
 
     readonly colorTarget: RenderTarget;
     readonly transparentColorTarget: RenderTarget;
-    readonly depthTexture: Texture;
     readonly depthTextureTransparent: Texture;
     readonly depthTextureOpaque: Texture;
 
     readonly packedDepth: boolean;
 
-    private depthTargetTransparent: RenderTarget;
+    readonly depthTargetTransparent: RenderTarget;
     private depthTargetOpaque: RenderTarget | null;
 
     private copyFboTarget: CopyRenderable;
