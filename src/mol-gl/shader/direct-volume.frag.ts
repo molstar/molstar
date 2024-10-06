@@ -332,7 +332,7 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
 
         src = gl_FragColor;
 
-        if (!uTransparentBackground) {
+        if (!uTransparentBackground || !uFog) {
             // done in 'apply_fog' otherwise
             src.rgb *= src.a;
         }

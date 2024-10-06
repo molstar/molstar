@@ -163,7 +163,7 @@ export class DrawPass {
 
         // render opaque primitives
         if (scene.hasOpaque) {
-            renderer.renderDpoitOpaque(scene.primitives, camera, null);
+            renderer.renderOpaque(scene.primitives, camera);
         }
 
         const outlineEnabled = PostprocessingPass.isEnabled(postprocessingProps) && PostprocessingPass.isTransparentOutlineEnabled(postprocessingProps);
@@ -208,7 +208,7 @@ export class DrawPass {
 
         // render transparent volumes
         if (scene.volumes.renderables.length > 0) {
-            renderer.renderDpoitVolume(scene.volumes, camera, this.depthTextureOpaque);
+            renderer.renderVolume(scene.volumes, camera, this.depthTextureOpaque);
         }
     }
 
@@ -220,7 +220,7 @@ export class DrawPass {
 
         // render opaque primitives
         if (scene.hasOpaque) {
-            renderer.renderWboitOpaque(scene.primitives, camera, null);
+            renderer.renderOpaque(scene.primitives, camera);
         }
 
         const outlineEnabled = PostprocessingPass.isEnabled(postprocessingProps) && PostprocessingPass.isTransparentOutlineEnabled(postprocessingProps);
@@ -271,7 +271,7 @@ export class DrawPass {
 
         renderer.clear(true);
         if (scene.hasOpaque) {
-            renderer.renderBlendedOpaque(scene.primitives, camera, null);
+            renderer.renderOpaque(scene.primitives, camera);
         }
 
         if (!toDrawingBuffer) {
@@ -280,7 +280,7 @@ export class DrawPass {
             if (this.depthTargetOpaque) {
                 this.depthTargetOpaque.bind();
                 renderer.clearDepth(true);
-                renderer.renderDepthOpaque(scene.primitives, camera, null);
+                renderer.renderDepthOpaque(scene.primitives, camera);
                 this.colorTarget.bind();
             }
 
@@ -322,7 +322,7 @@ export class DrawPass {
                 }
                 target.bind();
 
-                renderer.renderBlendedVolume(scene.volumes, camera, this.depthTextureOpaque);
+                renderer.renderVolume(scene.volumes, camera, this.depthTextureOpaque);
 
                 if (!this.packedDepth) {
                     this.depthTextureOpaque.attachFramebuffer(target.framebuffer, 'depth');
@@ -334,7 +334,7 @@ export class DrawPass {
         }
 
         if (scene.opacityAverage < 1) {
-            renderer.renderBlendedTransparent(scene.primitives, camera, null);
+            renderer.renderBlendedTransparent(scene.primitives, camera);
         }
     }
 
@@ -376,7 +376,7 @@ export class DrawPass {
             if (markingDepthTest && scene.markerAverage !== 1) {
                 this.marking.depthTarget.bind();
                 renderer.clear(false, true);
-                renderer.renderMarkingDepth(scene.primitives, camera, null);
+                renderer.renderMarkingDepth(scene.primitives, camera);
             }
 
             this.marking.maskTarget.bind();
@@ -443,7 +443,7 @@ export class DrawPass {
                 this.bloom.emissiveTarget.bind();
                 renderer.clear(false, true);
                 renderer.update(camera, scene);
-                renderer.renderEmissive(scene.primitives, camera, null);
+                renderer.renderEmissive(scene.primitives, camera);
             }
 
             if (!emissiveBloom || scene.emissiveAverage > 0) {

@@ -182,16 +182,16 @@ export class PickPass {
     private renderVariant(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, variant: 'pick' | 'depth', pickType: number) {
         renderer.clear(false);
         renderer.update(camera, scene);
-        renderer.renderPick(scene.primitives, camera, variant, null, pickType);
+        renderer.renderPick(scene.primitives, camera, variant, pickType);
 
         if (helper.handle.isEnabled) {
-            renderer.renderPick(helper.handle.scene, camera, variant, null, pickType);
+            renderer.renderPick(helper.handle.scene, camera, variant, pickType);
         }
 
         if (helper.camera.isEnabled) {
             helper.camera.update(camera);
             renderer.update(helper.camera.camera, helper.camera.scene);
-            renderer.renderPick(helper.camera.scene, helper.camera.camera, variant, null, pickType);
+            renderer.renderPick(helper.camera.scene, helper.camera.camera, variant, pickType);
         }
     }
 
