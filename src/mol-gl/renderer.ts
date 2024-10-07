@@ -64,22 +64,21 @@ interface Renderer {
     clearDepth: (packed?: boolean) => void
     update: (camera: ICamera, scene: Scene) => void
 
-    renderPick: (group: Scene.Group, camera: ICamera, variant: 'pick' | 'depth', depthTexture: Texture | null, pickType: PickType) => void
-    renderDepth: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
-    renderDepthOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
-    renderDepthOpaqueBack: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
-    renderDepthTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
-    renderMarkingDepth: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
+    renderPick: (group: Scene.Group, camera: ICamera, variant: 'pick' | 'depth', pickType: PickType) => void
+    renderDepth: (group: Scene.Group, camera: ICamera) => void
+    renderDepthOpaque: (group: Scene.Group, camera: ICamera) => void
+    renderDepthOpaqueBack: (group: Scene.Group, camera: ICamera) => void
+    renderDepthTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture) => void
+    renderMarkingDepth: (group: Scene.Group, camera: ICamera) => void
     renderMarkingMask: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
-    renderEmissive: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
-    renderOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
-    renderTracing: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
+    renderEmissive: (group: Scene.Group, camera: ICamera) => void
+    renderTracing: (group: Scene.Group, camera: ICamera) => void
     renderBlended: (group: Scene, camera: ICamera) => void
-    renderBlendedTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
-    renderBlendedVolume: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
-    renderWboitTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
-    renderDpoitTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null, dpoitTextures: { depth: Texture, frontColor: Texture, backColor: Texture }) => void
-    renderDpoitVolume: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
+    renderOpaque: (group: Scene.Group, camera: ICamera) => void
+    renderBlendedTransparent: (group: Scene.Group, camera: ICamera) => void
+    renderVolume: (group: Scene.Group, camera: ICamera, depthTexture: Texture) => void
+    renderWboitTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture) => void
+    renderDpoitTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture, dpoitTextures: { depth: Texture, frontColor: Texture, backColor: Texture }) => void
 
     setProps: (props: Partial<RendererProps>) => void
     setViewport: (x: number, y: number, width: number, height: number) => void
@@ -158,7 +157,6 @@ namespace Renderer {
         None = 0,
         BlendedFront = 1,
         BlendedBack = 2,
-        BlendedVolume = 3,
     }
 
     const enum Mask {
@@ -325,12 +323,6 @@ namespace Renderer {
                 // culling done in fragment shader
                 state.disable(gl.CULL_FACE);
                 state.frontFace(gl.CCW);
-
-                if (flag === Flag.BlendedVolume) {
-                    // depth test done manually in shader against `depthTexture`
-                    state.disable(gl.DEPTH_TEST);
-                    state.depthMask(false);
-                }
             } else if (flag === Flag.BlendedFront) {
                 state.enable(gl.CULL_FACE);
                 if (r.values.dFlipSided?.ref.value) {
@@ -454,13 +446,13 @@ namespace Renderer {
             );
         };
 
-        const renderPick = (group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, depthTexture: Texture | null, pickType: PickType) => {
+        const renderPick = (group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, pickType: PickType) => {
             if (isTimingMode) ctx.timer.mark('Renderer.renderPick');
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
             state.depthMask(true);
 
-            updateInternal(group, camera, depthTexture, Mask.All, false);
+            updateInternal(group, camera, null, Mask.All, false);
             ValueCell.updateIfChanged(globalUniforms.uPickType, pickType);
 
             const { renderables } = group;
@@ -472,13 +464,13 @@ namespace Renderer {
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderPick');
         };
 
-        const renderDepth = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+        const renderDepth = (group: Scene.Group, camera: ICamera) => {
             if (isTimingMode) ctx.timer.mark('Renderer.renderDepth');
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
             state.depthMask(true);
 
-            updateInternal(group, camera, depthTexture, Mask.All, false);
+            updateInternal(group, camera, null, Mask.All, false);
 
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
@@ -487,13 +479,13 @@ namespace Renderer {
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDepth');
         };
 
-        const renderDepthOpaque = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+        const renderDepthOpaque = (group: Scene.Group, camera: ICamera) => {
             if (isTimingMode) ctx.timer.mark('Renderer.renderDepthOpaque');
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
             state.depthMask(true);
 
-            updateInternal(group, camera, depthTexture, Mask.Opaque, false);
+            updateInternal(group, camera, null, Mask.Opaque, false);
 
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
@@ -505,14 +497,14 @@ namespace Renderer {
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDepthOpaque');
         };
 
-        const renderDepthOpaqueBack = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+        const renderDepthOpaqueBack = (group: Scene.Group, camera: ICamera) => {
             if (isTimingMode) ctx.timer.mark('Renderer.renderDepthOpaqueBack');
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
             state.depthMask(true);
             state.depthFunc(gl.GREATER);
 
-            updateInternal(group, camera, depthTexture, Mask.Opaque, false);
+            updateInternal(group, camera, null, Mask.Opaque, false);
 
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
@@ -525,7 +517,7 @@ namespace Renderer {
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDepthOpaqueBack');
         };
 
-        const renderDepthTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+        const renderDepthTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture) => {
             if (isTimingMode) ctx.timer.mark('Renderer.renderDepthTransparent');
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
@@ -543,13 +535,13 @@ namespace Renderer {
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDepthTransparent');
         };
 
-        const renderMarkingDepth = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+        const renderMarkingDepth = (group: Scene.Group, camera: ICamera) => {
             if (isTimingMode) ctx.timer.mark('Renderer.renderMarkingDepth');
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
             state.depthMask(true);
 
-            updateInternal(group, camera, depthTexture, Mask.All, false);
+            updateInternal(group, camera, null, Mask.All, false);
             ValueCell.updateIfChanged(globalUniforms.uMarkingType, MarkingType.Depth);
 
             const { renderables } = group;
@@ -584,13 +576,13 @@ namespace Renderer {
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderMarkingMask');
         };
 
-        const renderEmissive = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+        const renderEmissive = (group: Scene.Group, camera: ICamera) => {
             if (isTimingMode) ctx.timer.mark('Renderer.renderEmissive');
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
             state.depthMask(true);
 
-            updateInternal(group, camera, depthTexture, Mask.Opaque, false);
+            updateInternal(group, camera, null, Mask.Opaque, false);
 
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
@@ -602,13 +594,13 @@ namespace Renderer {
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderEmissive');
         };
 
-        const renderTracing = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+        const renderTracing = (group: Scene.Group, camera: ICamera) => {
             if (isTimingMode) ctx.timer.mark('Renderer.renderTracing');
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
             state.depthMask(true);
 
-            updateInternal(group, camera, depthTexture, Mask.Opaque, false);
+            updateInternal(group, camera, null, Mask.Opaque, false);
 
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
@@ -622,14 +614,32 @@ namespace Renderer {
 
         const renderBlended = (scene: Scene, camera: ICamera) => {
             if (scene.hasOpaque) {
-                renderOpaque(scene, camera, null);
+                renderOpaque(scene, camera);
             }
             if (scene.opacityAverage < 1) {
-                renderBlendedTransparent(scene, camera, null);
+                renderBlendedTransparent(scene, camera);
             }
         };
 
-        const renderBlendedTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+        const renderOpaque = (group: Scene.Group, camera: ICamera) => {
+            if (isTimingMode) ctx.timer.mark('Renderer.renderOpaque');
+            state.disable(gl.BLEND);
+            state.enable(gl.DEPTH_TEST);
+            state.depthMask(true);
+
+            updateInternal(group, camera, null, Mask.Opaque, false);
+
+            const { renderables } = group;
+            for (let i = 0, il = renderables.length; i < il; ++i) {
+                const r = renderables[i];
+                if (checkOpaque(r)) {
+                    renderObject(r, 'color', Flag.None);
+                }
+            }
+            if (isTimingMode) ctx.timer.markEnd('Renderer.renderOpaque');
+        };
+
+        const renderBlendedTransparent = (group: Scene.Group, camera: ICamera) => {
             if (isTimingMode) ctx.timer.mark('Renderer.renderBlendedTransparent');
             if (transparentBackground) {
                 state.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
@@ -640,7 +650,7 @@ namespace Renderer {
             state.enable(gl.DEPTH_TEST);
             state.depthMask(false);
 
-            updateInternal(group, camera, depthTexture, Mask.Transparent, false);
+            updateInternal(group, camera, null, Mask.Transparent, false);
 
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
@@ -660,10 +670,12 @@ namespace Renderer {
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderBlendedTransparent');
         };
 
-        const renderBlendedVolume = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
-            if (isTimingMode) ctx.timer.mark('Renderer.renderBlendedVolume');
+        const renderVolume = (group: Scene.Group, camera: ICamera, depthTexture: Texture) => {
+            if (isTimingMode) ctx.timer.mark('Renderer.renderVolume');
             state.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
             state.enable(gl.BLEND);
+            // depth test done manually in shader against `depthTexture`
+            state.disable(gl.DEPTH_TEST);
             state.depthMask(false);
 
             updateInternal(group, camera, depthTexture, Mask.Transparent, false);
@@ -672,28 +684,10 @@ namespace Renderer {
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
                 if (r.values.dGeometryType.ref.value === 'directVolume') {
-                    renderObject(r, 'color', Flag.BlendedVolume);
-                }
-            }
-            if (isTimingMode) ctx.timer.markEnd('Renderer.renderBlendedVolume');
-        };
-
-        const renderOpaque = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
-            if (isTimingMode) ctx.timer.mark('Renderer.renderOpaque');
-            state.disable(gl.BLEND);
-            state.enable(gl.DEPTH_TEST);
-            state.depthMask(true);
-
-            updateInternal(group, camera, depthTexture, Mask.Opaque, false);
-
-            const { renderables } = group;
-            for (let i = 0, il = renderables.length; i < il; ++i) {
-                const r = renderables[i];
-                if (checkOpaque(r)) {
                     renderObject(r, 'color', Flag.None);
                 }
             }
-            if (isTimingMode) ctx.timer.markEnd('Renderer.renderOpaque');
+            if (isTimingMode) ctx.timer.markEnd('Renderer.renderVolume');
         };
 
         const renderWboitTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
@@ -710,7 +704,7 @@ namespace Renderer {
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderWboitTransparent');
         };
 
-        const renderDpoitTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null, dpoitTextures: { depth: Texture, frontColor: Texture, backColor: Texture }) => {
+        const renderDpoitTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture, dpoitTextures: { depth: Texture, frontColor: Texture, backColor: Texture }) => {
             if (isTimingMode) ctx.timer.mark('Renderer.renderDpoitTransparent');
 
             state.enable(gl.BLEND);
@@ -730,23 +724,6 @@ namespace Renderer {
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDpoitTransparent');
-        };
-
-        const renderDpoitVolume = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
-            if (isTimingMode) ctx.timer.mark('Renderer.renderDpoitVolume');
-            state.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-            state.enable(gl.BLEND);
-
-            updateInternal(group, camera, depthTexture, Mask.Transparent, false);
-
-            const { renderables } = group;
-            for (let i = 0, il = renderables.length; i < il; ++i) {
-                const r = renderables[i];
-                if (r.values.dGeometryType.ref.value === 'directVolume') {
-                    renderObject(r, 'color', Flag.None);
-                }
-            }
-            if (isTimingMode) ctx.timer.markEnd('Renderer.renderDpoitVolume');
         };
 
         return {
@@ -788,14 +765,13 @@ namespace Renderer {
             renderMarkingDepth,
             renderMarkingMask,
             renderEmissive,
-            renderOpaque,
             renderTracing,
             renderBlended,
+            renderOpaque,
             renderBlendedTransparent,
-            renderBlendedVolume,
+            renderVolume,
             renderWboitTransparent,
             renderDpoitTransparent,
-            renderDpoitVolume,
 
             setProps: (props: Partial<RendererProps>) => {
                 if (props.backgroundColor !== undefined && props.backgroundColor !== p.backgroundColor) {

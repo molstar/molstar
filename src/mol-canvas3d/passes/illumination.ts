@@ -176,16 +176,16 @@ export class IlluminationPass {
                 this.drawPass.dpoit.render();
 
                 if (scene.volumes.renderables.length > 0) {
-                    renderer.renderDpoitVolume(scene.volumes, camera, this.drawPass.depthTextureOpaque);
+                    renderer.renderVolume(scene.volumes, camera, this.drawPass.depthTextureOpaque);
                 }
             } else {
                 this.tracing.composeTarget.bind();
                 this.drawPass.depthTextureOpaque.attachFramebuffer(this.tracing.composeTarget.framebuffer, 'depth');
-                renderer.renderBlendedTransparent(scene.primitives, camera, null);
+                renderer.renderBlendedTransparent(scene.primitives, camera);
                 this.drawPass.depthTextureOpaque.detachFramebuffer(this.tracing.composeTarget.framebuffer, 'depth');
 
                 if (scene.volumes.renderables.length > 0) {
-                    renderer.renderBlendedVolume(scene.volumes, camera, this.drawPass.depthTextureOpaque);
+                    renderer.renderVolume(scene.volumes, camera, this.drawPass.depthTextureOpaque);
                 }
             }
 
@@ -214,7 +214,7 @@ export class IlluminationPass {
             if (markingDepthTest && scene.markerAverage !== 1) {
                 this.drawPass.marking.depthTarget.bind();
                 renderer.clear(false, true);
-                renderer.renderMarkingDepth(scene.primitives, camera, null);
+                renderer.renderMarkingDepth(scene.primitives, camera);
             }
 
             this.drawPass.marking.maskTarget.bind();
