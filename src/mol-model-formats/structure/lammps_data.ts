@@ -83,7 +83,7 @@ async function getModels(mol: LammpDataFile, ctx: RuntimeContext) {
         chem_comp: componentBuilder.getChemCompTable(),
         atom_site
     });
-    const _models = await createModels(basic, LammpDataFormat.create(mol), ctx);
+    const _models = await createModels(basic, LammpsDataFormat.create(mol), ctx);
     if (_models.frameCount > 0) {
         const indexA = Column.ofIntArray(Column.mapToArray(bonds.atomIdA, x => x - 1, Int32Array));
         const indexB = Column.ofIntArray(Column.mapToArray(bonds.atomIdB, x => x - 1, Int32Array));
@@ -120,16 +120,16 @@ async function getModels(mol: LammpDataFile, ctx: RuntimeContext) {
 
 //
 
-export { LammpDataFormat };
+export { LammpsDataFormat };
 
-type LammpDataFormat = ModelFormat<LammpDataFile>
+type LammpsDataFormat = ModelFormat<LammpDataFile>
 
-namespace LammpDataFormat {
-    export function is(x?: ModelFormat): x is LammpDataFormat {
+namespace LammpsDataFormat {
+    export function is(x?: ModelFormat): x is LammpsDataFormat {
         return x?.kind === 'xyz';
     }
 
-    export function create(mol: LammpDataFile): LammpDataFormat {
+    export function create(mol: LammpDataFile): LammpsDataFormat {
         return { kind: 'data', name: 'data', data: mol };
     }
 }
