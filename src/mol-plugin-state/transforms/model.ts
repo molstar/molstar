@@ -40,6 +40,8 @@ import { parseXtc } from '../../mol-io/reader/xtc/parser';
 import { coordinatesFromXtc } from '../../mol-model-formats/structure/xtc';
 import { parseXyz } from '../../mol-io/reader/xyz/parser';
 import { trajectoryFromXyz } from '../../mol-model-formats/structure/xyz';
+import { parseLammpData } from '../../mol-io/reader/lammps/parser';
+import { trajectoryFromLammpsData } from '../../mol-model-formats/structure/lammps_data';
 import { parseSdf } from '../../mol-io/reader/sdf/parser';
 import { trajectoryFromSdf } from '../../mol-model-formats/structure/sdf';
 import { assertUnreachable } from '../../mol-util/type-helpers';
@@ -63,6 +65,7 @@ export { TrajectoryFromMmCif };
 export { TrajectoryFromPDB };
 export { TrajectoryFromGRO };
 export { TrajectoryFromXYZ };
+export { TrajectoryFromLammpsData };
 export { TrajectoryFromMOL };
 export { TrajectoryFromSDF };
 export { TrajectoryFromMOL2 };
@@ -374,6 +377,25 @@ const TrajectoryFromXYZ = PluginStateTransform.BuiltIn({
         });
     }
 });
+
+type TrajectoryFromLammpsData = typeof TrajectoryFromLammpsData
+const TrajectoryFromLammpsData = PluginStateTransform.BuiltIn({
+    name: 'trajectory-from-lammps-data',
+    display: { name: 'Parse Lammps Data', description: 'Parse Lammps Data string and create trajectory.' },
+    from: [SO.Data.String],
+    to: SO.Molecule.Trajectory
+})({
+    apply({ a }) {
+        return Task.create('Parse Lammps Data', async ctx => {
+            const parsed = await parseLammpData(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            const models = await trajectoryFromLammpsData(parsed.result).runInContext(ctx);
+            const props = trajectoryProps(models);
+            return new SO.Molecule.Trajectory(models, props);
+        });
+    }
+});
+
 
 type TrajectoryFromMOL = typeof TrajectoryFromMOL
 const TrajectoryFromMOL = PluginStateTransform.BuiltIn({
