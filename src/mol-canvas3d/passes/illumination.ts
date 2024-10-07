@@ -123,7 +123,7 @@ export class IlluminationPass {
 
         this.copyRenderable = createCopyRenderable(webgl, this.transparentTarget.texture);
 
-        this.composeRenderable = getComposeRenderable(webgl, this.tracing.accumulateTarget.texture, this.tracing.normalTextureOpaque, this.tracing.colorTextureOpaque, this.drawPass.depthTextureOpaque, this.drawPass.depthTargetTransparent.texture, this.drawPass.postprocessing.outline.target.texture, this.transparentTarget.texture, this.drawPass.postprocessing.ssao.ssaoDepthTransparentTexture, false);
+        this.composeRenderable = getComposeRenderable(webgl, this.tracing.accumulateTarget.texture, this.tracing.normalTextureOpaque, this.tracing.colorTextureOpaque, this.drawPass.depthTextureOpaque, this.drawPass.depthTargetTransparent.texture, this.drawPass.postprocessing.outline.target.texture, this.transparentTarget.texture, this.drawPass.postprocessing.ssao.ssaoDepthTexture, this.drawPass.postprocessing.ssao.ssaoDepthTransparentTexture, false);
 
         this.multiSampleComposeTarget = webgl.createRenderTarget(width, height, false, 'float32');
         this.multiSampleHoldTarget = webgl.createRenderTarget(width, height, false);
@@ -202,7 +202,7 @@ export class IlluminationPass {
             }
 
             if (ssaoEnabled) {
-                this.drawPass.postprocessing.ssao.update(camera, props.postprocessing.occlusion.params as SsaoProps);
+                this.drawPass.postprocessing.ssao.update(camera, props.postprocessing.occlusion.params as SsaoProps, true);
                 this.drawPass.postprocessing.ssao.render(camera);
             }
         }
@@ -588,6 +588,7 @@ const ComposeSchema = {
     tNormal: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tShaded: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tTransparentColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    tSsaoDepth: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tSsaoDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tDepthOpaque: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
@@ -615,13 +616,14 @@ const ComposeSchema = {
 const ComposeShaderCode = ShaderCode('compose', quad_vert, compose_frag);
 type ComposeRenderable = ComputeRenderable<Values<typeof ComposeSchema>>
 
-function getComposeRenderable(ctx: WebGLContext, colorTexture: Texture, normalTexture: Texture, shadedTexture: Texture, depthTextureOpaque: Texture, depthTextureTransparent: Texture, outlinesTexture: Texture, transparentColorTexture: Texture, ssaoDepthTransparentTexture: Texture, transparentOutline: boolean): ComposeRenderable {
+function getComposeRenderable(ctx: WebGLContext, colorTexture: Texture, normalTexture: Texture, shadedTexture: Texture, depthTextureOpaque: Texture, depthTextureTransparent: Texture, outlinesTexture: Texture, transparentColorTexture: Texture, ssaoDepthOpaqueTexture: Texture, ssaoDepthTransparentTexture: Texture, transparentOutline: boolean): ComposeRenderable {
     const values: Values<typeof ComposeSchema> = {
         ...QuadValues,
         tColor: ValueCell.create(colorTexture),
         tNormal: ValueCell.create(normalTexture),
         tShaded: ValueCell.create(shadedTexture),
         tTransparentColor: ValueCell.create(transparentColorTexture),
+        tSsaoDepth: ValueCell.create(ssaoDepthOpaqueTexture),
         tSsaoDepthTransparent: ValueCell.create(ssaoDepthTransparentTexture),
         tDepthOpaque: ValueCell.create(depthTextureOpaque),
         tDepthTransparent: ValueCell.create(depthTextureTransparent),

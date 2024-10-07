@@ -229,11 +229,17 @@ void main(void) {
                 offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
 
                 // get sample depth:
-                float sampleDepth = getMappedDepth(offset.xy, selfCoords);
-                float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
+                float sampleOcc = 0.0;
+                #ifdef dIllumination
+                    if (uTransparencyFlag == 1) {
+                #endif
+                    float sampleDepth = getMappedDepth(offset.xy, selfCoords);
+                    float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
 
-                float sampleOcc = step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uLevelRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uLevelBias[l];
-
+                    sampleOcc = step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uLevelRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uLevelBias[l];
+                #ifdef dIllumination
+                    }
+                #endif
                 #if defined(dIncludeTransparency)
                     vec2 sampleDepthWithAlpha = getMappedDepthTransparentWithAlpha(offset.xy, selfCoords);
                     if (!isBackground(sampleDepthWithAlpha.x)) {
@@ -255,12 +261,18 @@ void main(void) {
             offset = uProjection * offset;
             offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
 
-            // NOTE: using getMappedDepth here causes issues on some mobile devices
-            float sampleDepth = getDepth(offset.xy, 0);
-            float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
+            float sampleOcc = 0.0;
+            #ifdef dIllumination
+                if (uTransparencyFlag == 1) {
+            #endif
+                    // NOTE: using getMappedDepth here causes issues on some mobile devices
+                    float sampleDepth = getDepth(offset.xy, 0);
+                    float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
 
-            float sampleOcc = step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ));
-
+                    sampleOcc = step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ));
+            #ifdef dIllumination
+                }
+            #endif
             #if defined(dIncludeTransparency)
                 vec2 sampleDepthWithAlpha = getDepthTransparentWithAlpha(offset.xy);
                 if (!isBackground(sampleDepthWithAlpha.x)) {

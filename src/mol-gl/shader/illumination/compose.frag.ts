@@ -6,6 +6,7 @@ uniform sampler2D tShaded;
 uniform sampler2D tColor;
 uniform sampler2D tNormal;
 uniform sampler2D tTransparentColor;
+uniform sampler2D tSsaoDepth;
 uniform sampler2D tSsaoDepthTransparent;
 uniform sampler2D tDepthOpaque;
 uniform sampler2D tDepthTransparent;
@@ -51,6 +52,17 @@ float getDepthTransparent(const in vec2 coords) {
 
 bool isBackground(const in float depth) {
     return depth == 1.0;
+}
+
+float getSsao(vec2 coords) {
+    float rawSsao = unpackRGToUnitInterval(texture2D(tSsaoDepth, coords).xy);
+    if (rawSsao > 0.999) {
+        return 1.0;
+    } else if (rawSsao > 0.001) {
+        return rawSsao;
+    }
+    // treat values close to 0.0 as errors and return no occlusion
+    return 1.0;
 }
 
 float getSsaoTransparent(vec2 coords) {
@@ -199,6 +211,15 @@ void main() {
     }
 
     #if defined(dOcclusionEnable)
+        if (!isBackground(opaqueDepth)) {
+            float occlusionFactor = getSsao(coords);
+
+            if (!uTransparentBackground) {
+                color.rgb = mix(mix(uOcclusionColor, uFogColor, fogFactor), color.rgb, occlusionFactor);
+            } else {
+                color.rgb = mix(uOcclusionColor * (1.0 - fogFactor), color.rgb, occlusionFactor);
+            }
+        }
         if (!isBackground(transparentDepth)) {
             float viewDist = abs(getViewZ(transparentDepth));
             float fogFactor = smoothstep(uFogNear, uFogFar, viewDist);

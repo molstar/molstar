@@ -118,6 +118,7 @@ export class SsaoPass {
     private readonly blurFirstPassRenderable: SsaoBlurRenderable;
     private readonly blurSecondPassRenderable: SsaoBlurRenderable;
 
+    private illuminationMode: boolean;
     private nSamples: number;
     private blurKernelSize: number;
     private texSize: [number, number];
@@ -144,6 +145,7 @@ export class SsaoPass {
         this.depthTextureOpaque = depthTextureOpaque;
         this.depthTextureTransparent = depthTextureTransparent;
 
+        this.illuminationMode = false;
         this.nSamples = 1;
         this.blurKernelSize = 1;
         this.ssaoScale = this.calcSsaoScale(1);
@@ -259,7 +261,7 @@ export class SsaoPass {
         }
     }
 
-    update(camera: ICamera, props: SsaoProps) {
+    update(camera: ICamera, props: SsaoProps, illuminationMode = false) {
         let needsUpdateSsao = false;
         let needsUpdateSsaoBlur = false;
         let needsUpdateDepthHalf = false;
@@ -309,6 +311,13 @@ export class SsaoPass {
             needsUpdateSsao = true;
 
             ValueCell.update(this.renderable.values.dIncludeTransparency, props.includeTransparency);
+        }
+
+        if (this.illuminationMode !== illuminationMode) {
+            needsUpdateSsao = true;
+
+            this.illuminationMode = illuminationMode;
+            ValueCell.update(this.renderable.values.dIllumination, illuminationMode);
         }
 
         if (this.nSamples !== props.samples) {
@@ -514,6 +523,7 @@ const SsaoSchema = {
     tDepthHalf: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
     tDepthQuarter: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
 
+    dIllumination: DefineSpec('boolean'),
     uTransparencyFlag: UniformSpec('i'),
     dIncludeTransparency: DefineSpec('boolean'),
     tDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
@@ -549,6 +559,7 @@ function getSsaoRenderable(ctx: WebGLContext, depthTexture: Texture, depthHalfTe
         tDepthHalf: ValueCell.create(depthHalfTexture),
         tDepthQuarter: ValueCell.create(depthQuarterTexture),
 
+        dIllumination: ValueCell.create(false),
         dIncludeTransparency: ValueCell.create(true),
         uTransparencyFlag: ValueCell.create(0),
         tDepthTransparent: ValueCell.create(transparentDepthTexture),
