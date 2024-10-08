@@ -61,6 +61,7 @@
             var powerPreference = getParam('power-preference', '[^&]+').trim().toLowerCase();
             var graphicsMode = getParam('graphics-mode', '[^&]+').trim().toLowerCase();
             var illumination = getParam('illumination', '[^&]+').trim() === '1';
+            var resolutionMode = getParam('resolution-mode', '[^&]+').trim().toLowerCase();
 
             molstar.MesoscaleExplorer.create('app', {
                 layoutShowControls: !hideControls,
@@ -70,6 +71,7 @@
                 powerPreference: powerPreference || 'high-performance',
                 graphicsMode: graphicsMode || 'quality',
                 illumination: illumination,
+                resolutionMode: resolutionMode || 'auto',
                 driver: driver
             }).then(me => {
                 var example = getParam('example', '[^&]+').trim();

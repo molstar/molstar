@@ -5,6 +5,19 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Default to `blended` transparency on iOS due to `wboit` not being supported.
+- Fix direct-volume with fog off (and on with `dpoit`) and transparent background on (#1286)
+- Fix missing pre-multiplied alpha for `blended` & `wboit` with no fog (#1284)
+
+## [v4.7.1] - 2024-09-30
+
+- Improve `resolutionMode` (#1279)
+    - Add `auto` that picks `scaled` for mobile devices and `native` elsewhere
+    - Add `resolution-mode` Viewer GET param
+    - Add `PluginConfig.General.ResolutionMode` config item
+
+## [v4.7.0] - 2024-09-29
+
 - Add illumination mode
     - Path-traced SSGI
     - Automatic thickness (estimate)
@@ -24,7 +37,10 @@ Note that since we don't clearly distinguish between a public and private interf
     - `scaled`, divides by `devicePixelRatio`
     - `native`, no changes
 - Add `CustomProperty.Context.errorContext` to support reporting errors during loading of custom properties (#1254)
-  - Use in MolViewSpec extension
+    - Use in MolViewSpec extension
+- Mesoscale Explorer: fix color & style issues
+- Remove use of deprecated SASS explicit color functions
+- Allow "Components" section to display nested components created by "Apply Action > Selection".
 
 ## [v4.6.0] - 2024-08-28
 

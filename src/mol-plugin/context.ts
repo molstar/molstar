@@ -296,6 +296,7 @@ export class PluginContext {
                     pixelScale: this.config.get(PluginConfig.General.PixelScale) || 1,
                     pickScale: this.config.get(PluginConfig.General.PickScale) || 0.25,
                     transparency: this.config.get(PluginConfig.General.Transparency) || 'wboit',
+                    resolutionMode: this.config.get(PluginConfig.General.ResolutionMode) || 'auto',
                 });
             }
             (this.canvas3dContext as Canvas3DContext) = canvas3dContext;
