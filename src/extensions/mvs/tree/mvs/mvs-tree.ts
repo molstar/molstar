@@ -71,6 +71,17 @@ export const MVSTreeSchema = TreeSchema({
             },
         },
         /** This node instructs to create a volume from a parsed data resource. */
+        vs_volume: {
+            description: 'This node instructs to create a volume from a parsed Volume Server CIF. "vs_volume" refers to an internal representation of volumetric data without any visual representation.',
+            parent: ['parse'],
+            params: {
+                entryId: OptionalField(str, 'Specifies the entry ID, e.g., the ID of an EMDB entry from which the data has been derived')
+                // TODO: source? not really needed
+                // source: RequiredField(RawVolumeSourceT, 'Specifies the type of the raw input file with volumetric data (“map” for electron density maps, “omezarr” of OME NGFF in OMEZarr format, “ometiff” for OME TIFF image files, “tiff_stack” for a stack (i.e., a large number of) TIFF files).'),
+                // options: OptionalField(RawVolumeOptionsT, 'Specifies the desired voxel size and custom channel IDs in case of multichannel raw input data (e.g., OMEZarr with multiple channels).')
+            }
+        },
+        /** This node instructs to create a volume from a parsed data resource. */
         raw_volume: {
             description: 'This node instructs to create a volume from a parsed data resource. "raw_volume" refers to an internal representation of volumetric data without any visual representation.',
             parent: ['parse'],
@@ -154,9 +165,9 @@ export const MVSTreeSchema = TreeSchema({
         /** This node instructs to create a visual representation of a volume. */
         volume_representation: {
             description: 'This node instructs to create a visual representation of a volume.',
-            parent: ['raw_volume'],
+            parent: ['raw_volume', 'vs_volume'],
             params: {
-                /** Method of visual representation of the component. */
+                /** Method of visual representation of the volume. */
                 type: RequiredField(VolumeRepresentationTypeT, 'Method of visual representation of the volume.'),
             },
         },

@@ -9,7 +9,7 @@
 import { Download, ParseCcp4, ParseCif } from '../../mol-plugin-state/transforms/data';
 import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromMmCif, TrajectoryFromPDB, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
-import { VolumeFromCcp4 } from '../../mol-plugin-state/transforms/volume';
+import { VolumeFromCcp4, VolumeFromDensityServerCif } from '../../mol-plugin-state/transforms/volume';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectSelector } from '../../mol-state';
@@ -21,7 +21,7 @@ import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-
 import { CustomLabelProps, CustomLabelRepresentationProvider } from './components/custom-label/representation';
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
 import { IsMVSModelProps, IsMVSModelProvider } from './components/is-mvs-model-prop';
-import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, UpdateTarget, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, makeNearestReprMap, prettyNameFromSelector, rawVolumeProps, representationProps, structureProps, transformProps, volumeRepresentationProps } from './load-helpers';
+import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, UpdateTarget, VSVolumeProps, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, makeNearestReprMap, prettyNameFromSelector, rawVolumeProps, representationProps, structureProps, transformProps, volumeRepresentationProps } from './load-helpers';
 import { MVSData } from './mvs-data';
 import { ParamsOfKind, SubTreeOfKind, validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
@@ -114,9 +114,9 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         } else if (format === 'pdb') {
             return updateParent;
         } else if (format === 'map') {
-            // return updateParent;
-            // return UpdateTarget.apply(updateParent, ParseCif, {});
             return UpdateTarget.apply(updateParent, ParseCcp4, {});
+        } else if (format === 'vs-density') {
+            return UpdateTarget.apply(updateParent, ParseCif, {});
         } else {
             console.error(`Unknown format in "parse" node: "${format}"`);
             return undefined;
@@ -152,6 +152,10 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
             ],
         });
         return model;
+    },
+    vs_volume(updateParent: UpdateTarget, node: SubTreeOfKind<MolstarTree, 'vs_volume'>, context: MolstarLoadingContext): UpdateTarget {
+        const props = VSVolumeProps(node);
+        return UpdateTarget.apply(updateParent, VolumeFromDensityServerCif, props);
     },
     raw_volume(updateParent: UpdateTarget, node: SubTreeOfKind<MolstarTree, 'raw_volume'>, context: MolstarLoadingContext): UpdateTarget {
         const source = node.params.source;

@@ -31,6 +31,9 @@ export const MVSDefaults = {
     raw_volume: {
         options: {}
     },
+    vs_volume: {
+        entryId: ''
+    },
     component_from_uri: {
         block_header: null,
         block_index: 0,

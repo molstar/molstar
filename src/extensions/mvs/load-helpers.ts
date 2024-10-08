@@ -8,7 +8,7 @@ import { Mat3, Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { StructureComponentParams } from '../../mol-plugin-state/helpers/structure-component';
 import { StructureFromModel, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
-import { VolumeFromCcp4 } from '../../mol-plugin-state/transforms/volume';
+import { VolumeFromCcp4, VolumeFromDensityServerCif } from '../../mol-plugin-state/transforms/volume';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateBuilder, StateObject, StateObjectSelector, StateTransform, StateTransformer } from '../../mol-state';
 import { arrayDistinct } from '../../mol-util/array';
@@ -314,6 +314,16 @@ export function rawVolumeProps(node: MolstarNode<'raw_volume'>): StateTransforme
     };
     // TODO: support channel_ids_mapping when other volume types (e.g., omezarr) are implemented
 }
+
+/** Create props for `VolumeFromDensityServerCif` transformer from a vs_volume node. */
+export function VSVolumeProps(node: MolstarNode<'vs_volume'>): StateTransformer.Params<VolumeFromDensityServerCif> | {} {
+    const params = node.params;
+    if (!params.entryId) return {};
+    return {
+        entryId: params.entryId
+    };
+}
+
 /** Create props for `StructureFromModel` transformer from a structure node. */
 export function structureProps(node: MolstarNode<'structure'>): StateTransformer.Params<StructureFromModel> {
     const params = node.params;
