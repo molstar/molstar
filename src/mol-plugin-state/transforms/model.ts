@@ -40,7 +40,7 @@ import { parseXtc } from '../../mol-io/reader/xtc/parser';
 import { coordinatesFromXtc } from '../../mol-model-formats/structure/xtc';
 import { parseXyz } from '../../mol-io/reader/xyz/parser';
 import { trajectoryFromXyz } from '../../mol-model-formats/structure/xyz';
-import { parseLammpData } from '../../mol-io/reader/lammps/parser';
+import { parseLammpData } from '../../mol-io/reader/lammps_data/parser';
 import { trajectoryFromLammpsData } from '../../mol-model-formats/structure/lammps_data';
 import { parseSdf } from '../../mol-io/reader/sdf/parser';
 import { trajectoryFromSdf } from '../../mol-model-formats/structure/sdf';

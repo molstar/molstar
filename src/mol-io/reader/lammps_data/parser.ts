@@ -14,7 +14,7 @@ export interface LammpDataFile {
     readonly atoms: {
         readonly count: number
         readonly atomId: Column<number>
-        readonly moleculeId: Column<number>
+        readonly moleculeType: Column<number>
         readonly atomType: Column<number>
         readonly charge: Column<number>
         readonly x: Column<number>,
@@ -46,7 +46,7 @@ async function handleAtoms(state: State, count: number): Promise<LammpDataFile['
     const { tokenizer } = state;
 
     const atomId = TokenBuilder.create(tokenizer.data, count * 2);
-    const moleculeId = TokenBuilder.create(tokenizer.data, count * 2);
+    const moleculeType = TokenBuilder.create(tokenizer.data, count * 2);
     const atomType = TokenBuilder.create(tokenizer.data, count * 2);
     const charge = TokenBuilder.create(tokenizer.data, count * 2);
     const x = TokenBuilder.create(tokenizer.data, count * 2);
@@ -54,7 +54,7 @@ async function handleAtoms(state: State, count: number): Promise<LammpDataFile['
     const z = TokenBuilder.create(tokenizer.data, count * 2);
 
     const { position } = tokenizer;
-    // const line = readLine(tokenizer).trim();
+    const line = readLine(tokenizer).trim();
     tokenizer.position = position;
 
     const n = 7;
@@ -70,7 +70,7 @@ async function handleAtoms(state: State, count: number): Promise<LammpDataFile['
                 eatValue(tokenizer);
                 switch (j) {
                     case 0: TokenBuilder.addUnchecked(atomId, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                    case 1: TokenBuilder.addUnchecked(moleculeId, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                    case 1: TokenBuilder.addUnchecked(moleculeType, tokenizer.tokenStart, tokenizer.tokenEnd); break;
                     case 2: TokenBuilder.addUnchecked(atomType, tokenizer.tokenStart, tokenizer.tokenEnd); break;
                     case 3: TokenBuilder.addUnchecked(charge, tokenizer.tokenStart, tokenizer.tokenEnd); break;
                     case 4: TokenBuilder.addUnchecked(x, tokenizer.tokenStart, tokenizer.tokenEnd); break;
@@ -90,7 +90,7 @@ async function handleAtoms(state: State, count: number): Promise<LammpDataFile['
     return {
         count,
         atomId: TokenColumn(atomId)(Column.Schema.int),
-        moleculeId: TokenColumn(moleculeId)(Column.Schema.int),
+        moleculeType: TokenColumn(moleculeType)(Column.Schema.int),
         atomType: TokenColumn(atomType)(Column.Schema.int),
         charge: TokenColumn(charge)(Column.Schema.float),
         x: TokenColumn(x)(Column.Schema.float),

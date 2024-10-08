@@ -6,7 +6,7 @@
 
 import { Column, Table } from '../../mol-data/db';
 import { Model } from '../../mol-model/structure/model';
-import { LammpDataFile } from '../../mol-io/reader/lammps/parser';
+import { LammpDataFile } from '../../mol-io/reader/lammps_data/parser';
 import { Trajectory, ArrayTrajectory } from '../../mol-model/structure';
 import { BondType, MoleculeType } from '../../mol-model/structure/model/types';
 import { RuntimeContext, Task } from '../../mol-task';
@@ -32,7 +32,7 @@ async function getModels(mol: LammpDataFile, ctx: RuntimeContext) {
 
     let offset = 0;
     for (let j = 0; j < count; j++) {
-        type_symbols[offset] = 'C'; // atoms.atomType.value(j);
+        type_symbols[offset] = atoms.atomType.value(j).toString();
         cx[offset] = atoms.x.value(j);
         cy[offset] = atoms.y.value(j);
         cz[offset] = atoms.z.value(j);
@@ -83,7 +83,7 @@ async function getModels(mol: LammpDataFile, ctx: RuntimeContext) {
         chem_comp: componentBuilder.getChemCompTable(),
         atom_site
     });
-    const _models = await createModels(basic, LammpsDataFormat.create(mol), ctx);
+    const _models = await createModels(basic, LammpDataFormat.create(mol), ctx);
     if (_models.frameCount > 0) {
         const indexA = Column.ofIntArray(Column.mapToArray(bonds.atomIdA, x => x - 1, Int32Array));
         const indexB = Column.ofIntArray(Column.mapToArray(bonds.atomIdB, x => x - 1, Int32Array));
@@ -120,16 +120,16 @@ async function getModels(mol: LammpDataFile, ctx: RuntimeContext) {
 
 //
 
-export { LammpsDataFormat };
+export { LammpDataFormat };
 
-type LammpsDataFormat = ModelFormat<LammpDataFile>
+type LammpDataFormat = ModelFormat<LammpDataFile>
 
-namespace LammpsDataFormat {
-    export function is(x?: ModelFormat): x is LammpsDataFormat {
+namespace LammpDataFormat {
+    export function is(x?: ModelFormat): x is LammpDataFormat {
         return x?.kind === 'xyz';
     }
 
-    export function create(mol: LammpDataFile): LammpsDataFormat {
+    export function create(mol: LammpDataFile): LammpDataFormat {
         return { kind: 'data', name: 'data', data: mol };
     }
 }
