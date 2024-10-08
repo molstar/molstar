@@ -126,7 +126,7 @@ type LammpDataFormat = ModelFormat<LammpDataFile>
 
 namespace LammpDataFormat {
     export function is(x?: ModelFormat): x is LammpDataFormat {
-        return x?.kind === 'xyz';
+        return x?.kind === 'data';
     }
 
     export function create(mol: LammpDataFile): LammpDataFormat {

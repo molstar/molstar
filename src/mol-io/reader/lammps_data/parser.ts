@@ -54,7 +54,7 @@ async function handleAtoms(state: State, count: number): Promise<LammpDataFile['
     const z = TokenBuilder.create(tokenizer.data, count * 2);
 
     const { position } = tokenizer;
-    const line = readLine(tokenizer).trim();
+    readLine(tokenizer).trim();
     tokenizer.position = position;
 
     const n = 7;

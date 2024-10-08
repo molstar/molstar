@@ -121,6 +121,15 @@ export const LammpsDataProvider: TrajectoryFormatProvider = {
     visuals: defaultVisuals
 };
 
+export const LammpsTrajDataProvider: TrajectoryFormatProvider = {
+    label: 'Lammps Traj Data',
+    description: 'Lammps Traj Data',
+    category: TrajectoryFormatCategory,
+    stringExtensions: ['lammpstrj'],
+    parse: directTrajectory(StateTransforms.Model.TrajectoryFromLammpsTrajData),
+    visuals: defaultVisuals
+};
+
 export const GroProvider: TrajectoryFormatProvider = {
     label: 'GRO',
     description: 'GRO',
@@ -166,6 +175,7 @@ export const BuiltInTrajectoryFormats = [
     ['gro', GroProvider] as const,
     ['xyz', XyzProvider] as const,
     ['lammps_data', LammpsDataProvider] as const,
+    ['lammps_traj_data', LammpsTrajDataProvider] as const,
     ['mol', MolProvider] as const,
     ['sdf', SdfProvider] as const,
     ['mol2', Mol2Provider] as const,

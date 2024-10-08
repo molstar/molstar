@@ -42,6 +42,8 @@ import { parseXyz } from '../../mol-io/reader/xyz/parser';
 import { trajectoryFromXyz } from '../../mol-model-formats/structure/xyz';
 import { parseLammpData } from '../../mol-io/reader/lammps_data/parser';
 import { trajectoryFromLammpsData } from '../../mol-model-formats/structure/lammps_data';
+import { parseLammpTrajectory } from '../../mol-io/reader/lammps_traj/parser';
+import { coordinatesFromLammpsTrajectory, trajectoryFromLammpsTrajectory } from '../../mol-model-formats/structure/lammps_trajectory';
 import { parseSdf } from '../../mol-io/reader/sdf/parser';
 import { trajectoryFromSdf } from '../../mol-model-formats/structure/sdf';
 import { assertUnreachable } from '../../mol-util/type-helpers';
@@ -56,6 +58,7 @@ export { CoordinatesFromDcd };
 export { CoordinatesFromXtc };
 export { CoordinatesFromTrr };
 export { CoordinatesFromNctraj };
+export { CoordinatesFromLammpstraj };
 export { TopologyFromPsf };
 export { TopologyFromPrmtop };
 export { TopologyFromTop };
@@ -66,6 +69,7 @@ export { TrajectoryFromPDB };
 export { TrajectoryFromGRO };
 export { TrajectoryFromXYZ };
 export { TrajectoryFromLammpsData };
+export { TrajectoryFromLammpsTrajData };
 export { TrajectoryFromMOL };
 export { TrajectoryFromSDF };
 export { TrajectoryFromMOL2 };
@@ -148,6 +152,24 @@ const CoordinatesFromNctraj = PluginStateTransform.BuiltIn({
             const parsed = await parseNctraj(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             const coordinates = await coordinatesFromNctraj(parsed.result).runInContext(ctx);
+            return new SO.Molecule.Coordinates(coordinates, { label: a.label, description: 'Coordinates' });
+        });
+    }
+});
+
+
+type CoordinatesFromLammpstraj = typeof CoordinatesFromLammpstraj
+const CoordinatesFromLammpstraj = PluginStateTransform.BuiltIn({
+    name: 'coordinates-from-lammpstraj',
+    display: { name: 'Parse LAMMPSTRAJ', description: 'Parse LAMMPSTRAJ data.' },
+    from: [SO.Data.String],
+    to: SO.Molecule.Coordinates
+})({
+    apply({ a }) {
+        return Task.create('Parse LAMMPSTRAJ', async ctx => {
+            const parsed = await parseLammpTrajectory(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            const coordinates = await coordinatesFromLammpsTrajectory(parsed.result).runInContext(ctx);
             return new SO.Molecule.Coordinates(coordinates, { label: a.label, description: 'Coordinates' });
         });
     }
@@ -390,6 +412,24 @@ const TrajectoryFromLammpsData = PluginStateTransform.BuiltIn({
             const parsed = await parseLammpData(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             const models = await trajectoryFromLammpsData(parsed.result).runInContext(ctx);
+            const props = trajectoryProps(models);
+            return new SO.Molecule.Trajectory(models, props);
+        });
+    }
+});
+
+type TrajectoryFromLammpsTrajData = typeof TrajectoryFromLammpsTrajData
+const TrajectoryFromLammpsTrajData = PluginStateTransform.BuiltIn({
+    name: 'trajectory-from-lammps-traj-data',
+    display: { name: 'Parse Lammps traj Data', description: 'Parse Lammps Traj Data string and create trajectory.' },
+    from: [SO.Data.String],
+    to: SO.Molecule.Trajectory
+})({
+    apply({ a }) {
+        return Task.create('Parse Lammps Data', async ctx => {
+            const parsed = await parseLammpTrajectory(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            const models = await trajectoryFromLammpsTrajectory(parsed.result).runInContext(ctx);
             const props = trajectoryProps(models);
             return new SO.Molecule.Trajectory(models, props);
         });
