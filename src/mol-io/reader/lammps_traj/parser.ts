@@ -2,7 +2,7 @@
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
- * @author Ludovic Autin <ludovic.autin@gmail.com> 
+ * @author Ludovic Autin <ludovic.autin@gmail.com>
  */
 
 import { Task, RuntimeContext, chunkedSubtask } from '../../../mol-task';
