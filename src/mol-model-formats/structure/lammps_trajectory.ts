@@ -2,6 +2,7 @@
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Ludovic Autin <ludovic.autin@gmail.com>
  */
 
 import { Coordinates, Frame, Time } from '../../mol-model/structure/coordinates';
