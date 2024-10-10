@@ -38,8 +38,19 @@ function State(tokenizer: Tokenizer, runtimeCtx: RuntimeContext) {
 }
 type State = ReturnType<typeof State>
 
-async function handleAtoms(state: State, count: number): Promise<LammpsFrame> {
+async function handleAtoms(state: State, count: number, parts: string[]): Promise<LammpsFrame> {
     const { tokenizer } = state;
+    const columnIndexMap = Object.fromEntries(parts.map((colName, index) => [colName, index]));
+    // declare column x, y, and z by check first caracter to 'x' or 'y' or 'z'
+    // x,y,z = unscaled atom coordinates
+    // xs,ys,zs = scaled atom coordinates
+    // xu,yu,zu = unwrapped atom coordinates
+    // xsu,ysu,zsu = scaled unwrapped atom coordinates
+    // ix,iy,iz = box image that the atom is in
+    // how should we handle the different scenario ?
+    const xCol = parts.findIndex(p => p[0] === 'x');
+    const yCol = parts.findIndex(p => p[0] === 'y');
+    const zCol = parts.findIndex(p => p[0] === 'z');
 
     const atomId = TokenBuilder.create(tokenizer.data, count * 2);
     const moleculeType = TokenBuilder.create(tokenizer.data, count * 2);
@@ -51,7 +62,7 @@ async function handleAtoms(state: State, count: number): Promise<LammpsFrame> {
     const { position } = tokenizer;
     tokenizer.position = position;
 
-    const n = 6;
+    const n = parts.length;
 
     const { length } = tokenizer;
     let linesAlreadyRead = 0;
@@ -63,12 +74,12 @@ async function handleAtoms(state: State, count: number): Promise<LammpsFrame> {
                 markStart(tokenizer);
                 eatValue(tokenizer);
                 switch (j) {
-                    case 0: TokenBuilder.addUnchecked(atomId, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                    case 1: TokenBuilder.addUnchecked(moleculeType, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                    case 2: TokenBuilder.addUnchecked(atomType, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                    case 3: TokenBuilder.addUnchecked(x, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                    case 4: TokenBuilder.addUnchecked(y, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                    case 5: TokenBuilder.addUnchecked(z, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                    case columnIndexMap['id']: TokenBuilder.addUnchecked(atomId, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                    case columnIndexMap['mol']: TokenBuilder.addUnchecked(moleculeType, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                    case columnIndexMap['type']: TokenBuilder.addUnchecked(atomType, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                    case xCol: TokenBuilder.addUnchecked(x, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                    case yCol: TokenBuilder.addUnchecked(y, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                    case zCol: TokenBuilder.addUnchecked(z, tokenizer.tokenStart, tokenizer.tokenEnd); break;
                 }
             }
             // ignore any extra columns
@@ -90,6 +101,19 @@ async function handleAtoms(state: State, count: number): Promise<LammpsFrame> {
     };
 }
 
+/*
+Possible Attrbiutes from Lammps Dump
+see https://docs.lammps.org/dump.html fro more details
+possible attributes = id, mol, proc, procp1, type, element, mass,
+                      x, y, z, xs, ys, zs, xu, yu, zu,
+                      xsu, ysu, zsu, ix, iy, iz,
+                      vx, vy, vz, fx, fy, fz,
+                      q, mux, muy, muz, mu,
+                      radius, diameter, omegax, omegay, omegaz,
+                      angmomx, angmomy, angmomz, tqx, tqy, tqz,
+                      c_ID, c_ID[I], f_ID, f_ID[I], v_name,
+                      i_name, d_name, i2_name[I], d2_name[I]
+*/
 async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<LammpTrajectoryFile>> {
     const tokenizer = Tokenizer(data);
     const state = State(tokenizer, ctx);
@@ -110,9 +134,16 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
         } else if (line.includes('ITEM: NUMBER OF ATOMS')) {
             numAtoms = parseInt(readLine(state.tokenizer).trim());
         } else if (line.includes('ITEM: ATOMS')) {
-            const frame: LammpsFrame = await handleAtoms(state, numAtoms);
+            // this line provide also the style of the output and will give the order of the columns
+            const parts = line.split(' ').slice(2);
+            const frame: LammpsFrame = await handleAtoms(state, numAtoms, parts);
             frames?.push(frame);
         }
+        /* we could parse the bounding box if needed */
+        // else if (line.includes('ITEM: BOX BOUNDS')) {
+        //     const box = await handleBox(state);
+        //     f.boxes.push(box);
+        // }
     }
     if (f.times.length >= 1) {
         f.timeOffset = f.times[0];

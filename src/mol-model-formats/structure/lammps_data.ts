@@ -42,7 +42,6 @@ async function getModels(mol: LammpDataFile, ctx: RuntimeContext) {
         offset++;
     }
 
-
     const MOL = Column.ofConst('MOL', count, Column.Schema.str);
     const A = Column.ofConst('A', count, Column.Schema.str);
     const seq_id = Column.ofConst(1, count, Column.Schema.int);
@@ -86,28 +85,30 @@ async function getModels(mol: LammpDataFile, ctx: RuntimeContext) {
     });
     const _models = await createModels(basic, LammpDataFormat.create(mol), ctx);
     if (_models.frameCount > 0) {
-        const indexA = Column.ofIntArray(Column.mapToArray(bonds.atomIdA, x => x - 1, Int32Array));
-        const indexB = Column.ofIntArray(Column.mapToArray(bonds.atomIdB, x => x - 1, Int32Array));
-        const key = bonds.bondId;
-        const order = Column.ofIntArray(Column.mapToArray(bonds.bondType, x => {
-            switch (x) {
-                default:
-                    return 1;
-            }
-        }, Int8Array));
-        const flag = Column.ofIntArray(Column.mapToArray(bonds.bondType, x => {
-            switch (x) {
-                default:
-                    return BondType.Flag.Covalent;
-            }
-        }, Int8Array));
-        const pairBonds = IndexPairBonds.fromData(
-            { pairs: { key, indexA, indexB, order, flag }, count: atoms.count },
-            { maxDistance: Infinity }
-        );
-
         const first = _models.representative;
-        IndexPairBonds.Provider.set(first, pairBonds);
+        if (bonds.count !== 0) {
+            const indexA = Column.ofIntArray(Column.mapToArray(bonds.atomIdA, x => x - 1, Int32Array));
+            const indexB = Column.ofIntArray(Column.mapToArray(bonds.atomIdB, x => x - 1, Int32Array));
+            const key = bonds.bondId;
+            const order = Column.ofIntArray(Column.mapToArray(bonds.bondType, x => {
+                switch (x) {
+                    default:
+                        return 1;
+                }
+            }, Int8Array));
+            const flag = Column.ofIntArray(Column.mapToArray(bonds.bondType, x => {
+                switch (x) {
+                    default:
+                        return BondType.Flag.Covalent;
+                }
+            }, Int8Array));
+            const pairBonds = IndexPairBonds.fromData(
+                { pairs: { key, indexA, indexB, order, flag }, count: atoms.count },
+                { maxDistance: Infinity }
+            );
+            console.log(pairBonds);
+            IndexPairBonds.Provider.set(first, pairBonds);
+        }
 
         AtomPartialCharge.Provider.set(first, {
             data: atoms.charge,

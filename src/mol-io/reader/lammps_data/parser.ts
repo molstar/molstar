@@ -43,9 +43,17 @@ function State(tokenizer: Tokenizer, runtimeCtx: RuntimeContext) {
 }
 type State = ReturnType<typeof State>
 
-async function handleAtoms(state: State, count: number): Promise<LammpDataFile['atoms']> {
+async function handleAtoms(state: State, count: number, atom_style: string): Promise<LammpDataFile['atoms']> {
     const { tokenizer } = state;
-
+    // default atom style is atomic
+    // depending on the atom style the number of columns can change
+    // Dictionary of atom_style and the number of columns
+    const atomStyleColumnMap: Record<string, number> = {
+        full: 7,
+        atomic: 5,
+        bond: 6,
+    };
+    const n = atomStyleColumnMap[atom_style];
     const atomId = TokenBuilder.create(tokenizer.data, count * 2);
     const moleculeType = TokenBuilder.create(tokenizer.data, count * 2);
     const atomType = TokenBuilder.create(tokenizer.data, count * 2);
@@ -58,10 +66,9 @@ async function handleAtoms(state: State, count: number): Promise<LammpDataFile['
     readLine(tokenizer).trim();
     tokenizer.position = position;
 
-    const n = 7;
-
     const { length } = tokenizer;
     let linesAlreadyRead = 0;
+
     await chunkedSubtask(state.runtimeCtx, 100000, void 0, chunkSize => {
         const linesToRead = Math.min(count - linesAlreadyRead, chunkSize);
         for (let i = 0; i < linesToRead; ++i) {
@@ -69,16 +76,41 @@ async function handleAtoms(state: State, count: number): Promise<LammpDataFile['
                 skipWhitespace(tokenizer);
                 markStart(tokenizer);
                 eatValue(tokenizer);
-                switch (j) {
-                    case 0: TokenBuilder.addUnchecked(atomId, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                    case 1: TokenBuilder.addUnchecked(moleculeType, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                    case 2: TokenBuilder.addUnchecked(atomType, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                    case 3: TokenBuilder.addUnchecked(charge, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                    case 4: TokenBuilder.addUnchecked(x, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                    case 5: TokenBuilder.addUnchecked(y, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                    case 6: TokenBuilder.addUnchecked(z, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                switch (atom_style) {
+                    case 'full': {
+                        switch (j) {
+                            case 0: TokenBuilder.addUnchecked(atomId, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                            case 1: TokenBuilder.addUnchecked(moleculeType, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                            case 2: TokenBuilder.addUnchecked(atomType, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                            case 3: TokenBuilder.addUnchecked(charge, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                            case 4: TokenBuilder.addUnchecked(x, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                            case 5: TokenBuilder.addUnchecked(y, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                            case 6: TokenBuilder.addUnchecked(z, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                        }
+                        break;
+                    }
+                    case 'atomic': {
+                        switch (j) {
+                            case 0: TokenBuilder.addUnchecked(atomId, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                            case 1: TokenBuilder.addUnchecked(atomType, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                            case 2: TokenBuilder.addUnchecked(x, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                            case 3: TokenBuilder.addUnchecked(y, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                            case 4: TokenBuilder.addUnchecked(z, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                        }
+                        break;
+                    }
+                    case 'bond': {
+                        switch (j) {
+                            case 0: TokenBuilder.addUnchecked(atomId, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                            case 1: TokenBuilder.addUnchecked(moleculeType, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                            case 2: TokenBuilder.addUnchecked(atomType, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                            case 3: TokenBuilder.addUnchecked(x, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                            case 4: TokenBuilder.addUnchecked(y, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                            case 5: TokenBuilder.addUnchecked(z, tokenizer.tokenStart, tokenizer.tokenEnd); break;
+                        }
+                        break;
+                    }
                 }
-
             }
             // ignore any extra columns
             eatLine(tokenizer);
@@ -131,8 +163,8 @@ async function handleBonds(state: State, count: number): Promise<LammpDataFile['
 
     return {
         count,
-        bondId: TokenColumn(atomIdA)(Column.Schema.int),
-        bondType: TokenColumn(atomIdB)(Column.Schema.int),
+        bondId: TokenColumn(bondId)(Column.Schema.int),
+        bondType: TokenColumn(bondType)(Column.Schema.int),
         atomIdA: TokenColumn(atomIdA)(Column.Schema.int),
         atomIdB: TokenColumn(atomIdB)(Column.Schema.int),
     };
@@ -146,6 +178,9 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
     let bonds = undefined as LammpDataFile['bonds'] | undefined;
     let numAtoms = 0;
     let numBonds = 0;
+    let atom_style = 'full';
+    // full list of atom_style
+    // https://docs.lammps.org/atom_style.html
     while (tokenizer.tokenEnd < tokenizer.length) {
         const line = readLine(state.tokenizer).trim();
         if (line.includes('atoms')) {
@@ -156,7 +191,12 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
             // const numAtoms = parseInt(line.split(reWhitespace)[0]);
             // atoms = await handleAtoms(state, numAtoms);
         } else if (line.includes('Atoms')) {
-            atoms = await handleAtoms(state, numAtoms);
+            // usually atom style is indicated as a comment after Atoms. e.g. Atoms # full
+            const parts = line.split('#');
+            if (parts.length > 1) {
+                atom_style = parts[1].trim();
+            }
+            atoms = await handleAtoms(state, numAtoms, atom_style);
         } else if (line.includes('Bonds')) {
             bonds = await handleBonds(state, numBonds);
         }
@@ -167,7 +207,14 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
     }
 
     if (bonds === undefined) {
-        return Result.error('no bonds data');
+        bonds = {
+            count: 0,
+            bondId: Column.ofIntArray([]),
+            bondType: Column.ofIntArray([]),
+            atomIdA: Column.ofIntArray([]),
+            atomIdB: Column.ofIntArray([]),
+        };
+        // return Result.error('no bonds data');
     }
 
     const result: LammpDataFile = {
