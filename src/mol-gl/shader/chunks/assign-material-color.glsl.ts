@@ -37,32 +37,42 @@ export const assign_material_color = `
 #elif defined(dRenderVariant_depth)
     if (fragmentDepth > getDepth(gl_FragCoord.xy / uDrawingBufferSize)) {
         discard;
-    }
-
-    #ifndef dXrayShaded
+    }    
+    vec4 material;
+    if (uRenderMask == MaskOpaque) {
+        #if defined(dXrayShaded)
+            discard;
+        #endif
         #if defined(dTransparency)
             float dta = 1.0 - vTransparency;
             if (vTransparency < 0.2) dta = 1.0; // hard cutoff looks better
-
-            if (uRenderMask == MaskTransparent && uAlpha * dta == 1.0) {
+            if (uAlpha * dta < 1.0) {
                 discard;
-            } else if (uRenderMask == MaskOpaque && uAlpha * dta < 1.0) {
-                discard;
-            }
+            }               
         #else
-            if (uRenderMask == MaskTransparent && uAlpha == 1.0) {
-                discard;
-            } else if (uRenderMask == MaskOpaque && uAlpha < 1.0) {
+            if (uAlpha < 1.0) {
                 discard;
             }
         #endif
-    #else
-        if (uRenderMask == MaskOpaque) {
-            discard;
-        }
-    #endif
-
-    vec4 material = packDepthToRGBA(fragmentDepth);
+        material = packDepthToRGBA(fragmentDepth);            
+    } else if (uRenderMask == MaskTransparent) {
+        float alpha = uAlpha;        
+        #if defined(dTransparency)
+            float dta = 1.0 - vTransparency;
+            alpha *= dta;
+        #endif
+        #if defined(dXrayShaded_on)
+            alpha *= 1.0 - pow(abs(dot(normal, vec3(0.0, 0.0, 1.0))), uXrayEdgeFalloff);
+        #elif defined(dXrayShaded_inverted)
+            alpha *= pow(abs(dot(normal, vec3(0.0, 0.0, 1.0))), uXrayEdgeFalloff);
+        #endif
+        #ifndef dXrayShaded
+            if (alpha == 1.0) {
+                discard;
+            }
+        #endif
+        material = packDepthWithAlphaToRGBA(fragmentDepth, alpha);
+    }
 #elif defined(dRenderVariant_marking)
     vec4 material;
     if(uMarkingType == 1) {

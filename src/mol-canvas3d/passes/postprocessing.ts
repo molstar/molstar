@@ -30,7 +30,7 @@ import { BackgroundParams, BackgroundPass } from './background';
 import { AssetManager } from '../../mol-util/assets';
 import { Light } from '../../mol-gl/renderer';
 import { CasParams, CasPass } from './cas';
-import { DofParams } from './dof';
+import { DofPass, DofParams } from './dof';
 import { BloomParams } from './bloom';
 import { OutlinePass, OutlineProps, OutlineParams } from './outline';
 import { ShadowPass, ShadowProps, ShadowParams } from './shadow';
@@ -40,8 +40,11 @@ import { SsaoPass, SsaoProps, SsaoParams } from './ssao';
 const PostprocessingSchema = {
     ...QuadSchema,
     tSsaoDepth: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    tSsaoDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    tTransparentColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tDepthOpaque: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    tDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tShadows: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tOutlines: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     uTexSize: UniformSpec('v2'),
@@ -57,6 +60,9 @@ const PostprocessingSchema = {
     uTransparentBackground: UniformSpec('b'),
 
     dOcclusionEnable: DefineSpec('boolean'),
+    dOcclusionSingleDepth: DefineSpec('boolean'),
+    dOcclusionIncludeOpacity: DefineSpec('boolean'),
+    dOcclusionIncludeTransparency: DefineSpec('boolean'),
     uOcclusionOffset: UniformSpec('v2'),
 
     dShadowEnable: DefineSpec('boolean'),
@@ -67,12 +73,15 @@ const PostprocessingSchema = {
 };
 type PostprocessingRenderable = ComputeRenderable<Values<typeof PostprocessingSchema>>
 
-function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, depthTextureOpaque: Texture, shadowsTexture: Texture, outlinesTexture: Texture, ssaoDepthTexture: Texture, transparentOutline: boolean): PostprocessingRenderable {
+function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, transparentColorTexture: Texture, depthTextureOpaque: Texture, depthTextureTransparent: Texture, shadowsTexture: Texture, outlinesTexture: Texture, ssaoDepthTexture: Texture, ssaoDepthTransparentTexture: Texture, transparentOutline: boolean): PostprocessingRenderable {
     const values: Values<typeof PostprocessingSchema> = {
         ...QuadValues,
         tSsaoDepth: ValueCell.create(ssaoDepthTexture),
+        tSsaoDepthTransparent: ValueCell.create(ssaoDepthTransparentTexture),
         tColor: ValueCell.create(colorTexture),
+        tTransparentColor: ValueCell.create(transparentColorTexture),
         tDepthOpaque: ValueCell.create(depthTextureOpaque),
+        tDepthTransparent: ValueCell.create(depthTextureTransparent),
         tShadows: ValueCell.create(shadowsTexture),
         tOutlines: ValueCell.create(outlinesTexture),
         uTexSize: ValueCell.create(Vec2.create(colorTexture.getWidth(), colorTexture.getHeight())),
@@ -88,6 +97,9 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
         uTransparentBackground: ValueCell.create(false),
 
         dOcclusionEnable: ValueCell.create(true),
+        dOcclusionSingleDepth: ValueCell.create(false),
+        dOcclusionIncludeOpacity: ValueCell.create(true),
+        dOcclusionIncludeTransparency: ValueCell.create(false),
         uOcclusionOffset: ValueCell.create(Vec2.create(0, 0)),
 
         dShadowEnable: ValueCell.create(false),
@@ -144,8 +156,20 @@ export class PostprocessingPass {
         return SsaoPass.isEnabled(props) || ShadowPass.isEnabled(props) || OutlinePass.isEnabled(props) || props.background.variant.name !== 'off';
     }
 
+    static isTransparentDepthRequired(props: PostprocessingProps) {
+        return DofPass.isEnabled(props) || PostprocessingPass.isTransparentOutlineEnabled(props) || PostprocessingPass.isTransparentSsaoEnabled(props);
+    }
+
     static isTransparentOutlineEnabled(props: PostprocessingProps) {
         return OutlinePass.isEnabled(props) && (props.outline.params as OutlineProps).includeTransparent;
+    }
+
+    static isTransparentSsaoEnabled(props: PostprocessingProps) {
+        return SsaoPass.isEnabled(props) && (props.occlusion.params as SsaoProps).includeTransparency;
+    }
+
+    static isSsaoEnabled(props: PostprocessingProps) {
+        return SsaoPass.isEnabled(props);
     }
 
     readonly target: RenderTarget;
@@ -158,18 +182,18 @@ export class PostprocessingPass {
     readonly background: BackgroundPass;
 
     constructor(private readonly webgl: WebGLContext, assetManager: AssetManager, readonly drawPass: DrawPass) {
-        const { colorTarget, depthTextureOpaque, depthTextureTransparent, packedDepth } = drawPass;
+        const { colorTarget, transparentColorTarget, depthTextureOpaque, depthTextureTransparent, packedDepth } = drawPass;
         const width = colorTarget.getWidth();
         const height = colorTarget.getHeight();
 
         // needs to be linear for anti-aliasing pass
         this.target = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
 
-        this.ssao = new SsaoPass(webgl, width, height, packedDepth, depthTextureOpaque);
+        this.ssao = new SsaoPass(webgl, width, height, packedDepth, depthTextureOpaque, depthTextureTransparent);
         this.shadow = new ShadowPass(webgl, width, height, depthTextureOpaque);
         this.outline = new OutlinePass(webgl, width, height, depthTextureTransparent, depthTextureOpaque);
 
-        this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTextureOpaque, this.shadow.target.texture, this.outline.target.texture, this.ssao.ssaoDepthTexture, true);
+        this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, transparentColorTarget.texture, depthTextureOpaque, depthTextureTransparent, this.shadow.target.texture, this.outline.target.texture, this.ssao.ssaoDepthTexture, this.ssao.ssaoDepthTransparentTexture, true);
 
         this.background = new BackgroundPass(webgl, assetManager, width, height);
     }
@@ -197,7 +221,14 @@ export class PostprocessingPass {
         const occlusionEnabled = SsaoPass.isEnabled(props);
 
         if (occlusionEnabled) {
-            this.ssao.update(camera, props.occlusion.params as SsaoProps);
+            const params = props.occlusion.params as SsaoProps;
+            this.ssao.update(camera, params);
+            const includeTransparency = params.includeTransparency;
+            if (this.renderable.values.dOcclusionIncludeTransparency.ref.value !== includeTransparency) {
+                needsUpdateMain = true;
+                ValueCell.update(this.renderable.values.dOcclusionIncludeTransparency, includeTransparency);
+            }
+            ValueCell.update(this.renderable.values.uOcclusionColor, Color.toVec3Normalized(this.renderable.values.uOcclusionColor.ref.value, params.color));
         }
 
         if (shadowsEnabled) {
