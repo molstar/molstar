@@ -56,7 +56,8 @@ function defaultDragAndDropHandler(plugin: PluginContext, files: File[]) {
         plugin.runTask(plugin.state.data.applyAction(OpenFiles, {
             files: files.map(f => Asset.File(f)),
             format: { name: 'auto', params: {} },
-            visuals: true
+            visuals: true,
+            scale: 1
         }));
     }
 }
