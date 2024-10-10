@@ -159,7 +159,8 @@ class Layout extends PluginUIComponent {
             this.plugin.runTask(this.plugin.state.data.applyAction(OpenFiles, {
                 files: files.map(f => Asset.File(f)),
                 format: { name: 'auto', params: {} },
-                visuals: true
+                visuals: true,
+                scale: 1
             }));
         }
     };

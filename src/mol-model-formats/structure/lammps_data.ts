@@ -19,7 +19,7 @@ import { EntityBuilder } from './common/entity';
 import { IndexPairBonds } from './property/bonds/index-pair';
 import { AtomPartialCharge } from './property/partial-charge';
 
-async function getModels(mol: LammpDataFile, ctx: RuntimeContext) {
+async function getModels(mol: LammpDataFile, ctx: RuntimeContext, scale: number = 1) {
     const { atoms, bonds } = mol;
     const models: Model[] = [];
     const count = atoms.count;
@@ -34,9 +34,9 @@ async function getModels(mol: LammpDataFile, ctx: RuntimeContext) {
     let offset = 0;
     for (let j = 0; j < count; j++) {
         type_symbols[offset] = atoms.atomType.value(j).toString();
-        cx[offset] = atoms.x.value(j);
-        cy[offset] = atoms.y.value(j);
-        cz[offset] = atoms.z.value(j);
+        cx[offset] = atoms.x.value(j) * scale;
+        cy[offset] = atoms.y.value(j) * scale;
+        cz[offset] = atoms.z.value(j) * scale;
         id[offset] = atoms.atomId.value(j);
         model_num[offset] = 0;
         offset++;
@@ -106,7 +106,6 @@ async function getModels(mol: LammpDataFile, ctx: RuntimeContext) {
                 { pairs: { key, indexA, indexB, order, flag }, count: atoms.count },
                 { maxDistance: Infinity }
             );
-            console.log(pairBonds);
             IndexPairBonds.Provider.set(first, pairBonds);
         }
 
@@ -136,6 +135,7 @@ namespace LammpDataFormat {
     }
 }
 
-export function trajectoryFromLammpsData(mol: LammpDataFile): Task<Trajectory> {
-    return Task.create('Parse Lammps Data', ctx => getModels(mol, ctx));
+export function trajectoryFromLammpsData(mol: LammpDataFile, scale?: number): Task<Trajectory> {
+    if (scale === void 0) scale = 1;
+    return Task.create('Parse Lammps Data', ctx => getModels(mol, ctx, scale));
 }

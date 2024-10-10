@@ -405,13 +405,16 @@ const TrajectoryFromLammpsData = PluginStateTransform.BuiltIn({
     name: 'trajectory-from-lammps-data',
     display: { name: 'Parse Lammps Data', description: 'Parse Lammps Data string and create trajectory.' },
     from: [SO.Data.String],
-    to: SO.Molecule.Trajectory
+    to: SO.Molecule.Trajectory,
+    params: {
+        scale: PD.Numeric(1, { min: 0.01, max: 1000, step: 0.01 })
+    }
 })({
-    apply({ a }) {
+    apply({ a, params }) {
         return Task.create('Parse Lammps Data', async ctx => {
             const parsed = await parseLammpData(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
-            const models = await trajectoryFromLammpsData(parsed.result).runInContext(ctx);
+            const models = await trajectoryFromLammpsData(parsed.result, params.scale).runInContext(ctx);
             const props = trajectoryProps(models);
             return new SO.Molecule.Trajectory(models, props);
         });
@@ -423,13 +426,16 @@ const TrajectoryFromLammpsTrajData = PluginStateTransform.BuiltIn({
     name: 'trajectory-from-lammps-traj-data',
     display: { name: 'Parse Lammps traj Data', description: 'Parse Lammps Traj Data string and create trajectory.' },
     from: [SO.Data.String],
-    to: SO.Molecule.Trajectory
+    to: SO.Molecule.Trajectory,
+    params: {
+        scale: PD.Numeric(1, { min: 0.01, max: 1000, step: 0.01 })
+    }
 })({
-    apply({ a }) {
+    apply({ a, params }) {
         return Task.create('Parse Lammps Data', async ctx => {
             const parsed = await parseLammpTrajectory(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
-            const models = await trajectoryFromLammpsTrajectory(parsed.result).runInContext(ctx);
+            const models = await trajectoryFromLammpsTrajectory(parsed.result, params.scale).runInContext(ctx);
             const props = trajectoryProps(models);
             return new SO.Molecule.Trajectory(models, props);
         });
