@@ -11,8 +11,16 @@ import { ReaderResult as Result } from '../result';
 import { TokenColumnProvider as TokenColumn } from '../common/text/column/token';
 import { Column } from '../../../mol-data/db';
 
+
+export interface LammpsBox {
+    lower: [number, number, number],
+    length: [number, number, number],
+    periodicity: [string, string, string]
+}
+
 export interface LammpsFrame {
     count: number,
+    atomMode: string,
     atomId: Column<number>,
     moleculeId: Column<number>,
     atomType: Column<number>,
@@ -24,6 +32,7 @@ export interface LammpsFrame {
 export interface LammpTrajectoryFile {
     frames: LammpsFrame[],
     times: number[],
+    bounds: LammpsBox[],
     timeOffset: number,
     deltaTime: number
 }
@@ -43,7 +52,7 @@ async function handleAtoms(state: State, count: number, parts: string[]): Promis
     const columnIndexMap = Object.fromEntries(parts.map((colName, index) => [colName, index]));
     // declare column x, y, and z by check first caracter to 'x' or 'y' or 'z'
     // x,y,z = unscaled atom coordinates
-    // xs,ys,zs = scaled atom coordinates
+    // xs,ys,zs = scaled atom coordinates this need the boundary box
     // xu,yu,zu = unwrapped atom coordinates
     // xsu,ysu,zsu = scaled unwrapped atom coordinates
     // ix,iy,iz = box image that the atom is in
@@ -51,7 +60,8 @@ async function handleAtoms(state: State, count: number, parts: string[]): Promis
     const xCol = parts.findIndex(p => p[0] === 'x');
     const yCol = parts.findIndex(p => p[0] === 'y');
     const zCol = parts.findIndex(p => p[0] === 'z');
-
+    // retrieve the atom type colum for x only
+    const atomMode = parts[xCol]; // x,xs,xu,xsu
     const atomId = TokenBuilder.create(tokenizer.data, count * 2);
     const moleculeType = TokenBuilder.create(tokenizer.data, count * 2);
     const atomType = TokenBuilder.create(tokenizer.data, count * 2);
@@ -92,6 +102,7 @@ async function handleAtoms(state: State, count: number, parts: string[]): Promis
 
     return {
         count,
+        atomMode: atomMode,
         atomId: TokenColumn(atomId)(Column.Schema.int),
         moleculeId: TokenColumn(moleculeType)(Column.Schema.int),
         atomType: TokenColumn(atomType)(Column.Schema.int),
@@ -113,6 +124,10 @@ possible attributes = id, mol, proc, procp1, type, element, mass,
                       angmomx, angmomy, angmomz, tqx, tqy, tqz,
                       c_ID, c_ID[I], f_ID, f_ID[I], v_name,
                       i_name, d_name, i2_name[I], d2_name[I]
+ITEM: BOX BOUNDS xx yy zz
+xlo xhi
+ylo yhi
+zlo zhi
 */
 async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<LammpTrajectoryFile>> {
     const tokenizer = Tokenizer(data);
@@ -120,6 +135,7 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
     const f: LammpTrajectoryFile = {
         frames: [],
         times: [],
+        bounds: [],
         timeOffset: 0.0,
         deltaTime: 0.0
     };
@@ -138,12 +154,28 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
             const parts = line.split(' ').slice(2);
             const frame: LammpsFrame = await handleAtoms(state, numAtoms, parts);
             frames?.push(frame);
+        } else if (line.includes('ITEM: BOX BOUNDS')) {
+            /* we could parse the bounding box if needed */
+            const tokens = line.split('ITEM: BOX BOUNDS')[1].split(' ');
+            // Periodicity of the box
+            const px = tokens[0];
+            const py = tokens[1];
+            const pz = tokens[2];
+            // the actual box bounds
+            const xbound = readLine(state.tokenizer).trim().split(' ');
+            const ybound = readLine(state.tokenizer).trim().split(' ');
+            const zbound = readLine(state.tokenizer).trim().split(' ');
+            const xlo = parseFloat(xbound[0]);
+            const xhi = parseFloat(xbound[1]);
+            const ylo = parseFloat(ybound[0]);
+            const yhi = parseFloat(ybound[1]);
+            const zlo = parseFloat(zbound[0]);
+            const zhi = parseFloat(zbound[1]);
+            f.bounds.push({
+                lower: [xlo, ylo, zlo],
+                length: [xhi - xlo, yhi - ylo, zhi - zlo],
+                periodicity: [px, py, pz] });
         }
-        /* we could parse the bounding box if needed */
-        // else if (line.includes('ITEM: BOX BOUNDS')) {
-        //     const box = await handleBox(state);
-        //     f.boxes.push(box);
-        // }
     }
     if (f.times.length >= 1) {
         f.timeOffset = f.times[0];

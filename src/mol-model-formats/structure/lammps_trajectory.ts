@@ -23,18 +23,30 @@ export function coordinatesFromLammpsTrajectory(file: LammpTrajectoryFile, scale
         await ctx.update('Converting to coordinates');
         const deltaTime = Time(file.deltaTime, 'step');
         const offsetTime = Time(file.timeOffset, deltaTime.unit);
-
+        const offset_pos = { x: 0.0, y: 0.0, z: 0.0 };
+        const offset_scale = { x: 1.0, y: 1.0, z: 1.0 };
+        const atomsMode = file.frames[0].atomMode;
+        const isScaled = atomsMode.includes('s');
         const frames: Frame[] = [];
         for (let i = 0, il = file.frames.length; i < il; ++i) {
+            const box = file.bounds[i];
+            if (isScaled) {
+                offset_scale.x = box.length[0];
+                offset_scale.y = box.length[1];
+                offset_scale.z = box.length[2];
+                offset_pos.x = box.lower[0];
+                offset_pos.y = box.lower[1];
+                offset_pos.z = box.lower[2];
+            }
             const count = file.frames[i].count;
             const cx = new Float32Array(count);
             const cy = new Float32Array(count);
             const cz = new Float32Array(count);
             let offset = 0;
             for (let j = 0; j < count; j++) {
-                cx[offset] = file.frames[i].x.value(j) * scale;
-                cy[offset] = file.frames[i].y.value(j) * scale;
-                cz[offset] = file.frames[i].z.value(j) * scale;
+                cx[offset] = (file.frames[i].x.value(j) + offset_pos.x) * offset_scale.x * scale;
+                cy[offset] = (file.frames[i].y.value(j) + offset_pos.x) * offset_scale.x * scale;
+                cz[offset] = (file.frames[i].z.value(j) + offset_pos.x) * offset_scale.x * scale;
                 offset++;
             }
             frames.push({
@@ -54,7 +66,19 @@ export function coordinatesFromLammpsTrajectory(file: LammpTrajectoryFile, scale
 async function getModels(mol: LammpTrajectoryFile, ctx: RuntimeContext, scale: number = 1.0) {
     const atoms = mol.frames[0];
     const count = atoms.count;
-
+    const atomsMode = atoms.atomMode;
+    const box = mol.bounds[0];
+    const offset_pos = { x: 0.0, y: 0.0, z: 0.0 };
+    const offset_scale = { x: 1.0, y: 1.0, z: 1.0 };
+    // if caracter s in atomsMode, we need to scale the coordinates
+    if (atomsMode.includes('s')) {
+        offset_scale.x = box.length[0];
+        offset_scale.y = box.length[1];
+        offset_scale.z = box.length[2];
+        offset_pos.x = box.lower[0];
+        offset_pos.y = box.lower[1];
+        offset_pos.z = box.lower[2];
+    }
     const type_symbols = new Array<string>(count);
     const id = new Int32Array(count);
     const cx = new Float32Array(count);
@@ -63,18 +87,17 @@ async function getModels(mol: LammpTrajectoryFile, ctx: RuntimeContext, scale: n
     const model_num = new Int32Array(count);
     // should we scale the coordinates if the distances is too small
     // or provides a scaling option ?
-    console.log('get lammps model with scale: ', scale);
+    // depending on atomMode, transform the coordinates
     let offset = 0;
     for (let j = 0; j < count; j++) {
         type_symbols[offset] = atoms.atomType.value(j).toString();
-        cx[offset] = atoms.x.value(j) * scale;
-        cy[offset] = atoms.y.value(j) * scale;
-        cz[offset] = atoms.z.value(j) * scale;
+        cx[offset] = (atoms.x.value(j) + offset_pos.x) * offset_scale.x * scale;
+        cy[offset] = (atoms.y.value(j) + offset_pos.y) * offset_scale.x * scale;
+        cz[offset] = (atoms.z.value(j) + offset_pos.z) * offset_scale.x * scale;
         id[offset] = atoms.atomId.value(j);
         model_num[offset] = 0;
         offset++;
     }
-
 
     const MOL = Column.ofConst('MOL', count, Column.Schema.str);
     const A = Column.ofConst('A', count, Column.Schema.str);
