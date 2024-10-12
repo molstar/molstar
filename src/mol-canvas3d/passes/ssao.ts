@@ -118,7 +118,6 @@ export class SsaoPass {
     private readonly blurFirstPassRenderable: SsaoBlurRenderable;
     private readonly blurSecondPassRenderable: SsaoBlurRenderable;
 
-    private illuminationMode: boolean;
     private nSamples: number;
     private blurKernelSize: number;
     private texSize: [number, number];
@@ -145,7 +144,6 @@ export class SsaoPass {
         this.depthTextureOpaque = depthTextureOpaque;
         this.depthTextureTransparent = depthTextureTransparent;
 
-        this.illuminationMode = false;
         this.nSamples = 1;
         this.blurKernelSize = 1;
         this.ssaoScale = this.calcSsaoScale(1);
@@ -313,10 +311,9 @@ export class SsaoPass {
             ValueCell.update(this.renderable.values.dIncludeTransparency, props.includeTransparency);
         }
 
-        if (this.illuminationMode !== illuminationMode) {
+        if (this.renderable.values.dIllumination.ref.value !== illuminationMode) {
             needsUpdateSsao = true;
 
-            this.illuminationMode = illuminationMode;
             ValueCell.update(this.renderable.values.dIllumination, illuminationMode);
         }
 

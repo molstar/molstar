@@ -137,12 +137,11 @@ export class IlluminationPass {
         if (isTimingMode) this.webgl.timer.mark('IlluminationPass.renderInput');
         const { gl, state } = this.webgl;
 
-        const antialiasingEnabled = AntialiasingPass.isEnabled(props.postprocessing);
         const markingEnabled = MarkingPass.isEnabled(props.marking);
         const hasTransparent = scene.opacityAverage < 1;
         const hasMarking = markingEnabled && scene.markerAverage > 0;
 
-        this.tracing.composeTarget.bind();
+        this.transparentTarget.bind();
         state.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
@@ -155,7 +154,7 @@ export class IlluminationPass {
                     renderer.renderWboitTransparent(scene.volumes, camera, this.drawPass.depthTextureOpaque);
                 }
 
-                this.tracing.composeTarget.bind();
+                this.transparentTarget.bind();
                 this.drawPass.wboit.render();
             } else if (this.drawPass.transparency === 'dpoit') {
                 const dpoitTextures = this.drawPass.dpoit.bind();
@@ -166,23 +165,23 @@ export class IlluminationPass {
                     const dpoitTextures = this.drawPass.dpoit.bindDualDepthPeeling();
                     renderer.renderDpoitTransparent(scene.primitives, camera, this.drawPass.depthTextureOpaque, dpoitTextures);
 
-                    this.tracing.composeTarget.bind();
+                    this.transparentTarget.bind();
                     this.drawPass.dpoit.renderBlendBack();
                     if (isTimingMode) this.webgl.timer.markEnd('DpoitPass.layer');
                 }
 
                 // evaluate dpoit
-                this.tracing.composeTarget.bind();
+                this.transparentTarget.bind();
                 this.drawPass.dpoit.render();
 
                 if (scene.volumes.renderables.length > 0) {
                     renderer.renderVolume(scene.volumes, camera, this.drawPass.depthTextureOpaque);
                 }
             } else {
-                this.tracing.composeTarget.bind();
-                this.drawPass.depthTextureOpaque.attachFramebuffer(this.tracing.composeTarget.framebuffer, 'depth');
+                this.transparentTarget.bind();
+                this.drawPass.depthTextureOpaque.attachFramebuffer(this.transparentTarget.framebuffer, 'depth');
                 renderer.renderBlendedTransparent(scene.primitives, camera);
-                this.drawPass.depthTextureOpaque.detachFramebuffer(this.tracing.composeTarget.framebuffer, 'depth');
+                this.drawPass.depthTextureOpaque.detachFramebuffer(this.transparentTarget.framebuffer, 'depth');
 
                 if (scene.volumes.renderables.length > 0) {
                     renderer.renderVolume(scene.volumes, camera, this.drawPass.depthTextureOpaque);
@@ -222,35 +221,14 @@ export class IlluminationPass {
             renderer.renderMarkingMask(scene.primitives, camera, markingDepthTest ? this.drawPass.marking.depthTarget.texture : null);
 
             this.drawPass.marking.update(props.marking);
-            this.drawPass.marking.render(camera.viewport, this.tracing.composeTarget);
+            this.drawPass.marking.render(camera.viewport, this.transparentTarget);
         }
 
         //
 
-        if (antialiasingEnabled) {
-            this.drawPass.antialiasing.render(camera, this.tracing.composeTarget.texture, this.transparentTarget, props.postprocessing);
-        } else {
-            if (this.copyRenderable.values.tColor.ref.value !== this.tracing.composeTarget.texture) {
-                ValueCell.update(this.copyRenderable.values.tColor, this.tracing.composeTarget.texture);
-                this.copyRenderable.update();
-            }
-            this.transparentTarget.bind();
-
-            state.enable(gl.SCISSOR_TEST);
-            state.disable(gl.BLEND);
-            state.disable(gl.DEPTH_TEST);
-            state.depthMask(false);
-
-            state.colorMask(true, true, true, true);
-            state.clearColor(0, 0, 0, 1);
-            gl.clear(gl.COLOR_BUFFER_BIT);
-
-            this.copyRenderable.render();
-        }
-
         this.tracing.composeTarget.bind();
         state.clearColor(0, 0, 0, 0);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.clear(gl.COLOR_BUFFER_BIT);
         if (isTimingMode) this.webgl.timer.markEnd('IlluminationPass.renderInput');
     }
 

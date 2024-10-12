@@ -250,8 +250,13 @@ void main() {
     if (blendTransparency) {
         if (transparentColor.a != 0.0) {
             if (isBackground(opaqueDepth)) {
-                color = transparentColor;
-                alpha = transparentColor.a;
+                if (uTransparentBackground) {
+                    color = transparentColor;
+                    alpha = transparentColor.a;
+                } else {
+                    color.rgb = transparentColor.rgb + uFogColor * (1.0 - transparentColor.a);
+                    alpha = 1.0;
+                }
             } else {
                 // blending
                 color = transparentColor + color * (1.0 - transparentColor.a);
