@@ -912,10 +912,11 @@ namespace Canvas3D {
                 debounceTime(p.userInteractionReleaseMs)
             ).subscribe(() => {
                 isActivelyInteracting = isDragging;
-                if (!isDragging) requestDraw();
+                if (!isDragging && passes.illumination.supported && p.illumination.enabled) {
+                    requestDraw();
+                }
             }),
         ];
-
 
         //
 
