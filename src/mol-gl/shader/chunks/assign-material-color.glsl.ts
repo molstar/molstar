@@ -34,6 +34,10 @@ export const assign_material_color = `
         roughness = mix(roughness, vSubstance.g, sf);
         bumpiness = mix(bumpiness, vSubstance.b, sf);
     #endif
+
+    #if defined(dXrayShaded)
+        material.a = calcXrayShadedAlpha(material.a, normal);
+    #endif
 #elif defined(dRenderVariant_depth)
     if (fragmentDepth > getDepth(gl_FragCoord.xy / uDrawingBufferSize)) {
         discard;

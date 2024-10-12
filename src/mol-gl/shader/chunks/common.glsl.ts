@@ -25,6 +25,10 @@ export const common = `
     #define dXrayShaded
 #endif
 
+#if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || (defined(dRenderVariant_depth) && defined(dXrayShaded))
+    #define dNeedsNormal
+#endif
+
 #define MaskAll 0
 #define MaskOpaque 1
 #define MaskTransparent 2
