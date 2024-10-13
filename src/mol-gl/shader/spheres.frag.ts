@@ -115,6 +115,11 @@ void main(void){
     #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
         #include clip_pixel
     #endif
+
+    #ifdef dNeedsNormal
+        vec3 normal = -cameraNormal;
+    #endif
+
     #include assign_material_color
 
     #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
@@ -142,7 +147,6 @@ void main(void){
     #elif defined(dRenderVariant_emissive)
         gl_FragColor = material;
     #elif defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
-        vec3 normal = -cameraNormal;
         #include apply_light_color
         #include apply_interior_color
         #include apply_marker_color
