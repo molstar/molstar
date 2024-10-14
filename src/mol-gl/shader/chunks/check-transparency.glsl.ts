@@ -14,6 +14,7 @@ export const check_transparency = `
         }
     #endif
 #endif
+
 #if defined(dRenderVariant_depth)
     #if defined(dTransparentBackfaces_off)
         if (interior) discard;

@@ -41,7 +41,7 @@ export const assign_material_color = `
 #elif defined(dRenderVariant_depth)
     if (fragmentDepth > getDepth(gl_FragCoord.xy / uDrawingBufferSize)) {
         discard;
-    }    
+    }
     vec4 material;
     if (uRenderMask == MaskOpaque) {
         #if defined(dXrayShaded)
@@ -52,25 +52,23 @@ export const assign_material_color = `
             if (vTransparency < 0.2) dta = 1.0; // hard cutoff looks better
             if (uAlpha * dta < 1.0) {
                 discard;
-            }               
+            }
         #else
             if (uAlpha < 1.0) {
                 discard;
             }
         #endif
-        material = packDepthToRGBA(fragmentDepth);            
+        material = packDepthToRGBA(fragmentDepth);
     } else if (uRenderMask == MaskTransparent) {
-        float alpha = uAlpha;        
+        float alpha = uAlpha;
         #if defined(dTransparency)
             float dta = 1.0 - vTransparency;
             alpha *= dta;
         #endif
-        #if defined(dXrayShaded_on)
-            alpha *= 1.0 - pow(abs(dot(normal, vec3(0.0, 0.0, 1.0))), uXrayEdgeFalloff);
-        #elif defined(dXrayShaded_inverted)
-            alpha *= pow(abs(dot(normal, vec3(0.0, 0.0, 1.0))), uXrayEdgeFalloff);
-        #endif
-        #ifndef dXrayShaded
+
+        #ifdef dXrayShaded
+            alpha = calcXrayShadedAlpha(alpha, normal);
+        #else
             if (alpha == 1.0) {
                 discard;
             }
