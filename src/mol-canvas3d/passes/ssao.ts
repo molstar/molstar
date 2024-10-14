@@ -481,11 +481,14 @@ export class SsaoPass {
         }
         if (isTimingMode) this.webgl.timer.markEnd('SSAO.quarter');
 
+        if (isTimingMode) this.webgl.timer.mark('SSAO.opaque');
         this.ssaoDepthTexture.attachFramebuffer(this.framebuffer, 'color0');
         ValueCell.update(this.renderable.values.uTransparencyFlag, 0);
         this.framebuffer.bind();
         this.renderable.render();
+        if (isTimingMode) this.webgl.timer.markEnd('SSAO.opaque');
 
+        if (isTimingMode) this.webgl.timer.mark('SSAO.blurOpaque');
         ValueCell.update(this.blurFirstPassRenderable.values.tSsaoDepth, this.ssaoDepthTexture);
         this.blurFirstPassRenderable.update();
         this.blurFirstPassFramebuffer.bind();
@@ -494,13 +497,17 @@ export class SsaoPass {
         this.ssaoDepthTexture.attachFramebuffer(this.blurSecondPassFramebuffer, 'color0');
         this.blurSecondPassFramebuffer.bind();
         this.blurSecondPassRenderable.render();
+        if (isTimingMode) this.webgl.timer.markEnd('SSAO.blurOpaque');
 
         if (includeTransparency) {
+            if (isTimingMode) this.webgl.timer.mark('SSAO.transparent ');
             this.ssaoDepthTransparentTexture.attachFramebuffer(this.framebuffer, 'color0');
             ValueCell.update(this.renderable.values.uTransparencyFlag, 1);
             this.framebuffer.bind();
             this.renderable.render();
+            if (isTimingMode) this.webgl.timer.markEnd('SSAO.transparent ');
 
+            if (isTimingMode) this.webgl.timer.mark('SSAO.blurTransparent ');
             ValueCell.update(this.blurFirstPassRenderable.values.tSsaoDepth, this.ssaoDepthTransparentTexture);
             this.blurFirstPassRenderable.update();
             this.blurFirstPassFramebuffer.bind();
@@ -509,6 +516,7 @@ export class SsaoPass {
             this.ssaoDepthTransparentTexture.attachFramebuffer(this.blurSecondPassFramebuffer, 'color0');
             this.blurSecondPassFramebuffer.bind();
             this.blurSecondPassRenderable.render();
+            if (isTimingMode) this.webgl.timer.markEnd('SSAO.blurTransparent ');
         }
         if (isTimingMode) this.webgl.timer.markEnd('SSAO.render');
     }
