@@ -4,9 +4,9 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { OptionalField, RequiredField, float, int, list, nullable, str, tuple, union } from '../generic/params-schema';
+import { OptionalField, RequiredField, float, int, list, mapping, nullable, str, tuple, union } from '../generic/params-schema';
 import { NodeFor, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
-import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, RepresentationTypeT, SchemaFormatT, SchemaT, StructureTypeT, Vector3 } from './param-types';
+import { ColorT, ComponentExpressionT, ComponentSelectorT, FloatList, IntList, Matrix, ParseFormatT, RepresentationTypeT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
 
 
 const _DataFromUriParams = {
@@ -144,7 +144,7 @@ export const MVSTreeSchema = TreeSchema({
         /** This node instructs to apply color to a visual representation. */
         color: {
             description: 'This node instructs to apply color to a visual representation.',
-            parent: ['representation'],
+            parent: ['representation', 'primitives_options'],
             params: {
                 /** Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`). */
                 color: RequiredField(ColorT, 'Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
@@ -196,7 +196,7 @@ export const MVSTreeSchema = TreeSchema({
         /** This node instructs to add a tooltip to a component. "Tooltip" is a text which is not a part of the visualization but should be presented to the users when they interact with the component (typically, the tooltip will be shown somewhere on the screen when the user hovers over a visual representation of the component). */
         tooltip: {
             description: 'This node instructs to add a tooltip to a component. "Tooltip" is a text which is not a part of the visualization but should be presented to the users when they interact with the component (typically, the tooltip will be shown somewhere on the screen when the user hovers over a visual representation of the component).',
-            parent: ['component', 'component_from_uri', 'component_from_source'],
+            parent: ['component', 'component_from_uri', 'component_from_source', 'primitives_options'],
             params: {
                 /** Content of the shown tooltip. */
                 text: RequiredField(str, 'Content of the shown tooltip.'),
@@ -251,6 +251,41 @@ export const MVSTreeSchema = TreeSchema({
                 background_color: RequiredField(ColorT, 'Color of the canvas background. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
             },
         },
+        primitives: {
+            description: 'This node groups a list of geometrical primitives',
+            parent: ['structure', 'root'],
+            params: { },
+        },
+        primitives_options: {
+            description: 'This node groups a list of geometrical primitives',
+            parent: ['primitives'],
+            params: { },
+        },
+        mesh: {
+            description: 'This node represents a mesh primitive',
+            parent: ['primitives'],
+            params: {
+                vertices: RequiredField(FloatList),
+                indices: RequiredField(IntList),
+                triangle_colors: OptionalField(nullable(StrList)),
+                triangle_groups: OptionalField(nullable(IntList)),
+                group_colors: OptionalField(nullable(mapping(int, ColorT))),
+                group_tooltips: OptionalField(nullable(mapping(int, str))),
+            },
+        },
+        line: {
+            description: 'This node represents a line primitive',
+            parent: ['primitives'],
+            params: {
+                start: RequiredField(Vector3),
+                end: RequiredField(Vector3),
+                thickness: OptionalField(nullable(float)),
+                color: OptionalField(nullable(ColorT)),
+                tooltip: OptionalField(nullable(str)),
+                // TODO: remaining properties
+            },
+        }
+
     }
 });
 

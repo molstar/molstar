@@ -45,6 +45,10 @@ export function literal<V extends string | number | boolean>(...values: V[]) {
         value => value
     );
 }
+/** Mapping between two types */
+export function mapping<A extends iots.Type<any>, B extends iots.Type<any>>(from: A, to: B) {
+    return iots.record(from, to);
+}
 
 
 /** Schema for one field in params (i.e. a value in a top-level key-value pair) */

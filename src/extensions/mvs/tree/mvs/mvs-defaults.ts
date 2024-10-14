@@ -99,6 +99,10 @@ export const MVSDefaults = {
     camera: {
         up: [0, 1, 0],
     },
+    primitives: { },
+    primitives_options: { },
+    mesh: { triangle_colors: null, group_colors: null, triangle_groups: null, group_tooltips: null },
+    line: { thickness: 0.05, color: null, tooltip: null },
 } satisfies DefaultsForTree<typeof MVSTreeSchema>;
 
 /** Color to be used e.g. for representations without 'color' node */

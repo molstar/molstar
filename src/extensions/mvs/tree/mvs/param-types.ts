@@ -58,6 +58,11 @@ export const Vector3 = tuple([float, float, float]);
 /** Parameter values for matrix params, e.g. `rotation` */
 export const Matrix = list(float);
 
+/** Primitives-related types */
+export const FloatList = list(float);
+export const IntList = list(int);
+export const StrList = list(str);
+
 /** `color` parameter values for `color` node in MVS tree */
 export const HexColorT = new iots.Type<HexColor>(
     'HexColor',

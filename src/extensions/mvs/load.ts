@@ -8,7 +8,7 @@
 
 import { Download, ParseCif } from '../../mol-plugin-state/transforms/data';
 import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromMmCif, TrajectoryFromPDB, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
-import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
+import { ShapeRepresentation3D, StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectSelector } from '../../mol-state';
@@ -20,7 +20,8 @@ import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-
 import { CustomLabelProps, CustomLabelRepresentationProvider } from './components/custom-label/representation';
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
 import { IsMVSModelProps, IsMVSModelProvider } from './components/is-mvs-model-prop';
-import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, UpdateTarget, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps } from './load-helpers';
+import { MVSInlinePrimitives, Primitive, PrimitiveOptions } from './components/primitives';
+import { AnnotationFromSourceKind, AnnotationFromUriKind, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, LoadingActions, loadTree, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps, UpdateTarget } from './load-helpers';
 import { MVSData } from './mvs-data';
 import { ParamsOfKind, SubTreeOfKind, validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
@@ -240,4 +241,29 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         context.canvas = node.params;
         return updateParent;
     },
+    primitives(updateParent: UpdateTarget, tree: SubTreeOfKind<MolstarTree, 'primitives'>, context: MolstarLoadingContext): UpdateTarget {
+        const primitives: Primitive[] = [];
+        const options: PrimitiveOptions = {};
+
+        let optionsNode: SubTreeOfKind<MolstarTree, 'primitives_options'> | undefined;
+
+        for (const node of tree.children ?? []) {
+            if (node.kind === 'mesh' || node.kind === 'line') primitives.push({ kind: node.kind, params: node.params } as any);
+            if (node.kind === 'primitives_options') optionsNode = node as any;
+        }
+
+        for (const node of optionsNode?.children ?? []) {
+            if (node.kind === 'color') options.color = node.params.color;
+            if (node.kind === 'tooltip') options.tooltip = node.params.text;
+            // TODO: transparency
+        }
+
+        // const refs = getPrimitiveStructureRefs(primitives);
+
+        const root = UpdateTarget.apply(updateParent, MVSInlinePrimitives, { primitives, options });
+        UpdateTarget.apply(root, ShapeRepresentation3D, { });
+        return root;
+    },
+    mesh: undefined,
+    line: undefined,
 };

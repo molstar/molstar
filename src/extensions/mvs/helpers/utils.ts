@@ -98,7 +98,7 @@ export type ElementOfSet<S> = S extends Set<infer T> ? T : never
 /** Convert `colorString` (either X11 color name like 'magenta' or hex code like '#ff00ff') to Color.
  * Return `undefined` if `colorString` cannot be converted. */
 export function decodeColor(colorString: string | undefined): Color | undefined {
-    if (colorString === undefined) return undefined;
+    if (colorString === undefined || colorString === null) return undefined;
     let result: Color | undefined;
     if (HexColor.is(colorString)) {
         if (colorString.length === 4) {
