@@ -116,7 +116,7 @@ void main(void){
         #include clip_pixel
     #endif
 
-    #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_depth) && defined(dXrayShaded)
+    #ifdef dNeedsNormal
         vec3 normal = -cameraNormal;
     #endif
 

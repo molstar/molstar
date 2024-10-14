@@ -6,7 +6,7 @@ export const check_transparency = `
         if (interior) material.a = 1.0;
     #endif
 
-    #if !defined(dXrayShaded_on) && !defined(dXrayShaded_inverted)
+    #if !defined(dXrayShaded)
         if ((uRenderMask == MaskOpaque && material.a < 1.0) ||
             (uRenderMask == MaskTransparent && material.a == 1.0)
         ) {

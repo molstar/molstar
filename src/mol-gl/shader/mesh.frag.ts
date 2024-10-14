@@ -35,12 +35,11 @@ void main() {
 
     float fragmentDepth = gl_FragCoord.z;
 
-    #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || (defined(dRenderVariant_depth) && defined(dXrayShaded))
-        vec3 normal;
+    #ifdef dNeedsNormal
         #if defined(dFlatShaded)
-            normal = -faceNormal;
+            vec3 normal = -faceNormal;
         #else
-            normal = -normalize(vNormal);
+            vec3 normal = -normalize(vNormal);
             if (uDoubleSided) normal *= float(frontFacing) * 2.0 - 1.0;
         #endif
     #endif

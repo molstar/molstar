@@ -248,7 +248,8 @@ void main() {
 
     #include fade_lod
     #include clip_pixel
-    #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_depth) && defined(dXrayShaded)
+
+    #ifdef dNeedsNormal
         mat3 normalMatrix = transpose3(inverse3(mat3(uView)));
         vec3 normal = normalize(normalMatrix * -normalize(cameraNormal));
     #endif

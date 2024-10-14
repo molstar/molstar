@@ -7,7 +7,7 @@ $font-color:                 color.invert(#ccd4e0, $space: rgb);
 $hover-font-color:           color.invert(#51A2FB, $space: rgb);
 $entity-current-font-color:  color.invert(#68BEFD, $space: rgb);
 $msp-btn-commit-on-font-color:   color.invert(#68BEFD, $space: rgb);
-$entity-badge-font-color:    lighten(#ccd4e0,10%);
+$entity-badge-font-color:    color.adjust(#ccd4e0, $lightness: 10%);
 $msp-btn-remove-background:      #DE0A28;
 $msp-btn-remove-hover-font-color:#F2F4F7;
 
