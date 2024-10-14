@@ -165,7 +165,7 @@ export class PostprocessingPass {
     }
 
     static isTransparentSsaoEnabled(props: PostprocessingProps) {
-        return SsaoPass.isEnabled(props) && (props.occlusion.params as SsaoProps).includeTransparency;
+        return SsaoPass.isEnabled(props) && (props.occlusion.params as SsaoProps).includeTransparent;
     }
 
     static isSsaoEnabled(props: PostprocessingProps) {
@@ -223,7 +223,7 @@ export class PostprocessingPass {
         if (occlusionEnabled) {
             const params = props.occlusion.params as SsaoProps;
             this.ssao.update(camera, params);
-            const includeTransparency = params.includeTransparency;
+            const includeTransparency = params.includeTransparent;
             if (this.renderable.values.dOcclusionIncludeTransparency.ref.value !== includeTransparency) {
                 needsUpdateMain = true;
                 ValueCell.update(this.renderable.values.dOcclusionIncludeTransparency, includeTransparency);

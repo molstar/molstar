@@ -51,7 +51,7 @@ export const SsaoParams = {
     blurDepthBias: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }),
     resolutionScale: PD.Numeric(1, { min: 0.1, max: 1, step: 0.05 }, { description: 'Adjust resolution of occlusion calculation' }),
     color: PD.Color(Color(0x000000)),
-    includeTransparency: PD.Boolean(true),
+    includeTransparent: PD.Boolean(true),
 };
 
 export type SsaoProps = PD.Values<typeof SsaoParams>
@@ -305,10 +305,10 @@ export class SsaoPass {
             ValueCell.update(this.blurSecondPassRenderable.values.dOrthographic, orthographic);
         }
 
-        if (this.renderable.values.dIncludeTransparency.ref.value !== props.includeTransparency) {
+        if (this.renderable.values.dIncludeTransparent.ref.value !== props.includeTransparent) {
             needsUpdateSsao = true;
 
-            ValueCell.update(this.renderable.values.dIncludeTransparency, props.includeTransparency);
+            ValueCell.update(this.renderable.values.dIncludeTransparent, props.includeTransparent);
         }
 
         if (this.renderable.values.dIllumination.ref.value !== illuminationMode) {
@@ -437,7 +437,7 @@ export class SsaoPass {
         const { state } = this.webgl;
         const { x, y, width, height } = camera.viewport;
 
-        const includeTransparency = this.renderable.values.dIncludeTransparency.ref.value;
+        const includeTransparent = this.renderable.values.dIncludeTransparent.ref.value;
         const multiScale = this.renderable.values.dMultiScale.ref.value;
 
         const sx = Math.floor(x * this.ssaoScale);
@@ -452,7 +452,7 @@ export class SsaoPass {
             if (isTimingMode) this.webgl.timer.mark('SSAO.downsample');
             this.downsampledDepthTarget1.bind();
             this.downsampleDepthRenderable1.render();
-            if (includeTransparency) {
+            if (includeTransparent) {
                 this.downsampledDepthTarget2.bind();
                 this.downsampleDepthRenderable2.render();
             }
@@ -464,7 +464,7 @@ export class SsaoPass {
             this.depthHalfTarget1.bind();
             this.depthHalfRenderable1.render();
         }
-        if (multiScale && includeTransparency) {
+        if (multiScale && includeTransparent) {
             this.depthHalfTarget2.bind();
             this.depthHalfRenderable2.render();
         }
@@ -475,7 +475,7 @@ export class SsaoPass {
             this.depthQuarterTarget1.bind();
             this.depthQuarterRenderable1.render();
         }
-        if (multiScale && includeTransparency) {
+        if (multiScale && includeTransparent) {
             this.depthQuarterTarget2.bind();
             this.depthQuarterRenderable2.render();
         }
@@ -499,7 +499,7 @@ export class SsaoPass {
         this.blurSecondPassRenderable.render();
         if (isTimingMode) this.webgl.timer.markEnd('SSAO.blurOpaque');
 
-        if (includeTransparency) {
+        if (includeTransparent) {
             if (isTimingMode) this.webgl.timer.mark('SSAO.transparent ');
             this.ssaoDepthTransparentTexture.attachFramebuffer(this.framebuffer, 'color0');
             ValueCell.update(this.renderable.values.uTransparencyFlag, 1);
@@ -530,7 +530,7 @@ const SsaoSchema = {
 
     dIllumination: DefineSpec('boolean'),
     uTransparencyFlag: UniformSpec('i'),
-    dIncludeTransparency: DefineSpec('boolean'),
+    dIncludeTransparent: DefineSpec('boolean'),
     tDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
     tDepthHalfTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
     tDepthQuarterTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
@@ -565,7 +565,7 @@ function getSsaoRenderable(ctx: WebGLContext, depthTexture: Texture, depthHalfTe
         tDepthQuarter: ValueCell.create(depthQuarterTexture),
 
         dIllumination: ValueCell.create(false),
-        dIncludeTransparency: ValueCell.create(true),
+        dIncludeTransparent: ValueCell.create(true),
         uTransparencyFlag: ValueCell.create(0),
         tDepthTransparent: ValueCell.create(transparentDepthTexture),
         tDepthHalfTransparent: ValueCell.create(transparentDepthHalfTexture),

@@ -302,7 +302,7 @@ export class IlluminationPass {
         const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
 
         const outlinesEnabled = props.postprocessing.outline.name === 'on' && !props.illumination.ignoreOutline;
-        const occlusionEnabled = props.postprocessing.occlusion.name === 'on' && props.postprocessing.occlusion.params.includeTransparency;
+        const occlusionEnabled = props.postprocessing.occlusion.name === 'on' && props.postprocessing.occlusion.params.includeTransparent;
 
         let needsUpdateCompose = false;
 

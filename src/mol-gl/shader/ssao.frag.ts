@@ -19,7 +19,7 @@ uniform sampler2D tDepth;
 uniform sampler2D tDepthHalf;
 uniform sampler2D tDepthQuarter;
 
-#if defined(dIncludeTransparency)
+#if defined(dIncludeTransparent)
     uniform sampler2D tDepthTransparent;
     uniform sampler2D tDepthHalfTransparent;
     uniform sampler2D tDepthQuarterTransparent;
@@ -70,7 +70,7 @@ bool isBackground(const in float depth) {
 float getDepth(const in vec2 coords, const in int transparentFlag) {
     vec2 c = vec2(clamp(coords.x, uBounds.x, uBounds.z), clamp(coords.y, uBounds.y, uBounds.w));
     if (transparentFlag == 1){
-        #if defined(dIncludeTransparency)
+        #if defined(dIncludeTransparent)
             return unpackRGBAToDepthWithAlpha(texture2D(tDepthTransparent, c)).x;
         #else
             return 1.0;
@@ -84,7 +84,7 @@ float getDepth(const in vec2 coords, const in int transparentFlag) {
     }
 }
 
-#if defined(dIncludeTransparency)
+#if defined(dIncludeTransparent)
     vec2 getDepthTransparentWithAlpha(const in vec2 coords){
         vec2 c = vec2(clamp(coords.x, uBounds.x, uBounds.z), clamp(coords.y, uBounds.y, uBounds.w));
         return unpackRGBAToDepthWithAlpha(texture2D(tDepthTransparent, c));
@@ -116,7 +116,7 @@ float getMappedDepth(const in vec2 coords, const in vec2 selfCoords) {
     #endif
 }
 
-#if defined(dIncludeTransparency)
+#if defined(dIncludeTransparent)
     vec2 getMappedDepthTransparentWithAlpha(const in vec2 coords, const in vec2 selfCoords) {
         vec2 c = vec2(clamp(coords.x, uBounds.x, uBounds.z), clamp(coords.y, uBounds.y, uBounds.w));
         float d = distance(coords, selfCoords);
@@ -240,7 +240,7 @@ void main(void) {
                 #ifdef dIllumination
                     }
                 #endif
-                #if defined(dIncludeTransparency)
+                #if defined(dIncludeTransparent)
                     vec2 sampleDepthWithAlpha = getMappedDepthTransparentWithAlpha(offset.xy, selfCoords);
                     if (!isBackground(sampleDepthWithAlpha.x)) {
                         float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepthWithAlpha.x), uInvProjection).z;
@@ -273,7 +273,7 @@ void main(void) {
             #ifdef dIllumination
                 }
             #endif
-            #if defined(dIncludeTransparency)
+            #if defined(dIncludeTransparent)
                 vec2 sampleDepthWithAlpha = getDepthTransparentWithAlpha(offset.xy);
                 if (!isBackground(sampleDepthWithAlpha.x)) {
                     float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepthWithAlpha.x), uInvProjection).z;
