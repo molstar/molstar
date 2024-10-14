@@ -172,7 +172,7 @@ void main(void) {
                 color.a = 1.0 - fogFactor;
                 color.rgb = mix(uOutlineColor, vec3(0.0), fogFactor);
             }
-            if (isTransparentOutline != 0.0 || transparentDepth > closestTexel) {
+            if (transparentDepth > closestTexel) {
                 blendTransparency = false;
             }
         }
