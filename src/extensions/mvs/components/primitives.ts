@@ -201,6 +201,6 @@ export const MVSInlinePrimitives = MVSTransform({ // TODO: move MVSTransform to 
                 return mesh;
             },
             geometryUtils: Mesh.Utils
-        }, { label: 'Box' });
+        }, { label: 'Primitives Provider' });
     }
 });
