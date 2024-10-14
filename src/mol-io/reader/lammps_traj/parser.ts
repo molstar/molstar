@@ -156,7 +156,7 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
             frames?.push(frame);
         } else if (line.includes('ITEM: BOX BOUNDS')) {
             /* we could parse the bounding box if needed */
-            const tokens = line.split('ITEM: BOX BOUNDS')[1].split(' ');
+            const tokens = line.split('ITEM: BOX BOUNDS ')[1].split(' ');
             // Periodicity of the box
             const px = tokens[0];
             const py = tokens[1];

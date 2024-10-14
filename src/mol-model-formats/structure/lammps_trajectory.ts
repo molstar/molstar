@@ -44,9 +44,9 @@ export function coordinatesFromLammpsTrajectory(file: LammpTrajectoryFile, scale
             const cz = new Float32Array(count);
             let offset = 0;
             for (let j = 0; j < count; j++) {
-                cx[offset] = (file.frames[i].x.value(j) + offset_pos.x) * offset_scale.x * scale;
-                cy[offset] = (file.frames[i].y.value(j) + offset_pos.x) * offset_scale.x * scale;
-                cz[offset] = (file.frames[i].z.value(j) + offset_pos.x) * offset_scale.x * scale;
+                cx[offset] = (file.frames[i].x.value(j) * offset_scale.x + offset_pos.x) * scale;
+                cy[offset] = (file.frames[i].y.value(j) * offset_scale.y + offset_pos.y) * scale;
+                cz[offset] = (file.frames[i].z.value(j) * offset_scale.z + offset_pos.z) * scale;
                 offset++;
             }
             frames.push({
@@ -91,9 +91,9 @@ async function getModels(mol: LammpTrajectoryFile, ctx: RuntimeContext, scale: n
     let offset = 0;
     for (let j = 0; j < count; j++) {
         type_symbols[offset] = atoms.atomType.value(j).toString();
-        cx[offset] = (atoms.x.value(j) + offset_pos.x) * offset_scale.x * scale;
-        cy[offset] = (atoms.y.value(j) + offset_pos.y) * offset_scale.x * scale;
-        cz[offset] = (atoms.z.value(j) + offset_pos.z) * offset_scale.x * scale;
+        cx[offset] = (atoms.x.value(j) * offset_scale.x + offset_pos.x) * scale;
+        cy[offset] = (atoms.y.value(j) * offset_scale.y + offset_pos.y) * scale;
+        cz[offset] = (atoms.z.value(j) * offset_scale.z + offset_pos.z) * scale;
         id[offset] = atoms.atomId.value(j);
         model_num[offset] = 0;
         offset++;
@@ -144,10 +144,8 @@ async function getModels(mol: LammpTrajectoryFile, ctx: RuntimeContext, scale: n
     const first = _models.representative;
     const coordinates = await coordinatesFromLammpsTrajectory(mol, scale).runInContext(ctx);
     return Model.trajectoryFromModelAndCoordinates(first, coordinates);
-    // return _models;
 }
 
-//
 export { LammpTrajectoryFormat };
 
 type LammpTrajectoryFormat = ModelFormat<LammpTrajectoryFile>

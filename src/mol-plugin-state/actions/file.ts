@@ -13,7 +13,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { unzip } from '../../mol-util/zip/zip';
 import { PluginStateObject } from '../objects';
 
-async function processFile(file: Asset.File, plugin: PluginContext, format: string, visuals: boolean, scale?: number) {
+async function processFile(file: Asset.File, plugin: PluginContext, format: string, visuals: boolean) {
     const info = getFileNameInfo(file.file?.name ?? '');
     const isBinary = plugin.dataFormats.binaryExtensions.has(info.ext);
     const { data } = await plugin.builders.data.readFile({ file, isBinary });
@@ -28,7 +28,7 @@ async function processFile(file: Asset.File, plugin: PluginContext, format: stri
     }
 
     // need to await so that the enclosing Task finishes after the update is done.
-    const parsed = await provider.parse(plugin, data, { scale: scale });
+    const parsed = await provider.parse(plugin, data);
     if (visuals) {
         await provider.visuals?.(plugin, parsed);
     }
@@ -46,7 +46,6 @@ export const OpenFiles = StateAction.build({
                 specific: PD.Select(options[0][0], options)
             }),
             visuals: PD.Boolean(true, { description: 'Add default visuals' }),
-            scale: PD.Numeric(1, { min: 0.001, max: 1000.0, step: 0.001 })
         };
     }
 })(({ params, state }, plugin: PluginContext) => Task.create('Open Files', async taskCtx => {
@@ -66,11 +65,11 @@ export const OpenFiles = StateAction.build({
                         if (!(filedata instanceof Uint8Array) || filedata.length === 0) continue;
 
                         const asset = Asset.File(new File([filedata], fn));
-                        await processFile(asset, plugin, 'auto', params.visuals, params.scale);
+                        await processFile(asset, plugin, 'auto', params.visuals);
                     }
                 } else {
                     const format = params.format.name === 'auto' ? 'auto' : params.format.params;
-                    await processFile(file, plugin, format, params.visuals, params.scale);
+                    await processFile(file, plugin, format, params.visuals);
                 }
             } catch (e) {
                 console.error(e);

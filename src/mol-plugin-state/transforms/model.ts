@@ -428,7 +428,7 @@ const TrajectoryFromLammpsTrajData = PluginStateTransform.BuiltIn({
     from: [SO.Data.String],
     to: SO.Molecule.Trajectory,
     params: {
-        scale: PD.Numeric(1, { min: 0.01, max: 1000, step: 0.01 })
+        scale: PD.Numeric(1.0, { min: 0.01, max: 1000, step: 0.01 })
     }
 })({
     apply({ a, params }) {
