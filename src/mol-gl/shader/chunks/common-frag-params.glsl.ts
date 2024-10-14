@@ -149,4 +149,15 @@ float fbm(in vec3 p) {
 
     return f;
 }
+
+#ifdef dXrayShaded
+    float calcXrayShadedAlpha(in float alpha, const in vec3 normal) {
+        #if defined(dXrayShaded_on)
+            alpha *= 1.0 - pow(abs(dot(normal, vec3(0.0, 0.0, 1.0))), uXrayEdgeFalloff);
+        #elif defined(dXrayShaded_inverted)
+            alpha *= pow(abs(dot(normal, vec3(0.0, 0.0, 1.0))), uXrayEdgeFalloff);
+        #endif
+        return alpha;
+    }
+#endif
 `;
