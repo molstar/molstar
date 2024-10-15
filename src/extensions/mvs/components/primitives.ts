@@ -75,6 +75,16 @@ export function getPrimitiveStructureRefs(primitives: MVSPrimitive[]) {
     return refs;
 }
 
+const Builders: Record<MVSPrimitive['kind'], [
+    mesh: (context: MVSPrimitiveBuilderContext, state: MeshBuilderState, params: any) => void,
+    label: (context: MVSPrimitiveBuilderContext, state: LabelBuilderState, params: any) => void,
+    resolveRefs: (params: any, refs: Set<string>) => void
+]> = {
+    mesh: [addMesh, noOp, noOp],
+    line: [addLineMesh, noOp, resolveLineRefs],
+    distance_measurement: [addDistanceMesh, addDistanceLabel, resolveLineRefs],
+};
+
 function addRef(position: MVSPositionT, refs: Set<string>) {
     if (Array.isArray(position)) {
         if (typeof position[0] === 'number') {
@@ -187,16 +197,6 @@ function buildPrimitiveLabels(context: MVSPrimitiveBuilderContext, primives: MVS
         (g) => '',
     );
 }
-
-const Builders: Record<MVSPrimitive['kind'], [
-    mesh: (context: MVSPrimitiveBuilderContext, state: MeshBuilderState, params: any) => void,
-    label: (context: MVSPrimitiveBuilderContext, state: LabelBuilderState, params: any) => void,
-    resolveRefs: (params: any, refs: Set<string>) => void
-]> = {
-    mesh: [addMesh, noOp, noOp],
-    line: [addLineMesh, noOp, resolveLineRefs],
-    distance_measurement: [addDistanceMesh, addDistanceLabel, resolveLineRefs],
-};
 
 function noOp() { }
 
