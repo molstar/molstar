@@ -4,7 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { OptionalField, RequiredField, float, int, list, literal, mapping, nullable, str, tuple, union } from '../generic/params-schema';
+import { OptionalField, RequiredField, float, int, list, literal, mapping, nullable, str, tuple, union, obj, ValueFor } from '../generic/params-schema';
 import { NodeFor, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
 import { ColorT, ComponentExpressionT, ComponentSelectorT, FloatList, IntList, Matrix, ParseFormatT, PositionT, RepresentationTypeT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
 
@@ -39,15 +39,51 @@ const _DataFromSourceParams = {
     field_name: OptionalField(str, 'Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...).'),
 };
 
+
+
 const _LineBase = {
-    start: RequiredField(PositionT),
-    end: RequiredField(PositionT),
-    thickness: OptionalField(nullable(float)),
-    color: OptionalField(nullable(ColorT)),
-    dash_start: OptionalField(nullable(float)),
-    dash_length: OptionalField(nullable(float)),
-    gap_length: OptionalField(nullable(float)),
+    start: PositionT,
+    end: PositionT,
+    thickness: nullable(float),
+    color: nullable(ColorT),
+    dash_start: nullable(float),
+    dash_length: nullable(float),
+    gap_length: nullable(float),
 };
+
+const MeshParams = obj({
+    kind: literal('mesh'),
+    vertices: FloatList,
+    indices: IntList,
+    triangle_colors: nullable(StrList),
+    triangle_groups: nullable(IntList),
+    group_colors: nullable(mapping(int, ColorT)),
+    group_tooltips: nullable(mapping(int, str)),
+    tooltip: nullable(str),
+});
+
+const LineParams = obj({
+    kind: literal('line'),
+    ..._LineBase,
+    tooltip: nullable(str),
+});
+
+const DistanceMeasurementParams = obj({
+    kind: literal('distance_measurement'),
+    ..._LineBase,
+    label_template: nullable(str),
+    label_size: nullable(union([float, literal('auto')])),
+    label_auto_size_scale: nullable(float),
+    label_auto_size_min: nullable(float),
+    label_color: nullable(ColorT),
+});
+
+const PrimitiveParams = union([MeshParams, LineParams, DistanceMeasurementParams]);
+
+export type MVSPrimitive = ValueFor<typeof PrimitiveParams>
+export type MVSPrimitiveKind = MVSPrimitive['kind']
+export type MVSPrimitiveOptions = MVSNode<'primitives'>['params']
+export type MVSPrimitiveParams<T extends MVSPrimitiveKind> = Extract<MVSPrimitive, { kind: T }>
 
 /** Schema for `MVSTree` (MolViewSpec tree) */
 export const MVSTreeSchema = TreeSchema({
@@ -153,7 +189,7 @@ export const MVSTreeSchema = TreeSchema({
         /** This node instructs to apply color to a visual representation. */
         color: {
             description: 'This node instructs to apply color to a visual representation.',
-            parent: ['representation', 'primitives_options'],
+            parent: ['representation'],
             params: {
                 /** Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`). */
                 color: RequiredField(ColorT, 'Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
@@ -205,7 +241,7 @@ export const MVSTreeSchema = TreeSchema({
         /** This node instructs to add a tooltip to a component. "Tooltip" is a text which is not a part of the visualization but should be presented to the users when they interact with the component (typically, the tooltip will be shown somewhere on the screen when the user hovers over a visual representation of the component). */
         tooltip: {
             description: 'This node instructs to add a tooltip to a component. "Tooltip" is a text which is not a part of the visualization but should be presented to the users when they interact with the component (typically, the tooltip will be shown somewhere on the screen when the user hovers over a visual representation of the component).',
-            parent: ['component', 'component_from_uri', 'component_from_source', 'primitives_options'],
+            parent: ['component', 'component_from_uri', 'component_from_source'],
             params: {
                 /** Content of the shown tooltip. */
                 text: RequiredField(str, 'Content of the shown tooltip.'),
@@ -263,49 +299,23 @@ export const MVSTreeSchema = TreeSchema({
         primitives: {
             description: 'This node groups a list of geometrical primitives',
             parent: ['structure', 'root'],
-            params: { },
-        },
-        primitives_options: {
-            description: 'This node groups a list of geometrical primitives',
-            parent: ['primitives'],
-            params: { },
-        },
-        primitive_mesh: {
-            description: 'This node represents a mesh primitive',
-            parent: ['primitives'],
             params: {
-                vertices: RequiredField(FloatList),
-                indices: RequiredField(IntList),
-                triangle_colors: OptionalField(nullable(StrList)),
-                triangle_groups: OptionalField(nullable(IntList)),
-                group_colors: OptionalField(nullable(mapping(int, ColorT))),
-                group_tooltips: OptionalField(nullable(mapping(int, str))),
+                default_color: OptionalField(nullable(ColorT)),
+                default_label_color: OptionalField(nullable(ColorT)),
+                default_tooltip: OptionalField(nullable(str)),
+                transparency: OptionalField(nullable(float)),
             },
         },
-        primitive_line: {
-            description: 'This node represents a line primitive',
+        primitive: {
+            description: 'This node represents a geometrical primitive',
             parent: ['primitives'],
             params: {
-                ..._LineBase,
-                tooltip: OptionalField(nullable(str)),
+                // TODO: proper validation
+                _union_: RequiredField(PrimitiveParams),
             },
         },
-        primitive_distance_measurement: {
-            description: 'This node represents a distance measurement primitive',
-            parent: ['primitives'],
-            params: {
-                ..._LineBase,
-                label_template: OptionalField(str),
-                label_size: OptionalField(union([float, literal('auto')])),
-                label_auto_size_scale: OptionalField(float),
-                label_auto_size_min: OptionalField(float),
-                label_color: OptionalField(ColorT),
-            },
-        }
-
     }
 });
-
 
 /** Node kind in a `MVSTree` */
 export type MVSKind = keyof typeof MVSTreeSchema.nodes

@@ -20,13 +20,13 @@ import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-
 import { CustomLabelProps, CustomLabelRepresentationProvider } from './components/custom-label/representation';
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
 import { IsMVSModelProps, IsMVSModelProvider } from './components/is-mvs-model-prop';
-import { MVSLabelProps, MVSBuildPrimitiveShape, MVSInlinePrimitiveData, MVSPrimitive, MVSPrimitiveOptions } from './components/primitives';
+import { MVSLabelProps, MVSBuildPrimitiveShape, MVSInlinePrimitiveData } from './components/primitives';
 import { AnnotationFromSourceKind, AnnotationFromUriKind, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, LoadingActions, loadTree, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps, UpdateTarget } from './load-helpers';
 import { MVSData } from './mvs-data';
 import { ParamsOfKind, SubTreeOfKind, validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
 import { MolstarNode, MolstarTree, MolstarTreeSchema } from './tree/molstar/molstar-tree';
-import { MVSTreeSchema } from './tree/mvs/mvs-tree';
+import { MVSPrimitive, MVSPrimitiveOptions, MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 
 /** Load a MolViewSpec (MVS) tree into the Mol* plugin.
@@ -243,21 +243,14 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     },
     primitives(updateParent: UpdateTarget, tree: SubTreeOfKind<MolstarTree, 'primitives'>, context: MolstarLoadingContext): UpdateTarget {
         const primitives: MVSPrimitive[] = [];
-        const options: MVSPrimitiveOptions = {};
-
-        let optionsNode: SubTreeOfKind<MolstarTree, 'primitives_options'> | undefined;
+        const options: MVSPrimitiveOptions = { ...tree.params };
 
         for (const node of tree.children ?? []) {
-            if (node.kind.startsWith('primitive_')) primitives.push({ kind: node.kind, params: node.params } as any);
-            if (node.kind === 'primitives_options') optionsNode = node as any;
+            if (node.kind === 'primitive') primitives.push(node.params as any);
+            // TODO: support focus
         }
 
-        for (const node of optionsNode?.children ?? []) {
-            if (node.kind === 'color') options.color = node.params.color;
-            if (node.kind === 'tooltip') options.tooltip = node.params.text;
-            // TODO: transparency
-        }
-
+        // TODO
         // const refs = getPrimitiveStructureRefs(primitives);
 
         const data = UpdateTarget.apply(updateParent, MVSInlinePrimitiveData, { primitives, options });
@@ -268,6 +261,4 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
 
         return updateParent;
     },
-    primitive_mesh: undefined,
-    primitive_line: undefined,
 };

@@ -28,6 +28,11 @@ export const tuple = iots.tuple;
 export const list = iots.array;
 /** Type definition for union types, e.g. `union([str, int])` means string or integer  */
 export const union = iots.union;
+/** Type definition used to create objects */
+export const obj = iots.type;
+/** Type definition used to create partial objects */
+export const partial = iots.partial;
+
 /** Type definition for nullable types, e.g. `nullable(str)` means string or `null`  */
 export function nullable<T extends iots.Type<any>>(type: T) {
     return union([type, iots.null]);
@@ -126,6 +131,13 @@ export function paramsValidationIssues<P extends ParamsSchema, V extends { [k: s
     if (!isPlainObject(values)) return [`Parameters must be an object, not ${values}`];
     for (const key in schema) {
         const paramDef = schema[key];
+
+        // Special handling of "union" param type
+        if (key === '_union_') {
+            // TODO: figure out how to do this
+            return undefined;
+        }
+
         if (Object.hasOwn(values, key)) {
             const value = values[key];
             const issues = fieldValidationIssues(paramDef, value);

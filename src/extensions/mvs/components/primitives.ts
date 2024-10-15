@@ -24,18 +24,12 @@ import { capitalize } from '../../../mol-util/string';
 import { rowsToExpression, rowToExpression } from '../helpers/selections';
 import { collectMVSReferences, decodeColor } from '../helpers/utils';
 import { ValueFor } from '../tree/generic/params-schema';
-import { MVSNode } from '../tree/mvs/mvs-tree';
+import { MVSPrimitive, MVSPrimitiveOptions, MVSPrimitiveParams } from '../tree/mvs/mvs-tree';
 import { PrimitiveComponentExpressionT } from '../tree/mvs/param-types';
 import { MVSTransform } from './annotation-structure-component';
 
 type PrimitiveComponentExpression = ValueFor<typeof PrimitiveComponentExpressionT>
 type MVSPositionT = [number, number, number] | PrimitiveComponentExpression | PrimitiveComponentExpression[]
-
-export interface MVSPrimitiveOptions {
-    color?: string;
-    transparency?: number;
-    tooltip?: string;
-}
 
 export const MVSLabelProps: PD.Values<Text.Params> = {
     ...PD.getDefaultValues(Text.Params),
@@ -48,11 +42,6 @@ export const MVSLabelProps: PD.Values<Text.Params> = {
     backgroundOpacity: 0.5,
     tether: false,
 };
-
-export type MVSPrimitiveKinds = 'primitive_mesh' | 'primitive_line' | 'primitive_distance_measurement'
-type _Primitive<T> = T extends MVSPrimitiveKinds ? { kind: T, params: MVSNode<'primitive_mesh'>['params'] } : never;
-
-export type MVSPrimitive = _Primitive<MVSPrimitiveKinds>
 
 export interface MVSPrimitiveBuilderContext {
     defaultStructure?: Structure;
@@ -153,12 +142,12 @@ function buildPrimitiveMesh(context: MVSPrimitiveBuilderContext, primives: MVSPr
             console.warn(`Primitive ${p.kind} not supported`);
             continue;
         }
-        b[0](context, state, p.params as any);
+        b[0](context, state, p);
     }
 
     const { colors, tooltips } = state;
-    const tooltip = context.globalOptions.tooltip ?? '';
-    const color = decodeColor(context.globalOptions.color) ?? 0x0;
+    const tooltip = context.globalOptions?.default_tooltip ?? '';
+    const color = decodeColor(context.globalOptions?.default_color as string | undefined) ?? 0x0;
 
     return Shape.create(
         'Mesh',
@@ -180,7 +169,7 @@ function buildPrimitiveLabels(context: MVSPrimitiveBuilderContext, primives: MVS
             console.warn(`Primitive ${p.kind} not supported`);
             continue;
         }
-        b[1](context, state, p.params as any);
+        b[1](context, state, p);
     }
 
     const { colors, sizes } = state;
@@ -199,14 +188,14 @@ const Builders: Record<MVSPrimitive['kind'], [
     label: (context: MVSPrimitiveBuilderContext, state: LabelBuilderState, params: any) => void,
     resolveRefs: (params: any, refs: Set<string>) => void
 ]> = {
-    primitive_mesh: [addMesh, noOp, noOp],
-    primitive_line: [addLineMesh, noOp, resolveLineRefs],
-    primitive_distance_measurement: [addDistanceMesh, addDistanceLabel, resolveLineRefs],
+    mesh: [addMesh, noOp, noOp],
+    line: [addLineMesh, noOp, resolveLineRefs],
+    distance_measurement: [addDistanceMesh, addDistanceLabel, resolveLineRefs],
 };
 
 function noOp() { }
 
-function addMesh(context: MVSPrimitiveBuilderContext, { mesh, colors, tooltips }: MeshBuilderState, params: MVSNode<'primitive_mesh'>['params']) {
+function addMesh(context: MVSPrimitiveBuilderContext, { mesh, colors, tooltips }: MeshBuilderState, params: MVSPrimitiveParams<'mesh'>) {
     const a = Vec3.zero();
     const b = Vec3.zero();
     const c = Vec3.zero();
@@ -250,7 +239,7 @@ function addMesh(context: MVSPrimitiveBuilderContext, { mesh, colors, tooltips }
     }
 }
 
-function resolveLineRefs(params: MVSNode<'primitive_line'>['params'], refs: Set<string>) {
+function resolveLineRefs(params: MVSPrimitiveParams<'line' | 'distance_measurement'>, refs: Set<string>) {
     addRef(params.start, refs);
     addRef(params.end, refs);
 }
@@ -258,7 +247,7 @@ function resolveLineRefs(params: MVSNode<'primitive_line'>['params'], refs: Set<
 const lStart = Vec3.zero();
 const lEnd = Vec3.zero();
 
-function addLineMesh(context: MVSPrimitiveBuilderContext, { mesh, colors, tooltips }: MeshBuilderState, params: MVSNode<'primitive_line'>['params'], options?: { skipResolvePosition?: boolean }) {
+function addLineMesh(context: MVSPrimitiveBuilderContext, { mesh, colors, tooltips }: MeshBuilderState, params: MVSPrimitiveParams<'line'>, options?: { skipResolvePosition?: boolean }) {
     const group = ++mesh.currentGroup;
     if (!options?.skipResolvePosition) {
         resolvePosition(context, params.start, lStart);
@@ -287,7 +276,7 @@ function addLineMesh(context: MVSPrimitiveBuilderContext, { mesh, colors, toolti
     if (params.tooltip) tooltips.set(group, params.tooltip);
 }
 
-function getDistanceLabel(context: MVSPrimitiveBuilderContext, params: MVSNode<'primitive_distance_measurement'>['params']) {
+function getDistanceLabel(context: MVSPrimitiveBuilderContext, params: MVSPrimitiveParams<'distance_measurement'>) {
     resolvePosition(context, params.start, lStart);
     resolvePosition(context, params.end, lEnd);
 
@@ -298,14 +287,14 @@ function getDistanceLabel(context: MVSPrimitiveBuilderContext, params: MVSNode<'
     return label;
 }
 
-function addDistanceMesh(context: MVSPrimitiveBuilderContext, state: MeshBuilderState, params: MVSNode<'primitive_distance_measurement'>['params']) {
+function addDistanceMesh(context: MVSPrimitiveBuilderContext, state: MeshBuilderState, params: MVSPrimitiveParams<'distance_measurement'>) {
     const tooltip = getDistanceLabel(context, params);
-    addLineMesh(context, state, { ...params, tooltip }, { skipResolvePosition: true });
+    addLineMesh(context, state, { ...params, tooltip } as any, { skipResolvePosition: true });
 }
 
 const labelPos = Vec3.zero();
 
-function addDistanceLabel(context: MVSPrimitiveBuilderContext, state: LabelBuilderState, params: MVSNode<'primitive_distance_measurement'>['params']) {
+function addDistanceLabel(context: MVSPrimitiveBuilderContext, state: LabelBuilderState, params: MVSPrimitiveParams<'distance_measurement'>) {
     const { labels, colors, sizes } = state;
     const group = ++state.group;
     resolvePosition(context, params.start, lStart);

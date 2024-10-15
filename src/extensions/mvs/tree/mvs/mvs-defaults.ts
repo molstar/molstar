@@ -99,34 +99,13 @@ export const MVSDefaults = {
     camera: {
         up: [0, 1, 0],
     },
-    primitives: { },
-    primitives_options: { },
-    primitive_mesh: {
-        triangle_colors: null,
-        group_colors: null,
-        triangle_groups: null,
-        group_tooltips: null
+    primitives: {
+        default_color: null,
+        default_label_color: null,
+        default_tooltip: null,
+        transparency: null,
     },
-    primitive_line: {
-        thickness: 0.05,
-        dash_start: null,
-        dash_length: null,
-        gap_length: null,
-        color: null,
-        tooltip: null
-    },
-    primitive_distance_measurement: {
-        thickness: 0.05,
-        dash_start: 0,
-        dash_length: 0.05,
-        gap_length: 0.05,
-        color: null,
-        label_template: '{{distance}}',
-        label_size: 'auto',
-        label_auto_size_scale: 0.1,
-        label_auto_size_min: 0.2,
-        label_color: 'black',
-    }
+    primitive: { },
 } satisfies DefaultsForTree<typeof MVSTreeSchema>;
 
 /** Color to be used e.g. for representations without 'color' node */
