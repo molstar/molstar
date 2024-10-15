@@ -8,12 +8,16 @@ import { addSimpleCylinder } from '../../../mol-geo/geometry/mesh/builder/cylind
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Vec3 } from '../../../mol-math/linear-algebra';
+import { Loci } from '../../../mol-model/loci';
 import { Shape } from '../../../mol-model/shape';
-import { Structure } from '../../../mol-model/structure';
+import { Structure, StructureSelection } from '../../../mol-model/structure';
+import { StructureQueryHelper } from '../../../mol-plugin-state/helpers/structure-query';
 import { PluginStateObject as SO } from '../../../mol-plugin-state/objects';
+import { Expression } from '../../../mol-script/language/expression';
 import { Color } from '../../../mol-util/color';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { decodeColor } from '../helpers/utils';
+import { rowsToExpression, rowToExpression } from '../helpers/selections';
+import { collectMVSReferences, decodeColor } from '../helpers/utils';
 import { ValueFor } from '../tree/generic/params-schema';
 import { MVSNode } from '../tree/mvs/mvs-tree';
 import { ComponentExpressionT } from '../tree/mvs/param-types';
@@ -40,6 +44,7 @@ export interface PrimitiveBuilderContext {
     defaultStructure?: Structure;
     structureRefs: Record<string, Structure | undefined>;
     globalOptions: PrimitiveOptions;
+    positionCache: Map<string, Vec3>;
 }
 
 interface BuilderState {
@@ -72,13 +77,47 @@ function addRef(position: PositionT, refs: Set<string>) {
 }
 
 function resolvePosition(context: PrimitiveBuilderContext, position: PositionT, target: Vec3) {
+    let expr: Expression;
+    let pivotRef: string | undefined;
     if (Array.isArray(position)) {
         if (typeof position[0] === 'number') {
             return Vec3.copy(target, position as Vec3);
         }
+        if (position.length === 0) return Vec3.set(target, 0, 0, 0);
+
+        const exprs = position as PrimitiveComponentExpression[];
+        pivotRef = exprs[0].structure_ref;
+        for (const e of exprs) {
+            if (pivotRef !== e.structure_ref) throw new Error('All position expressions must point to the same structure');
+        }
+
+        expr = rowsToExpression(position as any);
+    } else {
+        expr = rowToExpression(position as any);
     }
 
-    throw new Error('not yet implemented');
+    const pivot = !pivotRef ? context.defaultStructure : context.structureRefs[pivotRef];
+    if (!pivot) {
+        throw new Error(`Structure with ref '${pivotRef ?? '<default>'}' not found.`);
+    }
+
+    if (!context.defaultStructure) return Vec3.set(target, 0, 0, 0);
+
+    const cackeKey = JSON.stringify(position);
+    if (context.positionCache.has(cackeKey)) {
+        return Vec3.copy(target, context.positionCache.get(cackeKey)!);
+    }
+
+    const { selection } = StructureQueryHelper.createAndRun(context.defaultStructure, expr);
+
+    if (StructureSelection.isEmpty(selection)) {
+        Vec3.set(target, 0, 0, 0);
+    } else {
+        const loci = StructureSelection.toLociWithSourceUnits(selection);
+        Loci.getCenter(loci, target);
+    }
+
+    context.positionCache.set(cackeKey, Vec3.clone(target));
 }
 
 function buildPrimitiveMesh(context: PrimitiveBuilderContext, primives: Primitive[]): Shape<Mesh> {
@@ -188,15 +227,19 @@ export const MVSInlinePrimitives = MVSTransform({ // TODO: move MVSTransform to 
         options: PD.Value<PrimitiveOptions>({} as any, { isHidden: true }),
     },
 })({
-    apply({ params, dependencies }) {
+    apply({ a, params, dependencies }) {
+        const structureRefs = dependencies ? collectMVSReferences([SO.Molecule.Structure], dependencies) : {};
+
         return new SO.Shape.Provider({
             label: 'Primitives',
             data: params,
             params: Mesh.Params,
             getShape: (_, data: typeof params) => {
                 const mesh = buildPrimitiveMesh({
-                    structureRefs: {},
+                    defaultStructure: SO.Molecule.Structure.is(a) ? a.data : undefined,
+                    structureRefs,
                     globalOptions: data.options,
+                    positionCache: new Map(),
                 }, data.primitives);
                 return mesh;
             },

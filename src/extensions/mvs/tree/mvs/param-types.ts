@@ -25,7 +25,7 @@ export const StructureTypeT = literal('model', 'assembly', 'symmetry', 'symmetry
 export const ComponentSelectorT = literal('all', 'polymer', 'protein', 'nucleic', 'branched', 'ligand', 'ion', 'water');
 
 /** `selector` parameter values for `component` node in MVS tree */
-export const ComponentExpressionT = iots.partial({
+const _ComponentBase = {
     label_entity_id: str,
     label_asym_id: str,
     auth_asym_id: str,
@@ -41,7 +41,9 @@ export const ComponentExpressionT = iots.partial({
     type_symbol: str,
     atom_id: int,
     atom_index: int,
-});
+};
+
+export const ComponentExpressionT = iots.partial(_ComponentBase);
 
 /** `type` parameter values for `representation` node in MVS tree */
 export const RepresentationTypeT = literal('ball_and_stick', 'cartoon', 'surface');
@@ -59,6 +61,8 @@ export const Vector3 = tuple([float, float, float]);
 export const Matrix = list(float);
 
 /** Primitives-related types */
+export const PrimitiveComponentExpressionT = iots.partial({ structure_ref: str, ..._ComponentBase });
+export const PositionT = iots.union([Vector3, PrimitiveComponentExpressionT, list(PrimitiveComponentExpressionT)]);
 export const FloatList = list(float);
 export const IntList = list(int);
 export const StrList = list(str);

@@ -6,7 +6,7 @@
 
 import { OptionalField, RequiredField, float, int, list, mapping, nullable, str, tuple, union } from '../generic/params-schema';
 import { NodeFor, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
-import { ColorT, ComponentExpressionT, ComponentSelectorT, FloatList, IntList, Matrix, ParseFormatT, RepresentationTypeT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
+import { ColorT, ComponentExpressionT, ComponentSelectorT, FloatList, IntList, Matrix, ParseFormatT, PositionT, RepresentationTypeT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
 
 
 const _DataFromUriParams = {
@@ -277,8 +277,8 @@ export const MVSTreeSchema = TreeSchema({
             description: 'This node represents a line primitive',
             parent: ['primitives'],
             params: {
-                start: RequiredField(Vector3),
-                end: RequiredField(Vector3),
+                start: RequiredField(PositionT),
+                end: RequiredField(PositionT),
                 thickness: OptionalField(nullable(float)),
                 color: OptionalField(nullable(ColorT)),
                 tooltip: OptionalField(nullable(str)),

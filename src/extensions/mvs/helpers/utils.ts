@@ -5,6 +5,7 @@
  */
 
 import { hashString } from '../../../mol-data/util';
+import { StateObject } from '../../../mol-state';
 import { Color } from '../../../mol-util/color';
 import { ColorNames } from '../../../mol-util/color/names';
 
@@ -125,3 +126,27 @@ export const HexColor = {
         return typeof str === 'string' && hexColorRegex.test(str);
     },
 };
+
+export function collectMVSReferences<T extends StateObject.Ctor>(type: T[], dependencies: Record<string, StateObject>): Record<string, StateObject.From<T>['data']> {
+    const ret: any = {};
+
+    for (const key of Object.keys(dependencies)) {
+        const o = dependencies[key];
+        let okType = false;
+        for (const t of type) {
+            if (t.is(o)) {
+                okType = true;
+                break;
+            }
+        }
+        if (!okType || !o.tags) continue;
+        for (const tag of o.tags) {
+            if (tag.startsWith('mvs-ref:')) {
+                ret[tag.substring(8)] = o.data;
+                break;
+            }
+        }
+    }
+
+    return ret;
+}

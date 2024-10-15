@@ -101,8 +101,18 @@ export const MVSDefaults = {
     },
     primitives: { },
     primitives_options: { },
-    mesh: { triangle_colors: null, group_colors: null, triangle_groups: null, group_tooltips: null },
-    line: { thickness: 0.05, color: null, tooltip: null },
+    mesh: {
+        triangle_colors: null,
+        group_colors: null,
+        triangle_groups: null,
+        group_tooltips: null
+    },
+    line: {
+        thickness: 0.05,
+        color: null,
+        tooltip: null
+        // TODO: remaining params
+    },
 } satisfies DefaultsForTree<typeof MVSTreeSchema>;
 
 /** Color to be used e.g. for representations without 'color' node */
