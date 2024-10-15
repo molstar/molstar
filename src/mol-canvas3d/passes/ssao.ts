@@ -53,6 +53,7 @@ export const SsaoParams = {
     resolutionScale: PD.Numeric(1, { min: 0.1, max: 1, step: 0.05 }, { description: 'Adjust resolution of occlusion calculation' }),
     color: PD.Color(Color(0x000000)),
     includeTransparent: PD.Boolean(true),
+    transparentAlphaThreshold: PD.Numeric(0.5, { min: 0, max: 1, step: 0.1 }),
 };
 
 export type SsaoProps = PD.Values<typeof SsaoParams>
@@ -312,6 +313,9 @@ export class SsaoPass {
 
             ValueCell.update(this.renderable.values.dIncludeTransparent, includeTransparent);
         }
+        if (includeTransparent) {
+            ValueCell.updateIfChanged(this.renderable.values.uTransparentAlphaThreshold, props.transparentAlphaThreshold);
+        }
 
         if (this.renderable.values.dIllumination.ref.value !== illuminationMode) {
             needsUpdateSsao = true;
@@ -532,6 +536,7 @@ const SsaoSchema = {
     dIllumination: DefineSpec('boolean'),
     uTransparencyFlag: UniformSpec('i'),
     dIncludeTransparent: DefineSpec('boolean'),
+    uTransparentAlphaThreshold: UniformSpec('f'),
     tDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
     tDepthHalfTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
     tDepthQuarterTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
@@ -566,8 +571,9 @@ function getSsaoRenderable(ctx: WebGLContext, depthTexture: Texture, depthHalfTe
         tDepthQuarter: ValueCell.create(depthQuarterTexture),
 
         dIllumination: ValueCell.create(false),
-        dIncludeTransparent: ValueCell.create(true),
         uTransparencyFlag: ValueCell.create(0),
+        dIncludeTransparent: ValueCell.create(true),
+        uTransparentAlphaThreshold: ValueCell.create(0.5),
         tDepthTransparent: ValueCell.create(transparentDepthTexture),
         tDepthHalfTransparent: ValueCell.create(transparentDepthHalfTexture),
         tDepthQuarterTransparent: ValueCell.create(transparentDepthQuarterTexture),

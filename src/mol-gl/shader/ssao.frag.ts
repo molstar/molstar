@@ -23,6 +23,7 @@ uniform sampler2D tDepthQuarter;
     uniform sampler2D tDepthTransparent;
     uniform sampler2D tDepthHalfTransparent;
     uniform sampler2D tDepthQuarterTransparent;
+    uniform float uTransparentAlphaThreshold;
 #endif
 
 uniform int uTransparencyFlag;
@@ -192,7 +193,24 @@ float getPixelSize(const in vec2 coords, const in float depth) {
 void main(void) {
     vec2 invTexSize = 1.0 / uTexSize;
     vec2 selfCoords = gl_FragCoord.xy * invTexSize;
-    float selfDepth = getDepth(selfCoords, uTransparencyFlag);
+
+    float selfDepth;
+    #if defined(dIllumination)
+        selfDepth = getDepth(selfCoords, uTransparencyFlag);
+    #elif defined(dIncludeTransparent)
+        bool includeInteractions = true;
+        if (uTransparencyFlag == 1) {
+            vec2 sampleDepthWithAlpha = getDepthTransparentWithAlpha(selfCoords);
+            includeInteractions = sampleDepthWithAlpha.y < uTransparentAlphaThreshold; 
+            selfDepth = sampleDepthWithAlpha.x;
+        } else {
+            selfDepth = getDepth(selfCoords, 0);
+        }        
+    #else
+        selfDepth = getDepth(selfCoords, 0);
+    #endif
+    
+     
     vec2 selfPackedDepth = packUnitIntervalToRG(selfDepth);
 
     if (isBackground(selfDepth)) {
@@ -230,14 +248,16 @@ void main(void) {
 
                 // get sample depth:
                 float sampleOcc = 0.0;
-                #ifdef dIllumination
+                #if defined(dIllumination)
                     if (uTransparencyFlag == 1) {
+                #elif defined(dIncludeTransparent)
+                    if (includeInteractions) {
                 #endif
                     float sampleDepth = getMappedDepth(offset.xy, selfCoords);
                     float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
 
                     sampleOcc = step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uLevelRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uLevelBias[l];
-                #ifdef dIllumination
+                #if defined(dIllumination) || defined(dIncludeTransparent)
                     }
                 #endif
                 #if defined(dIncludeTransparent)
@@ -245,7 +265,7 @@ void main(void) {
                     if (!isBackground(sampleDepthWithAlpha.x)) {
                         float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepthWithAlpha.x), uInvProjection).z;
                         sampleOcc = max(sampleOcc, step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uLevelRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uLevelBias[l] * sampleDepthWithAlpha.y);
-                    }
+                    }               
                 #endif
 
                 levelOcclusion += sampleOcc;
@@ -262,15 +282,17 @@ void main(void) {
             offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
 
             float sampleOcc = 0.0;
-            #ifdef dIllumination
+            #if defined(dIllumination)
                 if (uTransparencyFlag == 1) {
+            #elif defined(dIncludeTransparent)
+                if (includeInteractions) {
             #endif
                     // NOTE: using getMappedDepth here causes issues on some mobile devices
                     float sampleDepth = getDepth(offset.xy, 0);
                     float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
 
                     sampleOcc = step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ));
-            #ifdef dIllumination
+            #if defined(dIllumination) || defined(dIncludeTransparent)
                 }
             #endif
             #if defined(dIncludeTransparent)

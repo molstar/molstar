@@ -37,6 +37,7 @@ const Canvas3DPresets = {
                         resolutionScale: 1,
                         color: Color(0x000000),
                         includeTransparent: true,
+                        transparentAlphaThreshold: 0.5
                     }
                 },
                 outline: {
