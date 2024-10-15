@@ -306,6 +306,15 @@ export const MVSTreeSchema = TreeSchema({
                 transparency: OptionalField(nullable(float)),
             },
         },
+        primitives_from_uri: {
+            description: 'This node loads a list of primitives from URI',
+            parent: ['structure', 'root'],
+            params: {
+                uri: RequiredField(str),
+                format: RequiredField(literal('json')),
+                references: OptionalField(nullable(StrList)),
+            },
+        },
         primitive: {
             description: 'This node represents a geometrical primitive',
             parent: ['primitives'],

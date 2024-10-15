@@ -15,9 +15,12 @@ import { Shape } from '../../../mol-model/shape';
 import { Structure, StructureSelection } from '../../../mol-model/structure';
 import { StructureQueryHelper } from '../../../mol-plugin-state/helpers/structure-query';
 import { PluginStateObject as SO } from '../../../mol-plugin-state/objects';
+import { PluginContext } from '../../../mol-plugin/context';
 import { Expression } from '../../../mol-script/language/expression';
 import { StateObject } from '../../../mol-state';
+import { Task } from '../../../mol-task';
 import { round } from '../../../mol-util';
+import { Asset } from '../../../mol-util/assets';
 import { Color } from '../../../mol-util/color';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { capitalize } from '../../../mol-util/string';
@@ -326,8 +329,43 @@ function addDistanceLabel(context: MVSPrimitiveBuilderContext, state: LabelBuild
 
 /** ========== Plugin transforms ============== */
 
-export class MVSPrimitivesData extends SO.Create<{ primitives: MVSPrimitive[], options: MVSPrimitiveOptions, context: MVSPrimitiveBuilderContext }>({ name: 'Primitive Data', typeClass: 'Object' }) { }
+export class MVSPrimitivesData extends SO.Create<{ primitives: MVSPrimitive[], context: MVSPrimitiveBuilderContext }>({ name: 'Primitive Data', typeClass: 'Object' }) { }
 export class MVSPrimitiveShapes extends SO.Create<{ mesh?: Shape<Mesh>, labels?: Shape<Text> }>({ name: 'Primitive Shapes', typeClass: 'Object' }) { }
+
+
+export type MVSDownloadPrimitiveData = typeof MVSDownloadPrimitiveData
+export const MVSDownloadPrimitiveData = MVSTransform({
+    name: 'mvs-download-primitive-data',
+    display: { name: 'MVS Primitives' },
+    from: [SO.Root, SO.Molecule.Structure],
+    to: MVSPrimitivesData,
+    params: {
+        uri: PD.Url('', { isHidden: true }),
+        format: PD.Text<'json'>('json', { isHidden: true })
+    },
+})({
+    apply({ a, params, cache }, plugin: PluginContext) {
+        return Task.create('Download Primitive Data', async ctx => {
+            const url = Asset.getUrlAsset(plugin.managers.asset, params.uri);
+            const asset = await plugin.managers.asset.resolve(url, 'string').runInContext(ctx);
+            const data = JSON.parse(asset.data);
+            (cache as any).asset = asset;
+            return new MVSPrimitivesData({
+                primitives: data.primitives,
+                context: {
+                    defaultStructure: SO.Molecule.Structure.is(a) ? a.data : undefined,
+                    structureRefs: {},
+                    globalOptions: data.options,
+                    positionCache: new Map(),
+                }
+            }, { label: 'Primitive Data' });
+        });
+    },
+    dispose({ cache }) {
+        ((cache as any)?.asset as Asset.Wrapper | undefined)?.dispose();
+    },
+});
+
 
 export type MVSInlinePrimitiveData = typeof MVSInlinePrimitiveData
 export const MVSInlinePrimitiveData = MVSTransform({
@@ -343,10 +381,9 @@ export const MVSInlinePrimitiveData = MVSTransform({
     apply({ a, params }) {
         return new MVSPrimitivesData({
             primitives: params.primitives,
-            options: params.options,
             context: {
                 defaultStructure: SO.Molecule.Structure.is(a) ? a.data : undefined,
-                structureRefs: { },
+                structureRefs: {},
                 globalOptions: params.options,
                 positionCache: new Map(),
             }

@@ -105,6 +105,9 @@ export const MVSDefaults = {
         default_tooltip: null,
         transparency: null,
     },
+    primitives_from_uri: {
+        references: null,
+    },
     primitive: { },
 } satisfies DefaultsForTree<typeof MVSTreeSchema>;
 
