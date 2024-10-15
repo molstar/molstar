@@ -4,7 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { OptionalField, RequiredField, float, int, list, mapping, nullable, str, tuple, union } from '../generic/params-schema';
+import { OptionalField, RequiredField, float, int, list, literal, mapping, nullable, str, tuple, union } from '../generic/params-schema';
 import { NodeFor, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
 import { ColorT, ComponentExpressionT, ComponentSelectorT, FloatList, IntList, Matrix, ParseFormatT, PositionT, RepresentationTypeT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
 
@@ -38,6 +38,16 @@ const _DataFromSourceParams = {
     /** Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...). The default value is 'color'/'label'/'tooltip'/'component' depending on the node type */
     field_name: OptionalField(str, 'Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...).'),
 };
+
+const _LineBase = {
+    start: RequiredField(PositionT),
+    end: RequiredField(PositionT),
+    thickness: OptionalField(nullable(float)),
+    color: OptionalField(nullable(ColorT)),
+    dash_start: OptionalField(nullable(float)),
+    dash_length: OptionalField(nullable(float)),
+    gap_length: OptionalField(nullable(float)),
+}
 
 
 /** Schema for `MVSTree` (MolViewSpec tree) */
@@ -261,7 +271,7 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['primitives'],
             params: { },
         },
-        mesh: {
+        primitive_mesh: {
             description: 'This node represents a mesh primitive',
             parent: ['primitives'],
             params: {
@@ -273,16 +283,23 @@ export const MVSTreeSchema = TreeSchema({
                 group_tooltips: OptionalField(nullable(mapping(int, str))),
             },
         },
-        line: {
+        primitive_line: {
             description: 'This node represents a line primitive',
             parent: ['primitives'],
             params: {
-                start: RequiredField(PositionT),
-                end: RequiredField(PositionT),
-                thickness: OptionalField(nullable(float)),
-                color: OptionalField(nullable(ColorT)),
+                ..._LineBase,
                 tooltip: OptionalField(nullable(str)),
-                // TODO: remaining properties
+            },
+        },
+        primitive_distance_measurement: {
+            description: 'This node represents a distance measurement primitive',
+            parent: ['primitives'],
+            params: {
+                ..._LineBase,
+                label_template: OptionalField(str),
+                label_size: OptionalField(union([float, literal('auto')])),
+                label_auto_size_scale: OptionalField(float),
+                label_color: OptionalField(ColorT),
             },
         }
 
@@ -305,3 +322,6 @@ export const FullMVSTreeSchema = TreeSchemaWithAllRequired(MVSTreeSchema);
 
 /** MolViewSpec tree with all params provided */
 export type FullMVSTree = TreeFor<typeof FullMVSTreeSchema>
+
+/** A set of primitive node kinds */
+export const MVSPrimitives = new Set<MVSKind>(['primitive_mesh', 'primitive_line', 'primitive_distance_measurement']);
