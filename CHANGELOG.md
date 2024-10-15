@@ -10,6 +10,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix missing pre-multiplied alpha for `blended` & `wboit` with no fog (#1284)
 - Fix backfaces visible using blended transparency on impostors (#1285)
 - Fix StructureElement.Loci.isSubset() only considers common units (#1292)
+- Fix `Scene.opacityAverage` calculation never 1
 
 ## [v4.7.1] - 2024-09-30
 
