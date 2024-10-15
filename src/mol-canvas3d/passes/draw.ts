@@ -208,7 +208,7 @@ export class DrawPass {
         }
 
         if (PostprocessingPass.isEnabled(postprocessingProps)) {
-            this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps, renderer.light, renderer.ambientColor);
+            this.postprocessing.render(camera, scene, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps, renderer.light, renderer.ambientColor);
         }
 
         // render transparent volumes
@@ -254,7 +254,7 @@ export class DrawPass {
         }
 
         if (PostprocessingPass.isEnabled(postprocessingProps)) {
-            this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps, renderer.light, renderer.ambientColor);
+            this.postprocessing.render(camera, scene, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps, renderer.light, renderer.ambientColor);
         }
 
         // render volumes
@@ -336,7 +336,7 @@ export class DrawPass {
                     this.colorTarget.depthRenderbuffer?.detachFramebuffer(this.postprocessing.target.framebuffer);
                 }
 
-                this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps, renderer.light, renderer.ambientColor);
+                this.postprocessing.render(camera, scene, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps, renderer.light, renderer.ambientColor);
 
                 if (!this.packedDepth) {
                     this.depthTextureOpaque.attachFramebuffer(this.postprocessing.target.framebuffer, 'depth');

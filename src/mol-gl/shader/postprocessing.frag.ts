@@ -112,14 +112,16 @@ float getSsaoTransparent(vec2 coords) {
 void main(void) {
     vec2 coords = gl_FragCoord.xy / uTexSize;
     vec4 color = texture2D(tColor, coords);
-    vec4 transparentColor = texture2D(tTransparentColor, coords);
-    bool blendTransparency = true;
 
     float opaqueDepth = getDepthOpaque(coords);
+    #ifdef dBlendTransparency
+        bool blendTransparency = true;
+        vec4 transparentColor = texture2D(tTransparentColor, coords);
 
-    #if defined(dOutlineEnable) || defined(dOcclusionEnable) && defined(dOcclusionIncludeTransparency)
-        float transparentDepth = getDepthTransparent(coords);
-    #endif
+        #if defined(dOutlineEnable) || defined(dOcclusionEnable) && defined(dOcclusionIncludeTransparency)
+            float transparentDepth = getDepthTransparent(coords);
+        #endif
+    #endif    
 
     #if defined(dOcclusionEnable) || defined(dShadowEnable)
         bool isOpaqueBackground = isBackground(opaqueDepth);
@@ -137,7 +139,7 @@ void main(void) {
                 color.rgb = mix(uOcclusionColor * (1.0 - fogFactor), color.rgb, occlusionFactor);
             }
         }
-        #ifdef dOcclusionIncludeTransparency
+        #if defined(dBlendTransparency) && defined(dOcclusionIncludeTransparency)
             if (!isBackground(transparentDepth)) {
                 float viewDist = abs(getViewZ(transparentDepth));
                 float fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
@@ -172,19 +174,23 @@ void main(void) {
                 color.a = 1.0 - fogFactor;
                 color.rgb = mix(uOutlineColor, vec3(0.0), fogFactor);
             }
-            if (transparentDepth > closestTexel) {
-                blendTransparency = false;
-            }
+            #ifdef dBlendTransparency
+                if (transparentDepth > closestTexel) {
+                    blendTransparency = false;
+                }
+            #endif
         }
     #endif
 
-    if (blendTransparency) {
-        float alpha = transparentColor.a;
-        if (alpha != 0.0) {
-            // blending
-            color = transparentColor + color * (1.0 - alpha);
+    #ifdef dBlendTransparency
+        if (blendTransparency) {
+            float alpha = transparentColor.a;
+            if (alpha != 0.0) {
+                // blending
+                color = transparentColor + color * (1.0 - alpha);
+            }
         }
-    }
+    #endif
 
     gl_FragColor = color;
 }

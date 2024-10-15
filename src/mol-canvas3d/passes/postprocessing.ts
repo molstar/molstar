@@ -20,6 +20,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { DrawPass } from './draw';
 import { ICamera } from '../../mol-canvas3d/camera';
+import { Scene } from '../../mol-gl/scene';
 import { quad_vert } from '../../mol-gl/shader/quad.vert';
 import { postprocessing_frag } from '../../mol-gl/shader/postprocessing.frag';
 import { Color } from '../../mol-util/color';
@@ -43,6 +44,7 @@ const PostprocessingSchema = {
     tSsaoDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tTransparentColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    dBlendTransparency: DefineSpec('boolean'),
     tDepthOpaque: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tShadows: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
@@ -80,6 +82,7 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, t
         tSsaoDepthTransparent: ValueCell.create(ssaoDepthTransparentTexture),
         tColor: ValueCell.create(colorTexture),
         tTransparentColor: ValueCell.create(transparentColorTexture),
+        dBlendTransparency: ValueCell.create(true),
         tDepthOpaque: ValueCell.create(depthTextureOpaque),
         tDepthTransparent: ValueCell.create(depthTextureTransparent),
         tShadows: ValueCell.create(shadowsTexture),
@@ -212,7 +215,7 @@ export class PostprocessingPass {
         this.background.setSize(width, height);
     }
 
-    updateState(camera: ICamera, transparentBackground: boolean, backgroundColor: Color, props: PostprocessingProps, light: Light, ambientColor: Vec3) {
+    updateState(camera: ICamera, scene: Scene, transparentBackground: boolean, backgroundColor: Color, props: PostprocessingProps, light: Light, ambientColor: Vec3) {
         let needsUpdateMain = false;
 
         const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
@@ -222,7 +225,7 @@ export class PostprocessingPass {
 
         if (occlusionEnabled) {
             const params = props.occlusion.params as SsaoProps;
-            this.ssao.update(camera, params);
+            this.ssao.update(camera, scene, params);
             const includeTransparency = params.includeTransparent;
             if (this.renderable.values.dOcclusionIncludeTransparency.ref.value !== includeTransparency) {
                 needsUpdateMain = true;
@@ -276,6 +279,12 @@ export class PostprocessingPass {
             ValueCell.update(this.renderable.values.dOcclusionEnable, occlusionEnabled);
         }
 
+        const blendTransparency = scene.opacityAverage < 1;
+        if (this.renderable.values.dBlendTransparency.ref.value !== blendTransparency) {
+            needsUpdateMain = true;
+            ValueCell.update(this.renderable.values.dBlendTransparency, blendTransparency);
+        }
+
         if (needsUpdateMain) {
             this.renderable.update();
         }
@@ -300,9 +309,9 @@ export class PostprocessingPass {
         this.transparentBackground = value;
     }
 
-    render(camera: ICamera, toDrawingBuffer: boolean, transparentBackground: boolean, backgroundColor: Color, props: PostprocessingProps, light: Light, ambientColor: Vec3) {
+    render(camera: ICamera, scene: Scene, toDrawingBuffer: boolean, transparentBackground: boolean, backgroundColor: Color, props: PostprocessingProps, light: Light, ambientColor: Vec3) {
         if (isTimingMode) this.webgl.timer.mark('PostprocessingPass.render');
-        this.updateState(camera, transparentBackground, backgroundColor, props, light, ambientColor);
+        this.updateState(camera, scene, transparentBackground, backgroundColor, props, light, ambientColor);
 
         const { state } = this.webgl;
         const { x, y, width, height } = camera.viewport;

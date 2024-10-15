@@ -19,6 +19,7 @@ import { Mat4, Vec2, Vec3, Vec4 } from '../../mol-math/linear-algebra';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { ICamera } from '../../mol-canvas3d/camera';
+import { Scene } from '../../mol-gl/scene';
 import { quad_vert } from '../../mol-gl/shader/quad.vert';
 import { ssao_frag } from '../../mol-gl/shader/ssao.frag';
 import { ssaoBlur_frag } from '../../mol-gl/shader/ssao-blur.frag';
@@ -259,7 +260,7 @@ export class SsaoPass {
         }
     }
 
-    update(camera: ICamera, props: SsaoProps, illuminationMode = false) {
+    update(camera: ICamera, scene: Scene, props: SsaoProps, illuminationMode = false) {
         let needsUpdateSsao = false;
         let needsUpdateSsaoBlur = false;
         let needsUpdateDepthHalf = false;
@@ -305,10 +306,11 @@ export class SsaoPass {
             ValueCell.update(this.blurSecondPassRenderable.values.dOrthographic, orthographic);
         }
 
-        if (this.renderable.values.dIncludeTransparent.ref.value !== props.includeTransparent) {
+        const includeTransparent = props.includeTransparent && scene.opacityAverage < 1;
+        if (this.renderable.values.dIncludeTransparent.ref.value !== includeTransparent) {
             needsUpdateSsao = true;
 
-            ValueCell.update(this.renderable.values.dIncludeTransparent, props.includeTransparent);
+            ValueCell.update(this.renderable.values.dIncludeTransparent, includeTransparent);
         }
 
         if (this.renderable.values.dIllumination.ref.value !== illuminationMode) {
@@ -498,7 +500,6 @@ export class SsaoPass {
         this.blurSecondPassFramebuffer.bind();
         this.blurSecondPassRenderable.render();
         if (isTimingMode) this.webgl.timer.markEnd('SSAO.blurOpaque');
-
         if (includeTransparent) {
             if (isTimingMode) this.webgl.timer.mark('SSAO.transparent ');
             this.ssaoDepthTransparentTexture.attachFramebuffer(this.framebuffer, 'color0');

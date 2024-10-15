@@ -201,7 +201,7 @@ export class IlluminationPass {
             }
 
             if (ssaoEnabled) {
-                this.drawPass.postprocessing.ssao.update(camera, props.postprocessing.occlusion.params as SsaoProps, true);
+                this.drawPass.postprocessing.ssao.update(camera, scene, props.postprocessing.occlusion.params as SsaoProps, true);
                 this.drawPass.postprocessing.ssao.render(camera);
             }
         }
@@ -334,6 +334,12 @@ export class IlluminationPass {
 
         if (props.postprocessing.occlusion.name === 'on') {
             ValueCell.update(this.composeRenderable.values.uOcclusionColor, Color.toVec3Normalized(this.composeRenderable.values.uOcclusionColor.ref.value, props.postprocessing.occlusion.params.color));
+        }
+
+        const blendTransparency = scene.opacityAverage < 1;
+        if (this.composeRenderable.values.dBlendTransparency.ref.value !== blendTransparency) {
+            needsUpdateCompose = true;
+            ValueCell.update(this.composeRenderable.values.dBlendTransparency, blendTransparency);
         }
 
         ValueCell.updateIfChanged(this.composeRenderable.values.uNear, camera.near);
@@ -566,6 +572,7 @@ const ComposeSchema = {
     tNormal: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tShaded: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tTransparentColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    dBlendTransparency: DefineSpec('boolean'),
     tSsaoDepth: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tSsaoDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tDepthOpaque: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
@@ -601,6 +608,7 @@ function getComposeRenderable(ctx: WebGLContext, colorTexture: Texture, normalTe
         tNormal: ValueCell.create(normalTexture),
         tShaded: ValueCell.create(shadedTexture),
         tTransparentColor: ValueCell.create(transparentColorTexture),
+        dBlendTransparency: ValueCell.create(true),
         tSsaoDepth: ValueCell.create(ssaoDepthOpaqueTexture),
         tSsaoDepthTransparent: ValueCell.create(ssaoDepthTransparentTexture),
         tDepthOpaque: ValueCell.create(depthTextureOpaque),
