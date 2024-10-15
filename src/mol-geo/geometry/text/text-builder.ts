@@ -21,7 +21,6 @@ const caAdd2 = ChunkedArray.add2;
 const caAdd = ChunkedArray.add;
 
 export interface TextBuilder {
-    isEmpty: boolean
     add(str: string, x: number, y: number, z: number, depth: number, scale: number, group: number): void
     getText(): Text
 }
@@ -50,14 +49,8 @@ export namespace TextBuilder {
             caAdd(groups, group);
         };
 
-        let isEmpty = true;
-
         return {
-            get isEmpty() {
-                return isEmpty;
-            },
             add: (str: string, x: number, y: number, z: number, depth: number, scale: number, group: number) => {
-                isEmpty = false;
                 let bWidth = 0;
                 const nChar = str.length;
 

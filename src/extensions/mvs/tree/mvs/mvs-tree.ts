@@ -47,8 +47,7 @@ const _LineBase = {
     dash_start: OptionalField(nullable(float)),
     dash_length: OptionalField(nullable(float)),
     gap_length: OptionalField(nullable(float)),
-}
-
+};
 
 /** Schema for `MVSTree` (MolViewSpec tree) */
 export const MVSTreeSchema = TreeSchema({
@@ -299,6 +298,7 @@ export const MVSTreeSchema = TreeSchema({
                 label_template: OptionalField(str),
                 label_size: OptionalField(union([float, literal('auto')])),
                 label_auto_size_scale: OptionalField(float),
+                label_auto_size_min: OptionalField(float),
                 label_color: OptionalField(ColorT),
             },
         }
@@ -322,6 +322,3 @@ export const FullMVSTreeSchema = TreeSchemaWithAllRequired(MVSTreeSchema);
 
 /** MolViewSpec tree with all params provided */
 export type FullMVSTree = TreeFor<typeof FullMVSTreeSchema>
-
-/** A set of primitive node kinds */
-export const MVSPrimitives = new Set<MVSKind>(['primitive_mesh', 'primitive_line', 'primitive_distance_measurement']);

@@ -123,7 +123,8 @@ export const MVSDefaults = {
         color: null,
         label_template: '{{distance}}',
         label_size: 'auto',
-        label_auto_size_scale: 0.2,
+        label_auto_size_scale: 0.1,
+        label_auto_size_min: 0.2,
         label_color: 'black',
     }
 } satisfies DefaultsForTree<typeof MVSTreeSchema>;

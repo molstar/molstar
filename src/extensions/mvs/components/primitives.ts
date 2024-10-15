@@ -17,6 +17,7 @@ import { StructureQueryHelper } from '../../../mol-plugin-state/helpers/structur
 import { PluginStateObject as SO } from '../../../mol-plugin-state/objects';
 import { Expression } from '../../../mol-script/language/expression';
 import { StateObject } from '../../../mol-state';
+import { round } from '../../../mol-util';
 import { Color } from '../../../mol-util/color';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { capitalize } from '../../../mol-util/string';
@@ -24,53 +25,65 @@ import { rowsToExpression, rowToExpression } from '../helpers/selections';
 import { collectMVSReferences, decodeColor } from '../helpers/utils';
 import { ValueFor } from '../tree/generic/params-schema';
 import { MVSNode } from '../tree/mvs/mvs-tree';
-import { ComponentExpressionT } from '../tree/mvs/param-types';
+import { PrimitiveComponentExpressionT } from '../tree/mvs/param-types';
 import { MVSTransform } from './annotation-structure-component';
 
-export interface PrimitiveComponentExpression extends ValueFor<typeof ComponentExpressionT> {
-    structure_ref?: string;
-}
+type PrimitiveComponentExpression = ValueFor<typeof PrimitiveComponentExpressionT>
+type MVSPositionT = [number, number, number] | PrimitiveComponentExpression | PrimitiveComponentExpression[]
 
-export type PositionT = [number, number, number] | PrimitiveComponentExpression | PrimitiveComponentExpression[]
-
-export interface PrimitiveOptions {
+export interface MVSPrimitiveOptions {
     color?: string;
     transparency?: number;
     tooltip?: string;
 }
 
-export type Primitive =
-    | { kind: 'primitive_mesh', params: MVSNode<'primitive_mesh'>['params'] }
-    | { kind: 'primitive_line', params: MVSNode<'primitive_line'>['params'] }
-    | { kind: 'primitive_distance_measurement', params: MVSNode<'primitive_distance_measurement'>['params'] };
+export const MVSLabelProps: PD.Values<Text.Params> = {
+    ...PD.getDefaultValues(Text.Params),
+    attachment: 'middle-center',
+    fontQuality: 3,
+    fontWeight: 'normal',
+    borderWidth: 0.15,
+    borderColor: Color(0x0),
+    background: false,
+    backgroundOpacity: 0.5,
+    tether: false,
+};
 
-export interface PrimitiveBuilderContext {
-    mesh?: Mesh;
-    labels?: Text;
+export type MVSPrimitiveKinds = 'primitive_mesh' | 'primitive_line' | 'primitive_distance_measurement'
+type _Primitive<T> = T extends MVSPrimitiveKinds ? { kind: T, params: MVSNode<'primitive_mesh'>['params'] } : never;
 
+export type MVSPrimitive = _Primitive<MVSPrimitiveKinds>
+
+export interface MVSPrimitiveBuilderContext {
     defaultStructure?: Structure;
     structureRefs: Record<string, Structure | undefined>;
-    globalOptions: PrimitiveOptions;
+    globalOptions: MVSPrimitiveOptions;
     positionCache: Map<string, Vec3>;
 }
 
-interface BuilderState {
+interface MeshBuilderState {
     mesh: MeshBuilder.State;
-    labels: TextBuilder;
     colors: Map<number, number>;
     tooltips: Map<number, string>;
 }
 
-export function getPrimitiveStructureRefs(primitives: Primitive[]) {
+interface LabelBuilderState {
+    group: number;
+    labels: TextBuilder;
+    colors: Map<number, number>;
+    sizes: Map<number, number>;
+}
+
+export function getPrimitiveStructureRefs(primitives: MVSPrimitive[]) {
     const refs = new Set<string>();
     for (const p of primitives) {
         const b = Builders[p.kind];
-        if (b) b[1](p, refs);
+        if (b) b[2](p, refs);
     }
     return refs;
 }
 
-function addRef(position: PositionT, refs: Set<string>) {
+function addRef(position: MVSPositionT, refs: Set<string>) {
     if (Array.isArray(position)) {
         if (typeof position[0] === 'number') {
             return;
@@ -84,7 +97,7 @@ function addRef(position: PositionT, refs: Set<string>) {
     }
 }
 
-function resolvePosition(context: PrimitiveBuilderContext, position: PositionT, target: Vec3) {
+function resolvePosition(context: MVSPrimitiveBuilderContext, position: MVSPositionT, target: Vec3) {
     let expr: Expression;
     let pivotRef: string | undefined;
     if (Array.isArray(position)) {
@@ -128,28 +141,18 @@ function resolvePosition(context: PrimitiveBuilderContext, position: PositionT, 
     context.positionCache.set(cackeKey, Vec3.clone(target));
 }
 
-const LabelProps: PD.Values<Text.Params> = {
-    ...PD.getDefaultValues(Text.Params),
-    attachment: 'middle-center',
-    fontQuality: 3,
-    fontWeight: 'normal',
-    borderWidth: 0.3,
-    borderColor: Color(0x0),
-    background: false,
-    backgroundOpacity: 0.5,
-    tether: false,
-};
-
-function buildPrimitiveShapes(context: PrimitiveBuilderContext, primives: Primitive[]): { mesh?: Shape<Mesh>, labels?: Shape<Text> } {
-    const meshBuilder = MeshBuilder.createState(1024, 1024, context.mesh);
-    const labelsBuilder = TextBuilder.create(LabelProps, 1024, 1024, context.labels);
-    const state: BuilderState = { mesh: meshBuilder, labels: labelsBuilder, colors: new Map(), tooltips: new Map() };
+function buildPrimitiveMesh(context: MVSPrimitiveBuilderContext, primives: MVSPrimitive[], prev?: Mesh): Shape<Mesh> {
+    const meshBuilder = MeshBuilder.createState(1024, 1024, prev);
+    const state: MeshBuilderState = { mesh: meshBuilder, colors: new Map(), tooltips: new Map() };
 
     meshBuilder.currentGroup = -1;
 
     for (const p of primives) {
         const b = Builders[p.kind];
-        if (!b) throw new Error(`Primitive ${p.kind} not supported`);
+        if (!b) {
+            console.warn(`Primitive ${p.kind} not supported`);
+            continue;
+        }
         b[0](context, state, p.params as any);
     }
 
@@ -157,44 +160,53 @@ function buildPrimitiveShapes(context: PrimitiveBuilderContext, primives: Primit
     const tooltip = context.globalOptions.tooltip ?? '';
     const color = decodeColor(context.globalOptions.color) ?? 0x0;
 
-    const mesh = meshBuilder.currentGroup !== -1 ? Shape.create(
+    return Shape.create(
         'Mesh',
         primives,
         MeshBuilder.getMesh(meshBuilder),
         (g) => colors.get(g) as Color ?? color as Color,
-        () => 1,
+        (g) => 1,
         (g) => tooltips.get(g) ?? tooltip,
-    ) : undefined;
+    );
+}
 
-    // TODO
-    const labels = !labelsBuilder.isEmpty ? Shape.create(
+function buildPrimitiveLabels(context: MVSPrimitiveBuilderContext, primives: MVSPrimitive[], prev?: Text): Shape<Text> {
+    const labelsBuilder = TextBuilder.create(MVSLabelProps, 1024, 1024, prev);
+    const state: LabelBuilderState = { group: -1, labels: labelsBuilder, colors: new Map(), sizes: new Map() };
+
+    for (const p of primives) {
+        const b = Builders[p.kind];
+        if (!b) {
+            console.warn(`Primitive ${p.kind} not supported`);
+            continue;
+        }
+        b[1](context, state, p.params as any);
+    }
+
+    const { colors, sizes } = state;
+    return Shape.create(
         'Labels',
         primives,
         labelsBuilder.getText(),
-        (g) => color as Color,
-        () => 1,
+        (g) => colors.get(g) as Color ?? 0x0 as Color,
+        (g) => sizes.get(g) ?? 1,
         (g) => '',
-    ) : undefined;
-
-    return { mesh, labels };
+    );
 }
 
-const Builders: Record<Primitive['kind'], [
-    build: (context: PrimitiveBuilderContext, state: BuilderState, params: any) => void,
+const Builders: Record<MVSPrimitive['kind'], [
+    mesh: (context: MVSPrimitiveBuilderContext, state: MeshBuilderState, params: any) => void,
+    label: (context: MVSPrimitiveBuilderContext, state: LabelBuilderState, params: any) => void,
     resolveRefs: (params: any, refs: Set<string>) => void
 ]> = {
-    primitive_mesh: [addMesh, () => {}],
-    primitive_line: [addLine, (params: MVSNode<'primitive_line'>['params'], refs) => {
-        addRef(params.start, refs);
-        addRef(params.end, refs);
-    }],
-    primitive_distance_measurement: [addLine, (params: MVSNode<'primitive_distance_measurement'>['params'], refs) => {
-        addRef(params.start, refs);
-        addRef(params.end, refs);
-    }],
+    primitive_mesh: [addMesh, noOp, noOp],
+    primitive_line: [addLineMesh, noOp, resolveLineRefs],
+    primitive_distance_measurement: [addDistanceMesh, addDistanceLabel, resolveLineRefs],
 };
 
-function addMesh(context: PrimitiveBuilderContext, { mesh, colors, tooltips }: BuilderState, params: MVSNode<'primitive_mesh'>['params']) {
+function noOp() { }
+
+function addMesh(context: MVSPrimitiveBuilderContext, { mesh, colors, tooltips }: MeshBuilderState, params: MVSNode<'primitive_mesh'>['params']) {
     const a = Vec3.zero();
     const b = Vec3.zero();
     const c = Vec3.zero();
@@ -238,13 +250,20 @@ function addMesh(context: PrimitiveBuilderContext, { mesh, colors, tooltips }: B
     }
 }
 
+function resolveLineRefs(params: MVSNode<'primitive_line'>['params'], refs: Set<string>) {
+    addRef(params.start, refs);
+    addRef(params.end, refs);
+}
+
 const lStart = Vec3.zero();
 const lEnd = Vec3.zero();
 
-function addLine(context: PrimitiveBuilderContext, { mesh, colors, tooltips }: BuilderState, params: MVSNode<'primitive_line'>['params']) {
+function addLineMesh(context: MVSPrimitiveBuilderContext, { mesh, colors, tooltips }: MeshBuilderState, params: MVSNode<'primitive_line'>['params'], options?: { skipResolvePosition?: boolean }) {
     const group = ++mesh.currentGroup;
-    resolvePosition(context, params.start, lStart);
-    resolvePosition(context, params.end, lEnd);
+    if (!options?.skipResolvePosition) {
+        resolvePosition(context, params.start, lStart);
+        resolvePosition(context, params.end, lEnd);
+    }
     const radius = params.thickness ?? 0.05;
 
     const cylinderProps: BasicCylinderProps = {
@@ -268,9 +287,57 @@ function addLine(context: PrimitiveBuilderContext, { mesh, colors, tooltips }: B
     if (params.tooltip) tooltips.set(group, params.tooltip);
 }
 
+function getDistanceLabel(context: MVSPrimitiveBuilderContext, params: MVSNode<'primitive_distance_measurement'>['params']) {
+    resolvePosition(context, params.start, lStart);
+    resolvePosition(context, params.end, lEnd);
+
+    const dist = Vec3.distance(lStart, lEnd);
+    const distance = `${round(dist, 2)} Å`;
+    const label = typeof params.label_template === 'string' ? params.label_template.replace('{{distance}}', distance) : distance;
+
+    return label;
+}
+
+function addDistanceMesh(context: MVSPrimitiveBuilderContext, state: MeshBuilderState, params: MVSNode<'primitive_distance_measurement'>['params']) {
+    const tooltip = getDistanceLabel(context, params);
+    addLineMesh(context, state, { ...params, tooltip }, { skipResolvePosition: true });
+}
+
+const labelPos = Vec3.zero();
+
+function addDistanceLabel(context: MVSPrimitiveBuilderContext, state: LabelBuilderState, params: MVSNode<'primitive_distance_measurement'>['params']) {
+    const { labels, colors, sizes } = state;
+    const group = ++state.group;
+    resolvePosition(context, params.start, lStart);
+    resolvePosition(context, params.end, lEnd);
+
+    const dist = Vec3.distance(lStart, lEnd);
+    const distance = `${round(dist, 2)} Å`;
+    let size: number | undefined;
+
+    if (params.label_size === 'auto') {
+        size = Math.max(dist * (params.label_auto_size_scale ?? 0.2), params.label_auto_size_min ?? 0.01);
+    } else if (typeof params.label_size === 'number') {
+        size = params.label_size;
+    }
+
+    if (typeof size === 'number') sizes.set(group, size);
+    const color = decodeColor(params.label_color);
+    if (typeof color === 'number') colors.set(group, color);
+
+    const label = typeof params.label_template === 'string' ? params.label_template.replace('{{distance}}', distance) : distance;
+
+    Vec3.add(labelPos, lStart, lEnd);
+    Vec3.scale(labelPos, labelPos, 0.5);
+
+    labels.add(label, labelPos[0], labelPos[1], labelPos[2], 0.5, 1, group);
+}
+
+
+
 /** ========== Plugin transforms ============== */
 
-export class MVSPrimitivesData extends SO.Create<{ structure?: Structure, primitives: Primitive[], options: PrimitiveOptions }>({ name: 'Primitive Data', typeClass: 'Object' }) { }
+export class MVSPrimitivesData extends SO.Create<{ primitives: MVSPrimitive[], options: MVSPrimitiveOptions, context: MVSPrimitiveBuilderContext }>({ name: 'Primitive Data', typeClass: 'Object' }) { }
 export class MVSPrimitiveShapes extends SO.Create<{ mesh?: Shape<Mesh>, labels?: Shape<Text> }>({ name: 'Primitive Shapes', typeClass: 'Object' }) { }
 
 export type MVSInlinePrimitiveData = typeof MVSInlinePrimitiveData
@@ -280,58 +347,57 @@ export const MVSInlinePrimitiveData = MVSTransform({
     from: [SO.Root, SO.Molecule.Structure],
     to: MVSPrimitivesData,
     params: {
-        primitives: PD.Value<Primitive[]>([], { isHidden: true }),
-        options: PD.Value<PrimitiveOptions>({} as any, { isHidden: true }),
+        primitives: PD.Value<MVSPrimitive[]>([], { isHidden: true }),
+        options: PD.Value<MVSPrimitiveOptions>({} as any, { isHidden: true }),
     },
 })({
     apply({ a, params }) {
         return new MVSPrimitivesData({
-            structure: SO.Molecule.Structure.is(a) ? a.data : undefined,
             primitives: params.primitives,
             options: params.options,
+            context: {
+                defaultStructure: SO.Molecule.Structure.is(a) ? a.data : undefined,
+                structureRefs: { },
+                globalOptions: params.options,
+                positionCache: new Map(),
+            }
         }, { label: 'Primitive Data' });
-    }
-})
-
-export type MVSBuildPrimitiveShapes = typeof MVSBuildPrimitiveShapes
-export const MVSBuildPrimitiveShapes = MVSTransform({
-    name: 'mvs-build-primitive-shapes',
-    display: { name: 'MVS Primitives' },
-    from: MVSPrimitivesData,
-    to: MVSPrimitiveShapes,
-})({
-    apply({ a, dependencies }) {
-        const structureRefs = dependencies ? collectMVSReferences([SO.Molecule.Structure], dependencies) : {};
-        const context: PrimitiveBuilderContext = {
-            defaultStructure: a.data.structure,
-            structureRefs,
-            globalOptions: a.data.options,
-            positionCache: new Map(),
-        };
-        const shapes = buildPrimitiveShapes(context, a.data.primitives);
-        return new MVSPrimitiveShapes(shapes, { label: 'Primitive Shapes ' });
     }
 });
 
-export type MVSBuildPrimitiveShapeProvider = typeof MVSBuildPrimitiveShapes
-export const MVSBuildPrimitiveShapeProvider = MVSTransform({
-    name: 'mvs-build-primitive-shape-provider',
+export type MVSBuildPrimitiveShape = typeof MVSBuildPrimitiveShape
+export const MVSBuildPrimitiveShape = MVSTransform({
+    name: 'mvs-build-primitive-shape',
     display: { name: 'MVS Primitives' },
-    from: MVSPrimitiveShapes,
+    from: MVSPrimitivesData,
     to: SO.Shape.Provider,
     params: {
         kind: PD.Text<'mesh' | 'labels'>('mesh')
     }
 })({
-    apply({ a, params }) {
-        if (!a.data[params.kind]) return StateObject.Null;
-        const geo = params.kind === 'mesh' ? Mesh : Text;
-        return new SO.Shape.Provider({
-            label: capitalize(params.kind),
-            data: a.data[params.kind],
-            params: geo.Params,
-            getShape: (_, data: any) => data,
-            geometryUtils: geo.Utils
-        }, { label: capitalize(params.kind) });
+    apply({ a, params, dependencies }) {
+        const structureRefs = dependencies ? collectMVSReferences([SO.Molecule.Structure], dependencies) : {};
+        const context: MVSPrimitiveBuilderContext = { ...a.data.context, structureRefs };
+
+        const label = capitalize(params.kind);
+        if (params.kind === 'mesh') {
+            return new SO.Shape.Provider({
+                label,
+                data: { primitives: a.data.primitives, context },
+                params: Mesh.Params,
+                getShape: (_, data, __, prev: any) => buildPrimitiveMesh(data.context, data.primitives, prev),
+                geometryUtils: Mesh.Utils,
+            }, { label });
+        } else if (params.kind === 'labels') {
+            return new SO.Shape.Provider({
+                label,
+                data: { primitives: a.data.primitives, context },
+                params: Text.Params,
+                getShape: (_, data, __, prev: any) => buildPrimitiveLabels(data.context, data.primitives, prev),
+                geometryUtils: Text.Utils,
+            }, { label });
+        }
+
+        return StateObject.Null;
     }
 });

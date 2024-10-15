@@ -20,13 +20,13 @@ import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-
 import { CustomLabelProps, CustomLabelRepresentationProvider } from './components/custom-label/representation';
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
 import { IsMVSModelProps, IsMVSModelProvider } from './components/is-mvs-model-prop';
-import { MVSBuildPrimitiveShapeProvider, MVSBuildPrimitiveShapes, MVSInlinePrimitiveData, Primitive, PrimitiveOptions } from './components/primitives';
+import { MVSLabelProps, MVSBuildPrimitiveShape, MVSInlinePrimitiveData, MVSPrimitive, MVSPrimitiveOptions } from './components/primitives';
 import { AnnotationFromSourceKind, AnnotationFromUriKind, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, LoadingActions, loadTree, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps, UpdateTarget } from './load-helpers';
 import { MVSData } from './mvs-data';
 import { ParamsOfKind, SubTreeOfKind, validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
 import { MolstarNode, MolstarTree, MolstarTreeSchema } from './tree/molstar/molstar-tree';
-import { MVSPrimitives, MVSTreeSchema } from './tree/mvs/mvs-tree';
+import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 
 /** Load a MolViewSpec (MVS) tree into the Mol* plugin.
@@ -242,13 +242,13 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         return updateParent;
     },
     primitives(updateParent: UpdateTarget, tree: SubTreeOfKind<MolstarTree, 'primitives'>, context: MolstarLoadingContext): UpdateTarget {
-        const primitives: Primitive[] = [];
-        const options: PrimitiveOptions = {};
+        const primitives: MVSPrimitive[] = [];
+        const options: MVSPrimitiveOptions = {};
 
         let optionsNode: SubTreeOfKind<MolstarTree, 'primitives_options'> | undefined;
 
         for (const node of tree.children ?? []) {
-            if (MVSPrimitives.has(node.kind as any)) primitives.push({ kind: node.kind, params: node.params } as any);
+            if (node.kind.startsWith('primitive_')) primitives.push({ kind: node.kind, params: node.params } as any);
             if (node.kind === 'primitives_options') optionsNode = node as any;
         }
 
@@ -261,11 +261,10 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         // const refs = getPrimitiveStructureRefs(primitives);
 
         const data = UpdateTarget.apply(updateParent, MVSInlinePrimitiveData, { primitives, options });
-        const shapes = UpdateTarget.apply(data, MVSBuildPrimitiveShapes, { }, { state: { isGhost: true } });
-        const mesh = UpdateTarget.apply(shapes, MVSBuildPrimitiveShapeProvider, { kind: 'mesh' }, { state: { isGhost: true } });
+        const mesh = UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'mesh' }, { state: { isGhost: true } });
         UpdateTarget.apply(mesh, ShapeRepresentation3D, { });
-        const labels = UpdateTarget.apply(shapes, MVSBuildPrimitiveShapeProvider, { kind: 'labels' }, { state: { isGhost: true } });
-        UpdateTarget.apply(labels, ShapeRepresentation3D, { });
+        const labels = UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'labels' }, { state: { isGhost: true } });
+        UpdateTarget.apply(labels, ShapeRepresentation3D, MVSLabelProps);
 
         return updateParent;
     },
