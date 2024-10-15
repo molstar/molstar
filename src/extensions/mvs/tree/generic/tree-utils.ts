@@ -30,7 +30,7 @@ export function treeToString(tree: Tree) {
     return lines.join('\n');
 }
 function nodeToString(node: Node) {
-    return `- ${node.kind} ${formatObject(node.params ?? {})}${formatCustomProps(node.custom)}`;
+    return `- ${node.kind} ${formatObject(node.params ?? {})}${formatCustomProps(node.custom)}${formatRef(node.ref)}`;
 }
 
 /** Convert object to a human-friendly string (similar to JSON.stringify but without quoting keys) */
@@ -45,6 +45,12 @@ function formatCustomProps(customProps: CustomProps | undefined): string {
     return `, custom: ${formatObject(customProps)}`;
 }
 
+/** Return human-friendly string with node ref, if any */
+function formatRef(ref: string | undefined): string {
+    if (ref === undefined) return '';
+    return `, ref: "${ref}"`;
+}
+
 
 /** Create a copy of a tree node, ignoring children. */
 export function copyNodeWithoutChildren<TTree extends Tree>(node: TTree): TTree {
@@ -52,6 +58,7 @@ export function copyNodeWithoutChildren<TTree extends Tree>(node: TTree): TTree 
         kind: node.kind,
         params: node.params ? { ...node.params } : undefined,
         custom: node.custom ? { ...node.custom } : undefined,
+        ref: node.ref,
     } as TTree;
 }
 /** Create a copy of a tree node, including a shallow copy of children. */
@@ -60,6 +67,7 @@ export function copyNode<TTree extends Tree>(node: TTree): TTree {
         kind: node.kind,
         params: node.params ? { ...node.params } : undefined,
         custom: node.custom ? { ...node.custom } : undefined,
+        ref: node.ref,
         children: node.children ? [...node.children] : undefined,
     } as TTree;
 }
@@ -146,8 +154,8 @@ export function addDefaults<S extends TreeSchema>(tree: TreeFor<S>, defaults: De
         rules[kind] = node => [{
             kind: node.kind,
             params: { ...defaults[kind], ...node.params },
-            ref: node.ref,
             custom: node.custom,
+            ref: node.ref,
         } as Node as any];
     }
     return convertTree(tree, rules) as any;

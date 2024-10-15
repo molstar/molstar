@@ -18,13 +18,13 @@ export type Node<TKind extends string = string, TParams extends {} = {}> =
     {} extends TParams ? {
         kind: TKind,
         params?: TParams, // params can be dropped if {} is valid value for params
-        ref?: string,
         custom?: CustomProps,
+        ref?: string,
     } : {
         kind: TKind,
         params: TParams, // params must be here if {} is not valid value for params
-        ref?: string,
         custom?: CustomProps,
+        ref?: string,
     }
 
 /** Kind type for a tree node */
