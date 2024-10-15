@@ -17,13 +17,15 @@ export type CustomProps = Partial<Record<string, any>>
 export type Node<TKind extends string = string, TParams extends {} = {}> =
     {} extends TParams ? {
         kind: TKind,
-        params: TParams | undefined,
-        custom: CustomProps | undefined,
+        params?: TParams, // params can be dropped if {} is valid value for params
+        ref?: string,
+        custom?: CustomProps,
     } : {
         kind: TKind,
-        params: TParams,
-        custom: CustomProps | undefined,
-    } // params can be dropped if {} is valid value for params
+        params: TParams, // params must be here if {} is not valid value for params
+        ref?: string,
+        custom?: CustomProps,
+    }
 
 /** Kind type for a tree node */
 export type Kind<TNode extends Node> = TNode['kind']

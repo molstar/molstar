@@ -146,6 +146,7 @@ export function addDefaults<S extends TreeSchema>(tree: TreeFor<S>, defaults: De
         rules[kind] = node => [{
             kind: node.kind,
             params: { ...defaults[kind], ...node.params },
+            ref: node.ref,
             custom: node.custom,
         } as Node as any];
     }

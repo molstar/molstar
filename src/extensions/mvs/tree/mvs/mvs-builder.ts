@@ -66,7 +66,7 @@ class _Base<TKind extends MVSKind> {
 /** MVS builder pointing to the 'root' node */
 export class Root extends _Base<'root'> {
     constructor() {
-        const node: MVSNode<'root'> = { kind: 'root', params: {}, custom: undefined };
+        const node: MVSNode<'root'> = { kind: 'root', params: {} };
         super(undefined as any, node);
         (this._root as Root) = this;
     }
