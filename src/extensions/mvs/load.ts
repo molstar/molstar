@@ -255,23 +255,22 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
 
         const data = UpdateTarget.apply(updateParent, MVSInlinePrimitiveData, { primitives, options });
         const mesh = UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'mesh' }, { state: { isGhost: true } });
-        UpdateTarget.apply(mesh, ShapeRepresentation3D, { });
+        const meshVisual = UpdateTarget.apply(mesh, ShapeRepresentation3D, { });
         const labels = UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'labels' }, { state: { isGhost: true } });
         UpdateTarget.apply(labels, ShapeRepresentation3D, MVSLabelProps);
 
-        return updateParent;
+        return meshVisual;
     },
-
     primitives_from_uri(updateParent: UpdateTarget, tree: SubTreeOfKind<MolstarTree, 'primitives_from_uri'>, context: MolstarLoadingContext): UpdateTarget {
         // TODO
         // const refs = ...
 
         const data = UpdateTarget.apply(updateParent, MVSDownloadPrimitiveData, { uri: tree.params.uri, format: tree.params.format });
         const mesh = UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'mesh' }, { state: { isGhost: true } });
-        UpdateTarget.apply(mesh, ShapeRepresentation3D, { });
+        const meshVisual = UpdateTarget.apply(mesh, ShapeRepresentation3D, { });
         const labels = UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'labels' }, { state: { isGhost: true } });
         UpdateTarget.apply(labels, ShapeRepresentation3D, MVSLabelProps);
 
-        return updateParent;
+        return meshVisual;
     },
 };

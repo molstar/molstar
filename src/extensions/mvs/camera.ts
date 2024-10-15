@@ -61,6 +61,7 @@ export async function setFocus(plugin: PluginContext, structureNodeSelector: Sta
         const cell = plugin.state.data.cells.get(structureNodeSelector.ref);
         structure = cell?.obj?.data;
         if (!structure) console.warn('Focus: no structure');
+        // TODO: support non-structure focus
         if (!(structure instanceof Structure)) {
             console.warn('Focus: cannot apply to a non-structure node');
             structure = undefined;
