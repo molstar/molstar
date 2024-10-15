@@ -64,7 +64,6 @@ export class IlluminationPass {
     private readonly tracing: TracingPass;
 
     private readonly transparentTarget: RenderTarget;
-    private readonly depthTargetTransparent: RenderTarget;
     private readonly outputTarget: RenderTarget;
 
     readonly packedDepth: boolean;
@@ -116,15 +115,14 @@ export class IlluminationPass {
         const width = colorTarget.getWidth();
         const height = colorTarget.getHeight();
 
-        this.tracing = new TracingPass(webgl, width, height);
+        this.tracing = new TracingPass(webgl, drawPass);
 
         this.transparentTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'nearest');
-        this.depthTargetTransparent = webgl.createRenderTarget(width, height);
         this.outputTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
 
         this.copyRenderable = createCopyRenderable(webgl, this.transparentTarget.texture);
 
-        this.composeRenderable = getComposeRenderable(webgl, this.tracing.accumulateTarget.texture, this.tracing.normalTextureOpaque, this.tracing.colorTextureOpaque, this.tracing.depthTextureOpaque, this.depthTargetTransparent.texture, this.drawPass.postprocessing.outline.target.texture, false);
+        this.composeRenderable = getComposeRenderable(webgl, this.tracing.accumulateTarget.texture, this.tracing.normalTextureOpaque, this.tracing.colorTextureOpaque, this.drawPass.depthTextureOpaque, this.drawPass.depthTargetTransparent.texture, this.drawPass.postprocessing.outline.target.texture, false);
 
         this.multiSampleComposeTarget = webgl.createRenderTarget(width, height, false, 'float32');
         this.multiSampleHoldTarget = webgl.createRenderTarget(width, height, false);
@@ -138,55 +136,54 @@ export class IlluminationPass {
         if (isTimingMode) this.webgl.timer.mark('IlluminationPass.renderInput');
         const { gl, state } = this.webgl;
 
-        const antialiasingEnabled = AntialiasingPass.isEnabled(props.postprocessing);
         const markingEnabled = MarkingPass.isEnabled(props.marking);
         const hasTransparent = scene.opacityAverage < 1;
         const hasMarking = markingEnabled && scene.markerAverage > 0;
 
-        this.tracing.composeTarget.bind();
+        this.transparentTarget.bind();
         state.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
         if (hasTransparent) {
             if (this.drawPass.transparency === 'wboit') {
                 this.drawPass.wboit.bind();
-                renderer.renderWboitTransparent(scene.primitives, camera, this.tracing.depthTextureOpaque);
+                renderer.renderWboitTransparent(scene.primitives, camera, this.drawPass.depthTextureOpaque);
 
                 if (scene.volumes.renderables.length > 0) {
-                    renderer.renderWboitTransparent(scene.volumes, camera, this.tracing.depthTextureOpaque);
+                    renderer.renderWboitTransparent(scene.volumes, camera, this.drawPass.depthTextureOpaque);
                 }
 
-                this.tracing.composeTarget.bind();
+                this.transparentTarget.bind();
                 this.drawPass.wboit.render();
             } else if (this.drawPass.transparency === 'dpoit') {
                 const dpoitTextures = this.drawPass.dpoit.bind();
-                renderer.renderDpoitTransparent(scene.primitives, camera, this.tracing.depthTextureOpaque, dpoitTextures);
+                renderer.renderDpoitTransparent(scene.primitives, camera, this.drawPass.depthTextureOpaque, dpoitTextures);
 
                 for (let i = 0, il = props.dpoitIterations; i < il; i++) {
                     if (isTimingMode) this.webgl.timer.mark('DpoitPass.layer');
                     const dpoitTextures = this.drawPass.dpoit.bindDualDepthPeeling();
-                    renderer.renderDpoitTransparent(scene.primitives, camera, this.tracing.depthTextureOpaque, dpoitTextures);
+                    renderer.renderDpoitTransparent(scene.primitives, camera, this.drawPass.depthTextureOpaque, dpoitTextures);
 
-                    this.tracing.composeTarget.bind();
+                    this.transparentTarget.bind();
                     this.drawPass.dpoit.renderBlendBack();
                     if (isTimingMode) this.webgl.timer.markEnd('DpoitPass.layer');
                 }
 
                 // evaluate dpoit
-                this.tracing.composeTarget.bind();
+                this.transparentTarget.bind();
                 this.drawPass.dpoit.render();
 
                 if (scene.volumes.renderables.length > 0) {
-                    renderer.renderVolume(scene.volumes, camera, this.tracing.depthTextureOpaque);
+                    renderer.renderVolume(scene.volumes, camera, this.drawPass.depthTextureOpaque);
                 }
             } else {
-                this.tracing.composeTarget.bind();
-                this.tracing.depthTextureOpaque.attachFramebuffer(this.tracing.composeTarget.framebuffer, 'depth');
+                this.transparentTarget.bind();
+                this.drawPass.depthTextureOpaque.attachFramebuffer(this.transparentTarget.framebuffer, 'depth');
                 renderer.renderBlendedTransparent(scene.primitives, camera);
-                this.tracing.depthTextureOpaque.detachFramebuffer(this.tracing.composeTarget.framebuffer, 'depth');
+                this.drawPass.depthTextureOpaque.detachFramebuffer(this.transparentTarget.framebuffer, 'depth');
 
                 if (scene.volumes.renderables.length > 0) {
-                    renderer.renderVolume(scene.volumes, camera, this.tracing.depthTextureOpaque);
+                    renderer.renderVolume(scene.volumes, camera, this.drawPass.depthTextureOpaque);
                 }
             }
 
@@ -194,10 +191,10 @@ export class IlluminationPass {
             const dofEnabled = DofPass.isEnabled(props.postprocessing);
 
             if (outlineEnabled || dofEnabled) {
-                this.depthTargetTransparent.bind();
+                this.drawPass.depthTargetTransparent.bind();
                 renderer.clearDepth(true);
                 if (scene.opacityAverage < 1) {
-                    renderer.renderDepthTransparent(scene.primitives, camera, this.tracing.depthTextureOpaque);
+                    renderer.renderDepthTransparent(scene.primitives, camera, this.drawPass.depthTextureOpaque);
                 }
             }
         }
@@ -217,35 +214,14 @@ export class IlluminationPass {
             renderer.renderMarkingMask(scene.primitives, camera, markingDepthTest ? this.drawPass.marking.depthTarget.texture : null);
 
             this.drawPass.marking.update(props.marking);
-            this.drawPass.marking.render(camera.viewport, this.tracing.composeTarget);
+            this.drawPass.marking.render(camera.viewport, this.transparentTarget);
         }
 
         //
 
-        if (antialiasingEnabled) {
-            this.drawPass.antialiasing.render(camera, this.tracing.composeTarget.texture, this.transparentTarget, props.postprocessing);
-        } else {
-            if (this.copyRenderable.values.tColor.ref.value !== this.tracing.composeTarget.texture) {
-                ValueCell.update(this.copyRenderable.values.tColor, this.tracing.composeTarget.texture);
-                this.copyRenderable.update();
-            }
-            this.transparentTarget.bind();
-
-            state.enable(gl.SCISSOR_TEST);
-            state.disable(gl.BLEND);
-            state.disable(gl.DEPTH_TEST);
-            state.depthMask(false);
-
-            state.colorMask(true, true, true, true);
-            state.clearColor(0, 0, 0, 1);
-            gl.clear(gl.COLOR_BUFFER_BIT);
-
-            this.copyRenderable.render();
-        }
-
-        this.tracing.composeTarget.bind();
+        this.transparentTarget.bind();
         state.clearColor(0, 0, 0, 0);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.clear(gl.COLOR_BUFFER_BIT);
         if (isTimingMode) this.webgl.timer.markEnd('IlluminationPass.renderInput');
     }
 
@@ -263,7 +239,6 @@ export class IlluminationPass {
             this.tracing.setSize(width, height);
 
             this.transparentTarget.setSize(width, height);
-            this.depthTargetTransparent.setSize(width, height);
             this.outputTarget.setSize(width, height);
 
             ValueCell.update(this.copyRenderable.values.uTexSize, Vec2.set(this.copyRenderable.values.uTexSize.ref.value, width, height));
@@ -329,7 +304,7 @@ export class IlluminationPass {
         }
 
         if (props.postprocessing.outline.name === 'on') {
-            const { transparentOutline, outlineScale } = this.drawPass.postprocessing.outline.update(camera, props.postprocessing.outline.params, this.depthTargetTransparent.texture, this.tracing.depthTextureOpaque);
+            const { transparentOutline, outlineScale } = this.drawPass.postprocessing.outline.update(camera, props.postprocessing.outline.params, this.drawPass.depthTargetTransparent.texture, this.drawPass.depthTextureOpaque);
             this.drawPass.postprocessing.outline.render();
 
             ValueCell.update(this.composeRenderable.values.uOutlineColor, Color.toVec3Normalized(this.composeRenderable.values.uOutlineColor.ref.value, props.postprocessing.outline.params.color));
@@ -431,13 +406,13 @@ export class IlluminationPass {
 
         if (props.postprocessing.bloom.name === 'on') {
             const _toDrawingBuffer = (toDrawingBuffer && props.postprocessing.dof.name === 'off') || targetIsDrawingbuffer;
-            this.drawPass.bloom.update(this.tracing.shadedTextureOpaque, this.tracing.normalTextureOpaque, this.tracing.depthTextureOpaque, props.postprocessing.bloom.params);
+            this.drawPass.bloom.update(this.tracing.shadedTextureOpaque, this.tracing.normalTextureOpaque, this.drawPass.depthTextureOpaque, props.postprocessing.bloom.params);
             this.drawPass.bloom.render(camera.viewport, _toDrawingBuffer ? undefined : this._colorTarget);
         }
 
         if (props.postprocessing.dof.name === 'on') {
             const _toDrawingBuffer = toDrawingBuffer || targetIsDrawingbuffer;
-            this.drawPass.dof.update(camera, this._colorTarget.texture, this.tracing.depthTextureOpaque, this.depthTargetTransparent.texture, props.postprocessing.dof.params, scene.boundingSphereVisible);
+            this.drawPass.dof.update(camera, this._colorTarget.texture, this.drawPass.depthTextureOpaque, this.drawPass.depthTargetTransparent.texture, props.postprocessing.dof.params, scene.boundingSphereVisible);
             this.drawPass.dof.render(camera.viewport, _toDrawingBuffer ? undefined : swapTarget);
 
             if (!_toDrawingBuffer) {
