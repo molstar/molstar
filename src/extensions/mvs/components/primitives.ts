@@ -150,7 +150,7 @@ function buildPrimitiveMesh(context: MVSPrimitiveBuilderContext, primives: MVSPr
 
     const { colors, tooltips } = state;
     const tooltip = context.globalOptions?.default_tooltip ?? '';
-    const color = decodeColor(context.globalOptions?.default_color as string | undefined) ?? 0x0;
+    const color = decodeColor(context.globalOptions?.default_color) ?? 0x0;
 
     return Shape.create(
         'Mesh',
@@ -175,12 +175,14 @@ function buildPrimitiveLabels(context: MVSPrimitiveBuilderContext, primives: MVS
         b[1](context, state, p);
     }
 
+    const color = decodeColor(context.globalOptions?.default_label_color) ?? 0x0;
     const { colors, sizes } = state;
+
     return Shape.create(
         'Labels',
         primives,
         labelsBuilder.getText(),
-        (g) => colors.get(g) as Color ?? 0x0 as Color,
+        (g) => colors.get(g) as Color ?? color as Color,
         (g) => sizes.get(g) ?? 1,
         (g) => '',
     );
