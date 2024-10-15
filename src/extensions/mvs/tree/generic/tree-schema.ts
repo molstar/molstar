@@ -10,19 +10,19 @@ import { AllRequired, DefaultsFor, ParamsSchema, ValuesFor, paramsValidationIssu
 import { treeToString } from './tree-utils';
 
 
-/** Type of additional_properties of a tree node (key-value storage with arbitrary JSONable values) */
-export type AdditionalProperties = Partial<Record<string, any>>
+/** Type of "custom" of a tree node (key-value storage with arbitrary JSONable values) */
+export type CustomProps = Partial<Record<string, any>>
 
 /** Tree node without children */
 export type Node<TKind extends string = string, TParams extends {} = {}> =
     {} extends TParams ? {
         kind: TKind,
         params: TParams | undefined,
-        additional_properties: AdditionalProperties | undefined,
+        custom: CustomProps | undefined,
     } : {
         kind: TKind,
         params: TParams,
-        additional_properties: AdditionalProperties | undefined,
+        custom: CustomProps | undefined,
     } // params can be dropped if {} is valid value for params
 
 /** Kind type for a tree node */
@@ -54,9 +54,9 @@ export type ParamsOfKind<TTree extends Tree, TKind extends Kind<Subtree<TTree>> 
 export function getParams<TNode extends Node>(node: TNode): Params<TNode> {
     return node.params ?? {};
 }
-/** Get additional_properties from a tree node */
-export function getAdditionalProperties<TAdditionalProperties extends AdditionalProperties = AdditionalProperties>(node: Node): TAdditionalProperties {
-    return (node.additional_properties ?? {}) as TAdditionalProperties;
+/** Get custom properties from a tree node */
+export function getCustomProps<TCustomProps extends CustomProps = CustomProps>(node: Node): TCustomProps {
+    return (node.custom ?? {}) as TCustomProps;
 }
 /** Get children from a tree node */
 export function getChildren<TTree extends Tree>(tree: TTree): Subtree<TTree>[] {
@@ -132,8 +132,8 @@ export function treeValidationIssues(schema: TreeSchema, tree: Tree, options: { 
     }
     const issues = paramsValidationIssues(nodeSchema.params, getParams(tree), options);
     if (issues) return [`Invalid parameters for node of kind "${tree.kind}":`, ...issues.map(s => '  ' + s)];
-    if (tree.additional_properties !== undefined && (typeof tree.additional_properties !== 'object' || tree.additional_properties === null)) {
-        return [`Invalid additional_properties for node of kind "${tree.kind}": must be an object, not ${tree.additional_properties}.`];
+    if (tree.custom !== undefined && (typeof tree.custom !== 'object' || tree.custom === null)) {
+        return [`Invalid "custom" for node of kind "${tree.kind}": must be an object, not ${tree.custom}.`];
     }
     for (const child of getChildren(tree)) {
         const issues = treeValidationIssues(schema, child, { ...options, anyRoot: true, parent: tree.kind });

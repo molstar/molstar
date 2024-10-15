@@ -6,7 +6,7 @@
 
 import { deepClone, pickObjectKeys } from '../../../../mol-util/object';
 import { MVSData } from '../../mvs-data';
-import { AdditionalProperties, ParamsOfKind } from '../generic/tree-schema';
+import { CustomProps, ParamsOfKind } from '../generic/tree-schema';
 import { MVSDefaults } from './mvs-defaults';
 import { MVSKind, MVSNode, MVSSubtree, MVSTree, MVSTreeSchema } from './mvs-tree';
 
@@ -43,19 +43,19 @@ class _Base<TKind extends MVSKind> {
         this._node.children.push(node);
         return node;
     }
-    /** Adds provided key-value pairs as additional properties to this node. Use value `null` to remove a property. */
-    additionalProperties(props: AdditionalProperties) {
-        this._node.additional_properties ??= {};
+    /** Adds provided key-value pairs as custom properties to this node. Use value `null` to remove a property. */
+    additionalProperties(props: CustomProps) {
+        this._node.custom ??= {};
         for (const key in props) {
             const value = props[key];
             if (value === undefined) {
                 // Do nothing, this should be equivalent to `key` not being there
             } else if (value === null) {
                 // Remove property
-                delete this._node.additional_properties[key];
+                delete this._node.custom[key];
             } else {
                 // Add property
-                this._node.additional_properties[key] = value;
+                this._node.custom[key] = value;
             }
         }
         return this;
@@ -66,7 +66,7 @@ class _Base<TKind extends MVSKind> {
 /** MVS builder pointing to the 'root' node */
 export class Root extends _Base<'root'> {
     constructor() {
-        const node: MVSNode<'root'> = { kind: 'root', params: {}, additional_properties: undefined };
+        const node: MVSNode<'root'> = { kind: 'root', params: {}, custom: undefined };
         super(undefined as any, node);
         (this._root as Root) = this;
     }

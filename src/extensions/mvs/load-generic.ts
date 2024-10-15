@@ -21,7 +21,7 @@ export type LoadingAction<TNode extends Tree, TContext> = (updateParent: UpdateT
 /** Loading actions for loading a tree into Mol*, per node kind. */
 export type LoadingActions<TTree extends Tree, TContext> = { [kind in Kind<Subtree<TTree>>]?: LoadingAction<SubtreeOfKind<TTree, kind>, TContext> }
 
-/** Type for defining custom behavior when loading trees, usually based on node additional properties. */
+/** Type for defining custom behavior when loading trees, usually based on node custom properties. */
 export interface LoadingExtension<TTree extends Tree, TContext, TExtensionContext> {
     id: string,
     description: string,

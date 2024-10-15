@@ -5,7 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- MolViewSpec: Support for transparency and additional properties
+- MolViewSpec: Support for transparency and custom properties
 
 ## [v4.7.1] - 2024-09-30
 

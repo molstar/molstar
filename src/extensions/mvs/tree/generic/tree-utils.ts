@@ -5,7 +5,7 @@
  */
 
 import { canonicalJsonString } from '../../../../mol-util/json';
-import { AdditionalProperties, DefaultsForTree, Kind, Node, Subtree, SubtreeOfKind, Tree, TreeFor, TreeSchema, TreeSchemaWithAllRequired, getParams } from './tree-schema';
+import { CustomProps, DefaultsForTree, Kind, Node, Subtree, SubtreeOfKind, Tree, TreeFor, TreeSchema, TreeSchemaWithAllRequired, getParams } from './tree-schema';
 
 
 /** Run DFS (depth-first search) algorithm on a rooted tree.
@@ -30,7 +30,7 @@ export function treeToString(tree: Tree) {
     return lines.join('\n');
 }
 function nodeToString(node: Node) {
-    return `- ${node.kind} ${formatObject(node.params ?? {})}${formatAdditionalProperties(node.additional_properties)}`;
+    return `- ${node.kind} ${formatObject(node.params ?? {})}${formatCustomProps(node.custom)}`;
 }
 
 /** Convert object to a human-friendly string (similar to JSON.stringify but without quoting keys) */
@@ -39,10 +39,10 @@ export function formatObject(obj: {} | undefined): string {
     return JSON.stringify(obj).replace(/,("\w+":)/g, ', $1').replace(/"(\w+)":/g, '$1: ');
 }
 
-/** Return human-friendly string with node additional properties, if any */
-function formatAdditionalProperties(additionalProps: AdditionalProperties | undefined): string {
-    if (!additionalProps || Object.keys(additionalProps).length === 0) return '';
-    return `, additional properties: ${formatObject(additionalProps)}`;
+/** Return human-friendly string with node custom properties, if any */
+function formatCustomProps(customProps: CustomProps | undefined): string {
+    if (!customProps || Object.keys(customProps).length === 0) return '';
+    return `, custom: ${formatObject(customProps)}`;
 }
 
 
@@ -51,7 +51,7 @@ export function copyNodeWithoutChildren<TTree extends Tree>(node: TTree): TTree 
     return {
         kind: node.kind,
         params: node.params ? { ...node.params } : undefined,
-        additional_properties: node.additional_properties ? { ...node.additional_properties } : undefined,
+        custom: node.custom ? { ...node.custom } : undefined,
     } as TTree;
 }
 /** Create a copy of a tree node, including a shallow copy of children. */
@@ -59,7 +59,7 @@ export function copyNode<TTree extends Tree>(node: TTree): TTree {
     return {
         kind: node.kind,
         params: node.params ? { ...node.params } : undefined,
-        additional_properties: node.additional_properties ? { ...node.additional_properties } : undefined,
+        custom: node.custom ? { ...node.custom } : undefined,
         children: node.children ? [...node.children] : undefined,
     } as TTree;
 }
@@ -146,7 +146,7 @@ export function addDefaults<S extends TreeSchema>(tree: TreeFor<S>, defaults: De
         rules[kind] = node => [{
             kind: node.kind,
             params: { ...defaults[kind], ...node.params },
-            additional_properties: node.additional_properties,
+            custom: node.custom,
         } as Node as any];
     }
     return convertTree(tree, rules) as any;

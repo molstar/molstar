@@ -8,7 +8,7 @@ import { StateTransforms } from '../../../mol-plugin-state/transforms';
 import { StructureSurroundings } from '../components/surroundings';
 import { MolstarLoadingExtension } from '../load';
 import { UpdateTarget } from '../load-generic';
-import { getAdditionalProperties } from '../tree/generic/tree-schema';
+import { getCustomProps } from '../tree/generic/tree-schema';
 
 
 const DefaultNonCovalentInteractionRadius = 5;
@@ -20,15 +20,15 @@ export const NonCovalentInteractionsExtension: MolstarLoadingExtension<{}> = {
     action: (updateTarget, node, context, extContext) => {
         if (node.kind !== 'component' && node.kind !== 'component_from_uri' && node.kind !== 'component_from_source') return;
 
-        type AdditionalProps = {
+        type CustomProps = {
             molstar_show_non_covalent_interactions?: boolean,
             molstar_non_covalent_interactions_radius_ang?: number,
         };
-        const additionalProps = getAdditionalProperties<AdditionalProps>(node);
-        if (!additionalProps.molstar_show_non_covalent_interactions) return undefined;
+        const customProps = getCustomProps<CustomProps>(node);
+        if (!customProps.molstar_show_non_covalent_interactions) return undefined;
 
         const surroundings = UpdateTarget.apply(updateTarget, StructureSurroundings, {
-            radius: additionalProps.molstar_non_covalent_interactions_radius_ang ?? DefaultNonCovalentInteractionRadius,
+            radius: customProps.molstar_non_covalent_interactions_radius_ang ?? DefaultNonCovalentInteractionRadius,
             includeSelf: true,
             wholeResidues: true,
             nullIfEmpty: false,
