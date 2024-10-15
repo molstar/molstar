@@ -385,14 +385,18 @@ export class SsaoPass {
         this.depthQuarterRenderable.render();
         if (isTimingMode) this.webgl.timer.markEnd('SsaoPass.quarter');
 
+        if (isTimingMode) this.webgl.timer.mark('SsaoPass.sample');
         this.framebuffer.bind();
         this.renderable.render();
+        if (isTimingMode) this.webgl.timer.markEnd('SsaoPass.sample');
 
+        if (isTimingMode) this.webgl.timer.mark('SsaoPass.blur');
         this.blurFirstPassFramebuffer.bind();
         this.blurFirstPassRenderable.render();
 
         this.blurSecondPassFramebuffer.bind();
         this.blurSecondPassRenderable.render();
+        if (isTimingMode) this.webgl.timer.markEnd('SsaoPass.blur');
         if (isTimingMode) this.webgl.timer.markEnd('SsaoPass.render');
     }
 }
