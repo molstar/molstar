@@ -243,7 +243,7 @@ namespace Scene {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(p.values.alpha.ref.value * p.state.alphaFactor, 0, 1);
-                const xray = p.values.dXrayShaded?.ref.value ? 0.5 : 1;
+                const xray = (p.values.dXrayShaded?.ref.value === 'on' || p.values.dXrayShaded?.ref.value === 'inverted') ? 0.5 : 1;
                 const fuzzy = p.values.dPointStyle?.ref.value === 'fuzzy' ? 0.5 : 1;
                 const text = p.values.dGeometryType.ref.value === 'text' ? 0.5 : 1;
                 opacityAverage += (1 - p.values.transparencyAverage.ref.value) * alpha * xray * fuzzy * text;
