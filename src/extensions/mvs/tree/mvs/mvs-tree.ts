@@ -79,7 +79,16 @@ const DistanceMeasurementParams = obj({
     label_color: nullable(ColorT),
 });
 
-const PrimitiveParams = union([MeshParams, LineParams, DistanceMeasurementParams]);
+const PrimitiveLabelParams = obj({
+    kind: literal('label'),
+    position: PositionT,
+    text: str,
+    label_size: nullable(float),
+    label_color: nullable(ColorT),
+    label_offset: nullable(float),
+});
+
+const PrimitiveParams = union([MeshParams, LineParams, DistanceMeasurementParams, PrimitiveLabelParams]);
 
 export type MVSPrimitive = ValueFor<typeof PrimitiveParams>
 export type MVSPrimitiveKind = MVSPrimitive['kind']
@@ -305,6 +314,7 @@ export const MVSTreeSchema = TreeSchema({
                 default_label_color: OptionalField(nullable(ColorT)),
                 default_tooltip: OptionalField(nullable(str)),
                 transparency: OptionalField(nullable(float)),
+                label_transparency: OptionalField(nullable(float)),
             },
         },
         primitives_from_uri: {

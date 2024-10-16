@@ -75,6 +75,15 @@ export function getPrimitiveStructureRefs(primitives: MVSPrimitive[]) {
     return refs;
 }
 
+export function hasPrimitiveLabels(primitives: MVSPrimitive[]) {
+    for (const p of primitives) {
+        const b = Builders[p.kind];
+        if (b && b[1] !== noOp) return true;
+    }
+
+    return false;
+}
+
 const Builders: Record<MVSPrimitive['kind'], [
     mesh: (context: MVSPrimitiveBuilderContext, state: MeshBuilderState, params: any) => void,
     label: (context: MVSPrimitiveBuilderContext, state: LabelBuilderState, params: any) => void,
@@ -82,6 +91,7 @@ const Builders: Record<MVSPrimitive['kind'], [
 ]> = {
     mesh: [addMesh, noOp, noOp],
     line: [addLineMesh, noOp, resolveLineRefs],
+    label: [noOp, addPrimitiveLabel, resolveLineRefs],
     distance_measurement: [addDistanceMesh, addDistanceLabel, resolveLineRefs],
 };
 
@@ -143,13 +153,13 @@ function resolvePosition(context: MVSPrimitiveBuilderContext, position: MVSPosit
     context.positionCache.set(cackeKey, Vec3.clone(target));
 }
 
-function buildPrimitiveMesh(context: MVSPrimitiveBuilderContext, primives: MVSPrimitive[], prev?: Mesh): Shape<Mesh> {
+function buildPrimitiveMesh(context: MVSPrimitiveBuilderContext, primitives: MVSPrimitive[], prev?: Mesh): Shape<Mesh> {
     const meshBuilder = MeshBuilder.createState(1024, 1024, prev);
     const state: MeshBuilderState = { mesh: meshBuilder, colors: new Map(), tooltips: new Map() };
 
     meshBuilder.currentGroup = -1;
 
-    for (const p of primives) {
+    for (const p of primitives) {
         const b = Builders[p.kind];
         if (!b) {
             console.warn(`Primitive ${p.kind} not supported`);
@@ -164,7 +174,7 @@ function buildPrimitiveMesh(context: MVSPrimitiveBuilderContext, primives: MVSPr
 
     return Shape.create(
         'Mesh',
-        primives,
+        primitives,
         MeshBuilder.getMesh(meshBuilder),
         (g) => colors.get(g) as Color ?? color as Color,
         (g) => 1,
@@ -172,11 +182,11 @@ function buildPrimitiveMesh(context: MVSPrimitiveBuilderContext, primives: MVSPr
     );
 }
 
-function buildPrimitiveLabels(context: MVSPrimitiveBuilderContext, primives: MVSPrimitive[], prev?: Text): Shape<Text> {
+function buildPrimitiveLabels(context: MVSPrimitiveBuilderContext, primitives: MVSPrimitive[], prev?: Text): Shape<Text> {
     const labelsBuilder = TextBuilder.create(MVSLabelProps, 1024, 1024, prev);
     const state: LabelBuilderState = { group: -1, labels: labelsBuilder, colors: new Map(), sizes: new Map() };
 
-    for (const p of primives) {
+    for (const p of primitives) {
         const b = Builders[p.kind];
         if (!b) {
             console.warn(`Primitive ${p.kind} not supported`);
@@ -190,7 +200,7 @@ function buildPrimitiveLabels(context: MVSPrimitiveBuilderContext, primives: MVS
 
     return Shape.create(
         'Labels',
-        primives,
+        primitives,
         labelsBuilder.getText(),
         (g) => colors.get(g) as Color ?? color as Color,
         (g) => sizes.get(g) ?? 1,
@@ -327,7 +337,17 @@ function addDistanceLabel(context: MVSPrimitiveBuilderContext, state: LabelBuild
     labels.add(label, labelPos[0], labelPos[1], labelPos[2], 0.5, 1, group);
 }
 
+function addPrimitiveLabel(context: MVSPrimitiveBuilderContext, state: LabelBuilderState, params: MVSPrimitiveParams<'label'>) {
+    const { labels, colors, sizes } = state;
+    const group = ++state.group;
+    resolvePosition(context, params.position, labelPos);
 
+    const size = params.label_size;
+    if (typeof size === 'number') sizes.set(group, size);
+    const color = decodeColor(params.label_color);
+    if (typeof color === 'number') colors.set(group, color);
+    labels.add(params.text, labelPos[0], labelPos[1], labelPos[2], params.label_offset ?? 0, 1, group);
+}
 
 /** ========== Plugin transforms ============== */
 
@@ -412,15 +432,18 @@ export const MVSBuildPrimitiveShape = MVSTransform({
             return new SO.Shape.Provider({
                 label,
                 data: { primitives: a.data.primitives, context },
-                params: Mesh.Params,
+                // TODO: ability to specify default param overrides
+                params: { ...Mesh.Params, alpha: { ...Mesh.Params.alpha, defaultValue: a.data.context.globalOptions?.transparency ?? 1 } },
                 getShape: (_, data, __, prev: any) => buildPrimitiveMesh(data.context, data.primitives, prev),
                 geometryUtils: Mesh.Utils,
             }, { label });
         } else if (params.kind === 'labels') {
+            if (!hasPrimitiveLabels(a.data.primitives)) return StateObject.Null;
+
             return new SO.Shape.Provider({
                 label,
                 data: { primitives: a.data.primitives, context },
-                params: Text.Params,
+                params: { ...Text.Params, alpha: { ...Text.Params.alpha, defaultValue: a.data.context.globalOptions?.label_transparency ?? 1 } },
                 getShape: (_, data, __, prev: any) => buildPrimitiveLabels(data.context, data.primitives, prev),
                 geometryUtils: Text.Utils,
             }, { label });

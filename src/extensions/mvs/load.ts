@@ -20,7 +20,7 @@ import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-
 import { CustomLabelProps, CustomLabelRepresentationProvider } from './components/custom-label/representation';
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
 import { IsMVSModelProps, IsMVSModelProvider } from './components/is-mvs-model-prop';
-import { MVSLabelProps, MVSBuildPrimitiveShape, MVSInlinePrimitiveData, MVSDownloadPrimitiveData } from './components/primitives';
+import { MVSLabelProps, MVSBuildPrimitiveShape, MVSInlinePrimitiveData, MVSDownloadPrimitiveData, hasPrimitiveLabels } from './components/primitives';
 import { AnnotationFromSourceKind, AnnotationFromUriKind, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, LoadingActions, loadTree, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps, UpdateTarget } from './load-helpers';
 import { MVSData } from './mvs-data';
 import { ParamsOfKind, SubTreeOfKind, validateTree } from './tree/generic/tree-schema';
@@ -242,22 +242,19 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         return updateParent;
     },
     primitives(updateParent: UpdateTarget, tree: SubTreeOfKind<MolstarTree, 'primitives'>, context: MolstarLoadingContext): UpdateTarget {
-        const primitives: MVSPrimitive[] = [];
+        const primitives: MVSPrimitive[] = tree.children?.filter(c => c.kind === 'primitive').map(c => c.params) as MVSPrimitive[] | undefined ?? [];
         const options: MVSPrimitiveOptions = { ...tree.params };
-
-        for (const node of tree.children ?? []) {
-            if (node.kind === 'primitive') primitives.push(node.params as any);
-            // TODO: support focus
-        }
 
         // TODO
         // const refs = getPrimitiveStructureRefs(primitives);
 
         const data = UpdateTarget.apply(updateParent, MVSInlinePrimitiveData, { primitives, options });
         const mesh = UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'mesh' }, { state: { isGhost: true } });
-        const meshVisual = UpdateTarget.apply(mesh, ShapeRepresentation3D, { });
-        const labels = UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'labels' }, { state: { isGhost: true } });
-        UpdateTarget.apply(labels, ShapeRepresentation3D, MVSLabelProps);
+        const meshVisual = UpdateTarget.apply(mesh, ShapeRepresentation3D);
+        if (hasPrimitiveLabels(primitives)) {
+            const labels = UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'labels' }, { state: { isGhost: true } });
+            UpdateTarget.apply(labels, ShapeRepresentation3D, MVSLabelProps);
+        }
 
         return meshVisual;
     },
