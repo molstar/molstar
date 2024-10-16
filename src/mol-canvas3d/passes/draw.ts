@@ -52,7 +52,7 @@ export class DrawPass {
 
     readonly packedDepth: boolean;
 
-    private depthTargetTransparent: RenderTarget;
+    readonly depthTargetTransparent: RenderTarget;
     private depthTargetOpaque: RenderTarget | null;
 
     private copyFboTarget: CopyRenderable;

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -10,15 +10,22 @@ import { AllRequired, DefaultsFor, ParamsSchema, ValuesFor, paramsValidationIssu
 import { treeToString } from './tree-utils';
 
 
+/** Type of "custom" of a tree node (key-value storage with arbitrary JSONable values) */
+export type CustomProps = Partial<Record<string, any>>
+
 /** Tree node without children */
 export type Node<TKind extends string = string, TParams extends {} = {}> =
     {} extends TParams ? {
         kind: TKind,
-        params?: TParams,
+        params?: TParams, // params can be dropped if {} is valid value for params
+        custom?: CustomProps,
+        ref?: string,
     } : {
         kind: TKind,
-        params: TParams,
-    } // params can be dropped if {} is valid value for params
+        params: TParams, // params must be here if {} is not valid value for params
+        custom?: CustomProps,
+        ref?: string,
+    }
 
 /** Kind type for a tree node */
 export type Kind<TNode extends Node> = TNode['kind']
@@ -34,23 +41,27 @@ export type Tree<TNode extends Node<string, {}> = Node<string, {}>, TRoot extend
     }
 
 /** Type of any subtree that can occur within given `TTree` tree type */
-export type SubTree<TTree extends Tree> = NonNullable<TTree['children']>[number]
+export type Subtree<TTree extends Tree> = NonNullable<TTree['children']>[number]
 
 /** Type of any subtree that can occur within given `TTree` tree type and has kind type `TKind` */
-export type SubTreeOfKind<TTree extends Tree, TKind extends Kind<SubTree<TTree>> = Kind<SubTree<TTree>>> = RootOfKind<SubTree<TTree>, TKind>
+export type SubtreeOfKind<TTree extends Tree, TKind extends Kind<Subtree<TTree>> = Kind<Subtree<TTree>>> = RootOfKind<Subtree<TTree>, TKind>
 
 type RootOfKind<TTree extends Tree, TKind extends Kind<TTree>> = Extract<TTree, Tree<any, Node<TKind>>>
 
 /** Params type for a given kind type within a tree */
-export type ParamsOfKind<TTree extends Tree, TKind extends Kind<SubTree<TTree>> = Kind<SubTree<TTree>>> = NonNullable<SubTreeOfKind<TTree, TKind>['params']>
+export type ParamsOfKind<TTree extends Tree, TKind extends Kind<Subtree<TTree>> = Kind<Subtree<TTree>>> = NonNullable<SubtreeOfKind<TTree, TKind>['params']>
 
 
 /** Get params from a tree node */
 export function getParams<TNode extends Node>(node: TNode): Params<TNode> {
     return node.params ?? {};
 }
+/** Get custom properties from a tree node */
+export function getCustomProps<TCustomProps extends CustomProps = CustomProps>(node: Node): TCustomProps {
+    return (node.custom ?? {}) as TCustomProps;
+}
 /** Get children from a tree node */
-export function getChildren<TTree extends Tree>(tree: TTree): SubTree<TTree>[] {
+export function getChildren<TTree extends Tree>(tree: TTree): Subtree<TTree>[] {
     return tree.children ?? [];
 }
 
@@ -123,6 +134,9 @@ export function treeValidationIssues(schema: TreeSchema, tree: Tree, options: { 
     }
     const issues = paramsValidationIssues(nodeSchema.params, getParams(tree), options);
     if (issues) return [`Invalid parameters for node of kind "${tree.kind}":`, ...issues.map(s => '  ' + s)];
+    if (tree.custom !== undefined && (typeof tree.custom !== 'object' || tree.custom === null)) {
+        return [`Invalid "custom" for node of kind "${tree.kind}": must be an object, not ${tree.custom}.`];
+    }
     for (const child of getChildren(tree)) {
         const issues = treeValidationIssues(schema, child, { ...options, anyRoot: true, parent: tree.kind });
         if (issues) return issues;

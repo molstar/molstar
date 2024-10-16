@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { StateTree } from '../tree/immutable';
@@ -248,6 +249,13 @@ namespace StateBuilder {
                 this.state.actions.push({ kind: 'update', ref: this.ref, params });
             }
             return this.root;
+        }
+
+        /** Add tags to the current node */
+        tag(tags: string | string[]) {
+            const transform = this.state.tree.transforms.get(this.ref)!;
+            this.updateTagged(transform.params, tagsUnion(transform.tags, tags));
+            return this;
         }
 
         to<A extends StateObject, T extends StateTransformer>(ref: StateTransform.Ref): To<A, T>
