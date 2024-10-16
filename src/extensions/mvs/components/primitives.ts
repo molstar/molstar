@@ -228,6 +228,7 @@ function resolvePosition(context: PrimitiveBuilderContext, position: MVSPosition
 
         expr = rowsToExpression(position as any);
     } else {
+        pivotRef = position.structure_ref;
         expr = rowToExpression(position as any);
     }
 
@@ -236,14 +237,14 @@ function resolvePosition(context: PrimitiveBuilderContext, position: MVSPosition
         throw new Error(`Structure with ref '${pivotRef ?? '<default>'}' not found.`);
     }
 
-    if (!context.defaultStructure) return Vec3.set(target, 0, 0, 0);
+    if (!pivot) return Vec3.set(target, 0, 0, 0);
 
     const cackeKey = JSON.stringify(position);
     if (context.positionCache.has(cackeKey)) {
         return Vec3.copy(target, context.positionCache.get(cackeKey)!);
     }
 
-    const { selection } = StructureQueryHelper.createAndRun(context.defaultStructure, expr);
+    const { selection } = StructureQueryHelper.createAndRun(pivot, expr);
 
     if (StructureSelection.isEmpty(selection)) {
         Vec3.set(target, 0, 0, 0);
@@ -443,7 +444,7 @@ function addDistanceLabel(context: PrimitiveBuilderContext, state: LabelBuilderS
     Vec3.add(labelPos, lStart, lEnd);
     Vec3.scale(labelPos, labelPos, 0.5);
 
-    labels.add(label, labelPos[0], labelPos[1], labelPos[2], 0.5, 1, group);
+    labels.add(label, labelPos[0], labelPos[1], labelPos[2], 1.05 * (params.thickness ?? 0.05), 1, group);
 }
 
 function resolveLabelRefs(params: MVSPrimitiveParams<'label'>, refs: Set<string>) {

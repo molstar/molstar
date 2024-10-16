@@ -49,6 +49,7 @@ export async function loadTree<TTree extends Tree, TContext>(
         UpdateTarget.deleteChildren(updateRoot);
     }
     const extensionContexts = (options?.extensions ?? []).map(ext => ({ ext, extCtx: ext.createExtensionContext(tree, context) }));
+    const mvsRefMap = new Map<string, string>();
     dfs<TTree>(tree, (node, parent) => {
         const kind: Kind<typeof node> = node.kind;
         let msNode: UpdateTarget | undefined;
@@ -57,7 +58,10 @@ export async function loadTree<TTree extends Tree, TContext>(
         if (action) {
             if (updateParent) {
                 msNode = action(updateParent, node, context);
-                if (msNode) UpdateTarget.tag(msNode, mvsRefTags(node.ref));
+                if (msNode && node.ref) {
+                    UpdateTarget.tag(msNode, mvsRefTags(node.ref));
+                    mvsRefMap.set(node.ref, msNode.selector.ref);
+                }
                 mapping.set(node, msNode);
             } else {
                 console.warn(`No target found for this "${node.kind}" node`);
@@ -70,6 +74,11 @@ export async function loadTree<TTree extends Tree, TContext>(
             }
         }
     });
+
+    for (const target of updateRoot.targetManager.allTargets) {
+        UpdateTarget.dependsOn(target, mvsRefMap);
+    }
+
     extensionContexts.forEach(e => e.ext.disposeExtensionContext?.(e.extCtx, tree, context));
     await UpdateTarget.commit(updateRoot);
 }
@@ -85,15 +94,15 @@ export async function loadTree<TTree extends Tree, TContext>(
 export interface UpdateTarget {
     readonly update: StateBuilder.Root,
     readonly selector: StateObjectSelector,
-    readonly refManager: RefManager,
+    readonly targetManager: TargetManager,
+    readonly mvsDependencyRefs: Set<string>,
 }
 export const UpdateTarget = {
     /** Create a new update, with `selector` pointing to the root. */
     create(plugin: PluginContext, replaceExisting: boolean): UpdateTarget {
         const update = plugin.build();
         const msTarget = update.toRoot().selector;
-        const refManager = new RefManager(plugin, replaceExisting);
-        return { update, selector: msTarget, refManager };
+        return { update, selector: msTarget, targetManager: new TargetManager(plugin, replaceExisting), mvsDependencyRefs: new Set() };
     },
     /** Add a child node to `target.selector`, return a new `UpdateTarget` pointing to the new child. */
     apply<A extends StateObject, B extends StateObject, P extends {}>(target: UpdateTarget, transformer: StateTransformer<A, B, P>, params?: Partial<P>, options?: Partial<StateTransform.Options>): UpdateTarget {
@@ -102,9 +111,22 @@ export const UpdateTarget = {
             const reprType = (params as any)?.type?.name ?? '';
             refSuffix += `:${reprType}`;
         }
-        const ref = target.refManager.getChildRef(target.selector, refSuffix);
+        const ref = target.targetManager.getChildRef(target.selector, refSuffix);
         const msResult = target.update.to(target.selector).apply(transformer, params, { ...options, ref }).selector;
-        return { ...target, selector: msResult };
+        const result: UpdateTarget = { ...target, selector: msResult, mvsDependencyRefs: new Set() };
+        target.targetManager.allTargets.push(result);
+        return result;
+    },
+    setMvsDependencies(target: UpdateTarget, refs: string[] | Set<string>): UpdateTarget {
+        refs.forEach(ref => target.mvsDependencyRefs.add(ref));
+        return target;
+    },
+    dependsOn(target: UpdateTarget, mapping: Map<string, string>): UpdateTarget {
+        if (!target.mvsDependencyRefs.size) return target;
+        const dependsOn = Array.from(target.mvsDependencyRefs).map(d => mapping.get(d)!).filter(d => d);
+        if (!dependsOn.length) return target;
+        target.update.to(target.selector).dependsOn(dependsOn);
+        return target;
     },
     /** Add tags to `target.selector` */
     tag(target: UpdateTarget, tags: string[]): UpdateTarget {
@@ -126,7 +148,7 @@ export const UpdateTarget = {
 };
 
 /** Manages transform refs in a deterministic way. Uses refs like !mvs:3ce3664304d32c5d:0 */
-class RefManager {
+class TargetManager {
     /** For each hash (e.g. 3ce3664304d32c5d), store the number of already used refs with that hash. */
     private _counter: Record<string, number> = {};
     constructor(plugin: PluginContext, replaceExisting: boolean) {
@@ -156,6 +178,8 @@ class RefManager {
         const result = this.nextRef(hash);
         return result;
     }
+
+    readonly allTargets: UpdateTarget[] = [];
 }
 
 /** Create node tags based of MVS node.ref */
