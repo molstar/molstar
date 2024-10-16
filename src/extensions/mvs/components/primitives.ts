@@ -34,18 +34,6 @@ import { MVSTransform } from './annotation-structure-component';
 type PrimitiveComponentExpression = ValueFor<typeof PrimitiveComponentExpressionT>
 type MVSPositionT = [number, number, number] | PrimitiveComponentExpression | PrimitiveComponentExpression[]
 
-export const MVSLabelProps: PD.Values<Text.Params> = {
-    ...PD.getDefaultValues(Text.Params),
-    attachment: 'middle-center',
-    fontQuality: 3,
-    fontWeight: 'normal',
-    borderWidth: 0.15,
-    borderColor: Color(0x0),
-    background: false,
-    backgroundOpacity: 0.5,
-    tether: false,
-};
-
 export interface MVSPrimitiveBuilderContext {
     defaultStructure?: Structure;
     structureRefs: Record<string, Structure | undefined>;
@@ -83,6 +71,18 @@ export function hasPrimitiveLabels(primitives: MVSPrimitive[]) {
 
     return false;
 }
+
+const BaseLabelProps: PD.Values<Text.Params> = {
+    ...PD.getDefaultValues(Text.Params),
+    attachment: 'middle-center',
+    fontQuality: 3,
+    fontWeight: 'normal',
+    borderWidth: 0.15,
+    borderColor: Color(0x0),
+    background: false,
+    backgroundOpacity: 0.5,
+    tether: false,
+};
 
 const Builders: Record<MVSPrimitive['kind'], [
     mesh: (context: MVSPrimitiveBuilderContext, state: MeshBuilderState, params: any) => void,
@@ -183,7 +183,7 @@ function buildPrimitiveMesh(context: MVSPrimitiveBuilderContext, primitives: MVS
 }
 
 function buildPrimitiveLabels(context: MVSPrimitiveBuilderContext, primitives: MVSPrimitive[], prev?: Text): Shape<Text> {
-    const labelsBuilder = TextBuilder.create(MVSLabelProps, 1024, 1024, prev);
+    const labelsBuilder = TextBuilder.create(BaseLabelProps, 1024, 1024, prev);
     const state: LabelBuilderState = { group: -1, labels: labelsBuilder, colors: new Map(), sizes: new Map() };
 
     for (const p of primitives) {
@@ -413,6 +413,8 @@ export const MVSInlinePrimitiveData = MVSTransform({
     }
 });
 
+const DefaultLabelProps = PD.withDefaults(Text.Params, BaseLabelProps);
+
 export type MVSBuildPrimitiveShape = typeof MVSBuildPrimitiveShape
 export const MVSBuildPrimitiveShape = MVSTransform({
     name: 'mvs-build-primitive-shape',
@@ -433,7 +435,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
                 label,
                 data: { primitives: a.data.primitives, context },
                 // TODO: ability to specify default param overrides
-                params: { ...Mesh.Params, alpha: { ...Mesh.Params.alpha, defaultValue: a.data.context.globalOptions?.transparency ?? 1 } },
+                params: PD.withDefaults(Mesh.Params, { alpha: a.data.context.globalOptions?.default_transparency ?? 1 }),
                 getShape: (_, data, __, prev: any) => buildPrimitiveMesh(data.context, data.primitives, prev),
                 geometryUtils: Mesh.Utils,
             }, { label });
@@ -443,7 +445,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
             return new SO.Shape.Provider({
                 label,
                 data: { primitives: a.data.primitives, context },
-                params: { ...Text.Params, alpha: { ...Text.Params.alpha, defaultValue: a.data.context.globalOptions?.label_transparency ?? 1 } },
+                params: PD.withDefaults(DefaultLabelProps, { alpha: a.data.context.globalOptions?.default_label_transparency ?? 1 }),
                 getShape: (_, data, __, prev: any) => buildPrimitiveLabels(data.context, data.primitives, prev),
                 geometryUtils: Text.Utils,
             }, { label });

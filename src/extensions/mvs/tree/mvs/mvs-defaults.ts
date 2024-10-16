@@ -104,8 +104,8 @@ export const MVSDefaults = {
         default_color: null,
         default_label_color: null,
         default_tooltip: null,
-        transparency: null,
-        label_transparency: null,
+        default_transparency: null,
+        default_label_transparency: null,
     },
     primitives_from_uri: {
         references: null,

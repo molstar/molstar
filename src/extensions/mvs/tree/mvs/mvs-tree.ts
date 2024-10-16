@@ -313,8 +313,8 @@ export const MVSTreeSchema = TreeSchema({
                 default_color: OptionalField(nullable(ColorT)),
                 default_label_color: OptionalField(nullable(ColorT)),
                 default_tooltip: OptionalField(nullable(str)),
-                transparency: OptionalField(nullable(float)),
-                label_transparency: OptionalField(nullable(float)),
+                default_transparency: OptionalField(nullable(float)),
+                default_label_transparency: OptionalField(nullable(float)),
             },
         },
         primitives_from_uri: {
