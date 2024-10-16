@@ -5,10 +5,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+<<<<<<< HEAD
 import { float, int, list, literal, nullable, OptionalField, RequiredField, str, tuple, union } from '../generic/params-schema';
 import { NodeFor, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
 import { MVSPrimitiveParams } from './mvs-primitives';
 import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, RepresentationTypeT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
+=======
+import { OptionalField, RequiredField, float, int, list, nullable, str, tuple, union } from '../generic/params-schema';
+import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
+import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, RepresentationTypeT, SchemaFormatT, SchemaT, StructureTypeT, Vector3 } from './param-types';
+>>>>>>> c19130c9eba2342b9f0636abb82cc9c274b5ce38
 
 
 const _DataFromUriParams = {
@@ -169,6 +175,15 @@ export const MVSTreeSchema = TreeSchema({
                 ..._DataFromSourceParams,
             },
         },
+        /** This node instructs to apply transparency to a visual representation. */
+        transparency: {
+            description: 'This node instructs to apply transparency to a visual representation.',
+            parent: ['representation'],
+            params: {
+                /** Transparency of the representation. 0.0: fully opaque, 1.0: fully transparent. */
+                transparency: RequiredField(float, 'Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
+            },
+        },
         /** This node instructs to add a label (textual visual representation) to a component. */
         label: {
             description: 'This node instructs to add a label (textual visual representation) to a component.',
@@ -290,9 +305,14 @@ export type MVSKind = keyof typeof MVSTreeSchema.nodes
 /** Node in a `MVSTree` */
 export type MVSNode<TKind extends MVSKind = MVSKind> = NodeFor<typeof MVSTreeSchema, TKind>
 
+/** Params for a specific node kind in a `MVSTree` */
+export type MVSNodeParams<TKind extends MVSKind> = ParamsOfKind<MVSTree, TKind>
+
 /** MolViewSpec tree */
 export type MVSTree = TreeFor<typeof MVSTreeSchema>
 
+/** Any subtree in a `MVSTree` (e.g. its root doesn't need to be 'root') */
+export type MVSSubtree<TKind extends MVSKind = MVSKind> = SubtreeOfKind<MVSTree, TKind>
 
 /** Schema for `MVSTree` (MolViewSpec tree with all params provided) */
 export const FullMVSTreeSchema = TreeSchemaWithAllRequired(MVSTreeSchema);

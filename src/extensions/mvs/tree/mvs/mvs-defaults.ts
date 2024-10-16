@@ -59,6 +59,8 @@ export const MVSDefaults = {
         category_name: null,
         field_name: 'color',
     },
+    transparency: {
+    },
     label: {
     },
     label_from_uri: {

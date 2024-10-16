@@ -18,10 +18,8 @@ import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectSelector } from '../../mol-state';
 import { ColorNames } from '../../mol-util/color/names';
-
 import { decodeColor } from './helpers/utils';
-import { ParamsOfKind } from './tree/generic/tree-schema';
-import { MolstarTree } from './tree/molstar/molstar-tree';
+import { MolstarNodeParams } from './tree/molstar/molstar-tree';
 import { MVSDefaults } from './tree/mvs/mvs-defaults';
 
 
@@ -43,7 +41,7 @@ export async function suppressCameraAutoreset(plugin: PluginContext) {
 }
 
 /** Set the camera based on a camera node params. */
-export async function setCamera(plugin: PluginContext, params: ParamsOfKind<MolstarTree, 'camera'>) {
+export async function setCamera(plugin: PluginContext, params: MolstarNodeParams<'camera'>) {
     const target = Vec3.create(...params.target);
     let position = Vec3.create(...params.position);
     if (plugin.canvas3d) position = fovAdjustedPosition(target, position, plugin.canvas3d.camera.state.mode, plugin.canvas3d.camera.state.fov);
@@ -54,7 +52,7 @@ export async function setCamera(plugin: PluginContext, params: ParamsOfKind<Mols
     await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
 }
 
-async function focusBoundingSphere(plugin: PluginContext, params: ParamsOfKind<MolstarTree, 'focus'>, boundingSphere: Sphere3D | undefined, extraRadius: number) {
+async function focusBoundingSphere(plugin: PluginContext, params: MolstarNodeParams<'focus'>, boundingSphere: Sphere3D | undefined, extraRadius: number) {
     if (!plugin.canvas3d || !boundingSphere) return;
 
     const direction = Vec3.create(...params.direction);
@@ -85,7 +83,7 @@ function getRenderObjectsBoundary(objects: ReadonlyArray<GraphicsRenderObject>) 
 /** Focus the camera on the bounding sphere of a (sub)structure (or on the whole scene if `structureNodeSelector` is null).
   * Orient the camera based on a focus node params.
   **/
-export async function setFocus(plugin: PluginContext, structureNodeSelector: StateObjectSelector | undefined, params: ParamsOfKind<MolstarTree, 'focus'> = MVSDefaults.focus) {
+export async function setFocus(plugin: PluginContext, structureNodeSelector: StateObjectSelector | undefined, params: MolstarNodeParams<'focus'> = MVSDefaults.focus) {
     let boundingSphere: Sphere3D | undefined = undefined;
     if (structureNodeSelector) {
         const cell = plugin.state.data.cells.get(structureNodeSelector.ref);
@@ -176,7 +174,7 @@ function boundingSphereOfSpheres(spheres: Sphere3D[]): Sphere3D {
 }
 
 /** Set canvas properties based on a canvas node params. */
-export function setCanvas(plugin: PluginContext, params: ParamsOfKind<MolstarTree, 'canvas'> | undefined) {
+export function setCanvas(plugin: PluginContext, params: MolstarNodeParams<'canvas'> | undefined) {
     const backgroundColor = decodeColor(params?.background_color) ?? DefaultCanvasBackgroundColor;
     if (backgroundColor !== plugin.canvas3d?.props.renderer.backgroundColor) {
         plugin.canvas3d?.setProps(old => ({

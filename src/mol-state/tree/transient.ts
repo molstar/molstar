@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { Map as ImmutableMap, OrderedSet } from 'immutable';
@@ -187,7 +188,7 @@ class TransientTree implements StateTree {
 
         const transform = this.transforms.get(ref)!;
 
-        const withTags = StateTransform.withParams(transform, tags);
+        const withTags = StateTransform.withTags(transform, tags);
         // TODO: should this be here?
         if (arrayEqual(transform.tags, withTags.tags)) {
             return false;
