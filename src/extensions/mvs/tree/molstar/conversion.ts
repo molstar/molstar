@@ -26,10 +26,10 @@ const mvsToMolstarConversionRules: ConversionRules<FullMVSTree, MolstarTree> = {
     'download': node => [],
     'parse': (node, parent) => {
         const { format, is_binary } = ParseFormatMvsToMolstar[node.params.format];
-        const convertedNode: MolstarNode<'parse'> = { kind: 'parse', params: { ...node.params, format }, ref: node.ref, custom: node.custom };
+        const convertedNode: MolstarNode<'parse'> = { kind: 'parse', params: { ...node.params, format }, custom: node.custom, ref: node.ref };
         if (parent?.kind === 'download') {
             return [
-                { kind: 'download', params: { ...parent.params, is_binary }, ref: parent.ref, custom: parent.custom },
+                { kind: 'download', params: { ...parent.params, is_binary }, custom: parent.custom, ref: parent.ref },
                 convertedNode,
             ] satisfies MolstarNode[];
         } else {
@@ -43,7 +43,7 @@ const mvsToMolstarConversionRules: ConversionRules<FullMVSTree, MolstarTree> = {
         return [
             { kind: 'trajectory', params: { format, ...pickObjectKeys(node.params, ['block_header', 'block_index']) } },
             { kind: 'model', params: pickObjectKeys(node.params, ['model_index']) },
-            { kind: 'structure', params: omitObjectKeys(node.params, ['block_header', 'block_index', 'model_index']), ref: node.ref, custom: node.custom },
+            { kind: 'structure', params: omitObjectKeys(node.params, ['block_header', 'block_index', 'model_index']), custom: node.custom, ref: node.ref },
         ] satisfies MolstarNode[];
     },
 };
