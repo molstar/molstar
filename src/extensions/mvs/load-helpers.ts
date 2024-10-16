@@ -24,9 +24,9 @@ import { SelectorAll } from './components/selector';
 import { rowToExpression, rowsToExpression } from './helpers/selections';
 import { ElementOfSet, decodeColor, isDefined, stringHash } from './helpers/utils';
 import { MolstarLoadingContext } from './load';
-import { ParamsOfKind, Subtree, getChildren } from './tree/generic/tree-schema';
+import { Subtree, getChildren } from './tree/generic/tree-schema';
 import { dfs, formatObject } from './tree/generic/tree-utils';
-import { MolstarKind, MolstarNode, MolstarSubtree, MolstarTree } from './tree/molstar/molstar-tree';
+import { MolstarKind, MolstarNode, MolstarSubtree, MolstarTree, MolstarNodeParams } from './tree/molstar/molstar-tree';
 import { DefaultColor } from './tree/mvs/mvs-defaults';
 
 
@@ -230,7 +230,7 @@ export function structureProps(node: MolstarNode<'structure'>): StateTransformer
 }
 
 /** Create value for `type` prop for `StructureComponent` transformer based on a MVS selector. */
-export function componentPropsFromSelector(selector?: ParamsOfKind<MolstarTree, 'component'>['selector']): StructureComponentParams['type'] {
+export function componentPropsFromSelector(selector?: MolstarNodeParams<'component'>['selector']): StructureComponentParams['type'] {
     if (selector === undefined) {
         return SelectorAll;
     } else if (typeof selector === 'string') {
@@ -243,7 +243,7 @@ export function componentPropsFromSelector(selector?: ParamsOfKind<MolstarTree, 
 }
 
 /** Return a pretty name for a value of selector param, e.g.  "protein" -> 'Protein', {label_asym_id: "A"} -> 'Custom Selection: {label_asym_id: "A"}' */
-export function prettyNameFromSelector(selector?: ParamsOfKind<MolstarTree, 'component'>['selector']): string {
+export function prettyNameFromSelector(selector?: MolstarNodeParams<'component'>['selector']): string {
     if (selector === undefined) {
         return 'All';
     } else if (typeof selector === 'string') {

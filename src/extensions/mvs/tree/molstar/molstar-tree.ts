@@ -6,7 +6,7 @@
 
 import { omitObjectKeys, pickObjectKeys } from '../../../../mol-util/object';
 import { RequiredField, bool } from '../generic/params-schema';
-import { NodeFor, SubtreeOfKind, TreeFor, TreeSchema } from '../generic/tree-schema';
+import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema } from '../generic/tree-schema';
 import { FullMVSTreeSchema } from '../mvs/mvs-tree';
 import { MolstarParseFormatT } from '../mvs/param-types';
 
@@ -59,6 +59,9 @@ export type MolstarKind = keyof typeof MolstarTreeSchema.nodes;
 
 /** Node in a `MolstarTree` */
 export type MolstarNode<TKind extends MolstarKind = MolstarKind> = NodeFor<typeof MolstarTreeSchema, TKind>
+
+/** Params for a specific node kind in a `MolstarTree` */
+export type MolstarNodeParams<TKind extends MolstarKind> = ParamsOfKind<MolstarTree, TKind>
 
 /** Intermediate tree representation between `MVSTree` and a real Molstar state */
 export type MolstarTree = TreeFor<typeof MolstarTreeSchema>

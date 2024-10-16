@@ -24,9 +24,9 @@ import { NonCovalentInteractionsExtension } from './load-extensions/non-covalent
 import { LoadingActions, LoadingExtension, UpdateTarget, loadTree } from './load-generic';
 import { AnnotationFromSourceKind, AnnotationFromUriKind, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps } from './load-helpers';
 import { MVSData } from './mvs-data';
-import { ParamsOfKind, validateTree } from './tree/generic/tree-schema';
+import { validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
-import { MolstarNode, MolstarSubtree, MolstarTree, MolstarTreeSchema } from './tree/molstar/molstar-tree';
+import { MolstarNode, MolstarSubtree, MolstarTree, MolstarNodeParams, MolstarTreeSchema } from './tree/molstar/molstar-tree';
 import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 
@@ -96,8 +96,8 @@ export interface MolstarLoadingContext {
     annotationMap?: Map<MolstarNode<AnnotationFromUriKind | AnnotationFromSourceKind>, string>,
     /** Maps each node (on 'structure' or lower level) to its nearest 'representation' node */
     nearestReprMap?: Map<MolstarNode, MolstarNode<'representation'>>,
-    focus?: { kind: 'camera', params: ParamsOfKind<MolstarTree, 'camera'> } | { kind: 'focus', focusTarget: StateObjectSelector, params: ParamsOfKind<MolstarTree, 'focus'> },
-    canvas?: ParamsOfKind<MolstarTree, 'canvas'>,
+    focus?: { kind: 'camera', params: MolstarNodeParams<'camera'> } | { kind: 'focus', focusTarget: StateObjectSelector, params: MolstarNodeParams<'focus'> },
+    canvas?: MolstarNodeParams<'canvas'>,
 }
 
 
