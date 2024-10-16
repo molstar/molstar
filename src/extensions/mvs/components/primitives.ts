@@ -9,7 +9,7 @@ import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Text } from '../../../mol-geo/geometry/text/text';
 import { TextBuilder } from '../../../mol-geo/geometry/text/text-builder';
-import { Vec3 } from '../../../mol-math/linear-algebra';
+import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { Loci } from '../../../mol-model/loci';
 import { Shape } from '../../../mol-model/shape';
 import { Structure, StructureSelection } from '../../../mol-model/structure';
@@ -255,6 +255,11 @@ function resolvePosition(context: PrimitiveBuilderContext, position: MVSPosition
     context.positionCache.set(cackeKey, Vec3.clone(target));
 }
 
+function getInstances(context: PrimitiveBuilderContext): Mat4[] | undefined {
+    if (!context.options?.instances?.length) return undefined;
+    return context.options?.instances.map(i => Mat4.fromArray(Mat4(), i, 0));
+}
+
 function buildPrimitiveMesh(context: PrimitiveBuilderContext, primitives: MVSPrimitive[], prev?: Mesh): Shape<Mesh> {
     const meshBuilder = MeshBuilder.createState(1024, 1024, prev);
     const state: MeshBuilderState = { mesh: meshBuilder, colors: new Map(), tooltips: new Map() };
@@ -281,6 +286,7 @@ function buildPrimitiveMesh(context: PrimitiveBuilderContext, primitives: MVSPri
         (g) => colors.get(g) as Color ?? color as Color,
         (g) => 1,
         (g) => tooltips.get(g) ?? tooltip,
+        getInstances(context),
     );
 }
 
@@ -307,6 +313,7 @@ function buildPrimitiveLabels(context: PrimitiveBuilderContext, primitives: MVSP
         (g) => colors.get(g) as Color ?? color as Color,
         (g) => sizes.get(g) ?? 1,
         (g) => '',
+        getInstances(context),
     );
 }
 

@@ -106,6 +106,7 @@ export const MVSDefaults = {
         tooltip: null,
         transparency: null,
         label_transparency: null,
+        instances: null,
     },
     primitives_from_uri: {
         references: null,

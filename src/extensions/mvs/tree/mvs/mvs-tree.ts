@@ -261,6 +261,7 @@ export const MVSTreeSchema = TreeSchema({
                 tooltip: OptionalField(nullable(str)),
                 transparency: OptionalField(nullable(float)),
                 label_transparency: OptionalField(nullable(float)),
+                instances: OptionalField(nullable(list(Matrix)))
             },
         },
         primitives_from_uri: {
