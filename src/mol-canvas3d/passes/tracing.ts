@@ -30,6 +30,7 @@ import { Helper } from '../helper/helper';
 import { accumulate_frag } from '../../mol-gl/shader/illumination/accumulate.frag';
 import { now } from '../../mol-util/now';
 import { clamp } from '../../mol-math/interpolate';
+import { DrawPass } from './draw';
 
 type RenderContext = {
     renderer: Renderer;
@@ -63,7 +64,6 @@ export class TracingPass {
     readonly colorTextureOpaque: Texture;
     readonly normalTextureOpaque: Texture;
     readonly shadedTextureOpaque: Texture;
-    readonly depthTextureOpaque: Texture;
 
     private readonly thicknessTarget: RenderTarget;
     private readonly holdTarget: RenderTarget;
@@ -73,8 +73,12 @@ export class TracingPass {
     private readonly traceRenderable: TraceRenderable;
     private readonly accumulateRenderable: AccumulateRenderable;
 
-    constructor(private readonly webgl: WebGLContext, width: number, height: number) {
+    constructor(private readonly webgl: WebGLContext, private readonly drawPass: DrawPass) {
         const { extensions: { drawBuffers, colorBufferHalfFloat, textureHalfFloat }, resources, isWebGL2 } = webgl;
+
+        const { depthTextureOpaque } = drawPass;
+        const width = depthTextureOpaque.getWidth();
+        const height = depthTextureOpaque.getHeight();
 
         if (isWebGL2) {
             this.shadedTextureOpaque = resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
@@ -100,9 +104,6 @@ export class TracingPass {
             this.colorTextureOpaque.define(width, height);
         }
 
-        this.depthTextureOpaque = resources.texture('image-depth', 'depth', isWebGL2 ? 'float' : 'ushort', 'nearest');
-        this.depthTextureOpaque.define(width, height);
-
         this.framebuffer = resources.framebuffer();
 
         this.framebuffer.bind();
@@ -115,14 +116,13 @@ export class TracingPass {
         this.shadedTextureOpaque.attachFramebuffer(this.framebuffer, 'color0');
         this.normalTextureOpaque.attachFramebuffer(this.framebuffer, 'color1');
         this.colorTextureOpaque.attachFramebuffer(this.framebuffer, 'color2');
-        this.depthTextureOpaque.attachFramebuffer(this.framebuffer, 'depth');
 
         this.thicknessTarget = webgl.createRenderTarget(width, height, true, 'uint8', 'nearest');
         this.holdTarget = webgl.createRenderTarget(width, height, false, 'float32');
         this.accumulateTarget = webgl.createRenderTarget(width, height, false, 'float32');
         this.composeTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
 
-        this.traceRenderable = getTraceRenderable(webgl, this.colorTextureOpaque, this.normalTextureOpaque, this.shadedTextureOpaque, this.thicknessTarget.texture, this.accumulateTarget.texture, this.depthTextureOpaque);
+        this.traceRenderable = getTraceRenderable(webgl, this.colorTextureOpaque, this.normalTextureOpaque, this.shadedTextureOpaque, this.thicknessTarget.texture, this.accumulateTarget.texture, this.drawPass.depthTextureOpaque);
         this.accumulateRenderable = getAccumulateRenderable(webgl, this.holdTarget.texture);
     }
 
@@ -131,9 +131,9 @@ export class TracingPass {
         const { gl, state } = this.webgl;
 
         this.framebuffer.bind();
-        this.depthTextureOpaque.attachFramebuffer(this.framebuffer, 'depth');
+        this.drawPass.depthTextureOpaque.attachFramebuffer(this.framebuffer, 'depth');
         renderer.clear(true);
-        renderer.renderTracing(scene.primitives, camera, null);
+        renderer.renderTracing(scene.primitives, camera);
 
         //
 
@@ -141,7 +141,7 @@ export class TracingPass {
             this.thicknessTarget.bind();
             state.clearColor(0, 0, 0, 0);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-            renderer.renderDepthOpaqueBack(scene.primitives, camera, null);
+            renderer.renderDepthOpaqueBack(scene.primitives, camera);
         }
         if (isTimingMode) this.webgl.timer.markEnd('TracePass.renderInput');
     }
@@ -159,7 +159,6 @@ export class TracingPass {
             this.colorTextureOpaque.define(width, height);
             this.normalTextureOpaque.define(width, height);
             this.shadedTextureOpaque.define(width, height);
-            this.depthTextureOpaque.define(width, height);
 
             ValueCell.update(this.traceRenderable.values.uTexSize, Vec2.set(this.traceRenderable.values.uTexSize.ref.value, width, height));
             ValueCell.update(this.accumulateRenderable.values.uTexSize, Vec2.set(this.accumulateRenderable.values.uTexSize.ref.value, width, height));

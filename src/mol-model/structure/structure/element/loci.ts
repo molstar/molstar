@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { UniqueArray } from '../../../../mol-data/generic';
@@ -265,7 +266,7 @@ export namespace Loci {
 
         let isSubset = false;
         for (const e of ys.elements) {
-            if (!map.has(e.unit.id)) continue;
+            if (!map.has(e.unit.id)) return false;
             if (!OrderedSet.isSubset(map.get(e.unit.id)!, e.indices)) return false;
             else isSubset = true;
         }
