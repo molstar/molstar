@@ -5,16 +5,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-<<<<<<< HEAD
 import { float, int, list, literal, nullable, OptionalField, RequiredField, str, tuple, union } from '../generic/params-schema';
-import { NodeFor, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
+import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
 import { MVSPrimitiveParams } from './mvs-primitives';
 import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, RepresentationTypeT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
-=======
-import { OptionalField, RequiredField, float, int, list, nullable, str, tuple, union } from '../generic/params-schema';
-import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
-import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, RepresentationTypeT, SchemaFormatT, SchemaT, StructureTypeT, Vector3 } from './param-types';
->>>>>>> c19130c9eba2342b9f0636abb82cc9c274b5ce38
 
 
 const _DataFromUriParams = {
