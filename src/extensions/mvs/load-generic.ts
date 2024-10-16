@@ -57,6 +57,7 @@ export async function loadTree<TTree extends Tree, TContext>(
         if (action) {
             if (updateParent) {
                 msNode = action(updateParent, node, context);
+                if (msNode) UpdateTarget.tag(msNode, mvsRefTags(node.ref));
                 mapping.set(node, msNode);
             } else {
                 console.warn(`No target found for this "${node.kind}" node`);
@@ -105,6 +106,13 @@ export const UpdateTarget = {
         const msResult = target.update.to(target.selector).apply(transformer, params, { ...options, ref }).selector;
         return { ...target, selector: msResult };
     },
+    /** Add tags to `target.selector` */
+    tag(target: UpdateTarget, tags: string[]): UpdateTarget {
+        if (tags.length > 0) {
+            target.update.to(target.selector).tag(tags);
+        }
+        return target;
+    },
     /** Delete all children of `target.selector`. */
     deleteChildren(target: UpdateTarget): UpdateTarget {
         const children = target.update.currentTree.children.get(target.selector.ref);
@@ -148,4 +156,10 @@ class RefManager {
         const result = this.nextRef(hash);
         return result;
     }
+}
+
+/** Create node tags based of MVS node.ref */
+export function mvsRefTags(mvsNodeRef: string | undefined): string[] {
+    if (mvsNodeRef === undefined) return [];
+    else return [`mvs-ref:${mvsNodeRef}`];
 }

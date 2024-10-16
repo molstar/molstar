@@ -188,6 +188,8 @@ export function collectInlineLabels(tree: MolstarSubtree<'structure'>, context: 
 
 /** Return `true` for components nodes which only serve for tooltip placement (not to be created in the MolStar object hierarchy) */
 export function isPhantomComponent(node: MolstarSubtree<'component' | 'component_from_uri' | 'component_from_source'>) {
+    if (node.ref !== undefined) return false;
+    if (node.custom !== undefined && Object.keys(node.custom).length > 0) return false;
     return node.children && node.children.every(child => child.kind === 'tooltip' || child.kind === 'label');
     // These nodes could theoretically be removed when converting MVS to Molstar tree, but would get very tricky if we allow nested components
 }
