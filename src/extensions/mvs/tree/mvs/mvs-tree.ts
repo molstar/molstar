@@ -5,9 +5,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { OptionalField, RequiredField, float, int, list, literal, mapping, nullable, str, tuple, union, obj, ValueFor } from '../generic/params-schema';
+import { float, int, list, literal, nullable, OptionalField, RequiredField, str, tuple, union } from '../generic/params-schema';
 import { NodeFor, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
-import { ColorT, ComponentExpressionT, ComponentSelectorT, FloatList, IntList, Matrix, ParseFormatT, PositionT, RepresentationTypeT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
+import { MVSPrimitiveParams } from './mvs-primitives';
+import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, RepresentationTypeT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
 
 
 const _DataFromUriParams = {
@@ -39,61 +40,6 @@ const _DataFromSourceParams = {
     /** Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...). The default value is 'color'/'label'/'tooltip'/'component' depending on the node type */
     field_name: OptionalField(str, 'Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...).'),
 };
-
-
-
-const _LineBase = {
-    start: PositionT,
-    end: PositionT,
-    thickness: nullable(float),
-    color: nullable(ColorT),
-    dash_start: nullable(float),
-    dash_length: nullable(float),
-    gap_length: nullable(float),
-};
-
-const MeshParams = obj({
-    kind: literal('mesh'),
-    vertices: FloatList,
-    indices: IntList,
-    triangle_colors: nullable(StrList),
-    triangle_groups: nullable(IntList),
-    group_colors: nullable(mapping(int, ColorT)),
-    group_tooltips: nullable(mapping(int, str)),
-    tooltip: nullable(str),
-});
-
-const LineParams = obj({
-    kind: literal('line'),
-    ..._LineBase,
-    tooltip: nullable(str),
-});
-
-const DistanceMeasurementParams = obj({
-    kind: literal('distance_measurement'),
-    ..._LineBase,
-    label_template: nullable(str),
-    label_size: nullable(union([float, literal('auto')])),
-    label_auto_size_scale: nullable(float),
-    label_auto_size_min: nullable(float),
-    label_color: nullable(ColorT),
-});
-
-const PrimitiveLabelParams = obj({
-    kind: literal('label'),
-    position: PositionT,
-    text: str,
-    label_size: nullable(float),
-    label_color: nullable(ColorT),
-    label_offset: nullable(float),
-});
-
-const PrimitiveParams = union([MeshParams, LineParams, DistanceMeasurementParams, PrimitiveLabelParams]);
-
-export type MVSPrimitive = ValueFor<typeof PrimitiveParams>
-export type MVSPrimitiveKind = MVSPrimitive['kind']
-export type MVSPrimitiveOptions = MVSNode<'primitives'>['params']
-export type MVSPrimitiveParams<T extends MVSPrimitiveKind> = Extract<MVSPrimitive, { kind: T }>
 
 /** Schema for `MVSTree` (MolViewSpec tree) */
 export const MVSTreeSchema = TreeSchema({
@@ -310,11 +256,11 @@ export const MVSTreeSchema = TreeSchema({
             description: 'This node groups a list of geometrical primitives',
             parent: ['structure', 'root'],
             params: {
-                default_color: OptionalField(nullable(ColorT)),
-                default_label_color: OptionalField(nullable(ColorT)),
-                default_tooltip: OptionalField(nullable(str)),
-                default_transparency: OptionalField(nullable(float)),
-                default_label_transparency: OptionalField(nullable(float)),
+                color: OptionalField(nullable(ColorT)),
+                label_color: OptionalField(nullable(ColorT)),
+                tooltip: OptionalField(nullable(str)),
+                transparency: OptionalField(nullable(float)),
+                label_transparency: OptionalField(nullable(float)),
             },
         },
         primitives_from_uri: {
@@ -330,8 +276,8 @@ export const MVSTreeSchema = TreeSchema({
             description: 'This node represents a geometrical primitive',
             parent: ['primitives'],
             params: {
-                // TODO: proper validation
-                _union_: RequiredField(PrimitiveParams),
+                // TODO: validation
+                _union_: RequiredField(MVSPrimitiveParams),
             },
         },
     }

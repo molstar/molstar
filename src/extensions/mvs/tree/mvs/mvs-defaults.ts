@@ -101,11 +101,11 @@ export const MVSDefaults = {
         up: [0, 1, 0],
     },
     primitives: {
-        default_color: null,
-        default_label_color: null,
-        default_tooltip: null,
-        default_transparency: null,
-        default_label_transparency: null,
+        color: null,
+        label_color: null,
+        tooltip: null,
+        transparency: null,
+        label_transparency: null,
     },
     primitives_from_uri: {
         references: null,

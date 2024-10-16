@@ -20,13 +20,14 @@ import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-
 import { CustomLabelProps, CustomLabelRepresentationProvider } from './components/custom-label/representation';
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
 import { IsMVSModelProps, IsMVSModelProvider } from './components/is-mvs-model-prop';
-import { MVSLabelProps, MVSBuildPrimitiveShape, MVSInlinePrimitiveData, MVSDownloadPrimitiveData, hasPrimitiveLabels } from './components/primitives';
+import { getPrimitiveStructureRefs, MVSBuildPrimitiveShape, MVSDownloadPrimitiveData, MVSInlinePrimitiveData } from './components/primitives';
 import { AnnotationFromSourceKind, AnnotationFromUriKind, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, LoadingActions, loadTree, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps, UpdateTarget } from './load-helpers';
 import { MVSData } from './mvs-data';
 import { ParamsOfKind, SubTreeOfKind, validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
 import { MolstarNode, MolstarTree, MolstarTreeSchema } from './tree/molstar/molstar-tree';
-import { MVSPrimitive, MVSPrimitiveOptions, MVSTreeSchema } from './tree/mvs/mvs-tree';
+import { MVSPrimitive } from './tree/mvs/mvs-primitives';
+import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 
 /** Load a MolViewSpec (MVS) tree into the Mol* plugin.
@@ -243,31 +244,21 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     },
     primitives(updateParent: UpdateTarget, tree: SubTreeOfKind<MolstarTree, 'primitives'>, context: MolstarLoadingContext): UpdateTarget {
         const primitives: MVSPrimitive[] = tree.children?.filter(c => c.kind === 'primitive').map(c => c.params) as MVSPrimitive[] | undefined ?? [];
-        const options: MVSPrimitiveOptions = { ...tree.params };
-
-        // TODO
-        // const refs = getPrimitiveStructureRefs(primitives);
-
-        const data = UpdateTarget.apply(updateParent, MVSInlinePrimitiveData, { primitives, options });
-        const mesh = UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'mesh' }, { state: { isGhost: true } });
-        const meshVisual = UpdateTarget.apply(mesh, ShapeRepresentation3D);
-        if (hasPrimitiveLabels(primitives)) {
-            const labels = UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'labels' }, { state: { isGhost: true } });
-            UpdateTarget.apply(labels, ShapeRepresentation3D);
-        }
-
-        return meshVisual;
+        const refs = getPrimitiveStructureRefs(primitives);
+        const data = UpdateTarget.apply(updateParent, MVSInlinePrimitiveData, { primitives, options: { ...tree.params } });
+        return applyPrimitiveVisuals(data, refs);
     },
     primitives_from_uri(updateParent: UpdateTarget, tree: SubTreeOfKind<MolstarTree, 'primitives_from_uri'>, context: MolstarLoadingContext): UpdateTarget {
-        // TODO
-        // const refs = ...
-
         const data = UpdateTarget.apply(updateParent, MVSDownloadPrimitiveData, { uri: tree.params.uri, format: tree.params.format });
-        const mesh = UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'mesh' }, { state: { isGhost: true } });
-        const meshVisual = UpdateTarget.apply(mesh, ShapeRepresentation3D, { });
-        const labels = UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'labels' }, { state: { isGhost: true } });
-        UpdateTarget.apply(labels, ShapeRepresentation3D);
-
-        return meshVisual;
+        return applyPrimitiveVisuals(data, new Set(tree.params.references ?? []));
     },
 };
+
+function applyPrimitiveVisuals(data: UpdateTarget, refs: Set<string>) {
+    // TODO: refs
+    const mesh = UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'mesh' }, { state: { isGhost: true } });
+    const meshVisual = UpdateTarget.apply(mesh, ShapeRepresentation3D);
+    const labels = UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'labels' }, { state: { isGhost: true } });
+    UpdateTarget.apply(labels, ShapeRepresentation3D);
+    return meshVisual;
+}

@@ -27,17 +27,127 @@ import { capitalize } from '../../../mol-util/string';
 import { rowsToExpression, rowToExpression } from '../helpers/selections';
 import { collectMVSReferences, decodeColor } from '../helpers/utils';
 import { ValueFor } from '../tree/generic/params-schema';
-import { MVSPrimitive, MVSPrimitiveOptions, MVSPrimitiveParams } from '../tree/mvs/mvs-tree';
+import { MVSPrimitive, MVSPrimitiveOptions, MVSPrimitiveParams } from '../tree/mvs/mvs-primitives';
 import { PrimitiveComponentExpressionT } from '../tree/mvs/param-types';
 import { MVSTransform } from './annotation-structure-component';
+
+export function getPrimitiveStructureRefs(primitives: MVSPrimitive[]) {
+    const refs = new Set<string>();
+    for (const p of primitives) {
+        const b = Builders[p.kind];
+        if (b) b[2](p, refs);
+    }
+    return refs;
+}
+
+export class MVSPrimitivesData extends SO.Create<{ primitives: MVSPrimitive[], context: PrimitiveBuilderContext }>({ name: 'Primitive Data', typeClass: 'Object' }) { }
+export class MVSPrimitiveShapes extends SO.Create<{ mesh?: Shape<Mesh>, labels?: Shape<Text> }>({ name: 'Primitive Shapes', typeClass: 'Object' }) { }
+
+export type MVSDownloadPrimitiveData = typeof MVSDownloadPrimitiveData
+export const MVSDownloadPrimitiveData = MVSTransform({
+    name: 'mvs-download-primitive-data',
+    display: { name: 'MVS Primitives' },
+    from: [SO.Root, SO.Molecule.Structure],
+    to: MVSPrimitivesData,
+    params: {
+        uri: PD.Url('', { isHidden: true }),
+        format: PD.Text<'json'>('json', { isHidden: true })
+    },
+})({
+    apply({ a, params, cache }, plugin: PluginContext) {
+        return Task.create('Download Primitive Data', async ctx => {
+            const url = Asset.getUrlAsset(plugin.managers.asset, params.uri);
+            const asset = await plugin.managers.asset.resolve(url, 'string').runInContext(ctx);
+            const data = JSON.parse(asset.data) as { primitives: MVSPrimitive[], options: MVSPrimitiveOptions };
+            (cache as any).asset = asset;
+            return new MVSPrimitivesData({
+                primitives: data.primitives,
+                context: {
+                    defaultStructure: SO.Molecule.Structure.is(a) ? a.data : undefined,
+                    structureRefs: {},
+                    options: data.options,
+                    positionCache: new Map(),
+                }
+            }, { label: 'Primitive Data' });
+        });
+    },
+    dispose({ cache }) {
+        ((cache as any)?.asset as Asset.Wrapper | undefined)?.dispose();
+    },
+});
+
+export type MVSInlinePrimitiveData = typeof MVSInlinePrimitiveData
+export const MVSInlinePrimitiveData = MVSTransform({
+    name: 'mvs-inline-primitive-data',
+    display: { name: 'MVS Primitives' },
+    from: [SO.Root, SO.Molecule.Structure],
+    to: MVSPrimitivesData,
+    params: {
+        primitives: PD.Value<MVSPrimitive[]>([], { isHidden: true }),
+        options: PD.Value<MVSPrimitiveOptions>({} as any, { isHidden: true }),
+    },
+})({
+    apply({ a, params }) {
+        return new MVSPrimitivesData({
+            primitives: params.primitives,
+            context: {
+                defaultStructure: SO.Molecule.Structure.is(a) ? a.data : undefined,
+                structureRefs: {},
+                options: params.options,
+                positionCache: new Map(),
+            }
+        }, { label: 'Primitive Data' });
+    }
+});
+
+export type MVSBuildPrimitiveShape = typeof MVSBuildPrimitiveShape
+export const MVSBuildPrimitiveShape = MVSTransform({
+    name: 'mvs-build-primitive-shape',
+    display: { name: 'MVS Primitives' },
+    from: MVSPrimitivesData,
+    to: SO.Shape.Provider,
+    params: {
+        kind: PD.Text<'mesh' | 'labels'>('mesh')
+    }
+})({
+    apply({ a, params, dependencies }) {
+        const structureRefs = dependencies ? collectMVSReferences([SO.Molecule.Structure], dependencies) : {};
+        const context: PrimitiveBuilderContext = { ...a.data.context, structureRefs };
+
+        const label = capitalize(params.kind);
+        if (params.kind === 'mesh') {
+            return new SO.Shape.Provider({
+                label,
+                data: { primitives: a.data.primitives, context },
+                params: PD.withDefaults(Mesh.Params, { alpha: a.data.context.options?.transparency ?? 1 }),
+                getShape: (_, data, __, prev: any) => buildPrimitiveMesh(data.context, data.primitives, prev),
+                geometryUtils: Mesh.Utils,
+            }, { label });
+        } else if (params.kind === 'labels') {
+            if (!hasPrimitiveLabels(a.data.primitives)) return StateObject.Null;
+
+            return new SO.Shape.Provider({
+                label,
+                data: { primitives: a.data.primitives, context },
+                params: PD.withDefaults(DefaultLabelParams, { alpha: a.data.context.options?.label_transparency ?? 1 }),
+                getShape: (_, data, __, prev: any) => buildPrimitiveLabels(data.context, data.primitives, prev),
+                geometryUtils: Text.Utils,
+            }, { label });
+        }
+
+        return StateObject.Null;
+    }
+});
+
+/* **************************************************** */
 
 type PrimitiveComponentExpression = ValueFor<typeof PrimitiveComponentExpressionT>
 type MVSPositionT = [number, number, number] | PrimitiveComponentExpression | PrimitiveComponentExpression[]
 
-export interface MVSPrimitiveBuilderContext {
+interface PrimitiveBuilderContext {
     defaultStructure?: Structure;
     structureRefs: Record<string, Structure | undefined>;
-    globalOptions: MVSPrimitiveOptions;
+    options: MVSPrimitiveOptions;
     positionCache: Map<string, Vec3>;
 }
 
@@ -54,24 +164,6 @@ interface LabelBuilderState {
     sizes: Map<number, number>;
 }
 
-export function getPrimitiveStructureRefs(primitives: MVSPrimitive[]) {
-    const refs = new Set<string>();
-    for (const p of primitives) {
-        const b = Builders[p.kind];
-        if (b) b[2](p, refs);
-    }
-    return refs;
-}
-
-export function hasPrimitiveLabels(primitives: MVSPrimitive[]) {
-    for (const p of primitives) {
-        const b = Builders[p.kind];
-        if (b && b[1] !== noOp) return true;
-    }
-
-    return false;
-}
-
 const BaseLabelProps: PD.Values<Text.Params> = {
     ...PD.getDefaultValues(Text.Params),
     attachment: 'middle-center',
@@ -83,15 +175,16 @@ const BaseLabelProps: PD.Values<Text.Params> = {
     backgroundOpacity: 0.5,
     tether: false,
 };
+const DefaultLabelParams = PD.withDefaults(Text.Params, BaseLabelProps);
 
 const Builders: Record<MVSPrimitive['kind'], [
-    mesh: (context: MVSPrimitiveBuilderContext, state: MeshBuilderState, params: any) => void,
-    label: (context: MVSPrimitiveBuilderContext, state: LabelBuilderState, params: any) => void,
+    mesh: (context: PrimitiveBuilderContext, state: MeshBuilderState, params: any) => void,
+    label: (context: PrimitiveBuilderContext, state: LabelBuilderState, params: any) => void,
     resolveRefs: (params: any, refs: Set<string>) => void
 ]> = {
     mesh: [addMesh, noOp, noOp],
     line: [addLineMesh, noOp, resolveLineRefs],
-    label: [noOp, addPrimitiveLabel, resolveLineRefs],
+    label: [noOp, addPrimitiveLabel, resolveLabelRefs],
     distance_measurement: [addDistanceMesh, addDistanceLabel, resolveLineRefs],
 };
 
@@ -109,7 +202,16 @@ function addRef(position: MVSPositionT, refs: Set<string>) {
     }
 }
 
-function resolvePosition(context: MVSPrimitiveBuilderContext, position: MVSPositionT, target: Vec3) {
+function hasPrimitiveLabels(primitives: MVSPrimitive[]) {
+    for (const p of primitives) {
+        const b = Builders[p.kind];
+        if (b && b[1] !== noOp) return true;
+    }
+
+    return false;
+}
+
+function resolvePosition(context: PrimitiveBuilderContext, position: MVSPositionT, target: Vec3) {
     let expr: Expression;
     let pivotRef: string | undefined;
     if (Array.isArray(position)) {
@@ -153,7 +255,7 @@ function resolvePosition(context: MVSPrimitiveBuilderContext, position: MVSPosit
     context.positionCache.set(cackeKey, Vec3.clone(target));
 }
 
-function buildPrimitiveMesh(context: MVSPrimitiveBuilderContext, primitives: MVSPrimitive[], prev?: Mesh): Shape<Mesh> {
+function buildPrimitiveMesh(context: PrimitiveBuilderContext, primitives: MVSPrimitive[], prev?: Mesh): Shape<Mesh> {
     const meshBuilder = MeshBuilder.createState(1024, 1024, prev);
     const state: MeshBuilderState = { mesh: meshBuilder, colors: new Map(), tooltips: new Map() };
 
@@ -169,8 +271,8 @@ function buildPrimitiveMesh(context: MVSPrimitiveBuilderContext, primitives: MVS
     }
 
     const { colors, tooltips } = state;
-    const tooltip = context.globalOptions?.default_tooltip ?? '';
-    const color = decodeColor(context.globalOptions?.default_color) ?? 0x0;
+    const tooltip = context.options?.tooltip ?? '';
+    const color = decodeColor(context.options?.color) ?? 0x0;
 
     return Shape.create(
         'Mesh',
@@ -182,7 +284,7 @@ function buildPrimitiveMesh(context: MVSPrimitiveBuilderContext, primitives: MVS
     );
 }
 
-function buildPrimitiveLabels(context: MVSPrimitiveBuilderContext, primitives: MVSPrimitive[], prev?: Text): Shape<Text> {
+function buildPrimitiveLabels(context: PrimitiveBuilderContext, primitives: MVSPrimitive[], prev?: Text): Shape<Text> {
     const labelsBuilder = TextBuilder.create(BaseLabelProps, 1024, 1024, prev);
     const state: LabelBuilderState = { group: -1, labels: labelsBuilder, colors: new Map(), sizes: new Map() };
 
@@ -195,7 +297,7 @@ function buildPrimitiveLabels(context: MVSPrimitiveBuilderContext, primitives: M
         b[1](context, state, p);
     }
 
-    const color = decodeColor(context.globalOptions?.default_label_color) ?? 0x0;
+    const color = decodeColor(context.options?.label_color) ?? 0x0;
     const { colors, sizes } = state;
 
     return Shape.create(
@@ -210,7 +312,7 @@ function buildPrimitiveLabels(context: MVSPrimitiveBuilderContext, primitives: M
 
 function noOp() { }
 
-function addMesh(context: MVSPrimitiveBuilderContext, { mesh, colors, tooltips }: MeshBuilderState, params: MVSPrimitiveParams<'mesh'>) {
+function addMesh(context: PrimitiveBuilderContext, { mesh, colors, tooltips }: MeshBuilderState, params: MVSPrimitiveParams<'mesh'>) {
     const a = Vec3.zero();
     const b = Vec3.zero();
     const c = Vec3.zero();
@@ -262,7 +364,7 @@ function resolveLineRefs(params: MVSPrimitiveParams<'line' | 'distance_measureme
 const lStart = Vec3.zero();
 const lEnd = Vec3.zero();
 
-function addLineMesh(context: MVSPrimitiveBuilderContext, { mesh, colors, tooltips }: MeshBuilderState, params: MVSPrimitiveParams<'line'>, options?: { skipResolvePosition?: boolean }) {
+function addLineMesh(context: PrimitiveBuilderContext, { mesh, colors, tooltips }: MeshBuilderState, params: MVSPrimitiveParams<'line'>, options?: { skipResolvePosition?: boolean }) {
     const group = ++mesh.currentGroup;
     if (!options?.skipResolvePosition) {
         resolvePosition(context, params.start, lStart);
@@ -291,7 +393,7 @@ function addLineMesh(context: MVSPrimitiveBuilderContext, { mesh, colors, toolti
     if (params.tooltip) tooltips.set(group, params.tooltip);
 }
 
-function getDistanceLabel(context: MVSPrimitiveBuilderContext, params: MVSPrimitiveParams<'distance_measurement'>) {
+function getDistanceLabel(context: PrimitiveBuilderContext, params: MVSPrimitiveParams<'distance_measurement'>) {
     resolvePosition(context, params.start, lStart);
     resolvePosition(context, params.end, lEnd);
 
@@ -302,14 +404,14 @@ function getDistanceLabel(context: MVSPrimitiveBuilderContext, params: MVSPrimit
     return label;
 }
 
-function addDistanceMesh(context: MVSPrimitiveBuilderContext, state: MeshBuilderState, params: MVSPrimitiveParams<'distance_measurement'>) {
+function addDistanceMesh(context: PrimitiveBuilderContext, state: MeshBuilderState, params: MVSPrimitiveParams<'distance_measurement'>) {
     const tooltip = getDistanceLabel(context, params);
     addLineMesh(context, state, { ...params, tooltip } as any, { skipResolvePosition: true });
 }
 
 const labelPos = Vec3.zero();
 
-function addDistanceLabel(context: MVSPrimitiveBuilderContext, state: LabelBuilderState, params: MVSPrimitiveParams<'distance_measurement'>) {
+function addDistanceLabel(context: PrimitiveBuilderContext, state: LabelBuilderState, params: MVSPrimitiveParams<'distance_measurement'>) {
     const { labels, colors, sizes } = state;
     const group = ++state.group;
     resolvePosition(context, params.start, lStart);
@@ -337,7 +439,11 @@ function addDistanceLabel(context: MVSPrimitiveBuilderContext, state: LabelBuild
     labels.add(label, labelPos[0], labelPos[1], labelPos[2], 0.5, 1, group);
 }
 
-function addPrimitiveLabel(context: MVSPrimitiveBuilderContext, state: LabelBuilderState, params: MVSPrimitiveParams<'label'>) {
+function resolveLabelRefs(params: MVSPrimitiveParams<'label'>, refs: Set<string>) {
+    addRef(params.position, refs);
+}
+
+function addPrimitiveLabel(context: PrimitiveBuilderContext, state: LabelBuilderState, params: MVSPrimitiveParams<'label'>) {
     const { labels, colors, sizes } = state;
     const group = ++state.group;
     resolvePosition(context, params.position, labelPos);
@@ -348,109 +454,3 @@ function addPrimitiveLabel(context: MVSPrimitiveBuilderContext, state: LabelBuil
     if (typeof color === 'number') colors.set(group, color);
     labels.add(params.text, labelPos[0], labelPos[1], labelPos[2], params.label_offset ?? 0, 1, group);
 }
-
-/** ========== Plugin transforms ============== */
-
-export class MVSPrimitivesData extends SO.Create<{ primitives: MVSPrimitive[], context: MVSPrimitiveBuilderContext }>({ name: 'Primitive Data', typeClass: 'Object' }) { }
-export class MVSPrimitiveShapes extends SO.Create<{ mesh?: Shape<Mesh>, labels?: Shape<Text> }>({ name: 'Primitive Shapes', typeClass: 'Object' }) { }
-
-
-export type MVSDownloadPrimitiveData = typeof MVSDownloadPrimitiveData
-export const MVSDownloadPrimitiveData = MVSTransform({
-    name: 'mvs-download-primitive-data',
-    display: { name: 'MVS Primitives' },
-    from: [SO.Root, SO.Molecule.Structure],
-    to: MVSPrimitivesData,
-    params: {
-        uri: PD.Url('', { isHidden: true }),
-        format: PD.Text<'json'>('json', { isHidden: true })
-    },
-})({
-    apply({ a, params, cache }, plugin: PluginContext) {
-        return Task.create('Download Primitive Data', async ctx => {
-            const url = Asset.getUrlAsset(plugin.managers.asset, params.uri);
-            const asset = await plugin.managers.asset.resolve(url, 'string').runInContext(ctx);
-            const data = JSON.parse(asset.data);
-            (cache as any).asset = asset;
-            return new MVSPrimitivesData({
-                primitives: data.primitives,
-                context: {
-                    defaultStructure: SO.Molecule.Structure.is(a) ? a.data : undefined,
-                    structureRefs: {},
-                    globalOptions: data.options,
-                    positionCache: new Map(),
-                }
-            }, { label: 'Primitive Data' });
-        });
-    },
-    dispose({ cache }) {
-        ((cache as any)?.asset as Asset.Wrapper | undefined)?.dispose();
-    },
-});
-
-
-export type MVSInlinePrimitiveData = typeof MVSInlinePrimitiveData
-export const MVSInlinePrimitiveData = MVSTransform({
-    name: 'mvs-inline-primitive-data',
-    display: { name: 'MVS Primitives' },
-    from: [SO.Root, SO.Molecule.Structure],
-    to: MVSPrimitivesData,
-    params: {
-        primitives: PD.Value<MVSPrimitive[]>([], { isHidden: true }),
-        options: PD.Value<MVSPrimitiveOptions>({} as any, { isHidden: true }),
-    },
-})({
-    apply({ a, params }) {
-        return new MVSPrimitivesData({
-            primitives: params.primitives,
-            context: {
-                defaultStructure: SO.Molecule.Structure.is(a) ? a.data : undefined,
-                structureRefs: {},
-                globalOptions: params.options,
-                positionCache: new Map(),
-            }
-        }, { label: 'Primitive Data' });
-    }
-});
-
-const DefaultLabelProps = PD.withDefaults(Text.Params, BaseLabelProps);
-
-export type MVSBuildPrimitiveShape = typeof MVSBuildPrimitiveShape
-export const MVSBuildPrimitiveShape = MVSTransform({
-    name: 'mvs-build-primitive-shape',
-    display: { name: 'MVS Primitives' },
-    from: MVSPrimitivesData,
-    to: SO.Shape.Provider,
-    params: {
-        kind: PD.Text<'mesh' | 'labels'>('mesh')
-    }
-})({
-    apply({ a, params, dependencies }) {
-        const structureRefs = dependencies ? collectMVSReferences([SO.Molecule.Structure], dependencies) : {};
-        const context: MVSPrimitiveBuilderContext = { ...a.data.context, structureRefs };
-
-        const label = capitalize(params.kind);
-        if (params.kind === 'mesh') {
-            return new SO.Shape.Provider({
-                label,
-                data: { primitives: a.data.primitives, context },
-                // TODO: ability to specify default param overrides
-                params: PD.withDefaults(Mesh.Params, { alpha: a.data.context.globalOptions?.default_transparency ?? 1 }),
-                getShape: (_, data, __, prev: any) => buildPrimitiveMesh(data.context, data.primitives, prev),
-                geometryUtils: Mesh.Utils,
-            }, { label });
-        } else if (params.kind === 'labels') {
-            if (!hasPrimitiveLabels(a.data.primitives)) return StateObject.Null;
-
-            return new SO.Shape.Provider({
-                label,
-                data: { primitives: a.data.primitives, context },
-                params: PD.withDefaults(DefaultLabelProps, { alpha: a.data.context.globalOptions?.default_label_transparency ?? 1 }),
-                getShape: (_, data, __, prev: any) => buildPrimitiveLabels(data.context, data.primitives, prev),
-                geometryUtils: Text.Utils,
-            }, { label });
-        }
-
-        return StateObject.Null;
-    }
-});

@@ -134,8 +134,8 @@ export function paramsValidationIssues<P extends ParamsSchema, V extends { [k: s
         const paramDef = schema[key];
 
         // Special handling of "union" param type
+        // TODO: figure out how to do this properly, ignoring the validation for now
         if (key === '_union_') {
-            // TODO: figure out how to do this
             return undefined;
         }
 
