@@ -27,20 +27,23 @@ import { capitalize } from '../../../mol-util/string';
 import { rowsToExpression, rowToExpression } from '../helpers/selections';
 import { collectMVSReferences, decodeColor } from '../helpers/utils';
 import { ValueFor } from '../tree/generic/params-schema';
+import { MolstarNode, MolstarSubtree } from '../tree/molstar/molstar-tree';
 import { MVSPrimitive, MVSPrimitiveOptions, MVSPrimitiveParams } from '../tree/mvs/mvs-primitives';
 import { PrimitiveComponentExpressionT } from '../tree/mvs/param-types';
 import { MVSTransform } from './annotation-structure-component';
 
-export function getPrimitiveStructureRefs(primitives: MVSPrimitive[]) {
+export function getPrimitiveStructureRefs(primitives: MolstarSubtree<'primitives'>) {
     const refs = new Set<string>();
-    for (const p of primitives) {
+    for (const c of primitives.children ?? []) {
+        if (c.kind !== 'primitive') continue;
+        const p = c.params as unknown as MVSPrimitive;
         const b = Builders[p.kind];
         if (b) b[2](p, refs);
     }
     return refs;
 }
 
-export class MVSPrimitivesData extends SO.Create<{ primitives: MVSPrimitive[], context: PrimitiveBuilderContext }>({ name: 'Primitive Data', typeClass: 'Object' }) { }
+export class MVSPrimitivesData extends SO.Create<{ node: MolstarSubtree<'primitives'>, context: PrimitiveBuilderContext }>({ name: 'Primitive Data', typeClass: 'Object' }) { }
 export class MVSPrimitiveShapes extends SO.Create<{ mesh?: Shape<Mesh>, labels?: Shape<Text> }>({ name: 'Primitive Shapes', typeClass: 'Object' }) { }
 
 export type MVSDownloadPrimitiveData = typeof MVSDownloadPrimitiveData
@@ -51,21 +54,22 @@ export const MVSDownloadPrimitiveData = MVSTransform({
     to: MVSPrimitivesData,
     params: {
         uri: PD.Url('', { isHidden: true }),
-        format: PD.Text<'json'>('json', { isHidden: true })
+        format: PD.Text<'mvs-node-json'>('mvs-node-json', { isHidden: true })
     },
 })({
     apply({ a, params, cache }, plugin: PluginContext) {
         return Task.create('Download Primitive Data', async ctx => {
             const url = Asset.getUrlAsset(plugin.managers.asset, params.uri);
             const asset = await plugin.managers.asset.resolve(url, 'string').runInContext(ctx);
-            const data = JSON.parse(asset.data) as { primitives: MVSPrimitive[], options: MVSPrimitiveOptions };
+            const node = JSON.parse(asset.data) as MolstarSubtree<'primitives'>;
             (cache as any).asset = asset;
             return new MVSPrimitivesData({
-                primitives: data.primitives,
+                node,
                 context: {
                     defaultStructure: SO.Molecule.Structure.is(a) ? a.data : undefined,
                     structureRefs: {},
-                    options: data.options,
+                    primitives: getPrimitives(node),
+                    options: { ...node.params },
                     positionCache: new Map(),
                 }
             }, { label: 'Primitive Data' });
@@ -83,17 +87,17 @@ export const MVSInlinePrimitiveData = MVSTransform({
     from: [SO.Root, SO.Molecule.Structure],
     to: MVSPrimitivesData,
     params: {
-        primitives: PD.Value<MVSPrimitive[]>([], { isHidden: true }),
-        options: PD.Value<MVSPrimitiveOptions>({} as any, { isHidden: true }),
+        node: PD.Value<MolstarSubtree<'primitives'>>(undefined as any, { isHidden: true }),
     },
 })({
     apply({ a, params }) {
         return new MVSPrimitivesData({
-            primitives: params.primitives,
+            node: params.node,
             context: {
                 defaultStructure: SO.Molecule.Structure.is(a) ? a.data : undefined,
                 structureRefs: {},
-                options: params.options,
+                primitives: getPrimitives(params.node),
+                options: { ...params.node.params },
                 positionCache: new Map(),
             }
         }, { label: 'Primitive Data' });
@@ -118,19 +122,19 @@ export const MVSBuildPrimitiveShape = MVSTransform({
         if (params.kind === 'mesh') {
             return new SO.Shape.Provider({
                 label,
-                data: { primitives: a.data.primitives, context },
+                data: { primitives: a.data.node, context },
                 params: PD.withDefaults(Mesh.Params, { alpha: a.data.context.options?.transparency ?? 1 }),
-                getShape: (_, data, __, prev: any) => buildPrimitiveMesh(data.context, data.primitives, prev),
+                getShape: (_, data, __, prev: any) => buildPrimitiveMesh(data.context, prev),
                 geometryUtils: Mesh.Utils,
             }, { label });
         } else if (params.kind === 'labels') {
-            if (!hasPrimitiveLabels(a.data.primitives)) return StateObject.Null;
+            if (!hasPrimitiveLabels(a.data.node)) return StateObject.Null;
 
             return new SO.Shape.Provider({
                 label,
-                data: { primitives: a.data.primitives, context },
+                data: { primitives: a.data.node, context },
                 params: PD.withDefaults(DefaultLabelParams, { alpha: a.data.context.options?.label_transparency ?? 1 }),
-                getShape: (_, data, __, prev: any) => buildPrimitiveLabels(data.context, data.primitives, prev),
+                getShape: (_, data, __, prev: any) => buildPrimitiveLabels(data.context, prev),
                 geometryUtils: Text.Utils,
             }, { label });
         }
@@ -147,6 +151,7 @@ type MVSPositionT = [number, number, number] | PrimitiveComponentExpression | Pr
 interface PrimitiveBuilderContext {
     defaultStructure?: Structure;
     structureRefs: Record<string, Structure | undefined>;
+    primitives: MolstarNode<'primitive'>[];
     options: MVSPrimitiveOptions;
     positionCache: Map<string, Vec3>;
 }
@@ -188,6 +193,12 @@ const Builders: Record<MVSPrimitive['kind'], [
     distance_measurement: [addDistanceMesh, addDistanceLabel, resolveLineRefs],
 };
 
+
+function getPrimitives(primitives: MolstarSubtree<'primitives'>) {
+    return (primitives.children ?? []).filter(c => c.kind === 'primitive') as unknown as MolstarNode<'primitive'>[];
+}
+
+
 function addRef(position: MVSPositionT, refs: Set<string>) {
     if (Array.isArray(position)) {
         if (typeof position[0] === 'number') {
@@ -202,8 +213,9 @@ function addRef(position: MVSPositionT, refs: Set<string>) {
     }
 }
 
-function hasPrimitiveLabels(primitives: MVSPrimitive[]) {
-    for (const p of primitives) {
+function hasPrimitiveLabels(primitives: MolstarSubtree<'primitives'>) {
+    for (const c of primitives.children ?? []) {
+        const p = c.params as MVSPrimitive;
         const b = Builders[p.kind];
         if (b && b[1] !== noOp) return true;
     }
@@ -261,13 +273,14 @@ function getInstances(context: PrimitiveBuilderContext): Mat4[] | undefined {
     return context.options?.instances.map(i => Mat4.fromArray(Mat4(), i, 0));
 }
 
-function buildPrimitiveMesh(context: PrimitiveBuilderContext, primitives: MVSPrimitive[], prev?: Mesh): Shape<Mesh> {
+function buildPrimitiveMesh(context: PrimitiveBuilderContext, prev?: Mesh): Shape<Mesh> {
     const meshBuilder = MeshBuilder.createState(1024, 1024, prev);
     const state: MeshBuilderState = { mesh: meshBuilder, colors: new Map(), tooltips: new Map() };
 
     meshBuilder.currentGroup = -1;
 
-    for (const p of primitives) {
+    for (const c of context.primitives) {
+        const p = c.params as unknown as MVSPrimitive;
         const b = Builders[p.kind];
         if (!b) {
             console.warn(`Primitive ${p.kind} not supported`);
@@ -282,7 +295,7 @@ function buildPrimitiveMesh(context: PrimitiveBuilderContext, primitives: MVSPri
 
     return Shape.create(
         'Mesh',
-        primitives,
+        context,
         MeshBuilder.getMesh(meshBuilder),
         (g) => colors.get(g) as Color ?? color as Color,
         (g) => 1,
@@ -291,11 +304,12 @@ function buildPrimitiveMesh(context: PrimitiveBuilderContext, primitives: MVSPri
     );
 }
 
-function buildPrimitiveLabels(context: PrimitiveBuilderContext, primitives: MVSPrimitive[], prev?: Text): Shape<Text> {
+function buildPrimitiveLabels(context: PrimitiveBuilderContext, prev?: Text): Shape<Text> {
     const labelsBuilder = TextBuilder.create(BaseLabelProps, 1024, 1024, prev);
     const state: LabelBuilderState = { group: -1, labels: labelsBuilder, colors: new Map(), sizes: new Map() };
 
-    for (const p of primitives) {
+    for (const c of context.primitives) {
+        const p = c.params as unknown as MVSPrimitive;
         const b = Builders[p.kind];
         if (!b) {
             console.warn(`Primitive ${p.kind} not supported`);
@@ -309,7 +323,7 @@ function buildPrimitiveLabels(context: PrimitiveBuilderContext, primitives: MVSP
 
     return Shape.create(
         'Labels',
-        primitives,
+        context,
         labelsBuilder.getText(),
         (g) => colors.get(g) as Color ?? color as Color,
         (g) => sizes.get(g) ?? 1,

@@ -278,7 +278,7 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['structure', 'root'],
             params: {
                 uri: RequiredField(str),
-                format: RequiredField(literal('json')),
+                format: RequiredField(literal('mvs-node-json')),
                 references: OptionalField(nullable(StrList)),
             },
         },

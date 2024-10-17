@@ -246,9 +246,8 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         return updateParent;
     },
     primitives(updateParent: UpdateTarget, tree: MolstarSubtree<'primitives'>, context: MolstarLoadingContext): UpdateTarget {
-        const primitives: MVSPrimitive[] = tree.children?.filter(c => c.kind === 'primitive').map(c => c.params) as MVSPrimitive[] | undefined ?? [];
-        const refs = getPrimitiveStructureRefs(primitives);
-        const data = UpdateTarget.apply(updateParent, MVSInlinePrimitiveData, { primitives, options: { ...tree.params } });
+        const refs = getPrimitiveStructureRefs(tree);
+        const data = UpdateTarget.apply(updateParent, MVSInlinePrimitiveData, { node: tree });
         return applyPrimitiveVisuals(data, refs);
     },
     primitives_from_uri(updateParent: UpdateTarget, tree: MolstarNode<'primitives_from_uri'>, context: MolstarLoadingContext): UpdateTarget {
