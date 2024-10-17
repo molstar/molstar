@@ -5,37 +5,12 @@
  * @author Ludovic Autin <ludovic.autin@gmail.com>
  */
 
-import { Task, RuntimeContext, chunkedSubtask } from '../../../mol-task';
-import { Tokenizer, TokenBuilder } from '../common/text/tokenizer';
-import { ReaderResult as Result } from '../result';
-import { TokenColumnProvider as TokenColumn } from '../common/text/column/token';
-import { Column } from '../../../mol-data/db';
-
-
-export interface LammpsBox {
-    lower: [number, number, number],
-    length: [number, number, number],
-    periodicity: [string, string, string]
-}
-
-export interface LammpsFrame {
-    count: number,
-    atomMode: string,
-    atomId: Column<number>,
-    moleculeId: Column<number>,
-    atomType: Column<number>,
-    x: Column<number>,
-    y: Column<number>,
-    z: Column<number>,
-}
-
-export interface LammpTrajectoryFile {
-    frames: LammpsFrame[],
-    times: number[],
-    bounds: LammpsBox[],
-    timeOffset: number,
-    deltaTime: number
-}
+import { Task, RuntimeContext, chunkedSubtask } from '../../../../mol-task';
+import { Tokenizer, TokenBuilder } from '../../common/text/tokenizer';
+import { ReaderResult as Result } from '../../result';
+import { TokenColumnProvider as TokenColumn } from '../../common/text/column/token';
+import { Column } from '../../../../mol-data/db';
+import { LammpsFrame, LammpsTrajectoryFile } from '../schema';
 
 const { readLine, skipWhitespace, eatValue, eatLine, markStart } = Tokenizer;
 
@@ -129,10 +104,10 @@ xlo xhi
 ylo yhi
 zlo zhi
 */
-async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<LammpTrajectoryFile>> {
+async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<LammpsTrajectoryFile>> {
     const tokenizer = Tokenizer(data);
     const state = State(tokenizer, ctx);
-    const f: LammpTrajectoryFile = {
+    const f: LammpsTrajectoryFile = {
         frames: [],
         times: [],
         bounds: [],
@@ -186,8 +161,8 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
     return Result.success(f);
 }
 
-export function parseLammpTrajectory(data: string) {
-    return Task.create<Result<LammpTrajectoryFile>>('Parse Lammp Trajectory', async ctx => {
+export function parseLammpsTrajectory(data: string) {
+    return Task.create<Result<LammpsTrajectoryFile>>('Parse Lammp Trajectory', async ctx => {
         return await parseInternal(data, ctx);
     });
 }

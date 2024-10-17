@@ -7,7 +7,7 @@
 
 import { Column, Table } from '../../mol-data/db';
 import { Model } from '../../mol-model/structure/model';
-import { LammpDataFile } from '../../mol-io/reader/lammps_data/parser';
+import { LammpsDataFile, unitStyles } from '../../mol-io/reader/lammps/schema';
 import { Trajectory, ArrayTrajectory } from '../../mol-model/structure';
 import { BondType, MoleculeType } from '../../mol-model/structure/model/types';
 import { RuntimeContext, Task } from '../../mol-task';
@@ -19,11 +19,11 @@ import { EntityBuilder } from './common/entity';
 import { IndexPairBonds } from './property/bonds/index-pair';
 import { AtomPartialCharge } from './property/partial-charge';
 
-async function getModels(mol: LammpDataFile, ctx: RuntimeContext, scale: number = 1) {
+async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: string = 'real') {
     const { atoms, bonds } = mol;
     const models: Model[] = [];
     const count = atoms.count;
-
+    const scale = unitStyles[unitsStyle].scale;
     const type_symbols = new Array<string>(count);
     const id = new Int32Array(count);
     const cx = new Float32Array(count);
@@ -83,7 +83,7 @@ async function getModels(mol: LammpDataFile, ctx: RuntimeContext, scale: number 
         chem_comp: componentBuilder.getChemCompTable(),
         atom_site
     });
-    const _models = await createModels(basic, LammpDataFormat.create(mol), ctx);
+    const _models = await createModels(basic, LammpsDataFormat.create(mol), ctx);
     if (_models.frameCount > 0) {
         const first = _models.representative;
         if (bonds.count !== 0) {
@@ -121,21 +121,21 @@ async function getModels(mol: LammpDataFile, ctx: RuntimeContext, scale: number 
 
 //
 
-export { LammpDataFormat };
+export { LammpsDataFormat };
 
-type LammpDataFormat = ModelFormat<LammpDataFile>
+type LammpsDataFormat = ModelFormat<LammpsDataFile>
 
-namespace LammpDataFormat {
-    export function is(x?: ModelFormat): x is LammpDataFormat {
+namespace LammpsDataFormat {
+    export function is(x?: ModelFormat): x is LammpsDataFormat {
         return x?.kind === 'data';
     }
 
-    export function create(mol: LammpDataFile): LammpDataFormat {
+    export function create(mol: LammpsDataFile): LammpsDataFormat {
         return { kind: 'data', name: 'data', data: mol };
     }
 }
 
-export function trajectoryFromLammpsData(mol: LammpDataFile, scale?: number): Task<Trajectory> {
-    if (scale === void 0) scale = 1;
-    return Task.create('Parse Lammps Data', ctx => getModels(mol, ctx, scale));
+export function trajectoryFromLammpsData(mol: LammpsDataFile, unitsStyle?: string): Task<Trajectory> {
+    if (unitsStyle === void 0) unitsStyle = 'real';
+    return Task.create('Parse Lammps Data', ctx => getModels(mol, ctx, unitsStyle));
 }

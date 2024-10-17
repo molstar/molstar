@@ -6,7 +6,7 @@
  */
 
 import { Coordinates, Frame, Time } from '../../mol-model/structure/coordinates';
-import { LammpTrajectoryFile } from '../../mol-io/reader/lammps_traj/parser';
+import { LammpsTrajectoryFile, unitStyles } from '../../mol-io/reader/lammps/schema';
 import { Model } from '../../mol-model/structure/model';
 import { RuntimeContext, Task } from '../../mol-task';
 import { Column, Table } from '../../mol-data/db';
@@ -18,9 +18,10 @@ import { createModels } from './basic/parser';
 import { MoleculeType } from '../../mol-model/structure/model/types';
 import { ModelFormat } from '../format';
 
-export function coordinatesFromLammpsTrajectory(file: LammpTrajectoryFile, scale: number = 1.0): Task<Coordinates> {
+export function coordinatesFromLammpsTrajectory(file: LammpsTrajectoryFile, unitsStyle: string = 'real'): Task<Coordinates> {
     return Task.create('Parse Lammps Trajectory', async ctx => {
         await ctx.update('Converting to coordinates');
+        const scale = unitStyles[unitsStyle].scale;
         const deltaTime = Time(file.deltaTime, 'step');
         const offsetTime = Time(file.timeOffset, deltaTime.unit);
         const offset_pos = { x: 0.0, y: 0.0, z: 0.0 };
@@ -63,13 +64,14 @@ export function coordinatesFromLammpsTrajectory(file: LammpTrajectoryFile, scale
     });
 }
 
-async function getModels(mol: LammpTrajectoryFile, ctx: RuntimeContext, scale: number = 1.0) {
+async function getModels(mol: LammpsTrajectoryFile, ctx: RuntimeContext, unitsStyle: string = 'real') {
     const atoms = mol.frames[0];
     const count = atoms.count;
     const atomsMode = atoms.atomMode;
     const box = mol.bounds[0];
     const offset_pos = { x: 0.0, y: 0.0, z: 0.0 };
     const offset_scale = { x: 1.0, y: 1.0, z: 1.0 };
+    const scale = unitStyles[unitsStyle].scale;
     // if caracter s in atomsMode, we need to scale the coordinates
     if (atomsMode.includes('s')) {
         offset_scale.x = box.length[0];
@@ -140,27 +142,27 @@ async function getModels(mol: LammpTrajectoryFile, ctx: RuntimeContext, scale: n
         chem_comp: componentBuilder.getChemCompTable(),
         atom_site
     });
-    const _models = await createModels(basic, LammpTrajectoryFormat.create(mol), ctx);
+    const _models = await createModels(basic, LammpsTrajectoryFormat.create(mol), ctx);
     const first = _models.representative;
-    const coordinates = await coordinatesFromLammpsTrajectory(mol, scale).runInContext(ctx);
+    const coordinates = await coordinatesFromLammpsTrajectory(mol, unitsStyle).runInContext(ctx);
     return Model.trajectoryFromModelAndCoordinates(first, coordinates);
 }
 
-export { LammpTrajectoryFormat };
+export { LammpsTrajectoryFormat };
 
-type LammpTrajectoryFormat = ModelFormat<LammpTrajectoryFile>
+type LammpsTrajectoryFormat = ModelFormat<LammpsTrajectoryFile>
 
-namespace LammpTrajectoryFormat {
-    export function is(x?: ModelFormat): x is LammpTrajectoryFormat {
+namespace LammpsTrajectoryFormat {
+    export function is(x?: ModelFormat): x is LammpsTrajectoryFormat {
         return x?.kind === 'lammpstrj';
     }
 
-    export function create(mol: LammpTrajectoryFile): LammpTrajectoryFormat {
+    export function create(mol: LammpsTrajectoryFile): LammpsTrajectoryFormat {
         return { kind: 'lammpstrj', name: 'lammpstrj', data: mol };
     }
 }
 
-export function trajectoryFromLammpsTrajectory(mol: LammpTrajectoryFile, scale?: number): Task<Trajectory> {
-    if (scale === void 0) scale = 1;
-    return Task.create('Parse Lammps Traj Data', ctx => getModels(mol, ctx, scale));
+export function trajectoryFromLammpsTrajectory(mol: LammpsTrajectoryFile, unitsStyle?: string): Task<Trajectory> {
+    if (unitsStyle === void 0) unitsStyle = 'real';
+    return Task.create('Parse Lammps Traj Data', ctx => getModels(mol, ctx, unitsStyle));
 }

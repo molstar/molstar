@@ -5,31 +5,12 @@
  * @author Ludovic Autin <ludovic.autin@gmail.com>
  */
 
-import { Task, RuntimeContext, chunkedSubtask } from '../../../mol-task';
-import { Tokenizer, TokenBuilder } from '../common/text/tokenizer';
-import { ReaderResult as Result } from '../result';
-import { TokenColumnProvider as TokenColumn } from '../common/text/column/token';
-import { Column } from '../../../mol-data/db';
-
-export interface LammpDataFile {
-    readonly atoms: {
-        readonly count: number
-        readonly atomId: Column<number>
-        readonly moleculeType: Column<number>
-        readonly atomType: Column<number>
-        readonly charge: Column<number>
-        readonly x: Column<number>,
-        readonly y: Column<number>,
-        readonly z: Column<number>,
-    }
-    readonly bonds: {
-        readonly count: number
-        readonly bondId: Column<number>
-        readonly bondType: Column<number>
-        readonly atomIdA: Column<number>
-        readonly atomIdB: Column<number>
-    }
-}
+import { Task, RuntimeContext, chunkedSubtask } from '../../../../mol-task';
+import { Tokenizer, TokenBuilder } from '../../common/text/tokenizer';
+import { ReaderResult as Result } from '../../result';
+import { TokenColumnProvider as TokenColumn } from '../../common/text/column/token';
+import { Column } from '../../../../mol-data/db';
+import { LammpsDataFile } from '../schema';
 
 const { readLine, skipWhitespace, eatValue, eatLine, markStart } = Tokenizer;
 
@@ -43,7 +24,7 @@ function State(tokenizer: Tokenizer, runtimeCtx: RuntimeContext) {
 }
 type State = ReturnType<typeof State>
 
-async function handleAtoms(state: State, count: number, atom_style: string): Promise<LammpDataFile['atoms']> {
+async function handleAtoms(state: State, count: number, atom_style: string): Promise<LammpsDataFile['atoms']> {
     const { tokenizer } = state;
     // default atom style is atomic
     // depending on the atom style the number of columns can change
@@ -132,7 +113,7 @@ async function handleAtoms(state: State, count: number, atom_style: string): Pro
     };
 }
 
-async function handleBonds(state: State, count: number): Promise<LammpDataFile['bonds']> {
+async function handleBonds(state: State, count: number): Promise<LammpsDataFile['bonds']> {
     const { tokenizer } = state;
 
     const bondId = TokenBuilder.create(tokenizer.data, count * 2);
@@ -170,12 +151,12 @@ async function handleBonds(state: State, count: number): Promise<LammpDataFile['
     };
 }
 
-async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<LammpDataFile>> {
+async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<LammpsDataFile>> {
     const tokenizer = Tokenizer(data);
     const state = State(tokenizer, ctx);
 
-    let atoms = undefined as LammpDataFile['atoms'] | undefined;
-    let bonds = undefined as LammpDataFile['bonds'] | undefined;
+    let atoms = undefined as LammpsDataFile['atoms'] | undefined;
+    let bonds = undefined as LammpsDataFile['bonds'] | undefined;
     let numAtoms = 0;
     let numBonds = 0;
     let atom_style = 'full';
@@ -217,15 +198,15 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
         // return Result.error('no bonds data');
     }
 
-    const result: LammpDataFile = {
+    const result: LammpsDataFile = {
         atoms,
         bonds
     };
     return Result.success(result);
 }
 
-export function parseLammpData(data: string) {
-    return Task.create<Result<LammpDataFile>>('Parse LammpData', async ctx => {
+export function parseLammpsData(data: string) {
+    return Task.create<Result<LammpsDataFile>>('Parse LammpsData', async ctx => {
         return await parseInternal(data, ctx);
     });
 }

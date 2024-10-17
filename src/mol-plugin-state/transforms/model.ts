@@ -40,9 +40,9 @@ import { parseXtc } from '../../mol-io/reader/xtc/parser';
 import { coordinatesFromXtc } from '../../mol-model-formats/structure/xtc';
 import { parseXyz } from '../../mol-io/reader/xyz/parser';
 import { trajectoryFromXyz } from '../../mol-model-formats/structure/xyz';
-import { parseLammpData } from '../../mol-io/reader/lammps_data/parser';
+import { parseLammpsData } from '../../mol-io/reader/lammps/data/parser';
 import { trajectoryFromLammpsData } from '../../mol-model-formats/structure/lammps_data';
-import { parseLammpTrajectory } from '../../mol-io/reader/lammps_traj/parser';
+import { parseLammpsTrajectory } from '../../mol-io/reader/lammps/traj/parser';
 import { coordinatesFromLammpsTrajectory, trajectoryFromLammpsTrajectory } from '../../mol-model-formats/structure/lammps_trajectory';
 import { parseSdf } from '../../mol-io/reader/sdf/parser';
 import { trajectoryFromSdf } from '../../mol-model-formats/structure/sdf';
@@ -167,7 +167,7 @@ const CoordinatesFromLammpstraj = PluginStateTransform.BuiltIn({
 })({
     apply({ a }) {
         return Task.create('Parse LAMMPSTRAJ', async ctx => {
-            const parsed = await parseLammpTrajectory(a.data).runInContext(ctx);
+            const parsed = await parseLammpsTrajectory(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             const coordinates = await coordinatesFromLammpsTrajectory(parsed.result).runInContext(ctx);
             return new SO.Molecule.Coordinates(coordinates, { label: a.label, description: 'Coordinates' });
@@ -407,14 +407,14 @@ const TrajectoryFromLammpsData = PluginStateTransform.BuiltIn({
     from: [SO.Data.String],
     to: SO.Molecule.Trajectory,
     params: {
-        scale: PD.Numeric(1, { min: 0.01, max: 1000, step: 0.01 })
+        unitsStyle: PD.Select('real', PD.arrayToOptions(['real', 'metal', 'si', 'cgs', 'electron', 'micro', 'nano', 'lj'])),
     }
 })({
     apply({ a, params }) {
         return Task.create('Parse Lammps Data', async ctx => {
-            const parsed = await parseLammpData(a.data).runInContext(ctx);
+            const parsed = await parseLammpsData(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
-            const models = await trajectoryFromLammpsData(parsed.result, params.scale).runInContext(ctx);
+            const models = await trajectoryFromLammpsData(parsed.result, params.unitsStyle).runInContext(ctx);
             const props = trajectoryProps(models);
             return new SO.Molecule.Trajectory(models, props);
         });
@@ -428,14 +428,14 @@ const TrajectoryFromLammpsTrajData = PluginStateTransform.BuiltIn({
     from: [SO.Data.String],
     to: SO.Molecule.Trajectory,
     params: {
-        scale: PD.Numeric(1.0, { min: 0.01, max: 1000, step: 0.01 })
+        unitsStyle: PD.Select('real', PD.arrayToOptions(['real', 'metal', 'si', 'cgs', 'electron', 'micro', 'nano', 'lj'])),
     }
 })({
     apply({ a, params }) {
         return Task.create('Parse Lammps Data', async ctx => {
-            const parsed = await parseLammpTrajectory(a.data).runInContext(ctx);
+            const parsed = await parseLammpsTrajectory(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
-            const models = await trajectoryFromLammpsTrajectory(parsed.result, params.scale).runInContext(ctx);
+            const models = await trajectoryFromLammpsTrajectory(parsed.result, params.unitsStyle).runInContext(ctx);
             const props = trajectoryProps(models);
             return new SO.Molecule.Trajectory(models, props);
         });
