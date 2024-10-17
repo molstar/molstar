@@ -28,7 +28,6 @@ import { MVSData } from './mvs-data';
 import { validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
 import { MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree, MolstarTreeSchema } from './tree/molstar/molstar-tree';
-import { MVSPrimitive } from './tree/mvs/mvs-primitives';
 import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 

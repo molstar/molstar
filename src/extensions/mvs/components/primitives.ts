@@ -11,7 +11,6 @@ import { Text } from '../../../mol-geo/geometry/text/text';
 import { TextBuilder } from '../../../mol-geo/geometry/text/text-builder';
 import { Box3D, Sphere3D } from '../../../mol-math/geometry';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
-import { Loci } from '../../../mol-model/loci';
 import { Shape } from '../../../mol-model/shape';
 import { Structure, StructureElement, StructureSelection } from '../../../mol-model/structure';
 import { StructureQueryHelper } from '../../../mol-plugin-state/helpers/structure-query';
@@ -27,11 +26,10 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { capitalize } from '../../../mol-util/string';
 import { rowsToExpression, rowToExpression } from '../helpers/selections';
 import { collectMVSReferences, decodeColor } from '../helpers/utils';
-import { ValueFor } from '../tree/generic/params-schema';
 import { MolstarNode, MolstarSubtree } from '../tree/molstar/molstar-tree';
 import { MVSPrimitive, MVSPrimitiveOptions, MVSPrimitiveParams } from '../tree/mvs/mvs-primitives';
 import { MVSNode } from '../tree/mvs/mvs-tree';
-import { isComponentExpression, isPrimitiveComponentExpressions, isVector3, PrimitiveComponentExpressionT, PrimitivePositionT } from '../tree/mvs/param-types';
+import { isComponentExpression, isPrimitiveComponentExpressions, isVector3, PrimitivePositionT } from '../tree/mvs/param-types';
 import { MVSTransform } from './annotation-structure-component';
 
 export function getPrimitiveStructureRefs(primitives: MolstarSubtree<'primitives'>) {
