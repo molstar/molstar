@@ -26,7 +26,7 @@ export const StructureTypeT = literal('model', 'assembly', 'symmetry', 'symmetry
 export const ComponentSelectorT = literal('all', 'polymer', 'protein', 'nucleic', 'branched', 'ligand', 'ion', 'water');
 
 /** `selector` parameter values for `component` node in MVS tree */
-const _ComponentBase = {
+export const ComponentExpressionT = iots.partial({
     label_entity_id: str,
     label_asym_id: str,
     auth_asym_id: str,
@@ -42,9 +42,8 @@ const _ComponentBase = {
     type_symbol: str,
     atom_id: int,
     atom_index: int,
-};
-
-export const ComponentExpressionT = iots.partial(_ComponentBase);
+});
+export type ComponentExpressionT = ValueFor<typeof ComponentExpressionT>
 
 /** `type` parameter values for `representation` node in MVS tree */
 export const RepresentationTypeT = literal('ball_and_stick', 'cartoon', 'surface');
@@ -57,16 +56,21 @@ export const SchemaFormatT = literal('cif', 'bcif', 'json');
 
 /** Parameter values for vector params, e.g. `position` */
 export const Vector3 = tuple([float, float, float]);
+export type Vector3 = ValueFor<typeof Vector3>
 
 /** Parameter values for matrix params, e.g. `rotation` */
 export const Matrix = list(float);
 
 /** Primitives-related types */
-export const PrimitiveComponentExpressionT = iots.partial({ structure_ref: str, ..._ComponentBase });
-export const PositionT = iots.union([Vector3, PrimitiveComponentExpressionT, list(PrimitiveComponentExpressionT)]);
+export const PrimitiveComponentExpressionT = iots.partial({ structure_ref: str, expression_schema: SchemaT, expressions: list(ComponentExpressionT) });
+export type PrimitiveComponentExpressionT = ValueFor<typeof PrimitiveComponentExpressionT>
+export const PrimitivePositionT = iots.union([Vector3, ComponentExpressionT, list(PrimitiveComponentExpressionT)]);
+export type PrimitivePositionT = ValueFor<typeof PrimitivePositionT>
+
 export const FloatList = list(float);
 export const IntList = list(int);
 export const StrList = list(str);
+
 
 /** `color` parameter values for `color` node in MVS tree */
 export const HexColorT = new iots.Type<HexColor>(
@@ -81,3 +85,16 @@ export const ColorNamesT = literal(...Object.keys(ColorNames) as (keyof ColorNam
 
 /** `color` parameter values for `color` node in MVS tree */
 export const ColorT = union([HexColorT, ColorNamesT]);
+
+/** Type helpers */
+export function isVector3(x: any): x is Vector3 {
+    return !!x && Array.isArray(x) && x.length === 3 && typeof x[0] === 'number';
+}
+
+export function isPrimitiveComponentExpressions(x: any): x is PrimitiveComponentExpressionT {
+    return !!x && Array.isArray(x.expressions);
+}
+
+export function isComponentExpression(x: any): x is ComponentExpressionT {
+    return !!x && typeof x === 'object' && !x.expressions;
+}

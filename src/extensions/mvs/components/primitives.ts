@@ -9,10 +9,11 @@ import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Text } from '../../../mol-geo/geometry/text/text';
 import { TextBuilder } from '../../../mol-geo/geometry/text/text-builder';
+import { Box3D, Sphere3D } from '../../../mol-math/geometry';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { Loci } from '../../../mol-model/loci';
 import { Shape } from '../../../mol-model/shape';
-import { Structure, StructureSelection } from '../../../mol-model/structure';
+import { Structure, StructureElement, StructureSelection } from '../../../mol-model/structure';
 import { StructureQueryHelper } from '../../../mol-plugin-state/helpers/structure-query';
 import { PluginStateObject as SO } from '../../../mol-plugin-state/objects';
 import { PluginContext } from '../../../mol-plugin/context';
@@ -30,7 +31,7 @@ import { ValueFor } from '../tree/generic/params-schema';
 import { MolstarNode, MolstarSubtree } from '../tree/molstar/molstar-tree';
 import { MVSPrimitive, MVSPrimitiveOptions, MVSPrimitiveParams } from '../tree/mvs/mvs-primitives';
 import { MVSNode } from '../tree/mvs/mvs-tree';
-import { PrimitiveComponentExpressionT } from '../tree/mvs/param-types';
+import { isComponentExpression, isPrimitiveComponentExpressions, isVector3, PrimitiveComponentExpressionT, PrimitivePositionT } from '../tree/mvs/param-types';
 import { MVSTransform } from './annotation-structure-component';
 
 export function getPrimitiveStructureRefs(primitives: MolstarSubtree<'primitives'>) {
@@ -144,9 +145,6 @@ export const MVSBuildPrimitiveShape = MVSTransform({
 
 /* **************************************************** */
 
-type PrimitiveComponentExpression = ValueFor<typeof PrimitiveComponentExpressionT>
-type MVSPositionT = [number, number, number] | PrimitiveComponentExpression | PrimitiveComponentExpression[]
-
 class GroupManager {
     private current = -1;
     groupToNodeMap = new Map<number, MVSNode<'primitive'>>();
@@ -193,7 +191,7 @@ interface PrimitiveBuilderContext {
     structureRefs: Record<string, Structure | undefined>;
     primitives: MolstarNode<'primitive'>[];
     options: MVSPrimitiveOptions;
-    positionCache: Map<string, Vec3>;
+    positionCache: Map<string, [Sphere3D, Box3D]>;
     instances: Mat4[] | undefined;
 }
 
@@ -236,18 +234,9 @@ function getPrimitives(primitives: MolstarSubtree<'primitives'>) {
     return (primitives.children ?? []).filter(c => c.kind === 'primitive') as unknown as MolstarNode<'primitive'>[];
 }
 
-
-function addRef(position: MVSPositionT, refs: Set<string>) {
-    if (Array.isArray(position)) {
-        if (typeof position[0] === 'number') {
-            return;
-        }
-        for (const p of position as PrimitiveComponentExpression[]) {
-            if (p.structure_ref) refs.add(p.structure_ref);
-        }
-    }
-    if ((position as PrimitiveComponentExpression).structure_ref) {
-        refs.add((position as PrimitiveComponentExpression).structure_ref!);
+function addRef(position: PrimitivePositionT, refs: Set<string>) {
+    if (isPrimitiveComponentExpressions(position) && position.structure_ref) {
+        refs.add(position.structure_ref);
     }
 }
 
@@ -261,25 +250,35 @@ function hasPrimitiveLabels(primitives: MolstarSubtree<'primitives'>) {
     return false;
 }
 
-function resolvePosition(context: PrimitiveBuilderContext, position: MVSPositionT, target: Vec3) {
-    let expr: Expression;
+function resolveBasePosition(context: PrimitiveBuilderContext, position: PrimitivePositionT, targetPosition: Vec3) {
+    return resolvePosition(context, position, targetPosition, undefined, undefined);
+}
+
+const _EmptySphere = Sphere3D.zero();
+const _EmptyBox = Box3D.zero();
+
+function resolvePosition(context: PrimitiveBuilderContext, position: PrimitivePositionT, targetPosition: Vec3 | undefined, targetSphere: Sphere3D | undefined, targetBox: Box3D | undefined) {
+    let expr: Expression | undefined;
     let pivotRef: string | undefined;
-    if (Array.isArray(position)) {
-        if (typeof position[0] === 'number') {
-            return Vec3.copy(target, position as Vec3);
-        }
-        if (position.length === 0) return Vec3.set(target, 0, 0, 0);
 
-        const exprs = position as PrimitiveComponentExpression[];
-        pivotRef = exprs[0].structure_ref;
-        for (const e of exprs) {
-            if (pivotRef !== e.structure_ref) throw new Error('All position expressions must point to the same structure');
-        }
+    if (isVector3(position)) {
+        if (targetPosition) Vec3.copy(targetPosition, position as any);
+        if (targetSphere) Sphere3D.set(targetSphere, position as any, 0);
+        if (targetBox) Box3D.set(targetBox, position as any, position as any);
+        return;
+    }
 
-        expr = rowsToExpression(position as any);
-    } else {
+    if (isPrimitiveComponentExpressions(position)) {
+        // TODO: take schema into account for possible optimization
+        expr = rowsToExpression(position.expressions!);
         pivotRef = position.structure_ref;
-        expr = rowToExpression(position as any);
+    } else if (isComponentExpression(position)) {
+        expr = rowToExpression(position);
+    }
+
+    if (!expr) {
+        console.error('Invalid expression', position);
+        throw new Error('Invalid primitive potition expression, see console for details.');
     }
 
     const pivot = !pivotRef ? context.defaultStructure : context.structureRefs[pivotRef];
@@ -287,23 +286,36 @@ function resolvePosition(context: PrimitiveBuilderContext, position: MVSPosition
         throw new Error(`Structure with ref '${pivotRef ?? '<default>'}' not found.`);
     }
 
-    if (!pivot) return Vec3.set(target, 0, 0, 0);
-
     const cackeKey = JSON.stringify(position);
     if (context.positionCache.has(cackeKey)) {
-        return Vec3.copy(target, context.positionCache.get(cackeKey)!);
+        const cached = context.positionCache.get(cackeKey)!;
+        if (targetPosition) Vec3.copy(targetPosition, cached[0].center);
+        if (targetSphere) Sphere3D.copy(targetSphere, cached[0]);
+        if (targetBox) Box3D.copy(targetBox, cached[1]);
+        return;
     }
 
     const { selection } = StructureQueryHelper.createAndRun(pivot, expr);
 
+    let box: Box3D;
+    let sphere: Sphere3D;
+
     if (StructureSelection.isEmpty(selection)) {
-        Vec3.set(target, 0, 0, 0);
+        if (targetPosition) Vec3.set(targetPosition, 0, 0, 0);
+        box = _EmptyBox;
+        sphere = _EmptySphere;
     } else {
         const loci = StructureSelection.toLociWithSourceUnits(selection);
-        Loci.getCenter(loci, target);
+        const boundary = StructureElement.Loci.getBoundary(loci);
+        if (targetPosition) Vec3.copy(targetPosition, boundary.sphere.center);
+        box = boundary.box;
+        sphere = boundary.sphere;
     }
 
-    context.positionCache.set(cackeKey, Vec3.clone(target));
+    if (targetSphere) Sphere3D.copy(targetSphere, sphere);
+    if (targetBox) Box3D.copy(targetBox, box);
+
+    context.positionCache.set(cackeKey, [sphere, box]);
 }
 
 function getInstances(options: MVSPrimitiveOptions | undefined): Mat4[] | undefined {
@@ -418,8 +430,8 @@ const lEnd = Vec3.zero();
 
 function addLineMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'line'>, options?: { skipResolvePosition?: boolean }) {
     if (!options?.skipResolvePosition) {
-        resolvePosition(context, params.start, lStart);
-        resolvePosition(context, params.end, lEnd);
+        resolveBasePosition(context, params.start, lStart);
+        resolveBasePosition(context, params.end, lEnd);
     }
     const radius = params.thickness ?? 0.05;
 
@@ -445,8 +457,8 @@ function addLineMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBui
 }
 
 function getDistanceLabel(context: PrimitiveBuilderContext, params: MVSPrimitiveParams<'distance_measurement'>) {
-    resolvePosition(context, params.start, lStart);
-    resolvePosition(context, params.end, lEnd);
+    resolveBasePosition(context, params.start, lStart);
+    resolveBasePosition(context, params.end, lEnd);
 
     const dist = Vec3.distance(lStart, lEnd);
     const distance = `${round(dist, 2)} Å`;
@@ -464,8 +476,8 @@ const labelPos = Vec3.zero();
 
 function addDistanceLabel(context: PrimitiveBuilderContext, state: LabelBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'distance_measurement'>) {
     const { labels, groups } = state;
-    resolvePosition(context, params.start, lStart);
-    resolvePosition(context, params.end, lEnd);
+    resolveBasePosition(context, params.start, lStart);
+    resolveBasePosition(context, params.end, lEnd);
 
     const dist = Vec3.distance(lStart, lEnd);
     const distance = `${round(dist, 2)} Å`;
@@ -494,7 +506,7 @@ function resolveLabelRefs(params: MVSPrimitiveParams<'label'>, refs: Set<string>
 
 function addPrimitiveLabel(context: PrimitiveBuilderContext, state: LabelBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'label'>) {
     const { labels, groups } = state;
-    resolvePosition(context, params.position, labelPos);
+    resolveBasePosition(context, params.position, labelPos);
 
     const group = groups.allocateSingle(node);
     groups.updateColor(group, params.label_color);

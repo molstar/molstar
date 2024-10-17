@@ -6,13 +6,13 @@
 
 import { float, int, literal, mapping, nullable, obj, str, union, ValueFor } from '../generic/params-schema';
 import type { MVSNode } from './mvs-tree';
-import { ColorT, FloatList, IntList, PositionT, StrList } from './param-types';
+import { ColorT, FloatList, IntList, PrimitivePositionT, StrList } from './param-types';
 
 // TODO: Figure out validation and default values for these
 
 const _LineBase = {
-    start: PositionT,
-    end: PositionT,
+    start: PrimitivePositionT,
+    end: PrimitivePositionT,
     thickness: nullable(float),
     color: nullable(ColorT),
     dash_start: nullable(float),
@@ -49,7 +49,7 @@ const DistanceMeasurementParams = obj({
 
 const PrimitiveLabelParams = obj({
     kind: literal('label'),
-    position: PositionT,
+    position: PrimitivePositionT,
     text: str,
     label_size: nullable(float),
     label_color: nullable(ColorT),
