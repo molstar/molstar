@@ -219,7 +219,7 @@ export class IlluminationPass {
 
         //
 
-        this.transparentTarget.bind();
+        this.tracing.composeTarget.bind();
         state.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
         if (isTimingMode) this.webgl.timer.markEnd('IlluminationPass.renderInput');
