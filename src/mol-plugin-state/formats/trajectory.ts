@@ -78,6 +78,10 @@ export const CifCoreProvider: TrajectoryFormatProvider = {
 function directTrajectory<P extends {}>(transformer: StateTransformer<PluginStateObject.Data.String | PluginStateObject.Data.Binary, PluginStateObject.Molecule.Trajectory, P>, transformerParams?: P): TrajectoryFormatProvider['parse'] {
     return async (plugin, data, params) => {
         const state = plugin.state.data;
+        // I dont think this is correct, but I'm not sure what the correct way to do this is
+        if (transformerParams === undefined) {
+            transformerParams = params as P;
+        }
         const trajectory = await state.build().to(data)
             .apply(transformer, transformerParams, { tags: params?.trajectoryTags })
             .commit({ revertOnError: true });
@@ -109,6 +113,24 @@ export const XyzProvider: TrajectoryFormatProvider = {
     category: TrajectoryFormatCategory,
     stringExtensions: ['xyz'],
     parse: directTrajectory(StateTransforms.Model.TrajectoryFromXYZ),
+    visuals: defaultVisuals
+};
+
+export const LammpsDataProvider: TrajectoryFormatProvider = {
+    label: 'Lammps Data',
+    description: 'Lammps Data',
+    category: TrajectoryFormatCategory,
+    stringExtensions: ['data'],
+    parse: directTrajectory(StateTransforms.Model.TrajectoryFromLammpsData),
+    visuals: defaultVisuals
+};
+
+export const LammpsTrajDataProvider: TrajectoryFormatProvider = {
+    label: 'Lammps Traj Data',
+    description: 'Lammps Traj Data',
+    category: TrajectoryFormatCategory,
+    stringExtensions: ['lammpstrj'],
+    parse: directTrajectory(StateTransforms.Model.TrajectoryFromLammpsTrajData),
     visuals: defaultVisuals
 };
 
@@ -156,6 +178,8 @@ export const BuiltInTrajectoryFormats = [
     ['pdbqt', PdbqtProvider] as const,
     ['gro', GroProvider] as const,
     ['xyz', XyzProvider] as const,
+    ['lammps_data', LammpsDataProvider] as const,
+    ['lammps_traj_data', LammpsTrajDataProvider] as const,
     ['mol', MolProvider] as const,
     ['sdf', SdfProvider] as const,
     ['mol2', Mol2Provider] as const,
