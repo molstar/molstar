@@ -51,6 +51,12 @@ describe('sortedArray', () => {
     test('predIndex4', SortedArray.findPredecessorIndex(a2468, 3), 1);
     test('predIndexInt', SortedArray.findPredecessorIndexInInterval(a1234, 0, Interval.ofRange(2, 3)), 2);
 
+    const aDuplSmall = SortedArray.ofSortedArray([1, ...new Array(2).fill(3), 3]);
+    test('predIndexDuplSmall', SortedArray.findPredecessorIndex(aDuplSmall, 2), 1);
+
+    const aDuplBig = SortedArray.ofSortedArray([1, ...new Array(333).fill(2), ...new Array(666).fill(3), 4]);
+    test('predIndexDuplBig', SortedArray.findPredecessorIndex(aDuplBig, 3), 334);
+
     testI('findRange', SortedArray.findRange(a2468, 2, 4), Interval.ofRange(0, 1));
 
     it('deduplicate', () => {
