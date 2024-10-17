@@ -1,10 +1,12 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { hashString } from '../../../mol-data/util';
+import { StateObject } from '../../../mol-state';
 import { Color } from '../../../mol-util/color';
 import { ColorNames } from '../../../mol-util/color/names';
 
@@ -97,8 +99,8 @@ export type ElementOfSet<S> = S extends Set<infer T> ? T : never
 
 /** Convert `colorString` (either X11 color name like 'magenta' or hex code like '#ff00ff') to Color.
  * Return `undefined` if `colorString` cannot be converted. */
-export function decodeColor(colorString: string | undefined): Color | undefined {
-    if (colorString === undefined) return undefined;
+export function decodeColor(colorString: string | undefined | null): Color | undefined {
+    if (colorString === undefined || colorString === null) return undefined;
     let result: Color | undefined;
     if (HexColor.is(colorString)) {
         if (colorString.length === 4) {
@@ -125,3 +127,27 @@ export const HexColor = {
         return typeof str === 'string' && hexColorRegex.test(str);
     },
 };
+
+export function collectMVSReferences<T extends StateObject.Ctor>(type: T[], dependencies: Record<string, StateObject>): Record<string, StateObject.From<T>['data']> {
+    const ret: any = {};
+
+    for (const key of Object.keys(dependencies)) {
+        const o = dependencies[key];
+        let okType = false;
+        for (const t of type) {
+            if (t.is(o)) {
+                okType = true;
+                break;
+            }
+        }
+        if (!okType || !o.tags) continue;
+        for (const tag of o.tags) {
+            if (tag.startsWith('mvs-ref:')) {
+                ret[tag.substring(8)] = o.data;
+                break;
+            }
+        }
+    }
+
+    return ret;
+}

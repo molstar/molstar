@@ -686,4 +686,14 @@ export namespace ParamDefinition {
         }
         return options.length > 0 ? options[0][0] : void 0 as any as T;
     }
+
+    export function withDefaults<T extends Params>(schema: T, updates: Partial<ValuesFor<T>>): T {
+        const next: any = {};
+        for (const k of Object.keys(updates)) {
+            const v = (updates as any)[k];
+            if (!schema[k] || v === null || v === undefined || schema[k].defaultValue === v) continue;
+            next[k] = { ...schema[k], defaultValue: v };
+        }
+        return { ...schema, ...next };
+    }
 }

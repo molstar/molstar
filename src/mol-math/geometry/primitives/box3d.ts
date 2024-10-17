@@ -27,6 +27,12 @@ namespace Box3D {
         return out;
     }
 
+    export function set(out: Box3D, min: Vec3, max: Vec3): Box3D {
+        Vec3.copy(out.min, min);
+        Vec3.copy(out.max, max);
+        return out;
+    }
+
     export function clone(a: Box3D): Box3D {
         return copy(zero(), a);
     }

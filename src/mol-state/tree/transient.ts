@@ -203,6 +203,25 @@ class TransientTree implements StateTree {
         return true;
     }
 
+    setDependsOn(ref: StateTransform.Ref, dependsOn: string | string[] | undefined) {
+        ensurePresent(this.transforms, ref);
+
+        const transform = this.transforms.get(ref)!;
+
+        const withDependsOn = StateTransform.withDependsOn(transform, dependsOn);
+        if (arrayEqual(transform.dependsOn, withDependsOn.dependsOn)) {
+            return false;
+        }
+
+        if (!this.changedNodes) {
+            this.changedNodes = true;
+            this.transforms = this.transforms.asMutable();
+        }
+
+        this.transforms.set(transform.ref, withDependsOn);
+        return true;
+    }
+
     assignState(ref: StateTransform.Ref, state?: Partial<StateTransform.State>) {
         ensurePresent(this.transforms, ref);
 
