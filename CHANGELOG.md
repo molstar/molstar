@@ -12,7 +12,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix StructureElement.Loci.isSubset() only considers common units (#1292)
 - Fix `Scene.opacityAverage` calculation never 1
 - MolViewSpec: Support for transparency and custom properties
-- MolViewSpec: MVP Support for geometrical primitives (mesh, line, label, distance measurement)
+- MolViewSpec: MVP Support for geometrical primitives (mesh, lines, line, label, distance measurement)
 
 
 ## [v4.7.1] - 2024-09-30

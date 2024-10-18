@@ -249,6 +249,7 @@ const Builders: Record<MVSPrimitive['kind'], [
         mesh: (m: MVSPrimitiveParams<'mesh'>) => m.show_triangles ?? true,
         line: (m: MVSPrimitiveParams<'mesh'>) => m.show_wireframe ?? false,
     }],
+    lines: [addMesh, addLines, noOp, { line: true }],
     line: [addLineMesh, noOp, noOp, { mesh: true, refs: resolveLineRefs }],
     label: [noOp, noOp, addPrimitiveLabel, { label: true, refs: resolveLabelRefs }],
     distance_measurement: [addDistanceMesh, noOp, addDistanceLabel, { mesh: true, label: true, refs: resolveLineRefs }],
@@ -433,7 +434,7 @@ function buildPrimitiveLabels(context: PrimitiveBuilderContext, prev?: Text): Sh
     }
 
     const color = decodeColor(context.options?.label_color) ?? 0x0;
-    const { colors, sizes } = state.groups;
+    const { colors, sizes, tooltips } = state.groups;
 
     return Shape.create(
         'Labels',
@@ -445,7 +446,7 @@ function buildPrimitiveLabels(context: PrimitiveBuilderContext, prev?: Text): Sh
         labelsBuilder.getText(),
         (g) => colors.get(g) as Color ?? color as Color,
         (g) => sizes.get(g) ?? 1,
-        (g) => '',
+        (g) => tooltips.get(g) ?? '',
         context.instances,
     );
 }
@@ -467,11 +468,12 @@ function addMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilder
         if (groupSet) {
             const grp = triangle_groups![i];
             mesh.currentGroup = groupSet.get(grp)!;
-            groups.updateColor(mesh.currentGroup, group_colors?.[grp]);
+            groups.updateColor(mesh.currentGroup, group_colors?.[grp] ?? params.color);
             groups.updateTooltip(mesh.currentGroup, group_tooltips?.[grp]);
         } else {
             mesh.currentGroup = groups.allocateSingle(node);
-            groups.updateColor(mesh.currentGroup, triangle_colors?.[i]);
+            groups.updateColor(mesh.currentGroup, triangle_colors?.[i] ?? params.color);
+            groups.updateTooltip(mesh.currentGroup, params.tooltip);
         }
 
         Vec3.fromArray(a, vertices, 3 * indices[3 * i]);
@@ -504,6 +506,7 @@ function addMeshWireframe(context: PrimitiveBuilderContext, { groups, lines }: L
         } else {
             group = groups.allocateSingle(node);
             groups.updateColor(group, params.wireframe_color ?? triangle_colors?.[i]);
+            groups.updateTooltip(group, params.tooltip);
         }
 
         groups.updateSize(group, radius);
@@ -515,6 +518,36 @@ function addMeshWireframe(context: PrimitiveBuilderContext, { groups, lines }: L
         lines.add(a[0], a[1], a[2], b[0], b[1], b[2], group);
         lines.add(b[0], b[1], b[2], c[0], c[1], c[2], group);
         lines.add(c[0], c[1], c[2], a[0], a[1], a[2], group);
+    }
+}
+
+function addLines(context: PrimitiveBuilderContext, { groups, lines }: LineBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'lines'>) {
+    const a = Vec3.zero();
+    const b = Vec3.zero();
+
+    const { indices, vertices, line_colors, line_groups, group_colors, group_tooltips, group_radius } = params;
+
+    const groupSet: Map<number, number> | undefined = line_groups?.length ? groups.allocateMany(node, line_groups) : undefined;
+    const radius = params.line_radius ?? 1;
+
+    for (let i = 0, _i = indices.length / 2; i < _i; i++) {
+        let group: number;
+        if (groupSet) {
+            const grp = line_groups![i];
+            group = groupSet.get(grp)!;
+            groups.updateColor(group, group_colors?.[grp] ?? params.color);
+            groups.updateTooltip(group, group_tooltips?.[grp]);
+            groups.updateSize(group, group_radius?.[grp] ?? radius);
+        } else {
+            group = groups.allocateSingle(node);
+            groups.updateColor(group, line_colors?.[i] ?? params.color);
+            groups.updateSize(group, radius);
+            groups.updateTooltip(group, params.tooltip);
+        }
+
+        Vec3.fromArray(a, vertices, 3 * indices[2 * i]);
+        Vec3.fromArray(b, vertices, 3 * indices[2 * i + 1]);
+        lines.add(a[0], a[1], a[2], b[0], b[1], b[2], group);
     }
 }
 
@@ -545,7 +578,6 @@ function addLineMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBui
     groups.updateTooltip(mesh.currentGroup, params.tooltip);
 
     if (params.dash_length) {
-        // TODO: support other dash params
         const dist = Vec3.distance(lStart, lEnd);
         const count = Math.ceil(dist / (2 * params.dash_length));
         addFixedCountDashedCylinder(mesh, lStart, lEnd, 1.0, count, true, cylinderProps);

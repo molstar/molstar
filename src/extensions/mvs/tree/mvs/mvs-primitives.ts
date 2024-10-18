@@ -15,9 +15,7 @@ const _LineBase = {
     end: PrimitivePositionT,
     thickness: nullable(float),
     color: nullable(ColorT),
-    dash_start: nullable(float),
     dash_length: nullable(float),
-    gap_length: nullable(float),
 };
 
 const MeshParams = obj({
@@ -31,8 +29,23 @@ const MeshParams = obj({
     tooltip: nullable(str),
     show_triangles: nullable(bool),
     show_wireframe: nullable(bool),
+    color: nullable(ColorT),
     wireframe_radius: nullable(float),
     wireframe_color: nullable(ColorT),
+});
+
+const LinesParams = obj({
+    kind: literal('lines'),
+    vertices: FloatList,
+    indices: IntList,
+    line_colors: nullable(StrList),
+    line_groups: nullable(IntList),
+    group_colors: nullable(mapping(int, ColorT)),
+    group_tooltips: nullable(mapping(int, str)),
+    group_radius: nullable(mapping(int, float)),
+    tooltip: nullable(str),
+    color: nullable(ColorT),
+    line_radius: nullable(float),
 });
 
 const LineParams = obj({
@@ -60,7 +73,7 @@ const PrimitiveLabelParams = obj({
     label_offset: nullable(float),
 });
 
-export const MVSPrimitiveParams = union([MeshParams, LineParams, DistanceMeasurementParams, PrimitiveLabelParams]);
+export const MVSPrimitiveParams = union([MeshParams, LinesParams, LineParams, DistanceMeasurementParams, PrimitiveLabelParams]);
 
 export type MVSPrimitive = ValueFor<typeof MVSPrimitiveParams>
 export type MVSPrimitiveKind = MVSPrimitive['kind']
