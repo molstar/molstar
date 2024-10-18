@@ -118,22 +118,23 @@ function binarySearchPredIndexRange(xs: Nums, query: number, start: number, end:
     if (start === end) return start;
     if (xs[start] >= query) return start;
     if (xs[end - 1] < query) return end;
-    // Invariants: xs[i] < query for each i < start, xs[i] >= query for each i >= end
-    while (end - start > 4) {
-        const mid = (start + end) >> 1;
+    // Invariants: xs[i] < query for each i < min, xs[i] >= query for each i >= max
+    let min = start, max = end;
+    while (max - min > 4) {
+        const mid = (min + max) >> 1;
         if (xs[mid] >= query) {
-            end = mid;
+            max = mid;
         } else {
-            start = mid + 1;
+            min = mid + 1;
         }
     }
     // Linear search remaining elements:
-    for (let i = start; i < end; i++) {
+    for (let i = min; i < max; i++) {
         if (xs[i] >= query) {
             return i;
         }
     }
-    return end;
+    return max;
 }
 
 export function areIntersecting(a: Nums, b: Nums) {
