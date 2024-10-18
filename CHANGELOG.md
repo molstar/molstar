@@ -11,6 +11,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix backfaces visible using blended transparency on impostors (#1285)
 - Fix StructureElement.Loci.isSubset() only considers common units (#1292)
 - Fix `Scene.opacityAverage` calculation never 1
+- Fix `findPredecessorIndex` bug when repeating values
 - MolViewSpec: Support for transparency and custom properties
 - MolViewSpec: MVP Support for geometrical primitives (mesh, lines, line, label, distance measurement)
 
