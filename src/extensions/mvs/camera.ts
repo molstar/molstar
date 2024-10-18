@@ -18,6 +18,7 @@ import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectSelector } from '../../mol-state';
 import { ColorNames } from '../../mol-util/color/names';
+import { MVSPrimitivesData } from './components/primitives';
 import { decodeColor } from './helpers/utils';
 import { MolstarNodeParams } from './tree/molstar/molstar-tree';
 import { MVSDefaults } from './tree/mvs/mvs-defaults';
@@ -91,8 +92,16 @@ export async function setFocus(plugin: PluginContext, structureNodeSelector: Sta
         if (!data) console.warn('Focus: no structure');
         if (data instanceof Structure) {
             boundingSphere = Loci.getBoundingSphere(Structure.Loci(data));
-        } else if (typeof data === 'object' && Array.isArray(data.repr?.renderObjects)) {
-            boundingSphere = getRenderObjectsBoundary(data.repr?.renderObjects);
+        } else if (PluginStateObject.isRepresentation3D(cell?.obj)) {
+            boundingSphere = getRenderObjectsBoundary(cell.obj.data.repr.renderObjects);
+        } else if (MVSPrimitivesData.is(cell?.obj)) {
+            const representations = plugin.state.data.selectQ(q =>
+                q.byRef(cell.transform.ref).subtree().filter(c => PluginStateObject.isRepresentation3D(c?.obj))
+            );
+            const renderObjects = representations.flatMap(r => r.obj?.data?.repr?.renderObjects ?? []);
+            if (renderObjects.length) {
+                boundingSphere = getRenderObjectsBoundary(renderObjects);
+            }
         } else {
             console.warn('Focus: cannot apply to the specified node type');
         }

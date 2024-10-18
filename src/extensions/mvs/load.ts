@@ -257,10 +257,12 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
 
 function applyPrimitiveVisuals(data: UpdateTarget, refs: Set<string>) {
     const mesh = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'mesh' }, { state: { isGhost: true } }), refs);
-    const meshVisual = UpdateTarget.apply(mesh, ShapeRepresentation3D);
+    UpdateTarget.apply(mesh, ShapeRepresentation3D);
     const labels = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'labels' }, { state: { isGhost: true } }), refs);
     UpdateTarget.apply(labels, ShapeRepresentation3D);
-    return meshVisual;
+    const lines = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'lines' }, { state: { isGhost: true } }), refs);
+    UpdateTarget.apply(lines, ShapeRepresentation3D);
+    return data;
 }
 
 export type MolstarLoadingExtension<TExtensionContext> = LoadingExtension<MolstarTree, MolstarLoadingContext, TExtensionContext>;

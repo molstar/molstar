@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { float, int, literal, mapping, nullable, obj, str, union, ValueFor } from '../generic/params-schema';
+import { bool, float, int, literal, mapping, nullable, obj, str, union, ValueFor } from '../generic/params-schema';
 import type { MVSNode } from './mvs-tree';
 import { ColorT, FloatList, IntList, PrimitivePositionT, StrList } from './param-types';
 
@@ -29,6 +29,10 @@ const MeshParams = obj({
     group_colors: nullable(mapping(int, ColorT)),
     group_tooltips: nullable(mapping(int, str)),
     tooltip: nullable(str),
+    show_triangles: nullable(bool),
+    show_wireframe: nullable(bool),
+    wireframe_radius: nullable(float),
+    wireframe_color: nullable(ColorT),
 });
 
 const LineParams = obj({
@@ -61,4 +65,4 @@ export const MVSPrimitiveParams = union([MeshParams, LineParams, DistanceMeasure
 export type MVSPrimitive = ValueFor<typeof MVSPrimitiveParams>
 export type MVSPrimitiveKind = MVSPrimitive['kind']
 export type MVSPrimitiveOptions = MVSNode<'primitives'>['params']
-export type MVSPrimitiveParams<T extends MVSPrimitiveKind> = Extract<MVSPrimitive, { kind: T }>
+export type MVSPrimitiveParams<T extends MVSPrimitiveKind = MVSPrimitiveKind> = Extract<MVSPrimitive, { kind: T }>
