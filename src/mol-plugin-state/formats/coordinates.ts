@@ -74,13 +74,32 @@ const NctrajProvider = DataFormatProvider({
 });
 type NctrajProvider = typeof NctrajProvider;
 
-export type CoordinatesProvider = DcdProvider | XtcProvider | TrrProvider;
+export { LammpstrajProvider };
+const LammpstrajProvider = DataFormatProvider({
+    label: 'LAMMPSTRAJ',
+    description: 'LAMMPSTRAJ',
+    category: CoordinatesFormatCategory,
+    stringExtensions: ['lammpstrj'],
+    parse: (plugin, data) => {
+        const coordinates = plugin.state.data.build()
+            .to(data)
+            .apply(StateTransforms.Model.CoordinatesFromLammpstraj);
+
+        return coordinates.commit();
+    }
+});
+type LammpstrajProvider = typeof LammpstrajProvider;
+
+
+
+export type CoordinatesProvider = DcdProvider | XtcProvider | TrrProvider | LammpstrajProvider;
 
 export const BuiltInCoordinatesFormats = [
     ['dcd', DcdProvider] as const,
     ['xtc', XtcProvider] as const,
     ['trr', TrrProvider] as const,
     ['nctraj', NctrajProvider] as const,
+    ['lammpstrj', LammpstrajProvider] as const,
 ] as const;
 
 export type BuiltInCoordinatesFormat = (typeof BuiltInCoordinatesFormats)[number][0]

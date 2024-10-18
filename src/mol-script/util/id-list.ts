@@ -62,6 +62,29 @@ function atomEntriesToQuery(xs: [number, number][]) {
     return compile(query) as StructureQuery;
 }
 
+function atomTypeNumberEntriesToQuery(xs: [number, number][]) {
+    const set = UniqueArray.create<string>();
+
+    for (const [a, b] of xs) {
+        for (let i = a; i <= b; i++) {
+            UniqueArray.add(set, i.toString(), i.toString());
+        }
+    }
+
+    const query = MS.struct.generator.atomGroups({
+        'atom-test': MS.core.set.has([MS.set(...set.array), MS.acp('elementSymbol')])
+    });
+
+    return compile(query) as StructureQuery;
+}
+
+function atomTypeStringEntriesToQuery(names: string[]) {
+    const query = MS.struct.generator.atomGroups({
+        'atom-test': MS.core.set.has([MS.set(...names), MS.acp('elementSymbol')])
+    });
+
+    return compile(query) as StructureQuery;
+}
 
 function parseRange(c: string, s: string[], e: number): ResidueListSelectionEntry | undefined {
     if (!c || s.length === 0 || Number.isNaN(+s[0])) return;
@@ -91,10 +114,18 @@ function parseAtomListSelection(input: string): [number, number][] {
 }
 
 // parses a list of residue ranges, e.g. A 10-100, B 30, C 12:i
-export function compileIdListSelection(input: string, idType: 'auth' | 'label' | 'atom-id') {
+export function compileIdListSelection(input: string, idType: 'auth' | 'label' | 'atom-id' | 'atom-type') {
     if (idType === 'atom-id') {
         const entries = parseAtomListSelection(input);
         return atomEntriesToQuery(entries);
+    } else if (idType === 'atom-type') {
+        const containsLetters = /[a-zA-Z]/.test(input);
+        if (containsLetters) {
+            return atomTypeStringEntriesToQuery(input.split(',').map(e => e.trim()));
+        } else {
+            const entries = parseAtomListSelection(input);
+            return atomTypeNumberEntriesToQuery(entries);
+        }
     } else {
         const entries = parseResidueListSelection(input);
         return residueEntriesToQuery(entries, idType);
