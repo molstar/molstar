@@ -122,7 +122,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
                 label,
                 data: context,
                 params: PD.withDefaults(Mesh.Params, { alpha: a.data.options?.transparency ?? 1 }),
-                getShape: (_, data, __, prev: any) => buildPrimitiveMesh(data, prev),
+                getShape: (_, data, __, prev: any) => buildPrimitiveMesh(data, prev?.geometry),
                 geometryUtils: Mesh.Utils,
             }, { label });
         } else if (params.kind === 'labels') {
@@ -132,7 +132,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
                 label,
                 data: context,
                 params: PD.withDefaults(DefaultLabelParams, { alpha: a.data.options?.label_transparency ?? 1 }),
-                getShape: (_, data, __, prev: any) => buildPrimitiveLabels(data, prev),
+                getShape: (_, data, __, prev: any) => buildPrimitiveLabels(data, prev?.geometry),
                 geometryUtils: Text.Utils,
             }, { label });
         }
