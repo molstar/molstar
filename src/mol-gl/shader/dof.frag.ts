@@ -52,7 +52,7 @@ float getDepthOpaque(const in vec2 coords) {
 
 // Retrieve depth from transparent depth texture
 float getDepthTransparent(const in vec2 coords) {
-    return unpackRGBAToDepth(texture2D(tDepthTransparent, coords));
+    return unpackRGBAToDepthWithAlpha(texture2D(tDepthTransparent, coords)).x;
 }
 
 bool isBackground(const in float depth) {
