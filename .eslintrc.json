@@ -37,6 +37,10 @@
             {
                 "selector": "ExportDefaultDeclaration",
                 "message": "Default exports are not allowed"
+            },
+            {
+                "selector": "TSEnumDeclaration[const=true]",
+                "message": "Don't declare const enums"
             }
         ],
         "no-throw-literal": "error",
