@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Camera } from '../../mol-canvas3d/camera';
@@ -17,6 +18,7 @@ import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectSelector } from '../../mol-state';
 import { ColorNames } from '../../mol-util/color/names';
+import { MVSPrimitivesData } from './components/primitives';
 import { decodeColor } from './helpers/utils';
 import { MolstarNodeParams } from './tree/molstar/molstar-tree';
 import { MVSDefaults } from './tree/mvs/mvs-defaults';
@@ -51,34 +53,62 @@ export async function setCamera(plugin: PluginContext, params: MolstarNodeParams
     await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
 }
 
+async function focusBoundingSphere(plugin: PluginContext, params: MolstarNodeParams<'focus'>, boundingSphere: Sphere3D | undefined, extraRadius: number) {
+    if (!plugin.canvas3d || !boundingSphere) return;
+
+    const direction = Vec3.create(...params.direction);
+    const up = Vec3.create(...params.up);
+    Vec3.orthogonalize(up, direction, up);
+    const snapshot = snapshotFromSphereAndDirections(plugin.canvas3d.camera, {
+        center: boundingSphere.center,
+        radius: boundingSphere.radius + extraRadius,
+        up,
+        direction,
+    });
+    resetSceneRadiusFactor(plugin);
+    await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
+}
+
+function getRenderObjectsBoundary(objects: ReadonlyArray<GraphicsRenderObject>) {
+    const spheres: Sphere3D[] = [];
+    for (const o of objects) {
+        const s = o.values.boundingSphere.ref.value;
+        if (s.radius === 0) continue;
+        spheres.push(s);
+    }
+    if (spheres.length === 0) return;
+    if (spheres.length === 1) return spheres[0];
+    return boundingSphereOfSpheres(spheres);
+}
+
 /** Focus the camera on the bounding sphere of a (sub)structure (or on the whole scene if `structureNodeSelector` is null).
- * Orient the camera based on a focus node params. */
+  * Orient the camera based on a focus node params.
+  **/
 export async function setFocus(plugin: PluginContext, structureNodeSelector: StateObjectSelector | undefined, params: MolstarNodeParams<'focus'> = MVSDefaults.focus) {
-    let structure: Structure | undefined = undefined;
+    let boundingSphere: Sphere3D | undefined = undefined;
     if (structureNodeSelector) {
         const cell = plugin.state.data.cells.get(structureNodeSelector.ref);
-        structure = cell?.obj?.data;
-        if (!structure) console.warn('Focus: no structure');
-        if (!(structure instanceof Structure)) {
-            console.warn('Focus: cannot apply to a non-structure node');
-            structure = undefined;
+        const data = cell?.obj?.data;
+        if (!data) console.warn('Focus: no structure');
+        if (data instanceof Structure) {
+            boundingSphere = Loci.getBoundingSphere(Structure.Loci(data));
+        } else if (PluginStateObject.isRepresentation3D(cell?.obj)) {
+            boundingSphere = getRenderObjectsBoundary(cell.obj.data.repr.renderObjects);
+        } else if (MVSPrimitivesData.is(cell?.obj)) {
+            const representations = plugin.state.data.selectQ(q =>
+                q.byRef(cell.transform.ref).subtree().filter(c => PluginStateObject.isRepresentation3D(c?.obj))
+            );
+            const renderObjects = representations.flatMap(r => r.obj?.data?.repr?.renderObjects ?? []);
+            if (renderObjects.length) {
+                boundingSphere = getRenderObjectsBoundary(renderObjects);
+            }
+        } else {
+            console.warn('Focus: cannot apply to the specified node type');
         }
     }
-    const boundingSphere = structure ? Loci.getBoundingSphere(Structure.Loci(structure)) : getPluginBoundingSphere(plugin);
-    if (boundingSphere && plugin.canvas3d) {
-        const extraRadius = structure ? DefaultFocusOptions.extraRadiusForFocus : DefaultFocusOptions.extraRadiusForZoomAll;
-        const direction = Vec3.create(...params.direction);
-        const up = Vec3.create(...params.up);
-        Vec3.orthogonalize(up, direction, up);
-        const snapshot = snapshotFromSphereAndDirections(plugin.canvas3d.camera, {
-            center: boundingSphere.center,
-            radius: boundingSphere.radius + extraRadius,
-            up,
-            direction,
-        });
-        resetSceneRadiusFactor(plugin);
-        await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
-    }
+    const extraRadius = boundingSphere ? DefaultFocusOptions.extraRadiusForFocus : DefaultFocusOptions.extraRadiusForZoomAll;
+    boundingSphere ??= getPluginBoundingSphere(plugin);
+    return focusBoundingSphere(plugin, params, boundingSphere, extraRadius);
 }
 
 /** Adjust `sceneRadiusFactor` property so that the current scene is not cropped */

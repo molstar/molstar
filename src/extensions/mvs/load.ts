@@ -8,7 +8,7 @@
 
 import { Download, ParseCif } from '../../mol-plugin-state/transforms/data';
 import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromMmCif, TrajectoryFromPDB, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
-import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
+import { ShapeRepresentation3D, StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectSelector } from '../../mol-state';
@@ -20,13 +20,14 @@ import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-
 import { CustomLabelProps, CustomLabelRepresentationProvider } from './components/custom-label/representation';
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
 import { IsMVSModelProps, IsMVSModelProvider } from './components/is-mvs-model-prop';
+import { getPrimitiveStructureRefs, MVSBuildPrimitiveShape, MVSDownloadPrimitiveData, MVSInlinePrimitiveData } from './components/primitives';
 import { NonCovalentInteractionsExtension } from './load-extensions/non-covalent-interactions';
-import { LoadingActions, LoadingExtension, UpdateTarget, loadTree } from './load-generic';
+import { LoadingActions, LoadingExtension, loadTree, UpdateTarget } from './load-generic';
 import { AnnotationFromSourceKind, AnnotationFromUriKind, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps } from './load-helpers';
 import { MVSData } from './mvs-data';
 import { validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
-import { MolstarNode, MolstarSubtree, MolstarTree, MolstarNodeParams, MolstarTreeSchema } from './tree/molstar/molstar-tree';
+import { MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree, MolstarTreeSchema } from './tree/molstar/molstar-tree';
 import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 
@@ -243,8 +244,26 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         context.canvas = node.params;
         return updateParent;
     },
+    primitives(updateParent: UpdateTarget, tree: MolstarSubtree<'primitives'>, context: MolstarLoadingContext): UpdateTarget {
+        const refs = getPrimitiveStructureRefs(tree);
+        const data = UpdateTarget.apply(updateParent, MVSInlinePrimitiveData, { node: tree });
+        return applyPrimitiveVisuals(data, refs);
+    },
+    primitives_from_uri(updateParent: UpdateTarget, tree: MolstarNode<'primitives_from_uri'>, context: MolstarLoadingContext): UpdateTarget {
+        const data = UpdateTarget.apply(updateParent, MVSDownloadPrimitiveData, { uri: tree.params.uri, format: tree.params.format });
+        return applyPrimitiveVisuals(data, new Set(tree.params.references ?? []));
+    },
 };
 
+function applyPrimitiveVisuals(data: UpdateTarget, refs: Set<string>) {
+    const mesh = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'mesh' }, { state: { isGhost: true } }), refs);
+    UpdateTarget.apply(mesh, ShapeRepresentation3D);
+    const labels = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'labels' }, { state: { isGhost: true } }), refs);
+    UpdateTarget.apply(labels, ShapeRepresentation3D);
+    const lines = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'lines' }, { state: { isGhost: true } }), refs);
+    UpdateTarget.apply(lines, ShapeRepresentation3D);
+    return data;
+}
 
 export type MolstarLoadingExtension<TExtensionContext> = LoadingExtension<MolstarTree, MolstarLoadingContext, TExtensionContext>;
 
