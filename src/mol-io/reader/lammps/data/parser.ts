@@ -24,17 +24,10 @@ function State(tokenizer: Tokenizer, runtimeCtx: RuntimeContext) {
 }
 type State = ReturnType<typeof State>
 
-async function handleAtoms(state: State, count: number, atom_style: string): Promise<LammpsDataFile['atoms']> {
+async function handleAtoms(state: State, count: number, atom_style: 'full' | 'atomic' | 'bond'): Promise<LammpsDataFile['atoms']> {
     const { tokenizer } = state;
     // default atom style is atomic
     // depending on the atom style the number of columns can change
-    // Dictionary of atom_style and the number of columns
-    const atomStyleColumnMap: Record<string, number> = {
-        full: 7,
-        atomic: 5,
-        bond: 6,
-    };
-    const n = atomStyleColumnMap[atom_style];
     const atomId = TokenBuilder.create(tokenizer.data, count * 2);
     const moleculeType = TokenBuilder.create(tokenizer.data, count * 2);
     const atomType = TokenBuilder.create(tokenizer.data, count * 2);
@@ -42,7 +35,12 @@ async function handleAtoms(state: State, count: number, atom_style: string): Pro
     const x = TokenBuilder.create(tokenizer.data, count * 2);
     const y = TokenBuilder.create(tokenizer.data, count * 2);
     const z = TokenBuilder.create(tokenizer.data, count * 2);
-
+    const columns = {
+        full: [atomId, moleculeType, atomType, charge, x, y, z],
+        atomic: [atomId, atomType, x, y, z],
+        bond: [atomId, moleculeType, atomType, x, y, z],
+    };
+    const n = columns[atom_style].length;
     const { position } = tokenizer;
     readLine(tokenizer).trim();
     tokenizer.position = position;
@@ -57,40 +55,9 @@ async function handleAtoms(state: State, count: number, atom_style: string): Pro
                 skipWhitespace(tokenizer);
                 markStart(tokenizer);
                 eatValue(tokenizer);
-                switch (atom_style) {
-                    case 'full': {
-                        switch (j) {
-                            case 0: TokenBuilder.addUnchecked(atomId, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                            case 1: TokenBuilder.addUnchecked(moleculeType, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                            case 2: TokenBuilder.addUnchecked(atomType, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                            case 3: TokenBuilder.addUnchecked(charge, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                            case 4: TokenBuilder.addUnchecked(x, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                            case 5: TokenBuilder.addUnchecked(y, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                            case 6: TokenBuilder.addUnchecked(z, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                        }
-                        break;
-                    }
-                    case 'atomic': {
-                        switch (j) {
-                            case 0: TokenBuilder.addUnchecked(atomId, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                            case 1: TokenBuilder.addUnchecked(atomType, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                            case 2: TokenBuilder.addUnchecked(x, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                            case 3: TokenBuilder.addUnchecked(y, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                            case 4: TokenBuilder.addUnchecked(z, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                        }
-                        break;
-                    }
-                    case 'bond': {
-                        switch (j) {
-                            case 0: TokenBuilder.addUnchecked(atomId, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                            case 1: TokenBuilder.addUnchecked(moleculeType, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                            case 2: TokenBuilder.addUnchecked(atomType, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                            case 3: TokenBuilder.addUnchecked(x, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                            case 4: TokenBuilder.addUnchecked(y, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                            case 5: TokenBuilder.addUnchecked(z, tokenizer.tokenStart, tokenizer.tokenEnd); break;
-                        }
-                        break;
-                    }
+                const column = columns[atom_style][j];
+                if (column) {
+                    TokenBuilder.addUnchecked(column, tokenizer.tokenStart, tokenizer.tokenEnd);
                 }
             }
             // ignore any extra columns

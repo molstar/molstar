@@ -128,7 +128,7 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
             // this line provide also the style of the output and will give the order of the columns
             const parts = line.split(' ').slice(2);
             const frame: LammpsFrame = await handleAtoms(state, numAtoms, parts);
-            frames?.push(frame);
+            frames.push(frame);
         } else if (line.includes('ITEM: BOX BOUNDS')) {
             /* we could parse the bounding box if needed */
             const tokens = line.split('ITEM: BOX BOUNDS ')[1].split(' ');

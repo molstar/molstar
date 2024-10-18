@@ -37,7 +37,7 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: s
         cx[offset] = atoms.x.value(j) * scale;
         cy[offset] = atoms.y.value(j) * scale;
         cz[offset] = atoms.z.value(j) * scale;
-        id[offset] = atoms.atomId.value(j);
+        id[offset] = atoms.atomId.value(j) - 1.0;
         model_num[offset] = 0;
         offset++;
     }
