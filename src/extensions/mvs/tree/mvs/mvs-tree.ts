@@ -2,11 +2,13 @@
  * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { OptionalField, RequiredField, float, int, list, nullable, str, tuple, union } from '../generic/params-schema';
+import { float, int, list, literal, nullable, OptionalField, RequiredField, str, tuple, union } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
-import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, RepresentationTypeT, SchemaFormatT, SchemaT, StructureTypeT, Vector3 } from './param-types';
+import { MVSPrimitiveParams } from './mvs-primitives';
+import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, RepresentationTypeT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
 
 
 const _DataFromUriParams = {
@@ -38,7 +40,6 @@ const _DataFromSourceParams = {
     /** Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...). The default value is 'color'/'label'/'tooltip'/'component' depending on the node type */
     field_name: OptionalField(str, 'Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...).'),
 };
-
 
 /** Schema for `MVSTree` (MolViewSpec tree) */
 export const MVSTreeSchema = TreeSchema({
@@ -230,7 +231,7 @@ export const MVSTreeSchema = TreeSchema({
         /** This node instructs to set the camera focus to a component (zoom in). */
         focus: {
             description: 'This node instructs to set the camera focus to a component (zoom in).',
-            parent: ['component', 'component_from_uri', 'component_from_source'],
+            parent: ['component', 'component_from_uri', 'component_from_source', 'primitives', 'primitives_from_uri'],
             params: {
                 /** Vector describing the direction of the view (camera position -> focused target). */
                 direction: OptionalField(Vector3, 'Vector describing the direction of the view (camera position -> focused target).'),
@@ -260,9 +261,37 @@ export const MVSTreeSchema = TreeSchema({
                 background_color: RequiredField(ColorT, 'Color of the canvas background. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
             },
         },
+        primitives: {
+            description: 'This node groups a list of geometrical primitives',
+            parent: ['structure', 'root'],
+            params: {
+                color: OptionalField(nullable(ColorT)),
+                label_color: OptionalField(nullable(ColorT)),
+                tooltip: OptionalField(nullable(str)),
+                transparency: OptionalField(nullable(float)),
+                label_transparency: OptionalField(nullable(float)),
+                instances: OptionalField(nullable(list(Matrix))),
+            },
+        },
+        primitives_from_uri: {
+            description: 'This node loads a list of primitives from URI',
+            parent: ['structure', 'root'],
+            params: {
+                uri: RequiredField(str),
+                format: RequiredField(literal('mvs-node-json')),
+                references: OptionalField(nullable(StrList)),
+            },
+        },
+        primitive: {
+            description: 'This node represents a geometrical primitive',
+            parent: ['primitives'],
+            params: {
+                // TODO: validation
+                _union_: RequiredField(MVSPrimitiveParams),
+            },
+        },
     }
 });
-
 
 /** Node kind in a `MVSTree` */
 export type MVSKind = keyof typeof MVSTreeSchema.nodes
