@@ -46,6 +46,7 @@ interface Args {
     output: string[],
     size: { width: number, height: number },
     molj: boolean,
+    no_extensions: boolean,
 }
 
 /** Return parsed command line arguments for `main` */
@@ -55,6 +56,7 @@ function parseArguments(): Args {
     parser.add_argument('-o', '--output', { required: true, nargs: '+', help: 'File path(s) for output files (one output path for each input file). Output format is inferred from the file extension (.png or .jpg)' });
     parser.add_argument('-s', '--size', { help: `Output image resolution, {width}x{height}. Default: ${DEFAULT_SIZE}.`, default: DEFAULT_SIZE });
     parser.add_argument('-m', '--molj', { action: 'store_true', help: `Save Mol* state (.molj) in addition to rendered images (use the same output file paths but with .molj extension)` });
+    parser.add_argument('-n', '--no-extensions', { action: 'store_true', help: `Do not apply builtin MVS-loading extensions (not a part of standard MVS specification)` });
     const args = parser.parse_args();
     try {
         const parts = args.size.split('x');
@@ -92,7 +94,7 @@ async function main(args: Args): Promise<void> {
         } else {
             throw new Error(`Input file name must end with .mvsj or .mvsx: ${input}`);
         }
-        await loadMVS(plugin, mvsData, { sanityChecks: true, replaceExisting: true, sourceUrl: sourceUrl });
+        await loadMVS(plugin, mvsData, { sanityChecks: true, replaceExisting: true, sourceUrl: sourceUrl, extensions: args.no_extensions ? [] : undefined });
 
         fs.mkdirSync(path.dirname(output), { recursive: true });
         if (args.molj) {

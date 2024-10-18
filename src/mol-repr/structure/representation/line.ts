@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -17,6 +17,7 @@ import { getUnitKindsParam } from '../params';
 import { ElementPointParams, ElementPointVisual } from '../visual/element-point';
 import { ElementCrossParams, ElementCrossVisual } from '../visual/element-cross';
 import { Points } from '../../../mol-geo/geometry/points/points';
+import { BaseGeometry } from '../../../mol-geo/geometry/base';
 
 const LineVisuals = {
     'intra-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, IntraUnitBondLineParams>) => UnitsRepresentation('Intra-unit bond line', ctx, getParams, IntraUnitBondLineVisual),
@@ -35,7 +36,8 @@ export const LineParams = {
     includeParent: PD.Boolean(false),
     sizeFactor: PD.Numeric(2, { min: 0.01, max: 10, step: 0.01 }),
     unitKinds: getUnitKindsParam(['atomic']),
-    visuals: PD.MultiSelect(['intra-bond', 'inter-bond', 'element-point', 'element-cross'], PD.objectToOptions(LineVisuals))
+    visuals: PD.MultiSelect(['intra-bond', 'inter-bond', 'element-point', 'element-cross'], PD.objectToOptions(LineVisuals)),
+    density: PD.Numeric(0.1, { min: 0, max: 1, step: 0.01 }, BaseGeometry.ShadingCategory),
 };
 export type LineParams = typeof LineParams
 export function getLineParams(ctx: ThemeRegistryContext, structure: Structure) {

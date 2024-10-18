@@ -1,5 +1,5 @@
 export const assign_color_varying = `
-#if defined(dRenderVariant_color)
+#if defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
     #if defined(dColorType_attribute)
         vColor.rgb = aColor;
     #elif defined(dColorType_instance)

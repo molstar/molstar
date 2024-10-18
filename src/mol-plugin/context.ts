@@ -62,6 +62,7 @@ import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { setSaccharideCompIdMapType } from '../mol-model/structure/structure/carbohydrates/constants';
 import { DragAndDropManager } from '../mol-plugin-state/manager/drag-and-drop';
+import { ErrorContext } from '../mol-util/error-context';
 
 export type PluginInitializedState =
     | { kind: 'no' }
@@ -207,6 +208,15 @@ export class PluginContext {
     readonly genericRepresentationControls = new Map<string, (selection: StructureHierarchyManager['selection']) => [StructureHierarchyRef[], string]>();
 
     /**
+     * A helper for collecting and notifying errors
+     * in async contexts such as custom properties.
+     *
+     * Individual extensions are responsible for using this
+     * context and displaying the errors in appropriate ways.
+     */
+    readonly errorContext = new ErrorContext();
+
+    /**
      * Used to store application specific custom state which is then available
      * to State Actions and similar constructs via the PluginContext.
      */
@@ -286,6 +296,7 @@ export class PluginContext {
                     pixelScale: this.config.get(PluginConfig.General.PixelScale) || 1,
                     pickScale: this.config.get(PluginConfig.General.PickScale) || 0.25,
                     transparency: this.config.get(PluginConfig.General.Transparency) || 'wboit',
+                    resolutionMode: this.config.get(PluginConfig.General.ResolutionMode) || 'auto',
                 });
             }
             (this.canvas3dContext as Canvas3DContext) = canvas3dContext;
@@ -332,7 +343,8 @@ export class PluginContext {
         const canvas = this.canvas3dContext?.canvas;
         const container = this.layout.root;
         if (container && canvas) {
-            resizeCanvas(canvas, container, this.canvas3dContext.props.pixelScale);
+            resizeCanvas(canvas, container, this.canvas3dContext.pixelScale);
+            this.canvas3dContext.syncPixelScale();
             this.canvas3d?.requestResize();
         }
     };

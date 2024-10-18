@@ -5,12 +5,48 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Default to `blended` transparency on iOS due to `wboit` not being supported.
+- Fix direct-volume with fog off (and on with `dpoit`) and transparent background on (#1286)
+- Fix missing pre-multiplied alpha for `blended` & `wboit` with no fog (#1284)
+- Fix backfaces visible using blended transparency on impostors (#1285)
+- Fix StructureElement.Loci.isSubset() only considers common units (#1292)
+- Fix `Scene.opacityAverage` calculation never 1
+- MolViewSpec: Support for transparency and custom properties
+- MolViewSpec: MVP Support for geometrical primitives (mesh, lines, line, label, distance measurement)
+
+
+## [v4.7.1] - 2024-09-30
+
+- Improve `resolutionMode` (#1279)
+    - Add `auto` that picks `scaled` for mobile devices and `native` elsewhere
+    - Add `resolution-mode` Viewer GET param
+    - Add `PluginConfig.General.ResolutionMode` config item
+
+## [v4.7.0] - 2024-09-29
+
+- Add illumination mode
+    - Path-traced SSGI
+    - Automatic thickness (estimate)
+        - Base thickness as max(backface depth) - min(frontface depth)
+        - Per object density factor to adjust thickness
+    - Progressively trace samples to keep viewport interactive
+    - Toggle on/off by pressing "G"
+    - `illumination` Viewer GET param
 - Enables dXrayShaded define when rendering depth
 - Fix handling of PDB files that have chains with same id separated by TER record (#1245)
 - Sequence Panel: Improve visuals of unmodeled sequence positions (#1248)
 - Fix no-compression xtc parser (#1258)
 - Mol2 Reader: Fix mol2 status_bit read error (#1251)
 - Fix shadows with multiple lights
+- Fix impostor sphere interior normal when using orthographic projection
+- Add `resolutionMode` parameter to `Canvas3DContext`
+    - `scaled`, divides by `devicePixelRatio`
+    - `native`, no changes
+- Add `CustomProperty.Context.errorContext` to support reporting errors during loading of custom properties (#1254)
+    - Use in MolViewSpec extension
+- Mesoscale Explorer: fix color & style issues
+- Remove use of deprecated SASS explicit color functions
+- Allow "Components" section to display nested components created by "Apply Action > Selection".
 
 ## [v4.6.0] - 2024-08-28
 
