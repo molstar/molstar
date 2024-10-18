@@ -184,7 +184,7 @@ class GroupManager {
 }
 
 interface PrimitiveBuilderContext {
-    node: MolstarNode<'primitives'>,
+    node: MolstarNode<'primitives'>;
     defaultStructure?: Structure;
     structureRefs: Record<string, Structure | undefined>;
     primitives: MolstarNode<'primitive'>[];
@@ -403,7 +403,7 @@ function addMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilder
         if (groupSet) {
             const grp = triangle_groups![i];
             mesh.currentGroup = groupSet.get(grp)!;
-            groups.updateColor(mesh.currentGroup, group_colors?.[grp])
+            groups.updateColor(mesh.currentGroup, group_colors?.[grp]);
             groups.updateTooltip(mesh.currentGroup, group_tooltips?.[grp]);
         } else {
             mesh.currentGroup = groups.allocateSingle(node);
