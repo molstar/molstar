@@ -88,7 +88,7 @@ export const unitStyles: { [key: string]: LammpsUnitStyle } = {
         dipole: 'Coulombs*meters',
         electricField: 'volts/meter',
         density: 'kg/m^3',
-        scale: 1.0,
+        scale: 1.0, // leave as is
     },
     cgs: {
         mass: 'grams',
@@ -105,7 +105,7 @@ export const unitStyles: { [key: string]: LammpsUnitStyle } = {
         dipole: 'statcoul-cm',
         electricField: 'statvolt/cm',
         density: 'g/cm^3',
-        scale: 1.0,
+        scale: 1.0, // leave as is
     },
     electron: {
         mass: 'atomic mass units',
@@ -122,7 +122,7 @@ export const unitStyles: { [key: string]: LammpsUnitStyle } = {
         density: 'unitless',
         torque: '',
         viscosity: '',
-        scale: 1.0,
+        scale: 0.529177,
     },
     micro: {
         mass: 'picograms',
@@ -139,7 +139,7 @@ export const unitStyles: { [key: string]: LammpsUnitStyle } = {
         dipole: 'picocoulomb-micrometer',
         electricField: 'volt/micrometer',
         density: 'pg/μm^3',
-        scale: 1.0,
+        scale: 1.0, // leave as is
     },
     nano: {
         mass: 'attograms',
@@ -156,7 +156,7 @@ export const unitStyles: { [key: string]: LammpsUnitStyle } = {
         dipole: 'charge-nanometer',
         electricField: 'volt/nanometer',
         density: 'ag/nm^3',
-        scale: 1.0,
+        scale: 10.0,
     }
 };
 
@@ -164,7 +164,7 @@ export interface LammpsDataFile {
     readonly atoms: {
         readonly count: number
         readonly atomId: Column<number>
-        readonly moleculeType: Column<number>
+        readonly moleculeId: Column<number>
         readonly atomType: Column<number>
         readonly charge: Column<number>
         readonly x: Column<number>,
