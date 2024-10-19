@@ -40,10 +40,11 @@ import { parseXtc } from '../../mol-io/reader/xtc/parser';
 import { coordinatesFromXtc } from '../../mol-model-formats/structure/xtc';
 import { parseXyz } from '../../mol-io/reader/xyz/parser';
 import { trajectoryFromXyz } from '../../mol-model-formats/structure/xyz';
+import { UnitStyles } from '../../mol-io/reader/lammps/schema';
 import { parseLammpsData } from '../../mol-io/reader/lammps/data/parser';
-import { trajectoryFromLammpsData } from '../../mol-model-formats/structure/lammps_data';
+import { trajectoryFromLammpsData } from '../../mol-model-formats/structure/lammps-data';
 import { parseLammpsTrajectory } from '../../mol-io/reader/lammps/traj/parser';
-import { coordinatesFromLammpsTrajectory, trajectoryFromLammpsTrajectory } from '../../mol-model-formats/structure/lammps_trajectory';
+import { coordinatesFromLammpsTrajectory, trajectoryFromLammpsTrajectory } from '../../mol-model-formats/structure/lammps-trajectory';
 import { parseSdf } from '../../mol-io/reader/sdf/parser';
 import { trajectoryFromSdf } from '../../mol-model-formats/structure/sdf';
 import { assertUnreachable } from '../../mol-util/type-helpers';
@@ -407,7 +408,7 @@ const TrajectoryFromLammpsData = PluginStateTransform.BuiltIn({
     from: [SO.Data.String],
     to: SO.Molecule.Trajectory,
     params: {
-        unitsStyle: PD.Select('real', PD.arrayToOptions(['real', 'metal', 'si', 'cgs', 'electron', 'micro', 'nano', 'lj'])),
+        unitsStyle: PD.Select('real', PD.arrayToOptions(UnitStyles)),
     }
 })({
     apply({ a, params }) {
@@ -428,7 +429,7 @@ const TrajectoryFromLammpsTrajData = PluginStateTransform.BuiltIn({
     from: [SO.Data.String],
     to: SO.Molecule.Trajectory,
     params: {
-        unitsStyle: PD.Select('real', PD.arrayToOptions(['real', 'metal', 'si', 'cgs', 'electron', 'micro', 'nano', 'lj'])),
+        unitsStyle: PD.Select('real', PD.arrayToOptions(UnitStyles)),
     }
 })({
     apply({ a, params }) {

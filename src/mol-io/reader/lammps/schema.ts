@@ -1,8 +1,11 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
  */
+
 import { Column } from '../../../mol-data/db';
 
 interface LammpsUnitStyle {
@@ -23,7 +26,7 @@ interface LammpsUnitStyle {
     scale: number;
 }
 
-export const unitStyles: { [key: string]: LammpsUnitStyle } = {
+export const lammpsUnitStyles: { [key: string]: LammpsUnitStyle } = {
     lj: {
         mass: 'unitless',
         distance: 'unitless',
@@ -159,6 +162,10 @@ export const unitStyles: { [key: string]: LammpsUnitStyle } = {
         scale: 10.0,
     }
 };
+
+export const UnitStyles = ['real', 'metal', 'si', 'cgs', 'electron', 'micro', 'nano', 'lj'] as const;
+export type UnitStyle = typeof UnitStyles[number];
+
 
 export interface LammpsDataFile {
     readonly atoms: {

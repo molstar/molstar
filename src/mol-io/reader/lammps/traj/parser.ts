@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
  */
 
@@ -130,7 +131,6 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
             const frame: LammpsFrame = await handleAtoms(state, numAtoms, parts);
             frames.push(frame);
         } else if (line.includes('ITEM: BOX BOUNDS')) {
-            /* we could parse the bounding box if needed */
             const tokens = line.split('ITEM: BOX BOUNDS ')[1].split(' ');
             // Periodicity of the box
             const px = tokens[0];

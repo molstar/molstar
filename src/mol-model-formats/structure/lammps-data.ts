@@ -1,13 +1,14 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
  */
 
 import { Column, Table } from '../../mol-data/db';
 import { Model } from '../../mol-model/structure/model';
-import { LammpsDataFile, unitStyles } from '../../mol-io/reader/lammps/schema';
+import { LammpsDataFile, lammpsUnitStyles, UnitStyle } from '../../mol-io/reader/lammps/schema';
 import { Trajectory, ArrayTrajectory } from '../../mol-model/structure';
 import { BondType, MoleculeType } from '../../mol-model/structure/model/types';
 import { RuntimeContext, Task } from '../../mol-task';
@@ -19,11 +20,11 @@ import { EntityBuilder } from './common/entity';
 import { IndexPairBonds } from './property/bonds/index-pair';
 import { AtomPartialCharge } from './property/partial-charge';
 
-async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: string = 'real') {
+async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: UnitStyle = 'real') {
     const { atoms, bonds } = mol;
     const models: Model[] = [];
     const count = atoms.count;
-    const scale = unitStyles[unitsStyle].scale;
+    const scale = lammpsUnitStyles[unitsStyle].scale;
     const type_symbols = new Array<string>(count);
     const id = new Int32Array(count);
     const cx = new Float32Array(count);
@@ -139,7 +140,7 @@ namespace LammpsDataFormat {
     }
 }
 
-export function trajectoryFromLammpsData(mol: LammpsDataFile, unitsStyle?: string): Task<Trajectory> {
+export function trajectoryFromLammpsData(mol: LammpsDataFile, unitsStyle?: UnitStyle): Task<Trajectory> {
     if (unitsStyle === void 0) unitsStyle = 'real';
     return Task.create('Parse Lammps Data', ctx => getModels(mol, ctx, unitsStyle));
 }

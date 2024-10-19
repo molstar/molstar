@@ -114,11 +114,11 @@ function parseAtomListSelection(input: string): [number, number][] {
 }
 
 // parses a list of residue ranges, e.g. A 10-100, B 30, C 12:i
-export function compileIdListSelection(input: string, idType: 'auth' | 'label' | 'atom-id' | 'atom-type') {
+export function compileIdListSelection(input: string, idType: 'auth' | 'label' | 'atom-id' | 'element-symbol') {
     if (idType === 'atom-id') {
         const entries = parseAtomListSelection(input);
         return atomEntriesToQuery(entries);
-    } else if (idType === 'atom-type') {
+    } else if (idType === 'element-symbol') {
         const containsLetters = /[a-zA-Z]/.test(input);
         if (containsLetters) {
             return atomTypeStringEntriesToQuery(input.split(',').map(e => e.trim()));

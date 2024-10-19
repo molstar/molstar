@@ -78,10 +78,6 @@ export const CifCoreProvider: TrajectoryFormatProvider = {
 function directTrajectory<P extends {}>(transformer: StateTransformer<PluginStateObject.Data.String | PluginStateObject.Data.Binary, PluginStateObject.Molecule.Trajectory, P>, transformerParams?: P): TrajectoryFormatProvider['parse'] {
     return async (plugin, data, params) => {
         const state = plugin.state.data;
-        // I dont think this is correct, but I'm not sure what the correct way to do this is
-        if (transformerParams === undefined) {
-            transformerParams = params as P;
-        }
         const trajectory = await state.build().to(data)
             .apply(transformer, transformerParams, { tags: params?.trajectoryTags })
             .commit({ revertOnError: true });

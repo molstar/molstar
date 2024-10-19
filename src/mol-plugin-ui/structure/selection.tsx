@@ -386,7 +386,7 @@ class ApplyThemeControls extends PurePluginUIComponent<ApplyThemeControlsProps, 
 }
 
 const ResidueListIdTypeParams = {
-    idType: ParamDefinition.Select<'auth' | 'label' | 'atom-id' | 'atom-type'>('auth', ParamDefinition.arrayToOptions(['auth', 'label', 'atom-id', 'atom-type'])),
+    idType: ParamDefinition.Select<'auth' | 'label' | 'atom-id' | 'element-symbol'>('auth', ParamDefinition.arrayToOptions(['auth', 'label', 'atom-id', 'element-symbol'])),
     identifiers: ParamDefinition.Text('', { description: 'A comma separated list of atom identifiers (e.g. 10, 15-25), atom types (e.g. N, C or 20-200) or residue ranges in given chain (e.g. A 10-15, B 25, C 30:i)' })
 };
 
