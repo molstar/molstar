@@ -74,8 +74,8 @@ const NctrajProvider = DataFormatProvider({
 });
 type NctrajProvider = typeof NctrajProvider;
 
-export { LammpstrajProvider };
-const LammpstrajProvider = DataFormatProvider({
+export { LammpsTrajectoryProvider };
+const LammpsTrajectoryProvider = DataFormatProvider({
     label: 'LAMMPSTRAJ',
     description: 'LAMMPSTRAJ',
     category: CoordinatesFormatCategory,
@@ -88,18 +88,18 @@ const LammpstrajProvider = DataFormatProvider({
         return coordinates.commit();
     }
 });
-type LammpstrajProvider = typeof LammpstrajProvider;
+type LammpsTrajectoryProvider = typeof LammpsTrajectoryProvider;
 
 
 
-export type CoordinatesProvider = DcdProvider | XtcProvider | TrrProvider | LammpstrajProvider;
+export type CoordinatesProvider = DcdProvider | XtcProvider | TrrProvider | LammpsTrajectoryProvider;
 
 export const BuiltInCoordinatesFormats = [
     ['dcd', DcdProvider] as const,
     ['xtc', XtcProvider] as const,
     ['trr', TrrProvider] as const,
     ['nctraj', NctrajProvider] as const,
-    ['lammpstrj', LammpstrajProvider] as const,
+    ['lammpstrj', LammpsTrajectoryProvider] as const,
 ] as const;
 
 export type BuiltInCoordinatesFormat = (typeof BuiltInCoordinatesFormats)[number][0]
