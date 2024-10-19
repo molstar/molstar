@@ -118,6 +118,9 @@ async function handleBonds(state: State, count: number): Promise<LammpsDataFile[
     };
 }
 
+const AtomStyles = ['full', 'atomic', 'bond'] as const;
+type AtomStyle = typeof AtomStyles[number];
+
 async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<LammpsDataFile>> {
     const tokenizer = Tokenizer(data);
     const state = State(tokenizer, ctx);
@@ -126,7 +129,7 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
     let bonds = undefined as LammpsDataFile['bonds'] | undefined;
     let numAtoms = 0;
     let numBonds = 0;
-    let atom_style = 'full';
+    let atom_style: AtomStyle = 'full';
     // full list of atom_style
     // https://docs.lammps.org/atom_style.html
     while (tokenizer.tokenEnd < tokenizer.length) {
@@ -136,13 +139,17 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
         } else if (line.includes('bonds')) {
             numBonds = parseInt(line.split(reWhitespace)[0]);
         } else if (line.includes('Masses')) {
-            // const numAtoms = parseInt(line.split(reWhitespace)[0]);
-            // atoms = await handleAtoms(state, numAtoms);
+            // TODO: support masses
         } else if (line.includes('Atoms')) {
             // usually atom style is indicated as a comment after Atoms. e.g. Atoms # full
             const parts = line.split('#');
             if (parts.length > 1) {
-                atom_style = parts[1].trim();
+                const atomStyle = parts[1].trim();
+                if (AtomStyles.includes(atomStyle as AtomStyle)) {
+                    atom_style = atomStyle as AtomStyle;
+                } else {
+                    console.warn(`Unknown atom style: ${atomStyle}`);
+                }
             }
             atoms = await handleAtoms(state, numAtoms, atom_style);
         } else if (line.includes('Bonds')) {
