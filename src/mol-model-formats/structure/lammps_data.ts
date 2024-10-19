@@ -43,13 +43,17 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: s
     }
 
     const MOL = Column.ofConst('MOL', count, Column.Schema.str);
-    const A = Column.ofConst('A', count, Column.Schema.str);
+    const asym_id = Column.ofLambda({
+        value: (row: number) => atoms.moleculeId.value(row).toString(),
+        rowCount: count,
+        schema: Column.Schema.str,
+    });
     const seq_id = Column.ofConst(1, count, Column.Schema.int);
 
     const type_symbol = Column.ofStringArray(type_symbols);
 
     const atom_site = Table.ofPartialColumns(BasicSchema.atom_site, {
-        auth_asym_id: A,
+        auth_asym_id: asym_id,
         auth_atom_id: type_symbol,
         auth_comp_id: MOL,
         auth_seq_id: seq_id,
@@ -58,7 +62,7 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: s
         Cartn_z: Column.ofFloatArray(cz),
         id: Column.ofIntArray(id),
 
-        label_asym_id: A,
+        label_asym_id: asym_id,
         label_atom_id: type_symbol,
         label_comp_id: MOL,
         label_seq_id: seq_id,
