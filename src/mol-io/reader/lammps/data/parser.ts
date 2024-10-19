@@ -29,16 +29,16 @@ async function handleAtoms(state: State, count: number, atom_style: 'full' | 'at
     // default atom style is atomic
     // depending on the atom style the number of columns can change
     const atomId = TokenBuilder.create(tokenizer.data, count * 2);
-    const moleculeType = TokenBuilder.create(tokenizer.data, count * 2);
+    const moleculeId = TokenBuilder.create(tokenizer.data, count * 2);
     const atomType = TokenBuilder.create(tokenizer.data, count * 2);
     const charge = TokenBuilder.create(tokenizer.data, count * 2);
     const x = TokenBuilder.create(tokenizer.data, count * 2);
     const y = TokenBuilder.create(tokenizer.data, count * 2);
     const z = TokenBuilder.create(tokenizer.data, count * 2);
     const columns = {
-        full: [atomId, moleculeType, atomType, charge, x, y, z],
+        full: [atomId, moleculeId, atomType, charge, x, y, z],
         atomic: [atomId, atomType, x, y, z],
-        bond: [atomId, moleculeType, atomType, x, y, z],
+        bond: [atomId, moleculeId, atomType, x, y, z],
     };
     const n = columns[atom_style].length;
     const { position } = tokenizer;
@@ -71,7 +71,7 @@ async function handleAtoms(state: State, count: number, atom_style: 'full' | 'at
     return {
         count,
         atomId: TokenColumn(atomId)(Column.Schema.int),
-        moleculeType: TokenColumn(moleculeType)(Column.Schema.int),
+        moleculeId: TokenColumn(moleculeId)(Column.Schema.int),
         atomType: TokenColumn(atomType)(Column.Schema.int),
         charge: TokenColumn(charge)(Column.Schema.float),
         x: TokenColumn(x)(Column.Schema.float),
