@@ -96,6 +96,7 @@ const Plot = memo(({ plugin, model }: { plugin: PluginContext, model: Model }) =
     return <div style={{ margin: '8px 8px 0 8px', position: 'relative' }}>
         <svg viewBox={viewBox} width='100%'>
             <image x={PlotOffset} y={PlotOffset} width={PlotSize} height={PlotSize} href={png} />
+            <line x1={PlotOffset} x2={PlotOffset + PlotSize} y1={PlotOffset} y2={PlotOffset + PlotSize} style={{ stroke: line, strokeDasharray: '15,15' }} />
             <linearGradient id='legend-gradient' x1={0} x2={1} y1={0} y2={0}>
                 <stop offset='0%' stopColor={colorRange[0]} />
                 <stop offset='100%' stopColor={colorRange[1]} />
