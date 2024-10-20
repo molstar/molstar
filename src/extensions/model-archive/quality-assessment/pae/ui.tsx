@@ -104,6 +104,7 @@ const Plot = memo(({ plugin, model }: { plugin: PluginContext, model: Model }) =
             <rect x={PlotOffset} y={legendOffsetY} width={PlotSize} height={legendHeight} style={{ fill: 'url(#legend-gradient)', strokeWidth: 1, stroke: border }} />
             <text x={PlotOffset + 20} y={legendOffsetY + legendHeight - 22} style={{ fontSize: '45px', fill: 'white', fontWeight: 'bold' }}>{round(info.minMetric, 2)} Å</text>
             <text x={PlotOffset + PlotSize - 20} y={legendOffsetY + legendHeight - 22} style={{ fontSize: '45px', fill: 'black', fontWeight: 'bold' }} textAnchor='end'>{round(info.maxMetric, 2)} Å</text>
+            <text x={PlotOffset + PlotSize / 2} y={legendOffsetY + legendHeight - 22} style={{ fontSize: '45px', fill: 'black' }} textAnchor='middle'>Expected position error</text>
 
             <text x={PlotOffset + PlotSize / 2} y={50} className='msp-svg-text' style={{ fontSize: '45px', fontWeight: 'bold' }} textAnchor='middle'>Scored Residue</text>
             <text className='msp-svg-text' style={{ fontSize: '50px', fontWeight: 'bold' }} transform={`translate(50, ${PlotOffset + PlotSize / 2}) rotate(270)`} textAnchor='middle'>Aligned Residue</text>
