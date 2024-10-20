@@ -11,7 +11,7 @@ import { QualityAssessment, QualityAssessmentProvider } from '../prop';
 
 const DefaultPAEColorRange = [0xF7FCF5 as Color, 0x00441B as Color] as [Color, Color];
 
-function drawAssesmentPNG(assesment: QualityAssessment, name: string, colorRange: [Color, Color]) {
+function drawAssessmentPNG(assesment: QualityAssessment, name: string, colorRange: [Color, Color]) {
     const data = assesment.localPairwiseMetrics.get(name)!;
     const info = assesment.localPairwiseMetricInfo.get(name)!;
 
@@ -43,7 +43,7 @@ function drawAssesmentPNG(assesment: QualityAssessment, name: string, colorRange
 }
 
 export function drawPAEPng(model: Model) {
-    const assesment = QualityAssessmentProvider.get(model).value;
-    if (!assesment || !assesment.localPairwiseMetrics.has('PAE')) return undefined;
-    return drawAssesmentPNG(assesment, 'PAE', DefaultPAEColorRange);
+    const assessment = QualityAssessmentProvider.get(model).value;
+    if (!assessment || !assessment.localPairwiseMetrics.has('PAE')) return undefined;
+    return drawAssessmentPNG(assessment, 'PAE', DefaultPAEColorRange);
 }
