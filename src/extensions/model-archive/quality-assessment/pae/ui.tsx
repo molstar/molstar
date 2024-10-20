@@ -105,25 +105,30 @@ const Plot = memo(({ plugin, model }: { plugin: PluginContext, model: Model }) =
             <text x={PlotOffset + 20} y={legendOffsetY + legendHeight - 22} style={{ fontSize: '45px', fill: 'white', fontWeight: 'bold' }}>{round(info.minMetric, 2)} Å</text>
             <text x={PlotOffset + PlotSize - 20} y={legendOffsetY + legendHeight - 22} style={{ fontSize: '45px', fill: 'black', fontWeight: 'bold' }} textAnchor='end'>{round(info.maxMetric, 2)} Å</text>
 
-            <text x={PlotOffset + PlotSize / 2} y={50} style={{ fontSize: '45px', fill: 'black', fontWeight: 'bold' }} textAnchor='middle'>Scored Residue</text>
-            <text style={{ fontSize: '50px', fill: 'black', fontWeight: 'bold' }} transform={`translate(50, ${PlotOffset + PlotSize / 2}) rotate(270)`} textAnchor='middle'>Aligned Residue</text>
+            <text x={PlotOffset + PlotSize / 2} y={50} className='msp-svg-text' style={{ fontSize: '45px', fontWeight: 'bold' }} textAnchor='middle'>Scored Residue</text>
+            <text className='msp-svg-text' style={{ fontSize: '50px', fontWeight: 'bold' }} transform={`translate(50, ${PlotOffset + PlotSize / 2}) rotate(270)`} textAnchor='middle'>Aligned Residue</text>
 
-            {chains.map(({ startOffset, endOffset, label }, chainIndex) => {
+            {chains.map(({ startOffset, endOffset, label }) => {
                 const textOffset = PlotOffset + PlotSize * (startOffset + (endOffset - startOffset) / 2) / nResidues;
-                const lineOffset = PlotOffset + PlotSize * endOffset / nResidues;
+                const endLineOffset = PlotOffset + PlotSize * endOffset / nResidues;
+                const startLineOffset = PlotOffset + PlotSize * startOffset / nResidues;
+
+                const seq_id = model.atomicHierarchy.residues.label_seq_id;
+                const startIndex = seq_id.value(info.minResidueIndex + startOffset);
+                const endIndex = seq_id.value(info.minResidueIndex + endOffset - 1);
 
                 return <Fragment key={startOffset}>
-                    <text x={textOffset} y={PlotOffset - 10} style={{ fontSize: '40px', fill: 'black' }} textAnchor='middle'>{label}</text>
-                    <text style={{ fontSize: '40px', fill: 'black' }} transform={`translate(${PlotOffset - 10}, ${textOffset}) rotate(270)`} textAnchor='middle'>{label}</text>
-                    {chainIndex !== chains.length - 1 && <>
-                        <line x1={lineOffset} x2={lineOffset} y1={PlotOffset - 20} y2={PlotOffset + PlotSize + 20} style={{ stroke: line, strokeDasharray: '15,15' }} />
-                        <line x1={PlotOffset - 20} x2={PlotOffset + PlotSize + 20} y1={lineOffset} y2={lineOffset} style={{ stroke: line, strokeDasharray: '15,15' }} />
-                    </>}
+                    <text x={textOffset} y={PlotOffset - 15} className='msp-svg-text' style={{ fontSize: '40px' }} textAnchor='middle'>{label} {startIndex}-{endIndex}</text>
+                    <text className='msp-svg-text' style={{ fontSize: '40px' }} transform={`translate(${PlotOffset - 15}, ${textOffset}) rotate(270)`} textAnchor='middle'>{label} {startIndex}-{endIndex}</text>
+                    <line x1={startLineOffset} x2={startLineOffset} y1={PlotOffset - 20} y2={PlotOffset + PlotSize + 20} style={{ stroke: line, strokeDasharray: '15,15' }} />
+                    <line x1={endLineOffset} x2={endLineOffset} y1={PlotOffset - 20} y2={PlotOffset + PlotSize + 20} style={{ stroke: line, strokeDasharray: '15,15' }} />
+                    <line x1={PlotOffset - 20} x2={PlotOffset + PlotSize + 20} y1={startLineOffset} y2={startLineOffset} style={{ stroke: line, strokeDasharray: '15,15' }} />
+                    <line x1={PlotOffset - 20} x2={PlotOffset + PlotSize + 20} y1={endLineOffset} y2={endLineOffset} style={{ stroke: line, strokeDasharray: '15,15' }} />
                 </Fragment>;
             })}
         </svg>
         <svg viewBox={viewBox} style={{ position: 'absolute', inset: 0 }}>
-            <rect x={PlotOffset} y={PlotOffset} width={PlotSize} height={PlotSize} style={{ fill: 'transparent', strokeWidth: 1, stroke: '#333', cursor: 'crosshair' }}
+            <rect x={PlotOffset} y={PlotOffset} width={PlotSize} height={PlotSize} style={{ fill: 'transparent', strokeWidth: 0, stroke: '#333', cursor: 'crosshair' }}
                 ref={interactivityRect as any}
                 onMouseMove={(ev) => {
                     interactity.next({ ...interactity.value, inside: true });
