@@ -28,12 +28,15 @@ const Canvas3DPresets = {
                 occlusion: {
                     name: 'on',
                     params: {
-                        samples: 32,
+                        samples: 24,
                         multiScale: { name: 'off', params: {} },
                         radius: 5,
                         bias: 0.8,
                         blurKernelSize: 15,
+                        blurStepStart: 0,
+                        blurStepSize: 2,
                         blurDepthBias: 0.5,
+                        blurNormalBias: 0.0,
                         resolutionScale: 1,
                         color: Color(0x000000),
                     }

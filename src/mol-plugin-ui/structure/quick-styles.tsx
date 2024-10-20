@@ -71,8 +71,10 @@ export class QuickStyles extends PurePluginUIComponent {
                             radius: 5,
                             bias: 0.8,
                             blurKernelSize: 15,
+                            blurStepSize: 2,
                             blurDepthBias: 0.5,
-                            samples: 32,
+                            blurNormalBias: 0.0,
+                            samples: 24,
                             resolutionScale: 1,
                             color: Color(0x000000),
                         }
@@ -110,8 +112,10 @@ export class QuickStyles extends PurePluginUIComponent {
                                 radius: 5,
                                 bias: 0.8,
                                 blurKernelSize: 15,
+                                blurStepSize: 2,
                                 blurDepthBias: 0.5,
-                                samples: 32,
+                                blurNormalBias: 0.0,
+                                samples: 24,
                                 resolutionScale: 1,
                                 color: Color(0x000000),
                             }

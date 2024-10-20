@@ -28,11 +28,11 @@ import { isTimingMode } from '../../mol-util/debug';
 import { PostprocessingProps } from './postprocessing';
 
 export const SsaoParams = {
-    samples: PD.Numeric(32, { min: 1, max: 256, step: 1 }),
+    samples: PD.Numeric(24, { min: 1, max: 256, step: 1 }),
     multiScale: PD.MappedStatic('off', {
         on: PD.Group({
             levels: PD.ObjectList({
-                radius: PD.Numeric(5, { min: 0, max: 20, step: 0.1 }, { description: 'Final occlusion radius is 2^x' }),
+                radius: PD.Numeric(5, { min: 0, max: 20, step: 0.1 }, { description: 'Final occlusion radius is 2^x.' }),
                 bias: PD.Numeric(1, { min: 0, max: 3, step: 0.1 }),
             }, o => `${o.radius}, ${o.bias}`, { defaultValue: [
                 { radius: 2, bias: 1 },
@@ -45,11 +45,13 @@ export const SsaoParams = {
         }),
         off: PD.Group({})
     }, { cycle: true }),
-    radius: PD.Numeric(5, { min: 0, max: 20, step: 0.1 }, { description: 'Final occlusion radius is 2^x', hideIf: p => p?.multiScale.name === 'on' }),
+    radius: PD.Numeric(5, { min: 0, max: 20, step: 0.1 }, { description: 'Final occlusion radius is 2^x.', hideIf: p => p?.multiScale.name === 'on' }),
     bias: PD.Numeric(0.8, { min: 0, max: 3, step: 0.1 }),
-    blurKernelSize: PD.Numeric(15, { min: 1, max: 25, step: 2 }),
+    blurKernelSize: PD.Numeric(15, { min: 1, max: 35, step: 2 }),
+    blurStepSize: PD.Numeric(2, { min: 1, max: 3, step: 1 }, { description: 'Step size for the blur. Values greater than one work best with multi-sample enabled to mitigate artefacts.' }),
     blurDepthBias: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }),
-    resolutionScale: PD.Numeric(1, { min: 0.1, max: 1, step: 0.05 }, { description: 'Adjust resolution of occlusion calculation' }),
+    blurNormalBias: PD.Numeric(0.0, { min: 0, max: 1, step: 0.01 }, { description: 'Bias for normal comparison in blur. Mainly improves creases between overlapping spheres and the like. Quite expensive, use with care. Disabled when set to zero.' }),
+    resolutionScale: PD.Numeric(1, { min: 0.1, max: 1, step: 0.05 }, { description: 'Adjust resolution of occlusion calculation.' }),
     color: PD.Color(Color(0x000000)),
 };
 
@@ -104,17 +106,11 @@ export class SsaoPass {
     private readonly blurSecondPassRenderable: SsaoBlurRenderable;
 
     private depthTexture: Texture;
+    private texSize: [number, number];
 
     private nSamples: number;
     private blurKernelSize: number;
-    private texSize: [number, number];
-
     private ssaoScale: number;
-    private calcSsaoScale(resolutionScale: number) {
-        // downscale ssao for high pixel-ratios
-        return Math.min(1, 1 / this.webgl.pixelRatio) * resolutionScale;
-    }
-
     private levels: { radius: number, bias: number }[];
 
     private getDepthTexture() {
@@ -128,7 +124,7 @@ export class SsaoPass {
 
         this.nSamples = 1;
         this.blurKernelSize = 1;
-        this.ssaoScale = this.calcSsaoScale(1);
+        this.ssaoScale = 1;
         this.texSize = [width, height];
         this.levels = [];
 
@@ -179,7 +175,7 @@ export class SsaoPass {
 
     setSize(width: number, height: number) {
         const [w, h] = this.texSize;
-        const ssaoScale = this.calcSsaoScale(1);
+        const ssaoScale = 1;
         if (width !== w || height !== h || this.ssaoScale !== ssaoScale) {
             this.texSize.splice(0, 2, width, height);
 
@@ -213,7 +209,7 @@ export class SsaoPass {
         }
     }
 
-    update(camera: ICamera, props: SsaoProps) {
+    update(camera: ICamera, props: SsaoProps, offset: [x: number, y: number]) {
         let needsUpdateSsao = false;
         let needsUpdateSsaoBlur = false;
         let needsUpdateDepthHalf = false;
@@ -252,6 +248,18 @@ export class SsaoPass {
 
         ValueCell.update(this.blurFirstPassRenderable.values.uBlurDepthBias, props.blurDepthBias);
         ValueCell.update(this.blurSecondPassRenderable.values.uBlurDepthBias, props.blurDepthBias);
+
+        const dBlurNormalBias = props.blurNormalBias !== 0;
+        if (this.blurFirstPassRenderable.values.dBlurNormalBias.ref.value !== dBlurNormalBias) {
+            needsUpdateSsaoBlur = true;
+
+            ValueCell.update(this.blurFirstPassRenderable.values.dBlurNormalBias, dBlurNormalBias);
+            ValueCell.update(this.blurSecondPassRenderable.values.dBlurNormalBias, dBlurNormalBias);
+        }
+
+        ValueCell.update(this.blurFirstPassRenderable.values.uBlurNormalBias, props.blurNormalBias);
+        ValueCell.update(this.blurSecondPassRenderable.values.uBlurNormalBias, props.blurNormalBias);
+
 
         if (this.blurFirstPassRenderable.values.dOrthographic.ref.value !== orthographic) {
             needsUpdateSsaoBlur = true;
@@ -292,24 +300,30 @@ export class SsaoPass {
         }
         ValueCell.updateIfChanged(this.renderable.values.uBias, props.bias);
 
-        if (this.blurKernelSize !== props.blurKernelSize) {
+        const blurKernelSize = Math.max(1, Math.floor(props.blurKernelSize / props.blurStepSize));
+        if (this.blurKernelSize !== blurKernelSize) {
             needsUpdateSsaoBlur = true;
 
-            this.blurKernelSize = props.blurKernelSize;
-            const kernel = getBlurKernel(this.blurKernelSize);
+            this.blurKernelSize = blurKernelSize;
+            const kernel = getBlurKernel(blurKernelSize);
 
             ValueCell.update(this.blurFirstPassRenderable.values.uKernel, kernel);
             ValueCell.update(this.blurSecondPassRenderable.values.uKernel, kernel);
-            ValueCell.update(this.blurFirstPassRenderable.values.dOcclusionKernelSize, this.blurKernelSize);
-            ValueCell.update(this.blurSecondPassRenderable.values.dOcclusionKernelSize, this.blurKernelSize);
+            ValueCell.update(this.blurFirstPassRenderable.values.dOcclusionKernelSize, blurKernelSize);
+            ValueCell.update(this.blurSecondPassRenderable.values.dOcclusionKernelSize, blurKernelSize);
         }
 
-        const ssaoScale = this.calcSsaoScale(props.resolutionScale);
-        if (this.ssaoScale !== ssaoScale) {
+        ValueCell.updateIfChanged(this.blurFirstPassRenderable.values.uBlurStepSize, props.blurStepSize);
+        ValueCell.updateIfChanged(this.blurSecondPassRenderable.values.uBlurStepSize, props.blurStepSize);
+
+        ValueCell.updateIfChanged(this.blurFirstPassRenderable.values.uBlurStepOffset, Vec2.set(this.blurFirstPassRenderable.values.uBlurStepOffset.ref.value, offset[0], offset[1]));
+        ValueCell.updateIfChanged(this.blurSecondPassRenderable.values.uBlurStepOffset, Vec2.set(this.blurSecondPassRenderable.values.uBlurStepOffset.ref.value, offset[0], offset[1]));
+
+        if (this.ssaoScale !== props.resolutionScale) {
             needsUpdateSsao = true;
             needsUpdateDepthHalf = true;
 
-            this.ssaoScale = ssaoScale;
+            this.ssaoScale = props.resolutionScale;
 
             const sw = Math.floor(w * this.ssaoScale);
             const sh = Math.floor(h * this.ssaoScale);
@@ -365,27 +379,44 @@ export class SsaoPass {
         const sw = Math.ceil(width * this.ssaoScale);
         const sh = Math.ceil(height * this.ssaoScale);
 
-        state.viewport(sx, sy, sw, sh);
-        state.scissor(sx, sy, sw, sh);
-
         if (this.ssaoScale < 1) {
             if (isTimingMode) this.webgl.timer.mark('SsaoPass.downsample');
+            state.viewport(sx, sy, sw, sh);
+            state.scissor(sx, sy, sw, sh);
             this.downsampledDepthTarget.bind();
             this.downsampleDepthRenderable.render();
             if (isTimingMode) this.webgl.timer.markEnd('SsaoPass.downsample');
         }
 
-        if (isTimingMode) this.webgl.timer.mark('SsaoPass.half');
-        this.depthHalfTarget.bind();
-        this.depthHalfRenderable.render();
-        if (isTimingMode) this.webgl.timer.markEnd('SsaoPass.half');
+        if (this.renderable.values.dMultiScale.ref.value) {
+            const hx = Math.floor(sx * 0.5);
+            const hy = Math.floor(sy * 0.5);
+            const hw = Math.ceil(sw * 0.5);
+            const hh = Math.ceil(sh * 0.5);
 
-        if (isTimingMode) this.webgl.timer.mark('SsaoPass.quarter');
-        this.depthQuarterTarget.bind();
-        this.depthQuarterRenderable.render();
-        if (isTimingMode) this.webgl.timer.markEnd('SsaoPass.quarter');
+            const qx = Math.floor(sx * 0.25);
+            const qy = Math.floor(sy * 0.25);
+            const qw = Math.ceil(sw * 0.25);
+            const qh = Math.ceil(sh * 0.25);
+
+            if (isTimingMode) this.webgl.timer.mark('SsaoPass.half');
+            state.viewport(hx, hy, hw, hh);
+            state.scissor(hx, hy, hw, hh);
+            this.depthHalfTarget.bind();
+            this.depthHalfRenderable.render();
+            if (isTimingMode) this.webgl.timer.markEnd('SsaoPass.half');
+
+            if (isTimingMode) this.webgl.timer.mark('SsaoPass.quarter');
+            state.viewport(qx, qy, qw, qh);
+            state.scissor(sx, qy, sw, qh);
+            this.depthQuarterTarget.bind();
+            this.depthQuarterRenderable.render();
+            if (isTimingMode) this.webgl.timer.markEnd('SsaoPass.quarter');
+        }
 
         if (isTimingMode) this.webgl.timer.mark('SsaoPass.sample');
+        state.viewport(sx, sy, sw, sh);
+        state.scissor(sx, sy, sw, sh);
         this.framebuffer.bind();
         this.renderable.render();
         if (isTimingMode) this.webgl.timer.markEnd('SsaoPass.sample');
@@ -471,6 +502,10 @@ const SsaoBlurSchema = {
     uKernel: UniformSpec('f[]'),
     dOcclusionKernelSize: DefineSpec('number'),
     uBlurDepthBias: UniformSpec('f'),
+    dBlurNormalBias: DefineSpec('boolean'),
+    uBlurNormalBias: UniformSpec('f'),
+    uBlurStepSize: UniformSpec('f'),
+    uBlurStepOffset: UniformSpec('v2'),
 
     uBlurDirectionX: UniformSpec('f'),
     uBlurDirectionY: UniformSpec('f'),
@@ -493,6 +528,10 @@ function getSsaoBlurRenderable(ctx: WebGLContext, ssaoDepthTexture: Texture, dir
         uKernel: ValueCell.create(getBlurKernel(15)),
         dOcclusionKernelSize: ValueCell.create(15),
         uBlurDepthBias: ValueCell.create(0.5),
+        dBlurNormalBias: ValueCell.create(false),
+        uBlurNormalBias: ValueCell.create(0.0),
+        uBlurStepSize: ValueCell.create(1),
+        uBlurStepOffset: ValueCell.create(Vec2()),
 
         uBlurDirectionX: ValueCell.create(direction === 'horizontal' ? 1 : 0),
         uBlurDirectionY: ValueCell.create(direction === 'vertical' ? 1 : 0),

@@ -220,12 +220,14 @@ export function defaultImagePassParams(): Partial<ImageProps> {
 export const STYLIZED_POSTPROCESSING: Partial<PostprocessingProps> = {
     occlusion: {
         name: 'on' as const, params: {
-            samples: 32,
+            samples: 128,
             multiScale: { name: 'off', params: {} },
             radius: 5,
             bias: 0.8,
             blurKernelSize: 15,
+            blurStepSize: 1,
             blurDepthBias: 0.5,
+            blurNormalBias: 0.0,
             resolutionScale: 1,
             color: ColorNames.black,
         }

@@ -90,58 +90,6 @@ float getMappedDepth(const in vec2 coords, const in vec2 selfCoords) {
     #endif
 }
 
-// adapted from https://gist.github.com/bgolus/a07ed65602c009d5e2f753826e8078a0
-vec3 viewNormalAtPixelPositionAccurate(vec2 vpos) {
-    // current pixel's depth
-    float c = getDepth(vpos);
-
-    // get current pixel's view space position
-    vec3 viewSpacePos_c = screenSpaceToViewSpace(vec3(vpos, c), uInvProjection);
-
-    // get view space position at 1 pixel offsets in each major direction
-    vec3 viewSpacePos_l = screenSpaceToViewSpace(vec3(vpos + vec2(-1.0, 0.0) / uTexSize, getDepth(vpos + vec2(-1.0, 0.0) / uTexSize)), uInvProjection);
-    vec3 viewSpacePos_r = screenSpaceToViewSpace(vec3(vpos + vec2( 1.0, 0.0) / uTexSize, getDepth(vpos + vec2( 1.0, 0.0) / uTexSize)), uInvProjection);
-    vec3 viewSpacePos_d = screenSpaceToViewSpace(vec3(vpos + vec2( 0.0,-1.0) / uTexSize, getDepth(vpos + vec2( 0.0,-1.0) / uTexSize)), uInvProjection);
-    vec3 viewSpacePos_u = screenSpaceToViewSpace(vec3(vpos + vec2( 0.0, 1.0) / uTexSize, getDepth(vpos + vec2( 0.0, 1.0) / uTexSize)), uInvProjection);
-
-    // get the difference between the current and each offset position
-    vec3 l = viewSpacePos_c - viewSpacePos_l;
-    vec3 r = viewSpacePos_r - viewSpacePos_c;
-    vec3 d = viewSpacePos_c - viewSpacePos_d;
-    vec3 u = viewSpacePos_u - viewSpacePos_c;
-
-    // get depth values at 1 & 2 pixels offsets from current along the horizontal axis
-    vec4 H = vec4(
-        getDepth(vpos + vec2(-1.0, 0.0) / uTexSize),
-        getDepth(vpos + vec2( 1.0, 0.0) / uTexSize),
-        getDepth(vpos + vec2(-2.0, 0.0) / uTexSize),
-        getDepth(vpos + vec2( 2.0, 0.0) / uTexSize)
-    );
-
-    // get depth values at 1 & 2 pixels offsets from current along the vertical axis
-    vec4 V = vec4(
-        getDepth(vpos + vec2(0.0,-1.0) / uTexSize),
-        getDepth(vpos + vec2(0.0, 1.0) / uTexSize),
-        getDepth(vpos + vec2(0.0,-2.0) / uTexSize),
-        getDepth(vpos + vec2(0.0, 2.0) / uTexSize)
-    );
-
-    // current pixel's depth difference from slope of offset depth samples
-    // differs from original article because we're using non-linear depth values
-    // see article's comments
-    vec2 he = abs((2.0 * H.xy - H.zw) - c);
-    vec2 ve = abs((2.0 * V.xy - V.zw) - c);
-
-    // pick horizontal and vertical diff with the smallest depth difference from slopes
-    vec3 hDeriv = he.x < he.y ? l : r;
-    vec3 vDeriv = ve.x < ve.y ? d : u;
-
-    // get view space normal from the cross product of the best derivatives
-    vec3 viewNormal = normalize(cross(hDeriv, vDeriv));
-
-    return viewNormal;
-}
-
 float getPixelSize(const in vec2 coords, const in float depth) {
     vec3 viewPos0 = screenSpaceToViewSpace(vec3(coords, depth), uInvProjection);
     vec3 viewPos1 = screenSpaceToViewSpace(vec3(coords + vec2(1.0, 0.0) / uTexSize, depth), uInvProjection);
@@ -161,8 +109,8 @@ void main(void) {
         return;
     }
 
-    vec3 selfViewNormal = viewNormalAtPixelPositionAccurate(selfCoords);
     vec3 selfViewPos = screenSpaceToViewSpace(vec3(selfCoords, selfDepth), uInvProjection);
+    vec3 selfViewNormal = normalize(cross(dFdx(selfViewPos), dFdy(selfViewPos)));
 
     vec3 randomVec = normalize(vec3(getNoiseVec2(selfCoords) * 2.0 - 1.0, 0.0));
     vec3 tangent = normalize(randomVec - selfViewNormal * dot(randomVec, selfViewNormal));
