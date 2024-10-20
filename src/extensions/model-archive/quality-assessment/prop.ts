@@ -19,23 +19,22 @@ import { AtomicIndex } from '../../../mol-model/structure/model/properties/atomi
 
 export { QualityAssessment };
 
-interface LocalPairwiseMetricInfo {
-    minResidueIndex: ResidueIndex
-    maxResidueIndex: ResidueIndex
-    minMetric: number
-    maxMetric: number
-}
-
 interface QualityAssessment {
     localMetrics: Map<string, Map<ResidueIndex, number>>
-    // TODO: use arrays instead of maps?
     localPairwiseMetrics: Map<string, Map<ResidueIndex, Map<ResidueIndex, number>>>
-    localPairwiseMetricInfo: Map<string, LocalPairwiseMetricInfo>
+    localPairwiseMetricInfo: Map<string, QualityAssessment.LocalPairwiseMetricInfo>
     pLDDT?: Map<ResidueIndex, number>
     qmean?: Map<ResidueIndex, number>
 }
 
 namespace QualityAssessment {
+    export interface LocalPairwiseMetricInfo {
+        minResidueIndex: ResidueIndex
+        maxResidueIndex: ResidueIndex
+        minMetric: number
+        maxMetric: number
+    }
+
     const Empty = {
         value: {
             localMetrics: new Map(),
