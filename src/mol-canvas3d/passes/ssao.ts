@@ -53,7 +53,7 @@ export const SsaoParams = {
     resolutionScale: PD.Numeric(1, { min: 0.1, max: 1, step: 0.05 }, { description: 'Adjust resolution of occlusion calculation' }),
     color: PD.Color(Color(0x000000)),
     includeTransparent: PD.Boolean(true),
-    transparentAlphaThreshold: PD.Numeric(0.5, { min: 0, max: 1, step: 0.1 }),
+    transparentThreshold: PD.Numeric(0.6, { min: 0, max: 1, step: 0.05 }),
 };
 
 export type SsaoProps = PD.Values<typeof SsaoParams>
@@ -307,7 +307,7 @@ export class SsaoPass {
             ValueCell.update(this.blurSecondPassRenderable.values.dOrthographic, orthographic);
         }
 
-        const includeTransparent = props.includeTransparent && scene.opacityAverage < 1 && scene.transparencyMin > (1 - props.transparentAlphaThreshold);
+        const includeTransparent = props.includeTransparent && scene.opacityAverage < 1 && (1 - scene.transparencyMin) > props.transparentThreshold;
         if (this.renderable.values.dIncludeTransparent.ref.value !== includeTransparent) {
             needsUpdateSsao = true;
 

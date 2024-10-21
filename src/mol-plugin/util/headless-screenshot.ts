@@ -229,7 +229,7 @@ export const STYLIZED_POSTPROCESSING: Partial<PostprocessingProps> = {
             resolutionScale: 1,
             color: ColorNames.black,
             includeTransparent: true,
-            transparentAlphaThreshold: 0.5
+            transparentThreshold: 0.6
         }
     }, outline: {
         name: 'on' as const, params: {

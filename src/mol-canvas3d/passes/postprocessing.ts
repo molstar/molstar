@@ -226,7 +226,7 @@ export class PostprocessingPass {
         if (occlusionEnabled) {
             const params = props.occlusion.params as SsaoProps;
             this.ssao.update(camera, scene, params);
-            const includeTransparency = params.includeTransparent && scene.opacityAverage < 1 && scene.transparencyMin > (1 - params.transparentAlphaThreshold);
+            const includeTransparency = params.includeTransparent && scene.opacityAverage < 1 && (1 - scene.transparencyMin) > params.transparentThreshold;
             if (this.renderable.values.dOcclusionIncludeTransparency.ref.value !== includeTransparency) {
                 needsUpdateMain = true;
                 ValueCell.update(this.renderable.values.dOcclusionIncludeTransparency, includeTransparency);
