@@ -88,6 +88,8 @@ interface Scene extends Object3D {
     readonly emissiveAverage: number
     /** Opacity average of primitive renderables */
     readonly opacityAverage: number
+    /** Transparency minimum, excluding fully opaque, of primitive renderables */
+    readonly transparencyMin: number
     /** Is `true` if any primitive renderable (possibly) has any opaque part */
     readonly hasOpaque: boolean
 }
@@ -112,11 +114,13 @@ namespace Scene {
         let markerAverageDirty = true;
         let emissiveAverageDirty = true;
         let opacityAverageDirty = true;
+        let transparencyMinDirty = true;
         let hasOpaqueDirty = true;
 
         let markerAverage = 0;
         let emissiveAverage = 0;
         let opacityAverage = 0;
+        let transparencyMin = 0;
         let hasOpaque = false;
 
         const object3d = Object3D.create();
@@ -176,6 +180,7 @@ namespace Scene {
             markerAverageDirty = true;
             emissiveAverageDirty = true;
             opacityAverageDirty = true;
+            transparencyMinDirty = true;
             hasOpaqueDirty = true;
             return true;
         }
@@ -201,6 +206,7 @@ namespace Scene {
                 markerAverageDirty = true;
                 emissiveAverageDirty = true;
                 opacityAverageDirty = true;
+                transparencyMinDirty = true;
                 hasOpaqueDirty = true;
                 visibleHash = newVisibleHash;
                 return true;
@@ -252,6 +258,28 @@ namespace Scene {
             return count > 0 ? opacityAverage / count : 0;
         }
 
+        /** exclude fully opaque parts */
+        function calculateTransparencyMin() {
+            if (primitives.length === 0) return 1;
+            let transparencyMin = 1;
+            const transparenyValues: number[] = [];
+            for (let i = 0, il = primitives.length; i < il; ++i) {
+                const p = primitives[i];
+                if (!p.state.visible) continue;
+                transparenyValues.length = 0;
+                const alpha = clamp(p.values.alpha.ref.value * p.state.alphaFactor, 0, 1);
+                if (alpha < 1) transparenyValues.push(1 - alpha);
+                if (p.values.dXrayShaded?.ref.value === 'on' ||
+                    p.values.dXrayShaded?.ref.value === 'inverted' ||
+                    p.values.dPointStyle?.ref.value === 'fuzzy' ||
+                    p.values.dGeometryType.ref.value === 'text'
+                ) transparenyValues.push(0.5);
+                if (p.values.transparencyMin.ref.value > 0) transparenyValues.push(p.values.transparencyMin.ref.value);
+                transparencyMin = Math.min(transparencyMin, ...transparenyValues);
+            }
+            return transparencyMin;
+        }
+
         function calculateHasOpaque() {
             if (primitives.length === 0) return false;
             for (let i = 0, il = primitives.length; i < il; ++i) {
@@ -299,6 +327,7 @@ namespace Scene {
                 markerAverageDirty = true;
                 emissiveAverageDirty = true;
                 opacityAverageDirty = true;
+                transparencyMinDirty = true;
                 hasOpaqueDirty = true;
             },
             add: (o: GraphicsRenderObject) => commitQueue.add(o),
@@ -360,6 +389,13 @@ namespace Scene {
                     opacityAverageDirty = false;
                 }
                 return opacityAverage;
+            },
+            get transparencyMin() {
+                if (transparencyMinDirty) {
+                    transparencyMin = calculateTransparencyMin();
+                    transparencyMinDirty = false;
+                }
+                return transparencyMin;
             },
             get hasOpaque() {
                 if (hasOpaqueDirty) {

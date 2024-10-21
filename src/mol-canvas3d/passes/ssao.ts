@@ -19,6 +19,7 @@ import { Mat4, Vec2, Vec3, Vec4 } from '../../mol-math/linear-algebra';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { ICamera } from '../../mol-canvas3d/camera';
+import { Scene } from '../../mol-gl/scene';
 import { quad_vert } from '../../mol-gl/shader/quad.vert';
 import { ssao_frag } from '../../mol-gl/shader/ssao.frag';
 import { ssaoBlur_frag } from '../../mol-gl/shader/ssao-blur.frag';
@@ -51,6 +52,8 @@ export const SsaoParams = {
     blurDepthBias: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }),
     resolutionScale: PD.Numeric(1, { min: 0.1, max: 1, step: 0.05 }, { description: 'Adjust resolution of occlusion calculation' }),
     color: PD.Color(Color(0x000000)),
+    includeTransparent: PD.Boolean(true),
+    transparentThreshold: PD.Numeric(0.6, { min: 0, max: 1, step: 0.05 }),
 };
 
 export type SsaoProps = PD.Values<typeof SsaoParams>
@@ -87,23 +90,35 @@ export class SsaoPass {
     private readonly blurFirstPassFramebuffer: Framebuffer;
     private readonly blurSecondPassFramebuffer: Framebuffer;
 
-    private readonly downsampledDepthTarget: RenderTarget;
-    private readonly downsampleDepthRenderable: CopyRenderable;
+    private readonly downsampledDepthTarget1: RenderTarget;
+    private readonly downsampleDepthRenderable1: CopyRenderable;
 
-    private readonly depthHalfTarget: RenderTarget;
-    private readonly depthHalfRenderable: CopyRenderable;
+    private readonly depthHalfTarget1: RenderTarget;
+    private readonly depthHalfRenderable1: CopyRenderable;
 
-    private readonly depthQuarterTarget: RenderTarget;
-    private readonly depthQuarterRenderable: CopyRenderable;
+    private readonly depthQuarterTarget1: RenderTarget;
+    private readonly depthQuarterRenderable1: CopyRenderable;
+
+    private readonly downsampledDepthTarget2: RenderTarget;
+    private readonly downsampleDepthRenderable2: CopyRenderable;
+
+    private readonly depthHalfTarget2: RenderTarget;
+    private readonly depthHalfRenderable2: CopyRenderable;
+
+    private readonly depthQuarterTarget2: RenderTarget;
+    private readonly depthQuarterRenderable2: CopyRenderable;
 
     readonly ssaoDepthTexture: Texture;
+    readonly ssaoDepthTransparentTexture: Texture;
+
     private readonly depthBlurProxyTexture: Texture;
+
+    private depthTextureOpaque: Texture;
+    private depthTextureTransparent: Texture;
 
     private readonly renderable: SsaoRenderable;
     private readonly blurFirstPassRenderable: SsaoBlurRenderable;
     private readonly blurSecondPassRenderable: SsaoBlurRenderable;
-
-    private depthTexture: Texture;
 
     private nSamples: number;
     private blurKernelSize: number;
@@ -118,13 +133,18 @@ export class SsaoPass {
     private levels: { radius: number, bias: number }[];
 
     private getDepthTexture() {
-        return this.ssaoScale === 1 ? this.depthTexture : this.downsampledDepthTarget.texture;
+        return this.ssaoScale === 1 ? this.depthTextureOpaque : this.downsampledDepthTarget1.texture;
     }
 
-    constructor(private readonly webgl: WebGLContext, width: number, height: number, packedDepth: boolean, depthTexture: Texture) {
+    private getTransparentDepthTexture() {
+        return this.ssaoScale === 1 ? this.depthTextureTransparent : this.downsampledDepthTarget2.texture;
+    }
+
+    constructor(private readonly webgl: WebGLContext, width: number, height: number, packedDepth: boolean, depthTextureOpaque: Texture, depthTextureTransparent: Texture) {
         const { textureFloatLinear } = webgl.extensions;
 
-        this.depthTexture = depthTexture;
+        this.depthTextureOpaque = depthTextureOpaque;
+        this.depthTextureTransparent = depthTextureTransparent;
 
         this.nSamples = 1;
         this.blurKernelSize = 1;
@@ -147,33 +167,45 @@ export class SsaoPass {
 
         const filter = textureFloatLinear ? 'linear' : 'nearest';
 
-        this.downsampledDepthTarget = packedDepth
+        this.downsampledDepthTarget1 = packedDepth
             ? webgl.createRenderTarget(sw, sh, false, 'uint8', 'linear', 'rgba')
             : webgl.createRenderTarget(sw, sh, false, 'float32', filter, webgl.isWebGL2 ? 'alpha' : 'rgba');
-        this.downsampleDepthRenderable = createCopyRenderable(webgl, depthTexture);
+        this.downsampleDepthRenderable1 = createCopyRenderable(webgl, depthTextureOpaque);
 
-        this.depthHalfTarget = packedDepth
+        const depthTexture = this.getDepthTexture();
+        this.depthHalfTarget1 = packedDepth
             ? webgl.createRenderTarget(hw, hh, false, 'uint8', 'linear', 'rgba')
             : webgl.createRenderTarget(hw, hh, false, 'float32', filter, webgl.isWebGL2 ? 'alpha' : 'rgba');
-        this.depthHalfRenderable = createCopyRenderable(webgl, this.getDepthTexture());
+        this.depthHalfRenderable1 = createCopyRenderable(webgl, depthTexture);
 
-        this.depthQuarterTarget = packedDepth
+        this.depthQuarterTarget1 = packedDepth
             ? webgl.createRenderTarget(qw, qh, false, 'uint8', 'linear', 'rgba')
             : webgl.createRenderTarget(qw, qh, false, 'float32', filter, webgl.isWebGL2 ? 'alpha' : 'rgba');
-        this.depthQuarterRenderable = createCopyRenderable(webgl, this.depthHalfTarget.texture);
+        this.depthQuarterRenderable1 = createCopyRenderable(webgl, this.depthHalfTarget1.texture);
+
+        this.downsampledDepthTarget2 = webgl.createRenderTarget(sw, sh, false, 'uint8', 'linear', 'rgba');
+        this.downsampleDepthRenderable2 = createCopyRenderable(webgl, depthTextureTransparent);
+
+        const transparentDepthTexture = this.getTransparentDepthTexture();
+        this.depthHalfTarget2 = webgl.createRenderTarget(hw, hh, false, 'uint8', 'linear', 'rgba');
+        this.depthHalfRenderable2 = createCopyRenderable(webgl, transparentDepthTexture);
+
+        this.depthQuarterTarget2 = webgl.createRenderTarget(qw, qh, false, 'uint8', 'linear', 'rgba');
+        this.depthQuarterRenderable2 = createCopyRenderable(webgl, this.depthHalfTarget2.texture);
 
         this.ssaoDepthTexture = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
         this.ssaoDepthTexture.define(sw, sh);
         this.ssaoDepthTexture.attachFramebuffer(this.framebuffer, 'color0');
 
+        this.ssaoDepthTransparentTexture = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
+        this.ssaoDepthTransparentTexture.define(sw, sh);
+
         this.depthBlurProxyTexture = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
         this.depthBlurProxyTexture.define(sw, sh);
         this.depthBlurProxyTexture.attachFramebuffer(this.blurFirstPassFramebuffer, 'color0');
 
-        this.ssaoDepthTexture.attachFramebuffer(this.blurSecondPassFramebuffer, 'color0');
-
-        this.renderable = getSsaoRenderable(webgl, this.getDepthTexture(), this.depthHalfTarget.texture, this.depthQuarterTarget.texture);
-        this.blurFirstPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthTexture, 'horizontal');
+        this.renderable = getSsaoRenderable(webgl, depthTexture, this.depthHalfTarget1.texture, this.depthQuarterTarget1.texture, transparentDepthTexture, this.depthHalfTarget2.texture, this.depthQuarterTarget2.texture);
+        this.blurFirstPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthTransparentTexture, 'horizontal');
         this.blurSecondPassRenderable = getSsaoBlurRenderable(webgl, this.depthBlurProxyTexture, 'vertical');
     }
 
@@ -185,35 +217,51 @@ export class SsaoPass {
 
             const sw = Math.floor(width * this.ssaoScale);
             const sh = Math.floor(height * this.ssaoScale);
-            this.downsampledDepthTarget.setSize(sw, sh);
             this.ssaoDepthTexture.define(sw, sh);
+            this.ssaoDepthTransparentTexture.define(sw, sh);
             this.depthBlurProxyTexture.define(sw, sh);
 
             const hw = Math.max(1, Math.floor(sw * 0.5));
             const hh = Math.max(1, Math.floor(sh * 0.5));
-            this.depthHalfTarget.setSize(hw, hh);
-
             const qw = Math.max(1, Math.floor(sw * 0.25));
             const qh = Math.max(1, Math.floor(sh * 0.25));
-            this.depthQuarterTarget.setSize(qw, qh);
 
-            ValueCell.update(this.downsampleDepthRenderable.values.uTexSize, Vec2.set(this.downsampleDepthRenderable.values.uTexSize.ref.value, sw, sh));
-            ValueCell.update(this.depthHalfRenderable.values.uTexSize, Vec2.set(this.depthHalfRenderable.values.uTexSize.ref.value, hw, hh));
-            ValueCell.update(this.depthQuarterRenderable.values.uTexSize, Vec2.set(this.depthQuarterRenderable.values.uTexSize.ref.value, qw, qh));
+            this.downsampledDepthTarget1.setSize(sw, sh);
+            this.depthHalfTarget1.setSize(hw, hh);
+            this.depthQuarterTarget1.setSize(qw, qh);
+
+            ValueCell.update(this.downsampleDepthRenderable1.values.uTexSize, Vec2.set(this.downsampleDepthRenderable1.values.uTexSize.ref.value, sw, sh));
+            ValueCell.update(this.depthHalfRenderable1.values.uTexSize, Vec2.set(this.depthHalfRenderable1.values.uTexSize.ref.value, hw, hh));
+            ValueCell.update(this.depthQuarterRenderable1.values.uTexSize, Vec2.set(this.depthQuarterRenderable1.values.uTexSize.ref.value, qw, qh));
+
+            this.downsampledDepthTarget2.setSize(sw, sh);
+            this.depthHalfTarget2.setSize(hw, hh);
+            this.depthQuarterTarget2.setSize(qw, qh);
+
+            ValueCell.update(this.downsampleDepthRenderable2.values.uTexSize, Vec2.set(this.downsampleDepthRenderable2.values.uTexSize.ref.value, sw, sh));
+            ValueCell.update(this.depthHalfRenderable2.values.uTexSize, Vec2.set(this.depthHalfRenderable2.values.uTexSize.ref.value, hw, hh));
+            ValueCell.update(this.depthQuarterRenderable2.values.uTexSize, Vec2.set(this.depthQuarterRenderable2.values.uTexSize.ref.value, qw, qh));
+
             ValueCell.update(this.renderable.values.uTexSize, Vec2.set(this.renderable.values.uTexSize.ref.value, sw, sh));
             ValueCell.update(this.blurFirstPassRenderable.values.uTexSize, Vec2.set(this.blurFirstPassRenderable.values.uTexSize.ref.value, sw, sh));
             ValueCell.update(this.blurSecondPassRenderable.values.uTexSize, Vec2.set(this.blurSecondPassRenderable.values.uTexSize.ref.value, sw, sh));
 
             const depthTexture = this.getDepthTexture();
-            ValueCell.update(this.depthHalfRenderable.values.tColor, depthTexture);
-            ValueCell.update(this.renderable.values.tDepth, depthTexture);
+            const transparentDepthTexture = this.getTransparentDepthTexture();
 
-            this.depthHalfRenderable.update();
+            ValueCell.update(this.depthHalfRenderable1.values.tColor, depthTexture);
+            ValueCell.update(this.depthHalfRenderable2.values.tColor, transparentDepthTexture);
+
+            ValueCell.update(this.renderable.values.tDepth, depthTexture);
+            ValueCell.update(this.renderable.values.tDepthTransparent, transparentDepthTexture);
+
+            this.depthHalfRenderable1.update();
+            this.depthHalfRenderable2.update();
             this.renderable.update();
         }
     }
 
-    update(camera: ICamera, props: SsaoProps) {
+    update(camera: ICamera, scene: Scene, props: SsaoProps, illuminationMode = false) {
         let needsUpdateSsao = false;
         let needsUpdateSsaoBlur = false;
         let needsUpdateDepthHalf = false;
@@ -259,6 +307,19 @@ export class SsaoPass {
             ValueCell.update(this.blurSecondPassRenderable.values.dOrthographic, orthographic);
         }
 
+        const includeTransparent = props.includeTransparent && scene.opacityAverage < 1 && (1 - scene.transparencyMin) > props.transparentThreshold;
+        if (this.renderable.values.dIncludeTransparent.ref.value !== includeTransparent) {
+            needsUpdateSsao = true;
+
+            ValueCell.update(this.renderable.values.dIncludeTransparent, includeTransparent);
+        }
+
+        if (this.renderable.values.dIllumination.ref.value !== illuminationMode) {
+            needsUpdateSsao = true;
+
+            ValueCell.update(this.renderable.values.dIllumination, illuminationMode);
+        }
+
         if (this.nSamples !== props.samples) {
             needsUpdateSsao = true;
 
@@ -270,11 +331,12 @@ export class SsaoPass {
         const multiScale = props.multiScale.name === 'on';
         if (this.renderable.values.dMultiScale.ref.value !== multiScale) {
             needsUpdateSsao = true;
+
             ValueCell.update(this.renderable.values.dMultiScale, multiScale);
         }
 
         if (props.multiScale.name === 'on') {
-            const mp = props.multiScale.params;
+            const mp = props.multiScale!.params;
             if (!deepEqual(this.levels, mp.levels)) {
                 needsUpdateSsao = true;
 
@@ -313,28 +375,45 @@ export class SsaoPass {
 
             const sw = Math.floor(w * this.ssaoScale);
             const sh = Math.floor(h * this.ssaoScale);
-            this.downsampledDepthTarget.setSize(sw, sh);
             this.ssaoDepthTexture.define(sw, sh);
+            this.ssaoDepthTransparentTexture.define(sw, sh);
             this.depthBlurProxyTexture.define(sw, sh);
 
             const hw = Math.floor(sw * 0.5);
             const hh = Math.floor(sh * 0.5);
-            this.depthHalfTarget.setSize(hw, hh);
-
             const qw = Math.floor(sw * 0.25);
             const qh = Math.floor(sh * 0.25);
-            this.depthQuarterTarget.setSize(qw, qh);
+
+            this.downsampledDepthTarget1.setSize(sw, sh);
+            this.depthHalfTarget1.setSize(hw, hh);
+            this.depthQuarterTarget1.setSize(qw, qh);
 
             const depthTexture = this.getDepthTexture();
-            ValueCell.update(this.depthHalfRenderable.values.tColor, depthTexture);
+            ValueCell.update(this.depthHalfRenderable1.values.tColor, depthTexture);
             ValueCell.update(this.renderable.values.tDepth, depthTexture);
 
-            ValueCell.update(this.renderable.values.tDepthHalf, this.depthHalfTarget.texture);
-            ValueCell.update(this.renderable.values.tDepthQuarter, this.depthQuarterTarget.texture);
+            ValueCell.update(this.renderable.values.tDepthHalf, this.depthHalfTarget1.texture);
+            ValueCell.update(this.renderable.values.tDepthQuarter, this.depthQuarterTarget1.texture);
 
-            ValueCell.update(this.downsampleDepthRenderable.values.uTexSize, Vec2.set(this.downsampleDepthRenderable.values.uTexSize.ref.value, sw, sh));
-            ValueCell.update(this.depthHalfRenderable.values.uTexSize, Vec2.set(this.depthHalfRenderable.values.uTexSize.ref.value, hw, hh));
-            ValueCell.update(this.depthQuarterRenderable.values.uTexSize, Vec2.set(this.depthQuarterRenderable.values.uTexSize.ref.value, qw, qh));
+            ValueCell.update(this.downsampleDepthRenderable1.values.uTexSize, Vec2.set(this.downsampleDepthRenderable1.values.uTexSize.ref.value, sw, sh));
+            ValueCell.update(this.depthHalfRenderable1.values.uTexSize, Vec2.set(this.depthHalfRenderable1.values.uTexSize.ref.value, hw, hh));
+            ValueCell.update(this.depthQuarterRenderable1.values.uTexSize, Vec2.set(this.depthQuarterRenderable1.values.uTexSize.ref.value, qw, qh));
+
+            this.downsampledDepthTarget2.setSize(sw, sh);
+            this.depthHalfTarget2.setSize(hw, hh);
+            this.depthQuarterTarget2.setSize(qw, qh);
+
+            const transparentDepthTexture = this.getTransparentDepthTexture();
+            ValueCell.update(this.depthHalfRenderable2.values.tColor, transparentDepthTexture);
+            ValueCell.update(this.renderable.values.tDepthTransparent, transparentDepthTexture);
+
+            ValueCell.update(this.renderable.values.tDepthHalfTransparent, this.depthHalfTarget2.texture);
+            ValueCell.update(this.renderable.values.tDepthQuarterTransparent, this.depthQuarterTarget2.texture);
+
+            ValueCell.update(this.downsampleDepthRenderable2.values.uTexSize, Vec2.set(this.downsampleDepthRenderable2.values.uTexSize.ref.value, sw, sh));
+            ValueCell.update(this.depthHalfRenderable2.values.uTexSize, Vec2.set(this.depthHalfRenderable2.values.uTexSize.ref.value, hw, hh));
+            ValueCell.update(this.depthQuarterRenderable2.values.uTexSize, Vec2.set(this.depthQuarterRenderable2.values.uTexSize.ref.value, qw, qh));
+
             ValueCell.update(this.renderable.values.uTexSize, Vec2.set(this.renderable.values.uTexSize.ref.value, sw, sh));
             ValueCell.update(this.blurFirstPassRenderable.values.uTexSize, Vec2.set(this.blurFirstPassRenderable.values.uTexSize.ref.value, sw, sh));
             ValueCell.update(this.blurSecondPassRenderable.values.uTexSize, Vec2.set(this.blurSecondPassRenderable.values.uTexSize.ref.value, sw, sh));
@@ -350,15 +429,19 @@ export class SsaoPass {
         }
 
         if (needsUpdateDepthHalf) {
-            this.depthHalfRenderable.update();
+            this.depthHalfRenderable1.update();
+            this.depthHalfRenderable2.update();
         }
     }
 
     render(camera: ICamera) {
-        if (isTimingMode) this.webgl.timer.mark('SsaoPass.render');
+        if (isTimingMode) this.webgl.timer.mark('SSAO.render');
 
         const { state } = this.webgl;
         const { x, y, width, height } = camera.viewport;
+
+        const includeTransparent = this.renderable.values.dIncludeTransparent.ref.value;
+        const multiScale = this.renderable.values.dMultiScale.ref.value;
 
         const sx = Math.floor(x * this.ssaoScale);
         const sy = Math.floor(y * this.ssaoScale);
@@ -369,35 +452,75 @@ export class SsaoPass {
         state.scissor(sx, sy, sw, sh);
 
         if (this.ssaoScale < 1) {
-            if (isTimingMode) this.webgl.timer.mark('SsaoPass.downsample');
-            this.downsampledDepthTarget.bind();
-            this.downsampleDepthRenderable.render();
-            if (isTimingMode) this.webgl.timer.markEnd('SsaoPass.downsample');
+            if (isTimingMode) this.webgl.timer.mark('SSAO.downsample');
+            this.downsampledDepthTarget1.bind();
+            this.downsampleDepthRenderable1.render();
+            if (includeTransparent) {
+                this.downsampledDepthTarget2.bind();
+                this.downsampleDepthRenderable2.render();
+            }
+            if (isTimingMode) this.webgl.timer.markEnd('SSAO.downsample');
         }
 
-        if (isTimingMode) this.webgl.timer.mark('SsaoPass.half');
-        this.depthHalfTarget.bind();
-        this.depthHalfRenderable.render();
-        if (isTimingMode) this.webgl.timer.markEnd('SsaoPass.half');
+        if (isTimingMode) this.webgl.timer.mark('SSAO.half');
+        if (multiScale) {
+            this.depthHalfTarget1.bind();
+            this.depthHalfRenderable1.render();
+        }
+        if (multiScale && includeTransparent) {
+            this.depthHalfTarget2.bind();
+            this.depthHalfRenderable2.render();
+        }
+        if (isTimingMode) this.webgl.timer.markEnd('SSAO.half');
 
-        if (isTimingMode) this.webgl.timer.mark('SsaoPass.quarter');
-        this.depthQuarterTarget.bind();
-        this.depthQuarterRenderable.render();
-        if (isTimingMode) this.webgl.timer.markEnd('SsaoPass.quarter');
+        if (isTimingMode) this.webgl.timer.mark('SSAO.quarter');
+        if (multiScale) {
+            this.depthQuarterTarget1.bind();
+            this.depthQuarterRenderable1.render();
+        }
+        if (multiScale && includeTransparent) {
+            this.depthQuarterTarget2.bind();
+            this.depthQuarterRenderable2.render();
+        }
+        if (isTimingMode) this.webgl.timer.markEnd('SSAO.quarter');
 
-        if (isTimingMode) this.webgl.timer.mark('SsaoPass.sample');
+        if (isTimingMode) this.webgl.timer.mark('SSAO.opaque');
+        this.ssaoDepthTexture.attachFramebuffer(this.framebuffer, 'color0');
+        ValueCell.update(this.renderable.values.uTransparencyFlag, 0);
         this.framebuffer.bind();
         this.renderable.render();
-        if (isTimingMode) this.webgl.timer.markEnd('SsaoPass.sample');
+        if (isTimingMode) this.webgl.timer.markEnd('SSAO.opaque');
 
-        if (isTimingMode) this.webgl.timer.mark('SsaoPass.blur');
+        if (isTimingMode) this.webgl.timer.mark('SSAO.blurOpaque');
+        ValueCell.update(this.blurFirstPassRenderable.values.tSsaoDepth, this.ssaoDepthTexture);
+        this.blurFirstPassRenderable.update();
         this.blurFirstPassFramebuffer.bind();
         this.blurFirstPassRenderable.render();
 
+        this.ssaoDepthTexture.attachFramebuffer(this.blurSecondPassFramebuffer, 'color0');
         this.blurSecondPassFramebuffer.bind();
         this.blurSecondPassRenderable.render();
-        if (isTimingMode) this.webgl.timer.markEnd('SsaoPass.blur');
-        if (isTimingMode) this.webgl.timer.markEnd('SsaoPass.render');
+        if (isTimingMode) this.webgl.timer.markEnd('SSAO.blurOpaque');
+        if (includeTransparent) {
+            if (isTimingMode) this.webgl.timer.mark('SSAO.transparent ');
+            this.ssaoDepthTransparentTexture.attachFramebuffer(this.framebuffer, 'color0');
+            ValueCell.update(this.renderable.values.uTransparencyFlag, 1);
+            this.framebuffer.bind();
+            this.renderable.render();
+            if (isTimingMode) this.webgl.timer.markEnd('SSAO.transparent ');
+
+            if (isTimingMode) this.webgl.timer.mark('SSAO.blurTransparent ');
+            ValueCell.update(this.blurFirstPassRenderable.values.tSsaoDepth, this.ssaoDepthTransparentTexture);
+            this.blurFirstPassRenderable.update();
+            this.blurFirstPassFramebuffer.bind();
+            this.blurFirstPassRenderable.render();
+
+            this.ssaoDepthTransparentTexture.attachFramebuffer(this.blurSecondPassFramebuffer, 'color0');
+            this.blurSecondPassFramebuffer.bind();
+            this.blurSecondPassRenderable.render();
+            if (isTimingMode) this.webgl.timer.markEnd('SSAO.blurTransparent ');
+        }
+        if (isTimingMode) this.webgl.timer.markEnd('SSAO.render');
     }
 }
 
@@ -406,6 +529,13 @@ const SsaoSchema = {
     tDepth: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
     tDepthHalf: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
     tDepthQuarter: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
+
+    dIllumination: DefineSpec('boolean'),
+    uTransparencyFlag: UniformSpec('i'),
+    dIncludeTransparent: DefineSpec('boolean'),
+    tDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
+    tDepthHalfTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
+    tDepthQuarterTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
 
     uSamples: UniformSpec('v3[]'),
     dNSamples: DefineSpec('number'),
@@ -429,12 +559,19 @@ const SsaoSchema = {
 
 type SsaoRenderable = ComputeRenderable<Values<typeof SsaoSchema>>
 
-function getSsaoRenderable(ctx: WebGLContext, depthTexture: Texture, depthHalfTexture: Texture, depthQuarterTexture: Texture): SsaoRenderable {
+function getSsaoRenderable(ctx: WebGLContext, depthTexture: Texture, depthHalfTexture: Texture, depthQuarterTexture: Texture, transparentDepthTexture: Texture, transparentDepthHalfTexture: Texture, transparentDepthQuarterTexture: Texture): SsaoRenderable {
     const values: Values<typeof SsaoSchema> = {
         ...QuadValues,
         tDepth: ValueCell.create(depthTexture),
         tDepthHalf: ValueCell.create(depthHalfTexture),
         tDepthQuarter: ValueCell.create(depthQuarterTexture),
+
+        dIllumination: ValueCell.create(false),
+        dIncludeTransparent: ValueCell.create(true),
+        uTransparencyFlag: ValueCell.create(0),
+        tDepthTransparent: ValueCell.create(transparentDepthTexture),
+        tDepthHalfTransparent: ValueCell.create(transparentDepthHalfTexture),
+        tDepthQuarterTransparent: ValueCell.create(transparentDepthQuarterTexture),
 
         uSamples: ValueCell.create(getSamples(32)),
         dNSamples: ValueCell.create(32),

@@ -44,16 +44,6 @@ function occlusionStyle(plugin: PluginContext) {
         },
         postprocessing: {
             ...plugin.canvas3d!.props.postprocessing,
-            occlusion: { name: 'on', params: {
-                blurKernelSize: 15,
-                blurDepthBias: 0.5,
-                multiScale: { name: 'off', params: {} },
-                radius: 5,
-                bias: 0.8,
-                samples: 32,
-                resolutionScale: 1,
-                color: Color(0x000000),
-            } },
             outline: { name: 'on', params: {
                 scale: 1.0,
                 threshold: 0.33,

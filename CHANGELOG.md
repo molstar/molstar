@@ -5,6 +5,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add transparent ssao support
+    - Fix ssao color not updating
+    - Refactor postprocessing
+    - Improve outlines
 - Default to `blended` transparency on iOS due to `wboit` not being supported.
 - Fix direct-volume with fog off (and on with `dpoit`) and transparent background on (#1286)
 - Fix missing pre-multiplied alpha for `blended` & `wboit` with no fog (#1284)
