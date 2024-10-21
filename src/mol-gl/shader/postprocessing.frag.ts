@@ -58,8 +58,7 @@ bool isBackground(const in float depth) {
 }
 
 int squaredOutlineScale = dOutlineScale * dOutlineScale;
-float getOutline(const in vec2 coords, const in float opaqueDepth, out float closestTexel, out float isTransparent) {
-    float backgroundViewZ = 2.0 * uFar;
+float getOutline(const in vec2 coords, const in float opaqueDepth, const in float transparentDepth, out float closestTexel, out float isTransparent) {
     vec2 invTexSize = 1.0 / uTexSize;
 
     float outline = 1.0;
@@ -84,7 +83,7 @@ float getOutline(const in vec2 coords, const in float opaqueDepth, out float clo
             }
         }
     }
-    return closestTexel < opaqueDepth ? outline : 1.0;
+    return isTransparent == 0.0 ? outline : (closestTexel < opaqueDepth || closestTexel < transparentDepth) ? outline : 1.0;
 }
 
 float getSsao(vec2 coords) {
@@ -114,12 +113,13 @@ void main(void) {
     vec4 color = texture2D(tColor, coords);
 
     float opaqueDepth = getDepthOpaque(coords);
+    float transparentDepth = 1.0;
     #ifdef dBlendTransparency
         bool blendTransparency = true;
         vec4 transparentColor = texture2D(tTransparentColor, coords);
 
         #if defined(dOutlineEnable) || defined(dOcclusionEnable) && defined(dOcclusionIncludeTransparency)
-            float transparentDepth = getDepthTransparent(coords);
+            transparentDepth = getDepthTransparent(coords);
         #endif
     #endif    
 
@@ -164,7 +164,7 @@ void main(void) {
     #ifdef dOutlineEnable
         float closestTexel;
         float isTransparentOutline;
-        float outline = getOutline(coords, opaqueDepth, closestTexel, isTransparentOutline);
+        float outline = getOutline(coords, opaqueDepth, transparentDepth, closestTexel, isTransparentOutline);
         if (outline == 0.0) {
             float viewDist = abs(getViewZ(closestTexel));
             float fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
@@ -175,7 +175,7 @@ void main(void) {
                 color.rgb = mix(uOutlineColor, vec3(0.0), fogFactor);
             }
             #ifdef dBlendTransparency
-                if (transparentDepth > closestTexel) {
+                if (isTransparentOutline == 1.0 || transparentDepth > closestTexel) {
                     blendTransparency = false;
                 }
             #endif

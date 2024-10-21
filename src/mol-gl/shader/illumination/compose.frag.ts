@@ -143,21 +143,16 @@ vec4 smartDeNoise(sampler2D tex, vec2 uv) {
     return aBuff / zBuff;
 }
 
-float getOutline(const in vec2 coords, const in float opaqueDepth, out float closestTexel, out float isTransparent) {
-    float backgroundViewZ = 2.0 * uFar;
+int squaredOutlineScale = dOutlineScale * dOutlineScale;
+float getOutline(const in vec2 coords, const in float opaqueDepth, const in float transparentDepth, out float closestTexel, out float isTransparent) {
     vec2 invTexSize = 1.0 / uTexSize;
-
-    float transparentDepth = getDepthTransparent(coords);
-    float opaqueSelfViewZ = isBackground(opaqueDepth) ? backgroundViewZ : getViewZ(opaqueDepth);
-    float transparentSelfViewZ = isBackground(transparentDepth) ? backgroundViewZ : getViewZ(transparentDepth);
-    float selfDepth = min(opaqueDepth, transparentDepth);
 
     float outline = 1.0;
     closestTexel = 1.0;
     isTransparent = 0.0;
     for (int y = -dOutlineScale; y <= dOutlineScale; y++) {
         for (int x = -dOutlineScale; x <= dOutlineScale; x++) {
-            if (x * x + y * y > dOutlineScale * dOutlineScale) {
+            if (x * x + y * y > squaredOutlineScale) {
                 continue;
             }
 
@@ -166,9 +161,7 @@ float getOutline(const in vec2 coords, const in float opaqueDepth, out float clo
             vec4 sampleOutlineCombined = texture2D(tOutlines, sampleCoords);
             float sampleOutline = sampleOutlineCombined.r;
             float sampleOutlineDepth = unpackRGToUnitInterval(sampleOutlineCombined.gb);
-            float sampleOutlineViewZ = isBackground(sampleOutlineDepth) ? backgroundViewZ : getViewZ(sampleOutlineDepth);
 
-            float selfViewZ = sampleOutlineCombined.a == 0.0 ? opaqueSelfViewZ : transparentSelfViewZ;
             if (sampleOutline == 0.0 && sampleOutlineDepth < closestTexel) {
                 outline = 0.0;
                 closestTexel = sampleOutlineDepth;
@@ -176,7 +169,7 @@ float getOutline(const in vec2 coords, const in float opaqueDepth, out float clo
             }
         }
     }
-    return closestTexel < opaqueDepth ? outline : 1.0;
+    return isTransparent == 0.0 ? outline : (closestTexel < opaqueDepth || closestTexel < transparentDepth) ? outline : 1.0;
 }
 
 void main() {
@@ -194,11 +187,12 @@ void main() {
     float fogFactor = smoothstep(uFogNear, uFogFar, abs(opaqueSelfViewZ));
     float fogAlpha = 1.0 - fogFactor;
 
+    float transparentDepth = 1.0;
     #ifdef dBlendTransparency
         bool blendTransparency = true;
         vec4 transparentColor = texture2D(tTransparentColor, coords);
         
-        float transparentDepth = getDepthTransparent(coords);
+        transparentDepth = getDepthTransparent(coords);
     #endif
 
     float alpha = 1.0;
@@ -234,7 +228,7 @@ void main() {
     #ifdef dOutlineEnable
         float closestTexel;
         float isTransparentOutline;
-        float outline = getOutline(coords, opaqueDepth, closestTexel, isTransparentOutline);
+        float outline = getOutline(coords, opaqueDepth, transparentDepth, closestTexel, isTransparentOutline);
         if (outline == 0.0) {
             float viewDist = abs(getViewZ(closestTexel));
             float fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
@@ -245,7 +239,7 @@ void main() {
                 color.rgb = mix(uOutlineColor, vec3(0.0), fogFactor);
             }
             #ifdef dBlendTransparency
-                if (transparentDepth > closestTexel) {
+                if (isTransparentOutline == 1.0 || transparentDepth > closestTexel) {
                     blendTransparency = false;
                 }
             #endif
