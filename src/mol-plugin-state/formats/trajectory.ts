@@ -112,6 +112,24 @@ export const XyzProvider: TrajectoryFormatProvider = {
     visuals: defaultVisuals
 };
 
+export const LammpsDataProvider: TrajectoryFormatProvider = {
+    label: 'Lammps Data',
+    description: 'Lammps Data',
+    category: TrajectoryFormatCategory,
+    stringExtensions: ['data'],
+    parse: directTrajectory(StateTransforms.Model.TrajectoryFromLammpsData),
+    visuals: defaultVisuals
+};
+
+export const LammpsTrajectoryDataProvider: TrajectoryFormatProvider = {
+    label: 'Lammps Trajectory Data',
+    description: 'Lammps Trajectory Data',
+    category: TrajectoryFormatCategory,
+    stringExtensions: ['lammpstrj'],
+    parse: directTrajectory(StateTransforms.Model.TrajectoryFromLammpsTrajData),
+    visuals: defaultVisuals
+};
+
 export const GroProvider: TrajectoryFormatProvider = {
     label: 'GRO',
     description: 'GRO',
@@ -156,6 +174,8 @@ export const BuiltInTrajectoryFormats = [
     ['pdbqt', PdbqtProvider] as const,
     ['gro', GroProvider] as const,
     ['xyz', XyzProvider] as const,
+    ['lammps_data', LammpsDataProvider] as const,
+    ['lammps_traj_data', LammpsTrajectoryDataProvider] as const,
     ['mol', MolProvider] as const,
     ['sdf', SdfProvider] as const,
     ['mol2', Mol2Provider] as const,
