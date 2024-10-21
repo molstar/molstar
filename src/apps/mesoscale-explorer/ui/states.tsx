@@ -85,6 +85,7 @@ function adjustPluginProps(ctx: PluginContext) {
                     resolutionScale: 1,
                     color: Color(0x000000),
                     includeTransparent: true,
+                    transparentAlphaThreshold: 0.5
                 }
             },
             shadow: {
