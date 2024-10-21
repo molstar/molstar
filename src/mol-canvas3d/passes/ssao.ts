@@ -50,7 +50,7 @@ export const SsaoParams = {
     blurKernelSize: PD.Numeric(15, { min: 1, max: 35, step: 2 }),
     blurStepSize: PD.Numeric(2, { min: 1, max: 3, step: 1 }, { description: 'Step size for the blur. Values greater than one work best with multi-sample enabled to mitigate artefacts.' }),
     blurDepthBias: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }),
-    blurNormalBias: PD.Numeric(0.0, { min: 0, max: 1, step: 0.01 }, { description: 'Bias for normal comparison in blur. Mainly improves creases between overlapping spheres and the like. Quite expensive, use with care. Disabled when set to zero.' }),
+    blurNormalBias: PD.Numeric(0.0, { min: 0, max: 0.95, step: 0.01 }, { description: 'Bias for normal comparison in blur. Mainly improves creases between overlapping spheres and the like. Quite expensive, use with care. Disabled when set to zero.' }),
     resolutionScale: PD.Numeric(1, { min: 0.1, max: 1, step: 0.05 }, { description: 'Adjust resolution of occlusion calculation.' }),
     color: PD.Color(Color(0x000000)),
 };
