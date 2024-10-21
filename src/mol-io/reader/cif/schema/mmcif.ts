@@ -5216,6 +5216,70 @@ export const mmCIF_Schema = {
          */
         metric_value: float,
     },
+    ma_qa_metric_local_pairwise: {
+        /**
+         * A unique identifier for the category.
+         */
+        ordinal_id: int,
+        /**
+         * The identifier for the structural model, for which local QA metric is provided.
+         * This data item is a pointer to _ma_model_list.model_id
+         * in the MA_MODEL_LIST category.
+         */
+        model_id: int,
+        /**
+         * The identifier for the asym id of the residue in the
+         * structural model, for which local QA metric is provided.
+         * This data item is a pointer to _atom_site.label_asym_id
+         * in the ATOM_SITE category.
+         */
+        label_asym_id_1: str,
+        /**
+         * The identifier for the sequence index of the residue
+         * in the structural model, for which local QA metric is provided.
+         * This data item is a pointer to _atom_site.label_seq_id
+         * in the ATOM_SITE category.
+         */
+        label_seq_id_1: int,
+        /**
+         * The component identifier for the residue in the
+         * structural model, for which local QA metric is provided.
+         * This data item is a pointer to _atom_site.label_comp_id
+         * in the ATOM_SITE category.
+         */
+        label_comp_id_1: str,
+        /**
+         * The identifier for the asym id of the residue in the
+         * structural model, for which local QA metric is provided.
+         * This data item is a pointer to _atom_site.label_asym_id
+         * in the ATOM_SITE category.
+         */
+        label_asym_id_2: str,
+        /**
+         * The identifier for the sequence index of the residue
+         * in the structural model, for which local QA metric is provided.
+         * This data item is a pointer to _atom_site.label_seq_id
+         * in the ATOM_SITE category.
+         */
+        label_seq_id_2: int,
+        /**
+         * The component identifier for the residue in the
+         * structural model, for which local QA metric is provided.
+         * This data item is a pointer to _atom_site.label_comp_id
+         * in the ATOM_SITE category.
+         */
+        label_comp_id_2: str,
+        /**
+         * The identifier for the QA metric.
+         * This data item is a pointer to _ma_qa_metric.id in the
+         * MA_QA_METRIC category.
+         */
+        metric_id: int,
+        /**
+         * The value of the local QA metric.
+         */
+        metric_value: float,
+    },
 };
 
 export type mmCIF_Schema = typeof mmCIF_Schema;

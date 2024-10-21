@@ -263,4 +263,16 @@ export namespace AtomicHierarchy {
     export function chainResidueCount(segs: AtomicSegments, cI: ChainIndex) {
         return chainEndResidueIndexExcl(segs, cI) - chainStartResidueIndex(segs, cI);
     }
+
+    export function residueFirstAtomIndex(hierarchy: AtomicHierarchy, rI: ResidueIndex) {
+        return hierarchy.residueAtomSegments.offsets[rI];
+    }
+
+    export function atomChainIndex(hierarchy: AtomicHierarchy, eI: ElementIndex) {
+        return hierarchy.chainAtomSegments.index[eI];
+    }
+
+    export function residueChainIndex(hierarchy: AtomicHierarchy, rI: ResidueIndex) {
+        return hierarchy.chainAtomSegments.index[hierarchy.residueAtomSegments.offsets[rI]];
+    }
 }

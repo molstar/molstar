@@ -17,6 +17,7 @@ import { cantorPairing } from '../../../mol-data/util';
 import { QmeanScoreColorThemeProvider } from './color/qmean';
 import { PresetStructureRepresentations, StructureRepresentationPresetProvider } from '../../../mol-plugin-state/builder/structure/representation-preset';
 import { StateObjectRef } from '../../../mol-state';
+import { PAEPlotUI } from './pae/ui';
 
 export const MAQualityAssessment = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
     name: 'ma-quality-assessment-prop',
@@ -52,6 +53,8 @@ export const MAQualityAssessment = PluginBehavior.create<{ autoAttach: boolean, 
 
             this.ctx.builders.structure.representation.registerPreset(QualityAssessmentPLDDTPreset);
             this.ctx.builders.structure.representation.registerPreset(QualityAssessmentQmeanPreset);
+
+            this.ctx.customStructureControls.set('pae-plot', PAEPlotUI as any);
         }
 
         update(p: { autoAttach: boolean, showTooltip: boolean }) {

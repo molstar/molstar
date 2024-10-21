@@ -34,6 +34,10 @@
         margin: $control-spacing;
     }
 
+    .msp-svg-text {
+        fill: $font-color;
+    }
+
     & {
         background: $default-background;
     }
