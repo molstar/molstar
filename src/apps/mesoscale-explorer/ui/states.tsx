@@ -64,7 +64,7 @@ function adjustPluginProps(ctx: PluginContext) {
             occlusion: {
                 name: 'on',
                 params: {
-                    samples: 32,
+                    samples: 24,
                     multiScale: {
                         name: 'on',
                         params: {
@@ -81,7 +81,9 @@ function adjustPluginProps(ctx: PluginContext) {
                     radius: 5,
                     bias: 1,
                     blurKernelSize: 11,
+                    blurStepSize: 1,
                     blurDepthBias: 0.5,
+                    blurNormalBias: 0.0,
                     resolutionScale: 1,
                     color: Color(0x000000),
                 }

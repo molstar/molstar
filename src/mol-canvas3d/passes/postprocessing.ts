@@ -197,7 +197,7 @@ export class PostprocessingPass {
         const occlusionEnabled = SsaoPass.isEnabled(props);
 
         if (occlusionEnabled) {
-            this.ssao.update(camera, props.occlusion.params as SsaoProps);
+            this.ssao.update(camera, props.occlusion.params as SsaoProps, this.occlusionOffset);
         }
 
         if (shadowsEnabled) {
@@ -279,6 +279,7 @@ export class PostprocessingPass {
         // don't render occlusion if offset is given,
         // which will reuse the existing occlusion
         if (props.occlusion.name === 'on' && this.occlusionOffset[0] === 0 && this.occlusionOffset[1] === 0) {
+        // if (props.occlusion.name === 'on') {
             this.ssao.render(camera);
         }
 

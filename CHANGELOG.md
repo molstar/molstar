@@ -14,7 +14,11 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix `findPredecessorIndex` bug when repeating values
 - MolViewSpec: Support for transparency and custom properties
 - MolViewSpec: MVP Support for geometrical primitives (mesh, lines, line, label, distance measurement)
-
+- SSAO improvements
+    - Add `blurStepSize` to reduce blur cost. Works best with multi-sample enabled to mitigate artefacts. Defaults to 2 (since multi-sample is enabled by default). Set to 1 for screenshots.
+    - Add `blurNormalBias` to improve creases between overlapping spheres. Quite expensive, use with care. Disabled by default (set to zero).
+    - Remove `devicePixelRatio` adjustment of resolution. This is a bit more expensive but avoids ugly edge artefacts.
+    - Reduce default `samples` from 32 to 24. Still at 128 for screenshots.
 
 ## [v4.7.1] - 2024-09-30
 
