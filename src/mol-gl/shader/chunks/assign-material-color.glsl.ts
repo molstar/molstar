@@ -49,7 +49,11 @@ export const assign_material_color = `
         #endif
         #if defined(dTransparency)
             float dta = 1.0 - vTransparency;
-            if (vTransparency < 0.2) dta = 1.0; // hard cutoff looks better
+
+            #if __VERSION__ == 100 || defined(dVaryingGroup)
+                if (vTransparency < 0.1) dta = 1.0; // hard cutoff to avoid artifacts
+            #endif
+            
             if (uAlpha * dta < 1.0) {
                 discard;
             }
