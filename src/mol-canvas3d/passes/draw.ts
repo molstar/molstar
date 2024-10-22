@@ -172,7 +172,7 @@ export class DrawPass {
 
         this.depthTextureOpaque.detachFramebuffer(this.colorTarget.framebuffer, 'depth');
 
-        if (PostprocessingPass.isTransparentDepthRequired(postprocessingProps)) {
+        if (PostprocessingPass.isTransparentDepthRequired(scene, postprocessingProps)) {
             this.depthTargetTransparent.bind();
             renderer.clearDepth(true);
             if (scene.opacityAverage < 1) {
@@ -228,7 +228,7 @@ export class DrawPass {
             renderer.renderOpaque(scene.primitives, camera);
         }
 
-        if (PostprocessingPass.isTransparentDepthRequired(postprocessingProps)) {
+        if (PostprocessingPass.isTransparentDepthRequired(scene, postprocessingProps)) {
             this.depthTargetTransparent.bind();
             renderer.clearDepth(true);
             if (scene.opacityAverage < 1) {
@@ -296,7 +296,7 @@ export class DrawPass {
                 this.colorTarget.bind();
             }
 
-            if (PostprocessingPass.isTransparentDepthRequired(postprocessingProps)) {
+            if (PostprocessingPass.isTransparentDepthRequired(scene, postprocessingProps)) {
                 this.depthTargetTransparent.bind();
                 renderer.clearDepth(true);
                 if (scene.opacityAverage < 1) {

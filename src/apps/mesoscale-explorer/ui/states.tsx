@@ -84,8 +84,7 @@ function adjustPluginProps(ctx: PluginContext) {
                     blurDepthBias: 0.5,
                     resolutionScale: 1,
                     color: Color(0x000000),
-                    includeTransparent: true,
-                    transparentThreshold: 0.6
+                    transparentThreshold: 0.4
                 }
             },
             shadow: {

@@ -190,7 +190,7 @@ export class IlluminationPass {
 
             const outlineEnabled = PostprocessingPass.isTransparentOutlineEnabled(props.postprocessing) && !props.illumination.ignoreOutline;
             const dofEnabled = DofPass.isEnabled(props.postprocessing);
-            const ssaoEnabled = PostprocessingPass.isTransparentSsaoEnabled(props.postprocessing);
+            const ssaoEnabled = PostprocessingPass.isTransparentSsaoEnabled(scene, props.postprocessing);
 
             if (outlineEnabled || dofEnabled || ssaoEnabled) {
                 this.drawPass.depthTargetTransparent.bind();
@@ -302,7 +302,7 @@ export class IlluminationPass {
         const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
 
         const outlinesEnabled = props.postprocessing.outline.name === 'on' && !props.illumination.ignoreOutline;
-        const occlusionEnabled = props.postprocessing.occlusion.name === 'on' && props.postprocessing.occlusion.params.includeTransparent && scene.opacityAverage < 1 && (1 - scene.transparencyMin) > props.postprocessing.occlusion.params.transparentThreshold;
+        const occlusionEnabled = PostprocessingPass.isTransparentSsaoEnabled(scene, props.postprocessing);
 
         let needsUpdateCompose = false;
 

@@ -37,7 +37,7 @@ const Canvas3DPresets = {
                         resolutionScale: 1,
                         color: Color(0x000000),
                         includeTransparent: true,
-                        transparentThreshold: 0.6
+                        transparentThreshold: 0.4
                     }
                 },
                 outline: {
@@ -71,8 +71,7 @@ const Canvas3DPresets = {
                         radius: 5,
                         bias: 0.8,
                         blurKernelSize: 15,
-                        resolutionScale: 1,
-                        includeTransparent: true
+                        resolutionScale: 1
                     }
                 },
                 outline: {

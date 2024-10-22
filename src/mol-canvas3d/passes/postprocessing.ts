@@ -159,16 +159,16 @@ export class PostprocessingPass {
         return SsaoPass.isEnabled(props) || ShadowPass.isEnabled(props) || OutlinePass.isEnabled(props) || props.background.variant.name !== 'off';
     }
 
-    static isTransparentDepthRequired(props: PostprocessingProps) {
-        return DofPass.isEnabled(props) || PostprocessingPass.isTransparentOutlineEnabled(props) || PostprocessingPass.isTransparentSsaoEnabled(props);
+    static isTransparentDepthRequired(scene: Scene, props: PostprocessingProps) {
+        return DofPass.isEnabled(props) || OutlinePass.isEnabled(props) && PostprocessingPass.isTransparentOutlineEnabled(props) || SsaoPass.isEnabled(props) && PostprocessingPass.isTransparentSsaoEnabled(scene, props);
     }
 
     static isTransparentOutlineEnabled(props: PostprocessingProps) {
         return OutlinePass.isEnabled(props) && (props.outline.params as OutlineProps).includeTransparent;
     }
 
-    static isTransparentSsaoEnabled(props: PostprocessingProps) {
-        return SsaoPass.isEnabled(props) && (props.occlusion.params as SsaoProps).includeTransparent;
+    static isTransparentSsaoEnabled(scene: Scene, props: PostprocessingProps) {
+        return SsaoPass.isEnabled(props) && SsaoPass.isTransparentEnabled(scene, props.occlusion.params as SsaoProps);
     }
 
     static isSsaoEnabled(props: PostprocessingProps) {
@@ -226,7 +226,7 @@ export class PostprocessingPass {
         if (occlusionEnabled) {
             const params = props.occlusion.params as SsaoProps;
             this.ssao.update(camera, scene, params);
-            const includeTransparency = params.includeTransparent && scene.opacityAverage < 1 && (1 - scene.transparencyMin) > params.transparentThreshold;
+            const includeTransparency = SsaoPass.isTransparentEnabled(scene, params);
             if (this.renderable.values.dOcclusionIncludeTransparency.ref.value !== includeTransparency) {
                 needsUpdateMain = true;
                 ValueCell.update(this.renderable.values.dOcclusionIncludeTransparency, includeTransparency);
