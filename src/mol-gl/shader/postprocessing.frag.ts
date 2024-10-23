@@ -83,7 +83,7 @@ float getOutline(const in vec2 coords, const in float opaqueDepth, const in floa
             }
         }
     }
-    return isTransparent == 0.0 ? outline : (closestTexel < opaqueDepth || closestTexel < transparentDepth) ? outline : 1.0;
+    return isTransparent == 0.0 ? outline : (closestTexel > opaqueDepth && closestTexel < transparentDepth) ? 1.0 : outline;
 }
 
 float getSsao(vec2 coords) {
