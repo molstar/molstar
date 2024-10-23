@@ -365,9 +365,7 @@ export class DrawPass {
                 }
                 target.bind();
             }
-        }
-
-        if (scene.opacityAverage < 1) {
+        } else if (scene.opacityAverage < 1) {
             renderer.renderBlendedTransparent(scene.primitives, camera);
         }
     }
