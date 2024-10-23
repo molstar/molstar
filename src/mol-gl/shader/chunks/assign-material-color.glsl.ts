@@ -42,31 +42,42 @@ export const assign_material_color = `
     if (fragmentDepth > getDepth(gl_FragCoord.xy / uDrawingBufferSize)) {
         discard;
     }
-
-    #ifndef dXrayShaded
+    vec4 material;
+    if (uRenderMask == MaskOpaque) {
+        #if defined(dXrayShaded)
+            discard;
+        #endif
         #if defined(dTransparency)
             float dta = 1.0 - vTransparency;
-            if (vTransparency < 0.2) dta = 1.0; // hard cutoff looks better
+            #if __VERSION__ == 100 || defined(dVaryingGroup)
+                if (vTransparency < 0.1) dta = 1.0; // hard cutoff to avoid artifacts
+            #endif
 
-            if (uRenderMask == MaskTransparent && uAlpha * dta == 1.0) {
-                discard;
-            } else if (uRenderMask == MaskOpaque && uAlpha * dta < 1.0) {
+            if (uAlpha * dta < 1.0) {
                 discard;
             }
         #else
-            if (uRenderMask == MaskTransparent && uAlpha == 1.0) {
-                discard;
-            } else if (uRenderMask == MaskOpaque && uAlpha < 1.0) {
+            if (uAlpha < 1.0) {
                 discard;
             }
         #endif
-    #else
-        if (uRenderMask == MaskOpaque) {
-            discard;
-        }
-    #endif
+        material = packDepthToRGBA(fragmentDepth);
+    } else if (uRenderMask == MaskTransparent) {
+        float alpha = uAlpha;
+        #if defined(dTransparency)
+            float dta = 1.0 - vTransparency;
+            alpha *= dta;
+        #endif
 
-    vec4 material = packDepthToRGBA(fragmentDepth);
+        #ifdef dXrayShaded
+            alpha = calcXrayShadedAlpha(alpha, normal);
+        #else
+            if (alpha == 1.0) {
+                discard;
+            }
+        #endif
+        material = packDepthWithAlphaToRGBA(fragmentDepth, alpha);
+    }
 #elif defined(dRenderVariant_marking)
     vec4 material;
     if(uMarkingType == 1) {

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -16,6 +16,7 @@ export type TransparencyData = {
     uTransparencyTexDim: ValueCell<Vec2>
     dTransparency: ValueCell<boolean>,
     transparencyAverage: ValueCell<number>,
+    transparencyMin: ValueCell<number>,
 
     tTransparencyGrid: ValueCell<Texture>,
     uTransparencyGridDim: ValueCell<Vec3>,
@@ -40,6 +41,16 @@ export function getTransparencyAverage(array: Uint8Array, count: number): number
     return sum / (255 * count);
 }
 
+/** exclude fully opaque parts */
+export function getTransparencyMin(array: Uint8Array, count: number): number {
+    if (count === 0 || array.length < count) return 1;
+    let min = 255;
+    for (let i = 0; i < count; ++i) {
+        if (array[i] > 0 && array[i] < min) min = array[i];
+    }
+    return min / 255;
+}
+
 export function clearTransparency(array: Uint8Array, start: number, end: number) {
     array.fill(0, start, end);
 }
@@ -51,6 +62,7 @@ export function createTransparency(count: number, type: TransparencyType, transp
         ValueCell.update(transparencyData.uTransparencyTexDim, Vec2.create(transparency.width, transparency.height));
         ValueCell.updateIfChanged(transparencyData.dTransparency, count > 0);
         ValueCell.updateIfChanged(transparencyData.transparencyAverage, getTransparencyAverage(transparency.array, count));
+        ValueCell.updateIfChanged(transparencyData.transparencyMin, getTransparencyMin(transparency.array, count));
         ValueCell.updateIfChanged(transparencyData.dTransparencyType, type);
         return transparencyData;
     } else {
@@ -59,6 +71,7 @@ export function createTransparency(count: number, type: TransparencyType, transp
             uTransparencyTexDim: ValueCell.create(Vec2.create(transparency.width, transparency.height)),
             dTransparency: ValueCell.create(count > 0),
             transparencyAverage: ValueCell.create(0),
+            transparencyMin: ValueCell.create(1),
 
             tTransparencyGrid: ValueCell.create(createNullTexture()),
             uTransparencyGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
@@ -81,6 +94,7 @@ export function createEmptyTransparency(transparencyData?: TransparencyData): Tr
             uTransparencyTexDim: ValueCell.create(Vec2.create(1, 1)),
             dTransparency: ValueCell.create(false),
             transparencyAverage: ValueCell.create(0),
+            transparencyMin: ValueCell.create(1),
 
             tTransparencyGrid: ValueCell.create(createNullTexture()),
             uTransparencyGridDim: ValueCell.create(Vec3.create(1, 1, 1)),

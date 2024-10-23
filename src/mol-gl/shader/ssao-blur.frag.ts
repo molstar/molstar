@@ -36,7 +36,8 @@ float getViewZ(const in float depth) {
 }
 
 bool isBackground(const in float depth) {
-    return depth == 1.0;
+    // checking for 1.0 is not enough, because of precision issues
+    return depth >= 0.999;
 }
 
 bool isNearClip(const in float depth) {
