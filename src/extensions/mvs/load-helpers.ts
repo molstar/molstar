@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -8,8 +8,7 @@ import { Mat3, Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { StructureComponentParams } from '../../mol-plugin-state/helpers/structure-component';
 import { StructureFromModel, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
-import { PluginContext } from '../../mol-plugin/context';
-import { StateBuilder, StateObject, StateObjectSelector, StateTransform, StateTransformer } from '../../mol-state';
+import { StateTransformer } from '../../mol-state';
 import { arrayDistinct } from '../../mol-util/array';
 import { canonicalJsonString } from '../../mol-util/json';
 import { stringToWords } from '../../mol-util/string';
@@ -25,122 +24,10 @@ import { SelectorAll } from './components/selector';
 import { rowToExpression, rowsToExpression } from './helpers/selections';
 import { ElementOfSet, decodeColor, isDefined, stringHash } from './helpers/utils';
 import { MolstarLoadingContext } from './load';
-import { Kind, ParamsOfKind, SubTree, SubTreeOfKind, Tree, getChildren } from './tree/generic/tree-schema';
+import { Subtree, getChildren } from './tree/generic/tree-schema';
 import { dfs, formatObject } from './tree/generic/tree-utils';
-import { MolstarKind, MolstarNode, MolstarTree } from './tree/molstar/molstar-tree';
+import { MolstarKind, MolstarNode, MolstarSubtree, MolstarTree, MolstarNodeParams } from './tree/molstar/molstar-tree';
 import { DefaultColor } from './tree/mvs/mvs-defaults';
-
-
-/** Function responsible for loading a tree node `node` into Mol*.
- * Should apply changes within `updateParent.update` but not commit them.
- * Should modify `context` accordingly, if it is needed for loading other nodes later.
- * `updateParent.selector` is the result of loading the node's parent into Mol* state hierarchy (or the hierarchy root in case of root node). */
-export type LoadingAction<TNode extends Tree, TContext> = (updateParent: UpdateTarget, node: TNode, context: TContext) => UpdateTarget | undefined
-
-/** Loading actions for loading a tree into Mol*, per node kind. */
-export type LoadingActions<TTree extends Tree, TContext> = { [kind in Kind<SubTree<TTree>>]?: LoadingAction<SubTreeOfKind<TTree, kind>, TContext> }
-
-/** Load a tree into Mol*, by applying loading actions in DFS order and then commiting at once.
- * If `options.replaceExisting`, remove all objects in the current Mol* state; otherwise add to the current state. */
-export async function loadTree<TTree extends Tree, TContext>(plugin: PluginContext, tree: TTree, loadingActions: LoadingActions<TTree, TContext>, context: TContext, options?: { replaceExisting?: boolean }) {
-    const mapping = new Map<SubTree<TTree>, UpdateTarget | undefined>();
-    const updateRoot: UpdateTarget = UpdateTarget.create(plugin, options?.replaceExisting ?? false);
-    if (options?.replaceExisting) {
-        UpdateTarget.deleteChildren(updateRoot);
-    }
-    dfs<TTree>(tree, (node, parent) => {
-        const kind: Kind<typeof node> = node.kind;
-        const action = loadingActions[kind] as LoadingAction<typeof node, TContext> | undefined;
-        if (action) {
-            const updateParent = parent ? mapping.get(parent) : updateRoot;
-            if (updateParent) {
-                const msNode = action(updateParent, node, context);
-                mapping.set(node, msNode);
-            } else {
-                console.warn(`No target found for this "${node.kind}" node`);
-                return;
-            }
-        }
-    });
-    await UpdateTarget.commit(updateRoot);
-}
-
-
-/** A wrapper for updating Mol* state, while using deterministic transform refs.
- * ```
- * updateTarget = UpdateTarget.create(plugin); // like update = plugin.build();
- * UpdateTarget.apply(updateTarget, transformer, params); // like update.to(selector).apply(transformer, params);
- * await UpdateTarget.commit(updateTarget); // like await update.commit();
- * ```
- */
-export interface UpdateTarget {
-    readonly update: StateBuilder.Root,
-    readonly selector: StateObjectSelector,
-    readonly refManager: RefManager,
-}
-export const UpdateTarget = {
-    /** Create a new update, with `selector` pointing to the root. */
-    create(plugin: PluginContext, replaceExisting: boolean): UpdateTarget {
-        const update = plugin.build();
-        const msTarget = update.toRoot().selector;
-        const refManager = new RefManager(plugin, replaceExisting);
-        return { update, selector: msTarget, refManager };
-    },
-    /** Add a child node to `target.selector`, return a new `UpdateTarget` pointing to the new child. */
-    apply<A extends StateObject, B extends StateObject, P extends {}>(target: UpdateTarget, transformer: StateTransformer<A, B, P>, params?: Partial<P>, options?: Partial<StateTransform.Options>): UpdateTarget {
-        let refSuffix: string = transformer.id;
-        if (transformer.id === StructureRepresentation3D.id) {
-            const reprType = (params as any)?.type?.name ?? '';
-            refSuffix += `:${reprType}`;
-        }
-        const ref = target.refManager.getChildRef(target.selector, refSuffix);
-        const msResult = target.update.to(target.selector).apply(transformer, params, { ...options, ref }).selector;
-        return { ...target, selector: msResult };
-    },
-    /** Delete all children of `target.selector`. */
-    deleteChildren(target: UpdateTarget): UpdateTarget {
-        const children = target.update.currentTree.children.get(target.selector.ref);
-        children.forEach(child => target.update.delete(child));
-        return target;
-    },
-    /** Commit all changes done in the current update. */
-    commit(target: UpdateTarget): Promise<void> {
-        return target.update.commit();
-    },
-};
-
-/** Manages transform refs in a deterministic way. Uses refs like !mvs:3ce3664304d32c5d:0 */
-class RefManager {
-    /** For each hash (e.g. 3ce3664304d32c5d), store the number of already used refs with that hash. */
-    private _counter: Record<string, number> = {};
-    constructor(plugin: PluginContext, replaceExisting: boolean) {
-        if (!replaceExisting) {
-            plugin.state.data.cells.forEach(cell => {
-                const ref = cell.transform.ref;
-                if (ref.startsWith('!mvs:')) {
-                    const [_, hash, idNumber] = ref.split(':');
-                    const nextIdNumber = parseInt(idNumber) + 1;
-                    if (nextIdNumber > (this._counter[hash] ?? 0)) {
-                        this._counter[hash] = nextIdNumber;
-                    }
-                }
-            });
-        }
-    }
-    /** Return ref for a new node with given `hash`; update the counter accordingly. */
-    private nextRef(hash: string): string {
-        this._counter[hash] ??= 0;
-        const idNumber = this._counter[hash]++;
-        return `!mvs:${hash}:${idNumber}`;
-    }
-    /** Return ref for a new node based on parent and desired suffix. */
-    getChildRef(parent: StateObjectSelector, suffix: string): string {
-        const hashBase = parent.ref.replace(/^!mvs:/, '') + ':' + suffix;
-        const hash = stringHash(hashBase);
-        const result = this.nextRef(hash);
-        return result;
-    }
-}
 
 
 export const AnnotationFromUriKinds = new Set(['color_from_uri', 'component_from_uri', 'label_from_uri', 'tooltip_from_uri'] satisfies MolstarKind[]);
@@ -184,7 +71,7 @@ const _tmpVecY = Vec3();
 const _tmpVecZ = Vec3();
 
 /** Create an array of props for `TransformStructureConformation` transformers from all 'transform' nodes applied to a 'structure' node. */
-export function transformProps(node: SubTreeOfKind<MolstarTree, 'structure'>): StateTransformer.Params<TransformStructureConformation>[] {
+export function transformProps(node: MolstarSubtree<'structure'>): StateTransformer.Params<TransformStructureConformation>[] {
     const result = [] as StateTransformer.Params<TransformStructureConformation>[];
     const transforms = getChildren(node).filter(c => c.kind === 'transform') as MolstarNode<'transform'>[];
     for (const transform of transforms) {
@@ -196,7 +83,7 @@ export function transformProps(node: SubTreeOfKind<MolstarTree, 'structure'>): S
 }
 
 /** Collect distinct annotation specs from all nodes in `tree` and set `context.annotationMap[node]` to respective annotationIds */
-export function collectAnnotationReferences(tree: SubTree<MolstarTree>, context: MolstarLoadingContext): MVSAnnotationSpec[] {
+export function collectAnnotationReferences(tree: Subtree<MolstarTree>, context: MolstarLoadingContext): MVSAnnotationSpec[] {
     const distinctSpecs: { [key: string]: MVSAnnotationSpec } = {};
     dfs(tree, node => {
         let spec: Omit<MVSAnnotationSpec, 'id'> | undefined = undefined;
@@ -224,7 +111,7 @@ function blockSpec(header: string | null | undefined, index: number | null | und
 }
 
 /** Collect annotation tooltips from all nodes in `tree` and map them to annotationIds. */
-export function collectAnnotationTooltips(tree: SubTreeOfKind<MolstarTree, 'structure'>, context: MolstarLoadingContext): MVSAnnotationTooltipsProps['tooltips'] {
+export function collectAnnotationTooltips(tree: MolstarSubtree<'structure'>, context: MolstarLoadingContext): MVSAnnotationTooltipsProps['tooltips'] {
     const annotationTooltips: MVSAnnotationTooltipsProps['tooltips'] = [];
     dfs(tree, node => {
         if (node.kind === 'tooltip_from_uri' || node.kind === 'tooltip_from_source') {
@@ -237,7 +124,7 @@ export function collectAnnotationTooltips(tree: SubTreeOfKind<MolstarTree, 'stru
     return arrayDistinct(annotationTooltips);
 }
 /** Collect inline tooltips from all nodes in `tree`. */
-export function collectInlineTooltips(tree: SubTreeOfKind<MolstarTree, 'structure'>, context: MolstarLoadingContext): CustomTooltipsProps['tooltips'] {
+export function collectInlineTooltips(tree: MolstarSubtree<'structure'>, context: MolstarLoadingContext): CustomTooltipsProps['tooltips'] {
     const inlineTooltips: CustomTooltipsProps['tooltips'] = [];
     dfs(tree, (node, parent) => {
         if (node.kind === 'tooltip') {
@@ -263,7 +150,7 @@ export function collectInlineTooltips(tree: SubTreeOfKind<MolstarTree, 'structur
     return inlineTooltips;
 }
 /** Collect inline labels from all nodes in `tree`. */
-export function collectInlineLabels(tree: SubTreeOfKind<MolstarTree, 'structure'>, context: MolstarLoadingContext): CustomLabelTextProps['items'] {
+export function collectInlineLabels(tree: MolstarSubtree<'structure'>, context: MolstarLoadingContext): CustomLabelTextProps['items'] {
     const inlineLabels: CustomLabelTextProps['items'] = [];
     dfs(tree, (node, parent) => {
         if (node.kind === 'label') {
@@ -300,7 +187,9 @@ export function collectInlineLabels(tree: SubTreeOfKind<MolstarTree, 'structure'
 }
 
 /** Return `true` for components nodes which only serve for tooltip placement (not to be created in the MolStar object hierarchy) */
-export function isPhantomComponent(node: SubTreeOfKind<MolstarTree, 'component' | 'component_from_uri' | 'component_from_source'>) {
+export function isPhantomComponent(node: MolstarSubtree<'component' | 'component_from_uri' | 'component_from_source'>) {
+    if (node.ref !== undefined) return false;
+    if (node.custom !== undefined && Object.keys(node.custom).length > 0) return false;
     return node.children && node.children.every(child => child.kind === 'tooltip' || child.kind === 'label');
     // These nodes could theoretically be removed when converting MVS to Molstar tree, but would get very tricky if we allow nested components
 }
@@ -343,7 +232,7 @@ export function structureProps(node: MolstarNode<'structure'>): StateTransformer
 }
 
 /** Create value for `type` prop for `StructureComponent` transformer based on a MVS selector. */
-export function componentPropsFromSelector(selector?: ParamsOfKind<MolstarTree, 'component'>['selector']): StructureComponentParams['type'] {
+export function componentPropsFromSelector(selector?: MolstarNodeParams<'component'>['selector']): StructureComponentParams['type'] {
     if (selector === undefined) {
         return SelectorAll;
     } else if (typeof selector === 'string') {
@@ -356,7 +245,7 @@ export function componentPropsFromSelector(selector?: ParamsOfKind<MolstarTree, 
 }
 
 /** Return a pretty name for a value of selector param, e.g.  "protein" -> 'Protein', {label_asym_id: "A"} -> 'Custom Selection: {label_asym_id: "A"}' */
-export function prettyNameFromSelector(selector?: ParamsOfKind<MolstarTree, 'component'>['selector']): string {
+export function prettyNameFromSelector(selector?: MolstarNodeParams<'component'>['selector']): string {
     if (selector === undefined) {
         return 'All';
     } else if (typeof selector === 'string') {
@@ -392,19 +281,20 @@ export function componentFromXProps(node: MolstarNode<'component_from_uri' | 'co
 }
 
 /** Create props for `StructureRepresentation3D` transformer from a representation node. */
-export function representationProps(params: ParamsOfKind<MolstarTree, 'representation'>): Partial<StateTransformer.Params<StructureRepresentation3D>> {
-    switch (params.type) {
+export function representationProps(node: MolstarSubtree<'representation'>): Partial<StateTransformer.Params<StructureRepresentation3D>> {
+    const alpha = alphaForNode(node);
+    switch (node.params.type) {
         case 'cartoon':
             return {
-                type: { name: 'cartoon', params: {} },
+                type: { name: 'cartoon', params: { alpha } },
             };
         case 'ball_and_stick':
             return {
-                type: { name: 'ball-and-stick', params: { sizeFactor: 0.5, sizeAspectRatio: 0.5 } },
+                type: { name: 'ball-and-stick', params: { sizeFactor: 0.5, sizeAspectRatio: 0.5, alpha } },
             };
         case 'surface':
             return {
-                type: { name: 'molecular-surface', params: {} },
+                type: { name: 'molecular-surface', params: { alpha } },
                 sizeTheme: { name: 'physical', params: { scale: 1 } },
             };
         default:
@@ -412,8 +302,18 @@ export function representationProps(params: ParamsOfKind<MolstarTree, 'represent
     }
 }
 
+/** Create value for `type.params.alpha` prop for `StructureRepresentation3D` transformer from a representation node based on 'transparency' nodes in its subtree. */
+export function alphaForNode(node: MolstarSubtree<'representation'>): number {
+    const children = getChildren(node).filter(c => c.kind === 'transparency');
+    if (children.length > 0) {
+        const transparency = children[children.length - 1].params.transparency;
+        return 1 - transparency;
+    } else {
+        return 1;
+    }
+}
 /** Create value for `colorTheme` prop for `StructureRepresentation3D` transformer from a representation node based on color* nodes in its subtree. */
-export function colorThemeForNode(node: SubTreeOfKind<MolstarTree, 'color' | 'color_from_uri' | 'color_from_source' | 'representation'> | undefined, context: MolstarLoadingContext): StateTransformer.Params<StructureRepresentation3D>['colorTheme'] {
+export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri' | 'color_from_source' | 'representation'> | undefined, context: MolstarLoadingContext): StateTransformer.Params<StructureRepresentation3D>['colorTheme'] {
     if (node?.kind === 'representation') {
         const children = getChildren(node).filter(c => c.kind === 'color' || c.kind === 'color_from_uri' || c.kind === 'color_from_source') as MolstarNode<'color' | 'color_from_uri' | 'color_from_source'>[];
         if (children.length === 0) {

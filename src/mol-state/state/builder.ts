@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { StateTree } from '../tree/immutable';
@@ -175,12 +176,12 @@ namespace StateBuilder {
                 const tr = this.state.tree.transforms.get(child.value);
                 if (tr && StateTransform.hasTags(tr, tags)) {
                     const to = this.to<StateTransformer.To<T>, T>(child.value);
-                    to.updateTagged(params, tagsUnion(tr.tags, tags, options && options.tags));
+                    to.updateTagged(params, stringArrayUnion(tr.tags, tags, options && options.tags));
                     return to;
                 }
             }
 
-            const t = tr.apply(applyRoot, params, { ...options, tags: tagsUnion(tags, options && options.tags) });
+            const t = tr.apply(applyRoot, params, { ...options, tags: stringArrayUnion(tags, options && options.tags) });
             this.state.tree.add(t);
             this.editInfo.count++;
             this.editInfo.lastUpdate = t.ref;
@@ -250,6 +251,23 @@ namespace StateBuilder {
             return this.root;
         }
 
+        /** Add tags to the current node */
+        tag(tags: string | string[]) {
+            const transform = this.state.tree.transforms.get(this.ref)!;
+            this.updateTagged(transform.params, stringArrayUnion(transform.tags, tags));
+            return this;
+        }
+
+        /** Add dependsOn to the current node */
+        dependsOn(dependsOn: string | string[]) {
+            const transform = this.state.tree.transforms.get(this.ref)!;
+            if (this.state.tree.setDependsOn(this.ref, stringArrayUnion(transform.dependsOn, dependsOn))) {
+                this.editInfo.count++;
+                this.editInfo.lastUpdate = this.ref;
+                this.state.actions.push({ kind: 'update', ref: this.ref, params: transform.params });
+            }
+        }
+
         to<A extends StateObject, T extends StateTransformer>(ref: StateTransform.Ref): To<A, T>
         to<C extends StateObjectCell>(cell: C): To<StateObjectCell.Obj<C>, StateObjectCell.Transformer<C>>
         to<S extends StateObjectSelector>(selector: S): To<StateObjectSelector.Obj<S>, StateObjectSelector.Transformer<S>>
@@ -274,7 +292,7 @@ namespace StateBuilder {
     }
 }
 
-function tagsUnion(...arrays: (string[] | string | undefined)[]): string[] | undefined {
+function stringArrayUnion(...arrays: (string[] | string | undefined)[]): string[] | undefined {
     let set: Set<string> | undefined = void 0;
     const ret = [];
     for (const xs of arrays) {

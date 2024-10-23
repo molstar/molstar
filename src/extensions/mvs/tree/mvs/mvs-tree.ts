@@ -1,12 +1,14 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { OptionalField, RequiredField, float, int, list, nullable, str, tuple, union } from '../generic/params-schema';
-import { NodeFor, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
-import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, RepresentationTypeT, SchemaFormatT, SchemaT, StructureTypeT, Vector3 } from './param-types';
+import { float, int, list, literal, nullable, OptionalField, RequiredField, str, tuple, union } from '../generic/params-schema';
+import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
+import { MVSPrimitiveParams } from './mvs-primitives';
+import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, RepresentationTypeT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
 
 
 const _DataFromUriParams = {
@@ -38,7 +40,6 @@ const _DataFromSourceParams = {
     /** Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...). The default value is 'color'/'label'/'tooltip'/'component' depending on the node type */
     field_name: OptionalField(str, 'Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...).'),
 };
-
 
 /** Schema for `MVSTree` (MolViewSpec tree) */
 export const MVSTreeSchema = TreeSchema({
@@ -168,6 +169,15 @@ export const MVSTreeSchema = TreeSchema({
                 ..._DataFromSourceParams,
             },
         },
+        /** This node instructs to apply transparency to a visual representation. */
+        transparency: {
+            description: 'This node instructs to apply transparency to a visual representation.',
+            parent: ['representation'],
+            params: {
+                /** Transparency of the representation. 0.0: fully opaque, 1.0: fully transparent. */
+                transparency: RequiredField(float, 'Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
+            },
+        },
         /** This node instructs to add a label (textual visual representation) to a component. */
         label: {
             description: 'This node instructs to add a label (textual visual representation) to a component.',
@@ -221,7 +231,7 @@ export const MVSTreeSchema = TreeSchema({
         /** This node instructs to set the camera focus to a component (zoom in). */
         focus: {
             description: 'This node instructs to set the camera focus to a component (zoom in).',
-            parent: ['component', 'component_from_uri', 'component_from_source'],
+            parent: ['component', 'component_from_uri', 'component_from_source', 'primitives', 'primitives_from_uri'],
             params: {
                 /** Vector describing the direction of the view (camera position -> focused target). */
                 direction: OptionalField(Vector3, 'Vector describing the direction of the view (camera position -> focused target).'),
@@ -251,9 +261,37 @@ export const MVSTreeSchema = TreeSchema({
                 background_color: RequiredField(ColorT, 'Color of the canvas background. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
             },
         },
+        primitives: {
+            description: 'This node groups a list of geometrical primitives',
+            parent: ['structure', 'root'],
+            params: {
+                color: OptionalField(nullable(ColorT)),
+                label_color: OptionalField(nullable(ColorT)),
+                tooltip: OptionalField(nullable(str)),
+                transparency: OptionalField(nullable(float)),
+                label_transparency: OptionalField(nullable(float)),
+                instances: OptionalField(nullable(list(Matrix))),
+            },
+        },
+        primitives_from_uri: {
+            description: 'This node loads a list of primitives from URI',
+            parent: ['structure', 'root'],
+            params: {
+                uri: RequiredField(str),
+                format: RequiredField(literal('mvs-node-json')),
+                references: OptionalField(nullable(StrList)),
+            },
+        },
+        primitive: {
+            description: 'This node represents a geometrical primitive',
+            parent: ['primitives'],
+            params: {
+                // TODO: validation
+                _union_: RequiredField(MVSPrimitiveParams),
+            },
+        },
     }
 });
-
 
 /** Node kind in a `MVSTree` */
 export type MVSKind = keyof typeof MVSTreeSchema.nodes
@@ -261,9 +299,14 @@ export type MVSKind = keyof typeof MVSTreeSchema.nodes
 /** Node in a `MVSTree` */
 export type MVSNode<TKind extends MVSKind = MVSKind> = NodeFor<typeof MVSTreeSchema, TKind>
 
+/** Params for a specific node kind in a `MVSTree` */
+export type MVSNodeParams<TKind extends MVSKind> = ParamsOfKind<MVSTree, TKind>
+
 /** MolViewSpec tree */
 export type MVSTree = TreeFor<typeof MVSTreeSchema>
 
+/** Any subtree in a `MVSTree` (e.g. its root doesn't need to be 'root') */
+export type MVSSubtree<TKind extends MVSKind = MVSKind> = SubtreeOfKind<MVSTree, TKind>
 
 /** Schema for `MVSTree` (MolViewSpec tree with all params provided) */
 export const FullMVSTreeSchema = TreeSchemaWithAllRequired(MVSTreeSchema);

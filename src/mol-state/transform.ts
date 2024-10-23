@@ -142,6 +142,16 @@ namespace Transform {
         return { ...t, tags, version: UUID.create22() };
     }
 
+    export function withDependsOn(t: Transform, newDependsOn?: string | string[]): Transform {
+        let dependsOn: string[] | undefined = void 0;
+        if (newDependsOn) {
+            dependsOn = typeof newDependsOn === 'string' ? [newDependsOn] : newDependsOn;
+            if (dependsOn.length === 0) dependsOn = void 0;
+            else dependsOn.sort();
+        }
+        return { ...t, dependsOn, version: UUID.create22() };
+    }
+
     export function withParent(t: Transform, parent: Ref): Transform {
         return { ...t, parent, version: UUID.create22() };
     }

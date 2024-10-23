@@ -419,7 +419,7 @@ export class IlluminationPass {
 
         if (props.postprocessing.bloom.name === 'on') {
             const _toDrawingBuffer = (toDrawingBuffer && props.postprocessing.dof.name === 'off') || targetIsDrawingbuffer;
-            this.drawPass.bloom.update(this.tracing.shadedTextureOpaque, this.tracing.normalTextureOpaque, this.drawPass.depthTextureOpaque, props.postprocessing.bloom.params);
+            this.drawPass.bloom.update(this.tracing.colorTextureOpaque, this.tracing.normalTextureOpaque, this.drawPass.depthTextureOpaque, props.postprocessing.bloom.params);
             this.drawPass.bloom.render(camera.viewport, _toDrawingBuffer ? undefined : this._colorTarget);
         }
 

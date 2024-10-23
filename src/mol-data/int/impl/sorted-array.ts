@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { sortArray, hash3, hash4, createRangeArray } from '../../util';
@@ -71,25 +72,20 @@ export function areEqual(a: Nums, b: Nums) {
 }
 
 /**
- * Returns 0 if `v` is smaller or equal the first element of `xs`
- * Returns length of `xs` if `v` is bigger than the last element of `xs`
- * Otherwise returns the first index where the value of `xs` is equal or bigger than `v`
+ * Returns 0 if `query` is smaller or equal the first element of `xs`.
+ * Returns length of `xs` if `query` is bigger than the last element of `xs`.
+ * Otherwise returns the first index where the value of `xs` is equal or bigger than `query`.
  */
-export function findPredecessorIndex(xs: Nums, v: number) {
-    const len = xs.length;
-    if (v <= xs[0]) return 0;
-    if (v > xs[len - 1]) return len;
-    return binarySearchPredIndexRange(xs, v, 0, len);
+export function findPredecessorIndex(xs: Nums, query: number) {
+    return binarySearchPredIndexRange(xs, query, 0, xs.length);
 }
 
-export function findPredecessorIndexInInterval(xs: Nums, v: number, bounds: Interval) {
-    const s = Interval.start(bounds), e = Interval.end(bounds);
-    const sv = xs[s];
-    if (v <= sv) return s;
-    if (e > s && v > xs[e - 1]) return e;
-    // do a linear search if there are only 10 or less items remaining
-    if (v - sv <= 11) return linearSearchPredInRange(xs, v, s + 1, e);
-    return binarySearchPredIndexRange(xs, v, s, e);
+/**
+ * Return index of the first element of `xs` within range `bounds` which is greater than or equal to `query`.
+ * Return end of `bounds` (exclusive) if all elements in the range are less than `query`.
+*/
+export function findPredecessorIndexInInterval(xs: Nums, query: number, bounds: Interval) {
+    return binarySearchPredIndexRange(xs, query, Interval.start(bounds), Interval.end(bounds));
 }
 
 export function findRange(xs: Nums, min: number, max: number) {
@@ -116,31 +112,29 @@ function binarySearchRange(xs: Nums, value: number, start: number, end: number) 
     return -1;
 }
 
-function binarySearchPredIndexRange(xs: Nums, value: number, start: number, end: number) {
-    let min = start, max = end - 1;
-    while (min < max) {
-        // do a linear search if there are only 10 or less items remaining
-        if (min + 11 > max) {
-            for (let i = min; i <= max; i++) {
-                if (value <= xs[i]) return i;
-            }
-            return max + 1;
-        }
+/** Return index of the first element within range [start, end) which is greater than or equal to `query`.
+* Return `end` if all elements in the range are less than `query`. */
+function binarySearchPredIndexRange(xs: Nums, query: number, start: number, end: number): number {
+    if (start === end) return start;
+    if (xs[start] >= query) return start;
+    if (xs[end - 1] < query) return end;
+    // Invariants: xs[i] < query for each i < min, xs[i] >= query for each i >= max
+    let min = start, max = end;
+    while (max - min > 4) {
         const mid = (min + max) >> 1;
-        const v = xs[mid];
-        if (value < v) max = mid - 1;
-        else if (value > v) min = mid + 1;
-        else return mid;
+        if (xs[mid] >= query) {
+            max = mid;
+        } else {
+            min = mid + 1;
+        }
     }
-    if (min > max) return max + 1;
-    return xs[min] >= value ? min : min + 1;
-}
-
-function linearSearchPredInRange(xs: Nums, value: number, start: number, end: number) {
-    for (let i = start; i < end; i++) {
-        if (value <= xs[i]) return i;
+    // Linear search remaining elements:
+    for (let i = min; i < max; i++) {
+        if (xs[i] >= query) {
+            return i;
+        }
     }
-    return end;
+    return max;
 }
 
 export function areIntersecting(a: Nums, b: Nums) {

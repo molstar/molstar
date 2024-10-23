@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import * as iots from 'io-ts';
@@ -28,6 +29,11 @@ export const tuple = iots.tuple;
 export const list = iots.array;
 /** Type definition for union types, e.g. `union([str, int])` means string or integer  */
 export const union = iots.union;
+/** Type definition used to create objects */
+export const obj = iots.type;
+/** Type definition used to create partial objects */
+export const partial = iots.partial;
+
 /** Type definition for nullable types, e.g. `nullable(str)` means string or `null`  */
 export function nullable<T extends iots.Type<any>>(type: T) {
     return union([type, iots.null]);
@@ -44,6 +50,10 @@ export function literal<V extends string | number | boolean>(...values: V[]) {
         (value, ctx) => values.includes(value as any) ? { _tag: 'Right', right: value as any } : { _tag: 'Left', left: [{ value: value, context: ctx, message: `"${value}" is not a valid value for literal type ${typeName}` }] },
         value => value
     );
+}
+/** Mapping between two types */
+export function mapping<A extends iots.Type<any>, B extends iots.Type<any>>(from: A, to: B) {
+    return iots.record(from, to);
 }
 
 
@@ -122,6 +132,13 @@ export function paramsValidationIssues<P extends ParamsSchema, V extends { [k: s
     if (!isPlainObject(values)) return [`Parameters must be an object, not ${values}`];
     for (const key in schema) {
         const paramDef = schema[key];
+
+        // Special handling of "union" param type
+        // TODO: figure out how to do this properly, ignoring the validation for now
+        if (key === '_union_') {
+            return undefined;
+        }
+
         if (Object.hasOwn(values, key)) {
             const value = values[key];
             const issues = fieldValidationIssues(paramDef, value);
