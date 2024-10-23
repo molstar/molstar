@@ -53,11 +53,11 @@ export class DataFormatRegistry {
     }
 
     constructor() {
-        for (const [id, p] of BuiltInTrajectoryFormats) this.add(id, p);
         for (const [id, p] of BuiltInVolumeFormats) this.add(id, p);
         for (const [id, p] of BuiltInTopologyFormats) this.add(id, p);
         for (const [id, p] of BuiltInCoordinatesFormats) this.add(id, p);
         for (const [id, p] of BuiltInShapeFormats) this.add(id, p);
+        for (const [id, p] of BuiltInTrajectoryFormats) this.add(id, p);
     };
 
     private _clear() {
