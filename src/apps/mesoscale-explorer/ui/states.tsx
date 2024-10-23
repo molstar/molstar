@@ -212,8 +212,14 @@ export async function loadPdb(ctx: PluginContext, id: string) {
 
 export async function loadPdbDev(ctx: PluginContext, id: string) {
     await reset(ctx);
-    const nId = id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`;
-    const url = `https://pdb-dev.wwpdb.org/bcif/${nId.toUpperCase()}.bcif`;
+    let url: string;
+    // 4 character PDB id, TODO: support extended PDB ID
+    if (id.match(/^[1-9][A-Z0-9]{3}$/i) !== null) {
+        url = `https://pdb-dev.wwpdb.org/bcif/${id.toLowerCase()}.bcif`;
+    } else {
+        const nId = id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`;
+        url = `https://pdb-dev.wwpdb.org/bcif/${nId.toUpperCase()}.bcif`;
+    }
     const data = await ctx.builders.data.download({ url, isBinary: true });
     await createHierarchy(ctx, data.ref);
 }
