@@ -4,43 +4,116 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Fragment, memo, useEffect, useRef } from 'react';
-import { CollapsableControls, CollapsableState } from '../../../../mol-plugin-ui/base';
-import { Button } from '../../../../mol-plugin-ui/controls/common';
-import { PencilRulerSvg } from '../../../../mol-plugin-ui/controls/icons';
-import { PluginContext } from '../../../../mol-plugin/context';
-import { drawPAEPng, PAEDrawing } from './plot';
-import { Model, ResidueIndex } from '../../../../mol-model/structure';
-import { round } from '../../../../mol-util';
-import { BehaviorSubject } from 'rxjs';
-import { useBehavior } from '../../../../mol-plugin-ui/hooks/use-behavior';
+import { CSSProperties, Fragment, memo, useEffect, useRef } from 'react';
+import { BehaviorSubject, combineLatest } from 'rxjs';
 import { clamp } from '../../../../mol-math/interpolate';
+import { Model, ResidueIndex } from '../../../../mol-model/structure';
 import { AtomicHierarchy } from '../../../../mol-model/structure/model/properties/atomic';
+import { PluginStateObject } from '../../../../mol-plugin-state/objects';
+import { CollapsableControls, CollapsableState } from '../../../../mol-plugin-ui/base';
+import { ScatterPlotSvg } from '../../../../mol-plugin-ui/controls/icons';
+import { ParameterControls } from '../../../../mol-plugin-ui/controls/parameters';
+import { useBehavior } from '../../../../mol-plugin-ui/hooks/use-behavior';
+import { PluginContext } from '../../../../mol-plugin/context';
+import { StateTransform } from '../../../../mol-state';
+import { round } from '../../../../mol-util';
+import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
+import { QualityAssessment } from '../prop';
+import { drawPairwiseMetricPNG, PAEDrawing } from './plot';
 
-interface State {
-    model?: Model;
-}
+type State = ReturnType<typeof getPropsAndValues>
 
-export class PAEPlotUI extends CollapsableControls<{}, State> {
+export class PairwiseMetricPlotUI extends CollapsableControls<{}, State> {
     protected defaultState(): State & CollapsableState {
         return {
-            header: 'PAE',
+            header: 'Pairwise Residue Score',
             isCollapsed: false,
-            brand: { accent: 'green', svg: PencilRulerSvg }
+            isHidden: true,
+            brand: { accent: 'purple', svg: ScatterPlotSvg },
+            params: { } as any,
+            values: undefined as any,
+            dataSources: [],
         };
     }
 
-    private draw = () => {
-        const model = this.plugin.managers.structure.hierarchy.current.models[0];
-        this.setState({ model: model.cell?.obj?.data });
-    };
+    componentDidMount() {
+        this.subscribe(combineLatest([
+            this.plugin.state.data.events.changed,
+            this.plugin.behaviors.state.isAnimating
+        ]), ([_, anim]) => {
+            if (anim) return;
+            const state = getPropsAndValues(this.plugin, this.state.values);
+            this.setState({
+                ...state,
+                isHidden: state.params.data.options.length === 0 || state.params.model.options.length === 0
+            });
+        });
+    }
 
     protected renderControls(): JSX.Element | null {
+        const { params, values, dataSources } = this.state;
         return <>
-            <Button onClick={this.draw}>Draw</Button>
-            {this.state.model && <Plot plugin={this.plugin} model={this.state.model} />}
+            <ParameterControls params={params} values={values} onChangeValues={values => this.setState({ values })} />
+            <PlotWrapper plugin={this.plugin} values={values} dataSources={dataSources} />
         </>;
     }
+}
+
+const PlotWrapper = memo(({ plugin, values, dataSources }: { plugin: PluginContext, values: State['values'], dataSources: State['dataSources'] }) => {
+    const model: PluginStateObject.Molecule.Model | undefined = plugin.state.data.cells.get(values.model)?.obj;
+    const src = dataSources.find(src => src.id === values.data);
+    const cif: PluginStateObject.Format.Cif | undefined = plugin.state.data.cells.get(src?.dataRef!)?.obj;
+    const block = cif?.data.blocks[src?.blockIndex!];
+
+    if (!model || !block || !src) return <div className='msp-description'>Data not available</div>;
+
+    const metric = QualityAssessment.pairwiseMetricFromModelArchiveCIF(model.data, block, src.metridId);
+    if (!metric) return <div className='msp-description'>Data not available</div>;
+
+    return <Plot plugin={plugin} model={model.data} pairwiseMetric={metric} />;
+
+}, (prev, next) => prev.values.data === next.values.data && prev.values.model === next.values.model);
+
+function getPropsAndValues(plugin: PluginContext, current?: { model?: string, data?: string }) {
+    const models = plugin.managers.structure.hierarchy.current.models;
+    const cifs = plugin.state.data.selectQ(q => q.root.subtree().ofType(PluginStateObject.Format.Cif));
+
+    const dataSources: {
+        id: string,
+        label: string,
+        metridId: number,
+        dataRef: StateTransform.Ref,
+        blockIndex: number,
+    }[] = [];
+
+    for (const cif of cifs) {
+        if (!cif.obj?.data.blocks) continue;
+        let blockIndex = 0;
+        for (const block of cif.obj.data.blocks) {
+            for (const pae of QualityAssessment.findModelArchiveCIFPAEMetrics(block)) {
+                dataSources.push({
+                    id: `${cif.transform.ref}:${blockIndex}:${pae.id}`,
+                    metridId: pae.id,
+                    label: `${block.header}: ${pae.name}`,
+                    dataRef: cif.transform.ref,
+                    blockIndex,
+                });
+            }
+            blockIndex++;
+        }
+    }
+
+    const params = {
+        model: PD.Select(models[0]?.cell.transform.ref, models.map(m => [m.cell.transform.ref, m.cell.obj?.data.label!]), { isHidden: models.length <= 1 }),
+        data: PD.Select(dataSources[0]?.id, dataSources.map(o => [o.id, o.label]), { isHidden: dataSources.length <= 1 })
+    };
+
+    const values = {
+        model: params.model.options.find(o => o[0] === current?.model)?.[0] ?? params.model.options[0]?.[0],
+        data: params.data.options.find(o => o[0] === current?.data)?.[0] ?? params.data.options[0]?.[0],
+    };
+
+    return { params, values, dataSources };
 }
 
 const PlotSize = 1000;
@@ -54,7 +127,7 @@ interface PlotInteractivityState {
     boxEnd?: [number, number];
 }
 
-const Plot = memo(({ plugin, model }: { plugin: PluginContext, model: Model }) => {
+const Plot = memo(({ plugin, model, pairwiseMetric }: { plugin: PluginContext, model: Model, pairwiseMetric: QualityAssessment.Pairwise }) => {
     const interactivityRect = useRef<SVGRectElement>();
     const _interactivity = useRef<BehaviorSubject<PlotInteractivityState>>();
     if (!_interactivity.current) _interactivity.current = new BehaviorSubject({});
@@ -78,12 +151,12 @@ const Plot = memo(({ plugin, model }: { plugin: PluginContext, model: Model }) =
         };
     }, [model]);
 
-    const drawing = drawPAEPng(model);
+    const drawing = drawPairwiseMetricPNG(model, pairwiseMetric);
     if (!drawing) return <>Not available</>;
 
 
-    const { info, colorRange, chains, png } = drawing;
-    const nResidues = info.maxResidueIndex - info.minResidueIndex;
+    const { metric, colorRange, chains, png } = drawing;
+    const nResidues = metric.residueRange[1] - metric.residueRange[0];
 
     const border = '#333';
     const line = '#000';
@@ -95,16 +168,16 @@ const Plot = memo(({ plugin, model }: { plugin: PluginContext, model: Model }) =
 
     return <div style={{ margin: '8px 8px 0 8px', position: 'relative' }}>
         <svg viewBox={viewBox} width='100%'>
-            <image x={PlotOffset} y={PlotOffset} width={PlotSize} height={PlotSize} href={png} />
+            <image x={PlotOffset + 1} y={PlotOffset + 1} width={PlotSize - 1} height={PlotSize - 1} href={png} />
             <line x1={PlotOffset} x2={PlotOffset + PlotSize} y1={PlotOffset} y2={PlotOffset + PlotSize} style={{ stroke: line, strokeDasharray: '15,15' }} />
             <linearGradient id='legend-gradient' x1={0} x2={1} y1={0} y2={0}>
                 <stop offset='0%' stopColor={colorRange[0]} />
                 <stop offset='100%' stopColor={colorRange[1]} />
             </linearGradient>
             <rect x={PlotOffset} y={legendOffsetY} width={PlotSize} height={legendHeight} style={{ fill: 'url(#legend-gradient)', strokeWidth: 1, stroke: border }} />
-            <text x={PlotOffset + 20} y={legendOffsetY + legendHeight - 22} style={{ fontSize: '45px', fill: 'white', fontWeight: 'bold' }}>{round(info.minMetric, 2)} Å</text>
-            <text x={PlotOffset + PlotSize - 20} y={legendOffsetY + legendHeight - 22} style={{ fontSize: '45px', fill: 'black', fontWeight: 'bold' }} textAnchor='end'>{round(info.maxMetric, 2)} Å</text>
-            <text x={PlotOffset + PlotSize / 2} y={legendOffsetY + legendHeight - 22} style={{ fontSize: '45px', fill: 'black' }} textAnchor='middle'>Expected position error</text>
+            <text x={PlotOffset + 20} y={legendOffsetY + legendHeight - 22} style={{ fontSize: '45px', fill: 'white', fontWeight: 'bold' }}>{round(metric.valueRange[0], 2)} Å</text>
+            <text x={PlotOffset + PlotSize - 20} y={legendOffsetY + legendHeight - 22} style={{ fontSize: '45px', fill: 'black', fontWeight: 'bold' }} textAnchor='end'>{round(metric.valueRange[1], 2)} Å</text>
+            <text x={PlotOffset + PlotSize / 2} y={legendOffsetY + legendHeight - 22} style={{ fontSize: '45px', fill: 'black' }} textAnchor='middle'>{metric.name}</text>
 
             <text x={PlotOffset + PlotSize / 2} y={50} className='msp-svg-text' style={{ fontSize: '45px', fontWeight: 'bold' }} textAnchor='middle'>Scored Residue</text>
             <text className='msp-svg-text' style={{ fontSize: '50px', fontWeight: 'bold' }} transform={`translate(50, ${PlotOffset + PlotSize / 2}) rotate(270)`} textAnchor='middle'>Aligned Residue</text>
@@ -115,8 +188,8 @@ const Plot = memo(({ plugin, model }: { plugin: PluginContext, model: Model }) =
                 const startLineOffset = PlotOffset + PlotSize * startOffset / nResidues;
 
                 const seq_id = model.atomicHierarchy.residues.label_seq_id;
-                const startIndex = seq_id.value(info.minResidueIndex + startOffset);
-                const endIndex = seq_id.value(info.minResidueIndex + endOffset - 1);
+                const startIndex = seq_id.value(metric.residueRange[0] + startOffset);
+                const endIndex = seq_id.value(metric.residueRange[0] + endOffset - 1);
 
                 return <Fragment key={startOffset}>
                     <text x={textOffset} y={PlotOffset - 15} className='msp-svg-text' style={{ fontSize: '40px' }} textAnchor='middle'>{label} {startIndex}-{endIndex}</text>
@@ -129,7 +202,7 @@ const Plot = memo(({ plugin, model }: { plugin: PluginContext, model: Model }) =
             })}
         </svg>
         <svg viewBox={viewBox} style={{ position: 'absolute', inset: 0 }}>
-            <rect x={PlotOffset} y={PlotOffset} width={PlotSize} height={PlotSize} style={{ fill: 'transparent', strokeWidth: 0, stroke: '#333', cursor: 'crosshair' }}
+            <rect x={PlotOffset} y={PlotOffset} width={PlotSize} height={PlotSize} style={{ fill: 'transparent', cursor: 'crosshair' }}
                 ref={interactivityRect as any}
                 onMouseMove={(ev) => {
                     interactity.next({ ...interactity.value, inside: true });
@@ -154,29 +227,38 @@ function PlotInteractivity({ drawing, interactity }: { drawing: PAEDrawing, inte
     const { crosshairOffset, inside } = state;
     const box = getBox(state);
     const label = getCrosshairLabel(drawing, state);
+    const labelStyle: CSSProperties | undefined = label ? { fontSize: '40px', fill: 'black', fontWeight: 'bold', pointerEvents: 'none', userSelect: 'none' } : undefined;
 
+    // TODO: position label depending crosshairOffset position to avoid clipping at edges
     return <>
         {inside && crosshairOffset && <line x1={crosshairOffset[0] + PlotOffset} x2={crosshairOffset[0] + PlotOffset} y1={PlotOffset} y2={PlotOffset + PlotSize} style={{ pointerEvents: 'none', stroke: 'black', strokeDasharray: '5,5' }} />}
         {inside && crosshairOffset && <line x1={PlotOffset} x2={PlotOffset + PlotSize} y1={crosshairOffset[1] + PlotOffset} y2={crosshairOffset[1] + PlotOffset} style={{ pointerEvents: 'none', stroke: 'black', strokeDasharray: '5,5' }} />}
         {box && <rect x={PlotOffset + box[0]} y={PlotOffset + box[1]} width={box[2]} height={box[3]} style={{ stroke: '#333', fill: 'rgba(0, 0, 0, 0.1)', pointerEvents: 'none' }} />}
-        {label && <text x={PlotOffset + crosshairOffset![0] + 20} y={PlotOffset + crosshairOffset![1] - 10} style={{ fontSize: '40px', fill: 'black', fontWeight: 'bold', pointerEvents: 'none', userSelect: 'none' }} textAnchor='start'>{label[0]}</text>}
-        {label && <text x={PlotOffset + crosshairOffset![0] - 20} y={PlotOffset + crosshairOffset![1] + 50} style={{ fontSize: '40px', fill: 'black', fontWeight: 'bold', pointerEvents: 'none', userSelect: 'none' }} textAnchor='end'>{label[1]}</text>}
+        {label && <text x={PlotOffset + crosshairOffset![0] + 20} y={PlotOffset + crosshairOffset![1] - 10} style={labelStyle} textAnchor='start'>{label[0]}</text>}
+        {label && <text x={PlotOffset + crosshairOffset![0] - 20} y={PlotOffset + crosshairOffset![1] + 50} style={labelStyle} textAnchor='end'>{label[1]}</text>}
+        {label?.[2] && <text x={PlotOffset + crosshairOffset![0] - 20} y={PlotOffset + crosshairOffset![1] - 10} style={labelStyle} textAnchor='end'>{label[2]}</text>}
     </>;
 }
 
 function getCrosshairLabel(drawing: PAEDrawing, state: PlotInteractivityState) {
     if (!state.crosshairOffset || !state.inside) return;
 
-    const x = clamp(state.crosshairOffset[0], 0, PlotSize);
-    const y = clamp(state.crosshairOffset[1], 0, PlotSize);
+    const rA = getResidueIndex(drawing, clamp(state.crosshairOffset[0], 0, PlotSize));
+    const rB = getResidueIndex(drawing, clamp(state.crosshairOffset[1], 0, PlotSize));
 
-    return [getPAEResidueLabel(drawing, x), getPAEResidueLabel(drawing, y)];
+    const value = drawing.metric.values[rA]?.[rB] ?? drawing.metric.values[rB]?.[rA];
+    const valueLabel = typeof value === 'number' ? `${round(value, 2)} Å` : '';
+
+    return [getResidueLabel(drawing, rA), getResidueLabel(drawing, rB), valueLabel];
 }
 
-function getPAEResidueLabel(drawing: PAEDrawing, offset: number) {
-    let rI = drawing!.info.minResidueIndex + Math.round(offset / PlotSize * (drawing!.info.maxResidueIndex - drawing!.info.minResidueIndex)) as ResidueIndex;
-    rI = clamp(rI, drawing!.info.minResidueIndex, drawing!.info.maxResidueIndex) as ResidueIndex;
-    const hierarchy = drawing!.model.atomicHierarchy;
+function getResidueIndex(drawing: PAEDrawing, offset: number) {
+    const rI = drawing.metric.residueRange[0] + Math.round(offset / PlotSize * (drawing.metric.residueRange[1] - drawing.metric.residueRange[0] + 1)) as ResidueIndex;
+    return clamp(rI, drawing.metric.residueRange[0], drawing.metric.residueRange[1]) as ResidueIndex;
+}
+
+function getResidueLabel(drawing: PAEDrawing, rI: ResidueIndex) {
+    const hierarchy = drawing.model.atomicHierarchy;
     const asym_id = hierarchy.chains.label_asym_id;
     const seq_id = hierarchy.residues.label_seq_id;
     const comp_id = hierarchy.atoms.label_comp_id;

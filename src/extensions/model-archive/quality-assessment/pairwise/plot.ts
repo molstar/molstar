@@ -7,20 +7,20 @@
 import { Model, ResidueIndex } from '../../../../mol-model/structure';
 import { AtomicHierarchy } from '../../../../mol-model/structure/model/properties/atomic';
 import { Color } from '../../../../mol-util/color';
-import { QualityAssessment, QualityAssessmentProvider } from '../prop';
+import { QualityAssessment } from '../prop';
 
 
-const DefaultPAEColorRange = [0x00441B, 0xF7FCF5] as [Color, Color];
+const DefaultMetricColorRange = [0x00441B, 0xF7FCF5] as [Color, Color];
 
-type ResidueRangeInfo = { startOffset: number, endOffset: number, label: string };
+export type ResidueRangeInfo = { startOffset: number, endOffset: number, label: string };
 
-function drawAssessmentPNG(model: Model, assessment: QualityAssessment, name: string, colorRange: [Color, Color], noDataColor: Color) {
-    const metric = assessment.localPairwiseMetrics.get(name)!;
-    const info = assessment.localPairwiseMetricInfo.get(name)!;
-
+function drawMetricPNG(model: Model, metric: QualityAssessment.Pairwise, colorRange: [Color, Color], noDataColor: Color) {
+    const [minResidueIndex, maxResidueIndex] = metric.residueRange;
+    const [minMetric, maxMetric] = metric.valueRange;
     const [minColor, maxColor] = colorRange;
-    const range = info.maxResidueIndex - info.minResidueIndex;
-    const valueRange = info.maxMetric - info.minMetric;
+    const range = maxResidueIndex - minResidueIndex + 1;
+    const valueRange = maxMetric - minMetric;
+    const values = metric.values;
 
     const canvas = document.createElement('canvas');
     canvas.width = range;
@@ -29,29 +29,35 @@ function drawAssessmentPNG(model: Model, assessment: QualityAssessment, name: st
     ctx.fillStyle = Color.toStyle(noDataColor);
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    metric.forEach((other, a) => {
-        other.forEach((value, b) => {
-            const x = a - info.minResidueIndex;
-            const y = b - info.minResidueIndex;
-            const t = (value - info.minMetric) / valueRange;
+    for (let rA = minResidueIndex; rA <= maxResidueIndex; rA++) {
+        const row = values[rA];
+        if (!row) continue;
+
+        for (let rB = minResidueIndex; rB <= maxResidueIndex; rB++) {
+            const value = row[rB];
+            if (typeof value !== 'number') continue;
+
+            const x = rA - minResidueIndex;
+            const y = rB - minResidueIndex;
+            const t = (value - minMetric) / valueRange;
 
             const color = Color.interpolate(minColor, maxColor, t);
             ctx.fillStyle = Color.toStyle(color);
             ctx.fillRect(x, y, 1, 1);
             ctx.fillRect(y, x, 1, 1);
-        });
-    });
+        }
+    }
 
     const chains: ResidueRangeInfo[] = [];
     const hierarchy = model.atomicHierarchy;
     const { label_asym_id } = hierarchy.chains;
 
-    let cI = AtomicHierarchy.residueChainIndex(hierarchy, info.minResidueIndex as ResidueIndex);
+    let cI = AtomicHierarchy.residueChainIndex(hierarchy, minResidueIndex as ResidueIndex);
     let currentChain: ResidueRangeInfo = { startOffset: 0, endOffset: 1, label: label_asym_id.value(cI) };
     chains.push(currentChain);
 
     for (let i = 1; i < range; i++) {
-        cI = AtomicHierarchy.residueChainIndex(hierarchy, (info.minResidueIndex + i) as ResidueIndex);
+        cI = AtomicHierarchy.residueChainIndex(hierarchy, (minResidueIndex + i) as ResidueIndex);
         const asym_id = label_asym_id.value(cI);
         if (asym_id === currentChain.label) {
             currentChain.endOffset = i + 1;
@@ -64,17 +70,14 @@ function drawAssessmentPNG(model: Model, assessment: QualityAssessment, name: st
     return {
         model,
         metric,
-        info,
         chains,
         colorRange: [Color.toStyle(colorRange[0]), Color.toStyle(colorRange[1])] as const,
         png: canvas.toDataURL('png')
     };
 }
 
-export function drawPAEPng(model: Model) {
-    const assessment = QualityAssessmentProvider.get(model).value;
-    if (!assessment || !assessment.localPairwiseMetrics.has('PAE')) return undefined;
-    return drawAssessmentPNG(model, assessment, 'PAE', DefaultPAEColorRange, Color(0xdddddd));
+export function drawPairwiseMetricPNG(model: Model, metric: QualityAssessment.Pairwise) {
+    return drawMetricPNG(model, metric, DefaultMetricColorRange, Color(0xE2E2E2));
 }
 
-export type PAEDrawing = ReturnType<typeof drawPAEPng>
+export type PAEDrawing = ReturnType<typeof drawMetricPNG>
