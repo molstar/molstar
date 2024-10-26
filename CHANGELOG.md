@@ -11,9 +11,12 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix backfaces visible using blended transparency on impostors (#1285)
 - Fix StructureElement.Loci.isSubset() only considers common units (#1292)
 - Fix `Scene.opacityAverage` calculation never 1
+- Fix bloom in illumination mode
 - Fix `findPredecessorIndex` bug when repeating values
 - MolViewSpec: Support for transparency and custom properties
 - MolViewSpec: MVP Support for geometrical primitives (mesh, lines, line, label, distance measurement)
+- Mesoscale Explorer: Add support for 4-character PDB IDs (e.g., 8ZZC) in PDB-Dev loader
+- Fix Sequence View in Safari 18
 - ModelArchive QualityAssessment extension:
   - Add support for ma_qa_metric_local_pairwise mmCIF category
   - Add PAE plot component
