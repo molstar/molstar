@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-24 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -18,6 +19,11 @@ import { QmeanScoreColorThemeProvider } from './color/qmean';
 import { PresetStructureRepresentations, StructureRepresentationPresetProvider } from '../../../mol-plugin-state/builder/structure/representation-preset';
 import { StateObjectRef } from '../../../mol-state';
 import { PairwiseMetricPlotUI } from './pairwise/ui';
+import { PluginConfigItem } from '../../../mol-plugin/config';
+
+export const MAQualityAssessmentConfig = {
+    EnablePairwiseScorePlot: new PluginConfigItem('ma-quality-assessment-prop.enable-pairwise-score-plot', true),
+};
 
 export const MAQualityAssessment = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
     name: 'ma-quality-assessment-prop',
@@ -54,7 +60,9 @@ export const MAQualityAssessment = PluginBehavior.create<{ autoAttach: boolean, 
             this.ctx.builders.structure.representation.registerPreset(QualityAssessmentPLDDTPreset);
             this.ctx.builders.structure.representation.registerPreset(QualityAssessmentQmeanPreset);
 
-            this.ctx.customStructureControls.set('pae-plot', PairwiseMetricPlotUI as any);
+            if (this.ctx.config.get(MAQualityAssessmentConfig.EnablePairwiseScorePlot)) {
+                this.ctx.customStructureControls.set('ma-quality-assessment-pairwise-plot', PairwiseMetricPlotUI as any);
+            }
         }
 
         update(p: { autoAttach: boolean, showTooltip: boolean }) {
@@ -79,6 +87,8 @@ export const MAQualityAssessment = PluginBehavior.create<{ autoAttach: boolean, 
 
             this.ctx.builders.structure.representation.unregisterPreset(QualityAssessmentPLDDTPreset);
             this.ctx.builders.structure.representation.unregisterPreset(QualityAssessmentQmeanPreset);
+
+            this.ctx.customStructureControls.delete('ma-quality-assessment-pairwise-plot');
         }
     },
     params: () => ({
