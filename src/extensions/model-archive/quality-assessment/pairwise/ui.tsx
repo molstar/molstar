@@ -439,7 +439,7 @@ async function overpaintState(plugin: PluginContext, state: PlotInteractivitySta
     }];
 
     for (const repr of representations) {
-        update.to(repr).apply(OverpaintStructureRepresentation3DFromBundle, { layers }, { tags: [tag] });
+        update.to(repr).apply(OverpaintStructureRepresentation3DFromBundle, { layers }, { tags: [tag], state: { isGhost: true } });
     }
 
     return update.commit();
