@@ -293,12 +293,58 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
     });
 }
 
+function canGetFromIndexPairBonds(unit: Unit.Atomic) {
+    if (unit.conformation.operator.key === -1) return false;
+
+    const indexPairs = IndexPairBonds.Provider.get(unit.model);
+    return !!indexPairs?.hasOperators;
+}
+
+function getIndexPairBonds(unit: Unit.Atomic) {
+    const indexPairs = IndexPairBonds.Provider.get(unit.model)!;
+    const { elements } = unit;
+    const { a, b } = indexPairs.bonds;
+    const opKey = unit.conformation.operator.key;
+    const { operatorA, operatorB, key, flag, order } = indexPairs.bonds.edgeProps;
+    const { invertedIndex } = Model.getInvertedAtomSourceIndex(unit.model);
+
+    const atomA: StructureElement.UnitIndex[] = [];
+    const atomB: StructureElement.UnitIndex[] = [];
+    const flags: number[] = [];
+    const orders: number[] = [];
+    const keys: number[] = [];
+
+    for (let i = 0, il = operatorA.length; i < il; ++i) {
+        if (operatorA[i] !== opKey || operatorB[i] !== opKey) continue;
+
+        const aI = invertedIndex[a[i]];
+        const _aI = SortedArray.indexOf(elements, aI) as StructureElement.UnitIndex;
+        if (_aI < 0) continue;
+
+        const bI = invertedIndex[b[i]];
+        const _bI = SortedArray.indexOf(elements, bI) as StructureElement.UnitIndex;
+        if (_bI < 0) continue;
+
+        atomA[atomA.length] = _aI;
+        atomB[atomB.length] = _bI;
+        flags[flags.length] = flag[i];
+        orders[orders.length] = order[i];
+        keys[keys.length] = key[i];
+    }
+
+    return getGraph(atomA, atomB, orders, flags, keys, elements.length, {
+        canRemap: false,
+        cacheable: indexPairs.cacheable,
+    });
+}
+
 function computeIntraUnitBonds(unit: Unit.Atomic, props?: Partial<BondComputationProps>) {
     const p = { ...DefaultBondComputationProps, ...props };
     if (p.noCompute) return IntraUnitBonds.Empty;
+    if (unit.elements.length <= 1) return IntraUnitBonds.Empty;
 
     if (!p.forceCompute && IndexPairBonds.Provider.get(unit.model)) {
-        return findIndexPairBonds(unit);
+        return canGetFromIndexPairBonds(unit) ? getIndexPairBonds(unit) : findIndexPairBonds(unit);
     } else {
         return findBonds(unit, p);
     }
