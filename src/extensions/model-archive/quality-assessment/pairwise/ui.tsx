@@ -7,10 +7,9 @@
 import { CSSProperties, Fragment, memo, ReactNode, useEffect, useRef } from 'react';
 import { BehaviorSubject, combineLatest, throttleTime } from 'rxjs';
 import { clamp } from '../../../../mol-math/interpolate';
-import { ResidueIndex, StructureElement, StructureProperties, StructureQuery } from '../../../../mol-model/structure';
+import { Model, ResidueIndex, StructureElement, StructureProperties, StructureQuery } from '../../../../mol-model/structure';
 import { AtomicHierarchy } from '../../../../mol-model/structure/model/properties/atomic';
 import { atoms } from '../../../../mol-model/structure/query/queries/generators';
-import { ModelRef } from '../../../../mol-plugin-state/manager/structure/hierarchy-state';
 import { PluginStateObject } from '../../../../mol-plugin-state/objects';
 import { OverpaintStructureRepresentation3DFromBundle } from '../../../../mol-plugin-state/transforms/representation';
 import { CollapsableControls, CollapsableState } from '../../../../mol-plugin-ui/base';
@@ -24,11 +23,11 @@ import { Color } from '../../../../mol-util/color';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { SingleAsyncQueue } from '../../../../mol-util/single-async-queue';
 import { QualityAssessment } from '../prop';
-import { drawPairwiseMetricPNG, PairwiseMetricDrawing } from './plot';
+import { maDrawPairwiseMetricPNG, MAPairwiseMetricDrawing } from './plot';
 
 type State = ReturnType<typeof getPropsAndValues>
 
-export class PairwiseMetricPlotUI extends CollapsableControls<{}, State> {
+export class MAPairwiseScorePlotPanel extends CollapsableControls<{}, State> {
     protected defaultState(): State & CollapsableState {
         return {
             header: 'Predicted Aligned Error',
@@ -88,18 +87,42 @@ export class PairwiseMetricPlotUI extends CollapsableControls<{}, State> {
     }
 }
 
+export function MAPairwiseScorePlot({ plugin, model, pairwiseMetric }: { plugin: PluginContext, model: Model, pairwiseMetric: QualityAssessment.Pairwise }) {
+    const _interactivity = useRef<BehaviorSubject<PlotInteractivityState>>();
+    const interactivity = _interactivity.current ??= new BehaviorSubject<PlotInteractivityState>({});
+
+    useEffect(() => {
+        const queue = new SingleAsyncQueue();
+
+        const highlight = interactivity.subscribe(state => highlightState(plugin, state));
+        const paint = interactivity
+            .pipe(throttleTime(66, undefined, { leading: true, trailing: true }))
+            .subscribe(state => {
+                queue.enqueue(() => overpaintState(plugin, state));
+            });
+
+        return () => {
+            highlight.unsubscribe();
+            paint.unsubscribe();
+            queue.enqueue(() => overpaintState(plugin, interactivity.value));
+        };
+    }, [model, pairwiseMetric]);
+
+    return <MAPairwiseScorePlotBase model={model} pairwiseMetric={pairwiseMetric} interactivity={interactivity} />;
+}
+
 const PlotWrapper = memo(({ plugin, values, dataSources, interactivity }: { plugin: PluginContext, values: State['values'], dataSources: State['dataSources'], interactivity: BehaviorSubject<PlotInteractivityState> }) => {
-    const model: ModelRef | undefined = plugin.managers.structure.hierarchy.current.models.find(m => m.cell.transform.ref === values.model);
+    const model: Model | undefined = plugin.managers.structure.hierarchy.current.models.find(m => m.cell.transform.ref === values.model)?.cell.obj?.data;
     const src = dataSources.find(src => src.id === values.data);
     const cif: PluginStateObject.Format.Cif | undefined = plugin.state.data.cells.get(src?.dataRef!)?.obj;
     const block = cif?.data.blocks[src?.blockIndex!];
 
-    if (!model?.cell.obj?.data || !block || !src) return <div className='msp-description'>Data not available</div>;
+    if (!model || !block || !src) return <div className='msp-description'>Data not available</div>;
 
-    const metric = QualityAssessment.pairwiseMetricFromModelArchiveCIF(model.cell.obj.data, block, src.metridId);
+    const metric = QualityAssessment.pairwiseMetricFromModelArchiveCIF(model, block, src.metridId);
     if (!metric) return <div className='msp-description'>Data not available</div>;
 
-    return <Plot interactivity={interactivity} model={model} pairwiseMetric={metric} />;
+    return <MAPairwiseScorePlotBase interactivity={interactivity} model={model} pairwiseMetric={metric} />;
 }, (prev, next) => prev.values.data === next.values.data && prev.values.model === next.values.model);
 
 function getPropsAndValues(plugin: PluginContext, current?: { model?: string, data?: string }) {
@@ -152,8 +175,8 @@ const AlignedColor = Color(0x1AFFBB);
 const AlignedColorDarker = Color(0x0F8E68);
 
 interface PlotInteractivityState {
-    model?: ModelRef;
-    drawing?: PairwiseMetricDrawing;
+    model?: Model;
+    drawing?: MAPairwiseMetricDrawing;
     crosshairOffset?: [number, number];
     inside?: boolean;
     mouseDown?: boolean;
@@ -161,9 +184,9 @@ interface PlotInteractivityState {
     boxEnd?: [number, number];
 }
 
-const Plot = memo(({ model, pairwiseMetric, interactivity }: { model: ModelRef, pairwiseMetric: QualityAssessment.Pairwise, interactivity: BehaviorSubject<PlotInteractivityState> }) => {
+export const MAPairwiseScorePlotBase = memo(({ model, pairwiseMetric, interactivity }: { model: Model, pairwiseMetric: QualityAssessment.Pairwise, interactivity: BehaviorSubject<PlotInteractivityState> }) => {
     const interactivityRect = useRef<SVGRectElement>();
-    const drawing = drawPairwiseMetricPNG(model.cell.obj?.data!, pairwiseMetric);
+    const drawing = maDrawPairwiseMetricPNG(model, pairwiseMetric);
 
     useEffect(() => {
         if (!drawing) {
@@ -223,7 +246,7 @@ const Plot = memo(({ model, pairwiseMetric, interactivity }: { model: ModelRef, 
                 const endLineOffset = PlotOffset + PlotSize * endOffset / nResidues;
                 const startLineOffset = PlotOffset + PlotSize * startOffset / nResidues;
 
-                const seq_id = model.cell.obj!.data!.atomicHierarchy.residues.label_seq_id;
+                const seq_id = model.atomicHierarchy.residues.label_seq_id;
                 const startIndex = seq_id.value(metric.residueRange[0] + startOffset);
                 const endIndex = seq_id.value(metric.residueRange[0] + endOffset - 1);
 
@@ -256,9 +279,9 @@ const Plot = memo(({ model, pairwiseMetric, interactivity }: { model: ModelRef, 
             <PlotInteractivity drawing={drawing} interactity={interactivity} />
         </svg>
     </div>;
-}, (prev, next) => prev.model === next.model);
+}, (prev, next) => prev.model === next.model && prev.pairwiseMetric === next.pairwiseMetric);
 
-function PlotInteractivity({ drawing, interactity }: { drawing: PairwiseMetricDrawing, interactity: BehaviorSubject<PlotInteractivityState> }) {
+function PlotInteractivity({ drawing, interactity }: { drawing: MAPairwiseMetricDrawing, interactity: BehaviorSubject<PlotInteractivityState> }) {
     const state = useBehavior(interactity);
     const { crosshairOffset, inside } = state;
     const box = getBox(state);
@@ -292,7 +315,7 @@ function PlotInteractivity({ drawing, interactity }: { drawing: PairwiseMetricDr
     return <>
         {inside && crosshairOffset && <line x1={crosshairOffset[0] + PlotOffset} x2={crosshairOffset[0] + PlotOffset} y1={PlotOffset} y2={PlotOffset + PlotSize} style={{ pointerEvents: 'none', stroke: 'black', strokeDasharray: '5,5' }} />}
         {inside && crosshairOffset && <line x1={PlotOffset} x2={PlotOffset + PlotSize} y1={crosshairOffset[1] + PlotOffset} y2={crosshairOffset[1] + PlotOffset} style={{ pointerEvents: 'none', stroke: 'black', strokeDasharray: '5,5' }} />}
-        {box && <rect x={PlotOffset + box[0]} y={PlotOffset + box[1]} width={box[2]} height={box[3]} style={{ stroke: '#333', fill: 'rgba(0, 0, 0, 0.1)', pointerEvents: 'none' }} />}
+        {box && <rect x={PlotOffset + box[0]} y={PlotOffset + box[1]} width={box[2]} height={box[3]} style={{ stroke: '#eee', strokeWidth: 4, fill: 'rgba(0, 0, 0, 0.15)', pointerEvents: 'none' }} />}
         {labelNode}
     </>;
 }
@@ -310,12 +333,12 @@ function getCrosshairLabel(state: PlotInteractivityState) {
     return [getResidueLabel(drawing, rA), getResidueLabel(drawing, rB), valueLabel];
 }
 
-function getResidueIndex(drawing: PairwiseMetricDrawing, offset: number) {
+function getResidueIndex(drawing: MAPairwiseMetricDrawing, offset: number) {
     const rI = drawing.metric.residueRange[0] + Math.round(offset / PlotSize * (drawing.metric.residueRange[1] - drawing.metric.residueRange[0] + 1)) as ResidueIndex;
     return clamp(rI, drawing.metric.residueRange[0], drawing.metric.residueRange[1]) as ResidueIndex;
 }
 
-function getResidueLabel(drawing: PairwiseMetricDrawing, rI: ResidueIndex) {
+function getResidueLabel(drawing: MAPairwiseMetricDrawing, rI: ResidueIndex) {
     const hierarchy = drawing.model.atomicHierarchy;
     const asym_id = hierarchy.chains.label_asym_id;
     const seq_id = hierarchy.residues.label_seq_id;
@@ -350,8 +373,16 @@ function getPlotMouseOffsetBase(target: HTMLElement | SVGRectElement, clientX: n
     return [offsetX, offsetY] as [number, number];
 }
 
+function findModelRef(plugin: PluginContext, model: Model | undefined) {
+    if (!model) return undefined;
+    for (const m of plugin.managers.structure.hierarchy.current.models) {
+        if (m.cell.obj?.data === model) return m;
+    }
+    return undefined;
+}
+
 function highlightState(plugin: PluginContext, state: PlotInteractivityState) {
-    const structure = state.model?.structures[0]?.cell.obj?.data;
+    const structure = findModelRef(plugin, state.model)?.structures[0]?.cell.obj?.data;
     if (!state.drawing || !state.crosshairOffset || !state.inside || !structure) {
         plugin.managers.interactivity.lociHighlights.clearHighlights();
         return;
@@ -379,7 +410,8 @@ async function overpaintState(plugin: PluginContext, state: PlotInteractivitySta
     const update = plugin.build();
     for (const overpaint of overpaints) update.delete(overpaint);
 
-    const structure = state.model?.structures[0]?.cell.obj?.data;
+    const model = findModelRef(plugin, state.model);
+    const structure = model?.structures[0]?.cell.obj?.data;
     if (!state.drawing || !state.boxStart || !(state.boxEnd || state.crosshairOffset) || !structure) {
         if (!overpaints) return;
         return update.commit();
@@ -399,7 +431,7 @@ async function overpaintState(plugin: PluginContext, state: PlotInteractivitySta
     }
 
     const representations = plugin.state.data.selectQ(q =>
-        q.byRef(state.model?.cell.transform.ref!)
+        q.byRef(model.cell.transform.ref!)
             .subtree()
             .ofType(PluginStateObject.Molecule.Structure.Representation3D)
     );

@@ -12,7 +12,7 @@ import { QualityAssessment } from '../prop';
 
 const DefaultMetricColorRange = [0x00441B, 0xF7FCF5] as [Color, Color];
 
-export type ResidueRangeInfo = { startOffset: number, endOffset: number, label: string };
+export type MAResidueRangeInfo = { startOffset: number, endOffset: number, label: string };
 
 function drawMetricPNG(model: Model, metric: QualityAssessment.Pairwise, colorRange: [Color, Color], noDataColor: Color) {
     const [minResidueIndex, maxResidueIndex] = metric.residueRange;
@@ -48,12 +48,12 @@ function drawMetricPNG(model: Model, metric: QualityAssessment.Pairwise, colorRa
         }
     }
 
-    const chains: ResidueRangeInfo[] = [];
+    const chains: MAResidueRangeInfo[] = [];
     const hierarchy = model.atomicHierarchy;
     const { label_asym_id } = hierarchy.chains;
 
     let cI = AtomicHierarchy.residueChainIndex(hierarchy, minResidueIndex as ResidueIndex);
-    let currentChain: ResidueRangeInfo = { startOffset: 0, endOffset: 1, label: label_asym_id.value(cI) };
+    let currentChain: MAResidueRangeInfo = { startOffset: 0, endOffset: 1, label: label_asym_id.value(cI) };
     chains.push(currentChain);
 
     for (let i = 1; i < range; i++) {
@@ -76,8 +76,8 @@ function drawMetricPNG(model: Model, metric: QualityAssessment.Pairwise, colorRa
     };
 }
 
-export function drawPairwiseMetricPNG(model: Model, metric: QualityAssessment.Pairwise) {
+export function maDrawPairwiseMetricPNG(model: Model, metric: QualityAssessment.Pairwise) {
     return drawMetricPNG(model, metric, DefaultMetricColorRange, Color(0xE2E2E2));
 }
 
-export type PairwiseMetricDrawing = ReturnType<typeof drawMetricPNG>
+export type MAPairwiseMetricDrawing = ReturnType<typeof drawMetricPNG>

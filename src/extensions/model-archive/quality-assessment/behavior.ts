@@ -18,7 +18,7 @@ import { cantorPairing } from '../../../mol-data/util';
 import { QmeanScoreColorThemeProvider } from './color/qmean';
 import { PresetStructureRepresentations, StructureRepresentationPresetProvider } from '../../../mol-plugin-state/builder/structure/representation-preset';
 import { StateObjectRef } from '../../../mol-state';
-import { PairwiseMetricPlotUI } from './pairwise/ui';
+import { MAPairwiseScorePlotPanel } from './pairwise/ui';
 import { PluginConfigItem } from '../../../mol-plugin/config';
 
 export const MAQualityAssessmentConfig = {
@@ -61,7 +61,7 @@ export const MAQualityAssessment = PluginBehavior.create<{ autoAttach: boolean, 
             this.ctx.builders.structure.representation.registerPreset(QualityAssessmentQmeanPreset);
 
             if (this.ctx.config.get(MAQualityAssessmentConfig.EnablePairwiseScorePlot)) {
-                this.ctx.customStructureControls.set('ma-quality-assessment-pairwise-plot', PairwiseMetricPlotUI as any);
+                this.ctx.customStructureControls.set('ma-quality-assessment-pairwise-plot', MAPairwiseScorePlotPanel as any);
             }
         }
 

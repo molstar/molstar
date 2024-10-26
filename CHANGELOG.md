@@ -14,7 +14,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix `findPredecessorIndex` bug when repeating values
 - MolViewSpec: Support for transparency and custom properties
 - MolViewSpec: MVP Support for geometrical primitives (mesh, lines, line, label, distance measurement)
-
+- ModelArchive QualityAssessment extension:
+  - Add support for ma_qa_metric_local_pairwise mmCIF category
+  - Add PAE plot component
+- Added new AlphaFoldDB-PAE example
 
 ## [v4.7.1] - 2024-09-30
 

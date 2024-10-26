@@ -29,13 +29,6 @@ interface QualityAssessment {
 }
 
 namespace QualityAssessment {
-    export interface LocalPairwiseMetricInfo {
-        minResidueIndex: ResidueIndex
-        maxResidueIndex: ResidueIndex
-        minMetric: number
-        maxMetric: number
-    }
-
     export interface Pairwise {
         id: number
         name: string
