@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { CSSProperties, Fragment, memo, useEffect, useRef } from 'react';
+import { CSSProperties, Fragment, memo, ReactNode, useEffect, useRef } from 'react';
 import { BehaviorSubject, combineLatest, throttleTime } from 'rxjs';
 import { clamp } from '../../../../mol-math/interpolate';
 import { ResidueIndex, StructureElement, StructureProperties, StructureQuery } from '../../../../mol-model/structure';
@@ -35,7 +35,7 @@ export class PairwiseMetricPlotUI extends CollapsableControls<{}, State> {
             isCollapsed: false,
             isHidden: true,
             brand: { accent: 'purple', svg: ScatterPlotSvg },
-            params: { } as any,
+            params: {} as any,
             values: undefined as any,
             dataSources: [],
         };
@@ -54,7 +54,7 @@ export class PairwiseMetricPlotUI extends CollapsableControls<{}, State> {
         }
     };
 
-    interactivity = new BehaviorSubject<PlotInteractivityState>({ });
+    interactivity = new BehaviorSubject<PlotInteractivityState>({});
     queue = new SingleAsyncQueue();
 
     componentDidMount() {
@@ -263,16 +263,37 @@ function PlotInteractivity({ drawing, interactity }: { drawing: PairwiseMetricDr
     const { crosshairOffset, inside } = state;
     const box = getBox(state);
     const label = getCrosshairLabel(state);
-    const labelStyle: CSSProperties | undefined = label ? { fontSize: '40px', fill: 'black', fontWeight: 'bold', pointerEvents: 'none', userSelect: 'none' } : undefined;
 
-    // TODO: position label depending crosshairOffset position to avoid clipping at edges
+    let labelNode: ReactNode | undefined;
+    if (label) {
+        const labelStyle: CSSProperties | undefined = label ? { fontSize: '45px', fill: 'black', fontWeight: 'bold', pointerEvents: 'none', userSelect: 'none' } : undefined;
+        let x: number, y: number, anchor: string;
+        if (crosshairOffset![0] < PlotSize / 2) {
+            x = PlotOffset + crosshairOffset![0] + 20;
+            anchor = 'start';
+        } else {
+            x = PlotOffset + crosshairOffset![0] - 20;
+            anchor = 'end';
+        }
+
+        if (crosshairOffset![1] < PlotSize / 2) {
+            y = PlotOffset + crosshairOffset![1] + 65;
+        } else {
+            y = PlotOffset + crosshairOffset![1] - (label[2] ? 3 * 45 : 2 * 45) + 20;
+        }
+
+        labelNode = <text y={y} style={labelStyle} textAnchor={anchor}>
+            <tspan x={x}>S: {label[0]}</tspan>
+            <tspan x={x} dy={45}>A: {label[1]}</tspan>
+            {label[2] && <tspan x={x} dy={45}>{label[2]}</tspan>}
+        </text>;
+    }
+
     return <>
         {inside && crosshairOffset && <line x1={crosshairOffset[0] + PlotOffset} x2={crosshairOffset[0] + PlotOffset} y1={PlotOffset} y2={PlotOffset + PlotSize} style={{ pointerEvents: 'none', stroke: 'black', strokeDasharray: '5,5' }} />}
         {inside && crosshairOffset && <line x1={PlotOffset} x2={PlotOffset + PlotSize} y1={crosshairOffset[1] + PlotOffset} y2={crosshairOffset[1] + PlotOffset} style={{ pointerEvents: 'none', stroke: 'black', strokeDasharray: '5,5' }} />}
         {box && <rect x={PlotOffset + box[0]} y={PlotOffset + box[1]} width={box[2]} height={box[3]} style={{ stroke: '#333', fill: 'rgba(0, 0, 0, 0.1)', pointerEvents: 'none' }} />}
-        {label && <text x={PlotOffset + crosshairOffset![0] + 20} y={PlotOffset + crosshairOffset![1] - 10} style={labelStyle} textAnchor='start'>{label[0]}</text>}
-        {label && <text x={PlotOffset + crosshairOffset![0] - 20} y={PlotOffset + crosshairOffset![1] + 50} style={labelStyle} textAnchor='end'>{label[1]}</text>}
-        {label?.[2] && <text x={PlotOffset + crosshairOffset![0] - 20} y={PlotOffset + crosshairOffset![1] - 10} style={labelStyle} textAnchor='end'>{label[2]}</text>}
+        {labelNode}
     </>;
 }
 
