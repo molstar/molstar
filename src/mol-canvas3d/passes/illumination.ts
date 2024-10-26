@@ -304,6 +304,10 @@ export class IlluminationPass {
         const outlinesEnabled = props.postprocessing.outline.name === 'on' && !props.illumination.ignoreOutline;
         const occlusionEnabled = PostprocessingPass.isTransparentSsaoEnabled(scene, props.postprocessing);
 
+        const markingEnabled = MarkingPass.isEnabled(props.marking);
+        const hasTransparent = scene.opacityAverage < 1;
+        const hasMarking = markingEnabled && scene.markerAverage > 0;
+
         let needsUpdateCompose = false;
 
         if (this.composeRenderable.values.dOutlineEnable.ref.value !== outlinesEnabled) {
@@ -336,7 +340,7 @@ export class IlluminationPass {
             ValueCell.update(this.composeRenderable.values.uOcclusionColor, Color.toVec3Normalized(this.composeRenderable.values.uOcclusionColor.ref.value, props.postprocessing.occlusion.params.color));
         }
 
-        const blendTransparency = scene.opacityAverage < 1;
+        const blendTransparency = hasTransparent || hasMarking;
         if (this.composeRenderable.values.dBlendTransparency.ref.value !== blendTransparency) {
             needsUpdateCompose = true;
             ValueCell.update(this.composeRenderable.values.dBlendTransparency, blendTransparency);
