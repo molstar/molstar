@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -121,7 +121,7 @@ void main(void) {
         #if defined(dOutlineEnable) || defined(dOcclusionEnable) && defined(dOcclusionIncludeTransparency)
             transparentDepth = getDepthTransparent(coords);
         #endif
-    #endif    
+    #endif
 
     #if defined(dOcclusionEnable) || defined(dShadowEnable)
         bool isOpaqueBackground = isBackground(opaqueDepth);

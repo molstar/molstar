@@ -339,7 +339,7 @@ export class SsaoPass {
         }
 
         if (props.multiScale.name === 'on') {
-            const mp = props.multiScale!.params;
+            const mp = props.multiScale.params;
             if (!deepEqual(this.levels, mp.levels)) {
                 needsUpdateSsao = true;
 

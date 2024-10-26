@@ -169,7 +169,7 @@ float getOutline(const in vec2 coords, const in float opaqueDepth, const in floa
             }
         }
     }
-    return isTransparent == 0.0 ? outline : (closestTexel < opaqueDepth || closestTexel < transparentDepth) ? outline : 1.0;
+    return isTransparent == 0.0 ? outline : (closestTexel > opaqueDepth && closestTexel < transparentDepth) ? 1.0 : outline;
 }
 
 void main() {
@@ -191,7 +191,7 @@ void main() {
     #ifdef dBlendTransparency
         bool blendTransparency = true;
         vec4 transparentColor = texture2D(tTransparentColor, coords);
-        
+
         transparentDepth = getDepthTransparent(coords);
     #endif
 
