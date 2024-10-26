@@ -31,7 +31,7 @@ type State = ReturnType<typeof getPropsAndValues>
 export class PairwiseMetricPlotUI extends CollapsableControls<{}, State> {
     protected defaultState(): State & CollapsableState {
         return {
-            header: 'Pairwise Residue Score',
+            header: 'Predicted Aligned Error',
             isCollapsed: false,
             isHidden: true,
             brand: { accent: 'purple', svg: ScatterPlotSvg },
@@ -213,7 +213,7 @@ const Plot = memo(({ model, pairwiseMetric, interactivity }: { model: ModelRef, 
             <rect x={PlotOffset} y={legendOffsetY} width={PlotSize} height={legendHeight} style={{ fill: 'url(#legend-gradient)', strokeWidth: 1, stroke: border }} />
             <text x={PlotOffset + 20} y={legendOffsetY + legendHeight - 22} style={{ fontSize: '45px', fill: 'white', fontWeight: 'bold' }}>{round(metric.valueRange[0], 2)} Å</text>
             <text x={PlotOffset + PlotSize - 20} y={legendOffsetY + legendHeight - 22} style={{ fontSize: '45px', fill: 'black', fontWeight: 'bold' }} textAnchor='end'>{round(metric.valueRange[1], 2)} Å</text>
-            <text x={PlotOffset + PlotSize / 2} y={legendOffsetY + legendHeight - 22} style={{ fontSize: '45px', fill: 'black' }} textAnchor='middle'>{metric.name}</text>
+            <text x={PlotOffset + PlotSize / 2} y={legendOffsetY + legendHeight - 22} style={{ fontSize: '45px', fill: 'black' }} textAnchor='middle'>Predicted Aligned Error</text>
 
             <text x={PlotOffset + PlotSize / 2} y={50} style={{ fontSize: '45px', fontWeight: 'bold', fill: Color.toStyle(ScoredColor) }} textAnchor='middle'>Scored Residue</text>
             <text className='msp-svg-text' style={{ fontSize: '50px', fontWeight: 'bold', fill: Color.toStyle(AlignedColorDarker) }} transform={`translate(50, ${PlotOffset + PlotSize / 2}) rotate(270)`} textAnchor='middle'>Aligned Residue</text>
