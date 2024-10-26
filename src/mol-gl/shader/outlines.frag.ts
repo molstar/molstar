@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -40,7 +40,7 @@ float getDepthOpaque(const in vec2 coords) {
 
 float getDepthTransparent(const in vec2 coords) {
     #ifdef dTransparentOutline
-        return unpackRGBAToDepth(texture2D(tDepthTransparent, coords));
+        return unpackRGBAToDepthWithAlpha(texture2D(tDepthTransparent, coords)).x;
     #else
         return 1.0;
     #endif
