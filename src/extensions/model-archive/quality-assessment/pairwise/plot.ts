@@ -80,4 +80,4 @@ export function drawPairwiseMetricPNG(model: Model, metric: QualityAssessment.Pa
     return drawMetricPNG(model, metric, DefaultMetricColorRange, Color(0xE2E2E2));
 }
 
-export type PAEDrawing = ReturnType<typeof drawMetricPNG>
+export type PairwiseMetricDrawing = ReturnType<typeof drawMetricPNG>
