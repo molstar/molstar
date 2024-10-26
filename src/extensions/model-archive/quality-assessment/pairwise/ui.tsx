@@ -5,7 +5,7 @@
  */
 
 import { CSSProperties, Fragment, memo, ReactNode, useEffect, useRef } from 'react';
-import { BehaviorSubject, combineLatest, throttleTime } from 'rxjs';
+import { BehaviorSubject, combineLatest, distinctUntilChanged, throttleTime } from 'rxjs';
 import { clamp } from '../../../../mol-math/interpolate';
 import { Model, ResidueIndex, StructureElement, StructureProperties, StructureQuery } from '../../../../mol-model/structure';
 import { AtomicHierarchy } from '../../../../mol-model/structure/model/properties/atomic';
@@ -69,11 +69,10 @@ export class MAPairwiseScorePlotPanel extends CollapsableControls<{}, State> {
             });
         });
 
-        this.subscribe(this.interactivity, state => {
+        this.subscribe(filterHighlightState(this.interactivity), state => {
             highlightState(this.plugin, state);
         });
-
-        this.subscribe(this.interactivity.pipe(throttleTime(66, undefined, { leading: true, trailing: true })), state => {
+        this.subscribe(filterOverpaintState(this.interactivity), state => {
             this.queue.enqueue(() => overpaintState(this.plugin, state));
         });
     }
@@ -94,12 +93,8 @@ export function MAPairwiseScorePlot({ plugin, model, pairwiseMetric }: { plugin:
     useEffect(() => {
         const queue = new SingleAsyncQueue();
 
-        const highlight = interactivity.subscribe(state => highlightState(plugin, state));
-        const paint = interactivity
-            .pipe(throttleTime(66, undefined, { leading: true, trailing: true }))
-            .subscribe(state => {
-                queue.enqueue(() => overpaintState(plugin, state));
-            });
+        const highlight = filterHighlightState(interactivity).subscribe(state => highlightState(plugin, state));
+        const paint = filterOverpaintState(interactivity).subscribe(state => queue.enqueue(() => overpaintState(plugin, state)));
 
         return () => {
             highlight.unsubscribe();
@@ -109,6 +104,20 @@ export function MAPairwiseScorePlot({ plugin, model, pairwiseMetric }: { plugin:
     }, [model, pairwiseMetric]);
 
     return <MAPairwiseScorePlotBase model={model} pairwiseMetric={pairwiseMetric} interactivity={interactivity} />;
+}
+
+function filterHighlightState(state: BehaviorSubject<PlotInteractivityState>) {
+    return state.pipe(
+        throttleTime(16, undefined, { leading: true, trailing: true }),
+        distinctUntilChanged((a, b) => a.crosshairOffset === b.crosshairOffset)
+    );
+}
+
+function filterOverpaintState(state: BehaviorSubject<PlotInteractivityState>) {
+    return state.pipe(
+        throttleTime(66, undefined, { leading: true, trailing: true }),
+        distinctUntilChanged((a, b) => a.boxStart === b.boxStart && (a.mouseDown ? a.crosshairOffset : a.boxEnd) === (b.mouseDown ? b.crosshairOffset : b.boxEnd))
+    );
 }
 
 const PlotWrapper = memo(({ plugin, values, dataSources, interactivity }: { plugin: PluginContext, values: State['values'], dataSources: State['dataSources'], interactivity: BehaviorSubject<PlotInteractivityState> }) => {
@@ -195,8 +204,11 @@ export const MAPairwiseScorePlotBase = memo(({ model, pairwiseMetric, interactiv
         }
         interactivity.next({ model, drawing });
         const moveEvent = (ev: MouseEvent) => {
+            const current = interactivity.value;
+            if (!current.inside && !current.mouseDown) return;
+
             const offset = getPlotMouseOffsetBase(interactivityRect.current!, ev.clientX, ev.clientY);
-            interactivity.next({ ...interactivity.value, crosshairOffset: offset });
+            interactivity.next({ ...current, crosshairOffset: offset });
         };
         const mouseUpEvent = (ev: MouseEvent) => {
             if (!interactivity.value.mouseDown) return;
