@@ -17,7 +17,7 @@ import { ScatterPlotSvg } from '../../../../mol-plugin-ui/controls/icons';
 import { ParameterControls } from '../../../../mol-plugin-ui/controls/parameters';
 import { useBehavior } from '../../../../mol-plugin-ui/hooks/use-behavior';
 import { PluginContext } from '../../../../mol-plugin/context';
-import { StateTransform } from '../../../../mol-state';
+import { StateBuilder, StateTransform } from '../../../../mol-state';
 import { round } from '../../../../mol-util';
 import { Color } from '../../../../mol-util/color';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
@@ -179,9 +179,12 @@ function getPropsAndValues(plugin: PluginContext, current?: { model?: string, da
 const PlotSize = 1000;
 const PlotOffset = 120;
 
-const ScoredColor = Color(0xFFA500);
-const AlignedColor = Color(0x1AFFBB);
-const AlignedColorDarker = Color(0x0F8E68);
+const PlotColors = {
+    ScoredOverpaint: Color(0xFFA500),
+    ScoredLabel: Color(0xBC7100),
+    AlignedOverpaint: Color(0x1AFFBB),
+    AlignedLabel: Color(0x0F8E68),
+};
 
 interface PlotInteractivityState {
     model?: Model;
@@ -250,8 +253,8 @@ export const MAPairwiseScorePlotBase = memo(({ model, pairwiseMetric, interactiv
             <text x={PlotOffset + PlotSize - 20} y={legendOffsetY + legendHeight - 22} style={{ fontSize: '45px', fill: 'black', fontWeight: 'bold' }} textAnchor='end'>{round(metric.valueRange[1], 2)} Å</text>
             <text x={PlotOffset + PlotSize / 2} y={legendOffsetY + legendHeight - 22} style={{ fontSize: '45px', fill: 'black' }} textAnchor='middle'>Predicted Aligned Error</text>
 
-            <text x={PlotOffset + PlotSize / 2} y={50} style={{ fontSize: '45px', fontWeight: 'bold', fill: Color.toStyle(ScoredColor) }} textAnchor='middle'>Scored Residue</text>
-            <text className='msp-svg-text' style={{ fontSize: '50px', fontWeight: 'bold', fill: Color.toStyle(AlignedColorDarker) }} transform={`translate(50, ${PlotOffset + PlotSize / 2}) rotate(270)`} textAnchor='middle'>Aligned Residue</text>
+            <text x={PlotOffset + PlotSize / 2} y={50} style={{ fontSize: '45px', fontWeight: 'bold', fill: Color.toStyle(PlotColors.ScoredLabel) }} textAnchor='middle'>Scored Residue</text>
+            <text className='msp-svg-text' style={{ fontSize: '50px', fontWeight: 'bold', fill: Color.toStyle(PlotColors.AlignedLabel) }} transform={`translate(50, ${PlotOffset + PlotSize / 2}) rotate(270)`} textAnchor='middle'>Aligned Residue</text>
 
             {chains.map(({ startOffset, endOffset, label }) => {
                 const textOffset = PlotOffset + PlotSize * (startOffset + (endOffset - startOffset) / 2) / nResidues;
@@ -426,7 +429,7 @@ async function overpaintState(plugin: PluginContext, state: PlotInteractivitySta
     const structure = model?.structures[0]?.cell.obj?.data;
     if (!state.drawing || !state.boxStart || !(state.boxEnd || state.crosshairOffset) || !structure) {
         if (!overpaints) return;
-        return update.commit();
+        return reApplyRepresentationStates(plugin, update);
     }
 
     const start = state.boxStart;
@@ -439,7 +442,7 @@ async function overpaintState(plugin: PluginContext, state: PlotInteractivitySta
 
     if (x1 - x0 <= 1 || y1 - y0 <= 1) {
         if (!overpaints) return;
-        return update.commit();
+        return reApplyRepresentationStates(plugin, update);
     }
 
     const representations = plugin.state.data.selectQ(q =>
@@ -474,11 +477,11 @@ async function overpaintState(plugin: PluginContext, state: PlotInteractivitySta
         clear: false,
     }, {
         bundle: StructureElement.Bundle.fromLoci(lociScored),
-        color: ScoredColor,
+        color: PlotColors.ScoredOverpaint,
         clear: false,
     }, {
         bundle: StructureElement.Bundle.fromLoci(lociAligned),
-        color: AlignedColor,
+        color: PlotColors.AlignedOverpaint,
         clear: false,
     }];
 
@@ -487,4 +490,15 @@ async function overpaintState(plugin: PluginContext, state: PlotInteractivitySta
     }
 
     return update.commit();
+}
+
+async function reApplyRepresentationStates(plugin: PluginContext, update: StateBuilder.Root) {
+    await update.commit();
+    const states = plugin.state.data.selectQ(q => q.root.subtree().ofType(PluginStateObject.Molecule.Structure.Representation3DState));
+    for (const state of states) {
+        const data = state.obj?.data;
+        if (!data) continue;
+        data.repr.setState(data.state);
+        plugin.canvas3d?.update(data.repr);
+    }
 }
