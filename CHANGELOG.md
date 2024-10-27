@@ -25,6 +25,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Add PAE plot component
 - Added new AlphaFoldDB-PAE example
 - Add support for LAMMPS data and dump formats
+- Remove extra anti-aliasing from text shader (fixes #1208 & #1306)
 
 ## [v4.7.1] - 2024-09-30
 
