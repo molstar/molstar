@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v4.8.0] - 2024-10-27
+
 - Add SSAO support for transparent geometry
 - Fix SSAO color not updating
 - Improve blending of overlapping outlines from transparent & opaque geometries
@@ -24,7 +26,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - ModelArchive QualityAssessment extension:
     - Add support for ma_qa_metric_local_pairwise mmCIF category
     - Add PAE plot component
-- Added new AlphaFoldDB-PAE example
+- Add new AlphaFoldDB-PAE example app
 - Add support for LAMMPS data and dump formats
 - Remove extra anti-aliasing from text shader (fixes #1208 & #1306)
 
