@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.397, IHM 1.26, MA 1.4.6.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.398, IHM 1.26, MA 1.4.6.
  *
  * @author molstar/ciftools package
  */
@@ -5216,6 +5216,10 @@ export const mmCIF_Schema = {
          */
         metric_value: float,
     },
+    /**
+     * Data items in the MA_QA_METRIC_LOCAL_PAIRWISE category captures the
+     * details of the local QA metrics, calculated at the pairwise residue level.
+     */
     ma_qa_metric_local_pairwise: {
         /**
          * A unique identifier for the category.
@@ -5228,43 +5232,43 @@ export const mmCIF_Schema = {
          */
         model_id: int,
         /**
-         * The identifier for the asym id of the residue in the
-         * structural model, for which local QA metric is provided.
+         * The identifier for the asym id of the first residue in the
+         * pair, for which local QA metric is provided.
          * This data item is a pointer to _atom_site.label_asym_id
          * in the ATOM_SITE category.
          */
         label_asym_id_1: str,
         /**
-         * The identifier for the sequence index of the residue
-         * in the structural model, for which local QA metric is provided.
+         * The identifier for the sequence index of the first residue
+         * in the pair, for which local QA metric is provided.
          * This data item is a pointer to _atom_site.label_seq_id
          * in the ATOM_SITE category.
          */
         label_seq_id_1: int,
         /**
-         * The component identifier for the residue in the
-         * structural model, for which local QA metric is provided.
+         * The component identifier for the first residue in the
+         * pair, for which local QA metric is provided.
          * This data item is a pointer to _atom_site.label_comp_id
          * in the ATOM_SITE category.
          */
         label_comp_id_1: str,
         /**
-         * The identifier for the asym id of the residue in the
-         * structural model, for which local QA metric is provided.
+         * The identifier for the asym id of the second residue in the
+         * pair, for which local QA metric is provided.
          * This data item is a pointer to _atom_site.label_asym_id
          * in the ATOM_SITE category.
          */
         label_asym_id_2: str,
         /**
-         * The identifier for the sequence index of the residue
-         * in the structural model, for which local QA metric is provided.
+         * The identifier for the sequence index of the second residue
+         * in the pair, for which local QA metric is provided.
          * This data item is a pointer to _atom_site.label_seq_id
          * in the ATOM_SITE category.
          */
         label_seq_id_2: int,
         /**
-         * The component identifier for the residue in the
-         * structural model, for which local QA metric is provided.
+         * The component identifier for the second residue in the
+         * pair, for which local QA metric is provided.
          * This data item is a pointer to _atom_site.label_comp_id
          * in the ATOM_SITE category.
          */
