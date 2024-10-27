@@ -329,7 +329,7 @@ const atomicDetail = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-atomic-detail',
     display: {
         name: 'Atomic Detail', group: BuiltInPresetGroupName,
-        description: 'Shows everything in atomic detail with Ball & Stick.'
+        description: 'Shows everything in atomic detail.'
     },
     params: () => ({
         ...CommonParams,
@@ -346,6 +346,8 @@ const atomicDetail = StructureRepresentationPresetProvider({
 
         const structure = structureCell.obj!.data;
         const highElementCount = structure.elementCount > 100_000; // TODO make configurable
+        const veryHighElementCount = structure.elementCount > 1_000_000; // TODO make configurable
+        const highUnitCount = structure.units.length > 5_000; // TODO make configurable
         const lowResidueElementRatio = structure.atomicResidueCount &&
             structure.elementCount > 1000 &&
             structure.atomicResidueCount / structure.elementCount < 3;
@@ -354,9 +356,8 @@ const atomicDetail = StructureRepresentationPresetProvider({
         const bondsGiven = !!IndexPairBonds.Provider.get(m) || StructConn.isExhaustive(m);
 
         let atomicType: StructureRepresentationRegistry.BuiltIn = 'ball-and-stick';
-        if (structure.isCoarseGrained) {
-            // TODO make configurable?
-            atomicType = structure.elementCount > 1_000_000 ? 'point' : 'spacefill';
+        if (structure.isCoarseGrained || highUnitCount) {
+            atomicType = veryHighElementCount ? 'point' : 'spacefill';
         } else if (lowResidueElementRatio && !bondsGiven) {
             atomicType = 'spacefill';
         } else if (highElementCount) {

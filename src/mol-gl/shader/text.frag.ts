@@ -22,13 +22,6 @@ uniform float uBackgroundOpacity;
 
 varying vec2 vTexCoord;
 
-const float smoothness = 32.0;
-const float gamma = 2.2;
-
-void main2(){
-    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-}
-
 void main(){
     #include fade_lod
     #include clip_pixel
@@ -44,20 +37,13 @@ void main(){
         // retrieve signed distance
         float sdf = texture2D(tFont, vTexCoord).a + uBorderWidth;
 
-        // perform adaptive anti-aliasing of the edges
-        float w = clamp(smoothness * (abs(dFdx(vTexCoord.x)) + abs(dFdy(vTexCoord.y))), 0.0, 0.5);
-        float a = clamp(0.0, 1.0, smoothstep(0.5 - w, 0.5 + w, sdf));
-
-        // gamma correction for linear attenuation
-        a = pow(a, 1.0 / gamma);
-
-        if (a < 0.5) discard;
+        if (sdf < 0.5) discard;
 
         #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
             // add border
             float t = 0.5 + uBorderWidth;
             if (uBorderWidth > 0.0 && sdf < t) {
-                material.xyz = mix(uBorderColor, material.xyz, smoothstep(t - w, t, sdf));
+                material.xyz = uBorderColor;
             }
         #endif
     }

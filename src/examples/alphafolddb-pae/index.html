@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <title>Mol* AlphaFold DB Predicted Aligned Error Example</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                font-family: sans-serif;
+            }
+            #app {
+                position: absolute;
+                top: 20px;
+                left: 20px;
+                width: 640px;
+                height: 480px;
+            }
+
+            #plot {
+                position: absolute;
+                left: 680px;
+                top: 20px;
+                width: 480px;
+                height: 480px;
+            }
+
+            #controls {
+                position: absolute;
+                left: 20px;
+                top: 520px;
+                font-family: sans-serif;
+                font-size: smaller;
+            }
+        </style>
+        <link rel="stylesheet" type="text/css" href="molstar.css" />
+        <script type="text/javascript" src="./index.js"></script>
+    </head>
+    <body>
+        <div id='controls'>
+            <input type='text' id='af-id' value='Q8W3K0' />
+            <button id='af-load'>Load</button>
+        </div>
+        <div id='app'></div>
+        <div id='plot'></div>
+        <script>
+            AlphaFoldPAEExample.init({ pluginContainerId: 'app', plotContainerId: 'plot' }).then(example => {
+                example.load('Q8W3K0')
+            });
+
+            function $(id) { return document.getElementById(id); }
+            $('af-load').onclick = () => AlphaFoldPAEExample.load($('af-id').value)
+        </script>
+        <!-- __MOLSTAR_ANALYTICS__ -->
+    </body>
+</html>

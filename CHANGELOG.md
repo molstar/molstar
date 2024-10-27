@@ -5,6 +5,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add SSAO support for transparent geometry
+- Fix SSAO color not updating
+- Improve blending of overlapping outlines from transparent & opaque geometries
 - Default to `blended` transparency on iOS due to `wboit` not being supported.
 - Fix direct-volume with fog off (and on with `dpoit`) and transparent background on (#1286)
 - Fix missing pre-multiplied alpha for `blended` & `wboit` with no fog (#1284)
@@ -18,6 +21,12 @@ Note that since we don't clearly distinguish between a public and private interf
 - Mesoscale Explorer: Add support for 4-character PDB IDs (e.g., 8ZZC) in PDB-Dev loader
 - Fix Sequence View in Safari 18
 - Improve performance of `IndexPairBonds` assignment when operator keys are available
+- ModelArchive QualityAssessment extension:
+    - Add support for ma_qa_metric_local_pairwise mmCIF category
+    - Add PAE plot component
+- Added new AlphaFoldDB-PAE example
+- Add support for LAMMPS data and dump formats
+- Remove extra anti-aliasing from text shader (fixes #1208 & #1306)
 
 ## [v4.7.1] - 2024-09-30
 
