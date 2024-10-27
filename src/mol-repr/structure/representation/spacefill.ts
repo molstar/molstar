@@ -28,14 +28,19 @@ export type SpacefillParams = typeof SpacefillParams
 
 let CoarseGrainedSpacefillParams: SpacefillParams;
 export function getSpacefillParams(ctx: ThemeRegistryContext, structure: Structure) {
+    let params = SpacefillParams;
     if (structure.isCoarseGrained) {
         if (!CoarseGrainedSpacefillParams) {
             CoarseGrainedSpacefillParams = PD.clone(SpacefillParams);
             CoarseGrainedSpacefillParams.sizeFactor.defaultValue = 2;
         }
-        return CoarseGrainedSpacefillParams;
+        params = CoarseGrainedSpacefillParams;
     }
-    return SpacefillParams;
+    if (structure.units.length > 5000) {
+        params = PD.clone(params);
+        params.visuals.defaultValue = ['structure-element-sphere'];
+    }
+    return params;
 }
 
 export type SpacefillRepresentation = StructureRepresentation<SpacefillParams>

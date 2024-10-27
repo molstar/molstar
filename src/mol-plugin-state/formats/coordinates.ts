@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Ludovic Autin <ludovic.autin@gmail.com>
  */
 
 import { StateTransforms } from '../transforms';
@@ -74,13 +75,32 @@ const NctrajProvider = DataFormatProvider({
 });
 type NctrajProvider = typeof NctrajProvider;
 
-export type CoordinatesProvider = DcdProvider | XtcProvider | TrrProvider;
+export { LammpsTrajectoryProvider };
+const LammpsTrajectoryProvider = DataFormatProvider({
+    label: 'LAMMPSTRAJ',
+    description: 'LAMMPSTRAJ',
+    category: CoordinatesFormatCategory,
+    stringExtensions: ['lammpstrj'],
+    parse: (plugin, data) => {
+        const coordinates = plugin.state.data.build()
+            .to(data)
+            .apply(StateTransforms.Model.CoordinatesFromLammpstraj);
+
+        return coordinates.commit();
+    }
+});
+type LammpsTrajectoryProvider = typeof LammpsTrajectoryProvider;
+
+
+
+export type CoordinatesProvider = DcdProvider | XtcProvider | TrrProvider | LammpsTrajectoryProvider;
 
 export const BuiltInCoordinatesFormats = [
     ['dcd', DcdProvider] as const,
     ['xtc', XtcProvider] as const,
     ['trr', TrrProvider] as const,
     ['nctraj', NctrajProvider] as const,
+    ['lammpstrj', LammpsTrajectoryProvider] as const,
 ] as const;
 
 export type BuiltInCoordinatesFormat = (typeof BuiltInCoordinatesFormats)[number][0]
