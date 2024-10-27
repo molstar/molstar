@@ -21,7 +21,15 @@ export type IndexPairsProps = {
     readonly flag: ArrayLike<BondType.Flag>
 }
 export type IndexPairs = IntAdjacencyGraph<ElementIndex, IndexPairsProps>
-export type IndexPairBonds = { bonds: IndexPairs, maxDistance: number, cacheable: boolean }
+export type IndexPairBonds = {
+    bonds: IndexPairs
+    /** Distance in Angstrom. If negative, element-based threshold is used. */
+    maxDistance: number
+    /** Can be cached in `ElementSetIntraBondCache` */
+    cacheable: boolean
+    /** Has operatorA & operatorB set for each bond */
+    hasOperators: boolean
+}
 
 function getGraph(indexA: ArrayLike<ElementIndex>, indexB: ArrayLike<ElementIndex>, props: Partial<IndexPairsProps>, count: number): IndexPairs {
     const builder = new IntAdjacencyGraph.EdgeBuilder(count, indexA, indexB);
@@ -102,10 +110,23 @@ export namespace IndexPairBonds {
         const order = pairs.order && pairs.order.toArray();
         const distance = pairs.distance && pairs.distance.toArray();
         const flag = pairs.flag && pairs.flag.toArray();
+
+        let hasOperators = false;
+        if (operatorA && operatorB) {
+            hasOperators = true;
+            for (let i = 0; i < count; ++i) {
+                if (operatorA[i] === -1 || operatorB[i] === -1) {
+                    hasOperators = false;
+                    break;
+                }
+            }
+        }
+
         return {
             bonds: getGraph(indexA, indexB, { key, operatorA, operatorB, order, distance, flag }, count),
             maxDistance: p.maxDistance,
             cacheable: p.cacheable,
+            hasOperators,
         };
     }
 
