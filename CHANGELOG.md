@@ -20,6 +20,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - MolViewSpec: MVP Support for geometrical primitives (mesh, lines, line, label, distance measurement)
 - Mesoscale Explorer: Add support for 4-character PDB IDs (e.g., 8ZZC) in PDB-Dev loader
 - Fix Sequence View in Safari 18
+- ModelArchive QualityAssessment extension:
+  - Add support for ma_qa_metric_local_pairwise mmCIF category
+  - Add PAE plot component
+- Added new AlphaFoldDB-PAE example
 - Add support for LAMMPS data and dump formats
 
 ## [v4.7.1] - 2024-09-30
