@@ -32,6 +32,7 @@ import { TracingParams, TracingPass } from './tracing';
 import { JitterVectors, MultiSampleProps } from './multi-sample';
 import { compose_frag as multiSample_compose_frag } from '../../mol-gl/shader/compose.frag';
 import { clamp, lerp } from '../../mol-math/interpolate';
+import { SsaoProps } from './ssao';
 
 type Props = {
     transparentBackground: boolean;
@@ -115,14 +116,14 @@ export class IlluminationPass {
         const width = colorTarget.getWidth();
         const height = colorTarget.getHeight();
 
-        this.tracing = new TracingPass(webgl, drawPass);
+        this.tracing = new TracingPass(webgl, this.drawPass);
 
         this.transparentTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'nearest');
         this.outputTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
 
         this.copyRenderable = createCopyRenderable(webgl, this.transparentTarget.texture);
 
-        this.composeRenderable = getComposeRenderable(webgl, this.tracing.accumulateTarget.texture, this.tracing.normalTextureOpaque, this.tracing.colorTextureOpaque, this.drawPass.depthTextureOpaque, this.drawPass.depthTargetTransparent.texture, this.drawPass.postprocessing.outline.target.texture, false);
+        this.composeRenderable = getComposeRenderable(webgl, this.tracing.accumulateTarget.texture, this.tracing.normalTextureOpaque, this.tracing.colorTextureOpaque, this.drawPass.depthTextureOpaque, this.drawPass.depthTargetTransparent.texture, this.drawPass.postprocessing.outline.target.texture, this.transparentTarget.texture, this.drawPass.postprocessing.ssao.ssaoDepthTexture, this.drawPass.postprocessing.ssao.ssaoDepthTransparentTexture, false);
 
         this.multiSampleComposeTarget = webgl.createRenderTarget(width, height, false, 'float32');
         this.multiSampleHoldTarget = webgl.createRenderTarget(width, height, false);
@@ -187,15 +188,21 @@ export class IlluminationPass {
                 }
             }
 
-            const outlineEnabled = PostprocessingPass.isEnabled(props.postprocessing) && PostprocessingPass.isTransparentOutlineEnabled(props.postprocessing) && !props.illumination.ignoreOutline;
+            const outlineEnabled = PostprocessingPass.isTransparentOutlineEnabled(props.postprocessing) && !props.illumination.ignoreOutline;
             const dofEnabled = DofPass.isEnabled(props.postprocessing);
+            const ssaoEnabled = PostprocessingPass.isTransparentSsaoEnabled(scene, props.postprocessing);
 
-            if (outlineEnabled || dofEnabled) {
+            if (outlineEnabled || dofEnabled || ssaoEnabled) {
                 this.drawPass.depthTargetTransparent.bind();
                 renderer.clearDepth(true);
                 if (scene.opacityAverage < 1) {
                     renderer.renderDepthTransparent(scene.primitives, camera, this.drawPass.depthTextureOpaque);
                 }
+            }
+
+            if (ssaoEnabled) {
+                this.drawPass.postprocessing.ssao.update(camera, scene, props.postprocessing.occlusion.params as SsaoProps, true);
+                this.drawPass.postprocessing.ssao.render(camera);
             }
         }
 
@@ -295,6 +302,11 @@ export class IlluminationPass {
         const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
 
         const outlinesEnabled = props.postprocessing.outline.name === 'on' && !props.illumination.ignoreOutline;
+        const occlusionEnabled = PostprocessingPass.isTransparentSsaoEnabled(scene, props.postprocessing);
+
+        const markingEnabled = MarkingPass.isEnabled(props.marking);
+        const hasTransparent = scene.opacityAverage < 1;
+        const hasMarking = markingEnabled && scene.markerAverage > 0;
 
         let needsUpdateCompose = false;
 
@@ -317,6 +329,21 @@ export class IlluminationPass {
                 needsUpdateCompose = true;
                 ValueCell.update(this.composeRenderable.values.dTransparentOutline, transparentOutline);
             }
+        }
+
+        if (this.composeRenderable.values.dOcclusionEnable.ref.value !== occlusionEnabled) {
+            needsUpdateCompose = true;
+            ValueCell.update(this.composeRenderable.values.dOcclusionEnable, occlusionEnabled);
+        }
+
+        if (props.postprocessing.occlusion.name === 'on') {
+            ValueCell.update(this.composeRenderable.values.uOcclusionColor, Color.toVec3Normalized(this.composeRenderable.values.uOcclusionColor.ref.value, props.postprocessing.occlusion.params.color));
+        }
+
+        const blendTransparency = hasTransparent || hasMarking;
+        if (this.composeRenderable.values.dBlendTransparency.ref.value !== blendTransparency) {
+            needsUpdateCompose = true;
+            ValueCell.update(this.composeRenderable.values.dBlendTransparency, blendTransparency);
         }
 
         ValueCell.updateIfChanged(this.composeRenderable.values.uNear, camera.near);
@@ -356,16 +383,6 @@ export class IlluminationPass {
         ValueCell.updateIfChanged(this.composeRenderable.values.uDenoiseThreshold, denoiseThreshold);
         if (needsUpdateCompose) this.composeRenderable.update();
         this.composeRenderable.render();
-
-        //
-
-        state.enable(gl.BLEND);
-        state.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-        if (this.copyRenderable.values.tColor.ref.value !== this.transparentTarget.texture) {
-            ValueCell.update(this.copyRenderable.values.tColor, this.transparentTarget.texture);
-            this.copyRenderable.update();
-        }
-        this.copyRenderable.render();
 
         //
 
@@ -558,6 +575,10 @@ const ComposeSchema = {
     tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tNormal: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tShaded: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    tTransparentColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    dBlendTransparency: DefineSpec('boolean'),
+    tSsaoDepth: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    tSsaoDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tDepthOpaque: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tOutlines: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
@@ -573,8 +594,10 @@ const ComposeSchema = {
     uFogFar: UniformSpec('f'),
     uFogColor: UniformSpec('v3'),
     uOutlineColor: UniformSpec('v3'),
+    uOcclusionColor: UniformSpec('v3'),
     uTransparentBackground: UniformSpec('b'),
 
+    dOcclusionEnable: DefineSpec('boolean'),
     dOutlineEnable: DefineSpec('boolean'),
     dOutlineScale: DefineSpec('number'),
     dTransparentOutline: DefineSpec('boolean'),
@@ -582,12 +605,16 @@ const ComposeSchema = {
 const ComposeShaderCode = ShaderCode('compose', quad_vert, compose_frag);
 type ComposeRenderable = ComputeRenderable<Values<typeof ComposeSchema>>
 
-function getComposeRenderable(ctx: WebGLContext, colorTexture: Texture, normalTexture: Texture, shadedTexture: Texture, depthTextureOpaque: Texture, depthTextureTransparent: Texture, outlinesTexture: Texture, transparentOutline: boolean): ComposeRenderable {
+function getComposeRenderable(ctx: WebGLContext, colorTexture: Texture, normalTexture: Texture, shadedTexture: Texture, depthTextureOpaque: Texture, depthTextureTransparent: Texture, outlinesTexture: Texture, transparentColorTexture: Texture, ssaoDepthOpaqueTexture: Texture, ssaoDepthTransparentTexture: Texture, transparentOutline: boolean): ComposeRenderable {
     const values: Values<typeof ComposeSchema> = {
         ...QuadValues,
         tColor: ValueCell.create(colorTexture),
         tNormal: ValueCell.create(normalTexture),
         tShaded: ValueCell.create(shadedTexture),
+        tTransparentColor: ValueCell.create(transparentColorTexture),
+        dBlendTransparency: ValueCell.create(true),
+        tSsaoDepth: ValueCell.create(ssaoDepthOpaqueTexture),
+        tSsaoDepthTransparent: ValueCell.create(ssaoDepthTransparentTexture),
         tDepthOpaque: ValueCell.create(depthTextureOpaque),
         tDepthTransparent: ValueCell.create(depthTextureTransparent),
         tOutlines: ValueCell.create(outlinesTexture),
@@ -603,8 +630,10 @@ function getComposeRenderable(ctx: WebGLContext, colorTexture: Texture, normalTe
         uFogFar: ValueCell.create(10000),
         uFogColor: ValueCell.create(Vec3.create(1, 1, 1)),
         uOutlineColor: ValueCell.create(Vec3.create(0, 0, 0)),
+        uOcclusionColor: ValueCell.create(Vec3.create(0, 0, 0)),
         uTransparentBackground: ValueCell.create(false),
 
+        dOcclusionEnable: ValueCell.create(false),
         dOutlineEnable: ValueCell.create(false),
         dOutlineScale: ValueCell.create(1),
         dTransparentOutline: ValueCell.create(transparentOutline),

@@ -60,7 +60,7 @@ interface Renderer {
     readonly light: Readonly<Light>
     readonly ambientColor: Vec3
 
-    clear: (toBackgroundColor: boolean, ignoreTransparentBackground?: boolean) => void
+    clear: (toBackgroundColor: boolean, ignoreTransparentBackground?: boolean, forceToTransparency?: boolean) => void
     clearDepth: (packed?: boolean) => void
     update: (camera: ICamera, scene: Scene) => void
 
@@ -727,13 +727,13 @@ namespace Renderer {
         };
 
         return {
-            clear: (toBackgroundColor: boolean, ignoreTransparentBackground?: boolean) => {
+            clear: (toBackgroundColor: boolean, ignoreTransparentBackground?: boolean, forceToTransparency?: boolean) => {
                 state.enable(gl.SCISSOR_TEST);
                 state.enable(gl.DEPTH_TEST);
                 state.colorMask(true, true, true, true);
                 state.depthMask(true);
 
-                if (transparentBackground && !ignoreTransparentBackground) {
+                if (forceToTransparency || transparentBackground && !ignoreTransparentBackground) {
                     state.clearColor(0, 0, 0, 0);
                 } else if (toBackgroundColor) {
                     state.clearColor(bgColor[0], bgColor[1], bgColor[2], 1);
