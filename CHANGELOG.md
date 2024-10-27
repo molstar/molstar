@@ -21,6 +21,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Mesoscale Explorer: Add support for 4-character PDB IDs (e.g., 8ZZC) in PDB-Dev loader
 - Fix Sequence View in Safari 18
 - Add support for LAMMPS data and dump formats
+- Remove extra anti-aliasing from text shader (fixes #1208 & #1306)
 
 ## [v4.7.1] - 2024-09-30
 
