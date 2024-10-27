@@ -170,7 +170,6 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
             atomIdA: Column.ofIntArray([]),
             atomIdB: Column.ofIntArray([]),
         };
-        // return Result.error('no bonds data');
     }
 
     const result: LammpsDataFile = {

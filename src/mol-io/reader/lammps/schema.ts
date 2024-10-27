@@ -166,7 +166,6 @@ export const lammpsUnitStyles: { [key: string]: LammpsUnitStyle } = {
 export const UnitStyles = ['real', 'metal', 'si', 'cgs', 'electron', 'micro', 'nano', 'lj'] as const;
 export type UnitStyle = typeof UnitStyles[number];
 
-
 export interface LammpsDataFile {
     readonly atoms: {
         readonly count: number

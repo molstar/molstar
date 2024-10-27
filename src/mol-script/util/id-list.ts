@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Ludovic Autin <ludovic.autin@gmail.com>
  */
 
 import { StructureQuery } from '../../mol-model/structure/query';
@@ -62,7 +63,7 @@ function atomEntriesToQuery(xs: [number, number][]) {
     return compile(query) as StructureQuery;
 }
 
-function atomTypeNumberEntriesToQuery(xs: [number, number][]) {
+function elementSymbolNumberEntriesToQuery(xs: [number, number][]) {
     const set = UniqueArray.create<string>();
 
     for (const [a, b] of xs) {
@@ -78,7 +79,7 @@ function atomTypeNumberEntriesToQuery(xs: [number, number][]) {
     return compile(query) as StructureQuery;
 }
 
-function atomTypeStringEntriesToQuery(names: string[]) {
+function elementSymbolStringEntriesToQuery(names: string[]) {
     const query = MS.struct.generator.atomGroups({
         'atom-test': MS.core.set.has([MS.set(...names), MS.acp('elementSymbol')])
     });
@@ -121,10 +122,10 @@ export function compileIdListSelection(input: string, idType: 'auth' | 'label' |
     } else if (idType === 'element-symbol') {
         const containsLetters = /[a-zA-Z]/.test(input);
         if (containsLetters) {
-            return atomTypeStringEntriesToQuery(input.split(',').map(e => e.trim()));
+            return elementSymbolStringEntriesToQuery(input.split(',').map(e => e.trim()));
         } else {
             const entries = parseAtomListSelection(input);
-            return atomTypeNumberEntriesToQuery(entries);
+            return elementSymbolNumberEntriesToQuery(entries);
         }
     } else {
         const entries = parseResidueListSelection(input);

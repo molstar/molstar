@@ -1,9 +1,10 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Ludovic Autin <ludovic.autin@gmail.com>
  */
 
 import { parseDcd } from '../../mol-io/reader/dcd/parser';
@@ -157,7 +158,6 @@ const CoordinatesFromNctraj = PluginStateTransform.BuiltIn({
         });
     }
 });
-
 
 type CoordinatesFromLammpstraj = typeof CoordinatesFromLammpstraj
 const CoordinatesFromLammpstraj = PluginStateTransform.BuiltIn({
@@ -404,7 +404,7 @@ const TrajectoryFromXYZ = PluginStateTransform.BuiltIn({
 type TrajectoryFromLammpsData = typeof TrajectoryFromLammpsData
 const TrajectoryFromLammpsData = PluginStateTransform.BuiltIn({
     name: 'trajectory-from-lammps-data',
-    display: { name: 'Parse Lammps Data', description: 'Parse Lammps Data string and create trajectory.' },
+    display: { name: 'Parse Lammps Data', description: 'Parse Lammps Data from string and create trajectory.' },
     from: [SO.Data.String],
     to: SO.Molecule.Trajectory,
     params: {

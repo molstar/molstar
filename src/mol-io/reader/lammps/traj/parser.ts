@@ -88,23 +88,23 @@ async function handleAtoms(state: State, count: number, parts: string[]): Promis
     };
 }
 
-/*
-Possible Attrbiutes from Lammps Dump
-see https://docs.lammps.org/dump.html fro more details
-possible attributes = id, mol, proc, procp1, type, element, mass,
-                      x, y, z, xs, ys, zs, xu, yu, zu,
-                      xsu, ysu, zsu, ix, iy, iz,
-                      vx, vy, vz, fx, fy, fz,
-                      q, mux, muy, muz, mu,
-                      radius, diameter, omegax, omegay, omegaz,
-                      angmomx, angmomy, angmomz, tqx, tqy, tqz,
-                      c_ID, c_ID[I], f_ID, f_ID[I], v_name,
-                      i_name, d_name, i2_name[I], d2_name[I]
-ITEM: BOX BOUNDS xx yy zz
-xlo xhi
-ylo yhi
-zlo zhi
-*/
+/**
+ * Possible Attributes from Lammps Dump
+ * see https://docs.lammps.org/dump.html fro more details
+ * possible attributes = id, mol, proc, procp1, type, element, mass,
+ *                     x, y, z, xs, ys, zs, xu, yu, zu,
+ *                     xsu, ysu, zsu, ix, iy, iz,
+ *                     vx, vy, vz, fx, fy, fz,
+ *                     q, mux, muy, muz, mu,
+ *                     radius, diameter, omegax, omegay, omegaz,
+ *                     angmomx, angmomy, angmomz, tqx, tqy, tqz,
+ *                     c_ID, c_ID[I], f_ID, f_ID[I], v_name,
+ *                     i_name, d_name, i2_name[I], d2_name[I]
+ * ITEM: BOX BOUNDS xx yy zz
+ * xlo xhi
+ * ylo yhi
+ * zlo zhi
+ */
 async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<LammpsTrajectoryFile>> {
     const tokenizer = Tokenizer(data);
     const state = State(tokenizer, ctx);

@@ -88,9 +88,7 @@ async function getModels(mol: LammpsTrajectoryFile, ctx: RuntimeContext, unitsSt
     const cy = new Float32Array(count);
     const cz = new Float32Array(count);
     const model_num = new Int32Array(count);
-    // should we scale the coordinates if the distances is too small
-    // or provides a scaling option ?
-    // depending on atomMode, transform the coordinates
+
     let offset = 0;
     for (let j = 0; j < count; j++) {
         type_symbols[offset] = atoms.atomType.value(j).toString();

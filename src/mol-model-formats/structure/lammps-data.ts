@@ -38,7 +38,7 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
         cx[offset] = atoms.x.value(j) * scale;
         cy[offset] = atoms.y.value(j) * scale;
         cz[offset] = atoms.z.value(j) * scale;
-        id[offset] = atoms.atomId.value(j) - 1.0;
+        id[offset] = atoms.atomId.value(j) - 1;
         model_num[offset] = 0;
         offset++;
     }
@@ -95,18 +95,8 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
             const indexA = Column.ofIntArray(Column.mapToArray(bonds.atomIdA, x => x - 1, Int32Array));
             const indexB = Column.ofIntArray(Column.mapToArray(bonds.atomIdB, x => x - 1, Int32Array));
             const key = bonds.bondId;
-            const order = Column.ofIntArray(Column.mapToArray(bonds.bondType, x => {
-                switch (x) {
-                    default:
-                        return 1;
-                }
-            }, Int8Array));
-            const flag = Column.ofIntArray(Column.mapToArray(bonds.bondType, x => {
-                switch (x) {
-                    default:
-                        return BondType.Flag.Covalent;
-                }
-            }, Int8Array));
+            const order = Column.ofConst(1, bonds.count, Column.Schema.int);
+            const flag = Column.ofConst(BondType.Flag.Covalent, bonds.count, Column.Schema.int);
             const pairBonds = IndexPairBonds.fromData(
                 { pairs: { key, indexA, indexB, order, flag }, count: atoms.count },
                 { maxDistance: Infinity }
