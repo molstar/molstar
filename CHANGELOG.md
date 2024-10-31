@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - Add example `glb-export`
+- Fix set fenceSync to null after deleteSync.
 
 ## [v4.8.0] - 2024-10-27
 
