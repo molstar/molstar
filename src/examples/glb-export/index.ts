@@ -3,8 +3,8 @@
  *
  * @author Alex Chan <smalldirkalex@gmail.com>
  *
- * Thanks to @author Adam Midlik <midlik@gmail.com> for the example code ../image-renderer i can make reference to
- * 
+ * Thanks to @author Adam Midlik <midlik@gmail.com> for the example code ../image-renderer and https://github.com/midlik/surface-calculator i can make reference to,
+ *
  * Example command-line application generating and exporting PubChem SDF structures
  * Build: npm install --no-save gl  // these packages are not listed in dependencies for performance reasons
  *        npm run build
@@ -30,8 +30,9 @@ import { setFSModule } from '../../mol-util/data-source';
 
 setFSModule(fs);
 
+// cid `2519` for Caffeine
 interface Args {
-    cid: string, //`2519`
+    cid: string,
     outDirectory: string
 }
 
@@ -65,14 +66,14 @@ async function main() {
         .apply(ModelFromTrajectory)
         .apply(StructureFromModel)
         .apply(StructureRepresentation3D, {
-            type: { name: 'ball-and-stick', params: { size: "physical"} },
+            type: { name: 'ball-and-stick', params: { size: 'physical' } },
             colorTheme: { name: 'element-symbol', params: { carbonColor: { name: 'element-symbol', params: {} } } },
             sizeTheme: { name: 'physical', params: {} },
         })
         .commit();
 
     const meshes = structure.data!.repr.renderObjects.filter(obj => obj.type === 'mesh') as GraphicsRenderObject<'mesh'>[];
-    
+
     const boundingSphere = plugin.canvas3d?.boundingSphereVisible!;
     const boundingBox = Box3D.fromSphere3D(Box3D(), boundingSphere);
 
@@ -84,7 +85,6 @@ async function main() {
         }
 
         const blob = await renderObjectExporter.getBlob(ctx);
-        
         const buffer = await blob.arrayBuffer();
         await fs.promises.writeFile(path.join(args.outDirectory, `${args.cid}.glb`), Buffer.from(buffer));
     }));
