@@ -18,6 +18,21 @@ const _LineBase = {
     dash_length: nullable(float),
 };
 
+const _TransformBase = {
+    rotation: FloatList,
+    translation: nullable(FloatList)
+};
+
+const BoxParams = obj({
+    kind: literal('box'),
+    ..._TransformBase,
+    center: FloatList,
+    extent: FloatList,
+    scaling: nullable(FloatList),
+    as_edges: nullable(bool),
+    edge_radius: nullable(float)
+});
+
 const MeshParams = obj({
     kind: literal('mesh'),
     vertices: FloatList,
@@ -73,7 +88,7 @@ const PrimitiveLabelParams = obj({
     label_offset: nullable(float),
 });
 
-export const MVSPrimitiveParams = union([MeshParams, LinesParams, LineParams, DistanceMeasurementParams, PrimitiveLabelParams]);
+export const MVSPrimitiveParams = union([MeshParams, BoxParams, LinesParams, LineParams, DistanceMeasurementParams, PrimitiveLabelParams]);
 
 export type MVSPrimitive = ValueFor<typeof MVSPrimitiveParams>
 export type MVSPrimitiveKind = MVSPrimitive['kind']
