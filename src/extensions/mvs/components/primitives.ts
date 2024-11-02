@@ -747,20 +747,20 @@ function addBoxMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuil
     // debugger;
     // return builder.getPrimitive();
     
-    const translation1 = Vec3.create(0.5, 0.5, 0.5);
-    const scaling1 = Vec3.create(1, 1, 1);
-    // const mat4 = Mat4.identity();
-    Mat4.scale(mat4, mat4, scaling1);
-    Mat4.translate(mat4, mat4, translation1);
+    // const translation1 = Vec3.create(0.5, 0.5, 0.5);
+    // const scaling1 = Vec3.create(1, 1, 1);
+    // // const mat4 = Mat4.identity();
+    // Mat4.scale(mat4, mat4, scaling1);
+    // Mat4.translate(mat4, mat4, translation1);
 
     MeshBuilder.addPrimitive(mesh, mat4, Box());
 
-    // const prim = builder.getPrimitive();
+    const prim = builder.getPrimitive();
     // MeshBuilder.addPrimitive(prim);
 
 
     // const box = Box();
-    // MeshBuilder.addPrimitive(mesh, mat4, prim);
+    MeshBuilder.addPrimitive(mesh, mat4, prim);
 
 }
 
