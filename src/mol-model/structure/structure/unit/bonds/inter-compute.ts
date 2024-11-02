@@ -233,11 +233,14 @@ function addIndexPairBonds(structure: Structure, builder: InterUnitGraph.Builder
 
         const pairs = new Map<number, Set<number>>();
         for (let i = 0, il = operatorA.length; i < il; ++i) {
-            const unitsA = opUnits.get(operatorA[i])!;
-            const unitsB = opUnits.get(operatorB[i])!;
+            const unitsA = opUnits.get(operatorA[i]);
+            const unitsB = opUnits.get(operatorB[i]);
+            if (!unitsA || !unitsB) continue;
+
             for (const uA of unitsA) {
                 for (const uB of unitsB) {
                     if (uA === uB || !Unit.isAtomic(uA) || !Unit.isAtomic(uB)) continue;
+                    if (uA.id > uB.id) continue;
 
                     const h = cantorPairing(uA.id, uB.id);
                     if (pairs.has(h)) pairs.get(h)!.add(i);
