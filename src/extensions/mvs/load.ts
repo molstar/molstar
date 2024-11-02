@@ -246,7 +246,10 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     },
     primitives(updateParent: UpdateTarget, tree: MolstarSubtree<'primitives'>, context: MolstarLoadingContext): UpdateTarget {
         const refs = getPrimitiveStructureRefs(tree);
+
         const data = UpdateTarget.apply(updateParent, MVSInlinePrimitiveData, { node: tree });
+        console.log(data);
+        debugger;
         return applyPrimitiveVisuals(data, refs);
     },
     primitives_from_uri(updateParent: UpdateTarget, tree: MolstarNode<'primitives_from_uri'>, context: MolstarLoadingContext): UpdateTarget {
@@ -256,12 +259,17 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
 };
 
 function applyPrimitiveVisuals(data: UpdateTarget, refs: Set<string>) {
+    // TODO: generalize
     const mesh = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'mesh' }, { state: { isGhost: true } }), refs);
     UpdateTarget.apply(mesh, ShapeRepresentation3D);
     const labels = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'labels' }, { state: { isGhost: true } }), refs);
     UpdateTarget.apply(labels, ShapeRepresentation3D);
     const lines = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'lines' }, { state: { isGhost: true } }), refs);
     UpdateTarget.apply(lines, ShapeRepresentation3D);
+    // boxES?\
+    // data here has no boxes?
+    const box = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'box' }, { state: { isGhost: true } }), refs);
+    UpdateTarget.apply(box, ShapeRepresentation3D);
     return data;
 }
 
