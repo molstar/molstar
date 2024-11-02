@@ -302,11 +302,12 @@ function canGetFromIndexPairBonds(unit: Unit.Atomic) {
 
 function getIndexPairBonds(unit: Unit.Atomic) {
     const indexPairs = IndexPairBonds.Provider.get(unit.model)!;
-    const { elements } = unit;
-    const { a, b } = indexPairs.bonds;
-    const opKey = unit.conformation.operator.key;
-    const { operatorA, operatorB, key, flag, order } = indexPairs.bonds.edgeProps;
+    const bonds = indexPairs.bySameOperator.get(unit.conformation.operator.key);
+    if (!bonds) return IntraUnitBonds.Empty;
+
+    const { a, b, edgeProps: { key, flag, order } } = indexPairs.bonds;
     const { invertedIndex } = Model.getInvertedAtomSourceIndex(unit.model);
+    const { elements } = unit;
 
     const atomA: StructureElement.UnitIndex[] = [];
     const atomB: StructureElement.UnitIndex[] = [];
@@ -314,8 +315,9 @@ function getIndexPairBonds(unit: Unit.Atomic) {
     const orders: number[] = [];
     const keys: number[] = [];
 
-    for (let i = 0, il = operatorA.length; i < il; ++i) {
-        if (operatorA[i] !== opKey || operatorB[i] !== opKey) continue;
+    for (let j = 0, jl = bonds.length; j < jl; ++j) {
+        const i = bonds[j];
+        if (a[i] >= b[i]) continue;
 
         const aI = invertedIndex[a[i]];
         const _aI = SortedArray.indexOf(elements, aI) as StructureElement.UnitIndex;

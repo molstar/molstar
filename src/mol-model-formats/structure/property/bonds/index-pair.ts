@@ -29,6 +29,8 @@ export type IndexPairBonds = {
     cacheable: boolean
     /** Has operatorA & operatorB set for each bond */
     hasOperators: boolean
+    /** Bonds with same operator grouped together */
+    bySameOperator: Map<number, ArrayLike<number>>
 }
 
 function getGraph(indexA: ArrayLike<ElementIndex>, indexB: ArrayLike<ElementIndex>, props: Partial<IndexPairsProps>, count: number): IndexPairs {
@@ -114,7 +116,7 @@ export namespace IndexPairBonds {
         let hasOperators = false;
         if (operatorA && operatorB) {
             hasOperators = true;
-            for (let i = 0; i < count; ++i) {
+            for (let i = 0, il = operatorA.length; i < il; ++i) {
                 if (operatorA[i] === -1 || operatorB[i] === -1) {
                     hasOperators = false;
                     break;
@@ -122,11 +124,26 @@ export namespace IndexPairBonds {
             }
         }
 
+        const bonds = getGraph(indexA, indexB, { key, operatorA, operatorB, order, distance, flag }, count);
+
+        const bySameOperator = new Map<number, number[]>();
+        if (hasOperators) {
+            const { operatorA, operatorB } = bonds.edgeProps;
+            for (let i = 0, il = operatorA.length; i < il; ++i) {
+                if (operatorA[i] === operatorB[i]) {
+                    const op = operatorA[i];
+                    if (bySameOperator.has(op)) bySameOperator.get(op)!.push(i);
+                    else bySameOperator.set(op, [i]);
+                }
+            }
+        }
+
         return {
-            bonds: getGraph(indexA, indexB, { key, operatorA, operatorB, order, distance, flag }, count),
+            bonds,
             maxDistance: p.maxDistance,
             cacheable: p.cacheable,
             hasOperators,
+            bySameOperator,
         };
     }
 
