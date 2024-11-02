@@ -41,8 +41,7 @@ export function getPrimitiveStructureRefs(primitives: MolstarSubtree<'primitives
     for (const c of primitives.children ?? []) {
         if (c.kind !== 'primitive') continue;
         const p = c.params as unknown as MVSPrimitive;
-        // TODO: unhardcode this number
-        Builders[p.kind]?.[4].refs?.(p, refs);
+        Builders[p.kind]?.[3].refs?.(p, refs);
     }
     return refs;
 }
@@ -114,7 +113,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
     to: SO.Shape.Provider,
     params: {
         // TODO: some list to not type everything
-        kind: PD.Text<'mesh' | 'labels' | 'lines' | 'box'>('mesh')
+        kind: PD.Text<'mesh' | 'labels' | 'lines' | 'box' | 'cylinder'>('mesh')
     }
 })({
     apply({ a, params, dependencies }) {
@@ -246,12 +245,6 @@ interface LineBuilderState {
     lines: LinesBuilder;
 }
 
-
-interface BoxBuilderState {
-    groups: GroupManager;
-    mesh: MeshBuilder.State;
-}
-
 const BaseLabelProps: PD.Values<Text.Params> = {
     ...PD.getDefaultValues(Text.Params),
     attachment: 'middle-center',
@@ -269,25 +262,32 @@ const Builders: Record<MVSPrimitive['kind'], [
     mesh: (context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: any) => void,
     line: (context: PrimitiveBuilderContext, state: LineBuilderState, node: MVSNode<'primitive'>, params: any) => void,
     label: (context: PrimitiveBuilderContext, state: LabelBuilderState, node: MVSNode<'primitive'>, params: any) => void,
-    box: (context: PrimitiveBuilderContext, state: BoxBuilderState, node: MVSNode<'primitive'>, params: any) => void,
+    // box: (context: PrimitiveBuilderContext, state: BoxBuilderState, node: MVSNode<'primitive'>, params: any) => void,
+    // cylinder: (context: PrimitiveBuilderContext, state: BoxBuilderState, node: MVSNode<'primitive'>, params: any) => void,
     features: {
         mesh?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
         line?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
         label?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
-        box?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
+        // box?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
+        // cylinder?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
         refs?: (params: any, refs: Set<string>) => void
     },
 ]> = {
     // TODO: improve impl so that the we do not have to add many noOps for the number of primitives
-    mesh: [addMesh, addMeshWireframe, noOp, noOp, {
+    mesh: [addMesh, addMeshWireframe, noOp, {
         mesh: (m: MVSPrimitiveParams<'mesh'>) => m.show_triangles ?? true,
         line: (m: MVSPrimitiveParams<'mesh'>) => m.show_wireframe ?? false,
     }],
-    lines: [addMesh, addLines, noOp, noOp, { line: true }],
-    line: [addLineMesh, noOp, noOp, noOp, { mesh: true, refs: resolveLineRefs }],
-    label: [noOp, noOp, addPrimitiveLabel, noOp, { label: true, refs: resolveLabelRefs }],
-    distance_measurement: [addDistanceMesh, noOp, addDistanceLabel, noOp, { mesh: true, label: true, refs: resolveLineRefs }],
-    box: [noOp, noOp, noOp, addBox, { box: true, refs: resolveBoxRefs }],
+    lines: [addMesh, addLines, noOp, { line: true }],
+    line: [addLineMesh, noOp, noOp, { mesh: true, refs: resolveLineRefs }],
+    label: [noOp, noOp, addPrimitiveLabel, { label: true, refs: resolveLabelRefs }],
+    distance_measurement: [addDistanceMesh, noOp, addDistanceLabel, { mesh: true, label: true, refs: resolveLineRefs }],
+    // TODO: probably this - try changing first noOp to addBox mesh of something
+    // box: [noOp, noOp, noOp, addBox, noOp, { box: true, refs: resolveBoxRefs }],
+    // cylinder: [noOp, noOp, noOp, addBox, noOp, { box: true, refs: resolveBoxRefs }],
+    box: [addBoxMesh, noOp, noOp, { mesh: true, refs: resolveBoxRefs }],
+    // TODO: implement
+    cylinder: [noOp, noOp, noOp, { mesh: true, refs: resolveBoxRefs }]
 };
 
 
@@ -308,8 +308,7 @@ function hasPrimitiveKind(context: PrimitiveBuilderContext, kind: 'mesh' | 'line
     // so there are no boxes in context, just lines
     for (const c of context.primitives) {
         const p = c.params as unknown as MVSPrimitive;
-        // Unhardcode this number 4
-        const test = Builders[p.kind]?.[4]?.[kind];
+        const test = Builders[p.kind]?.[3]?.[kind];
         if (typeof test === 'boolean') {
             if (test) return true;
         } else if (test?.(p, context)) {
@@ -634,7 +633,50 @@ function addLines(context: PrimitiveBuilderContext, { groups, lines }: LineBuild
     }
 }
 
-function addBox(context: PrimitiveBuilderContext, { groups, mesh }: BoxBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'box'>) {
+function resolveLineRefs(params: MVSPrimitiveParams<'line' | 'distance_measurement'>, refs: Set<string>) {
+    addRef(params.start, refs);
+    addRef(params.end, refs);
+}
+
+const lStart = Vec3.zero();
+const lEnd = Vec3.zero();
+
+function addLineMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'line'>, options?: { skipResolvePosition?: boolean }) {
+    if (!options?.skipResolvePosition) {
+        resolveBasePosition(context, params.start, lStart);
+        resolveBasePosition(context, params.end, lEnd);
+    }
+    const radius = params.thickness ?? 0.05;
+
+    const cylinderProps: BasicCylinderProps = {
+        radiusBottom: radius,
+        radiusTop: radius,
+        topCap: true,
+        bottomCap: true,
+    };
+
+    mesh.currentGroup = groups.allocateSingle(node);
+    groups.updateColor(mesh.currentGroup, params.color);
+    groups.updateTooltip(mesh.currentGroup, params.tooltip);
+
+    if (params.dash_length) {
+        const dist = Vec3.distance(lStart, lEnd);
+        const count = Math.ceil(dist / (2 * params.dash_length));
+        addFixedCountDashedCylinder(mesh, lStart, lEnd, 1.0, count, true, cylinderProps);
+    } else {
+        // NOTE: this: use similar
+        addSimpleCylinder(mesh, lStart, lEnd, cylinderProps);
+    }
+}
+
+function addBoxMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'box'>, options?: { skipResolvePosition?: boolean }) {
+    // TODO: need this?
+    // if (!options?.skipResolvePosition) {
+    //     // TODO: need this?
+    //     resolveBasePosition(context, params.start, lStart);
+    //     resolveBasePosition(context, params.end, lEnd);
+    // }
+
     const a = Vec3(), b = Vec3(), c = Vec3(), d = Vec3();
     // TODO: as_edges, rotation, edge_radius => cage, rotation matrices
     const { center, extent, box_groups, scaling, as_edges, edge_radius, rotation, translation } = params;
@@ -644,28 +686,20 @@ function addBox(context: PrimitiveBuilderContext, { groups, mesh }: BoxBuilderSt
     const vertexCount = 6 * 4;
     const builder = PrimitiveBuilder(triangleCount, vertexCount);
 
-    // const groupSet: Map<number, number> | undefined = box_groups?.length ? groups.allocateMany(node, box_groups) : undefined;
-    
-    // // from addLines
-    // for (let i = 0, _i = indices.length / 2; i < _i; i++) {
-    //     let group: number;
-    //     if (groupSet) {
-    //         const grp = line_groups![i];
-    //         group = groupSet.get(grp)!;
-    //         groups.updateColor(group, group_colors?.[grp] ?? params.color);
-    //         groups.updateTooltip(group, group_tooltips?.[grp]);
-    //         groups.updateSize(group, group_radius?.[grp] ?? radius);
-    //     } else {
-    //         group = groups.allocateSingle(node);
-    //         groups.updateColor(group, line_colors?.[i] ?? params.color);
-    //         groups.updateSize(group, radius);
-    //         groups.updateTooltip(group, params.tooltip);
-    //     }
 
-    //     Vec3.fromArray(a, vertices, 3 * indices[2 * i]);
-    //     Vec3.fromArray(b, vertices, 3 * indices[2 * i + 1]);
-    //     lines.add(a[0], a[1], a[2], b[0], b[1], b[2], group);
+    mesh.currentGroup = groups.allocateSingle(node);
+    groups.updateColor(mesh.currentGroup, params.color);
+    // groups.updateTooltip(mesh.currentGroup, params.tooltip);
+
+    // if (params.dash_length) {
+    //     const dist = Vec3.distance(lStart, lEnd);
+    //     const count = Math.ceil(dist / (2 * params.dash_length));
+    //     addFixedCountDashedCylinder(mesh, lStart, lEnd, 1.0, count, true, cylinderProps);
+    // } else {
+    //     // NOTE: this: use similar
+    //     addSimpleCylinder(mesh, lStart, lEnd, cylinderProps);
     // }
+    // addSimpleCylinder(mesh, lStart, lEnd, cylinderProps);
 
     // S1
     Vec3.set(a, 0, 0, 0);
@@ -709,62 +743,24 @@ function addBox(context: PrimitiveBuilderContext, { groups, mesh }: BoxBuilderSt
     Vec3.set(c, 1, 1, 1);
     Vec3.set(d, 1, 1, 0);
     builder.addQuad(a, b, c, d);
-    debugger;
+    // debugger;
     // return builder.getPrimitive();
     
-    const translation1 = Vec3.create(0.5, 0.5, 0.5);
-    const scaling1 = Vec3.create(1, 1, 1);
-    // const mat4 = Mat4.identity();
-    Mat4.scale(mat4, mat4, scaling1);
-    Mat4.translate(mat4, mat4, translation1);
+    // const translation1 = Vec3.create(0.5, 0.5, 0.5);
+    // const scaling1 = Vec3.create(1, 1, 1);
+    // // const mat4 = Mat4.identity();
+    // Mat4.scale(mat4, mat4, scaling1);
+    // Mat4.translate(mat4, mat4, translation1);
 
-    MeshBuilder.addPrimitive(mesh, mat4, Box());
+    // MeshBuilder.addPrimitive(mesh, mat4, Box());
 
-    // const prim = builder.getPrimitive();
+    const prim = builder.getPrimitive();
     // MeshBuilder.addPrimitive(prim);
 
 
     // const box = Box();
-    // MeshBuilder.addPrimitive(mesh, mat4, prim);
-    
+    MeshBuilder.addPrimitive(mesh, mat4, prim);
 
-    // addOrientedBox(mesh, principalAxes.boxAxes, props.radiusScale, 2, 20);
-}
-
-function resolveLineRefs(params: MVSPrimitiveParams<'line' | 'distance_measurement'>, refs: Set<string>) {
-    addRef(params.start, refs);
-    addRef(params.end, refs);
-}
-
-const lStart = Vec3.zero();
-const lEnd = Vec3.zero();
-
-function addLineMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'line'>, options?: { skipResolvePosition?: boolean }) {
-    if (!options?.skipResolvePosition) {
-        resolveBasePosition(context, params.start, lStart);
-        resolveBasePosition(context, params.end, lEnd);
-    }
-    const radius = params.thickness ?? 0.05;
-
-    const cylinderProps: BasicCylinderProps = {
-        radiusBottom: radius,
-        radiusTop: radius,
-        topCap: true,
-        bottomCap: true,
-    };
-
-    mesh.currentGroup = groups.allocateSingle(node);
-    groups.updateColor(mesh.currentGroup, params.color);
-    groups.updateTooltip(mesh.currentGroup, params.tooltip);
-
-    if (params.dash_length) {
-        const dist = Vec3.distance(lStart, lEnd);
-        const count = Math.ceil(dist / (2 * params.dash_length));
-        addFixedCountDashedCylinder(mesh, lStart, lEnd, 1.0, count, true, cylinderProps);
-    } else {
-        // NOTE: this: use similar
-        addSimpleCylinder(mesh, lStart, lEnd, cylinderProps);
-    }
 }
 
 function getDistanceLabel(context: PrimitiveBuilderContext, params: MVSPrimitiveParams<'distance_measurement'>) {

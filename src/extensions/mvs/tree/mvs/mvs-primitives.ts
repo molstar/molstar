@@ -23,9 +23,30 @@ const _TransformBase = {
     translation: nullable(FloatList)
 };
 
+const CylinderParams = obj({
+    kind: literal('cylinder'),
+    rotation: FloatList,
+    // color
+    // color: Optional[ColorT] = Field(description="Default color for the box.")
+    // radius_top: float = Field(description="The radius of the top of the cylinder top. Radius equal to zero will yield a cone.")
+    // radius_bottom: float = Field(description="The radius of the bottom of the cylinder. Radius equal to zero will yield a reversed cone.")
+    // height: float = Field(description="The height of the cone.")
+    // # TODO: meaning of the following two? Check Sebastian's answers in some of the PRs.
+    // theta_start: float = Field(description="TODO")
+    // theta_length: float = Field(description="TODO")
+    // # TODO: type for rotation as field
+    // rotation: Optional[Mat3[float]] = Field(
+    //     description="9d vector describing the rotation, in a column major (j * 3 + i indexing) format, this is equivalent to Fortran-order in numpy, to be multiplied from the left",
+    // )
+    // bottom_cap: bool = Field(description="Determine whether to cap the top of the cylinder.")
+    // top_cap: bool = Field(description="Determine whether to cap the bottom of the cylinder.")
+    
+});
+
 const BoxParams = obj({
     kind: literal('box'),
     ..._TransformBase,
+    color: nullable(ColorT),
     center: FloatList,
     extent: FloatList,
     scaling: nullable(FloatList),
@@ -89,7 +110,7 @@ const PrimitiveLabelParams = obj({
     label_offset: nullable(float),
 });
 
-export const MVSPrimitiveParams = union([MeshParams, BoxParams, LinesParams, LineParams, DistanceMeasurementParams, PrimitiveLabelParams]);
+export const MVSPrimitiveParams = union([MeshParams, BoxParams, CylinderParams, LinesParams, LineParams, DistanceMeasurementParams, PrimitiveLabelParams]);
 
 export type MVSPrimitive = ValueFor<typeof MVSPrimitiveParams>
 export type MVSPrimitiveKind = MVSPrimitive['kind']
