@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Add example `glb-export`
+- Fix set fenceSync to null after deleteSync.
 - Fix operator key-based `IndexPairBonds` assignment
     - Don't add bonds twice
     - Add `IndexPairs.bySameOperator` to avoid looping over all bonds for each unit
