@@ -396,7 +396,7 @@ class ViewportScreenshotHelper extends PluginComponent {
     }
 
     download(filename?: string) {
-        this.plugin.runTask(this.downloadTask(filename), { useOverlay: true });
+        return this.plugin.runTask(this.downloadTask(filename), { useOverlay: true });
     }
 
     constructor(private plugin: PluginContext) {
