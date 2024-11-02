@@ -157,7 +157,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
         } else if (params.kind === 'box') {
             // make it such that this is true
             // this is false, why? there are only lines
-            if (!hasPrimitiveKind(a.data, 'box')) {
+            if (!hasPrimitiveKind(a.data, 'mesh')) {
                 debugger;
                 return StateObject.Null;
             };
@@ -167,7 +167,8 @@ export const MVSBuildPrimitiveShape = MVSTransform({
                 label,
                 data: context,
                 params: PD.withDefaults(Mesh.Params, { alpha: a.data.options?.transparency ?? 1 }),
-                getShape: (_, data, __, prev: any) => buildPrimitiveMesh(data, prev?.geometry),
+                getShape: (_, data, __, prev: any) => buildPrimitiveBox(data, prev?.geometry),
+                // getShape: (_, data, __, prev: any) => buildPrimitiveMesh(data, prev?.geometry),
                 geometryUtils: Mesh.Utils,
             }, { label });
         } else {
@@ -302,7 +303,7 @@ function addRef(position: PrimitivePositionT, refs: Set<string>) {
 }
 
 // TODO: type for this
-function hasPrimitiveKind(context: PrimitiveBuilderContext, kind: 'mesh' | 'line' | 'label' | 'box') {
+function hasPrimitiveKind(context: PrimitiveBuilderContext, kind: 'mesh' | 'line' | 'label') {
     debugger;
     // loops over primtives in context
     // so there are no boxes in context, just lines
@@ -746,20 +747,20 @@ function addBoxMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuil
     // debugger;
     // return builder.getPrimitive();
     
-    // const translation1 = Vec3.create(0.5, 0.5, 0.5);
-    // const scaling1 = Vec3.create(1, 1, 1);
-    // // const mat4 = Mat4.identity();
-    // Mat4.scale(mat4, mat4, scaling1);
-    // Mat4.translate(mat4, mat4, translation1);
+    const translation1 = Vec3.create(0.5, 0.5, 0.5);
+    const scaling1 = Vec3.create(1, 1, 1);
+    // const mat4 = Mat4.identity();
+    Mat4.scale(mat4, mat4, scaling1);
+    Mat4.translate(mat4, mat4, translation1);
 
-    // MeshBuilder.addPrimitive(mesh, mat4, Box());
+    MeshBuilder.addPrimitive(mesh, mat4, Box());
 
-    const prim = builder.getPrimitive();
+    // const prim = builder.getPrimitive();
     // MeshBuilder.addPrimitive(prim);
 
 
     // const box = Box();
-    MeshBuilder.addPrimitive(mesh, mat4, prim);
+    // MeshBuilder.addPrimitive(mesh, mat4, prim);
 
 }
 
