@@ -165,9 +165,11 @@ namespace Bond {
 
     export function getIntraUnitBondCount(structure: Structure) {
         let count = 0;
-        for (let i = 0, il = structure.units.length; i < il; ++i) {
-            const u = structure.units[i];
-            if (Unit.isAtomic(u)) count += u.bonds.edgeCount;
+        for (const ug of structure.unitSymmetryGroups) {
+            const u = ug.units[0];
+            if (Unit.isAtomic(u)) {
+                count += u.bonds.edgeCount * ug.units.length;
+            }
         }
         return count;
     }

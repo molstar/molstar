@@ -11,6 +11,8 @@ Note that since we don't clearly distinguish between a public and private interf
     - Don't add bonds twice
     - Add `IndexPairs.bySameOperator` to avoid looping over all bonds for each unit
 - Add `Structure.intraUnitBondMapping`
+- Add more structure-based visuals to avoid too many (small) render-objects
+    - `structure-intra-bond`, `structure-ellipsoid-mesh`, `structure-element-point`, `structure-element-cross`
 
 ## [v4.8.0] - 2024-10-27
 
