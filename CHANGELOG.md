@@ -10,6 +10,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix operator key-based `IndexPairBonds` assignment
     - Don't add bonds twice
     - Add `IndexPairs.bySameOperator` to avoid looping over all bonds for each unit
+- Add `Structure.intraUnitBondMapping`
 
 ## [v4.8.0] - 2024-10-27
 
