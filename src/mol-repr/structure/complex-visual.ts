@@ -32,7 +32,7 @@ import { Text } from '../../mol-geo/geometry/text/text';
 import { SizeTheme } from '../../mol-theme/size';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
 import { createMarkers } from '../../mol-geo/geometry/marker-data';
-import { StructureParams, StructureMeshParams, StructureTextParams, StructureDirectVolumeParams, StructureLinesParams, StructureCylindersParams, StructureTextureMeshParams, StructureSpheresParams } from './params';
+import { StructureParams, StructureMeshParams, StructureTextParams, StructureDirectVolumeParams, StructureLinesParams, StructureCylindersParams, StructureTextureMeshParams, StructureSpheresParams, StructurePointsParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
 import { WebGLContext } from '../../mol-gl/webgl/context';
@@ -40,6 +40,7 @@ import { isPromiseLike } from '../../mol-util/type-helpers';
 import { Substance } from '../../mol-theme/substance';
 import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
 import { Emissive } from '../../mol-theme/emissive';
+import { Points } from '../../mol-geo/geometry/points/points';
 
 export interface ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
@@ -386,6 +387,24 @@ export function ComplexCylindersVisual<P extends ComplexCylindersParams>(builder
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true;
         },
         geometryUtils: Cylinders.Utils
+    }, materialId);
+}
+
+// points
+
+export const ComplexPointsParams = { ...StructurePointsParams, ...StructureParams };
+export type ComplexPointsParams = typeof ComplexPointsParams
+
+export interface ComplexPointsVisualBuilder<P extends ComplexPointsParams> extends ComplexVisualBuilder<P, Points> { }
+
+export function ComplexPointsVisual<P extends ComplexPointsParams>(builder: ComplexPointsVisualBuilder<P>, materialId: number): ComplexVisual<P> {
+    return ComplexVisual<Points, P>({
+        ...builder,
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructure, currentStructure);
+            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true;
+        },
+        geometryUtils: Points.Utils
     }, materialId);
 }
 

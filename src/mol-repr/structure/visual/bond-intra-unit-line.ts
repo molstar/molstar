@@ -10,34 +10,28 @@ import { Unit, Structure, StructureElement } from '../../../mol-model/structure'
 import { Theme } from '../../../mol-theme/theme';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { arrayEqual } from '../../../mol-util';
-import { LinkStyle, createLinkLines, LinkBuilderProps } from './util/link';
+import { LinkStyle, createLinkLines, LinkBuilderProps, EmptyLinkBuilderProps } from './util/link';
 import { UnitsVisual, UnitsLinesParams, UnitsLinesVisual } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { BondType } from '../../../mol-model/structure/model/types';
-import { BondIterator, BondLineParams, getIntraBondLoci, eachIntraBond, makeIntraBondIgnoreTest, ignoreBondType, hasUnitVisibleBonds } from './util/bond';
+import { BondIterator, BondLineParams, getIntraBondLoci, eachIntraBond, makeIntraBondIgnoreTest, ignoreBondType, hasUnitVisibleBonds, hasStructureVisibleBonds, getStructureGroupsBondLoci, eachStructureGroupsBond } from './util/bond';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 import { IntAdjacencyGraph } from '../../../mol-math/graph';
 import { arrayIntersectionSize } from '../../../mol-util/array';
 import { StructureGroup } from './util/common';
+import { ComplexLinesParams, ComplexLinesVisual, ComplexVisual } from '../complex-visual';
+import { EmptyLocationIterator } from '../../../mol-geo/util/location-iterator';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const isBondType = BondType.is;
 
-function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondLineParams>, lines?: Lines) {
-    if (!Unit.isAtomic(unit)) return Lines.createEmpty(lines);
-    if (!hasUnitVisibleBonds(unit, props)) return Lines.createEmpty(lines);
-
-    const { child } = structure;
-    const childUnit = child?.unitMap.get(unit.id);
-    if (child && !childUnit) return Lines.createEmpty(lines);
-
+function getIntraUnitBondLineBuilderProps(unit: Unit.Atomic, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondLineParams>): LinkBuilderProps {
     const location = StructureElement.Location.create(structure, unit);
 
     const elements = unit.elements;
     const bonds = unit.bonds;
     const { edgeCount, a, b, edgeProps, offset } = bonds;
-    if (!edgeCount) return Lines.createEmpty(lines);
 
     const { order: _order, flags: _flags } = edgeProps;
     const { sizeFactor, aromaticBonds, includeTypes, excludeTypes, multipleBonds } = props;
@@ -55,7 +49,7 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
     const { elementRingIndices, elementAromaticRingIndices } = unit.rings;
     const deloTriplets = aromaticBonds ? unit.resonance.delocalizedTriplets : undefined;
 
-    const builderProps: LinkBuilderProps = {
+    return {
         linkCount: edgeCount * 2,
         referencePosition: (edgeIndex: number) => {
             let aI = a[edgeIndex], bI = b[edgeIndex];
@@ -96,7 +90,7 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
             const o = _order[edgeIndex];
             const f = _flags[edgeIndex];
             if (isBondType(f, BondType.Flag.MetallicCoordination) || isBondType(f, BondType.Flag.HydrogenBond)) {
-                // show metallic coordinations and hydrogen bonds with dashed cylinders
+                // show metallic coordinations and hydrogen bonds with dashed lines
                 return LinkStyle.Dashed;
             } else if (o === 3) {
                 return mbOff ? LinkStyle.Solid :
@@ -130,13 +124,24 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
         },
         ignore: makeIntraBondIgnoreTest(structure, unit, props)
     };
+}
 
+function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondLineParams>, lines?: Lines) {
+    if (!Unit.isAtomic(unit)) return Lines.createEmpty(lines);
+    if (!hasUnitVisibleBonds(unit, props)) return Lines.createEmpty(lines);
+    if (!unit.bonds.edgeCount) return Lines.createEmpty(lines);
+
+    const { child } = structure;
+    const childUnit = child?.unitMap.get(unit.id);
+    if (child && !childUnit) return Lines.createEmpty(lines);
+
+    const builderProps = getIntraUnitBondLineBuilderProps(unit, structure, theme, props);
     const { lines: l, boundingSphere } = createLinkLines(ctx, builderProps, props, lines);
 
     if (boundingSphere) {
         l.setBoundingSphere(boundingSphere);
     } else if (l.lineCount > 0) {
-        const sphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, 1 * sizeFactor);
+        const sphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, 1 * props.sizeFactor);
         l.setBoundingSphere(sphere);
     }
 
@@ -181,6 +186,117 @@ export function IntraUnitBondLineVisual(materialId: number): UnitsVisual<IntraUn
                     state.updateColor = true;
                     state.updateSize = true;
                 }
+            }
+        }
+    }, materialId);
+}
+
+//
+
+function getStructureIntraUnitBondLineBuilderProps(structure: Structure, theme: Theme, props: PD.Values<StructureIntraUnitBondLineParams>): LinkBuilderProps {
+    const intraUnitProps: { group: Unit.SymmetryGroup, props: LinkBuilderProps}[] = [];
+    const { bondCount, unitIndex, unitEdgeIndex, unitGroupIndex } = structure.intraUnitBondMapping;
+
+    for (const ug of structure.unitSymmetryGroups) {
+        const unit = ug.units[0];
+        const p = Unit.isAtomic(unit) ? getIntraUnitBondLineBuilderProps(unit, structure, theme, props) : EmptyLinkBuilderProps;
+        intraUnitProps.push({ group: ug, props: p });
+    }
+
+    return {
+        linkCount: bondCount,
+        referencePosition: (edgeIndex: number) => {
+            const { group, props } = intraUnitProps[unitIndex[edgeIndex]];
+            if (!props.referencePosition) return null;
+
+            const v = props.referencePosition(unitEdgeIndex[edgeIndex]);
+            if (!v) return null;
+
+            const u = group.units[unitGroupIndex[edgeIndex]];
+            Vec3.transformMat4(v, v, u.conformation.operator.matrix);
+            return v;
+        },
+        position: (posA: Vec3, posB: Vec3, edgeIndex: number, adjust: boolean) => {
+            const { group, props } = intraUnitProps[unitIndex[edgeIndex]];
+            props.position(posA, posB, unitEdgeIndex[edgeIndex], adjust);
+            const u = group.units[unitGroupIndex[edgeIndex]];
+            Vec3.transformMat4(posA, posA, u.conformation.operator.matrix);
+            Vec3.transformMat4(posB, posB, u.conformation.operator.matrix);
+        },
+        style: (edgeIndex: number) => {
+            const { props } = intraUnitProps[unitIndex[edgeIndex]];
+            return props.style ? props.style(unitEdgeIndex[edgeIndex]) : LinkStyle.Solid;
+        },
+        radius: (edgeIndex: number) => {
+            const { props } = intraUnitProps[unitIndex[edgeIndex]];
+            return props.radius(unitEdgeIndex[edgeIndex]);
+        },
+        ignore: (edgeIndex: number) => {
+            const { props } = intraUnitProps[unitIndex[edgeIndex]];
+            return props.ignore ? props.ignore(unitEdgeIndex[edgeIndex]) : false;
+        },
+        stub: (edgeIndex: number) => {
+            const { props } = intraUnitProps[unitIndex[edgeIndex]];
+            return props.stub ? props.stub(unitEdgeIndex[edgeIndex]) : false;
+        }
+    };
+}
+
+function createStructureIntraUnitBondLines(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<StructureIntraUnitBondLineParams>, lines?: Lines) {
+    if (!hasStructureVisibleBonds(structure, props)) return Lines.createEmpty(lines);
+    if (!structure.intraUnitBondMapping.bondCount) return Lines.createEmpty(lines);
+
+    const builderProps = getStructureIntraUnitBondLineBuilderProps(structure, theme, props);
+    const { lines: l, boundingSphere } = createLinkLines(ctx, builderProps, props, lines);
+
+    if (boundingSphere) {
+        l.setBoundingSphere(boundingSphere);
+    } else if (l.lineCount > 0) {
+        const { child } = structure;
+        const sphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, 1 * props.sizeFactor);
+        l.setBoundingSphere(sphere);
+    }
+
+    return l;
+}
+
+export const StructureIntraUnitBondLineParams = {
+    ...ComplexLinesParams,
+    ...BondLineParams,
+    includeParent: PD.Boolean(false),
+};
+export type StructureIntraUnitBondLineParams = typeof StructureIntraUnitBondLineParams
+
+export function StructureIntraUnitBondLineVisual(materialId: number): ComplexVisual<StructureIntraUnitBondLineParams> {
+    return ComplexLinesVisual<StructureIntraUnitBondLineParams>({
+        defaultProps: PD.getDefaultValues(StructureIntraUnitBondLineParams),
+        createGeometry: createStructureIntraUnitBondLines,
+        createLocationIterator: (structure: Structure, props: PD.Values<StructureIntraUnitBondLineParams>) => {
+            return !hasStructureVisibleBonds(structure, props)
+                ? EmptyLocationIterator
+                : BondIterator.fromStructureGroups(structure);
+        },
+        getLoci: getStructureGroupsBondLoci,
+        eachLocation: eachStructureGroupsBond,
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<StructureIntraUnitBondLineParams>, currentProps: PD.Values<StructureIntraUnitBondLineParams>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
+            state.createGeometry = (
+                newProps.sizeFactor !== currentProps.sizeFactor ||
+                newProps.linkScale !== currentProps.linkScale ||
+                newProps.linkSpacing !== currentProps.linkSpacing ||
+                newProps.aromaticDashCount !== currentProps.aromaticDashCount ||
+                newProps.dashCount !== currentProps.dashCount ||
+                newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
+                newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
+                !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
+                !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
+                newProps.multipleBonds !== currentProps.multipleBonds
+            );
+
+            if (hasStructureVisibleBonds(newStructure, newProps) && newStructure.interUnitBonds !== currentStructure.interUnitBonds) {
+                state.createGeometry = true;
+                state.updateTransform = true;
+                state.updateColor = true;
+                state.updateSize = true;
             }
         }
     }, materialId);

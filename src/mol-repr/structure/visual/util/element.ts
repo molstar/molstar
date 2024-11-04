@@ -247,7 +247,6 @@ export function createStructureElementSphereMesh(ctx: VisualContext, structure: 
             if (stride && i % stride !== 0) continue;
             if (ignore && ignore(eI)) continue;
 
-
             c.position(eI, v);
             v3add(center, center, v);
             count += 1;

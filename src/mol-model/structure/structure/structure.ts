@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { IntMap, SortedArray, Iterator, Segmentation, Interval, OrderedSet } from '../../../mol-data/int';
+import { IntMap, SortedArray, Iterator, Segmentation, Interval } from '../../../mol-data/int';
 import { UniqueArray } from '../../../mol-data/generic';
 import { SymmetryOperator } from '../../../mol-math/geometry/symmetry-operator';
 import { Model, ElementIndex } from '../model';
@@ -33,6 +33,7 @@ import { Trajectory } from '../trajectory';
 import { RuntimeContext, Task } from '../../../mol-task';
 import { computeStructureBoundary } from './util/boundary';
 import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
+import { IntraUnitBondMapping, getIntraUnitBondMapping, getSerialMapping, SerialMapping } from './mapping';
 
 /** Internal structure state */
 type State = {
@@ -56,6 +57,7 @@ type State = {
     entityIndices?: ReadonlyArray<EntityIndex>,
     uniqueAtomicResidueIndices?: ReadonlyMap<UUID, ReadonlyArray<ResidueIndex>>,
     serialMapping?: SerialMapping,
+    intraUnitBondMapping?: IntraUnitBondMapping,
     hashCode: number,
     transformHash: number,
     elementCount: number,
@@ -84,7 +86,7 @@ class Structure {
     /** Count of all bonds (intra- and inter-unit) in the structure */
     get bondCount() {
         if (this.state.bondCount === -1) {
-            this.state.bondCount = this.interUnitBonds.edgeCount + Bond.getIntraUnitBondCount(this);
+            this.state.bondCount = (this.interUnitBonds.edgeCount / 2) + Bond.getIntraUnitBondCount(this);
         }
         return this.state.bondCount;
     }
@@ -338,6 +340,10 @@ class Structure {
      */
     get serialMapping() {
         return this.state.serialMapping || (this.state.serialMapping = getSerialMapping(this));
+    }
+
+    get intraUnitBondMapping() {
+        return this.state.intraUnitBondMapping || (this.state.intraUnitBondMapping = getIntraUnitBondMapping(this));
     }
 
     /**
@@ -603,40 +609,6 @@ function getAtomicResidueCount(structure: Structure): number {
     return atomicResidueCount;
 }
 
-interface SerialMapping {
-    /** Cumulative count of preceding elements for each unit */
-    cumulativeUnitElementCount: ArrayLike<number>
-    /** Unit index for each serial element in the structure */
-    unitIndices: ArrayLike<number>
-    /** Element index for each serial element in the structure */
-    elementIndices: ArrayLike<ElementIndex>
-    /** Get serial index of element in the structure */
-    getSerialIndex: (unit: Unit, element: ElementIndex) => Structure.SerialIndex
-}
-function getSerialMapping(structure: Structure): SerialMapping {
-    const { units, elementCount, unitIndexMap } = structure;
-    const cumulativeUnitElementCount = new Uint32Array(units.length);
-    const unitIndices = new Uint32Array(elementCount);
-    const elementIndices = new Uint32Array(elementCount) as unknown as ElementIndex[];
-    for (let i = 0, m = 0, il = units.length; i < il; ++i) {
-        cumulativeUnitElementCount[i] = m;
-        const { elements } = units[i];
-        for (let j = 0, jl = elements.length; j < jl; ++j) {
-            const mj = m + j;
-            unitIndices[mj] = i;
-            elementIndices[mj] = elements[j];
-        }
-        m += elements.length;
-    }
-    return {
-        cumulativeUnitElementCount,
-        unitIndices,
-        elementIndices,
-
-        getSerialIndex: (unit, element) => cumulativeUnitElementCount[unitIndexMap.get(unit.id)] + OrderedSet.indexOf(unit.elements, element) as Structure.SerialIndex
-    };
-}
-
 namespace Structure {
     export const Empty = create([]);
 
@@ -657,9 +629,6 @@ namespace Structure {
         /** Representative model for structures of a model trajectory */
         representativeModel?: Model
     }
-
-    /** Serial index of an element in the structure across all units */
-    export type SerialIndex = { readonly '@type': 'serial-index' } & number
 
     /** Represents a single structure */
     export interface Loci {

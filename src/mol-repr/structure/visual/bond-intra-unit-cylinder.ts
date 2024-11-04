@@ -14,11 +14,11 @@ import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { arrayEqual } from '../../../mol-util';
-import { createLinkCylinderImpostors, createLinkCylinderMesh, LinkBuilderProps, LinkStyle } from './util/link';
+import { createLinkCylinderImpostors, createLinkCylinderMesh, EmptyLinkBuilderProps, LinkBuilderProps, LinkStyle } from './util/link';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, UnitsCylindersParams, UnitsCylindersVisual } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { BondType } from '../../../mol-model/structure/model/types';
-import { BondCylinderParams, BondIterator, eachIntraBond, getIntraBondLoci, hasUnitVisibleBonds, ignoreBondType, makeIntraBondIgnoreTest } from './util/bond';
+import { BondCylinderParams, BondIterator, eachIntraBond, eachStructureGroupsBond, getIntraBondLoci, getStructureGroupsBondLoci, hasStructureVisibleBonds, hasUnitVisibleBonds, ignoreBondType, makeIntraBondIgnoreTest } from './util/bond';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { IntAdjacencyGraph } from '../../../mol-math/graph';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
@@ -27,6 +27,8 @@ import { SortedArray } from '../../../mol-data/int';
 import { arrayIntersectionSize } from '../../../mol-util/array';
 import { StructureGroup } from './util/common';
 import { SizeTheme } from '../../../mol-theme/size';
+import { ComplexCylindersParams, ComplexMeshParams, ComplexCylindersVisual, ComplexMeshVisual, ComplexVisual } from '../complex-visual';
+import { EmptyLocationIterator } from '../../../mol-geo/util/location-iterator';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const isBondType = BondType.is;
@@ -328,6 +330,211 @@ export function IntraUnitBondCylinderMeshVisual(materialId: number): UnitsVisual
             }
         },
         mustRecreate: (structureGroup: StructureGroup, props: PD.Values<IntraUnitBondCylinderParams>, webgl?: WebGLContext) => {
+            return props.tryUseImpostor && !!webgl;
+        }
+    }, materialId);
+}
+
+//
+
+function getStructureIntraUnitBondCylinderBuilderProps(structure: Structure, theme: Theme, props: PD.Values<StructureIntraUnitBondCylinderParams>): LinkBuilderProps {
+    const intraUnitProps: { group: Unit.SymmetryGroup, props: LinkBuilderProps}[] = [];
+
+    const { bondCount, unitIndex, unitEdgeIndex, unitGroupIndex } = structure.intraUnitBondMapping;
+
+    for (const ug of structure.unitSymmetryGroups) {
+        const unit = ug.units[0];
+        const p = Unit.isAtomic(unit) ? getIntraUnitBondCylinderBuilderProps(unit, structure, theme, props) : EmptyLinkBuilderProps;
+        intraUnitProps.push({ group: ug, props: p });
+    }
+
+    return {
+        linkCount: bondCount,
+        referencePosition: (edgeIndex: number) => {
+            const { group, props } = intraUnitProps[unitIndex[edgeIndex]];
+            if (!props.referencePosition) return null;
+
+            const v = props.referencePosition(unitEdgeIndex[edgeIndex]);
+            if (!v) return null;
+
+            const u = group.units[unitGroupIndex[edgeIndex]];
+            Vec3.transformMat4(v, v, u.conformation.operator.matrix);
+            return v;
+        },
+        position: (posA: Vec3, posB: Vec3, edgeIndex: number, adjust: boolean) => {
+            const { group, props } = intraUnitProps[unitIndex[edgeIndex]];
+            props.position(posA, posB, unitEdgeIndex[edgeIndex], adjust);
+            const u = group.units[unitGroupIndex[edgeIndex]];
+            Vec3.transformMat4(posA, posA, u.conformation.operator.matrix);
+            Vec3.transformMat4(posB, posB, u.conformation.operator.matrix);
+        },
+        style: (edgeIndex: number) => {
+            const { props } = intraUnitProps[unitIndex[edgeIndex]];
+            return props.style ? props.style(unitEdgeIndex[edgeIndex]) : LinkStyle.Solid;
+        },
+        radius: (edgeIndex: number) => {
+            const { props } = intraUnitProps[unitIndex[edgeIndex]];
+            return props.radius(unitEdgeIndex[edgeIndex]);
+        },
+        ignore: (edgeIndex: number) => {
+            const { props } = intraUnitProps[unitIndex[edgeIndex]];
+            return props.ignore ? props.ignore(unitEdgeIndex[edgeIndex]) : false;
+        },
+        stub: (edgeIndex: number) => {
+            const { props } = intraUnitProps[unitIndex[edgeIndex]];
+            return props.stub ? props.stub(unitEdgeIndex[edgeIndex]) : false;
+        }
+    };
+}
+
+function createStructureIntraUnitBondCylinderImpostors(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<StructureIntraUnitBondCylinderParams>, cylinders?: Cylinders) {
+    if (!hasStructureVisibleBonds(structure, props)) return Cylinders.createEmpty(cylinders);
+    if (!structure.intraUnitBondMapping.bondCount) return Cylinders.createEmpty(cylinders);
+
+    const builderProps = getStructureIntraUnitBondCylinderBuilderProps(structure, theme, props);
+    const { cylinders: c, boundingSphere } = createLinkCylinderImpostors(ctx, builderProps, props, cylinders);
+
+    if (boundingSphere) {
+        c.setBoundingSphere(boundingSphere);
+    } else if (c.cylinderCount > 0) {
+        const { child } = structure;
+        const sphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, 1 * props.sizeFactor);
+        c.setBoundingSphere(sphere);
+    }
+
+    return c;
+}
+
+function createStructureIntraUnitBondCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<StructureIntraUnitBondCylinderParams>, mesh?: Mesh) {
+    if (!hasStructureVisibleBonds(structure, props)) return Mesh.createEmpty(mesh);
+    if (!structure.intraUnitBondMapping.bondCount) return Mesh.createEmpty(mesh);
+
+    const builderProps = getStructureIntraUnitBondCylinderBuilderProps(structure, theme, props);
+    const { mesh: m, boundingSphere } = createLinkCylinderMesh(ctx, builderProps, props, mesh);
+
+    if (boundingSphere) {
+        m.setBoundingSphere(boundingSphere);
+    } else if (m.triangleCount > 0) {
+        const { child } = structure;
+        const sphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, 1 * props.sizeFactor);
+        m.setBoundingSphere(sphere);
+    }
+
+    return m;
+}
+
+export const StructureIntraUnitBondCylinderParams = {
+    ...ComplexMeshParams,
+    ...ComplexCylindersParams,
+    ...BondCylinderParams,
+    sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
+    sizeAspectRatio: PD.Numeric(2 / 3, { min: 0, max: 3, step: 0.01 }),
+    tryUseImpostor: PD.Boolean(true),
+    includeParent: PD.Boolean(false),
+};
+export type StructureIntraUnitBondCylinderParams = typeof StructureIntraUnitBondCylinderParams
+
+export function StructureIntraUnitBondCylinderVisual(materialId: number, structure: Structure, props: PD.Values<StructureIntraUnitBondCylinderParams>, webgl?: WebGLContext) {
+    return props.tryUseImpostor && webgl && webgl.extensions.fragDepth
+        ? StructureIntraUnitBondCylinderImpostorVisual(materialId)
+        : StructureIntraUnitBondCylinderMeshVisual(materialId);
+}
+
+export function StructureIntraUnitBondCylinderImpostorVisual(materialId: number): ComplexVisual<StructureIntraUnitBondCylinderParams> {
+    return ComplexCylindersVisual<StructureIntraUnitBondCylinderParams>({
+        defaultProps: PD.getDefaultValues(StructureIntraUnitBondCylinderParams),
+        createGeometry: createStructureIntraUnitBondCylinderImpostors,
+        createLocationIterator: (structure: Structure, props: PD.Values<StructureIntraUnitBondCylinderParams>) => {
+            return !hasStructureVisibleBonds(structure, props)
+                ? EmptyLocationIterator
+                : BondIterator.fromStructureGroups(structure, { includeLocation2: props.colorMode === 'interpolate' });
+        },
+        getLoci: getStructureGroupsBondLoci,
+        eachLocation: eachStructureGroupsBond,
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<StructureIntraUnitBondCylinderParams>, currentProps: PD.Values<StructureIntraUnitBondCylinderParams>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
+            state.createGeometry = (
+                newProps.sizeFactor !== currentProps.sizeFactor ||
+                newProps.sizeAspectRatio !== currentProps.sizeAspectRatio ||
+                newProps.linkScale !== currentProps.linkScale ||
+                newProps.linkSpacing !== currentProps.linkSpacing ||
+                newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
+                newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
+                newProps.linkCap !== currentProps.linkCap ||
+                newProps.aromaticScale !== currentProps.aromaticScale ||
+                newProps.aromaticSpacing !== currentProps.aromaticSpacing ||
+                newProps.aromaticDashCount !== currentProps.aromaticDashCount ||
+                newProps.dashCount !== currentProps.dashCount ||
+                newProps.dashScale !== currentProps.dashScale ||
+                newProps.dashCap !== currentProps.dashCap ||
+                newProps.stubCap !== currentProps.stubCap ||
+                !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
+                !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
+                newProps.adjustCylinderLength !== currentProps.adjustCylinderLength ||
+                newProps.multipleBonds !== currentProps.multipleBonds
+            );
+
+            if (newProps.colorMode !== currentProps.colorMode) {
+                state.createGeometry = true;
+                state.updateTransform = true;
+                state.updateColor = true;
+            }
+
+            if (hasStructureVisibleBonds(newStructure, newProps) && newStructure.interUnitBonds !== currentStructure.interUnitBonds) {
+                state.createGeometry = true;
+                state.updateTransform = true;
+                state.updateColor = true;
+                state.updateSize = true;
+            }
+        },
+        mustRecreate: (structure: Structure, props: PD.Values<StructureIntraUnitBondCylinderParams>, webgl?: WebGLContext) => {
+            return !props.tryUseImpostor || !webgl;
+        }
+    }, materialId);
+}
+
+export function StructureIntraUnitBondCylinderMeshVisual(materialId: number): ComplexVisual<StructureIntraUnitBondCylinderParams> {
+    return ComplexMeshVisual<StructureIntraUnitBondCylinderParams>({
+        defaultProps: PD.getDefaultValues(StructureIntraUnitBondCylinderParams),
+        createGeometry: createStructureIntraUnitBondCylinderMesh,
+        createLocationIterator: (structure: Structure, props: PD.Values<StructureIntraUnitBondCylinderParams>) => {
+            return !hasStructureVisibleBonds(structure, props)
+                ? EmptyLocationIterator
+                : BondIterator.fromStructureGroups(structure);
+        },
+        getLoci: getStructureGroupsBondLoci,
+        eachLocation: eachStructureGroupsBond,
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<StructureIntraUnitBondCylinderParams>, currentProps: PD.Values<StructureIntraUnitBondCylinderParams>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
+            state.createGeometry = (
+                newProps.sizeFactor !== currentProps.sizeFactor ||
+                newProps.sizeAspectRatio !== currentProps.sizeAspectRatio ||
+                newProps.radialSegments !== currentProps.radialSegments ||
+                newProps.linkScale !== currentProps.linkScale ||
+                newProps.linkSpacing !== currentProps.linkSpacing ||
+                newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
+                newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
+                newProps.linkCap !== currentProps.linkCap ||
+                newProps.aromaticScale !== currentProps.aromaticScale ||
+                newProps.aromaticSpacing !== currentProps.aromaticSpacing ||
+                newProps.aromaticDashCount !== currentProps.aromaticDashCount ||
+                newProps.dashCount !== currentProps.dashCount ||
+                newProps.dashScale !== currentProps.dashScale ||
+                newProps.dashCap !== currentProps.dashCap ||
+                newProps.stubCap !== currentProps.stubCap ||
+                !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
+                !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
+                newProps.adjustCylinderLength !== currentProps.adjustCylinderLength ||
+                newProps.multipleBonds !== currentProps.multipleBonds ||
+                newProps.adjustCylinderLength && !SizeTheme.areEqual(newTheme.size, currentTheme.size)
+            );
+
+            if (hasStructureVisibleBonds(newStructure, newProps) && newStructure.interUnitBonds !== currentStructure.interUnitBonds) {
+                state.createGeometry = true;
+                state.updateTransform = true;
+                state.updateColor = true;
+                state.updateSize = true;
+            }
+        },
+        mustRecreate: (structure: Structure, props: PD.Values<StructureIntraUnitBondCylinderParams>, webgl?: WebGLContext) => {
             return props.tryUseImpostor && !!webgl;
         }
     }, materialId);

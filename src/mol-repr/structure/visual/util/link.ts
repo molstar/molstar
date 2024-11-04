@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Zhenyu Zhang <jump2cn@gmail.com>
@@ -88,6 +88,12 @@ export interface LinkBuilderProps {
     ignore?: (edgeIndex: number) => boolean
     stub?: (edgeIndex: number) => boolean
 }
+
+export const EmptyLinkBuilderProps: LinkBuilderProps = {
+    linkCount: 0,
+    position: () => { },
+    radius: () => 0
+};
 
 export const enum LinkStyle {
     Solid = 0,
