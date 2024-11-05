@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author Herman Bergwerf <post@hbergwerf.nl>
  */
 
 import { BehaviorSubject, Subject, Subscription, debounceTime, merge } from 'rxjs';
@@ -140,7 +141,7 @@ namespace Canvas3DContext {
         preserveDrawingBuffer: true,
         preferWebGl1: false,
 
-        handleResize: () => {},
+        handleResize: () => { },
     };
     export type Attribs = typeof DefaultAttribs
 
@@ -973,7 +974,10 @@ namespace Canvas3D {
                 reprRenderObjects.clear();
                 scene.clear();
                 helper.debug.clear();
-                if (fenceSync !== null) webgl.deleteSync(fenceSync);
+                if (fenceSync !== null) {
+                    webgl.deleteSync(fenceSync);
+                    fenceSync = null;
+                }
                 requestDraw();
                 reprCount.next(reprRenderObjects.size);
             },
@@ -1142,7 +1146,10 @@ namespace Canvas3D {
                 renderer.dispose();
                 interactionHelper.dispose();
                 hiZ.dispose();
-                if (fenceSync !== null) webgl.deleteSync(fenceSync);
+                if (fenceSync !== null) {
+                    webgl.deleteSync(fenceSync);
+                    fenceSync = null;
+                }
 
                 removeConsoleStatsProvider(consoleStats);
             }

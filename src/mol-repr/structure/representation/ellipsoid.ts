@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,9 +9,9 @@ import { RepresentationParamsGetter, RepresentationContext, Representation } fro
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
 import { UnitsRepresentation, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationProvider, ComplexRepresentation } from '../../../mol-repr/structure/representation';
-import { EllipsoidMeshParams, EllipsoidMeshVisual } from '../visual/ellipsoid-mesh';
+import { EllipsoidMeshParams, EllipsoidMeshVisual, StructureEllipsoidMeshParams, StructureEllipsoidMeshVisual } from '../visual/ellipsoid-mesh';
 import { AtomSiteAnisotrop } from '../../../mol-model-formats/structure/property/anisotropic';
-import { IntraUnitBondCylinderParams, IntraUnitBondCylinderVisual } from '../visual/bond-intra-unit-cylinder';
+import { IntraUnitBondCylinderParams, IntraUnitBondCylinderVisual, StructureIntraUnitBondCylinderParams, StructureIntraUnitBondCylinderVisual } from '../visual/bond-intra-unit-cylinder';
 import { InterUnitBondCylinderVisual, InterUnitBondCylinderParams } from '../visual/bond-inter-unit-cylinder';
 import { getUnitKindsParam } from '../params';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
@@ -20,6 +20,8 @@ const EllipsoidVisuals = {
     'ellipsoid-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, EllipsoidMeshParams>) => UnitsRepresentation('Ellipsoid Mesh', ctx, getParams, EllipsoidMeshVisual),
     'intra-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, IntraUnitBondCylinderParams>) => UnitsRepresentation('Intra-unit bond cylinder', ctx, getParams, IntraUnitBondCylinderVisual),
     'inter-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InterUnitBondCylinderParams>) => ComplexRepresentation('Inter-unit bond cylinder', ctx, getParams, InterUnitBondCylinderVisual),
+    'structure-ellipsoid-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, StructureEllipsoidMeshParams>) => ComplexRepresentation('Structure Ellipsoid Mesh', ctx, getParams, StructureEllipsoidMeshVisual),
+    'structure-intra-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, StructureIntraUnitBondCylinderParams>) => ComplexRepresentation('Structure intra-unit bond cylinder', ctx, getParams, StructureIntraUnitBondCylinderVisual),
 };
 
 export const EllipsoidParams = {
@@ -37,7 +39,16 @@ export const EllipsoidParams = {
 };
 export type EllipsoidParams = typeof EllipsoidParams
 export function getEllipsoidParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return EllipsoidParams;
+    let params = EllipsoidParams;
+    const size = Structure.getSize(structure);
+    if (size >= Structure.Size.Huge) {
+        const params = PD.clone(EllipsoidParams);
+        params.visuals.defaultValue = ['ellipsoid-mesh', 'intra-bond'];
+    } else if (structure.unitSymmetryGroups.length > 5000) {
+        params = PD.clone(params);
+        params.visuals.defaultValue = ['structure-ellipsoid-mesh', 'structure-intra-bond'];
+    }
+    return params;
 }
 
 export type EllipsoidRepresentation = StructureRepresentation<EllipsoidParams>
