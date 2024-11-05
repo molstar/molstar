@@ -341,10 +341,15 @@ function getStructureIntraUnitBondCylinderBuilderProps(structure: Structure, the
     const intraUnitProps: { group: Unit.SymmetryGroup, props: LinkBuilderProps}[] = [];
 
     const { bondCount, unitIndex, unitEdgeIndex, unitGroupIndex } = structure.intraUnitBondMapping;
+    const { child } = structure;
 
     for (const ug of structure.unitSymmetryGroups) {
         const unit = ug.units[0];
-        const p = Unit.isAtomic(unit) ? getIntraUnitBondCylinderBuilderProps(unit, structure, theme, props) : EmptyLinkBuilderProps;
+        const childUnit = child?.unitMap.get(unit.id);
+
+        const p = Unit.isAtomic(unit) && !(child && !childUnit)
+            ? getIntraUnitBondCylinderBuilderProps(unit, structure, theme, props)
+            : EmptyLinkBuilderProps;
         intraUnitProps.push({ group: ug, props: p });
     }
 

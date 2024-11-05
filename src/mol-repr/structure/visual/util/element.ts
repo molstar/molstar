@@ -292,7 +292,7 @@ export function createStructureElementSphereImpostor(ctx: VisualContext, structu
 
     for (const unit of structure.units) {
         const childUnit = child?.unitMap.get(unit.id);
-        if (child && !childUnit) return Spheres.createEmpty(spheres);
+        if (child && !childUnit) continue;
 
         const { elements, conformation: c } = unit;
         const elementCount = elements.length;
