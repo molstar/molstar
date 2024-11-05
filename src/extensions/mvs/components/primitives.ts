@@ -154,23 +154,6 @@ export const MVSBuildPrimitiveShape = MVSTransform({
                 getShape: (_, data, __, prev: any) => buildPrimitiveLines(data, prev?.geometry),
                 geometryUtils: Lines.Utils,
             }, { label });
-        } else if (params.kind === 'box') {
-            // make it such that this is true
-            // this is false, why? there are only lines
-            if (!hasPrimitiveKind(a.data, 'mesh')) {
-                debugger;
-                return StateObject.Null;
-            };
-            console.log('Building primitive box');
-
-            return new SO.Shape.Provider({
-                label,
-                data: context,
-                params: PD.withDefaults(Mesh.Params, { alpha: a.data.options?.transparency ?? 1 }),
-                getShape: (_, data, __, prev: any) => buildPrimitiveBox(data, prev?.geometry),
-                // getShape: (_, data, __, prev: any) => buildPrimitiveMesh(data, prev?.geometry),
-                geometryUtils: Mesh.Utils,
-            }, { label });
         } else {
             throw Error(`Kind ${params.kind} is not supported yet.`);
         }
