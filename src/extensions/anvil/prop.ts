@@ -15,7 +15,6 @@ import { Vec3 } from '../../mol-math/linear-algebra';
 import { QuerySymbolRuntime } from '../../mol-script/runtime/query/base';
 import { CustomPropSymbol } from '../../mol-script/language/symbol';
 import { Type } from '../../mol-script/language/type';
-import { str } from '../mvs/tree/generic/params-schema';
 
 export const MembraneOrientationParams = {
     ...ANVILParams
