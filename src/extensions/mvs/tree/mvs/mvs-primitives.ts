@@ -47,7 +47,7 @@ const BoxParams = obj({
     kind: literal('box'),
     ..._TransformBase,
     color: nullable(ColorT),
-    center: FloatList,
+    center: PrimitivePositionT,
     extent: FloatList,
     scaling: nullable(FloatList),
     as_edges: nullable(bool),
