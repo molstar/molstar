@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -15,6 +15,7 @@ import { Vec3 } from '../../mol-math/linear-algebra';
 import { QuerySymbolRuntime } from '../../mol-script/runtime/query/base';
 import { CustomPropSymbol } from '../../mol-script/language/symbol';
 import { Type } from '../../mol-script/language/type';
+import { str } from '../mvs/tree/generic/params-schema';
 
 export const MembraneOrientationParams = {
     ...ANVILParams
@@ -67,12 +68,28 @@ export const MembraneOrientationProvider: CustomStructureProperty.Provider<Membr
     type: 'root',
     defaultParams: MembraneOrientationParams,
     getParams: (data: Structure) => MembraneOrientationParams,
-    isApplicable: (data: Structure) => true,
+    isApplicable,
     obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<MembraneOrientationProps>) => {
         const p = { ...PD.getDefaultValues(MembraneOrientationParams), ...props };
-        return { value: await computeAnvil(ctx, data, p) };
+        try {
+            return { value: await computeAnvil(ctx, data, p) };
+        } catch (e) {
+            // the "Residues Embedded in Membrane" symbol may bypass isApplicable() checks
+            console.warn('Failed to predict membrane orientation. This happens for short peptides and entries without amino acids.');
+            return { value: undefined };
+        }
     }
 });
+
+function isApplicable(structure: Structure) {
+    const { byEntityKey } = structure.model.sequence;
+    for (const key of Object.keys(byEntityKey)) {
+        const { kind, length } = byEntityKey[+key].sequence;
+        if (kind !== 'protein') continue; // can only process protein chains
+        if (length >= 15) return true; // short peptides might fail
+    }
+    return false;
+}
 
 async function computeAnvil(ctx: CustomProperty.Context, data: Structure, props: Partial<ANVILProps>): Promise<MembraneOrientation> {
     const p = { ...PD.getDefaultValues(ANVILParams), ...props };

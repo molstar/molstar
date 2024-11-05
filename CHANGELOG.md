@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - Add example `glb-export`
+- Membrane orientation: Improve `isApplicable` check and error handling (#1316)
 
 ## [v4.8.0] - 2024-10-27
 
