@@ -81,6 +81,8 @@ export const MembraneOrientationProvider: CustomStructureProperty.Provider<Membr
 });
 
 function isApplicable(structure: Structure) {
+    if (!structure.isAtomic) return false;
+
     const { byEntityKey } = structure.model.sequence;
     for (const key of Object.keys(byEntityKey)) {
         const { kind, length } = byEntityKey[+key].sequence;
