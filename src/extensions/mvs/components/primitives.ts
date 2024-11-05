@@ -113,7 +113,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
     to: SO.Shape.Provider,
     params: {
         // TODO: some list to not type everything
-        kind: PD.Text<'mesh' | 'labels' | 'lines' | 'box' | 'cylinder'>('mesh')
+        kind: PD.Text<'mesh' | 'labels' | 'lines'>('mesh')
     }
 })({
     apply({ a, params, dependencies }) {
