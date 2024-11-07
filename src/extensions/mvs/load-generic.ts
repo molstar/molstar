@@ -47,55 +47,10 @@ export async function loadTree<TTree extends Tree, TContext>(
     options?: { replaceExisting?: boolean, extensions?: LoadingExtension<TTree, TContext, any>[] }
 ) {
     const updateRoot: UpdateTarget = UpdateTarget.create(plugin, options?.replaceExisting ?? false);
-    // const mapping = new Map<Subtree<TTree>, UpdateTarget | undefined>();
-    // if (options?.replaceExisting) {
-    //     UpdateTarget.deleteChildren(updateRoot);
-    // }
-    // const extensionContexts = (options?.extensions ?? []).map(ext => ({ ext, extCtx: ext.createExtensionContext(tree, context) }));
-    // const mvsRefMap = new Map<string, string>();
-    // dfs<TTree>(tree, (node, parent) => {
-    //     const kind: Kind<typeof node> = node.kind;
-    //     let msNode: UpdateTarget | undefined;
-    //     const updateParent = parent ? mapping.get(parent) : updateRoot;
-    //     const action = loadingActions[kind] as LoadingAction<typeof node, TContext> | undefined;
-    //     if (action) {
-    //         if (updateParent) {
-    //             msNode = action(updateParent, node, context);
-    //             if (msNode && node.ref) {
-    //                 UpdateTarget.tag(msNode, mvsRefTags(node.ref));
-    //                 mvsRefMap.set(node.ref, msNode.selector.ref);
-    //             }
-    //             mapping.set(node, msNode);
-    //         } else {
-    //             console.warn(`No target found for this "${node.kind}" node`);
-    //             return;
-    //         }
-    //     }
-    //     if (updateParent) {
-    //         for (const { ext, extCtx } of extensionContexts) {
-    //             ext.action(msNode ?? updateParent, node, context, extCtx);
-    //         }
-    //     }
-    // });
-
-    // for (const target of updateRoot.targetManager.allTargets) {
-    //     UpdateTarget.dependsOn(target, mvsRefMap);
-    // }
-
-    // extensionContexts.forEach(e => e.ext.disposeExtensionContext?.(e.extCtx, tree, context));
     loadTreeInUpdate(updateRoot, tree, loadingActions, context, options);
-
     await UpdateTarget.commit(updateRoot);
 }
 
-
-// /** Load a tree into Mol*, by applying loading actions in DFS order and then commiting at once.
-//  * If `options.replaceExisting`, remove all objects in the current Mol* state; otherwise add to the current state. */
-// export async function loadTree<TTree extends Tree, TContext>(plugin: PluginContext, tree: TTree, loadingActions: LoadingActions<TTree, TContext>, context: TContext, options?: { replaceExisting?: boolean }) {
-//     const updateRoot: UpdateTarget = UpdateTarget.create(plugin, options?.replaceExisting ?? false);
-//     loadTreeInUpdate(updateRoot, tree, loadingActions, context, options);
-//     await UpdateTarget.commit(updateRoot);
-// }
 
 export function loadTreeVirtual<TTree extends Tree, TContext>(
     plugin: PluginContext,
@@ -115,6 +70,7 @@ export function loadTreeVirtual<TTree extends Tree, TContext>(
     const pluginStateSnapshot: PluginState.Snapshot = { id: UUID.create22(), data: stateSnapshot };
     return pluginStateSnapshot;
 }
+
 
 function loadTreeInUpdate<TTree extends Tree, TContext>(updateRoot: UpdateTarget,
     tree: TTree,
@@ -158,24 +114,6 @@ function loadTreeInUpdate<TTree extends Tree, TContext>(updateRoot: UpdateTarget
     }
 
     extensionContexts.forEach(e => e.ext.disposeExtensionContext?.(e.extCtx, tree, context));
-    // const mapping = new Map<Subtree<TTree>, UpdateTarget | undefined>();
-    // if (options?.replaceExisting) {
-    //     UpdateTarget.deleteChildren(updateRoot);
-    // }
-    // dfs<TTree>(tree, (node, parent) => {
-    //     const kind: Kind<typeof node> = node.kind;
-    //     const action = loadingActions[kind] as LoadingAction<typeof node, TContext> | undefined;
-    //     if (action) {
-    //         const updateParent = parent ? mapping.get(parent) : updateRoot;
-    //         if (updateParent) {
-    //             const msNode = action(updateParent, node, context);
-    //             mapping.set(node, msNode);
-    //         } else {
-    //             console.warn(`No target found for this "${node.kind}" node`);
-    //             return;
-    //         }
-    //     }
-    // });
 }
 
 

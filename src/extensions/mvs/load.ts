@@ -129,6 +129,12 @@ function molstarTreeToEntry(plugin: PluginContext, tree: MolstarTree, metadata: 
         const cameraSnapshot = cameraParamsToCameraSnapshot(plugin, context.focus.params);
         snapshot.camera!.current = { ...currentCameraSnapshot, ...cameraSnapshot };
     } else if (context.focus?.kind === 'focus') {
+        // snapshot.camera!.focus = {
+        //     targetRef: context.focus.focusTarget.ref,
+        //     direction: Vec3.create(...context.focus.params.direction),
+        //     up: Vec3.create(...context.focus.params.up),
+        //     extraRadius: 0,
+        // };
         throw new Error('NotImplementedError: Camera specification with `focus` node not implemented for multi-state MVS');
         // await setFocus(plugin, context.focus.focusTarget, context.focus.params);
     } else {

@@ -5,32 +5,34 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { State, StateTransform, StateTransformer } from '../mol-state';
-import { PluginStateObject as SO } from '../mol-plugin-state/objects';
-import { Camera } from '../mol-canvas3d/camera';
-import { PluginBehavior } from './behavior';
-import { Canvas3DContext, Canvas3DParams, Canvas3DProps } from '../mol-canvas3d/canvas3d';
-import { PluginCommands } from './commands';
-import { PluginAnimationManager } from '../mol-plugin-state/manager/animation';
-import { ParamDefinition as PD } from '../mol-util/param-definition';
-import { UUID } from '../mol-util';
-import { InteractivityManager } from '../mol-plugin-state/manager/interactivity';
 import { produce } from 'immer';
-import { StructureFocusSnapshot } from '../mol-plugin-state/manager/structure/focus';
 import { merge } from 'rxjs';
-import { PluginContext } from './context';
+import { setFocus } from '../extensions/mvs/camera';
+import { Camera } from '../mol-canvas3d/camera';
+import { Canvas3DContext, Canvas3DParams, Canvas3DProps } from '../mol-canvas3d/canvas3d';
+import { Vec3 } from '../mol-math/linear-algebra';
 import { PluginComponent } from '../mol-plugin-state/component';
-import { PluginConfig } from './config';
+import { PluginAnimationManager } from '../mol-plugin-state/manager/animation';
+import { InteractivityManager } from '../mol-plugin-state/manager/interactivity';
 import { StructureComponentManager } from '../mol-plugin-state/manager/structure/component';
+import { StructureFocusSnapshot } from '../mol-plugin-state/manager/structure/focus';
 import { StructureSelectionSnapshot } from '../mol-plugin-state/manager/structure/selection';
+import { PluginStateObject as SO } from '../mol-plugin-state/objects';
+import { State, StateTransform, StateTransformer } from '../mol-state';
+import { UUID } from '../mol-util';
+import { ParamDefinition as PD } from '../mol-util/param-definition';
+import { PluginBehavior } from './behavior';
+import { PluginCommands } from './commands';
+import { PluginConfig } from './config';
+import { PluginContext } from './context';
 
 export { PluginState };
 
 class PluginState extends PluginComponent {
     private get animation() { return this.plugin.managers.animation; }
 
-    readonly data = State.create(new SO.Root({ }), { runTask: this.plugin.runTask, globalContext: this.plugin, historyCapacity: this.plugin.config.get(PluginConfig.State.HistoryCapacity) });
-    readonly behaviors = State.create(new PluginBehavior.Root({ }), { runTask: this.plugin.runTask, globalContext: this.plugin, rootState: { isLocked: true } });
+    readonly data = State.create(new SO.Root({}), { runTask: this.plugin.runTask, globalContext: this.plugin, historyCapacity: this.plugin.config.get(PluginConfig.State.HistoryCapacity) });
+    readonly behaviors = State.create(new PluginBehavior.Root({}), { runTask: this.plugin.runTask, globalContext: this.plugin, rootState: { isLocked: true } });
 
     readonly events = {
         cell: {
@@ -104,12 +106,22 @@ class PluginState extends PluginComponent {
             this.animation.setSnapshot(snapshot.animation);
         }
         if (snapshot.camera) {
-            PluginCommands.Camera.Reset(this.plugin, {
-                snapshot: snapshot.camera.current,
-                durationMs: snapshot.camera.transitionStyle === 'animate'
-                    ? snapshot.camera.transitionDurationInMs
-                    : void 0
-            });
+            if (snapshot.camera.current) {
+                PluginCommands.Camera.Reset(this.plugin, {
+                    snapshot: snapshot.camera.current,
+                    durationMs: snapshot.camera.transitionStyle === 'animate'
+                        ? snapshot.camera.transitionDurationInMs
+                        : void 0
+                });
+            } else if (snapshot.camera.focus) {
+                const { targetRef, direction, up } = snapshot.camera.focus;
+                // TODO refactor: move setFocus from MVS extension to PluginCommands.Camera
+                await setFocus(this.plugin, { ref: targetRef } as any, {
+                    direction: direction as number[] as [number, number, number],
+                    up: up as number[] as [number, number, number],
+                    // TODO extraRadius
+                });
+            }
         }
         if (snapshot.startAnimation) {
             this.animation.start();
@@ -173,7 +185,7 @@ namespace PluginState {
             animate: PD.Group({
                 durationInMs: PD.Numeric(250, { min: 100, max: 5000, step: 500 }, { label: 'Duration in ms' }),
             }),
-            instant: PD.Group({ })
+            instant: PD.Group({})
         }, { options: [['animate', 'Animate'], ['instant', 'Instant']] }),
         image: PD.Boolean(false),
     };
@@ -187,7 +199,8 @@ namespace PluginState {
         animation?: PluginAnimationManager.Snapshot,
         startAnimation?: boolean,
         camera?: {
-            current: Camera.Snapshot,
+            current?: Camera.Snapshot,
+            focus?: SnapshotFocusInfo,
             transitionStyle: CameraTransitionStyle,
             transitionDurationInMs?: number
         },
@@ -209,4 +222,11 @@ namespace PluginState {
     }
 
     export type SnapshotType = 'json' | 'molj' | 'zip' | 'molx'
+
+    export interface SnapshotFocusInfo {
+        targetRef?: string,
+        direction: Vec3,
+        up: Vec3,
+        extraRadius?: number,
+    }
 }
