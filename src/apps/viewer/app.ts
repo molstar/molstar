@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Neli Fonseca <neli@ebi.ac.uk>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { ANVILMembraneOrientation } from '../../extensions/anvil/behavior';
@@ -11,13 +12,13 @@ import { Backgrounds } from '../../extensions/backgrounds';
 import { DnatcoNtCs } from '../../extensions/dnatco';
 import { G3DFormat, G3dProvider } from '../../extensions/g3d/format';
 import { GeometryExport } from '../../extensions/geo-export';
-import { MAQualityAssessment, QualityAssessmentPLDDTPreset, QualityAssessmentQmeanPreset } from '../../extensions/model-archive/quality-assessment/behavior';
+import { MAQualityAssessment, MAQualityAssessmentConfig, QualityAssessmentPLDDTPreset, QualityAssessmentQmeanPreset } from '../../extensions/model-archive/quality-assessment/behavior';
 import { QualityAssessment } from '../../extensions/model-archive/quality-assessment/prop';
 import { ModelExport } from '../../extensions/model-export';
 import { Mp4Export } from '../../extensions/mp4-export';
 import { MolViewSpec } from '../../extensions/mvs/behavior';
 import { loadMVSX } from '../../extensions/mvs/components/formats';
-import { loadMVS } from '../../extensions/mvs/load';
+import { loadMVS, MolstarLoadingExtension } from '../../extensions/mvs/load';
 import { MVSData } from '../../extensions/mvs/mvs-data';
 import { PDBeStructureQualityReport } from '../../extensions/pdbe';
 import { RCSBValidationReport } from '../../extensions/rcsb';
@@ -47,7 +48,7 @@ import { createPluginUI } from '../../mol-plugin-ui';
 import { renderReact18 } from '../../mol-plugin-ui/react18';
 import { DefaultPluginUISpec, PluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
-import { PluginConfig } from '../../mol-plugin/config';
+import { PluginConfig, PluginConfigItem } from '../../mol-plugin/config';
 import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
 import { PluginSpec } from '../../mol-plugin/spec';
 import { PluginState } from '../../mol-plugin/state';
@@ -105,6 +106,8 @@ const DefaultViewerOptions = {
     preferWebgl1: PluginConfig.General.PreferWebGl1.defaultValue,
     allowMajorPerformanceCaveat: PluginConfig.General.AllowMajorPerformanceCaveat.defaultValue,
     powerPreference: PluginConfig.General.PowerPreference.defaultValue,
+    resolutionMode: PluginConfig.General.ResolutionMode.defaultValue,
+    illumination: false,
 
     viewportShowExpand: PluginConfig.Viewport.ShowExpand.defaultValue,
     viewportShowControls: PluginConfig.Viewport.ShowControls.defaultValue,
@@ -122,6 +125,8 @@ const DefaultViewerOptions = {
     rcsbAssemblySymmetryDefaultServerType: AssemblySymmetryConfig.DefaultServerType.defaultValue,
     rcsbAssemblySymmetryDefaultServerUrl: AssemblySymmetryConfig.DefaultServerUrl.defaultValue,
     rcsbAssemblySymmetryApplyColors: AssemblySymmetryConfig.ApplyColors.defaultValue,
+
+    config: [] as [PluginConfigItem, any][],
 };
 type ViewerOptions = typeof DefaultViewerOptions;
 
@@ -182,6 +187,7 @@ export class Viewer {
                 [PluginConfig.General.PreferWebGl1, o.preferWebgl1],
                 [PluginConfig.General.AllowMajorPerformanceCaveat, o.allowMajorPerformanceCaveat],
                 [PluginConfig.General.PowerPreference, o.powerPreference],
+                [PluginConfig.General.ResolutionMode, o.resolutionMode],
                 [PluginConfig.Viewport.ShowExpand, o.viewportShowExpand],
                 [PluginConfig.Viewport.ShowControls, o.viewportShowControls],
                 [PluginConfig.Viewport.ShowSettings, o.viewportShowSettings],
@@ -200,6 +206,7 @@ export class Viewer {
                 [AssemblySymmetryConfig.DefaultServerType, o.rcsbAssemblySymmetryDefaultServerType],
                 [AssemblySymmetryConfig.DefaultServerUrl, o.rcsbAssemblySymmetryDefaultServerUrl],
                 [AssemblySymmetryConfig.ApplyColors, o.rcsbAssemblySymmetryApplyColors],
+                ...(o.config ?? []),
             ]
         };
 
@@ -217,6 +224,7 @@ export class Viewer {
                 plugin.builders.structure.representation.registerPreset(ViewerAutoPreset);
             }
         });
+        plugin.canvas3d?.setProps({ illumination: { enabled: o.illumination } });
         return new Viewer(plugin);
     }
 
@@ -318,7 +326,10 @@ export class Viewer {
             source: {
                 name: 'alphafolddb' as const,
                 params: {
-                    id: afdb,
+                    provider: {
+                        id: afdb,
+                        encoding: 'bcif'
+                    },
                     options: {
                         ...params.source.params.options,
                         representation: 'preset-structure-representation-ma-quality-assessment-plddt'
@@ -500,7 +511,7 @@ export class Viewer {
         return { model, coords, preset };
     }
 
-    async loadMvsFromUrl(url: string, format: 'mvsj' | 'mvsx', options?: { replaceExisting?: boolean, keepCamera?: boolean }) {
+    async loadMvsFromUrl(url: string, format: 'mvsj' | 'mvsx', options?: { replaceExisting?: boolean, keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
         if (format === 'mvsj') {
             const data = await this.plugin.runTask(this.plugin.fetch({ url, type: 'string' }));
             const mvsData = MVSData.fromMVSJ(data);
@@ -519,7 +530,7 @@ export class Viewer {
     /** Load MolViewSpec from `data`.
      * If `format` is 'mvsj', `data` must be a string or a Uint8Array containing a UTF8-encoded string.
      * If `format` is 'mvsx', `data` must be a Uint8Array or a string containing base64-encoded binary data prefixed with 'base64,'. */
-    async loadMvsData(data: string | Uint8Array, format: 'mvsj' | 'mvsx', options?: { replaceExisting?: boolean, keepCamera?: boolean }) {
+    async loadMvsData(data: string | Uint8Array, format: 'mvsj' | 'mvsx', options?: { replaceExisting?: boolean, keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
         if (typeof data === 'string' && data.startsWith('base64')) {
             data = Uint8Array.from(atob(data.substring(7)), c => c.charCodeAt(0)); // Decode base64 string to Uint8Array
         }
@@ -608,4 +619,9 @@ export const ViewerAutoPreset = StructureRepresentationPresetProvider({
 export const PluginExtensions = {
     wwPDBStructConn: wwPDBStructConnExtensionFunctions,
     mvs: { MVSData, loadMVS },
+    modelArchive: {
+        qualityAssessment: {
+            config: MAQualityAssessmentConfig
+        }
+    }
 };

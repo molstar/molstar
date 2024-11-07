@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -27,6 +27,7 @@ export const CarbohydrateParams = {
     ...CarbohydrateTerminalLinkParams,
     visuals: PD.MultiSelect(['carbohydrate-symbol', 'carbohydrate-link', 'carbohydrate-terminal-link'], PD.objectToOptions(CarbohydrateVisuals)),
     bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
+    density: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }, BaseGeometry.ShadingCategory),
 };
 export type CarbohydrateParams = typeof CarbohydrateParams
 export function getCarbohydrateParams(ctx: ThemeRegistryContext, structure: Structure) {

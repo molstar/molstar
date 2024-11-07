@@ -87,6 +87,7 @@ export namespace BaseGeometry {
         material: Material.getParam(),
         clip: PD.Group(Clip.Params),
         emissive: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }),
+        density: PD.Numeric(0.2, { min: 0, max: 1, step: 0.01 }, { description: 'Density value to estimate object thickness.' }),
         instanceGranularity: PD.Boolean(false, { description: 'Use instance granularity for marker, transparency, clipping, overpaint, substance data to save memory.' }),
         lod: PD.Vec3(Vec3(), undefined, { ...CullingLodCategory, description: 'Level of detail.', fieldLabels: { x: 'Min Distance', y: 'Max Distance', z: 'Overlap (Shader)' } }),
         cellSize: PD.Numeric(200, { min: 0, max: 5000, step: 100 }, { ...CullingLodCategory, description: 'Instance grid cell size.' }),
@@ -118,6 +119,7 @@ export namespace BaseGeometry {
             uRoughness: ValueCell.create(props.material.roughness),
             uBumpiness: ValueCell.create(props.material.bumpiness),
             uEmissive: ValueCell.create(props.emissive),
+            uDensity: ValueCell.create(props.density),
             dLightCount: ValueCell.create(1),
             dColorMarker: ValueCell.create(true),
 
@@ -140,6 +142,7 @@ export namespace BaseGeometry {
         ValueCell.updateIfChanged(values.uRoughness, props.material.roughness);
         ValueCell.updateIfChanged(values.uBumpiness, props.material.bumpiness);
         ValueCell.updateIfChanged(values.uEmissive, props.emissive);
+        ValueCell.updateIfChanged(values.uDensity, props.density);
 
         const clip = Clip.getClip(props.clip);
         ValueCell.updateIfChanged(values.dClipObjectCount, clip.objects.count);

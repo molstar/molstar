@@ -192,6 +192,38 @@ export namespace BondIterator {
         };
         return LocationIterator(groupCount, instanceCount, 1, getLocation, true);
     }
+
+    export function fromStructureGroups(structure: Structure, props?: { includeLocation2?: boolean }): LocationIterator {
+        const { bondCount, unitIndex, unitGroupIndex, unitEdgeIndex } = structure.intraUnitBondMapping;
+        const groupCount = bondCount;
+        const instanceCount = 1;
+        const location = Bond.Location(structure, undefined, undefined, structure, undefined, undefined);
+        const getLocation = (groupIndex: number) => {
+            const ug = structure.unitSymmetryGroups[unitIndex[groupIndex]];
+            const unit = ug.units[unitGroupIndex[groupIndex]] as Unit.Atomic;
+            const edgeIndex = unitEdgeIndex[groupIndex];
+            location.aUnit = unit;
+            location.bUnit = unit;
+            location.aIndex = unit.bonds.a[edgeIndex];
+            location.bIndex = unit.bonds.b[edgeIndex];
+            return location;
+        };
+        if (props?.includeLocation2) {
+            const location2 = Bond.Location(structure, undefined, undefined, structure, undefined, undefined);
+            const getLocation2 = (groupIndex: number) => { // swapping A and B
+                const ug = structure.unitSymmetryGroups[unitIndex[groupIndex]];
+                const unit = ug.units[unitGroupIndex[groupIndex]] as Unit.Atomic;
+                const edgeIndex = unitEdgeIndex[groupIndex];
+                location2.aUnit = unit;
+                location2.bUnit = unit;
+                location2.aIndex = unit.bonds.b[edgeIndex];
+                location2.bIndex = unit.bonds.a[edgeIndex];
+                return location2;
+            };
+            return LocationIterator(groupCount, instanceCount, 1, getLocation, true, () => false, getLocation2);
+        };
+        return LocationIterator(groupCount, instanceCount, 1, getLocation, true);
+    }
 }
 
 //
@@ -214,7 +246,7 @@ export function getIntraBondLoci(pickingId: PickingId, structureGroup: Structure
     return EmptyLoci;
 }
 
-export function eachIntraBond(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean, isMarking: boolean) {
+function _eachIntraBond(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean, isMarking: boolean, o: number) {
     let changed = false;
     if (Bond.isLoci(loci)) {
         const { structure, group } = structureGroup;
@@ -228,7 +260,7 @@ export function eachIntraBond(loci: Loci, structureGroup: StructureGroup, apply:
             if (unitIdx !== undefined) {
                 const idx = unit.bonds.getDirectedEdgeIndex(b.aIndex, b.bIndex);
                 if (idx !== -1) {
-                    if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true;
+                    if (apply(Interval.ofSingleton(unitIdx * groupCount + idx + o))) changed = true;
                 }
             }
         }
@@ -245,7 +277,7 @@ export function eachIntraBond(loci: Loci, structureGroup: StructureGroup, apply:
                 OrderedSet.forEach(e.indices, v => {
                     for (let t = offset[v], _t = offset[v + 1]; t < _t; t++) {
                         if (!isMarking || OrderedSet.has(e.indices, b[t])) {
-                            if (apply(Interval.ofSingleton(unitIdx * groupCount + t))) changed = true;
+                            if (apply(Interval.ofSingleton(unitIdx * groupCount + t + o))) changed = true;
                         }
                     }
                 });
@@ -253,6 +285,10 @@ export function eachIntraBond(loci: Loci, structureGroup: StructureGroup, apply:
         }
     }
     return changed;
+}
+
+export function eachIntraBond(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean, isMarking: boolean) {
+    return _eachIntraBond(loci, structureGroup, apply, isMarking, 0);
 }
 
 //
@@ -310,6 +346,35 @@ export function eachInterBond(loci: Loci, structure: Structure, apply: (interval
         }
 
         __unitMap.clear();
+    }
+    return changed;
+}
+
+//
+
+export function getStructureGroupsBondLoci(pickingId: PickingId, structure: Structure, id: number) {
+    const { objectId, groupId } = pickingId;
+    if (id === objectId) {
+        const mapping = structure.intraUnitBondMapping;
+        return getIntraBondLoci({
+            objectId,
+            instanceId: mapping.unitGroupIndex[groupId],
+            groupId: mapping.unitEdgeIndex[groupId]
+        }, {
+            structure,
+            group: structure.unitSymmetryGroups[mapping.unitIndex[groupId]]
+        }, id);
+    }
+    return EmptyLoci;
+}
+
+export function eachStructureGroupsBond(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean, isMarking: boolean) {
+    let changed = false;
+    let o = 0;
+    for (const ug of structure.unitSymmetryGroups) {
+        if (!Unit.isAtomic(ug.units[0])) continue;
+        if (_eachIntraBond(loci, { structure, group: ug }, apply, isMarking, o)) changed = true;
+        o += ug.units[0].bonds.edgeCount * 2 * ug.units.length;
     }
     return changed;
 }

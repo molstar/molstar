@@ -10,6 +10,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ValueBox } from '../../mol-util';
 import { OrderedMap } from 'immutable';
 import { AssetManager, Asset } from '../../mol-util/assets';
+import { ErrorContext } from '../../mol-util/error-context';
 
 export { CustomProperty };
 
@@ -17,6 +18,7 @@ namespace CustomProperty {
     export interface Context {
         runtime: RuntimeContext
         assetManager: AssetManager
+        errorContext?: ErrorContext
     }
 
     export type Data<V> = { value: V, assets?: Asset.Wrapper[] }

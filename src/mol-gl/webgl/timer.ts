@@ -59,16 +59,19 @@ export type TimerResult = {
     readonly cpuAvg: number
     readonly children: TimerResult[]
     readonly calls?: Calls
+    readonly note?: string
 }
 
 function getQuery(extensions: WebGLExtensions) {
     return extensions.disjointTimerQuery ? extensions.disjointTimerQuery.createQuery() : null;
 }
 
+type WebGLTimerOptions = { captureStats?: boolean, note?: string }
+
 export type WebGLTimer = {
     /** Check with GPU for finished timers. */
     resolve: () => TimerResult[]
-    mark: (label: string, captureStats?: boolean) => void
+    mark: (label: string, options?: WebGLTimerOptions) => void
     markEnd: (label: string) => void
     stats: () => { gpu: Record<string, number>, cpu: Record<string, number> }
     formatedStats: () => Record<string, string>
@@ -90,6 +93,7 @@ type Measure = {
     captureStats: boolean,
     timeElapsed?: number,
     calls?: Calls,
+    note?: string,
 };
 
 type QueryResult = { timeElapsed?: number, refCount: number };
@@ -141,7 +145,8 @@ export function createTimer(gl: GLRenderingContext, extensions: WebGLExtensions,
     return {
         resolve: () => {
             const results: TimerResult[] = [];
-            if (!dtq || !measures.length) return results;
+            if (!dtq || !measures.length || capturingStats) return results;
+
             // console.log('resolve');
             queries.forEach((result, query) => {
                 if (result.timeElapsed !== undefined) return;
@@ -184,6 +189,7 @@ export function createTimer(gl: GLRenderingContext, extensions: WebGLExtensions,
                                     cpuAvg: cpuAvgs.add(measure.label, cpuElapsed),
                                     children: [],
                                     calls: measure.calls,
+                                    note: measure.note,
                                 };
                                 children.push(result);
                                 add(measure.children, result.children);
@@ -199,6 +205,7 @@ export function createTimer(gl: GLRenderingContext, extensions: WebGLExtensions,
                             cpuAvg: cpuAvgs.add(measure.label, cpuElapsed),
                             children,
                             calls: measure.calls,
+                            note: measure.note,
                         });
                     }
                 } else {
@@ -215,12 +222,14 @@ export function createTimer(gl: GLRenderingContext, extensions: WebGLExtensions,
 
             return results;
         },
-        mark: (label: string, captureStats = false) => {
+        mark: (label: string, options?: WebGLTimerOptions) => {
             if (!dtq) return;
 
             if (pending.has(label)) {
                 throw new Error(`Timer mark for '${label}' already exists`);
             }
+
+            const captureStats = options?.captureStats ?? false;
 
             if (current !== null) {
                 dtq.endQuery(dtq.TIME_ELAPSED);
@@ -233,6 +242,7 @@ export function createTimer(gl: GLRenderingContext, extensions: WebGLExtensions,
                 cpu: { start: now(), end: -1 },
                 captureStats,
             };
+            if (options?.note) measure.note = options.note;
             pending.set(label, measure);
 
             if (stack.length) {
@@ -314,9 +324,10 @@ function formatTimerResult(result: TimerResult) {
 export function printTimerResults(results: TimerResult[]) {
     results.map(r => {
         const f = formatTimerResult(r);
-        if (r.children.length || r.calls) {
+        if (r.children.length || r.calls || r.note) {
             console.groupCollapsed(f);
             if (r.calls) console.log(r.calls);
+            if (r.note) console.log(r.note);
             printTimerResults(r.children);
             console.groupEnd();
         } else {

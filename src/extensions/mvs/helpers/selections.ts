@@ -311,6 +311,7 @@ export function rowToExpression(row: MVSAnnotationRow): Expression {
 /** Convert multiple annotation rows into a MolScript expression.
  * (with union semantics, i.e. an atom qualifies if it qualifies for at least one of the rows) */
 export function rowsToExpression(rows: readonly MVSAnnotationRow[]): Expression {
+    if (rows.length === 1) return rowToExpression(rows[0]);
     return unionExpression(rows.map(rowToExpression));
 }
 

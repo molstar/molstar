@@ -1,3 +1,5 @@
+@use "sass:color";
+
 $default-background:         #2D3E50;
 $font-color:                 #EDF1F2; 
 $hover-font-color:           #3B9AD9;
@@ -16,9 +18,9 @@ $log-error:            #FD354B;
 $logo-background: rgba(0,0,0,0.75);
 
 @function color-lower-contrast($color, $amount) {
-    @return darken($color, $amount);
+    @return color.adjust($color, $lightness: -$amount, $space: hsl);
 }
 
 @function color-increase-contrast($color, $amount) {
-    @return lighten($color, $amount);
+    @return color.adjust($color, $lightness: $amount, $space: hsl);
 }

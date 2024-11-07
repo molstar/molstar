@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -19,6 +19,7 @@ import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
 import { Sphere3D } from '../../../mol-math/geometry';
+import { StructureGroup } from './util/common';
 // import { TriangularPyramid } from '../../../mol-geo/primitive/pyramid';
 
 const segmentCount = 10;
@@ -96,7 +97,7 @@ export function PolymerGapVisual(materialId: number): UnitsVisual<PolymerGapPara
     return UnitsMeshVisual<PolymerGapParams>({
         defaultProps: PD.getDefaultValues(PolymerGapParams),
         createGeometry: createPolymerGapCylinderMesh,
-        createLocationIterator: PolymerGapLocationIterator.fromGroup,
+        createLocationIterator: (structureGroup: StructureGroup) => PolymerGapLocationIterator.fromGroup(structureGroup, { asSecondary: true }),
         getLoci: getPolymerGapElementLoci,
         eachLocation: eachPolymerGapElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerGapParams>, currentProps: PD.Values<PolymerGapParams>) => {

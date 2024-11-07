@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Ludovic Autin <ludovic.autin@gmail.com>
  */
 
 import { StructureQuery } from '../../mol-model/structure/query';
@@ -62,6 +63,29 @@ function atomEntriesToQuery(xs: [number, number][]) {
     return compile(query) as StructureQuery;
 }
 
+function elementSymbolNumberEntriesToQuery(xs: [number, number][]) {
+    const set = UniqueArray.create<string>();
+
+    for (const [a, b] of xs) {
+        for (let i = a; i <= b; i++) {
+            UniqueArray.add(set, i.toString(), i.toString());
+        }
+    }
+
+    const query = MS.struct.generator.atomGroups({
+        'atom-test': MS.core.set.has([MS.set(...set.array), MS.acp('elementSymbol')])
+    });
+
+    return compile(query) as StructureQuery;
+}
+
+function elementSymbolStringEntriesToQuery(names: string[]) {
+    const query = MS.struct.generator.atomGroups({
+        'atom-test': MS.core.set.has([MS.set(...names), MS.acp('elementSymbol')])
+    });
+
+    return compile(query) as StructureQuery;
+}
 
 function parseRange(c: string, s: string[], e: number): ResidueListSelectionEntry | undefined {
     if (!c || s.length === 0 || Number.isNaN(+s[0])) return;
@@ -91,10 +115,18 @@ function parseAtomListSelection(input: string): [number, number][] {
 }
 
 // parses a list of residue ranges, e.g. A 10-100, B 30, C 12:i
-export function compileIdListSelection(input: string, idType: 'auth' | 'label' | 'atom-id') {
+export function compileIdListSelection(input: string, idType: 'auth' | 'label' | 'atom-id' | 'element-symbol') {
     if (idType === 'atom-id') {
         const entries = parseAtomListSelection(input);
         return atomEntriesToQuery(entries);
+    } else if (idType === 'element-symbol') {
+        const containsLetters = /[a-zA-Z]/.test(input);
+        if (containsLetters) {
+            return elementSymbolStringEntriesToQuery(input.split(',').map(e => e.trim()));
+        } else {
+            const entries = parseAtomListSelection(input);
+            return elementSymbolNumberEntriesToQuery(entries);
+        }
     } else {
         const entries = parseResidueListSelection(input);
         return residueEntriesToQuery(entries, idType);

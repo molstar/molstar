@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ValueCell } from '../mol-util';
@@ -163,18 +164,21 @@ export function ShaderCode(name: string, vert: string, frag: string, extensions:
 // Note: `drawBuffers` need to be 'optional' for wboit
 
 function ignoreDefine(name: string, variant: string, defines: ShaderDefines): boolean {
-    if (variant.startsWith('color')) {
+    if (variant.startsWith('color') || variant === 'tracing') {
         if (name === 'dLightCount') {
             return !!defines.dIgnoreLight?.ref.value;
         }
     } else {
         const ignore = [
             'dColorType', 'dUsePalette',
-            'dLightCount', 'dXrayShaded',
             'dOverpaintType', 'dOverpaint',
             'dSubstanceType', 'dSubstance',
-            'dColorMarker', 'dCelShaded'
+            'dColorMarker', 'dCelShaded',
+            'dLightCount',
         ];
+        if (variant !== 'depth') {
+            ignore.push('dXrayShaded');
+        }
         if (variant !== 'emissive') {
             ignore.push('dEmissiveType', 'dEmissive');
         }
@@ -321,8 +325,6 @@ const glsl300FragPrefixCommon = `
 
 #define gl_FragColor out_FragData0
 #define gl_FragDepthEXT gl_FragDepth
-
-#define depthTextureSupport
 `;
 
 function getGlsl300VertPrefix(extensions: WebGLExtensions, shaderExtensions: ShaderExtensions) {
@@ -388,6 +390,9 @@ function getGlsl300FragPrefix(gl: WebGL2RenderingContext, extensions: WebGLExten
         if (extensions.shaderTextureLod) {
             prefix.push('#define enabledShaderTextureLod');
         }
+    }
+    if (extensions.depthTexture) {
+        prefix.push('#define depthTextureSupport');
     }
     prefix.push(glsl300FragPrefixCommon);
     return prefix.join('\n') + '\n';

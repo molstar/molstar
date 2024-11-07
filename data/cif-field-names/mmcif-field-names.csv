@@ -263,6 +263,7 @@ software.version
 struct.entry_id
 struct.title
 struct.pdbx_descriptor
+struct.pdbx_structure_determination_methodology
 
 struct_asym.id
 struct_asym.pdbx_blank_PDB_chainid_flag
@@ -874,6 +875,17 @@ ma_qa_metric_local.metric_id
 ma_qa_metric_local.metric_value
 ma_qa_metric_local.model_id
 ma_qa_metric_local.ordinal_id
+
+ma_qa_metric_local_pairwise.ordinal_id
+ma_qa_metric_local_pairwise.model_id
+ma_qa_metric_local_pairwise.label_asym_id_1
+ma_qa_metric_local_pairwise.label_comp_id_1
+ma_qa_metric_local_pairwise.label_seq_id_1
+ma_qa_metric_local_pairwise.label_asym_id_2
+ma_qa_metric_local_pairwise.label_comp_id_2
+ma_qa_metric_local_pairwise.label_seq_id_2
+ma_qa_metric_local_pairwise.metric_id
+ma_qa_metric_local_pairwise.metric_value
 
 ma_software_group.group_id
 ma_software_group.ordinal_id

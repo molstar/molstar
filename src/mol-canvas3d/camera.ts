@@ -28,8 +28,6 @@ interface ICamera {
     readonly fogNear: number,
 }
 
-const tmpPos1 = Vec3();
-const tmpPos2 = Vec3();
 const tmpClip = Vec4();
 
 class Camera implements ICamera {
@@ -186,14 +184,11 @@ class Camera implements ICamera {
 
     /** World space pixel size at given `point` */
     getPixelSize(point: Vec3) {
-        // project -> unproject of `point` does not exactly return the same
-        // to get a sufficiently accurate measure we unproject the original
-        // clip position in addition to the one shifted by one pixel
         this.project(tmpClip, point);
-        this.unproject(tmpPos1, tmpClip);
-        tmpClip[0] += 1;
-        this.unproject(tmpPos2, tmpClip);
-        return Vec3.distance(tmpPos1, tmpPos2);
+        const w = tmpClip[3];
+        const rx = this.viewport.width;
+        const P00 = this.projection[0];
+        return (2 / w) / (rx * Math.abs(P00));
     }
 
     constructor(state?: Partial<Camera.Snapshot>, viewport = Viewport.create(0, 0, 128, 128)) {

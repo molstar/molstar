@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -21,20 +21,26 @@ const SpacefillVisuals = {
 export const SpacefillParams = {
     ...ElementSphereParams,
     bumpFrequency: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
+    density: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }, BaseGeometry.ShadingCategory),
     visuals: PD.MultiSelect(['element-sphere'], PD.objectToOptions(SpacefillVisuals)),
 };
 export type SpacefillParams = typeof SpacefillParams
 
 let CoarseGrainedSpacefillParams: SpacefillParams;
 export function getSpacefillParams(ctx: ThemeRegistryContext, structure: Structure) {
+    let params = SpacefillParams;
     if (structure.isCoarseGrained) {
         if (!CoarseGrainedSpacefillParams) {
             CoarseGrainedSpacefillParams = PD.clone(SpacefillParams);
             CoarseGrainedSpacefillParams.sizeFactor.defaultValue = 2;
         }
-        return CoarseGrainedSpacefillParams;
+        params = CoarseGrainedSpacefillParams;
     }
-    return SpacefillParams;
+    if (structure.unitSymmetryGroups.length > 5000) {
+        params = PD.clone(params);
+        params.visuals.defaultValue = ['structure-element-sphere'];
+    }
+    return params;
 }
 
 export type SpacefillRepresentation = StructureRepresentation<SpacefillParams>

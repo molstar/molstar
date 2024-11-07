@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -13,6 +13,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { ViewportScreenshotHelper } from '../../mol-plugin/util/viewport-screenshot';
 import { shallowEqual } from '../../mol-util/object';
 import { useBehavior } from '../hooks/use-behavior';
+import { Task } from '../../mol-task';
 
 export interface ScreenshotPreviewProps {
     plugin: PluginContext,
@@ -53,7 +54,7 @@ const _ScreenshotPreview = (props: ScreenshotPreviewProps) => {
         function preview() {
             const p = propsRef.current;
             if (!p.suspend && canvasRef.current) {
-                drawPreview(helper, canvasRef.current, p.customBackground, p.borderColor, p.borderWidth);
+                drawPreview(plugin, helper, canvasRef.current, p.customBackground, p.borderColor, p.borderWidth);
             }
 
             if (!canvasRef.current) isDirty = true;
@@ -93,7 +94,7 @@ const _ScreenshotPreview = (props: ScreenshotPreviewProps) => {
 
     useLayoutEffect(() => {
         if (canvasRef.current) {
-            drawPreview(helper, canvasRef.current, props.customBackground, props.borderColor, props.borderWidth);
+            drawPreview(plugin, helper, canvasRef.current, props.customBackground, props.borderColor, props.borderWidth);
         }
     }, [...Object.values(props)]);
 
@@ -109,47 +110,53 @@ export const ScreenshotPreview = React.memo(_ScreenshotPreview, (prev, next) => 
 
 declare const ResizeObserver: any;
 
-function drawPreview(helper: ViewportScreenshotHelper | undefined, target: HTMLCanvasElement, customBackground?: string, borderColor?: string, borderWidth?: number) {
-    if (!helper) return;
+async function drawPreview(plugin: PluginContext, helper: ViewportScreenshotHelper | undefined, target: HTMLCanvasElement, customBackground?: string, borderColor?: string, borderWidth?: number) {
+    const task = Task.create('Render Screenshot', async runtime => {
+        if (!helper) return;
 
-    const { canvas, width, height } = helper.getPreview()!;
-    const ctx = target.getContext('2d');
-    if (!ctx) return;
+        const p = await helper.getPreview(runtime)!;
+        if (!p) return;
 
-    const w = target.clientWidth;
-    const h = target.clientHeight;
-    target.width = w;
-    target.height = h;
+        const ctx = target.getContext('2d');
+        if (!ctx) return;
 
-    ctx.clearRect(0, 0, w, h);
-    const frame = getViewportFrame(width, height, w, h);
+        const { canvas, width, height } = p;
+        const w = target.clientWidth;
+        const h = target.clientHeight;
+        target.width = w;
+        target.height = h;
 
-    if (customBackground) {
-        ctx.fillStyle = customBackground;
-        ctx.fillRect(frame.x, frame.y, frame.width, frame.height);
-    } else if (helper.values.transparent) {
-        // must be an odd number
-        const s = 13;
-        for (let i = 0; i < frame.width; i += s) {
-            for (let j = 0; j < frame.height; j += s) {
-                ctx.fillStyle = (i + j) % 2 ? '#ffffff' : '#bfbfbf';
+        ctx.clearRect(0, 0, w, h);
+        const frame = getViewportFrame(width, height, w, h);
 
-                const x = frame.x + i, y = frame.y + j;
-                const w = i + s > frame.width ? frame.width - i : s;
-                const h = j + s > frame.height ? frame.height - j : s;
-                ctx.fillRect(x, y, w, h);
+        if (customBackground) {
+            ctx.fillStyle = customBackground;
+            ctx.fillRect(frame.x, frame.y, frame.width, frame.height);
+        } else if (helper.values.transparent) {
+            // must be an odd number
+            const s = 13;
+            for (let i = 0; i < frame.width; i += s) {
+                for (let j = 0; j < frame.height; j += s) {
+                    ctx.fillStyle = (i + j) % 2 ? '#ffffff' : '#bfbfbf';
+
+                    const x = frame.x + i, y = frame.y + j;
+                    const w = i + s > frame.width ? frame.width - i : s;
+                    const h = j + s > frame.height ? frame.height - j : s;
+                    ctx.fillRect(x, y, w, h);
+                }
             }
         }
-    }
-    ctx.drawImage(canvas, frame.x, frame.y, frame.width, frame.height);
+        ctx.drawImage(canvas, frame.x, frame.y, frame.width, frame.height);
 
-    if (borderColor && borderWidth) {
-        const w = borderWidth;
-        ctx.rect(frame.x, frame.y, frame.width, frame.height);
-        ctx.rect(frame.x + w, frame.y + w, frame.width - 2 * w, frame.height - 2 * w);
-        ctx.fillStyle = borderColor;
-        ctx.fill('evenodd');
-    }
+        if (borderColor && borderWidth) {
+            const w = borderWidth;
+            ctx.rect(frame.x, frame.y, frame.width, frame.height);
+            ctx.rect(frame.x + w, frame.y + w, frame.width - 2 * w, frame.height - 2 * w);
+            ctx.fillStyle = borderColor;
+            ctx.fill('evenodd');
+        }
+    });
+    return plugin.runTask(task, { useOverlay: true });
 }
 
 function ViewportFrame({ plugin, canvas, color = 'rgba(255, 87, 45, 0.75)' }: { plugin: PluginContext, canvas: HTMLCanvasElement | null, color?: string }) {

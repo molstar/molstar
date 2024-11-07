@@ -8,7 +8,7 @@
 
 import { QualityAssessment, QualityAssessmentProvider } from '../prop';
 import { Location } from '../../../../mol-model/location';
-import { Bond, StructureElement, Unit } from '../../../../mol-model/structure';
+import { Bond, Model, StructureElement, Unit } from '../../../../mol-model/structure';
 import { ColorTheme, LocationColor } from '../../../../mol-theme/color';
 import { ThemeDataContext } from '../../../../mol-theme/theme';
 import { Color } from '../../../../mol-util/color';
@@ -91,7 +91,7 @@ export const PLDDTConfidenceColorThemeProvider: ColorTheme.Provider<PLDDTConfide
     factory: PLDDTConfidenceColorTheme,
     getParams: getPLDDTConfidenceColorThemeParams,
     defaultValues: PD.getDefaultValues(getPLDDTConfidenceColorThemeParams({})),
-    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure?.models.some(m => QualityAssessment.isApplicable(m, 'pLDDT') || m.atomicConformation.B_iso_or_equiv.isDefined),
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure?.models.some(m => QualityAssessment.isApplicable(m, 'pLDDT') || (m.atomicConformation.B_iso_or_equiv.isDefined && !Model.isExperimental(m))),
     ensureCustomProperties: {
         attach: async (ctx: CustomProperty.Context, data: ThemeDataContext) => {
             if (data.structure) {

@@ -15,7 +15,7 @@ import { Texture } from '../../mol-gl/webgl/texture';
 import { ValueCell } from '../../mol-util';
 import { createComputeRenderItem } from '../../mol-gl/webgl/render-item';
 import { createComputeRenderable, ComputeRenderable } from '../../mol-gl/renderable';
-import { Mat4, Vec2, Vec4 } from '../../mol-math/linear-algebra';
+import { Mat4, Vec2, Vec3, Vec4 } from '../../mol-math/linear-algebra';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { ICamera } from '../../mol-canvas3d/camera';
@@ -27,7 +27,6 @@ import { PostprocessingProps } from './postprocessing';
 
 export const ShadowParams = {
     steps: PD.Numeric(1, { min: 1, max: 64, step: 1 }),
-    bias: PD.Numeric(0.6, { min: 0.0, max: 1.0, step: 0.01 }),
     maxDistance: PD.Numeric(3, { min: 0, max: 256, step: 1 }),
     tolerance: PD.Numeric(1.0, { min: 0.0, max: 10.0, step: 0.1 }),
 };
@@ -55,7 +54,7 @@ export class ShadowPass {
         }
     }
 
-    update(camera: ICamera, light: Light, props: ShadowProps) {
+    update(camera: ICamera, light: Light, ambientColor: Vec3, props: ShadowProps) {
         let needsUpdateShadows = false;
 
         const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
@@ -65,7 +64,6 @@ export class ShadowPass {
 
         const [w, h] = this.renderable.values.uTexSize.ref.value;
         const v = camera.viewport;
-
 
         ValueCell.update(this.renderable.values.uProjection, camera.projection);
         ValueCell.update(this.renderable.values.uInvProjection, invProjection);
@@ -87,7 +85,6 @@ export class ShadowPass {
 
         ValueCell.updateIfChanged(this.renderable.values.uMaxDistance, props.maxDistance);
         ValueCell.updateIfChanged(this.renderable.values.uTolerance, props.tolerance);
-        ValueCell.updateIfChanged(this.renderable.values.uBias, props.bias);
         if (this.renderable.values.dSteps.ref.value !== props.steps) {
             ValueCell.update(this.renderable.values.dSteps, props.steps);
             needsUpdateShadows = true;
@@ -99,6 +96,7 @@ export class ShadowPass {
             ValueCell.update(this.renderable.values.dLightCount, light.count);
             needsUpdateShadows = true;
         }
+        ValueCell.update(this.renderable.values.uAmbientColor, ambientColor);
 
         if (needsUpdateShadows) {
             this.renderable.update();
@@ -129,11 +127,11 @@ const ShadowsSchema = {
     dSteps: DefineSpec('number'),
     uMaxDistance: UniformSpec('f'),
     uTolerance: UniformSpec('f'),
-    uBias: UniformSpec('f'),
 
     uLightDirection: UniformSpec('v3[]'),
     uLightColor: UniformSpec('v3[]'),
     dLightCount: DefineSpec('number'),
+    uAmbientColor: UniformSpec('v3'),
 };
 type ShadowsRenderable = ComputeRenderable<Values<typeof ShadowsSchema>>
 
@@ -157,11 +155,11 @@ function getShadowsRenderable(ctx: WebGLContext, depthTexture: Texture): Shadows
         dSteps: ValueCell.create(1),
         uMaxDistance: ValueCell.create(3.0),
         uTolerance: ValueCell.create(1.0),
-        uBias: ValueCell.create(0.6),
 
         uLightDirection: ValueCell.create([]),
         uLightColor: ValueCell.create([]),
         dLightCount: ValueCell.create(0),
+        uAmbientColor: ValueCell.create(Vec3()),
     };
 
     const schema = { ...ShadowsSchema };

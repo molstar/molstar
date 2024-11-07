@@ -20,7 +20,7 @@ import { Overpaint } from '../mol-theme/overpaint';
 import { createOverpaint, clearOverpaint, applyOverpaintColor } from '../mol-geo/geometry/overpaint-data';
 import { Interval } from '../mol-data/int';
 import { Transparency } from '../mol-theme/transparency';
-import { createTransparency, clearTransparency, applyTransparencyValue, getTransparencyAverage } from '../mol-geo/geometry/transparency-data';
+import { createTransparency, clearTransparency, applyTransparencyValue, getTransparencyAverage, getTransparencyMin } from '../mol-geo/geometry/transparency-data';
 import { Clipping } from '../mol-theme/clipping';
 import { createClipping, applyClippingGroups, clearClipping } from '../mol-geo/geometry/clipping-data';
 import { getMarkersAverage } from '../mol-geo/geometry/marker-data';
@@ -221,7 +221,7 @@ namespace Visual {
     export function setTransparency(renderObject: GraphicsRenderObject | undefined, transparency: Transparency, lociApply: LociApply, clear: boolean, smoothing?: SmoothingContext) {
         if (!renderObject) return;
 
-        const { tTransparency, dTransparencyType, transparencyAverage, dTransparency, uGroupCount, instanceCount, instanceGranularity: instanceGranularity } = renderObject.values;
+        const { tTransparency, dTransparencyType, transparencyAverage, transparencyMin, dTransparency, uGroupCount, instanceCount, instanceGranularity: instanceGranularity } = renderObject.values;
         const count = instanceGranularity.ref.value
             ? instanceCount.ref.value
             : uGroupCount.ref.value * instanceCount.ref.value;
@@ -245,6 +245,7 @@ namespace Visual {
         }
         ValueCell.update(tTransparency, tTransparency.ref.value);
         ValueCell.updateIfChanged(transparencyAverage, getTransparencyAverage(array, count));
+        ValueCell.updateIfChanged(transparencyMin, getTransparencyMin(array, count));
         ValueCell.updateIfChanged(dTransparencyType, type);
         ValueCell.updateIfChanged(dTransparency, transparency.layers.length > 0);
 

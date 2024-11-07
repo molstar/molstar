@@ -30,13 +30,9 @@ function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, inde
     return null;
 }
 
-function createInterUnitBondLines(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitBondLineParams>, lines?: Lines) {
-    if (!hasStructureVisibleBonds(structure, props)) return Lines.createEmpty(lines);
-
+export function getInterUnitBondLineBuilderProps(structure: Structure, theme: Theme, props: PD.Values<InterUnitBondLineParams>): LinkBuilderProps {
     const bonds = structure.interUnitBonds;
     const { edgeCount, edges } = bonds;
-
-    if (!edgeCount) return Lines.createEmpty(lines);
 
     const { sizeFactor, aromaticBonds, multipleBonds } = props;
 
@@ -46,7 +42,7 @@ function createInterUnitBondLines(ctx: VisualContext, structure: Structure, them
     const ref = Vec3();
     const loc = StructureElement.Location.create();
 
-    const builderProps: LinkBuilderProps = {
+    return {
         linkCount: edgeCount,
         referencePosition: (edgeIndex: number) => {
             const b = edges[edgeIndex];
@@ -105,6 +101,13 @@ function createInterUnitBondLines(ctx: VisualContext, structure: Structure, them
         },
         ignore: makeInterBondIgnoreTest(structure, props)
     };
+}
+
+function createInterUnitBondLines(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitBondLineParams>, lines?: Lines) {
+    if (!hasStructureVisibleBonds(structure, props)) return Lines.createEmpty(lines);
+    if (!structure.interUnitBonds.edgeCount) return Lines.createEmpty(lines);
+
+    const builderProps = getInterUnitBondLineBuilderProps(structure, theme, props);
 
     const { lines: l, boundingSphere } = createLinkLines(ctx, builderProps, props, lines);
 
@@ -112,7 +115,7 @@ function createInterUnitBondLines(ctx: VisualContext, structure: Structure, them
         l.setBoundingSphere(boundingSphere);
     } else if (l.lineCount > 0) {
         const { child } = structure;
-        const sphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, 1 * sizeFactor);
+        const sphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, 1 * props.sizeFactor);
         l.setBoundingSphere(sphere);
     }
 

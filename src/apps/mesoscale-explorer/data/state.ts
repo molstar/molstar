@@ -339,10 +339,10 @@ export function getLodLevels(graphicsMode: Exclude<GraphicsMode, 'custom'>): Lod
             ];
         case 'ultra':
             return [
-                { minDistance: 1, maxDistance: 2000, overlap: 0, stride: 1, scaleBias: 1 },
-                { minDistance: 2000, maxDistance: 8000, overlap: 0, stride: 10, scaleBias: 3 },
-                { minDistance: 8000, maxDistance: 20000, overlap: 0, stride: 50, scaleBias: 2.5 },
-                { minDistance: 20000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2 },
+                { minDistance: 1, maxDistance: 5000, overlap: 0, stride: 1, scaleBias: 1 },
+                { minDistance: 5000, maxDistance: 10000, overlap: 0, stride: 10, scaleBias: 3 },
+                { minDistance: 10000, maxDistance: 30000, overlap: 0, stride: 50, scaleBias: 2.5 },
+                { minDistance: 30000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2 },
             ];
         default:
             assertUnreachable(graphicsMode);
@@ -471,7 +471,7 @@ export function getAllGroups(plugin: PluginContext, tag?: string) {
     return _getAllGroups(plugin, tag, []);
 }
 
-export function getAllLeafGroups(plugin: PluginContext, tag: string | undefined) {
+export function getAllLeafGroups(plugin: PluginContext, tag: string) {
     const allGroups = getAllGroups(plugin, tag);
     allGroups.sort((a, b) => a.params?.values.index - b.params?.values.index);
     return allGroups.filter(g => {
@@ -505,7 +505,7 @@ function getFilterMatcher(filter: string) {
         : new RegExp(escapeRegExp(filter), 'gi');
 }
 
-export function getFilteredEntities(plugin: PluginContext, tag: string | undefined, filter: string | undefined) {
+export function getFilteredEntities(plugin: PluginContext, tag: string, filter: string) {
     if (!filter) return getEntities(plugin, tag);
     const matcher = getFilterMatcher(filter);
     return getEntities(plugin, tag).filter(c => getEntityLabel(plugin, c).match(matcher) !== null);
@@ -523,7 +523,7 @@ export function getAllEntities(plugin: PluginContext, tag?: string) {
     return _getAllEntities(plugin, tag, []);
 }
 
-export function getAllFilteredEntities(plugin: PluginContext, tag: string | undefined, filter: string | undefined) {
+export function getAllFilteredEntities(plugin: PluginContext, tag: string, filter: string) {
     if (!filter) return getAllEntities(plugin, tag);
     const matcher = getFilterMatcher(filter);
     return getAllEntities(plugin, tag).filter(c => getEntityLabel(plugin, c).match(matcher) !== null);
@@ -553,14 +553,43 @@ export function getEntityDescription(plugin: PluginContext, cell: StateObjectCel
     return d;
 }
 
+export async function updateStyle(plugin: PluginContext, options: { ignoreLight: boolean, material: Material, celShaded: boolean, illustrative: boolean }) {
+    const update = plugin.state.data.build();
+    const { ignoreLight, material, celShaded, illustrative } = options;
 
-export async function updateColors(plugin: PluginContext, values: PD.Values, options?: PD.Values, tag?: string, filter?: string) {
+    const entities = getAllEntities(plugin);
+
+    for (let j = 0; j < entities.length; ++j) {
+        update.to(entities[j]).update(old => {
+            if (old.type) {
+                const value = old.colorTheme.name === 'illustrative'
+                    ? old.colorTheme.params.style.params.value
+                    : old.colorTheme.params.value;
+                const lightness = old.colorTheme.name === 'illustrative'
+                    ? old.colorTheme.params.style.params.lightness
+                    : old.colorTheme.params.lightness;
+                if (illustrative) {
+                    old.colorTheme = { name: 'illustrative', params: { style: { name: 'uniform', params: { value, lightness } } } };
+                } else {
+                    old.colorTheme = { name: 'uniform', params: { value, lightness } };
+                }
+                old.type.params.ignoreLight = ignoreLight;
+                old.type.params.material = material;
+                old.type.params.celShaded = celShaded;
+            }
+        });
+    }
+
+    await update.commit();
+};
+
+export async function updateColors(plugin: PluginContext, values: PD.Values, tag: string, filter: string) {
     const update = plugin.state.data.build();
     const { type, illustrative, value, shift, lightness, alpha, emissive } = values;
-    const doLighting = (options !== undefined);
-    const { ignoreLight, materialStyle: material, celShaded } = options ? options : { ignoreLight: true, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 }, celShaded: false };
     if (type === 'group-generate' || type === 'group-uniform') {
-        const groups = getAllLeafGroups(plugin, tag);
+        const leafGroups = getAllLeafGroups(plugin, tag);
+        const rootLeafGroups = getRoots(plugin).filter(g => g.params?.values.tag === tag && getEntities(plugin, g.params?.values.tag).length > 0);
+        const groups = [...leafGroups, ...rootLeafGroups];
         const baseColors = getDistinctBaseColors(groups.length, shift);
 
         for (let i = 0; i < groups.length; ++i) {
@@ -585,11 +614,6 @@ export async function updateColors(plugin: PluginContext, values: PD.Values, opt
                         old.type.params.alpha = alpha;
                         old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
                         old.type.params.emissive = emissive;
-                        if (doLighting) {
-                            old.type.params.ignoreLight = ignoreLight;
-                            old.type.params.material = material;
-                            old.type.params.celShaded = celShaded;
-                        }
                     } else if (old.coloring) {
                         old.coloring.params.color = c;
                         old.coloring.params.lightness = lightness;
@@ -629,11 +653,6 @@ export async function updateColors(plugin: PluginContext, values: PD.Values, opt
                     old.type.params.alpha = alpha;
                     old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
                     old.type.params.emissive = emissive;
-                    if (doLighting) {
-                        old.type.params.ignoreLight = ignoreLight;
-                        old.type.params.material = material;
-                        old.type.params.celShaded = celShaded;
-                    }
                 } else if (old.coloring) {
                     old.coloring.params.color = c;
                     old.coloring.params.lightness = lightness;
@@ -668,16 +687,3 @@ export function expandAllGroups(plugin: PluginContext) {
     }
 };
 
-export async function updateReprParams(plugin: PluginContext, options: PD.Values) {
-    const update = plugin.state.data.build();
-    const { ignoreLight, materialStyle: material, celShaded } = options;
-    const entities = getAllEntities(plugin);
-    for (let j = 0; j < entities.length; ++j) {
-        update.to(entities[j]).update(old => {
-            old.type.params.ignoreLight = ignoreLight;
-            old.type.params.material = material;
-            old.type.params.celShaded = celShaded;
-        });
-    }
-    await update.commit();
-}

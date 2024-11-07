@@ -314,7 +314,7 @@ export class MultiSamplePass {
     }
 }
 
-const JitterVectors = [
+export const JitterVectors = [
     [
         [0, 0]
     ],

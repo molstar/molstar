@@ -253,6 +253,7 @@ export const TransparencySchema = {
     tTransparency: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
     dTransparency: DefineSpec('boolean'),
     transparencyAverage: ValueSpec('number'),
+    transparencyMin: ValueSpec('number'),
 
     uTransparencyGridDim: UniformSpec('v3'),
     uTransparencyGridTransform: UniformSpec('v4'),
@@ -338,6 +339,9 @@ export const BaseSchema = {
     uRoughness: UniformSpec('f', 'material'),
     uBumpiness: UniformSpec('f', 'material'),
     uEmissive: UniformSpec('f', 'material'),
+
+    /** density value to estimate object thickness */
+    uDensity: UniformSpec('f', 'material'),
 
     uVertexCount: UniformSpec('i'),
     uInstanceCount: UniformSpec('i'),

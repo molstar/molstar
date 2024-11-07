@@ -82,7 +82,7 @@ export const InitAssemblySymmetry3D = StateAction.build({
     params: (a, plugin: PluginContext) => getConfiguredDefaultParams(plugin)
 })(({ a, ref, state, params }, plugin: PluginContext) => Task.create('Init Assembly Symmetry', async ctx => {
     try {
-        const propCtx = { runtime: ctx, assetManager: plugin.managers.asset };
+        const propCtx = { runtime: ctx, assetManager: plugin.managers.asset, errorContext: plugin.errorContext };
         await AssemblySymmetryDataProvider.attach(propCtx, a.data, params);
         const assemblySymmetryData = AssemblySymmetryDataProvider.get(a.data).value;
         const symmetryIndex = assemblySymmetryData ? AssemblySymmetryData.firstNonC1(assemblySymmetryData) : -1;
@@ -118,7 +118,7 @@ const AssemblySymmetry3D = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Assembly Symmetry', async ctx => {
-            await AssemblySymmetryProvider.attach({ runtime: ctx, assetManager: plugin.managers.asset }, a.data);
+            await AssemblySymmetryProvider.attach({ runtime: ctx, assetManager: plugin.managers.asset, errorContext: plugin.errorContext }, a.data);
             const assemblySymmetry = AssemblySymmetryProvider.get(a.data).value;
             if (!assemblySymmetry || assemblySymmetry.symbol === 'C1') {
                 return StateObject.Null;
@@ -131,7 +131,7 @@ const AssemblySymmetry3D = PluginStateTransform.BuiltIn({
     },
     update({ a, b, newParams }, plugin: PluginContext) {
         return Task.create('Assembly Symmetry', async ctx => {
-            await AssemblySymmetryProvider.attach({ runtime: ctx, assetManager: plugin.managers.asset }, a.data);
+            await AssemblySymmetryProvider.attach({ runtime: ctx, assetManager: plugin.managers.asset, errorContext: plugin.errorContext }, a.data);
             const assemblySymmetry = AssemblySymmetryProvider.get(a.data).value;
             if (!assemblySymmetry || assemblySymmetry.symbol === 'C1') {
                 // this should NOT be StateTransformer.UpdateResult.Null
@@ -176,7 +176,7 @@ export const AssemblySymmetryPreset = StructureRepresentationPresetProvider({
 
         if (!AssemblySymmetryDataProvider.get(structure).value) {
             await plugin.runTask(Task.create('Assembly Symmetry', async runtime => {
-                const propCtx = { runtime, assetManager: plugin.managers.asset };
+                const propCtx = { runtime, assetManager: plugin.managers.asset, errorContext: plugin.errorContext };
                 const propProps = { serverType: params.serverType, serverUrl: params.serverUrl };
                 await AssemblySymmetryDataProvider.attach(propCtx, structure, propProps);
                 const assemblySymmetryData = AssemblySymmetryDataProvider.get(structure).value;

@@ -6,7 +6,6 @@
 
 import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
 import { MmcifProvider } from '../../../mol-plugin-state/formats/trajectory';
-import { StructureComponentManager } from '../../../mol-plugin-state/manager/structure/component';
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { Button, ExpandGroup, IconButton } from '../../../mol-plugin-ui/controls/common';
 import { GetAppSvg, HelpOutlineSvg, MagicWandSvg, TourSvg, Icon, OpenInBrowserSvg } from '../../../mol-plugin-ui/controls/icons';
@@ -25,9 +24,13 @@ import { createCellpackHierarchy } from '../data/cellpack/preset';
 import { createGenericHierarchy } from '../data/generic/preset';
 import { createMmcifHierarchy } from '../data/mmcif/preset';
 import { createPetworldHierarchy } from '../data/petworld/preset';
-import { MesoscaleState, MesoscaleStateObject, setGraphicsCanvas3DProps, updateColors } from '../data/state';
+import { MesoscaleState, MesoscaleStateObject, setGraphicsCanvas3DProps, updateStyle } from '../data/state';
+import { isTimingMode } from '../../../mol-util/debug';
+import { now } from '../../../mol-util/now';
 
 function adjustPluginProps(ctx: PluginContext) {
+    const customState = ctx.customState as MesoscaleExplorerState;
+
     ctx.managers.interactivity.setProps({ granularity: 'chain' });
     ctx.canvas3d?.setProps({
         multiSample: { mode: 'off' },
@@ -81,12 +84,12 @@ function adjustPluginProps(ctx: PluginContext) {
                     blurDepthBias: 0.5,
                     resolutionScale: 1,
                     color: Color(0x000000),
+                    transparentThreshold: 0.4,
                 }
             },
             shadow: {
                 name: 'on',
                 params: {
-                    bias: 0.6,
                     maxDistance: 80,
                     steps: 3,
                     tolerance: 1.0,
@@ -100,8 +103,13 @@ function adjustPluginProps(ctx: PluginContext) {
                     color: Color(0x000000),
                     includeTransparent: false,
                 }
-            }
-        }
+            },
+        },
+        illumination: {
+            enabled: customState.illumination,
+            firstStepSize: 0.1,
+            rayDistance: 1024,
+        },
     });
 
     const { graphics } = MesoscaleState.get(ctx);
@@ -164,6 +172,10 @@ export async function loadExampleEntry(ctx: PluginContext, entry: ExampleEntry) 
 }
 
 export async function loadUrl(ctx: PluginContext, url: string, type: 'molx' | 'molj' | 'cif' | 'bcif') {
+    let startTime = 0;
+    if (isTimingMode) {
+        startTime = now();
+    }
     if (type === 'molx' || type === 'molj') {
         const customState = ctx.customState as MesoscaleExplorerState;
         delete customState.stateRef;
@@ -184,6 +196,12 @@ export async function loadUrl(ctx: PluginContext, url: string, type: 'molx' | 'm
         const data = await ctx.builders.data.download({ url, isBinary });
         await createHierarchy(ctx, data.ref);
     }
+    if (isTimingMode) {
+        const endTime = now();
+        // Calculate the elapsed time
+        const timeTaken = endTime - startTime;
+        console.log(`Model loaded in ${timeTaken} milliseconds`);
+    }
 }
 
 export async function loadPdb(ctx: PluginContext, id: string) {
@@ -195,8 +213,14 @@ export async function loadPdb(ctx: PluginContext, id: string) {
 
 export async function loadPdbDev(ctx: PluginContext, id: string) {
     await reset(ctx);
-    const nId = id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`;
-    const url = `https://pdb-dev.wwpdb.org/bcif/${nId.toUpperCase()}.bcif`;
+    let url: string;
+    // 4 character PDB id, TODO: support extended PDB ID
+    if (id.match(/^[1-9][A-Z0-9]{3}$/i) !== null) {
+        url = `https://pdb-dev.wwpdb.org/bcif/${id.toLowerCase()}.bcif`;
+    } else {
+        const nId = id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`;
+        url = `https://pdb-dev.wwpdb.org/bcif/${nId.toUpperCase()}.bcif`;
+    }
     const data = await ctx.builders.data.download({ url, isBinary: true });
     await createHierarchy(ctx, data.ref);
 }
@@ -480,65 +504,18 @@ export class MesoQuickStylesControls extends CollapsableControls {
 }
 
 export class MesoQuickStyles extends PluginUIComponent {
-    state = {
-        celShaded: false,
-    };
-    default_color_values = {
-        type: 'group-generate',
-        illustrative: false,
-        value: [1, 1, 1, 1],
-        variability: 20,
-        shift: 0,
-        lightness: 0,
-        alpha: 1,
-        emissive: 0
-    };
-    illustrative_color_values = {
-        type: 'group-generate',
-        illustrative: true,
-        value: [1, 1, 1, 1],
-        variability: 20,
-        shift: 0,
-        lightness: 0,
-        alpha: 1,
-        emissive: 0
-    };
     async default() {
         if (!this.plugin.canvas3d) return;
+        const p = this.plugin.canvas3d.props;
         this.plugin.canvas3d.setProps({
             renderer: {
                 exposure: 1.1,
             },
             postprocessing: {
-                occlusion: {
-                    name: 'on',
-                    params: {
-                        samples: 32,
-                        multiScale: {
-                            name: 'on',
-                            params: {
-                                levels: [
-                                    { radius: 2, bias: 1.0 },
-                                    { radius: 5, bias: 1.0 },
-                                    { radius: 8, bias: 1.0 },
-                                    { radius: 11, bias: 1.0 },
-                                ],
-                                nearThreshold: 10,
-                                farThreshold: 1500,
-                            }
-                        },
-                        radius: 5,
-                        bias: 1,
-                        blurKernelSize: 11,
-                        blurDepthBias: 0.5,
-                        resolutionScale: 1,
-                        color: Color(0x000000),
-                    }
-                },
+                ...p.postprocessing,
                 shadow: {
                     name: 'on',
                     params: {
-                        bias: 0.6,
                         maxDistance: 80,
                         steps: 3,
                         tolerance: 1.0,
@@ -556,49 +533,26 @@ export class MesoQuickStyles extends PluginUIComponent {
                 dof: { name: 'off', params: {} },
             }
         });
-
-        const loptions = { ignoreLight: true, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 } };
-        const options = { ...loptions, celShaded: false, };
-        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
-        await updateColors(this.plugin, this.default_color_values, options);
+        await updateStyle(this.plugin, {
+            ignoreLight: true,
+            material: { metalness: 0, roughness: 1.0, bumpiness: 0 },
+            celShaded: false,
+            illustrative: false,
+        });
     }
 
     async celshading() {
         if (!this.plugin.canvas3d) return;
+        const p = this.plugin.canvas3d.props;
         this.plugin.canvas3d.setProps({
             renderer: {
                 exposure: 1.5,
             },
             postprocessing: {
-                occlusion: {
-                    name: 'on',
-                    params: {
-                        samples: 32,
-                        multiScale: {
-                            name: 'on',
-                            params: {
-                                levels: [
-                                    { radius: 2, bias: 1.0 },
-                                    { radius: 5, bias: 1.0 },
-                                    { radius: 8, bias: 1.0 },
-                                    { radius: 11, bias: 1.0 },
-                                ],
-                                nearThreshold: 10,
-                                farThreshold: 1500,
-                            }
-                        },
-                        radius: 5,
-                        bias: 1.5,
-                        blurKernelSize: 11,
-                        blurDepthBias: 0.5,
-                        resolutionScale: 1,
-                        color: Color(0x000000),
-                    }
-                },
+                ...p.postprocessing,
                 shadow: {
                     name: 'on',
                     params: {
-                        bias: 0.4,
                         maxDistance: 256,
                         steps: 64,
                         tolerance: 1.0,
@@ -608,49 +562,26 @@ export class MesoQuickStyles extends PluginUIComponent {
                 dof: { name: 'off', params: {} },
             }
         });
-        // ignore Light
-        const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 } };
-        const options = { ...loptions, celShaded: true, };
-        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
-        await updateColors(this.plugin, this.default_color_values, options);
+        await updateStyle(this.plugin, {
+            ignoreLight: false,
+            material: { metalness: 0, roughness: 1.0, bumpiness: 0 },
+            celShaded: true,
+            illustrative: false,
+        });
     }
 
-    async stylizedDof() {
+    async shinyDof() {
         if (!this.plugin.canvas3d) return;
+        const p = this.plugin.canvas3d.props;
         this.plugin.canvas3d.setProps({
             renderer: {
                 exposure: 1.1,
             },
             postprocessing: {
-                occlusion: {
-                    name: 'on',
-                    params: {
-                        samples: 32,
-                        multiScale: {
-                            name: 'on',
-                            params: {
-                                levels: [
-                                    { radius: 2, bias: 1.0 },
-                                    { radius: 5, bias: 1.0 },
-                                    { radius: 8, bias: 1.0 },
-                                    { radius: 11, bias: 1.0 },
-                                ],
-                                nearThreshold: 10,
-                                farThreshold: 1500,
-                            }
-                        },
-                        radius: 5,
-                        bias: 1.3,
-                        blurKernelSize: 11,
-                        blurDepthBias: 0.5,
-                        resolutionScale: 1,
-                        color: Color(0x000000),
-                    }
-                },
+                ...p.postprocessing,
                 shadow: {
                     name: 'on',
                     params: {
-                        bias: 0.4,
                         maxDistance: 256,
                         steps: 64,
                         tolerance: 1.0,
@@ -670,49 +601,26 @@ export class MesoQuickStyles extends PluginUIComponent {
                 }
             }
         });
-        // ignore Light
-        const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 } };
-        const options = { ...loptions, celShaded: false };
-        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
-        await updateColors(this.plugin, this.default_color_values, options);
+        await updateStyle(this.plugin, {
+            ignoreLight: false,
+            material: { metalness: 0, roughness: 0.2, bumpiness: 0 },
+            celShaded: false,
+            illustrative: false,
+        });
     }
 
     async illustrative() {
         if (!this.plugin.canvas3d) return;
+        const p = this.plugin.canvas3d.props;
         this.plugin.canvas3d.setProps({
             renderer: {
                 exposure: 1.5,
             },
             postprocessing: {
-                occlusion: {
-                    name: 'on',
-                    params: {
-                        samples: 32,
-                        multiScale: {
-                            name: 'on',
-                            params: {
-                                levels: [
-                                    { radius: 2, bias: 1.0 },
-                                    { radius: 5, bias: 1.0 },
-                                    { radius: 8, bias: 1.0 },
-                                    { radius: 11, bias: 1.0 },
-                                ],
-                                nearThreshold: 10,
-                                farThreshold: 1500,
-                            }
-                        },
-                        radius: 5,
-                        bias: 1.5,
-                        blurKernelSize: 11,
-                        blurDepthBias: 0.5,
-                        resolutionScale: 1,
-                        color: Color(0x000000),
-                    }
-                },
+                ...p.postprocessing,
                 shadow: {
                     name: 'on',
                     params: {
-                        bias: 0.4,
                         maxDistance: 256,
                         steps: 64,
                         tolerance: 1.0,
@@ -730,93 +638,48 @@ export class MesoQuickStyles extends PluginUIComponent {
                 dof: { name: 'off', params: {} },
             }
         });
-        // ignore Light
-        const loptions = { ignoreLight: true, materialStyle: { metalness: 0, roughness: 1.0, bumpiness: 0 } };
-        const options = { ...loptions, celShaded: false, };
-        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
-        await updateColors(this.plugin, this.illustrative_color_values, options);
+        await updateStyle(this.plugin, {
+            ignoreLight: true,
+            material: { metalness: 0, roughness: 1.0, bumpiness: 0 },
+            celShaded: false,
+            illustrative: true,
+        });
     }
 
     async shiny() {
         if (!this.plugin.canvas3d) return;
+        const p = this.plugin.canvas3d.props;
         this.plugin.canvas3d.setProps({
             renderer: {
                 exposure: 1.5,
             },
             postprocessing: {
-                occlusion: {
-                    name: 'on',
-                    params: {
-                        samples: 32,
-                        multiScale: {
-                            name: 'on',
-                            params: {
-                                levels: [
-                                    { radius: 2, bias: 1.0 },
-                                    { radius: 5, bias: 1.0 },
-                                    { radius: 8, bias: 1.0 },
-                                    { radius: 11, bias: 1.0 },
-                                ],
-                                nearThreshold: 10,
-                                farThreshold: 1500,
-                            }
-                        },
-                        radius: 5,
-                        bias: 1.3,
-                        blurKernelSize: 11,
-                        blurDepthBias: 0.5,
-                        resolutionScale: 1,
-                        color: Color(0x000000),
-                    }
-                },
+                ...p.postprocessing,
                 shadow: { name: 'off', params: {} },
                 outline: { name: 'off', params: {} },
                 dof: { name: 'off', params: {} },
             }
         });
-        // ignore Light
-        const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 } };
-        const options = { ...loptions, celShaded: false };
-        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
-        await updateColors(this.plugin, this.default_color_values, options);
+        await updateStyle(this.plugin, {
+            ignoreLight: false,
+            material: { metalness: 0, roughness: 0.2, bumpiness: 0 },
+            celShaded: false,
+            illustrative: false,
+        });
     }
 
     async stylized() {
         if (!this.plugin.canvas3d) return;
+        const p = this.plugin.canvas3d.props;
         this.plugin.canvas3d.setProps({
             renderer: {
                 exposure: 1.1,
             },
             postprocessing: {
-                occlusion: {
-                    name: 'on',
-                    params: {
-                        samples: 32,
-                        multiScale: {
-                            name: 'on',
-                            params: {
-                                levels: [
-                                    { radius: 2, bias: 1.0 },
-                                    { radius: 5, bias: 1.0 },
-                                    { radius: 8, bias: 1.0 },
-                                    { radius: 11, bias: 1.0 },
-                                ],
-                                nearThreshold: 10,
-                                farThreshold: 1500,
-                            }
-                        },
-                        radius: 5,
-                        bias: 1.3,
-                        blurKernelSize: 11,
-                        blurDepthBias: 0.5,
-                        resolutionScale: 1,
-                        color: Color(0x000000),
-                    }
-                },
+                ...p.postprocessing,
                 shadow: {
                     name: 'on',
                     params: {
-                        bias: 0.4,
                         maxDistance: 256,
                         steps: 64,
                         tolerance: 1.0,
@@ -834,11 +697,12 @@ export class MesoQuickStyles extends PluginUIComponent {
                 dof: { name: 'off', params: {} },
             }
         });
-        // ignore Light
-        const loptions = { ignoreLight: false, materialStyle: { metalness: 0, roughness: 0.2, bumpiness: 0 } };
-        const options = { ...loptions, celShaded: false };
-        await this.plugin.managers.structure.component.setOptions(loptions as StructureComponentManager.Options);
-        await updateColors(this.plugin, this.illustrative_color_values, options);
+        await updateStyle(this.plugin, {
+            ignoreLight: false,
+            material: { metalness: 0, roughness: 0.2, bumpiness: 0 },
+            celShaded: false,
+            illustrative: true,
+        });
     }
 
     render() {
@@ -861,7 +725,7 @@ export class MesoQuickStyles extends PluginUIComponent {
                 <Button noOverflow title='Enable shiny material, outline, and illustrative colors' onClick={() => this.stylized()} style={{ width: 'auto' }}>
                     Shiny-Illustrative
                 </Button>
-                <Button noOverflow title='Enable DOF and shiny material' onClick={() => this.stylizedDof()} style={{ width: 'auto' }}>
+                <Button noOverflow title='Enable DOF and shiny material' onClick={() => this.shinyDof()} style={{ width: 'auto' }}>
                     Shiny-DOF
                 </Button>
             </div>

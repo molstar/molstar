@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
@@ -51,9 +51,9 @@ export async function unzip(runtime: RuntimeContext, buf: ArrayBuffer, onlyNames
 
         // const crc32 = readUint(data, o);
         o += 4;
-        const csize = readUint(data, o);
+        // const csize = readUint(data, o);
         o += 4;
-        const usize = readUint(data, o);
+        // const usize = readUint(data, o);
         o += 4;
 
         const nl = readUshort(data, o);
@@ -65,13 +65,13 @@ export async function unzip(runtime: RuntimeContext, buf: ArrayBuffer, onlyNames
         const roff = readUint(data, o); o += 4;
         o += nl + el + cl;
 
-        await _readLocal(runtime, data, roff, out, csize, usize, onlyNames);
+        await _readLocal(runtime, data, roff, out, onlyNames);
     }
     // console.log(out);
     return out;
 }
 
-async function _readLocal(runtime: RuntimeContext, data: Uint8Array, o: number, out: { [k: string]: Uint8Array | { size: number, csize: number } }, csize: number, usize: number, onlyNames: boolean) {
+async function _readLocal(runtime: RuntimeContext, data: Uint8Array, o: number, out: { [k: string]: Uint8Array | { size: number, csize: number } }, onlyNames: boolean) {
     // const sign  = readUint(data, o);
     o += 4;
     // const ver   = readUshort(data, o);
@@ -87,9 +87,10 @@ async function _readLocal(runtime: RuntimeContext, data: Uint8Array, o: number, 
 
     // const crc32 = readUint(data, o);
     o += 4;
-    // var csize = rUi(data, o);  o+=4;
-    // var usize = rUi(data, o);  o+=4;
-    o += 8;
+    const csize = readUint(data, o);
+    o += 4;
+    const usize = readUint(data, o);
+    o += 4;
 
     const nlen = readUshort(data, o);
     o += 2;
@@ -97,7 +98,8 @@ async function _readLocal(runtime: RuntimeContext, data: Uint8Array, o: number, 
     o += 2;
 
     const name = readUTF8(data, o, nlen);
-    o += nlen; // console.log(name);
+    // console.log({ name, nlen, elen });
+    o += nlen;
     o += elen;
 
     if (onlyNames) {
@@ -105,9 +107,9 @@ async function _readLocal(runtime: RuntimeContext, data: Uint8Array, o: number, 
         return;
     }
 
-    const file = new Uint8Array(data.buffer, o);
+    const file = new Uint8Array(data.buffer, o, csize);
     if (cmpr === 0) {
-        out[name] = new Uint8Array(file.buffer.slice(o, o + csize));
+        out[name] = file;
     } else if (cmpr === 8) {
         const buf = new Uint8Array(usize);
         await inflateRaw(runtime, file, buf);
