@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix outlines on volume and surface reps that do not disappear (#1326)
 - Add example `glb-export`
 - Fix set fenceSync to null after deleteSync.
 - Fix operator key-based `IndexPairBonds` assignment

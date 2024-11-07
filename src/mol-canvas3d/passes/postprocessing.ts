@@ -164,7 +164,7 @@ export class PostprocessingPass {
     }
 
     static isTransparentOutlineEnabled(props: PostprocessingProps) {
-        return OutlinePass.isEnabled(props) && (props.outline.params as OutlineProps).includeTransparent;
+        return OutlinePass.isEnabled(props) && ((props.outline.params as OutlineProps).includeTransparent ?? true);
     }
 
     static isTransparentSsaoEnabled(scene: Scene, props: PostprocessingProps) {
