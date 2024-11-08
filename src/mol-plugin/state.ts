@@ -7,7 +7,6 @@
 
 import { produce } from 'immer';
 import { merge } from 'rxjs';
-import { setFocus } from '../extensions/mvs/camera';
 import { Camera } from '../mol-canvas3d/camera';
 import { Canvas3DContext, Canvas3DParams, Canvas3DProps } from '../mol-canvas3d/canvas3d';
 import { Vec3 } from '../mol-math/linear-algebra';
@@ -114,12 +113,9 @@ class PluginState extends PluginComponent {
                         : void 0
                 });
             } else if (snapshot.camera.focus) {
-                const { targetRef, direction, up } = snapshot.camera.focus;
-                // TODO refactor: move setFocus from MVS extension to PluginCommands.Camera
-                await setFocus(this.plugin, { ref: targetRef } as any, {
-                    direction: direction as number[] as [number, number, number],
-                    up: up as number[] as [number, number, number],
-                    // TODO extraRadius
+                PluginCommands.Camera.FocusObject(this.plugin, {
+                    ...snapshot.camera.focus,
+                    durationMs: snapshot.camera.transitionStyle === 'animate' ? snapshot.camera.transitionDurationInMs : undefined,
                 });
             }
         }

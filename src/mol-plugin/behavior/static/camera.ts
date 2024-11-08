@@ -11,6 +11,7 @@ import { PluginCommands } from '../../commands';
 export function registerDefault(ctx: PluginContext) {
     Reset(ctx);
     Focus(ctx);
+    FocusObject(ctx);
     SetSnapshot(ctx);
     OrientAxes(ctx);
     ResetAxes(ctx);
@@ -32,6 +33,12 @@ export function Focus(ctx: PluginContext) {
     PluginCommands.Camera.Focus.subscribe(ctx, ({ center, radius, durationMs }) => {
         ctx.managers.camera.focusSphere({ center, radius }, { durationMs });
         ctx.events.canvas3d.settingsUpdated.next(void 0);
+    });
+}
+
+export function FocusObject(ctx: PluginContext) {
+    PluginCommands.Camera.FocusObject.subscribe(ctx, async options => {
+        ctx.managers.camera.focusObject(options);
     });
 }
 

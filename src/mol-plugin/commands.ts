@@ -64,11 +64,12 @@ export const PluginCommands = {
         Reset: PluginCommand<{ durationMs?: number, snapshot?: Partial<Camera.Snapshot> }>(),
         SetSnapshot: PluginCommand<{ snapshot: Partial<Camera.Snapshot>, durationMs?: number }>(),
         Focus: PluginCommand<{ center: Vec3, radius: number, durationMs?: number }>(),
+        FocusObject: PluginCommand<{ targetRef?: string, direction: Vec3, up: Vec3, extraRadius?: number, durationMs?: number }>(),
         OrientAxes: PluginCommand<{ structures?: Structure[], durationMs?: number }>(),
         ResetAxes: PluginCommand<{ durationMs?: number }>(),
     },
     Canvas3D: {
         SetSettings: PluginCommand<{ settings: Partial<Canvas3DProps> | ((old: Canvas3DProps) => Partial<Canvas3DProps> | void) }>(),
-        ResetSettings: PluginCommand<{ }>()
+        ResetSettings: PluginCommand<{}>()
     }
 };

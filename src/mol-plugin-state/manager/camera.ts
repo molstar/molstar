@@ -7,6 +7,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { setFocus } from '../../extensions/mvs/camera';
 import { Camera } from '../../mol-canvas3d/camera';
 import { GraphicsRenderObject } from '../../mol-gl/render-object';
 import { Sphere3D } from '../../mol-math/geometry';
@@ -127,6 +128,30 @@ export class CameraManager {
             const snapshot = canvas3d.camera.getFocus(sphere.center, radius);
             canvas3d.requestCameraReset({ durationMs, snapshot });
         }
+    }
+
+    focusObject(options?: Partial<CameraFocusOptions> & { targetRef?: string, direction: Vec3, up: Vec3 }) {
+        const { canvas3d } = this.plugin;
+        if (!canvas3d) return;
+
+        const { targetRef, direction, up, extraRadius, minRadius, durationMs } = { ...DefaultCameraFocusOptions, ...options };
+
+        [extraRadius, minRadius, durationMs]
+
+        // TODO refactor: move setFocus from MVS extension to PluginCommands.Camera
+        return setFocus(this.plugin, { ref: targetRef } as any, {
+            direction: direction as number[] as [number, number, number],
+            up: up as number[] as [number, number, number],
+            // TODO extraRadius
+        });
+        // const radius = Math.max(sphere.radius + extraRadius, minRadius);
+        // if (options?.principalAxes) {
+        //     const snapshot = pcaFocus(this.plugin, radius, options as { principalAxes: PrincipalAxes, positionToFlip?: Vec3 });
+        //     this.plugin.canvas3d?.requestCameraReset({ durationMs, snapshot });
+        // } else {
+        //     const snapshot = canvas3d.camera.getFocus(sphere.center, radius);
+        //     canvas3d.requestCameraReset({ durationMs, snapshot });
+        // }
     }
 
     /** Align PCA axes of `structures` (default: all loaded structures) to the screen axes. */
