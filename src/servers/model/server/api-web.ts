@@ -7,7 +7,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as express from 'express';
-import * as bodyParser from 'body-parser';
 import { ModelServerConfig as Config, ModelServerConfig, mapSourceAndIdToFilename } from '../config';
 import { ConsoleLogger } from '../../../mol-util/console-logger';
 import { resolveJob } from './query';
@@ -148,7 +147,7 @@ function createMultiJob(spec: MultipleQuerySpec, res: express.Response) {
 }
 
 export function initWebApi(app: express.Express) {
-    app.use(bodyParser.json({ limit: '1mb' }));
+    app.use(express.json({ limit: '1mb' }));
 
     app.get(makePath('static/:source/:id'), (req, res) => serveStatic(req, res));
     app.get(makePath('v1/static/:source/:id'), (req, res) => serveStatic(req, res));
@@ -160,11 +159,11 @@ export function initWebApi(app: express.Express) {
     });
     app.post(makePath('v1/query-many'), (req, res) => {
         const params = req.body;
-        req.setTimeout;
+        req.setTimeout(ModelServerConfig.requestTimeoutMs);
         createMultiJob(params, res);
     });
 
-    app.use(bodyParser.json({ limit: '20mb' }));
+    app.use(express.json({ limit: '20mb' }));
 
     for (const q of QueryList) {
         mapQuery(app, q.name, q.definition);

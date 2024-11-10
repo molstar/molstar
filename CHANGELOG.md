@@ -13,6 +13,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `Structure.intraUnitBondMapping`
 - Add more structure-based visuals to avoid too many (small) render-objects
     - `structure-intra-bond`, `structure-ellipsoid-mesh`, `structure-element-point`, `structure-element-cross`
+- Upgrade to express v5 (#1311)
 - Fix occupancy check using wrong index for inter-unit bond computation (@rxht, #1321)
 - Fix transparent SSAO for image rendering, e.g., volumne slices (#1332)
 - Fix bonds not shown with `ignoreHydrogens` on (#1315)
