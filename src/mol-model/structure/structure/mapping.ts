@@ -54,12 +54,15 @@ export interface IntraUnitBondMapping {
     unitIndex: ArrayLike<number>
     unitEdgeIndex: ArrayLike<number>
     unitGroupIndex: ArrayLike<number>
+    unitGroupOffset: ArrayLike<number>
 }
 
 export function getIntraUnitBondMapping(structure: Structure): IntraUnitBondMapping {
     let bondCount = 0;
 
+    const unitGroupOffset: number[] = [];
     for (const ug of structure.unitSymmetryGroups) {
+        unitGroupOffset.push(bondCount);
         const unit = ug.units[0];
         if (Unit.isAtomic(unit)) {
             bondCount += unit.bonds.edgeCount * 2 * ug.units.length;
@@ -88,5 +91,5 @@ export function getIntraUnitBondMapping(structure: Structure): IntraUnitBondMapp
         unitIdx += 1;
     }
 
-    return { bondCount, unitIndex, unitEdgeIndex, unitGroupIndex };
+    return { bondCount, unitIndex, unitEdgeIndex, unitGroupIndex, unitGroupOffset };
 }

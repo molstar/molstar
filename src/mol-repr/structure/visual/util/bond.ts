@@ -249,7 +249,7 @@ export function getIntraBondLoci(pickingId: PickingId, structureGroup: Structure
     return EmptyLoci;
 }
 
-function _eachIntraBond(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean, isMarking: boolean, o: number) {
+export function eachIntraBond(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean, isMarking: boolean) {
     let changed = false;
     if (Bond.isLoci(loci)) {
         const { structure, group } = structureGroup;
@@ -263,7 +263,7 @@ function _eachIntraBond(loci: Loci, structureGroup: StructureGroup, apply: (inte
             if (unitIdx !== undefined) {
                 const idx = unit.bonds.getDirectedEdgeIndex(b.aIndex, b.bIndex);
                 if (idx !== -1) {
-                    if (apply(Interval.ofSingleton(unitIdx * groupCount + idx + o))) changed = true;
+                    if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true;
                 }
             }
         }
@@ -280,7 +280,7 @@ function _eachIntraBond(loci: Loci, structureGroup: StructureGroup, apply: (inte
                 OrderedSet.forEach(e.indices, v => {
                     for (let t = offset[v], _t = offset[v + 1]; t < _t; t++) {
                         if (!isMarking || OrderedSet.has(e.indices, b[t])) {
-                            if (apply(Interval.ofSingleton(unitIdx * groupCount + t + o))) changed = true;
+                            if (apply(Interval.ofSingleton(unitIdx * groupCount + t))) changed = true;
                         }
                     }
                 });
@@ -288,10 +288,6 @@ function _eachIntraBond(loci: Loci, structureGroup: StructureGroup, apply: (inte
         }
     }
     return changed;
-}
-
-export function eachIntraBond(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean, isMarking: boolean) {
-    return _eachIntraBond(loci, structureGroup, apply, isMarking, 0);
 }
 
 //
@@ -332,20 +328,20 @@ export function eachInterBond(loci: Loci, structure: Structure, apply: (interval
         for (const e of loci.elements) {
             const { unit } = e;
             if (!Unit.isAtomic(unit)) continue;
-            structure.interUnitBonds.getConnectedUnits(unit.id).forEach(b => {
+            for (const b of structure.interUnitBonds.getConnectedUnits(unit.id)) {
                 const otherLociIndices = __unitMap.get(b.unitB);
                 if (!isMarking || otherLociIndices) {
                     OrderedSet.forEach(e.indices, v => {
                         if (!b.connectedIndices.includes(v)) return;
-                        b.getEdges(v).forEach(bi => {
+                        for (const bi of b.getEdges(v)) {
                             if (!isMarking || (otherLociIndices && OrderedSet.has(otherLociIndices, bi.indexB))) {
                                 const idx = structure.interUnitBonds.getEdgeIndex(v, unit.id, bi.indexB, b.unitB);
                                 if (apply(Interval.ofSingleton(idx))) changed = true;
                             }
-                        });
+                        }
                     });
                 }
-            });
+            }
         }
 
         __unitMap.clear();
@@ -372,12 +368,48 @@ export function getStructureGroupsBondLoci(pickingId: PickingId, structure: Stru
 }
 
 export function eachStructureGroupsBond(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean, isMarking: boolean) {
+    const { unitGroupOffset } = structure.intraUnitBondMapping;
+
     let changed = false;
-    let o = 0;
-    for (const ug of structure.unitSymmetryGroups) {
-        if (!Unit.isAtomic(ug.units[0])) continue;
-        if (_eachIntraBond(loci, { structure, group: ug }, apply, isMarking, o)) changed = true;
-        o += ug.units[0].bonds.edgeCount * 2 * ug.units.length;
+    if (Bond.isLoci(loci)) {
+        if (!Structure.areEquivalent(loci.structure, structure)) return false;
+        for (const b of loci.bonds) {
+            if (b.aUnit !== b.bUnit) continue;
+            const groupIdx = structure.unitSymmetryGroupsIndexMap.get(b.aUnit.id);
+            const group = structure.unitSymmetryGroups[groupIdx];
+            const unit = group.units[0];
+            if (!Unit.isAtomic(unit)) continue;
+            const o = unitGroupOffset[groupIdx];
+            const groupCount = unit.bonds.edgeCount * 2;
+            const unitIdx = group.unitIndexMap.get(b.aUnit.id);
+            if (unitIdx !== undefined) {
+                const idx = unit.bonds.getDirectedEdgeIndex(b.aIndex, b.bIndex);
+                if (idx !== -1) {
+                    if (apply(Interval.ofSingleton(unitIdx * groupCount + idx + o))) changed = true;
+                }
+            }
+        }
+    } else if (StructureElement.Loci.is(loci)) {
+        if (!Structure.areEquivalent(loci.structure, structure)) return false;
+        for (const e of loci.elements) {
+            const groupIdx = structure.unitSymmetryGroupsIndexMap.get(e.unit.id);
+            const group = structure.unitSymmetryGroups[groupIdx];
+            const unit = group.units[0];
+            if (!Unit.isAtomic(unit)) continue;
+            const o = unitGroupOffset[groupIdx];
+            const groupCount = unit.bonds.edgeCount * 2;
+            const unitIdx = group.unitIndexMap.get(e.unit.id);
+            if (unitIdx !== undefined) {
+                const { offset, b } = unit.bonds;
+                OrderedSet.forEach(e.indices, v => {
+                    for (let t = offset[v], _t = offset[v + 1]; t < _t; t++) {
+                        if (!isMarking || OrderedSet.has(e.indices, b[t])) {
+                            if (apply(Interval.ofSingleton(unitIdx * groupCount + t + o))) changed = true;
+                        }
+                    }
+                });
+            }
+        }
     }
     return changed;
 }
