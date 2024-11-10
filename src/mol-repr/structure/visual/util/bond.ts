@@ -125,11 +125,14 @@ export function makeInterBondIgnoreTest(structure: Structure, props: BondProps):
     };
 }
 
-export function hasUnitVisibleBonds(unit: Unit.Atomic, props: { ignoreHydrogens: boolean }) {
-    return !(props.ignoreHydrogens && Unit.Traits.is(unit.traits, Unit.Trait.Water));
+export function hasUnitVisibleBonds(unit: Unit.Atomic, props: { ignoreHydrogens: boolean, ignoreHydrogensVariant: 'all' | 'non-polar' | 'polar' }) {
+    if (Unit.Traits.is(unit.traits, Unit.Trait.Water)) {
+        return !props.ignoreHydrogens || props.ignoreHydrogensVariant === 'non-polar';
+    }
+    return true;
 }
 
-export function hasStructureVisibleBonds(structure: Structure, props: { ignoreHydrogens: boolean }) {
+export function hasStructureVisibleBonds(structure: Structure, props: { ignoreHydrogens: boolean, ignoreHydrogensVariant: 'all' | 'non-polar' | 'polar' }) {
     for (const { units } of structure.unitSymmetryGroups) {
         if (Unit.isAtomic(units[0]) && hasUnitVisibleBonds(units[0], props)) return true;
     }
