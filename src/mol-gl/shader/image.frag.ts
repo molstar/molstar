@@ -121,7 +121,7 @@ void main() {
             gl_FragColor = vec4(packIntToRGB(float(uObjectId)), 1.0);
             gl_FragData[1] = vec4(packIntToRGB(vInstance), 1.0);
             gl_FragData[2] = vec4(texture2D(tGroupTex, vUv).rgb, 1.0);
-            gl_FragData[3] = packDepthToRGBA(gl_FragCoord.z);
+            gl_FragData[3] = packDepthToRGBA(fragmentDepth);
         #else
             gl_FragColor = vColor;
             if (uPickType == 1) {
@@ -135,7 +135,11 @@ void main() {
     #elif defined(dRenderVariant_depth)
         if (imageData.a < 0.05)
             discard;
-        gl_FragColor = packDepthToRGBA(gl_FragCoord.z);
+        if (uRenderMask == MaskOpaque) {
+            gl_FragColor = packDepthToRGBA(fragmentDepth);
+        } else if (uRenderMask == MaskTransparent) {
+            gl_FragColor = packDepthWithAlphaToRGBA(fragmentDepth, imageData.a);
+        }
     #elif defined(dRenderVariant_marking)
         float marker = uMarker;
         if (uMarker == -1.0) {
@@ -146,7 +150,7 @@ void main() {
         if (uMarkingType == 1) {
             if (marker > 0.0 || imageData.a < 0.05)
                 discard;
-            gl_FragColor = packDepthToRGBA(gl_FragCoord.z);
+            gl_FragColor = packDepthToRGBA(fragmentDepth);
         } else {
             if (marker == 0.0 || imageData.a < 0.05)
                 discard;
