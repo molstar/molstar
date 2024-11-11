@@ -268,8 +268,6 @@ function applyPrimitiveVisuals(data: UpdateTarget, refs: Set<string>) {
     UpdateTarget.apply(lines, ShapeRepresentation3D);
     // boxES?\
     // data here has no boxes?
-    const box = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'box' }, { state: { isGhost: true } }), refs);
-    UpdateTarget.apply(box, ShapeRepresentation3D);
     return data;
 }
 

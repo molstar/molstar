@@ -24,7 +24,7 @@ const _TransformBase = {
 };
 
 const CylinderParams = obj({
-    kind: literal('cylinder'),
+    kind: literal('mesh'),
     rotation: FloatList,
     // color
     // color: Optional[ColorT] = Field(description="Default color for the box.")
@@ -40,11 +40,11 @@ const CylinderParams = obj({
     // )
     // bottom_cap: bool = Field(description="Determine whether to cap the top of the cylinder.")
     // top_cap: bool = Field(description="Determine whether to cap the bottom of the cylinder.")
-    
+    // TODO: other
 });
 
 const BoxParams = obj({
-    kind: literal('box'),
+    kind: literal('mesh'),
     ..._TransformBase,
     color: nullable(ColorT),
     center: PrimitivePositionT,
@@ -56,7 +56,7 @@ const BoxParams = obj({
 });
 
 const CageParams = obj({
-    kind: literal('box'),
+    kind: literal('mesh'),
     type: literal('as_edges', 'as_geometry'),
     ..._TransformBase,
     color: nullable(ColorT),
