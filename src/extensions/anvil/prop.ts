@@ -83,11 +83,13 @@ export const MembraneOrientationProvider: CustomStructureProperty.Provider<Membr
 function isApplicable(structure: Structure) {
     if (!structure.isAtomic) return false;
 
-    const { byEntityKey } = structure.model.sequence;
-    for (const key of Object.keys(byEntityKey)) {
-        const { kind, length } = byEntityKey[+key].sequence;
-        if (kind !== 'protein') continue; // can only process protein chains
-        if (length >= 15) return true; // short peptides might fail
+    for (const model of structure.models) {
+        const { byEntityKey } = model.sequence;
+        for (const key of Object.keys(byEntityKey)) {
+            const { kind, length } = byEntityKey[+key].sequence;
+            if (kind !== 'protein') continue; // can only process protein chains
+            if (length >= 15) return true; // short peptides might fail
+        }
     }
     return false;
 }
