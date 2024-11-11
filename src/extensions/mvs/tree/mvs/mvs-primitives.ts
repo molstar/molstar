@@ -44,7 +44,7 @@ const CylinderParams = obj({
 });
 
 const BoxParams = obj({
-    kind: literal('mesh'),
+    kind: literal('box'),
     ..._TransformBase,
     color: nullable(ColorT),
     center: PrimitivePositionT,
@@ -56,7 +56,7 @@ const BoxParams = obj({
 });
 
 const CageParams = obj({
-    kind: literal('mesh'),
+    kind: literal('cage'),
     type: literal('as_edges', 'as_geometry'),
     ..._TransformBase,
     color: nullable(ColorT),

@@ -246,19 +246,19 @@ const Builders: Record<MVSPrimitive['kind'], [
     mesh: (context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: any) => void,
     line: (context: PrimitiveBuilderContext, state: LineBuilderState, node: MVSNode<'primitive'>, params: any) => void,
     label: (context: PrimitiveBuilderContext, state: LabelBuilderState, node: MVSNode<'primitive'>, params: any) => void,
-    // box: (context: PrimitiveBuilderContext, state: BoxBuilderState, node: MVSNode<'primitive'>, params: any) => void,
-    // cylinder: (context: PrimitiveBuilderContext, state: BoxBuilderState, node: MVSNode<'primitive'>, params: any) => void,
+    box: (context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: any) => void,
+    cylinder: (context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: any) => void,
     features: {
         mesh?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
         line?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
         label?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
-        // box?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
-        // cylinder?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
+        box?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
+        cylinder?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
         refs?: (params: any, refs: Set<string>) => void
     },
 ]> = {
     // TODO: improve impl so that the we do not have to add many noOps for the number of primitives
-    mesh: [addMesh, addMeshWireframe, noOp, {
+    mesh: [addMesh, addMeshWireframe, noOp, addBoxMesh, {
         mesh: (m: MVSPrimitiveParams<'mesh'>) => m.show_triangles ?? true,
         line: (m: MVSPrimitiveParams<'mesh'>) => m.show_wireframe ?? false,
     }],
@@ -271,7 +271,7 @@ const Builders: Record<MVSPrimitive['kind'], [
     // cylinder: [noOp, noOp, noOp, addBox, noOp, { box: true, refs: resolveBoxRefs }],
     box: [addBoxMesh, noOp, noOp, { mesh: true, refs: resolveBoxRefs }],
     // TODO: implement
-    cylinder: [noOp, noOp, noOp, { mesh: true, refs: resolveBoxRefs }]
+    // cylinder: [noOp, noOp, noOp, { mesh: true, refs: resolveBoxRefs }]
 };
 
 
@@ -666,7 +666,7 @@ function addBoxMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuil
 
     // const a = Vec3(), b = Vec3(), c = Vec3(), d = Vec3();
     // TODO: as_edges, rotation, edge_radius => cage, rotation matrices
-    const { center, extent, groups: box_groups, scaling, rotation, translation } = params;
+    const { center, extent, box_groups, scaling, rotation, translation } = params;
     // TODO: figure out the matrix to transform it
 
     const mat4 = Mat4.identity();
