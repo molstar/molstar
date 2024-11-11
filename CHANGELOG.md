@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Enable double rounded capping on tubular helices
+- Fix single residue tubular helices not showing up
 - Fix outlines on volume and surface reps that do not disappear (#1326)
 - Add example `glb-export`
 - Fix set fenceSync to null after deleteSync.
