@@ -4,7 +4,7 @@
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
-import * as express from 'express';
+import express from 'express';
 import { MembraneServerConfig } from './config';
 import { swaggerUiAssetsHandler, swaggerUiIndexHandler } from '../common/swagger-ui';
 import { getSchema, shortcutIconLink } from './web-schema';
@@ -46,27 +46,27 @@ export function initWebApi(app: express.Express) {
 }
 
 async function predictMembraneOrientation(req: express.Request, res: express.Response) {
-    const ctx = { runtime: SyncRuntimeContext, assetManager };
+    try {
+        const ctx = { runtime: SyncRuntimeContext, assetManager };
 
-    const entryId = req.params.id;
-    const assemblyId = req.query.assemblyId as string ?? '1';
-    const p = parseParams(req);
-    ConsoleLogger.log('predictMembraneOrientation', `${entryId}-${assemblyId} with params: ${JSON.stringify(p)}`);
+        const entryId = req.params.id;
+        const assemblyId = req.query.assemblyId as string ?? '1';
+        const p = parseParams(req);
+        ConsoleLogger.log('predictMembraneOrientation', `${entryId}-${assemblyId} with params: ${JSON.stringify(p)}`);
 
-    const cif = await downloadFromPdb(entryId);
-    const models = await getModels(cif);
-    const structure = await getStructure(models.representative, assemblyId);
+        const cif = await downloadFromPdb(entryId);
+        const models = await getModels(cif);
+        const structure = await getStructure(models.representative, assemblyId);
 
-    await MembraneOrientationProvider.attach(ctx, structure, p);
-    const data = MembraneOrientationProvider.get(structure).value;
+        await MembraneOrientationProvider.attach(ctx, structure, p);
+        const data = MembraneOrientationProvider.get(structure).value;
 
-    res.writeHead(200, {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'X-Requested-With'
-    });
-    res.write(JSON.stringify(data));
-    res.end();
+        res.status(200).json(data);
+    } catch (e) {
+        const error = 'Failed to compute membrane orientation';
+        ConsoleLogger.error(error, e);
+        res.status(500).json({ error });
+    }
 }
 
 const defaults = PD.getDefaultValues(ANVILParams);
