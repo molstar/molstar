@@ -13,7 +13,7 @@ export function getSchema() {
         info: {
             version: VERSION,
             title: 'Membrane Server',
-            description: 'The MembraneServer process an entry and predicts the orientation of the membrane layer.',
+            description: 'The MembraneServer process an entry and predicts the orientation of the membrane layer, which can be used to compose molecular scenes using MolViewSpec.',
         },
         tags: [
             {
