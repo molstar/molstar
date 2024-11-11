@@ -24,7 +24,7 @@ const _TransformBase = {
 };
 
 const CylinderParams = obj({
-    kind: literal('mesh'),
+    kind: literal('cylinder'),
     rotation: FloatList,
     // color
     // color: Optional[ColorT] = Field(description="Default color for the box.")

@@ -246,8 +246,6 @@ const Builders: Record<MVSPrimitive['kind'], [
     mesh: (context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: any) => void,
     line: (context: PrimitiveBuilderContext, state: LineBuilderState, node: MVSNode<'primitive'>, params: any) => void,
     label: (context: PrimitiveBuilderContext, state: LabelBuilderState, node: MVSNode<'primitive'>, params: any) => void,
-    box: (context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: any) => void,
-    cylinder: (context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: any) => void,
     features: {
         mesh?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
         line?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
@@ -258,7 +256,7 @@ const Builders: Record<MVSPrimitive['kind'], [
     },
 ]> = {
     // TODO: improve impl so that the we do not have to add many noOps for the number of primitives
-    mesh: [addMesh, addMeshWireframe, noOp, addBoxMesh, {
+    mesh: [addMesh, addMeshWireframe, noOp, {
         mesh: (m: MVSPrimitiveParams<'mesh'>) => m.show_triangles ?? true,
         line: (m: MVSPrimitiveParams<'mesh'>) => m.show_wireframe ?? false,
     }],
@@ -266,12 +264,9 @@ const Builders: Record<MVSPrimitive['kind'], [
     line: [addLineMesh, noOp, noOp, { mesh: true, refs: resolveLineRefs }],
     label: [noOp, noOp, addPrimitiveLabel, { label: true, refs: resolveLabelRefs }],
     distance_measurement: [addDistanceMesh, noOp, addDistanceLabel, { mesh: true, label: true, refs: resolveLineRefs }],
-    // TODO: probably this - try changing first noOp to addBox mesh of something
-    // box: [noOp, noOp, noOp, addBox, noOp, { box: true, refs: resolveBoxRefs }],
-    // cylinder: [noOp, noOp, noOp, addBox, noOp, { box: true, refs: resolveBoxRefs }],
     box: [addBoxMesh, noOp, noOp, { mesh: true, refs: resolveBoxRefs }],
     // TODO: implement
-    // cylinder: [noOp, noOp, noOp, { mesh: true, refs: resolveBoxRefs }]
+    cylinder: [noOp, noOp, noOp, { mesh: true, refs: resolveBoxRefs }]
 };
 
 
