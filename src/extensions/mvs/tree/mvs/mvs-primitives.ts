@@ -50,9 +50,22 @@ const BoxParams = obj({
     center: PrimitivePositionT,
     extent: FloatList,
     scaling: nullable(FloatList),
-    as_edges: nullable(bool),
-    edge_radius: nullable(float),
-    box_groups: nullable(IntList),
+    // as_edges: nullable(bool),
+    // edge_radius: nullable(float),
+    groups: nullable(IntList),
+});
+
+const CageParams = obj({
+    kind: literal('box'),
+    type: literal('as_edges', 'as_geometry'),
+    ..._TransformBase,
+    color: nullable(ColorT),
+    center: PrimitivePositionT,
+    extent: FloatList,
+    scaling: nullable(FloatList),
+    // as_edges: nullable(bool),
+    // edge_radius: nullable(float),
+    groups: nullable(IntList),
 });
 
 const MeshParams = obj({
