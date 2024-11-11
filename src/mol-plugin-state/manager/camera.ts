@@ -143,15 +143,11 @@ export class CameraManager {
             direction: direction as number[] as [number, number, number],
             up: up as number[] as [number, number, number],
             // TODO extraRadius
+            // TODO optional direction and up
         });
         // const radius = Math.max(sphere.radius + extraRadius, minRadius);
-        // if (options?.principalAxes) {
-        //     const snapshot = pcaFocus(this.plugin, radius, options as { principalAxes: PrincipalAxes, positionToFlip?: Vec3 });
-        //     this.plugin.canvas3d?.requestCameraReset({ durationMs, snapshot });
-        // } else {
-        //     const snapshot = canvas3d.camera.getFocus(sphere.center, radius);
-        //     canvas3d.requestCameraReset({ durationMs, snapshot });
-        // }
+        // const snapshot = canvas3d.camera.getFocus(sphere.center, radius);
+        // canvas3d.requestCameraReset({ durationMs, snapshot });
     }
 
     /** Align PCA axes of `structures` (default: all loaded structures) to the screen axes. */
