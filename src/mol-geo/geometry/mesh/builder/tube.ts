@@ -82,7 +82,7 @@ export function addTube(state: MeshBuilder.State, controlPoints: ArrayLike<numbe
         if (roundCapFlag) {
             const sc = doubleRoundCap ? i <= halfLinearSegments! : startCap;
             if (doubleRoundCap) {
-                capSmoothingFactor = Math.max(Number.EPSILON, Math.sqrt(1 - Math.pow((sc ? halfLinearSegments! - i : i - halfLinearSegments!) / (sc ? halfLinearSegments! : halfLinearSegments!), 2)));
+                capSmoothingFactor = Math.max(Number.EPSILON, Math.sqrt(1 - Math.pow((sc ? halfLinearSegments! - i : i - halfLinearSegments!) / halfLinearSegments!, 2)));
             } else {
                 capSmoothingFactor = Math.max(Number.EPSILON, Math.sqrt(1 - Math.pow((sc ? linearSegments - i : i) / linearSegments, 2)));
             }
