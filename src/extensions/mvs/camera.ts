@@ -16,9 +16,8 @@ import { Structure } from '../../mol-model/structure';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
-import { StateObjectSelector, StateTransform } from '../../mol-state';
+import { StateObject, StateObjectSelector, StateTransform } from '../../mol-state';
 import { ColorNames } from '../../mol-util/color/names';
-import { MVSPrimitivesData } from './components/primitives';
 import { decodeColor } from './helpers/utils';
 import { MolstarNodeParams } from './tree/molstar/molstar-tree';
 import { MVSDefaults } from './tree/mvs/mvs-defaults';
@@ -57,18 +56,6 @@ export function cameraParamsToCameraSnapshot(plugin: PluginContext, params: Mols
     return snapshot;
 }
 
-function getRenderObjectsBoundary(objects: ReadonlyArray<GraphicsRenderObject>) {
-    const spheres: Sphere3D[] = [];
-    for (const o of objects) {
-        const s = o.values.boundingSphere.ref.value;
-        if (s.radius === 0) continue;
-        spheres.push(s);
-    }
-    if (spheres.length === 0) return;
-    if (spheres.length === 1) return spheres[0];
-    return boundingSphereOfSpheres(spheres);
-}
-
 /** Focus the camera on the bounding sphere of a (sub)structure (or on the whole scene if `structureNodeSelector` is null).
   * Orient the camera based on a focus node params.
   **/
@@ -93,27 +80,52 @@ export function getFocusSnapshot(plugin: PluginContext, targetNodeRef: StateTran
 
 function getFocusBoundingSphere(plugin: PluginContext, targetNodeRef: StateTransform.Ref | undefined) {
     if (targetNodeRef) {
-        const cell = plugin.state.data.cells.get(targetNodeRef);
-        const data = cell?.obj?.data;
-        if (!data) console.warn('Focus: no structure');
-        if (data instanceof Structure) {
-            return Loci.getBoundingSphere(Structure.Loci(data));
-        } else if (PluginStateObject.isRepresentation3D(cell?.obj)) {
-            return getRenderObjectsBoundary(cell.obj.data.repr.renderObjects);
-        } else if (MVSPrimitivesData.is(cell?.obj)) {
-            const representations = plugin.state.data.selectQ(q =>
-                q.byRef(cell.transform.ref).subtree().filter(c => PluginStateObject.isRepresentation3D(c?.obj))
-            );
-            const renderObjects = representations.flatMap(r => r.obj?.data?.repr?.renderObjects ?? []);
-            if (renderObjects.length) {
-                return getRenderObjectsBoundary(renderObjects);
-            }
-        } else {
-            console.warn('Focus: cannot apply to the specified node type');
-        }
+        return getCellBoundingSphere(plugin, targetNodeRef);
+    } else {
+        return getPluginBoundingSphere(plugin);
     }
-    return getPluginBoundingSphere(plugin);
 }
+
+/** Get the bounding sphere of a plugin state object cell */
+function getCellBoundingSphere(plugin: PluginContext, cellRef: StateTransform.Ref): Sphere3D | undefined {
+    const spheres = collectCellBoundingSpheres([], plugin, cellRef);
+    if (spheres.length === 0) return undefined;
+    if (spheres.length === 1) return spheres[0];
+    return boundingSphereOfSpheres(spheres);
+}
+/** Push bounding spheres within cell `cellRef` to `out`. If cell does not define bounding spheres, collect bounding spheres from subtree. */
+function collectCellBoundingSpheres(out: Sphere3D[], plugin: PluginContext, cellRef: StateTransform.Ref): Sphere3D[] {
+    const cell = plugin.state.data.cells.get(cellRef);
+    const spheres = getStateObjectBoundingSpheres(cell?.obj);
+    if (spheres) {
+        out.push(...spheres);
+    } else {
+        const children = plugin.state.data.tree.children.get(cellRef);
+        children.forEach(child => collectCellBoundingSpheres(out, plugin, child));
+    }
+    return out;
+}
+/** Get a set of bounding spheres of a plugin state object */
+function getStateObjectBoundingSpheres(obj: StateObject | undefined): Sphere3D[] | undefined {
+    if (!obj) return undefined;
+    if (!obj.data) {
+        console.warn('Focus: no data');
+        return undefined;
+    }
+    if (obj.data instanceof Structure) {
+        const sphere = Loci.getBoundingSphere(Structure.Loci(obj.data));
+        return sphere ? [sphere] : [];
+    } else if (PluginStateObject.isRepresentation3D(obj)) {
+        const out: Sphere3D[] = [];
+        for (const renderObject of obj.data.repr.renderObjects) {
+            const sphere = renderObject.values.boundingSphere.ref.value;
+            if (sphere.radius > 0) out.push(sphere);
+        }
+        return out;
+    }
+    return undefined;
+}
+
 
 /** Adjust `sceneRadiusFactor` property so that the current scene is not cropped */
 function adjustSceneRadiusFactor(plugin: PluginContext, cameraTarget: Vec3 | undefined) {
