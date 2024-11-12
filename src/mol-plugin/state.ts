@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { produce } from 'immer';
@@ -104,20 +105,16 @@ class PluginState extends PluginComponent {
         if (snapshot.animation) {
             this.animation.setSnapshot(snapshot.animation);
         }
-        if (snapshot.camera) {
-            if (snapshot.camera.current) {
-                PluginCommands.Camera.Reset(this.plugin, {
-                    snapshot: snapshot.camera.current,
-                    durationMs: snapshot.camera.transitionStyle === 'animate'
-                        ? snapshot.camera.transitionDurationInMs
-                        : void 0
-                });
-            } else if (snapshot.camera.focus) {
-                PluginCommands.Camera.FocusObject(this.plugin, {
-                    ...snapshot.camera.focus,
-                    durationMs: snapshot.camera.transitionStyle === 'animate' ? snapshot.camera.transitionDurationInMs : undefined,
-                });
-            }
+        if (snapshot.camera?.current) {
+            PluginCommands.Camera.Reset(this.plugin, {
+                snapshot: snapshot.camera.current,
+                durationMs: snapshot.camera.transitionStyle === 'animate' ? snapshot.camera.transitionDurationInMs : undefined,
+            });
+        } else if (snapshot.camera?.focus) {
+            PluginCommands.Camera.FocusObject(this.plugin, {
+                ...snapshot.camera.focus,
+                durationMs: snapshot.camera.transitionStyle === 'animate' ? snapshot.camera.transitionDurationInMs : undefined,
+            });
         }
         if (snapshot.startAnimation) {
             this.animation.start();
@@ -220,9 +217,9 @@ namespace PluginState {
     export type SnapshotType = 'json' | 'molj' | 'zip' | 'molx'
 
     export interface SnapshotFocusInfo {
-        targetRef?: string,
-        direction: Vec3,
-        up: Vec3,
+        targetRef?: StateTransform.Ref,
+        direction?: Vec3,
+        up?: Vec3,
         extraRadius?: number,
     }
 }

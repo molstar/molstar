@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -7,7 +7,6 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { getFocusSnapshot } from '../../extensions/mvs/camera';
 import { Camera } from '../../mol-canvas3d/camera';
 import { GraphicsRenderObject } from '../../mol-gl/render-object';
 import { Sphere3D } from '../../mol-math/geometry';
@@ -18,8 +17,10 @@ import { PrincipalAxes } from '../../mol-math/linear-algebra/matrix/principal-ax
 import { Loci } from '../../mol-model/loci';
 import { Structure, StructureElement } from '../../mol-model/structure';
 import { PluginContext } from '../../mol-plugin/context';
+import { StateTransform } from '../../mol-state';
 import { PluginStateObject } from '../objects';
 import { pcaFocus } from './focus-camera/focus-first-residue';
+import { getFocusSnapshot } from './focus-camera/focus-object';
 import { changeCameraRotation, structureLayingTransform } from './focus-camera/orient-axes';
 
 // TODO: make this customizable somewhere?
@@ -130,7 +131,8 @@ export class CameraManager {
         }
     }
 
-    focusObject(options?: Partial<CameraFocusOptions> & { targetRef?: string, direction: Vec3, up: Vec3 }) {
+    /** Focus on a plugin state object cell (if `targetRef` is defined) or on the whole scene (if `targetRef` is undefined). */
+    focusObject(options?: Partial<CameraFocusOptions> & { targetRef?: StateTransform.Ref, direction?: Vec3, up?: Vec3 }) {
         if (!this.plugin.canvas3d) return;
         const { targetRef, direction, up, extraRadius, minRadius, durationMs } = { ...DefaultCameraFocusOptions, ...options };
         const snapshot = getFocusSnapshot(this.plugin, targetRef, { direction, up, extraRadius, minRadius });
