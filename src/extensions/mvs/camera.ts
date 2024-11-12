@@ -16,7 +16,7 @@ import { Structure } from '../../mol-model/structure';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
-import { StateObjectSelector } from '../../mol-state';
+import { StateObjectSelector, StateTransform } from '../../mol-state';
 import { ColorNames } from '../../mol-util/color/names';
 import { MVSPrimitivesData } from './components/primitives';
 import { decodeColor } from './helpers/utils';
@@ -26,8 +26,7 @@ import { MVSDefaults } from './tree/mvs/mvs-defaults';
 
 const DefaultFocusOptions = {
     minRadius: 5,
-    extraRadiusForFocus: 0,
-    extraRadiusForZoomAll: 0,
+    extraRadius: 0,
 };
 const DefaultCanvasBackgroundColor = ColorNames.white;
 
@@ -58,22 +57,6 @@ export function cameraParamsToCameraSnapshot(plugin: PluginContext, params: Mols
     return snapshot;
 }
 
-async function focusBoundingSphere(plugin: PluginContext, params: MolstarNodeParams<'focus'>, boundingSphere: Sphere3D | undefined, extraRadius: number) {
-    if (!plugin.canvas3d || !boundingSphere) return;
-
-    const direction = Vec3.create(...params.direction);
-    const up = Vec3.create(...params.up);
-    Vec3.orthogonalize(up, direction, up);
-    const snapshot = snapshotFromSphereAndDirections(plugin.canvas3d.camera, {
-        center: boundingSphere.center,
-        radius: boundingSphere.radius + extraRadius,
-        up,
-        direction,
-    });
-    resetSceneRadiusFactor(plugin);
-    await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
-}
-
 function getRenderObjectsBoundary(objects: ReadonlyArray<GraphicsRenderObject>) {
     const spheres: Sphere3D[] = [];
     for (const o of objects) {
@@ -90,30 +73,46 @@ function getRenderObjectsBoundary(objects: ReadonlyArray<GraphicsRenderObject>) 
   * Orient the camera based on a focus node params.
   **/
 export async function setFocus(plugin: PluginContext, structureNodeSelector: StateObjectSelector | undefined, params: MolstarNodeParams<'focus'> = MVSDefaults.focus) {
-    let boundingSphere: Sphere3D | undefined = undefined;
-    if (structureNodeSelector) {
-        const cell = plugin.state.data.cells.get(structureNodeSelector.ref);
+    const snapshot = getFocusSnapshot(plugin, structureNodeSelector?.ref, { direction: Vec3.create(...params.direction), up: Vec3.create(...params.up), extraRadius: DefaultFocusOptions.extraRadius, minRadius: DefaultFocusOptions.minRadius });
+    if (!snapshot) return;
+    resetSceneRadiusFactor(plugin);
+    await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
+}
+
+export function getFocusSnapshot(plugin: PluginContext, targetNodeRef: StateTransform.Ref | undefined, options: { direction?: Vec3, up?: Vec3, extraRadius?: number, minRadius?: number }) {
+    if (!plugin.canvas3d) return undefined;
+    const boundingSphere = getFocusBoundingSphere(plugin, targetNodeRef);
+    if (!boundingSphere) return undefined;
+    return snapshotFromSphereAndDirections(plugin.canvas3d.camera, {
+        center: boundingSphere.center,
+        radius: Math.max(boundingSphere.radius + (options.extraRadius ?? 0), options.minRadius ?? 0),
+        up: options.up,
+        direction: options.direction,
+    });
+}
+
+function getFocusBoundingSphere(plugin: PluginContext, targetNodeRef: StateTransform.Ref | undefined) {
+    if (targetNodeRef) {
+        const cell = plugin.state.data.cells.get(targetNodeRef);
         const data = cell?.obj?.data;
         if (!data) console.warn('Focus: no structure');
         if (data instanceof Structure) {
-            boundingSphere = Loci.getBoundingSphere(Structure.Loci(data));
+            return Loci.getBoundingSphere(Structure.Loci(data));
         } else if (PluginStateObject.isRepresentation3D(cell?.obj)) {
-            boundingSphere = getRenderObjectsBoundary(cell.obj.data.repr.renderObjects);
+            return getRenderObjectsBoundary(cell.obj.data.repr.renderObjects);
         } else if (MVSPrimitivesData.is(cell?.obj)) {
             const representations = plugin.state.data.selectQ(q =>
                 q.byRef(cell.transform.ref).subtree().filter(c => PluginStateObject.isRepresentation3D(c?.obj))
             );
             const renderObjects = representations.flatMap(r => r.obj?.data?.repr?.renderObjects ?? []);
             if (renderObjects.length) {
-                boundingSphere = getRenderObjectsBoundary(renderObjects);
+                return getRenderObjectsBoundary(renderObjects);
             }
         } else {
             console.warn('Focus: cannot apply to the specified node type');
         }
     }
-    const extraRadius = boundingSphere ? DefaultFocusOptions.extraRadiusForFocus : DefaultFocusOptions.extraRadiusForZoomAll;
-    boundingSphere ??= getPluginBoundingSphere(plugin);
-    return focusBoundingSphere(plugin, params, boundingSphere, extraRadius);
+    return getPluginBoundingSphere(plugin);
 }
 
 /** Adjust `sceneRadiusFactor` property so that the current scene is not cropped */
@@ -134,14 +133,16 @@ function resetSceneRadiusFactor(plugin: PluginContext) {
 /** Return camera snapshot for focusing a sphere with given `center` and `radius`,
  * while ensuring given view `direction` (aligns with vector position->target)
  * and `up` (aligns with screen Y axis). */
-function snapshotFromSphereAndDirections(camera: Camera, options: { center: Vec3, radius: number, direction: Vec3, up: Vec3 }): Partial<Camera.Snapshot> {
+function snapshotFromSphereAndDirections(camera: Camera, options: { center: Vec3, radius: number, direction?: Vec3, up?: Vec3 }): Partial<Camera.Snapshot> {
     // This might seem to repeat `plugin.canvas3d.camera.getFocus` but avoid flipping
-    const { center, direction, up } = options;
-    const radius = Math.max(options.radius, DefaultFocusOptions.minRadius);
+    const target = options.center;
+    const radius = options.radius;
+    const direction = options.direction ?? Vec3.sub(Vec3(), camera.target, camera.position);
+    const up = Vec3.orthogonalize(Vec3(), direction, options.up ?? camera.up);
     const distance = camera.getTargetDistance(radius);
     const deltaDirection = Vec3.setMagnitude(_tmpVec, direction, distance);
-    const position = Vec3.sub(Vec3(), center, deltaDirection);
-    return { target: center, position, up, radius };
+    const position = Vec3.sub(Vec3(), target, deltaDirection);
+    return { target, position, up, radius };
 }
 
 /** Return the distance adjustment ratio for conversion from the "reference camera"
