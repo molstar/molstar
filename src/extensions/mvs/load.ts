@@ -6,6 +6,7 @@
  * @author Aliaksei Chareshneu <chareshneu.tech@gmail.com>
  */
 
+import { Vec3 } from '../../mol-math/linear-algebra';
 import { PluginStateSnapshotManager } from '../../mol-plugin-state/manager/snapshots';
 import { Download, ParseCif } from '../../mol-plugin-state/transforms/data';
 import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromMmCif, TrajectoryFromPDB, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
@@ -129,14 +130,14 @@ function molstarTreeToEntry(plugin: PluginContext, tree: MolstarTree, metadata: 
         const cameraSnapshot = cameraParamsToCameraSnapshot(plugin, context.focus.params);
         snapshot.camera!.current = { ...currentCameraSnapshot, ...cameraSnapshot };
     } else if (context.focus?.kind === 'focus') {
-        // snapshot.camera!.focus = {
-        //     targetRef: context.focus.focusTarget.ref,
-        //     direction: Vec3.create(...context.focus.params.direction),
-        //     up: Vec3.create(...context.focus.params.up),
-        //     extraRadius: 0,
-        // };
-        throw new Error('NotImplementedError: Camera specification with `focus` node not implemented for multi-state MVS');
-        // await setFocus(plugin, context.focus.focusTarget, context.focus.params);
+        snapshot.camera!.current = undefined;
+        snapshot.camera!.focus = {
+            targetRef: context.focus.focusTarget.ref,
+            direction: Vec3.create(...context.focus.params.direction),
+            up: Vec3.create(...context.focus.params.up),
+            extraRadius: 0,
+        };
+        // TODO continue here testing this
     } else {
         throw new Error('NotImplementedError: Implicit camera specification not implemented for multi-state MVS');
         // await setFocus(plugin, undefined, undefined);
