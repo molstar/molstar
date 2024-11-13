@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2023 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2024 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -59,7 +59,7 @@ export namespace StructConn {
      */
     export function isExhaustive(model: Model): boolean {
         const structConn = StructConn.Provider.get(model);
-        return !!structConn && (structConn.data.id.rowCount / model.atomicConformation.atomId.rowCount) > 0.95;
+        return !!structConn && (structConn.entries.length / model.atomicConformation.atomId.rowCount) > 0.95;
     }
 
     function hasAtom({ units }: Structure, element: ElementIndex) {
