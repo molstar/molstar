@@ -137,10 +137,8 @@ function molstarTreeToEntry(plugin: PluginContext, tree: MolstarTree, metadata: 
             up: Vec3.create(...context.focus.params.up),
             extraRadius: 0,
         };
-        // TODO continue here testing this
     } else {
         throw new Error('NotImplementedError: Implicit camera specification not implemented for multi-state MVS');
-        // await setFocus(plugin, undefined, undefined);
     }
     const entry: PluginStateSnapshotManager.Entry = PluginStateSnapshotManager.Entry(snapshot, { key: metadata.key, name: metadata.title, description: metadata.description });
     // TODO escape markdown if description_format==='plaintext'
