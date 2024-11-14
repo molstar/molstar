@@ -30,6 +30,7 @@ import { MVSData, SnapshotMetadata } from './mvs-data';
 import { validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
 import { MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree, MolstarTreeSchema } from './tree/molstar/molstar-tree';
+import { MVSDefaults } from './tree/mvs/mvs-defaults';
 import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 
@@ -138,7 +139,13 @@ function molstarTreeToEntry(plugin: PluginContext, tree: MolstarTree, metadata: 
             extraRadius: 0,
         };
     } else {
-        throw new Error('NotImplementedError: Implicit camera specification not implemented for multi-state MVS');
+        snapshot.camera!.current = undefined;
+        snapshot.camera!.focus = {
+            targetRef: undefined,
+            direction: Vec3.create(...MVSDefaults.focus.direction),
+            up: Vec3.create(...MVSDefaults.focus.up),
+            extraRadius: 0,
+        };
     }
     const entry: PluginStateSnapshotManager.Entry = PluginStateSnapshotManager.Entry(snapshot, { key: metadata.key, name: metadata.title, description: metadata.description });
     // TODO escape markdown if description_format==='plaintext'
