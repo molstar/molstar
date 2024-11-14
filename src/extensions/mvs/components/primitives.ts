@@ -304,7 +304,7 @@ function resolveBasePosition(context: PrimitiveBuilderContext, position: Primiti
 const _EmptySphere = Sphere3D.zero();
 const _EmptyBox = Box3D.zero();
 
-function resolvePosition(context: PrimitiveBuilderContext, position: PrimitivePositionT, targetPosition: Vec3 | undefined, targetSphere: Sphere3D | undefined, targetBox: Box3D | undefined) {
+export function resolvePosition(context: PrimitiveBuilderContext, position: PrimitivePositionT, targetPosition: Vec3 | undefined, targetSphere: Sphere3D | undefined, targetBox: Box3D | undefined) {
     let expr: Expression | undefined;
     let pivotRef: string | undefined;
 
@@ -648,29 +648,38 @@ function addLineMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBui
     }
 }
 
+const targetBox = Box3D.zero();
+
 function addBoxMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'box'>, options?: { skipResolvePosition?: boolean }) {
     const box = Box();
 
 
-    // TODO: need this?
-    // if (!options?.skipResolvePosition) {
-    //     // TODO: need this?
-    //     resolveBasePosition(context, params.start, lStart);
-    //     resolveBasePosition(context, params.end, lEnd);
-    // }
+    if (!options?.skipResolvePosition) {
+        console.log('Box before resolve', targetBox);
+        resolvePosition(context, params.center, boxPos, undefined, targetBox);
+        console.log('Box after resolve', targetBox);
+    }
 
-    const { center, extent, box_groups, scaling, rotation, translation } = params;
+    const { center, extent, scaling, rotation, translation } = params;
     const mat4 = Mat4.identity();
     if (isVector3(center)) {
+        // TODO: rotation
         const t = translation ?? [0, 0, 0];
-        const translationVector = Vec3.create(center[0], center[1], center[2]);
+        // TODO: test translation
+        const translationVector = Vec3.create(center[0] + t[0], center[1] + t[1], center[2] + t[2]);
         Mat4.translate(mat4, mat4, translationVector);
 
         const s = scaling ?? [1, 1, 1];
         const scalingVector = Vec3.create(extent[0] * s[0], extent[1] * s[1], extent[2] * s[2]);
         Mat4.scale(mat4, mat4, scalingVector);
     } else {
-        throw Error('Not supported');
+        const t = translation ?? [0, 0, 0];
+        // TODO: test translation
+        const translationVector = Vec3.create(boxPos[0] + t[0], boxPos[1] + t[1], boxPos[2] + t[2]);
+        Mat4.translate(mat4, mat4, translationVector);
+        const s = scaling ?? [1, 1, 1];
+        const scalingVector = Vec3.create(extent[0] * s[0], extent[1] * s[1], extent[2] * s[2]);
+        Mat4.scale(mat4, mat4, scalingVector);
     }
     mesh.currentGroup = groups.allocateSingle(node);
     groups.updateColor(mesh.currentGroup, params.color);
@@ -695,6 +704,7 @@ function addDistanceMesh(context: PrimitiveBuilderContext, state: MeshBuilderSta
 }
 
 const labelPos = Vec3.zero();
+const boxPos = Vec3.zero();
 
 function addDistanceLabel(context: PrimitiveBuilderContext, state: LabelBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'distance_measurement'>) {
     const { labels, groups } = state;
