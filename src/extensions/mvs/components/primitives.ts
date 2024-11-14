@@ -123,7 +123,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
         const label = capitalize(params.kind);
         // TODO: case statement
 
-        // 
+        //
         if (params.kind === 'mesh') {
             if (!hasPrimitiveKind(a.data, 'mesh')) return StateObject.Null;
 
@@ -650,8 +650,8 @@ function addLineMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBui
 
 function addBoxMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'box'>, options?: { skipResolvePosition?: boolean }) {
     const box = Box();
-    
-    
+
+
     // TODO: need this?
     // if (!options?.skipResolvePosition) {
     //     // TODO: need this?
@@ -659,96 +659,21 @@ function addBoxMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuil
     //     resolveBasePosition(context, params.end, lEnd);
     // }
 
-    // const a = Vec3(), b = Vec3(), c = Vec3(), d = Vec3();
-    // TODO: as_edges, rotation, edge_radius => cage, rotation matrices
     const { center, extent, box_groups, scaling, rotation, translation } = params;
-    // TODO: figure out the matrix to transform it
-
     const mat4 = Mat4.identity();
     if (isVector3(center)) {
-        const v = Vec3.create(center[0], center[1], center[2]);
-        Mat4.translate(mat4, mat4, v);
+        const t = translation ?? [0, 0, 0];
+        const translationVector = Vec3.create(center[0], center[1], center[2]);
+        Mat4.translate(mat4, mat4, translationVector);
+
+        const s = scaling ?? [1, 1, 1];
+        const scalingVector = Vec3.create(extent[0] * s[0], extent[1] * s[1], extent[2] * s[2]);
+        Mat4.scale(mat4, mat4, scalingVector);
     } else {
         throw Error('Not supported');
     }
-    // const p = Mat4.fromArray()
-    // Mat4.setTranslation(mat4, p)
-    // const triangleCount = 12;
-    // const vertexCount = perforated ? 12 * 3 : 6 * 4;
-    // const vertexCount = 6 * 4;
-    // const builder = PrimitiveBuilder(triangleCount, vertexCount);
-
-
     mesh.currentGroup = groups.allocateSingle(node);
     groups.updateColor(mesh.currentGroup, params.color);
-    // groups.updateTooltip(mesh.currentGroup, params.tooltip);
-
-    // if (params.dash_length) {
-    //     const dist = Vec3.distance(lStart, lEnd);
-    //     const count = Math.ceil(dist / (2 * params.dash_length));
-    //     addFixedCountDashedCylinder(mesh, lStart, lEnd, 1.0, count, true, cylinderProps);
-    // } else {
-    //     // NOTE: this: use similar
-    //     addSimpleCylinder(mesh, lStart, lEnd, cylinderProps);
-    // }
-    // addSimpleCylinder(mesh, lStart, lEnd, cylinderProps);
-
-    // S1
-    // Vec3.set(a, 0, 0, 0);
-    // Vec3.set(b, 0, 0, 1);
-    // Vec3.set(c, 0, 1, 1);
-    // Vec3.set(d, 0, 1, 0);
-    // builder.addQuad(a, b, c, d);
-
-    // // S2
-    // Vec3.set(a, 0, 0, 1);
-    // Vec3.set(b, 0, 1, 1);
-    // Vec3.set(c, 1, 1, 1);
-    // Vec3.set(d, 1, 0, 1);
-    // builder.addQuad(a, b, c, d);
-
-    // // S3
-    // Vec3.set(a, 1, 1, 1);
-    // Vec3.set(b, 1, 0, 1);
-    // Vec3.set(c, 1, 0, 0);
-    // Vec3.set(d, 1, 1, 0);
-    // builder.addQuad(a, b, c, d);
-
-    // // S4
-    // Vec3.set(a, 1, 0, 0);
-    // Vec3.set(b, 1, 1, 0);
-    // Vec3.set(c, 0, 1, 0);
-    // Vec3.set(d, 0, 0, 0);
-    // builder.addQuad(a, b, c, d);
-
-
-    // // TOP
-    // Vec3.set(a, 0, 0, 0);
-    // Vec3.set(b, 0, 0, 1);
-    // Vec3.set(c, 1, 0, 1);
-    // Vec3.set(d, 1, 0, 0);
-    // builder.addQuad(a, b, c, d);
-
-    // // BOTTOM
-    // Vec3.set(a, 0, 1, 0);
-    // Vec3.set(b, 0, 1, 1);
-    // Vec3.set(c, 1, 1, 1);
-    // Vec3.set(d, 1, 1, 0);
-    // builder.addQuad(a, b, c, d);
-
-    // // const translation1 = Vec3.create(0.5, 0.5, 0.5);
-    // // const scaling1 = Vec3.create(1, 1, 1);
-    // // // const mat4 = Mat4.identity();
-    // // Mat4.scale(mat4, mat4, scaling1);
-    // // Mat4.translate(mat4, mat4, translation1);
-
-    // // MeshBuilder.addPrimitive(mesh, mat4, Box());
-
-    // const prim = builder.getPrimitive();
-    // MeshBuilder.addPrimitive(prim);
-
-
-    // const box = Box();
     MeshBuilder.addPrimitive(mesh, mat4, box);
 
 }
