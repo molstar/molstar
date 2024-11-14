@@ -653,7 +653,6 @@ const targetBox = Box3D.zero();
 function addBoxMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'box'>, options?: { skipResolvePosition?: boolean }) {
     const box = Box();
 
-
     if (!options?.skipResolvePosition) {
         console.log('Box before resolve', targetBox);
         resolvePosition(context, params.center, boxPos, undefined, targetBox);
@@ -662,25 +661,20 @@ function addBoxMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuil
 
     const { center, extent, scaling, rotation, translation } = params;
     const mat4 = Mat4.identity();
+    const t = translation ?? [0, 0, 0];
     if (isVector3(center)) {
         // TODO: rotation
-        const t = translation ?? [0, 0, 0];
         // TODO: test translation
         const translationVector = Vec3.create(center[0] + t[0], center[1] + t[1], center[2] + t[2]);
         Mat4.translate(mat4, mat4, translationVector);
-
-        const s = scaling ?? [1, 1, 1];
-        const scalingVector = Vec3.create(extent[0] * s[0], extent[1] * s[1], extent[2] * s[2]);
-        Mat4.scale(mat4, mat4, scalingVector);
     } else {
-        const t = translation ?? [0, 0, 0];
-        // TODO: test translation
         const translationVector = Vec3.create(boxPos[0] + t[0], boxPos[1] + t[1], boxPos[2] + t[2]);
         Mat4.translate(mat4, mat4, translationVector);
-        const s = scaling ?? [1, 1, 1];
-        const scalingVector = Vec3.create(extent[0] * s[0], extent[1] * s[1], extent[2] * s[2]);
-        Mat4.scale(mat4, mat4, scalingVector);
     }
+    const s = scaling ?? [1, 1, 1];
+    const scalingVector = Vec3.create(extent[0] * s[0], extent[1] * s[1], extent[2] * s[2]);
+    Mat4.scale(mat4, mat4, scalingVector);
+
     mesh.currentGroup = groups.allocateSingle(node);
     groups.updateColor(mesh.currentGroup, params.color);
     MeshBuilder.addPrimitive(mesh, mat4, box);
