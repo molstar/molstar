@@ -6,14 +6,17 @@
  */
 
 import { Camera } from '../../mol-canvas3d/camera';
-import { Canvas3DParams } from '../../mol-canvas3d/canvas3d';
+import { Canvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { getFocusSnapshot, getPluginBoundingSphere } from '../../mol-plugin-state/manager/focus-camera/focus-object';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
+import { PluginState } from '../../mol-plugin/state';
 import { StateObjectSelector } from '../../mol-state';
 import { ColorNames } from '../../mol-util/color/names';
 import { decodeColor } from './helpers/utils';
+import { MolstarLoadingContext } from './load';
+import { SnapshotMetadata } from './mvs-data';
 import { MolstarNodeParams } from './tree/molstar/molstar-tree';
 import { MVSDefaults } from './tree/mvs/mvs-defaults';
 
@@ -100,16 +103,47 @@ function fovAdjustedPosition(target: Vec3, refPosition: Vec3, mode: Camera.Mode,
     return Vec3.scaleAndAdd(delta, target, delta, adjustment); // return target + delta * adjustment
 }
 
+/** Create object for PluginState.Snapshot.camera based on tree loading context and MVS snapshot metadata */
+export function createPluginStateSnapshotCamera(plugin: PluginContext, context: MolstarLoadingContext, metadata: SnapshotMetadata & { previousTransitionDurationMs?: number }): PluginState.Snapshot['camera'] {
+    const camera: PluginState.Snapshot['camera'] = {
+        transitionStyle: 'animate',
+        transitionDurationInMs: metadata.previousTransitionDurationMs ?? 0,
+    };
+    if (context.focus?.kind === 'camera') {
+        const currentCameraSnapshot = plugin.canvas3d!.camera.getSnapshot();
+        const cameraSnapshot = cameraParamsToCameraSnapshot(plugin, context.focus.params);
+        camera.current = { ...currentCameraSnapshot, ...cameraSnapshot };
+    } else if (context.focus?.kind === 'focus') {
+        camera.focus = {
+            targetRef: context.focus.focusTarget.ref,
+            direction: Vec3.create(...context.focus.params.direction),
+            up: Vec3.create(...context.focus.params.up),
+            extraRadius: 0,
+        };
+    } else {
+        camera.focus = {
+            targetRef: undefined,
+            direction: Vec3.create(...MVSDefaults.focus.direction),
+            up: Vec3.create(...MVSDefaults.focus.up),
+            extraRadius: 0,
+        };
+    }
+    return camera;
+}
+
 /** Set canvas properties based on a canvas node params. */
 export function setCanvas(plugin: PluginContext, params: MolstarNodeParams<'canvas'> | undefined) {
+    plugin.canvas3d?.setProps(old => modifyCanvasProps(old, params));
+}
+
+/** Create a deep copy of `oldCanvasProps` with values modified according to a canvas node params. */
+export function modifyCanvasProps(oldCanvasProps: Canvas3DProps, params: MolstarNodeParams<'canvas'> | undefined): Canvas3DProps {
     const backgroundColor = decodeColor(params?.background_color) ?? DefaultCanvasBackgroundColor;
-    if (backgroundColor !== plugin.canvas3d?.props.renderer.backgroundColor) {
-        plugin.canvas3d?.setProps(old => ({
-            ...old,
-            renderer: {
-                ...old.renderer,
-                backgroundColor: backgroundColor,
-            }
-        }));
-    }
+    return {
+        ...oldCanvasProps,
+        renderer: {
+            ...oldCanvasProps.renderer,
+            backgroundColor: backgroundColor,
+        },
+    };
 }

@@ -6,7 +6,6 @@
  * @author Aliaksei Chareshneu <chareshneu.tech@gmail.com>
  */
 
-import { Vec3 } from '../../mol-math/linear-algebra';
 import { PluginStateSnapshotManager } from '../../mol-plugin-state/manager/snapshots';
 import { Download, ParseCif } from '../../mol-plugin-state/transforms/data';
 import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromMmCif, TrajectoryFromPDB, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
@@ -15,7 +14,7 @@ import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectSelector } from '../../mol-state';
 import { MolViewSpec } from './behavior';
-import { cameraParamsToCameraSnapshot, setCamera, setCanvas, setFocus, suppressCameraAutoreset } from './camera';
+import { createPluginStateSnapshotCamera, modifyCanvasProps, setCamera, setCanvas, setFocus, suppressCameraAutoreset } from './camera';
 import { MVSAnnotationsProvider } from './components/annotation-prop';
 import { MVSAnnotationStructureComponent } from './components/annotation-structure-component';
 import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-prop';
@@ -30,7 +29,6 @@ import { MVSData, SnapshotMetadata } from './mvs-data';
 import { validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
 import { MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree, MolstarTreeSchema } from './tree/molstar/molstar-tree';
-import { MVSDefaults } from './tree/mvs/mvs-defaults';
 import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 
@@ -120,34 +118,14 @@ async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, options
 function molstarTreeToEntry(plugin: PluginContext, tree: MolstarTree, metadata: SnapshotMetadata & { previousTransitionDurationMs?: number }, options?: { replaceExisting?: boolean, keepCamera?: boolean }) {
     const context: MolstarLoadingContext = {};
     const snapshot = loadTreeVirtual(plugin, tree, MolstarLoadingActions, context, options);
-    snapshot.camera ??= {} as any;
-    snapshot.camera!.transitionStyle = 'animate';
-    snapshot.camera!.transitionDurationInMs = metadata.previousTransitionDurationMs ?? 0;
-    // const DAY = 24 * 60 * 60 * 1000;
-    snapshot.durationInMs = (metadata.lingerDurationMs ?? 5000) // we want to stop animation here (but not when rendering video), TODO how
-        + (metadata.previousTransitionDurationMs ?? 0);
+    snapshot.canvas3d = {
+        props: plugin.canvas3d ? modifyCanvasProps(plugin.canvas3d.props, context.canvas) : undefined,
+    };
+    snapshot.camera = createPluginStateSnapshotCamera(plugin, context, metadata);
+    const DEFAULT_DURATION = 5000; // const DEFAULT_DURATION = 24 * 60 * 60 * 1000;
+    snapshot.durationInMs = (metadata.lingerDurationMs ?? DEFAULT_DURATION) + (metadata.previousTransitionDurationMs ?? 0);
+    // we want to stop animation here if metadata.lingerDurationMs===null (but not when rendering video), TODO how?
 
-    if (context.focus?.kind === 'camera') {
-        const currentCameraSnapshot = plugin.canvas3d!.camera.getSnapshot();
-        const cameraSnapshot = cameraParamsToCameraSnapshot(plugin, context.focus.params);
-        snapshot.camera!.current = { ...currentCameraSnapshot, ...cameraSnapshot };
-    } else if (context.focus?.kind === 'focus') {
-        snapshot.camera!.current = undefined;
-        snapshot.camera!.focus = {
-            targetRef: context.focus.focusTarget.ref,
-            direction: Vec3.create(...context.focus.params.direction),
-            up: Vec3.create(...context.focus.params.up),
-            extraRadius: 0,
-        };
-    } else {
-        snapshot.camera!.current = undefined;
-        snapshot.camera!.focus = {
-            targetRef: undefined,
-            direction: Vec3.create(...MVSDefaults.focus.direction),
-            up: Vec3.create(...MVSDefaults.focus.up),
-            extraRadius: 0,
-        };
-    }
     const entry: PluginStateSnapshotManager.Entry = PluginStateSnapshotManager.Entry(snapshot, { key: metadata.key, name: metadata.title, description: metadata.description });
     // TODO escape markdown if description_format==='plaintext'
     return entry;
