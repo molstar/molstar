@@ -654,22 +654,24 @@ function addBoxMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuil
     const box = Box();
 
     if (!options?.skipResolvePosition) {
-        console.log('Box before resolve', targetBox);
         resolvePosition(context, params.center, boxPos, undefined, targetBox);
-        console.log('Box after resolve', targetBox);
     }
 
-    const { center, extent, scaling, rotation, translation } = params;
+    const { center, extent, scaling, rotation_axis, rotation_radians, translation } = params;
     const mat4 = Mat4.identity();
     const t = translation ?? [0, 0, 0];
     if (isVector3(center)) {
         // TODO: rotation
-        // TODO: test translation
         const translationVector = Vec3.create(center[0] + t[0], center[1] + t[1], center[2] + t[2]);
         Mat4.translate(mat4, mat4, translationVector);
     } else {
         const translationVector = Vec3.create(boxPos[0] + t[0], boxPos[1] + t[1], boxPos[2] + t[2]);
         Mat4.translate(mat4, mat4, translationVector);
+    }
+    // TODO: defaults if one of them is not provided?
+    if (rotation_axis && rotation_radians) {
+        const axis = Vec3.create(rotation_axis[0], rotation_axis[1], rotation_axis[2]);
+        Mat4.rotate(mat4, mat4, rotation_radians, axis);
     }
     const s = scaling ?? [1, 1, 1];
     const scalingVector = Vec3.create(extent[0] * s[0], extent[1] * s[1], extent[2] * s[2]);
@@ -678,7 +680,6 @@ function addBoxMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuil
     mesh.currentGroup = groups.allocateSingle(node);
     groups.updateColor(mesh.currentGroup, params.color);
     MeshBuilder.addPrimitive(mesh, mat4, box);
-
 }
 
 function getDistanceLabel(context: PrimitiveBuilderContext, params: MVSPrimitiveParams<'distance_measurement'>) {

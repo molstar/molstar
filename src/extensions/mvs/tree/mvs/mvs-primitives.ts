@@ -19,7 +19,8 @@ const _LineBase = {
 };
 
 const _TransformBase = {
-    rotation: FloatList,
+    rotation_axis: nullable(FloatList),
+    rotation_radians: nullable(int),
     translation: nullable(FloatList)
 };
 
