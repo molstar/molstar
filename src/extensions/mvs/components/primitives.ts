@@ -265,7 +265,7 @@ const Builders: Record<MVSPrimitive['kind'], [
     label: [noOp, noOp, addPrimitiveLabel, { label: true, refs: resolveLabelRefs }],
     distance_measurement: [addDistanceMesh, noOp, addDistanceLabel, { mesh: true, label: true, refs: resolveLineRefs }],
     box: [addBoxMesh, noOp, noOp, { mesh: true, refs: resolveBoxRefs }],
-    cage: [noOp, addLinesCage, noOp, { line: true }],
+    cage: [noOp, addCageLines, noOp, { line: true }],
     // TODO: implement
     cylinder: [noOp, noOp, noOp, { mesh: true, refs: resolveBoxRefs }]
 };
@@ -613,14 +613,15 @@ function addLines(context: PrimitiveBuilderContext, { groups, lines }: LineBuild
 
 
 // TODO: function to scale, translate, rotate all box-like shapes
-function addLinesCage(context: PrimitiveBuilderContext, { groups, lines }: LineBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'cage'>) {
+function addCageLines(context: PrimitiveBuilderContext, { groups, lines }: LineBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'cage'>) {
     const { type, edge_radius, color, center, extent, scaling, groups: cage_groups, rotation_axis, rotation_radians, translation } = params;
     if (type === 'as_geometry') throw Error('Only lines cage is supported');
     // const groupSet: Map<number, number> | undefined = line_groups?.length ? groups.allocateMany(node, line_groups) : undefined;
     // TODO: radius? only for mesh?
     const radius = edge_radius ?? 1;
 
-    const mat4 = Mat4.identity();
+    // const mat4 = Mat4.identity();
+    const mat4 = _transformBoxLikePrimitive(center, extent, scaling, rotation_axis, rotation_radians, translation);
     const cage = BoxCage();
     const group = groups.allocateSingle(node);
     groups.updateColor(group, color ?? 'black');
@@ -667,16 +668,7 @@ function addLineMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBui
     }
 }
 
-const targetBox = Box3D.zero();
-
-function addBoxMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'box'>, options?: { skipResolvePosition?: boolean }) {
-    const box = Box();
-
-    if (!options?.skipResolvePosition) {
-        resolvePosition(context, params.center, boxPos, undefined, targetBox);
-    }
-
-    const { center, extent, scaling, rotation_axis, rotation_radians, translation } = params;
+function _transformBoxLikePrimitive(center: PrimitivePositionT, extent: number[], scaling?: number[] | null, rotation_axis?: number[] | null, rotation_radians?: number | null, translation?: number[] | null) {
     const mat4 = Mat4.identity();
     const t = translation ?? [0, 0, 0];
     if (isVector3(center)) {
@@ -695,7 +687,20 @@ function addBoxMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuil
     const s = scaling ?? [1, 1, 1];
     const scalingVector = Vec3.create(extent[0] * s[0], extent[1] * s[1], extent[2] * s[2]);
     Mat4.scale(mat4, mat4, scalingVector);
+    return mat4;
+}
 
+const targetBox = Box3D.zero();
+
+function addBoxMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'box'>, options?: { skipResolvePosition?: boolean }) {
+    const box = Box();
+
+    if (!options?.skipResolvePosition) {
+        resolvePosition(context, params.center, boxPos, undefined, targetBox);
+    }
+
+    const { center, extent, scaling, rotation_axis, rotation_radians, translation } = params;
+    const mat4 = _transformBoxLikePrimitive(center, extent, scaling, rotation_axis, rotation_radians, translation);
     mesh.currentGroup = groups.allocateSingle(node);
     groups.updateColor(mesh.currentGroup, params.color);
     MeshBuilder.addPrimitive(mesh, mat4, box);
