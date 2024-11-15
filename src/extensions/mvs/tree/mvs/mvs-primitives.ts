@@ -51,8 +51,6 @@ const BoxParams = obj({
     center: PrimitivePositionT,
     extent: FloatList,
     scaling: nullable(FloatList),
-    // as_edges: nullable(bool),
-    // edge_radius: nullable(float),
     groups: nullable(IntList),
 });
 
@@ -64,9 +62,8 @@ const CageParams = obj({
     center: PrimitivePositionT,
     extent: FloatList,
     scaling: nullable(FloatList),
-    // as_edges: nullable(bool),
-    // edge_radius: nullable(float),
     groups: nullable(IntList),
+    edge_radius: nullable(float)
 });
 
 const MeshParams = obj({
@@ -124,7 +121,7 @@ const PrimitiveLabelParams = obj({
     label_offset: nullable(float),
 });
 
-export const MVSPrimitiveParams = union([MeshParams, BoxParams, CylinderParams, LinesParams, LineParams, DistanceMeasurementParams, PrimitiveLabelParams]);
+export const MVSPrimitiveParams = union([MeshParams, BoxParams, CageParams, CylinderParams, LinesParams, LineParams, DistanceMeasurementParams, PrimitiveLabelParams]);
 
 export type MVSPrimitive = ValueFor<typeof MVSPrimitiveParams>
 export type MVSPrimitiveKind = MVSPrimitive['kind']

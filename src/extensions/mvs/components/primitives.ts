@@ -11,8 +11,7 @@ import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Text } from '../../../mol-geo/geometry/text/text';
 import { TextBuilder } from '../../../mol-geo/geometry/text/text-builder';
-import { Box } from '../../../mol-geo/primitive/box';
-import { PrimitiveBuilder } from '../../../mol-geo/primitive/primitive';
+import { Box, BoxCage } from '../../../mol-geo/primitive/box';
 import { Box3D, Sphere3D } from '../../../mol-math/geometry';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { Shape } from '../../../mol-model/shape';
@@ -146,7 +145,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
             }, { label });
         } else if (params.kind === 'lines') {
             if (!hasPrimitiveKind(a.data, 'line')) return StateObject.Null;
-            debugger;
+            // cage with type === "as_lines" should use buildPrimitiveLines
             return new SO.Shape.Provider({
                 label,
                 data: context,
@@ -251,6 +250,7 @@ const Builders: Record<MVSPrimitive['kind'], [
         line?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
         label?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
         box?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
+        cage?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
         cylinder?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
         refs?: (params: any, refs: Set<string>) => void
     },
@@ -265,6 +265,7 @@ const Builders: Record<MVSPrimitive['kind'], [
     label: [noOp, noOp, addPrimitiveLabel, { label: true, refs: resolveLabelRefs }],
     distance_measurement: [addDistanceMesh, noOp, addDistanceLabel, { mesh: true, label: true, refs: resolveLineRefs }],
     box: [addBoxMesh, noOp, noOp, { mesh: true, refs: resolveBoxRefs }],
+    cage: [noOp, addLinesCage, noOp, { line: true }],
     // TODO: implement
     cylinder: [noOp, noOp, noOp, { mesh: true, refs: resolveBoxRefs }]
 };
@@ -407,7 +408,6 @@ function buildPrimitiveMesh(context: PrimitiveBuilderContext, prev?: Mesh): Shap
 }
 
 function buildPrimitiveLines(context: PrimitiveBuilderContext, prev?: Lines): Shape<Lines> {
-    debugger;
     const linesBuilder = LinesBuilder.create(1024, 1024, prev);
     const state: LineBuilderState = { groups: new GroupManager(), lines: linesBuilder };
 
@@ -582,7 +582,6 @@ function addMeshWireframe(context: PrimitiveBuilderContext, { groups, lines }: L
 }
 
 function addLines(context: PrimitiveBuilderContext, { groups, lines }: LineBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'lines'>) {
-    debugger;
     const a = Vec3.zero();
     const b = Vec3.zero();
 
@@ -610,6 +609,26 @@ function addLines(context: PrimitiveBuilderContext, { groups, lines }: LineBuild
         Vec3.fromArray(b, vertices, 3 * indices[2 * i + 1]);
         lines.add(a[0], a[1], a[2], b[0], b[1], b[2], group);
     }
+}
+
+
+// TODO: function to scale, translate, rotate all box-like shapes
+function addLinesCage(context: PrimitiveBuilderContext, { groups, lines }: LineBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'cage'>) {
+    const { type, edge_radius, color, center, extent, scaling, groups: cage_groups, rotation_axis, rotation_radians, translation } = params;
+    if (type === 'as_geometry') throw Error('Only lines cage is supported');
+    // const groupSet: Map<number, number> | undefined = line_groups?.length ? groups.allocateMany(node, line_groups) : undefined;
+    // TODO: radius? only for mesh?
+    const radius = edge_radius ?? 1;
+
+    const mat4 = Mat4.identity();
+    const cage = BoxCage();
+    const group = groups.allocateSingle(node);
+    groups.updateColor(group, color ?? 'black');
+    groups.updateSize(group, radius);
+    // groups.updateTooltip(group, params.tooltip);
+
+    // TODO: check if 0 group (last argument) works
+    lines.addCage(mat4, cage, 0);
 }
 
 function resolveLineRefs(params: MVSPrimitiveParams<'line' | 'distance_measurement'>, refs: Set<string>) {
