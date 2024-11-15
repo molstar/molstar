@@ -123,7 +123,8 @@ function molstarTreeToEntry(plugin: PluginContext, tree: MolstarTree, metadata: 
     snapshot.camera ??= {} as any;
     snapshot.camera!.transitionStyle = 'animate';
     snapshot.camera!.transitionDurationInMs = metadata.previousTransitionDurationMs ?? 0;
-    snapshot.durationInMs = (metadata.lingerDurationMs ?? 24 * 60 * 60 * 1000) // we want to stop animation here, TODO how (Infinity doesn't work)
+    // const DAY = 24 * 60 * 60 * 1000;
+    snapshot.durationInMs = (metadata.lingerDurationMs ?? 5000) // we want to stop animation here (but not when rendering video), TODO how
         + (metadata.previousTransitionDurationMs ?? 0);
 
     if (context.focus?.kind === 'camera') {
