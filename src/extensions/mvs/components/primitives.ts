@@ -440,46 +440,6 @@ function buildPrimitiveLines(context: PrimitiveBuilderContext, prev?: Lines): Sh
     );
 }
 
-
-// TODO: maybe use buildPrimitiveMesh directly?
-function buildPrimitiveBox(context: PrimitiveBuilderContext, prev?: Mesh): Shape<Mesh> {
-    debugger;
-    const meshBuilder = MeshBuilder.createState(1024, 1024, prev);
-    const state: MeshBuilderState = { groups: new GroupManager(), mesh: meshBuilder };
-
-    meshBuilder.currentGroup = -1;
-
-    for (const c of context.primitives) {
-        const p = c.params as unknown as MVSPrimitive;
-        const b = Builders[p.kind];
-        if (!b) {
-            console.warn(`Primitive ${p.kind} not supported`);
-            continue;
-        }
-        b[0](context, state, c, p);
-    }
-
-    const { colors, tooltips } = state.groups;
-    const tooltip = context.options?.tooltip ?? '';
-    const color = decodeColor(context.options?.color) ?? 0x0;
-    debugger;
-    console.log(context, prev);
-    return Shape.create(
-        'Box',
-        {
-            kind: 'mvs-primitives',
-            node: context.node,
-            groupToNode: state.groups.groupToNodeMap,
-        },
-        MeshBuilder.getMesh(meshBuilder),
-        (g) => colors.get(g) as Color ?? color as Color,
-        (g) => 1,
-        (g) => tooltips.get(g) ?? tooltip,
-        context.instances,
-    );
-}
-
-
 function buildPrimitiveLabels(context: PrimitiveBuilderContext, prev?: Text): Shape<Text> {
     const labelsBuilder = TextBuilder.create(BaseLabelProps, 1024, 1024, prev);
     const state: LabelBuilderState = { groups: new GroupManager(), labels: labelsBuilder };
