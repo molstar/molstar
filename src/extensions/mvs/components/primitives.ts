@@ -266,9 +266,9 @@ const Builders: Record<MVSPrimitive['kind'], [
     distance_measurement: [addDistanceMesh, noOp, addDistanceLabel, { mesh: true, label: true, refs: resolveLineRefs }],
     box: [addBoxMesh, noOp, noOp, { mesh: true, refs: resolveBoxRefs }],
     // TODO: resolveRefs?
-    cage: [noOp, addCageLines, noOp, { line: true, refs: resolveBoxRefs }],
+    cage: [noOp, addCageLines, noOp, { line: true, refs: resolveCageRefs }],
     // TODO: implement
-    cylinder: [addCylinderMesh, noOp, noOp, { mesh: true, refs: resolveBoxRefs }]
+    cylinder: [addCylinderMesh, noOp, noOp, { mesh: true, refs: resolveCylinderRefs }]
 };
 
 
@@ -753,6 +753,15 @@ function resolveLabelRefs(params: MVSPrimitiveParams<'label'>, refs: Set<string>
 // TODO: type for Vec3 float list
 function resolveBoxRefs(params: MVSPrimitiveParams<'box'>, refs: Set<string>) {
     addRef(params.center as [number, number, number], refs);
+}
+
+function resolveCageRefs(params: MVSPrimitiveParams<'cage'>, refs: Set<string>) {
+    addRef(params.center as [number, number, number], refs);
+}
+
+function resolveCylinderRefs(params: MVSPrimitiveParams<'cylinder'>, refs: Set<string>) {
+    addRef(params.up as [number, number, number], refs);
+    addRef(params.bottom as [number, number, number], refs);
 }
 
 function addPrimitiveLabel(context: PrimitiveBuilderContext, state: LabelBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'label'>) {
