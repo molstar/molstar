@@ -6,7 +6,7 @@
 
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 import { LinesBuilder } from '../../../mol-geo/geometry/lines/lines-builder';
-import { addFixedCountDashedCylinder, addSimpleCylinder, BasicCylinderProps } from '../../../mol-geo/geometry/mesh/builder/cylinder';
+import { addCylinder, addFixedCountDashedCylinder, addSimpleCylinder, BasicCylinderProps } from '../../../mol-geo/geometry/mesh/builder/cylinder';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Text } from '../../../mol-geo/geometry/text/text';
@@ -265,9 +265,10 @@ const Builders: Record<MVSPrimitive['kind'], [
     label: [noOp, noOp, addPrimitiveLabel, { label: true, refs: resolveLabelRefs }],
     distance_measurement: [addDistanceMesh, noOp, addDistanceLabel, { mesh: true, label: true, refs: resolveLineRefs }],
     box: [addBoxMesh, noOp, noOp, { mesh: true, refs: resolveBoxRefs }],
-    cage: [noOp, addCageLines, noOp, { line: true }],
+    // TODO: resolveRefs?
+    cage: [noOp, addCageLines, noOp, { line: true, refs: resolveBoxRefs }],
     // TODO: implement
-    cylinder: [noOp, noOp, noOp, { mesh: true, refs: resolveBoxRefs }]
+    cylinder: [addCylinderMesh, noOp, noOp, { mesh: true, refs: resolveBoxRefs }]
 };
 
 
@@ -666,6 +667,35 @@ function addLineMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBui
         // NOTE: this: use similar
         addSimpleCylinder(mesh, lStart, lEnd, cylinderProps);
     }
+}
+
+const cylinderBottomPos = Vec3.zero();
+const cylinderUpPos = Vec3.zero();
+
+function addCylinderMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'cylinder'>, options?: { skipResolvePosition?: boolean }) {
+    // TODO: fix - should be able to specify residues auth... etc.
+    if (!options?.skipResolvePosition) {
+        resolveBasePosition(context, params.bottom, cylinderBottomPos);
+        resolveBasePosition(context, params.up, cylinderUpPos);
+    }
+
+    const { bottom, color, up, radius_bottom, radius_top, bottom_cap, top_cap } = params;
+    const cylinderProps: BasicCylinderProps = {
+        radiusBottom: radius_bottom,
+        radiusTop: radius_top,
+        topCap: top_cap,
+        bottomCap: bottom_cap,
+    };
+
+    mesh.currentGroup = groups.allocateSingle(node);
+    groups.updateColor(mesh.currentGroup, color);
+    // groups.updateTooltip(mesh.currentGroup, params.tooltip);
+
+    // TODO: "Complex" cylinder
+    // TODO: scale add to this + transform params?
+    // scale
+    addCylinder(mesh, cylinderBottomPos, cylinderUpPos, 1, cylinderProps);
+    // addSimpleCylinder(mesh, cylinderBottomPos, cylinderUpPos, cylinderProps);
 }
 
 function _transformBoxLikePrimitive(center: PrimitivePositionT, extent: number[], scaling?: number[] | null, rotation_axis?: number[] | null, rotation_radians?: number | null, translation?: number[] | null) {
