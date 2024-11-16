@@ -573,7 +573,6 @@ function addLines(context: PrimitiveBuilderContext, { groups, lines }: LineBuild
 }
 
 
-// TODO: function to scale, translate, rotate all box-like shapes
 function addCageLines(context: PrimitiveBuilderContext, { groups, lines }: LineBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'cage'>, options?: { skipResolvePosition?: boolean }) {
     if (!options?.skipResolvePosition) {
         resolvePosition(context, params.center, boxPos, undefined, targetBox);
@@ -585,7 +584,7 @@ function addCageLines(context: PrimitiveBuilderContext, { groups, lines }: LineB
     const radius = edge_radius ?? 1;
 
     // const mat4 = Mat4.identity();
-    const mat4 = _transformBoxLikePrimitive(targetBox, center, extent, scaling, rotation_axis, rotation_radians, translation);
+    const mat4 = _transformBoxLikePrimitive(targetBox, boxPos, extent, scaling, rotation_axis, rotation_radians, translation);
     const cage = BoxCage();
     const group = groups.allocateSingle(node);
     groups.updateColor(group, color ?? 'black');
@@ -691,8 +690,6 @@ const targetBox = Box3D.zero();
 function addBoxMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'box'>, options?: { skipResolvePosition?: boolean }) {
     const box = Box();
 
-    // TODO: use bounding box
-    // TODO: add extent to it
     if (!options?.skipResolvePosition) {
         resolvePosition(context, params.center, boxPos, undefined, targetBox);
     }
