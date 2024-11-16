@@ -574,7 +574,10 @@ function addLines(context: PrimitiveBuilderContext, { groups, lines }: LineBuild
 
 
 // TODO: function to scale, translate, rotate all box-like shapes
-function addCageLines(context: PrimitiveBuilderContext, { groups, lines }: LineBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'cage'>) {
+function addCageLines(context: PrimitiveBuilderContext, { groups, lines }: LineBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'cage'>, options?: { skipResolvePosition?: boolean }) {
+    if (!options?.skipResolvePosition) {
+        resolvePosition(context, params.center, boxPos, undefined, targetBox);
+    }
     const { type, edge_radius, color, center, extent, scaling, groups: cage_groups, rotation_axis, rotation_radians, translation } = params;
     if (type === 'as_geometry') throw Error('Only lines cage is supported');
     // const groupSet: Map<number, number> | undefined = line_groups?.length ? groups.allocateMany(node, line_groups) : undefined;
@@ -582,7 +585,7 @@ function addCageLines(context: PrimitiveBuilderContext, { groups, lines }: LineB
     const radius = edge_radius ?? 1;
 
     // const mat4 = Mat4.identity();
-    const mat4 = _transformBoxLikePrimitive(center, extent, scaling, rotation_axis, rotation_radians, translation);
+    const mat4 = _transformBoxLikePrimitive(targetBox, center, extent, scaling, rotation_axis, rotation_radians, translation);
     const cage = BoxCage();
     const group = groups.allocateSingle(node);
     groups.updateColor(group, color ?? 'black');
@@ -658,24 +661,27 @@ function addCylinderMesh(context: PrimitiveBuilderContext, { groups, mesh }: Mes
     // addSimpleCylinder(mesh, cylinderBottomPos, cylinderUpPos, cylinderProps);
 }
 
-function _transformBoxLikePrimitive(center: PrimitivePositionT, extent: number[], scaling?: number[] | null, rotation_axis?: number[] | null, rotation_radians?: number | null, translation?: number[] | null) {
+function _transformBoxLikePrimitive(targetBox: Box3D, center: Vec3, extent: number[], scaling?: number[] | null, rotation_axis?: number[] | null, rotation_radians?: number | null, translation?: number[] | null) {
     const mat4 = Mat4.identity();
     const t = translation ?? [0, 0, 0];
-    if (isVector3(center)) {
+    // if (isVector3(center)) {
         // TODO: rotation
-        const translationVector = Vec3.create(center[0] + t[0], center[1] + t[1], center[2] + t[2]);
-        Mat4.translate(mat4, mat4, translationVector);
-    } else {
-        const translationVector = Vec3.create(boxPos[0] + t[0], boxPos[1] + t[1], boxPos[2] + t[2]);
-        Mat4.translate(mat4, mat4, translationVector);
-    }
+    const translationVector = Vec3.create(center[0] + t[0], center[1] + t[1], center[2] + t[2]);
+    Mat4.translate(mat4, mat4, translationVector);
+    // } else {
+    //     const translationVector = Vec3.create(boxPos[0] + t[0], boxPos[1] + t[1], boxPos[2] + t[2]);
+    //     Mat4.translate(mat4, mat4, translationVector);
+    // }
     // TODO: defaults if one of them is not provided?
     if (rotation_axis && rotation_radians) {
         const axis = Vec3.create(rotation_axis[0], rotation_axis[1], rotation_axis[2]);
         Mat4.rotate(mat4, mat4, rotation_radians, axis);
     }
     const s = scaling ?? [1, 1, 1];
-    const scalingVector = Vec3.create(extent[0] * s[0], extent[1] * s[1], extent[2] * s[2]);
+    const x = extent[0] + Math.abs(targetBox.max[0] - targetBox.min[0]);
+    const y = extent[1] + Math.abs(targetBox.max[1] - targetBox.min[1]);
+    const z = extent[2] + Math.abs(targetBox.max[2] - targetBox.min[2]);
+    const scalingVector = Vec3.create(x * s[0], y * s[1], z * s[2]);
     Mat4.scale(mat4, mat4, scalingVector);
     return mat4;
 }
@@ -685,12 +691,14 @@ const targetBox = Box3D.zero();
 function addBoxMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'box'>, options?: { skipResolvePosition?: boolean }) {
     const box = Box();
 
+    // TODO: use bounding box
+    // TODO: add extent to it
     if (!options?.skipResolvePosition) {
         resolvePosition(context, params.center, boxPos, undefined, targetBox);
     }
 
     const { center, extent, scaling, rotation_axis, rotation_radians, translation } = params;
-    const mat4 = _transformBoxLikePrimitive(center, extent, scaling, rotation_axis, rotation_radians, translation);
+    const mat4 = _transformBoxLikePrimitive(targetBox, boxPos, extent, scaling, rotation_axis, rotation_radians, translation);
     mesh.currentGroup = groups.allocateSingle(node);
     groups.updateColor(mesh.currentGroup, params.color);
     MeshBuilder.addPrimitive(mesh, mat4, box);
