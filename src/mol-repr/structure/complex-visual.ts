@@ -132,6 +132,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
         if (currentStructure.child !== newStructure.child) {
             // console.log('new child');
             updateState.createGeometry = true;
+            updateState.updateTransform = true;
         }
 
         if (newProps.instanceGranularity !== currentProps.instanceGranularity) {

@@ -22,6 +22,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Show bonds in water chains when `ignoreHydorgensVariant` is `non-polar`
 - Fix `StructConn.isExhaustive` for partial models (e.g., returned by the model server)
 - Refactor value swapping in molstar-math to fix SWC (Next.js) build (#1345)
+- Fix transform data not updated when structure child changes
 
 ## [v4.8.0] - 2024-10-27
 
