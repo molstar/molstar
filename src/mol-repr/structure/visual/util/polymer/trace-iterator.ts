@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { Unit, StructureElement, ElementIndex, ResidueIndex, Structure } from '../../../../../mol-model/structure';
@@ -280,7 +281,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             const isHelixNext3 = isHelixSS(ssNext3);
 
             // handle positions for tubular helices
-            if (this.helixOrientationCenters) {
+            if (this.helixOrientationCenters && !(value.secStrucFirst && value.secStrucLast)) {
                 if (isHelix !== isHelixPrev1) {
                     if (isHelix) {
                         Vec3.copy(this.p0, this.p3);
@@ -352,7 +353,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
                 this.setFromToVector(this.d34, residueIndexNext2, ssNext2);
             }
 
-            const helixFlag = isHelix && this.helixOrientationCenters;
+            const helixFlag = isHelix && this.helixOrientationCenters && !(value.secStrucFirst && value.secStrucLast);
 
             // extend termini
             const f = 1.5;
