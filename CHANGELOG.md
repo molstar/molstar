@@ -9,6 +9,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix single residue tubular helices not showing up
 - Fix outlines on volume and surface reps that do not disappear (#1326)
 - Add example `glb-export`
+- Membrane orientation: Improve `isApplicable` check and error handling (#1316)
 - Fix set fenceSync to null after deleteSync.
 - Fix operator key-based `IndexPairBonds` assignment
     - Don't add bonds twice
