@@ -63,10 +63,6 @@ export function loadTreeVirtual<TTree extends Tree, TContext>(
     loadTreeInUpdate(updateRoot, tree, loadingActions, context, options);
     const stateTree: StateTree = updateRoot.update.getTree();
     const stateSnapshot: State.Snapshot = { tree: StateTree.toJSON(stateTree) };
-    // const pluginStateSnapshot: PluginState.Snapshot = {
-    //     ...plugin.state.getSnapshot({ data: false }),
-    //     data: stateSnapshot,
-    // };
     const pluginStateSnapshot: PluginState.Snapshot = { id: UUID.create22(), data: stateSnapshot };
     return pluginStateSnapshot;
 }

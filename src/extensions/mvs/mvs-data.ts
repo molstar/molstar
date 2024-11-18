@@ -10,8 +10,6 @@ import { Root, createMVSBuilder } from './tree/mvs/mvs-builder';
 import { MVSTree, MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 
-// TODO Clearly divide what belongs to SnapshotMetadata and what to GlobalMetadata
-
 /** Metadata describing global properties relating to the format specification. */
 interface FormatMetadata {
     /** Timestamp when this view was exported */
@@ -25,6 +23,7 @@ interface FormatMetadata {
     /** Format of the description */
     description_format?: 'markdown' | 'plaintext',
 }
+
 /** Metadata describing details of an individual state/snapshot */
 export interface SnapshotMetadata {
     /** Detailed description of this view */
@@ -61,25 +60,6 @@ export interface MVSData_States {
 /** Top level of the MolViewSpec (MVS) data format. */
 export type MVSData = MVSData_State | MVSData_States
 
-// /** Top level of the MolViewSpec (MVS) data format. */
-// export interface MVSData {
-//     /** MolViewSpec tree */
-//     root: MVSTree,
-//     /** Associated metadata */
-//     metadata: MVSMetadata,
-// }
-// interface MVSMetadata {
-//     /** Version of the spec used to write this tree */
-//     version: string,
-//     /** Name of this view */
-//     title?: string,
-//     /** Detailed description of this view */
-//     description?: string,
-//     /** Format of the description */
-//     description_format?: 'markdown' | 'plaintext',
-//     /** Timestamp when this view was exported */
-//     timestamp: string,
-// }
 
 export const MVSData = {
     /** Currently supported major version of MolViewSpec format (e.g. 1 for version '1.0.8') */
@@ -114,8 +94,6 @@ export const MVSData = {
         const version = mvsData?.metadata?.version;
         if (typeof version !== 'string') return [`MVSData.metadata.version must be a string, not ${typeof version}: ${version}`];
         if (mvsData.kind === 'single' || mvsData.kind === undefined) {
-            // if (mvsData.root === undefined) return [`"root" missing in MVS`];
-            // return treeValidationIssues(MVSTreeSchema, mvsData.root, options);
             return snapshotValidationIssues(mvsData, options);
         } else if (mvsData.kind === 'multiple') {
             if (mvsData.snapshots === undefined) return [`"snapshots" missing in MVS`];
