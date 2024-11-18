@@ -29,6 +29,7 @@ import { onelinerJsonString } from '../../mol-util/json';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
 // MolViewSpec must be imported after HeadlessPluginContext
+import { Mp4Export } from '../../extensions/mp4-export';
 import { MolViewSpec } from '../../extensions/mvs/behavior';
 import { loadMVSX } from '../../extensions/mvs/components/formats';
 import { loadMVS } from '../../extensions/mvs/load';
@@ -100,7 +101,11 @@ async function main(args: Args): Promise<void> {
         if (args.molj) {
             await plugin.saveStateSnapshot(withExtension(output, '.molj'));
         }
-        await plugin.saveImage(output);
+        if (output.toLowerCase().endsWith('.mp4')) {
+            await plugin.saveAnimation(output);
+        } else {
+            await plugin.saveImage(output);
+        }
         checkState(plugin);
     }
     await plugin.clear();
@@ -112,6 +117,7 @@ async function createHeadlessPlugin(args: Pick<Args, 'size'>): Promise<HeadlessP
     const externalModules: ExternalModules = { gl, pngjs, 'jpeg-js': jpegjs };
     const spec = DefaultPluginSpec();
     spec.behaviors.push(PluginSpec.Behavior(MolViewSpec));
+    spec.behaviors.push(PluginSpec.Behavior(Mp4Export));
     const headlessCanvasOptions = defaultCanvas3DParams();
     const canvasOptions = {
         ...PD.getDefaultValues(Canvas3DParams),
