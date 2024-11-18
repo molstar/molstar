@@ -43,7 +43,8 @@ export function arcLength(angle: number, radius: number) {
 export function spiral2d(radius: number) {
     let x = 0;
     let y = 0;
-    const delta = [0, -1];
+    let deltaX = 0;
+    let deltaY = -1;
     const size = radius * 2 + 1;
     const halfSize = size / 2;
     const out: [number, number][] = [];
@@ -54,11 +55,15 @@ export function spiral2d(radius: number) {
         }
 
         if (x === y || (x < 0 && x === -y) || (x > 0 && x === 1 - y)) {
-            [delta[0], delta[1]] = [-delta[1], delta[0]]; // change direction
+            // change direction
+            const prevDeltaX = deltaX;
+            const prevDeltaY = deltaY;
+            deltaX = -prevDeltaY;
+            deltaY = prevDeltaX;
         }
 
-        x += delta[0];
-        y += delta[1];
+        x += deltaX;
+        y += deltaY;
     }
     return out;
 }

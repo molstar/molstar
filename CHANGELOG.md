@@ -5,7 +5,11 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Enable double rounded capping on tubular helices
+- Fix single residue tubular helices not showing up
+- Fix outlines on volume and surface reps that do not disappear (#1326)
 - Add example `glb-export`
+- Membrane orientation: Improve `isApplicable` check and error handling (#1316)
 - Fix set fenceSync to null after deleteSync.
 - Fix operator key-based `IndexPairBonds` assignment
     - Don't add bonds twice
@@ -13,6 +17,15 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `Structure.intraUnitBondMapping`
 - Add more structure-based visuals to avoid too many (small) render-objects
     - `structure-intra-bond`, `structure-ellipsoid-mesh`, `structure-element-point`, `structure-element-cross`
+- Upgrade to express v5 (#1311)
+- Fix occupancy check using wrong index for inter-unit bond computation (@rxht, #1321)
+- Fix transparent SSAO for image rendering, e.g., volumne slices (#1332)
+- Fix bonds not shown with `ignoreHydrogens` on (#1315)
+    - Better handle mmCIF files with no entities defined by using `label_asym_id`
+    - Show bonds in water chains when `ignoreHydorgensVariant` is `non-polar`
+- Fix `StructConn.isExhaustive` for partial models (e.g., returned by the model server)
+- Refactor value swapping in molstar-math to fix SWC (Next.js) build (#1345)
+- Fix transform data not updated when structure child changes
 - MolViewSpec extension: Support for multi-state files (animations)
 
 ## [v4.8.0] - 2024-10-27

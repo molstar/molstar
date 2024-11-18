@@ -7,7 +7,6 @@
 import express from 'express';
 import compression from 'compression';
 import cors from 'cors';
-import * as bodyParser from 'body-parser';
 import * as fs from 'fs';
 import * as path from 'path';
 import { swaggerUiIndexHandler, swaggerUiAssetsHandler } from '../common/swagger-ui';
@@ -21,7 +20,7 @@ const Config = getConfig();
 const app = express();
 app.use(compression(<any>{ level: 6, memLevel: 9, chunkSize: 16 * 16384, filter: () => true }));
 app.use(cors({ methods: ['GET', 'PUT'] }));
-app.use(bodyParser.json({ limit: '20mb' }));
+app.use(express.json({ limit: '20mb' }));
 
 type Index = { timestamp: number, id: string, name: string, description: string, isSticky?: boolean }[]
 

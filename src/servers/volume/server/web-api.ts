@@ -27,11 +27,11 @@ export function init(app: express.Express) {
     }
 
     // Header
-    app.get(makePath(':source/:id/?$'), (req, res) => getHeader(req, res));
+    app.get(makePath(':source/:id/'), (req, res) => getHeader(req, res));
     // Box /:src/:id/box/:a1,:a2,:a3/:b1,:b2,:b3?text=0|1&space=cartesian|fractional
-    app.get(makePath(':source/:id/box/:a1,:a2,:a3/:b1,:b2,:b3/?'), (req, res) => queryBox(req, res, getQueryParams(req, false)));
+    app.get(makePath(':source/:id/box/:a1,:a2,:a3/:b1,:b2,:b3/'), (req, res) => queryBox(req, res, getQueryParams(req, false)));
     // Cell /:src/:id/cell/?text=0|1&space=cartesian|fractional
-    app.get(makePath(':source/:id/cell/?'), (req, res) => queryBox(req, res, getQueryParams(req, true)));
+    app.get(makePath(':source/:id/cell/'), (req, res) => queryBox(req, res, getQueryParams(req, true)));
 
     // Reports server health depending on `healthCheckPath` config prop
     app.get(makePath('health-check'), (_, res) => healthCheck(res, ServerConfig.healthCheckPath));

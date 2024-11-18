@@ -133,6 +133,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         if (currentStructureGroup.structure.child !== newStructureGroup.structure.child) {
             // console.log('new child');
             updateState.createGeometry = true;
+            updateState.updateTransform = true;
         }
 
         if (newProps.instanceGranularity !== currentProps.instanceGranularity || newProps.cellSize !== currentProps.cellSize || newProps.batchSize !== currentProps.batchSize) {

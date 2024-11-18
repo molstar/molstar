@@ -1,11 +1,12 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { UniqueArray } from '../../mol-data/generic';
+import { cantorPairing } from '../../mol-data/util';
 
 export { InterUnitGraph };
 
@@ -14,8 +15,8 @@ class InterUnitGraph<UnitId extends number, VertexIndex extends number, EdgeProp
     readonly edgeCount: number;
     /** Array of inter-unit edges */
     readonly edges: ReadonlyArray<InterUnitGraph.Edge<UnitId, VertexIndex, EdgeProps>>;
-    private readonly edgeKeyIndex: Map<string, number>;
-    private readonly vertexKeyIndex: Map<string, number[]>;
+    private readonly edgeKeyIndex: Map<number, Map<number, number>>;
+    private readonly vertexKeyIndex: Map<number, number[]>;
 
     /** Get an array of unit-pair-edges that are connected to the given unit */
     getConnectedUnits(unit: UnitId): ReadonlyArray<InterUnitGraph.UnitPairEdges<UnitId, VertexIndex, EdgeProps>> {
@@ -25,8 +26,10 @@ class InterUnitGraph<UnitId extends number, VertexIndex extends number, EdgeProp
 
     /** Index into this.edges */
     getEdgeIndex(indexA: VertexIndex, unitA: UnitId, indexB: VertexIndex, unitB: UnitId): number {
-        const edgeKey = InterUnitGraph.getEdgeKey<UnitId, VertexIndex>(indexA, unitA, indexB, unitB);
-        const index = this.edgeKeyIndex.get(edgeKey);
+        const indices = this.edgeKeyIndex.get(InterUnitGraph.getEdgeUnitKey(unitA, unitB));
+        if (indices === undefined) return -1;
+
+        const index = indices.get(InterUnitGraph.getEdgeIndexKey(indexA, indexB));
         return index !== undefined ? index : -1;
     }
 
@@ -49,8 +52,8 @@ class InterUnitGraph<UnitId extends number, VertexIndex extends number, EdgeProp
     constructor(protected readonly map: Map<number, InterUnitGraph.UnitPairEdges<UnitId, VertexIndex, EdgeProps>[]>) {
         let count = 0;
         const edges: (InterUnitGraph.Edge<UnitId, VertexIndex, EdgeProps>)[] = [];
-        const edgeKeyIndex = new Map<string, number>();
-        const vertexKeyIndex = new Map<string, number[]>();
+        const edgeKeyIndex = new Map<number, Map<number, number>>();
+        const vertexKeyIndex = new Map<number, number[]>();
 
         this.map.forEach(pairEdgesArray => {
             pairEdgesArray.forEach(pairEdges => {
@@ -59,13 +62,16 @@ class InterUnitGraph<UnitId extends number, VertexIndex extends number, EdgeProp
                     pairEdges.getEdges(indexA).forEach(edgeInfo => {
                         const { unitA, unitB } = pairEdges;
 
-                        const edgeKey = InterUnitGraph.getEdgeKey(indexA, unitA, edgeInfo.indexB, unitB);
-                        edgeKeyIndex.set(edgeKey, edges.length);
+                        const edgeUnitKey = InterUnitGraph.getEdgeIndexKey(unitA, unitB);
+                        const edgeIndexKey = InterUnitGraph.getEdgeIndexKey(indexA, edgeInfo.indexB);
+                        const e = edgeKeyIndex.get(edgeUnitKey);
+                        if (e === undefined) edgeKeyIndex.set(edgeUnitKey, new Map([[edgeIndexKey, edges.length]]));
+                        else e.set(edgeIndexKey, edges.length);
 
                         const vertexKey = InterUnitGraph.getVertexKey(indexA, unitA);
-                        const e = vertexKeyIndex.get(vertexKey);
-                        if (e === undefined) vertexKeyIndex.set(vertexKey, [edges.length]);
-                        else e.push(edges.length);
+                        const v = vertexKeyIndex.get(vertexKey);
+                        if (v === undefined) vertexKeyIndex.set(vertexKey, [edges.length]);
+                        else v.push(edges.length);
 
                         edges.push({ ...edgeInfo, indexA, unitA, unitB });
                     });
@@ -117,12 +123,16 @@ namespace InterUnitGraph {
         readonly props: EdgeProps
     }
 
-    export function getEdgeKey<UnitId extends number, VertexIndex extends number>(indexA: VertexIndex, unitA: UnitId, indexB: VertexIndex, unitB: UnitId) {
-        return `${indexA}|${unitA}|${indexB}|${unitB}`;
+    export function getEdgeUnitKey<UnitId extends number>(unitA: UnitId, unitB: UnitId) {
+        return cantorPairing(unitA, unitB);
+    }
+
+    export function getEdgeIndexKey<VertexIndex extends number>(indexA: VertexIndex, indexB: VertexIndex) {
+        return cantorPairing(indexA, indexB);
     }
 
     export function getVertexKey<UnitId extends number, VertexIndex extends number>(index: VertexIndex, unit: UnitId) {
-        return `${index}|${unit}`;
+        return cantorPairing(index, unit);
     }
 
     //
