@@ -122,12 +122,17 @@ function molstarTreeToEntry(plugin: PluginContext, tree: MolstarTree, metadata: 
         props: plugin.canvas3d ? modifyCanvasProps(plugin.canvas3d.props, context.canvas) : undefined,
     };
     snapshot.camera = createPluginStateSnapshotCamera(plugin, context, metadata);
-    const DEFAULT_DURATION = 5000; // const DEFAULT_DURATION = 24 * 60 * 60 * 1000;
+    const DEFAULT_DURATION = PluginStateSnapshotManager.DefaultNextSnapshotDelayInMs; // const DEFAULT_DURATION = 24 * 60 * 60 * 1000;
     snapshot.durationInMs = (metadata.lingerDurationMs ?? DEFAULT_DURATION) + (metadata.previousTransitionDurationMs ?? 0);
     // we want to stop animation here if metadata.lingerDurationMs===null (but not when rendering video), TODO how?
 
-    const entry: PluginStateSnapshotManager.Entry = PluginStateSnapshotManager.Entry(snapshot, { key: metadata.key, name: metadata.title, description: metadata.description });
-    // TODO escape markdown if description_format==='plaintext'
+    const entryParams: PluginStateSnapshotManager.EntryParams = {
+        key: metadata.key,
+        name: metadata.title,
+        description: metadata.description,
+        descriptionFormat: metadata.description_format ?? 'markdown',
+    };
+    const entry: PluginStateSnapshotManager.Entry = PluginStateSnapshotManager.Entry(snapshot, entryParams);
     return entry;
 }
 

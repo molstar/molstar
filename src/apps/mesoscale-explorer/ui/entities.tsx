@@ -394,7 +394,10 @@ export function MesoViewportSnapshotDescription() {
                 {showInfo}{increasePoliceSize}{decreasePoliceSize}
             </div>
             <div id='snapinfo' className={`msp-snapshot-description-me ${isShown ? 'shown' : 'hidden'}`} style={{ fontSize: `${textSize}px` }}>
-                {<Markdown skipHtml={false} components={{ a: MesoMarkdownAnchor }}>{e.description}</Markdown>}
+                {e.descriptionFormat === 'plaintext'
+                    && e.description
+                    || <Markdown skipHtml={false} components={{ a: MesoMarkdownAnchor }}>{e.description}</Markdown>
+                }
             </div>
         </>
     );

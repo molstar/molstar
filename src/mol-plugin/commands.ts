@@ -15,6 +15,7 @@ import { Structure, StructureElement } from '../mol-model/structure';
 import { PluginState } from './state';
 import { PluginToast } from './util/toast';
 import { Vec3 } from '../mol-math/linear-algebra';
+import { PluginStateSnapshotManager } from '../mol-plugin-state/manager/snapshots';
 
 export const PluginCommands = {
     State: {
@@ -28,7 +29,7 @@ export const PluginCommands = {
         ToggleVisibility: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
 
         Snapshots: {
-            Add: PluginCommand<{ key?: string, name?: string, description?: string, params?: PluginState.SnapshotParams }>(),
+            Add: PluginCommand<{ key?: string, name?: string, description?: string, descriptionFormat?: PluginStateSnapshotManager.DescriptionFormat, params?: PluginState.SnapshotParams }>(),
             Replace: PluginCommand<{ id: string, params?: PluginState.SnapshotParams }>(),
             Move: PluginCommand<{ id: string, dir: -1 | 1 }>(),
             Remove: PluginCommand<{ id: string }>(),
