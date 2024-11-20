@@ -7,11 +7,13 @@
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 import { LinesBuilder } from '../../../mol-geo/geometry/lines/lines-builder';
 import { addCylinder, addFixedCountDashedCylinder, addSimpleCylinder, BasicCylinderProps } from '../../../mol-geo/geometry/mesh/builder/cylinder';
+import { addEllipsoid } from '../../../mol-geo/geometry/mesh/builder/ellipsoid';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Text } from '../../../mol-geo/geometry/text/text';
 import { TextBuilder } from '../../../mol-geo/geometry/text/text-builder';
 import { Box, BoxCage } from '../../../mol-geo/primitive/box';
+import { Circle, CirclerProps } from '../../../mol-geo/primitive/circle';
 import { Box3D, Sphere3D } from '../../../mol-math/geometry';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { Shape } from '../../../mol-model/shape';
@@ -252,10 +254,10 @@ const Builders: Record<MVSPrimitive['kind'], [
         box?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
         cage?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
         cylinder?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
+        ellipsoid?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
         refs?: (params: any, refs: Set<string>) => void
     },
 ]> = {
-    // TODO: improve impl so that the we do not have to add many noOps for the number of primitives
     mesh: [addMesh, addMeshWireframe, noOp, {
         mesh: (m: MVSPrimitiveParams<'mesh'>) => m.show_triangles ?? true,
         line: (m: MVSPrimitiveParams<'mesh'>) => m.show_wireframe ?? false,
@@ -265,10 +267,10 @@ const Builders: Record<MVSPrimitive['kind'], [
     label: [noOp, noOp, addPrimitiveLabel, { label: true, refs: resolveLabelRefs }],
     distance_measurement: [addDistanceMesh, noOp, addDistanceLabel, { mesh: true, label: true, refs: resolveLineRefs }],
     box: [addBoxMesh, noOp, noOp, { mesh: true, refs: resolveBoxRefs }],
-    // TODO: resolveRefs?
     cage: [noOp, addCageLines, noOp, { line: true, refs: resolveCageRefs }],
-    // TODO: implement
-    cylinder: [addCylinderMesh, noOp, noOp, { mesh: true, refs: resolveCylinderRefs }]
+    cylinder: [addCylinderMesh, noOp, noOp, { mesh: true, refs: resolveCylinderRefs }],
+    ellipsoid: [addEllipsoidMesh, noOp, noOp, { mesh: true, refs: resolveEllipsoidRefs }],
+    ellipsis: [addEllipsis, noOp, noOp, { mesh: true, refs: resolveEllipsisRefs }]
 };
 
 
@@ -660,18 +662,55 @@ function addCylinderMesh(context: PrimitiveBuilderContext, { groups, mesh }: Mes
     // addSimpleCylinder(mesh, cylinderBottomPos, cylinderUpPos, cylinderProps);
 }
 
+// function addEllipsis(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'ellipsis'>, options?: { skipResolvePosition?: boolean }) {
+//     // TODO: calculate
+//     const majorAxis = Vec3.create(params.major_axis[0], params.major_axis[1], params.major_axis[2]);
+//     // const minorAxis =
+
+//     if (!options?.skipResolvePosition) {
+//         resolvePosition(context, params.center, boxPos, undefined, targetBox);
+//     }
+
+//     const radius = Vec3.distance(majorAxis, boxPos);
+//     const circleProps: CirclerProps = {
+//         // TODO: take into account minoraxis
+//         radius: radius,
+//         segments: 32,
+//         // TODO: change
+//         thetaStart: 28
+//     };
+//     const circle = Circle(circleProps);
+
+//     // scale
+//     // const { center, extent, scaling, rotation_axis, rotation_radians, translation } = params;
+//     const mat4 = Mat4.identity();
+
+//     mesh.currentGroup = groups.allocateSingle(node);
+//     groups.updateColor(mesh.currentGroup, params.color);
+//     MeshBuilder.addPrimitive(mesh, mat4, circle);
+// }
+
+const ellipsoidPos = Vec3.zero();
+
+// TODO: debug (loading for ages)
+function addEllipsoidMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'ellipsoid'>, options?: { skipResolvePosition?: boolean }) {
+    if (!options?.skipResolvePosition) {
+        resolveBasePosition(context, params.center, ellipsoidPos);
+    }
+    const { direction_major, direction_minor, color, radius_scale } = params;
+    const dirA = Vec3.create(direction_major[0], direction_major[1], direction_major[2]);
+    const dirB = Vec3.create(direction_minor[0], direction_minor[1], direction_minor[2]);
+    const radiusScale = radius_scale ? Vec3.create(radius_scale[0], radius_scale[1], radius_scale[2]) : Vec3.create(1, 1, 1);
+    mesh.currentGroup = groups.allocateSingle(node);
+    groups.updateColor(mesh.currentGroup, color);
+    addEllipsoid(mesh, ellipsoidPos, dirA, dirB, radiusScale, 2);
+}
+
 function _transformBoxLikePrimitive(targetBox: Box3D, center: Vec3, extent: number[], scaling?: number[] | null, rotation_axis?: number[] | null, rotation_radians?: number | null, translation?: number[] | null) {
     const mat4 = Mat4.identity();
     const t = translation ?? [0, 0, 0];
-    // if (isVector3(center)) {
-        // TODO: rotation
     const translationVector = Vec3.create(center[0] + t[0], center[1] + t[1], center[2] + t[2]);
     Mat4.translate(mat4, mat4, translationVector);
-    // } else {
-    //     const translationVector = Vec3.create(boxPos[0] + t[0], boxPos[1] + t[1], boxPos[2] + t[2]);
-    //     Mat4.translate(mat4, mat4, translationVector);
-    // }
-    // TODO: defaults if one of them is not provided?
     if (rotation_axis && rotation_radians) {
         const axis = Vec3.create(rotation_axis[0], rotation_axis[1], rotation_axis[2]);
         Mat4.rotate(mat4, mat4, rotation_radians, axis);
@@ -752,6 +791,14 @@ function resolveLabelRefs(params: MVSPrimitiveParams<'label'>, refs: Set<string>
 
 // TODO: type for Vec3 float list
 function resolveBoxRefs(params: MVSPrimitiveParams<'box'>, refs: Set<string>) {
+    addRef(params.center as [number, number, number], refs);
+}
+
+function resolveEllipsoidRefs(params: MVSPrimitiveParams<'ellipsoid'>, refs: Set<string>) {
+    addRef(params.center as [number, number, number], refs);
+}
+
+function resolveEllipsisRefs(params: MVSPrimitiveParams<'ellipsis'>, refs: Set<string>) {
     addRef(params.center as [number, number, number], refs);
 }
 

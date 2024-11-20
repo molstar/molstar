@@ -37,7 +37,22 @@ const CylinderParams = obj({
     bottom_cap: bool,
     top_cap: bool
 });
-
+const EllipsoidParams = obj({
+    kind: literal('ellipsoid'),
+    color: nullable(ColorT),
+    center: PrimitivePositionT,
+    direction_major: FloatList,
+    direction_minor: FloatList,
+    radius_scale: nullable(FloatList)
+    // direction_normal: FloatList = Field(description="Normal direction of the ellipsoid.")
+});
+const EllipsisParams = obj({
+    kind: literal('ellipsis'),
+    color: nullable(ColorT),
+    center: PrimitivePositionT,
+    major_axis: FloatList,
+    minor_axis: FloatList,
+});
 const BoxParams = obj({
     kind: literal('box'),
     ..._TransformBase,
@@ -115,7 +130,7 @@ const PrimitiveLabelParams = obj({
     label_offset: nullable(float),
 });
 
-export const MVSPrimitiveParams = union([MeshParams, BoxParams, CageParams, CylinderParams, LinesParams, LineParams, DistanceMeasurementParams, PrimitiveLabelParams]);
+export const MVSPrimitiveParams = union([MeshParams, EllipsisParams, BoxParams, EllipsoidParams, CageParams, CylinderParams, LinesParams, LineParams, DistanceMeasurementParams, PrimitiveLabelParams]);
 
 export type MVSPrimitive = ValueFor<typeof MVSPrimitiveParams>
 export type MVSPrimitiveKind = MVSPrimitive['kind']
