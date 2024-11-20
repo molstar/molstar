@@ -157,7 +157,7 @@ float fbm(in vec3 p) {
         #elif defined(dXrayShaded_inverted)
             alpha *= pow(abs(dot(normal, vec3(0.0, 0.0, 1.0))), uXrayEdgeFalloff);
         #endif
-        return min(max(alpha, 0.001), 0.999);
+        return clamp(alpha, 0.001, 0.999);
     }
 #endif
 `;
