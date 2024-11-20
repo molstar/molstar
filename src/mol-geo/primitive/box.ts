@@ -19,7 +19,6 @@ function createBox(perforated: boolean): Primitive {
     const triangleCount = 12;
     const vertexCount = perforated ? 12 * 3 : 6 * 4;
     const builder = PrimitiveBuilder(triangleCount, vertexCount);
-
     // create sides
     for (let i = 0; i < 4; ++i) {
         const ni = (i + 1) % 4;
