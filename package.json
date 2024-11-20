@@ -154,6 +154,7 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
+    "@google-cloud/storage": "^7.14.0",
     "@types/argparse": "^2.0.17",
     "@types/benchmark": "^2.1.5",
     "@types/compression": "1.7.5",
