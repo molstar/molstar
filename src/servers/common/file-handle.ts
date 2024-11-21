@@ -88,16 +88,14 @@ export function fileHandleFromGS(url: string, name: string): FileHandle {
         readBuffer: async (position: number, sizeOrBuffer: SimpleBuffer | number, length?: number, byteOffset?: number) => {
             let outBuffer: SimpleBuffer;
             if (typeof sizeOrBuffer === 'number') {
-                byteOffset = defaults(byteOffset, 0);
                 length = defaults(length, sizeOrBuffer);
                 outBuffer = SimpleBuffer.fromArrayBuffer(new ArrayBuffer(sizeOrBuffer));
             } else {
-                byteOffset = defaults(byteOffset, 0);
                 length = defaults(length, sizeOrBuffer.length);
                 outBuffer = sizeOrBuffer;
             }
-            const response = await downloadGs(bucket, file, { decompress: false, start: position, end: position + length - 1 }); // TODO use createReadStream instead for better performance
-            const bytesRead = response.copy(outBuffer, byteOffset);
+            const data = await downloadGs(bucket, file, { decompress: false, start: position, end: position + length - 1 });
+            const bytesRead = data.copy(outBuffer, byteOffset);
             if (length !== bytesRead) {
                 console.warn(`byteCount ${length} and bytesRead ${bytesRead} differ`);
             }

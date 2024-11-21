@@ -5,15 +5,17 @@
  */
 
 import { DownloadOptions, Storage } from '@google-cloud/storage';
-import fetch, { Response } from 'node-fetch';
+import fetch, { AbortError, Response } from 'node-fetch';
 
 
+/** Like `fetch` but supports Google Cloud Storage (gs://) protocol. */
 export async function extendedFetch(url: string, init?: fetch.RequestInit): Promise<Response> {
     if (url.startsWith('gs://')) return fetch_GS(url, init);
     else return fetch(url, init);
 }
 
 async function fetch_GS(url: string, init?: fetch.RequestInit): Promise<Response> {
+    if (init?.signal?.aborted) throw new AbortError('The user aborted a request.');
     const fields = parseGsUrl(url);
     const data = await downloadGs(fields.bucket, fields.file);
     return new Response(data, init);
@@ -36,7 +38,7 @@ function getGsClient() {
 }
 
 export async function downloadGs(bucketName: string, srcFileName: string, options?: DownloadOptions) {
-    const response = await getGsClient().bucket(bucketName).file(srcFileName).download(options); // decompress:true?, end inclusive!
+    const response = await getGsClient().bucket(bucketName).file(srcFileName).download(options);
     const buffer = response[0];
     return buffer;
 }
