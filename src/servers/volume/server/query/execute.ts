@@ -7,7 +7,6 @@
  */
 
 import * as DataFormat from '../../common/data-format';
-import * as File from '../../common/file';
 import * as Data from './data-model';
 import * as Coords from '../algebra/coordinate';
 import * as Box from '../algebra/box';
@@ -23,7 +22,7 @@ import { UUID } from '../../../../mol-util';
 import { FileHandle } from '../../../../mol-io/common/file-handle';
 import { createTypedArray, TypedArrayValueType } from '../../../../mol-io/common/typed-array';
 import { LimitsConfig } from '../../config';
-import { fileHandleFromDescriptor } from '../../../common/file-handle';
+import { fileHandleFromPathOrUrl } from '../../../common/file-handle';
 
 export async function execute(params: Data.QueryParams, outputProvider: () => Data.QueryOutputStream) {
     const start = getTime();
@@ -35,7 +34,7 @@ export async function execute(params: Data.QueryParams, outputProvider: () => Da
 
     let sourceFile: FileHandle | undefined;
     try {
-        sourceFile = fileHandleFromDescriptor(await File.openRead(params.sourceFilename), params.sourceFilename);
+        sourceFile = await fileHandleFromPathOrUrl(params.sourceFilename, params.sourceFilename);
         await _execute(sourceFile, params, guid, outputProvider);
         return true;
     } catch (e) {

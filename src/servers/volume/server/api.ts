@@ -12,7 +12,7 @@ import * as Data from './query/data-model';
 import { ConsoleLogger } from '../../../mol-util/console-logger';
 import * as DataFormat from '../common/data-format';
 import { LimitsConfig } from '../config';
-import { fileHandleFromDescriptor } from '../../common/file-handle';
+import { fileHandleFromPathOrUrl } from '../../common/file-handle';
 import { FileHandle } from '../../../mol-io/common/file-handle';
 
 export function getOutputFilename(source: string, id: string, { asBinary, box, detail, forcedSamplingLevel }: Data.QueryParams) {
@@ -67,7 +67,7 @@ async function readHeader(filename: string | undefined, sourceId: string) {
     let file: FileHandle | undefined;
     try {
         if (!filename) return void 0;
-        file = fileHandleFromDescriptor(await File.openRead(filename), filename);
+        file = await fileHandleFromPathOrUrl(filename, filename);
         const header = await DataFormat.readHeader(file);
         return header.header;
     } catch (e) {

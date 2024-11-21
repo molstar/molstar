@@ -4,7 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { Storage } from '@google-cloud/storage';
+import { DownloadOptions, Storage } from '@google-cloud/storage';
 import fetch, { Response } from 'node-fetch';
 
 
@@ -14,15 +14,15 @@ export async function extendedFetch(url: string, init?: fetch.RequestInit): Prom
 }
 
 async function fetch_GS(url: string, init?: fetch.RequestInit): Promise<Response> {
-    const fields = parseGsUri(url);
+    const fields = parseGsUrl(url);
     const data = await downloadGs(fields.bucket, fields.file);
     return new Response(data, init);
 }
 
-function parseGsUri(url: string) {
+export function parseGsUrl(url: string) {
     if (!url.startsWith('gs://')) throw new Error(`Invalid GS URL (must start with 'gs://'): ${url}`);
     const bucket_file = url.slice('gs://'.length);
-    const slashIndex = bucket_file.indexOf('/'); // thank you JS for not having a useful split function
+    const slashIndex = bucket_file.indexOf('/');
     if (slashIndex < 0) throw new Error(`Invalid GS URL (missing slash): ${url}`);
     return {
         bucket: bucket_file.slice(0, slashIndex),
@@ -35,8 +35,8 @@ function getGsClient() {
     return _gsClient ??= new Storage();
 }
 
-async function downloadGs(bucketName: string, srcFileName: string) {
-    const response = await getGsClient().bucket(bucketName).file(srcFileName).download({}); // decompress:true?, end inclusive!
+export async function downloadGs(bucketName: string, srcFileName: string, options?: DownloadOptions) {
+    const response = await getGsClient().bucket(bucketName).file(srcFileName).download(options); // decompress:true?, end inclusive!
     const buffer = response[0];
     return buffer;
 }
