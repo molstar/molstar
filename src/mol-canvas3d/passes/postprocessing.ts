@@ -313,17 +313,11 @@ export class PostprocessingPass {
         if (isTimingMode) this.webgl.timer.mark('PostprocessingPass.render');
         this.updateState(camera, scene, transparentBackground, backgroundColor, props, light, ambientColor);
 
-        const { state } = this.webgl;
-        const { x, y, width, height } = camera.viewport;
-
         // don't render occlusion if offset is given,
         // which will reuse the existing occlusion
         if (props.occlusion.name === 'on' && this.occlusionOffset[0] === 0 && this.occlusionOffset[1] === 0) {
             this.ssao.render(camera);
         }
-
-        state.viewport(x, y, width, height);
-        state.scissor(x, y, width, height);
 
         if (props.outline.name === 'on') {
             this.outline.render();
