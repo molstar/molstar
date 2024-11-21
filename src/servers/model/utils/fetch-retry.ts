@@ -5,9 +5,10 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { type Response } from 'node-fetch';
+import fetch, { AbortError, Response } from 'node-fetch';
 import { retryIf } from '../../../mol-util/retry-if';
-import { extendedFetch } from './extended-fetch';
+import { downloadGs } from '../../common/google-cloud-storage';
+
 
 const RETRIABLE_NETWORK_ERRORS = [
     'ECONNRESET', 'ENOTFOUND', 'ESOCKETTIMEDOUT', 'ETIMEDOUT',
@@ -32,4 +33,16 @@ export async function fetchRetry(url: string, timeout: number, retryCount: numbe
     clearTimeout(id);
 
     return result;
+}
+
+/** Like `fetch` but supports Google Cloud Storage (gs://) protocol. */
+export async function extendedFetch(url: string, init?: fetch.RequestInit): Promise<Response> {
+    if (url.startsWith('gs://')) return fetch_GS(url, init);
+    else return fetch(url, init);
+}
+
+async function fetch_GS(url: string, init?: fetch.RequestInit): Promise<Response> {
+    if (init?.signal?.aborted) throw new AbortError('The user aborted a request.');
+    const data = await downloadGs(url);
+    return new Response(data, init);
 }

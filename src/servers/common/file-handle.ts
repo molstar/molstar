@@ -11,7 +11,7 @@ import fetch from 'node-fetch';
 import { FileHandle } from '../../mol-io/common/file-handle';
 import { SimpleBuffer } from '../../mol-io/common/simple-buffer';
 import { defaults, noop } from '../../mol-util';
-import { downloadGs, parseGsUrl } from '../model/utils/extended-fetch';
+import { downloadGs } from './google-cloud-storage';
 import * as File from '../volume/common/file';
 
 
@@ -81,8 +81,6 @@ export function fileHandleFromDescriptor(file: number, name: string): FileHandle
 
 /** Create a read-only file handle from a Google Cloud Storage URL (gs://bucket-name/file-name).  */
 export function fileHandleFromGS(url: string, name: string): FileHandle {
-    const { bucket, file } = parseGsUrl(url);
-
     return {
         name,
         readBuffer: async (position: number, sizeOrBuffer: SimpleBuffer | number, length?: number, byteOffset?: number) => {
@@ -94,7 +92,7 @@ export function fileHandleFromGS(url: string, name: string): FileHandle {
                 length = defaults(length, sizeOrBuffer.length);
                 outBuffer = sizeOrBuffer;
             }
-            const data = await downloadGs(bucket, file, { decompress: false, start: position, end: position + length - 1 });
+            const data = await downloadGs(url, { decompress: false, start: position, end: position + length - 1 });
             const bytesRead = data.copy(outBuffer, byteOffset);
             if (length !== bytesRead) {
                 console.warn(`byteCount ${length} and bytesRead ${bytesRead} differ`);
