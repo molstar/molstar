@@ -23,6 +23,7 @@ import { ColorNames } from '../../mol-util/color/names';
 import { PixelData } from '../../mol-util/image';
 import { InputObserver } from '../../mol-util/input/input-observer';
 import { ParamDefinition } from '../../mol-util/param-definition';
+import { RuntimeContext } from '../../mol-task';
 
 export interface ExternalModules {
     'gl': typeof import('gl'),
@@ -58,21 +59,23 @@ export class HeadlessScreenshotHelper {
             const props = { ...Canvas3DContext.DefaultProps };
             const assetManager = new AssetManager();
             const passes = new Passes(webgl, assetManager, props);
+            const pixelScale = 1;
+            const syncPixelScale = () => {};
             const setProps = () => {};
             const dispose = () => {
                 input.dispose();
                 webgl.destroy();
             };
-            this.canvas3d = Canvas3D.create({ webgl, input, passes, attribs, props, assetManager, setProps, dispose }, options?.canvas ?? defaultCanvas3DParams());
+            this.canvas3d = Canvas3D.create({ webgl, input, passes, attribs, props, assetManager, pixelScale, syncPixelScale, setProps, dispose }, options?.canvas ?? defaultCanvas3DParams());
         }
 
         this.imagePass = this.canvas3d.getImagePass(options?.imagePass ?? defaultImagePassParams());
         this.imagePass.setSize(this.canvasSize.width, this.canvasSize.height);
     }
 
-    private getImageData(width: number, height: number): RawImageData {
+    private async getImageData(runtime: RuntimeContext, width: number, height: number): Promise<RawImageData> {
         this.imagePass.setSize(width, height);
-        this.imagePass.render();
+        await this.imagePass.render(runtime);
         this.imagePass.colorTarget.bind();
 
         const array = new Uint8Array(width * height * 4);
@@ -84,18 +87,18 @@ export class HeadlessScreenshotHelper {
         return { data: new Uint8ClampedArray(array), width, height };
     }
 
-    async getImageRaw(imageSize?: { width: number, height: number }, postprocessing?: Partial<PostprocessingProps>): Promise<RawImageData> {
+    async getImageRaw(runtime: RuntimeContext, imageSize?: { width: number, height: number }, postprocessing?: Partial<PostprocessingProps>): Promise<RawImageData> {
         const width = imageSize?.width ?? this.canvasSize.width;
         const height = imageSize?.height ?? this.canvasSize.height;
         this.canvas3d.commit(true);
         this.imagePass.setProps({
             postprocessing: ParamDefinition.merge(PostprocessingParams, this.canvas3d.props.postprocessing, postprocessing),
         });
-        return this.getImageData(width, height);
+        return this.getImageData(runtime, width, height);
     }
 
-    async getImagePng(imageSize?: { width: number, height: number }, postprocessing?: Partial<PostprocessingProps>): Promise<PNG> {
-        const imageData = await this.getImageRaw(imageSize, postprocessing);
+    async getImagePng(runtime: RuntimeContext, imageSize?: { width: number, height: number }, postprocessing?: Partial<PostprocessingProps>): Promise<PNG> {
+        const imageData = await this.getImageRaw(runtime, imageSize, postprocessing);
         if (!this.externalModules.pngjs) {
             throw new Error("External module 'pngjs' was not provided. If you want to use getImagePng, you must import 'pngjs' and provide it to the HeadlessPluginContext/HeadlessScreenshotHelper constructor.");
         }
@@ -104,8 +107,8 @@ export class HeadlessScreenshotHelper {
         return generatedPng;
     }
 
-    async getImageJpeg(imageSize?: { width: number, height: number }, postprocessing?: Partial<PostprocessingProps>, jpegQuality: number = 90): Promise<JpegBufferRet> {
-        const imageData = await this.getImageRaw(imageSize, postprocessing);
+    async getImageJpeg(runtime: RuntimeContext, imageSize?: { width: number, height: number }, postprocessing?: Partial<PostprocessingProps>, jpegQuality: number = 90): Promise<JpegBufferRet> {
+        const imageData = await this.getImageRaw(runtime, imageSize, postprocessing);
         if (!this.externalModules['jpeg-js']) {
             throw new Error("External module 'jpeg-js' was not provided. If you want to use getImageJpeg, you must import 'jpeg-js' and provide it to the HeadlessPluginContext/HeadlessScreenshotHelper constructor.");
         }
@@ -113,7 +116,7 @@ export class HeadlessScreenshotHelper {
         return generatedJpeg;
     }
 
-    async saveImage(outPath: string, imageSize?: { width: number, height: number }, postprocessing?: Partial<PostprocessingProps>, format?: 'png' | 'jpeg', jpegQuality = 90) {
+    async saveImage(runtime: RuntimeContext, outPath: string, imageSize?: { width: number, height: number }, postprocessing?: Partial<PostprocessingProps>, format?: 'png' | 'jpeg', jpegQuality = 90) {
         if (!format) {
             const extension = path.extname(outPath).toLowerCase();
             if (extension === '.png') format = 'png';
@@ -121,10 +124,10 @@ export class HeadlessScreenshotHelper {
             else throw new Error(`Cannot guess image format from file path '${outPath}'. Specify format explicitly or use path with one of these extensions: .png, .jpg, .jpeg`);
         }
         if (format === 'png') {
-            const generatedPng = await this.getImagePng(imageSize, postprocessing);
+            const generatedPng = await this.getImagePng(runtime, imageSize, postprocessing);
             await writePngFile(generatedPng, outPath);
         } else if (format === 'jpeg') {
-            const generatedJpeg = await this.getImageJpeg(imageSize, postprocessing, jpegQuality);
+            const generatedJpeg = await this.getImageJpeg(runtime, imageSize, postprocessing, jpegQuality);
             await writeJpegFile(generatedJpeg, outPath);
         } else {
             throw new Error(`Invalid format: ${format}`);
@@ -225,6 +228,7 @@ export const STYLIZED_POSTPROCESSING: Partial<PostprocessingProps> = {
             blurDepthBias: 0.5,
             resolutionScale: 1,
             color: ColorNames.black,
+            transparentThreshold: 0.4,
         }
     }, outline: {
         name: 'on' as const, params: {

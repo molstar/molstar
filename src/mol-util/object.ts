@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -118,13 +118,12 @@ export function mapArrayToObject<K extends keyof any, V>(array: readonly K[], ge
     return result;
 }
 
-export function objectForEach<T>(o: { [k: string]: T }, f: (v: T, k: string) => void) {
+export function objectForEach<T extends {}, V extends T[K], K extends keyof T & string>(o: T, f: (v: V, k: K) => void) {
     if (!o) return;
     for (const k of Object.keys(o)) {
-        f((o as any)[k], k);
+        f((o as any)[k], k as K);
     }
 }
-
 
 /** Return an object with keys `keys` and their values same as in `obj` */
 export function pickObjectKeys<T extends {}, K extends keyof T>(obj: T, keys: readonly K[]): Pick<T, K> {

@@ -3,7 +3,7 @@ uniform float uMetalness;
 uniform float uRoughness;
 uniform float uBumpiness;
 
-#if defined(dRenderVariant_color)
+#if defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
     #if defined(dColorType_uniform)
         uniform vec3 uColor;
     #elif defined(dColorType_attribute)

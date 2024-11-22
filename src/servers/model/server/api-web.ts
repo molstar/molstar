@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -7,7 +7,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as express from 'express';
-import * as bodyParser from 'body-parser';
 import { ModelServerConfig as Config, ModelServerConfig, mapSourceAndIdToFilename } from '../config';
 import { ConsoleLogger } from '../../../mol-util/console-logger';
 import { resolveJob } from './query';
@@ -19,6 +18,7 @@ import { swaggerUiAssetsHandler, swaggerUiIndexHandler } from '../../common/swag
 import { MultipleQuerySpec, getMultiQuerySpecFilename } from './api-web-multiple';
 import { SimpleResponseResultWriter, WebResutlWriter, TarballResponseResultWriter } from '../utils/writer';
 import { splitCamelCase } from '../../../mol-util/string';
+import { healthCheck } from '../../common/util';
 
 function makePath(p: string) {
     return Config.apiPrefix + '/' + p;
@@ -147,7 +147,7 @@ function createMultiJob(spec: MultipleQuerySpec, res: express.Response) {
 }
 
 export function initWebApi(app: express.Express) {
-    app.use(bodyParser.json({ limit: '1mb' }));
+    app.use(express.json({ limit: '1mb' }));
 
     app.get(makePath('static/:source/:id'), (req, res) => serveStatic(req, res));
     app.get(makePath('v1/static/:source/:id'), (req, res) => serveStatic(req, res));
@@ -159,15 +159,18 @@ export function initWebApi(app: express.Express) {
     });
     app.post(makePath('v1/query-many'), (req, res) => {
         const params = req.body;
-        req.setTimeout;
+        req.setTimeout(ModelServerConfig.requestTimeoutMs);
         createMultiJob(params, res);
     });
 
-    app.use(bodyParser.json({ limit: '20mb' }));
+    app.use(express.json({ limit: '20mb' }));
 
     for (const q of QueryList) {
         mapQuery(app, q.name, q.definition);
     }
+
+    // Reports server health depending on `healthCheckPath` config prop
+    app.get(makePath('health-check'), (_, res) => healthCheck(res, ModelServerConfig.healthCheckPath));
 
     const schema = getApiSchema();
 

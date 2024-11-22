@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -120,7 +120,6 @@ let SentWebglSyncObjectNotSupportedInWebglMessage = false;
 function waitForGpuCommandsComplete(gl: GLRenderingContext): Promise<void> {
     return new Promise(resolve => {
         if (isWebGL2(gl)) {
-            // TODO seems quite slow
             fence(gl, resolve);
         } else {
             if (!SentWebglSyncObjectNotSupportedInWebglMessage) {
@@ -161,6 +160,25 @@ function getDrawingBufferPixelData(gl: GLRenderingContext, state: WebGLState) {
     readPixels(gl, 0, 0, w, h, buffer);
     return PixelData.flipY(PixelData.create(buffer, w, h));
 }
+
+function getShaderPrecisionFormat(gl: GLRenderingContext, shader: 'vertex' | 'fragment', precision: 'low' | 'medium' | 'high', type: 'float' | 'int') {
+    const glShader = shader === 'vertex' ? gl.VERTEX_SHADER : gl.FRAGMENT_SHADER;
+    const glPrecisionType = gl[`${precision.toUpperCase()}_${type.toUpperCase()}` as 'LOW_FLOAT' | 'MEDIUM_FLOAT' | 'HIGH_FLOAT' | 'LOW_INT' | 'MEDIUM_INT' | 'HIGH_INT'];
+    return gl.getShaderPrecisionFormat(glShader, glPrecisionType);
+}
+
+function getShaderPrecisionFormats(gl: GLRenderingContext, shader: 'vertex' | 'fragment') {
+    return {
+        lowFloat: getShaderPrecisionFormat(gl, shader, 'low', 'float'),
+        mediumFloat: getShaderPrecisionFormat(gl, shader, 'medium', 'float'),
+        highFloat: getShaderPrecisionFormat(gl, shader, 'high', 'float'),
+        lowInt: getShaderPrecisionFormat(gl, shader, 'low', 'int'),
+        mediumInt: getShaderPrecisionFormat(gl, shader, 'medium', 'int'),
+        highInt: getShaderPrecisionFormat(gl, shader, 'high', 'int'),
+    };
+}
+
+type WebGLShaderPrecisionFormats = ReturnType<typeof getShaderPrecisionFormats>
 
 //
 
@@ -219,6 +237,7 @@ export interface WebGLContext {
     readonly maxRenderbufferSize: number
     readonly maxDrawBuffers: number
     readonly maxTextureImageUnits: number
+    readonly shaderPrecisionFormats: { vertex: WebGLShaderPrecisionFormats, fragment: WebGLShaderPrecisionFormats }
 
     readonly isContextLost: boolean
     readonly contextRestored: BehaviorSubject<now.Timestamp>
@@ -240,6 +259,9 @@ export interface WebGLContext {
     readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>
     waitForGpuCommandsComplete: () => Promise<void>
     waitForGpuCommandsCompleteSync: () => void
+    getFenceSync: () => WebGLSync | null
+    checkSyncStatus: (sync: WebGLSync) => boolean
+    deleteSync: (sync: WebGLSync) => void
     getDrawingBufferPixelData: () => PixelData
     clear: (red: number, green: number, blue: number, alpha: number) => void
     destroy: (options?: Partial<{ doNotForceWebGLContextLoss: boolean }>) => void
@@ -263,6 +285,15 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
 
     if (parameters.maxVertexTextureImageUnits < 8) {
         throw new Error('Need "MAX_VERTEX_TEXTURE_IMAGE_UNITS" >= 8');
+    }
+
+    const shaderPrecisionFormats = {
+        vertex: getShaderPrecisionFormats(gl, 'vertex'),
+        fragment: getShaderPrecisionFormats(gl, 'fragment'),
+    };
+
+    if (isDebugMode) {
+        console.log({ parameters, shaderPrecisionFormats });
     }
 
     // optimize assuming flats first and last data are same or differences don't matter
@@ -333,6 +364,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         get maxRenderbufferSize() { return parameters.maxRenderbufferSize; },
         get maxDrawBuffers() { return parameters.maxDrawBuffers; },
         get maxTextureImageUnits() { return parameters.maxTextureImageUnits; },
+        get shaderPrecisionFormats() { return shaderPrecisionFormats; },
 
         namedComputeRenderables: Object.create(null),
         namedFramebuffers: Object.create(null),
@@ -384,6 +416,22 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         readPixelsAsync,
         waitForGpuCommandsComplete: () => waitForGpuCommandsComplete(gl),
         waitForGpuCommandsCompleteSync: () => waitForGpuCommandsCompleteSync(gl),
+        getFenceSync: () => {
+            return isWebGL2(gl) ? gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0) : null;
+        },
+        checkSyncStatus: (sync: WebGLSync) => {
+            if (!isWebGL2(gl)) return true;
+
+            if (gl.getSyncParameter(sync, gl.SYNC_STATUS) === gl.SIGNALED) {
+                gl.deleteSync(sync);
+                return true;
+            } else {
+                return false;
+            }
+        },
+        deleteSync: (sync: WebGLSync) => {
+            if (isWebGL2(gl)) gl.deleteSync(sync);
+        },
         getDrawingBufferPixelData: () => getDrawingBufferPixelData(gl, state),
         clear: (red: number, green: number, blue: number, alpha: number) => {
             unbindFramebuffer(gl);

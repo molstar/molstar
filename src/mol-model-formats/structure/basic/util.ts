@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -40,5 +40,6 @@ export function getNormalizedAtomSite(atom_site: AtomSite) {
     substUndefinedColumn(normalized, 'label_comp_id', 'auth_comp_id');
     substUndefinedColumn(normalized, 'label_seq_id', 'auth_seq_id');
     substUndefinedColumn(normalized, 'label_asym_id', 'auth_asym_id');
+    substUndefinedColumn(normalized, 'label_entity_id', 'label_asym_id');
     return normalized;
 }

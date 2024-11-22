@@ -102,6 +102,7 @@ $sequence-select-height: 24px;
         padding: 0px;
         margin-left: -3em;
         font-size: 80%;
+        pointer-events: none;
     }
 
     .msp-sequence-number-long {
@@ -121,6 +122,7 @@ $sequence-select-height: 24px;
     }
 
     .msp-sequence-missing {
-        color: color-lower-contrast($font-color, 33%);
+        color: color-lower-contrast($font-color, 45%);
+        cursor: default;
     }
 }

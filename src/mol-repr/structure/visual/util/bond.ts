@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -125,6 +125,20 @@ export function makeInterBondIgnoreTest(structure: Structure, props: BondProps):
     };
 }
 
+export function hasUnitVisibleBonds(unit: Unit.Atomic, props: { ignoreHydrogens: boolean, ignoreHydrogensVariant: 'all' | 'non-polar' | 'polar' }) {
+    if (Unit.Traits.is(unit.traits, Unit.Trait.Water)) {
+        return !props.ignoreHydrogens || props.ignoreHydrogensVariant === 'non-polar';
+    }
+    return true;
+}
+
+export function hasStructureVisibleBonds(structure: Structure, props: { ignoreHydrogens: boolean, ignoreHydrogensVariant: 'all' | 'non-polar' | 'polar' }) {
+    for (const { units } of structure.unitSymmetryGroups) {
+        if (Unit.isAtomic(units[0]) && hasUnitVisibleBonds(units[0], props)) return true;
+    }
+    return false;
+}
+
 export namespace BondIterator {
     export function fromGroup(structureGroup: StructureGroup, props?: { includeLocation2?: boolean }): LocationIterator {
         const { group, structure } = structureGroup;
@@ -175,6 +189,38 @@ export namespace BondIterator {
                 location2.aIndex = bond.indexB;
                 location2.bUnit = structure.unitMap.get(bond.unitA);
                 location2.bIndex = bond.indexA;
+                return location2;
+            };
+            return LocationIterator(groupCount, instanceCount, 1, getLocation, true, () => false, getLocation2);
+        };
+        return LocationIterator(groupCount, instanceCount, 1, getLocation, true);
+    }
+
+    export function fromStructureGroups(structure: Structure, props?: { includeLocation2?: boolean }): LocationIterator {
+        const { bondCount, unitIndex, unitGroupIndex, unitEdgeIndex } = structure.intraUnitBondMapping;
+        const groupCount = bondCount;
+        const instanceCount = 1;
+        const location = Bond.Location(structure, undefined, undefined, structure, undefined, undefined);
+        const getLocation = (groupIndex: number) => {
+            const ug = structure.unitSymmetryGroups[unitIndex[groupIndex]];
+            const unit = ug.units[unitGroupIndex[groupIndex]] as Unit.Atomic;
+            const edgeIndex = unitEdgeIndex[groupIndex];
+            location.aUnit = unit;
+            location.bUnit = unit;
+            location.aIndex = unit.bonds.a[edgeIndex];
+            location.bIndex = unit.bonds.b[edgeIndex];
+            return location;
+        };
+        if (props?.includeLocation2) {
+            const location2 = Bond.Location(structure, undefined, undefined, structure, undefined, undefined);
+            const getLocation2 = (groupIndex: number) => { // swapping A and B
+                const ug = structure.unitSymmetryGroups[unitIndex[groupIndex]];
+                const unit = ug.units[unitGroupIndex[groupIndex]] as Unit.Atomic;
+                const edgeIndex = unitEdgeIndex[groupIndex];
+                location2.aUnit = unit;
+                location2.bUnit = unit;
+                location2.aIndex = unit.bonds.b[edgeIndex];
+                location2.bIndex = unit.bonds.a[edgeIndex];
                 return location2;
             };
             return LocationIterator(groupCount, instanceCount, 1, getLocation, true, () => false, getLocation2);
@@ -282,23 +328,88 @@ export function eachInterBond(loci: Loci, structure: Structure, apply: (interval
         for (const e of loci.elements) {
             const { unit } = e;
             if (!Unit.isAtomic(unit)) continue;
-            structure.interUnitBonds.getConnectedUnits(unit.id).forEach(b => {
+            for (const b of structure.interUnitBonds.getConnectedUnits(unit.id)) {
                 const otherLociIndices = __unitMap.get(b.unitB);
                 if (!isMarking || otherLociIndices) {
                     OrderedSet.forEach(e.indices, v => {
                         if (!b.connectedIndices.includes(v)) return;
-                        b.getEdges(v).forEach(bi => {
+                        for (const bi of b.getEdges(v)) {
                             if (!isMarking || (otherLociIndices && OrderedSet.has(otherLociIndices, bi.indexB))) {
                                 const idx = structure.interUnitBonds.getEdgeIndex(v, unit.id, bi.indexB, b.unitB);
                                 if (apply(Interval.ofSingleton(idx))) changed = true;
                             }
-                        });
+                        }
                     });
                 }
-            });
+            }
         }
 
         __unitMap.clear();
+    }
+    return changed;
+}
+
+//
+
+export function getStructureGroupsBondLoci(pickingId: PickingId, structure: Structure, id: number) {
+    const { objectId, groupId } = pickingId;
+    if (id === objectId) {
+        const mapping = structure.intraUnitBondMapping;
+        return getIntraBondLoci({
+            objectId,
+            instanceId: mapping.unitGroupIndex[groupId],
+            groupId: mapping.unitEdgeIndex[groupId]
+        }, {
+            structure,
+            group: structure.unitSymmetryGroups[mapping.unitIndex[groupId]]
+        }, id);
+    }
+    return EmptyLoci;
+}
+
+export function eachStructureGroupsBond(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean, isMarking: boolean) {
+    const { unitGroupOffset } = structure.intraUnitBondMapping;
+
+    let changed = false;
+    if (Bond.isLoci(loci)) {
+        if (!Structure.areEquivalent(loci.structure, structure)) return false;
+        for (const b of loci.bonds) {
+            if (b.aUnit !== b.bUnit) continue;
+            const groupIdx = structure.unitSymmetryGroupsIndexMap.get(b.aUnit.id);
+            const group = structure.unitSymmetryGroups[groupIdx];
+            const unit = group.units[0];
+            if (!Unit.isAtomic(unit)) continue;
+            const o = unitGroupOffset[groupIdx];
+            const groupCount = unit.bonds.edgeCount * 2;
+            const unitIdx = group.unitIndexMap.get(b.aUnit.id);
+            if (unitIdx !== undefined) {
+                const idx = unit.bonds.getDirectedEdgeIndex(b.aIndex, b.bIndex);
+                if (idx !== -1) {
+                    if (apply(Interval.ofSingleton(unitIdx * groupCount + idx + o))) changed = true;
+                }
+            }
+        }
+    } else if (StructureElement.Loci.is(loci)) {
+        if (!Structure.areEquivalent(loci.structure, structure)) return false;
+        for (const e of loci.elements) {
+            const groupIdx = structure.unitSymmetryGroupsIndexMap.get(e.unit.id);
+            const group = structure.unitSymmetryGroups[groupIdx];
+            const unit = group.units[0];
+            if (!Unit.isAtomic(unit)) continue;
+            const o = unitGroupOffset[groupIdx];
+            const groupCount = unit.bonds.edgeCount * 2;
+            const unitIdx = group.unitIndexMap.get(e.unit.id);
+            if (unitIdx !== undefined) {
+                const { offset, b } = unit.bonds;
+                OrderedSet.forEach(e.indices, v => {
+                    for (let t = offset[v], _t = offset[v + 1]; t < _t; t++) {
+                        if (!isMarking || OrderedSet.has(e.indices, b[t])) {
+                            if (apply(Interval.ofSingleton(unitIdx * groupCount + t + o))) changed = true;
+                        }
+                    }
+                });
+            }
+        }
     }
     return changed;
 }

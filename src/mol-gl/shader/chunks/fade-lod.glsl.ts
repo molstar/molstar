@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -12,7 +12,7 @@ if (uLod.w == 0.0 && (uLod.x != 0.0 || uLod.y != 0.0)) {
         1.0 - smoothstep(uLod.y - uLod.z, uLod.y, d)
     );
 
-    #if defined(dRenderVariant_color)
+    #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
         float at = 0.0;
 
         // shift by view-offset during multi-sample rendering to allow for blending

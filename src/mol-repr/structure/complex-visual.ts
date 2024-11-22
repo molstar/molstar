@@ -32,7 +32,7 @@ import { Text } from '../../mol-geo/geometry/text/text';
 import { SizeTheme } from '../../mol-theme/size';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
 import { createMarkers } from '../../mol-geo/geometry/marker-data';
-import { StructureParams, StructureMeshParams, StructureTextParams, StructureDirectVolumeParams, StructureLinesParams, StructureCylindersParams, StructureTextureMeshParams, StructureSpheresParams } from './params';
+import { StructureParams, StructureMeshParams, StructureTextParams, StructureDirectVolumeParams, StructureLinesParams, StructureCylindersParams, StructureTextureMeshParams, StructureSpheresParams, StructurePointsParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
 import { WebGLContext } from '../../mol-gl/webgl/context';
@@ -40,6 +40,7 @@ import { isPromiseLike } from '../../mol-util/type-helpers';
 import { Substance } from '../../mol-theme/substance';
 import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
 import { Emissive } from '../../mol-theme/emissive';
+import { Points } from '../../mol-geo/geometry/points/points';
 
 export interface ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
@@ -120,6 +121,10 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
             updateState.updateColor = true;
         }
 
+        if (!SizeTheme.areEqual(theme.size, currentTheme.size)) {
+            updateState.updateSize = true;
+        }
+
         if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) {
             updateState.createGeometry = true;
         }
@@ -127,6 +132,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
         if (currentStructure.child !== newStructure.child) {
             // console.log('new child');
             updateState.createGeometry = true;
+            updateState.updateTransform = true;
         }
 
         if (newProps.instanceGranularity !== currentProps.instanceGranularity) {
@@ -157,9 +163,13 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
                 throw new Error('expected renderObject to be available');
             }
 
+            if (updateState.updateColor || updateState.updateSize || updateState.updateTransform) {
+                // console.log('update locationIterator');
+                locationIt = createLocationIterator(newStructure, newProps);
+            }
+
             if (updateState.updateTransform) {
                 // console.log('update transform')
-                locationIt = createLocationIterator(newStructure, newProps);
                 const { instanceCount, groupCount } = locationIt;
                 if (newProps.instanceGranularity) {
                     createMarkers(instanceCount, 'instance', renderObject.values);
@@ -378,6 +388,24 @@ export function ComplexCylindersVisual<P extends ComplexCylindersParams>(builder
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true;
         },
         geometryUtils: Cylinders.Utils
+    }, materialId);
+}
+
+// points
+
+export const ComplexPointsParams = { ...StructurePointsParams, ...StructureParams };
+export type ComplexPointsParams = typeof ComplexPointsParams
+
+export interface ComplexPointsVisualBuilder<P extends ComplexPointsParams> extends ComplexVisualBuilder<P, Points> { }
+
+export function ComplexPointsVisual<P extends ComplexPointsParams>(builder: ComplexPointsVisualBuilder<P>, materialId: number): ComplexVisual<P> {
+    return ComplexVisual<Points, P>({
+        ...builder,
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructure, currentStructure);
+            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true;
+        },
+        geometryUtils: Points.Utils
     }, materialId);
 }
 

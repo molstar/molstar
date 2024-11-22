@@ -232,6 +232,24 @@ namespace Tokenizer {
         return prev;
     }
 
+    /** Skips all the whitespace */
+    export function skipStrictWhitespace(state: Tokenizer): number {
+        let prev = -1;
+        while (state.position < state.length) {
+            const c = state.data.charCodeAt(state.position);
+            switch (c) {
+                case 9: // '\t'
+                case 32: // ' '
+                    prev = c;
+                    ++state.position;
+                    break;
+                default:
+                    return prev;
+            }
+        }
+        return prev;
+    }
+
     /** Trims spaces and tabs */
     export function trim(state: Tokenizer, start: number, end: number) {
         const { data } = state;

@@ -13,7 +13,7 @@ if (uFog) {
             gl_FragColor.rgb = mix(gl_FragColor.rgb, uFogColor, fogFactor);
         }
     } else {
-        #if defined(dRenderVariant_colorDpoit)
+        #if defined(dRenderVariant_colorDpoit) && !defined(dGeometryType_directVolume)
             if (gl_FragColor.a < 1.0) {
                 // transparent objects are blended with background color
                 gl_FragColor.a = fogAlpha;
@@ -28,5 +28,10 @@ if (uFog) {
             gl_FragColor.a = fogAlpha;
         #endif
     }
+} else if (uTransparentBackground) {
+    #if !defined(dRenderVariant_colorDpoit) && !defined(dGeometryType_directVolume)
+        // pre-multiplied alpha expected for transparent background
+        gl_FragColor.rgb *= gl_FragColor.a;
+    #endif
 }
 `;

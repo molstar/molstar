@@ -90,7 +90,6 @@ export function secondaryStructureColor(colorMap: SecondaryStructureColors, unit
 }
 
 export function SecondaryStructureColorTheme(ctx: ThemeDataContext, props: PD.Values<SecondaryStructureColorThemeParams>): ColorTheme<SecondaryStructureColorThemeParams> {
-
     const computedSecondaryStructure = ctx.structure && SecondaryStructureProvider.get(ctx.structure);
     const contextHash = computedSecondaryStructure ? hash2(computedSecondaryStructure.id, computedSecondaryStructure.version) : -1;
 

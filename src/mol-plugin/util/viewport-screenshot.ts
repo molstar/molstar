@@ -7,7 +7,9 @@
 
 import { Viewport } from '../../mol-canvas3d/camera/util';
 import { CameraHelperParams } from '../../mol-canvas3d/helper/camera-helper';
+import { IlluminationProps } from '../../mol-canvas3d/passes/illumination';
 import { ImagePass } from '../../mol-canvas3d/passes/image';
+import { PostprocessingProps } from '../../mol-canvas3d/passes/postprocessing';
 import { canvasToBlob } from '../../mol-canvas3d/util';
 import { equalEps } from '../../mol-math/linear-algebra/3d/common';
 import { PluginComponent } from '../../mol-plugin-state/component';
@@ -31,7 +33,11 @@ type ViewportScreenshotHelperParams = PD.Values<ReturnType<ViewportScreenshotHel
 
 class ViewportScreenshotHelper extends PluginComponent {
     private createParams() {
-        const max = Math.min(this.plugin.canvas3d ? this.plugin.canvas3d.webgl.maxRenderbufferSize : 4096, 4096);
+        let max = 8192;
+        if (this.plugin.canvas3d) {
+            const { webgl } = this.plugin.canvas3d;
+            max = Math.floor(Math.min(webgl.maxRenderbufferSize, webgl.maxTextureSize) / 2);
+        }
         return {
             resolution: PD.MappedStatic('viewport', {
                 viewport: PD.Group({}),
@@ -53,6 +59,10 @@ class ViewportScreenshotHelper extends PluginComponent {
             }),
             transparent: PD.Boolean(false),
             axes: CameraHelperParams.axes,
+            illumination: PD.Group({
+                extraIterations: PD.Numeric(1, { min: 0, max: 5, step: 1 }),
+                targetIterationTimeMs: PD.Numeric(300, { min: 100, max: 3000, step: 10 }),
+            }),
         };
     }
     private _params: ReturnType<ViewportScreenshotHelper['createParams']> = void 0 as any;
@@ -65,7 +75,8 @@ class ViewportScreenshotHelper extends PluginComponent {
         values: this.ev.behavior<ViewportScreenshotHelperParams>({
             transparent: this.params.transparent.defaultValue,
             axes: { name: 'off', params: {} },
-            resolution: this.params.resolution.defaultValue
+            resolution: this.params.resolution.defaultValue,
+            illumination: this.params.illumination.defaultValue,
         }),
         cropParams: this.ev.behavior<{ auto: boolean, relativePadding: number }>({ auto: true, relativePadding: 0.1 }),
         relativeCrop: this.ev.behavior<Viewport>({ x: 0, y: 0, width: 1, height: 1 }),
@@ -105,54 +116,68 @@ class ViewportScreenshotHelper extends PluginComponent {
         }
     }
 
-    private createPass(multisample: boolean) {
+    private getPostprocessingProps() {
+        const c = this.plugin.canvas3d!;
+        const aoProps = c.props.postprocessing.occlusion;
+        return {
+            ...c.props.postprocessing,
+            occlusion: aoProps.name === 'on'
+                ? { name: 'on', params: { ...aoProps.params, samples: 128, resolutionScale: c.webgl.pixelRatio, transparentThreshold: 1 } }
+                : aoProps
+        } as PostprocessingProps;
+    }
+
+    private getIlluminationProps(isPreview: boolean) {
+        const c = this.plugin.canvas3d!;
+        const giProps = c.props.illumination;
+        const { extraIterations, targetIterationTimeMs } = this.values.illumination;
+        return {
+            ...giProps,
+            enabled: isPreview ? false : giProps.enabled,
+            maxIterations: Math.ceil(Math.log2(Math.pow(2, giProps.maxIterations + extraIterations) * giProps.rendersPerFrame[1])),
+            targetFps: 1000 / targetIterationTimeMs,
+            denoiseThreshold: [giProps.denoiseThreshold[0], giProps.denoiseThreshold[0]],
+            rendersPerFrame: [1, 1],
+        } as IlluminationProps;
+    }
+
+    private createPass(isPreview: boolean) {
         const c = this.plugin.canvas3d!;
         const { colorBufferFloat, textureFloat } = c.webgl.extensions;
-        const aoProps = c.props.postprocessing.occlusion;
         return c.getImagePass({
             transparentBackground: this.values.transparent,
             cameraHelper: { axes: this.values.axes },
             multiSample: {
                 ...c.props.multiSample,
-                mode: multisample ? 'on' : 'off',
+                mode: isPreview ? 'off' : 'on',
                 sampleLevel: colorBufferFloat && textureFloat ? 4 : 2,
                 reuseOcclusion: false,
             },
-            postprocessing: {
-                ...c.props.postprocessing,
-                occlusion: aoProps.name === 'on'
-                    ? { name: 'on', params: { ...aoProps.params, samples: 128, resolutionScale: c.webgl.pixelRatio } }
-                    : aoProps
-            },
-            marking: { ...c.props.marking }
+            postprocessing: this.getPostprocessingProps(),
+            marking: { ...c.props.marking },
+            illumination: this.getIlluminationProps(isPreview),
         });
     }
 
     private _previewPass: ImagePass;
     private get previewPass() {
-        return this._previewPass || (this._previewPass = this.createPass(false));
+        return this._previewPass || (this._previewPass = this.createPass(true));
     }
 
     private _imagePass: ImagePass;
     get imagePass() {
         if (this._imagePass) {
             const c = this.plugin.canvas3d!;
-            const aoProps = c.props.postprocessing.occlusion;
             this._imagePass.setProps({
                 cameraHelper: { axes: this.values.axes },
                 transparentBackground: this.values.transparent,
-                // TODO: optimize because this creates a copy of a large object!
-                postprocessing: {
-                    ...c.props.postprocessing,
-                    occlusion: aoProps.name === 'on'
-                        ? { name: 'on', params: { ...aoProps.params, samples: 128, resolutionScale: c.webgl.pixelRatio } }
-                        : aoProps
-                },
-                marking: { ...c.props.marking }
+                postprocessing: this.getPostprocessingProps(),
+                marking: { ...c.props.marking },
+                illumination: this.getIlluminationProps(false),
             });
             return this._imagePass;
         }
-        return this._imagePass = this.createPass(true);
+        return this._imagePass = this.createPass(false);
     }
 
     getFilename(extension = '.png') {
@@ -251,7 +276,7 @@ class ViewportScreenshotHelper extends PluginComponent {
         this.behaviors.relativeCrop.next(crop);
     }
 
-    getPreview(maxDim = 320) {
+    async getPreview(ctx: RuntimeContext, maxDim = 320) {
         const { width, height } = this.getSize();
         if (width <= 0 || height <= 0) return;
 
@@ -270,11 +295,10 @@ class ViewportScreenshotHelper extends PluginComponent {
         this.previewPass.setProps({
             cameraHelper: { axes: this.values.axes },
             transparentBackground: this.values.transparent,
-            // TODO: optimize because this creates a copy of a large object!
             postprocessing: canvasProps.postprocessing,
-            marking: canvasProps.marking
+            marking: canvasProps.marking,
         });
-        const imageData = this.previewPass.getImageData(w, h);
+        const imageData = await this.previewPass.getImageData(ctx, w, h);
         const canvas = this.previewCanvas;
         canvas.width = imageData.width;
         canvas.height = imageData.height;
@@ -310,18 +334,23 @@ class ViewportScreenshotHelper extends PluginComponent {
         const { width, height, viewport } = this.getSizeAndViewport();
         if (width <= 0 || height <= 0) return;
 
-        await ctx.update('Rendering image...');
-        const pass = this.imagePass;
-        await pass.updateBackground();
-        const imageData = pass.getImageData(width, height, viewport);
+        this.plugin.canvas3d?.pause(true);
+        try {
+            await ctx.update('Rendering image...');
+            const pass = this.imagePass;
+            await pass.updateBackground();
+            const imageData = await pass.getImageData(ctx, width, height, viewport);
 
-        await ctx.update('Encoding image...');
-        const canvas = this.canvas;
-        canvas.width = imageData.width;
-        canvas.height = imageData.height;
-        const canvasCtx = canvas.getContext('2d');
-        if (!canvasCtx) throw new Error('Could not create canvas 2d context');
-        canvasCtx.putImageData(imageData, 0, 0);
+            await ctx.update('Encoding image...');
+            const canvas = this.canvas;
+            canvas.width = imageData.width;
+            canvas.height = imageData.height;
+            const canvasCtx = canvas.getContext('2d');
+            if (!canvasCtx) throw new Error('Could not create canvas 2d context');
+            canvasCtx.putImageData(imageData, 0, 0);
+        } finally {
+            this.plugin.canvas3d?.animate();
+        }
         return;
     }
 
@@ -367,7 +396,7 @@ class ViewportScreenshotHelper extends PluginComponent {
     }
 
     download(filename?: string) {
-        this.plugin.runTask(this.downloadTask(filename));
+        return this.plugin.runTask(this.downloadTask(filename), { useOverlay: true });
     }
 
     constructor(private plugin: PluginContext) {

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -17,7 +17,7 @@ import { ComponentBuilder } from '../common/component';
 import { EntityBuilder } from '../common/entity';
 import { Column } from '../../../mol-data/db';
 import { getMoleculeType } from '../../../mol-model/structure/model/types';
-import { getAtomSiteTemplate, addAtom, getAtomSite } from './atom-site';
+import { getAtomSiteTemplate, addAtom, getAtomSite, LabelAsymIdHelper } from './atom-site';
 import { addAnisotropic, getAnisotropicTemplate, getAnisotropic } from './anisotropic';
 import { parseConect } from './conect';
 import { isDebugMode } from '../../../mol-util/debug';
@@ -201,16 +201,17 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
     const atomIds = Column.ofStringTokens(atomSite.auth_atom_id);
     const compIds = Column.ofStringTokens(atomSite.auth_comp_id);
     const asymIds = Column.ofStringTokens(atomSite.auth_asym_id);
+    const labelAsymIdHelper = new LabelAsymIdHelper(asymIds, atomSite.pdbx_PDB_model_num, terIndices, hasAssemblies);
     const componentBuilder = new ComponentBuilder(seqIds, atomIds);
     componentBuilder.setNames(heteroNames);
     entityBuilder.setNames(heteroNames);
     for (let i = 0, il = compIds.rowCount; i < il; ++i) {
         const compId = compIds.value(i);
         const moleculeType = getMoleculeType(componentBuilder.add(compId, i).type, compId);
-        atomSite.label_entity_id[i] = entityBuilder.getEntityId(compId, moleculeType, asymIds.value(i));
+        const asymId = labelAsymIdHelper.get(i);
+        atomSite.label_entity_id[i] = entityBuilder.getEntityId(compId, moleculeType, asymId);
     }
-
-    const atom_site = getAtomSite(atomSite, terIndices, { hasAssemblies });
+    const atom_site = getAtomSite(atomSite, labelAsymIdHelper, { hasAssemblies });
     if (!isPdbqt) delete atom_site.partial_charge;
 
     if (conectRange) {

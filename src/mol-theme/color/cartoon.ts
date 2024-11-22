@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -22,12 +22,19 @@ import { ResidueNameColorTheme, ResidueNameColorThemeParams } from './residue-na
 import { ScaleLegend, TableLegend } from '../../mol-util/legend';
 import { SecondaryStructureColorTheme, SecondaryStructureColorThemeParams } from './secondary-structure';
 import { ElementSymbolColorTheme, ElementSymbolColorThemeParams } from './element-symbol';
+import { TrajectoryIndexColorTheme, TrajectoryIndexColorThemeParams } from './trajectory-index';
+import { hash2 } from '../../mol-data/util';
+import { HydrophobicityColorTheme, HydrophobicityColorThemeParams } from './hydrophobicity';
+import { UncertaintyColorTheme, UncertaintyColorThemeParams } from './uncertainty';
+import { OccupancyColorTheme, OccupancyColorThemeParams } from './occupancy';
+import { SequenceIdColorTheme, SequenceIdColorThemeParams } from './sequence-id';
+import { PartialChargeColorTheme, PartialChargeColorThemeParams } from './partial-charge';
 
 const Description = 'Uses separate themes for coloring mainchain and sidechain visuals.';
 
 export const CartoonColorThemeParams = {
     mainchain: PD.MappedStatic('molecule-type', {
-        uniform: PD.Group(UniformColorThemeParams),
+        'uniform': PD.Group(UniformColorThemeParams),
         'chain-id': PD.Group(ChainIdColorThemeParams),
         'entity-id': PD.Group(EntityIdColorThemeParams),
         'entity-source': PD.Group(EntitySourceColorThemeParams),
@@ -35,11 +42,17 @@ export const CartoonColorThemeParams = {
         'model-index': PD.Group(ModelIndexColorThemeParams),
         'structure-index': PD.Group(StructureIndexColorThemeParams),
         'secondary-structure': PD.Group(SecondaryStructureColorThemeParams),
+        'trajectory-index': PD.Group(TrajectoryIndexColorThemeParams),
     }),
     sidechain: PD.MappedStatic('residue-name', {
-        uniform: PD.Group(UniformColorThemeParams),
+        'uniform': PD.Group(UniformColorThemeParams),
         'residue-name': PD.Group(ResidueNameColorThemeParams),
         'element-symbol': PD.Group(ElementSymbolColorThemeParams),
+        'hydrophobicity': PD.Group(HydrophobicityColorThemeParams),
+        'uncertainty': PD.Group(UncertaintyColorThemeParams),
+        'occupancy': PD.Group(OccupancyColorThemeParams),
+        'sequence-id': PD.Group(SequenceIdColorThemeParams),
+        'partial-charge': PD.Group(PartialChargeColorThemeParams),
     }),
 };
 export type CartoonColorThemeParams = typeof CartoonColorThemeParams
@@ -60,6 +73,7 @@ function getMainchainTheme(ctx: ThemeDataContext, props: CartoonColorThemeProps[
         case 'model-index': return ModelIndexColorTheme(ctx, props.params);
         case 'structure-index': return StructureIndexColorTheme(ctx, props.params);
         case 'secondary-structure': return SecondaryStructureColorTheme(ctx, props.params);
+        case 'trajectory-index': return TrajectoryIndexColorTheme(ctx, props.params);
         default: assertUnreachable(props);
     }
 }
@@ -69,6 +83,11 @@ function getSidechainTheme(ctx: ThemeDataContext, props: CartoonColorThemeProps[
         case 'uniform': return UniformColorTheme(ctx, props.params);
         case 'residue-name': return ResidueNameColorTheme(ctx, props.params);
         case 'element-symbol': return ElementSymbolColorTheme(ctx, props.params);
+        case 'hydrophobicity': return HydrophobicityColorTheme(ctx, props.params);
+        case 'uncertainty': return UncertaintyColorTheme(ctx, props.params);
+        case 'occupancy': return OccupancyColorTheme(ctx, props.params);
+        case 'sequence-id': return SequenceIdColorTheme(ctx, props.params);
+        case 'partial-charge': return PartialChargeColorTheme(ctx, props.params);
         default: assertUnreachable(props);
     }
 }
@@ -76,6 +95,8 @@ function getSidechainTheme(ctx: ThemeDataContext, props: CartoonColorThemeProps[
 export function CartoonColorTheme(ctx: ThemeDataContext, props: PD.Values<CartoonColorThemeParams>): ColorTheme<CartoonColorThemeParams> {
     const mainchain = getMainchainTheme(ctx, props.mainchain);
     const sidechain = getSidechainTheme(ctx, props.sidechain);
+
+    const contextHash = hash2(mainchain.contextHash ?? 0, sidechain.contextHash ?? 0);
 
     function color(location: Location, isSecondary: boolean): Color {
         return isSecondary ? mainchain.color(location, false) : sidechain.color(location, false);
@@ -95,6 +116,7 @@ export function CartoonColorTheme(ctx: ThemeDataContext, props: PD.Values<Cartoo
         preferSmoothing: false,
         color,
         props,
+        contextHash,
         description: Description,
         legend,
     };

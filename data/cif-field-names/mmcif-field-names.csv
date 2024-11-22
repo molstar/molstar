@@ -263,6 +263,7 @@ software.version
 struct.entry_id
 struct.title
 struct.pdbx_descriptor
+struct.pdbx_structure_determination_methodology
 
 struct_asym.id
 struct_asym.pdbx_blank_PDB_chainid_flag
@@ -367,18 +368,43 @@ struct_site.details
 
 struct_site_gen.id
 struct_site_gen.site_id
-struct_site_gen.pdbx_num_res
-struct_site_gen.label_comp_id
+struct_site_gen.auth_asym_id
+struct_site_gen.auth_atom_id
+struct_site_gen.auth_comp_id
+struct_site_gen.auth_seq_id
+struct_site_gen.details
+struct_site_gen.label_alt_id
 struct_site_gen.label_asym_id
+struct_site_gen.label_atom_id
+struct_site_gen.label_comp_id
 struct_site_gen.label_seq_id
 struct_site_gen.pdbx_auth_ins_code
-struct_site_gen.auth_comp_id
-struct_site_gen.auth_asym_id
-struct_site_gen.auth_seq_id
-struct_site_gen.label_atom_id
-struct_site_gen.label_alt_id
+struct_site_gen.pdbx_num_res
 struct_site_gen.symmetry
-struct_site_gen.details
+
+struct_site_keywords.site_id
+struct_site_keywords.text
+
+struct_mon_prot_cis.pdbx_id
+struct_mon_prot_cis.auth_asym_id
+struct_mon_prot_cis.auth_comp_id
+struct_mon_prot_cis.auth_seq_id
+struct_mon_prot_cis.label_alt_id
+struct_mon_prot_cis.label_asym_id
+struct_mon_prot_cis.label_comp_id
+struct_mon_prot_cis.label_seq_id
+struct_mon_prot_cis.pdbx_PDB_ins_code
+struct_mon_prot_cis.pdbx_PDB_ins_code_2
+struct_mon_prot_cis.pdbx_PDB_model_num
+struct_mon_prot_cis.pdbx_auth_asym_id_2
+struct_mon_prot_cis.pdbx_auth_comp_id_2
+struct_mon_prot_cis.pdbx_auth_ins_code
+struct_mon_prot_cis.pdbx_auth_ins_code_2
+struct_mon_prot_cis.pdbx_auth_seq_id_2
+struct_mon_prot_cis.pdbx_label_asym_id_2
+struct_mon_prot_cis.pdbx_label_comp_id_2
+struct_mon_prot_cis.pdbx_label_seq_id_2
+struct_mon_prot_cis.pdbx_omega_angle
 
 symmetry.entry_id
 symmetry.cell_setting
@@ -849,6 +875,17 @@ ma_qa_metric_local.metric_id
 ma_qa_metric_local.metric_value
 ma_qa_metric_local.model_id
 ma_qa_metric_local.ordinal_id
+
+ma_qa_metric_local_pairwise.ordinal_id
+ma_qa_metric_local_pairwise.model_id
+ma_qa_metric_local_pairwise.label_asym_id_1
+ma_qa_metric_local_pairwise.label_comp_id_1
+ma_qa_metric_local_pairwise.label_seq_id_1
+ma_qa_metric_local_pairwise.label_asym_id_2
+ma_qa_metric_local_pairwise.label_comp_id_2
+ma_qa_metric_local_pairwise.label_seq_id_2
+ma_qa_metric_local_pairwise.metric_id
+ma_qa_metric_local_pairwise.metric_value
 
 ma_software_group.group_id
 ma_software_group.ordinal_id

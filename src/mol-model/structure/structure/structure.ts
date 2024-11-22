@@ -1,11 +1,11 @@
 /**
- * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { IntMap, SortedArray, Iterator, Segmentation, Interval, OrderedSet } from '../../../mol-data/int';
+import { IntMap, SortedArray, Iterator, Segmentation, Interval } from '../../../mol-data/int';
 import { UniqueArray } from '../../../mol-data/generic';
 import { SymmetryOperator } from '../../../mol-math/geometry/symmetry-operator';
 import { Model, ElementIndex } from '../model';
@@ -23,18 +23,17 @@ import { Carbohydrates } from './carbohydrates/data';
 import { computeCarbohydrates } from './carbohydrates/compute';
 import { Vec3, Mat4 } from '../../../mol-math/linear-algebra';
 import { idFactory } from '../../../mol-util/id-factory';
-import { GridLookup3D } from '../../../mol-math/geometry';
 import { UUID } from '../../../mol-util';
 import { CustomProperties } from '../../custom-property';
-import { AtomicHierarchy } from '../model/properties/atomic';
 import { StructureSelection } from '../query/selection';
-import { getBoundary, Boundary } from '../../../mol-math/geometry/boundary';
+import { Boundary } from '../../../mol-math/geometry/boundary';
 import { ElementSymbol } from '../model/types';
 import { CustomStructureProperty } from '../../../mol-model-props/common/custom-structure-property';
 import { Trajectory } from '../trajectory';
 import { RuntimeContext, Task } from '../../../mol-task';
 import { computeStructureBoundary } from './util/boundary';
 import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
+import { IntraUnitBondMapping, getIntraUnitBondMapping, getSerialMapping, SerialMapping } from './mapping';
 
 /** Internal structure state */
 type State = {
@@ -58,6 +57,7 @@ type State = {
     entityIndices?: ReadonlyArray<EntityIndex>,
     uniqueAtomicResidueIndices?: ReadonlyMap<UUID, ReadonlyArray<ResidueIndex>>,
     serialMapping?: SerialMapping,
+    intraUnitBondMapping?: IntraUnitBondMapping,
     hashCode: number,
     transformHash: number,
     elementCount: number,
@@ -86,7 +86,7 @@ class Structure {
     /** Count of all bonds (intra- and inter-unit) in the structure */
     get bondCount() {
         if (this.state.bondCount === -1) {
-            this.state.bondCount = this.interUnitBonds.edgeCount + Bond.getIntraUnitBondCount(this);
+            this.state.bondCount = (this.interUnitBonds.edgeCount / 2) + Bond.getIntraUnitBondCount(this);
         }
         return this.state.bondCount;
     }
@@ -340,6 +340,10 @@ class Structure {
      */
     get serialMapping() {
         return this.state.serialMapping || (this.state.serialMapping = getSerialMapping(this));
+    }
+
+    get intraUnitBondMapping() {
+        return this.state.intraUnitBondMapping || (this.state.intraUnitBondMapping = getIntraUnitBondMapping(this));
     }
 
     /**
@@ -605,40 +609,6 @@ function getAtomicResidueCount(structure: Structure): number {
     return atomicResidueCount;
 }
 
-interface SerialMapping {
-    /** Cumulative count of preceding elements for each unit */
-    cumulativeUnitElementCount: ArrayLike<number>
-    /** Unit index for each serial element in the structure */
-    unitIndices: ArrayLike<number>
-    /** Element index for each serial element in the structure */
-    elementIndices: ArrayLike<ElementIndex>
-    /** Get serial index of element in the structure */
-    getSerialIndex: (unit: Unit, element: ElementIndex) => Structure.SerialIndex
-}
-function getSerialMapping(structure: Structure): SerialMapping {
-    const { units, elementCount, unitIndexMap } = structure;
-    const cumulativeUnitElementCount = new Uint32Array(units.length);
-    const unitIndices = new Uint32Array(elementCount);
-    const elementIndices = new Uint32Array(elementCount) as unknown as ElementIndex[];
-    for (let i = 0, m = 0, il = units.length; i < il; ++i) {
-        cumulativeUnitElementCount[i] = m;
-        const { elements } = units[i];
-        for (let j = 0, jl = elements.length; j < jl; ++j) {
-            const mj = m + j;
-            unitIndices[mj] = i;
-            elementIndices[mj] = elements[j];
-        }
-        m += elements.length;
-    }
-    return {
-        cumulativeUnitElementCount,
-        unitIndices,
-        elementIndices,
-
-        getSerialIndex: (unit, element) => cumulativeUnitElementCount[unitIndexMap.get(unit.id)] + OrderedSet.indexOf(unit.elements, element) as Structure.SerialIndex
-    };
-}
-
 namespace Structure {
     export const Empty = create([]);
 
@@ -659,9 +629,6 @@ namespace Structure {
         /** Representative model for structures of a model trajectory */
         representativeModel?: Model
     }
-
-    /** Serial index of an element in the structure across all units */
-    export type SerialIndex = { readonly '@type': 'serial-index' } & number
 
     /** Represents a single structure */
     export interface Loci {
@@ -788,8 +755,6 @@ namespace Structure {
         return create(units, { representativeModel: first!, label: first!.label });
     }
 
-    const PARTITION = false;
-
     /**
      * Construct a Structure from a model.
      *
@@ -807,20 +772,18 @@ namespace Structure {
             const operator = atomicChainOperatorMappinng.get(c) || SymmetryOperator.Default;
             const start = chains.offsets[c];
 
-            // set to true for chains that consist of "single atom residues",
-            // note that it assumes there are no "zero atom residues"
-            let singleAtomResidues = AtomicHierarchy.chainResidueCount(model.atomicHierarchy, c) === chains.offsets[c + 1] - chains.offsets[c];
-
-            let multiChain = false;
+            let isMultiChain = false;
+            let isWater = false;
 
             if (isWaterChain(model, c)) {
+                isWater = true;
                 // merge consecutive water chains
                 while (c + 1 < chains.count && isWaterChain(model, c + 1 as ChainIndex)) {
                     const op1 = atomicChainOperatorMappinng.get(c);
                     const op2 = atomicChainOperatorMappinng.get(c + 1 as ChainIndex);
                     if (op1 !== op2) break;
 
-                    multiChain = true;
+                    isMultiChain = true;
                     c++;
                 }
             } else {
@@ -829,7 +792,6 @@ namespace Structure {
                     && chains.offsets[c + 1] - chains.offsets[c] === 1
                     && chains.offsets[c + 2] - chains.offsets[c + 1] === 1
                 ) {
-                    singleAtomResidues = true;
                     const e1 = index.getEntityFromChain(c);
                     const e2 = index.getEntityFromChain(c + 1 as ChainIndex);
                     if (e1 !== e2) break;
@@ -842,26 +804,18 @@ namespace Structure {
                     const op2 = atomicChainOperatorMappinng.get(c + 1 as ChainIndex);
                     if (op1 !== op2) break;
 
-                    multiChain = true;
+                    isMultiChain = true;
                     c++;
                 }
             }
 
             const elements = SortedArray.ofBounds(start as ElementIndex, chains.offsets[c + 1] as ElementIndex);
 
-            if (PARTITION) {
-                // check for polymer to exclude CA/P-only models
-                if (singleAtomResidues && !isPolymerChain(model, c)) {
-                    partitionAtomicUnitByAtom(model, elements, builder, multiChain, operator);
-                } else if (elements.length > 200000 || isWaterChain(model, c)) {
-                    // split up very large chains e.g. lipid bilayers, micelles or water with explicit H
-                    partitionAtomicUnitByResidue(model, elements, builder, multiChain, operator);
-                } else {
-                    builder.addUnit(Unit.Kind.Atomic, model, operator, elements, multiChain ? Unit.Trait.MultiChain : Unit.Trait.None);
-                }
-            } else {
-                builder.addUnit(Unit.Kind.Atomic, model, operator, elements, multiChain ? Unit.Trait.MultiChain : Unit.Trait.None);
-            }
+            let traits = Unit.Trait.None;
+            if (isMultiChain) traits |= Unit.Trait.MultiChain;
+            if (isWater) traits |= Unit.Trait.Water;
+
+            builder.addUnit(Unit.Kind.Atomic, model, operator, elements, traits);
         }
 
         const cs = model.coarseHierarchy;
@@ -880,70 +834,6 @@ namespace Structure {
     function isWaterChain(model: Model, chainIndex: ChainIndex) {
         const e = model.atomicHierarchy.index.getEntityFromChain(chainIndex);
         return model.entities.data.type.value(e) === 'water';
-    }
-
-    function isPolymerChain(model: Model, chainIndex: ChainIndex) {
-        const e = model.atomicHierarchy.index.getEntityFromChain(chainIndex);
-        return model.entities.data.type.value(e) === 'polymer';
-    }
-
-    function partitionAtomicUnitByAtom(model: Model, indices: SortedArray, builder: StructureBuilder, multiChain: boolean, operator: SymmetryOperator) {
-        const { x, y, z } = model.atomicConformation;
-        const position = { x, y, z, indices };
-        const lookup = GridLookup3D(position, getBoundary(position), 8192);
-        const { offset, count, array } = lookup.buckets;
-
-        const traits = (multiChain ? Unit.Trait.MultiChain : Unit.Trait.None) | (offset.length > 1 ? Unit.Trait.Partitioned : Unit.Trait.None);
-
-        builder.beginChainGroup();
-        for (let i = 0, _i = offset.length; i < _i; i++) {
-            const start = offset[i];
-            const set = new Int32Array(count[i]);
-            for (let j = 0, _j = count[i]; j < _j; j++) {
-                set[j] = indices[array[start + j]];
-            }
-            builder.addUnit(Unit.Kind.Atomic, model, operator, SortedArray.ofSortedArray(set), traits);
-        }
-        builder.endChainGroup();
-    }
-
-    // keeps atoms of residues together
-    function partitionAtomicUnitByResidue(model: Model, indices: SortedArray, builder: StructureBuilder, multiChain: boolean, operator: SymmetryOperator) {
-        const { residueAtomSegments } = model.atomicHierarchy;
-
-        const startIndices: number[] = [];
-        const endIndices: number[] = [];
-
-        const residueIt = Segmentation.transientSegments(residueAtomSegments, indices);
-        while (residueIt.hasNext) {
-            const residueSegment = residueIt.move();
-            startIndices[startIndices.length] = indices[residueSegment.start];
-            endIndices[endIndices.length] = indices[residueSegment.end];
-        }
-
-        const firstResidueAtomCount = endIndices[0] - startIndices[0];
-        const gridCellCount = 512 * firstResidueAtomCount;
-
-        const { x, y, z } = model.atomicConformation;
-        const position = { x, y, z, indices: SortedArray.ofSortedArray(startIndices) };
-        const lookup = GridLookup3D(position, getBoundary(position), gridCellCount);
-        const { offset, count, array } = lookup.buckets;
-
-        const traits = (multiChain ? Unit.Trait.MultiChain : Unit.Trait.None) | (offset.length > 1 ? Unit.Trait.Partitioned : Unit.Trait.None);
-
-        builder.beginChainGroup();
-        for (let i = 0, _i = offset.length; i < _i; i++) {
-            const start = offset[i];
-            const set: number[] = [];
-            for (let j = 0, _j = count[i]; j < _j; j++) {
-                const k = array[start + j];
-                for (let l = startIndices[k], _l = endIndices[k]; l < _l; l++) {
-                    set[set.length] = l;
-                }
-            }
-            builder.addUnit(Unit.Kind.Atomic, model, operator, SortedArray.ofSortedArray(new Int32Array(set)), traits);
-        }
-        builder.endChainGroup();
     }
 
     function addCoarseUnits(builder: StructureBuilder, model: Model, elements: CoarseElements, kind: Unit.Kind) {

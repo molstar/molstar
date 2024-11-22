@@ -14,9 +14,10 @@ import { LinkStyle, createLinkLines, LinkBuilderProps } from './util/link';
 import { ComplexVisual, ComplexLinesVisual, ComplexLinesParams } from '../complex-visual';
 import { VisualUpdateState } from '../../util';
 import { BondType } from '../../../mol-model/structure/model/types';
-import { BondIterator, getInterBondLoci, eachInterBond, BondLineParams, makeInterBondIgnoreTest } from './util/bond';
+import { BondIterator, getInterBondLoci, eachInterBond, BondLineParams, makeInterBondIgnoreTest, hasStructureVisibleBonds } from './util/bond';
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 import { Sphere3D } from '../../../mol-math/geometry';
+import { EmptyLocationIterator } from '../../../mol-geo/util/location-iterator';
 
 const tmpRefPosBondIt = new Bond.ElementBondIterator();
 function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
@@ -29,11 +30,9 @@ function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, inde
     return null;
 }
 
-function createInterUnitBondLines(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitBondLineParams>, lines?: Lines) {
+export function getInterUnitBondLineBuilderProps(structure: Structure, theme: Theme, props: PD.Values<InterUnitBondLineParams>): LinkBuilderProps {
     const bonds = structure.interUnitBonds;
     const { edgeCount, edges } = bonds;
-
-    if (!edgeCount) return Lines.createEmpty(lines);
 
     const { sizeFactor, aromaticBonds, multipleBonds } = props;
 
@@ -43,7 +42,7 @@ function createInterUnitBondLines(ctx: VisualContext, structure: Structure, them
     const ref = Vec3();
     const loc = StructureElement.Location.create();
 
-    const builderProps: LinkBuilderProps = {
+    return {
         linkCount: edgeCount,
         referencePosition: (edgeIndex: number) => {
             const b = edges[edgeIndex];
@@ -102,6 +101,13 @@ function createInterUnitBondLines(ctx: VisualContext, structure: Structure, them
         },
         ignore: makeInterBondIgnoreTest(structure, props)
     };
+}
+
+function createInterUnitBondLines(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitBondLineParams>, lines?: Lines) {
+    if (!hasStructureVisibleBonds(structure, props)) return Lines.createEmpty(lines);
+    if (!structure.interUnitBonds.edgeCount) return Lines.createEmpty(lines);
+
+    const builderProps = getInterUnitBondLineBuilderProps(structure, theme, props);
 
     const { lines: l, boundingSphere } = createLinkLines(ctx, builderProps, props, lines);
 
@@ -109,7 +115,7 @@ function createInterUnitBondLines(ctx: VisualContext, structure: Structure, them
         l.setBoundingSphere(boundingSphere);
     } else if (l.lineCount > 0) {
         const { child } = structure;
-        const sphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, 1 * sizeFactor);
+        const sphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, 1 * props.sizeFactor);
         l.setBoundingSphere(sphere);
     }
 
@@ -127,7 +133,11 @@ export function InterUnitBondLineVisual(materialId: number): ComplexVisual<Inter
     return ComplexLinesVisual<InterUnitBondLineParams>({
         defaultProps: PD.getDefaultValues(InterUnitBondLineParams),
         createGeometry: createInterUnitBondLines,
-        createLocationIterator: (structure: Structure) => BondIterator.fromStructure(structure),
+        createLocationIterator: (structure: Structure, props: PD.Values<InterUnitBondLineParams>) => {
+            return !hasStructureVisibleBonds(structure, props)
+                ? EmptyLocationIterator
+                : BondIterator.fromStructure(structure);
+        },
         getLoci: getInterBondLoci,
         eachLocation: eachInterBond,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitBondLineParams>, currentProps: PD.Values<InterUnitBondLineParams>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
@@ -144,7 +154,7 @@ export function InterUnitBondLineVisual(materialId: number): ComplexVisual<Inter
                 newProps.multipleBonds !== currentProps.multipleBonds
             );
 
-            if (newStructure.interUnitBonds !== currentStructure.interUnitBonds) {
+            if (hasStructureVisibleBonds(newStructure, newProps) && newStructure.interUnitBonds !== currentStructure.interUnitBonds) {
                 state.createGeometry = true;
                 state.updateTransform = true;
                 state.updateColor = true;

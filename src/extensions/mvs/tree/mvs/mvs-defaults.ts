@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { DefaultsForTree } from '../generic/tree-schema';
@@ -58,6 +59,8 @@ export const MVSDefaults = {
         category_name: null,
         field_name: 'color',
     },
+    transparency: {
+    },
     label: {
     },
     label_from_uri: {
@@ -99,6 +102,18 @@ export const MVSDefaults = {
     camera: {
         up: [0, 1, 0],
     },
+    primitives: {
+        color: null,
+        label_color: null,
+        tooltip: null,
+        transparency: null,
+        label_transparency: null,
+        instances: null,
+    },
+    primitives_from_uri: {
+        references: null,
+    },
+    primitive: { },
 } satisfies DefaultsForTree<typeof MVSTreeSchema>;
 
 /** Color to be used e.g. for representations without 'color' node */

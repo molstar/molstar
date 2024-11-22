@@ -12,6 +12,9 @@ precision highp int;
 #include common_frag_params
 #include common_clip
 
+// Density value to estimate object thickness
+uniform float uDensity;
+
 uniform vec2 uImageTexDim;
 uniform sampler2D tImageTex;
 uniform sampler2D tGroupTex;
@@ -118,7 +121,7 @@ void main() {
             gl_FragColor = vec4(packIntToRGB(float(uObjectId)), 1.0);
             gl_FragData[1] = vec4(packIntToRGB(vInstance), 1.0);
             gl_FragData[2] = vec4(texture2D(tGroupTex, vUv).rgb, 1.0);
-            gl_FragData[3] = packDepthToRGBA(gl_FragCoord.z);
+            gl_FragData[3] = packDepthToRGBA(fragmentDepth);
         #else
             gl_FragColor = vColor;
             if (uPickType == 1) {
@@ -132,7 +135,11 @@ void main() {
     #elif defined(dRenderVariant_depth)
         if (imageData.a < 0.05)
             discard;
-        gl_FragColor = packDepthToRGBA(gl_FragCoord.z);
+        if (uRenderMask == MaskOpaque) {
+            gl_FragColor = packDepthToRGBA(fragmentDepth);
+        } else if (uRenderMask == MaskTransparent) {
+            gl_FragColor = packDepthWithAlphaToRGBA(fragmentDepth, imageData.a);
+        }
     #elif defined(dRenderVariant_marking)
         float marker = uMarker;
         if (uMarker == -1.0) {
@@ -143,7 +150,7 @@ void main() {
         if (uMarkingType == 1) {
             if (marker > 0.0 || imageData.a < 0.05)
                 discard;
-            gl_FragColor = packDepthToRGBA(gl_FragCoord.z);
+            gl_FragColor = packDepthToRGBA(fragmentDepth);
         } else {
             if (marker == 0.0 || imageData.a < 0.05)
                 discard;
@@ -156,7 +163,7 @@ void main() {
         }
     #elif defined(dRenderVariant_emissive)
         gl_FragColor = vec4(0.0);
-    #elif defined(dRenderVariant_color)
+    #elif defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
         gl_FragColor = imageData;
 
         float marker = uMarker;
@@ -167,9 +174,15 @@ void main() {
         }
 
         #include apply_marker_color
-        #include apply_fog
-        #include wboit_write
-        #include dpoit_write
+
+        #if defined(dRenderVariant_color)
+            #include apply_fog
+            #include wboit_write
+            #include dpoit_write
+        #elif defined(dRenderVariant_tracing)
+            gl_FragData[1] = vec4(normalize(vViewPosition), 0.0);
+            gl_FragData[2] = vec4(imageData.rgb, uDensity);
+        #endif
     #endif
 }
 `;

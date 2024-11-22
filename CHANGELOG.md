@@ -5,6 +5,111 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Enable double rounded capping on tubular helices
+- Fix single residue tubular helices not showing up
+- Fix outlines on volume and surface reps that do not disappear (#1326)
+- Add example `glb-export`
+- Membrane orientation: Improve `isApplicable` check and error handling (#1316)
+- Fix set fenceSync to null after deleteSync.
+- Fix operator key-based `IndexPairBonds` assignment
+    - Don't add bonds twice
+    - Add `IndexPairs.bySameOperator` to avoid looping over all bonds for each unit
+- Add `Structure.intraUnitBondMapping`
+- Add more structure-based visuals to avoid too many (small) render-objects
+    - `structure-intra-bond`, `structure-ellipsoid-mesh`, `structure-element-point`, `structure-element-cross`
+- Upgrade to express v5 (#1311)
+- Fix occupancy check using wrong index for inter-unit bond computation (@rxht, #1321)
+- Fix transparent SSAO for image rendering, e.g., volumne slices (#1332)
+- Fix bonds not shown with `ignoreHydrogens` on (#1315)
+    - Better handle mmCIF files with no entities defined by using `label_asym_id`
+    - Show bonds in water chains when `ignoreHydorgensVariant` is `non-polar`
+- Fix `StructConn.isExhaustive` for partial models (e.g., returned by the model server)
+- Refactor value swapping in molstar-math to fix SWC (Next.js) build (#1345)
+- Fix transform data not updated when structure child changes
+
+## [v4.8.0] - 2024-10-27
+
+- Add SSAO support for transparent geometry
+- Fix SSAO color not updating
+- Improve blending of overlapping outlines from transparent & opaque geometries
+- Default to `blended` transparency on iOS due to `wboit` not being supported.
+- Fix direct-volume with fog off (and on with `dpoit`) and transparent background on (#1286)
+- Fix missing pre-multiplied alpha for `blended` & `wboit` with no fog (#1284)
+- Fix backfaces visible using blended transparency on impostors (#1285)
+- Fix StructureElement.Loci.isSubset() only considers common units (#1292)
+- Fix `Scene.opacityAverage` calculation never 1
+- Fix bloom in illumination mode
+- Fix `findPredecessorIndex` bug when repeating values
+- MolViewSpec: Support for transparency and custom properties
+- MolViewSpec: MVP Support for geometrical primitives (mesh, lines, line, label, distance measurement)
+- Mesoscale Explorer: Add support for 4-character PDB IDs (e.g., 8ZZC) in PDB-Dev loader
+- Fix Sequence View in Safari 18
+- Improve performance of `IndexPairBonds` assignment when operator keys are available
+- ModelArchive QualityAssessment extension:
+    - Add support for ma_qa_metric_local_pairwise mmCIF category
+    - Add PAE plot component
+- Add new AlphaFoldDB-PAE example app
+- Add support for LAMMPS data and dump formats
+- Remove extra anti-aliasing from text shader (fixes #1208 & #1306)
+
+## [v4.7.1] - 2024-09-30
+
+- Improve `resolutionMode` (#1279)
+    - Add `auto` that picks `scaled` for mobile devices and `native` elsewhere
+    - Add `resolution-mode` Viewer GET param
+    - Add `PluginConfig.General.ResolutionMode` config item
+
+## [v4.7.0] - 2024-09-29
+
+- Add illumination mode
+    - Path-traced SSGI
+    - Automatic thickness (estimate)
+        - Base thickness as max(backface depth) - min(frontface depth)
+        - Per object density factor to adjust thickness
+    - Progressively trace samples to keep viewport interactive
+    - Toggle on/off by pressing "G"
+    - `illumination` Viewer GET param
+- Enables dXrayShaded define when rendering depth
+- Fix handling of PDB files that have chains with same id separated by TER record (#1245)
+- Sequence Panel: Improve visuals of unmodeled sequence positions (#1248)
+- Fix no-compression xtc parser (#1258)
+- Mol2 Reader: Fix mol2 status_bit read error (#1251)
+- Fix shadows with multiple lights
+- Fix impostor sphere interior normal when using orthographic projection
+- Add `resolutionMode` parameter to `Canvas3DContext`
+    - `scaled`, divides by `devicePixelRatio`
+    - `native`, no changes
+- Add `CustomProperty.Context.errorContext` to support reporting errors during loading of custom properties (#1254)
+    - Use in MolViewSpec extension
+- Mesoscale Explorer: fix color & style issues
+- Remove use of deprecated SASS explicit color functions
+- Allow "Components" section to display nested components created by "Apply Action > Selection".
+
+## [v4.6.0] - 2024-08-28
+
+- Add round-caps option on tubular alpha helices
+- Fix missing Sequence UI update on state object removal (#1219)
+- Improved prmtop format support (CTITLE, %COMMENT)
+- Avoid calculating bonds for water units when `ignoreHydrogens` is on
+- Add `Water` trait to `Unit`
+- Improve entity-id coloring for structures with multiple models from the same source (#1221)
+- Wrap screenshot & image generation in a `Task`
+- AlphaFold DB: Add BinaryCIF support when fetching data
+- PDB-Dev: Add support for 4-character PDB IDs (e.g., 8ZZC)
+- Fix polymer-gap visual coloring with cartoon theme
+- Add formal-charge color theme (#328)
+- Add more coloring options to cartoon theme
+- Use `CompressionStream` Browser API when available
+- Add `pdbx_structure_determination_methodology` mmcif field and `Model` helpers
+- Fix cartoon representation not updated when secondary structure changes
+- Add Zhang-Skolnick secondary-structure assignment method which handles coarse-grained models (#49)
+- Calculate bonds for coarse-grained models
+- VolumeServer: Add `health-check` endpoint + `healthCheckPath` config prop to report service health
+- ModelServer: Add `health-check` endpoint + `healthCheckPath` config prop to report service health
+
+## [v4.5.0] - 2024-07-28
+
+- Separated postprocessing passes
 - Take into account explicit hydrogens when computing hydrogen bonds
 - Fix DoF with pixel ratios =! 1
 - Fix DoF missing transparent depth
@@ -12,8 +117,12 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix aromatic link rendering when `adjustCylinderLength` is true
 - Change trackball animate spin speed unit to radians per second
 - Fix `mol-plugin-ui/skin/base/components/misc.scss` syntax to be in line with latest Sass syntax
+- Handle missing theme updates
+    - Fix trajectory-index color-theme not always updated (#896)
+    - Fix bond cylinders not updated on size-theme change with `adjustCylinderLength` enabled (#1215)
+- Use `OES_texture_float_linear` for SSAO when available
 
-## [v4.4.1] - 2023-06-30
+## [v4.4.1] - 2024-06-30
 
 - Clean `solidInterior` transparent cylinders
 - Create a transformer to deflate compressed data
@@ -48,14 +157,14 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `doNotDisposeCanvas3DContext` option to `PluginContext.dispose`
 - Remove support for density data from edmaps.rcsb.org
 
-## [v4.3.0] - 2023-05-26
+## [v4.3.0] - 2024-05-26
 
 - Fix State Snapshots export animation (#1140)
 - Add depth of field (dof) postprocessing effect
 - Add `SbNcbrTunnels` extension for for visualizing tunnels in molecular structures from ChannelsDB (more info in [tunnels.md](./docs/docs/extensions/tunnels.md))
 - Fix edge case in minimizing RMSD transform computation
 
-## [v4.2.0] - 2023-05-04
+## [v4.2.0] - 2024-05-04
 
 - Add emissive material support
 - Add bloom post-processing
@@ -73,7 +182,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix SSAO artifacts (@corredD, #1082)
 - Fix bumpiness artifacts (#1107, #1084)
 
-## [v4.1.0] - 2023-03-31
+## [v4.1.0] - 2024-03-31
 
 - Add `VolumeTransform` to translate/rotate a volume like in a structure superposition
 - Fix BinaryCIF encoder edge cases caused by re-encoding an existing BinaryCIF file
@@ -84,13 +193,13 @@ Note that since we don't clearly distinguish between a public and private interf
     - This can give results similar to pymol's surface_ramp_above_mode=1
 - Add `rotation` parameter to skybox background
 
-## [v4.0.1] - 2023-02-19
+## [v4.0.1] - 2024-02-19
 
 - Fix BinaryCIF decoder edge cases. Fixes mmCIF model export from data provided by ModelServer.
 - MolViewSpec extension: support for MVSX file format
 - Revert "require WEBGL_depth_texture extension" & "remove renderbuffer use"
 
-## [v4.0.0] - 2023-02-04
+## [v4.0.0] - 2024-02-04
 
 - Add Mesoscale Explorer app for investigating large systems
 - [Breaking] Remove `cellpack` extension (superseded by Mesoscale Explorer app)
@@ -126,7 +235,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add stochastic/dithered transparency to fade overlapping LODs in and out
 - Add "Automatic Detail" preset that shows surface/cartoon/ball & stick based on camera distance
 
-## [v3.45.0] - 2023-02-03
+## [v3.45.0] - 2024-02-03
 
 - Add color interpolation to impostor cylinders
 - MolViewSpec components are applicable only when the model has been loaded from MolViewSpec
@@ -140,7 +249,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Support `disableInteractiveUpdates` to only trigger updates once the control loses focus
 - Move dependencies related to the headless context from optional deps to optional peer deps
 
-## [v3.44.0] - 2023-01-06
+## [v3.44.0] - 2024-01-06
 
 - Add new `cartoon` visuals to support atomic nucleotide base with sugar
 - Add `thicknessFactor` to `cartoon` representation for scaling nucleotide block/ring/atomic-fill visuals

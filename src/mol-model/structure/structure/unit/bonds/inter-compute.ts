@@ -20,6 +20,7 @@ import { InterUnitGraph } from '../../../../../mol-math/graph/inter-unit-graph';
 import { StructConn } from '../../../../../mol-model-formats/structure/property/bonds/struct_conn';
 import { equalEps } from '../../../../../mol-math/linear-algebra/3d/common';
 import { Model } from '../../../model';
+import { cantorPairing, invertCantorPairing } from '../../../../../mol-data/util';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3distance = Vec3.distance;
@@ -175,7 +176,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
             // - It works for cases like 3WQJ (label_asym_id: I) which have partial occupancy.
             // - Does NOT work for cases like 1RB8 (DC 7) with full occupancy.
             if (hasOccupancy && occupancyB.value(bI) < 1 && occA < 1) {
-                if (auth_seq_idA.value(aI) === auth_seq_idB.value(bI)) {
+                if (auth_seq_idA.value(residueIndexA[aI]) === auth_seq_idB.value(residueIndexB[bI])) {
                     continue;
                 }
             }
@@ -206,6 +207,71 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
     builder.finishUnitPair();
 }
 
+function canAddFromIndexPairBonds(structure: Structure) {
+    for (const m of structure.models) {
+        const indexPairs = IndexPairBonds.Provider.get(m);
+        if (!indexPairs?.hasOperators) return false;
+    }
+    for (const u of structure.units) {
+        if (u.conformation.operator.key === -1) return false;
+    }
+    return true;
+}
+
+function addIndexPairBonds(structure: Structure, builder: InterUnitGraph.Builder<number, StructureElement.UnitIndex, InterUnitEdgeProps>) {
+    const opUnits = new Map<number, Set<Unit>>();
+    for (const u of structure.units) {
+        const { key } = u.conformation.operator;
+        if (opUnits.has(key)) opUnits.get(key)!.add(u);
+        else opUnits.set(key, new Set([u]));
+    }
+
+    for (const m of structure.models) {
+        const indexPairs = IndexPairBonds.Provider.get(m)!;
+        const { a, b } = indexPairs.bonds;
+        const { order, flag, key, operatorA, operatorB } = indexPairs.bonds.edgeProps;
+
+        const pairs = new Map<number, Set<number>>();
+        for (let i = 0, il = operatorA.length; i < il; ++i) {
+            const unitsA = opUnits.get(operatorA[i]);
+            const unitsB = opUnits.get(operatorB[i]);
+            if (!unitsA || !unitsB) continue;
+
+            for (const uA of unitsA) {
+                for (const uB of unitsB) {
+                    if (uA === uB || !Unit.isAtomic(uA) || !Unit.isAtomic(uB)) continue;
+                    if (uA.id > uB.id) continue;
+
+                    const h = cantorPairing(uA.id, uB.id);
+                    if (pairs.has(h)) pairs.get(h)!.add(i);
+                    else pairs.set(h, new Set([i]));
+                }
+            }
+        }
+
+        const { invertedIndex } = Model.getInvertedAtomSourceIndex(m);
+        const unitIds: [number, number] = [-1, -1];
+        pairs.forEach((indices, h) => {
+            const [unitIdA, unitIdB] = invertCantorPairing(unitIds, h);
+            const uA = structure.unitMap.get(unitIdA);
+            const uB = structure.unitMap.get(unitIdB);
+            builder.startUnitPair(unitIdA, unitIdB);
+            indices.forEach(i => {
+                const aI = invertedIndex[a[i]];
+                const _aI = SortedArray.indexOf(uA.elements, aI) as StructureElement.UnitIndex;
+                if (_aI < 0) return;
+
+                const bI = invertedIndex[b[i]];
+                const _bI = SortedArray.indexOf(uB.elements, bI) as StructureElement.UnitIndex;
+                if (_bI < 0) return;
+
+                builder.add(_aI, _bI, { order: order[i], flag: flag[i], key: key[i] });
+            });
+            builder.finishUnitPair();
+        });
+    }
+}
+
 export interface InterBondComputationProps extends BondComputationProps {
     validUnit: (unit: Unit) => boolean
     validUnitPair: (structure: Structure, unitA: Unit, unitB: Unit) => boolean
@@ -225,6 +291,11 @@ function findBonds(structure: Structure, props: InterBondComputationProps) {
     const hasExhaustiveStructConn = structure.models.some(m => StructConn.isExhaustive(m));
 
     if (props.noCompute || (structure.isCoarseGrained && !hasIndexPairBonds && !hasExhaustiveStructConn)) {
+        return new InterUnitBonds(builder.getMap());
+    }
+
+    if (!props.forceCompute && canAddFromIndexPairBonds(structure)) {
+        addIndexPairBonds(structure, builder);
         return new InterUnitBonds(builder.getMap());
     }
 
