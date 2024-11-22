@@ -59,6 +59,9 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             const loci = this.getLoci(e.seqIdx < 0 ? void 0 : e.seqIdx);
             this.hover(loci, e.buttons, e.button, e.modifiers);
         });
+        this.subscribe(this.plugin.managers.structure.focus.behaviors.current, () => {
+            this.updateMarker();
+        });
     }
 
     componentWillUnmount() {
@@ -148,14 +151,22 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         this.mouseDownLoci = undefined;
     };
 
-    protected getBackgroundColor(marker: number) {
+    protected getBackgroundColor(marker: number, seqIdx?: number) {
         // TODO: make marker color configurable
         if (typeof marker === 'undefined') console.error('unexpected marker value');
-        return marker === 0
-            ? ''
-            : marker % 2 === 0
-                ? 'rgb(51, 255, 25)' // selected
-                : 'rgb(255, 102, 153)'; // highlighted
+        if (marker !== 0) {
+            if (marker % 2 === 0) return 'rgb(51, 255, 25)'; // selected
+            else return 'rgb(255, 102, 153)'; // highlighted
+        } else {
+            if (seqIdx !== undefined) {
+                const loci = this.props.sequenceWrapper.getLoci(seqIdx);
+                const focusedLoci = this.plugin.managers.structure.focus.behaviors.current.value?.loci;
+                if (focusedLoci && StructureElement.Loci.areIntersecting(loci, focusedLoci)) {
+                    return 'rgba(160,160,160,0.6)';
+                }
+            }
+        }
+        return '';
     }
 
     protected getResidueClass(seqIdx: number, label: string) {
@@ -165,7 +176,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     }
 
     protected residue(seqIdx: number, label: string, marker: number) {
-        return <span key={seqIdx} data-seqid={seqIdx} style={{ backgroundColor: this.getBackgroundColor(marker) }} className={this.getResidueClass(seqIdx, label)}>{`\u200b${label}\u200b`}</span>;
+        return <span key={seqIdx} data-seqid={seqIdx} style={{ backgroundColor: this.getBackgroundColor(marker, seqIdx) }} className={this.getResidueClass(seqIdx, label)}>{`\u200b${label}\u200b`}</span>;
     }
 
     protected getSequenceNumberClass(seqIdx: number, seqNum: string, label: string) {
@@ -225,7 +236,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             //     first = span;
             // }
 
-            const backgroundColor = this.getBackgroundColor(markerArray[i]);
+            const backgroundColor = this.getBackgroundColor(markerArray[i], i);
             if (span.style.backgroundColor !== backgroundColor) span.style.backgroundColor = backgroundColor;
         }
 
