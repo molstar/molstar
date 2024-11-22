@@ -6,12 +6,12 @@
  */
 
 import * as React from 'react';
-import { Mat4, Vec2, Vec3 } from '../../mol-math/linear-algebra';
+import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { Volume } from '../../mol-model/volume';
 import { Script } from '../../mol-script/script';
 import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
-import { ColorListEntry } from '../../mol-util/color/color';
+import { ColorListEntry, colorListRangesEntryToColorListEntry } from '../../mol-util/color/color';
 import { ColorListName, ColorListOptions, ColorListOptionsScale, ColorListOptionsSet, getColorListFromName } from '../../mol-util/color/lists';
 import { Legend as LegendData } from '../../mol-util/legend';
 import { memoize1, memoizeLatest } from '../../mol-util/memoize';
@@ -26,8 +26,11 @@ import { ColorOptions, ColorValueOption, CombinedColorControl } from './color';
 import { Button, ControlGroup, ControlRow, ExpandGroup, IconButton, TextInput, ToggleButton } from './common';
 import { ArrowDownwardSvg, ArrowDropDownSvg, ArrowRightSvg, ArrowUpwardSvg, BookmarksOutlinedSvg, CheckSvg, ClearSvg, DeleteOutlinedSvg, HelpOutlineSvg, Icon, MoreHorizSvg, WarningSvg } from './icons';
 import { legendFor } from './legend';
-import { LineGraphComponent } from './line-graph/line-graph-component';
+import { ControlPointData, LineGraphComponent } from './line-graph/line-graph-component';
 import { Slider, Slider2 } from './slider';
+import { UUID } from '../../mol-util';
+import { urlToHttpOptions } from 'url';
+import { useState } from 'react';
 
 export type ParameterControlsCategoryFilter = string | null | (string | null)[]
 
@@ -186,6 +189,7 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         case 'conditioned': return ConditionedControl;
         case 'multi-select': return MultiSelectControl;
         case 'color': return CombinedColorControl;
+        case 'color-list-control-points': return OffsetControlPointsColorList;
         case 'color-list': return param.offsets ? OffsetColorListControl : ColorListControl;
         case 'vec3': return Vec3Control;
         case 'mat4': return Mat4Control;
@@ -234,7 +238,7 @@ export interface ParamProps<P extends PD.Base<any> = PD.Base<any>> {
     onChange: ParamOnChange,
     onEnter?: () => void
 }
-export type ParamControl = React.ComponentClass<ParamProps<any>>
+export type ParamControl = React.ComponentClass<ParamProps<any>> | React.FC<any>
 
 function renderSimple(options: { props: ParamProps<any>, state: { showHelp: boolean }, control: JSX.Element, addOn: JSX.Element | null, toggleHelp: () => void }) {
     const { props, state, control, toggleHelp, addOn } = options;
@@ -309,65 +313,244 @@ export class BoolControl extends SimpleParam<PD.BooleanParam> {
     }
 }
 
-export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGraph>, { isExpanded: boolean, isOverPoint: boolean, message: string }> {
-    state = {
-        isExpanded: false,
-        isOverPoint: false,
-        message: `${this.props.param.defaultValue.length} points`,
-    };
+// export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGraph>, { isExpanded: boolean, isOverPoint: boolean, message: string}> {
+//     state = {
+//         isExpanded: false,
+//         isOverPoint: false,
+//         message: `${this.props.param.defaultValue.length} points`,
+//     };
+
+//     private pointToValues(data?: ControlPointData) {
+//         if (!data) return '';
+//         const volume = this.props.param.getVolume?.() as Volume;
+//         if (volume) {
+//             const { min, max, mean, sigma } = volume.grid.stats;
+//             const v = min + (max - min) * data.x;
+//             const s = (v - mean) / sigma;
+//             return [v, s];
+//         } else {
+//             // TODO: optimize this
+//             return [data.x, data.x];
+//         }
+//     }
+
+//     private absValueToPointValue(v: number) {
+//         const volume = this.props.param.getVolume?.() as Volume;
+//         if (volume) {
+//             const { min, max, mean, sigma } = volume.grid.stats;
+//             // do revers of this
+//             // we have v, we do not have data.x
+//             // v - min = (max - min)*x
+//             // (v - min) / (max - min) = x
+//             // x = (v - min) / (max - min);
+//             // const v = min + (max - min) * data.x;
+//             const x = (v - min) / (max - min);
+//             // const s = (v - mean) / sigma;
+//             return x;
+//         } else {
+//             throw Error('No volume available');
+//             // TODO: optimize this
+//             // return [data.x, data.x];
+//         }
+//     }
 
 
-    private pointToLabel(point?: Vec2) {
-        if (!point) return '';
+//     private pointToLabel(data?: ControlPointData) {
+//         if (!data) return '';
+//         const volume = this.props.param.getVolume?.() as Volume;
+//         if (volume) {
+//             const { min, max, mean, sigma } = volume.grid.stats;
+//             const v = min + (max - min) * data.x;
+//             const s = (v - mean) / sigma;
+//             return `(${v.toFixed(2)} | ${s.toFixed(2)}σ, ${data.alpha.toFixed(2)})`;
+//         } else {
+//             return `(${data.x.toFixed(2)}, ${data.alpha.toFixed(2)})`;
+//         }
+//     }
 
-        const volume = this.props.param.getVolume?.() as Volume;
+//     getValueFromPoint = (data?: ControlPointData) => {
+//         if (data) {
+//             return this.pointToValues(data);
+//         } else {
+//             throw Error('No data is provided');
+//         }
+//     };
+
+//     onAbsValueToPointValue = (v: number) => {
+//         return this.absValueToPointValue(v);
+//     };
+
+//     onHover = (data?: ControlPointData) => {
+//         this.setState({ isOverPoint: !this.state.isOverPoint });
+//         if (data) {
+//             // converts point to label
+//             this.setState({ message: this.pointToLabel(data) });
+//         } else {
+//             this.setState({ message: `${this.props.value.length} points` });
+//         }
+//     };
+
+//     onClick = (data?: ControlPointData) => {
+//         this.setState({ isOverPoint: !this.state.isOverPoint });
+//         if (data) {
+//             this.setState({ message: this.pointToLabel(data) });
+//         } else {
+//             this.setState({ message: `${this.props.value.length} points` });
+//         }
+//     };
+
+//     onDrag = (data: ControlPointData) => {
+//         this.setState({ message: this.pointToLabel(data) });
+//     };
+
+//     onChange = (value: PD.LineGraph['defaultValue']) => {
+//         this.props.onChange({ name: this.props.name, param: this.props.param, value: value });
+//     };
+
+//     toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
+//         this.setState({ isExpanded: !this.state.isExpanded });
+//         e.currentTarget.blur();
+//     };
+
+//     render() {
+//         const label = this.props.param.label || camelCaseToWords(this.props.name);
+//         return <>
+//             <ControlRow label={label} control={<button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>{`${this.state.message}`}</button>} />
+//             <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none', marginTop: 1 }}>
+//                 <LineGraphComponent
+//                     controlPoints={this.props.value}
+//                     volume={this.props.param.getVolume?.() as Volume}
+//                     onChange={this.onChange}
+//                     onHover={this.onHover}
+//                     onDrag={this.onDrag}
+//                     colored={this.props.param.colored}
+//                     getValueFromPoint={this.getValueFromPoint}
+//                     onAbsValueToPointValue={this.onAbsValueToPointValue}
+//                 />
+//             </div>
+//         </>;
+//     }
+// }
+
+export const LineGraphControl = (props: ParamProps<PD.LineGraph>) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [isOverPoint, setIsOverPoint] = useState(false);
+    const [message, setMessage] = useState(`${props.param.defaultValue.length} points`);
+    const pointToValues = (data?: ControlPointData) => {
+        if (!data) return '';
+        const volume = props.param.getVolume?.() as Volume;
         if (volume) {
             const { min, max, mean, sigma } = volume.grid.stats;
-            const v = min + (max - min) * point[0];
+            const v = min + (max - min) * data.x;
             const s = (v - mean) / sigma;
-            return `(${v.toFixed(2)} | ${s.toFixed(2)}σ, ${point[1].toFixed(2)})`;
+            return [v, s];
         } else {
-            return `(${point[0].toFixed(2)}, ${point[1].toFixed(2)})`;
+            // TODO: optimize this
+            return [data.x, data.x];
         }
     }
 
-    onHover = (point?: Vec2) => {
-        this.setState({ isOverPoint: !this.state.isOverPoint });
-        if (point) {
-            this.setState({ message: this.pointToLabel(point) });
+    const absValueToPointValue = (v: number) => {
+        const volume = props.param.getVolume?.() as Volume;
+        if (volume) {
+            const { min, max, mean, sigma } = volume.grid.stats;
+            const x = (v - min) / (max - min);
+            return x;
         } else {
-            this.setState({ message: `${this.props.value.length} points` });
+            // TODO: fix?
+            throw Error('No volume available');
+        }
+    }
+
+
+    const pointToLabel = (data?: ControlPointData) => {
+        if (!data) return '';
+        const volume = props.param.getVolume?.() as Volume;
+        if (volume) {
+            const { min, max, mean, sigma } = volume.grid.stats;
+            const v = min + (max - min) * data.x;
+            const s = (v - mean) / sigma;
+            return `(${v.toFixed(2)} | ${s.toFixed(2)}σ, ${data.alpha.toFixed(2)})`;
+        } else {
+            return `(${data.x.toFixed(2)}, ${data.alpha.toFixed(2)})`;
+        }
+    }
+
+    const getValueFromPoint = (data?: ControlPointData) => {
+        if (data) {
+            return pointToValues(data);
+        } else {
+            throw Error('No data is provided');
         }
     };
 
-    onDrag = (point: Vec2) => {
-        this.setState({ message: this.pointToLabel(point) });
+    const onAbsValueToPointValue = (v: number) => {
+        return absValueToPointValue(v);
     };
 
-    onChange = (value: PD.LineGraph['defaultValue']) => {
-        this.props.onChange({ name: this.props.name, param: this.props.param, value: value });
+    const onNumberOfPointsChange = (newNumberOfPoints: number) => {
+        setMessage(`${newNumberOfPoints} points`);
     };
 
-    toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
-        this.setState({ isExpanded: !this.state.isExpanded });
+    const onHover = (data?: ControlPointData) => {
+        // this.setState({ isOverPoint: !this.state.isOverPoint });
+        setIsOverPoint(!isOverPoint);
+        if (data) {
+            // converts point to label
+            setMessage(pointToLabel(data));
+        } else {
+            setMessage(`${props.value.length} points`);
+            // this.setState({ message: `${this.props.value.length} points` });
+        }
+    };
+
+    const onClick = (data?: ControlPointData) => {
+        setIsOverPoint(!isOverPoint);
+        if (data) {
+            setMessage(pointToLabel(data));
+            // this.setState({ message: this.pointToLabel(data) });
+        } else {
+            setMessage(`${props.value.length} points`);
+            // this.setState({ message: `${this.props.value.length} points` });
+        }
+    };
+
+    const onDrag = (data: ControlPointData) => {
+        setMessage(pointToLabel(data));
+        // this.setState({ message: this.pointToLabel(data) });
+    };
+
+    const onChange = (value: PD.LineGraph['defaultValue']) => {
+        props.onChange({ name: props.name, param: props.param, value: value });
+    };
+
+    const toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
+        setIsExpanded(!isExpanded);
+        // this.setState({ isExpanded: !this.state.isExpanded });
         e.currentTarget.blur();
     };
 
-    render() {
-        const label = this.props.param.label || camelCaseToWords(this.props.name);
+    const render = () => {
+        const label = props.param.label || camelCaseToWords(props.name);
         return <>
-            <ControlRow label={label} control={<button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>{`${this.state.message}`}</button>} />
-            <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none', marginTop: 1 }}>
+            <ControlRow label={label} control={<button onClick={toggleExpanded} disabled={props.isDisabled}>{`${message}`}</button>} />
+            <div className='msp-control-offset' style={{ display: isExpanded ? 'block' : 'none', marginTop: 1 }}>
                 <LineGraphComponent
-                    data={this.props.value}
-                    volume={this.props.param.getVolume?.()}
-                    onChange={this.onChange}
-                    onHover={this.onHover}
-                    onDrag={this.onDrag} />
+                    controlPoints={props.value}
+                    volume={props.param.getVolume?.() as Volume}
+                    onChange={onChange}
+                    onHover={onHover}
+                    onDrag={onDrag}
+                    colored={props.param.colored}
+                    getValueFromPoint={getValueFromPoint}
+                    onAbsValueToPointValue={onAbsValueToPointValue}
+                    onNumberOfPointsChange={onNumberOfPointsChange}
+                />
             </div>
         </>;
-    }
-}
+    };
+    return render();
+};
 
 export class NumberInputControl extends React.PureComponent<ParamProps<PD.Numeric>> {
     state = { value: '0' };
@@ -736,6 +919,9 @@ function createColorListHelpers() {
             set: ActionMenu.createItemsFromSelectOptions(ColorListOptionsSet, { addOn })
         },
         ColorsParam: PD.ObjectList({ color: PD.Color(0x0 as Color) }, ({ color }) => Color.toHexString(color).toUpperCase()),
+        OffsetRangesColorsParam: PD.ObjectList(
+            { color: PD.Color(0x0 as Color), offset: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }), id: PD.Text('') },
+            ({ color, offset }) => `${Color.toHexString(color).toUpperCase()} [${offset.toFixed(2)}]`),
         OffsetColorsParam: PD.ObjectList(
             { color: PD.Color(0x0 as Color), offset: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }) },
             ({ color, offset }) => `${Color.toHexString(color).toUpperCase()} [${offset.toFixed(2)}]`),
@@ -793,6 +979,10 @@ export class ColorListControl extends React.PureComponent<ParamProps<PD.ColorLis
     };
 
     renderColors() {
+        // so here
+        // this.props.value.colors
+        // is vec2
+        // meaning that wrong props have been passed in here
         if (!this.state.show) return null;
         const { ColorPresets, ColorsParam, IsInterpolatedParam } = ColorListHelpers();
 
@@ -875,6 +1065,80 @@ export class OffsetColorListControl extends React.PureComponent<ParamProps<PD.Co
         values.sort((a, b) => a.offset - b.offset);
         return <div className='msp-control-offset'>
             <ObjectListControl name='colors' param={OffsetColorsParam} value={values} onChange={this.colorsChanged} isDisabled={this.props.isDisabled} onEnter={this.props.onEnter} />
+            <BoolControl name='isInterpolated' param={IsInterpolatedParam} value={this.props.value.kind === 'interpolate'} onChange={this.isInterpolatedChanged} isDisabled={this.props.isDisabled} onEnter={this.props.onEnter} />
+        </div>;
+    }
+
+    toggleHelp = () => this.setState({ showHelp: !this.state.showHelp });
+
+    render() {
+        return renderSimple({
+            props: this.props,
+            state: this.state,
+            control: this.renderControl(),
+            toggleHelp: this.toggleHelp,
+            addOn: this.renderColors()
+        });
+    }
+}
+
+export class OffsetControlPointsColorList extends React.PureComponent<ParamProps<PD.ColorListControlPoints>, { showHelp: boolean, show?: 'edit' | 'presets' }> {
+    state = { showHelp: false, show: void 0 as 'edit' | 'presets' | undefined };
+
+    protected update(value: PD.ColorListControlPoints['defaultValue']) {
+        this.props.onChange({ param: this.props.param, name: this.props.name, value });
+    }
+
+    toggleEdit = () => this.setState({ show: this.state.show === 'edit' ? void 0 : 'edit' });
+    togglePresets = () => this.setState({ show: this.state.show === 'presets' ? void 0 : 'presets' });
+
+    renderControl() {
+        const { value } = this.props;
+        const valueC = value.colors.map(v => colorListRangesEntryToColorListEntry(v));
+        // TODO: fix the button right offset
+        return <>
+            <button onClick={this.toggleEdit} style={{ position: 'relative', paddingRight: '33px' }}>
+                {value.colors.length === 1 ? '1 color' : `${value.colors.length} colors`}
+                <div style={colorStripStyle({ kind: value.kind, colors: valueC }, '33px')} />
+            </button>
+            <IconButton svg={BookmarksOutlinedSvg} onClick={this.togglePresets} toggleState={this.state.show === 'presets'} title='Color Presets'
+                style={{ padding: 0, position: 'absolute', right: 0, top: 0, width: '32px' }} />
+        </>;
+    }
+
+    selectPreset: ActionMenu.OnSelect = item => {
+        if (!item) return;
+        this.setState({ show: void 0 });
+        const preset = getColorListFromName(item.value as ColorListName);
+        // TODO: fix presets
+        // this.update({ kind: preset.type !== 'qualitative' ? 'interpolate' : 'set', colors: preset.list });
+    };
+
+    colorsChanged: ParamOnChange = ({ value }) => {
+        const colors = (value as (typeof _colorListHelpers)['OffsetRangesColorsParam']['defaultValue']).map(c => [c.color, c.offset, c.id] as [Color, number, UUID]);
+        colors.sort((a, b) => a[1] - b[1]);
+        this.update({ kind: this.props.value.kind, colors });
+    };
+
+    isInterpolatedChanged: ParamOnChange = ({ value }) => {
+        this.update({ kind: value ? 'interpolate' : 'set', colors: this.props.value.colors });
+    };
+
+
+    renderColors() {
+        if (!this.state.show) return null;
+        const { ColorPresets, IsInterpolatedParam, OffsetRangesColorsParam } = ColorListHelpers();
+
+        const preset = ColorPresets[this.props.param.presetKind];
+        if (this.state.show === 'presets') return <ActionMenu items={preset} onSelect={this.selectPreset} />;
+        const colors: [Color, number, UUID][] = (this.props.value.colors as [Color, number, UUID][]);
+        const values = colors.map((color, i) => {
+            const c: [Color, number, UUID] = color;
+            return { color: c[0], offset: c[1], id: c[2] };
+        });
+        values.sort((a, b) => a.offset - b.offset);
+        return <div className='msp-control-offset'>
+            <ObjectListControl name='colors' param={OffsetRangesColorsParam} value={values} onChange={this.colorsChanged} isDisabled={this.props.isDisabled} onEnter={this.props.onEnter} />
             <BoolControl name='isInterpolated' param={IsInterpolatedParam} value={this.props.value.kind === 'interpolate'} onChange={this.isInterpolatedChanged} isDisabled={this.props.isDisabled} onEnter={this.props.onEnter} />
         </div>;
     }
@@ -1349,7 +1613,7 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
 type ObjectListEditorProps = { params: PD.Params, value: object, isUpdate?: boolean, apply: (value: any) => void, isDisabled?: boolean }
 class ObjectListEditor extends React.PureComponent<ObjectListEditorProps, { current: object }> {
     state = { current: this.props.value };
-
+    // maybe this
     onChangeParam: ParamOnChange = e => {
         this.setState({ current: { ...this.state.current, [e.name]: e.value } });
     };

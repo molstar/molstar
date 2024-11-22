@@ -1,48 +1,71 @@
 
 import * as React from 'react';
 
-import { Vec2 } from '../../../mol-math/linear-algebra';
+import { UUID } from '../../../mol-util';
+import { Color } from '../../../mol-util/color';
+import { ControlPointData } from './line-graph-component';
+import { forwardRef, useState } from 'react';
 
-export class PointComponent extends React.Component<any, {show: boolean}> {
-    constructor(props: any) {
-        super(props);
-        this.state = { show: false };
+interface PointComponentProps {
+    index: any
+    onmouseover: any
+    nX: number
+    nY: number
+    color: Color
+    onmousedown: any
+    onclick: any
+    x: number
+    y: number
+    id: UUID
+    ref: any
+}
 
-        this.handleHover = this.handleHover.bind(this);
-        this.handleHoverOff = this.handleHoverOff.bind(this);
-        this.deletePoint = this.deletePoint.bind(this);
+export const PointComponent = forwardRef(_PointComponent);
+
+function _PointComponent(props: PointComponentProps, ref: any) {
+    const [show, setShow] = useState(false);
+    const [id, setID] = useState(props.id);
+    const [index, setIndex] = useState(props.index);
+
+    function handleHoverOff() {
+        setShow(false);
+        // this.setState({ show: false });
+        props.onmouseover(undefined);
     }
 
-    private handleHover() {
-        this.setState({ show: true });
-        const point = Vec2.create(this.props.nX, this.props.nY);
-        this.props.onmouseover(point);
+
+
+    function handleHover() {
+        setShow(true);
+        // this.setState({ show: true });
+        const point: ControlPointData = {
+            x: props.nX,
+            alpha: props.nY
+        };
+        props.onmouseover(point);
     }
 
-    private handleHoverOff() {
-        this.setState({ show: false });
-        this.props.onmouseover(undefined);
-    }
 
-    private deletePoint() {
-        this.props.delete(this.props.id);
-    }
-
-    public render() {
+    function render() {
+        const rgb = Color.toRgb(props.color);
+        const fill = `rgb(${rgb})`;
         return ([
             <circle
+                ref={ref}
                 r="10"
-                key={`${this.props.id}circle`}
-                id={`${this.props.id}`}
-                cx={this.props.x}
-                cy={this.props.y}
-                onClick={this.props.onclick}
-                onDoubleClick={this.props.delete(this.props.id)}
-                onMouseEnter={this.handleHover}
-                onMouseLeave={this.handleHoverOff}
-                onMouseDown={this.props.onmousedown}
-                fill="black"
-            />
+                key={`${props.id}circle`}
+                id={`${props.id}`}
+                cx={props.x}
+                cy={props.y}
+                onClick={props.onclick}
+                // onDoubleClick={props.delete(props.id)}
+                onMouseEnter={handleHover}
+                onMouseLeave={handleHoverOff}
+                onMouseDown={props.onmousedown}
+                fill={fill}
+            >
+            </circle>
         ]);
     }
+    return render();
 }

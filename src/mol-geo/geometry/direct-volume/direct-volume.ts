@@ -13,7 +13,7 @@ import { createNullTexture, Texture } from '../../../mol-gl/webgl/texture';
 import { Box3D, Sphere3D } from '../../../mol-math/geometry';
 import { Mat4, Vec2, Vec3, Vec4 } from '../../../mol-math/linear-algebra';
 import { Theme } from '../../../mol-theme/theme';
-import { ValueCell } from '../../../mol-util';
+import { UUID, ValueCell } from '../../../mol-util';
 import { Color } from '../../../mol-util/color';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Box } from '../../primitive/box';
@@ -24,13 +24,91 @@ import { createMarkers } from '../marker-data';
 import { createEmptyOverpaint } from '../overpaint-data';
 import { TransformData } from '../transform-data';
 import { createEmptyTransparency } from '../transparency-data';
-import { createTransferFunctionTexture, getControlPointsFromVec2Array } from './transfer-function';
+import { createTransferFunctionTexture } from './transfer-function';
 import { createEmptyClipping } from '../clipping-data';
-import { Grid } from '../../../mol-model/volume';
+import { Grid, Volume } from '../../../mol-model/volume';
 import { createEmptySubstance } from '../substance-data';
 import { createEmptyEmissive } from '../emissive-data';
+import { ControlPoint, ControlPointData } from '../../../mol-plugin-ui/controls/line-graph/line-graph-component';
+import { ColorNames, getRandomColor } from '../../../mol-util/color/names';
 
 const VolumeBox = Box();
+export const defaultControlPoints = generateControlPoints(ColorNames.black);
+
+function generateNormalizedGaussianPositions(numberOfPoints: number, a: number, b: number, c: number, TFextent: number, yOffset: number): Vec2[] {
+    const arr: Vec2[] = [];
+    const center = b * TFextent;
+    const extent = c * TFextent;
+    // kind of 3 sigma
+    const start = center - 3 * extent;
+    const end = center + 3 * extent;
+    const interval = ((end - start) / (numberOfPoints - 1)) / TFextent;
+    for (let i = 0; i < numberOfPoints; i ++) {
+        const x = start / TFextent + (interval * i);
+        const y = gaussianParametrized(x, a, b, c);
+        const vector = Vec2.create(x, y + yOffset);
+        arr.push(vector);
+    }
+    return arr;
+}
+
+function gaussian(x: number) {
+    const y = Math.exp(-(x ** 2));
+    return y;
+}
+
+function gaussianParametrized(x: number, a: number, b: number, c: number) {
+    const y = a * Math.exp(-(
+        (x - b) ** 2
+        /
+        (2 * (c ** 2))
+    ));
+    return y;
+}
+
+export function generateGaussianControlPoints(a: number, b: number, c: number, TFextent: number, yOffset: number, volume: Volume, paddingYUnnormalized: number) {
+    const numberOfPoints = 8;
+    const positions = generateNormalizedGaussianPositions(numberOfPoints, a, b, c, TFextent, yOffset);
+    const controlPoints = generateControlPoints(ColorNames.black, positions, volume);
+    return controlPoints;
+}
+
+// TODO: destructuring params or something
+export function generateControlPoints(color?: Color, positions?: Vec2[], volume?: Volume) {
+    if (!positions) {
+        positions = [
+            Vec2.create(0.19, 0.0), Vec2.create(0.2, 0.05), Vec2.create(0.25, 0.05), Vec2.create(0.26, 0.0),
+            Vec2.create(0.79, 0.0), Vec2.create(0.8, 0.05), Vec2.create(0.85, 0.05), Vec2.create(0.86, 0.0),
+        ];
+    }
+    const points: ControlPoint[] = [];
+    for (let i = 0, il = positions.length; i < il; ++i) {
+        const data: ControlPointData = {
+            x: positions[i][0],
+            alpha: positions[i][1],
+        };
+        if (volume) {
+            const { min, max, mean, sigma } = volume.grid.stats;
+
+            // stuff
+            const v = min + (max - min) * data.x;
+            const s = (v - mean) / sigma;
+            data.absValue = v;
+            data.relativeValue = s;
+        } else {
+            // TODO: optimize this
+        }
+
+        const point: ControlPoint = {
+            data: data,
+            id: UUID.create22(),
+            color: color !== undefined ? color : getRandomColor(),
+            index: i + 1,
+        };
+        points.push(point);
+    }
+    return points;
+}
 
 export interface DirectVolume {
     readonly kind: 'direct-volume',
@@ -150,10 +228,10 @@ export namespace DirectVolume {
         ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
         celShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
         xrayShaded: PD.Select<boolean | 'inverted'>(false, [[false, 'Off'], [true, 'On'], ['inverted', 'Inverted']], BaseGeometry.ShadingCategory),
-        controlPoints: PD.LineGraph([
-            Vec2.create(0.19, 0.0), Vec2.create(0.2, 0.05), Vec2.create(0.25, 0.05), Vec2.create(0.26, 0.0),
-            Vec2.create(0.79, 0.0), Vec2.create(0.8, 0.05), Vec2.create(0.85, 0.05), Vec2.create(0.86, 0.0),
-        ], { isEssential: true }),
+        lineGraphData: PD.LineGraph(
+            // this
+            defaultControlPoints, { isEssential: true }
+        ),
         stepsPerCell: PD.Numeric(3, { min: 1, max: 10, step: 1 }),
         jumpLength: PD.Numeric(0, { min: 0, max: 20, step: 0.1 }),
     };
@@ -228,7 +306,7 @@ export namespace DirectVolume {
         const invariantBoundingSphere = Sphere3D.clone(directVolume.boundingSphere);
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount, 0);
 
-        const controlPoints = getControlPointsFromVec2Array(props.controlPoints);
+        const controlPoints = props.lineGraphData;
         const transferTex = createTransferFunctionTexture(controlPoints);
 
         return {
@@ -289,10 +367,8 @@ export namespace DirectVolume {
         ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);
         ValueCell.updateIfChanged(values.dCelShaded, props.celShaded);
         ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded === 'inverted' ? 'inverted' : props.xrayShaded === true ? 'on' : 'off');
-
-        const controlPoints = getControlPointsFromVec2Array(props.controlPoints);
+        const controlPoints = props.lineGraphData;
         createTransferFunctionTexture(controlPoints, values.tTransferTex);
-
         ValueCell.updateIfChanged(values.uMaxSteps, getMaxSteps(values.uGridDim.ref.value, props.stepsPerCell));
         ValueCell.updateIfChanged(values.uStepScale, getStepScale(values.uCellDim.ref.value, props.stepsPerCell));
         ValueCell.updateIfChanged(values.uTransferScale, getTransferScale(props.stepsPerCell));

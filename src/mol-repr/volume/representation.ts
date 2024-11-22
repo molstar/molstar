@@ -35,6 +35,7 @@ import { isPromiseLike } from '../../mol-util/type-helpers';
 import { Substance } from '../../mol-theme/substance';
 import { createMarkers } from '../../mol-geo/geometry/marker-data';
 import { Emissive } from '../../mol-theme/emissive';
+import { DirectVolumeParams } from './direct-volume';
 
 export type VolumeKey = { volume: Volume, key: number }
 export interface VolumeVisual<P extends VolumeParams> extends Visual<VolumeKey, P> { }
@@ -62,7 +63,7 @@ interface VolumeVisualGeometryBuilder<P extends VolumeParams, G extends Geometry
     geometryUtils: GeometryUtils<G>
 }
 
-export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geometry.Params<G>>(builder: VolumeVisualGeometryBuilder<P, G>, materialId: number): VolumeVisual<P> {
+export function VolumeVisual<G extends Geometry, P extends VolumeParams & DirectVolumeParams & Geometry.Params<G>>(builder: VolumeVisualGeometryBuilder<P, G>, materialId: number): VolumeVisual<P> {
     const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState, mustRecreate, dispose } = builder;
     const { updateValues, updateBoundingSphere, updateRenderableState, createPositionIterator } = builder.geometryUtils;
     const updateState = VisualUpdateState.create();

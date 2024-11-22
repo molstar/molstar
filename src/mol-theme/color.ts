@@ -6,7 +6,7 @@
 
 import { Color } from '../mol-util/color';
 import { Location } from '../mol-model/location';
-import { ColorType, ColorTypeDirect, ColorTypeGrid, ColorTypeLocation } from '../mol-geo/geometry/color-data';
+import { ColorType, ColorTypeDirect, ColorTypeGrid, ColorTypeLocation, ColorTypeControlPoints } from '../mol-geo/geometry/color-data';
 import { CarbohydrateSymbolColorThemeProvider } from './color/carbohydrate-symbol';
 import { UniformColorThemeProvider } from './color/uniform';
 import { deepEqual } from '../mol-util';
@@ -44,6 +44,7 @@ import { VolumeSegmentColorThemeProvider } from './color/volume-segment';
 import { ExternalVolumeColorThemeProvider } from './color/external-volume';
 import { ColorThemeCategory } from './color/categories';
 import { CartoonColorThemeProvider } from './color/cartoon';
+import { ControlPointsThemeProvider } from './color/control-points';
 import { FormalChargeColorThemeProvider } from './color/formal-charge';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
@@ -68,6 +69,7 @@ type ColorThemeShared<P extends PD.Params, G extends ColorType> = {
     readonly contextHash?: number
     readonly description?: string
     readonly legend?: Readonly<ScaleLegend | TableLegend>
+    readonly isRanges?: boolean
 }
 
 type ColorThemeLocation<P extends PD.Params> = {
@@ -84,10 +86,17 @@ type ColorThemeDirect<P extends PD.Params> = {
     readonly granularity: ColorTypeDirect
 } & ColorThemeShared<P, ColorTypeDirect>
 
+type ColorThemeRanges<P extends PD.Params> = {
+    readonly granularity: ColorTypeDirect
+    readonly isRanges: true
+} & ColorThemeShared<P, ColorTypeDirect>
+
+
 type ColorTheme<P extends PD.Params, G extends ColorType = ColorTypeLocation> =
     G extends ColorTypeLocation ? ColorThemeLocation<P> :
         G extends ColorTypeGrid ? ColorThemeGrid<P> :
-            G extends ColorTypeDirect ? ColorThemeDirect<P> : never
+            G extends ColorTypeDirect ? ColorThemeDirect<P> :
+                G extends ColorTypeControlPoints ? ColorThemeRanges<P> : never
 
 namespace ColorTheme {
     export const Category = ColorThemeCategory;
@@ -111,7 +120,13 @@ namespace ColorTheme {
     };
 
     export function areEqual(themeA: ColorTheme<any, any>, themeB: ColorTheme<any, any>) {
-        return themeA.contextHash === themeB.contextHash && themeA.factory === themeB.factory && deepEqual(themeA.props, themeB.props);
+        let paletteColorsEqual = true;
+        if (themeA.palette && themeB.palette) {
+            const a = themeA.palette.colors;
+            const b = themeB.palette.colors;
+            paletteColorsEqual = a.every(item => b.includes(item)) && b.every(item => a.includes(item));
+        }
+        return themeA.contextHash === themeB.contextHash && themeA.factory === themeB.factory && deepEqual(themeA.props, themeB.props) && paletteColorsEqual;
     }
 
     export interface Provider<P extends PD.Params = any, Id extends string = string, G extends ColorType = ColorType> extends ThemeProvider<ColorTheme<P, G>, P, Id, G> { }
@@ -154,6 +169,7 @@ namespace ColorTheme {
         'volume-segment': VolumeSegmentColorThemeProvider,
         'volume-value': VolumeValueColorThemeProvider,
         'external-volume': ExternalVolumeColorThemeProvider,
+        'control-points': ControlPointsThemeProvider
     };
     type _BuiltIn = typeof BuiltIn
     export type BuiltIn = keyof _BuiltIn

@@ -22,6 +22,7 @@ import { Interval } from '../../mol-data/int';
 import { Loci, EmptyLoci } from '../../mol-model/loci';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { createVolumeTexture2d, createVolumeTexture3d, eachVolumeLoci, getVolumeTexture2dLayout } from './util';
+import { ControlPointsThemeName } from '../../mol-theme/color/control-points';
 
 function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
     const bbox = Box3D();
@@ -126,11 +127,16 @@ export function eachDirectVolume(loci: Loci, volume: Volume, key: number, props:
 export const DirectVolumeParams = {
     ...DirectVolume.Params,
     quality: { ...DirectVolume.Params.quality, isEssential: false },
+    ranges: PD.Boolean(false)
 };
 export type DirectVolumeParams = typeof DirectVolumeParams
 export function getDirectVolumeParams(ctx: ThemeRegistryContext, volume: Volume) {
     const params = PD.clone(DirectVolumeParams);
-    params.controlPoints.getVolume = () => volume;
+    // TODO: always true, solve if needed
+    if (params.ranges) {
+        params.lineGraphData.colored = true;
+    };
+    params.lineGraphData.getVolume = () => volume;
     return params;
 }
 export type DirectVolumeProps = PD.Values<DirectVolumeParams>
@@ -162,7 +168,7 @@ export const DirectVolumeRepresentationProvider = VolumeRepresentationProvider({
     factory: DirectVolumeRepresentation,
     getParams: getDirectVolumeParams,
     defaultValues: PD.getDefaultValues(DirectVolumeParams),
-    defaultColorTheme: { name: 'volume-value' },
+    defaultColorTheme: { name: ControlPointsThemeName },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (volume: Volume) => !Volume.isEmpty(volume) && !Volume.Segmentation.get(volume)
 });

@@ -45,6 +45,9 @@ import { Material } from '../../mol-util/material';
 import { lerp } from '../../mol-math/interpolate';
 import { MarkerAction, MarkerActions } from '../../mol-util/marker-action';
 import { Emissive } from '../../mol-theme/emissive';
+import { ControlPoint, controlPointsToColorListControlPointsEntry } from '../../mol-plugin-ui/controls/line-graph/line-graph-component';
+import { ColorListRangesEntry as ColorListControlPointsEntry } from '../../mol-util/color/color';
+import { ControlPointsThemeName } from '../../mol-theme/color/control-points';
 
 export { StructureRepresentation3D };
 export { ExplodeStructureRepresentation3D };
@@ -1011,15 +1014,24 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Volume Representation', async ctx => {
+            if (params.type.name !== 'direct-volume' && params.colorTheme.name === ControlPointsThemeName) {
+                throw Error('Missing direct volume');
+            }
+            if (params.type.name === 'direct-volume' && params.colorTheme.name === ControlPointsThemeName) {
+                // params.type.params.lineGraphData.colored = true;
+                const controlPoints: ControlPoint[] = params.type.params.lineGraphData;
+                const colors = controlPointsToColorListControlPointsEntry(controlPoints);
+                params.colorTheme.params.controlPointsColorList.colors = colors;
+            }
             const propertyCtx = { runtime: ctx, assetManager: plugin.managers.asset, errorContext: plugin.errorContext };
             const provider = plugin.representation.volume.registry.get(params.type.name);
             if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data);
             const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.volume.themes }, provider.getParams);
             repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: a.data }, params));
-
             const props = params.type.params || {};
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
-            return new SO.Volume.Representation3D({ repr, sourceData: a.data }, { label: provider.label, description: VolumeRepresentation3DHelpers.getDescription(props) });
+            const so = new SO.Volume.Representation3D({ repr, sourceData: a.data }, { label: provider.label, description: VolumeRepresentation3DHelpers.getDescription(props) });
+            return so;
         });
     },
     update({ a, b, oldParams, newParams }, plugin: PluginContext) {
@@ -1028,7 +1040,34 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
                 const oldProvider = plugin.representation.volume.registry.get(oldParams.type.name);
                 oldProvider.ensureCustomProperties?.detach(a.data);
                 return StateTransformer.UpdateResult.Recreate;
+            };
+            if (newParams.type.name !== 'direct-volume' && newParams.colorTheme.name === ControlPointsThemeName) {
+                throw Error('Missing direct volume');
+            };
+            if (newParams.type.name === 'direct-volume' && newParams.colorTheme.name === ControlPointsThemeName) {
+                const controlPoints: ControlPoint[] = newParams.type.params.lineGraphData;
+                if (newParams.colorTheme.params.controlPointsColorList && oldParams.colorTheme.params.controlPointsColorList) {
+                    if (newParams.colorTheme.params.controlPointsColorList.colors !== oldParams.colorTheme.params.controlPointsColorList.colors) {
+                        const newPoints: ControlPoint[] = [];
+
+                        for (const i of newParams.colorTheme.params.controlPointsColorList.colors) {
+                            const item: ColorListControlPointsEntry = i;
+                            const id = item[2];
+                            const targetPoint = controlPoints.find(p => p.id === id);
+                            if (!targetPoint) throw Error(`Target point with id: ${id} was not found`);
+                            targetPoint.color = item[0];
+                            targetPoint.data.x = item[1];
+                            newPoints.push(targetPoint);
+                            newPoints.sort((a, b) => { return a.data.x - b.data.x; });
+                        }
+
+                        newParams.type.params.lineGraphData = newPoints;
+                    }
+
+                    newParams.colorTheme.params.controlPointsColorList.colors = controlPointsToColorListControlPointsEntry(controlPoints);
+                }
             }
+
             const props = { ...b.data.repr.props, ...newParams.type.params };
             b.data.repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: a.data }, newParams));
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);

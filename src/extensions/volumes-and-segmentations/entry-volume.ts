@@ -4,7 +4,6 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { Vec2 } from '../../mol-math/linear-algebra';
 import { Volume } from '../../mol-model/volume';
 import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
@@ -26,8 +25,7 @@ import { VolsegGlobalStateData } from './global-state';
 const GROUP_TAG = 'volume-group';
 export const VOLUME_VISUAL_TAG = 'volume-visual';
 
-const DIRECT_VOLUME_RELATIVE_PEAK_HALFWIDTH = 0.5;
-
+// const DIRECT_VOLUME_RELATIVE_PEAK_HALFWIDTH = 0.5;
 
 export type VolumeVisualParams = ReturnType<typeof createVolumeRepresentationParams>;
 
@@ -79,7 +77,6 @@ export class VolsegVolumeData {
             const adjustedIsovalue = Volume.adjustedIsoValue(volumeData, isovalue.value, isovalue.kind);
             const visualParams = this.createVolumeVisualParams(volumeData, volumeType);
             this.changeIsovalueInVolumeVisualParams(visualParams, adjustedIsovalue, volumeData.grid.stats);
-
             await this.entryData.newUpdate()
                 .to(volumeNode)
                 .apply(StateTransforms.Representation.VolumeRepresentation3D, visualParams, { tags: [VOLUME_VISUAL_TAG], state: { isHidden: volumeType === 'off' } })
@@ -177,14 +174,10 @@ export class VolsegVolumeData {
                 params.type.params.tryUseGpu = VolsegGlobalStateData.getGlobalState(this.entryData.plugin)?.tryUseGpu;
                 break;
             case 'direct-volume':
-                const absIso = Volume.IsoValue.toAbsolute(isovalue, stats).absoluteValue;
-                const fractIso = (absIso - stats.min) / (stats.max - stats.min);
-                const peakHalfwidth = DIRECT_VOLUME_RELATIVE_PEAK_HALFWIDTH * stats.sigma / (stats.max - stats.min);
-                params.type.params.controlPoints = [
-                    Vec2.create(Math.max(fractIso - peakHalfwidth, 0), 0),
-                    Vec2.create(fractIso, 1),
-                    Vec2.create(Math.min(fractIso + peakHalfwidth, 1), 0),
-                ];
+                // TODO: use these somehow
+                // const absIso = Volume.IsoValue.toAbsolute(isovalue, stats).absoluteValue;
+                // const fractIso = (absIso - stats.min) / (stats.max - stats.min);
+                // const peakHalfwidth = DIRECT_VOLUME_RELATIVE_PEAK_HALFWIDTH * stats.sigma / (stats.max - stats.min);
                 break;
         }
     }

@@ -14,7 +14,8 @@ import { Legend } from './legend';
 import { stringToWords } from './string';
 import { getColorListFromName, ColorListName } from './color/lists';
 import { Asset } from './assets';
-import { ColorListEntry } from './color/color';
+import { ColorListEntry, ColorListRangesEntry } from './color/color';
+import { ControlPoint } from '../mol-plugin-ui/controls/line-graph/line-graph-component';
 
 export namespace ParamDefinition {
     export interface Info {
@@ -128,6 +129,13 @@ export namespace ParamDefinition {
         offsets: boolean
         presetKind: 'all' | 'scale' | 'set'
     }
+
+    export interface ColorListControlPoints extends Base<{ kind: 'interpolate' | 'set', colors: ColorListRangesEntry[] }> {
+        type: 'color-list-control-points'
+        offsets: boolean
+        presetKind: 'all' | 'scale' | 'set'
+    }
+
     export function ColorList(defaultValue: { kind: 'interpolate' | 'set', colors: ColorListEntry[] } | ColorListName, info?: Info & { presetKind?: ColorList['presetKind'], offsets?: boolean }): ColorList {
         let def: ColorList['defaultValue'];
         if (typeof defaultValue === 'string') {
@@ -137,6 +145,11 @@ export namespace ParamDefinition {
             def = defaultValue;
         }
         return setInfo<ColorList>({ type: 'color-list', presetKind: info?.presetKind || 'all', defaultValue: def, offsets: !!info?.offsets }, info);
+    }
+
+    export function ColorListControlPoints(defaultValue: { kind: 'interpolate' | 'set', colors: ColorListRangesEntry[] }, info?: Info & { presetKind?: ColorList['presetKind'], offsets?: boolean }): ColorListControlPoints {
+        const def = defaultValue;
+        return setInfo<ColorListControlPoints>({ type: 'color-list-control-points', presetKind: info?.presetKind || 'all', defaultValue: def, offsets: !!info?.offsets }, info);
     }
 
     export interface Vec3 extends Base<Vec3Data>, Range {
@@ -218,15 +231,18 @@ export namespace ParamDefinition {
         return setInfo<Interval>(setRange({ type: 'interval', defaultValue }, range), info);
     }
 
-    export interface LineGraph extends Base<Vec2Data[]> {
+    export interface LineGraph extends Base<ControlPoint[]> {
         type: 'line-graph',
-        getVolume?: () => unknown
+        getVolume?: () => unknown,
+        colored?: boolean
     }
-    export function LineGraph(defaultValue: Vec2Data[], info?: Info & { getVolume?: (binCount?: number) => unknown }): LineGraph {
+
+    export function LineGraph(defaultValue: ControlPoint[], info?: Info & { getVolume?: (binCount?: number) => unknown }): LineGraph {
         const ret = setInfo<LineGraph>({ type: 'line-graph', defaultValue }, info);
         if (info?.getVolume) ret.getVolume = info.getVolume;
         return ret;
     }
+
 
     export interface Group<T> extends Base<T> {
         type: 'group',
@@ -344,7 +360,7 @@ export namespace ParamDefinition {
 
     export type Any =
         | Value<any> | Select<any> | MultiSelect<any> | BooleanParam | Text | Color | Vec3 | Mat4 | Numeric | FileParam | UrlParam | FileListParam | Interval | LineGraph
-        | ColorList | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | Script | ObjectList | ValueRef | DataRef
+        | ColorList | ColorListControlPoints | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | Script | ObjectList | ValueRef | DataRef
 
     export type Params = { [k: string]: Any }
     export type Values<T extends Params = Params> = { [k in keyof T]: T[k]['defaultValue'] }
@@ -493,7 +509,10 @@ export namespace ParamDefinition {
             const u = a as LineGraph['defaultValue'], v = b as LineGraph['defaultValue'];
             if (u.length !== v.length) return false;
             for (let i = 0, _i = u.length; i < _i; i++) {
-                if (!Vec2Data.areEqual(u[i], v[i])) return false;
+                const u_v2 = Vec2Data.create(u[i].data.x, u[i].data.alpha);
+                const v_v2 = Vec2Data.create(v[i].data.x, v[i].data.alpha);
+                if (!Vec2Data.areEqual(u_v2, v_v2)) return false;
+                if (u[i].color !== v[i].color) return false;
             }
             return true;
         } else if (p.type === 'vec3') {

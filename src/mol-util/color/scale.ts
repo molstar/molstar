@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Color, ColorListEntry } from './color';
+import { Color, ColorListEntry, ColorListRangesEntry, isColorListRangesEntry } from './color';
 import { getColorListFromName, ColorListName } from './lists';
 import { defaults } from '../../mol-util';
 import { NumberArray } from '../../mol-util/type-helpers';
@@ -28,7 +28,7 @@ export interface ColorScale {
 export const DefaultColorScaleProps = {
     domain: [0, 1] as [number, number],
     reverse: false,
-    listOrName: 'red-yellow-blue' as ColorListEntry[] | ColorListName,
+    listOrName: 'red-yellow-blue' as ColorListEntry[] | ColorListRangesEntry[] | ColorListName,
     minLabel: '' as string | undefined,
     maxLabel: '' as string | undefined,
 };
@@ -39,7 +39,17 @@ export namespace ColorScale {
         const { domain, reverse, listOrName } = { ...DefaultColorScaleProps, ...props };
         const list = typeof listOrName === 'string' ? getColorListFromName(listOrName).list : listOrName;
 
-        const colors = reverse ? list.slice().reverse() : list;
+        const t = list.every(l => isColorListRangesEntry(l));
+        let list2: ColorListEntry[] = [];
+        if (t) {
+            list2 = list.map(l => {
+                const c: ColorListEntry = [l[0], l[1]];
+                return c;
+            });
+        } else {
+            list2 = list;
+        }
+        const colors = reverse ? list2.slice().reverse() : list2;
         const count1 = colors.length - 1;
 
         let diff = 0, min = 0, max = 0;

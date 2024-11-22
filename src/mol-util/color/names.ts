@@ -173,3 +173,9 @@ export const ColorNamesValueMap = (function () {
     });
     return map;
 })();
+
+export function getRandomColor() {
+    const keys = Array.from(ColorNamesValueMap.keys());
+    const random = Math.floor(Math.random() * keys.length);
+    return keys[random];
+}
