@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix artifacts when using xray shading with high xrayEdgeFalloff values
 - Enable double rounded capping on tubular helices
 - Fix single residue tubular helices not showing up
 - Fix outlines on volume and surface reps that do not disappear (#1326)
