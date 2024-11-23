@@ -201,8 +201,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
 
     private async syncCurrent(options?: { name?: string, description?: string, params?: PluginState.SnapshotParams }) {
         const isEmpty = this.state.entries.size === 0;
-        const canReplace = this.state.entries.size === 1 && this.state.current && this.state.current === this.defaultSnapshotId;
-
+        const canReplace = this.state.entries.size === 1 && this.state.current && (!this.defaultSnapshotId || this.state.current === this.defaultSnapshotId);
         if (!isEmpty && !canReplace) return;
 
         const snapshot = this.plugin.state.getSnapshot(options?.params);

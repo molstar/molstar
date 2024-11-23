@@ -27,6 +27,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix `StructConn.isExhaustive` for partial models (e.g., returned by the model server)
 - Refactor value swapping in molstar-math to fix SWC (Next.js) build (#1345)
 - Fix transform data not updated when structure child changes
+- Fix `PluginStateSnapshotManager.syncCurrent` to work as expected on re-loaded states.
 - Fix do not compute implicit hydrogens when unit is explicitly protonated (#1257)
 
 ## [v4.8.0] - 2024-10-27
