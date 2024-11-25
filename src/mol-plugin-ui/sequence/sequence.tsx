@@ -91,6 +91,18 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         const ev = { current: Representation.Loci.Empty, buttons, button, modifiers };
         if (loci !== undefined && !StructureElement.Loci.isEmpty(loci)) {
             ev.current = { loci };
+            if (this.mouseDownLoci) {
+                const ref = this.mouseDownLoci.elements[0];
+                const ext = loci.elements[0];
+                const min = Math.min(OrderedSet.min(ref.indices), OrderedSet.min(ext.indices));
+                const max = Math.max(OrderedSet.max(ref.indices), OrderedSet.max(ext.indices));
+
+                const range = StructureElement.Loci(loci.structure, [{
+                    unit: ref.unit,
+                    indices: OrderedSet.ofRange(min as StructureElement.UnitIndex, max as StructureElement.UnitIndex)
+                }]);
+                ev.current = { loci: range };
+            }
         }
         this.plugin.behaviors.interaction.hover.next(ev);
     }
@@ -114,11 +126,6 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
 
         const seqIdx = this.getSeqIdx(e);
         const loci = this.getLoci(seqIdx);
-        const buttons = getButtons(e.nativeEvent);
-        const button = getButton(e.nativeEvent);
-        const modifiers = getModifiers(e.nativeEvent);
-
-        this.click(loci, buttons, button, modifiers);
         this.mouseDownLoci = loci;
     };
 
@@ -131,22 +138,25 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         const seqIdx = this.getSeqIdx(e);
         const loci = this.getLoci(seqIdx);
 
-        if (loci && !StructureElement.Loci.areEqual(this.mouseDownLoci, loci)) {
+        if (loci) {
             const buttons = getButtons(e.nativeEvent);
             const button = getButton(e.nativeEvent);
             const modifiers = getModifiers(e.nativeEvent);
 
-            const ref = this.mouseDownLoci.elements[0];
-            const ext = loci.elements[0];
-            const min = Math.min(OrderedSet.min(ref.indices), OrderedSet.min(ext.indices));
-            const max = Math.max(OrderedSet.max(ref.indices), OrderedSet.max(ext.indices));
+            let range = loci;
+            if (!StructureElement.Loci.areEqual(this.mouseDownLoci, loci)) {
+                const ref = this.mouseDownLoci.elements[0];
+                const ext = loci.elements[0];
+                const min = Math.min(OrderedSet.min(ref.indices), OrderedSet.min(ext.indices));
+                const max = Math.max(OrderedSet.max(ref.indices), OrderedSet.max(ext.indices));
 
-            const range = StructureElement.Loci(loci.structure, [{
-                unit: ref.unit,
-                indices: OrderedSet.ofRange(min as StructureElement.UnitIndex, max as StructureElement.UnitIndex)
-            }]);
+                range = StructureElement.Loci(loci.structure, [{
+                    unit: ref.unit,
+                    indices: OrderedSet.ofRange(min as StructureElement.UnitIndex, max as StructureElement.UnitIndex)
+                }]);
+            }
 
-            this.click(StructureElement.Loci.subtract(range, this.mouseDownLoci), buttons, button, modifiers);
+            this.click(range, buttons, button, modifiers);
         }
         this.mouseDownLoci = undefined;
     };
@@ -266,7 +276,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             this.lastMouseOverSeqIdx = seqIdx;
             if (this.mouseDownLoci !== undefined) {
                 const loci = this.getLoci(seqIdx);
-                this.hover(loci, ButtonsType.Flag.None, ButtonsType.Flag.None, { ...modifiers, shift: true });
+                this.hover(loci, ButtonsType.Flag.None, ButtonsType.Flag.None, modifiers);
             } else {
                 this.highlightQueue.next({ seqIdx, buttons, button, modifiers });
             }
