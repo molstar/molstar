@@ -24,6 +24,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix bonds not shown with `ignoreHydrogens` on (#1315)
     - Better handle mmCIF files with no entities defined by using `label_asym_id`
     - Show bonds in water chains when `ignoreHydorgensVariant` is `non-polar`
+- Add MembraneServer API, generating data to be consumed in the context of MolViewSpec
 - Fix `StructConn.isExhaustive` for partial models (e.g., returned by the model server)
 - Refactor value swapping in molstar-math to fix SWC (Next.js) build (#1345)
 - Fix transform data not updated when structure child changes
