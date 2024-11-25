@@ -1013,8 +1013,8 @@ namespace Canvas3D {
                 cameraResetRequested = true;
             },
             camera,
-            boundingSphere: scene.boundingSphere,
-            boundingSphereVisible: scene.boundingSphereVisible,
+            get boundingSphere() { return scene.boundingSphere; },
+            get boundingSphereVisible() { return scene.boundingSphereVisible; },
             get notifyDidDraw() { return notifyDidDraw; },
             set notifyDidDraw(v: boolean) { notifyDidDraw = v; },
             didDraw,
