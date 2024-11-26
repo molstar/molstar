@@ -26,6 +26,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix `StructConn.isExhaustive` for partial models (e.g., returned by the model server)
 - Refactor value swapping in molstar-math to fix SWC (Next.js) build (#1345)
 - Fix transform data not updated when structure child changes
+- ModelServer and VolumeServer: support for input files from Google Cloud Storage (gs://)
 
 ## [v4.8.0] - 2024-10-27
 

@@ -48,7 +48,14 @@ function parseGsUrl(url: string) {
 
 export async function downloadGs(gsUrl: string, options?: gsCreateReadStreamOptions) {
     const { bucket, file } = parseGsUrl(gsUrl);
-    const response = await getGsClient().bucket(bucket).file(file).download(options);
-    const buffer = response[0];
-    return buffer;
+    try {
+        const response = await getGsClient().bucket(bucket).file(file).download(options);
+        const buffer = response[0];
+        return buffer;
+    } catch (err) {
+        if (err.code === 401) {
+            console.error('Error 401: Unauthorized access to Google Cloud Storage. To set up authorization, run `export GOOGLE_APPLICATION_CREDENTIALS=/path/to/credential/file.json`');
+        }
+        throw err;
+    }
 }
