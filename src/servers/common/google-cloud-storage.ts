@@ -4,7 +4,35 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { DownloadOptions, Storage } from '@google-cloud/storage';
+
+// Using dodgy typing to avoid importing peer dependency directly:
+type gsStorage = any; // import { type Storage as gsStorage } from '@google-cloud/storage';
+interface gsCreateReadStreamOptions {
+    userProject?: string;
+    validation?: 'md5' | 'crc32c' | false | true;
+    start?: number;
+    end?: number;
+    decompress?: boolean;
+} // import { type CreateReadStreamOptions as gsCreateReadStreamOptions } from '@google-cloud/storage';
+
+let _gsClient: gsStorage | undefined;
+
+function getGsClient(): gsStorage {
+    if (!_gsClient) {
+        const gsModule = getGsModule();
+        _gsClient = new gsModule.Storage();
+    }
+    return _gsClient;
+}
+
+function getGsModule() {
+    try {
+        return require('@google-cloud/storage');
+    } catch (err) {
+        console.error('Dynamic import of "@google-cloud/storage" failed. If you want to use ModelServer/VolumeServer with Google Cloud Storage, install "@google-cloud/storage" package (see peerDependencies in package.json).');
+        throw err;
+    }
+}
 
 
 function parseGsUrl(url: string) {
@@ -18,12 +46,7 @@ function parseGsUrl(url: string) {
     };
 }
 
-let _gsClient: Storage | undefined;
-function getGsClient() {
-    return _gsClient ??= new Storage();
-}
-
-export async function downloadGs(gsUrl: string, options?: DownloadOptions) {
+export async function downloadGs(gsUrl: string, options?: gsCreateReadStreamOptions) {
     const { bucket, file } = parseGsUrl(gsUrl);
     const response = await getGsClient().bucket(bucket).file(file).download(options);
     const buffer = response[0];
