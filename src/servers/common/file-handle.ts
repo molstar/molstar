@@ -11,8 +11,8 @@ import fetch from 'node-fetch';
 import { FileHandle } from '../../mol-io/common/file-handle';
 import { SimpleBuffer } from '../../mol-io/common/simple-buffer';
 import { defaults, noop } from '../../mol-util';
+import { openRead } from '../volume/common/file';
 import { downloadGs } from './google-cloud-storage';
-import * as File from '../volume/common/file';
 
 
 /** Create a file handle from either a file path or a URL (supports file://, http(s)://, gs:// protocols).  */
@@ -22,9 +22,9 @@ export async function fileHandleFromPathOrUrl(pathOrUrl: string, name: string): 
     } else if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
         return fileHandleFromHTTP(pathOrUrl, name);
     } else if (pathOrUrl.startsWith('file://')) {
-        return fileHandleFromDescriptor(await File.openRead(pathOrUrl.slice('file://'.length)), name);
+        return fileHandleFromDescriptor(await openRead(pathOrUrl.slice('file://'.length)), name);
     } else {
-        return fileHandleFromDescriptor(await File.openRead(pathOrUrl), name);
+        return fileHandleFromDescriptor(await openRead(pathOrUrl), name);
     }
 }
 
@@ -92,7 +92,13 @@ export function fileHandleFromGS(url: string, name: string): FileHandle {
                 length = defaults(length, sizeOrBuffer.length);
                 outBuffer = sizeOrBuffer;
             }
-            const data = await downloadGs(url, { decompress: false, start: position, end: position + length - 1 });
+            let data: Buffer;
+            try {
+                data = await downloadGs(url, { decompress: false, start: position, end: position + length - 1 });
+            } catch (err) {
+                err.isFileNotFound = true;
+                throw err;
+            }
             const bytesRead = data.copy(outBuffer, byteOffset);
             if (length !== bytesRead) {
                 console.warn(`byteCount ${length} and bytesRead ${bytesRead} differ`);
@@ -118,8 +124,14 @@ export function fileHandleFromHTTP(url: string, name: string): FileHandle {
         readBuffer: async (position: number, sizeOrBuffer: SimpleBuffer | number, length?: number, byteOffset?: number) => {
             if (!innerHandle) {
                 const response = await fetch(url);
-                const buffer = await response.buffer();
-                innerHandle = FileHandle.fromBuffer(buffer, name);
+                if (response.ok) {
+                    const buffer = await response.buffer();
+                    innerHandle = FileHandle.fromBuffer(buffer, name);
+                } else {
+                    const error = new Error(`fileHandleFromHTTP: Fetch failed with status code ${response.status}`);
+                    (error as any).isFileNotFound = true;
+                    throw error;
+                }
             }
             return innerHandle.readBuffer(position, sizeOrBuffer, length, byteOffset);
         },

@@ -6,7 +6,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as File from '../common/file';
 import { execute } from './query/execute';
 import * as Data from './query/data-model';
 import { ConsoleLogger } from '../../../mol-util/console-logger';
@@ -36,8 +35,8 @@ export interface ExtendedHeader extends DataFormat.Header {
 export async function getExtendedHeaderJson(filename: string | undefined, sourceId: string) {
     ConsoleLogger.log('Header', sourceId);
     try {
-        if (!filename || !File.exists(filename)) {
-            ConsoleLogger.error(`Header ${sourceId}`, 'File not found.');
+        if (!filename) {
+            ConsoleLogger.error(`Header ${sourceId}`, 'Empty filename.');
             return void 0;
         }
         const header: Partial<ExtendedHeader> = { ...await readHeader(filename, sourceId) };

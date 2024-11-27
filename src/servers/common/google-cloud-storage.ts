@@ -46,7 +46,7 @@ function parseGsUrl(url: string) {
     };
 }
 
-export async function downloadGs(gsUrl: string, options?: gsCreateReadStreamOptions) {
+export async function downloadGs(gsUrl: string, options?: gsCreateReadStreamOptions): Promise<Buffer> {
     const { bucket, file } = parseGsUrl(gsUrl);
     try {
         const response = await getGsClient().bucket(bucket).file(file).download(options);

@@ -206,14 +206,20 @@ async function _execute(file: FileHandle, params: Data.QueryParams, guid: string
         encode(query, output);
         output.end();
     } catch (e) {
-        const query: Data.QueryContext = { kind: 'Error', guid, params, message: `${e}` };
-        try {
-            if (!output) output = outputProvider();
-            encode(query, output);
-        } catch (f) {
-            throw f;
+        if (e.isFileNotFound) {
+            // Just let respond with 404
+            throw e;
+        } else {
+            // Try to respond with body with error details
+            const query: Data.QueryContext = { kind: 'Error', guid, params, message: `${e}` };
+            try {
+                if (!output) output = outputProvider();
+                encode(query, output);
+            } catch (f) {
+                throw f;
+            }
+            throw e;
         }
-        throw e;
     } finally {
         if (output) output.end();
     }
