@@ -29,7 +29,7 @@ node lib/commonjs/servers/model/server --sourceMap pdb-bcif '/opt/data/bcif/${id
 | `--maxQueryManyQueries` | Maximum number of queries allowed by the query-many at a time |
 | `--defaultSource` | modifies which 'sourceMap' source to use by default |
 | `--sourceMap` | Map `id`s for a `source` to a file path. Example: `pdb-bcif '../../data/bcif/${id}.bcif'` - JS expressions can be used inside `${}`, e.g. `${id.substr(1, 2)}/${id}.mdb` Can be specified multiple times. The `SOURCE` variable (e.g. `pdb-bcif`) is arbitrary and depends on how you plan to use the server. Supported formats: cif, bcif, cif.gz, bcif.gz |
-| `--sourceMapUrl` | Same as `--sourceMap` but for URL. `--sourceMapUrl src url format` Example: `pdb-cif "https://www.ebi.ac.uk/pdbe/entry-files/download/${id}_updated.cif" cif` Supported formats: cif, bcif, cif.gz, bcif.gz. Supported protocols: http://, https://, gs://, file:// |
+| `--sourceMapUrl` | Same as `--sourceMap` but for URL. `--sourceMapUrl src url format` Example: `pdb-cif 'https://www.ebi.ac.uk/pdbe/entry-files/download/${id}_updated.cif' cif` Supported formats: cif, bcif, cif.gz, bcif.gz. Supported protocols: http://, https://, gs://, file:// |
 
 ```sh
 node lib/commonjs/servers/model/server [-h] [-v]
