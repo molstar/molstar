@@ -7,7 +7,7 @@ import { CustomModelProperty } from '../../../mol-model-props/common/custom-mode
 import { arrayMinMax } from '../../../mol-util/array';
 
 type TypeId = number;
-type IdToCharge = Map<number, number>;
+type IdToCharge = Map<number, number | undefined>;
 export interface SBNcbrPartialChargeData {
     typeIdToMethod: Map<TypeId, string>;
     typeIdToAtomIdToCharge: Map<TypeId, IdToCharge>;
@@ -106,7 +106,7 @@ function getTypeIdToAtomIdToCharge(model: Model): SBNcbrPartialChargeData['typeI
     for (let i = 0; i < rowCount; ++i) {
         const typeId = typeIds.int(i);
         const atomId = atomIds.int(i);
-        const charge = charges.float(i);
+        const charge = isNumber(charges.str(i)) ? charges.float(i) : undefined;
         if (!atomIdToCharge.has(typeId)) atomIdToCharge.set(typeId, new Map());
         atomIdToCharge.get(typeId)?.set(atomId, charge);
     }
@@ -151,7 +151,7 @@ function getMaxAbsoluteCharges(
     const maxAbsoluteCharges: Map<number, number> = new Map();
 
     typeIdToCharge.forEach((idToCharge, typeId) => {
-        const charges = Array.from(idToCharge.values());
+        const charges = Array.from(idToCharge.values()).filter(isDefined);
         const [min, max] = arrayMinMax(charges);
         const bound = Math.max(Math.abs(min), max);
         maxAbsoluteCharges.set(typeId, bound);
@@ -202,3 +202,11 @@ SBNcbrPartialChargeData | undefined
     isApplicable: (model: Model) => hasPartialChargesCategories(model),
     obtain: (_ctx: CustomProperty.Context, model: Model) => Promise.resolve(getData(model)),
 });
+
+function isNumber(value: string) {
+    return /-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?/.test(value) && !isNaN(+value);
+}
+
+function isDefined<T>(value: T | undefined | null): value is T {
+    return value !== undefined && value !== null;
+}
