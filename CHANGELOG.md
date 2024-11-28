@@ -30,6 +30,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix transform data not updated when structure child changes
 - Fix `PluginStateSnapshotManager.syncCurrent` to work as expected on re-loaded states.
 - Fix do not compute implicit hydrogens when unit is explicitly protonated (#1257)
+- ModelServer and VolumeServer: support for input files from Google Cloud Storage (gs://)
 
 ## [v4.8.0] - 2024-10-27
 

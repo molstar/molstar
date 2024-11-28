@@ -178,6 +178,7 @@
     "xhr2": "^0.2.1"
   },
   "peerDependencies": {
+    "@google-cloud/storage": "^7.14.0",
     "canvas": "^2.11.2",
     "gl": "^6.0.2",
     "jpeg-js": "^0.4.4",
@@ -186,6 +187,9 @@
     "react-dom": "^18.1.0 || ^17.0.2 || ^16.14.0"
   },
   "peerDependenciesMeta": {
+    "@google-cloud/storage": {
+      "optional": true
+    },
     "canvas": {
       "optional": true
     },

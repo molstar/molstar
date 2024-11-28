@@ -66,7 +66,7 @@ To achieve this, use the ``pack`` application (``node lib/commonjs/servers/volum
 
 ### Local Mode
 
-The program  ``lib/commonjs/servers/volume/pack`` (``volume-server-query`` in NPM package) can be used to query the data without running a http server.
+The program  ``lib/commonjs/servers/volume/query`` (``volume-server-query`` in NPM package) can be used to query the data without running a http server.
 
 ### Navigating the Source Code
 
@@ -105,7 +105,7 @@ node lib/commonjs/servers/volume/server --idMap x-ray '/opt/data/xray/${id}.mdb'
 | `--defaultPort` | Specify the port the server is running on |
 | `--shutdownTimeoutMinutes` | Server will shut down after this amount of minutes, 0 for off. |
 | `--shutdownTimeoutVarianceMinutes` | Modifies the shutdown timer by +/- `timeoutVarianceMinutes` (to avoid multiple instances shutting at the same time) |
-| `--idMap` | Map `id`s for a `type` to a file path. Example: `x-ray '../../data/mdb/xray/${id}-ccp4.mdb'` - JS expressions can be used inside `${}`, e.g. `${id.substr(1, 2)}/${id}.mdb` - Can be specified multiple times. - The `TYPE` variable (e.g. `x-ray`) is arbitrary and depends on how you plan to use the server. By default, Mol* Viewer uses `x-ray` and `em`, but any particular use case may vary. |
+| `--idMap` | Map `id`s for a `type` to a file path. Example: `x-ray '../../data/mdb/xray/${id}-ccp4.mdb'` - JS expressions can be used inside `${}`, e.g. `${id.substr(1, 2)}/${id}.mdb` - Can be specified multiple times. - The `TYPE` variable (e.g. `x-ray`) is arbitrary and depends on how you plan to use the server. By default, Mol* Viewer uses `x-ray` and `em`, but any particular use case may vary. - If using URL, it can be http://, https://, gs:// or file:// protocol.|
 | `--maxRequestBlockCount` | Maximum number of blocks that could be read in 1 query. This is somewhat tied to the ``maxOutputSizeInVoxelCountByPrecisionLevel`` in that the `&lt;maximum number of voxel&gt; = maxRequestBlockCount * &lt;block size&gt;^3`. The default block size is 96 which corresponds to 28,311,552 voxels with 32 max blocks. |
 | `--maxFractionalBoxVolume` | The maximum fractional volume of the query box (to prevent queries that are too big). |
 | `--maxOutputSizeInVoxelCountByPrecisionLevel` | What is the (approximate) maximum desired size in voxel count by precision level - Rule of thumb: `&lt;response gzipped size&gt;` in `[&lt;voxel count&gt; / 8, &lt;voxel count&gt; / 4]`. The maximum number of voxels is tied to maxRequestBlockCount. |
