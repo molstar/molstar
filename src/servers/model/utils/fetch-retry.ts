@@ -23,7 +23,7 @@ export async function fetchRetry(url: string, timeout: number, retryCount: numbe
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
     const signal = controller.signal as any; // TODO: fix type
-    const result = await retryIf(() => extendedFetch(url, { signal }), {
+    const result = await retryIf(() => wrapFetch(url, { signal }), {
         retryThenIf: r => r.status === 408 /** timeout */ || r.status === 429 /** too many requests */ || (r.status >= 500 && r.status < 600),
         // TODO test retryCatchIf
         retryCatchIf: e => isRetriableNetworkError(e),
@@ -36,12 +36,12 @@ export async function fetchRetry(url: string, timeout: number, retryCount: numbe
 }
 
 /** Like `fetch` but supports Google Cloud Storage (gs://) protocol. */
-export async function extendedFetch(url: string, init?: fetch.RequestInit): Promise<Response> {
-    if (url.startsWith('gs://')) return fetch_GS(url, init);
+export function wrapFetch(url: string, init?: fetch.RequestInit): Promise<Response> {
+    if (url.startsWith('gs://')) return fetchGS(url, init);
     else return fetch(url, init);
 }
 
-async function fetch_GS(url: string, init?: fetch.RequestInit): Promise<Response> {
+async function fetchGS(url: string, init?: fetch.RequestInit): Promise<Response> {
     if (init?.signal?.aborted) throw new AbortError('The user aborted a request.');
     const data = await downloadGs(url);
     return new Response(data, init);
