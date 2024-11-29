@@ -153,7 +153,7 @@ function getMaxAbsoluteCharges(
     const maxAbsoluteCharges: Map<number, number> = new Map();
 
     typeIdToCharge.forEach((idToCharge, typeId) => {
-        const charges = Array.from(idToCharge.values()).filter(isDefined);
+        const charges = Array.from(idToCharge.values()).filter(value => value !== undefined);
         const [min, max] = arrayMinMax(charges);
         const bound = Math.max(Math.abs(min), max);
         maxAbsoluteCharges.set(typeId, bound);
@@ -204,11 +204,3 @@ SBNcbrPartialChargeData | undefined
     isApplicable: (model: Model) => hasPartialChargesCategories(model),
     obtain: (_ctx: CustomProperty.Context, model: Model) => Promise.resolve(getData(model)),
 });
-
-function isNumber(value: string) {
-    return /-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?/.test(value) && !isNaN(+value);
-}
-
-function isDefined<T>(value: T | undefined | null): value is T {
-    return value !== undefined && value !== null;
-}
