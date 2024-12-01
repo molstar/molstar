@@ -34,7 +34,7 @@ namespace StateTree {
         readonly forEach: OrderedSet<Ref>['forEach'],
         readonly map: OrderedSet<Ref>['map'],
         toArray(): Ref[],
-        first(): Ref,
+        first(defaultValue?: Ref): Ref | undefined,
         asMutable(): MutableChildSet
     }
 
@@ -225,8 +225,8 @@ namespace StateTree {
     export function getDecoratorRoot(tree: StateTree, ref: StateTransform.Ref): StateTransform.Ref {
         const children = tree.children.get(ref);
         if (children.size !== 1) return ref;
-        const child = tree.transforms.get(children.first());
-        if (child.transformer.definition.isDecorator) return getDecoratorRoot(tree, child.ref);
+        const child = tree.transforms.get(children.first()!);
+        if (child?.transformer.definition.isDecorator) return getDecoratorRoot(tree, child.ref);
         return ref;
     }
 }

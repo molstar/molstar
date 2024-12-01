@@ -167,7 +167,7 @@
     "express": "^5.0.1",
     "h264-mp4-encoder": "^1.0.12",
     "immer": "^10.1.1",
-    "immutable": "^4.3.7",
+    "immutable": "^5.0.3",
     "io-ts": "^2.2.21",
     "node-fetch": "^2.7.0",
     "react-markdown": "^9.0.1",
