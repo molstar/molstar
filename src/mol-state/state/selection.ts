@@ -373,7 +373,7 @@ namespace StateSelection {
         const children = state.tree.children.get(root);
         if (children.size !== 1) return;
         const first = children.first();
-        if (state.transforms.get(first).transformer.definition.isDecorator) return tryFindDecorator(state, first, transformer);
+        if (first && state.transforms.get(first).transformer.definition.isDecorator) return tryFindDecorator(state, first, transformer);
     }
 }
 
