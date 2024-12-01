@@ -5,6 +5,7 @@ import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
 import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
 import { CustomModelProperty } from '../../../mol-model-props/common/custom-model-property';
 import { arrayMinMax } from '../../../mol-util/array';
+import { Column } from '../../../mol-data/db';
 
 type TypeId = number;
 type IdToCharge = Map<number, number>;
@@ -106,7 +107,9 @@ function getTypeIdToAtomIdToCharge(model: Model): SBNcbrPartialChargeData['typeI
     for (let i = 0; i < rowCount; ++i) {
         const typeId = typeIds.int(i);
         const atomId = atomIds.int(i);
-        const charge = charges.float(i);
+        const isPresent = charges.valueKind(i) === Column.ValueKind.Present;
+        if (!isPresent) continue;
+        const charge = charges.float(i)
         if (!atomIdToCharge.has(typeId)) atomIdToCharge.set(typeId, new Map());
         atomIdToCharge.get(typeId)?.set(atomId, charge);
     }
