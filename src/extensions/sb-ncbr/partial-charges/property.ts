@@ -109,7 +109,7 @@ function getTypeIdToAtomIdToCharge(model: Model): SBNcbrPartialChargeData['typeI
         const atomId = atomIds.int(i);
         const isPresent = charges.valueKind(i) === Column.ValueKind.Present;
         if (!isPresent) continue;
-        const charge = charges.float(i)
+        const charge = charges.float(i);
         if (!atomIdToCharge.has(typeId)) atomIdToCharge.set(typeId, new Map());
         atomIdToCharge.get(typeId)?.set(atomId, charge);
     }
