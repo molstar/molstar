@@ -8,7 +8,7 @@ import { arrayMinMax } from '../../../mol-util/array';
 import { Column } from '../../../mol-data/db';
 
 type TypeId = number;
-type IdToCharge = Map<number, number | undefined>;
+type IdToCharge = Map<number, number>;
 export interface SBNcbrPartialChargeData {
     typeIdToMethod: Map<TypeId, string>;
     typeIdToAtomIdToCharge: Map<TypeId, IdToCharge>;
@@ -108,7 +108,8 @@ function getTypeIdToAtomIdToCharge(model: Model): SBNcbrPartialChargeData['typeI
         const typeId = typeIds.int(i);
         const atomId = atomIds.int(i);
         const isPresent = charges.valueKind(i) === Column.ValueKind.Present;
-        const charge = isPresent ? charges.float(i) : undefined;
+        if (!isPresent) continue;
+        const charge = charges.float(i)
         if (!atomIdToCharge.has(typeId)) atomIdToCharge.set(typeId, new Map());
         atomIdToCharge.get(typeId)?.set(atomId, charge);
     }
@@ -153,7 +154,7 @@ function getMaxAbsoluteCharges(
     const maxAbsoluteCharges: Map<number, number> = new Map();
 
     typeIdToCharge.forEach((idToCharge, typeId) => {
-        const charges = Array.from(idToCharge.values()).filter(value => value !== undefined);
+        const charges = Array.from(idToCharge.values());
         const [min, max] = arrayMinMax(charges);
         const bound = Math.max(Math.abs(min), max);
         maxAbsoluteCharges.set(typeId, bound);
