@@ -53,7 +53,7 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: { r
                 if (options.sanityChecks) mvsSanityCheck(snapshot.root);
                 const molstarTree = convertMvsToMolstar(snapshot.root, options.sourceUrl);
                 validateTree(MolstarTreeSchema, molstarTree, 'Converted Molstar');
-                const entry = molstarTreeToEntry(plugin, molstarTree, { ...snapshot.metadata, previousTransitionDurationMs: previousSnapshot.metadata.transitionDurationMs }, options);
+                const entry = molstarTreeToEntry(plugin, molstarTree, { ...snapshot.metadata, previousTransitionDurationMs: previousSnapshot.metadata.transition_duration_ms }, options);
                 entries.push(entry);
             }
             plugin.managers.snapshot.clear();
@@ -122,9 +122,7 @@ function molstarTreeToEntry(plugin: PluginContext, tree: MolstarTree, metadata: 
         props: plugin.canvas3d ? modifyCanvasProps(plugin.canvas3d.props, context.canvas) : undefined,
     };
     snapshot.camera = createPluginStateSnapshotCamera(plugin, context, metadata);
-    const DEFAULT_DURATION = PluginStateSnapshotManager.DefaultNextSnapshotDelayInMs; // const DEFAULT_DURATION = 24 * 60 * 60 * 1000;
-    snapshot.durationInMs = (metadata.lingerDurationMs ?? DEFAULT_DURATION) + (metadata.previousTransitionDurationMs ?? 0);
-    // we want to stop animation here if metadata.lingerDurationMs===null (but not when rendering video), TODO how?
+    snapshot.durationInMs = metadata.linger_duration_ms + (metadata.previousTransitionDurationMs ?? 0);
 
     const entryParams: PluginStateSnapshotManager.EntryParams = {
         key: metadata.key,

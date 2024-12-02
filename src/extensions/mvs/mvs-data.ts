@@ -35,9 +35,9 @@ export interface SnapshotMetadata {
     /** Name of this view */
     title?: string,
     /** How long to linger on one snapshot. Leave empty to not transition automatically */
-    lingerDurationMs?: number,
+    linger_duration_ms: number,
     /** Timespan for the animation to the next snapshot. Leave empty to skip animations */
-    transitionDurationMs?: number,
+    transition_duration_ms?: number,
 }
 interface Snapshot {
     root: MVSTree,

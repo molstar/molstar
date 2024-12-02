@@ -62,6 +62,7 @@ export class Root extends _Base<'root'> {
         return {
             root: deepClone(this._node),
             metadata: {
+                linger_duration_ms: 1000, // TODO this doesn't really belong here, fix in backend and sync here
                 ...metadata,
                 version: `${MVSData.SupportedVersion}`,
                 timestamp: utcNowISO(),
