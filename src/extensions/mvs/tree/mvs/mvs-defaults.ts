@@ -92,6 +92,9 @@ export const MVSDefaults = {
     focus: {
         direction: [0, 0, -1],
         up: [0, 1, 0],
+        radius: null,
+        radius_factor: 1,
+        radius_extend: 0,
     },
     transform: {
         rotation: [1, 0, 0, 0, 1, 0, 0, 0, 1], // 3x3 identitity matrix

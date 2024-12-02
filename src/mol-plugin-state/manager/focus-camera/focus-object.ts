@@ -19,13 +19,13 @@ import { PluginStateObject } from '../../objects';
 /** Return camera snapshot focused on a plugin state object cell (if `targetRef` is defined)
  * or on the whole scene (if `targetRef` is undefined).
  * If `direction` and `up` are not provided, use current camera orientation. */
-export function getFocusSnapshot(plugin: PluginContext, targetRef: StateTransform.Ref | undefined, options: { direction?: Vec3, up?: Vec3, extraRadius?: number, minRadius?: number }) {
+export function getFocusSnapshot(plugin: PluginContext, targetRef: StateTransform.Ref | undefined, options: { direction?: Vec3, up?: Vec3, radius?: number, radiusFactor?: number, radiusExtend?: number, minRadius?: number }) {
     if (!plugin.canvas3d) return undefined;
     const boundingSphere = (targetRef !== undefined) ? getCellBoundingSphere(plugin, targetRef) : getPluginBoundingSphere(plugin);
     if (!boundingSphere) return undefined;
     return snapshotFromSphereAndDirections(plugin.canvas3d.camera, {
         center: boundingSphere.center,
-        radius: Math.max(boundingSphere.radius + (options.extraRadius ?? 0), options.minRadius ?? 0),
+        radius: options.radius ?? Math.max(boundingSphere.radius * (options.radiusFactor ?? 1) + (options.radiusExtend ?? 0), options.minRadius ?? 0),
         up: options.up,
         direction: options.direction,
     });

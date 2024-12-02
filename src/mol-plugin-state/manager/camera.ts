@@ -132,11 +132,16 @@ export class CameraManager {
     }
 
     /** Focus on a plugin state object cell (if `targetRef` is defined) or on the whole scene (if `targetRef` is undefined). */
-    focusObject(options?: Partial<CameraFocusOptions> & { targetRef?: StateTransform.Ref, direction?: Vec3, up?: Vec3 }) {
+    focusObject(options?: { targetRef?: StateTransform.Ref, direction?: Vec3, up?: Vec3, radius?: number, radiusFactor?: number, radiusExtend?: number, minRadius?: number, durationMs?: number }) {
         if (!this.plugin.canvas3d) return;
-        const { targetRef, direction, up, extraRadius, minRadius, durationMs } = { ...DefaultCameraFocusOptions, ...options };
-        const snapshot = getFocusSnapshot(this.plugin, targetRef, { direction, up, extraRadius, minRadius });
-        this.plugin.canvas3d.requestCameraReset({ snapshot, durationMs });
+        const fullOptions = {
+            radiusExtend: DefaultCameraFocusOptions.extraRadius,
+            minRadius: DefaultCameraFocusOptions.minRadius,
+            durationMs: DefaultCameraFocusOptions.durationMs,
+            ...options,
+        };
+        const snapshot = getFocusSnapshot(this.plugin, fullOptions.targetRef, fullOptions);
+        this.plugin.canvas3d.requestCameraReset({ snapshot, durationMs: fullOptions.durationMs });
     }
 
     /** Align PCA axes of `structures` (default: all loaded structures) to the screen axes. */

@@ -237,6 +237,12 @@ export const MVSTreeSchema = TreeSchema({
                 direction: OptionalField(Vector3, 'Vector describing the direction of the view (camera position -> focused target).'),
                 /** Vector which will be aligned with the screen Y axis. */
                 up: OptionalField(Vector3, 'Vector which will be aligned with the screen Y axis.'),
+                /** Radius of the focused sphere (overrides `radius_factor` and `radius_extra`. */
+                radius: OptionalField(nullable(float), 'Radius of the focused sphere (overrides `radius_factor` and `radius_extra`).'),
+                /** Radius of the focused sphere relative to the radius of parent component (default: 1). Focused radius = component_radius * radius_factor + radius_extend. */
+                radius_factor: OptionalField(float, 'Radius of the focused sphere relative to the radius of parent component (default: 1). Focused radius = component_radius * radius_factor + radius_extend.'),
+                /** Addition to the radius of the focused sphere, if computed from the radius of parent component (default: 0). Focused radius = component_radius * radius_factor + radius_extend. */
+                radius_extend: OptionalField(float, 'Addition to the radius of the focused sphere, if computed from the radius of parent component (default: 0). Focused radius = component_radius * radius_factor + radius_extend.'),
             },
         },
         /** This node instructs to set the camera position and orientation. */

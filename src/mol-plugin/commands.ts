@@ -65,7 +65,7 @@ export const PluginCommands = {
         Reset: PluginCommand<{ durationMs?: number, snapshot?: Partial<Camera.Snapshot> }>(),
         SetSnapshot: PluginCommand<{ snapshot: Partial<Camera.Snapshot>, durationMs?: number }>(),
         Focus: PluginCommand<{ center: Vec3, radius: number, durationMs?: number }>(),
-        FocusObject: PluginCommand<{ targetRef?: StateTransform.Ref, direction?: Vec3, up?: Vec3, extraRadius?: number, durationMs?: number }>(),
+        FocusObject: PluginCommand<{ targetRef?: StateTransform.Ref, direction?: Vec3, up?: Vec3, radius?: number, radiusFactor?: number, radiusExtend?: number, durationMs?: number }>(),
         OrientAxes: PluginCommand<{ structures?: Structure[], durationMs?: number }>(),
         ResetAxes: PluginCommand<{ durationMs?: number }>(),
     },

@@ -220,6 +220,8 @@ namespace PluginState {
         targetRef?: StateTransform.Ref,
         direction?: Vec3,
         up?: Vec3,
-        extraRadius?: number,
+        radius?: number,
+        radiusFactor?: number,
+        radiusExtend?: number,
     }
 }

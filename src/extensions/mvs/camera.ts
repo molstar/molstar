@@ -62,7 +62,9 @@ export async function setFocus(plugin: PluginContext, structureNodeSelector: Sta
     const snapshot = getFocusSnapshot(plugin, structureNodeSelector?.ref, {
         direction: Vec3.create(...params.direction),
         up: Vec3.create(...params.up),
-        extraRadius: DefaultFocusOptions.extraRadius,
+        radius: params.radius ?? undefined,
+        radiusFactor: params.radius_factor,
+        radiusExtend: params.radius_extend,
         minRadius: DefaultFocusOptions.minRadius,
     });
     if (!snapshot) return;
@@ -114,18 +116,23 @@ export function createPluginStateSnapshotCamera(plugin: PluginContext, context: 
         const cameraSnapshot = cameraParamsToCameraSnapshot(plugin, context.focus.params);
         camera.current = { ...currentCameraSnapshot, ...cameraSnapshot };
     } else if (context.focus?.kind === 'focus') {
+        const { focusTarget, params } = context.focus;
         camera.focus = {
-            targetRef: context.focus.focusTarget.ref,
-            direction: Vec3.create(...context.focus.params.direction),
-            up: Vec3.create(...context.focus.params.up),
-            extraRadius: 0,
+            targetRef: focusTarget.ref,
+            direction: Vec3.create(...params.direction),
+            up: Vec3.create(...params.up),
         };
+        if (params.radius !== null) {
+            camera.focus.radius = params.radius;
+        } else {
+            camera.focus.radiusFactor = params.radius_factor;
+            camera.focus.radiusExtend = params.radius_extend;
+        }
     } else {
         camera.focus = {
             targetRef: undefined,
             direction: Vec3.create(...MVSDefaults.focus.direction),
             up: Vec3.create(...MVSDefaults.focus.up),
-            extraRadius: 0,
         };
     }
     return camera;
