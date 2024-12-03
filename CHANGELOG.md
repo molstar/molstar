@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix outlines on transparent background using illuminartion mode (#1364)
+
 ## [v4.9.0] - 2024-12-01
 
 - Fix artifacts when using xray shading with high xrayEdgeFalloff values
