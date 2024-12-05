@@ -12,6 +12,7 @@ import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Loci } from '../../../mol-model/loci';
 import { Structure } from '../../../mol-model/structure';
 import { PluginContext } from '../../../mol-plugin/context';
+import { PluginState } from '../../../mol-plugin/state';
 import { StateObject, StateTransform } from '../../../mol-state';
 import { PluginStateObject } from '../../objects';
 
@@ -19,13 +20,18 @@ import { PluginStateObject } from '../../objects';
 /** Return camera snapshot focused on a plugin state object cell (if `targetRef` is defined)
  * or on the whole scene (if `targetRef` is undefined).
  * If `direction` and `up` are not provided, use current camera orientation. */
-export function getFocusSnapshot(plugin: PluginContext, targetRef: StateTransform.Ref | undefined, options: { direction?: Vec3, up?: Vec3, radius?: number, radiusFactor?: number, radiusExtend?: number, minRadius?: number }) {
+export function getFocusSnapshot(plugin: PluginContext, options: PluginState.SnapshotFocusInfo & { minRadius?: number }) {
     if (!plugin.canvas3d) return undefined;
-    const boundingSphere = (targetRef !== undefined) ? getCellBoundingSphere(plugin, targetRef) : getPluginBoundingSphere(plugin);
-    if (!boundingSphere) return undefined;
+    const targetSpheres = options.targets?.map(target => {
+        const bounding = (target.targetRef !== undefined) ? getCellBoundingSphere(plugin, target.targetRef) : getPluginBoundingSphere(plugin);
+        if (!bounding) return undefined;
+        const radius = target.radius ?? bounding.radius * (target.radiusFactor ?? 1) + (target.radiusExtend ?? 0);
+        return Sphere3D.create(bounding.center, radius);
+    }).filter(sphere => sphere !== undefined);
+    const mergedSphere = (targetSpheres && targetSpheres.length > 0) ? boundingSphereOfSpheres(targetSpheres) : getPluginBoundingSphere(plugin);
     return snapshotFromSphereAndDirections(plugin.canvas3d.camera, {
-        center: boundingSphere.center,
-        radius: options.radius ?? Math.max(boundingSphere.radius * (options.radiusFactor ?? 1) + (options.radiusExtend ?? 0), options.minRadius ?? 0),
+        center: mergedSphere.center,
+        radius: Math.max(mergedSphere.radius, options.minRadius ?? 0),
         up: options.up,
         direction: options.direction,
     });

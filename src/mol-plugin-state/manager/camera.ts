@@ -17,7 +17,7 @@ import { PrincipalAxes } from '../../mol-math/linear-algebra/matrix/principal-ax
 import { Loci } from '../../mol-model/loci';
 import { Structure, StructureElement } from '../../mol-model/structure';
 import { PluginContext } from '../../mol-plugin/context';
-import { StateTransform } from '../../mol-state';
+import { PluginState } from '../../mol-plugin/state';
 import { PluginStateObject } from '../objects';
 import { pcaFocus } from './focus-camera/focus-first-residue';
 import { getFocusSnapshot } from './focus-camera/focus-object';
@@ -132,16 +132,14 @@ export class CameraManager {
     }
 
     /** Focus on a plugin state object cell (if `targetRef` is defined) or on the whole scene (if `targetRef` is undefined). */
-    focusObject(options?: { targetRef?: StateTransform.Ref, direction?: Vec3, up?: Vec3, radius?: number, radiusFactor?: number, radiusExtend?: number, minRadius?: number, durationMs?: number }) {
+    focusObject(options: PluginState.SnapshotFocusInfo & { minRadius?: number, durationMs?: number }) {
         if (!this.plugin.canvas3d) return;
-        const fullOptions = {
-            radiusExtend: DefaultCameraFocusOptions.extraRadius,
-            minRadius: DefaultCameraFocusOptions.minRadius,
-            durationMs: DefaultCameraFocusOptions.durationMs,
+        const snapshot = getFocusSnapshot(this.plugin, {
             ...options,
-        };
-        const snapshot = getFocusSnapshot(this.plugin, fullOptions.targetRef, fullOptions);
-        this.plugin.canvas3d.requestCameraReset({ snapshot, durationMs: fullOptions.durationMs });
+            targets: options.targets?.map(t => ({ ...t, radiusExtend: t.radiusExtend ?? DefaultCameraFocusOptions.extraRadius })),
+            minRadius: options.minRadius ?? DefaultCameraFocusOptions.minRadius,
+        });
+        this.plugin.canvas3d.requestCameraReset({ snapshot, durationMs: options.durationMs ?? DefaultCameraFocusOptions.durationMs });
     }
 
     /** Align PCA axes of `structures` (default: all loaded structures) to the screen axes. */

@@ -217,11 +217,14 @@ namespace PluginState {
     export type SnapshotType = 'json' | 'molj' | 'zip' | 'molx'
 
     export interface SnapshotFocusInfo {
-        targetRef?: StateTransform.Ref,
+        targets?: SnapshotFocusTargetInfo[],
         direction?: Vec3,
         up?: Vec3,
+    }
+    export interface SnapshotFocusTargetInfo {
+        targetRef?: StateTransform.Ref,
         radius?: number,
         radiusFactor?: number,
-        radiusExtend?: number,
+        radiusExtend?: number, // TODO extraRadius in Molstar radius_extent in MVS
     }
 }

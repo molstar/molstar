@@ -59,12 +59,15 @@ export function cameraParamsToCameraSnapshot(plugin: PluginContext, params: Mols
   * Orient the camera based on a focus node params.
   **/
 export async function setFocus(plugin: PluginContext, structureNodeSelector: StateObjectSelector | undefined, params: MolstarNodeParams<'focus'> = MVSDefaults.focus) {
-    const snapshot = getFocusSnapshot(plugin, structureNodeSelector?.ref, {
+    const snapshot = getFocusSnapshot(plugin, {
+        targets: [{
+            targetRef: structureNodeSelector?.ref,
+            radius: params.radius ?? undefined,
+            radiusFactor: params.radius_factor,
+            radiusExtend: params.radius_extend,
+        }],
         direction: Vec3.create(...params.direction),
         up: Vec3.create(...params.up),
-        radius: params.radius ?? undefined,
-        radiusFactor: params.radius_factor,
-        radiusExtend: params.radius_extend,
         minRadius: DefaultFocusOptions.minRadius,
     });
     if (!snapshot) return;
@@ -116,21 +119,16 @@ export function createPluginStateSnapshotCamera(plugin: PluginContext, context: 
         const cameraSnapshot = cameraParamsToCameraSnapshot(plugin, context.focus.params);
         camera.current = { ...currentCameraSnapshot, ...cameraSnapshot };
     } else if (context.focus?.kind === 'focus') {
+        // TODO allow multiple focus targets
         const { focusTarget, params } = context.focus;
         camera.focus = {
-            targetRef: focusTarget.ref,
+            targets: [{ targetRef: focusTarget.ref, radius: params.radius ?? undefined, radiusFactor: params.radius_factor, radiusExtend: params.radius_extend }],
             direction: Vec3.create(...params.direction),
             up: Vec3.create(...params.up),
         };
-        if (params.radius !== null) {
-            camera.focus.radius = params.radius;
-        } else {
-            camera.focus.radiusFactor = params.radius_factor;
-            camera.focus.radiusExtend = params.radius_extend;
-        }
     } else {
         camera.focus = {
-            targetRef: undefined,
+            targets: undefined,
             direction: Vec3.create(...MVSDefaults.focus.direction),
             up: Vec3.create(...MVSDefaults.focus.up),
         };
