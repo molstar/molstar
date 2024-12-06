@@ -71,7 +71,7 @@ function snapshotFocusInfoFromMvsFocuses(focuses: { target: StateObjectSelector,
     const { direction, up } = (focuses.length > 0) ? focuses[focuses.length - 1].params : MVSDefaults.focus;
     return {
         targets: focuses.map<PluginState.SnapshotFocusTargetInfo>(f => ({
-            targetRef: f.target.ref,
+            targetRef: f.target.ref === '-=root=-' ? undefined : f.target.ref, // need to treat root separately so it does not include invisible structure parts etc.
             radius: f.params.radius ?? undefined,
             radiusFactor: f.params.radius_factor,
             extraRadius: f.params.radius_extent,

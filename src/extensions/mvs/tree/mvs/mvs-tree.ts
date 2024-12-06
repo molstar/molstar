@@ -231,7 +231,7 @@ export const MVSTreeSchema = TreeSchema({
         /** This node instructs to set the camera focus to a component (zoom in). */
         focus: {
             description: 'This node instructs to set the camera focus to a component (zoom in).',
-            parent: ['component', 'component_from_uri', 'component_from_source', 'primitives', 'primitives_from_uri'],
+            parent: ['root', 'component', 'component_from_uri', 'component_from_source', 'primitives', 'primitives_from_uri'],
             params: {
                 /** Vector describing the direction of the view (camera position -> focused target). */
                 direction: OptionalField(Vector3, 'Vector describing the direction of the view (camera position -> focused target).'),
