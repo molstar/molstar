@@ -96,7 +96,7 @@ async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, options
     const mvsExtensionLoaded = plugin.state.hasBehavior(MolViewSpec);
     if (!mvsExtensionLoaded) throw new Error('MolViewSpec extension is not loaded.');
 
-    const context: MolstarLoadingContext = {};
+    const context = MolstarLoadingContext.create();
 
     await loadTree(plugin, tree, MolstarLoadingActions, context, { ...options, extensions: options?.extensions ?? BuiltinLoadingExtensions });
 
@@ -105,18 +105,16 @@ async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, options
     if (options?.keepCamera) {
         await suppressCameraAutoreset(plugin);
     } else {
-        if (context.focus?.kind === 'camera') {
-            await setCamera(plugin, context.focus.params);
-        } else if (context.focus?.kind === 'focus') {
-            await setFocus(plugin, context.focus.focusTarget, context.focus.params);
+        if (context.camera.cameraParams !== undefined) {
+            await setCamera(plugin, context.camera.cameraParams);
         } else {
-            await setFocus(plugin, undefined, undefined);
+            await setFocus(plugin, context.camera.focuses); // This includes implicit camera (i.e. no 'camera' or 'focus' nodes)
         }
     }
 }
 
 function molstarTreeToEntry(plugin: PluginContext, tree: MolstarTree, metadata: SnapshotMetadata & { previousTransitionDurationMs?: number }, options?: { replaceExisting?: boolean, keepCamera?: boolean }) {
-    const context: MolstarLoadingContext = {};
+    const context = MolstarLoadingContext.create();
     const snapshot = loadTreeVirtual(plugin, tree, MolstarLoadingActions, context, options);
     snapshot.canvas3d = {
         props: plugin.canvas3d ? modifyCanvasProps(plugin.canvas3d.props, context.canvas) : undefined,
@@ -137,12 +135,23 @@ function molstarTreeToEntry(plugin: PluginContext, tree: MolstarTree, metadata: 
 /** Mutable context for loading a `MolstarTree`, available throughout the loading. */
 export interface MolstarLoadingContext {
     /** Maps `*_from_[uri|source]` nodes to annotationId they should reference */
-    annotationMap?: Map<MolstarNode<AnnotationFromUriKind | AnnotationFromSourceKind>, string>,
+    annotationMap: Map<MolstarNode<AnnotationFromUriKind | AnnotationFromSourceKind>, string>,
     /** Maps each node (on 'structure' or lower level) to its nearest 'representation' node */
     nearestReprMap?: Map<MolstarNode, MolstarNode<'representation'>>,
-    focus?: { kind: 'camera', params: MolstarNodeParams<'camera'> } | { kind: 'focus', focusTarget: StateObjectSelector, params: MolstarNodeParams<'focus'> },
+    camera: {
+        cameraParams?: MolstarNodeParams<'camera'>,
+        focuses: { target: StateObjectSelector, params: MolstarNodeParams<'focus'> }[],
+    },
     canvas?: MolstarNodeParams<'canvas'>,
 }
+export const MolstarLoadingContext = {
+    create(): MolstarLoadingContext {
+        return {
+            annotationMap: new Map(),
+            camera: { focuses: [] },
+        };
+    },
+};
 
 
 /** Loading actions for loading a `MolstarTree`, per node kind. */
@@ -276,11 +285,11 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         return UpdateTarget.apply(updateParent, StructureRepresentation3D, props);
     },
     focus(updateParent: UpdateTarget, node: MolstarNode<'focus'>, context: MolstarLoadingContext): UpdateTarget {
-        context.focus = { kind: 'focus', focusTarget: updateParent.selector, params: node.params };
+        context.camera.focuses.push({ target: updateParent.selector, params: node.params });
         return updateParent;
     },
     camera(updateParent: UpdateTarget, node: MolstarNode<'camera'>, context: MolstarLoadingContext): UpdateTarget {
-        context.focus = { kind: 'camera', params: node.params };
+        context.camera.cameraParams = node.params;
         return updateParent;
     },
     canvas(updateParent: UpdateTarget, node: MolstarNode<'canvas'>, context: MolstarLoadingContext): UpdateTarget {

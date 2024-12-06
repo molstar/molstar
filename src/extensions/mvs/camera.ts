@@ -56,23 +56,29 @@ export function cameraParamsToCameraSnapshot(plugin: PluginContext, params: Mols
 }
 
 /** Focus the camera on the bounding sphere of a (sub)structure (or on the whole scene if `structureNodeSelector` is undefined).
-  * Orient the camera based on a focus node params.
-  **/
-export async function setFocus(plugin: PluginContext, structureNodeSelector: StateObjectSelector | undefined, params: MolstarNodeParams<'focus'> = MVSDefaults.focus) {
+  * Orient the camera based on a focus node params. **/
+export async function setFocus(plugin: PluginContext, focuses: { target: StateObjectSelector, params: MolstarNodeParams<'focus'> }[]) {
     const snapshot = getFocusSnapshot(plugin, {
-        targets: [{
-            targetRef: structureNodeSelector?.ref,
-            radius: params.radius ?? undefined,
-            radiusFactor: params.radius_factor,
-            radiusExtend: params.radius_extend,
-        }],
-        direction: Vec3.create(...params.direction),
-        up: Vec3.create(...params.up),
+        ...snapshotFocusInfoFromMvsFocuses(focuses),
         minRadius: DefaultFocusOptions.minRadius,
     });
     if (!snapshot) return;
     resetSceneRadiusFactor(plugin);
     await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
+}
+
+function snapshotFocusInfoFromMvsFocuses(focuses: { target: StateObjectSelector, params: MolstarNodeParams<'focus'> }[]): PluginState.SnapshotFocusInfo {
+    const { direction, up } = (focuses.length > 0) ? focuses[focuses.length - 1].params : MVSDefaults.focus;
+    return {
+        targets: focuses.map<PluginState.SnapshotFocusTargetInfo>(f => ({
+            targetRef: f.target.ref,
+            radius: f.params.radius ?? undefined,
+            radiusFactor: f.params.radius_factor,
+            radiusExtend: f.params.radius_extend,
+        })),
+        direction: Vec3.create(...direction),
+        up: Vec3.create(...up),
+    };
 }
 
 /** Adjust `sceneRadiusFactor` property so that the current scene is not cropped */
@@ -114,24 +120,13 @@ export function createPluginStateSnapshotCamera(plugin: PluginContext, context: 
         transitionStyle: 'animate',
         transitionDurationInMs: metadata.previousTransitionDurationMs ?? 0,
     };
-    if (context.focus?.kind === 'camera') {
+    if (context.camera.cameraParams !== undefined) {
         const currentCameraSnapshot = plugin.canvas3d!.camera.getSnapshot();
-        const cameraSnapshot = cameraParamsToCameraSnapshot(plugin, context.focus.params);
+        const cameraSnapshot = cameraParamsToCameraSnapshot(plugin, context.camera.cameraParams);
         camera.current = { ...currentCameraSnapshot, ...cameraSnapshot };
-    } else if (context.focus?.kind === 'focus') {
-        // TODO allow multiple focus targets
-        const { focusTarget, params } = context.focus;
-        camera.focus = {
-            targets: [{ targetRef: focusTarget.ref, radius: params.radius ?? undefined, radiusFactor: params.radius_factor, radiusExtend: params.radius_extend }],
-            direction: Vec3.create(...params.direction),
-            up: Vec3.create(...params.up),
-        };
     } else {
-        camera.focus = {
-            targets: undefined,
-            direction: Vec3.create(...MVSDefaults.focus.direction),
-            up: Vec3.create(...MVSDefaults.focus.up),
-        };
+        // TODO test with multiple focus targets
+        camera.focus = snapshotFocusInfoFromMvsFocuses(context.camera.focuses);
     }
     return camera;
 }

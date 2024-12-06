@@ -97,7 +97,7 @@ export function collectAnnotationReferences(tree: Subtree<MolstarTree>, context:
         if (spec) {
             const key = canonicalJsonString(spec as any);
             distinctSpecs[key] ??= { ...spec, id: stringHash(key) };
-            (context.annotationMap ??= new Map()).set(node, distinctSpecs[key].id);
+            context.annotationMap.set(node as MolstarNode<AnnotationFromUriKind | AnnotationFromSourceKind>, distinctSpecs[key].id);
         }
     });
     return Object.values(distinctSpecs);
@@ -115,7 +115,7 @@ export function collectAnnotationTooltips(tree: MolstarSubtree<'structure'>, con
     const annotationTooltips: MVSAnnotationTooltipsProps['tooltips'] = [];
     dfs(tree, node => {
         if (node.kind === 'tooltip_from_uri' || node.kind === 'tooltip_from_source') {
-            const annotationId = context.annotationMap?.get(node);
+            const annotationId = context.annotationMap.get(node);
             if (annotationId) {
                 annotationTooltips.push({ annotationId, fieldName: node.params.field_name });
             };
@@ -259,7 +259,7 @@ export function prettyNameFromSelector(selector?: MolstarNodeParams<'component'>
 
 /** Create props for `StructureRepresentation3D` transformer from a label_from_* node. */
 export function labelFromXProps(node: MolstarNode<'label_from_uri' | 'label_from_source'>, context: MolstarLoadingContext): Partial<StateTransformer.Params<StructureRepresentation3D>> {
-    const annotationId = context.annotationMap?.get(node);
+    const annotationId = context.annotationMap.get(node);
     const fieldName = node.params.field_name;
     const nearestReprNode = context.nearestReprMap?.get(node);
     return {
@@ -270,7 +270,7 @@ export function labelFromXProps(node: MolstarNode<'label_from_uri' | 'label_from
 
 /** Create props for `AnnotationStructureComponent` transformer from a component_from_* node. */
 export function componentFromXProps(node: MolstarNode<'component_from_uri' | 'component_from_source'>, context: MolstarLoadingContext): Partial<MVSAnnotationStructureComponentProps> {
-    const annotationId = context.annotationMap?.get(node);
+    const annotationId = context.annotationMap.get(node);
     const { field_name, field_values } = node.params;
     return {
         annotationId,
@@ -339,7 +339,7 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
     switch (node?.kind) {
         case 'color_from_uri':
         case 'color_from_source':
-            annotationId = context.annotationMap?.get(node);
+            annotationId = context.annotationMap.get(node);
             fieldName = node.params.field_name;
             break;
         case 'color':
