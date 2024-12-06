@@ -6,13 +6,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as File from '../common/file';
 import { execute } from './query/execute';
 import * as Data from './query/data-model';
 import { ConsoleLogger } from '../../../mol-util/console-logger';
 import * as DataFormat from '../common/data-format';
 import { LimitsConfig } from '../config';
-import { fileHandleFromDescriptor } from '../../common/file-handle';
+import { fileHandleFromPathOrUrl } from '../../common/file-handle';
 import { FileHandle } from '../../../mol-io/common/file-handle';
 
 export function getOutputFilename(source: string, id: string, { asBinary, box, detail, forcedSamplingLevel }: Data.QueryParams) {
@@ -36,8 +35,8 @@ export interface ExtendedHeader extends DataFormat.Header {
 export async function getExtendedHeaderJson(filename: string | undefined, sourceId: string) {
     ConsoleLogger.log('Header', sourceId);
     try {
-        if (!filename || !File.exists(filename)) {
-            ConsoleLogger.error(`Header ${sourceId}`, 'File not found.');
+        if (!filename) {
+            ConsoleLogger.error(`Header ${sourceId}`, 'Empty filename.');
             return void 0;
         }
         const header: Partial<ExtendedHeader> = { ...await readHeader(filename, sourceId) };
@@ -67,7 +66,7 @@ async function readHeader(filename: string | undefined, sourceId: string) {
     let file: FileHandle | undefined;
     try {
         if (!filename) return void 0;
-        file = fileHandleFromDescriptor(await File.openRead(filename), filename);
+        file = await fileHandleFromPathOrUrl(filename, filename);
         const header = await DataFormat.readHeader(file);
         return header.header;
     } catch (e) {

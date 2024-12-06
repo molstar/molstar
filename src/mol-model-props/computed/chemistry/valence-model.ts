@@ -3,6 +3,7 @@
  *
  * @author Fred Ludlow <Fred.Ludlow@astx.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { Structure, StructureElement, Unit, Bond } from '../../../mol-model/structure';
@@ -94,13 +95,13 @@ const tmpChargeBondItB = new Bond.ElementBondIterator();
  * If only charge or hydrogens are to be assigned it takes
  * a much simpler view and deduces one from the other
  */
-export function calculateHydrogensCharge(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex, props: ValenceModelProps) {
+export function calculateHydrogensCharge(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex, props: ValenceModelProps, hasExplicitH: boolean) {
     const hydrogenCount = bondToElementCount(structure, unit, index, Elements.H);
     const element = typeSymbol(unit, index);
     let charge = formalCharge(unit, index);
 
     const assignCharge = (props.assignCharge === 'always' || (props.assignCharge === 'auto' && charge === 0));
-    const assignH = (props.assignH === 'always' || (props.assignH === 'auto' && hydrogenCount === 0));
+    const assignH = (props.assignH === 'always' || (props.assignH === 'auto' && !hasExplicitH && hydrogenCount === 0));
 
     const degree = bondCount(structure, unit, index);
     const valence = explicitValence(structure, unit, index);
@@ -307,9 +308,18 @@ function calcUnitValenceModel(structure: Structure, unit: Unit.Atomic, props: Va
         structure = structure.root;
     }
 
+    let hasExplicitH = false;
     for (let i = 0; i < n; ++i) {
         const j = (hasParent ? mapping![i] : i) as StructureElement.UnitIndex;
-        const [chg, implH, totH, geom] = calculateHydrogensCharge(structure, unit, j, props);
+        if (typeSymbol(unit, j) === Elements.H) {
+            hasExplicitH = true;
+            break;
+        }
+    }
+
+    for (let i = 0; i < n; ++i) {
+        const j = (hasParent ? mapping![i] : i) as StructureElement.UnitIndex;
+        const [chg, implH, totH, geom] = calculateHydrogensCharge(structure, unit, j, props, hasExplicitH);
         charge[i] = chg;
         implicitH[i] = implH;
         totalH[i] = totH;

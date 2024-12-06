@@ -74,13 +74,14 @@ function addServerArgs(parser: argparse.ArgumentParser) {
         action: 'append',
         metavar: ['TYPE', 'PATH'] as any,
         help: [
-            'Map `id`s for a `type` to a file path.',
+            'Map `id`s for a `type` to a file path or URL.',
             'Example: x-ray \'../../data/mdb/xray/${id}-ccp4.mdb\'',
             '',
             '  - JS expressions can be used inside ${}, e.g. \'${id.substr(1, 2)}/${id}.mdb\'',
             '  - Can be specified multiple times.',
             '  - The `TYPE` variable (e.g. `x-ray`) is arbitrary and depends on how you plan to use the server.',
-            '    By default, Mol* Viewer uses `x-ray` and `em`, but any particular use case may vary. '
+            '    By default, Mol* Viewer uses `x-ray` and `em`, but any particular use case may vary. ',
+            '  - If using URL, it can be http://, https://, gs:// or file:// protocol.',
         ].join('\n'),
     });
     parser.add_argument('--healthCheckPath', {

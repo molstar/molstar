@@ -200,8 +200,8 @@ function addServerArgs(parser: argparse.ArgumentParser) {
         metavar: ['SOURCE', 'PATH', 'SOURCE_MAP_FORMAT'] as any,
         help: [
             'Same as --sourceMap but for URL. \'--sourceMapUrl src url format\'',
-            'Example: \'pdb-cif "https://www.ebi.ac.uk/pdbe/entry-files/download/${id}_updated.cif" cif\'',
-            `Supported formats: ${ModelServerFetchFormats.join(', ')}`
+            'Example: "pdb-cif \'https://www.ebi.ac.uk/pdbe/entry-files/download/${id}_updated.cif\' cif"',
+            `Supported formats: ${ModelServerFetchFormats.join(', ')}. Supported protocols: http://, https://, gs://`
         ].join('\n'),
     });
     parser.add_argument('--healthCheckPath', {

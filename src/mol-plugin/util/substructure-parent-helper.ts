@@ -29,7 +29,7 @@ class SubstructureParentHelper {
         const children = tree.children.get(root);
         if (children.size !== 1) return root;
         const child = children.first();
-        if (tree.transforms.get(child).transformer.definition.isDecorator) {
+        if (child && tree.transforms.get(child).transformer.definition.isDecorator) {
             return this.getDecorator(child);
         }
         return root;
