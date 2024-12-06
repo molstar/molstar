@@ -302,12 +302,11 @@ export function representationProps(node: MolstarSubtree<'representation'>): Par
     }
 }
 
-/** Create value for `type.params.alpha` prop for `StructureRepresentation3D` transformer from a representation node based on 'transparency' nodes in its subtree. */
+/** Create value for `type.params.alpha` prop for `StructureRepresentation3D` transformer from a representation node based on 'opacity' nodes in its subtree. */
 export function alphaForNode(node: MolstarSubtree<'representation'>): number {
-    const children = getChildren(node).filter(c => c.kind === 'transparency');
+    const children = getChildren(node).filter(c => c.kind === 'opacity');
     if (children.length > 0) {
-        const transparency = children[children.length - 1].params.transparency;
-        return 1 - transparency;
+        return children[children.length - 1].params.opacity;
     } else {
         return 1;
     }

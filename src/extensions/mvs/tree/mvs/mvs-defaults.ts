@@ -59,7 +59,7 @@ export const MVSDefaults = {
         category_name: null,
         field_name: 'color',
     },
-    transparency: {
+    opacity: {
     },
     label: {
     },
@@ -109,8 +109,8 @@ export const MVSDefaults = {
         color: null,
         label_color: null,
         tooltip: null,
-        transparency: null,
-        label_transparency: null,
+        opacity: null,
+        label_opacity: null,
         instances: null,
     },
     primitives_from_uri: {

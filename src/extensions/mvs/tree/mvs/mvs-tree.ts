@@ -169,13 +169,13 @@ export const MVSTreeSchema = TreeSchema({
                 ..._DataFromSourceParams,
             },
         },
-        /** This node instructs to apply transparency to a visual representation. */
-        transparency: {
-            description: 'This node instructs to apply transparency to a visual representation.',
+        /** This node instructs to apply opacity/transparency to a visual representation. */
+        opacity: {
+            description: 'This node instructs to apply opacity/transparency to a visual representation.',
             parent: ['representation'],
             params: {
-                /** Transparency of the representation. 0.0: fully opaque, 1.0: fully transparent. */
-                transparency: RequiredField(float, 'Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
+                /** Opacity of a representation. 0.0: fully transparent, 1.0: fully opaque. */
+                opacity: RequiredField(float, 'Opacity of a representation. 0.0: fully transparent, 1.0: fully opaque.'),
             },
         },
         /** This node instructs to add a label (textual visual representation) to a component. */
@@ -274,8 +274,8 @@ export const MVSTreeSchema = TreeSchema({
                 color: OptionalField(nullable(ColorT)),
                 label_color: OptionalField(nullable(ColorT)),
                 tooltip: OptionalField(nullable(str)),
-                transparency: OptionalField(nullable(float)),
-                label_transparency: OptionalField(nullable(float)),
+                opacity: OptionalField(nullable(float)),
+                label_opacity: OptionalField(nullable(float)),
                 instances: OptionalField(nullable(list(Matrix))),
             },
         },
