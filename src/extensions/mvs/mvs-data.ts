@@ -9,52 +9,68 @@ import { treeToString } from './tree/generic/tree-utils';
 import { Root, createMVSBuilder } from './tree/mvs/mvs-builder';
 import { MVSTree, MVSTreeSchema } from './tree/mvs/mvs-tree';
 
-
-/** Metadata describing global properties relating to the format specification. */
-interface FormatMetadata {
-    /** Timestamp when this view was exported */
-    timestamp: string,
-    /** Version of the spec used to write this tree */
-    version: string,
+/** Top-level metadata for a MVS file (single-state or multi-state). */
+export interface GlobalMetadata {
     /** Name of this MVSData */
     title?: string,
     /** Detailed description of this view */
     description?: string,
-    /** Format of the description */
+    /** Format of `description`. Default is 'markdown'. */
     description_format?: 'markdown' | 'plaintext',
+    /** Timestamp when this view was exported. */
+    timestamp: string,
+    /** Version of MolViewSpec used to write this file. */
+    version: string,
 }
+export const GlobalMetadata = {
+    create(metadata?: Pick<GlobalMetadata, 'title' | 'description' | 'description_format'>): GlobalMetadata {
+        return {
+            ...metadata,
+            version: `${MVSData.SupportedVersion}`,
+            timestamp: utcNowISO(),
+        };
+    },
+};
 
-/** Metadata describing details of an individual state/snapshot */
+/** Metadata for an individual snapshot. */
 export interface SnapshotMetadata {
-    /** Detailed description of this view */
-    description?: string,
-    /** Format of the description */
-    description_format?: 'markdown' | 'plaintext',
-    /** Unique identifier of this state, useful when working with collections of states */
-    key?: string,
-    /** Name of this view */
+    /** Name of this snapshot. */
     title?: string,
-    /** How long to linger on one snapshot. Leave empty to not transition automatically */
+    /** Detailed description of this snapshot. */
+    description?: string,
+    /** Format of `description`. Default is 'markdown'. */
+    description_format?: 'markdown' | 'plaintext',
+    /** Unique identifier of this state, useful when working with collections of states. */
+    key?: string,
+    /** Timespan for snapshot. */
     linger_duration_ms: number,
-    /** Timespan for the animation to the next snapshot. Leave empty to skip animations */
+    /** Timespan for the animation to the next snapshot. Leave empty to skip animations. */
     transition_duration_ms?: number,
 }
-interface Snapshot {
+
+export interface Snapshot {
+    /** Root of the node tree */
     root: MVSTree,
     /** Associated metadata */
     metadata: SnapshotMetadata,
 }
-export interface MVSData_State extends Snapshot {
+
+/** MVSData with a single state */
+export interface MVSData_State {
     kind?: 'single',
+    /** Root of the node tree */
+    root: MVSTree,
     /** Associated metadata */
-    metadata: SnapshotMetadata & FormatMetadata,
+    metadata: GlobalMetadata,
 }
+
+/** MVSData with multiple states (snapshots) */
 export interface MVSData_States {
     kind: 'multiple',
-    /** MolViewSpec tree */
+    /** Ordered collection of individual states */
     snapshots: Snapshot[],
     /** Associated metadata */
-    metadata: FormatMetadata,
+    metadata: GlobalMetadata,
 }
 
 /** Top level of the MolViewSpec (MVS) data format. */
@@ -132,6 +148,15 @@ export const MVSData = {
     createBuilder(): Root {
         return createMVSBuilder();
     },
+
+    /** Create a multi-state MVS data from a list of snapshots. */
+    createMultistate(snapshots: Snapshot[], metadata?: Pick<GlobalMetadata, 'title' | 'description' | 'description_format'>): MVSData_States {
+        return {
+            kind: 'multiple',
+            snapshots: [...snapshots],
+            metadata: GlobalMetadata.create(metadata),
+        };
+    },
 };
 
 
@@ -143,7 +168,12 @@ function majorVersion(semanticVersion: string | number): number | undefined {
     return undefined;
 }
 
-function snapshotValidationIssues(snapshot: Snapshot, options: { noExtra?: boolean } = {}): string[] | undefined {
+function snapshotValidationIssues(snapshot: MVSData_State | Snapshot, options: { noExtra?: boolean } = {}): string[] | undefined {
     if (snapshot.root === undefined) return [`"root" missing in snapshot`];
     return treeValidationIssues(MVSTreeSchema, snapshot.root, options);
+}
+
+/** Return the current universal time, in ISO format, e.g. '2023-11-24T10:45:49.873Z' */
+function utcNowISO(): string {
+    return new Date().toISOString();
 }

@@ -126,7 +126,6 @@ export function createPluginStateSnapshotCamera(plugin: PluginContext, context: 
         const cameraSnapshot = cameraParamsToCameraSnapshot(plugin, context.camera.cameraParams);
         camera.current = { ...currentCameraSnapshot, ...cameraSnapshot };
     } else {
-        // TODO test with multiple focus targets
         camera.focus = snapshotFocusInfoFromMvsFocuses(context.camera.focuses);
     }
     return camera;
