@@ -94,7 +94,7 @@ export const MVSDefaults = {
         up: [0, 1, 0],
         radius: null,
         radius_factor: 1,
-        radius_extend: 0,
+        radius_extent: 0,
     },
     transform: {
         rotation: [1, 0, 0, 0, 1, 0, 0, 0, 1], // 3x3 identitity matrix

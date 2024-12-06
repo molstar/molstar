@@ -25,7 +25,7 @@ export function getFocusSnapshot(plugin: PluginContext, options: PluginState.Sna
     const targetSpheres = options.targets?.map(target => {
         const bounding = (target.targetRef !== undefined) ? getCellBoundingSphere(plugin, target.targetRef) : getPluginBoundingSphere(plugin);
         if (!bounding) return undefined;
-        const radius = target.radius ?? bounding.radius * (target.radiusFactor ?? 1) + (target.radiusExtend ?? 0);
+        const radius = target.radius ?? bounding.radius * (target.radiusFactor ?? 1) + (target.extraRadius ?? 0);
         return Sphere3D.create(bounding.center, radius);
     }).filter(sphere => sphere !== undefined);
     const mergedSphere = (targetSpheres && targetSpheres.length > 0) ? boundingSphereOfSpheres(targetSpheres) : getPluginBoundingSphere(plugin);

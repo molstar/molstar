@@ -131,12 +131,12 @@ export class CameraManager {
         }
     }
 
-    /** Focus on a plugin state object cell (if `targetRef` is defined) or on the whole scene (if `targetRef` is undefined). */
+    /** Focus on a set of plugin state object cells (if `options.targets` is non-empty) or on the whole scene (if `options.targets` is empty). */
     focusObject(options: PluginState.SnapshotFocusInfo & { minRadius?: number, durationMs?: number }) {
         if (!this.plugin.canvas3d) return;
         const snapshot = getFocusSnapshot(this.plugin, {
             ...options,
-            targets: options.targets?.map(t => ({ ...t, radiusExtend: t.radiusExtend ?? DefaultCameraFocusOptions.extraRadius })),
+            targets: options.targets?.map(t => ({ ...t, extraRadius: t.extraRadius ?? DefaultCameraFocusOptions.extraRadius })),
             minRadius: options.minRadius ?? DefaultCameraFocusOptions.minRadius,
         });
         this.plugin.canvas3d.requestCameraReset({ snapshot, durationMs: options.durationMs ?? DefaultCameraFocusOptions.durationMs });

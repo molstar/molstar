@@ -74,12 +74,13 @@ function snapshotFocusInfoFromMvsFocuses(focuses: { target: StateObjectSelector,
             targetRef: f.target.ref,
             radius: f.params.radius ?? undefined,
             radiusFactor: f.params.radius_factor,
-            radiusExtend: f.params.radius_extend,
+            extraRadius: f.params.radius_extent,
         })),
         direction: Vec3.create(...direction),
         up: Vec3.create(...up),
     };
 }
+
 
 /** Adjust `sceneRadiusFactor` property so that the current scene is not cropped */
 function adjustSceneRadiusFactor(plugin: PluginContext, cameraTarget: Vec3 | undefined) {

@@ -221,10 +221,12 @@ namespace PluginState {
         direction?: Vec3,
         up?: Vec3,
     }
+    /** Final radius to be computed as `radius ?? targetBoundingRadius * radiusFactor + extraRadius` */
     export interface SnapshotFocusTargetInfo {
+        /** Reference to plugin state node to focus (undefined means focus whole scene) */
         targetRef?: StateTransform.Ref,
         radius?: number,
         radiusFactor?: number,
-        radiusExtend?: number, // TODO extraRadius in Molstar radius_extent in MVS
+        extraRadius?: number,
     }
 }
