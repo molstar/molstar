@@ -15,7 +15,7 @@ import { SaccharideComponentMap } from '../structure/carbohydrates/constants';
 import { ModelFormat } from '../../../mol-model-formats/format';
 import { calcModelCenter, getAsymIdCount } from './util';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { Coordinates } from '../coordinates';
+import { Coordinates, Frame } from '../coordinates';
 import { Topology } from '../topology';
 import { Task } from '../../../mol-task';
 import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bonds/index-pair';
@@ -96,9 +96,7 @@ export namespace Model {
         const trajectory: Model[] = [];
         const { frames } = coordinates;
 
-        const srcIndex = model.atomicHierarchy.atomSourceIndex;
-        const isIdentity = Column.isIdentity(srcIndex);
-        const srcIndexArray = isIdentity ? void 0 : srcIndex.toArray({ array: Int32Array });
+        const srcIndexArray = getSourceIndexArray(model);
         const coarseGrained = isCoarseGrained(model);
         const elementCount = model.atomicHierarchy.atoms._rowCount;
 
@@ -112,11 +110,7 @@ export namespace Model {
                 ...model,
                 id: UUID.create22(),
                 modelNum: i,
-                atomicConformation: Coordinates.getAtomicConformation(f, {
-                    atomId: model.atomicConformation.atomId,
-                    occupancy: model.atomicConformation.occupancy,
-                    B_iso_or_equiv: model.atomicConformation.B_iso_or_equiv
-                }, srcIndexArray),
+                atomicConformation: getAtomicConformationFromFrame(model, f),
                 // TODO: add support for supplying sphere and gaussian coordinates in addition to atomic coordinates?
                 // coarseConformation: coarse.conformation,
                 customProperties: new CustomProperties(),
@@ -135,6 +129,18 @@ export namespace Model {
             trajectory.push(m);
         }
         return { trajectory, srcIndexArray };
+    }
+
+    function getSourceIndexArray(model: Model): ArrayLike<number> | undefined {
+        const srcIndex = model.atomicHierarchy.atomSourceIndex;
+        let srcIndexArray: ArrayLike<number> | undefined = undefined;
+        if ('__srcIndexArray__' in model._staticPropertyData) {
+            srcIndexArray = model._dynamicPropertyData.__srcIndexArray__;
+        } else {
+            srcIndexArray = Column.isIdentity(srcIndex) ? void 0 : srcIndex.toArray({ array: Int32Array });
+            model._dynamicPropertyData.__srcIndexArray__ = srcIndexArray;
+        }
+        return srcIndexArray;
     }
 
     export function trajectoryFromModelAndCoordinates(model: Model, coordinates: Coordinates): Trajectory {
@@ -160,6 +166,14 @@ export namespace Model {
             }
             return new ArrayTrajectory(trajectory);
         });
+    }
+
+    export function getAtomicConformationFromFrame(model: Model, frame: Frame) {
+        return Coordinates.getAtomicConformation(frame, {
+            atomId: model.atomicConformation.atomId,
+            occupancy: model.atomicConformation.occupancy,
+            B_iso_or_equiv: model.atomicConformation.B_iso_or_equiv
+        }, getSourceIndexArray(model));
     }
 
     const CenterProp = '__Center__';

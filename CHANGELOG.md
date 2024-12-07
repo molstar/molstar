@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add `ModelWithCoordinates` decorator transform.
+
 ## [v4.9.1] - 2024-12-05
 
 - Fix iOS check when running on Node
