@@ -235,7 +235,7 @@ void main() {
             if (!uTransparentBackground) {
                     color.rgb = mix(uOutlineColor, uFogColor, fogFactor);
             } else {
-                color.a = 1.0 - fogFactor;
+                alpha = 1.0 - fogFactor;
                 color.rgb = mix(uOutlineColor, vec3(0.0), fogFactor);
             }
             #ifdef dBlendTransparency
