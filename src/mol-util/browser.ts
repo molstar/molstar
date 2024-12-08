@@ -14,6 +14,8 @@ export function isMobileBrowser() {
 }
 
 export function is_iOS() {
+    if (typeof navigator === 'undefined' || typeof window === 'undefined') return false;
+
     // adapted from https://stackoverflow.com/questions/9038625/detect-if-device-is-ios
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     const isAppleDevice = navigator.userAgent.includes('Macintosh');
