@@ -983,7 +983,7 @@ namespace InputObserver {
 
 // Adapted from https://stackoverflow.com/a/30134826
 // License: https://creativecommons.org/licenses/by-sa/3.0/
-function normalizeWheel(event: any) {
+export function normalizeWheel(event: any) {
     // Reasonable defaults
     const PIXEL_STEP = 10;
     const LINE_HEIGHT = 40;

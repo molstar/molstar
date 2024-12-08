@@ -8,6 +8,11 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `ModelWithCoordinates` decorator transform.
 - Fix outlines on transparent background using illumination mode (#1364)
 - Fix transparent depth texture artifacts using illumination mode
+- Volume UI improvements 
+  - Render all volume entries instead of selecting them one-by-one
+  - Toggle visibility of all volumes
+  - More accessible iso value control
+- Support wheel event on sliders
  
 ## [v4.9.1] - 2024-12-05
 
