@@ -296,7 +296,7 @@ class VolumeRepresentationControls extends PurePluginUIComponent<{ volume: Volum
             if (State.ObjectEvent.isCell(e, this.props.representation.cell)) this.forceUpdate();
         });
 
-        this.subscribe(this.updateIsoValueEvent.pipe(throttleTime(33, undefined, { leading: false, trailing: true })), this.updateIsoValue);
+        this.subscribe(this.updateIsoValueEvent.pipe(throttleTime(100, undefined, { leading: false, trailing: true })), this.updateIsoValue);
     }
 
     remove = () => this.plugin.managers.volume.hierarchy.remove([this.props.representation], true);

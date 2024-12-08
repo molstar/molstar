@@ -8,6 +8,7 @@
 import * as React from 'react';
 import { TextInput } from './common';
 import { noop } from '../../mol-util';
+import { normalizeWheel } from '../../mol-util/input/input-observer';
 
 export class Slider extends React.Component<{
     min: number,
@@ -57,6 +58,14 @@ export class Slider extends React.Component<{
         this.props.onChange(this.state.current);
     };
 
+    onMouseWheel = (e: WheelEvent) => {
+        const { dx, dy, dz } = normalizeWheel(e);
+        const sign = (dx >= 0 ? 1 : -1) * (dy >= 0 ? 1 : -1) * (dz >= 0 ? 1 : -1);
+        const shift = e.getModifierState('Shift');
+        const delta = sign * (this.props.max - this.props.min) / (shift ? 100 : 25);
+        this.updateCurrent(this.state.current + delta);
+    };
+
     render() {
         let step = this.props.step;
         if (step === void 0) step = 1;
@@ -64,6 +73,7 @@ export class Slider extends React.Component<{
             <div>
                 <SliderBase min={this.props.min} max={this.props.max} step={step} value={this.state.current} disabled={this.props.disabled}
                     onBeforeChange={this.begin}
+                    onWheel={this.onMouseWheel}
                     onChange={this.updateCurrent as any} onAfterChange={this.end as any} />
             </div>
             <div>
@@ -258,6 +268,7 @@ export interface SliderBaseProps {
     vertical?: boolean,
     allowCross?: boolean,
     pushable?: boolean | number,
+    onWheel?: (ev: WheelEvent) => any,
 }
 
 export interface SliderBaseState {
@@ -750,6 +761,7 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
             <div ref={this.sliderElement} className={sliderClassName}
                 onTouchStart={disabled ? noop : this.onTouchStart as any}
                 onMouseDown={disabled ? noop : this.onMouseDown as any}
+                onWheel={disabled ? noop : this.props.onWheel as any}
             >
                 <div className={`${prefixCls}-rail`} />
                 {handles}
