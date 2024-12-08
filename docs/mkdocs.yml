@@ -40,6 +40,7 @@ nav:
     - CIF Schemas: 'plugin/cif-schemas.md'
     - State Transforms:
       - Custom Trajectory: 'plugin/transforms/custom-trajectory.md'
+      - Custom Conformation: 'plugin/transforms/custom-conformation.md'
   - Data Access Tools:
     - 'data-access-tools/model-server.md'
     - Volume Server:
