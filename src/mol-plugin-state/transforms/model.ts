@@ -713,7 +713,9 @@ const ModelWithCoordinates = PluginStateTransform.BuiltIn({
     from: SO.Molecule.Model,
     to: SO.Molecule.Model,
     params: {
-        atomicCoordinateFrame: PD.Optional(PD.Value<Frame | undefined>(undefined))
+        frameIndex: PD.Optional(PD.Numeric(0, undefined, { isHidden: true })),
+        frameCount: PD.Optional(PD.Numeric(1, undefined, { isHidden: true })),
+        atomicCoordinateFrame: PD.Optional(PD.Value<Frame | undefined>(undefined, { isHidden: true })),
     },
     isDecorator: true,
 })({
@@ -722,6 +724,7 @@ const ModelWithCoordinates = PluginStateTransform.BuiltIn({
             return a;
         }
         const model: Model = { ...a.data, atomicConformation: Model.getAtomicConformationFromFrame(a.data, params.atomicCoordinateFrame) };
+        Model.TrajectoryInfo.set(model, { index: params.frameIndex ?? 0, size: params.frameCount ?? 1 });
         return new SO.Molecule.Model(model, { label: a.label, description: a.description });
     },
     update: ({ a, b, oldParams, newParams }) => {
@@ -733,6 +736,7 @@ const ModelWithCoordinates = PluginStateTransform.BuiltIn({
         } else {
             b.data = { ...b.data, atomicConformation: Model.getAtomicConformationFromFrame(b.data, newParams.atomicCoordinateFrame) };
         }
+        Model.TrajectoryInfo.set(b.data, { index: newParams.frameIndex ?? 0, size: newParams.frameCount ?? 1 });
         return StateTransformer.UpdateResult.Updated;
     },
 });
