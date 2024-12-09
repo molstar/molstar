@@ -8,7 +8,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `ModelWithCoordinates` decorator transform.
 - Fix outlines on transparent background using illumination mode (#1364)
 - Fix transparent depth texture artifacts using illumination mode
- 
+- Fix marking of consecutive gap elements (#876)
+
 ## [v4.9.1] - 2024-12-05
 
 - Fix iOS check when running on Node
