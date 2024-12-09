@@ -183,8 +183,8 @@
     "gl": "^6.0.2",
     "jpeg-js": "^0.4.4",
     "pngjs": "^6.0.0",
-    "react": "^18.1.0 || ^17.0.2 || ^16.14.0",
-    "react-dom": "^18.1.0 || ^17.0.2 || ^16.14.0"
+    "react": ">=16.14.0",
+    "react-dom": ">=16.14.0"
   },
   "peerDependenciesMeta": {
     "@google-cloud/storage": {
