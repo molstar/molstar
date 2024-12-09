@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -17,8 +17,10 @@ import { PrincipalAxes } from '../../mol-math/linear-algebra/matrix/principal-ax
 import { Loci } from '../../mol-model/loci';
 import { Structure, StructureElement } from '../../mol-model/structure';
 import { PluginContext } from '../../mol-plugin/context';
+import { PluginState } from '../../mol-plugin/state';
 import { PluginStateObject } from '../objects';
 import { pcaFocus } from './focus-camera/focus-first-residue';
+import { getFocusSnapshot } from './focus-camera/focus-object';
 import { changeCameraRotation, structureLayingTransform } from './focus-camera/orient-axes';
 
 // TODO: make this customizable somewhere?
@@ -127,6 +129,17 @@ export class CameraManager {
             const snapshot = canvas3d.camera.getFocus(sphere.center, radius);
             canvas3d.requestCameraReset({ durationMs, snapshot });
         }
+    }
+
+    /** Focus on a set of plugin state object cells (if `options.targets` is non-empty) or on the whole scene (if `options.targets` is empty). */
+    focusObject(options: PluginState.SnapshotFocusInfo & { minRadius?: number, durationMs?: number }) {
+        if (!this.plugin.canvas3d) return;
+        const snapshot = getFocusSnapshot(this.plugin, {
+            ...options,
+            targets: options.targets?.map(t => ({ ...t, extraRadius: t.extraRadius ?? DefaultCameraFocusOptions.extraRadius })),
+            minRadius: options.minRadius ?? DefaultCameraFocusOptions.minRadius,
+        });
+        this.plugin.canvas3d.requestCameraReset({ snapshot, durationMs: options.durationMs ?? DefaultCameraFocusOptions.durationMs });
     }
 
     /** Align PCA axes of `structures` (default: all loaded structures) to the screen axes. */

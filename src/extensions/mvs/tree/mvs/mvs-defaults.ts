@@ -59,7 +59,7 @@ export const MVSDefaults = {
         category_name: null,
         field_name: 'color',
     },
-    transparency: {
+    opacity: {
     },
     label: {
     },
@@ -92,6 +92,9 @@ export const MVSDefaults = {
     focus: {
         direction: [0, 0, -1],
         up: [0, 1, 0],
+        radius: null,
+        radius_factor: 1,
+        radius_extent: 0,
     },
     transform: {
         rotation: [1, 0, 0, 0, 1, 0, 0, 0, 1], // 3x3 identitity matrix
@@ -106,8 +109,8 @@ export const MVSDefaults = {
         color: null,
         label_color: null,
         tooltip: null,
-        transparency: null,
-        label_transparency: null,
+        opacity: null,
+        label_opacity: null,
         instances: null,
     },
     primitives_from_uri: {

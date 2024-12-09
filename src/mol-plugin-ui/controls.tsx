@@ -96,7 +96,7 @@ export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: bo
             {!isAnimating && <IconButton svg={SkipPreviousSvg} title='First Model' onClick={this.reset} disabled={isAnimating} />}
             {!isAnimating && <IconButton svg={NavigateBeforeSvg} title='Previous Model' onClick={this.prev} disabled={isAnimating} />}
             {!isAnimating && <IconButton svg={NavigateNextSvg} title='Next Model' onClick={this.next} disabled={isAnimating} />}
-            {!!this.state.label && <span>{this.state.label}</span> }
+            {!!this.state.label && <span>{this.state.label}</span>}
         </div>;
     }
 }
@@ -208,7 +208,10 @@ export function ViewportSnapshotDescription() {
     if (!e?.description?.trim()) return null;
 
     return <div id='snapinfo' className='msp-snapshot-description-wrapper'>
-        <Markdown skipHtml components={{ a: MarkdownAnchor }}>{e.description}</Markdown>
+        {e.descriptionFormat === 'plaintext'
+            && e.description
+            || <Markdown skipHtml components={{ a: MarkdownAnchor }}>{e.description}</Markdown>
+        }
     </div>;
 }
 
