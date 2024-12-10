@@ -9,6 +9,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix outlines on transparent background using illumination mode (#1364)
 - Fix transparent depth texture artifacts using illumination mode
 - Fix marking of consecutive gap elements (#876)
+- Allow React 19 in dependencies
+- Fix missing deflate header if `CompressionStream` is available
 
 ## [v4.9.1] - 2024-12-05
 

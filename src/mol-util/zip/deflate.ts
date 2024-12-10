@@ -123,7 +123,7 @@ export async function _deflateRaw(runtime: RuntimeContext, data: Uint8Array, out
         const compressedStream = blob.stream().pipeThrough(cs);
         const reader = compressedStream.getReader();
 
-        let offset = 0;
+        let offset = opos;
 
         const writeChunk = async (): Promise<undefined> => {
             const { done, value } = await reader.read();
