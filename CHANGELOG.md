@@ -45,6 +45,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix do not compute implicit hydrogens when unit is explicitly protonated (#1257)
 - ModelServer and VolumeServer: support for input files from Google Cloud Storage (gs://)
 - Fix color of missing partial charges for SB partial charges extension
+- MolViewSpec extension: Support for multi-state files (animations)
 
 ## [v4.8.0] - 2024-10-27
 

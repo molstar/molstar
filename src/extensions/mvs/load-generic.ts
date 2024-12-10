@@ -7,7 +7,9 @@
 
 import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { PluginContext } from '../../mol-plugin/context';
-import { StateBuilder, StateObject, StateObjectSelector, StateTransform, StateTransformer } from '../../mol-state';
+import { PluginState } from '../../mol-plugin/state';
+import { State, StateBuilder, StateObject, StateObjectSelector, StateTransform, StateTransformer, StateTree } from '../../mol-state';
+import { UUID } from '../../mol-util';
 import { stringHash } from './helpers/utils';
 import { Kind, Subtree, SubtreeOfKind, Tree } from './tree/generic/tree-schema';
 import { dfs } from './tree/generic/tree-utils';
@@ -44,8 +46,35 @@ export async function loadTree<TTree extends Tree, TContext>(
     context: TContext,
     options?: { replaceExisting?: boolean, extensions?: LoadingExtension<TTree, TContext, any>[] }
 ) {
-    const mapping = new Map<Subtree<TTree>, UpdateTarget | undefined>();
     const updateRoot: UpdateTarget = UpdateTarget.create(plugin, options?.replaceExisting ?? false);
+    loadTreeInUpdate(updateRoot, tree, loadingActions, context, options);
+    await UpdateTarget.commit(updateRoot);
+}
+
+
+export function loadTreeVirtual<TTree extends Tree, TContext>(
+    plugin: PluginContext,
+    tree: TTree,
+    loadingActions: LoadingActions<TTree, TContext>,
+    context: TContext,
+    options?: { replaceExisting?: boolean, extensions?: LoadingExtension<TTree, TContext, any>[] }
+) {
+    const updateRoot: UpdateTarget = UpdateTarget.create(plugin, options?.replaceExisting ?? false);
+    loadTreeInUpdate(updateRoot, tree, loadingActions, context, options);
+    const stateTree: StateTree = updateRoot.update.getTree();
+    const stateSnapshot: State.Snapshot = { tree: StateTree.toJSON(stateTree) };
+    const pluginStateSnapshot: PluginState.Snapshot = { id: UUID.create22(), data: stateSnapshot };
+    return pluginStateSnapshot;
+}
+
+
+function loadTreeInUpdate<TTree extends Tree, TContext>(updateRoot: UpdateTarget,
+    tree: TTree,
+    loadingActions: LoadingActions<TTree, TContext>,
+    context: TContext,
+    options?: { replaceExisting?: boolean, extensions?: LoadingExtension<TTree, TContext, any>[] }
+) {
+    const mapping = new Map<Subtree<TTree>, UpdateTarget | undefined>();
     if (options?.replaceExisting) {
         UpdateTarget.deleteChildren(updateRoot);
     }
@@ -81,7 +110,6 @@ export async function loadTree<TTree extends Tree, TContext>(
     }
 
     extensionContexts.forEach(e => e.ext.disposeExtensionContext?.(e.extCtx, tree, context));
-    await UpdateTarget.commit(updateRoot);
 }
 
 

@@ -1,12 +1,11 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { treeValidationIssues } from '../../generic/tree-schema';
+import { MVSData } from '../../../mvs-data';
 import { builderDemo } from '../mvs-builder';
-import { MVSTreeSchema } from '../mvs-tree';
 
 
 describe('mvs-builder', () => {
@@ -14,6 +13,6 @@ describe('mvs-builder', () => {
         const mvsData = builderDemo();
         expect(typeof mvsData.metadata.version).toEqual('string');
         expect(typeof mvsData.metadata.timestamp).toEqual('string');
-        expect(treeValidationIssues(MVSTreeSchema, mvsData.root)).toEqual(undefined);
+        expect(MVSData.validationIssues(mvsData)).toEqual(undefined);
     });
 });
