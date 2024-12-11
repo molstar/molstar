@@ -160,14 +160,14 @@ export function validateTree(schema: TreeSchema, tree: Tree, label: string): voi
 }
 
 /** Return documentation for a tree schema as plain text */
-export function treeSchemaToString<S extends TreeSchema>(schema: S, defaults?: DefaultsForTree<S>): string {
-    return treeSchemaToString_(schema, defaults, false);
+export function treeSchemaToString<S extends TreeSchema>(schema: S): string {
+    return treeSchemaToString_(schema, false);
 }
 /** Return documentation for a tree schema as markdown text */
-export function treeSchemaToMarkdown<S extends TreeSchema>(schema: S, defaults?: DefaultsForTree<S>): string {
-    return treeSchemaToString_(schema, defaults, true);
+export function treeSchemaToMarkdown<S extends TreeSchema>(schema: S): string {
+    return treeSchemaToString_(schema, true);
 }
-function treeSchemaToString_<S extends TreeSchema>(schema: S, defaults?: DefaultsForTree<S>, markdown: boolean = false): string {
+function treeSchemaToString_<S extends TreeSchema>(schema: S, markdown: boolean = false): string {
     const out: string[] = [];
     const bold = (str: string) => markdown ? `**${str}**` : str;
     const code = (str: string) => markdown ? `\`${str}\`` : str;
@@ -195,7 +195,7 @@ function treeSchemaToString_<S extends TreeSchema>(schema: S, defaults?: Default
                 typeString = typeString.slice(1, -1);
             }
             out.push(`${h2}${bold(code(key + (field.required ? ': ' : '?: ')))}${code(typeString)}`);
-            const defaultValue = (defaults?.[kind] as any)?.[key];
+            const defaultValue = field.required ? undefined : field.default;
             if (field.description) {
                 out.push(`${p2}${field.description}`);
             }

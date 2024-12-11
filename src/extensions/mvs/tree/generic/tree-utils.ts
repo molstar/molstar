@@ -5,6 +5,7 @@
  */
 
 import { canonicalJsonString } from '../../../../mol-util/json';
+import { addParamDefaults, ValuesFor } from './params-schema';
 import { CustomProps, DefaultsForTree, Kind, Node, Subtree, SubtreeOfKind, Tree, TreeFor, TreeSchema, TreeSchemaWithAllRequired, getParams } from './tree-schema';
 
 
@@ -148,12 +149,13 @@ export function condenseTree<T extends Tree>(root: T, condenseNodes?: Set<Kind<T
 }
 
 /** Create a copy of the tree where missing optional params for each node are added based on `defaults`. */
-export function addDefaults<S extends TreeSchema>(tree: TreeFor<S>, defaults: DefaultsForTree<S>): TreeFor<TreeSchemaWithAllRequired<S>> {
-    const rules: ConversionRules<TreeFor<S>, TreeFor<S>> = {};
-    for (const kind in defaults) {
-        rules[kind] = node => [{
+export function addDefaults<S extends TreeSchema>(tree: TreeFor<S>, treeSchema: S): TreeFor<TreeSchemaWithAllRequired<S>> {
+    type TTree = TreeFor<S>;
+    const rules: ConversionRules<TTree, TTree> = {};
+    for (const kind in treeSchema.nodes) {
+        rules[kind as Kind<Subtree<TTree>>] = node => [{
             kind: node.kind,
-            params: { ...defaults[kind], ...node.params },
+            params: addParamDefaults(treeSchema.nodes[kind].params, node.params as ValuesFor<S['nodes'][typeof kind]['params']>),
             custom: node.custom,
             ref: node.ref,
         } as Node as any];

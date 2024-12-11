@@ -81,8 +81,7 @@ export function mapping<A extends iots.Type<any>, B extends iots.Type<any>>(from
 // type Field<V extends AllowedValueTypes = any> = RequiredField<V> | OptionalField<V>;
 
 
-/** Schema for one field in params (i.e. a value in a top-level key-value pair) */
-interface Field<V extends AllowedValueTypes = any, R extends boolean = boolean> {
+interface Field_<V extends AllowedValueTypes = any, R extends boolean = boolean> {
     /** Definition of allowed types for the field */
     type: iots.Type<V>,
     /** If `required===true`, the value must always be defined in molviewspec format (can be `null` if `type` allows it).
@@ -93,9 +92,8 @@ interface Field<V extends AllowedValueTypes = any, R extends boolean = boolean> 
     description: string,
 }
 
-
 /** Schema for param field which must always be provided (has no default value) */
-export interface RequiredField<V extends AllowedValueTypes = any> extends Field<V> {
+export interface RequiredField<V extends AllowedValueTypes = any> extends Field_<V> {
     required: true,
 }
 export function RequiredField<V extends AllowedValueTypes>(type: iots.Type<V>, description: string): RequiredField<V> {
@@ -103,13 +101,17 @@ export function RequiredField<V extends AllowedValueTypes>(type: iots.Type<V>, d
 }
 
 /** Schema for param field which can be dropped (meaning that a default value will be used) */
-export interface OptionalField<V extends AllowedValueTypes = any> extends Field<V> {
+export interface OptionalField<V extends AllowedValueTypes = any> extends Field_<V> {
     required: false,
     default: V, // TODO enforce default null for nullable types
 }
 export function OptionalField<V extends AllowedValueTypes>(type: iots.Type<V>, defaultValue: V, description: string): OptionalField<V> {
     return { type, required: false, description, default: defaultValue };
 }
+
+/** Schema for one field in params (i.e. a value in a top-level key-value pair) */
+type Field<V extends AllowedValueTypes = any> = RequiredField<V> | OptionalField<V>;
+
 
 /** Type of valid value for field of type `F` (never includes `undefined`, even if field is optional) */
 export type ValueFor<F extends Field | iots.Any> = F extends Field<infer V> ? V : F extends iots.Any ? iots.TypeOf<F> : never
@@ -291,4 +293,15 @@ export function paramsValidationIssues<P extends ParamsSchema, V extends { [k: s
         }
     }
     return undefined;
+}
+
+export function addParamDefaults<P extends ParamsSchema>(schema: P, values: ValuesFor<P>): FullValuesFor<P> {
+    const out = { ...values };
+    for (const key in schema) {
+        const field = schema[key];
+        if (!field.required && (out as any)[key] === undefined) {
+            (out as any)[key] = field.default;
+        }
+    }
+    return out as any;
 }

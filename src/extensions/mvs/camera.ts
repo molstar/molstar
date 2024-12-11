@@ -21,7 +21,6 @@ import { ColorNames } from '../../mol-util/color/names';
 import { MVSPrimitivesData } from './components/primitives';
 import { decodeColor } from './helpers/utils';
 import { MolstarNodeParams } from './tree/molstar/molstar-tree';
-import { MVSDefaults } from './tree/mvs/mvs-defaults';
 
 
 const DefaultFocusOptions = {
@@ -84,7 +83,7 @@ function getRenderObjectsBoundary(objects: ReadonlyArray<GraphicsRenderObject>) 
 /** Focus the camera on the bounding sphere of a (sub)structure (or on the whole scene if `structureNodeSelector` is null).
   * Orient the camera based on a focus node params.
   **/
-export async function setFocus(plugin: PluginContext, structureNodeSelector: StateObjectSelector | undefined, params: MolstarNodeParams<'focus'> = MVSDefaults.focus) {
+export async function setFocus(plugin: PluginContext, structureNodeSelector: StateObjectSelector | undefined, params: MolstarNodeParams<'focus'>) {
     let boundingSphere: Sphere3D | undefined = undefined;
     if (structureNodeSelector) {
         const cell = plugin.state.data.cells.get(structureNodeSelector.ref);

@@ -25,6 +25,7 @@ import { NonCovalentInteractionsExtension } from './load-extensions/non-covalent
 import { LoadingActions, LoadingExtension, loadTree, UpdateTarget } from './load-generic';
 import { AnnotationFromSourceKind, AnnotationFromUriKind, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps } from './load-helpers';
 import { MVSData } from './mvs-data';
+import { addParamDefaults } from './tree/generic/params-schema';
 import { validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
 import { MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree, MolstarTreeSchema } from './tree/molstar/molstar-tree';
@@ -40,11 +41,11 @@ import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 export async function loadMVS(plugin: PluginContext, data: MVSData, options: { replaceExisting?: boolean, keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[], sanityChecks?: boolean, sourceUrl?: string, doNotReportErrors?: boolean } = {}) {
     plugin.errorContext.clear('mvs');
     try {
-        // console.log(`MVS tree:\n${MVSData.toPrettyString(data)}`)
+        console.log(`MVS tree:\n${MVSData.toPrettyString(data)}`)
         validateTree(MVSTreeSchema, data.root, 'MVS');
         if (options.sanityChecks) mvsSanityCheck(data.root);
         const molstarTree = convertMvsToMolstar(data.root, options.sourceUrl);
-        // console.log(`Converted MolStar tree:\n${MVSData.toPrettyString({ root: molstarTree as any, metadata: { version: 'x', timestamp: 'x' } })}`)
+        console.log(`Converted MolStar tree:\n${MVSData.toPrettyString({ root: molstarTree as any, metadata: { version: 'x', timestamp: 'x' } })}`)
         validateTree(MolstarTreeSchema, molstarTree, 'Converted Molstar');
         await loadMolstarTree(plugin, molstarTree, options);
     } catch (err) {
@@ -86,7 +87,7 @@ async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, options
         } else if (context.focus?.kind === 'focus') {
             await setFocus(plugin, context.focus.focusTarget, context.focus.params);
         } else {
-            await setFocus(plugin, undefined, undefined);
+            await setFocus(plugin, undefined, addParamDefaults(MVSTreeSchema.nodes.focus.params, {}));
         }
     }
 }
