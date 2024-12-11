@@ -7,8 +7,8 @@
 
 import * as iots from 'io-ts';
 import { PathReporter } from 'io-ts/PathReporter';
-import { isPlainObject, mapObjectMap } from '../../../../mol-util/object';
 import { onelinerJsonString } from '../../../../mol-util/json';
+import { isPlainObject, mapObjectMap, omitObjectKeys } from '../../../../mol-util/object';
 
 
 /** All types that can be used in tree node params.
@@ -57,31 +57,7 @@ export function mapping<A extends iots.Type<any>, B extends iots.Type<any>>(from
 }
 
 
-// export interface RequiredField<V extends AllowedValueTypes = any> {
-//     /** Definition of allowed types for the field */
-//     type: iots.Type<V>,
-//     /** If `required===true`, the value must always be defined in molviewspec format (can be `null` if `type` allows it).
-//      * If `required===false`, the value can be ommitted (meaning that a default should be used).
-//      * If `type` allows `null`, the default must be `null`. */
-//     required: true,
-//     /** Description of what the field value means */
-//     description?: string,
-// }
-// export interface OptionalField<V extends AllowedValueTypes = any> {
-//     /** Definition of allowed types for the field */
-//     type: iots.Type<V>,
-//     /** If `required===true`, the value must always be defined in molviewspec format (can be `null` if `type` allows it).
-//      * If `required===false`, the value can be ommitted (meaning that a default should be used).
-//      * If `type` allows `null`, the default must be `null`. */
-//     required: false,
-//     /** Description of what the field value means */
-//     description?: string,
-//     // TODO default
-// }
-// type Field<V extends AllowedValueTypes = any> = RequiredField<V> | OptionalField<V>;
-
-
-interface Field_<V extends AllowedValueTypes = any, R extends boolean = boolean> {
+interface FieldBase<V extends AllowedValueTypes = any, R extends boolean = boolean> {
     /** Definition of allowed types for the field */
     type: iots.Type<V>,
     /** If `required===true`, the value must always be defined in molviewspec format (can be `null` if `type` allows it).
@@ -93,7 +69,7 @@ interface Field_<V extends AllowedValueTypes = any, R extends boolean = boolean>
 }
 
 /** Schema for param field which must always be provided (has no default value) */
-export interface RequiredField<V extends AllowedValueTypes = any> extends Field_<V> {
+export interface RequiredField<V extends AllowedValueTypes = any> extends FieldBase<V> {
     required: true,
 }
 export function RequiredField<V extends AllowedValueTypes>(type: iots.Type<V>, description: string): RequiredField<V> {
@@ -101,7 +77,7 @@ export function RequiredField<V extends AllowedValueTypes>(type: iots.Type<V>, d
 }
 
 /** Schema for param field which can be dropped (meaning that a default value will be used) */
-export interface OptionalField<V extends AllowedValueTypes = any> extends Field_<V> {
+export interface OptionalField<V extends AllowedValueTypes = any> extends FieldBase<V> {
     required: false,
     default: V, // TODO enforce default null for nullable types
 }
@@ -136,11 +112,11 @@ export type ParamsSchema<TKey extends string = string> = { [key in TKey]: Field 
 
 type Fields = { [key in string]: Field }
 
-interface SimpleParamsSchema<TFields extends Fields = Fields> {
+export interface SimpleParamsSchema<TFields extends Fields = Fields> {
     _type_: 'simple',
     fields: TFields,
 }
-function SimpleParamsSchema<TFields extends Fields>(fields: TFields): SimpleParamsSchema<TFields> {
+export function SimpleParamsSchema<TFields extends Fields>(fields: TFields): SimpleParamsSchema<TFields> {
     return { _type_: 'simple', fields };
 }
 type ValuesForSimpleParamsSchema<TSchema extends SimpleParamsSchema> = ValuesFor<TSchema['fields']>; // TODO private ValuesFor
@@ -151,12 +127,12 @@ type AllRequiredSimple<TSchema extends SimpleParamsSchema> = SimpleParamsSchema<
 
 type Cases = { [c in string]: ParamsSchema_new }
 
-interface UnionParamsSchema<TDiscriminator extends string = string, TCases extends Cases = Cases> {
+export interface UnionParamsSchema<TDiscriminator extends string = string, TCases extends Cases = Cases> {
     _type_: 'union',
     discriminator: TDiscriminator,
     cases: TCases,
 }
-function UnionParamsSchema<TDiscriminator extends string, TCases extends Cases>(discriminator: TDiscriminator, cases: TCases): UnionParamsSchema<TDiscriminator, TCases> {
+export function UnionParamsSchema<TDiscriminator extends string, TCases extends Cases>(discriminator: TDiscriminator, cases: TCases): UnionParamsSchema<TDiscriminator, TCases> {
     return { _type_: 'union', discriminator, cases };
 }
 type ValuesForUnionParamsSchema<TSchema extends UnionParamsSchema, TCase extends keyof TSchema['cases'] = keyof TSchema['cases']>
@@ -257,9 +233,13 @@ export type ValuesFor<P extends ParamsSchema> =
 
 /** Type of full values for a params schema, i.e. including all optional fields */
 export type FullValuesFor<P extends ParamsSchema> = { [key in keyof P]: ValueFor<P[key]> }
+export type FullValuesFor_new<P extends ParamsSchema_new> = ValuesForParamsSchema<AllRequired_new<P>>;
 
-/** Type of default values for a params schema, i.e. including only optional fields */
-export type DefaultsFor<P extends ParamsSchema> = { [key in keyof P as (P[key] extends OptionalField<any> ? key : never)]: ValueFor<P[key]> }
+
+interface ValidationOptions {
+    requireAll?: boolean,
+    noExtra?: boolean,
+}
 
 
 /** Return `undefined` if `values` contains correct value types for `schema`,
@@ -267,7 +247,7 @@ export type DefaultsFor<P extends ParamsSchema> = { [key in keyof P as (P[key] e
  * If `options.requireAll`, all parameters (including optional) must have a value provided.
  * If `options.noExtra` is true, presence of any extra parameters is treated as an issue.
  */
-export function paramsValidationIssues<P extends ParamsSchema, V extends { [k: string]: any }>(schema: P, values: V, options: { requireAll?: boolean, noExtra?: boolean } = {}): string[] | undefined {
+export function paramsValidationIssues<P extends ParamsSchema, V extends { [k: string]: any }>(schema: P, values: V, options: ValidationOptions = {}): string[] | undefined {
     if (!isPlainObject(values)) return [`Parameters must be an object, not ${values}`];
     for (const key in schema) {
         const paramDef = schema[key];
@@ -275,13 +255,14 @@ export function paramsValidationIssues<P extends ParamsSchema, V extends { [k: s
         // Special handling of "union" param type
         // TODO: figure out how to do this properly, ignoring the validation for now
         if (key === '_union_') {
+            console.warn('Skipping _union_ params validation');
             return undefined;
         }
 
         if (Object.hasOwn(values, key)) {
             const value = values[key];
             const issues = fieldValidationIssues(paramDef, value);
-            if (issues) return [`Invalid type for parameter "${key}":`, ...issues.map(s => '  ' + s)];
+            if (issues) return [`Invalid value for parameter "${key}":`, ...issues.map(s => '  ' + s)];
         } else {
             if (paramDef.required) return [`Missing required parameter "${key}".`];
             if (options.requireAll) return [`Missing optional parameter "${key}".`];
@@ -295,6 +276,35 @@ export function paramsValidationIssues<P extends ParamsSchema, V extends { [k: s
     return undefined;
 }
 
+function paramsValidationIssues_simple<P extends SimpleParamsSchema>(schema: P, values: { [k: string]: any }, options: ValidationOptions): string[] | undefined {
+    return paramsValidationIssues(schema.fields, values, options);
+}
+
+function paramsValidationIssues_union<P extends UnionParamsSchema>(schema: P, values: { [k: string]: any }, options: ValidationOptions): string[] | undefined {
+    if (!Object.hasOwn(values, schema.discriminator)) {
+        return [`Missing required parameter "${schema.discriminator}".`];
+    }
+    const case_ = values[schema.discriminator];
+    const subschema = schema.cases[case_];
+    if (subschema === undefined) {
+        const allowedValues = Object.keys(schema.cases).map(x => `"${x}"`).join(' | ');
+        return [
+            `Invalid value for parameter "${schema.discriminator}":`,
+            `"${case_}" is not a valid value for literal type (${allowedValues})`,
+        ];
+    }
+    return paramsValidationIssues_new(subschema, omitObjectKeys(values, [schema.discriminator]), options);
+}
+
+export function paramsValidationIssues_new<P extends ParamsSchema_new>(schema: P, values: { [k: string]: any }, options: ValidationOptions = {}): string[] | undefined {
+    if (schema._type_ === 'simple') {
+        return paramsValidationIssues_simple(schema, values, options);
+    } else {
+        return paramsValidationIssues_union(schema, values, options);
+    }
+}
+
+
 export function addParamDefaults<P extends ParamsSchema>(schema: P, values: ValuesFor<P>): FullValuesFor<P> {
     const out = { ...values };
     for (const key in schema) {
@@ -304,4 +314,31 @@ export function addParamDefaults<P extends ParamsSchema>(schema: P, values: Valu
         }
     }
     return out as any;
+}
+
+function addParamDefaults_simple<P extends SimpleParamsSchema>(schema: P, values: any): any {
+    const out = { ...values };
+    for (const key in schema.fields) {
+        const field = schema.fields[key];
+        if (!field.required && out[key] === undefined) {
+            out[key] = field.default;
+        }
+    }
+    return out;
+}
+
+function addParamDefaults_union<P extends UnionParamsSchema>(schema: P, values: any): any {
+    const case_ = values[schema.discriminator];
+    const subschema = schema.cases[case_];
+    // @ts-ignore (recursive type definition causes TS2589: Type instantiation is excessively deep and possibly infinite.)
+    return addParamDefaults_new(subschema, values);
+}
+
+export function addParamDefaults_new<P extends ParamsSchema_new>(schema: P, values: ValuesForParamsSchema<P>): FullValuesFor_new<P> {
+    if (schema._type_ === 'simple') {
+        // @ts-ignore (recursive type definition causes TS2589: Type instantiation is excessively deep and possibly infinite.)
+        return addParamDefaults_simple(schema, values);
+    } else {
+        return addParamDefaults_union(schema, values);
+    }
 }

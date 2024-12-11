@@ -6,7 +6,7 @@
 
 import { onelinerJsonString } from '../../../../mol-util/json';
 import { isPlainObject, mapObjectMap } from '../../../../mol-util/object';
-import { AllRequired, DefaultsFor, ParamsSchema, ValuesFor, paramsValidationIssues } from './params-schema';
+import { AllRequired, ParamsSchema, ValuesFor, paramsValidationIssues } from './params-schema';
 import { treeToString } from './tree-utils';
 
 
@@ -113,9 +113,6 @@ export type NodeFor<TTreeSchema extends TreeSchema, TKind extends keyof ParamsSc
 
 /** Type of tree which conforms to tree schema `TTreeSchema` */
 export type TreeFor<TTreeSchema extends TreeSchema> = Tree<NodeFor<TTreeSchema>, RootFor<TTreeSchema> & NodeFor<TTreeSchema>>
-
-/** Type of default parameter values for each node kind in a tree schema `TTreeSchema` */
-export type DefaultsForTree<TTreeSchema extends TreeSchema> = { [kind in keyof TTreeSchema['nodes']]: DefaultsFor<TTreeSchema['nodes'][kind]['params']> }
 
 
 /** Return `undefined` if a tree conforms to the given schema,

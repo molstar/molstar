@@ -6,7 +6,7 @@
 
 import { canonicalJsonString } from '../../../../mol-util/json';
 import { addParamDefaults, ValuesFor } from './params-schema';
-import { CustomProps, DefaultsForTree, Kind, Node, Subtree, SubtreeOfKind, Tree, TreeFor, TreeSchema, TreeSchemaWithAllRequired, getParams } from './tree-schema';
+import { CustomProps, Kind, Node, Subtree, SubtreeOfKind, Tree, TreeFor, TreeSchema, TreeSchemaWithAllRequired, getParams } from './tree-schema';
 
 
 /** Run DFS (depth-first search) algorithm on a rooted tree.
