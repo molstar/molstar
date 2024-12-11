@@ -85,7 +85,7 @@ export interface TreeSchema<TParamsSchemas extends ParamsSchemas = ParamsSchemas
     },
 }
 export function TreeSchema<P extends ParamsSchemas = ParamsSchemas, R extends keyof P = string>(schema: TreeSchema<P, R>): TreeSchema<P, R> {
-    return schema as any;
+    return schema;
 }
 
 /** ParamsSchemas per node kind */

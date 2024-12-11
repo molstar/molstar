@@ -105,6 +105,116 @@ export function fieldValidationIssues<F extends Field, V>(field: F, value: V): V
 /** Schema for "params", i.e. a flat collection of key-value pairs */
 export type ParamsSchema<TKey extends string = string> = { [key in TKey]: Field }
 
+type Fields = { [key in string]: Field }
+
+interface SimpleParamsSchema<TFields extends Fields = Fields> {
+    _type_: 'simple',
+    fields: TFields,
+}
+function SimpleParamsSchema<TFields extends Fields>(fields: TFields): SimpleParamsSchema<TFields> {
+    return { _type_: 'simple', fields };
+}
+type ValuesForSimpleParamsSchema<TSchema extends SimpleParamsSchema> = ValuesFor<TSchema['fields']>; // TODO private ValuesFor
+type AllRequiredSimple<TSchema extends SimpleParamsSchema> = SimpleParamsSchema<AllRequired<TSchema['fields']>>;
+
+
+
+
+type Cases = { [c in string]: ParamsSchema_new }
+
+interface UnionParamsSchema<TDiscriminator extends string = string, TCases extends Cases = Cases> {
+    _type_: 'union',
+    discriminator: TDiscriminator,
+    cases: TCases,
+}
+function UnionParamsSchema<TDiscriminator extends string, TCases extends Cases>(discriminator: TDiscriminator, cases: TCases): UnionParamsSchema<TDiscriminator, TCases> {
+    return { _type_: 'union', discriminator, cases };
+}
+type ValuesForUnionParamsSchema<TSchema extends UnionParamsSchema, TCase extends keyof TSchema['cases'] = keyof TSchema['cases']>
+    = TCase extends keyof TSchema['cases'] // This monstrosity is needed to properly create discriminated union type :o
+    ? { [disc in TSchema['discriminator']]: TCase } & ValuesForParamsSchema<TSchema['cases'][TCase]>
+    : never;
+type AllRequiredUnion<TSchema extends UnionParamsSchema>
+    = UnionParamsSchema<TSchema['discriminator'], { [c in keyof TSchema['cases']]: AllRequired_new<TSchema['cases'][c]> }>;
+
+
+type ParamsSchema_new = SimpleParamsSchema | UnionParamsSchema;
+type ValuesForParamsSchema<T extends ParamsSchema_new>
+    = T extends SimpleParamsSchema ? ValuesForSimpleParamsSchema<T>
+    : T extends UnionParamsSchema ? ValuesForUnionParamsSchema<T>
+    : never;
+type AllRequired_new<T extends ParamsSchema_new>
+    = T extends SimpleParamsSchema ? AllRequiredSimple<T>
+    : T extends UnionParamsSchema ? AllRequiredUnion<T>
+    : never;
+
+function AllRequired_simple<TSchema extends SimpleParamsSchema>(schema: TSchema): AllRequired_new<TSchema> {
+    const newFields = mapObjectMap(schema.fields, field => RequiredField(field.type, field.description));
+    return SimpleParamsSchema(newFields) as AllRequired_new<TSchema>;
+}
+
+function AllRequired_union<TSchema extends UnionParamsSchema>(schema: TSchema): AllRequired_new<TSchema> {
+    const newCases = mapObjectMap(schema.cases, c => AllRequired_new(c));
+    return UnionParamsSchema(schema.discriminator, newCases) as AllRequired_new<TSchema>;
+}
+
+export function AllRequired_new<TSchema extends ParamsSchema_new>(schema: TSchema): AllRequired_new<TSchema> {
+    if (schema._type_ === 'simple') {
+        return AllRequired_simple(schema) as AllRequired_new<TSchema>;
+    } else {
+        return AllRequired_union(schema) as AllRequired_new<TSchema>;
+    }
+}
+
+function foo1() {
+    const p = SimpleParamsSchema({
+        name: RequiredField(str),
+        age: OptionalField(int),
+        color: OptionalField(nullable(literal('red', 'green', 'blue'))),
+    });
+    type t = ValuesForParamsSchema<typeof p>;
+    type t_ = ValuesForParamsSchema<AllRequired_new<typeof p>>;
+    const x: t = {
+        name: 'Bob',
+        age: undefined,
+        color: 'blue',
+    };
+}
+
+function foo2() {
+    const p = UnionParamsSchema('kind', {
+        person: SimpleParamsSchema({
+            name: RequiredField(str),
+            age: OptionalField(int),
+            color: OptionalField(nullable(literal('red', 'green', 'blue'))),
+        }),
+        thing: SimpleParamsSchema({
+            weight: RequiredField(float),
+            color: OptionalField(nullable(literal('red', 'green', 'blue'))),
+        }),
+        song: SimpleParamsSchema({
+            title: RequiredField(str),
+            duration: RequiredField(float),
+        }),
+    });
+    type t = ValuesForParamsSchema<typeof p>;
+    type t_ = ValuesForParamsSchema<AllRequired_new<typeof p>>;
+    const q = undefined as any as t_;
+    if (q.kind === 'thing') {
+    }
+    const x: t = {
+        'kind': 'person',
+        'name': ''
+    };
+    if (q.kind === 'person') {
+        q.name
+    } else if (q.kind === 'song') {
+        q.duration
+    } else {
+        q.weight
+    }
+}
+
 /** Variation of a params schema where all fields are required */
 export type AllRequired<TParamsSchema extends ParamsSchema> = { [key in keyof TParamsSchema]: TParamsSchema[key] extends Field<infer V> ? RequiredField<V> : never }
 export function AllRequired<TParamsSchema extends ParamsSchema>(paramsSchema: TParamsSchema): AllRequired<TParamsSchema> {
