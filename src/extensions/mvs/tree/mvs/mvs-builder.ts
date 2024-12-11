@@ -34,10 +34,9 @@ class _Base<TKind extends MVSKind> {
     /** Create a new node, append as child to current _node, and return the new node */
     protected addChild<TChildKind extends MVSKind>(kind: TChildKind, params_: MVSNodeParams<TChildKind> & CustomAndRef) {
         const { params, custom, ref } = splitParams<MVSNodeParams<TChildKind>>(params_);
-        const allowedParamNames = Object.keys(MVSTreeSchema.nodes[kind].params) as (keyof MVSNodeParams<TChildKind>)[];
         const node = {
             kind,
-            params: pickObjectKeys(params, allowedParamNames) as unknown,
+            params,
             custom,
             ref,
         } as MVSSubtree<TChildKind>;

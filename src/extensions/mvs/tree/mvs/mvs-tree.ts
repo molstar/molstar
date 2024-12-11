@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { float, int, list, literal, nullable, OptionalField, RequiredField, str, tuple, union } from '../generic/params-schema';
+import { float, int, list, literal, nullable, OptionalField, RequiredField, SimpleParamsSchema, str, tuple, union } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
 import { MVSPrimitiveParams } from './mvs-primitives';
 import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, RepresentationTypeT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
@@ -49,32 +49,32 @@ export const MVSTreeSchema = TreeSchema({
         root: {
             description: 'Auxiliary node kind that only appears as the tree root.',
             parent: [],
-            params: {
-            },
+            params: SimpleParamsSchema({
+            }),
         },
         /** This node instructs to retrieve a data resource. */
         download: {
             description: 'This node instructs to retrieve a data resource.',
             parent: ['root'],
-            params: {
+            params: SimpleParamsSchema({
                 /** URL of the data resource. */
                 url: RequiredField(str, 'URL of the data resource.'),
-            },
+            }),
         },
         /** This node instructs to parse a data resource. */
         parse: {
             description: 'This node instructs to parse a data resource.',
             parent: ['download'],
-            params: {
+            params: SimpleParamsSchema({
                 /** Format of the input data resource. */
                 format: RequiredField(ParseFormatT, 'Format of the input data resource.'),
-            },
+            }),
         },
         /** This node instructs to create a structure from a parsed data resource. "Structure" refers to an internal representation of molecular coordinates without any visual representation. */
         structure: {
             description: 'This node instructs to create a structure from a parsed data resource. "Structure" refers to an internal representation of molecular coordinates without any visual representation.',
             parent: ['parse'],
-            params: {
+            params: SimpleParamsSchema({
                 /** Type of structure to be created (`"model"` for original model coordinates, `"assembly"` for assembly structure, `"symmetry"` for a set of crystal unit cells based on Miller indices, `"symmetry_mates"` for a set of asymmetric units within a radius from the original model). */
                 type: RequiredField(StructureTypeT, 'Type of structure to be created (`"model"` for original model coordinates, `"assembly"` for assembly structure, `"symmetry"` for a set of crystal unit cells based on Miller indices, `"symmetry_mates"` for a set of asymmetric units within a radius from the original model).'),
                 /** Header of the CIF block to read coordinates from (only applies when the input data are from CIF or BinaryCIF). If `null`, block is selected based on `block_index`. */
@@ -91,220 +91,220 @@ export const MVSTreeSchema = TreeSchema({
                 ijk_min: OptionalField(tuple([int, int, int]), [-1, -1, -1], 'Miller indices of the bottom-left unit cell to be included (only applies when `kind` is `"symmetry"`).'),
                 /** Miller indices of the top-right unit cell to be included (only applies when `kind` is `"symmetry"`). */
                 ijk_max: OptionalField(tuple([int, int, int]), [1, 1, 1], 'Miller indices of the top-right unit cell to be included (only applies when `kind` is `"symmetry"`).'),
-            },
+            }),
         },
         /** This node instructs to rotate and/or translate structure coordinates. */
         transform: {
             description: 'This node instructs to rotate and/or translate structure coordinates.',
             parent: ['structure'],
-            params: {
+            params: SimpleParamsSchema({
                 /** Rotation matrix (3x3 matrix flattened in column major format (j*3+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. The default value is the identity matrix (corresponds to no rotation). */
                 rotation: OptionalField(Matrix, [1, 0, 0, 0, 1, 0, 0, 0, 1], 'Rotation matrix (3x3 matrix flattened in column major format (j*3+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. The default value is the identity matrix (corresponds to no rotation).'),
                 /** Translation vector, applied to the structure coordinates after rotation. The default value is the zero vector (corresponds to no translation). */
                 translation: OptionalField(Vector3, [0, 0, 0], 'Translation vector, applied to the structure coordinates after rotation. The default value is the zero vector (corresponds to no translation).'),
-            },
+            }),
         },
         /** This node instructs to create a component (i.e. a subset of the parent structure). */
         component: {
             description: 'This node instructs to create a component (i.e. a subset of the parent structure).',
             parent: ['structure'],
-            params: {
+            params: SimpleParamsSchema({
                 /** Defines what part of the parent structure should be included in this component. */
                 selector: RequiredField(union([ComponentSelectorT, ComponentExpressionT, list(ComponentExpressionT)]), 'Defines what part of the parent structure should be included in this component.'),
-            },
+            }),
         },
         /** This node instructs to create a component defined by an external annotation resource. */
         component_from_uri: {
             description: 'This node instructs to create a component defined by an external annotation resource.',
             parent: ['structure'],
-            params: {
+            params: SimpleParamsSchema({
                 ..._DataFromUriParams,
                 /** Name of the column in CIF or field name (key) in JSON that contains the component identifier. */
                 field_name: OptionalField(str, 'component', 'Name of the column in CIF or field name (key) in JSON that contains the component identifier.'),
                 /** List of component identifiers (i.e. values in the field given by `field_name`) which should be included in this component. If `null`, component identifiers are ignored (all annotation rows are included), and `field_name` field can be dropped from the annotation. */
                 field_values: OptionalField(nullable(list(str)), null, 'List of component identifiers (i.e. values in the field given by `field_name`) which should be included in this component. If `null`, component identifiers are ignored (all annotation rows are included), and `field_name` field can be dropped from the annotation.'),
-            },
+            }),
         },
         /** This node instructs to create a component defined by an annotation resource included in the same file this structure was loaded from. Only applicable if the structure was loaded from an mmCIF or BinaryCIF file. */
         component_from_source: {
             description: 'This node instructs to create a component defined by an annotation resource included in the same file this structure was loaded from. Only applicable if the structure was loaded from an mmCIF or BinaryCIF file.',
             parent: ['structure'],
-            params: {
+            params: SimpleParamsSchema({
                 ..._DataFromSourceParams,
                 /** Name of the column in CIF or field name (key) in JSON that contains the component identifier. */
                 field_name: OptionalField(str, 'component', 'Name of the column in CIF or field name (key) in JSON that contains the component identifier.'),
                 /** List of component identifiers (i.e. values in the field given by `field_name`) which should be included in this component. If `null`, component identifiers are ignored (all annotation rows are included), and `field_name` field can be dropped from the annotation. */
                 field_values: OptionalField(nullable(list(str)), null, 'List of component identifiers (i.e. values in the field given by `field_name`) which should be included in this component. If `null`, component identifiers are ignored (all annotation rows are included), and `field_name` field can be dropped from the annotation.'),
-            },
+            }),
         },
         /** This node instructs to create a visual representation of a component. */
         representation: {
             description: 'This node instructs to create a visual representation of a component.',
             parent: ['component', 'component_from_uri', 'component_from_source'],
-            params: {
+            params: SimpleParamsSchema({
                 /** Method of visual representation of the component. */
                 type: RequiredField(RepresentationTypeT, 'Method of visual representation of the component.'),
-            },
+            }),
         },
         /** This node instructs to apply color to a visual representation. */
         color: {
             description: 'This node instructs to apply color to a visual representation.',
             parent: ['representation'],
-            params: {
+            params: SimpleParamsSchema({
                 /** Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`). */
                 color: RequiredField(ColorT, 'Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
                 /** Defines to what part of the representation this color should be applied. */
                 selector: OptionalField(union([ComponentSelectorT, ComponentExpressionT, list(ComponentExpressionT)]), 'all', 'Defines to what part of the representation this color should be applied.'),
-            },
+            }),
         },
         /** This node instructs to apply colors to a visual representation. The colors are defined by an external annotation resource. */
         color_from_uri: {
             description: 'This node instructs to apply colors to a visual representation. The colors are defined by an external annotation resource.',
             parent: ['representation'],
-            params: {
+            params: SimpleParamsSchema({
                 ..._DataFromUriParams,
                 /** Name of the column in CIF or field name (key) in JSON that contains the color. */
                 field_name: OptionalField(str, 'color', 'Name of the column in CIF or field name (key) in JSON that contains the color.'),
-            },
+            }),
         },
         /** This node instructs to apply colors to a visual representation. The colors are defined by an annotation resource included in the same file this structure was loaded from. Only applicable if the structure was loaded from an mmCIF or BinaryCIF file. */
         color_from_source: {
             description: 'This node instructs to apply colors to a visual representation. The colors are defined by an annotation resource included in the same file this structure was loaded from. Only applicable if the structure was loaded from an mmCIF or BinaryCIF file.',
             parent: ['representation'],
-            params: {
+            params: SimpleParamsSchema({
                 ..._DataFromSourceParams,
                 /** Name of the column in CIF or field name (key) in JSON that contains the color. */
                 field_name: OptionalField(str, 'color', 'Name of the column in CIF or field name (key) in JSON that contains the color.'),
-            },
+            }),
         },
         /** This node instructs to apply transparency to a visual representation. */
         transparency: {
             description: 'This node instructs to apply transparency to a visual representation.',
             parent: ['representation'],
-            params: {
+            params: SimpleParamsSchema({
                 /** Transparency of the representation. 0.0: fully opaque, 1.0: fully transparent. */
                 transparency: RequiredField(float, 'Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
-            },
+            }),
         },
         /** This node instructs to add a label (textual visual representation) to a component. */
         label: {
             description: 'This node instructs to add a label (textual visual representation) to a component.',
             parent: ['component', 'component_from_uri', 'component_from_source'],
-            params: {
+            params: SimpleParamsSchema({
                 /** Content of the shown label. */
                 text: RequiredField(str, 'Content of the shown label.'),
-            },
+            }),
         },
         /** This node instructs to add labels (textual visual representations) to parts of a structure. The labels are defined by an external annotation resource. */
         label_from_uri: {
             description: 'This node instructs to add labels (textual visual representations) to parts of a structure. The labels are defined by an external annotation resource.',
             parent: ['structure'],
-            params: {
+            params: SimpleParamsSchema({
                 ..._DataFromUriParams,
                 /** Name of the column in CIF or field name (key) in JSON that contains the label text. */
                 field_name: OptionalField(str, 'label', 'Name of the column in CIF or field name (key) in JSON that contains the label text.'),
-            },
+            }),
         },
         /** This node instructs to add labels (textual visual representations) to parts of a structure. The labels are defined by an annotation resource included in the same file this structure was loaded from. Only applicable if the structure was loaded from an mmCIF or BinaryCIF file. */
         label_from_source: {
             description: 'This node instructs to add labels (textual visual representations) to parts of a structure. The labels are defined by an annotation resource included in the same file this structure was loaded from. Only applicable if the structure was loaded from an mmCIF or BinaryCIF file.',
             parent: ['structure'],
-            params: {
+            params: SimpleParamsSchema({
                 ..._DataFromSourceParams,
                 /** Name of the column in CIF or field name (key) in JSON that contains the label text. */
                 field_name: OptionalField(str, 'label', 'Name of the column in CIF or field name (key) in JSON that contains the label text.'),
-            },
+            }),
         },
         /** This node instructs to add a tooltip to a component. "Tooltip" is a text which is not a part of the visualization but should be presented to the users when they interact with the component (typically, the tooltip will be shown somewhere on the screen when the user hovers over a visual representation of the component). */
         tooltip: {
             description: 'This node instructs to add a tooltip to a component. "Tooltip" is a text which is not a part of the visualization but should be presented to the users when they interact with the component (typically, the tooltip will be shown somewhere on the screen when the user hovers over a visual representation of the component).',
             parent: ['component', 'component_from_uri', 'component_from_source'],
-            params: {
+            params: SimpleParamsSchema({
                 /** Content of the shown tooltip. */
                 text: RequiredField(str, 'Content of the shown tooltip.'),
-            },
+            }),
         },
         /** This node instructs to add tooltips to parts of a structure. The tooltips are defined by an external annotation resource. */
         tooltip_from_uri: {
             description: 'This node instructs to add tooltips to parts of a structure. The tooltips are defined by an external annotation resource.',
             parent: ['structure'],
-            params: {
+            params: SimpleParamsSchema({
                 ..._DataFromUriParams,
                 /** Name of the column in CIF or field name (key) in JSON that contains the tooltip text. */
                 field_name: OptionalField(str, 'tooltip', 'Name of the column in CIF or field name (key) in JSON that contains the tooltip text.'),
-            },
+            }),
         },
         /** This node instructs to add tooltips to parts of a structure. The tooltips are defined by an annotation resource included in the same file this structure was loaded from. Only applicable if the structure was loaded from an mmCIF or BinaryCIF file. */
         tooltip_from_source: {
             description: 'This node instructs to add tooltips to parts of a structure. The tooltips are defined by an annotation resource included in the same file this structure was loaded from. Only applicable if the structure was loaded from an mmCIF or BinaryCIF file.',
             parent: ['structure'],
-            params: {
+            params: SimpleParamsSchema({
                 ..._DataFromSourceParams,
                 /** Name of the column in CIF or field name (key) in JSON that contains the tooltip text. */
                 field_name: OptionalField(str, 'tooltip', 'Name of the column in CIF or field name (key) in JSON that contains the tooltip text.'),
-            },
+            }),
         },
         /** This node instructs to set the camera focus to a component (zoom in). */
         focus: {
             description: 'This node instructs to set the camera focus to a component (zoom in).',
             parent: ['component', 'component_from_uri', 'component_from_source', 'primitives', 'primitives_from_uri'],
-            params: {
+            params: SimpleParamsSchema({
                 /** Vector describing the direction of the view (camera position -> focused target). */
                 direction: OptionalField(Vector3, [0, 0, -1], 'Vector describing the direction of the view (camera position -> focused target).'),
                 /** Vector which will be aligned with the screen Y axis. */
                 up: OptionalField(Vector3, [0, 1, 0], 'Vector which will be aligned with the screen Y axis.'),
-            },
+            }),
         },
         /** This node instructs to set the camera position and orientation. */
         camera: {
             description: 'This node instructs to set the camera position and orientation.',
             parent: ['root'],
-            params: {
+            params: SimpleParamsSchema({
                 /** Coordinates of the point in space at which the camera is pointing. */
                 target: RequiredField(Vector3, 'Coordinates of the point in space at which the camera is pointing.'),
                 /** Coordinates of the camera. */
                 position: RequiredField(Vector3, 'Coordinates of the camera.'),
                 /** Vector which will be aligned with the screen Y axis. */
                 up: OptionalField(Vector3, [0, 1, 0], 'Vector which will be aligned with the screen Y axis.'),
-            },
+            }),
         },
         /** This node sets canvas properties. */
         canvas: {
             description: 'This node sets canvas properties.',
             parent: ['root'],
-            params: {
+            params: SimpleParamsSchema({
                 /** Color of the canvas background. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`). */
                 background_color: RequiredField(ColorT, 'Color of the canvas background. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
-            },
+            }),
         },
         primitives: {
             description: 'This node groups a list of geometrical primitives',
             parent: ['structure', 'root'],
-            params: {
+            params: SimpleParamsSchema({
                 color: OptionalField(nullable(ColorT), null, 'TODO parameter description'),
                 label_color: OptionalField(nullable(ColorT), null, 'TODO parameter description'),
                 tooltip: OptionalField(nullable(str), null, 'TODO parameter description'),
                 transparency: OptionalField(nullable(float), null, 'TODO parameter description'),
                 label_transparency: OptionalField(nullable(float), null, 'TODO parameter description'),
                 instances: OptionalField(nullable(list(Matrix)), null, 'TODO parameter description'),
-            },
+            }),
         },
         primitives_from_uri: {
             description: 'This node loads a list of primitives from URI',
             parent: ['structure', 'root'],
-            params: {
+            params: SimpleParamsSchema({
                 uri: RequiredField(str, 'TODO parameter description'),
                 format: RequiredField(literal('mvs-node-json'), 'TODO parameter description'),
                 references: OptionalField(nullable(StrList), null, 'TODO parameter description'),
-            },
+            }),
         },
         primitive: {
             description: 'This node represents a geometrical primitive',
             parent: ['primitives'],
-            params: {
+            params: SimpleParamsSchema({
                 // TODO: validation
                 _union_: RequiredField(MVSPrimitiveParams, 'TODO parameter description'),
-            },
+            }),
         },
     }
 });

@@ -5,7 +5,7 @@
  */
 
 import { canonicalJsonString } from '../../../../mol-util/json';
-import { addParamDefaults, ValuesFor } from './params-schema';
+import { addParamDefaults, addParamDefaults_new, ValuesFor } from './params-schema';
 import { CustomProps, Kind, Node, Subtree, SubtreeOfKind, Tree, TreeFor, TreeSchema, TreeSchemaWithAllRequired, getParams } from './tree-schema';
 
 
@@ -155,7 +155,7 @@ export function addDefaults<S extends TreeSchema>(tree: TreeFor<S>, treeSchema: 
     for (const kind in treeSchema.nodes) {
         rules[kind as Kind<Subtree<TTree>>] = node => [{
             kind: node.kind,
-            params: addParamDefaults(treeSchema.nodes[kind].params, node.params as ValuesFor<S['nodes'][typeof kind]['params']>),
+            params: addParamDefaults_new(treeSchema.nodes[kind].params, node.params as any),
             custom: node.custom,
             ref: node.ref,
         } as Node as any];

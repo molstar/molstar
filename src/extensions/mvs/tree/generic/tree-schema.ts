@@ -6,7 +6,7 @@
 
 import { onelinerJsonString } from '../../../../mol-util/json';
 import { isPlainObject, mapObjectMap } from '../../../../mol-util/object';
-import { AllRequired, ParamsSchema, ValuesFor, paramsValidationIssues } from './params-schema';
+import { AllRequired, AllRequired_new, ParamsSchema, ParamsSchema_new, ValuesFor, ValuesFor_new, paramsValidationIssues, paramsValidationIssues_new } from './params-schema';
 import { treeToString } from './tree-utils';
 
 
@@ -66,7 +66,7 @@ export function getChildren<TTree extends Tree>(tree: TTree): Subtree<TTree>[] {
 }
 
 
-type ParamsSchemas = { [kind: string]: ParamsSchema }
+type ParamsSchemas = { [kind: string]: ParamsSchema_new }
 
 /** Definition of tree type, specifying allowed node kinds, types of their params, required kind for the root, and allowed parent-child kind combinations */
 export interface TreeSchema<TParamsSchemas extends ParamsSchemas = ParamsSchemas, TRootKind extends keyof TParamsSchemas = string> {
@@ -92,14 +92,14 @@ export function TreeSchema<P extends ParamsSchemas = ParamsSchemas, R extends ke
 type ParamsSchemasOf<TTreeSchema extends TreeSchema> = TTreeSchema extends TreeSchema<infer TParamsSchema, any> ? TParamsSchema : never;
 
 /** Variation of params schemas where all param fields are required */
-type ParamsSchemasWithAllRequired<TParamsSchemas extends ParamsSchemas> = { [kind in keyof TParamsSchemas]: AllRequired<TParamsSchemas[kind]> }
+type ParamsSchemasWithAllRequired<TParamsSchemas extends ParamsSchemas> = { [kind in keyof TParamsSchemas]: AllRequired_new<TParamsSchemas[kind]> }
 
 /** Variation of a tree schema where all param fields are required */
 export type TreeSchemaWithAllRequired<TTreeSchema extends TreeSchema> = TreeSchema<ParamsSchemasWithAllRequired<ParamsSchemasOf<TTreeSchema>>, TTreeSchema['rootKind']>
 export function TreeSchemaWithAllRequired<TTreeSchema extends TreeSchema>(schema: TTreeSchema): TreeSchemaWithAllRequired<TTreeSchema> {
     return {
         ...schema,
-        nodes: mapObjectMap(schema.nodes, node => ({ ...node, params: AllRequired(node.params) })) as any,
+        nodes: mapObjectMap(schema.nodes, node => ({ ...node, params: AllRequired_new(node.params) })) as any,
     };
 }
 
@@ -109,7 +109,7 @@ export type RootFor<TTreeSchema extends TreeSchema> = NodeFor<TTreeSchema, TTree
 /** Type of tree node which can occur anywhere in a tree conforming to tree schema `TTreeSchema`,
  * optionally narrowing down to a given node kind */
 export type NodeFor<TTreeSchema extends TreeSchema, TKind extends keyof ParamsSchemasOf<TTreeSchema> = keyof ParamsSchemasOf<TTreeSchema>>
-    = { [key in keyof ParamsSchemasOf<TTreeSchema>]: Node<key & string, ValuesFor<ParamsSchemasOf<TTreeSchema>[key]>> }[TKind]
+    = { [key in keyof ParamsSchemasOf<TTreeSchema>]: Node<key & string, ValuesFor_new<ParamsSchemasOf<TTreeSchema>[key]>> }[TKind]
 
 /** Type of tree which conforms to tree schema `TTreeSchema` */
 export type TreeFor<TTreeSchema extends TreeSchema> = Tree<NodeFor<TTreeSchema>, RootFor<TTreeSchema> & NodeFor<TTreeSchema>>
@@ -129,7 +129,7 @@ export function treeValidationIssues(schema: TreeSchema, tree: Tree, options: { 
     if (nodeSchema.parent && (options.parent !== undefined) && !nodeSchema.parent.includes(options.parent)) {
         return [`Node of kind "${tree.kind}" cannot appear as a child of "${options.parent}". Allowed parents for "${tree.kind}" are: ${nodeSchema.parent.map(s => `"${s}"`).join(', ')}`];
     }
-    const issues = paramsValidationIssues(nodeSchema.params, getParams(tree), options);
+    const issues = paramsValidationIssues_new(nodeSchema.params, getParams(tree), options);
     if (issues) return [`Invalid parameters for node of kind "${tree.kind}":`, ...issues.map(s => '  ' + s)];
     if (tree.custom !== undefined && (typeof tree.custom !== 'object' || tree.custom === null)) {
         return [`Invalid "custom" for node of kind "${tree.kind}": must be an object, not ${tree.custom}.`];
@@ -185,20 +185,26 @@ function treeSchemaToString_<S extends TreeSchema>(schema: S, markdown: boolean 
         }
         out.push(`${p1}Parent: ${!parent ? 'any' : parent.length === 0 ? 'none' : parent.map(code).join(' or ')}`);
         out.push(`${p1}Params:${Object.keys(params).length > 0 ? '' : ' none'}`);
-        for (const key in params) {
-            const field = params[key];
-            let typeString = field.type.name;
-            if (typeString.startsWith('(') && typeString.endsWith(')')) {
-                typeString = typeString.slice(1, -1);
+        if (params._type_ === 'simple') {
+            for (const key in params.fields) {
+                const field = params.fields[key];
+                let typeString = field.type.name;
+                if (typeString.startsWith('(') && typeString.endsWith(')')) {
+                    typeString = typeString.slice(1, -1);
+                }
+                out.push(`${h2}${bold(code(key + (field.required ? ': ' : '?: ')))}${code(typeString)}`);
+                const defaultValue = field.required ? undefined : field.default;
+                if (field.description) {
+                    out.push(`${p2}${field.description}`);
+                }
+                if (defaultValue !== undefined) {
+                    out.push(`${p2}Default: ${code(onelinerJsonString(defaultValue))}`);
+                }
             }
-            out.push(`${h2}${bold(code(key + (field.required ? ': ' : '?: ')))}${code(typeString)}`);
-            const defaultValue = field.required ? undefined : field.default;
-            if (field.description) {
-                out.push(`${p2}${field.description}`);
-            }
-            if (defaultValue !== undefined) {
-                out.push(`${p2}Default: ${code(onelinerJsonString(defaultValue))}`);
-            }
+        } else {
+            // TODO implement this
+            console.warn('treeSchemaToString_ not implemented for UnionParamsSchema')
+            out.push('<<< MISSING LINES HERE (treeSchemaToString_ not implemented for UnionParamsSchema) >>>')
         }
     }
     return out.join(newline);

@@ -125,7 +125,7 @@ type AllRequiredSimple<TSchema extends SimpleParamsSchema> = SimpleParamsSchema<
 
 
 
-type Cases = { [c in string]: ParamsSchema_new }
+type Cases = { [c in string]: SimpleParamsSchema }
 
 export interface UnionParamsSchema<TDiscriminator extends string = string, TCases extends Cases = Cases> {
     _type_: 'union',
@@ -137,18 +137,18 @@ export function UnionParamsSchema<TDiscriminator extends string, TCases extends 
 }
 type ValuesForUnionParamsSchema<TSchema extends UnionParamsSchema, TCase extends keyof TSchema['cases'] = keyof TSchema['cases']>
     = TCase extends keyof TSchema['cases'] // This monstrosity is needed to properly create discriminated union type :o
-    ? { [disc in TSchema['discriminator']]: TCase } & ValuesForParamsSchema<TSchema['cases'][TCase]>
-    : never;
+    ? { [disc in TSchema['discriminator']]: TCase } & ValuesFor_new<TSchema['cases'][TCase]>
+    : never;    
 type AllRequiredUnion<TSchema extends UnionParamsSchema>
     = UnionParamsSchema<TSchema['discriminator'], { [c in keyof TSchema['cases']]: AllRequired_new<TSchema['cases'][c]> }>;
 
 
-type ParamsSchema_new = SimpleParamsSchema | UnionParamsSchema;
-type ValuesForParamsSchema<T extends ParamsSchema_new>
+export type ParamsSchema_new = SimpleParamsSchema | UnionParamsSchema;
+export type ValuesFor_new<T extends ParamsSchema_new>
     = T extends SimpleParamsSchema ? ValuesForSimpleParamsSchema<T>
     : T extends UnionParamsSchema ? ValuesForUnionParamsSchema<T>
     : never;
-type AllRequired_new<T extends ParamsSchema_new>
+export type AllRequired_new<T extends ParamsSchema_new>
     = T extends SimpleParamsSchema ? AllRequiredSimple<T>
     : T extends UnionParamsSchema ? AllRequiredUnion<T>
     : never;
@@ -177,8 +177,8 @@ function foo1() {
         age: OptionalField(int, 0, 'Age'),
         color: OptionalField(nullable(literal('red', 'green', 'blue')), null, 'Favorite color'),
     });
-    type t = ValuesForParamsSchema<typeof p>;
-    type t_ = ValuesForParamsSchema<AllRequired_new<typeof p>>;
+    type t = ValuesFor_new<typeof p>;
+    type t_ = ValuesFor_new<AllRequired_new<typeof p>>;
     const x: t = {
         name: 'Bob',
         age: undefined,
@@ -202,8 +202,8 @@ function foo2() {
             duration: RequiredField(float, 'Duration in s'),
         }),
     });
-    type t = ValuesForParamsSchema<typeof p>;
-    type t_ = ValuesForParamsSchema<AllRequired_new<typeof p>>;
+    type t = ValuesFor_new<typeof p>;
+    type t_ = ValuesFor_new<AllRequired_new<typeof p>>;
     const q = undefined as any as t_;
     if (q.kind === 'thing') {
     }
@@ -233,7 +233,7 @@ export type ValuesFor<P extends ParamsSchema> =
 
 /** Type of full values for a params schema, i.e. including all optional fields */
 export type FullValuesFor<P extends ParamsSchema> = { [key in keyof P]: ValueFor<P[key]> }
-export type FullValuesFor_new<P extends ParamsSchema_new> = ValuesForParamsSchema<AllRequired_new<P>>;
+export type FullValuesFor_new<P extends ParamsSchema_new> = ValuesFor_new<AllRequired_new<P>>;
 
 
 interface ValidationOptions {
@@ -334,7 +334,7 @@ function addParamDefaults_union<P extends UnionParamsSchema>(schema: P, values: 
     return addParamDefaults_new(subschema, values);
 }
 
-export function addParamDefaults_new<P extends ParamsSchema_new>(schema: P, values: ValuesForParamsSchema<P>): FullValuesFor_new<P> {
+export function addParamDefaults_new<P extends ParamsSchema_new>(schema: P, values: ValuesFor_new<P>): FullValuesFor_new<P> {
     if (schema._type_ === 'simple') {
         // @ts-ignore (recursive type definition causes TS2589: Type instantiation is excessively deep and possibly infinite.)
         return addParamDefaults_simple(schema, values);
