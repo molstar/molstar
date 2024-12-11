@@ -19,26 +19,26 @@ const _DataFromUriParams = {
     /** Annotation schema defines what fields in the annotation will be taken into account. */
     schema: RequiredField(SchemaT, 'Annotation schema defines what fields in the annotation will be taken into account.'),
     /** Header of the CIF block to read annotation from (only applies when `format` is `"cif"` or `"bcif"`). If `null`, block is selected based on `block_index`. */
-    block_header: OptionalField(nullable(str), 'Header of the CIF block to read annotation from (only applies when `format` is `"cif"` or `"bcif"`). If `null`, block is selected based on `block_index`.'),
+    block_header: OptionalField(nullable(str), null, 'Header of the CIF block to read annotation from (only applies when `format` is `"cif"` or `"bcif"`). If `null`, block is selected based on `block_index`.'),
     /** 0-based index of the CIF block to read annotation from (only applies when `format` is `"cif"` or `"bcif"` and `block_header` is `null`). */
-    block_index: OptionalField(int, '0-based index of the CIF block to read annotation from (only applies when `format` is `"cif"` or `"bcif"` and `block_header` is `null`).'),
+    block_index: OptionalField(int, 0, '0-based index of the CIF block to read annotation from (only applies when `format` is `"cif"` or `"bcif"` and `block_header` is `null`).'),
     /** Name of the CIF category to read annotation from (only applies when `format` is `"cif"` or `"bcif"`). If `null`, the first category in the block is used. */
-    category_name: OptionalField(nullable(str), 'Name of the CIF category to read annotation from (only applies when `format` is `"cif"` or `"bcif"`). If `null`, the first category in the block is used.'),
+    category_name: OptionalField(nullable(str), null, 'Name of the CIF category to read annotation from (only applies when `format` is `"cif"` or `"bcif"`). If `null`, the first category in the block is used.'),
     /** Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...). The default value is 'color'/'label'/'tooltip'/'component' depending on the node type */
-    field_name: OptionalField(str, 'Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...).'),
+    field_name: RequiredField(str, 'Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...).'),
 };
 
 const _DataFromSourceParams = {
     /** Annotation schema defines what fields in the annotation will be taken into account. */
     schema: RequiredField(SchemaT, 'Annotation schema defines what fields in the annotation will be taken into account.'),
     /** Header of the CIF block to read annotation from. If `null`, block is selected based on `block_index`. */
-    block_header: OptionalField(nullable(str), 'Header of the CIF block to read annotation from. If `null`, block is selected based on `block_index`.'),
+    block_header: OptionalField(nullable(str), null, 'Header of the CIF block to read annotation from. If `null`, block is selected based on `block_index`.'),
     /** 0-based index of the CIF block to read annotation from (only applies when `block_header` is `null`). */
-    block_index: OptionalField(int, '0-based index of the CIF block to read annotation from (only applies when `block_header` is `null`).'),
+    block_index: OptionalField(int, 0, '0-based index of the CIF block to read annotation from (only applies when `block_header` is `null`).'),
     /** Name of the CIF category to read annotation from. If `null`, the first category in the block is used. */
-    category_name: OptionalField(nullable(str), 'Name of the CIF category to read annotation from. If `null`, the first category in the block is used.'),
+    category_name: OptionalField(nullable(str), null, 'Name of the CIF category to read annotation from. If `null`, the first category in the block is used.'),
     /** Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...). The default value is 'color'/'label'/'tooltip'/'component' depending on the node type */
-    field_name: OptionalField(str, 'Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...).'),
+    field_name: RequiredField(str, 'Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...).'),
 };
 
 /** Schema for `MVSTree` (MolViewSpec tree) */
@@ -78,19 +78,19 @@ export const MVSTreeSchema = TreeSchema({
                 /** Type of structure to be created (`"model"` for original model coordinates, `"assembly"` for assembly structure, `"symmetry"` for a set of crystal unit cells based on Miller indices, `"symmetry_mates"` for a set of asymmetric units within a radius from the original model). */
                 type: RequiredField(StructureTypeT, 'Type of structure to be created (`"model"` for original model coordinates, `"assembly"` for assembly structure, `"symmetry"` for a set of crystal unit cells based on Miller indices, `"symmetry_mates"` for a set of asymmetric units within a radius from the original model).'),
                 /** Header of the CIF block to read coordinates from (only applies when the input data are from CIF or BinaryCIF). If `null`, block is selected based on `block_index`. */
-                block_header: OptionalField(nullable(str), 'Header of the CIF block to read coordinates from (only applies when the input data are from CIF or BinaryCIF). If `null`, block is selected based on `block_index`.'),
+                block_header: OptionalField(nullable(str), null, 'Header of the CIF block to read coordinates from (only applies when the input data are from CIF or BinaryCIF). If `null`, block is selected based on `block_index`.'),
                 /** 0-based index of the CIF block to read coordinates from (only applies when the input data are from CIF or BinaryCIF and `block_header` is `null`). */
-                block_index: OptionalField(int, '0-based index of the CIF block to read coordinates from (only applies when the input data are from CIF or BinaryCIF and `block_header` is `null`).'),
+                block_index: OptionalField(int, 0, '0-based index of the CIF block to read coordinates from (only applies when the input data are from CIF or BinaryCIF and `block_header` is `null`).'),
                 /** 0-based index of model in case the input data contain multiple models. */
-                model_index: OptionalField(int, '0-based index of model in case the input data contain multiple models.'),
+                model_index: OptionalField(int, 0, '0-based index of model in case the input data contain multiple models.'),
                 /** Assembly identifier (only applies when `kind` is `"assembly"`). If `null`, the first assembly is selected. */
-                assembly_id: OptionalField(nullable(str), 'Assembly identifier (only applies when `kind` is `"assembly"`). If `null`, the first assembly is selected.'),
+                assembly_id: OptionalField(nullable(str), null, 'Assembly identifier (only applies when `kind` is `"assembly"`). If `null`, the first assembly is selected.'),
                 /** Distance (in Angstroms) from the original model in which asymmetric units should be included (only applies when `kind` is `"symmetry_mates"`). */
-                radius: OptionalField(float, 'Distance (in Angstroms) from the original model in which asymmetric units should be included (only applies when `kind` is `"symmetry_mates"`).'),
+                radius: OptionalField(float, 5, 'Distance (in Angstroms) from the original model in which asymmetric units should be included (only applies when `kind` is `"symmetry_mates"`).'),
                 /** Miller indices of the bottom-left unit cell to be included (only applies when `kind` is `"symmetry"`). */
-                ijk_min: OptionalField(tuple([int, int, int]), 'Miller indices of the bottom-left unit cell to be included (only applies when `kind` is `"symmetry"`).'),
+                ijk_min: OptionalField(tuple([int, int, int]), [-1, -1, -1], 'Miller indices of the bottom-left unit cell to be included (only applies when `kind` is `"symmetry"`).'),
                 /** Miller indices of the top-right unit cell to be included (only applies when `kind` is `"symmetry"`). */
-                ijk_max: OptionalField(tuple([int, int, int]), 'Miller indices of the top-right unit cell to be included (only applies when `kind` is `"symmetry"`).'),
+                ijk_max: OptionalField(tuple([int, int, int]), [1, 1, 1], 'Miller indices of the top-right unit cell to be included (only applies when `kind` is `"symmetry"`).'),
             },
         },
         /** This node instructs to rotate and/or translate structure coordinates. */
@@ -99,9 +99,9 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['structure'],
             params: {
                 /** Rotation matrix (3x3 matrix flattened in column major format (j*3+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. The default value is the identity matrix (corresponds to no rotation). */
-                rotation: OptionalField(Matrix, 'Rotation matrix (3x3 matrix flattened in column major format (j*3+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. The default value is the identity matrix (corresponds to no rotation).'),
+                rotation: OptionalField(Matrix, [1, 0, 0, 0, 1, 0, 0, 0, 1], 'Rotation matrix (3x3 matrix flattened in column major format (j*3+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. The default value is the identity matrix (corresponds to no rotation).'),
                 /** Translation vector, applied to the structure coordinates after rotation. The default value is the zero vector (corresponds to no translation). */
-                translation: OptionalField(Vector3, 'Translation vector, applied to the structure coordinates after rotation. The default value is the zero vector (corresponds to no translation).'),
+                translation: OptionalField(Vector3, [0, 0, 0], 'Translation vector, applied to the structure coordinates after rotation. The default value is the zero vector (corresponds to no translation).'),
             },
         },
         /** This node instructs to create a component (i.e. a subset of the parent structure). */
@@ -119,8 +119,10 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['structure'],
             params: {
                 ..._DataFromUriParams,
+                /** Name of the column in CIF or field name (key) in JSON that contains the component identifier. */
+                field_name: OptionalField(str, 'component', 'Name of the column in CIF or field name (key) in JSON that contains the component identifier.'),
                 /** List of component identifiers (i.e. values in the field given by `field_name`) which should be included in this component. If `null`, component identifiers are ignored (all annotation rows are included), and `field_name` field can be dropped from the annotation. */
-                field_values: OptionalField(nullable(list(str)), 'List of component identifiers (i.e. values in the field given by `field_name`) which should be included in this component. If `null`, component identifiers are ignored (all annotation rows are included), and `field_name` field can be dropped from the annotation.'),
+                field_values: OptionalField(nullable(list(str)), null, 'List of component identifiers (i.e. values in the field given by `field_name`) which should be included in this component. If `null`, component identifiers are ignored (all annotation rows are included), and `field_name` field can be dropped from the annotation.'),
             },
         },
         /** This node instructs to create a component defined by an annotation resource included in the same file this structure was loaded from. Only applicable if the structure was loaded from an mmCIF or BinaryCIF file. */
@@ -129,8 +131,10 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['structure'],
             params: {
                 ..._DataFromSourceParams,
+                /** Name of the column in CIF or field name (key) in JSON that contains the component identifier. */
+                field_name: OptionalField(str, 'component', 'Name of the column in CIF or field name (key) in JSON that contains the component identifier.'),
                 /** List of component identifiers (i.e. values in the field given by `field_name`) which should be included in this component. If `null`, component identifiers are ignored (all annotation rows are included), and `field_name` field can be dropped from the annotation. */
-                field_values: OptionalField(nullable(list(str)), 'List of component identifiers (i.e. values in the field given by `field_name`) which should be included in this component. If `null`, component identifiers are ignored (all annotation rows are included), and `field_name` field can be dropped from the annotation.'),
+                field_values: OptionalField(nullable(list(str)), null, 'List of component identifiers (i.e. values in the field given by `field_name`) which should be included in this component. If `null`, component identifiers are ignored (all annotation rows are included), and `field_name` field can be dropped from the annotation.'),
             },
         },
         /** This node instructs to create a visual representation of a component. */
@@ -150,7 +154,7 @@ export const MVSTreeSchema = TreeSchema({
                 /** Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`). */
                 color: RequiredField(ColorT, 'Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
                 /** Defines to what part of the representation this color should be applied. */
-                selector: OptionalField(union([ComponentSelectorT, ComponentExpressionT, list(ComponentExpressionT)]), 'Defines to what part of the representation this color should be applied.'),
+                selector: OptionalField(union([ComponentSelectorT, ComponentExpressionT, list(ComponentExpressionT)]), 'all', 'Defines to what part of the representation this color should be applied.'),
             },
         },
         /** This node instructs to apply colors to a visual representation. The colors are defined by an external annotation resource. */
@@ -159,6 +163,8 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['representation'],
             params: {
                 ..._DataFromUriParams,
+                /** Name of the column in CIF or field name (key) in JSON that contains the color. */
+                field_name: OptionalField(str, 'color', 'Name of the column in CIF or field name (key) in JSON that contains the color.'),
             },
         },
         /** This node instructs to apply colors to a visual representation. The colors are defined by an annotation resource included in the same file this structure was loaded from. Only applicable if the structure was loaded from an mmCIF or BinaryCIF file. */
@@ -167,6 +173,8 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['representation'],
             params: {
                 ..._DataFromSourceParams,
+                /** Name of the column in CIF or field name (key) in JSON that contains the color. */
+                field_name: OptionalField(str, 'color', 'Name of the column in CIF or field name (key) in JSON that contains the color.'),
             },
         },
         /** This node instructs to apply transparency to a visual representation. */
@@ -193,6 +201,8 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['structure'],
             params: {
                 ..._DataFromUriParams,
+                /** Name of the column in CIF or field name (key) in JSON that contains the label text. */
+                field_name: OptionalField(str, 'label', 'Name of the column in CIF or field name (key) in JSON that contains the label text.'),
             },
         },
         /** This node instructs to add labels (textual visual representations) to parts of a structure. The labels are defined by an annotation resource included in the same file this structure was loaded from. Only applicable if the structure was loaded from an mmCIF or BinaryCIF file. */
@@ -201,6 +211,8 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['structure'],
             params: {
                 ..._DataFromSourceParams,
+                /** Name of the column in CIF or field name (key) in JSON that contains the label text. */
+                field_name: OptionalField(str, 'label', 'Name of the column in CIF or field name (key) in JSON that contains the label text.'),
             },
         },
         /** This node instructs to add a tooltip to a component. "Tooltip" is a text which is not a part of the visualization but should be presented to the users when they interact with the component (typically, the tooltip will be shown somewhere on the screen when the user hovers over a visual representation of the component). */
@@ -218,6 +230,8 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['structure'],
             params: {
                 ..._DataFromUriParams,
+                /** Name of the column in CIF or field name (key) in JSON that contains the tooltip text. */
+                field_name: OptionalField(str, 'tooltip', 'Name of the column in CIF or field name (key) in JSON that contains the tooltip text.'),
             },
         },
         /** This node instructs to add tooltips to parts of a structure. The tooltips are defined by an annotation resource included in the same file this structure was loaded from. Only applicable if the structure was loaded from an mmCIF or BinaryCIF file. */
@@ -226,6 +240,8 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['structure'],
             params: {
                 ..._DataFromSourceParams,
+                /** Name of the column in CIF or field name (key) in JSON that contains the tooltip text. */
+                field_name: OptionalField(str, 'tooltip', 'Name of the column in CIF or field name (key) in JSON that contains the tooltip text.'),
             },
         },
         /** This node instructs to set the camera focus to a component (zoom in). */
@@ -234,9 +250,9 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['component', 'component_from_uri', 'component_from_source', 'primitives', 'primitives_from_uri'],
             params: {
                 /** Vector describing the direction of the view (camera position -> focused target). */
-                direction: OptionalField(Vector3, 'Vector describing the direction of the view (camera position -> focused target).'),
+                direction: OptionalField(Vector3, [0, 0, -1], 'Vector describing the direction of the view (camera position -> focused target).'),
                 /** Vector which will be aligned with the screen Y axis. */
-                up: OptionalField(Vector3, 'Vector which will be aligned with the screen Y axis.'),
+                up: OptionalField(Vector3, [0, 1, 0], 'Vector which will be aligned with the screen Y axis.'),
             },
         },
         /** This node instructs to set the camera position and orientation. */
@@ -249,7 +265,7 @@ export const MVSTreeSchema = TreeSchema({
                 /** Coordinates of the camera. */
                 position: RequiredField(Vector3, 'Coordinates of the camera.'),
                 /** Vector which will be aligned with the screen Y axis. */
-                up: OptionalField(Vector3, 'Vector which will be aligned with the screen Y axis.'),
+                up: OptionalField(Vector3, [0, 1, 0], 'Vector which will be aligned with the screen Y axis.'),
             },
         },
         /** This node sets canvas properties. */
@@ -265,21 +281,21 @@ export const MVSTreeSchema = TreeSchema({
             description: 'This node groups a list of geometrical primitives',
             parent: ['structure', 'root'],
             params: {
-                color: OptionalField(nullable(ColorT)),
-                label_color: OptionalField(nullable(ColorT)),
-                tooltip: OptionalField(nullable(str)),
-                transparency: OptionalField(nullable(float)),
-                label_transparency: OptionalField(nullable(float)),
-                instances: OptionalField(nullable(list(Matrix))),
+                color: OptionalField(nullable(ColorT), null, 'TODO parameter description'),
+                label_color: OptionalField(nullable(ColorT), null, 'TODO parameter description'),
+                tooltip: OptionalField(nullable(str), null, 'TODO parameter description'),
+                transparency: OptionalField(nullable(float), null, 'TODO parameter description'),
+                label_transparency: OptionalField(nullable(float), null, 'TODO parameter description'),
+                instances: OptionalField(nullable(list(Matrix)), null, 'TODO parameter description'),
             },
         },
         primitives_from_uri: {
             description: 'This node loads a list of primitives from URI',
             parent: ['structure', 'root'],
             params: {
-                uri: RequiredField(str),
-                format: RequiredField(literal('mvs-node-json')),
-                references: OptionalField(nullable(StrList)),
+                uri: RequiredField(str, 'TODO parameter description'),
+                format: RequiredField(literal('mvs-node-json'), 'TODO parameter description'),
+                references: OptionalField(nullable(StrList), null, 'TODO parameter description'),
             },
         },
         primitive: {
@@ -287,7 +303,7 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['primitives'],
             params: {
                 // TODO: validation
-                _union_: RequiredField(MVSPrimitiveParams),
+                _union_: RequiredField(MVSPrimitiveParams, 'TODO parameter description'),
             },
         },
     }

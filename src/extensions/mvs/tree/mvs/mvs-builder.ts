@@ -7,8 +7,7 @@
 import { deepClone, pickObjectKeys } from '../../../../mol-util/object';
 import { MVSData } from '../../mvs-data';
 import { CustomProps } from '../generic/tree-schema';
-import { MVSDefaults } from './mvs-defaults';
-import { MVSKind, MVSNode, MVSSubtree, MVSNodeParams, MVSTreeSchema } from './mvs-tree';
+import { MVSKind, MVSNode, MVSNodeParams, MVSSubtree, MVSTreeSchema } from './mvs-tree';
 
 
 /** Create a new MolViewSpec builder containing only a root node. Example of MVS builder usage:
@@ -154,7 +153,7 @@ export class Parse extends _Base<'parse'> {
 export class Structure extends _Base<'structure'> {
     /** Add a 'component' node and return builder pointing to it. 'component' node instructs to create a component (i.e. a subset of the parent structure). */
     component(params: Partial<MVSNodeParams<'component'>> & CustomAndRef = {}): Component {
-        const fullParams = { ...params, selector: params.selector ?? MVSDefaults.component.selector };
+        const fullParams = { ...params, selector: params.selector ?? 'all' };
         return new Component(this._root, this.addChild('component', fullParams));
     }
     /** Add a 'component_from_uri' node and return builder pointing to it. 'component_from_uri' node instructs to create a component defined by an external annotation resource. */

@@ -11,7 +11,7 @@ import { fieldValidationIssues, RequiredField, literal, nullable, paramsValidati
 
 describe('fieldValidationIssues', () => {
     it('fieldValidationIssues string', async () => {
-        const stringField = RequiredField(iots.string);
+        const stringField = RequiredField(iots.string, 'Testing required field stringField');
         expect(fieldValidationIssues(stringField, 'hello')).toBeUndefined();
         expect(fieldValidationIssues(stringField, '')).toBeUndefined();
         expect(fieldValidationIssues(stringField, 5)).toBeTruthy();
@@ -19,7 +19,7 @@ describe('fieldValidationIssues', () => {
         expect(fieldValidationIssues(stringField, undefined)).toBeTruthy();
     });
     it('fieldValidationIssues string choice', async () => {
-        const colorParam = RequiredField(literal('red', 'green', 'blue', 'yellow'));
+        const colorParam = RequiredField(literal('red', 'green', 'blue', 'yellow'), 'Testing required field colorParam');
         expect(fieldValidationIssues(colorParam, 'red')).toBeUndefined();
         expect(fieldValidationIssues(colorParam, 'green')).toBeUndefined();
         expect(fieldValidationIssues(colorParam, 'blue')).toBeUndefined();
@@ -30,7 +30,7 @@ describe('fieldValidationIssues', () => {
         expect(fieldValidationIssues(colorParam, undefined)).toBeTruthy();
     });
     it('fieldValidationIssues number choice', async () => {
-        const numberParam = RequiredField(literal(1, 2, 3, 4));
+        const numberParam = RequiredField(literal(1, 2, 3, 4), 'Testing required field numberParam');
         expect(fieldValidationIssues(numberParam, 1)).toBeUndefined();
         expect(fieldValidationIssues(numberParam, 2)).toBeUndefined();
         expect(fieldValidationIssues(numberParam, 3)).toBeUndefined();
@@ -41,7 +41,7 @@ describe('fieldValidationIssues', () => {
         expect(fieldValidationIssues(numberParam, undefined)).toBeTruthy();
     });
     it('fieldValidationIssues int', async () => {
-        const numberParam = RequiredField(iots.Integer);
+        const numberParam = RequiredField(iots.Integer, 'Testing required field numberParam');
         expect(fieldValidationIssues(numberParam, 1)).toBeUndefined();
         expect(fieldValidationIssues(numberParam, 0)).toBeUndefined();
         expect(fieldValidationIssues(numberParam, 0.5)).toBeTruthy();
@@ -50,7 +50,7 @@ describe('fieldValidationIssues', () => {
         expect(fieldValidationIssues(numberParam, undefined)).toBeTruthy();
     });
     it('fieldValidationIssues union', async () => {
-        const stringOrNumberParam = RequiredField(iots.union([iots.string, iots.number]));
+        const stringOrNumberParam = RequiredField(iots.union([iots.string, iots.number]), 'Testing required field stringOrNumberParam');
         expect(fieldValidationIssues(stringOrNumberParam, 1)).toBeUndefined();
         expect(fieldValidationIssues(stringOrNumberParam, 2)).toBeUndefined();
         expect(fieldValidationIssues(stringOrNumberParam, 'hello')).toBeUndefined();
@@ -60,7 +60,7 @@ describe('fieldValidationIssues', () => {
         expect(fieldValidationIssues(stringOrNumberParam, undefined)).toBeTruthy();
     });
     it('fieldValidationIssues nullable', async () => {
-        const stringOrNullParam = RequiredField(nullable(iots.string));
+        const stringOrNullParam = RequiredField(nullable(iots.string), 'Testing required field stringOrNullParam');
         expect(fieldValidationIssues(stringOrNullParam, 'hello')).toBeUndefined();
         expect(fieldValidationIssues(stringOrNullParam, '')).toBeUndefined();
         expect(fieldValidationIssues(stringOrNullParam, null)).toBeUndefined();
@@ -71,10 +71,10 @@ describe('fieldValidationIssues', () => {
 });
 
 const schema = {
-    name: OptionalField(iots.string),
-    surname: RequiredField(iots.string),
-    lunch: RequiredField(iots.boolean),
-    age: OptionalField(iots.number),
+    name: OptionalField(iots.string, 'Anonymous', 'Testing optional field name'),
+    surname: RequiredField(iots.string, 'Testing optional field surname'),
+    lunch: RequiredField(iots.boolean, 'Testing optional field lunch'),
+    age: OptionalField(iots.number, 0, 'Testing optional field age'),
 };
 
 describe('validateParams', () => {

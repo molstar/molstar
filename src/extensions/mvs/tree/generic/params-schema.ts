@@ -57,6 +57,30 @@ export function mapping<A extends iots.Type<any>, B extends iots.Type<any>>(from
 }
 
 
+// export interface RequiredField<V extends AllowedValueTypes = any> {
+//     /** Definition of allowed types for the field */
+//     type: iots.Type<V>,
+//     /** If `required===true`, the value must always be defined in molviewspec format (can be `null` if `type` allows it).
+//      * If `required===false`, the value can be ommitted (meaning that a default should be used).
+//      * If `type` allows `null`, the default must be `null`. */
+//     required: true,
+//     /** Description of what the field value means */
+//     description?: string,
+// }
+// export interface OptionalField<V extends AllowedValueTypes = any> {
+//     /** Definition of allowed types for the field */
+//     type: iots.Type<V>,
+//     /** If `required===true`, the value must always be defined in molviewspec format (can be `null` if `type` allows it).
+//      * If `required===false`, the value can be ommitted (meaning that a default should be used).
+//      * If `type` allows `null`, the default must be `null`. */
+//     required: false,
+//     /** Description of what the field value means */
+//     description?: string,
+//     // TODO default
+// }
+// type Field<V extends AllowedValueTypes = any> = RequiredField<V> | OptionalField<V>;
+
+
 /** Schema for one field in params (i.e. a value in a top-level key-value pair) */
 interface Field<V extends AllowedValueTypes = any, R extends boolean = boolean> {
     /** Definition of allowed types for the field */
@@ -66,22 +90,25 @@ interface Field<V extends AllowedValueTypes = any, R extends boolean = boolean> 
      * If `type` allows `null`, the default must be `null`. */
     required: R,
     /** Description of what the field value means */
-    description?: string,
+    description: string,
 }
+
+
 /** Schema for param field which must always be provided (has no default value) */
 export interface RequiredField<V extends AllowedValueTypes = any> extends Field<V> {
     required: true,
 }
-export function RequiredField<V extends AllowedValueTypes>(type: iots.Type<V>, description?: string): RequiredField<V> {
+export function RequiredField<V extends AllowedValueTypes>(type: iots.Type<V>, description: string): RequiredField<V> {
     return { type, required: true, description };
 }
 
 /** Schema for param field which can be dropped (meaning that a default value will be used) */
 export interface OptionalField<V extends AllowedValueTypes = any> extends Field<V> {
     required: false,
+    default: V, // TODO enforce default null for nullable types
 }
-export function OptionalField<V extends AllowedValueTypes>(type: iots.Type<V>, description?: string): OptionalField<V> {
-    return { type, required: false, description };
+export function OptionalField<V extends AllowedValueTypes>(type: iots.Type<V>, defaultValue: V, description: string): OptionalField<V> {
+    return { type, required: false, description, default: defaultValue };
 }
 
 /** Type of valid value for field of type `F` (never includes `undefined`, even if field is optional) */
@@ -168,9 +195,9 @@ export function AllRequired_new<TSchema extends ParamsSchema_new>(schema: TSchem
 
 function foo1() {
     const p = SimpleParamsSchema({
-        name: RequiredField(str),
-        age: OptionalField(int),
-        color: OptionalField(nullable(literal('red', 'green', 'blue'))),
+        name: RequiredField(str, 'Name'),
+        age: OptionalField(int, 0, 'Age'),
+        color: OptionalField(nullable(literal('red', 'green', 'blue')), null, 'Favorite color'),
     });
     type t = ValuesForParamsSchema<typeof p>;
     type t_ = ValuesForParamsSchema<AllRequired_new<typeof p>>;
@@ -184,17 +211,17 @@ function foo1() {
 function foo2() {
     const p = UnionParamsSchema('kind', {
         person: SimpleParamsSchema({
-            name: RequiredField(str),
-            age: OptionalField(int),
-            color: OptionalField(nullable(literal('red', 'green', 'blue'))),
+            name: RequiredField(str, 'Name'),
+            age: OptionalField(int, 0, 'Age'),
+            color: OptionalField(nullable(literal('red', 'green', 'blue')), null, "Favorite color"),
         }),
         thing: SimpleParamsSchema({
-            weight: RequiredField(float),
-            color: OptionalField(nullable(literal('red', 'green', 'blue'))),
+            weight: RequiredField(float, 'Weight in g'),
+            color: OptionalField(nullable(literal('red', 'green', 'blue')), null, 'Color'),
         }),
         song: SimpleParamsSchema({
-            title: RequiredField(str),
-            duration: RequiredField(float),
+            title: RequiredField(str, 'Title'),
+            duration: RequiredField(float, 'Duration in s'),
         }),
     });
     type t = ValuesForParamsSchema<typeof p>;
@@ -230,7 +257,7 @@ export type ValuesFor<P extends ParamsSchema> =
 export type FullValuesFor<P extends ParamsSchema> = { [key in keyof P]: ValueFor<P[key]> }
 
 /** Type of default values for a params schema, i.e. including only optional fields */
-export type DefaultsFor<P extends ParamsSchema> = { [key in keyof P as (P[key] extends Field<any, false> ? key : never)]: ValueFor<P[key]> }
+export type DefaultsFor<P extends ParamsSchema> = { [key in keyof P as (P[key] extends OptionalField<any> ? key : never)]: ValueFor<P[key]> }
 
 
 /** Return `undefined` if `values` contains correct value types for `schema`,
