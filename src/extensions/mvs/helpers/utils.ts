@@ -9,6 +9,7 @@ import { hashString } from '../../../mol-data/util';
 import { StateObject } from '../../../mol-state';
 import { Color } from '../../../mol-util/color';
 import { ColorNames } from '../../../mol-util/color/names';
+import { float } from '../tree/generic/params-schema';
 
 
 /** Represents either the result or the reason of failure of an operation that might have failed */
@@ -125,6 +126,16 @@ export const HexColor = {
     /** Decide if a string is a valid hexadecimal color string (6-digit or 3-digit, e.g. '#FF1100' or '#f10') */
     is(str: any): str is HexColor {
         return typeof str === 'string' && hexColorRegex.test(str);
+    },
+};
+
+/** Named color string, e.g. 'red' */
+export type ColorName = keyof ColorNames
+
+export const ColorName = {
+    /** Decide if a string is a valid named color string */
+    is(str: any): str is ColorName {
+        return str in ColorNames;
     },
 };
 
