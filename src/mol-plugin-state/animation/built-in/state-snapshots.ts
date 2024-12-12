@@ -18,11 +18,17 @@ async function setPartialSnapshot(plugin: PluginContext, entry: PluginStateSnaps
 
     }
 
-    if (entry.snapshot.camera) {
+    if (entry.snapshot.camera?.current) {
         plugin.canvas3d?.requestCameraReset({
             snapshot: entry.snapshot.camera.current,
             durationMs: first || entry.snapshot.camera.transitionStyle === 'instant'
-                ? 0 : entry.snapshot.camera.transitionDurationInMs
+                ? 0 : entry.snapshot.camera.transitionDurationInMs,
+        });
+    } else if (entry.snapshot.camera?.focus) {
+        plugin.managers.camera.focusObject({
+            ...entry.snapshot.camera.focus,
+            durationMs: first || entry.snapshot.camera.transitionStyle === 'instant'
+                ? 0 : entry.snapshot.camera.transitionDurationInMs,
         });
     }
 }
@@ -33,7 +39,7 @@ export const AnimateStateSnapshots = PluginStateAnimation.create({
     name: 'built-in.animate-state-snapshots',
     display: { name: 'State Snapshots' },
     isExportable: true,
-    params: () => ({ }),
+    params: () => ({}),
     canApply(plugin) {
         const entries = plugin.managers.snapshot.state.entries;
         if (entries.size < 2) {
