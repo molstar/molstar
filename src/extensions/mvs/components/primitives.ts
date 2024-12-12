@@ -22,6 +22,7 @@ import { Expression } from '../../../mol-script/language/expression';
 import { StateObject } from '../../../mol-state';
 import { Task } from '../../../mol-task';
 import { round } from '../../../mol-util';
+import { range } from '../../../mol-util/array';
 import { Asset } from '../../../mol-util/assets';
 import { Color } from '../../../mol-util/color';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -453,72 +454,59 @@ function buildPrimitiveLabels(context: PrimitiveBuilderContext, prev?: Text): Sh
 
 function noOp() { }
 
-function addMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'mesh'>) {
-    if (!params.show_triangles) return;
-
+function iterateMeshFaces(context: PrimitiveBuilderContext, groups: GroupManager, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'mesh'>, action: (mvsGroup: number, builderGroup: number, a: Vec3, b: Vec3, c: Vec3) => void) {
     const a = Vec3.zero();
     const b = Vec3.zero();
     const c = Vec3.zero();
 
-    const { indices, vertices, triangle_colors, triangle_groups, group_colors, group_tooltips } = params;
+    let { indices, vertices, triangle_groups } = params;
+    const nTriangles = Math.floor(indices.length / 3);
+    triangle_groups ??= range(nTriangles); // implicit grouping (triangle i = group i)
+    const groupSet = groups.allocateMany(node, triangle_groups);
 
-    const groupSet: Map<number, number> | undefined = triangle_groups?.length ? groups.allocateMany(node, triangle_groups) : undefined;
-
-    for (let i = 0, _i = indices.length / 3; i < _i; i++) {
-        if (groupSet) {
-            const grp = triangle_groups![i];
-            mesh.currentGroup = groupSet.get(grp)!;
-            groups.updateColor(mesh.currentGroup, group_colors?.[grp] ?? params.color);
-            groups.updateTooltip(mesh.currentGroup, group_tooltips?.[grp]);
-        } else {
-            mesh.currentGroup = groups.allocateSingle(node);
-            groups.updateColor(mesh.currentGroup, triangle_colors?.[i] ?? params.color);
-            groups.updateTooltip(mesh.currentGroup, params.tooltip);
-        }
-
+    for (let i = 0; i < nTriangles; i++) {
+        const mvsGroup = triangle_groups[i];
+        const builderGroup = groupSet.get(mvsGroup)!;
         Vec3.fromArray(a, vertices, 3 * indices[3 * i]);
         Vec3.fromArray(b, vertices, 3 * indices[3 * i + 1]);
         Vec3.fromArray(c, vertices, 3 * indices[3 * i + 2]);
 
-        MeshBuilder.addTriangle(mesh, a, b, c);
+        action(mvsGroup, builderGroup, a, b, c);
     }
+}
+
+function addMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'mesh'>) {
+    if (!params.show_triangles) return;
+
+    const { group_colors, group_tooltips } = params;
+    const globalColor = params.color ?? context.node.params.color;
+    const globalTooltip = params.tooltip ?? context.node.params.tooltip;
+
+    iterateMeshFaces(context, groups, node, params, (mvsGroup, builderGroup, a, b, c) => {
+        groups.updateColor(builderGroup, group_colors?.[mvsGroup] ?? globalColor);
+        groups.updateTooltip(builderGroup, group_tooltips?.[mvsGroup] ?? globalTooltip);
+        mesh.currentGroup = builderGroup;
+        MeshBuilder.addTriangle(mesh, a, b, c);
+    });
+    // this could be slightly improved by only updating color and tooltip once per group instead of once per triangle
 }
 
 function addMeshWireframe(context: PrimitiveBuilderContext, { groups, lines }: LineBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'mesh'>) {
     if (!params.show_wireframe) return;
-
-    const a = Vec3.zero();
-    const b = Vec3.zero();
-    const c = Vec3.zero();
-
-    const { indices, vertices, triangle_colors, triangle_groups, group_colors, group_tooltips } = params;
-
-    const groupSet: Map<number, number> | undefined = triangle_groups?.length ? groups.allocateMany(node, triangle_groups) : undefined;
     const radius = params.wireframe_radius ?? 1;
 
-    for (let i = 0, _i = indices.length / 3; i < _i; i++) {
-        let group: number;
-        if (groupSet) {
-            const grp = triangle_groups![i];
-            group = groupSet.get(grp)!;
-            groups.updateColor(group, params.wireframe_color ?? group_colors?.[grp]);
-            groups.updateTooltip(group, group_tooltips?.[grp]);
-        } else {
-            group = groups.allocateSingle(node);
-            groups.updateColor(group, params.wireframe_color ?? triangle_colors?.[i]);
-            groups.updateTooltip(group, params.tooltip);
-        }
+    const { group_colors, group_tooltips, wireframe_color } = params;
+    const globalColor = params.color ?? context.node.params.color;
+    const globalTooltip = params.tooltip ?? context.node.params.tooltip;
 
-        groups.updateSize(group, radius);
-
-        Vec3.fromArray(a, vertices, 3 * indices[3 * i]);
-        Vec3.fromArray(b, vertices, 3 * indices[3 * i + 1]);
-        Vec3.fromArray(c, vertices, 3 * indices[3 * i + 2]);
-
-        lines.add(a[0], a[1], a[2], b[0], b[1], b[2], group);
-        lines.add(b[0], b[1], b[2], c[0], c[1], c[2], group);
-        lines.add(c[0], c[1], c[2], a[0], a[1], a[2], group);
-    }
+    iterateMeshFaces(context, groups, node, params, (mvsGroup, builderGroup, a, b, c) => {
+        groups.updateColor(builderGroup, wireframe_color ?? group_colors?.[mvsGroup] ?? globalColor);
+        groups.updateTooltip(builderGroup, group_tooltips?.[mvsGroup] ?? globalTooltip);
+        groups.updateSize(builderGroup, radius);
+        lines.add(a[0], a[1], a[2], b[0], b[1], b[2], builderGroup);
+        lines.add(b[0], b[1], b[2], c[0], c[1], c[2], builderGroup);
+        lines.add(c[0], c[1], c[2], a[0], a[1], a[2], builderGroup);
+    });
 }
 
 function addLines(context: PrimitiveBuilderContext, { groups, lines }: LineBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'lines'>) {

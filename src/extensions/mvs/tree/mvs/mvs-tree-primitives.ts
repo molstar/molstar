@@ -26,17 +26,14 @@ const MeshParams = {
     vertices: RequiredField(FloatList, '3N length array of floats with vertex position (x1, y1, z1, ...).'),
     indices: RequiredField(IntList, '3N length array of indices into vertices that form triangles (t1_1, t1_2, t1_3, ...).'),
     triangle_groups: OptionalField(nullable(IntList), null, 'Assign a number to each triangle to group them.'),
-    group_colors: OptionalField(mapping(int, ColorT), {}, 'Assign a color to each group. If not assigned, default primitives group color is used. Takes precedence over triangle_colors.'),
+    group_colors: OptionalField(mapping(int, ColorT), {}, 'Assign a color to each group. If not assigned, default primitives group color is used.'),
     group_tooltips: OptionalField(mapping(int, str), {}, 'Assign an optional tooltip to each group.'),
-    triangle_colors: OptionalField(nullable(StrList), null, 'Assign a color to each triangle.'),
     color: OptionalField(nullable(ColorT), null, 'Default color of the triangles and wireframe.'),
     tooltip: OptionalField(nullable(str), null, 'Tooltip shown when hovering over the mesh. Assigned `group_tooltips` take precedence.'),
     show_triangles: OptionalField(bool, true, 'Determine whether to render triangles of the mesh.'),
     show_wireframe: OptionalField(bool, false, 'Determine whether to render wireframe of the mesh.'),
     wireframe_radius: OptionalField(float, 1, 'Wireframe line radius'),
     wireframe_color: OptionalField(nullable(ColorT), null, 'Wireframe color, uses triangle/group colors when not set'),
-    // TODO ensure correct coloring of both triangles and wireframe
-    // TODO remove triangle_colors, instead have implicit groups
     // TODO docstrings
 };
 
