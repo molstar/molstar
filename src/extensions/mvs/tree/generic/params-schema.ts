@@ -293,7 +293,12 @@ function paramsValidationIssues_union<P extends UnionParamsSchema>(schema: P, va
             `"${case_}" is not a valid value for literal type (${allowedValues})`,
         ];
     }
-    return paramsValidationIssues_new(subschema, omitObjectKeys(values, [schema.discriminator]), options);
+    const issues = paramsValidationIssues_new(subschema, omitObjectKeys(values, [schema.discriminator]), options);
+    if (issues) {
+        issues.unshift(`(case "${schema.discriminator}": "${case_}")`);
+        return [...issues.map(s => '  ' + s)];
+    }
+    undefined;
 }
 
 export function paramsValidationIssues_new<P extends ParamsSchema_new>(schema: P, values: { [k: string]: any }, options: ValidationOptions = {}): string[] | undefined {

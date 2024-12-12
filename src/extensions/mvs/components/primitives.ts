@@ -29,8 +29,8 @@ import { capitalize } from '../../../mol-util/string';
 import { rowsToExpression, rowToExpression } from '../helpers/selections';
 import { collectMVSReferences, decodeColor } from '../helpers/utils';
 import { MolstarNode, MolstarSubtree } from '../tree/molstar/molstar-tree';
-import { MVSPrimitive, MVSPrimitiveOptions, MVSPrimitiveParams } from '../tree/mvs/mvs-primitives';
 import { MVSNode } from '../tree/mvs/mvs-tree';
+import { MVSPrimitive, MVSPrimitiveOptions, MVSPrimitiveParams } from '../tree/mvs/mvs-tree-primitives';
 import { isComponentExpression, isPrimitiveComponentExpressions, isVector3, PrimitivePositionT } from '../tree/mvs/param-types';
 import { MVSTransform } from './annotation-structure-component';
 
@@ -124,7 +124,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
             return new SO.Shape.Provider({
                 label,
                 data: context,
-                params: PD.withDefaults(Mesh.Params, { alpha: a.data.options?.transparency ?? 1 }),
+                params: PD.withDefaults(Mesh.Params, { alpha: a.data.options?.opacity ?? 1 }),
                 getShape: (_, data, __, prev: any) => buildPrimitiveMesh(data, prev?.geometry),
                 geometryUtils: Mesh.Utils,
             }, { label });
@@ -134,7 +134,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
             return new SO.Shape.Provider({
                 label,
                 data: context,
-                params: PD.withDefaults(DefaultLabelParams, { alpha: a.data.options?.label_transparency ?? 1 }),
+                params: PD.withDefaults(DefaultLabelParams, { alpha: a.data.options?.label_opacity ?? 1 }),
                 getShape: (_, data, __, prev: any) => buildPrimitiveLabels(data, prev?.geometry),
                 geometryUtils: Text.Utils,
             }, { label });
@@ -144,7 +144,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
             return new SO.Shape.Provider({
                 label,
                 data: context,
-                params: PD.withDefaults(Lines.Params, { alpha: a.data.options?.transparency ?? 1 }),
+                params: PD.withDefaults(Lines.Params, { alpha: a.data.options?.opacity ?? 1 }),
                 getShape: (_, data, __, prev: any) => buildPrimitiveLines(data, prev?.geometry),
                 geometryUtils: Lines.Utils,
             }, { label });

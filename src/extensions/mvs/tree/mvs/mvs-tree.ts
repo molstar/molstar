@@ -7,7 +7,7 @@
 
 import { float, int, list, literal, nullable, OptionalField, RequiredField, SimpleParamsSchema, str, tuple, union } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
-import { MVSPrimitiveParams } from './mvs-primitives';
+import { MVSPrimitiveParams } from './mvs-tree-primitives';
 import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, RepresentationTypeT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
 
 
@@ -284,8 +284,8 @@ export const MVSTreeSchema = TreeSchema({
                 color: OptionalField(nullable(ColorT), null, 'TODO parameter description'),
                 label_color: OptionalField(nullable(ColorT), null, 'TODO parameter description'),
                 tooltip: OptionalField(nullable(str), null, 'TODO parameter description'),
-                transparency: OptionalField(nullable(float), null, 'TODO parameter description'),
-                label_transparency: OptionalField(nullable(float), null, 'TODO parameter description'),
+                opacity: OptionalField(nullable(float), null, 'TODO parameter description'),
+                label_opacity: OptionalField(nullable(float), null, 'TODO parameter description'),
                 instances: OptionalField(nullable(list(Matrix)), null, 'TODO parameter description'),
             }),
         },
@@ -301,10 +301,7 @@ export const MVSTreeSchema = TreeSchema({
         primitive: {
             description: 'This node represents a geometrical primitive',
             parent: ['primitives'],
-            params: SimpleParamsSchema({
-                // TODO: validation
-                _union_: RequiredField(MVSPrimitiveParams, 'TODO parameter description'),
-            }),
+            params: MVSPrimitiveParams,
         },
     }
 });
