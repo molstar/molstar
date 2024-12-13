@@ -5,7 +5,8 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { bool, float, int, literal, mapping, nullable, OptionalField, RequiredField, SimpleParamsSchema, str, union, UnionParamsSchema, ValuesFor_new } from '../generic/params-schema';
+import { bool, float, int, literal, mapping, nullable, OptionalField, RequiredField, str, union } from '../generic/field-schema';
+import { SimpleParamsSchema, UnionParamsSchema, ValuesFor } from '../generic/params-schema';
 import type { MVSNode } from './mvs-tree';
 import { ColorT, FloatList, IntList, PrimitivePositionT, StrList } from './param-types';
 
@@ -87,7 +88,7 @@ export const MVSPrimitiveParams = UnionParamsSchema('kind', {
     'label': SimpleParamsSchema(PrimitiveLabelParams),
 });
 
-export type MVSPrimitive = ValuesFor_new<typeof MVSPrimitiveParams>
+export type MVSPrimitive = ValuesFor<typeof MVSPrimitiveParams>
 export type MVSPrimitiveKind = MVSPrimitive['kind']
 export type MVSPrimitiveOptions = MVSNode<'primitives'>['params']
 export type MVSPrimitiveParams<T extends MVSPrimitiveKind = MVSPrimitiveKind> = Extract<MVSPrimitive, { kind: T }>

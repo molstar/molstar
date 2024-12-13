@@ -5,7 +5,8 @@
  */
 
 import { omitObjectKeys, pickObjectKeys } from '../../../../mol-util/object';
-import { RequiredField, SimpleParamsSchema, bool } from '../generic/params-schema';
+import { RequiredField, bool } from '../generic/field-schema';
+import { SimpleParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema } from '../generic/tree-schema';
 import { FullMVSTreeSchema } from '../mvs/mvs-tree';
 import { MolstarParseFormatT } from '../mvs/param-types';

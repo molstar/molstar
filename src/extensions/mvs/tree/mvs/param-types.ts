@@ -7,7 +7,7 @@
 
 import * as iots from 'io-ts';
 import { HexColor, ColorName } from '../../helpers/utils';
-import { ValueFor, float, int, list, literal, str, tuple, union } from '../generic/params-schema';
+import { ValueFor, float, int, list, literal, str, tuple, union } from '../generic/field-schema';
 import { ColorNames } from '../../../../mol-util/color/names';
 
 

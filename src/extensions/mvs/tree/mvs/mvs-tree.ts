@@ -5,7 +5,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { float, int, list, literal, nullable, OptionalField, RequiredField, SimpleParamsSchema, str, tuple, union } from '../generic/params-schema';
+import { float, int, list, literal, nullable, OptionalField, RequiredField, str, tuple, union } from '../generic/field-schema';
+import { SimpleParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
 import { MVSPrimitiveParams } from './mvs-tree-primitives';
 import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, RepresentationTypeT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
