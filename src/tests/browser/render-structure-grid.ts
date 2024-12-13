@@ -41,9 +41,11 @@ function main() {
     const parent = document.body;
     const canvas = document.createElement('canvas');
     parent.appendChild(canvas);
-    resizeCanvas(canvas, parent);
 
     const ctx = Canvas3DContext.fromCanvas(canvas, new AssetManager());
+    resizeCanvas(canvas, parent, ctx.pixelScale);
+    ctx.syncPixelScale();
+
     const cids = [
         6440397,
         2244,
@@ -88,6 +90,7 @@ async function addViewer(
     const models = await trajectoryFromSdf(file.compounds[0]).run();
     const structure = Structure.ofModel(models.representative);
     const canvas3d = Canvas3D.create(ctx, { viewport });
+    canvas3d.requestResize();
 
     const repr = getRepr(BallAndStickRepresentationProvider, reprCtx);
     repr.setTheme({
