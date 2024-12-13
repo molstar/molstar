@@ -41,11 +41,13 @@ export interface UnionParamsSchema<TDiscriminator extends string = string, TCase
     type: 'union',
     /** Name of parameter field that determines the rest (allowed values are defined by keys of `cases`) */
     discriminator: TDiscriminator,
+    /** Description for the discriminator parameter field */
+    discriminatorDescription: string,
     /** `ParamsSchema` for the rest, for each case of discriminator value */
     cases: TCases,
 }
-export function UnionParamsSchema<TDiscriminator extends string, TCases extends Cases>(discriminator: TDiscriminator, cases: TCases): UnionParamsSchema<TDiscriminator, TCases> {
-    return { type: 'union', discriminator, cases };
+export function UnionParamsSchema<TDiscriminator extends string, TCases extends Cases>(discriminator: TDiscriminator, discriminatorDescription: string, cases: TCases): UnionParamsSchema<TDiscriminator, TCases> {
+    return { type: 'union', discriminator, discriminatorDescription, cases };
 }
 
 type ValuesForUnionParamsSchema<TSchema extends UnionParamsSchema, TCase extends keyof TSchema['cases'] = keyof TSchema['cases']>
@@ -73,7 +75,7 @@ function AllRequiredSimple<TSchema extends SimpleParamsSchema>(schema: TSchema):
 }
 function AllRequiredUnion<TSchema extends UnionParamsSchema>(schema: TSchema): AllRequired<TSchema> {
     const newCases = mapObjectMap(schema.cases, AllRequired);
-    return UnionParamsSchema(schema.discriminator, newCases) as AllRequired<TSchema>;
+    return UnionParamsSchema(schema.discriminator, schema.discriminatorDescription, newCases) as AllRequired<TSchema>;
 }
 export function AllRequired<TSchema extends ParamsSchema>(schema: TSchema): AllRequired<TSchema> {
     if (schema.type === 'simple') {

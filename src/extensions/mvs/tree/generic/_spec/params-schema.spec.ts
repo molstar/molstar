@@ -44,18 +44,22 @@ describe('validateFullParams', () => {
 });
 
 
-const unionSchema = UnionParamsSchema('kind', {
-    person: SimpleParamsSchema({
-        name: OptionalField(str, 'Anonymous', 'Testing optional field name'),
-        surname: RequiredField(str, 'Testing optional field surname'),
-        lunch: RequiredField(bool, 'Testing optional field lunch'),
-        age: OptionalField(int, 0, 'Testing optional field age'),
-    }),
-    object: SimpleParamsSchema({
-        weight: RequiredField(float, 'Testing optional field weight'),
-        color: OptionalField(str, 'colorless', 'Testing optional field color'),
-    }),
-});
+const unionSchema = UnionParamsSchema(
+    'kind',
+    'Description for "kind"',
+    {
+        person: SimpleParamsSchema({
+            name: OptionalField(str, 'Anonymous', 'Testing optional field name'),
+            surname: RequiredField(str, 'Testing optional field surname'),
+            lunch: RequiredField(bool, 'Testing optional field lunch'),
+            age: OptionalField(int, 0, 'Testing optional field age'),
+        }),
+        object: SimpleParamsSchema({
+            weight: RequiredField(float, 'Testing optional field weight'),
+            color: OptionalField(str, 'colorless', 'Testing optional field color'),
+        }),
+    },
+);
 
 describe('validateUnionParams', () => {
     it('validateUnionParams', async () => {

@@ -80,13 +80,17 @@ const PrimitiveLabelParams = {
     label_offset: OptionalField(float, 0, 'Camera-facing offset to prevent overlap with geometry.'),
 };
 
-export const MVSPrimitiveParams = UnionParamsSchema('kind', {
-    'mesh': SimpleParamsSchema(MeshParams),
-    'lines': SimpleParamsSchema(LinesParams),
-    'line': SimpleParamsSchema(LineParams),
-    'distance_measurement': SimpleParamsSchema(DistanceMeasurementParams),
-    'label': SimpleParamsSchema(PrimitiveLabelParams),
-});
+export const MVSPrimitiveParams = UnionParamsSchema(
+    'kind',
+    'Kind of geometrical primitive',
+    {
+        'mesh': SimpleParamsSchema(MeshParams),
+        'lines': SimpleParamsSchema(LinesParams),
+        'line': SimpleParamsSchema(LineParams),
+        'distance_measurement': SimpleParamsSchema(DistanceMeasurementParams),
+        'label': SimpleParamsSchema(PrimitiveLabelParams),
+    },
+);
 
 export type MVSPrimitive = ValuesFor<typeof MVSPrimitiveParams>
 export type MVSPrimitiveKind = MVSPrimitive['kind']

@@ -6,7 +6,8 @@
 
 import { onelinerJsonString } from '../../../../mol-util/json';
 import { isPlainObject, mapObjectMap } from '../../../../mol-util/object';
-import { AllRequired, ParamsSchema, ValuesFor, paramsValidationIssues } from './params-schema';
+import { Field } from './field-schema';
+import { AllRequired, ParamsSchema, SimpleParamsSchema, ValuesFor, paramsValidationIssues } from './params-schema';
 import { treeToString } from './tree-utils';
 
 
@@ -172,6 +173,8 @@ function treeSchemaToString_<S extends TreeSchema>(schema: S, markdown: boolean 
     const p1 = markdown ? '' : '    ';
     const h2 = markdown ? '- ' : '      - ';
     const p2 = markdown ? '  ' : '        ';
+    const h3 = markdown ? '  - ' : '          - ';
+    const p3 = markdown ? '    ' : '            ';
     const newline = markdown ? '\n\n' : '\n';
     out.push(`Tree schema:`);
     for (const kind in schema.nodes) {
@@ -186,26 +189,45 @@ function treeSchemaToString_<S extends TreeSchema>(schema: S, markdown: boolean 
         out.push(`${p1}Parent: ${!parent ? 'any' : parent.length === 0 ? 'none' : parent.map(code).join(' or ')}`);
         out.push(`${p1}Params:${Object.keys(params).length > 0 ? '' : ' none'}`);
         if (params.type === 'simple') {
-            for (const key in params.fields) {
-                const field = params.fields[key];
-                let typeString = field.type.name;
-                if (typeString.startsWith('(') && typeString.endsWith(')')) {
-                    typeString = typeString.slice(1, -1);
-                }
-                out.push(`${h2}${bold(code(key + (field.required ? ': ' : '?: ')))}${code(typeString)}`);
-                const defaultValue = field.required ? undefined : field.default;
-                if (field.description) {
-                    out.push(`${p2}${field.description}`);
-                }
-                if (defaultValue !== undefined) {
-                    out.push(`${p2}Default: ${code(onelinerJsonString(defaultValue))}`);
-                }
-            }
+            formatSimpleParams(out, params, { h: h2, p: p2, code, bold });
         } else {
-            // TODO implement this
-            console.warn('treeSchemaToString_ not implemented for UnionParamsSchema')
-            out.push('<<< MISSING LINES HERE (treeSchemaToString_ not implemented for UnionParamsSchema) >>>')
+            const key = params.discriminator;
+            const casesStr = Object.keys(params.cases).join(' | ');
+            out.push(`${h2}${bold(code(key + ': '))}${code(casesStr)}`);
+            if (params.discriminatorDescription) {
+                out.push(`${p2}${params.discriminatorDescription}`);
+            }
+            out.push(`${p2}[This parameter determines the rest of parameters]`);
+            for (const case_ in params.cases) {
+                const caseStr = `${params.discriminator}: "${case_}"`;
+                out.push(`${p2}${bold(`Case ${code(caseStr)}:`)}`);
+                formatSimpleParams(out, params.cases[case_], { h: h3, p: p3, code, bold });
+            }
         }
     }
     return out.join(newline);
+}
+
+function formatSimpleParams(out: string[], params: SimpleParamsSchema, formatting: { h: string, p: string, code: (str: string) => string, bold: (str: string) => string }): void {
+    const { h, p, code, bold } = formatting;
+    for (const key in params.fields) {
+        const field = params.fields[key];
+        out.push(`${h}${bold(code(key + (field.required ? ': ' : '?: ')))}${code(formatFieldType(field))}`);
+        const defaultValue = field.required ? undefined : field.default;
+        if (field.description) {
+            out.push(`${p}${field.description}`);
+        }
+        if (defaultValue !== undefined) {
+            out.push(`${p}Default: ${code(onelinerJsonString(defaultValue))}`);
+        }
+    }
+}
+
+function formatFieldType(field: Field): string {
+    const typeString = field.type.name;
+    if (typeString.startsWith('(') && typeString.endsWith(')')) {
+        return typeString.slice(1, -1);
+    } else {
+        return typeString;
+    }
 }
