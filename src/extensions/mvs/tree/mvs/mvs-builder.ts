@@ -7,7 +7,7 @@
 import { deepClone, pickObjectKeys } from '../../../../mol-util/object';
 import { MVSData } from '../../mvs-data';
 import { CustomProps } from '../generic/tree-schema';
-import { MVSKind, MVSNode, MVSNodeParams, MVSSubtree, MVSTreeSchema } from './mvs-tree';
+import { MVSKind, MVSNode, MVSNodeParams, MVSSubtree } from './mvs-tree';
 
 
 /** Create a new MolViewSpec builder containing only a root node. Example of MVS builder usage:

@@ -5,7 +5,7 @@
  */
 
 import { canonicalJsonString } from '../../../../mol-util/json';
-import { addParamDefaults, addParamDefaults_new, ValuesFor } from './params-schema';
+import { addParamDefaults_new } from './params-schema';
 import { CustomProps, Kind, Node, Subtree, SubtreeOfKind, Tree, TreeFor, TreeSchema, TreeSchemaWithAllRequired, getParams } from './tree-schema';
 
 

@@ -5,7 +5,7 @@
  */
 
 import { omitObjectKeys, pickObjectKeys } from '../../../../mol-util/object';
-import { ConversionRules, addDefaults, condenseTree, convertTree, dfs, resolveUris, treeToString } from '../generic/tree-utils';
+import { ConversionRules, addDefaults, condenseTree, convertTree, dfs, resolveUris } from '../generic/tree-utils';
 import { FullMVSTree, MVSTree, MVSTreeSchema } from '../mvs/mvs-tree';
 import { MolstarParseFormatT, ParseFormatT } from '../mvs/param-types';
 import { MolstarKind, MolstarNode, MolstarTree } from './molstar-tree';
@@ -53,7 +53,6 @@ const molstarNodesToCondense = new Set<MolstarKind>(['download', 'parse', 'traje
 /** Convert MolViewSpec tree into MolStar tree */
 export function convertMvsToMolstar(mvsTree: MVSTree, sourceUrl: string | undefined): MolstarTree {
     const full = addDefaults<typeof MVSTreeSchema>(mvsTree, MVSTreeSchema) as FullMVSTree;
-    console.log(`full MVS tree:\n${treeToString(full)}`)
     if (sourceUrl) resolveUris(full, sourceUrl, ['uri', 'url']);
     const converted = convertTree<FullMVSTree, MolstarTree>(full, mvsToMolstarConversionRules);
     if (converted.kind !== 'root') throw new Error("Root's type is not 'root' after conversion from MVS tree to Molstar tree.");

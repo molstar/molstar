@@ -9,7 +9,6 @@ import { hashString } from '../../../mol-data/util';
 import { StateObject } from '../../../mol-state';
 import { Color } from '../../../mol-util/color';
 import { ColorNames } from '../../../mol-util/color/names';
-import { float } from '../tree/generic/params-schema';
 
 
 /** Represents either the result or the reason of failure of an operation that might have failed */

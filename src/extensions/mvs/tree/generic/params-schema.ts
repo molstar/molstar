@@ -97,19 +97,17 @@ export type DefaultFor<F extends Field> = F extends Field<infer V> ? (null exten
 
 /** Return `undefined` if `value` has correct type for `field`, regardsless of if required or optional.
  * Return description of validation issues, if `value` has wrong type. */
-export function fieldValidationIssues<F extends Field, V>(field: F, value: V): V extends ValueFor<F> ? undefined : string[] {
+export function fieldValidationIssues<F extends Field, V>(field: F, value: V): string[] | undefined {
     const validation = field.type.decode(value);
     if (validation._tag === 'Right') {
-        return undefined as any;
+        return undefined;
     } else {
-        return PathReporter.report(validation) as any;
+        return PathReporter.report(validation);
     }
 }
 
 
-/** Schema for "params", i.e. a flat collection of key-value pairs */
-export type ParamsSchema<TKey extends string = string> = { [key in TKey]: Field }
-
+/** Flat collection of key-value pairs with field schemas */
 type Fields = { [key in string]: Field }
 
 export interface SimpleParamsSchema<TFields extends Fields = Fields> {
@@ -119,8 +117,14 @@ export interface SimpleParamsSchema<TFields extends Fields = Fields> {
 export function SimpleParamsSchema<TFields extends Fields>(fields: TFields): SimpleParamsSchema<TFields> {
     return { _type_: 'simple', fields };
 }
-type ValuesForSimpleParamsSchema<TSchema extends SimpleParamsSchema> = ValuesFor<TSchema['fields']>; // TODO private ValuesFor
-type AllRequiredSimple<TSchema extends SimpleParamsSchema> = SimpleParamsSchema<AllRequired<TSchema['fields']>>;
+
+/** Type of values for an object of fields */
+type ValuesForFields<F extends Fields> =
+    { [key in keyof F as (F[key] extends RequiredField<any> ? key : never)]: ValueFor<F[key]> }
+    & { [key in keyof F as (F[key] extends OptionalField<any> ? key : never)]?: ValueFor<F[key]> };
+
+type ValuesForSimpleParamsSchema<TSchema extends SimpleParamsSchema> = ValuesForFields<TSchema['fields']>;
+type AllRequiredSimple<TSchema extends SimpleParamsSchema> = SimpleParamsSchema<AllRequiredFields<TSchema['fields']>>;
 
 
 
@@ -136,22 +140,21 @@ export function UnionParamsSchema<TDiscriminator extends string, TCases extends 
     return { _type_: 'union', discriminator, cases };
 }
 type ValuesForUnionParamsSchema<TSchema extends UnionParamsSchema, TCase extends keyof TSchema['cases'] = keyof TSchema['cases']>
-    = TCase extends keyof TSchema['cases'] // This monstrosity is needed to properly create discriminated union type :o
-    ? { [disc in TSchema['discriminator']]: TCase } & ValuesFor_new<TSchema['cases'][TCase]>
-    : never;    
+    = TCase extends keyof TSchema['cases'] ? { [disc in TSchema['discriminator']]: TCase } & ValuesFor_new<TSchema['cases'][TCase]> : never;
+// `extends` clause seems superfluous here, but is needed to properly create discriminated union type
+
 type AllRequiredUnion<TSchema extends UnionParamsSchema>
     = UnionParamsSchema<TSchema['discriminator'], { [c in keyof TSchema['cases']]: AllRequired_new<TSchema['cases'][c]> }>;
 
 
+/** Schema for "params", i.e. a flat collection of key-value pairs */
 export type ParamsSchema_new = SimpleParamsSchema | UnionParamsSchema;
+
+/** Type of values for a params schema (optional fields can be missing) */
 export type ValuesFor_new<T extends ParamsSchema_new>
-    = T extends SimpleParamsSchema ? ValuesForSimpleParamsSchema<T>
-    : T extends UnionParamsSchema ? ValuesForUnionParamsSchema<T>
-    : never;
+    = T extends SimpleParamsSchema ? ValuesForSimpleParamsSchema<T> : T extends UnionParamsSchema ? ValuesForUnionParamsSchema<T> : never;
 export type AllRequired_new<T extends ParamsSchema_new>
-    = T extends SimpleParamsSchema ? AllRequiredSimple<T>
-    : T extends UnionParamsSchema ? AllRequiredUnion<T>
-    : never;
+    = T extends SimpleParamsSchema ? AllRequiredSimple<T> : T extends UnionParamsSchema ? AllRequiredUnion<T> : never;
 
 function AllRequired_simple<TSchema extends SimpleParamsSchema>(schema: TSchema): AllRequired_new<TSchema> {
     const newFields = mapObjectMap(schema.fields, field => RequiredField(field.type, field.description));
@@ -163,6 +166,7 @@ function AllRequired_union<TSchema extends UnionParamsSchema>(schema: TSchema): 
     return UnionParamsSchema(schema.discriminator, newCases) as AllRequired_new<TSchema>;
 }
 
+/** Variation of a params schema where all fields are required */
 export function AllRequired_new<TSchema extends ParamsSchema_new>(schema: TSchema): AllRequired_new<TSchema> {
     if (schema._type_ === 'simple') {
         return AllRequired_simple(schema) as AllRequired_new<TSchema>;
@@ -171,137 +175,75 @@ export function AllRequired_new<TSchema extends ParamsSchema_new>(schema: TSchem
     }
 }
 
-function foo1() {
-    const p = SimpleParamsSchema({
-        name: RequiredField(str, 'Name'),
-        age: OptionalField(int, 0, 'Age'),
-        color: OptionalField(nullable(literal('red', 'green', 'blue')), null, 'Favorite color'),
-    });
-    type t = ValuesFor_new<typeof p>;
-    type t_ = ValuesFor_new<AllRequired_new<typeof p>>;
-    const x: t = {
-        name: 'Bob',
-        age: undefined,
-        color: 'blue',
-    };
-}
 
-function foo2() {
-    const p = UnionParamsSchema('kind', {
-        person: SimpleParamsSchema({
-            name: RequiredField(str, 'Name'),
-            age: OptionalField(int, 0, 'Age'),
-            color: OptionalField(nullable(literal('red', 'green', 'blue')), null, "Favorite color"),
-        }),
-        thing: SimpleParamsSchema({
-            weight: RequiredField(float, 'Weight in g'),
-            color: OptionalField(nullable(literal('red', 'green', 'blue')), null, 'Color'),
-        }),
-        song: SimpleParamsSchema({
-            title: RequiredField(str, 'Title'),
-            duration: RequiredField(float, 'Duration in s'),
-        }),
-    });
-    type t = ValuesFor_new<typeof p>;
-    type t_ = ValuesFor_new<AllRequired_new<typeof p>>;
-    const q = undefined as any as t_;
-    if (q.kind === 'thing') {
-    }
-    const x: t = {
-        'kind': 'person',
-        'name': ''
-    };
-    if (q.kind === 'person') {
-        q.name
-    } else if (q.kind === 'song') {
-        q.duration
-    } else {
-        q.weight
-    }
+/** Make all fields are required */
+type AllRequiredFields<TParamsSchema extends Fields>
+    = { [key in keyof TParamsSchema]: TParamsSchema[key] extends Field<infer V> ? RequiredField<V> : never }
+function AllRequiredFields<TParamsSchema extends Fields>(paramsSchema: TParamsSchema): AllRequiredFields<TParamsSchema> {
+    return mapObjectMap(paramsSchema, field => RequiredField(field.type, field.description)) as AllRequiredFields<TParamsSchema>;
 }
-
-/** Variation of a params schema where all fields are required */
-export type AllRequired<TParamsSchema extends ParamsSchema> = { [key in keyof TParamsSchema]: TParamsSchema[key] extends Field<infer V> ? RequiredField<V> : never }
-export function AllRequired<TParamsSchema extends ParamsSchema>(paramsSchema: TParamsSchema): AllRequired<TParamsSchema> {
-    return mapObjectMap(paramsSchema, field => RequiredField(field.type, field.description)) as AllRequired<TParamsSchema>;
-}
-
-/** Type of values for a params schema (optional fields can be missing) */
-export type ValuesFor<P extends ParamsSchema> =
-    { [key in keyof P as (P[key] extends RequiredField<any> ? key : never)]: ValueFor<P[key]> }
-    & { [key in keyof P as (P[key] extends OptionalField<any> ? key : never)]?: ValueFor<P[key]> }
 
 /** Type of full values for a params schema, i.e. including all optional fields */
-export type FullValuesFor<P extends ParamsSchema> = { [key in keyof P]: ValueFor<P[key]> }
 export type FullValuesFor_new<P extends ParamsSchema_new> = ValuesFor_new<AllRequired_new<P>>;
 
 
 interface ValidationOptions {
+    /** Check that all parameters (including optional) have a value provided. */
     requireAll?: boolean,
+    /** Check there are extra parameters other that those defined in the schema. */
     noExtra?: boolean,
 }
 
 
-/** Return `undefined` if `values` contains correct value types for `schema`,
- * return description of validation issues, if `values` have wrong type.
- * If `options.requireAll`, all parameters (including optional) must have a value provided.
- * If `options.noExtra` is true, presence of any extra parameters is treated as an issue.
- */
-export function paramsValidationIssues<P extends ParamsSchema, V extends { [k: string]: any }>(schema: P, values: V, options: ValidationOptions = {}): string[] | undefined {
-    if (!isPlainObject(values)) return [`Parameters must be an object, not ${values}`];
-    for (const key in schema) {
-        const paramDef = schema[key];
-
-        // Special handling of "union" param type
-        // TODO: figure out how to do this properly, ignoring the validation for now
-        if (key === '_union_') {
-            console.warn('Skipping _union_ params validation');
-            return undefined;
-        }
+function paramsValidationIssues_simple(schema: SimpleParamsSchema, values: { [k: string]: any }, options: ValidationOptions): string[] | undefined {
+    for (const key in schema.fields) {
+        const fieldSchema = schema.fields[key];
 
         if (Object.hasOwn(values, key)) {
             const value = values[key];
-            const issues = fieldValidationIssues(paramDef, value);
+            const issues = fieldValidationIssues(fieldSchema, value);
             if (issues) return [`Invalid value for parameter "${key}":`, ...issues.map(s => '  ' + s)];
         } else {
-            if (paramDef.required) return [`Missing required parameter "${key}".`];
+            if (fieldSchema.required) return [`Missing required parameter "${key}".`];
             if (options.requireAll) return [`Missing optional parameter "${key}".`];
         }
     }
     if (options.noExtra) {
         for (const key in values) {
-            if (!Object.hasOwn(schema, key)) return [`Unknown parameter "${key}".`];
+            if (!Object.hasOwn(schema.fields, key)) return [`Unknown parameter "${key}".`];
         }
     }
     return undefined;
 }
 
-function paramsValidationIssues_simple<P extends SimpleParamsSchema>(schema: P, values: { [k: string]: any }, options: ValidationOptions): string[] | undefined {
-    return paramsValidationIssues(schema.fields, values, options);
-}
-
-function paramsValidationIssues_union<P extends UnionParamsSchema>(schema: P, values: { [k: string]: any }, options: ValidationOptions): string[] | undefined {
+function paramsValidationIssues_union(schema: UnionParamsSchema, values: { [k: string]: any }, options: ValidationOptions): string[] | undefined {
     if (!Object.hasOwn(values, schema.discriminator)) {
         return [`Missing required parameter "${schema.discriminator}".`];
     }
     const case_ = values[schema.discriminator];
     const subschema = schema.cases[case_];
     if (subschema === undefined) {
-        const allowedValues = Object.keys(schema.cases).map(x => `"${x}"`).join(' | ');
+        const allowedCases = Object.keys(schema.cases).map(x => `"${x}"`).join(' | ');
         return [
             `Invalid value for parameter "${schema.discriminator}":`,
-            `"${case_}" is not a valid value for literal type (${allowedValues})`,
+            `"${case_}" is not a valid value for literal type (${allowedCases})`,
         ];
     }
     const issues = paramsValidationIssues_new(subschema, omitObjectKeys(values, [schema.discriminator]), options);
     if (issues) {
         issues.unshift(`(case "${schema.discriminator}": "${case_}")`);
-        return [...issues.map(s => '  ' + s)];
+        return issues.map(s => '  ' + s);
     }
-    undefined;
+    return undefined;
 }
 
+/** Return `undefined` if `values` contains correct value types for `schema`,
+ * return description of validation issues, if `values` have wrong type.
+ * If `options.requireAll`, all parameters (including optional) must have a value provided.
+ * If `options.noExtra` is true, presence of any extra parameters is treated as an issue. */
 export function paramsValidationIssues_new<P extends ParamsSchema_new>(schema: P, values: { [k: string]: any }, options: ValidationOptions = {}): string[] | undefined {
+    if (!isPlainObject(values)) return [`Parameters must be an object, not ${values}`];
+
     if (schema._type_ === 'simple') {
         return paramsValidationIssues_simple(schema, values, options);
     } else {
@@ -309,17 +251,6 @@ export function paramsValidationIssues_new<P extends ParamsSchema_new>(schema: P
     }
 }
 
-
-export function addParamDefaults<P extends ParamsSchema>(schema: P, values: ValuesFor<P>): FullValuesFor<P> {
-    const out = { ...values };
-    for (const key in schema) {
-        const field = schema[key];
-        if (!field.required && (out as any)[key] === undefined) {
-            (out as any)[key] = field.default;
-        }
-    }
-    return out as any;
-}
 
 function addParamDefaults_simple<P extends SimpleParamsSchema>(schema: P, values: any): any {
     const out = { ...values };
@@ -335,13 +266,11 @@ function addParamDefaults_simple<P extends SimpleParamsSchema>(schema: P, values
 function addParamDefaults_union<P extends UnionParamsSchema>(schema: P, values: any): any {
     const case_ = values[schema.discriminator];
     const subschema = schema.cases[case_];
-    // @ts-ignore (recursive type definition causes TS2589: Type instantiation is excessively deep and possibly infinite.)
     return addParamDefaults_new(subschema, values);
 }
 
 export function addParamDefaults_new<P extends ParamsSchema_new>(schema: P, values: ValuesFor_new<P>): FullValuesFor_new<P> {
     if (schema._type_ === 'simple') {
-        // @ts-ignore (recursive type definition causes TS2589: Type instantiation is excessively deep and possibly infinite.)
         return addParamDefaults_simple(schema, values);
     } else {
         return addParamDefaults_union(schema, values);

@@ -6,7 +6,7 @@
 
 import { onelinerJsonString } from '../../../../mol-util/json';
 import { isPlainObject, mapObjectMap } from '../../../../mol-util/object';
-import { AllRequired, AllRequired_new, ParamsSchema, ParamsSchema_new, ValuesFor, ValuesFor_new, paramsValidationIssues, paramsValidationIssues_new } from './params-schema';
+import { AllRequired_new, ParamsSchema_new, ValuesFor_new, paramsValidationIssues_new } from './params-schema';
 import { treeToString } from './tree-utils';
 
 
