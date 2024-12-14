@@ -17,6 +17,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - MolViewSpec extension: Support for multi-state files (animations)
 - Fix units transform data not fully updated when structure child changes
 - Fix `addIndexPairBonds` quadratic runtime case
+- Use adjoint matrix to transform normals in shaders
 
 ## [v4.9.1] - 2024-12-05
 
