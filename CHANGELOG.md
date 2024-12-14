@@ -16,6 +16,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Plugin state snapshot can have instructions to focus objects (PluginState.Snapshot.camera.focus)
 - MolViewSpec extension: Support for multi-state files (animations)
 - Fix units transform data not fully updated when structure child changes
+- Fix `addIndexPairBonds` quadratic runtime case
 
 ## [v4.9.1] - 2024-12-05
 
