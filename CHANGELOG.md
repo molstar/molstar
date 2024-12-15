@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v4.10.0] - 2024-12-15
+
 - Add `ModelWithCoordinates` decorator transform.
 - Fix outlines on transparent background using illumination mode (#1364)
 - Fix transparent depth texture artifacts using illumination mode
