@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -24,6 +24,7 @@ export type WebGLState = {
      * - `gl.SCISSOR_TEST`: scissor test that discards fragments that are outside of the scissor rectangle
      * - `gl.STENCIL_TEST`: stencil testing and updates to the stencil buffer
      * - `ext.CLIP_DISTANCE[0-7]`: clip distance 0 to 7 (with `ext` being `WEBGL_clip_cull_distance`)
+     * - `ext.DEPTH_CLAMP`: depth clamping (with `ext` being `EXT_depth_clamp`)
      */
     enable: (cap: number) => void
     /**
@@ -38,6 +39,7 @@ export type WebGLState = {
      * - `gl.SCISSOR_TEST`: scissor test that discards fragments that are outside of the scissor rectangle
      * - `gl.STENCIL_TEST`: stencil testing and updates to the stencil buffer
      * - `ext.CLIP_DISTANCE[0-7]`: clip distance 0 to 7 (with `ext` being `WEBGL_clip_cull_distance`)
+     * - `ext.DEPTH_CLAMP`: depth clamping (with `ext` being `EXT_depth_clamp`)
      */
     disable: (cap: number) => void
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -787,6 +787,86 @@ export function getClipControl(gl: GLRenderingContext): COMPAT_clip_control | nu
             CLIP_DEPTH_MODE: ext.CLIP_DEPTH_MODE_EXT,
 
             clipControl: ext.clipControlEXT.bind(ext)
+        };
+    }
+    return null;
+}
+
+/**
+ * See https://registry.khronos.org/webgl/extensions/EXT_render_snorm/
+ */
+export interface COMPAT_render_snorm {
+}
+
+export function getRenderSnorm(gl: GLRenderingContext): COMPAT_render_snorm | null {
+    if (isWebGL2(gl)) {
+        const ext = gl.getExtension('EXT_render_snorm');
+        if (ext) {
+            return {};
+        }
+    }
+    return null;
+}
+
+/**
+ * See https://registry.khronos.org/webgl/extensions/WEBGL_render_shared_exponent/
+ */
+export interface COMPAT_render_shared_exponent {
+}
+
+export function getRenderSharedExponent(gl: GLRenderingContext): COMPAT_render_shared_exponent | null {
+    if (isWebGL2(gl)) {
+        const ext = gl.getExtension('WEBGL_render_shared_exponent');
+        if (ext) {
+            return {};
+        }
+    }
+    return null;
+}
+
+/**
+ * See https://registry.khronos.org/webgl/extensions/EXT_texture_norm16/
+ */
+export interface COMPAT_texture_norm16 {
+    readonly R16: number;
+    readonly RG16: number;
+    readonly RGB16: number;
+    readonly RGBA16: number;
+    readonly R16_SNORM: number;
+    readonly RG16_SNORM: number;
+    readonly RGB16_SNORM: number;
+    readonly RGBA16_SNORM: number;
+}
+
+export function getTextureNorm16(gl: GLRenderingContext): COMPAT_texture_norm16 | null {
+    const ext = gl.getExtension('EXT_texture_norm16');
+    if (ext) {
+        return {
+            R16: ext.R16_EXT,
+            RG16: ext.RG16_EXT,
+            RGB16: ext.RGB16_EXT,
+            RGBA16: ext.RGBA16_EXT,
+            R16_SNORM: ext.R16_SNORM_EXT,
+            RG16_SNORM: ext.RG16_SNORM_EXT,
+            RGB16_SNORM: ext.RGB16_SNORM_EXT,
+            RGBA16_SNORM: ext.RGBA16_SNORM_EXT
+        };
+    }
+    return null;
+}
+
+/**
+ * See https://registry.khronos.org/webgl/extensions/EXT_depth_clamp/
+ */
+export interface COMPAT_depth_clamp {
+    readonly DEPTH_CLAMP: number;
+}
+
+export function getDepthClamp(gl: GLRenderingContext): COMPAT_depth_clamp | null {
+    const ext = gl.getExtension('EXT_depth_clamp');
+    if (ext) {
+        return {
+            DEPTH_CLAMP: ext.DEPTH_CLAMP_EXT
         };
     }
     return null;

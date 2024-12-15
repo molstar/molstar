@@ -258,6 +258,10 @@ export function eachPolymerGapElement(loci: Loci, structureGroup: StructureGroup
                     const idx = OrderedSet.indexOf(e.unit.gapElements, e.unit.elements[v]);
                     if (idx !== -1) {
                         if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true;
+                        // need to check the next element in case of consecutive gaps
+                        if (OrderedSet.getAt(e.unit.gapElements, idx + 1) === e.unit.elements[v]) {
+                            if (apply(Interval.ofSingleton(unitIdx * groupCount + idx + 1))) changed = true;
+                        }
                     }
                 });
             }

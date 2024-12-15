@@ -141,7 +141,7 @@ function AddSnapshot({ parent }: { parent: LocalStateSnapshots }) {
         PluginCommands.State.Snapshots.Add(parent.plugin, {
             key: state.key,
             name: state.name,
-            description: state.description
+            description: state.description,
         });
         setState({ key: '', name: '', description: '' });
     };
@@ -299,7 +299,7 @@ function EditSnapshotParams({ state, setState, apply }: { state: PluginStateSnap
 }
 
 function EditSnapshot({ entry, plugin, done }: { entry: PluginStateSnapshotManager.Entry, plugin: PluginContext, done: () => any }) {
-    const [state, setState] = React.useState<PluginStateSnapshotManager.EntryParams>({ key: entry.key ?? '', name: entry.name ?? '', description: entry.description ?? '' });
+    const [state, setState] = React.useState<PluginStateSnapshotManager.EntryParams>({ key: entry.key ?? '', name: entry.name ?? '', description: entry.description ?? '', descriptionFormat: entry.descriptionFormat });
 
     const apply = () => {
         plugin.managers.snapshot.update(entry, state);
