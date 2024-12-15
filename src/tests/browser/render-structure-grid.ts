@@ -42,9 +42,17 @@ function main() {
     const canvas = document.createElement('canvas');
     parent.appendChild(canvas);
 
-    const ctx = Canvas3DContext.fromCanvas(canvas, new AssetManager());
-    resizeCanvas(canvas, parent, ctx.pixelScale);
-    ctx.syncPixelScale();
+    const canvas3ds: Canvas3D[] = [];
+
+    const canvas3dContext = Canvas3DContext.fromCanvas(canvas, new AssetManager());
+    resizeCanvas(canvas, parent, canvas3dContext.pixelScale);
+    canvas3dContext.syncPixelScale();
+
+    canvas3dContext.input.resize.subscribe(() => {
+        resizeCanvas(canvas, parent, canvas3dContext.pixelScale);
+        canvas3dContext.syncPixelScale();
+        for (const canvas3d of canvas3ds) canvas3d.requestResize();
+    });
 
     const cids = [
         6440397,
@@ -54,27 +62,26 @@ function main() {
     ];
 
     const reprCtx: RepresentationContext = {
-        webgl: ctx.webgl,
+        webgl: canvas3dContext.webgl,
         colorThemeRegistry: ColorTheme.createRegistry(),
         sizeThemeRegistry: SizeTheme.createRegistry()
     };
 
-    const rect = parent.getBoundingClientRect();
-    const w = Math.floor(rect.width / 2);
-    const h = Math.floor(rect.height / 2);
     for (let i = 0; i < cids.length; i++) {
         const ix = i % 2;
         const iy = Math.floor(i / 2);
-        addViewer(ctx, reprCtx, cids[i], {
-            name: 'static-frame',
+        addViewer(canvas3dContext, reprCtx, cids[i], {
+            name: 'relative-frame',
             params: {
-                x: ix * w,
-                y: iy * h,
-                width: ix === 1 ? rect.width - w : w,
-                height: iy === 1 ? rect.height - h : h,
+                x: ix / 2,
+                y: iy / 2,
+                width: 0.5,
+                height: 0.5,
             }
         }, {
             adjustCylinderLength: ix === 0
+        }).then(canvas3d => {
+            canvas3ds.push(canvas3d);
         });
     }
 }
@@ -107,6 +114,8 @@ async function addViewer(
 
     canvas3d.add(repr);
     canvas3d.animate();
+
+    return canvas3d;
 }
 
 main();
