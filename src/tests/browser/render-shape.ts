@@ -34,6 +34,13 @@ resizeCanvas(canvas, parent);
 
 const assetManager = new AssetManager();
 
+const canvas3dContext = Canvas3DContext.fromCanvas(canvas, assetManager);
+const canvas3d = Canvas3D.create(canvas3dContext);
+resizeCanvas(canvas, parent, canvas3dContext.pixelScale);
+canvas3dContext.syncPixelScale();
+canvas3d.requestResize();
+canvas3d.animate();
+
 const info = document.createElement('div');
 info.style.position = 'absolute';
 info.style.fontFamily = 'sans-serif';
@@ -44,8 +51,6 @@ info.style.color = 'white';
 parent.appendChild(info);
 
 let prevReprLoci = Representation.Loci.Empty;
-const canvas3d = Canvas3D.create(Canvas3DContext.fromCanvas(canvas, assetManager));
-canvas3d.animate();
 canvas3d.input.move.subscribe(({ x, y }) => {
     const pickingId = canvas3d.identify(x, y)?.id;
     let label = '';
@@ -65,8 +70,9 @@ canvas3d.input.move.subscribe(({ x, y }) => {
 });
 
 canvas3d.input.resize.subscribe(() => {
-    resizeCanvas(canvas, parent);
-    canvas3d.handleResize();
+    resizeCanvas(canvas, parent, canvas3dContext.pixelScale);
+    canvas3dContext.syncPixelScale();
+    canvas3d.requestResize();
 });
 
 const commonData = {
