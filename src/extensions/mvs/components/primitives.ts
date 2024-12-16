@@ -510,7 +510,7 @@ function addLines(context: PrimitiveBuilderContext, { groups, lines }: LineBuild
     const a = Vec3.zero();
     const b = Vec3.zero();
 
-    let { indices, vertices, line_groups, group_colors, group_tooltips, group_width } = params;
+    let { indices, vertices, line_groups, group_colors, group_tooltips, group_widths } = params;
     const width = params.width ?? 1;
 
     const nLines = Math.floor(indices.length / 2);
@@ -522,7 +522,7 @@ function addLines(context: PrimitiveBuilderContext, { groups, lines }: LineBuild
         const builderGroup = groupSet.get(mvsGroup)!;
         groups.updateColor(builderGroup, group_colors?.[mvsGroup] ?? params.color);
         groups.updateTooltip(builderGroup, group_tooltips?.[mvsGroup] ?? params.tooltip);
-        groups.updateSize(builderGroup, group_width?.[mvsGroup] ?? width);
+        groups.updateSize(builderGroup, group_widths?.[mvsGroup] ?? width);
 
         Vec3.fromArray(a, vertices, 3 * indices[2 * i]);
         Vec3.fromArray(b, vertices, 3 * indices[2 * i + 1]);

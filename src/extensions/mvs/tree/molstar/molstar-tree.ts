@@ -21,13 +21,13 @@ export const MolstarTreeSchema = TreeSchema({
             ...FullMVSTreeSchema.nodes.download,
             params: SimpleParamsSchema({
                 ...FullMVSTreeSchema.nodes.download.params.fields,
-                is_binary: RequiredField(bool, 'TODO parameter description'),
+                is_binary: RequiredField(bool, 'Specifies whether file is downloaded as bytes array or string'),
             }),
         },
         parse: {
             ...FullMVSTreeSchema.nodes.parse,
             params: SimpleParamsSchema({
-                format: RequiredField(MolstarParseFormatT, 'TODO parameter description'),
+                format: RequiredField(MolstarParseFormatT, 'File format'),
             }),
         },
         /** Auxiliary node corresponding to Molstar's TrajectoryFrom*. */
@@ -35,7 +35,7 @@ export const MolstarTreeSchema = TreeSchema({
             description: "Auxiliary node corresponding to Molstar's TrajectoryFrom*.",
             parent: ['parse'],
             params: SimpleParamsSchema({
-                format: RequiredField(MolstarParseFormatT, 'TODO parameter description'),
+                format: RequiredField(MolstarParseFormatT, 'File format'),
                 ...pickObjectKeys(FullMVSTreeSchema.nodes.structure.params.fields, ['block_header', 'block_index'] as const),
             }),
         },
