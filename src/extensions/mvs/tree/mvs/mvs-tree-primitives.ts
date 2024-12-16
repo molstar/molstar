@@ -8,7 +8,7 @@
 import { bool, float, int, literal, mapping, nullable, OptionalField, RequiredField, str, union } from '../generic/field-schema';
 import { SimpleParamsSchema, UnionParamsSchema, ValuesFor } from '../generic/params-schema';
 import type { MVSNode } from './mvs-tree';
-import { ColorT, FloatList, IntList, PrimitivePositionT, StrList } from './param-types';
+import { ColorT, FloatList, IntList, PrimitivePositionT } from './param-types';
 
 
 // TODO ensure every null color/label_color falls back to the parent 'primitives' node color/label_color + mention in docs
@@ -45,12 +45,10 @@ const LinesParams = {
     group_colors: OptionalField(mapping(int, ColorT), {}, 'Assign a color to each group. If not assigned, default primitives group color is used. Takes precedence over line_colors.'),
     group_tooltips: OptionalField(mapping(int, str), {}, 'Assign an optional tooltip to each group.'),
     group_radius: OptionalField(mapping(int, float), {}, 'Assign an optional radius to each group. Take precedence over line_radius.'),
-    line_colors: OptionalField(nullable(StrList), null, 'Assign a color to each line.'),
     tooltip: OptionalField(nullable(str), null, 'Tooltip shown when hovering over the lines. Assigned group_tooltips take precedence.'),
     color: OptionalField(nullable(ColorT), null, 'Default color of the lines.'),
     line_radius: OptionalField(float, 1, 'Line radius'),
     // TODO line_radius - would make more sense to call it just `radius`?
-    // TODO remove line_colors, instead have implicit groups?
 };
 
 const LineParams = {

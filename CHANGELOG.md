@@ -11,6 +11,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix marking of consecutive gap elements (#876)
 - Allow React 19 in dependencies
 - Fix missing deflate header if `CompressionStream` is available
+- MolViewSpec: add validation for discriminated union params
+- MolViewSpec primitives: remove triangle_colors, line_colors, have implicit grouping instead
 
 ## [v4.9.1] - 2024-12-05
 

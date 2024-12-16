@@ -402,8 +402,9 @@ function buildPrimitiveLines(context: PrimitiveBuilderContext, prev?: Lines): Sh
         b[1](context, state, c, p);
     }
 
-    const color = decodeColor(context.options?.color) ?? 0x0;
     const { colors, sizes, tooltips } = state.groups;
+    const tooltip = context.options?.tooltip ?? '';
+    const color = decodeColor(context.options?.color) ?? 0x0;
 
     return Shape.create(
         'Lines',
@@ -415,7 +416,7 @@ function buildPrimitiveLines(context: PrimitiveBuilderContext, prev?: Lines): Sh
         linesBuilder.getLines(),
         (g) => colors.get(g) as Color ?? color as Color,
         (g) => sizes.get(g) ?? 1,
-        (g) => tooltips.get(g) ?? '',
+        (g) => tooltips.get(g) ?? tooltip,
         context.instances,
     );
 }
@@ -454,7 +455,7 @@ function buildPrimitiveLabels(context: PrimitiveBuilderContext, prev?: Text): Sh
 
 function noOp() { }
 
-function iterateMeshFaces(context: PrimitiveBuilderContext, groups: GroupManager, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'mesh'>, action: (mvsGroup: number, builderGroup: number, a: Vec3, b: Vec3, c: Vec3) => void) {
+function addMeshFaces(context: PrimitiveBuilderContext, groups: GroupManager, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'mesh'>, addFace: (mvsGroup: number, builderGroup: number, a: Vec3, b: Vec3, c: Vec3) => void) {
     const a = Vec3.zero();
     const b = Vec3.zero();
     const c = Vec3.zero();
@@ -471,20 +472,18 @@ function iterateMeshFaces(context: PrimitiveBuilderContext, groups: GroupManager
         Vec3.fromArray(b, vertices, 3 * indices[3 * i + 1]);
         Vec3.fromArray(c, vertices, 3 * indices[3 * i + 2]);
 
-        action(mvsGroup, builderGroup, a, b, c);
+        addFace(mvsGroup, builderGroup, a, b, c);
     }
 }
 
 function addMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'mesh'>) {
     if (!params.show_triangles) return;
 
-    const { group_colors, group_tooltips } = params;
-    const globalColor = params.color ?? context.node.params.color;
-    const globalTooltip = params.tooltip ?? context.node.params.tooltip;
+    const { group_colors, group_tooltips, color, tooltip } = params;
 
-    iterateMeshFaces(context, groups, node, params, (mvsGroup, builderGroup, a, b, c) => {
-        groups.updateColor(builderGroup, group_colors?.[mvsGroup] ?? globalColor);
-        groups.updateTooltip(builderGroup, group_tooltips?.[mvsGroup] ?? globalTooltip);
+    addMeshFaces(context, groups, node, params, (mvsGroup, builderGroup, a, b, c) => {
+        groups.updateColor(builderGroup, group_colors?.[mvsGroup] ?? color);
+        groups.updateTooltip(builderGroup, group_tooltips?.[mvsGroup] ?? tooltip);
         mesh.currentGroup = builderGroup;
         MeshBuilder.addTriangle(mesh, a, b, c);
     });
@@ -495,13 +494,11 @@ function addMeshWireframe(context: PrimitiveBuilderContext, { groups, lines }: L
     if (!params.show_wireframe) return;
     const radius = params.wireframe_radius ?? 1;
 
-    const { group_colors, group_tooltips, wireframe_color } = params;
-    const globalColor = params.color ?? context.node.params.color;
-    const globalTooltip = params.tooltip ?? context.node.params.tooltip;
+    const { group_colors, group_tooltips, wireframe_color, color, tooltip } = params;
 
-    iterateMeshFaces(context, groups, node, params, (mvsGroup, builderGroup, a, b, c) => {
-        groups.updateColor(builderGroup, wireframe_color ?? group_colors?.[mvsGroup] ?? globalColor);
-        groups.updateTooltip(builderGroup, group_tooltips?.[mvsGroup] ?? globalTooltip);
+    addMeshFaces(context, groups, node, params, (mvsGroup, builderGroup, a, b, c) => {
+        groups.updateColor(builderGroup, wireframe_color ?? group_colors?.[mvsGroup] ?? color);
+        groups.updateTooltip(builderGroup, group_tooltips?.[mvsGroup] ?? tooltip);
         groups.updateSize(builderGroup, radius);
         lines.add(a[0], a[1], a[2], b[0], b[1], b[2], builderGroup);
         lines.add(b[0], b[1], b[2], c[0], c[1], c[2], builderGroup);
@@ -513,29 +510,23 @@ function addLines(context: PrimitiveBuilderContext, { groups, lines }: LineBuild
     const a = Vec3.zero();
     const b = Vec3.zero();
 
-    const { indices, vertices, line_colors, line_groups, group_colors, group_tooltips, group_radius } = params;
-
-    const groupSet: Map<number, number> | undefined = line_groups?.length ? groups.allocateMany(node, line_groups) : undefined;
+    let { indices, vertices, line_groups, group_colors, group_tooltips, group_radius } = params;
     const radius = params.line_radius ?? 1;
 
-    for (let i = 0, _i = indices.length / 2; i < _i; i++) {
-        let group: number;
-        if (groupSet) {
-            const grp = line_groups![i];
-            group = groupSet.get(grp)!;
-            groups.updateColor(group, group_colors?.[grp] ?? params.color);
-            groups.updateTooltip(group, group_tooltips?.[grp]);
-            groups.updateSize(group, group_radius?.[grp] ?? radius);
-        } else {
-            group = groups.allocateSingle(node);
-            groups.updateColor(group, line_colors?.[i] ?? params.color);
-            groups.updateSize(group, radius);
-            groups.updateTooltip(group, params.tooltip);
-        }
+    const nLines = Math.floor(indices.length / 2);
+    line_groups ??= range(nLines); // implicit grouping (line i = group i)
+    const groupSet = groups.allocateMany(node, line_groups);
+
+    for (let i = 0; i < nLines; i++) {
+        const mvsGroup = line_groups[i];
+        const builderGroup = groupSet.get(mvsGroup)!;
+        groups.updateColor(builderGroup, group_colors?.[mvsGroup] ?? params.color);
+        groups.updateTooltip(builderGroup, group_tooltips?.[mvsGroup] ?? params.tooltip);
+        groups.updateSize(builderGroup, group_radius?.[mvsGroup] ?? radius);
 
         Vec3.fromArray(a, vertices, 3 * indices[2 * i]);
         Vec3.fromArray(b, vertices, 3 * indices[2 * i + 1]);
-        lines.add(a[0], a[1], a[2], b[0], b[1], b[2], group);
+        lines.add(a[0], a[1], a[2], b[0], b[1], b[2], builderGroup);
     }
 }
 
