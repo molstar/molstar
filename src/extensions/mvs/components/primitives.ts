@@ -251,7 +251,7 @@ const Builders: Record<MVSPrimitive['kind'], [
         line: (m: MVSPrimitiveParams<'mesh'>) => m.show_wireframe ?? false,
     }],
     lines: [addMesh, addLines, noOp, { line: true }],
-    line: [addLineMesh, noOp, noOp, { mesh: true, refs: resolveLineRefs }],
+    tube: [addTubeMesh, noOp, noOp, { mesh: true, refs: resolveLineRefs }],
     label: [noOp, noOp, addPrimitiveLabel, { label: true, refs: resolveLabelRefs }],
     distance_measurement: [addDistanceMesh, noOp, addDistanceLabel, { mesh: true, label: true, refs: resolveLineRefs }],
 };
@@ -492,14 +492,14 @@ function addMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilder
 
 function addMeshWireframe(context: PrimitiveBuilderContext, { groups, lines }: LineBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'mesh'>) {
     if (!params.show_wireframe) return;
-    const radius = params.wireframe_radius ?? 1;
+    const width = params.wireframe_width ?? 1;
 
     const { group_colors, group_tooltips, wireframe_color, color, tooltip } = params;
 
     addMeshFaces(context, groups, node, params, (mvsGroup, builderGroup, a, b, c) => {
         groups.updateColor(builderGroup, wireframe_color ?? group_colors?.[mvsGroup] ?? color);
         groups.updateTooltip(builderGroup, group_tooltips?.[mvsGroup] ?? tooltip);
-        groups.updateSize(builderGroup, radius);
+        groups.updateSize(builderGroup, width);
         lines.add(a[0], a[1], a[2], b[0], b[1], b[2], builderGroup);
         lines.add(b[0], b[1], b[2], c[0], c[1], c[2], builderGroup);
         lines.add(c[0], c[1], c[2], a[0], a[1], a[2], builderGroup);
@@ -510,8 +510,8 @@ function addLines(context: PrimitiveBuilderContext, { groups, lines }: LineBuild
     const a = Vec3.zero();
     const b = Vec3.zero();
 
-    let { indices, vertices, line_groups, group_colors, group_tooltips, group_radius } = params;
-    const radius = params.line_radius ?? 1;
+    let { indices, vertices, line_groups, group_colors, group_tooltips, group_width } = params;
+    const width = params.width ?? 1;
 
     const nLines = Math.floor(indices.length / 2);
     line_groups ??= range(nLines); // implicit grouping (line i = group i)
@@ -522,7 +522,7 @@ function addLines(context: PrimitiveBuilderContext, { groups, lines }: LineBuild
         const builderGroup = groupSet.get(mvsGroup)!;
         groups.updateColor(builderGroup, group_colors?.[mvsGroup] ?? params.color);
         groups.updateTooltip(builderGroup, group_tooltips?.[mvsGroup] ?? params.tooltip);
-        groups.updateSize(builderGroup, group_radius?.[mvsGroup] ?? radius);
+        groups.updateSize(builderGroup, group_width?.[mvsGroup] ?? width);
 
         Vec3.fromArray(a, vertices, 3 * indices[2 * i]);
         Vec3.fromArray(b, vertices, 3 * indices[2 * i + 1]);
@@ -530,7 +530,7 @@ function addLines(context: PrimitiveBuilderContext, { groups, lines }: LineBuild
     }
 }
 
-function resolveLineRefs(params: MVSPrimitiveParams<'line' | 'distance_measurement'>, refs: Set<string>) {
+function resolveLineRefs(params: MVSPrimitiveParams<'tube' | 'distance_measurement'>, refs: Set<string>) {
     addRef(params.start, refs);
     addRef(params.end, refs);
 }
@@ -538,12 +538,12 @@ function resolveLineRefs(params: MVSPrimitiveParams<'line' | 'distance_measureme
 const lStart = Vec3.zero();
 const lEnd = Vec3.zero();
 
-function addLineMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'line'>, options?: { skipResolvePosition?: boolean }) {
+function addTubeMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'tube'>, options?: { skipResolvePosition?: boolean }) {
     if (!options?.skipResolvePosition) {
         resolveBasePosition(context, params.start, lStart);
         resolveBasePosition(context, params.end, lEnd);
     }
-    const radius = params.thickness ?? 0.05;
+    const radius = params.radius ?? 0.05;
 
     const cylinderProps: BasicCylinderProps = {
         radiusBottom: radius,
@@ -578,7 +578,7 @@ function getDistanceLabel(context: PrimitiveBuilderContext, params: MVSPrimitive
 
 function addDistanceMesh(context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'distance_measurement'>) {
     const tooltip = getDistanceLabel(context, params);
-    addLineMesh(context, state, node, { ...params, tooltip } as any, { skipResolvePosition: true });
+    addTubeMesh(context, state, node, { ...params, tooltip } as any, { skipResolvePosition: true });
 }
 
 const labelPos = Vec3.zero();
@@ -593,10 +593,10 @@ function addDistanceLabel(context: PrimitiveBuilderContext, state: LabelBuilderS
     const label = typeof params.label_template === 'string' ? params.label_template.replace('{{distance}}', distance) : distance;
 
     let size: number | undefined;
-    if (params.label_size === 'auto') {
-        size = Math.max(dist * (params.label_auto_size_scale ?? 0.2), params.label_auto_size_min ?? 0.01);
-    } else if (typeof params.label_size === 'number') {
+    if (typeof params.label_size === 'number') {
         size = params.label_size;
+    } else {
+        size = Math.max(dist * (params.label_auto_size_scale ?? 0.2), params.label_auto_size_min ?? 0.01);
     }
 
     Vec3.add(labelPos, lStart, lEnd);
@@ -606,7 +606,7 @@ function addDistanceLabel(context: PrimitiveBuilderContext, state: LabelBuilderS
     groups.updateColor(group, params.label_color);
     groups.updateSize(group, size);
 
-    labels.add(label, labelPos[0], labelPos[1], labelPos[2], 1.05 * (params.thickness ?? 0.05), 1, group);
+    labels.add(label, labelPos[0], labelPos[1], labelPos[2], 1.05 * (params.radius ?? 0.05), 1, group);
 }
 
 function resolveLabelRefs(params: MVSPrimitiveParams<'label'>, refs: Set<string>) {

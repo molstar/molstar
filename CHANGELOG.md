@@ -13,6 +13,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix missing deflate header if `CompressionStream` is available
 - MolViewSpec: add validation for discriminated union params
 - MolViewSpec primitives: remove triangle_colors, line_colors, have implicit grouping instead
+- MolViewSpec primitives: name many primitives parameters
 
 ## [v4.9.1] - 2024-12-05
 
