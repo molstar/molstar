@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -35,11 +35,14 @@ parent.style.height = '100%';
 
 const canvas = document.createElement('canvas');
 parent.appendChild(canvas);
-resizeCanvas(canvas, parent);
 
 const assetManager = new AssetManager();
 
-const canvas3d = Canvas3D.create(Canvas3DContext.fromCanvas(canvas, assetManager));
+const canvas3dContext = Canvas3DContext.fromCanvas(canvas, assetManager);
+const canvas3d = Canvas3D.create(canvas3dContext);
+resizeCanvas(canvas, parent, canvas3dContext.pixelScale);
+canvas3dContext.syncPixelScale();
+canvas3d.requestResize();
 canvas3d.animate();
 
 const info = document.createElement('div');
@@ -68,6 +71,12 @@ canvas3d.input.move.pipe(throttleTime(100)).subscribe(({ x, y }) => {
         prevReprLoci = Representation.Loci.Empty;
     }
     info.innerHTML = label;
+});
+
+canvas3d.input.resize.subscribe(() => {
+    resizeCanvas(canvas, parent, canvas3dContext.pixelScale);
+    canvas3dContext.syncPixelScale();
+    canvas3d.requestResize();
 });
 
 async function parseCif(data: string | Uint8Array) {

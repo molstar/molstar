@@ -169,13 +169,13 @@ export const MVSTreeSchema = TreeSchema({
                 ..._DataFromSourceParams,
             },
         },
-        /** This node instructs to apply transparency to a visual representation. */
-        transparency: {
-            description: 'This node instructs to apply transparency to a visual representation.',
+        /** This node instructs to apply opacity/transparency to a visual representation. */
+        opacity: {
+            description: 'This node instructs to apply opacity/transparency to a visual representation.',
             parent: ['representation'],
             params: {
-                /** Transparency of the representation. 0.0: fully opaque, 1.0: fully transparent. */
-                transparency: RequiredField(float, 'Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
+                /** Opacity of a representation. 0.0: fully transparent, 1.0: fully opaque. */
+                opacity: RequiredField(float, 'Opacity of a representation. 0.0: fully transparent, 1.0: fully opaque.'),
             },
         },
         /** This node instructs to add a label (textual visual representation) to a component. */
@@ -231,12 +231,18 @@ export const MVSTreeSchema = TreeSchema({
         /** This node instructs to set the camera focus to a component (zoom in). */
         focus: {
             description: 'This node instructs to set the camera focus to a component (zoom in).',
-            parent: ['component', 'component_from_uri', 'component_from_source', 'primitives', 'primitives_from_uri'],
+            parent: ['root', 'component', 'component_from_uri', 'component_from_source', 'primitives', 'primitives_from_uri'],
             params: {
                 /** Vector describing the direction of the view (camera position -> focused target). */
                 direction: OptionalField(Vector3, 'Vector describing the direction of the view (camera position -> focused target).'),
                 /** Vector which will be aligned with the screen Y axis. */
                 up: OptionalField(Vector3, 'Vector which will be aligned with the screen Y axis.'),
+                /** Radius of the focused sphere (overrides `radius_factor` and `radius_extra`. */
+                radius: OptionalField(nullable(float), 'Radius of the focused sphere (overrides `radius_factor` and `radius_extra`).'),
+                /** Radius of the focused sphere relative to the radius of parent component (default: 1). Focused radius = component_radius * radius_factor + radius_extent. */
+                radius_factor: OptionalField(float, 'Radius of the focused sphere relative to the radius of parent component (default: 1). Focused radius = component_radius * radius_factor + radius_extent.'),
+                /** Addition to the radius of the focused sphere, if computed from the radius of parent component (default: 0). Focused radius = component_radius * radius_factor + radius_extent. */
+                radius_extent: OptionalField(float, 'Addition to the radius of the focused sphere, if computed from the radius of parent component (default: 0). Focused radius = component_radius * radius_factor + radius_extent.'),
             },
         },
         /** This node instructs to set the camera position and orientation. */
@@ -268,8 +274,8 @@ export const MVSTreeSchema = TreeSchema({
                 color: OptionalField(nullable(ColorT)),
                 label_color: OptionalField(nullable(ColorT)),
                 tooltip: OptionalField(nullable(str)),
-                transparency: OptionalField(nullable(float)),
-                label_transparency: OptionalField(nullable(float)),
+                opacity: OptionalField(nullable(float)),
+                label_opacity: OptionalField(nullable(float)),
                 instances: OptionalField(nullable(list(Matrix))),
             },
         },

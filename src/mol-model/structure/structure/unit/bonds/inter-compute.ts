@@ -230,15 +230,38 @@ function addIndexPairBonds(structure: Structure, builder: InterUnitGraph.Builder
         const indexPairs = IndexPairBonds.Provider.get(m)!;
         const { a, b } = indexPairs.bonds;
         const { order, flag, key, operatorA, operatorB } = indexPairs.bonds.edgeProps;
+        const { invertedIndex } = Model.getInvertedAtomSourceIndex(m);
+
+        const atomsToUnits = new Map<ElementIndex, Set<Unit>>();
+        for (const u of structure.units) {
+            if (u.model !== m) continue;
+
+            for (let i = 0, il = u.elements.length; i < il; ++i) {
+                const aI = u.elements[i];
+                if (atomsToUnits.has(aI)) atomsToUnits.get(aI)!.add(u);
+                else atomsToUnits.set(aI, new Set([u]));
+            }
+        }
 
         const pairs = new Map<number, Set<number>>();
         for (let i = 0, il = operatorA.length; i < il; ++i) {
-            const unitsA = opUnits.get(operatorA[i]);
-            const unitsB = opUnits.get(operatorB[i]);
+            let unitsA: Set<Unit> | undefined;
+            let unitsB: Set<Unit> | undefined;
+
+            if (operatorA[i] === operatorB[i]) {
+                unitsA = atomsToUnits.get(invertedIndex[a[i]]);
+                unitsB = atomsToUnits.get(invertedIndex[b[i]]);
+            } else {
+                unitsA = opUnits.get(operatorA[i]);
+                unitsB = opUnits.get(operatorB[i]);
+            }
             if (!unitsA || !unitsB) continue;
 
             for (const uA of unitsA) {
+                if (operatorA[i] !== uA.conformation.operator.key) continue;
+
                 for (const uB of unitsB) {
+                    if (operatorB[i] !== uB.conformation.operator.key) continue;
                     if (uA === uB || !Unit.isAtomic(uA) || !Unit.isAtomic(uB)) continue;
                     if (uA.id > uB.id) continue;
 
@@ -249,7 +272,6 @@ function addIndexPairBonds(structure: Structure, builder: InterUnitGraph.Builder
             }
         }
 
-        const { invertedIndex } = Model.getInvertedAtomSourceIndex(m);
         const unitIds: [number, number] = [-1, -1];
         pairs.forEach((indices, h) => {
             const [unitIdA, unitIdB] = invertCantorPairing(unitIds, h);

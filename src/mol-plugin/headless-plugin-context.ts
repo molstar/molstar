@@ -5,15 +5,19 @@
  */
 
 import fs from 'fs';
-import { type PNG } from 'pngjs'; // Only import type here, the actual import must be provided by the caller
 import { type BufferRet as JpegBufferRet } from 'jpeg-js'; // Only import type here, the actual import must be provided by the caller
+import { type PNG } from 'pngjs'; // Only import type here, the actual import must be provided by the caller
 
+import { Mp4Export } from '../extensions/mp4-export';
+import { encodeMp4Animation } from '../extensions/mp4-export/encoder';
 import { Canvas3D } from '../mol-canvas3d/canvas3d';
+import { ImagePass } from '../mol-canvas3d/passes/image';
 import { PostprocessingProps } from '../mol-canvas3d/passes/postprocessing';
+import { AnimateStateSnapshots } from '../mol-plugin-state/animation/built-in/state-snapshots';
+import { RuntimeContext, Task } from '../mol-task';
 import { PluginContext } from './context';
 import { PluginSpec } from './spec';
-import { HeadlessScreenshotHelper, HeadlessScreenshotHelperOptions, ExternalModules, RawImageData } from './util/headless-screenshot';
-import { Task } from '../mol-task';
+import { ExternalModules, HeadlessScreenshotHelper, HeadlessScreenshotHelperOptions, RawImageData } from './util/headless-screenshot';
 
 
 /** PluginContext that can be used in Node.js (without DOM) */
@@ -75,6 +79,39 @@ export class HeadlessPluginContext extends PluginContext {
         const snapshot_json = JSON.stringify(snapshot, null, 2);
         await new Promise<void>(resolve => {
             fs.writeFile(outPath, snapshot_json, () => resolve());
+        });
+    }
+
+    /** Render plugin state snapshots animation and return as raw MP4 data */
+    async getAnimation(options?: { quantization?: number, size?: { width: number, height: number }, fps?: number, postprocessing?: Partial<PostprocessingProps> }) {
+        if (!this.state.hasBehavior(Mp4Export)) {
+            throw new Error('PluginContext must have Mp4Export extension registered in order to save animation.');
+        }
+
+        const task = Task.create('Export Animation', async ctx => {
+            const { width, height } = options?.size ?? this.renderer.canvasSize;
+            const movie = await encodeMp4Animation(this, ctx, {
+                animation: { definition: AnimateStateSnapshots, params: {} },
+                width,
+                height,
+                viewport: { x: 0, y: 0, width, height },
+                quantizationParameter: options?.quantization ?? 18,
+                fps: options?.fps,
+                pass: {
+                    getImageData: (runtime: RuntimeContext, width: number, height: number) => this.renderer.getImageRaw(runtime, { width, height }, options?.postprocessing),
+                    updateBackground: () => this.renderer.imagePass.updateBackground(),
+                } as ImagePass,
+            });
+            return movie;
+        });
+        return this.runTask(task, { useOverlay: true });
+    }
+
+    /** Render plugin state snapshots animation and save to a MP4 file */
+    async saveAnimation(outPath: string, options?: { quantization?: number, size?: { width: number, height: number }, fps?: number, postprocessing?: Partial<PostprocessingProps> }) {
+        const movie = await this.getAnimation(options);
+        await new Promise<void>(resolve => {
+            fs.writeFile(outPath, movie, () => resolve());
         });
     }
 }

@@ -5,15 +5,29 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Add `ModelWithCoordinates` decorator transform.
-- Fix outlines on transparent background using illumination mode (#1364)
-- Fix transparent depth texture artifacts using illumination mode
 - Volume UI improvements 
   - Render all volume entries instead of selecting them one-by-one
   - Toggle visibility of all volumes
   - More accessible iso value control
 - Support wheel event on sliders
- 
+
+## [v4.10.0] - 2024-12-15
+
+- Add `ModelWithCoordinates` decorator transform.
+- Fix outlines on transparent background using illumination mode (#1364)
+- Fix transparent depth texture artifacts using illumination mode
+- Fix marking of consecutive gap elements (#876)
+- Allow React 19 in dependencies
+- Fix missing deflate header if `CompressionStream` is available
+- Fix is_iOS check for NodeJS
+- Added PluginCommands.Camera.FocusObject
+- Plugin state snapshot can have instructions to focus objects (PluginState.Snapshot.camera.focus)
+- MolViewSpec extension: Support for multi-state files (animations)
+- Fix units transform data not fully updated when structure child changes
+- Fix `addIndexPairBonds` quadratic runtime case
+- Use adjoint matrix to transform normals in shaders
+- Fix resize handling in `tests/browser`
+
 ## [v4.9.1] - 2024-12-05
 
 - Fix iOS check when running on Node

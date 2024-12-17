@@ -141,6 +141,15 @@ float depthToViewZ(const in float isOrtho, const in float linearClipZ, const in 
     return isOrtho == 1.0 ? orthographicDepthToViewZ(linearClipZ, near, far) : perspectiveDepthToViewZ(linearClipZ, near, far);
 }
 
+// see https://github.com/graphitemaster/normals_revisited and https://www.shadertoy.com/view/3s33zj
+mat3 adjoint(const in mat4 m) {
+    return mat3(
+        cross(m[1].xyz, m[2].xyz),
+        cross(m[2].xyz, m[0].xyz),
+        cross(m[0].xyz, m[1].xyz)
+    );
+}
+
 #if __VERSION__ == 100
     // transpose
 
