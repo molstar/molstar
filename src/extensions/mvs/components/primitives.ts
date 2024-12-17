@@ -40,7 +40,7 @@ export function getPrimitiveStructureRefs(primitives: MolstarSubtree<'primitives
     for (const c of primitives.children ?? []) {
         if (c.kind !== 'primitive') continue;
         const p = c.params as unknown as MVSPrimitive;
-        Builders[p.kind]?.[3].refs?.(p, refs);
+        Builders[p.kind].resolveRefs?.(p, refs);
     }
     return refs;
 }
@@ -235,25 +235,55 @@ const BaseLabelProps: PD.Values<Text.Params> = {
 };
 const DefaultLabelParams = PD.withDefaults(Text.Params, BaseLabelProps);
 
-const Builders: Record<MVSPrimitive['kind'], [
-    mesh: (context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: any) => void,
-    line: (context: PrimitiveBuilderContext, state: LineBuilderState, node: MVSNode<'primitive'>, params: any) => void,
-    label: (context: PrimitiveBuilderContext, state: LabelBuilderState, node: MVSNode<'primitive'>, params: any) => void,
-    features: {
-        mesh?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
-        line?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
-        label?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
-        refs?: (params: any, refs: Set<string>) => void
+interface PrimitiveBuilder {
+    builders: {
+        mesh?: (context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: any) => void,
+        line?: (context: PrimitiveBuilderContext, state: LineBuilderState, node: MVSNode<'primitive'>, params: any) => void,
+        label?: (context: PrimitiveBuilderContext, state: LabelBuilderState, node: MVSNode<'primitive'>, params: any) => void,
+    }
+    isApplicable?: {
+        mesh?: ((primitive: any, context: PrimitiveBuilderContext) => boolean),
+        line?: ((primitive: any, context: PrimitiveBuilderContext) => boolean),
+        label?: ((primitive: any, context: PrimitiveBuilderContext) => boolean),
     },
-]> = {
-    mesh: [addMesh, addMeshWireframe, noOp, {
-        mesh: (m: MVSPrimitiveParams<'mesh'>) => m.show_triangles ?? true,
-        line: (m: MVSPrimitiveParams<'mesh'>) => m.show_wireframe ?? false,
-    }],
-    lines: [addMesh, addLines, noOp, { line: true }],
-    tube: [addTubeMesh, noOp, noOp, { mesh: true, refs: resolveLineRefs }],
-    label: [noOp, noOp, addPrimitiveLabel, { label: true, refs: resolveLabelRefs }],
-    distance_measurement: [addDistanceMesh, noOp, addDistanceLabel, { mesh: true, label: true, refs: resolveLineRefs }],
+    resolveRefs?: (params: any, refs: Set<string>) => void,
+}
+
+const Builders: Record<MVSPrimitive['kind'], PrimitiveBuilder> = {
+    mesh: {
+        builders: {
+            mesh: addMesh,
+            line: addMeshWireframe,
+        },
+        isApplicable: {
+            mesh: (m: MVSPrimitiveParams<'mesh'>) => m.show_triangles ?? true,
+            line: (m: MVSPrimitiveParams<'mesh'>) => m.show_wireframe ?? false,
+        },
+    },
+    lines: {
+        builders: {
+            line: addLines,
+        },
+    },
+    tube: {
+        builders: {
+            mesh: addTubeMesh,
+        },
+        resolveRefs: resolveLineRefs,
+    },
+    label: {
+        builders: {
+            label: addPrimitiveLabel,
+        },
+        resolveRefs: resolveLabelRefs,
+    },
+    distance_measurement: {
+        builders: {
+            mesh: addDistanceMesh,
+            label: addDistanceLabel,
+        },
+        resolveRefs: resolveLineRefs,
+    },
 };
 
 
@@ -269,12 +299,14 @@ function addRef(position: PrimitivePositionT, refs: Set<string>) {
 
 function hasPrimitiveKind(context: PrimitiveBuilderContext, kind: 'mesh' | 'line' | 'label') {
     for (const c of context.primitives) {
-        const p = c.params as unknown as MVSPrimitive;
-        const test = Builders[p.kind]?.[3]?.[kind];
-        if (typeof test === 'boolean') {
-            if (test) return true;
-        } else if (test?.(p, context)) {
-            return true;
+        const params = c.params as unknown as MVSPrimitive;
+        const b = Builders[params.kind];
+        const builderFunction = b.builders[kind];
+        if (builderFunction) {
+            const test = b.isApplicable?.[kind];
+            if (test === undefined || test(params, context)) {
+                return true;
+            }
         }
     }
     return false;
@@ -366,7 +398,7 @@ function buildPrimitiveMesh(context: PrimitiveBuilderContext, prev?: Mesh): Shap
             console.warn(`Primitive ${p.kind} not supported`);
             continue;
         }
-        b[0](context, state, c, p);
+        b.builders.mesh?.(context, state, c, p);
     }
 
     const { colors, tooltips } = state.groups;
@@ -399,7 +431,7 @@ function buildPrimitiveLines(context: PrimitiveBuilderContext, prev?: Lines): Sh
             console.warn(`Primitive ${p.kind} not supported`);
             continue;
         }
-        b[1](context, state, c, p);
+        b.builders.line?.(context, state, c, p);
     }
 
     const { colors, sizes, tooltips } = state.groups;
@@ -432,7 +464,7 @@ function buildPrimitiveLabels(context: PrimitiveBuilderContext, prev?: Text): Sh
             console.warn(`Primitive ${p.kind} not supported`);
             continue;
         }
-        b[2](context, state, c, p);
+        b.builders.label?.(context, state, c, p);
     }
 
     const color = decodeColor(context.options?.label_color) ?? 0x0;
@@ -452,8 +484,6 @@ function buildPrimitiveLabels(context: PrimitiveBuilderContext, prev?: Text): Sh
         context.instances,
     );
 }
-
-function noOp() { }
 
 function addMeshFaces(context: PrimitiveBuilderContext, groups: GroupManager, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'mesh'>, addFace: (mvsGroup: number, builderGroup: number, a: Vec3, b: Vec3, c: Vec3) => void) {
     const a = Vec3.zero();
