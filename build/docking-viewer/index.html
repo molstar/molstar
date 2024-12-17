@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <title>Mol* Docking Viewer</title>
+        <style>
+            #app {
+                position: absolute;
+                left: 100px;
+                top: 100px;
+                width: 800px;
+                height: 600px;
+            }
+        </style>
+        <link rel="stylesheet" type="text/css" href="molstar.css" />
+    </head>
+    <body>
+        <div id="app"></div>
+        <script type="text/javascript" src="./molstar.js"></script>
+        <script type="text/javascript">
+            function getParam(name, regex) {
+                var r = new RegExp(name + '=' + '(' + regex + ')[&]?', 'i');
+                return decodeURIComponent(((window.location.search || '').match(r) || [])[1] || '');
+            }
+            var pdbqt = getParam('pdbqt', '[^&]+').trim() || '../../examples/ace2.pdbqt';
+            var mol2 = getParam('mol2', '[^&]+').trim() || '../../examples/ace2-hit.mol2';
+
+            DockingViewer.create('app', [0x33DD22, 0x1133EE], true).then(viewer => {
+                viewer.loadStructuresFromUrlsAndMerge([
+                    { url: pdbqt, format: 'pdbqt' },
+                    { url: mol2, format: 'mol2' }
+                ]);
+            });
+        </script>
+    </body>
+</html>

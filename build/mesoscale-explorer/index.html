@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <link rel="icon" href="./favicon.ico" type="image/x-icon">
+        <link rel="stylesheet" href="../extras/driver.css"/>
+        <title>Mol* Mesoscale Explorer</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            html, body {
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+            }
+            hr {
+                margin: 10px;
+            }
+            h1, h2, h3, h4, h5 {
+                margin-top: 5px;
+                margin-bottom: 3px;
+            }
+            button {
+                padding: 2px;
+            }
+            #app {
+                position: absolute;
+                left: 100px;
+                top: 100px;
+                width: 800px;
+                height: 600px;
+            }
+        </style>
+        <link rel="stylesheet" type="text/css" href="molstar.css" />
+    </head>
+    <body>
+        <div id="app"></div>
+        <script src="../extras/driver.js.iife.js"></script>
+        <script type="text/javascript" src="./molstar.js"></script>
+        <script type="text/javascript">
+            const driver = window.driver ? window.driver.js.driver() : undefined;
+
+            function getParam(name, regex) {
+                var r = new RegExp(name + '=' + '(' + regex + ')[&]?', 'i');
+                return decodeURIComponent(((window.location.search || '').match(r) || [])[1] || '');
+            }
+
+            var debugMode = getParam('debug-mode', '[^&]+').trim() === '1';
+            if (debugMode) molstar.setDebugMode(debugMode);
+
+            var timingMode = getParam('timing-mode', '[^&]+').trim() === '1';
+            if (timingMode) molstar.setTimingMode(timingMode);
+
+            var hideControls = getParam('hide-controls', '[^&]+').trim() === '1';
+            var preferWebgl1 = getParam('prefer-webgl1', '[^&]+').trim() === '1' || void 0;
+            var allowMajorPerformanceCaveat = getParam('allow-major-performance-caveat', '[^&]+').trim() === '1';
+            var powerPreference = getParam('power-preference', '[^&]+').trim().toLowerCase();
+            var graphicsMode = getParam('graphics-mode', '[^&]+').trim().toLowerCase();
+            var illumination = getParam('illumination', '[^&]+').trim() === '1';
+            var resolutionMode = getParam('resolution-mode', '[^&]+').trim().toLowerCase();
+
+            molstar.MesoscaleExplorer.create('app', {
+                layoutShowControls: !hideControls,
+                viewportShowExpand: false,
+                preferWebgl1: preferWebgl1,
+                allowMajorPerformanceCaveat: allowMajorPerformanceCaveat,
+                powerPreference: powerPreference || 'high-performance',
+                graphicsMode: graphicsMode || 'quality',
+                illumination: illumination,
+                resolutionMode: resolutionMode || 'auto',
+                driver: driver
+            }).then(me => {
+                var example = getParam('example', '[^&]+').trim();
+                if (example) {
+                    me.loadExample(example);
+                    return;
+                }
+
+                var url = getParam('url', '[^&]+').trim();
+                var type = getParam('type', '[^&]+').trim();
+                if (url && type) {
+                    me.loadUrl(url, type);
+                    return;
+                }
+
+                var pdb = getParam('pdb', '[^&]+').trim();
+                if (pdb) {
+                    me.loadPdb(pdb);
+                    return;
+                }
+
+                var pdbdev = getParam('pdbdev', '[^&]+').trim();
+                if (pdbdev) {
+                    me.loadPdbDev(pdbdev);
+                    return;
+                }
+                window.addEventListener('unload', () => {
+                    // to aid GC
+                    me.dispose();
+                });
+            });
+        </script>
+        <!-- __MOLSTAR_ANALYTICS__ -->
+    </body>
+</html>

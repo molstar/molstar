@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <link rel="icon" href="./favicon.ico" type="image/x-icon">
+        <title>Embedded Mol* Viewer</title>
+        <style>
+            #app {
+                position: absolute;
+                left: 100px;
+                top: 100px;
+                width: 800px;
+                height: 600px;
+            }
+        </style>
+        <link rel="stylesheet" type="text/css" href="molstar.css" />
+    </head>
+    <body>
+        <div id="app"></div>
+        <script type="text/javascript" src="./molstar.js"></script>
+        <script type="text/javascript">
+            molstar.Viewer.create('app', {
+                layoutIsExpanded: true,
+                layoutShowControls: false,
+                layoutShowRemoteState: false,
+                layoutShowSequence: true,
+                layoutShowLog: false,
+                layoutShowLeftPanel: true,
+
+                viewportShowExpand: true,
+                viewportShowSelectionMode: false,
+                viewportShowAnimation: false,
+
+                pdbProvider: 'rcsb',
+                emdbProvider: 'rcsb',
+            }).then(viewer => {
+                viewer.loadPdb('7bv2');
+                viewer.loadEmdb('EMD-30210', { detail: 6 });
+                // viewer.loadAllModelsOrAssemblyFromUrl('https://cs.litemol.org/5ire/full', 'mmcif', false, { representationParams: { theme: { globalName: 'operator-name' } } })
+                // viewer.loadStructureFromUrl('my url', 'pdb', false, {
+                //     representationParams: {
+                //         theme: {
+                //             globalName: 'uniform',
+                //             globalColorParams: { value: 0xff0000 }
+                //         }
+                //     },
+                //     label: 'my structure'
+                // });
+            });
+        </script>
+    </body>
+</html>

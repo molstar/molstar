@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <title>Mol* Proteopedia Wrapper</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            #app {
+                position: absolute;
+                left: 160px;
+                top: 100px;
+                width: 600px;
+                height: 600px;
+                border: 1px solid #ccc;
+            }
+
+            #controls {
+                position: absolute;
+                width: 130px;
+                top: 10px;
+                left: 10px;
+            }
+
+            #controls > button {
+                display: block;
+                width: 100%;
+                text-align: left;
+            }
+
+            #controls > hr {
+                margin: 5px 0;
+            }
+
+            #controls > input, #controls > select {
+                width: 100%;
+                display: block;
+            }
+
+            #volume-streaming-wrapper {
+                position: absolute;
+                top: 100px;
+                left: 780px;
+                width: 300px;
+            }
+        </style>
+        <link rel="stylesheet" type="text/css" href="molstar.css" />
+        <script type="text/javascript" src="./index.js"></script>
+    </head>
+    <body>
+        <div id='controls'>
+            <h3>Source</h3>
+            <input type='text' id='url' placeholder='url' style='width: 400px' />
+            <input type='text' id='assemblyId' placeholder='assembly id' />
+            <select id='format'>
+                <option value='cif' selected>CIF</option>
+                <option value='pdb'>PDB</option>
+            </select>
+            <input type='checkbox' id='isBinary' style="display: inline-block; width: auto" /> <label for="isBinary"> Binary</label><br />
+        </div>
+        <div id="app"></div>
+        <div id="volume-streaming-wrapper"></div>
+        <script>
+            // it might be a good idea to define these colors in a separate script file
+            var CustomColors = [0x00ff00, 0x0000ff];
+
+            // create an instance of the plugin
+            var PluginWrapper = new MolStarProteopediaWrapper();
+
+            console.log('Wrapper version', MolStarProteopediaWrapper.VERSION_MAJOR, MolStarProteopediaWrapper.VERSION_MINOR);
+
+            function $(id) { return document.getElementById(id); }
+
+            var pdbId = '1cbs', assemblyId= 'preferred', isBinary = true;
+            var url = 'https://www.ebi.ac.uk/pdbe/entry-files/download/' + pdbId + '.bcif'
+            var format = 'cif';
+
+            $('url').value = url;
+            $('url').onchange = function (e) { url = e.target.value; }
+            $('assemblyId').value = assemblyId;
+            $('assemblyId').onchange = function (e) { assemblyId = e.target.value; }
+            $('format').value = format;
+            $('format').onchange = function (e) { format = e.target.value; }
+            $('isBinary').checked = isBinary;
+            $('isBinary').onchange = function (e) { isBinary = !!e.target.checked; };
+
+            function loadAndSnapshot(params) {
+                PluginWrapper.load(params).then(() => {
+                    setTimeout(() => snapshot = PluginWrapper.plugin.state.getSnapshot({ canvas3d: false /* do not save spinning state */ }), 500);
+                });
+            }
+
+            var representationStyle = {
+                // sequence: { coloring: 'proteopedia-custom' }, // or just { }
+                hetGroups: { kind: 'ball-and-stick' }, // or 'spacefill
+                water: { hide: true },
+                snfg3d: { hide: false }
+            };
+
+            PluginWrapper.init('app' /** or document.getElementById('app') */, {
+                customColorList: CustomColors
+            }).then(() => {
+                PluginWrapper.setBackground(0xffffff);
+                loadAndSnapshot({ url: url, format: format, isBinary: isBinary, assemblyId: assemblyId, representationStyle: representationStyle });
+                PluginWrapper.toggleSpin();
+            });
+
+            PluginWrapper.events.modelInfo.subscribe(function (info) {
+                console.log('Model Info', info);
+                listHetGroups(info);
+            });
+
+            addControl('Load Asym Unit', () => loadAndSnapshot({ url: url, format: format, isBinary }));
+            addControl('Load Assembly', () => loadAndSnapshot({ url: url, format: format, isBinary, assemblyId: assemblyId }));
+
+            addSeparator();
+
+            addHeader('Representation');
+
+            addControl('Custom Chain Colors', () => PluginWrapper.updateStyle({ sequence: { coloring: 'proteopedia-custom' } }, true));
+            addControl('Default Chain Colors', () => PluginWrapper.updateStyle({ sequence: { } }, true));
+
+            addControl('HET Spacefill', () => PluginWrapper.updateStyle({ hetGroups: { kind: 'spacefill' } }, true));
+            addControl('HET Ball-and-stick', () => PluginWrapper.updateStyle({ hetGroups: { kind: 'ball-and-stick' } }, true));
+
+            addControl('Hide 3DSNFG', () => PluginWrapper.updateStyle({ snfg3d: { hide: true } }, true));
+            addControl('Show 3DSNFG', () => PluginWrapper.updateStyle({ snfg3d: { hide: false } }, true));
+
+            addControl('Hide Water', () => PluginWrapper.updateStyle({ water: { hide: true } }, true));
+            addControl('Show Water', () => PluginWrapper.updateStyle({ water: { hide: false } }, true));
+
+            addSeparator();
+
+            addHeader('Camera');
+            addControl('Reset Position', () => PluginWrapper.camera.resetPosition());
+            addControl('Toggle Spin', () => PluginWrapper.camera.toggleSpin());
+            // Same as "wheel icon" and Viewport options
+            // addControl('Clip', () => PluginWrapper.viewport.setSettings({ clip: [33, 66] }));
+            // addControl('Reset Clip', () => PluginWrapper.viewport.setSettings({ clip: [1, 100] }));
+
+            addSeparator();
+
+            addHeader('Animation');
+
+            // adjust this number to make the animation faster or slower
+            // requires to "restart" the animation if changed
+            PluginWrapper.animate.modelIndex.targetFps = 30;
+
+            addControl('Play To End', () => PluginWrapper.animate.modelIndex.onceForward());
+            addControl('Play To Start', () => PluginWrapper.animate.modelIndex.onceBackward());
+            addControl('Play Palindrome', () => PluginWrapper.animate.modelIndex.palindrome());
+            addControl('Play Loop', () => PluginWrapper.animate.modelIndex.loop());
+            addControl('Stop', () => PluginWrapper.animate.modelIndex.stop());
+
+            addSeparator();
+            addHeader('Misc');
+
+            addControl('Apply Evo Cons Style', () => PluginWrapper.coloring.evolutionaryConservation());
+            addControl('Apply Evo Cons Colors', () => PluginWrapper.coloring.evolutionaryConservation({ sequence: true, het: false, keepStyle: true }));
+            addControl('Default Visuals', () => PluginWrapper.updateStyle());
+
+            addSeparator();
+            addHeader('HET Groups');
+
+            addControl('Reset', () => PluginWrapper.hetGroups.reset());
+            addHetGroupsContainer();
+
+            addSeparator();
+            addHeader('Exp. Data');
+            addControl('Init', () => PluginWrapper.experimentalData.init($('volume-streaming-wrapper')));
+            addControl('Remove', () => PluginWrapper.experimentalData.remove());
+
+            addSeparator();
+            addHeader('State');
+
+            var snapshot;
+            addControl('Set Snapshot', () => {
+                // const options = { data: true, behavior: false, animation: false, interactivity: false, canvas3d: false, camera: false, cameraTransition: false };
+                snapshot = PluginWrapper.plugin.state.getSnapshot(/** options */);
+                // console.log(JSON.stringify(snapshot, null, 2));
+            });
+            addControl('Restore Snapshot', () => {
+                if (!snapshot) return;
+                PluginWrapper.snapshot.set(snapshot);
+            });
+            addControl('Download State', () => {
+                PluginWrapper.snapshot.download('molj');
+            });
+            addControl('Download Session', () => {
+                PluginWrapper.snapshot.download('molx');
+            });
+
+            ////////////////////////////////////////////////////////
+
+            function addHetGroupsContainer() {
+                var div = document.createElement('div');
+                div.id = 'het-groups';
+                $('controls').appendChild(div);
+            }
+
+            function addControl(label, action) {
+                var btn = document.createElement('button');
+                btn.onclick = action;
+                btn.innerText = label;
+                $('controls').appendChild(btn);
+            }
+
+            function addSeparator() {
+                var hr = document.createElement('hr');
+                $('controls').appendChild(hr);
+            }
+
+            function addHeader(header) {
+                var h = document.createElement('h3');
+                h.innerText = header;
+                $('controls').appendChild(h);
+            }
+
+            function listHetGroups(info) {
+                var div = $('het-groups');
+                div.innerHTML = '';
+                info.hetResidues.forEach(function (r) {
+                    var l = document.createElement('button');
+                    l.innerText = r.name;
+                    l.onclick = function () {
+                        PluginWrapper.hetGroups.focusFirst(r.name, { doNotLabelWaters: true });
+                    };
+                    div.appendChild(l);
+                });
+            }
+        </script>
+    </body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <title>Mol* Lighting Demo</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            #app {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+            }
+
+            #controls {
+                position: absolute;
+                width: 150px;
+                bottom: 100px;
+                right: 50px;
+                z-index: 10;
+                font-family: sans-serif;
+                font-size: smaller;
+            }
+
+            #controls > button {
+                display: block;
+                width: 100%;
+                text-align: left;
+                margin: 5px 0px;
+            }
+
+            #controls > input, #controls > select {
+                width: 100%;
+                display: block;
+            }
+        </style>
+        <link rel="stylesheet" type="text/css" href="molstar.css" />
+        <script type="text/javascript" src="./index.js"></script>
+    </head>
+    <body>
+        <div id='controls'></div>
+        <div id="app"></div>
+        <script>
+            LightingDemo.init('app').then(() => {
+                LightingDemo.load({ url: 'https://models.rcsb.org/4KTC.bcif', assemblyId: '1' }, 5, 1.3);
+            });
+
+            addHeader('Example PDB IDs');
+            addControl('4KTC', () => LightingDemo.load({ url: 'https://models.rcsb.org/4KTC.bcif', assemblyId: '1' }, 5, 1.3));
+            addControl('5FJ5', () => LightingDemo.load({ url: 'https://models.rcsb.org/5FJ5.bcif', assemblyId: '1' }, 8, 1.8));
+            addControl('1UPN', () => LightingDemo.load({ url: 'https://models.rcsb.org/1UPN.bcif', assemblyId: '1' }, 7, 1.6));
+            addControl('1RB8', () => LightingDemo.load({ url: 'https://models.rcsb.org/1RB8.bcif', assemblyId: '1' }, 6, 1.3));
+
+            addSeparator()
+
+            addHeader('Lighting Presets');
+            addControl('Illustrative', () => LightingDemo.setPreset('illustrative'));
+            addControl('Standard', () => LightingDemo.setPreset('standard'));
+            addControl('Ambient Occlusion', () => LightingDemo.setPreset('occlusion'));
+
+            ////////////////////////////////////////////////////////
+
+            function $(id) { return document.getElementById(id); }
+
+            function addControl(label, action) {
+                var btn = document.createElement('button');
+                btn.onclick = action;
+                btn.innerText = label;
+                $('controls').appendChild(btn);
+            }
+
+            function addSeparator() {
+                var hr = document.createElement('br');
+                $('controls').appendChild(hr);
+            }
+
+            function addHeader(header) {
+                var h = document.createElement('h3');
+                h.innerText = header;
+                $('controls').appendChild(h);
+            }
+        </script>
+        <!-- __MOLSTAR_ANALYTICS__ -->
+    </body>
+</html>
