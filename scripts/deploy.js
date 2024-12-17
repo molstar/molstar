@@ -61,9 +61,13 @@ function copyDemos() {
 }
 
 function copyFiles() {
-    copyViewer();
-    copyMe();
-    copyDemos();
+    try {
+        copyViewer();
+        copyMe();
+        copyDemos();
+    } catch (e) {
+        console.error(e);
+    }
 }
 
 if (!fs.existsSync(localPath)) {

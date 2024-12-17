@@ -5,7 +5,7 @@
  */
 
 import { deepClone, pickObjectKeys } from '../../../../mol-util/object';
-import { MVSData } from '../../mvs-data';
+import { GlobalMetadata, MVSData_State, Snapshot, SnapshotMetadata } from '../../mvs-data';
 import { CustomProps } from '../generic/tree-schema';
 import { MVSKind, MVSNode, MVSNodeParams, MVSSubtree } from './mvs-tree';
 
@@ -56,14 +56,17 @@ export class Root extends _Base<'root'> {
         (this._root as Root) = this;
     }
     /** Return the current state of the builder as object in MVS format. */
-    getState(metadata?: Partial<Pick<MVSData['metadata'], 'title' | 'description' | 'description_format'>>): MVSData {
+    getState(metadata?: Pick<GlobalMetadata, 'title' | 'description' | 'description_format'>): MVSData_State {
         return {
             root: deepClone(this._node),
-            metadata: {
-                ...metadata,
-                version: `${MVSData.SupportedVersion}`,
-                timestamp: utcNowISO(),
-            },
+            metadata: GlobalMetadata.create(metadata),
+        };
+    }
+    /** Return the current state of the builder as a snapshot object to be used in multi-state . */
+    getSnapshot(metadata: SnapshotMetadata): Snapshot {
+        return {
+            root: deepClone(this._node),
+            metadata: { ...metadata },
         };
     }
     // omitting `saveState`, filesystem operations are responsibility of the caller code (platform-dependent)
@@ -263,11 +266,6 @@ export function builderDemo() {
     cif.modelStructure({ model_index: 0 as any }).transform({ translation: [60, 0, 0], rotation: [0, 1, 0, -1, 0, 0, 0, 0, 1] }).component().representation().color({ color: '#aa0077' });
 
     return builder.getState();
-}
-
-/** Return the current universal time, in ISO format, e.g. '2023-11-24T10:45:49.873Z' */
-function utcNowISO(): string {
-    return new Date().toISOString();
 }
 
 export interface CustomAndRef {

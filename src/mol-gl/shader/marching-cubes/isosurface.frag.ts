@@ -307,6 +307,6 @@ void main(void) {
     }
 
     // apply normal matrix
-    gl_FragData[2].xyz *= transpose3(inverse3(mat3(uGridTransform)));
+    gl_FragData[2].xyz *= adjoint(uGridTransform);
 }
 `;

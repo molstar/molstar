@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -44,7 +44,7 @@ void main(){
     #else
         vec3 normal = aNormal;
     #endif
-    mat3 normalMatrix = transpose3(inverse3(mat3(modelView)));
+    mat3 normalMatrix = adjoint(modelView);
     vec3 transformedNormal = normalize(normalMatrix * normalize(normal));
     #if defined(dFlipSided)
         if (!uDoubleSided) { // TODO checking uDoubleSided should not be required, ASR
