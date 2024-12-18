@@ -10,6 +10,9 @@ Note that since we don't clearly distinguish between a public and private interf
   - Toggle visibility of all volumes
   - More accessible iso value control
 - Support wheel event on sliders
+- MolViewSpec extension:
+  - Add validation for discriminated union params
+  - Primitives: remove triangle_colors, line_colors, have implicit grouping instead; rename many parameters
 
 ## [v4.10.0] - 2024-12-15
 
@@ -22,10 +25,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix is_iOS check for NodeJS
 - Added PluginCommands.Camera.FocusObject
 - Plugin state snapshot can have instructions to focus objects (PluginState.Snapshot.camera.focus)
-- MolViewSpec extension:
-    - Support for multi-state files (animations)
-    - Add validation for discriminated union params
-    - Primitives: remove triangle_colors, line_colors, have implicit grouping instead; rename many parameters
+- MolViewSpec extension: Support for multi-state files (animations)
 - Fix units transform data not fully updated when structure child changes
 - Fix `addIndexPairBonds` quadratic runtime case
 - Use adjoint matrix to transform normals in shaders

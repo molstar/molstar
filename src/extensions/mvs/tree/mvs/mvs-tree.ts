@@ -288,21 +288,30 @@ export const MVSTreeSchema = TreeSchema({
             description: 'This node groups a list of geometrical primitives',
             parent: ['structure', 'root'],
             params: SimpleParamsSchema({
-                color: OptionalField(ColorT, 'white', 'Default color for primitives in this group'),
-                label_color: OptionalField(ColorT, 'white', 'Default label color for primitives in this group'),
-                tooltip: OptionalField(nullable(str), null, 'Default tooltip for primitives in this group'),
-                opacity: OptionalField(float, 1, 'Opacity of primitive geometry in this group'),
-                label_opacity: OptionalField(float, 1, 'Opacity of primitive labels in this group'),
-                instances: OptionalField(nullable(list(Matrix)), null, 'Instances of this primitive group defined as 4x4 column major (j * 4 + i indexing) transformation matrices'),
+                /** Default color for primitives in this group. */
+                color: OptionalField(ColorT, 'white', 'Default color for primitives in this group.'),
+                /** Default label color for primitives in this group. */
+                label_color: OptionalField(ColorT, 'white', 'Default label color for primitives in this group.'),
+                /** Default tooltip for primitives in this group. */
+                tooltip: OptionalField(nullable(str), null, 'Default tooltip for primitives in this group.'),
+                /** Opacity of primitive geometry in this group. */
+                opacity: OptionalField(float, 1, 'Opacity of primitive geometry in this group.'),
+                /** Opacity of primitive labels in this group. */
+                label_opacity: OptionalField(float, 1, 'Opacity of primitive labels in this group.'),
+                /** Instances of this primitive group defined as 4x4 column major (j * 4 + i indexing) transformation matrices. */
+                instances: OptionalField(nullable(list(Matrix)), null, 'Instances of this primitive group defined as 4x4 column major (j * 4 + i indexing) transformation matrices.'),
             }),
         },
         primitives_from_uri: {
             description: 'This node loads a list of primitives from URI',
             parent: ['structure', 'root'],
             params: SimpleParamsSchema({
-                uri: RequiredField(str, 'Location of the resource'),
-                format: RequiredField(literal('mvs-node-json'), 'Format of the data'),
-                references: OptionalField(StrList, [], 'List of nodes the data are referencing'),
+                /** Location of the resource. */
+                uri: RequiredField(str, 'Location of the resource.'),
+                /** Format of the data. */
+                format: RequiredField(literal('mvs-node-json'), 'Format of the data.'),
+                /** List of nodes the data are referencing. */
+                references: OptionalField(StrList, [], 'List of nodes the data are referencing.'),
             }),
         },
         primitive: {
