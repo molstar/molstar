@@ -6,11 +6,14 @@
 
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 import { LinesBuilder } from '../../../mol-geo/geometry/lines/lines-builder';
-import { addFixedCountDashedCylinder, addSimpleCylinder, BasicCylinderProps } from '../../../mol-geo/geometry/mesh/builder/cylinder';
+import { addCylinder, addFixedCountDashedCylinder, addSimpleCylinder, BasicCylinderProps } from '../../../mol-geo/geometry/mesh/builder/cylinder';
+import { addEllipsoid } from '../../../mol-geo/geometry/mesh/builder/ellipsoid';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Text } from '../../../mol-geo/geometry/text/text';
 import { TextBuilder } from '../../../mol-geo/geometry/text/text-builder';
+import { Box, BoxCage } from '../../../mol-geo/primitive/box';
+import { Circle, CirclerProps } from '../../../mol-geo/primitive/circle';
 import { Box3D, Sphere3D } from '../../../mol-math/geometry';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { Shape } from '../../../mol-model/shape';
@@ -110,6 +113,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
     from: MVSPrimitivesData,
     to: SO.Shape.Provider,
     params: {
+        // TODO: some list to not type everything
         kind: PD.Text<'mesh' | 'labels' | 'lines'>('mesh')
     }
 })({
@@ -118,6 +122,9 @@ export const MVSBuildPrimitiveShape = MVSTransform({
         const context: PrimitiveBuilderContext = { ...a.data, structureRefs };
 
         const label = capitalize(params.kind);
+        // TODO: case statement
+
+        //
         if (params.kind === 'mesh') {
             if (!hasPrimitiveKind(a.data, 'mesh')) return StateObject.Null;
 
@@ -140,7 +147,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
             }, { label });
         } else if (params.kind === 'lines') {
             if (!hasPrimitiveKind(a.data, 'line')) return StateObject.Null;
-
+            // cage with type === "as_lines" should use buildPrimitiveLines
             return new SO.Shape.Provider({
                 label,
                 data: context,
@@ -148,6 +155,8 @@ export const MVSBuildPrimitiveShape = MVSTransform({
                 getShape: (_, data, __, prev: any) => buildPrimitiveLines(data, prev?.geometry),
                 geometryUtils: Lines.Utils,
             }, { label });
+        } else {
+            throw Error(`Kind ${params.kind} is not supported yet.`);
         }
 
         return StateObject.Null;
@@ -242,6 +251,10 @@ const Builders: Record<MVSPrimitive['kind'], [
         mesh?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
         line?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
         label?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
+        box?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
+        cage?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
+        cylinder?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
+        ellipsoid?: boolean | ((primitive: any, context: PrimitiveBuilderContext) => boolean),
         refs?: (params: any, refs: Set<string>) => void
     },
 ]> = {
@@ -253,6 +266,11 @@ const Builders: Record<MVSPrimitive['kind'], [
     line: [addLineMesh, noOp, noOp, { mesh: true, refs: resolveLineRefs }],
     label: [noOp, noOp, addPrimitiveLabel, { label: true, refs: resolveLabelRefs }],
     distance_measurement: [addDistanceMesh, noOp, addDistanceLabel, { mesh: true, label: true, refs: resolveLineRefs }],
+    box: [addBoxMesh, noOp, noOp, { mesh: true, refs: resolveBoxRefs }],
+    cage: [noOp, addCageLines, noOp, { line: true, refs: resolveCageRefs }],
+    cylinder: [addCylinderMesh, noOp, noOp, { mesh: true, refs: resolveCylinderRefs }],
+    ellipsoid: [addEllipsoidMesh, noOp, noOp, { mesh: true, refs: resolveEllipsoidRefs }],
+    ellipsis: [addEllipsis, noOp, noOp, { mesh: true, refs: resolveEllipsisRefs }]
 };
 
 
@@ -266,7 +284,11 @@ function addRef(position: PrimitivePositionT, refs: Set<string>) {
     }
 }
 
+// TODO: type for this
 function hasPrimitiveKind(context: PrimitiveBuilderContext, kind: 'mesh' | 'line' | 'label') {
+    debugger;
+    // loops over primtives in context
+    // so there are no boxes in context, just lines
     for (const c of context.primitives) {
         const p = c.params as unknown as MVSPrimitive;
         const test = Builders[p.kind]?.[3]?.[kind];
@@ -286,7 +308,7 @@ function resolveBasePosition(context: PrimitiveBuilderContext, position: Primiti
 const _EmptySphere = Sphere3D.zero();
 const _EmptyBox = Box3D.zero();
 
-function resolvePosition(context: PrimitiveBuilderContext, position: PrimitivePositionT, targetPosition: Vec3 | undefined, targetSphere: Sphere3D | undefined, targetBox: Box3D | undefined) {
+export function resolvePosition(context: PrimitiveBuilderContext, position: PrimitivePositionT, targetPosition: Vec3 | undefined, targetSphere: Sphere3D | undefined, targetBox: Box3D | undefined) {
     let expr: Expression | undefined;
     let pivotRef: string | undefined;
 
@@ -371,6 +393,7 @@ function buildPrimitiveMesh(context: PrimitiveBuilderContext, prev?: Mesh): Shap
     const { colors, tooltips } = state.groups;
     const tooltip = context.options?.tooltip ?? '';
     const color = decodeColor(context.options?.color) ?? 0x0;
+
 
     return Shape.create(
         'Mesh',
@@ -551,6 +574,29 @@ function addLines(context: PrimitiveBuilderContext, { groups, lines }: LineBuild
     }
 }
 
+
+function addCageLines(context: PrimitiveBuilderContext, { groups, lines }: LineBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'cage'>, options?: { skipResolvePosition?: boolean }) {
+    if (!options?.skipResolvePosition) {
+        resolvePosition(context, params.center, boxPos, undefined, targetBox);
+    }
+    const { type, edge_radius, color, center, extent, scaling, groups: cage_groups, rotation_axis, rotation_radians, translation } = params;
+    if (type === 'as_geometry') throw Error('Only lines cage is supported');
+    // const groupSet: Map<number, number> | undefined = line_groups?.length ? groups.allocateMany(node, line_groups) : undefined;
+    // TODO: radius? only for mesh?
+    const radius = edge_radius ?? 1;
+
+    // const mat4 = Mat4.identity();
+    const mat4 = _transformBoxLikePrimitive(targetBox, boxPos, extent, scaling, rotation_axis, rotation_radians, translation);
+    const cage = BoxCage();
+    const group = groups.allocateSingle(node);
+    groups.updateColor(group, color ?? 'black');
+    groups.updateSize(group, radius);
+    // groups.updateTooltip(group, params.tooltip);
+
+    // TODO: check if 0 group (last argument) works
+    lines.addCage(mat4, cage, 0);
+}
+
 function resolveLineRefs(params: MVSPrimitiveParams<'line' | 'distance_measurement'>, refs: Set<string>) {
     addRef(params.start, refs);
     addRef(params.end, refs);
@@ -582,8 +628,116 @@ function addLineMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBui
         const count = Math.ceil(dist / (2 * params.dash_length));
         addFixedCountDashedCylinder(mesh, lStart, lEnd, 1.0, count, true, cylinderProps);
     } else {
+        // NOTE: this: use similar
         addSimpleCylinder(mesh, lStart, lEnd, cylinderProps);
     }
+}
+
+const cylinderBottomPos = Vec3.zero();
+const cylinderUpPos = Vec3.zero();
+
+function addCylinderMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'cylinder'>, options?: { skipResolvePosition?: boolean }) {
+    // TODO: fix - should be able to specify residues auth... etc.
+    if (!options?.skipResolvePosition) {
+        resolveBasePosition(context, params.bottom, cylinderBottomPos);
+        resolveBasePosition(context, params.up, cylinderUpPos);
+    }
+
+    const { bottom, color, up, radius_bottom, radius_top, bottom_cap, top_cap } = params;
+    const cylinderProps: BasicCylinderProps = {
+        radiusBottom: radius_bottom,
+        radiusTop: radius_top,
+        topCap: top_cap,
+        bottomCap: bottom_cap,
+    };
+
+    mesh.currentGroup = groups.allocateSingle(node);
+    groups.updateColor(mesh.currentGroup, color);
+    // groups.updateTooltip(mesh.currentGroup, params.tooltip);
+
+    // TODO: "Complex" cylinder
+    // TODO: scale add to this + transform params?
+    // scale
+    addCylinder(mesh, cylinderBottomPos, cylinderUpPos, 1, cylinderProps);
+    // addSimpleCylinder(mesh, cylinderBottomPos, cylinderUpPos, cylinderProps);
+}
+
+// function addEllipsis(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'ellipsis'>, options?: { skipResolvePosition?: boolean }) {
+//     // TODO: calculate
+//     const majorAxis = Vec3.create(params.major_axis[0], params.major_axis[1], params.major_axis[2]);
+//     // const minorAxis =
+
+//     if (!options?.skipResolvePosition) {
+//         resolvePosition(context, params.center, boxPos, undefined, targetBox);
+//     }
+
+//     const radius = Vec3.distance(majorAxis, boxPos);
+//     const circleProps: CirclerProps = {
+//         // TODO: take into account minoraxis
+//         radius: radius,
+//         segments: 32,
+//         // TODO: change
+//         thetaStart: 28
+//     };
+//     const circle = Circle(circleProps);
+
+//     // scale
+//     // const { center, extent, scaling, rotation_axis, rotation_radians, translation } = params;
+//     const mat4 = Mat4.identity();
+
+//     mesh.currentGroup = groups.allocateSingle(node);
+//     groups.updateColor(mesh.currentGroup, params.color);
+//     MeshBuilder.addPrimitive(mesh, mat4, circle);
+// }
+
+const ellipsoidPos = Vec3.zero();
+
+// TODO: debug (loading for ages)
+function addEllipsoidMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'ellipsoid'>, options?: { skipResolvePosition?: boolean }) {
+    if (!options?.skipResolvePosition) {
+        resolveBasePosition(context, params.center, ellipsoidPos);
+    }
+    const { direction_major, direction_minor, color, radius_scale } = params;
+    const dirA = Vec3.create(direction_major[0], direction_major[1], direction_major[2]);
+    const dirB = Vec3.create(direction_minor[0], direction_minor[1], direction_minor[2]);
+    const radiusScale = radius_scale ? Vec3.create(radius_scale[0], radius_scale[1], radius_scale[2]) : Vec3.create(1, 1, 1);
+    mesh.currentGroup = groups.allocateSingle(node);
+    groups.updateColor(mesh.currentGroup, color);
+    addEllipsoid(mesh, ellipsoidPos, dirA, dirB, radiusScale, 2);
+}
+
+function _transformBoxLikePrimitive(targetBox: Box3D, center: Vec3, extent: number[], scaling?: number[] | null, rotation_axis?: number[] | null, rotation_radians?: number | null, translation?: number[] | null) {
+    const mat4 = Mat4.identity();
+    const t = translation ?? [0, 0, 0];
+    const translationVector = Vec3.create(center[0] + t[0], center[1] + t[1], center[2] + t[2]);
+    Mat4.translate(mat4, mat4, translationVector);
+    if (rotation_axis && rotation_radians) {
+        const axis = Vec3.create(rotation_axis[0], rotation_axis[1], rotation_axis[2]);
+        Mat4.rotate(mat4, mat4, rotation_radians, axis);
+    }
+    const s = scaling ?? [1, 1, 1];
+    const x = extent[0] + Math.abs(targetBox.max[0] - targetBox.min[0]);
+    const y = extent[1] + Math.abs(targetBox.max[1] - targetBox.min[1]);
+    const z = extent[2] + Math.abs(targetBox.max[2] - targetBox.min[2]);
+    const scalingVector = Vec3.create(x * s[0], y * s[1], z * s[2]);
+    Mat4.scale(mat4, mat4, scalingVector);
+    return mat4;
+}
+
+const targetBox = Box3D.zero();
+
+function addBoxMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'box'>, options?: { skipResolvePosition?: boolean }) {
+    const box = Box();
+
+    if (!options?.skipResolvePosition) {
+        resolvePosition(context, params.center, boxPos, undefined, targetBox);
+    }
+
+    const { center, extent, scaling, rotation_axis, rotation_radians, translation } = params;
+    const mat4 = _transformBoxLikePrimitive(targetBox, boxPos, extent, scaling, rotation_axis, rotation_radians, translation);
+    mesh.currentGroup = groups.allocateSingle(node);
+    groups.updateColor(mesh.currentGroup, params.color);
+    MeshBuilder.addPrimitive(mesh, mat4, box);
 }
 
 function getDistanceLabel(context: PrimitiveBuilderContext, params: MVSPrimitiveParams<'distance_measurement'>) {
@@ -603,6 +757,7 @@ function addDistanceMesh(context: PrimitiveBuilderContext, state: MeshBuilderSta
 }
 
 const labelPos = Vec3.zero();
+const boxPos = Vec3.zero();
 
 function addDistanceLabel(context: PrimitiveBuilderContext, state: LabelBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'distance_measurement'>) {
     const { labels, groups } = state;
@@ -632,6 +787,28 @@ function addDistanceLabel(context: PrimitiveBuilderContext, state: LabelBuilderS
 
 function resolveLabelRefs(params: MVSPrimitiveParams<'label'>, refs: Set<string>) {
     addRef(params.position, refs);
+}
+
+// TODO: type for Vec3 float list
+function resolveBoxRefs(params: MVSPrimitiveParams<'box'>, refs: Set<string>) {
+    addRef(params.center as [number, number, number], refs);
+}
+
+function resolveEllipsoidRefs(params: MVSPrimitiveParams<'ellipsoid'>, refs: Set<string>) {
+    addRef(params.center as [number, number, number], refs);
+}
+
+function resolveEllipsisRefs(params: MVSPrimitiveParams<'ellipsis'>, refs: Set<string>) {
+    addRef(params.center as [number, number, number], refs);
+}
+
+function resolveCageRefs(params: MVSPrimitiveParams<'cage'>, refs: Set<string>) {
+    addRef(params.center as [number, number, number], refs);
+}
+
+function resolveCylinderRefs(params: MVSPrimitiveParams<'cylinder'>, refs: Set<string>) {
+    addRef(params.up as [number, number, number], refs);
+    addRef(params.bottom as [number, number, number], refs);
 }
 
 function addPrimitiveLabel(context: PrimitiveBuilderContext, state: LabelBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'label'>) {

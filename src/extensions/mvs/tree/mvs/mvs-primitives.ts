@@ -18,6 +18,63 @@ const _LineBase = {
     dash_length: nullable(float),
 };
 
+const _TransformBase = {
+    rotation_axis: nullable(FloatList),
+    rotation_radians: nullable(int),
+    translation: nullable(FloatList)
+};
+
+const CylinderParams = obj({
+    kind: literal('cylinder'),
+    ..._TransformBase,
+    color: nullable(ColorT),
+    radius_top: float,
+    radius_bottom: float,
+    bottom: PrimitivePositionT,
+    up: PrimitivePositionT,
+    theta_start: float,
+    theta_length: float,
+    bottom_cap: bool,
+    top_cap: bool
+});
+const EllipsoidParams = obj({
+    kind: literal('ellipsoid'),
+    color: nullable(ColorT),
+    center: PrimitivePositionT,
+    direction_major: FloatList,
+    direction_minor: FloatList,
+    radius_scale: nullable(FloatList)
+    // direction_normal: FloatList = Field(description="Normal direction of the ellipsoid.")
+});
+const EllipsisParams = obj({
+    kind: literal('ellipsis'),
+    color: nullable(ColorT),
+    center: PrimitivePositionT,
+    major_axis: FloatList,
+    minor_axis: FloatList,
+});
+const BoxParams = obj({
+    kind: literal('box'),
+    ..._TransformBase,
+    color: nullable(ColorT),
+    center: PrimitivePositionT,
+    extent: FloatList,
+    scaling: nullable(FloatList),
+    groups: nullable(IntList),
+});
+
+const CageParams = obj({
+    kind: literal('cage'),
+    type: literal('as_edges', 'as_geometry'),
+    ..._TransformBase,
+    color: nullable(ColorT),
+    center: PrimitivePositionT,
+    extent: FloatList,
+    scaling: nullable(FloatList),
+    groups: nullable(IntList),
+    edge_radius: nullable(float)
+});
+
 const MeshParams = obj({
     kind: literal('mesh'),
     vertices: FloatList,
@@ -73,7 +130,7 @@ const PrimitiveLabelParams = obj({
     label_offset: nullable(float),
 });
 
-export const MVSPrimitiveParams = union([MeshParams, LinesParams, LineParams, DistanceMeasurementParams, PrimitiveLabelParams]);
+export const MVSPrimitiveParams = union([MeshParams, EllipsisParams, BoxParams, EllipsoidParams, CageParams, CylinderParams, LinesParams, LineParams, DistanceMeasurementParams, PrimitiveLabelParams]);
 
 export type MVSPrimitive = ValueFor<typeof MVSPrimitiveParams>
 export type MVSPrimitiveKind = MVSPrimitive['kind']
