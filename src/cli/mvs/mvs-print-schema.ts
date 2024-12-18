@@ -12,7 +12,6 @@
 
 import { ArgumentParser } from 'argparse';
 import { treeSchemaToMarkdown, treeSchemaToString } from '../../extensions/mvs/tree/generic/tree-schema';
-import { MVSDefaults } from '../../extensions/mvs/tree/mvs/mvs-defaults';
 import { MVSTreeSchema } from '../../extensions/mvs/tree/mvs/mvs-tree';
 
 
@@ -32,9 +31,9 @@ function parseArguments(): Args {
 /** Main workflow for printing MolViewSpec tree schema. */
 function main(args: Args) {
     if (args.markdown) {
-        console.log(treeSchemaToMarkdown(MVSTreeSchema, MVSDefaults));
+        console.log(treeSchemaToMarkdown(MVSTreeSchema));
     } else {
-        console.log(treeSchemaToString(MVSTreeSchema, MVSDefaults));
+        console.log(treeSchemaToString(MVSTreeSchema));
     }
 }
 

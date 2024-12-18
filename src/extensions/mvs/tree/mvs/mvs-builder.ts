@@ -7,8 +7,7 @@
 import { deepClone, pickObjectKeys } from '../../../../mol-util/object';
 import { GlobalMetadata, MVSData_State, Snapshot, SnapshotMetadata } from '../../mvs-data';
 import { CustomProps } from '../generic/tree-schema';
-import { MVSDefaults } from './mvs-defaults';
-import { MVSKind, MVSNode, MVSNodeParams, MVSSubtree, MVSTreeSchema } from './mvs-tree';
+import { MVSKind, MVSNode, MVSNodeParams, MVSSubtree } from './mvs-tree';
 
 
 /** Create a new MolViewSpec builder containing only a root node. Example of MVS builder usage:
@@ -28,17 +27,16 @@ export function createMVSBuilder(params: CustomAndRef = {}) {
 
 /** Base class for MVS builder pointing to anything */
 class _Base<TKind extends MVSKind> {
-    protected constructor(
+    constructor(
         protected readonly _root: Root,
         protected readonly _node: MVSSubtree<TKind>,
     ) { }
     /** Create a new node, append as child to current _node, and return the new node */
     protected addChild<TChildKind extends MVSKind>(kind: TChildKind, params_: MVSNodeParams<TChildKind> & CustomAndRef) {
         const { params, custom, ref } = splitParams<MVSNodeParams<TChildKind>>(params_);
-        const allowedParamNames = Object.keys(MVSTreeSchema.nodes[kind].params) as (keyof MVSNodeParams<TChildKind>)[];
         const node = {
             kind,
-            params: pickObjectKeys(params, allowedParamNames) as unknown,
+            params,
             custom,
             ref,
         } as MVSSubtree<TChildKind>;
@@ -50,7 +48,7 @@ class _Base<TKind extends MVSKind> {
 
 
 /** MVS builder pointing to the 'root' node */
-export class Root extends _Base<'root'> {
+export class Root extends _Base<'root'> implements FocusMixin, PrimitivesMixin {
     constructor(params_: CustomAndRef) {
         const { custom, ref } = params_;
         const node: MVSNode<'root'> = { kind: 'root', custom, ref };
@@ -64,6 +62,7 @@ export class Root extends _Base<'root'> {
             metadata: GlobalMetadata.create(metadata),
         };
     }
+    // omitting `saveState`, filesystem operations are responsibility of the caller code (platform-dependent)
     /** Return the current state of the builder as a snapshot object to be used in multi-state . */
     getSnapshot(metadata: SnapshotMetadata): Snapshot {
         return {
@@ -71,7 +70,6 @@ export class Root extends _Base<'root'> {
             metadata: { ...metadata },
         };
     }
-    // omitting `saveState`, filesystem operations are responsibility of the caller code (platform-dependent)
 
     /** Add a 'camera' node and return builder pointing to the root. 'camera' node instructs to set the camera position and orientation. */
     camera(params: MVSNodeParams<'camera'> & CustomAndRef): Root {
@@ -87,6 +85,9 @@ export class Root extends _Base<'root'> {
     download(params: MVSNodeParams<'download'> & CustomAndRef): Download {
         return new Download(this._root, this.addChild('download', params));
     }
+    focus = bindMethod(this, FocusMixinImpl, 'focus');
+    primitives = bindMethod(this, PrimitivesMixinImpl, 'primitives');
+    primitives_from_uri = bindMethod(this, PrimitivesMixinImpl, 'primitives_from_uri');
 }
 
 
@@ -154,10 +155,10 @@ export class Parse extends _Base<'parse'> {
 
 
 /** MVS builder pointing to a 'structure' node */
-export class Structure extends _Base<'structure'> {
+export class Structure extends _Base<'structure'> implements PrimitivesMixin {
     /** Add a 'component' node and return builder pointing to it. 'component' node instructs to create a component (i.e. a subset of the parent structure). */
     component(params: Partial<MVSNodeParams<'component'>> & CustomAndRef = {}): Component {
-        const fullParams = { ...params, selector: params.selector ?? MVSDefaults.component.selector };
+        const fullParams = { ...params, selector: params.selector ?? 'all' };
         return new Component(this._root, this.addChild('component', fullParams));
     }
     /** Add a 'component_from_uri' node and return builder pointing to it. 'component_from_uri' node instructs to create a component defined by an external annotation resource. */
@@ -196,11 +197,13 @@ export class Structure extends _Base<'structure'> {
         this.addChild('transform', params);
         return this;
     }
+    primitives = bindMethod(this, PrimitivesMixinImpl, 'primitives');
+    primitives_from_uri = bindMethod(this, PrimitivesMixinImpl, 'primitives_from_uri');
 }
 
 
 /** MVS builder pointing to a 'component' or 'component_from_uri' or 'component_from_source' node */
-export class Component extends _Base<'component' | 'component_from_uri' | 'component_from_source'> {
+export class Component extends _Base<'component' | 'component_from_uri' | 'component_from_source'> implements FocusMixin {
     /** Add a 'representation' node and return builder pointing to it. 'representation' node instructs to create a visual representation of a component. */
     representation(params: Partial<MVSNodeParams<'representation'>> & CustomAndRef = {}): Representation {
         const fullParams: MVSNodeParams<'representation'> = { ...params, type: params.type ?? 'cartoon' };
@@ -216,11 +219,7 @@ export class Component extends _Base<'component' | 'component_from_uri' | 'compo
         this.addChild('tooltip', params);
         return this;
     }
-    /** Add a 'focus' node and return builder pointing back to the component node. 'focus' node instructs to set the camera focus to a component (zoom in). */
-    focus(params: MVSNodeParams<'focus'> & CustomAndRef = {}): Component {
-        this.addChild('focus', params);
-        return this;
-    }
+    focus = bindMethod(this, FocusMixinImpl, 'focus');
 }
 
 
@@ -241,7 +240,93 @@ export class Representation extends _Base<'representation'> {
         this.addChild('color_from_source', params);
         return this;
     }
+    /** Add an 'opacity' node and return builder pointing back to the representation node. 'opacity' node instructs to customize opacity/transparency of a visual representation. */
+    opacity(params: MVSNodeParams<'opacity'> & CustomAndRef): Representation {
+        this.addChild('opacity', params);
+        return this;
+    }
 }
+
+
+type MVSPrimitiveSubparams<TKind extends MVSNodeParams<'primitive'>['kind']> = Omit<Extract<MVSNodeParams<'primitive'>, { kind: TKind }>, 'kind'>;
+
+/** MVS builder pointing to a 'primitives' node */
+class Primitives extends _Base<'primitives'> implements FocusMixin {
+    /** Construct custom meshes/shapes in a low-level fashion by providing vertices and indices. */
+    mesh(params: MVSPrimitiveSubparams<'mesh'> & CustomAndRef): Primitives {
+        this.addChild('primitive', { kind: 'mesh', ...params });
+        return this;
+    }
+    /** Construct custom set of lines in a low-level fashion by providing vertices and indices. */
+    lines(params: MVSPrimitiveSubparams<'lines'> & CustomAndRef): Primitives {
+        this.addChild('primitive', { kind: 'lines', ...params });
+        return this;
+    }
+    /** Defines a tube (3D cylinder), connecting a start and an end point. */
+    tube(params: MVSPrimitiveSubparams<'tube'> & CustomAndRef): Primitives {
+        this.addChild('primitive', { kind: 'tube', ...params });
+        return this;
+    }
+    /** Defines a tube, connecting a start and an end point, with label containing distance between start and end. */
+    distance(params: MVSPrimitiveSubparams<'distance_measurement'> & CustomAndRef): Primitives {
+        this.addChild('primitive', { kind: 'distance_measurement', ...params });
+        return this;
+    }
+    /** Defines a label. */
+    label(params: MVSPrimitiveSubparams<'label'> & CustomAndRef): Primitives {
+        this.addChild('primitive', { kind: 'label', ...params });
+        return this;
+    }
+    focus = bindMethod(this, FocusMixinImpl, 'focus');
+}
+
+
+/** MVS builder pointing to a 'primitives_from_uri' node */
+class PrimitivesFromUri extends _Base<'primitives_from_uri'> implements FocusMixin {
+    focus = bindMethod(this, FocusMixinImpl, 'focus');
+}
+
+
+// MIXINS
+
+type Constructor<T> = new (...args: any[]) => T;
+
+/** Fake interface for typing tweaks */
+interface Self { '@type': 'self' }
+
+type ReplaceSelf<TFunction, TSelf> = TFunction extends (...args: infer TArgs) => Self ? (...args: TArgs) => TSelf : TFunction;
+
+function bindMethod<O extends _Base<any>, C extends Constructor<_Base<any>>, M extends keyof InstanceType<C>>(thisObj: O, mixin: C, methodName: M): ReplaceSelf<InstanceType<C>[M], O> {
+    return mixin.prototype[methodName].bind(thisObj);
+}
+
+// This mixin implementation is really ugly but couldn't be bothered (running into TS2502: 'Root' is referenced directly or indirectly in its own type annotation)
+
+interface FocusMixin {
+    /** Add a 'focus' node and return builder pointing back to the original node. 'focus' node instructs to set the camera focus to a component (zoom in). */
+    focus(params: MVSNodeParams<'focus'> & CustomAndRef): any,
+}
+class FocusMixinImpl extends _Base<MVSKind> implements FocusMixin {
+    focus(params: MVSNodeParams<'focus'> & CustomAndRef = {}): Self {
+        this.addChild('focus', params);
+        return this as unknown as Self;
+    }
+};
+
+interface PrimitivesMixin {
+    /** Allows the definition of a (group of) geometric primitives. You can add any number of primitives and then assign shared options (color, opacity etc.). */
+    primitives(params: MVSNodeParams<'primitives'> & CustomAndRef): Primitives,
+    /** Allows the definition of a (group of) geometric primitives provided dynamically. */
+    primitives_from_uri(params: MVSNodeParams<'primitives_from_uri'> & CustomAndRef): PrimitivesFromUri,
+};
+class PrimitivesMixinImpl extends _Base<MVSKind> implements PrimitivesMixin {
+    primitives(params: MVSNodeParams<'primitives'> & CustomAndRef = {}): Primitives {
+        return new Primitives(this._root, this.addChild('primitives', params));
+    }
+    primitives_from_uri(params: MVSNodeParams<'primitives_from_uri'> & CustomAndRef): PrimitivesFromUri {
+        return new PrimitivesFromUri(this._root, this.addChild('primitives_from_uri', params));
+    }
+};
 
 
 /** Demonstration of usage of MVS builder */
