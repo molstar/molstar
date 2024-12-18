@@ -2,6 +2,7 @@
  * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
@@ -31,15 +32,21 @@ import { rowsToExpression, rowToExpression } from '../helpers/selections';
 import { collectMVSReferences, decodeColor } from '../helpers/utils';
 import { MolstarNode, MolstarSubtree } from '../tree/molstar/molstar-tree';
 import { MVSNode } from '../tree/mvs/mvs-tree';
-import { MVSPrimitive, MVSPrimitiveOptions, MVSPrimitiveParams } from '../tree/mvs/mvs-tree-primitives';
 import { isComponentExpression, isPrimitiveComponentExpressions, isVector3, PrimitivePositionT } from '../tree/mvs/param-types';
 import { MVSTransform } from './annotation-structure-component';
+
+
+type PrimitivesParams = MolstarNode<'primitives'>['params']
+
+type _PrimitiveParams = MolstarNode<'primitive'>['params']
+type PrimitiveKind = _PrimitiveParams['kind']
+type PrimitiveParams<T extends PrimitiveKind = PrimitiveKind> = Extract<_PrimitiveParams, { kind: T }>
 
 export function getPrimitiveStructureRefs(primitives: MolstarSubtree<'primitives'>) {
     const refs = new Set<string>();
     for (const c of primitives.children ?? []) {
         if (c.kind !== 'primitive') continue;
-        const p = c.params as unknown as MVSPrimitive;
+        const p = c.params;
         Builders[p.kind].resolveRefs?.(p, refs);
     }
     return refs;
@@ -202,7 +209,7 @@ interface PrimitiveBuilderContext {
     defaultStructure?: Structure;
     structureRefs: Record<string, Structure | undefined>;
     primitives: MolstarNode<'primitive'>[];
-    options: MVSPrimitiveOptions;
+    options: PrimitivesParams;
     positionCache: Map<string, [Sphere3D, Box3D]>;
     instances: Mat4[] | undefined;
 }
@@ -249,15 +256,15 @@ interface PrimitiveBuilder {
     resolveRefs?: (params: any, refs: Set<string>) => void,
 }
 
-const Builders: Record<MVSPrimitive['kind'], PrimitiveBuilder> = {
+const Builders: Record<PrimitiveParams['kind'], PrimitiveBuilder> = {
     mesh: {
         builders: {
             mesh: addMesh,
             line: addMeshWireframe,
         },
         isApplicable: {
-            mesh: (m: MVSPrimitiveParams<'mesh'>) => m.show_triangles ?? true,
-            line: (m: MVSPrimitiveParams<'mesh'>) => m.show_wireframe ?? false,
+            mesh: (m: PrimitiveParams<'mesh'>) => m.show_triangles ?? true,
+            line: (m: PrimitiveParams<'mesh'>) => m.show_wireframe ?? false,
         },
     },
     lines: {
@@ -288,7 +295,7 @@ const Builders: Record<MVSPrimitive['kind'], PrimitiveBuilder> = {
 
 
 function getPrimitives(primitives: MolstarSubtree<'primitives'>) {
-    return (primitives.children ?? []).filter(c => c.kind === 'primitive') as unknown as MolstarNode<'primitive'>[];
+    return (primitives.children ?? []).filter(c => c.kind === 'primitive') as MolstarNode<'primitive'>[];
 }
 
 function addRef(position: PrimitivePositionT, refs: Set<string>) {
@@ -299,7 +306,7 @@ function addRef(position: PrimitivePositionT, refs: Set<string>) {
 
 function hasPrimitiveKind(context: PrimitiveBuilderContext, kind: 'mesh' | 'line' | 'label') {
     for (const c of context.primitives) {
-        const params = c.params as unknown as MVSPrimitive;
+        const params = c.params;
         const b = Builders[params.kind];
         const builderFunction = b.builders[kind];
         if (builderFunction) {
@@ -380,7 +387,7 @@ function resolvePosition(context: PrimitiveBuilderContext, position: PrimitivePo
     context.positionCache.set(cackeKey, [sphere, box]);
 }
 
-function getInstances(options: MVSPrimitiveOptions | undefined): Mat4[] | undefined {
+function getInstances(options: PrimitivesParams | undefined): Mat4[] | undefined {
     if (!options?.instances?.length) return undefined;
     return options.instances.map(i => Mat4.fromArray(Mat4(), i, 0));
 }
@@ -392,7 +399,7 @@ function buildPrimitiveMesh(context: PrimitiveBuilderContext, prev?: Mesh): Shap
     meshBuilder.currentGroup = -1;
 
     for (const c of context.primitives) {
-        const p = c.params as unknown as MVSPrimitive;
+        const p = c.params;
         const b = Builders[p.kind];
         if (!b) {
             console.warn(`Primitive ${p.kind} not supported`);
@@ -425,7 +432,7 @@ function buildPrimitiveLines(context: PrimitiveBuilderContext, prev?: Lines): Sh
     const state: LineBuilderState = { groups: new GroupManager(), lines: linesBuilder };
 
     for (const c of context.primitives) {
-        const p = c.params as unknown as MVSPrimitive;
+        const p = c.params;
         const b = Builders[p.kind];
         if (!b) {
             console.warn(`Primitive ${p.kind} not supported`);
@@ -458,7 +465,7 @@ function buildPrimitiveLabels(context: PrimitiveBuilderContext, prev?: Text): Sh
     const state: LabelBuilderState = { groups: new GroupManager(), labels: labelsBuilder };
 
     for (const c of context.primitives) {
-        const p = c.params as unknown as MVSPrimitive;
+        const p = c.params;
         const b = Builders[p.kind];
         if (!b) {
             console.warn(`Primitive ${p.kind} not supported`);
@@ -485,7 +492,7 @@ function buildPrimitiveLabels(context: PrimitiveBuilderContext, prev?: Text): Sh
     );
 }
 
-function addMeshFaces(context: PrimitiveBuilderContext, groups: GroupManager, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'mesh'>, addFace: (mvsGroup: number, builderGroup: number, a: Vec3, b: Vec3, c: Vec3) => void) {
+function addMeshFaces(context: PrimitiveBuilderContext, groups: GroupManager, node: MVSNode<'primitive'>, params: PrimitiveParams<'mesh'>, addFace: (mvsGroup: number, builderGroup: number, a: Vec3, b: Vec3, c: Vec3) => void) {
     const a = Vec3.zero();
     const b = Vec3.zero();
     const c = Vec3.zero();
@@ -506,7 +513,7 @@ function addMeshFaces(context: PrimitiveBuilderContext, groups: GroupManager, no
     }
 }
 
-function addMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'mesh'>) {
+function addMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'mesh'>) {
     if (!params.show_triangles) return;
 
     const { group_colors, group_tooltips, color, tooltip } = params;
@@ -520,7 +527,7 @@ function addMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilder
     // this could be slightly improved by only updating color and tooltip once per group instead of once per triangle
 }
 
-function addMeshWireframe(context: PrimitiveBuilderContext, { groups, lines }: LineBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'mesh'>) {
+function addMeshWireframe(context: PrimitiveBuilderContext, { groups, lines }: LineBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'mesh'>) {
     if (!params.show_wireframe) return;
     const width = params.wireframe_width ?? 1;
 
@@ -536,7 +543,7 @@ function addMeshWireframe(context: PrimitiveBuilderContext, { groups, lines }: L
     });
 }
 
-function addLines(context: PrimitiveBuilderContext, { groups, lines }: LineBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'lines'>) {
+function addLines(context: PrimitiveBuilderContext, { groups, lines }: LineBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'lines'>) {
     const a = Vec3.zero();
     const b = Vec3.zero();
 
@@ -560,7 +567,7 @@ function addLines(context: PrimitiveBuilderContext, { groups, lines }: LineBuild
     }
 }
 
-function resolveLineRefs(params: MVSPrimitiveParams<'tube' | 'distance_measurement'>, refs: Set<string>) {
+function resolveLineRefs(params: PrimitiveParams<'tube' | 'distance_measurement'>, refs: Set<string>) {
     addRef(params.start, refs);
     addRef(params.end, refs);
 }
@@ -568,7 +575,7 @@ function resolveLineRefs(params: MVSPrimitiveParams<'tube' | 'distance_measureme
 const lStart = Vec3.zero();
 const lEnd = Vec3.zero();
 
-function addTubeMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'tube'>, options?: { skipResolvePosition?: boolean }) {
+function addTubeMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'tube'>, options?: { skipResolvePosition?: boolean }) {
     if (!options?.skipResolvePosition) {
         resolveBasePosition(context, params.start, lStart);
         resolveBasePosition(context, params.end, lEnd);
@@ -595,7 +602,7 @@ function addTubeMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBui
     }
 }
 
-function getDistanceLabel(context: PrimitiveBuilderContext, params: MVSPrimitiveParams<'distance_measurement'>) {
+function getDistanceLabel(context: PrimitiveBuilderContext, params: PrimitiveParams<'distance_measurement'>) {
     resolveBasePosition(context, params.start, lStart);
     resolveBasePosition(context, params.end, lEnd);
 
@@ -606,14 +613,14 @@ function getDistanceLabel(context: PrimitiveBuilderContext, params: MVSPrimitive
     return label;
 }
 
-function addDistanceMesh(context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'distance_measurement'>) {
+function addDistanceMesh(context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'distance_measurement'>) {
     const tooltip = getDistanceLabel(context, params);
     addTubeMesh(context, state, node, { ...params, tooltip } as any, { skipResolvePosition: true });
 }
 
 const labelPos = Vec3.zero();
 
-function addDistanceLabel(context: PrimitiveBuilderContext, state: LabelBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'distance_measurement'>) {
+function addDistanceLabel(context: PrimitiveBuilderContext, state: LabelBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'distance_measurement'>) {
     const { labels, groups } = state;
     resolveBasePosition(context, params.start, lStart);
     resolveBasePosition(context, params.end, lEnd);
@@ -639,11 +646,11 @@ function addDistanceLabel(context: PrimitiveBuilderContext, state: LabelBuilderS
     labels.add(label, labelPos[0], labelPos[1], labelPos[2], 1.05 * (params.radius ?? 0.05), 1, group);
 }
 
-function resolveLabelRefs(params: MVSPrimitiveParams<'label'>, refs: Set<string>) {
+function resolveLabelRefs(params: PrimitiveParams<'label'>, refs: Set<string>) {
     addRef(params.position, refs);
 }
 
-function addPrimitiveLabel(context: PrimitiveBuilderContext, state: LabelBuilderState, node: MVSNode<'primitive'>, params: MVSPrimitiveParams<'label'>) {
+function addPrimitiveLabel(context: PrimitiveBuilderContext, state: LabelBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'label'>) {
     const { labels, groups } = state;
     resolveBasePosition(context, params.position, labelPos);
 
