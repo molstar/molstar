@@ -25,6 +25,12 @@ type SequenceProps = {
 /** Note, if this is changed, the CSS for `msp-sequence-number` needs adjustment too */
 const MaxSequenceNumberSize = 5;
 
+const MarkerColors = {
+    Selected: 'rgb(51, 255, 25)',
+    Highlighted: 'rgb(255, 102, 153)',
+    Focused: 'rgba(112,144,255,0.65)',
+}
+
 // TODO: this is somewhat inefficient and should be done using a canvas.
 export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     protected parentDiv = React.createRef<HTMLDivElement>();
@@ -165,14 +171,14 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         // TODO: make marker color configurable
         if (typeof marker === 'undefined') console.error('unexpected marker value');
         if (marker !== 0) {
-            if (marker % 2 === 0) return 'rgb(51, 255, 25)'; // selected
-            else return 'rgb(255, 102, 153)'; // highlighted
+            if (marker % 2 === 0) return MarkerColors.Selected;
+            else return MarkerColors.Highlighted;
         } else {
             if (seqIdx !== undefined) {
                 const loci = this.props.sequenceWrapper.getLoci(seqIdx);
                 const focusedLoci = this.plugin.managers.structure.focus.behaviors.current.value?.loci;
                 if (focusedLoci && StructureElement.Loci.areIntersecting(loci, focusedLoci)) {
-                    return 'rgba(160,160,160,0.6)';
+                    return MarkerColors.Focused;
                 }
             }
         }
