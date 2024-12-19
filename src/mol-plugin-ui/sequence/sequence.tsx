@@ -9,10 +9,11 @@ import * as React from 'react';
 import { Subject } from 'rxjs';
 import { throttleTime } from 'rxjs/operators';
 import { OrderedSet } from '../../mol-data/int';
+import { EveryLoci } from '../../mol-model/loci';
 import { StructureElement, StructureProperties, Unit } from '../../mol-model/structure';
 import { Representation } from '../../mol-repr/representation';
 import { ButtonsType, getButton, getButtons, getModifiers, ModifiersKeys } from '../../mol-util/input/input-observer';
-import { MarkerAction } from '../../mol-util/marker-action';
+import { MarkerAction, MarkerValue } from '../../mol-util/marker-action';
 import { PluginUIComponent } from '../base';
 import { SequenceWrapper } from './wrapper';
 
@@ -28,8 +29,8 @@ const MaxSequenceNumberSize = 5;
 const MarkerColors = {
     Selected: 'rgb(51, 255, 25)',
     Highlighted: 'rgb(255, 102, 153)',
-    Focused: 'rgba(112,144,255,0.65)',
-}
+    Focused: 'rgba(112, 144, 255, 0.65)',
+};
 
 // TODO: this is somewhat inefficient and should be done using a canvas.
 export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
@@ -65,9 +66,17 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             const loci = this.getLoci(e.seqIdx < 0 ? void 0 : e.seqIdx);
             this.hover(loci, e.buttons, e.button, e.modifiers);
         });
-        this.subscribe(this.plugin.managers.structure.focus.behaviors.current, () => {
+        this.subscribe(this.plugin.managers.structure.focus.behaviors.current, focus => {
+            this.updateFocus(focus?.loci);
             this.updateMarker();
         });
+    }
+
+    updateFocus(loci: StructureElement.Loci | undefined) {
+        this.props.sequenceWrapper.markResidue(EveryLoci, MarkerAction.RemoveFocus);
+        if (loci) {
+            this.props.sequenceWrapper.markResidue(loci, MarkerAction.Focus);
+        }
     }
 
     componentWillUnmount() {
@@ -167,21 +176,12 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         this.mouseDownLoci = undefined;
     };
 
-    protected getBackgroundColor(marker: number, seqIdx?: number) {
+    protected getBackgroundColor(marker: number) {
         // TODO: make marker color configurable
         if (typeof marker === 'undefined') console.error('unexpected marker value');
-        if (marker !== 0) {
-            if (marker % 2 === 0) return MarkerColors.Selected;
-            else return MarkerColors.Highlighted;
-        } else {
-            if (seqIdx !== undefined) {
-                const loci = this.props.sequenceWrapper.getLoci(seqIdx);
-                const focusedLoci = this.plugin.managers.structure.focus.behaviors.current.value?.loci;
-                if (focusedLoci && StructureElement.Loci.areIntersecting(loci, focusedLoci)) {
-                    return MarkerColors.Focused;
-                }
-            }
-        }
+        if (MarkerValue.isHighlighted(marker as MarkerValue)) return MarkerColors.Highlighted;
+        if (MarkerValue.isSelected(marker as MarkerValue)) return MarkerColors.Selected;
+        if (MarkerValue.isFocused(marker as MarkerValue)) return MarkerColors.Focused;
         return '';
     }
 
@@ -192,7 +192,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     }
 
     protected residue(seqIdx: number, label: string, marker: number) {
-        return <span key={seqIdx} data-seqid={seqIdx} style={{ backgroundColor: this.getBackgroundColor(marker, seqIdx) }} className={this.getResidueClass(seqIdx, label)}>{`\u200b${label}\u200b`}</span>;
+        return <span key={seqIdx} data-seqid={seqIdx} style={{ backgroundColor: this.getBackgroundColor(marker) }} className={this.getResidueClass(seqIdx, label)}>{`\u200b${label}\u200b`}</span>;
     }
 
     protected getSequenceNumberClass(seqIdx: number, seqNum: string, label: string) {
@@ -252,7 +252,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             //     first = span;
             // }
 
-            const backgroundColor = this.getBackgroundColor(markerArray[i], i);
+            const backgroundColor = this.getBackgroundColor(markerArray[i]);
             if (span.style.backgroundColor !== backgroundColor) span.style.backgroundColor = backgroundColor;
         }
 
@@ -315,6 +315,9 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             }
             elems[elems.length] = this.residue(i, label, sw.markerArray[i]);
         }
+
+        // ensure the focus markers are updated after sequenceRender is recreated
+        this.updateFocus(this.plugin.managers.structure.focus.behaviors.current.value?.loci);
 
         // calling .updateMarker here is neccesary to ensure existing
         // residue spans are updated as react won't update them
