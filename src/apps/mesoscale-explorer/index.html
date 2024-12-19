@@ -6,6 +6,7 @@
         <link rel="icon" href="./favicon.ico" type="image/x-icon">
         <link rel="stylesheet" href="../extras/driver.css"/>
         <title>Mol* Mesoscale Explorer</title>
+        <link rel="manifest" href="/molstar/manifest-mesoscale-explorer.webmanifest" type="application/manifest+json">
         <style>
             * {
                 margin: 0;
@@ -103,6 +104,23 @@
                     me.dispose();
                 });
             });
+        </script>
+        <!-- Register the app's service worker. -->
+        <script type="module">
+            if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                //navigator.serviceWorker.register('/sw.js')
+                navigator.serviceWorker.register(new URL('/sw-mesoscale-explorer.js', import.meta.url))
+                //navigator.serviceWorker.register(new URL('/sw.js', import.meta.url), { scope: '/' })
+                .then(function (registration) {
+                // Registration was successful
+                console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, function (err) {
+                // registration failed :(
+                console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+            }
         </script>
         <!-- __MOLSTAR_ANALYTICS__ -->
     </body>
