@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { OrderedSet, Interval } from '../mol-data/int';
+import { Interval, OrderedSet } from '../mol-data/int';
 import { BitFlags } from './bit-flags';
 import { assertUnreachable } from './type-helpers';
 
@@ -15,7 +15,9 @@ export enum MarkerAction {
     Select = 0x4,
     Deselect = 0x8,
     Toggle = 0x10,
-    Clear = 0x20
+    Clear = 0x20,
+    Focus = 0x40,
+    RemoveFocus = 0x80,
 }
 
 export type MarkerActions = BitFlags<MarkerAction>
@@ -25,7 +27,7 @@ export namespace MarkerActions {
     export const All = (
         MarkerAction.Highlight | MarkerAction.RemoveHighlight |
         MarkerAction.Select | MarkerAction.Deselect | MarkerAction.Toggle |
-        MarkerAction.Clear
+        MarkerAction.Clear | MarkerAction.Focus | MarkerAction.RemoveFocus
     ) as MarkerActions;
     export const Highlighting = (
         MarkerAction.Highlight | MarkerAction.RemoveHighlight |
@@ -35,6 +37,10 @@ export namespace MarkerActions {
         MarkerAction.Select | MarkerAction.Deselect | MarkerAction.Toggle |
         MarkerAction.Clear
     ) as MarkerActions;
+    export const Focusing = (
+        MarkerAction.Focus | MarkerAction.RemoveFocus |
+        MarkerAction.Clear
+    ) as MarkerActions;
 
     export function isReverse(a: MarkerAction, b: MarkerAction) {
         return (
@@ -42,12 +48,25 @@ export namespace MarkerActions {
             (a === MarkerAction.RemoveHighlight && b === MarkerAction.Highlight) ||
             (a === MarkerAction.Select && b === MarkerAction.Deselect) ||
             (a === MarkerAction.Deselect && b === MarkerAction.Select) ||
-            (a === MarkerAction.Toggle && b === MarkerAction.Toggle)
+            (a === MarkerAction.Toggle && b === MarkerAction.Toggle) ||
+            (a === MarkerAction.Focus && b === MarkerAction.RemoveFocus) ||
+            (a === MarkerAction.RemoveFocus && b === MarkerAction.Focus)
         );
     }
 }
 
-export function setMarkerValue(array: Uint8Array, status: 0 | 1 | 2 | 3, count: number) {
+/** Bitflags for 3 types of marker (1 = highlighted, 2 = selected, 4 = focused) */
+export type MarkerValue = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export const MarkerValue = {
+    Highlighted: 1,
+    Selected: 2,
+    Focused: 4,
+    isHighlighted: (v: MarkerValue) => !!(v & 1),
+    isSelected: (v: MarkerValue) => !!(v & 2),
+    isFocused: (v: MarkerValue) => !!(v & 4),
+};
+
+export function setMarkerValue(array: Uint8Array, status: MarkerValue, count: number) {
     array.fill(status, 0, count);
 }
 
@@ -59,6 +78,8 @@ export function applyMarkerActionAtPosition(array: Uint8Array, i: number, action
         case MarkerAction.Deselect: array[i] &= ~2; break;
         case MarkerAction.Toggle: array[i] ^= 2; break;
         case MarkerAction.Clear: array[i] = 0; break;
+        case MarkerAction.Focus: array[i] |= 4; break;
+        case MarkerAction.RemoveFocus: array[i] &= ~4; break;
     }
 }
 
@@ -105,6 +126,12 @@ export function applyMarkerAction(array: Uint8Array, set: OrderedSet, action: Ma
             case MarkerAction.Clear:
                 for (let i = viewStart; i < viewEnd; ++i) view[i] = 0;
                 break;
+            case MarkerAction.Focus:
+                for (let i = viewStart; i < viewEnd; ++i) view[i] |= 0x04040404;
+                break;
+            case MarkerAction.RemoveFocus:
+                for (let i = viewStart; i < viewEnd; ++i) view[i] &= ~0x04040404;
+                break;
             default:
                 assertUnreachable(action);
         }
@@ -135,6 +162,12 @@ export function applyMarkerAction(array: Uint8Array, set: OrderedSet, action: Ma
                 break;
             case MarkerAction.Clear:
                 for (let i = 0, il = set.length; i < il; ++i) array[set[i]] = 0;
+                break;
+            case MarkerAction.Focus:
+                for (let i = 0, il = set.length; i < il; ++i) array[set[i]] |= 4;
+                break;
+            case MarkerAction.RemoveFocus:
+                for (let i = 0, il = set.length; i < il; ++i) array[set[i]] &= ~4;
                 break;
             default:
                 assertUnreachable(action);
@@ -225,6 +258,7 @@ export function getMarkerInfo(action: MarkerAction, currentStatus: MarkerInfo['s
             status = 0;
             break;
     }
+    // TODO implement for Focus/RemoveFocus
     return { average, status };
 }
 
@@ -269,6 +303,11 @@ export function getPartialMarkerAverage(action: MarkerAction, currentStatus: Mar
                 return 0.5;
             }
         case MarkerAction.None:
+            return -1;
+        // TODO nooooo idea what the hell this is supposed to do, just returning -1 for now
+        case MarkerAction.Focus:
+            return -1;
+        case MarkerAction.RemoveFocus:
             return -1;
         default:
             assertUnreachable(action);

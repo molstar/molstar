@@ -9,10 +9,11 @@ import * as React from 'react';
 import { Subject } from 'rxjs';
 import { throttleTime } from 'rxjs/operators';
 import { OrderedSet } from '../../mol-data/int';
+import { EveryLoci } from '../../mol-model/loci';
 import { StructureElement, StructureProperties, Unit } from '../../mol-model/structure';
 import { Representation } from '../../mol-repr/representation';
 import { ButtonsType, getButton, getButtons, getModifiers, ModifiersKeys } from '../../mol-util/input/input-observer';
-import { MarkerAction } from '../../mol-util/marker-action';
+import { MarkerAction, MarkerValue } from '../../mol-util/marker-action';
 import { PluginUIComponent } from '../base';
 import { SequenceWrapper } from './wrapper';
 
@@ -24,6 +25,12 @@ type SequenceProps = {
 
 /** Note, if this is changed, the CSS for `msp-sequence-number` needs adjustment too */
 const MaxSequenceNumberSize = 5;
+
+const MarkerColors = {
+    Selected: 'rgb(51, 255, 25)',
+    Highlighted: 'rgb(255, 102, 153)',
+    Focused: 'rgba(112, 144, 255, 0.65)',
+};
 
 // TODO: this is somewhat inefficient and should be done using a canvas.
 export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
@@ -59,6 +66,17 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             const loci = this.getLoci(e.seqIdx < 0 ? void 0 : e.seqIdx);
             this.hover(loci, e.buttons, e.button, e.modifiers);
         });
+        this.subscribe(this.plugin.managers.structure.focus.behaviors.current, focus => {
+            this.updateFocus(focus?.loci);
+            this.updateMarker();
+        });
+    }
+
+    updateFocus(loci: StructureElement.Loci | undefined) {
+        this.props.sequenceWrapper.markResidue(EveryLoci, MarkerAction.RemoveFocus);
+        if (loci) {
+            this.props.sequenceWrapper.markResidue(loci, MarkerAction.Focus);
+        }
     }
 
     componentWillUnmount() {
@@ -88,6 +106,18 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         const ev = { current: Representation.Loci.Empty, buttons, button, modifiers };
         if (loci !== undefined && !StructureElement.Loci.isEmpty(loci)) {
             ev.current = { loci };
+            if (this.mouseDownLoci) {
+                const ref = this.mouseDownLoci.elements[0];
+                const ext = loci.elements[0];
+                const min = Math.min(OrderedSet.min(ref.indices), OrderedSet.min(ext.indices));
+                const max = Math.max(OrderedSet.max(ref.indices), OrderedSet.max(ext.indices));
+
+                const range = StructureElement.Loci(loci.structure, [{
+                    unit: ref.unit,
+                    indices: OrderedSet.ofRange(min as StructureElement.UnitIndex, max as StructureElement.UnitIndex)
+                }]);
+                ev.current = { loci: range };
+            }
         }
         this.plugin.behaviors.interaction.hover.next(ev);
     }
@@ -111,11 +141,6 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
 
         const seqIdx = this.getSeqIdx(e);
         const loci = this.getLoci(seqIdx);
-        const buttons = getButtons(e.nativeEvent);
-        const button = getButton(e.nativeEvent);
-        const modifiers = getModifiers(e.nativeEvent);
-
-        this.click(loci, buttons, button, modifiers);
         this.mouseDownLoci = loci;
     };
 
@@ -128,22 +153,25 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         const seqIdx = this.getSeqIdx(e);
         const loci = this.getLoci(seqIdx);
 
-        if (loci && !StructureElement.Loci.areEqual(this.mouseDownLoci, loci)) {
+        if (loci) {
             const buttons = getButtons(e.nativeEvent);
             const button = getButton(e.nativeEvent);
             const modifiers = getModifiers(e.nativeEvent);
 
-            const ref = this.mouseDownLoci.elements[0];
-            const ext = loci.elements[0];
-            const min = Math.min(OrderedSet.min(ref.indices), OrderedSet.min(ext.indices));
-            const max = Math.max(OrderedSet.max(ref.indices), OrderedSet.max(ext.indices));
+            let range = loci;
+            if (!StructureElement.Loci.areEqual(this.mouseDownLoci, loci)) {
+                const ref = this.mouseDownLoci.elements[0];
+                const ext = loci.elements[0];
+                const min = Math.min(OrderedSet.min(ref.indices), OrderedSet.min(ext.indices));
+                const max = Math.max(OrderedSet.max(ref.indices), OrderedSet.max(ext.indices));
 
-            const range = StructureElement.Loci(loci.structure, [{
-                unit: ref.unit,
-                indices: OrderedSet.ofRange(min as StructureElement.UnitIndex, max as StructureElement.UnitIndex)
-            }]);
+                range = StructureElement.Loci(loci.structure, [{
+                    unit: ref.unit,
+                    indices: OrderedSet.ofRange(min as StructureElement.UnitIndex, max as StructureElement.UnitIndex)
+                }]);
+            }
 
-            this.click(StructureElement.Loci.subtract(range, this.mouseDownLoci), buttons, button, modifiers);
+            this.click(range, buttons, button, modifiers);
         }
         this.mouseDownLoci = undefined;
     };
@@ -151,11 +179,10 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     protected getBackgroundColor(marker: number) {
         // TODO: make marker color configurable
         if (typeof marker === 'undefined') console.error('unexpected marker value');
-        return marker === 0
-            ? ''
-            : marker % 2 === 0
-                ? 'rgb(51, 255, 25)' // selected
-                : 'rgb(255, 102, 153)'; // highlighted
+        if (MarkerValue.isHighlighted(marker as MarkerValue)) return MarkerColors.Highlighted;
+        if (MarkerValue.isSelected(marker as MarkerValue)) return MarkerColors.Selected;
+        if (MarkerValue.isFocused(marker as MarkerValue)) return MarkerColors.Focused;
+        return '';
     }
 
     protected getResidueClass(seqIdx: number, label: string) {
@@ -255,7 +282,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             this.lastMouseOverSeqIdx = seqIdx;
             if (this.mouseDownLoci !== undefined) {
                 const loci = this.getLoci(seqIdx);
-                this.hover(loci, ButtonsType.Flag.None, ButtonsType.Flag.None, { ...modifiers, shift: true });
+                this.hover(loci, ButtonsType.Flag.None, ButtonsType.Flag.None, modifiers);
             } else {
                 this.highlightQueue.next({ seqIdx, buttons, button, modifiers });
             }
@@ -288,6 +315,9 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             }
             elems[elems.length] = this.residue(i, label, sw.markerArray[i]);
         }
+
+        // ensure the focus markers are updated after sequenceRender is recreated
+        this.updateFocus(this.plugin.managers.structure.focus.behaviors.current.value?.loci);
 
         // calling .updateMarker here is neccesary to ensure existing
         // residue spans are updated as react won't update them
