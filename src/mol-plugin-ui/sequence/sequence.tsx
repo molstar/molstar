@@ -73,9 +73,9 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     }
 
     updateFocus(loci: StructureElement.Loci | undefined) {
-        this.props.sequenceWrapper.markResidue(EveryLoci, MarkerAction.RemoveFocus);
+        this.props.sequenceWrapper.markResidue(EveryLoci, 'unfocus');
         if (loci) {
-            this.props.sequenceWrapper.markResidue(loci, MarkerAction.Focus);
+            this.props.sequenceWrapper.markResidue(loci, 'focus');
         }
     }
 
@@ -176,12 +176,12 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         this.mouseDownLoci = undefined;
     };
 
-    protected getBackgroundColor(marker: number) {
+    protected getBackgroundColor(marker: number, seqIdx: number) {
         // TODO: make marker color configurable
         if (typeof marker === 'undefined') console.error('unexpected marker value');
         if (MarkerValue.isHighlighted(marker as MarkerValue)) return MarkerColors.Highlighted;
         if (MarkerValue.isSelected(marker as MarkerValue)) return MarkerColors.Selected;
-        if (MarkerValue.isFocused(marker as MarkerValue)) return MarkerColors.Focused;
+        if (this.props.sequenceWrapper.focusMarkerArray[seqIdx]) return MarkerColors.Focused;
         return '';
     }
 
@@ -192,7 +192,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     }
 
     protected residue(seqIdx: number, label: string, marker: number) {
-        return <span key={seqIdx} data-seqid={seqIdx} style={{ backgroundColor: this.getBackgroundColor(marker) }} className={this.getResidueClass(seqIdx, label)}>{`\u200b${label}\u200b`}</span>;
+        return <span key={seqIdx} data-seqid={seqIdx} style={{ backgroundColor: this.getBackgroundColor(marker, seqIdx) }} className={this.getResidueClass(seqIdx, label)}>{`\u200b${label}\u200b`}</span>;
     }
 
     protected getSequenceNumberClass(seqIdx: number, seqNum: string, label: string) {
@@ -252,7 +252,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             //     first = span;
             // }
 
-            const backgroundColor = this.getBackgroundColor(markerArray[i]);
+            const backgroundColor = this.getBackgroundColor(markerArray[i], i);
             if (span.style.backgroundColor !== backgroundColor) span.style.backgroundColor = backgroundColor;
         }
 
