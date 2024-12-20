@@ -12,11 +12,14 @@ import { throttleTime } from 'rxjs/operators';
 import { OrderedSet } from '../../mol-data/int';
 import { EveryLoci } from '../../mol-model/loci';
 import { StructureElement, StructureProperties, Unit } from '../../mol-model/structure';
+import { PluginCommands } from '../../mol-plugin/commands';
 import { Representation } from '../../mol-repr/representation';
+import { Color } from '../../mol-util/color';
 import { ButtonsType, getButton, getButtons, getModifiers, ModifiersKeys } from '../../mol-util/input/input-observer';
 import { MarkerAction } from '../../mol-util/marker-action';
 import { PluginUIComponent } from '../base';
 import { SequenceWrapper } from './wrapper';
+
 
 type SequenceProps = {
     sequenceWrapper: SequenceWrapper.Any,
@@ -27,10 +30,10 @@ type SequenceProps = {
 /** Note, if this is changed, the CSS for `msp-sequence-number` needs adjustment too */
 const MaxSequenceNumberSize = 5;
 
-const MarkerColors = {
-    Selected: 'rgb(51, 255, 25)',
-    Highlighted: 'rgb(255, 102, 153)',
-    Focused: 'rgba(112, 144, 255, 0.65)',
+const DefaultMarkerColors = {
+    selected: 'rgb(51, 255, 25)',
+    highlighted: 'rgb(255, 102, 153)',
+    focused: 'rgba(112, 144, 255, 0.65)',
 };
 
 // TODO: this is somewhat inefficient and should be done using a canvas.
@@ -38,6 +41,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     protected parentDiv = React.createRef<HTMLDivElement>();
     protected lastMouseOverSeqIdx = -1;
     protected highlightQueue = new Subject<{ seqIdx: number, buttons: number, button: number, modifiers: ModifiersKeys }>();
+    protected markerColors = { ...DefaultMarkerColors };
 
     protected lociHighlightProvider = (loci: Representation.Loci, action: MarkerAction) => {
         const changed = this.props.sequenceWrapper.markResidue(loci.loci, action);
@@ -71,6 +75,22 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             this.updateFocus(focus?.loci);
             this.updateMarker();
         });
+
+        this.updateColors();
+        PluginCommands.Canvas3D.SetSettings.subscribe(this.plugin, () => {
+            this.updateColors();
+            this.updateMarker();
+        });
+    }
+
+    updateColors() {
+        if (this.plugin.canvas3d) {
+            this.markerColors.highlighted = Color.toHexStyle(this.plugin.canvas3d.props.renderer.highlightColor);
+            this.markerColors.selected = Color.toHexStyle(this.plugin.canvas3d.props.renderer.selectColor);
+        } else {
+            this.markerColors.highlighted = DefaultMarkerColors.highlighted;
+            this.markerColors.selected = DefaultMarkerColors.selected;
+        }
     }
 
     updateFocus(loci: StructureElement.Loci | undefined) {
@@ -178,11 +198,10 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     };
 
     protected getBackgroundColor(seqIdx: number) {
-        // TODO: make marker color configurable
         const seqWrapper = this.props.sequenceWrapper;
-        if (seqWrapper.isHighlighted(seqIdx)) return MarkerColors.Highlighted;
-        if (seqWrapper.isSelected(seqIdx)) return MarkerColors.Selected;
-        if (seqWrapper.isFocused(seqIdx)) return MarkerColors.Focused;
+        if (seqWrapper.isHighlighted(seqIdx)) return this.markerColors.highlighted;
+        if (seqWrapper.isSelected(seqIdx)) return this.markerColors.selected;
+        if (seqWrapper.isFocused(seqIdx)) return this.markerColors.focused;
         return '';
     }
 
