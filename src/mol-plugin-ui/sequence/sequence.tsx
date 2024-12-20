@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import * as React from 'react';
@@ -176,12 +177,12 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         this.mouseDownLoci = undefined;
     };
 
-    protected getBackgroundColor(marker: number, seqIdx: number) {
+    protected getBackgroundColor(seqIdx: number) {
         // TODO: make marker color configurable
-        if (typeof marker === 'undefined') console.error('unexpected marker value');
-        if (marker & 1) return MarkerColors.Highlighted;
-        if (marker & 2) return MarkerColors.Selected;
-        if (this.props.sequenceWrapper.focusMarkerArray[seqIdx]) return MarkerColors.Focused;
+        const seqWrapper = this.props.sequenceWrapper;
+        if (seqWrapper.isHighlighted(seqIdx)) return MarkerColors.Highlighted;
+        if (seqWrapper.isSelected(seqIdx)) return MarkerColors.Selected;
+        if (seqWrapper.isFocused(seqIdx)) return MarkerColors.Focused;
         return '';
     }
 
@@ -191,8 +192,8 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             : this.props.sequenceWrapper.residueClass(seqIdx);
     }
 
-    protected residue(seqIdx: number, label: string, marker: number) {
-        return <span key={seqIdx} data-seqid={seqIdx} style={{ backgroundColor: this.getBackgroundColor(marker, seqIdx) }} className={this.getResidueClass(seqIdx, label)}>{`\u200b${label}\u200b`}</span>;
+    protected residue(seqIdx: number, label: string) {
+        return <span key={seqIdx} data-seqid={seqIdx} style={{ backgroundColor: this.getBackgroundColor(seqIdx) }} className={this.getResidueClass(seqIdx, label)}>{`\u200b${label}\u200b`}</span>;
     }
 
     protected getSequenceNumberClass(seqIdx: number, seqNum: string, label: string) {
@@ -235,30 +236,20 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     protected updateMarker() {
         if (!this.parentDiv.current) return;
         const xs = this.parentDiv.current.children;
-        const { markerArray } = this.props.sequenceWrapper;
         const hasNumbers = !this.props.hideSequenceNumbers, period = this.sequenceNumberPeriod;
 
-        // let first: HTMLSpanElement | undefined;
-
+        const seqLength = this.props.sequenceWrapper.length;
         let o = 0;
-        for (let i = 0, il = markerArray.length; i < il; i++) {
-            if (hasNumbers && i % period === 0 && i < il) o++;
+        for (let i = 0; i < seqLength; i++) {
+            if (hasNumbers && i % period === 0 && i < seqLength) o++;
             // o + 1 to account for help icon
             const span = xs[o] as HTMLSpanElement;
             if (!span) return;
             o++;
 
-            // if (!first && markerArray[i] > 0) {
-            //     first = span;
-            // }
-
-            const backgroundColor = this.getBackgroundColor(markerArray[i], i);
+            const backgroundColor = this.getBackgroundColor(i);
             if (span.style.backgroundColor !== backgroundColor) span.style.backgroundColor = backgroundColor;
         }
-
-        // if (first) {
-        //     first.scrollIntoView({ block: 'nearest' });
-        // }
     }
 
     mouseMove = (e: React.MouseEvent) => {
@@ -313,7 +304,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             if (hasNumbers && i % period === 0 && i < il) {
                 elems[elems.length] = this.getSequenceNumberSpan(i, label);
             }
-            elems[elems.length] = this.residue(i, label, sw.markerArray[i]);
+            elems[elems.length] = this.residue(i, label);
         }
 
         // ensure the focus markers are updated after sequenceRender is recreated

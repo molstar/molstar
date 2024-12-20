@@ -1,14 +1,15 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { Interval, OrderedSet } from '../../mol-data/int';
 import { Loci, isEveryLoci } from '../../mol-model/loci';
-import { MarkerAction, applyMarkerAction } from '../../mol-util/marker-action';
-import { StructureElement, Structure, Unit } from '../../mol-model/structure';
+import { Structure, StructureElement, Unit } from '../../mol-model/structure';
 import { Color } from '../../mol-util/color';
+import { MarkerAction, applyMarkerAction } from '../../mol-util/marker-action';
 
 export type StructureUnit = { structure: Structure, units: Unit[] }
 
@@ -51,6 +52,19 @@ abstract class SequenceWrapper<D> {
             OrderedSet.forEach(seqIdxs, seqIdx => this.focusMarkerArray[seqIdx] = value);
             return OrderedSet.size(seqIdxs) > 0;
         }
+    }
+
+    /** Return true if the position `seqIndex` in sequence view is highlighted */
+    isHighlighted(seqIndex: number): boolean {
+        return !!(this.markerArray[seqIndex] & 1);
+    }
+    /** Return true if the position `seqIndex` in sequence view is selected */
+    isSelected(seqIndex: number): boolean {
+        return !!(this.markerArray[seqIndex] & 2);
+    }
+    /** Return true if the position `seqIndex` in sequence view is focused */
+    isFocused(seqIndex: number): boolean {
+        return !!(this.focusMarkerArray[seqIndex]);
     }
 
     /** Markers for "highlighted" and "selected" (2-bits per position) */
