@@ -13,7 +13,7 @@ import { EveryLoci } from '../../mol-model/loci';
 import { StructureElement, StructureProperties, Unit } from '../../mol-model/structure';
 import { Representation } from '../../mol-repr/representation';
 import { ButtonsType, getButton, getButtons, getModifiers, ModifiersKeys } from '../../mol-util/input/input-observer';
-import { MarkerAction, MarkerValue } from '../../mol-util/marker-action';
+import { MarkerAction } from '../../mol-util/marker-action';
 import { PluginUIComponent } from '../base';
 import { SequenceWrapper } from './wrapper';
 
@@ -179,8 +179,8 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     protected getBackgroundColor(marker: number, seqIdx: number) {
         // TODO: make marker color configurable
         if (typeof marker === 'undefined') console.error('unexpected marker value');
-        if (MarkerValue.isHighlighted(marker as MarkerValue)) return MarkerColors.Highlighted;
-        if (MarkerValue.isSelected(marker as MarkerValue)) return MarkerColors.Selected;
+        if (marker & 1) return MarkerColors.Highlighted;
+        if (marker & 2) return MarkerColors.Selected;
         if (this.props.sequenceWrapper.focusMarkerArray[seqIdx]) return MarkerColors.Focused;
         return '';
     }
