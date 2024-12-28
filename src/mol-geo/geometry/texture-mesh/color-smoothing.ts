@@ -285,7 +285,7 @@ export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolu
             webgl.namedTextures[ColorCountName] = resources.texture('image-float32', 'alpha', 'float', 'nearest');
         }
     } else {
-        // in webgl1 drawbuffers must be in the same format for some reason
+        // webgl1 requires consistent bit plane counts
         // this is quite wasteful but good enough for medium size meshes
 
         if (!webgl.namedTextures[ColorAccumulateName]) {

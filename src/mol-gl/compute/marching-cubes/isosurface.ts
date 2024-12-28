@@ -155,7 +155,7 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
                 : resources.texture('image-float32', 'rgba', 'float', 'nearest');
         }
     } else {
-        // in webgl1 drawbuffers must be in the same format for some reason
+        // webgl1 requires consistent bit plane counts
         // this is quite wasteful but good enough for medium size meshes
 
         if (!vertexTexture) {
