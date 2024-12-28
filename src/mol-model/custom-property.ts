@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -9,6 +9,7 @@ import { CifWriter } from '../mol-io/writer/cif';
 import { CifExportContext } from './structure/export/mmcif';
 import { QuerySymbolRuntime } from '../mol-script/runtime/query/compiler';
 import { UUID } from '../mol-util';
+import { arrayRemoveInPlace } from '../mol-util/array';
 
 export { CustomPropertyDescriptor, CustomProperties };
 
@@ -59,6 +60,14 @@ class CustomProperties {
 
         this._list.push(desc);
         this._set.add(desc);
+    }
+
+    remove(desc: CustomPropertyDescriptor<any>) {
+        if (!this._set.has(desc)) return;
+
+        arrayRemoveInPlace(this._list, desc);
+        this._set.delete(desc);
+        this.assets(desc);
     }
 
     reference(desc: CustomPropertyDescriptor<any>, add: boolean) {
