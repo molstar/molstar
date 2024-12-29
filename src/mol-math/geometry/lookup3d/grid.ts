@@ -62,6 +62,17 @@ class GridLookup3DImpl<T extends number = number> implements GridLookup3D<T> {
         return query(this.ctx, this.result);
     }
 
+    first(x: number, y: number, z: number, radius: number, result?: Result<T>): Result<T> {
+        this.ctx.x = x;
+        this.ctx.y = y;
+        this.ctx.z = z;
+        this.ctx.radius = radius;
+        this.ctx.isCheck = true;
+        const ret = result ?? this.result;
+        query(this.ctx, ret);
+        return ret;
+    }
+
     constructor(data: PositionData, boundary: Boundary, cellSizeOrCount?: Vec3 | number) {
         const structure = build(data, boundary, cellSizeOrCount);
         this.ctx = createContext(structure);

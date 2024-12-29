@@ -43,6 +43,7 @@ export interface Lookup3D<T = number> {
     find(x: number, y: number, z: number, radius: number, result?: Result<T>): Result<T>,
     nearest(x: number, y: number, z: number, k: number, stopIf?: Function, result?: Result<T>): Result<T>,
     check(x: number, y: number, z: number, radius: number): boolean,
+    first(x: number, y: number, z: number, radius: number, result?: Result<T>): Result<T>,
     readonly boundary: { readonly box: Box3D, readonly sphere: Sphere3D }
     /** transient result */
     readonly result: Result<T>

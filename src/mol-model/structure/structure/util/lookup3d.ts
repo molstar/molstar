@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -238,6 +238,33 @@ export class StructureLookup3D {
         }
 
         return false;
+    }
+
+    first(x: number, y: number, z: number, radius: number, ctx?: StructureLookup3DResultContext): StructureResult {
+        return this._first(x, y, z, radius, ctx ?? this.findContext);
+    }
+
+    _first(x: number, y: number, z: number, radius: number, ctx: StructureLookup3DResultContext): StructureResult {
+        Result.reset(ctx.result);
+        const { units } = this.structure;
+        const closeUnits = this.unitLookup.find(x, y, z, radius, ctx.closeUnitsResult);
+        if (closeUnits.count === 0) return ctx.result;
+
+        for (let t = 0, _t = closeUnits.count; t < _t; t++) {
+            const unit = units[closeUnits.indices[t]];
+            Vec3.set(this.pivot, x, y, z);
+            if (!unit.conformation.operator.isIdentity) {
+                Vec3.transformMat4(this.pivot, this.pivot, unit.conformation.operator.inverse);
+            }
+            const unitLookup = unit.lookup3d;
+            const groupResult = unitLookup.find(this.pivot[0], this.pivot[1], this.pivot[2], radius, ctx.unitGroupResult);
+            if (groupResult.count > 0) {
+                StructureResult.add(ctx.result, unit, groupResult.indices[0], groupResult.squaredDistances[0]);
+                return ctx.result;
+            }
+        }
+
+        return ctx.result;
     }
 
     get boundary() {
