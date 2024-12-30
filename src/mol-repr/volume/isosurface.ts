@@ -167,11 +167,6 @@ namespace VolumeIsosurfaceTexture {
         const dataType = props.gpuDataType === 'halfFloat' && !webgl.extensions.textureHalfFloat ? 'float' : props.gpuDataType;
 
         if (volume._propertyData[name]?.dataType !== dataType) {
-            volume.customProperties.remove(descriptor);
-            delete volume._propertyData[name];
-        }
-
-        if (!volume._propertyData[name]) {
             const texture = dataType === 'byte'
                 ? webgl.resources.texture('image-uint8', 'alpha', 'ubyte', 'linear')
                 : dataType === 'halfFloat'
