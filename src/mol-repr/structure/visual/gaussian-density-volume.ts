@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -31,7 +31,7 @@ async function createGaussianDensityVolume(ctx: VisualContext, structure: Struct
     const unitToCartn = Mat4.mul(Mat4(), transform, Mat4.fromScaling(Mat4(), gridDim));
     const cellDim = Mat4.getScaling(Vec3(), transform);
     const axisOrder = Vec3.create(0, 1, 2);
-    const vol = DirectVolume.create(bbox, gridDim, transform, unitToCartn, cellDim, texture, stats, true, axisOrder, directVolume);
+    const vol = DirectVolume.create(bbox, gridDim, transform, unitToCartn, cellDim, texture, stats, true, axisOrder, 'byte', directVolume);
 
     const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, densityTextureData.maxRadius);
     vol.setBoundingSphere(sphere);
@@ -89,7 +89,7 @@ async function createUnitsGaussianDensityVolume(ctx: VisualContext, unit: Unit, 
     const unitToCartn = Mat4.mul(Mat4(), transform, Mat4.fromScaling(Mat4(), gridDim));
     const cellDim = Mat4.getScaling(Vec3(), transform);
     const axisOrder = Vec3.create(0, 1, 2);
-    const vol = DirectVolume.create(bbox, gridDim, transform, unitToCartn, cellDim, texture, stats, true, axisOrder, directVolume);
+    const vol = DirectVolume.create(bbox, gridDim, transform, unitToCartn, cellDim, texture, stats, true, axisOrder, 'byte', directVolume);
 
     const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, densityTextureData.maxRadius);
     vol.setBoundingSphere(sphere);

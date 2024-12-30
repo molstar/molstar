@@ -5,7 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Volume UI improvements 
+- Volume UI improvements
   - Render all volume entries instead of selecting them one-by-one
   - Toggle visibility of all volumes
   - More accessible iso value control
@@ -13,6 +13,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - MolViewSpec extension:
   - Add validation for discriminated union params
   - Primitives: remove triangle_colors, line_colors, have implicit grouping instead; rename many parameters
+- Support float and half-float data type for direct-volume rendering and GPU isosurface extraction
 
 ## [v4.10.0] - 2024-12-15
 
