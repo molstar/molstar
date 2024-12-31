@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -28,6 +28,7 @@ const IsosurfaceSchema = {
     tActiveVoxelsPyramid: TextureSpec('texture', 'rgba', 'float', 'nearest'),
     tActiveVoxelsBase: TextureSpec('texture', 'rgba', 'float', 'nearest'),
     tVolumeData: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    dValueChannel: DefineSpec('string', ['red', 'alpha']),
     uIsoValue: UniformSpec('f'),
 
     uSize: UniformSpec('f'),
@@ -48,6 +49,10 @@ type IsosurfaceValues = Values<typeof IsosurfaceSchema>
 
 const IsosurfaceName = 'isosurface';
 
+function valueChannel(ctx: WebGLContext, volumeData: Texture) {
+    return isWebGL2(ctx.gl) && volumeData.format === ctx.gl.RED ? 'red' : 'alpha';
+}
+
 function getIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture, activeVoxelsBase: Texture, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, transform: Mat4, isoValue: number, levels: number, scale: Vec2, count: number, invert: boolean, packedGroup: boolean, axisOrder: Vec3, constantGroup: boolean): ComputeRenderable<IsosurfaceValues> {
     if (ctx.namedComputeRenderables[IsosurfaceName]) {
         const v = ctx.namedComputeRenderables[IsosurfaceName].values as IsosurfaceValues;
@@ -55,6 +60,7 @@ function getIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture
         ValueCell.update(v.tActiveVoxelsPyramid, activeVoxelsPyramid);
         ValueCell.update(v.tActiveVoxelsBase, activeVoxelsBase);
         ValueCell.update(v.tVolumeData, volumeData);
+        ValueCell.update(v.dValueChannel, valueChannel(ctx, volumeData));
 
         ValueCell.updateIfChanged(v.uIsoValue, isoValue);
         ValueCell.updateIfChanged(v.uSize, Math.pow(2, levels));
@@ -87,6 +93,7 @@ function createIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Text
         tActiveVoxelsPyramid: ValueCell.create(activeVoxelsPyramid),
         tActiveVoxelsBase: ValueCell.create(activeVoxelsBase),
         tVolumeData: ValueCell.create(volumeData),
+        dValueChannel: ValueCell.create(valueChannel(ctx, volumeData)),
 
         uIsoValue: ValueCell.create(isoValue),
         uSize: ValueCell.create(Math.pow(2, levels)),
