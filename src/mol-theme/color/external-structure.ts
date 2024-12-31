@@ -46,8 +46,8 @@ export const ExternalStructureColorThemeParams = {
         'structure-index': PD.Group(StructureIndexColorThemeParams),
     }),
     defaultColor: PD.Color(Color(0xcccccc)),
-    maxDistance: PD.Numeric(8, { min: 0.1, max: 24, step: 0.1 }),
-    takeFirstDistance: PD.Numeric(4, { min: 0.1, max: 12, step: 0.1 }),
+    maxDistance: PD.Numeric(8, { min: 0.1, max: 24, step: 0.1 }, { description: 'Maximum distance to search for the nearest structure element. This is done only if the approximate search fails.' }),
+    approxMaxDistance: PD.Numeric(4, { min: 0, max: 12, step: 0.1 }, { description: 'Maximum distance to search for an approximately nearest structure element. This is done before the extact search.' }),
     normalOffset: PD.Numeric(0, { min: -10, max: 20, step: 0.1 }, { description: 'Offset vertex position along its normal by given amount.' }),
     backboneOnly: PD.Boolean(false),
 };
@@ -82,7 +82,7 @@ export function ExternalStructureColorTheme(ctx: ThemeDataContext, props: PD.Val
     let contextHash: number | undefined = undefined;
     let legend: Readonly<ScaleLegend | TableLegend> | undefined = undefined;
 
-    const { maxDistance, takeFirstDistance, normalOffset, defaultColor, backboneOnly } = props;
+    const { maxDistance, approxMaxDistance: approxDistance, normalOffset, defaultColor, backboneOnly } = props;
 
     if (structure) {
         const styleTheme = getStyleTheme({ ...ctx, structure }, props.style);
@@ -111,21 +111,32 @@ export function ExternalStructureColorTheme(ctx: ThemeDataContext, props: PD.Val
             }
 
             const [x, y, z] = position;
-            if (!s.lookup3d.check(x, y, z, maxDistance)) return defaultColor;
 
-            const rf = s.lookup3d.first(x, y, z, takeFirstDistance, lookupFirstCtx);
-            if (rf.count > 0) {
-                l.unit = rf.units[0];
-                l.element = l.unit.elements[rf.indices[0]];
+            if (approxDistance > 0) {
+                const rf = s.lookup3d.approxNearest(x, y, z, approxDistance, lookupFirstCtx);
+                if (rf.count > 0) {
+                    l.unit = rf.units[0];
+                    l.element = l.unit.elements[rf.indices[0]];
+                    return styleTheme.color(l, isSecondary);
+                }
+            }
+
+            const rn = s.lookup3d.find(x, y, z, maxDistance, lookupNearestCtx);
+            if (rn.count > 0) {
+                let idx = 0;
+                let minD = rn.squaredDistances[0];
+                for (let i = 1; i < rn.count; ++i) {
+                    if (rn.squaredDistances[i] < minD) {
+                        minD = rn.squaredDistances[i];
+                        idx = i;
+                    }
+                }
+                l.unit = rn.units[idx];
+                l.element = l.unit.elements[rn.indices[idx]];
                 return styleTheme.color(l, isSecondary);
             }
 
-            const rn = s.lookup3d.nearest(x, y, z, 1, lookupNearestCtx);
-            if (rn.count === 0) return defaultColor;
-
-            l.unit = rn.units[0];
-            l.element = l.unit.elements[rn.indices[0]];
-            return styleTheme.color(l, isSecondary);
+            return defaultColor;
         };
 
         contextHash = styleTheme.contextHash;
