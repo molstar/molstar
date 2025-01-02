@@ -13,6 +13,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - MolViewSpec extension:
   - Add validation for discriminated union params
   - Primitives: remove triangle_colors, line_colors, have implicit grouping instead; rename many parameters
+- Add `external-structure` theme that colors any geometry by structure properties
 - Support float and half-float data type for direct-volume rendering and GPU isosurface extraction
 - Minor documentation updates
 

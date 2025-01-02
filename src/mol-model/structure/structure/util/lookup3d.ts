@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -238,6 +238,36 @@ export class StructureLookup3D {
         }
 
         return false;
+    }
+
+    approxNearest(x: number, y: number, z: number, radius: number, ctx?: StructureLookup3DResultContext): StructureResult {
+        return this._approxNearest(x, y, z, radius, ctx ?? this.findContext);
+    }
+
+    _approxNearest(x: number, y: number, z: number, radius: number, ctx: StructureLookup3DResultContext): StructureResult {
+        Result.reset(ctx.result);
+        const { units } = this.structure;
+        const closeUnits = this.unitLookup.find(x, y, z, radius, ctx.closeUnitsResult);
+        if (closeUnits.count === 0) return ctx.result;
+
+        let minDistSq = Number.MAX_VALUE;
+        for (let t = 0, _t = closeUnits.count; t < _t; t++) {
+            const unit = units[closeUnits.indices[t]];
+            Vec3.set(this.pivot, x, y, z);
+            if (!unit.conformation.operator.isIdentity) {
+                Vec3.transformMat4(this.pivot, this.pivot, unit.conformation.operator.inverse);
+            }
+            const unitLookup = unit.lookup3d;
+            const groupResult = unitLookup.approxNearest(this.pivot[0], this.pivot[1], this.pivot[2], radius, ctx.unitGroupResult);
+            for (let j = 0, _j = groupResult.count; j < _j; j++) {
+                if (groupResult.squaredDistances[j] < minDistSq) {
+                    StructureResult.add(ctx.result, unit, groupResult.indices[j], groupResult.squaredDistances[j]);
+                    minDistSq = groupResult.squaredDistances[j];
+                }
+            }
+        }
+
+        return ctx.result;
     }
 
     get boundary() {
