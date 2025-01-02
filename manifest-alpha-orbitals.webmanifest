@@ -1,0 +1,28 @@
+{
+    "name": "Mol* alpha-orbitals",
+    "short_name": "Mol*",
+    "description": "Mol* alpha-orbitals",
+    "start_url": "molstar/build/alpha-orbitals/index-pwa.html",
+    "theme_color": "#eeffee",
+    "background_color": "#eeffee",
+    "display": "standalone",
+    "icons": [
+        {
+            "src": "src/undefined/alpha-orbitals/favicon.ico",
+            "sizes": "48x48"
+        },
+        {
+            "src": "src/icons/circle.svg",
+            "sizes": "72x72 96x96",
+            "purpose": "maskable"
+        },
+        {
+            "src": "src/icons/tire.svg",
+            "sizes": "128x128 256x256"
+        },
+        {
+            "src": "src/icons/wheel.svg",
+            "sizes": "512x512"
+        }
+    ]
+    }

@@ -8,5 +8,6 @@
 import './embedded.html';
 import './favicon.ico';
 import './index.html';
+import './index-pwa.html';
 require('mol-plugin-ui/skin/light.scss');
 export * from './app';

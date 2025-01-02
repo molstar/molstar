@@ -15,8 +15,8 @@
     "lint-fix": "eslint . --fix",
     "test": "npm install --no-save \"gl@^6.0.2\" && npm run lint && jest",
     "jest": "jest",
-    "build": "npm run build-tsc && npm run build-extra && npm run build-webpack",
-    "clean": "node ./scripts/clean.js",
+    "build": "npm run build-tsc && npm run build-extra && node scripts/pwa.js && npm run build-webpack",
+    "clean": "node ./scripts/clean.js && node/scripts/pwa-clean.js",
     "rebuild": "npm run clean && npm run build",
     "build-viewer": "npm run build-tsc && npm run build-extra && npm run build-webpack-viewer",
     "build-tsc": "concurrently \"tsc --incremental\" \"tsc --build tsconfig.commonjs.json --incremental\"",
@@ -114,7 +114,8 @@
     "Eric E <etongfu@outlook.com>",
     "Xavier Martinez <xavier.martinez.xm@gmail.com>",
     "Alex Chan <smalldirkalex@gmail.com>",
-    "Simeon Borko <simeon.borko@gmail.com>"
+    "Simeon Borko <simeon.borko@gmail.com>",
+    "Andy Turner <agdturner@gmail.com>"
   ],
   "license": "MIT",
   "devDependencies": {

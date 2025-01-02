@@ -6,5 +6,6 @@
 
 import './favicon.ico';
 import './index.html';
+import './index-pwa.html';
 require('./style.scss');
 export * from './app';

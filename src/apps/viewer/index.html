@@ -4,7 +4,6 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
         <link rel="icon" href="./favicon.ico" type="image/x-icon">
-        <link rel="manifest" href="/molstar/manifest-viewer.webmanifest" type="application/manifest+json">
         <title>Mol* Viewer</title>
         <style>
             * {
@@ -129,23 +128,6 @@
                     viewer.dispose();
                 });
             });
-        </script>
-        <!-- Register the app's service worker. -->
-        <script type="module">
-            if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function () {
-                //navigator.serviceWorker.register('/sw.js')
-                navigator.serviceWorker.register(new URL('/sw-viewer.js', import.meta.url))
-                //navigator.serviceWorker.register(new URL('/sw.js', import.meta.url), { scope: '/' })
-                .then(function (registration) {
-                // Registration was successful
-                console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                }, function (err) {
-                // registration failed :(
-                console.log('ServiceWorker registration failed: ', err);
-                });
-            });
-            }
         </script>
         <!-- __MOLSTAR_ANALYTICS__ -->
     </body>
