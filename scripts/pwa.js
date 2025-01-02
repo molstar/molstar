@@ -36,7 +36,7 @@ const APP_STATIC_RESOURCES = [
     "src/icons/circle.svg",
     "src/icons/tire.svg",
     "src/icons/wheel.svg",
-    "src/${dirname}/${name}/index.html"
+    "src/${dirname}/${name}/index-pwa.html"
 ];
     
 // On install, cache the static resources.
@@ -99,7 +99,7 @@ self.addEventListener("fetch", (event) => {
 }
 
 // Generate the manifest file
-function generateManifestFile(name, dir) {
+function generateManifestFile(name, dirname) {
     const filePath = path.join(__dirname, '..', `manifest-${name}.webmanifest`);
     const content=`{
     "name": "Mol* ${name}",
@@ -111,7 +111,7 @@ function generateManifestFile(name, dir) {
     "display": "standalone",
     "icons": [
         {
-            "src": "src/${dir}/${name}/favicon.ico",
+            "src": "src/${dirname}/${name}/favicon.ico",
             "sizes": "48x48"
         },
         {
