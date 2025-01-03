@@ -1,15 +1,15 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { Structure, StructureElement, ResidueIndex, Unit } from '../../mol-model/structure';
-import { SequenceWrapper, StructureUnit } from './wrapper';
-import { OrderedSet, Segmentation, Interval, SortedArray } from '../../mol-data/int';
+import { Interval, OrderedSet, Segmentation, SortedArray } from '../../mol-data/int';
 import { Loci } from '../../mol-model/loci';
+import { ResidueIndex, Structure, StructureElement, Unit } from '../../mol-model/structure';
 import { ColorNames } from '../../mol-util/color/names';
-import { MarkerAction, applyMarkerAction } from '../../mol-util/marker-action';
+import { SequenceWrapper, StructureUnit } from './wrapper';
 
 export class HeteroSequenceWrapper extends SequenceWrapper<StructureUnit> {
     private readonly unitMap: Map<number, Unit>;
@@ -28,29 +28,29 @@ export class HeteroSequenceWrapper extends SequenceWrapper<StructureUnit> {
         return 'msp-sequence-present';
     }
 
-    mark(loci: Loci, action: MarkerAction) {
-        let changed = false;
+    override getSeqIndices(loci: Loci): OrderedSet {
         const { structure } = this.data;
         if (StructureElement.Loci.is(loci)) {
-            if (!Structure.areRootsEquivalent(loci.structure, structure)) return false;
+            if (!Structure.areRootsEquivalent(loci.structure, structure)) return Interval.Empty;
             loci = StructureElement.Loci.remap(loci, structure);
 
+            const out: number[] = [];
             for (const e of loci.elements) {
                 const unit = this.unitMap.get(e.unit.id);
                 if (unit) {
                     const { index: residueIndex } = e.unit.model.atomicHierarchy.residueAtomSegments;
                     OrderedSet.forEach(e.indices, v => {
                         const seqIdx = this.sequenceIndices.get(residueIndex[unit.elements[v]]);
-                        if (seqIdx !== undefined && applyMarkerAction(this.markerArray, Interval.ofSingleton(seqIdx), action)) changed = true;
+                        if (seqIdx !== undefined) out.push(seqIdx);
                     });
                 }
             }
+            return SortedArray.deduplicate(SortedArray.ofSortedArray(out));
         } else if (Structure.isLoci(loci)) {
-            if (!Structure.areRootsEquivalent(loci.structure, structure)) return false;
-
-            if (applyMarkerAction(this.markerArray, Interval.ofBounds(0, this.length), action)) changed = true;
+            if (!Structure.areRootsEquivalent(loci.structure, structure)) return Interval.Empty;
+            return Interval.ofBounds(0, this.length);
         }
-        return changed;
+        return Interval.Empty;
     }
 
     getLoci(seqIdx: number) {
@@ -86,9 +86,8 @@ export class HeteroSequenceWrapper extends SequenceWrapper<StructureUnit> {
         }
 
         const length = sequence.length;
-        const markerArray = new Uint8Array(length);
 
-        super(data, markerArray, length);
+        super(data, length);
 
         this.unitMap = new Map();
         for (const unit of data.units) this.unitMap.set(unit.id, unit);
