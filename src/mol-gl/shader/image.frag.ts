@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -24,6 +24,10 @@ uniform sampler2D tMarker;
 
 varying vec2 vUv;
 varying float vInstance;
+
+#ifdef dUsePalette
+    uniform sampler2D tPalette;
+#endif
 
 #if defined(dInterpolation_catmulrom) || defined(dInterpolation_mitchell) || defined(dInterpolation_bspline)
     #define dInterpolation_cubic
@@ -99,12 +103,9 @@ void main() {
     #else
         vec4 imageData = texture2D(tImageTex, vUv);
     #endif
-    imageData.a = clamp(imageData.a, 0.0, 1.0);
-    if (imageData.a > 0.9) imageData.a = 1.0;
+    if (imageData.a < 0.5) discard;
 
-    imageData.a *= uAlpha;
-    if (imageData.a < 0.05)
-        discard;
+    imageData.a = uAlpha;
 
     float fragmentDepth = gl_FragCoord.z;
 
@@ -115,8 +116,7 @@ void main() {
     }
 
     #if defined(dRenderVariant_pick)
-        if (imageData.a < 0.3)
-            discard;
+        #include check_picking_alpha
         #ifdef requiredDrawBuffers
             gl_FragColor = vec4(packIntToRGB(float(uObjectId)), 1.0);
             gl_FragData[1] = vec4(packIntToRGB(vInstance), 1.0);
@@ -133,8 +133,6 @@ void main() {
             }
         #endif
     #elif defined(dRenderVariant_depth)
-        if (imageData.a < 0.05)
-            discard;
         if (uRenderMask == MaskOpaque) {
             gl_FragColor = packDepthToRGBA(fragmentDepth);
         } else if (uRenderMask == MaskTransparent) {
@@ -148,11 +146,11 @@ void main() {
             marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
         }
         if (uMarkingType == 1) {
-            if (marker > 0.0 || imageData.a < 0.05)
+            if (marker > 0.0)
                 discard;
             gl_FragColor = packDepthToRGBA(fragmentDepth);
         } else {
-            if (marker == 0.0 || imageData.a < 0.05)
+            if (marker == 0.0)
                 discard;
             float depthTest = 1.0;
             if (uMarkingDepthTest) {
@@ -164,6 +162,10 @@ void main() {
     #elif defined(dRenderVariant_emissive)
         gl_FragColor = vec4(0.0);
     #elif defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
+        #ifdef dUsePalette
+            float v = ((imageData.r * 256.0 * 256.0 * 255.0 + imageData.g * 256.0 * 255.0 + imageData.b * 255.0) - 1.0) / 16777215.0;
+            imageData.rgb = texture2D(tPalette, vec2(v, 0.0)).rgb;
+        #endif
         gl_FragColor = imageData;
 
         float marker = uMarker;

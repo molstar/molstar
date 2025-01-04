@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -695,15 +695,33 @@ const colorGradientInterpolated = memoize1((colors: ColorListEntry[]) => {
 
 const colorGradientBanded = memoize1((colors: ColorListEntry[]) => {
     const n = colors.length;
-    const styles: string[] = [`${colorEntryToStyle(colors[0])} ${100 * (1 / n)}%`];
-    // TODO: does this need to support offsets?
-    for (let i = 1, il = n - 1; i < il; ++i) {
-        styles.push(
-            `${colorEntryToStyle(colors[i])} ${100 * (i / n)}%`,
-            `${colorEntryToStyle(colors[i])} ${100 * ((i + 1) / n)}%`
-        );
+    const styles: string[] = [];
+
+    const hasOffsets = colors.every(c => Array.isArray(c));
+    if (hasOffsets) {
+        const off = colors as [Color, number][];
+        styles.push(`${Color.toStyle(off[0][0])} ${(100 * off[0][1]).toFixed(2)}%`);
+        for (let i = 0, il = off.length - 1; i < il; ++i) {
+            const [c0, o0] = off[i];
+            const [c1, o1] = off[i + 1];
+            const o = o0 + (o1 - o0) / 2;
+            styles.push(
+                `${Color.toStyle(c0)} ${(100 * o).toFixed(2)}%`,
+                `${Color.toStyle(c1)} ${(100 * o).toFixed(2)}%`
+            );
+        }
+        styles.push(`${Color.toStyle(off[off.length - 1][0])} ${(100 * off[off.length - 1][1]).toFixed(2)}%`);
+    } else {
+        const styles: string[] = [`${colorEntryToStyle(colors[0])} ${100 * (1 / n)}%`];
+        for (let i = 1, il = n - 1; i < il; ++i) {
+            styles.push(
+                `${colorEntryToStyle(colors[i])} ${100 * (i / n)}%`,
+                `${colorEntryToStyle(colors[i])} ${100 * ((i + 1) / n)}%`
+            );
+        }
+        styles.push(`${colorEntryToStyle(colors[n - 1])} ${100 * ((n - 1) / n)}%`);
     }
-    styles.push(`${colorEntryToStyle(colors[n - 1])} ${100 * ((n - 1) / n)}%`);
+
     return `linear-gradient(to right, ${styles.join(', ')})`;
 });
 

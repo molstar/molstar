@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -24,6 +24,7 @@ export type ColorData = {
     uColor: ValueCell<Vec3>,
     tColor: ValueCell<TextureImage<Uint8Array>>,
     tColorGrid: ValueCell<Texture>,
+    uPaletteDomain: ValueCell<Vec2>,
     tPalette: ValueCell<TextureImage<Uint8Array>>,
     uColorTexDim: ValueCell<Vec2>,
     uColorGridDim: ValueCell<Vec3>,
@@ -36,6 +37,8 @@ export function createColors(locationIt: LocationIterator, positionIt: LocationI
     const data = _createColors(locationIt, positionIt, colorTheme, colorData);
     if (colorTheme.palette) {
         ValueCell.updateIfChanged(data.dUsePalette, true);
+        const [min, max] = colorTheme.palette.domain || [0, 1];
+        ValueCell.update(data.uPaletteDomain, Vec2.set(data.uPaletteDomain.ref.value, min, max));
         updatePaletteTexture(colorTheme.palette, data.tPalette);
     } else {
         ValueCell.updateIfChanged(data.dUsePalette, false);
@@ -103,6 +106,7 @@ export function createValueColor(value: Color, colorData?: ColorData): ColorData
             uColor: ValueCell.create(Color.toVec3Normalized(Vec3(), value)),
             tColor: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
             tColorGrid: ValueCell.create(createNullTexture()),
+            uPaletteDomain: ValueCell.create(Vec2.create(0, 1)),
             tPalette: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
             uColorTexDim: ValueCell.create(Vec2.create(1, 1)),
             uColorGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
@@ -131,6 +135,7 @@ export function createTextureColor(colors: TextureImage<Uint8Array>, type: Color
             uColor: ValueCell.create(Vec3()),
             tColor: ValueCell.create(colors),
             tColorGrid: ValueCell.create(createNullTexture()),
+            uPaletteDomain: ValueCell.create(Vec2.create(0, 1)),
             tPalette: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
             uColorTexDim: ValueCell.create(Vec2.create(colors.width, colors.height)),
             uColorGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
@@ -233,6 +238,7 @@ export function createGridColor(grid: ColorVolume, type: ColorType, colorData?: 
             uColor: ValueCell.create(Vec3()),
             tColor: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
             tColorGrid: ValueCell.create(colors),
+            uPaletteDomain: ValueCell.create(Vec2.create(0, 1)),
             tPalette: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
             uColorTexDim: ValueCell.create(Vec2.create(width, height)),
             uColorGridDim: ValueCell.create(Vec3.clone(dimension)),
@@ -255,6 +261,7 @@ function createDirectColor(colorData?: ColorData): ColorData {
             uColor: ValueCell.create(Vec3()),
             tColor: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
             tColorGrid: ValueCell.create(createNullTexture()),
+            uPaletteDomain: ValueCell.create(Vec2.create(0, 1)),
             tPalette: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
             uColorTexDim: ValueCell.create(Vec2.create(1, 1)),
             uColorGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
