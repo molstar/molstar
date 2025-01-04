@@ -27,6 +27,7 @@ import { SetUtils } from '../mol-util/set';
 import { cantorPairing } from '../mol-data/util';
 import { Substance } from '../mol-theme/substance';
 import { Emissive } from '../mol-theme/emissive';
+import { Location } from '../mol-model/location';
 
 export type RepresentationProps = { [k: string]: any }
 
@@ -57,12 +58,13 @@ export interface RepresentationProvider<D = any, P extends PD.Params = any, S ex
     }
     readonly getData?: (data: D, props: PD.Values<P>) => D
     readonly mustRecreate?: (oldProps: PD.Values<P>, newProps: PD.Values<P>) => boolean
+    readonly locationKinds?: ReadonlyArray<Location['kind']>
 }
 
 export namespace RepresentationProvider {
     export type ParamValues<R extends RepresentationProvider<any, any, any>> = R extends RepresentationProvider<any, infer P, any> ? PD.Values<P> : never;
 
-    export function getDetaultParams<R extends RepresentationProvider<D, any, any>, D>(r: R, ctx: ThemeRegistryContext, data: D) {
+    export function getDefaultParams<R extends RepresentationProvider<D, any, any>, D>(r: R, ctx: ThemeRegistryContext, data: D) {
         return PD.getDefaultValues(r.getParams(ctx, data));
     }
 }

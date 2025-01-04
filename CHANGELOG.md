@@ -16,7 +16,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `external-structure` theme that colors any geometry by structure properties
 - Support float and half-float data type for direct-volume rendering and GPU isosurface extraction
 - Minor documentation updates
-- Add `volume-data` theme that colors positions by volume data
+- Add support for position-location to `volume-value` color theme
 - Add support for color themes to `slice` representation
 - Improve/fix palette support in volume color themes
 

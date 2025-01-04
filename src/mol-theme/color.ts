@@ -46,7 +46,6 @@ import { ColorThemeCategory } from './color/categories';
 import { CartoonColorThemeProvider } from './color/cartoon';
 import { FormalChargeColorThemeProvider } from './color/formal-charge';
 import { ExternalStructureColorThemeProvider } from './color/external-structure';
-import { VolumeDataColorThemeProvider } from './color/volume-data';
 import { ColorListEntry } from '../mol-util/color/color';
 import { getPrecision } from '../mol-util/number';
 import { SortedArray } from '../mol-data/int/sorted-array';
@@ -206,7 +205,6 @@ namespace ColorTheme {
         'uncertainty': UncertaintyColorThemeProvider,
         'unit-index': UnitIndexColorThemeProvider,
         'uniform': UniformColorThemeProvider,
-        'volume-data': VolumeDataColorThemeProvider,
         'volume-segment': VolumeSegmentColorThemeProvider,
         'volume-value': VolumeValueColorThemeProvider,
     };

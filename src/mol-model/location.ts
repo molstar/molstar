@@ -31,4 +31,11 @@ export function isDataLocation(x: any): x is DataLocation {
     return !!x && x.kind === 'data-location';
 }
 
-export type Location = StructureElement.Location | Bond.Location | ShapeGroup.Location | PositionLocation | DataLocation | NullLocation | Volume.Segment.Location
+/** A direct Location */
+export const DirectLocation = { kind: 'direct-location' as const };
+export type DirectLocation = typeof DirectLocation
+export function isDirectLocation(x: any): x is DirectLocation {
+    return !!x && x.kind === 'direct-location';
+}
+
+export type Location = StructureElement.Location | Bond.Location | ShapeGroup.Location | PositionLocation | DataLocation | NullLocation | DirectLocation | Volume.Segment.Location

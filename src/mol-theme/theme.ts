@@ -13,6 +13,7 @@ import { Shape } from '../mol-model/shape';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
 import { objectForEach } from '../mol-util/object';
 import { ColorType } from '../mol-geo/geometry/color-data';
+import { Location } from '../mol-model/location';
 
 export interface ThemeRegistryContext {
     colorThemeRegistry: ColorTheme.Registry
@@ -24,6 +25,7 @@ export interface ThemeDataContext {
     structure?: Structure
     volume?: Volume
     shape?: Shape
+    locationKinds?: ReadonlyArray<Location['kind']>
 }
 
 export { Theme };
