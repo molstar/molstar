@@ -393,7 +393,7 @@ namespace Canvas3D {
         let width = 128;
         let height = 128;
         let canvasScaleRatioX = 1;
-        let cavnasScaleRatioY = 1;
+        let canvasScaleRatioY = 1;
 
         let forceNextRender = false;
         let currentTime = 0;
@@ -647,7 +647,7 @@ namespace Canvas3D {
 
         function identify(x: number, y: number): PickData | undefined {
             const cam = p.camera.stereo.name === 'on' ? stereoCamera : camera;
-            return webgl.isContextLost ? undefined : pickHelper.identify(x / canvasScaleRatioX, y / cavnasScaleRatioY, cam);
+            return webgl.isContextLost ? undefined : pickHelper.identify(x / canvasScaleRatioX, y / canvasScaleRatioY, cam);
         }
 
         function commit(isSynchronous: boolean = false) {
@@ -1162,7 +1162,9 @@ namespace Canvas3D {
 
             const canvasRect = canvas?.getBoundingClientRect();
             canvasScaleRatioX = (canvasRect?.width ?? gl.drawingBufferWidth) / gl.drawingBufferWidth;
-            cavnasScaleRatioY = (canvasRect?.height ?? gl.drawingBufferHeight) / gl.drawingBufferHeight;
+            if (!canvasScaleRatioX) canvasScaleRatioX = 1;
+            canvasScaleRatioY = (canvasRect?.height ?? gl.drawingBufferHeight) / gl.drawingBufferHeight;
+            if (!canvasScaleRatioY) canvasScaleRatioY = 1;
 
             if (p.viewport.name === 'canvas') {
                 x = 0;
@@ -1190,7 +1192,7 @@ namespace Canvas3D {
             pickHelper.setViewport(x, y, width, height);
             renderer.setViewport(x, y, width, height);
             Viewport.set(camera.viewport, x, y, width, height);
-            Viewport.set(controls.viewport, x, y, width * canvasScaleRatioX, height * cavnasScaleRatioY);
+            Viewport.set(controls.viewport, x, y, width * canvasScaleRatioX, height * canvasScaleRatioY);
             hiZ.setViewport(x, y, width, height);
         }
     }
