@@ -57,9 +57,9 @@ export async function createImage(ctx: VisualContext, volume: Volume, key: numbe
 
     let v: (ix: number, iy: number, iz: number) => number;
     if (equalEps(isoVal, stats.min, 0.001)) {
-        v = () => 255;
+        v = (_ix, _iy, _iz) => 255;
     } else if (equalEps(isoVal, stats.max, 0.001)) {
-        v = () => 0;
+        v = (_ix, _iy, _iz) => 0;
     } else {
         v = (ix, iy, iz) => {
             return (

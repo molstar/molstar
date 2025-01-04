@@ -98,7 +98,7 @@ namespace Grid {
             const k = Math.trunc(gridCoords[2]);
 
             if (i < 0 || i >= mi || j < 0 || j >= mj || k < 0 || k >= mk) {
-                return NaN;
+                return Number.NaN;
             }
 
             const u = gridCoords[0] - i;
