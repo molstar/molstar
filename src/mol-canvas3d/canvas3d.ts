@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -392,6 +392,8 @@ namespace Canvas3D {
         let y = 0;
         let width = 128;
         let height = 128;
+        let canvasScaleRatioX = 1;
+        let canvasScaleRatioY = 1;
 
         let forceNextRender = false;
         let currentTime = 0;
@@ -645,7 +647,7 @@ namespace Canvas3D {
 
         function identify(x: number, y: number): PickData | undefined {
             const cam = p.camera.stereo.name === 'on' ? stereoCamera : camera;
-            return webgl.isContextLost ? undefined : pickHelper.identify(x, y, cam);
+            return webgl.isContextLost ? undefined : pickHelper.identify(x / canvasScaleRatioX, y / canvasScaleRatioY, cam);
         }
 
         function commit(isSynchronous: boolean = false) {
@@ -1158,6 +1160,12 @@ namespace Canvas3D {
         function updateViewport() {
             const oldX = x, oldY = y, oldWidth = width, oldHeight = height;
 
+            const canvasRect = canvas?.getBoundingClientRect();
+            canvasScaleRatioX = (canvasRect?.width ?? gl.drawingBufferWidth) / gl.drawingBufferWidth;
+            if (!canvasScaleRatioX) canvasScaleRatioX = 1;
+            canvasScaleRatioY = (canvasRect?.height ?? gl.drawingBufferHeight) / gl.drawingBufferHeight;
+            if (!canvasScaleRatioY) canvasScaleRatioY = 1;
+
             if (p.viewport.name === 'canvas') {
                 x = 0;
                 y = 0;
@@ -1184,7 +1192,7 @@ namespace Canvas3D {
             pickHelper.setViewport(x, y, width, height);
             renderer.setViewport(x, y, width, height);
             Viewport.set(camera.viewport, x, y, width, height);
-            Viewport.set(controls.viewport, x, y, width, height);
+            Viewport.set(controls.viewport, x, y, width * canvasScaleRatioX, height * canvasScaleRatioY);
             hiZ.setViewport(x, y, width, height);
         }
     }

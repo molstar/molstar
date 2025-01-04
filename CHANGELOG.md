@@ -16,6 +16,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `external-structure` theme that colors any geometry by structure properties
 - Support float and half-float data type for direct-volume rendering and GPU isosurface extraction
 - Minor documentation updates
+- Fix plugin mouse interactions when CSS `scale` transform is applied
 
 ## [v4.10.0] - 2024-12-15
 
