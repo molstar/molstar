@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Consider fully transparent renderables as not visible inside Scene (except for markerAverage calculation)
 - Volume UI improvements
   - Render all volume entries instead of selecting them one-by-one
   - Toggle visibility of all volumes

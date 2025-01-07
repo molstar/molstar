@@ -20,11 +20,15 @@ import { clamp } from '../mol-math/interpolate';
 
 const boundaryHelper = new BoundaryHelper('98');
 
+function isRenderableVisible(renderable: GraphicsRenderable): boolean {
+    return renderable.state.visible && (renderable.values.alpha.ref.value * renderable.state.alphaFactor > 0) && renderable.values.transparencyAverage.ref.value < 1;
+}
+
 function calculateBoundingSphere(renderables: GraphicsRenderable[], boundingSphere: Sphere3D, onlyVisible: boolean): Sphere3D {
     boundaryHelper.reset();
 
     for (let i = 0, il = renderables.length; i < il; ++i) {
-        if (onlyVisible && !renderables[i].state.visible) continue;
+        if (onlyVisible && !isRenderableVisible(renderables[i])) continue;
 
         const boundingSphere = renderables[i].values.boundingSphere.ref.value;
         if (!boundingSphere.radius) continue;
@@ -33,7 +37,7 @@ function calculateBoundingSphere(renderables: GraphicsRenderable[], boundingSphe
     }
     boundaryHelper.finishedIncludeStep();
     for (let i = 0, il = renderables.length; i < il; ++i) {
-        if (onlyVisible && !renderables[i].state.visible) continue;
+        if (onlyVisible && !isRenderableVisible(renderables[i])) continue;
 
         const boundingSphere = renderables[i].values.boundingSphere.ref.value;
         if (!boundingSphere.radius) continue;
@@ -191,7 +195,7 @@ namespace Scene {
         function computeVisibleHash() {
             let hash = 23;
             for (let i = 0, il = renderables.length; i < il; ++i) {
-                if (!renderables[i].state.visible) continue;
+                if (!isRenderableVisible(renderables[i])) continue;
                 hash = (31 * hash + renderables[i].id) | 0;
             }
             hash = hash1(hash);
@@ -220,7 +224,7 @@ namespace Scene {
             let count = 0;
             let markerAverage = 0;
             for (let i = 0, il = primitives.length; i < il; ++i) {
-                if (!primitives[i].state.visible) continue;
+                if (!primitives[i].state.visible) continue; // Avoid testing also for full transparency here
                 markerAverage += primitives[i].values.markerAverage.ref.value;
                 count += 1;
             }
@@ -232,7 +236,7 @@ namespace Scene {
             let count = 0;
             let emissiveAverage = 0;
             for (let i = 0, il = primitives.length; i < il; ++i) {
-                if (!primitives[i].state.visible) continue;
+                if (!isRenderableVisible(primitives[i])) continue;
                 emissiveAverage += primitives[i].values.emissiveAverage.ref.value + primitives[i].values.uEmissive.ref.value;
                 count += 1;
             }
@@ -245,7 +249,7 @@ namespace Scene {
             let opacityAverage = 0;
             for (let i = 0, il = primitives.length; i < il; ++i) {
                 const p = primitives[i];
-                if (!p.state.visible) continue;
+                if (!isRenderableVisible(p)) continue;
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(p.values.alpha.ref.value * p.state.alphaFactor, 0, 1);
@@ -265,7 +269,7 @@ namespace Scene {
             const transparenyValues: number[] = [];
             for (let i = 0, il = primitives.length; i < il; ++i) {
                 const p = primitives[i];
-                if (!p.state.visible) continue;
+                if (!isRenderableVisible(p)) continue;
                 transparenyValues.length = 0;
                 const alpha = clamp(p.values.alpha.ref.value * p.state.alphaFactor, 0, 1);
                 if (alpha < 1) transparenyValues.push(1 - alpha);
@@ -284,7 +288,7 @@ namespace Scene {
             if (primitives.length === 0) return false;
             for (let i = 0, il = primitives.length; i < il; ++i) {
                 const p = primitives[i];
-                if (!p.state.visible) continue;
+                if (!isRenderableVisible(p)) continue;
 
                 if (p.state.opaque) return true;
                 if (p.state.alphaFactor === 1 && p.values.alpha.ref.value === 1 && p.values.transparencyAverage.ref.value !== 1) return true;
