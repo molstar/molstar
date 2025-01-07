@@ -266,20 +266,20 @@ namespace Scene {
         function calculateTransparencyMin() {
             if (primitives.length === 0) return 1;
             let transparencyMin = 1;
-            const transparenyValues: number[] = [];
+            const transparencyValues: number[] = [];
             for (let i = 0, il = primitives.length; i < il; ++i) {
                 const p = primitives[i];
                 if (!isRenderableVisible(p)) continue;
-                transparenyValues.length = 0;
+                transparencyValues.length = 0;
                 const alpha = clamp(p.values.alpha.ref.value * p.state.alphaFactor, 0, 1);
-                if (alpha < 1) transparenyValues.push(1 - alpha);
+                if (alpha < 1) transparencyValues.push(1 - alpha);
                 if (p.values.dXrayShaded?.ref.value === 'on' ||
                     p.values.dXrayShaded?.ref.value === 'inverted' ||
                     p.values.dPointStyle?.ref.value === 'fuzzy' ||
                     p.values.dGeometryType.ref.value === 'text'
-                ) transparenyValues.push(0.5);
-                if (p.values.transparencyMin.ref.value > 0) transparenyValues.push(p.values.transparencyMin.ref.value);
-                transparencyMin = Math.min(transparencyMin, ...transparenyValues);
+                ) transparencyValues.push(0.5);
+                if (p.values.transparencyMin.ref.value > 0) transparencyValues.push(p.values.transparencyMin.ref.value);
+                transparencyMin = Math.min(transparencyMin, ...transparencyValues);
             }
             return transparencyMin;
         }
