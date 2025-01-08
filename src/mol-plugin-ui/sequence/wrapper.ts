@@ -67,9 +67,9 @@ abstract class SequenceWrapper<D> {
         return !!(this.focusMarkerArray[seqIndex]);
     }
 
-    /** Markers for "highlighted" and "selected" (2-bits per position) */
+    /** Markers for "highlighted" and "selected" (2 bits per position) */
     readonly markerArray: Uint8Array;
-    /** Markers for "focused" (1-bit per position) */
+    /** Markers for "focused" (1 bit per position) */
     readonly focusMarkerArray: Uint8Array;
 
     constructor(readonly data: D, readonly length: number) {

@@ -33,7 +33,7 @@ const MaxSequenceNumberSize = 5;
 const DefaultMarkerColors = {
     selected: 'rgb(51, 255, 25)',
     highlighted: 'rgb(255, 102, 153)',
-    focused: 'rgba(112, 144, 255, 0.65)',
+    focused: '',
 };
 
 // TODO: this is somewhat inefficient and should be done using a canvas.
@@ -206,9 +206,15 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     }
 
     protected getResidueClass(seqIdx: number, label: string) {
-        return label.length > 1
-            ? this.props.sequenceWrapper.residueClass(seqIdx) + (seqIdx === 0 ? ' msp-sequence-residue-long-begin' : ' msp-sequence-residue-long')
-            : this.props.sequenceWrapper.residueClass(seqIdx);
+        const seqWrapper = this.props.sequenceWrapper;
+        const classes = [seqWrapper.residueClass(seqIdx)];
+        if (label.length > 1) {
+            classes.push(seqIdx === 0 ? 'msp-sequence-residue-long-begin' : 'msp-sequence-residue-long');
+        }
+        if (seqWrapper.isHighlighted(seqIdx)) classes.push('msp-sequence-residue-highlighted');
+        if (seqWrapper.isSelected(seqIdx)) classes.push('msp-sequence-residue-selected');
+        if (seqWrapper.isFocused(seqIdx)) classes.push('msp-sequence-residue-focused');
+        return classes.join(' ');
     }
 
     protected residue(seqIdx: number, label: string) {
@@ -257,7 +263,8 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         const xs = this.parentDiv.current.children;
         const hasNumbers = !this.props.hideSequenceNumbers, period = this.sequenceNumberPeriod;
 
-        const seqLength = this.props.sequenceWrapper.length;
+        const seqWrapper = this.props.sequenceWrapper;
+        const seqLength = seqWrapper.length;
         let o = 0;
         for (let i = 0; i < seqLength; i++) {
             if (hasNumbers && i % period === 0 && i < seqLength) o++;
@@ -266,6 +273,8 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             if (!span) return;
             o++;
 
+            const className = this.getResidueClass(i, seqWrapper.residueLabel(i));
+            if (span.className !== className) span.className = className;
             const backgroundColor = this.getBackgroundColor(i);
             if (span.style.backgroundColor !== backgroundColor) span.style.backgroundColor = backgroundColor;
         }
