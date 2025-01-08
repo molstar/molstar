@@ -63,13 +63,13 @@ const DownloadStructure = StateAction.build({
                     }, { pivot: 'id' }),
                     options
                 }, { isFlat: true, label: 'PDB' }),
-                'pdb-dev': PD.Group({
+                'pdb-ihm': PD.Group({
                     provider: PD.Group({
-                        id: PD.Text('PDBDEV_00000001', { label: 'PDB-Dev Id(s)', description: 'One or more comma/space separated ids.' }),
+                        id: PD.Text('8zzc', { label: 'PDB-IHM Id(s)', description: 'One or more comma/space separated ids.' }),
                         encoding: PD.Select('bcif', PD.arrayToOptions(['cif', 'bcif'] as const)),
                     }, { pivot: 'id' }),
                     options
-                }, { isFlat: true, label: 'PDB-Dev' }),
+                }, { isFlat: true, label: 'PDB-IHM' }),
                 'swissmodel': PD.Group({
                     id: PD.Text('Q9Y2I8', { label: 'UniProtKB AC(s)', description: 'One or more comma/space separated ACs.' }),
                     options
@@ -124,22 +124,22 @@ const DownloadStructure = StateAction.build({
             );
             asTrajectory = !!src.params.options.asTrajectory;
             break;
-        case 'pdb-dev':
+        case 'pdb-ihm':
             const map = (id: string) => id.startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`;
             downloadParams = await getDownloadParams(src.params.provider.id,
                 id => {
                     // 4 character PDB id, TODO: support extended PDB ID
                     if (id.match(/^[1-9][A-Z0-9]{3}$/i) !== null) {
                         return src.params.provider.encoding === 'bcif'
-                            ? `https://pdb-dev.wwpdb.org/bcif/${id.toLowerCase()}.bcif`
-                            : `https://pdb-dev.wwpdb.org/cif/${id.toLowerCase()}.cif`;
+                            ? `https://pdb-ihm.org/bcif/${id.toLowerCase()}.bcif`
+                            : `https://pdb-ihm.org/cif/${id.toLowerCase()}.cif`;
                     }
                     const nId = map(id.toUpperCase());
                     return src.params.provider.encoding === 'bcif'
-                        ? `https://pdb-dev.wwpdb.org/bcif/${nId}.bcif`
-                        : `https://pdb-dev.wwpdb.org/cif/${nId}.cif`;
+                        ? `https://pdb-ihm.org/bcif/${nId}.bcif`
+                        : `https://pdb-ihm.org/cif/${nId}.cif`;
                 },
-                id => { const nId = id.toUpperCase(); return nId.match(/^[1-9][A-Z0-9]{3}$/) ? `PDB-Dev: ${nId}` : map(nId); },
+                id => { const nId = id.toUpperCase(); return nId.match(/^[1-9][A-Z0-9]{3}$/) ? `PDB-IHM: ${nId}` : map(nId); },
                 src.params.provider.encoding === 'bcif'
             );
             asTrajectory = !!src.params.options.asTrajectory;

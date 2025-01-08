@@ -93,9 +93,15 @@
                     return;
                 }
 
+                var pdbihm = getParam('pdbihm', '[^&]+').trim();
+                if (pdbihm) {
+                    me.loadPdbIhm(pdbihm);
+                    return;
+                }
+                // support for deprecated pdb-dev param
                 var pdbdev = getParam('pdbdev', '[^&]+').trim();
                 if (pdbdev) {
-                    me.loadPdbDev(pdbdev);
+                    me.loadPdbIhm(pdbdev);
                     return;
                 }
                 window.addEventListener('unload', () => {
