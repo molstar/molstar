@@ -379,7 +379,7 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
         return <div className='msp-sequence'>
             <div className='msp-sequence-select'>
                 <Icon svg={HelpOutlineSvg} style={{ cursor: 'help', position: 'absolute', right: 0, top: 0 }}
-                    title='This shows a single sequence. Use the controls to show a different sequence.' />
+                    title='This shows a single sequence. Use the controls to show a different sequence. &#10;Use Ctrl or Cmd key to add a sequence range to focus; use Shift key to extend last focused/selected range.' />
 
                 <span>Sequence of</span>
                 <PureSelectControl title={`[Structure] ${PD.optionLabel(params.structure, values.structure)}`} param={params.structure} name='structure' value={values.structure} onChange={this.setParamProps} />
