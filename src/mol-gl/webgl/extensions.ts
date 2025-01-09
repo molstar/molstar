@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers, getShaderTextureLod, COMPAT_shader_texture_lod, getDepthTexture, COMPAT_depth_texture, COMPAT_sRGB, getSRGB, getTextureHalfFloat, getTextureHalfFloatLinear, COMPAT_texture_half_float, COMPAT_texture_half_float_linear, COMPAT_color_buffer_half_float, getColorBufferHalfFloat, getVertexArrayObject, getDisjointTimerQuery, COMPAT_disjoint_timer_query, getNoNonInstancedActiveAttribs, COMPAT_multi_draw, getMultiDraw, getDrawInstancedBaseVertexBaseInstance, getMultiDrawInstancedBaseVertexBaseInstance, COMPAT_draw_instanced_base_vertex_base_instance, COMPAT_multi_draw_instanced_base_vertex_base_instance, getDrawBuffersIndexed, COMPAT_draw_buffers_indexed, getParallelShaderCompile, COMPAT_parallel_shader_compile, getFboRenderMipmap, COMPAT_fboRenderMipmap, COMPAT_provoking_vertex, getProvokingVertex, COMPAT_clip_cull_distance, getClipCullDistance, COMPAT_conservative_depth, getConservativeDepth, COMPAT_stencil_texturing, getStencilTexturing, COMPAT_clip_control, getClipControl } from './compat';
+import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers, getShaderTextureLod, COMPAT_shader_texture_lod, getDepthTexture, COMPAT_depth_texture, COMPAT_sRGB, getSRGB, getTextureHalfFloat, getTextureHalfFloatLinear, COMPAT_texture_half_float, COMPAT_texture_half_float_linear, COMPAT_color_buffer_half_float, getColorBufferHalfFloat, getVertexArrayObject, getDisjointTimerQuery, COMPAT_disjoint_timer_query, getNoNonInstancedActiveAttribs, COMPAT_multi_draw, getMultiDraw, getDrawInstancedBaseVertexBaseInstance, getMultiDrawInstancedBaseVertexBaseInstance, COMPAT_draw_instanced_base_vertex_base_instance, COMPAT_multi_draw_instanced_base_vertex_base_instance, getDrawBuffersIndexed, COMPAT_draw_buffers_indexed, getParallelShaderCompile, COMPAT_parallel_shader_compile, getFboRenderMipmap, COMPAT_fboRenderMipmap, COMPAT_provoking_vertex, getProvokingVertex, COMPAT_clip_cull_distance, getClipCullDistance, COMPAT_conservative_depth, getConservativeDepth, COMPAT_stencil_texturing, getStencilTexturing, COMPAT_clip_control, getClipControl, getRenderSnorm, COMPAT_render_snorm, getRenderSharedExponent, COMPAT_render_shared_exponent, getTextureNorm16, COMPAT_texture_norm16, getDepthClamp, COMPAT_depth_clamp } from './compat';
 import { isDebugMode } from '../../mol-util/debug';
 
 export type WebGLExtensions = {
@@ -37,6 +37,10 @@ export type WebGLExtensions = {
     conservativeDepth: COMPAT_conservative_depth | null
     stencilTexturing: COMPAT_stencil_texturing | null
     clipControl: COMPAT_clip_control | null
+    renderSnorm: COMPAT_render_snorm | null
+    renderSharedExponent: COMPAT_render_shared_exponent | null
+    textureNorm16: COMPAT_texture_norm16 | null
+    depthClamp: COMPAT_depth_clamp | null
 
     noNonInstancedActiveAttribs: boolean
 }
@@ -161,6 +165,22 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     if (isDebugMode && clipControl === null) {
         console.log('Could not find support for "clip_control"');
     }
+    const renderSnorm = getRenderSnorm(gl);
+    if (isDebugMode && renderSnorm === null) {
+        console.log('Could not find support for "render_snorm"');
+    }
+    const renderSharedExponent = getRenderSharedExponent(gl);
+    if (isDebugMode && renderSharedExponent === null) {
+        console.log('Could not find support for "render_shared_exponent"');
+    }
+    const textureNorm16 = getTextureNorm16(gl);
+    if (isDebugMode && textureNorm16 === null) {
+        console.log('Could not find support for "texture_norm16"');
+    }
+    const depthClamp = getDepthClamp(gl);
+    if (isDebugMode && depthClamp === null) {
+        console.log('Could not find support for "depth_clamp"');
+    }
 
     const noNonInstancedActiveAttribs = getNoNonInstancedActiveAttribs(gl);
 
@@ -194,6 +214,10 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
         conservativeDepth,
         stencilTexturing,
         clipControl,
+        renderSnorm,
+        renderSharedExponent,
+        textureNorm16,
+        depthClamp,
 
         noNonInstancedActiveAttribs,
     };

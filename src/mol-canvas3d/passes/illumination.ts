@@ -145,6 +145,15 @@ export class IlluminationPass {
         state.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
+        const outlineEnabled = PostprocessingPass.isTransparentOutlineEnabled(props.postprocessing) && !props.illumination.ignoreOutline;
+        const dofEnabled = DofPass.isEnabled(props.postprocessing);
+        const ssaoEnabled = PostprocessingPass.isTransparentSsaoEnabled(scene, props.postprocessing);
+
+        if (outlineEnabled || dofEnabled || ssaoEnabled) {
+            this.drawPass.depthTargetTransparent.bind();
+            renderer.clearDepth(true);
+        }
+
         if (hasTransparent) {
             if (this.drawPass.transparency === 'wboit') {
                 this.drawPass.wboit.bind();
@@ -188,13 +197,8 @@ export class IlluminationPass {
                 }
             }
 
-            const outlineEnabled = PostprocessingPass.isTransparentOutlineEnabled(props.postprocessing) && !props.illumination.ignoreOutline;
-            const dofEnabled = DofPass.isEnabled(props.postprocessing);
-            const ssaoEnabled = PostprocessingPass.isTransparentSsaoEnabled(scene, props.postprocessing);
-
             if (outlineEnabled || dofEnabled || ssaoEnabled) {
                 this.drawPass.depthTargetTransparent.bind();
-                renderer.clearDepth(true);
                 if (scene.opacityAverage < 1) {
                     renderer.renderDepthTransparent(scene.primitives, camera, this.drawPass.depthTextureOpaque);
                 }

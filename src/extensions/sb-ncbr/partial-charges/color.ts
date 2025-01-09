@@ -10,7 +10,7 @@ import { CustomProperty } from '../../../mol-model-props/common/custom-property'
 const Colors = {
     Bond: Color(0xffffff),
     Error: Color(0x00ff00),
-    MissingCharge: Color(0xffffff),
+    MissingCharge: Color(0x66ff00),
 
     Negative: Color(0xff0000),
     Zero: Color(0xffffff),

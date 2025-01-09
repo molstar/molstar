@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,7 +11,7 @@ import { ColorNames } from '../../mol-util/color/names';
 import { PositionData, Box3D, Sphere3D } from '../../mol-math/geometry';
 import { OrderedSet } from '../../mol-data/int';
 import { Vec3 } from '../../mol-math/linear-algebra';
-import { computeGaussianDensity, computeGaussianDensityTexture2d } from '../../mol-math/geometry/gaussian-density';
+import { computeGaussianDensity } from '../../mol-math/geometry/gaussian-density';
 import { calcActiveVoxels } from '../../mol-gl/compute/marching-cubes/active-voxels';
 import { createHistogramPyramid } from '../../mol-gl/compute/histogram-pyramid/reduction';
 import { createIsosurfaceBuffers } from '../../mol-gl/compute/marching-cubes/isosurface';
@@ -23,6 +23,7 @@ import { computeMarchingCubesMesh } from '../../mol-geo/util/marching-cubes/algo
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { AssetManager } from '../../mol-util/assets';
+import { GaussianDensityTexture2d } from '../../mol-math/geometry/gaussian-density/gpu';
 
 const parent = document.getElementById('app')!;
 parent.style.width = '100%';
@@ -30,15 +31,24 @@ parent.style.height = '100%';
 
 const canvas = document.createElement('canvas');
 parent.appendChild(canvas);
-resizeCanvas(canvas, parent);
 
 const assetManager = new AssetManager();
 
-const canvas3d = Canvas3D.create(Canvas3DContext.fromCanvas(canvas, assetManager), PD.merge(Canvas3DParams, PD.getDefaultValues(Canvas3DParams), {
+const canvas3dContext = Canvas3DContext.fromCanvas(canvas, assetManager);
+const canvas3d = Canvas3D.create(canvas3dContext, PD.merge(Canvas3DParams, PD.getDefaultValues(Canvas3DParams), {
     renderer: { backgroundColor: ColorNames.white },
     camera: { mode: 'orthographic' }
 }));
+resizeCanvas(canvas, parent, canvas3dContext.pixelScale);
+canvas3dContext.syncPixelScale();
+canvas3d.requestResize();
 canvas3d.animate();
+
+canvas3d.input.resize.subscribe(() => {
+    resizeCanvas(canvas, parent, canvas3dContext.pixelScale);
+    canvas3dContext.syncPixelScale();
+    canvas3d.requestResize();
+});
 
 async function init() {
     const { webgl } = canvas3d;
@@ -58,32 +68,8 @@ async function init() {
     };
     const isoValue = Math.exp(-props.smoothness);
 
-    if (true) {
-        console.time('gpu gaussian2');
-        const densityTextureData2 = await computeGaussianDensityTexture2d(position, box, radius, props, webgl).run();
-        webgl.waitForGpuCommandsCompleteSync();
-        console.timeEnd('gpu gaussian2');
-
-        console.time('gpu mc2');
-        console.time('gpu mc active2');
-        const activeVoxelsTex2 = calcActiveVoxels(webgl, densityTextureData2.texture, densityTextureData2.gridDim, densityTextureData2.gridTexDim, isoValue, densityTextureData2.gridTexScale);
-        webgl.waitForGpuCommandsCompleteSync();
-        console.timeEnd('gpu mc active2');
-
-        console.time('gpu mc pyramid2');
-        const compacted2 = createHistogramPyramid(webgl, activeVoxelsTex2, densityTextureData2.gridTexScale, densityTextureData2.gridTexDim);
-        webgl.waitForGpuCommandsCompleteSync();
-        console.timeEnd('gpu mc pyramid2');
-
-        console.time('gpu mc vert2');
-        createIsosurfaceBuffers(webgl, activeVoxelsTex2, densityTextureData2.texture, compacted2, densityTextureData2.gridDim, densityTextureData2.gridTexDim, densityTextureData2.transform, isoValue, false, true, Vec3.create(0, 1, 2), true);
-        webgl.waitForGpuCommandsCompleteSync();
-        console.timeEnd('gpu mc vert2');
-        console.timeEnd('gpu mc2');
-    }
-
     console.time('gpu gaussian');
-    const densityTextureData = await computeGaussianDensityTexture2d(position, box, radius, props, webgl).run();
+    const densityTextureData = GaussianDensityTexture2d(webgl, position, box, radius, true, props);
     webgl.waitForGpuCommandsCompleteSync();
     console.timeEnd('gpu gaussian');
 

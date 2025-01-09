@@ -59,9 +59,14 @@ vec4 voxel(vec3 pos) {
     return texture3dFrom2dNearest(tVolumeData, pos / uGridDim, uGridDim, uGridTexDim.xy);
 }
 
-vec4 voxelPadded(vec3 pos) {
+float voxelValuePadded(vec3 pos) {
     pos = min(max(vec3(0.0), pos), uGridDim - vec3(vec2(2.0), 1.0)); // remove xy padding
-    return texture3dFrom2dNearest(tVolumeData, pos / uGridDim, uGridDim, uGridTexDim.xy);
+    vec4 v = texture3dFrom2dNearest(tVolumeData, pos / uGridDim, uGridDim, uGridTexDim.xy);
+    #ifdef dValueChannel_red
+        return v.r;
+    #else
+        return v.a;
+    #endif
 }
 
 int idot2(const in ivec2 a, const in ivec2 b) {
@@ -261,8 +266,13 @@ void main(void) {
     vec4 d0 = voxel(b0);
     vec4 d1 = voxel(b1);
 
-    float v0 = d0.a;
-    float v1 = d1.a;
+    #ifdef dValueChannel_red
+        float v0 = d0.r;
+        float v1 = d1.r;
+    #else
+        float v0 = d0.a;
+        float v1 = d1.a;
+    #endif
 
     float t = (uIsoValue - v0) / (v0 - v1);
     gl_FragData[0].xyz = (uGridTransform * vec4(b0 + t * (b0 - b1), 1.0)).xyz;
@@ -286,14 +296,14 @@ void main(void) {
 
     // normals from gradients
     vec3 n0 = -normalize(vec3(
-        voxelPadded(b0 - c1).a - voxelPadded(b0 + c1).a,
-        voxelPadded(b0 - c3).a - voxelPadded(b0 + c3).a,
-        voxelPadded(b0 - c4).a - voxelPadded(b0 + c4).a
+        voxelValuePadded(b0 - c1) - voxelValuePadded(b0 + c1),
+        voxelValuePadded(b0 - c3) - voxelValuePadded(b0 + c3),
+        voxelValuePadded(b0 - c4) - voxelValuePadded(b0 + c4)
     ));
     vec3 n1 = -normalize(vec3(
-        voxelPadded(b1 - c1).a - voxelPadded(b1 + c1).a,
-        voxelPadded(b1 - c3).a - voxelPadded(b1 + c3).a,
-        voxelPadded(b1 - c4).a - voxelPadded(b1 + c4).a
+        voxelValuePadded(b1 - c1) - voxelValuePadded(b1 + c1),
+        voxelValuePadded(b1 - c3) - voxelValuePadded(b1 + c3),
+        voxelValuePadded(b1 - c4) - voxelValuePadded(b1 + c4)
     ));
     gl_FragData[2].xyz = -vec3(
         n0.x + t * (n0.x - n1.x),
@@ -307,6 +317,6 @@ void main(void) {
     }
 
     // apply normal matrix
-    gl_FragData[2].xyz *= transpose3(inverse3(mat3(uGridTransform)));
+    gl_FragData[2].xyz *= adjoint(uGridTransform);
 }
 `;

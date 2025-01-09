@@ -167,7 +167,7 @@ vec3 v3m4(vec3 p, mat4 m) {
 float preFogAlphaBlended = 0.0;
 
 vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
-    mat3 normalMatrix = transpose3(inverse3(mat3(uModelView * vTransform)));
+    mat3 normalMatrix = adjoint(uModelView * vTransform);
     mat4 cartnToUnit = uCartnToUnit * inverse4(vTransform);
     #if defined(dClipVariant_pixel) && dClipObjectCount != 0
         mat4 modelTransform = uModel * vTransform * uTransform;

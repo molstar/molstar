@@ -45,6 +45,7 @@ import { ExternalVolumeColorThemeProvider } from './color/external-volume';
 import { ColorThemeCategory } from './color/categories';
 import { CartoonColorThemeProvider } from './color/cartoon';
 import { FormalChargeColorThemeProvider } from './color/formal-charge';
+import { ExternalStructureColorThemeProvider } from './color/external-structure';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -94,7 +95,7 @@ namespace ColorTheme {
 
     export interface Palette {
         filter?: TextureFilter,
-        colors: Color[]
+        colors: Color[],
     }
 
     export const PaletteScale = (1 << 24) - 1;
@@ -131,6 +132,8 @@ namespace ColorTheme {
         'element-symbol': ElementSymbolColorThemeProvider,
         'entity-id': EntityIdColorThemeProvider,
         'entity-source': EntitySourceColorThemeProvider,
+        'external-structure': ExternalStructureColorThemeProvider,
+        'external-volume': ExternalVolumeColorThemeProvider,
         'formal-charge': FormalChargeColorThemeProvider,
         'hydrophobicity': HydrophobicityColorThemeProvider,
         'illustrative': IllustrativeColorThemeProvider,
@@ -153,7 +156,6 @@ namespace ColorTheme {
         'uniform': UniformColorThemeProvider,
         'volume-segment': VolumeSegmentColorThemeProvider,
         'volume-value': VolumeValueColorThemeProvider,
-        'external-volume': ExternalVolumeColorThemeProvider,
     };
     type _BuiltIn = typeof BuiltIn
     export type BuiltIn = keyof _BuiltIn
