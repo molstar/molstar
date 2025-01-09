@@ -26,6 +26,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix `StructConn.isExhaustive` for partial models (e.g., returned by the model server)
 - Refactor value swapping in molstar-math to fix SWC (Next.js) build (#1345)
 - Fix transform data not updated when structure child changes
+- Sequence panel: Mark focused loci (bold+underline)
+- Change modifier key behavior in Normal Mode (default = select only, Ctrl/Cmd = add to selection, Shift = extend last selected range)
 
 ## [v4.8.0] - 2024-10-27
 
