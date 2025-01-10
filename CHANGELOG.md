@@ -18,6 +18,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Minor documentation updates
 - Support removal of independent selection controls in the viewport
 - Support custom selection controls
+- Support for custom granularity dropdown options
 
 ## [v4.10.0] - 2024-12-15
 
