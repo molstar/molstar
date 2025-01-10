@@ -12,8 +12,10 @@ import { PluginConfig } from '../../mol-plugin/config';
 import { Color } from '../../mol-util/color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { CollapsableControls, PurePluginUIComponent } from '../base';
-import { Button, IconButton } from '../controls/common';
-import { Draw, MagicWandSvg } from '../controls/icons';
+import { ToggleButton } from '../controls/common';
+import { MagicWandSvg } from '../controls/icons';
+import { ParameterControls } from '../controls/parameters';
+
 
 export class StructureQuickStylesControls extends CollapsableControls {
     defaultState() {
@@ -31,39 +33,50 @@ export class StructureQuickStylesControls extends CollapsableControls {
     }
 }
 
+
+const QuickStyleParams = {
+    preset: PD.Select('', [['', ''], ['default', 'Default'], ['spacefill', 'Spacefill'], ['surface', 'Surface']] as const, { isHidden: true }),
+    stylized: PD.Boolean(false, { description: 'Toggles stylized appearance (outline, occlusion effects, ignore-light representation parameter). Does not affect representation type.' }),
+};
+
+type QuickStyleProps = PD.Values<typeof QuickStyleParams>;
+
 interface QuickStylesState {
-    preset: 'default' | 'spacefill' | 'surface',
-    stylized: boolean,
+    props: QuickStyleProps,
+    busy: boolean,
 }
 
+
 export class QuickStyles extends PurePluginUIComponent<{}, QuickStylesState> {
-    state: QuickStylesState = { preset: 'default', stylized: false };
+    state: QuickStylesState = { props: { preset: '', stylized: false }, busy: false };
+
+    componentDidMount() {
+        const invalidatePreset = () => this.setState(old => ({ props: { ...old.props, preset: '' } }));
+        this.subscribe(this.plugin.state.data.events.cell.created, invalidatePreset);
+        this.subscribe(this.plugin.state.data.events.cell.stateUpdated, invalidatePreset);
+    }
 
     async default() {
         const { structures } = this.plugin.managers.structure.hierarchy.selection;
         const preset = this.plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || PresetStructureRepresentations.auto.id;
         const provider = this.plugin.builders.structure.representation.resolveProvider(preset);
         await this.plugin.managers.structure.component.applyPreset(structures, provider);
-        await this.setStylized(this.state.stylized);
-        this.setState({ preset: 'default' });
+        await this.setStylized(this.state.props.stylized);
     }
-
-    async illustrative() {
+    async spacefill() {
         const { structures } = this.plugin.managers.structure.hierarchy.selection;
         await this.plugin.managers.structure.component.applyPreset(structures, PresetStructureRepresentations.illustrative);
-        await this.setStylized(this.state.stylized);
-        this.setState({ preset: 'spacefill' });
+        await this.setStylized(this.state.props.stylized);
     }
     async surface() {
         const { structures } = this.plugin.managers.structure.hierarchy.selection;
         await this.plugin.managers.structure.component.applyPreset(structures, PresetStructureRepresentations['molecular-surface']);
-        await this.setStylized(this.state.stylized);
-        this.setState({ preset: 'surface' });
+        await this.setStylized(this.state.props.stylized);
     }
 
     async setStylized(stylized: boolean) {
         if (stylized) {
-            this.plugin.managers.structure.component.setOptions({ ...this.plugin.managers.structure.component.state.options, ignoreLight: true });
+            await this.plugin.managers.structure.component.setOptions({ ...this.plugin.managers.structure.component.state.options, ignoreLight: true });
 
             if (this.plugin.canvas3d) {
                 const pp = this.plugin.canvas3d.props.postprocessing;
@@ -101,7 +114,7 @@ export class QuickStyles extends PurePluginUIComponent<{}, QuickStylesState> {
                 });
             }
         } else {
-            this.plugin.managers.structure.component.setOptions({ ...this.plugin.managers.structure.component.state.options, ignoreLight: false });
+            await this.plugin.managers.structure.component.setOptions({ ...this.plugin.managers.structure.component.state.options, ignoreLight: false });
 
             if (this.plugin.canvas3d) {
                 const p = PD.getDefaultValues(PostprocessingParams);
@@ -110,28 +123,39 @@ export class QuickStyles extends PurePluginUIComponent<{}, QuickStylesState> {
                 });
             }
         }
-        this.setState({ stylized });
     }
 
-    async toggleStylized() {
-        await this.setStylized(!this.state.stylized);
+    async changeValues(props: QuickStyleProps) {
+        const currentProps = this.state.props;
+        this.setState({ busy: true });
+        if (props.preset !== currentProps.preset) {
+            switch (props.preset) {
+                case 'default': await this.default(); break;
+                case 'spacefill': await this.spacefill(); break;
+                case 'surface': await this.surface(); break;
+            }
+        }
+        if (props.stylized !== currentProps.stylized) {
+            await this.setStylized(props.stylized);
+        }
+        this.setState({ props, busy: false });
+    }
+
+    changePreset(preset: QuickStyleProps['preset']) {
+        return this.changeValues({ ...this.state.props, preset });
     }
 
     render() {
-        return <div className='msp-flex-row'>
-            <Button noOverflow title='Applies default representation preset' onClick={() => this.default()} style={{ width: 'auto' }}>
-                Default
-            </Button>
-            <Button noOverflow title='Applies illustrative representation preset' onClick={() => this.illustrative()} style={{ width: 'auto' }}>
-                Spacefill
-            </Button>
-            <Button noOverflow title='Applies molecular surface representation preset' onClick={() => this.surface()} style={{ width: 'auto' }}>
-                Surface
-            </Button>
-            <IconButton
-                title='Stylize. &#10;Does not change representation, toggles stylized appearance (outline, occlusion effects, ignore-light representation parameter).'
-                onClick={() => this.toggleStylized()} style={{ width: 'auto', marginInline: 10 }} svg={Draw} toggleState={this.state.stylized}
-            ></IconButton>
-        </div>;
+        return <>
+            <div className='msp-flex-row'>
+                <ToggleButton label='Default' title='Applies default representation preset'
+                    toggle={() => this.changePreset('default')} isSelected={this.state.props.preset === 'default'} disabled={this.state.busy} />
+                <ToggleButton label='Spacefill' title='Applies illustrative representation preset'
+                    toggle={() => this.changePreset('spacefill')} isSelected={this.state.props.preset === 'spacefill'} disabled={this.state.busy} />
+                <ToggleButton label='Surface' title='Applies molecular surface representation preset'
+                    toggle={() => this.changePreset('surface')} isSelected={this.state.props.preset === 'surface'} disabled={this.state.busy} />
+            </div>
+            <ParameterControls params={QuickStyleParams} values={this.state.props} onChangeValues={props => this.changeValues(props)} isDisabled={this.state.busy} />
+        </>;
     }
 }
