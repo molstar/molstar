@@ -17,6 +17,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Support float and half-float data type for direct-volume rendering and GPU isosurface extraction
 - Minor documentation updates
 - Support removal of independent selection controls in the viewport
+- Support custom selection controls
 
 ## [v4.10.0] - 2024-12-15
 
