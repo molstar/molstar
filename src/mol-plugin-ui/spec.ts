@@ -33,6 +33,7 @@ interface PluginUISpec extends PluginSpec {
         disableDragOverlay?: boolean,
         selectionTools?: {
             controls?: React.ComponentClass | React.FC,
+            granularityOptions?: Set<'element' | 'operator' | 'residue' | 'entity' | 'chain' | 'model' | 'structure' | 'elementInstances' | 'residueInstances' | 'chainInstances'>,
             hide?: {
                 granularity?: boolean,
                 union?: boolean,
