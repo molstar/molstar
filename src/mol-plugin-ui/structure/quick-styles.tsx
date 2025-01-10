@@ -35,7 +35,7 @@ export class StructureQuickStylesControls extends CollapsableControls {
 
 
 const QuickStyleParams = {
-    preset: PD.Select('', [['', ''], ['default', 'Default'], ['spacefill', 'Spacefill'], ['surface', 'Surface']] as const, { isHidden: true }),
+    preset: PD.Select('', [['', ''], ['default', 'Default'], ['cartoon', 'Cartoon'], ['spacefill', 'Spacefill'], ['surface', 'Surface']] as const, { isHidden: true }),
     stylized: PD.Boolean(false, { description: 'Toggles stylized appearance (outline, occlusion effects, ignore-light representation parameter). Does not affect representation type.' }),
 };
 
@@ -56,21 +56,25 @@ export class QuickStyles extends PurePluginUIComponent<{}, QuickStylesState> {
         this.subscribe(this.plugin.state.data.events.cell.stateUpdated, invalidatePreset);
     }
 
-    async default() {
+    async setPreset(preset: QuickStyleProps['preset']) {
         const { structures } = this.plugin.managers.structure.hierarchy.selection;
-        const preset = this.plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || PresetStructureRepresentations.auto.id;
-        const provider = this.plugin.builders.structure.representation.resolveProvider(preset);
-        await this.plugin.managers.structure.component.applyPreset(structures, provider);
-        await this.setStylized(this.state.props.stylized);
-    }
-    async spacefill() {
-        const { structures } = this.plugin.managers.structure.hierarchy.selection;
-        await this.plugin.managers.structure.component.applyPreset(structures, PresetStructureRepresentations.illustrative);
-        await this.setStylized(this.state.props.stylized);
-    }
-    async surface() {
-        const { structures } = this.plugin.managers.structure.hierarchy.selection;
-        await this.plugin.managers.structure.component.applyPreset(structures, PresetStructureRepresentations['molecular-surface']);
+
+        switch (preset) {
+            case 'default':
+                const defaultPreset = this.plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || PresetStructureRepresentations.auto.id;
+                const provider = this.plugin.builders.structure.representation.resolveProvider(defaultPreset);
+                await this.plugin.managers.structure.component.applyPreset(structures, provider);
+                break;
+            case 'spacefill':
+                await this.plugin.managers.structure.component.applyPreset(structures, PresetStructureRepresentations.illustrative);
+                break;
+            case 'cartoon':
+                await this.plugin.managers.structure.component.applyPreset(structures, PresetStructureRepresentations['polymer-and-ligand']);
+                break;
+            case 'surface':
+                await this.plugin.managers.structure.component.applyPreset(structures, PresetStructureRepresentations['molecular-surface']);
+                break;
+        }
         await this.setStylized(this.state.props.stylized);
     }
 
@@ -129,11 +133,7 @@ export class QuickStyles extends PurePluginUIComponent<{}, QuickStylesState> {
         const currentProps = this.state.props;
         this.setState({ busy: true });
         if (props.preset !== currentProps.preset) {
-            switch (props.preset) {
-                case 'default': await this.default(); break;
-                case 'spacefill': await this.spacefill(); break;
-                case 'surface': await this.surface(); break;
-            }
+            await this.setPreset(props.preset);
         }
         if (props.stylized !== currentProps.stylized) {
             await this.setStylized(props.stylized);
@@ -141,16 +141,18 @@ export class QuickStyles extends PurePluginUIComponent<{}, QuickStylesState> {
         this.setState({ props, busy: false });
     }
 
-    changePreset(preset: QuickStyleProps['preset']) {
-        return this.changeValues({ ...this.state.props, preset });
+    async changePreset(preset: QuickStyleProps['preset']) {
+        await this.changeValues({ ...this.state.props, preset });
     }
 
     render() {
         return <>
             <div className='msp-flex-row'>
-                <ToggleButton label='Default' title='Applies default representation preset'
+                <ToggleButton label='Default' title='Applies default representation preset (depends on structure size)'
                     toggle={() => this.changePreset('default')} isSelected={this.state.props.preset === 'default'} disabled={this.state.busy} />
-                <ToggleButton label='Spacefill' title='Applies illustrative representation preset'
+                <ToggleButton label='Cartoon' title='Applies cartoon polymer + ball-and-stick ligand representation preset'
+                    toggle={() => this.changePreset('cartoon')} isSelected={this.state.props.preset === 'cartoon'} disabled={this.state.busy} />
+                <ToggleButton label='Spacefill' title='Applies spacefill representation preset'
                     toggle={() => this.changePreset('spacefill')} isSelected={this.state.props.preset === 'spacefill'} disabled={this.state.busy} />
                 <ToggleButton label='Surface' title='Applies molecular surface representation preset'
                     toggle={() => this.changePreset('surface')} isSelected={this.state.props.preset === 'surface'} disabled={this.state.busy} />
