@@ -32,7 +32,7 @@ interface PluginUISpec extends PluginSpec {
         hideTaskOverlay?: boolean,
         disableDragOverlay?: boolean,
         selectionTools?: {
-            control?: React.ComponentClass | React.FC,
+            controls?: React.ComponentClass | React.FC,
             hide?: {
                 granularity?: boolean,
                 union?: boolean,
