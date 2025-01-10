@@ -25,23 +25,28 @@ interface PluginUISpec extends PluginSpec {
             view?: React.ComponentClass | React.FC,
             controls?: React.ComponentClass | React.FC,
             snapshotDescription?: React.ComponentClass | React.FC,
-            removeGranularity?: boolean,
-            removeUnion?: boolean,
-            removeSubtract?: boolean,
-            removeIntersect?: boolean,
-            removeSet?: boolean,
-            removeBrush?: boolean,
-            removeCubeOutline?: boolean,
-            removeRemove?: boolean,
-            removeRestore?: boolean,
-            removeHelpOutline?: boolean,
-            removeCancelOutlined?: boolean,
         },
         sequenceViewer?: {
             view?: React.ComponentClass | React.FC
         }
         hideTaskOverlay?: boolean,
         disableDragOverlay?: boolean,
+        selectionTools?: {
+            control?: React.ComponentClass | React.FC,
+            hide?: {
+                granularity?: boolean,
+                union?: boolean,
+                subtract?: boolean,
+                intersect?: boolean,
+                set?: boolean,
+                brush?: boolean,
+                cubeOutline?: boolean,
+                remove?: boolean,
+                restore?: boolean,
+                helpOutline?: boolean,
+                cancelOutlined?: boolean,
+            },
+        },
     },
 }
 
