@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Ventura Rivera <venturaxrivera@gmail.com>
  */
 
 
@@ -30,6 +31,22 @@ interface PluginUISpec extends PluginSpec {
         }
         hideTaskOverlay?: boolean,
         disableDragOverlay?: boolean,
+        selectionTools?: {
+            controls?: React.ComponentClass | React.FC,
+            hide?: {
+                granularity?: boolean,
+                union?: boolean,
+                subtract?: boolean,
+                intersect?: boolean,
+                set?: boolean,
+                brush?: boolean,
+                cubeOutline?: boolean,
+                remove?: boolean,
+                restore?: boolean,
+                help?: boolean,
+                cancel?: boolean,
+            },
+        },
     },
 }
 
