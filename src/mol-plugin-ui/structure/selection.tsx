@@ -219,6 +219,11 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
 
     render() {
         const granularity = this.plugin.managers.interactivity.props.granularity;
+        const granularitySelect = StructureSelectionParams.granularity;
+        const granularityOptions = this.plugin.spec.components?.selectionTools?.granularityOptions;
+        if (granularityOptions) {
+            granularitySelect.options = granularitySelect.options.filter(([firstItem]) => granularityOptions.has(firstItem));
+        }
         const hide = this.plugin.spec.components?.selectionTools?.hide;
         const undoTitle = this.state.canUndo
             ? `Undo ${this.plugin.state.data.latestUndoLabel}`
@@ -265,7 +270,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
 
         return <>
             <div className='msp-flex-row' style={{ background: 'none' }}>
-                {(!hide?.granularity) && <PureSelectControl title={`Picking Level for selecting and highlighting`} param={StructureSelectionParams.granularity} name='granularity' value={granularity} onChange={this.setGranuality} isDisabled={this.isDisabled} />}
+                {(!hide?.granularity) && <PureSelectControl title={`Picking Level for selecting and highlighting`} param={granularitySelect} name='granularity' value={granularity} onChange={this.setGranuality} isDisabled={this.isDisabled} />}
                 {(!hide?.union) && <ToggleButton icon={UnionSvg} title={`${ActionHeader.get('add')}. Hold shift key to keep menu open.`} toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />}
                 {(!hide?.subtract) && <ToggleButton icon={SubtractSvg} title={`${ActionHeader.get('remove')}. Hold shift key to keep menu open.`} toggle={this.toggleRemove} isSelected={this.state.action === 'remove'} disabled={this.isDisabled} />}
                 {(!hide?.intersect) && <ToggleButton icon={IntersectSvg} title={`${ActionHeader.get('intersect')}. Hold shift key to keep menu open.`} toggle={this.toggleIntersect} isSelected={this.state.action === 'intersect'} disabled={this.isDisabled} />}
