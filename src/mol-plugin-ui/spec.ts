@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Ventura Rivera <venturaxrivera@gmail.com>
  */
 
 
@@ -24,6 +25,17 @@ interface PluginUISpec extends PluginSpec {
             view?: React.ComponentClass | React.FC,
             controls?: React.ComponentClass | React.FC,
             snapshotDescription?: React.ComponentClass | React.FC,
+            removeGranularity?: boolean,
+            removeUnion?: boolean,
+            removeSubtract?: boolean,
+            removeIntersect?: boolean,
+            removeSet?: boolean,
+            removeBrush?: boolean,
+            removeCubeOutline?: boolean,
+            removeRemove?: boolean,
+            removeRestore?: boolean,
+            removeHelpOutline?: boolean,
+            removeCancelOutlined?: boolean,
         },
         sequenceViewer?: {
             view?: React.ComponentClass | React.FC
