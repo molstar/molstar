@@ -19,6 +19,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add support for position-location to `volume-value` color theme
 - Add support for color themes to `slice` representation
 - Improve/fix palette support in volume color themes
+- Support removal of independent selection controls in the viewport
+- Support custom selection controls
+- Fix `Plane3D.projectPoint`
 
 ## [v4.10.0] - 2024-12-15
 
