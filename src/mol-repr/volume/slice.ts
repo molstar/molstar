@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,7 +9,7 @@ import { Image } from '../../mol-geo/geometry/image/image';
 import { ThemeRegistryContext, Theme } from '../../mol-theme/theme';
 import { Grid, Volume } from '../../mol-model/volume';
 import { VolumeVisual, VolumeRepresentation, VolumeRepresentationProvider } from './representation';
-import { LocationIterator } from '../../mol-geo/util/location-iterator';
+import { LocationIterator, PositionLocation } from '../../mol-geo/util/location-iterator';
 import { VisualUpdateState } from '../util';
 import { NullLocation } from '../../mol-model/location';
 import { RepresentationContext, RepresentationParamsGetter } from '../representation';
@@ -23,17 +23,18 @@ import { Color } from '../../mol-util/color';
 import { ColorTheme } from '../../mol-theme/color';
 import { packIntToRGBArray } from '../../mol-util/number-packing';
 import { eachVolumeLoci } from './util';
+import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
+import { equalEps } from '../../mol-math/linear-algebra/3d/common';
 
 export async function createImage(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: PD.Values<SliceParams>, image?: Image) {
     const { dimension: { name: dim }, isoValue } = props;
 
-    const { space, data } = volume.grid.cells;
-    const { min, max } = volume.grid.stats;
-    const isoVal = Volume.IsoValue.toAbsolute(isoValue, volume.grid.stats).absoluteValue;
+    const { cells: { space, data }, stats } = volume.grid;
+    const isoVal = Volume.IsoValue.toAbsolute(isoValue, stats).absoluteValue;
 
-    // TODO more color themes
-    const color = 'color' in theme.color ? theme.color.color(NullLocation, false) : Color(0xffffff);
-    const [r, g, b] = Color.toRgbNormalized(color);
+    const color = 'color' in theme.color && theme.color.color
+        ? theme.color.color
+        : () => Color(0xffffff);
 
     const {
         width, height,
@@ -51,18 +52,44 @@ export async function createImage(ctx: VisualContext, volume: Volume, key: numbe
     const imageArray = new Uint8Array(width * height * 4);
     const groupArray = getPackedGroupArray(volume.grid, props);
 
+    const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
+    const l = PositionLocation(Vec3(), Vec3());
+
+    let v: (ix: number, iy: number, iz: number) => number;
+    if (equalEps(isoVal, stats.min, 0.001)) {
+        v = (_ix, _iy, _iz) => 255;
+    } else if (equalEps(isoVal, stats.max, 0.001)) {
+        v = (_ix, _iy, _iz) => 0;
+    } else {
+        v = (ix, iy, iz) => {
+            return (
+                (space.get(data, ix, iy, iz) >= isoVal ? 1 : 0) * 2 +
+                (space.get(data, ix + 1, iy, iz) >= isoVal ? 1 : 0) +
+                (space.get(data, ix - 1, iy, iz) >= isoVal ? 1 : 0) +
+                (space.get(data, ix, iy + 1, iz) >= isoVal ? 1 : 0) +
+                (space.get(data, ix, iy - 1, iz) >= isoVal ? 1 : 0) +
+                (space.get(data, ix, iy, iz + 1) >= isoVal ? 1 : 0) +
+                (space.get(data, ix, iy, iz - 1) >= isoVal ? 1 : 0) +
+                (space.get(data, ix + 1, iy + 1, iz + 1) >= isoVal ? 1 : 0) +
+                (space.get(data, ix - 1, iy + 1, iz + 1) >= isoVal ? 1 : 0) +
+                (space.get(data, ix + 1, iy - 1, iz + 1) >= isoVal ? 1 : 0) +
+                (space.get(data, ix + 1, iy + 1, iz - 1) >= isoVal ? 1 : 0) +
+                (space.get(data, ix - 1, iy - 1, iz + 1) >= isoVal ? 1 : 0) +
+                (space.get(data, ix - 1, iy + 1, iz - 1) >= isoVal ? 1 : 0) +
+                (space.get(data, ix + 1, iy - 1, iz - 1) >= isoVal ? 1 : 0) +
+                (space.get(data, ix - 1, iy - 1, iz - 1) >= isoVal ? 1 : 0)
+            ) / 16 * 255;
+        };
+    }
+
     let i = 0;
     for (let iy = y0; iy < ny; ++iy) {
         for (let ix = x0; ix < nx; ++ix) {
             for (let iz = z0; iz < nz; ++iz) {
-                const val = space.get(data, ix, iy, iz);
-                const normVal = (val - min) / (max - min);
-
-                imageArray[i] = r * normVal * 2 * 255;
-                imageArray[i + 1] = g * normVal * 2 * 255;
-                imageArray[i + 2] = b * normVal * 2 * 255;
-                imageArray[i + 3] = val >= isoVal ? 255 : 0;
-
+                Vec3.set(l.position, ix, iy, iz);
+                Vec3.transformMat4(l.position, l.position, gridToCartn);
+                Color.toArray(color(l, false), imageArray, i);
+                imageArray[i + 3] = v(ix, iy, iz);
                 i += 4;
             }
         }
