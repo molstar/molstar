@@ -61,6 +61,9 @@ export function VolumeValueColorTheme(ctx: ThemeDataContext, props: PD.Values<Vo
         }
 
         if (ctx.locationKinds?.includes('direct-location')) {
+            // this is for direct-volume rendering where the location is the volume grid cell
+            // and we only need to provide the domain and palette here
+
             const normalizedDomain = [
                 normalize(domain[0], min, max),
                 normalize(domain[1], min, max)
