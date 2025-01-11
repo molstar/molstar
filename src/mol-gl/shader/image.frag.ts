@@ -94,6 +94,19 @@ varying float vInstance;
     }
 #endif
 
+#if defined(dNeedsMarker)
+    float getMarker() {
+        if (uMarker != -1.0) return uMarker;
+
+        vec3 packedGroup = texture2D(tGroupTex, vUv).rgb;
+        if (packedGroup == vec3(0.0)) return 0.0;
+
+        float group = unpackRGBToInt(packedGroup);
+        float marker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
+        return floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
+    }
+#endif
+
 void main() {
     #include fade_lod
     #include clip_pixel
@@ -139,12 +152,7 @@ void main() {
             gl_FragColor = packDepthWithAlphaToRGBA(fragmentDepth, imageData.a);
         }
     #elif defined(dRenderVariant_marking)
-        float marker = uMarker;
-        if (uMarker == -1.0) {
-            float group = unpackRGBToInt(texture2D(tGroupTex, vUv).rgb);
-            marker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
-            marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
-        }
+        float marker = getMarker();
         if (uMarkingType == 1) {
             if (marker > 0.0)
                 discard;
@@ -157,7 +165,11 @@ void main() {
                 depthTest = (fragmentDepth >= getDepthPacked(gl_FragCoord.xy / uDrawingBufferSize)) ? 1.0 : 0.0;
             }
             bool isHighlight = intMod(marker, 2.0) > 0.1;
-            gl_FragColor = vec4(0.0, depthTest, isHighlight ? 1.0 : 0.0, 1.0);
+            float viewZ = depthToViewZ(uIsOrtho, fragmentDepth, uNear, uFar);
+            float fogFactor = smoothstep(uFogNear, uFogFar, abs(viewZ));
+            if (fogFactor == 1.0)
+                discard;
+            gl_FragColor = vec4(0.0, depthTest, isHighlight ? 1.0 : 0.0, 1.0 - fogFactor);
         }
     #elif defined(dRenderVariant_emissive)
         gl_FragColor = vec4(0.0);
@@ -168,13 +180,7 @@ void main() {
         #endif
         gl_FragColor = imageData;
 
-        float marker = uMarker;
-        if (uMarker == -1.0) {
-            float group = unpackRGBToInt(texture2D(tGroupTex, vUv).rgb);
-            marker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
-            marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
-        }
-
+        float marker = getMarker();
         #include apply_marker_color
 
         #if defined(dRenderVariant_color)
