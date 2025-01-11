@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
@@ -86,7 +86,7 @@ namespace Plane3D {
     }
 
     export function projectPoint(out: Vec3, plane: Plane3D, point: Vec3) {
-        return Vec3.scaleAndAdd(out, out, plane.normal, -distanceToPoint(plane, point));
+        return Vec3.scaleAndAdd(out, point, plane.normal, -distanceToPoint(plane, point));
     }
 }
 

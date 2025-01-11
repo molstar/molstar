@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -41,10 +41,10 @@ interface PluginUISpec extends PluginSpec {
                 subtract?: boolean,
                 intersect?: boolean,
                 set?: boolean,
-                brush?: boolean,
-                cubeOutline?: boolean,
-                remove?: boolean,
-                restore?: boolean,
+                theme?: boolean,
+                componentAdd?: boolean,
+                componentRemove?: boolean,
+                undo?: boolean,
                 help?: boolean,
                 cancel?: boolean,
             },

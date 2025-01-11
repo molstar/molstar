@@ -19,6 +19,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Support removal of independent selection controls in the viewport
 - Support custom selection controls
 - Support for custom granularity dropdown options
+- Fix `Plane3D.projectPoint`
 
 ## [v4.10.0] - 2024-12-15
 
