@@ -34,7 +34,7 @@ interface PluginUISpec extends PluginSpec {
         disableDragOverlay?: boolean,
         selectionTools?: {
             controls?: React.ComponentClass | React.FC,
-            granularityOptions?: Set<Loci.Granularity>,
+            granularityOptions?: Loci.Granularity[],
             hide?: {
                 granularity?: boolean,
                 union?: boolean,
