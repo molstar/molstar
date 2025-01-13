@@ -21,6 +21,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Improve/fix palette support in volume color themes
 - Support removal of independent selection controls in the viewport
 - Support custom selection controls
+- Support for custom granularity dropdown options
 - Fix `Plane3D.projectPoint`
 - Fix marking related image rendering issues
     - Handle pixels without a group

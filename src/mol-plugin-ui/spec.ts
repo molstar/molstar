@@ -12,6 +12,7 @@ import { CreateVolumeStreamingBehavior } from '../mol-plugin/behavior/dynamic/vo
 import { DefaultPluginSpec, PluginSpec } from '../mol-plugin/spec';
 import { StateAction, StateTransformer } from '../mol-state';
 import { VolumeStreamingCustomControls } from './custom/volume';
+import { Loci } from '../mol-model/loci';
 
 export { PluginUISpec };
 
@@ -33,6 +34,7 @@ interface PluginUISpec extends PluginSpec {
         disableDragOverlay?: boolean,
         selectionTools?: {
             controls?: React.ComponentClass | React.FC,
+            granularityOptions?: Loci.Granularity[],
             hide?: {
                 granularity?: boolean,
                 union?: boolean,
