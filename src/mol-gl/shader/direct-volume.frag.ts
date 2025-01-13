@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
@@ -122,6 +122,7 @@ uniform mat4 uCartnToUnit;
 #endif
 
 #ifdef dUsePalette
+    uniform vec2 uPaletteDomain;
     uniform sampler2D tPalette;
 #endif
 
@@ -271,7 +272,8 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
         #endif
 
         #if defined(dColorType_direct) && defined(dUsePalette)
-            material.rgb = texture2D(tPalette, vec2(value, 0.0)).rgb;
+            float paletteValue = (value - uPaletteDomain[0]) / (uPaletteDomain[1] - uPaletteDomain[0]);
+            material.rgb = texture2D(tPalette, vec2(clamp(paletteValue, 0.0, 1.0), 0.0)).rgb;
         #elif defined(dColorType_uniform)
             material.rgb = uColor;
         #elif defined(dColorType_instance)

@@ -172,7 +172,7 @@ export function DirectVolumeVisual(materialId: number): VolumeVisual<DirectVolum
         geometryUtils: DirectVolume.Utils,
         dispose: (geometry: DirectVolume) => {
             geometry.gridTexture.ref.value.destroy();
-        }
+        },
     }, materialId);
 }
 
@@ -189,5 +189,6 @@ export const DirectVolumeRepresentationProvider = VolumeRepresentationProvider({
     defaultValues: PD.getDefaultValues(DirectVolumeParams),
     defaultColorTheme: { name: 'volume-value' },
     defaultSizeTheme: { name: 'uniform' },
+    locationKinds: ['position-location', 'direct-location'],
     isApplicable: (volume: Volume) => !Volume.isEmpty(volume) && !Volume.Segmentation.get(volume)
 });
