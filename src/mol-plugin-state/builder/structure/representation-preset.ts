@@ -414,7 +414,12 @@ const illustrative = StructureRepresentationPresetProvider({
         const { update, builder, typeParams, color } = reprBuilder(plugin, params, structure);
 
         const representations = {
-            all: builder.buildRepresentation(update, components.all, { type: 'spacefill', typeParams: { ...typeParams, ignoreLight: true }, color: 'illustrative' }, { tag: 'all' }),
+            all: builder.buildRepresentation(update, components.all, {
+                type: 'spacefill',
+                typeParams: { ...typeParams, ignoreLight: true },
+                color: 'illustrative',
+                colorParams: { style: { name: 'entity-id', params: { overrideWater: true } } },
+            }, { tag: 'all' }),
         };
         await update.commit({ revertOnError: true });
         await updateFocusRepr(plugin, structure, params.theme?.focus?.name ?? color, params.theme?.focus?.params);
@@ -444,7 +449,12 @@ const molecularSurface = StructureRepresentationPresetProvider({
         const { update, builder, typeParams, color } = reprBuilder(plugin, params, structure);
 
         const representations = {
-            all: builder.buildRepresentation(update, components.all, { type: 'molecular-surface', typeParams, color: 'illustrative', colorParams: { carbonLightness: 0 } }, { tag: 'all' }),
+            all: builder.buildRepresentation(update, components.all, {
+                type: 'molecular-surface',
+                typeParams,
+                color: 'entity-id',
+                colorParams: { overrideWater: true },
+            }, { tag: 'all' }),
         };
         await update.commit({ revertOnError: true });
         await updateFocusRepr(plugin, structure, params.theme?.focus?.name ?? color, params.theme?.focus?.params);
