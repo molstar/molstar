@@ -6,16 +6,25 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Volume UI improvements
-  - Render all volume entries instead of selecting them one-by-one
-  - Toggle visibility of all volumes
-  - More accessible iso value control
+    - Render all volume entries instead of selecting them one-by-one
+    - Toggle visibility of all volumes
+    - More accessible iso value control
 - Support wheel event on sliders
 - MolViewSpec extension:
-  - Add validation for discriminated union params
-  - Primitives: remove triangle_colors, line_colors, have implicit grouping instead; rename many parameters
+    - Add validation for discriminated union params
+    - Primitives: remove triangle_colors, line_colors, have implicit grouping instead; rename many parameters
 - Add `external-structure` theme that colors any geometry by structure properties
 - Support float and half-float data type for direct-volume rendering and GPU isosurface extraction
 - Minor documentation updates
+- Add support for position-location to `volume-value` color theme
+- Add support for color themes to `slice` representation
+- Improve/fix palette support in volume color themes
+- Support removal of independent selection controls in the viewport
+- Support custom selection controls
+- Fix `Plane3D.projectPoint`
+- Fix marking related image rendering issues
+    - Handle pixels without a group
+    - Take fog into account
 - Sequence panel: Mark focused loci (bold+underline)
 - Change modifier key behavior in Normal Mode (default = select only, Ctrl/Cmd = add to selection, Shift = extend last selected range)
 
