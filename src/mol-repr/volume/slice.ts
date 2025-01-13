@@ -30,8 +30,10 @@ export async function createImage(ctx: VisualContext, volume: Volume, key: numbe
     const { dimension: { name: dim }, isoValue } = props;
 
     const { cells: { space, data }, stats } = volume.grid;
+    const { min, max } = stats;
     const isoVal = Volume.IsoValue.toAbsolute(isoValue, stats).absoluteValue;
 
+    const isUniform = theme.color.granularity === 'uniform';
     const color = 'color' in theme.color && theme.color.color
         ? theme.color.color
         : () => Color(0xffffff);
@@ -89,7 +91,16 @@ export async function createImage(ctx: VisualContext, volume: Volume, key: numbe
                 Vec3.set(l.position, ix, iy, iz);
                 Vec3.transformMat4(l.position, l.position, gridToCartn);
                 Color.toArray(color(l, false), imageArray, i);
+
+                if (isUniform) {
+                    const val = space.get(data, ix, iy, iz);
+                    const normVal = (val - min) / (max - min);
+                    imageArray[i] *= normVal * 2;
+                    imageArray[i + 1] *= normVal * 2;
+                    imageArray[i + 2] *= normVal * 2;
+                }
                 imageArray[i + 3] = v(ix, iy, iz);
+
                 i += 4;
             }
         }
