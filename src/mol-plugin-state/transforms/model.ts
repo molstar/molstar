@@ -17,7 +17,7 @@ import { trajectoryFromGRO } from '../../mol-model-formats/structure/gro';
 import { trajectoryFromCCD, trajectoryFromMmCIF } from '../../mol-model-formats/structure/mmcif';
 import { trajectoryFromPDB } from '../../mol-model-formats/structure/pdb';
 import { topologyFromPsf } from '../../mol-model-formats/structure/psf';
-import { Coordinates, Model, Queries, QueryContext, Structure, StructureElement, StructureQuery, StructureSelection as Sel, Topology, ArrayTrajectory, Trajectory } from '../../mol-model/structure';
+import { Coordinates, Model, Queries, QueryContext, Structure, StructureElement, StructureQuery, StructureSelection as Sel, Topology, ArrayTrajectory, Trajectory, Frame } from '../../mol-model/structure';
 import { PluginContext } from '../../mol-plugin/context';
 import { MolScriptBuilder } from '../../mol-script/language/builder';
 import { Expression } from '../../mol-script/language/expression';
@@ -78,6 +78,7 @@ export { TrajectoryFromMOL2 };
 export { TrajectoryFromCube };
 export { TrajectoryFromCifCore };
 export { ModelFromTrajectory };
+export { ModelWithCoordinates };
 export { StructureFromTrajectory };
 export { StructureFromModel };
 export { TransformStructureConformation };
@@ -703,6 +704,41 @@ const TransformStructureConformation = PluginStateTransform.BuiltIn({
     //     const translation = Mat4.getTranslation(Vec3(), m);
     //     return { axis, angle, translation };
     // }
+});
+
+type ModelWithCoordinates = typeof ModelWithCoordinates
+const ModelWithCoordinates = PluginStateTransform.BuiltIn({
+    name: 'model-with-coordinates',
+    display: { name: 'Model With Coordinates', description: 'Updates the current model with provided coordinate frame' },
+    from: SO.Molecule.Model,
+    to: SO.Molecule.Model,
+    params: {
+        frameIndex: PD.Optional(PD.Numeric(0, undefined, { isHidden: true })),
+        frameCount: PD.Optional(PD.Numeric(1, undefined, { isHidden: true })),
+        atomicCoordinateFrame: PD.Optional(PD.Value<Frame | undefined>(undefined, { isHidden: true })),
+    },
+    isDecorator: true,
+})({
+    apply({ a, params }) {
+        if (!params.atomicCoordinateFrame) {
+            return a;
+        }
+        const model: Model = { ...a.data, atomicConformation: Model.getAtomicConformationFromFrame(a.data, params.atomicCoordinateFrame) };
+        Model.TrajectoryInfo.set(model, { index: params.frameIndex ?? 0, size: params.frameCount ?? 1 });
+        return new SO.Molecule.Model(model, { label: a.label, description: a.description });
+    },
+    update: ({ a, b, oldParams, newParams }) => {
+        if (oldParams.atomicCoordinateFrame === newParams.atomicCoordinateFrame) {
+            return StateTransformer.UpdateResult.Unchanged;
+        }
+        if (!newParams.atomicCoordinateFrame) {
+            b.data = a.data;
+        } else {
+            b.data = { ...b.data, atomicConformation: Model.getAtomicConformationFromFrame(b.data, newParams.atomicCoordinateFrame) };
+        }
+        Model.TrajectoryInfo.set(b.data, { index: newParams.frameIndex ?? 0, size: newParams.frameCount ?? 1 });
+        return StateTransformer.UpdateResult.Updated;
+    },
 });
 
 type StructureSelectionFromExpression = typeof StructureSelectionFromExpression

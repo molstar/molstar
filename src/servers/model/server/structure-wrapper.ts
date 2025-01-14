@@ -150,7 +150,7 @@ function readOrFetch(jobId: string, key: string, sourceId: string | '_local_', e
     if (!mapped) throw new Error(`Cound not map '${key}' for a resource.`);
 
     const uri = mapped[0].toLowerCase();
-    if (uri.startsWith('http://') || uri.startsWith('https://') || uri.startsWith('ftp://')) {
+    if (uri.startsWith('http://') || uri.startsWith('https://') || uri.startsWith('ftp://') || uri.startsWith('gs://')) {
         return fetchDataAndFrame(jobId, mapped[0], (mapped[1] || 'cif').toLowerCase() as any, key);
     }
 

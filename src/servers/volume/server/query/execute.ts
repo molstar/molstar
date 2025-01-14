@@ -7,7 +7,6 @@
  */
 
 import * as DataFormat from '../../common/data-format';
-import * as File from '../../common/file';
 import * as Data from './data-model';
 import * as Coords from '../algebra/coordinate';
 import * as Box from '../algebra/box';
@@ -23,7 +22,7 @@ import { UUID } from '../../../../mol-util';
 import { FileHandle } from '../../../../mol-io/common/file-handle';
 import { createTypedArray, TypedArrayValueType } from '../../../../mol-io/common/typed-array';
 import { LimitsConfig } from '../../config';
-import { fileHandleFromDescriptor } from '../../../common/file-handle';
+import { fileHandleFromPathOrUrl } from '../../../common/file-handle';
 
 export async function execute(params: Data.QueryParams, outputProvider: () => Data.QueryOutputStream) {
     const start = getTime();
@@ -35,7 +34,7 @@ export async function execute(params: Data.QueryParams, outputProvider: () => Da
 
     let sourceFile: FileHandle | undefined;
     try {
-        sourceFile = fileHandleFromDescriptor(await File.openRead(params.sourceFilename), params.sourceFilename);
+        sourceFile = await fileHandleFromPathOrUrl(params.sourceFilename, params.sourceFilename);
         await _execute(sourceFile, params, guid, outputProvider);
         return true;
     } catch (e) {
@@ -207,14 +206,20 @@ async function _execute(file: FileHandle, params: Data.QueryParams, guid: string
         encode(query, output);
         output.end();
     } catch (e) {
-        const query: Data.QueryContext = { kind: 'Error', guid, params, message: `${e}` };
-        try {
-            if (!output) output = outputProvider();
-            encode(query, output);
-        } catch (f) {
-            throw f;
+        if (e.isFileNotFound) {
+            // Just let respond with 404
+            throw e;
+        } else {
+            // Try to respond with body with error details
+            const query: Data.QueryContext = { kind: 'Error', guid, params, message: `${e}` };
+            try {
+                if (!output) output = outputProvider();
+                encode(query, output);
+            } catch (f) {
+                throw f;
+            }
+            throw e;
         }
-        throw e;
     } finally {
         if (output) output.end();
     }

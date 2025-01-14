@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -59,14 +59,14 @@ export function getTarget(gl: GLRenderingContext, kind: TextureKind): number {
 export function getFormat(gl: GLRenderingContext, format: TextureFormat, type: TextureType): number {
     switch (format) {
         case 'alpha':
-            if (isWebGL2(gl) && type === 'float') return gl.RED;
+            if (isWebGL2(gl) && (type === 'float' || type === 'fp16')) return gl.RED;
             else if (isWebGL2(gl) && type === 'int') return gl.RED_INTEGER;
             else return gl.ALPHA;
         case 'rgb':
             if (isWebGL2(gl) && type === 'int') return gl.RGB_INTEGER;
             return gl.RGB;
         case 'rg':
-            if (isWebGL2(gl) && type === 'float') return gl.RG;
+            if (isWebGL2(gl) && (type === 'float' || type === 'fp16')) return gl.RG;
             else if (isWebGL2(gl) && type === 'int') return gl.RG_INTEGER;
             else throw new Error('texture format "rg" requires webgl2 and type "float" or int"');
         case 'rgba':

@@ -2,6 +2,7 @@
  * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 export function isMobileBrowser() {
@@ -14,6 +15,8 @@ export function isMobileBrowser() {
 }
 
 export function is_iOS() {
+    if (typeof navigator === 'undefined' || typeof window === 'undefined') return false;
+
     // adapted from https://stackoverflow.com/questions/9038625/detect-if-device-is-ios
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     const isAppleDevice = navigator.userAgent.includes('Macintosh');

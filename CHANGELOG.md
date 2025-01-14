@@ -5,8 +5,57 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Volume UI improvements
+    - Render all volume entries instead of selecting them one-by-one
+    - Toggle visibility of all volumes
+    - More accessible iso value control
+- Support wheel event on sliders
+- MolViewSpec extension:
+    - Add validation for discriminated union params
+    - Primitives: remove triangle_colors, line_colors, have implicit grouping instead; rename many parameters
+- Add `external-structure` theme that colors any geometry by structure properties
+- Support float and half-float data type for direct-volume rendering and GPU isosurface extraction
+- Minor documentation updates
+- Add support for position-location to `volume-value` color theme
+- Add support for color themes to `slice` representation
+- Improve/fix palette support in volume color themes
+- Support removal of independent selection controls in the viewport
+- Support custom selection controls
+- Support for custom granularity dropdown options
+- Fix `Plane3D.projectPoint`
+- Fix marking related image rendering issues
+    - Handle pixels without a group
+    - Take fog into account
+
+## [v4.10.0] - 2024-12-15
+
+- Add `ModelWithCoordinates` decorator transform.
+- Fix outlines on transparent background using illumination mode (#1364)
+- Fix transparent depth texture artifacts using illumination mode
+- Fix marking of consecutive gap elements (#876)
+- Allow React 19 in dependencies
+- Fix missing deflate header if `CompressionStream` is available
+- Fix is_iOS check for NodeJS
+- Added PluginCommands.Camera.FocusObject
+- Plugin state snapshot can have instructions to focus objects (PluginState.Snapshot.camera.focus)
+- MolViewSpec extension: Support for multi-state files (animations)
+- Fix units transform data not fully updated when structure child changes
+- Fix `addIndexPairBonds` quadratic runtime case
+- Use adjoint matrix to transform normals in shaders
+- Fix resize handling in `tests/browser`
+
+## [v4.9.1] - 2024-12-05
+
+- Fix iOS check when running on Node
+
+## [v4.9.0] - 2024-12-01
+
+- Fix artifacts when using xray shading with high xrayEdgeFalloff values
+- Enable double rounded capping on tubular helices
+- Fix single residue tubular helices not showing up
 - Fix outlines on volume and surface reps that do not disappear (#1326)
 - Add example `glb-export`
+- Membrane orientation: Improve `isApplicable` check and error handling (#1316)
 - Fix set fenceSync to null after deleteSync.
 - Fix operator key-based `IndexPairBonds` assignment
     - Don't add bonds twice
@@ -20,7 +69,14 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix bonds not shown with `ignoreHydrogens` on (#1315)
     - Better handle mmCIF files with no entities defined by using `label_asym_id`
     - Show bonds in water chains when `ignoreHydorgensVariant` is `non-polar`
+- Add MembraneServer API, generating data to be consumed in the context of MolViewSpec
 - Fix `StructConn.isExhaustive` for partial models (e.g., returned by the model server)
+- Refactor value swapping in molstar-math to fix SWC (Next.js) build (#1345)
+- Fix transform data not updated when structure child changes
+- Fix `PluginStateSnapshotManager.syncCurrent` to work as expected on re-loaded states.
+- Fix do not compute implicit hydrogens when unit is explicitly protonated (#1257)
+- ModelServer and VolumeServer: support for input files from Google Cloud Storage (gs://)
+- Fix color of missing partial charges for SB partial charges extension
 
 ## [v4.8.0] - 2024-10-27
 

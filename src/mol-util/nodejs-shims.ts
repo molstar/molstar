@@ -38,6 +38,7 @@ function getFile(): typeof File {
             slice(start?: number, end?: number, contentType?: string) { return this.blob.slice(start, end, contentType); }
             stream() { return this.blob.stream(); }
             text() { return this.blob.text(); }
+            bytes() { return this.blob.bytes(); }
             // File fields
             name: string;
             lastModified: number;

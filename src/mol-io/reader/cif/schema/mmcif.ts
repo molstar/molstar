@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.398, IHM 1.26, MA 1.4.6.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.399, IHM 1.27, MA 1.4.6.
  *
  * @author molstar/ciftools package
  */
@@ -3854,7 +3854,7 @@ export const mmCIF_Schema = {
         /**
          * The name of the database containing the dataset entry.
          */
-        db_name: Aliased<'PDB' | 'PDB-Dev' | 'BMRB' | 'EMDB' | 'EMPIAR' | 'SASBDB' | 'PRIDE' | 'MODEL ARCHIVE' | 'MASSIVE' | 'BioGRID' | 'ProXL' | 'jPOSTrepo' | 'iProX' | 'AlphaFoldDB' | 'ProteomeXchange' | 'Other'>(str),
+        db_name: Aliased<'PDB' | 'PDB-Dev' | 'BMRB' | 'EMDB' | 'EMPIAR' | 'SASBDB' | 'PRIDE' | 'MODEL ARCHIVE' | 'MASSIVE' | 'BioGRID' | 'ProXL' | 'jPOSTrepo' | 'iProX' | 'AlphaFoldDB' | 'ProteomeXchange' | 'BMRbig' | 'Other'>(str),
         /**
          * The accession code for the database entry.
          */

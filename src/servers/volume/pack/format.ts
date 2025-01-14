@@ -5,12 +5,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import * as File from '../common/file';
 import { FileHandle } from '../../../mol-io/common/file-handle';
 import { Ccp4Provider } from './format/ccp4';
 import { TypedArrayBufferContext, TypedArrayValueArray, TypedArrayValueType, getElementByteSize, createTypedArrayBufferContext } from '../../../mol-io/common/typed-array';
 import { Dsn6Provider } from './format/dsn6';
-import { fileHandleFromDescriptor } from '../../common/file-handle';
+import { fileHandleFromPathOrUrl } from '../../common/file-handle';
 
 export interface Header {
     name: string,
@@ -103,8 +102,7 @@ export function getProviderFromType(type: Type): Provider {
 
 export async function open(name: string, filename: string, type: Type): Promise<Context> {
     const provider = getProviderFromType(type);
-    const descriptor = await File.openRead(filename);
-    const file = fileHandleFromDescriptor(descriptor, filename);
+    const file = await fileHandleFromPathOrUrl(filename, filename);
     const header = await provider.readHeader(name, file);
     const data = { header, file, slices: void 0 as any };
     return { data, provider };

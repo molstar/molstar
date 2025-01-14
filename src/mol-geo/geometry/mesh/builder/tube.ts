@@ -66,7 +66,10 @@ export function addTube(state: MeshBuilder.State, controlPoints: ArrayLike<numbe
     const q1 = Math.round(radialSegments / 4);
     const q3 = q1 * 3;
 
-    const roundCapFlag = roundCap && linearSegments && !(startCap && endCap) && (startCap || endCap); // disabled if both caps are active
+    const roundCapFlag = roundCap && linearSegments && (startCap || endCap);
+    let halfLinearSegments;
+    const doubleRoundCap = roundCapFlag && startCap && endCap;
+    if (doubleRoundCap) halfLinearSegments = linearSegments / 2;
     for (let i = 0; i <= linearSegments; ++i) {
         const i3 = i * 3;
         v3fromArray(u, normalVectors, i3);
@@ -77,10 +80,15 @@ export function addTube(state: MeshBuilder.State, controlPoints: ArrayLike<numbe
         let height = heightValues[i];
         let capSmoothingFactor: number;
         if (roundCapFlag) {
-            capSmoothingFactor = Math.max(Number.EPSILON, Math.sqrt(1 - Math.pow((startCap ? linearSegments - i : i) / (linearSegments), 2)));
+            const sc = doubleRoundCap ? i <= halfLinearSegments! : startCap;
+            if (doubleRoundCap) {
+                capSmoothingFactor = Math.max(Number.EPSILON, Math.sqrt(1 - Math.pow((sc ? halfLinearSegments! - i : i - halfLinearSegments!) / halfLinearSegments!, 2)));
+            } else {
+                capSmoothingFactor = Math.max(Number.EPSILON, Math.sqrt(1 - Math.pow((sc ? linearSegments - i : i) / linearSegments, 2)));
+            }
             width *= capSmoothingFactor;
             height *= capSmoothingFactor;
-            v3cross(capNormalSmoothingVector, startCap ? v : u, startCap ? u : v);
+            v3cross(capNormalSmoothingVector, sc ? v : u, sc ? u : v);
             v3normalize(capNormalSmoothingVector, capNormalSmoothingVector);
         }
         const rounded = crossSection === 'rounded' && height > width;

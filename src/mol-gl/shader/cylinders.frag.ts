@@ -250,7 +250,7 @@ void main() {
     #include clip_pixel
 
     #ifdef dNeedsNormal
-        mat3 normalMatrix = transpose3(inverse3(mat3(uView)));
+        mat3 normalMatrix = adjoint(uView);
         vec3 normal = normalize(normalMatrix * -normalize(cameraNormal));
     #endif
 

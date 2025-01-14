@@ -78,6 +78,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
             key: params?.key ?? old.key,
             name: params?.name ?? old.name,
             description: params?.description ?? old.description,
+            descriptionFormat: params?.descriptionFormat ?? old.descriptionFormat,
             image: params?.image,
         });
         this.entryMap.set(snapshot.id, e);
@@ -104,14 +105,15 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         this.events.changed.next(void 0);
     }
 
-    update(e: PluginStateSnapshotManager.Entry, options: { key?: string, name?: string, description?: string }) {
+    update(e: PluginStateSnapshotManager.Entry, options: { key?: string, name?: string, description?: string, descriptionFormat?: PluginStateSnapshotManager.DescriptionFormat }) {
         const idx = this.getIndex(e);
         if (idx < 0) return;
         const entries = this.state.entries.set(idx, {
             ...e,
             key: options.key?.trim() || undefined,
             name: options.name?.trim() || undefined,
-            description: options.description?.trim() || undefined
+            description: options.description?.trim() || undefined,
+            descriptionFormat: options.descriptionFormat,
         });
         this.updateState({ entries });
         this.entryMap.set(e.snapshot.id, this.state.entries.get(idx)!);
@@ -199,17 +201,16 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         return next;
     }
 
-    private async syncCurrent(options?: { name?: string, description?: string, params?: PluginState.SnapshotParams }) {
+    private async syncCurrent(options?: { name?: string, description?: string, descriptionFormat?: PluginStateSnapshotManager.DescriptionFormat, params?: PluginState.SnapshotParams }) {
         const isEmpty = this.state.entries.size === 0;
-        const canReplace = this.state.entries.size === 1 && this.state.current && this.state.current === this.defaultSnapshotId;
-
+        const canReplace = this.state.entries.size === 1 && this.state.current && (!this.defaultSnapshotId || this.state.current === this.defaultSnapshotId);
         if (!isEmpty && !canReplace) return;
 
         const snapshot = this.plugin.state.getSnapshot(options?.params);
         const image = (options?.params?.image ?? this.plugin.state.snapshotParams.value.image) ? await PluginStateSnapshotManager.getCanvasImageAsset(this.plugin, `${snapshot.id}-image.png`) : undefined;
 
         if (isEmpty) {
-            this.add(PluginStateSnapshotManager.Entry(snapshot, { name: options?.name, description: options?.description, image }));
+            this.add(PluginStateSnapshotManager.Entry(snapshot, { name: options?.name, description: options?.description, descriptionFormat: options?.descriptionFormat, image }));
         } else if (canReplace) {
             // Replace the current state only if there is a single snapshot that has been created automatically
             const current = this.getEntry(this.state.current);
@@ -380,11 +381,16 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
 }
 
 namespace PluginStateSnapshotManager {
+    export type DescriptionFormat = 'markdown' | 'plaintext';
+
     export interface EntryParams {
         key?: string,
         name?: string,
+        /** Information about the snapshot, to be shown in the UI when the snapshot is loaded. */
         description?: string,
-        image?: Asset
+        /** Toggle between markdown and plaintext interpretation of `description`. Default is markdown. */
+        descriptionFormat?: DescriptionFormat,
+        image?: Asset,
     }
 
     export interface Entry extends EntryParams {
