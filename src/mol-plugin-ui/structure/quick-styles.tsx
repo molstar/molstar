@@ -51,9 +51,24 @@ export class QuickStyles extends PurePluginUIComponent<{}, QuickStylesState> {
     state: QuickStylesState = { props: { preset: '', stylized: false }, busy: false };
 
     componentDidMount() {
-        const invalidatePreset = () => this.setState(old => ({ props: { ...old.props, preset: '' } }));
-        this.subscribe(this.plugin.state.data.events.cell.created, invalidatePreset);
-        this.subscribe(this.plugin.state.data.events.cell.stateUpdated, invalidatePreset);
+        let presetInvalid = false;
+        const syncPreset = () => {
+            if (presetInvalid) {
+                presetInvalid = false;
+                this.setState(old => ({ props: { ...old.props, preset: '' } }));
+            }
+        };
+        this.subscribe(this.plugin.state.data.events.changed, e => {
+            presetInvalid = true;
+            if (!e.inTransaction && !this.plugin.behaviors.state.isAnimating.value) {
+                syncPreset();
+            } // else: wait for animation to finish, then syncs preset
+        });
+        this.subscribe(this.plugin.behaviors.state.isAnimating, isAnimating => {
+            if (!isAnimating && !this.plugin.behaviors.state.isUpdating.value) {
+                syncPreset();
+            }
+        });
     }
 
     async setPreset(preset: QuickStyleProps['preset']) {
