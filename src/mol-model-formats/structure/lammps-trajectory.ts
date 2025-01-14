@@ -101,11 +101,13 @@ async function getModels(mol: LammpsTrajectoryFile, ctx: RuntimeContext, unitsSt
     }
 
     const MOL = Column.ofConst('MOL', count, Column.Schema.str);
-    const asym_id = Column.ofLambda({
-        value: (row: number) => atoms.moleculeId.value(row).toString(),
-        rowCount: count,
-        schema: Column.Schema.str,
-    });
+    const asym_id = Column.ofConst('A', count, Column.Schema.str);
+    // this slown down by a lot the performance when changing frames
+    // const asym_id = Column.ofLambda({
+    //     value: (row: number) => atoms.moleculeId.value(row).toString(),
+    //     rowCount: count,
+    //     schema: Column.Schema.str,
+    // });
     const seq_id = Column.ofConst(1, count, Column.Schema.int);
 
     const type_symbol = Column.ofStringArray(type_symbols);

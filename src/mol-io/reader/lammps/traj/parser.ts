@@ -13,7 +13,7 @@ import { TokenColumnProvider as TokenColumn } from '../../common/text/column/tok
 import { Column } from '../../../../mol-data/db';
 import { LammpsFrame, LammpsTrajectoryFile } from '../schema';
 
-const { readLine, skipWhitespace, eatValue, eatLine, markStart } = Tokenizer;
+const { skipWhitespace, eatValue, eatLine, markStart } = Tokenizer;
 
 function State(tokenizer: Tokenizer, runtimeCtx: RuntimeContext) {
     return {
@@ -105,9 +105,9 @@ async function handleAtoms(state: State, count: number, parts: string[]): Promis
  * ylo yhi
  * zlo zhi
  */
-async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<LammpsTrajectoryFile>> {
-    const tokenizer = Tokenizer(data);
-    const state = State(tokenizer, ctx);
+async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Result<LammpsTrajectoryFile>> {
+    const decoder = new TextDecoder('utf-8'); // For decoding binary data into strings
+    // const tokenizer = createTokenizer(ctx); // Initialize the tokenizer with an empty string
     const f: LammpsTrajectoryFile = {
         frames: [],
         times: [],
@@ -115,53 +115,117 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
         timeOffset: 0.0,
         deltaTime: 0.0
     };
+
     const frames = f.frames;
     let numAtoms = 0;
     let timestep = 0;
-    while (tokenizer.tokenEnd < tokenizer.length) {
-        const line = readLine(state.tokenizer).trim();
-        if (line.includes('ITEM: TIMESTEP')) {
-            timestep = parseInt(readLine(state.tokenizer).trim());
+    let currentIndex = 0; // Start at the beginning of the data
+    // let bufferedString = ''; // Buffer to hold incomplete lines
+
+    // Process the entire Uint8Array
+    while (currentIndex < data.length) {
+        const [line, nextIndex] = readNextLine(data, currentIndex, decoder); // Get the next line and updated index
+        currentIndex = nextIndex; // Update the current index for the next iteration
+
+        const trimmedLine = line.trim();
+        if (trimmedLine.includes('ITEM: TIMESTEP')) {
+            const [nextLine, newIndex] = readNextLine(data, currentIndex, decoder);
+            currentIndex = newIndex; // Update the index after reading the next line
+            timestep = parseInt(nextLine.trim());
             f.times.push(timestep);
-        } else if (line.includes('ITEM: NUMBER OF ATOMS')) {
-            numAtoms = parseInt(readLine(state.tokenizer).trim());
-        } else if (line.includes('ITEM: ATOMS')) {
-            // this line provide also the style of the output and will give the order of the columns
-            const parts = line.split(' ').slice(2);
+        } else if (trimmedLine.includes('ITEM: NUMBER OF ATOMS')) {
+            const [nextLine, newIndex] = readNextLine(data, currentIndex, decoder);
+            currentIndex = newIndex;
+            numAtoms = parseInt(nextLine.trim());
+        } else if (trimmedLine.includes('ITEM: ATOMS')) {
+            // Handle ATOMS data
+            const parts = trimmedLine.split(' ').slice(2);
+            // given part, data append all atom lines and pass to tokenizer
+            const lines: string[] = [];
+            for (let i = 0; i < numAtoms; i++) {
+                const [atomLine, newIndex] = readNextLine(data, currentIndex, decoder);
+                currentIndex = newIndex;
+                lines.push(atomLine);
+            }
+            const tokenizer = Tokenizer(lines.join('\n'));
+            const state = State(tokenizer, ctx);
             const frame: LammpsFrame = await handleAtoms(state, numAtoms, parts);
             frames.push(frame);
-        } else if (line.includes('ITEM: BOX BOUNDS')) {
-            const tokens = line.split('ITEM: BOX BOUNDS ')[1].split(' ');
-            // Periodicity of the box
+        } else if (trimmedLine.includes('ITEM: BOX BOUNDS')) {
+            // Process box bounds
+            const tokens = trimmedLine.split('ITEM: BOX BOUNDS ')[1].split(' ');
             const px = tokens[0];
             const py = tokens[1];
             const pz = tokens[2];
-            // the actual box bounds
-            const xbound = readLine(state.tokenizer).trim().split(' ');
-            const ybound = readLine(state.tokenizer).trim().split(' ');
-            const zbound = readLine(state.tokenizer).trim().split(' ');
+
+            const [xboundLine, xNewIndex] = readNextLine(data, currentIndex, decoder);
+            currentIndex = xNewIndex;
+            const xbound = xboundLine.trim().split(' ');
+
+            const [yboundLine, yNewIndex] = readNextLine(data, currentIndex, decoder);
+            currentIndex = yNewIndex;
+            const ybound = yboundLine.trim().split(' ');
+
+            const [zboundLine, zNewIndex] = readNextLine(data, currentIndex, decoder);
+            currentIndex = zNewIndex;
+            const zbound = zboundLine.trim().split(' ');
+
             const xlo = parseFloat(xbound[0]);
             const xhi = parseFloat(xbound[1]);
             const ylo = parseFloat(ybound[0]);
             const yhi = parseFloat(ybound[1]);
             const zlo = parseFloat(zbound[0]);
             const zhi = parseFloat(zbound[1]);
+
             f.bounds.push({
                 lower: [xlo, ylo, zlo],
                 length: [xhi - xlo, yhi - ylo, zhi - zlo],
-                periodicity: [px, py, pz] });
+                periodicity: [px, py, pz]
+            });
         }
     }
+
+    // Calculate time offsets
     if (f.times.length >= 1) {
         f.timeOffset = f.times[0];
     }
     if (f.times.length >= 2) {
         f.deltaTime = f.times[1] - f.times[0];
     }
+
     return Result.success(f);
 }
 
-export function parseLammpsTrajectory(data: string) {
+/**
+ * Reads the next line from a Uint8Array starting from a specific index.
+ * It decodes and returns the next line and the updated index for the next call.
+ */
+function readNextLine(
+    data: Uint8Array,
+    currentIndex: number,
+    decoder: TextDecoder
+): [line: string, nextIndex: number] {
+    let line = '';
+    let nextIndex = currentIndex;
+
+    for (let i = currentIndex; i < data.length; i++) {
+        if (data[i] === 10) { // ASCII code for '\n'
+            line = decoder.decode(data.subarray(currentIndex, i), { stream: true });
+            nextIndex = i + 1; // Update the next index to the position after '\n'
+            break;
+        }
+    }
+
+    // If no newline is found, decode the remaining part
+    if (nextIndex === currentIndex) {
+        line = decoder.decode(data.subarray(currentIndex + 1), { stream: false });
+        nextIndex = data.length; // Set the index to the end of the data
+    }
+
+    return [line.trim(), nextIndex];
+}
+
+export function parseLammpsTrajectory(data: Uint8Array) {
     return Task.create<Result<LammpsTrajectoryFile>>('Parse Lammp Trajectory', async ctx => {
         return await parseInternal(data, ctx);
     });

@@ -163,7 +163,7 @@ type CoordinatesFromLammpstraj = typeof CoordinatesFromLammpstraj
 const CoordinatesFromLammpstraj = PluginStateTransform.BuiltIn({
     name: 'coordinates-from-lammpstraj',
     display: { name: 'Parse LAMMPSTRAJ', description: 'Parse LAMMPSTRAJ data.' },
-    from: [SO.Data.String],
+    from: [SO.Data.Binary],
     to: SO.Molecule.Coordinates
 })({
     apply({ a }) {
@@ -426,7 +426,7 @@ type TrajectoryFromLammpsTrajData = typeof TrajectoryFromLammpsTrajData
 const TrajectoryFromLammpsTrajData = PluginStateTransform.BuiltIn({
     name: 'trajectory-from-lammps-traj-data',
     display: { name: 'Parse Lammps traj Data', description: 'Parse Lammps Traj Data string and create trajectory.' },
-    from: [SO.Data.String],
+    from: [SO.Data.Binary],
     to: SO.Molecule.Trajectory,
     params: {
         unitsStyle: PD.Select('real', PD.arrayToOptions(UnitStyles)),
