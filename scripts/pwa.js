@@ -44,7 +44,8 @@ const APP_STATIC_RESOURCES = [
 self.addEventListener("install", (event) => {
     event.waitUntil(
         (async () => {
-            const cache = await caches.open("${cacheName}");
+            const cache = await caches.open(CACHE_NAME);
+            await cache.addAll(APP_STATIC_RESOURCES);
             await cache.addAll(["/"]);
             await self.skipWaiting();
         })(),
@@ -58,7 +59,7 @@ self.addEventListener("activate", (event) => {
             const keys = await caches.keys();
             await Promise.all(
                 keys.map((key) => {
-                    if (key !== "${cacheName}") {
+                    if (key !== CACHE_NAME) {
                         return caches.delete(key);
                     }
                 }),
@@ -79,7 +80,7 @@ self.addEventListener("fetch", (event) => {
     // For all other requests, go to the cache first, and then the network.
     event.respondWith(
         (async () => {
-            const cache = await caches.open("${cacheName}");
+            const cache = await caches.open(CACHE_NAME);
             const cachedResponse = await cache.match(event.request.url);
             if (cachedResponse) {
                 // If available, return the cached response.
@@ -103,32 +104,32 @@ self.addEventListener("fetch", (event) => {
 function generateManifestFile(name, dirname) {
     const filePath = path.join(__dirname, '..', `manifest-${name}.webmanifest`);
     const content=`{
-    "name": "Mol* ${name}",
-    "short_name": "Mol*",
-    "description": "Mol* ${name}",
-    "start_url": "molstar/build/${name}/index-pwa.html",
-    "theme_color": "#eeffee",
-    "background_color": "#eeffee",
-    "display": "standalone",
-    "icons": [
-        {
-            "src": "src/${dirname}/${name}/favicon.ico",
-            "sizes": "48x48"
-        },
-        {
-            "src": "src/icons/circle.svg",
-            "sizes": "72x72 96x96",
-            "purpose": "maskable"
-        },
-        {
-            "src": "src/icons/tire.svg",
-            "sizes": "128x128 256x256"
-        },
-        {
-            "src": "src/icons/wheel.svg",
-            "sizes": "512x512"
-        }
-    ]
+        "name": "Mol* ${name}",
+        "short_name": "Mol*",
+        "description": "Mol* ${name}",
+        "start_url": "molstar/build/${name}/index-pwa.html",
+        "theme_color": "#eeffee",
+        "background_color": "#eeffee",
+        "display": "standalone",
+        "icons": [
+            {
+                "src": "src/${dirname}/${name}/favicon.ico",
+                "sizes": "48x48"
+            },
+            {
+                "src": "src/icons/circle.svg",
+                "sizes": "72x72 96x96",
+                "purpose": "maskable"
+            },
+            {
+                "src": "src/icons/tire.svg",
+                "sizes": "128x128 256x256"
+            },
+            {
+                "src": "src/icons/wheel.svg",
+                "sizes": "512x512"
+            }
+        ]
     }`;
     // Write content to file.
     fs.writeFile(filePath, content, 'utf8', (err) => {
@@ -193,14 +194,13 @@ function processHtmlFile(name, dirname) {
     });
 }
 
-
-function createPWA(name, dir) {
+function createPWA(name, dirname) {
     // (re)generate the service worker file
-    generateServiceWorkerFile(name, dir);
+    generateServiceWorkerFile(name, dirname);
     // (re)generate the manifest files
-    generateManifestFile(name);
+    generateManifestFile(name, dirname);
     // (re)generate the html files
-    processHtmlFile(name, dir);
+    processHtmlFile(name, dirname);
 }
 
 // Apps

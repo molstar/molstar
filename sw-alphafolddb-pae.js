@@ -21,7 +21,8 @@ const APP_STATIC_RESOURCES = [
 self.addEventListener("install", (event) => {
     event.waitUntil(
         (async () => {
-            const cache = await caches.open("molstar-alphafolddb-pae-4.10.0");
+            const cache = await caches.open(CACHE_NAME);
+            await cache.addAll(APP_STATIC_RESOURCES);
             await cache.addAll(["/"]);
             await self.skipWaiting();
         })(),
@@ -35,7 +36,7 @@ self.addEventListener("activate", (event) => {
             const keys = await caches.keys();
             await Promise.all(
                 keys.map((key) => {
-                    if (key !== "molstar-alphafolddb-pae-4.10.0") {
+                    if (key !== CACHE_NAME) {
                         return caches.delete(key);
                     }
                 }),
@@ -56,7 +57,7 @@ self.addEventListener("fetch", (event) => {
     // For all other requests, go to the cache first, and then the network.
     event.respondWith(
         (async () => {
-            const cache = await caches.open("molstar-alphafolddb-pae-4.10.0");
+            const cache = await caches.open(CACHE_NAME);
             const cachedResponse = await cache.match(event.request.url);
             if (cachedResponse) {
                 // If available, return the cached response.
