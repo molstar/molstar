@@ -12,7 +12,7 @@ const { version } = require('../package.json');
 function generateServiceWorkerFile(name, dirname) {
     const cacheName = `molstar-${name}-${version}`;
     const entryPoint = `index-pwa.html`;
-    const filePath = path.join(__dirname, '..', `sw-${name}.js`);
+    const filePath = path.join(__dirname, '..', 'src', `sw-${name}.js`);
     // Set faviconpath.
     let faviconPath;
     if (dirname == 'example') {
@@ -166,7 +166,7 @@ function processHtmlFile(name, dirname) {
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function () {
                     //navigator.serviceWorker.register('/sw.js')
-                    navigator.serviceWorker.register(new URL('/molstar/sw-${name}.js', import.meta.url))
+                    navigator.serviceWorker.register(new URL('/molstar/build/${name}/sw-${name}.js', import.meta.url))
                     //navigator.serviceWorker.register(new URL('/sw.js', import.meta.url), { scope: '/' })
                     .then(function (registration) {
                     // Registration was successful

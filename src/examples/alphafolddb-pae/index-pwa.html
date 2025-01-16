@@ -60,7 +60,7 @@
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function () {
                     //navigator.serviceWorker.register('/sw.js')
-                    navigator.serviceWorker.register(new URL('/molstar/sw-alphafolddb-pae.js', import.meta.url))
+                    navigator.serviceWorker.register(new URL('/molstar/build/alphafolddb-pae/sw-alphafolddb-pae.js', import.meta.url))
                     //navigator.serviceWorker.register(new URL('/sw.js', import.meta.url), { scope: '/' })
                     .then(function (registration) {
                     // Registration was successful
