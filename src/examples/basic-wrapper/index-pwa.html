@@ -43,7 +43,7 @@
         </style>
         <link rel="stylesheet" type="text/css" href="molstar.css" />
         <script type="text/javascript" src="./index.js"></script>
-        <link rel="manifest" href="/molstar/build/basic-wrapper/manifest-basic-wrapper.webmanifest" type="application/manifest+json">
+        <link rel="manifest" href="/molstar/manifest-basic-wrapper.webmanifest" type="application/manifest+json">
     </head>
     <body>
         <div id='controls'>
@@ -140,7 +140,7 @@
                 if ('serviceWorker' in navigator) {
                     window.addEventListener('load', function () {
                         //navigator.serviceWorker.register('/sw.js')
-                        navigator.serviceWorker.register(new URL('/molstar/build/basic-wrapper/sw-basic-wrapper.js', import.meta.url))
+                        navigator.serviceWorker.register(new URL('/molstar/sw-basic-wrapper.js', import.meta.url))
                         //navigator.serviceWorker.register(new URL('/sw.js', import.meta.url), { scope: '/' })
                         .then(function (registration) {
                         // Registration was successful

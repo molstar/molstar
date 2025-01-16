@@ -155,7 +155,7 @@ function processHtmlFile(name, dirname) {
             return;
         }
 
-        const manifest = `    <link rel="manifest" href="/molstar/build/${name}/manifest-${name}.webmanifest" type="application/manifest+json">`;
+        const manifest = `    <link rel="manifest" href="/molstar/manifest-${name}.webmanifest" type="application/manifest+json">`;
 
         // Insert the manifest before the </head> tag
         let modifiedContent = data.replace('</head>', `${manifest}\n    </head>`);
@@ -166,7 +166,7 @@ function processHtmlFile(name, dirname) {
                 if ('serviceWorker' in navigator) {
                     window.addEventListener('load', function () {
                         //navigator.serviceWorker.register('/sw.js')
-                        navigator.serviceWorker.register(new URL('/molstar/build/${name}/sw-${name}.js', import.meta.url))
+                        navigator.serviceWorker.register(new URL('/molstar/sw-${name}.js', import.meta.url))
                         //navigator.serviceWorker.register(new URL('/sw.js', import.meta.url), { scope: '/' })
                         .then(function (registration) {
                         // Registration was successful
