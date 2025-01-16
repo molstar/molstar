@@ -121,54 +121,53 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
     let timestep = 0;
     let currentIndex = 0; // Start at the beginning of the data
     // let bufferedString = ''; // Buffer to hold incomplete lines
-
+    const result = { line: '', nextIndex: 0 };
+    let line = '';
     // Process the entire Uint8Array
     while (currentIndex < data.length) {
-        const [line, nextIndex] = readNextLine(data, currentIndex, decoder); // Get the next line and updated index
-        currentIndex = nextIndex; // Update the current index for the next iteration
-
-        const trimmedLine = line.trim();
-        if (trimmedLine.includes('ITEM: TIMESTEP')) {
-            const [nextLine, newIndex] = readNextLine(data, currentIndex, decoder);
-            currentIndex = newIndex; // Update the index after reading the next line
-            timestep = parseInt(nextLine.trim());
+        readNextLine(data, currentIndex, decoder, result);
+        currentIndex = result.nextIndex;
+        line = result.line;
+        if (line.includes('ITEM: TIMESTEP')) {
+            readNextLine(data, currentIndex, decoder, result);
+            currentIndex = result.nextIndex;
+            timestep = parseInt(result.line);
             f.times.push(timestep);
-        } else if (trimmedLine.includes('ITEM: NUMBER OF ATOMS')) {
-            const [nextLine, newIndex] = readNextLine(data, currentIndex, decoder);
-            currentIndex = newIndex;
-            numAtoms = parseInt(nextLine.trim());
-        } else if (trimmedLine.includes('ITEM: ATOMS')) {
+        } else if (line.includes('ITEM: NUMBER OF ATOMS')) {
+            readNextLine(data, currentIndex, decoder, result);
+            currentIndex = result.nextIndex;
+            numAtoms = parseInt(result.line);
+        } else if (line.includes('ITEM: ATOMS')) {
             // Handle ATOMS data
-            const parts = trimmedLine.split(' ').slice(2);
+            const parts = line.split(' ').slice(2);
             // given part, data append all atom lines and pass to tokenizer
             const lines: string[] = [];
             for (let i = 0; i < numAtoms; i++) {
-                const [atomLine, newIndex] = readNextLine(data, currentIndex, decoder);
-                currentIndex = newIndex;
-                lines.push(atomLine);
+                readNextLine(data, currentIndex, decoder, result);
+                currentIndex = result.nextIndex;
+                lines.push(result.line);
             }
             const tokenizer = Tokenizer(lines.join('\n'));
             const state = State(tokenizer, ctx);
             const frame: LammpsFrame = await handleAtoms(state, numAtoms, parts);
             frames.push(frame);
-        } else if (trimmedLine.includes('ITEM: BOX BOUNDS')) {
+        } else if (line.includes('ITEM: BOX BOUNDS')) {
             // Process box bounds
-            const tokens = trimmedLine.split('ITEM: BOX BOUNDS ')[1].split(' ');
+            const tokens = line.split('ITEM: BOX BOUNDS ')[1].split(' ');
             const px = tokens[0];
             const py = tokens[1];
             const pz = tokens[2];
+            readNextLine(data, currentIndex, decoder, result);
+            currentIndex = result.nextIndex;
+            const xbound = result.line.split(' ');
 
-            const [xboundLine, xNewIndex] = readNextLine(data, currentIndex, decoder);
-            currentIndex = xNewIndex;
-            const xbound = xboundLine.trim().split(' ');
+            readNextLine(data, currentIndex, decoder, result);
+            currentIndex = result.nextIndex;
+            const ybound = result.line.split(' ');
 
-            const [yboundLine, yNewIndex] = readNextLine(data, currentIndex, decoder);
-            currentIndex = yNewIndex;
-            const ybound = yboundLine.trim().split(' ');
-
-            const [zboundLine, zNewIndex] = readNextLine(data, currentIndex, decoder);
-            currentIndex = zNewIndex;
-            const zbound = zboundLine.trim().split(' ');
+            readNextLine(data, currentIndex, decoder, result);
+            currentIndex = result.nextIndex;
+            const zbound = result.line.split(' ');
 
             const xlo = parseFloat(xbound[0]);
             const xhi = parseFloat(xbound[1]);
@@ -203,14 +202,15 @@ async function parseInternal(data: Uint8Array, ctx: RuntimeContext): Promise<Res
 function readNextLine(
     data: Uint8Array,
     currentIndex: number,
-    decoder: TextDecoder
-): [line: string, nextIndex: number] {
-    let line = '';
+    decoder: TextDecoder,
+    result: { line: string, nextIndex: number }
+) {
+    const lineStart = currentIndex;
     let nextIndex = currentIndex;
 
     for (let i = currentIndex; i < data.length; i++) {
         if (data[i] === 10) { // ASCII code for '\n'
-            line = decoder.decode(data.subarray(currentIndex, i), { stream: true });
+            result.line = decoder.decode(data.subarray(lineStart, i), { stream: true }).trim();
             nextIndex = i + 1; // Update the next index to the position after '\n'
             break;
         }
@@ -218,11 +218,10 @@ function readNextLine(
 
     // If no newline is found, decode the remaining part
     if (nextIndex === currentIndex) {
-        line = decoder.decode(data.subarray(currentIndex + 1), { stream: false });
+        result.line = decoder.decode(data.subarray(lineStart), { stream: false }).trim();
         nextIndex = data.length; // Set the index to the end of the data
     }
-
-    return [line.trim(), nextIndex];
+    result.nextIndex = nextIndex;
 }
 
 export function parseLammpsTrajectory(data: Uint8Array) {

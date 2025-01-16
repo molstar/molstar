@@ -109,13 +109,19 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
             IndexPairBonds.Provider.set(first, pairBonds);*/
             // Assuming 'atoms' contains the coordinates after wrapping
             const newBonds = [];
+            const pos1 = [0, 0, 0];
+            const pos2 = [0, 0, 0];
             for (let i = 0; i < bonds.count; i++) {
                 const [atom1Index, atom2Index] = [indexA.value(i), indexB.value(i)];
 
                 // Here, you would ideally have access to the wrapped positions of atom1 and atom2
                 // If not, you might need to apply wrapping logic here:
-                const pos1 = [atoms.x.value(atom1Index), atoms.y.value(atom1Index), atoms.z.value(atom1Index)];
-                const pos2 = [atoms.x.value(atom2Index), atoms.y.value(atom2Index), atoms.z.value(atom2Index)];
+                pos1[0] = atoms.x.value(atom1Index);
+                pos1[1] = atoms.y.value(atom1Index);
+                pos1[2] = atoms.z.value(atom1Index);
+                pos2[0] = atoms.x.value(atom2Index);
+                pos2[1] = atoms.y.value(atom2Index);
+                pos2[2] = atoms.z.value(atom2Index);
                 let crossBoundary = false;
 
                 // Check periodicity and apply wrapping if necessary (pseudo-code, adjust according to your actual structure)

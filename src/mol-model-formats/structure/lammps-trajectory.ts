@@ -96,12 +96,21 @@ async function getModels(mol: LammpsTrajectoryFile, ctx: RuntimeContext, unitsSt
     let offset = 0;
     for (let j = 0; j < count; j++) {
         type_symbols[offset] = atoms.atomType.value(j).toString();
-        const sx = (atoms.x.value(j) * offset_scale.x + offset_pos.x);
-        const sy = (atoms.y.value(j) * offset_scale.y + offset_pos.y);
-        const sz = (atoms.z.value(j) * offset_scale.z + offset_pos.z);
-        cx[offset] = ((sx - lo[0]) % ll[0] + lo[0]) * scale;
-        cy[offset] = ((sy - lo[1]) % ll[1] + lo[1]) * scale;
-        cz[offset] = ((sz - lo[2]) % ll[2] + lo[2]) * scale;
+        let sx = (atoms.x.value(j) * offset_scale.x + offset_pos.x);
+        let sy = (atoms.y.value(j) * offset_scale.y + offset_pos.y);
+        let sz = (atoms.z.value(j) * offset_scale.z + offset_pos.z);
+        if (box.periodicity[0] === 'pp') {
+            sx = (sx - lo[0]) % ll[0] + lo[0];
+        }
+        if (box.periodicity[1] === 'pp') {
+            sy = (sy - lo[1]) % ll[1] + lo[1];
+        }
+        if (box.periodicity[2] === 'pp') {
+            sz = (sz - lo[2]) % ll[2] + lo[2];
+        }
+        cx[offset] = sx * scale;
+        cy[offset] = sy * scale;
+        cz[offset] = sz * scale;
         id[offset] = atoms.atomId.value(j);
         model_num[offset] = 0;
         offset++;
