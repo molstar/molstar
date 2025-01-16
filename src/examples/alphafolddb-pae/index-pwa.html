@@ -37,7 +37,7 @@
         </style>
         <link rel="stylesheet" type="text/css" href="molstar.css" />
         <script type="text/javascript" src="./index.js"></script>
-        <link rel="manifest" href="/molstar/manifest-alphafolddb-pae.webmanifest" type="application/manifest+json">
+        <link rel="manifest" href="/molstar/build/alphafolddb-pae/manifest-alphafolddb-pae.webmanifest" type="application/manifest+json">
     </head>
     <body>
         <div id='controls'>
@@ -60,7 +60,7 @@
                 if ('serviceWorker' in navigator) {
                     window.addEventListener('load', function () {
                         //navigator.serviceWorker.register('/sw.js')
-                        navigator.serviceWorker.register(new URL('/sw-alphafolddb-pae.js', import.meta.url))
+                        navigator.serviceWorker.register(new URL('/molstar/build/alphafolddb-pae/sw-alphafolddb-pae.js', import.meta.url))
                         //navigator.serviceWorker.register(new URL('/sw.js', import.meta.url), { scope: '/' })
                         .then(function (registration) {
                         // Registration was successful

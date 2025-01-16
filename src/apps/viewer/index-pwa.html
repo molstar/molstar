@@ -35,7 +35,7 @@
             }
         </style>
         <link rel="stylesheet" type="text/css" href="molstar.css" />
-        <link rel="manifest" href="/molstar/manifest-viewer.webmanifest" type="application/manifest+json">
+        <link rel="manifest" href="/molstar/build/viewer/manifest-viewer.webmanifest" type="application/manifest+json">
     </head>
     <body>
         <div id="app"></div>
@@ -136,7 +136,7 @@
                 if ('serviceWorker' in navigator) {
                     window.addEventListener('load', function () {
                         //navigator.serviceWorker.register('/sw.js')
-                        navigator.serviceWorker.register(new URL('/sw-viewer.js', import.meta.url))
+                        navigator.serviceWorker.register(new URL('/molstar/build/viewer/sw-viewer.js', import.meta.url))
                         //navigator.serviceWorker.register(new URL('/sw.js', import.meta.url), { scope: '/' })
                         .then(function (registration) {
                         // Registration was successful

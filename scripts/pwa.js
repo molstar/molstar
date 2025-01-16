@@ -145,8 +145,8 @@ function generateManifestFile(name, dirname) {
 function processHtmlFile(name, dirname) {
     
     // Define the source and destination file paths
-    let inFilePath = path.join(__dirname, '..', `src/${dirname}/`, `${name}/index.html`);
-    let outFilePath = path.join(__dirname, '..', `src/${dirname}/`, `${name}/index-pwa.html`);
+    let inFilePath = path.join(__dirname, '..', 'src', `${dirname}`, `${name}`, 'index.html');
+    let outFilePath = path.join(__dirname, '..', 'src', `${dirname}`, `${name}`, 'index-pwa.html');
 
     // Read the content of the source file
     fs.readFile(inFilePath, 'utf8', (err, data) => {
@@ -155,7 +155,7 @@ function processHtmlFile(name, dirname) {
             return;
         }
 
-        const manifest = `    <link rel="manifest" href="/molstar/manifest-${name}.webmanifest" type="application/manifest+json">`;
+        const manifest = `    <link rel="manifest" href="/molstar/build/${name}/manifest-${name}.webmanifest" type="application/manifest+json">`;
 
         // Insert the manifest before the </head> tag
         let modifiedContent = data.replace('</head>', `${manifest}\n    </head>`);
@@ -166,7 +166,7 @@ function processHtmlFile(name, dirname) {
                 if ('serviceWorker' in navigator) {
                     window.addEventListener('load', function () {
                         //navigator.serviceWorker.register('/sw.js')
-                        navigator.serviceWorker.register(new URL('/sw-${name}.js', import.meta.url))
+                        navigator.serviceWorker.register(new URL('/molstar/build/${name}/sw-${name}.js', import.meta.url))
                         //navigator.serviceWorker.register(new URL('/sw.js', import.meta.url), { scope: '/' })
                         .then(function (registration) {
                         // Registration was successful

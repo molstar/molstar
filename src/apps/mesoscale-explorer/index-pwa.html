@@ -37,7 +37,7 @@
             }
         </style>
         <link rel="stylesheet" type="text/css" href="molstar.css" />
-        <link rel="manifest" href="/molstar/manifest-mesoscale-explorer.webmanifest" type="application/manifest+json">
+        <link rel="manifest" href="/molstar/build/mesoscale-explorer/manifest-mesoscale-explorer.webmanifest" type="application/manifest+json">
     </head>
     <body>
         <div id="app"></div>
@@ -129,7 +129,7 @@
                 if ('serviceWorker' in navigator) {
                     window.addEventListener('load', function () {
                         //navigator.serviceWorker.register('/sw.js')
-                        navigator.serviceWorker.register(new URL('/sw-mesoscale-explorer.js', import.meta.url))
+                        navigator.serviceWorker.register(new URL('/molstar/build/mesoscale-explorer/sw-mesoscale-explorer.js', import.meta.url))
                         //navigator.serviceWorker.register(new URL('/sw.js', import.meta.url), { scope: '/' })
                         .then(function (registration) {
                         // Registration was successful
