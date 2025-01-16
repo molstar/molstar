@@ -80,7 +80,7 @@ const LammpsTrajectoryProvider = DataFormatProvider({
     label: 'LAMMPSTRAJ',
     description: 'LAMMPSTRAJ',
     category: CoordinatesFormatCategory,
-    stringExtensions: ['lammpstrj'],
+    binaryExtensions: ['lammpstrj'],
     parse: (plugin, data) => {
         const coordinates = plugin.state.data.build()
             .to(data)

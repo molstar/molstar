@@ -74,6 +74,10 @@ async function getModels(mol: LammpsTrajectoryFile, ctx: RuntimeContext, unitsSt
     const offset_scale = { x: 1.0, y: 1.0, z: 1.0 };
     const scale = lammpsUnitStyles[unitsStyle].scale;
     // if caracter s in atomsMode, we need to scale the coordinates
+    // what about periodicity ?
+    const ll = box.length;
+    const lo = box.lower;
+
     if (atomsMode.includes('s')) {
         offset_scale.x = box.length[0];
         offset_scale.y = box.length[1];
@@ -92,22 +96,25 @@ async function getModels(mol: LammpsTrajectoryFile, ctx: RuntimeContext, unitsSt
     let offset = 0;
     for (let j = 0; j < count; j++) {
         type_symbols[offset] = atoms.atomType.value(j).toString();
-        cx[offset] = (atoms.x.value(j) * offset_scale.x + offset_pos.x) * scale;
-        cy[offset] = (atoms.y.value(j) * offset_scale.y + offset_pos.y) * scale;
-        cz[offset] = (atoms.z.value(j) * offset_scale.z + offset_pos.z) * scale;
+        const sx = (atoms.x.value(j) * offset_scale.x + offset_pos.x);
+        const sy = (atoms.y.value(j) * offset_scale.y + offset_pos.y);
+        const sz = (atoms.z.value(j) * offset_scale.z + offset_pos.z);
+        cx[offset] = ((sx - lo[0]) % ll[0] + lo[0]) * scale;
+        cy[offset] = ((sy - lo[1]) % ll[1] + lo[1]) * scale;
+        cz[offset] = ((sz - lo[2]) % ll[2] + lo[2]) * scale;
         id[offset] = atoms.atomId.value(j);
         model_num[offset] = 0;
         offset++;
     }
 
     const MOL = Column.ofConst('MOL', count, Column.Schema.str);
-    const asym_id = Column.ofConst('A', count, Column.Schema.str);
-    // this slown down by a lot the performance when changing frames
-    // const asym_id = Column.ofLambda({
-    //     value: (row: number) => atoms.moleculeId.value(row).toString(),
-    //     rowCount: count,
-    //     schema: Column.Schema.str,
-    // });
+    const asym_id = (count > 200000) ? Column.ofConst('A', count, Column.Schema.str)
+        : Column.ofLambda({
+            value: (row: number) => atoms.moleculeId.value(row).toString(),
+            rowCount: count,
+            schema: Column.Schema.str,
+        });
+
     const seq_id = Column.ofConst(1, count, Column.Schema.int);
 
     const type_symbol = Column.ofStringArray(type_symbols);

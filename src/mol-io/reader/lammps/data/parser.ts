@@ -67,7 +67,7 @@ async function handleAtoms(state: State, count: number, atom_style: 'full' | 'at
         }
         linesAlreadyRead += linesToRead;
         return linesToRead;
-    }, ctx => ctx.update({ message: 'Parsing...', current: tokenizer.position, max: length }));
+    }, ctx => ctx.update({ message: 'Parsing Atoms...', current: tokenizer.position, max: length }));
 
     return {
         count,
@@ -108,7 +108,7 @@ async function handleBonds(state: State, count: number): Promise<LammpsDataFile[
         }
         bondsAlreadyRead += bondsToRead;
         return bondsToRead;
-    }, ctx => ctx.update({ message: 'Parsing...', current: tokenizer.position, max: length }));
+    }, ctx => ctx.update({ message: 'Parsing Bonds...', current: tokenizer.position, max: length }));
 
     return {
         count,
@@ -131,6 +131,11 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
     let numAtoms = 0;
     let numBonds = 0;
     let atom_style: AtomStyle = 'full';
+    const bounds: LammpsDataFile['bounds'] = {
+        lower: [0, 0, 0],
+        length: [1, 1, 1],
+        periodicity: ['pp', 'pp', 'pp']
+    };
     // full list of atom_style
     // https://docs.lammps.org/atom_style.html
     while (tokenizer.tokenEnd < tokenizer.length) {
@@ -155,6 +160,24 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
             atoms = await handleAtoms(state, numAtoms, atom_style);
         } else if (line.includes('Bonds')) {
             bonds = await handleBonds(state, numBonds);
+        } else if (line.includes('xlo')) {
+            // parse xlo and xhi
+            const xlo = parseFloat(line.split(reWhitespace)[0]);
+            const xhi = parseFloat(line.split(reWhitespace)[1]);
+            bounds.lower[0] = xlo;
+            bounds.length[0] = xhi - xlo;
+        } else if (line.includes('ylo')) {
+            // parse ylo and yhi
+            const ylo = parseFloat(line.split(reWhitespace)[0]);
+            const yhi = parseFloat(line.split(reWhitespace)[1]);
+            bounds.lower[1] = ylo;
+            bounds.length[1] = yhi - ylo;
+        } else if (line.includes('zlo')) {
+            // parse zlo and zhi
+            const zlo = parseFloat(line.split(reWhitespace)[0]);
+            const zhi = parseFloat(line.split(reWhitespace)[1]);
+            bounds.lower[2] = zlo;
+            bounds.length[2] = zhi - zlo;
         }
     }
 
@@ -171,10 +194,10 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
             atomIdB: Column.ofIntArray([]),
         };
     }
-
     const result: LammpsDataFile = {
         atoms,
-        bonds
+        bonds,
+        bounds
     };
     return Result.success(result);
 }
