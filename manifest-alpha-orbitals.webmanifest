@@ -2,7 +2,7 @@
         "name": "Mol* alpha-orbitals",
         "short_name": "Mol*",
         "description": "Mol* alpha-orbitals",
-        "start_url": "molstar/build/alpha-orbitals/index-pwa.html",
+        "start_url": "/molstar/build/alpha-orbitals/index-pwa.html",
         "theme_color": "#eeffee",
         "background_color": "#eeffee",
         "display": "standalone",

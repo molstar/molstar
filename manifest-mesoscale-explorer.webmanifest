@@ -2,7 +2,7 @@
         "name": "Mol* mesoscale-explorer",
         "short_name": "Mol*",
         "description": "Mol* mesoscale-explorer",
-        "start_url": "molstar/build/mesoscale-explorer/index-pwa.html",
+        "start_url": "/molstar/build/mesoscale-explorer/index-pwa.html",
         "theme_color": "#eeffee",
         "background_color": "#eeffee",
         "display": "standalone",

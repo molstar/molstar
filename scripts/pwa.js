@@ -107,7 +107,7 @@ function generateManifestFile(name, dirname) {
         "name": "Mol* ${name}",
         "short_name": "Mol*",
         "description": "Mol* ${name}",
-        "start_url": "molstar/build/${name}/index-pwa.html",
+        "start_url": "/molstar/build/${name}/index-pwa.html",
         "theme_color": "#eeffee",
         "background_color": "#eeffee",
         "display": "standalone",
@@ -162,22 +162,22 @@ function processHtmlFile(name, dirname) {
 
         // Define the service worker registration script
         const sWScript = `    <!-- Register the app's service worker. -->
-            <script type="module">
-                if ('serviceWorker' in navigator) {
-                    window.addEventListener('load', function () {
-                        //navigator.serviceWorker.register('/sw.js')
-                        navigator.serviceWorker.register(new URL('/molstar/sw-${name}.js', import.meta.url))
-                        //navigator.serviceWorker.register(new URL('/sw.js', import.meta.url), { scope: '/' })
-                        .then(function (registration) {
-                        // Registration was successful
-                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                        }, function (err) {
-                        // registration failed :(
-                        console.log('ServiceWorker registration failed: ', err);
-                        });
+        <script type="module">
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function () {
+                    //navigator.serviceWorker.register('/sw.js')
+                    navigator.serviceWorker.register(new URL('/molstar/sw-${name}.js', import.meta.url))
+                    //navigator.serviceWorker.register(new URL('/sw.js', import.meta.url), { scope: '/' })
+                    .then(function (registration) {
+                    // Registration was successful
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    }, function (err) {
+                    // registration failed :(
+                    console.log('ServiceWorker registration failed: ', err);
                     });
-                }
-            </script>
+                });
+            }
+        </script>
         `;
 
         // Insert the service worker script before the closing </body> tag

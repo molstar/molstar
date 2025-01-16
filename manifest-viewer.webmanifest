@@ -2,7 +2,7 @@
         "name": "Mol* viewer",
         "short_name": "Mol*",
         "description": "Mol* viewer",
-        "start_url": "molstar/build/viewer/index-pwa.html",
+        "start_url": "/molstar/build/viewer/index-pwa.html",
         "theme_color": "#eeffee",
         "background_color": "#eeffee",
         "display": "standalone",

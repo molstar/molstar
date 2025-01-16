@@ -2,7 +2,7 @@
         "name": "Mol* basic-wrapper",
         "short_name": "Mol*",
         "description": "Mol* basic-wrapper",
-        "start_url": "molstar/build/basic-wrapper/index-pwa.html",
+        "start_url": "/molstar/build/basic-wrapper/index-pwa.html",
         "theme_color": "#eeffee",
         "background_color": "#eeffee",
         "display": "standalone",

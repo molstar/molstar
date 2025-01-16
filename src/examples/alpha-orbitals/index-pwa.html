@@ -71,21 +71,21 @@
         </script>
         <!-- __MOLSTAR_ANALYTICS__ -->
         <!-- Register the app's service worker. -->
-            <script type="module">
-                if ('serviceWorker' in navigator) {
-                    window.addEventListener('load', function () {
-                        //navigator.serviceWorker.register('/sw.js')
-                        navigator.serviceWorker.register(new URL('/molstar/sw-alpha-orbitals.js', import.meta.url))
-                        //navigator.serviceWorker.register(new URL('/sw.js', import.meta.url), { scope: '/' })
-                        .then(function (registration) {
-                        // Registration was successful
-                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                        }, function (err) {
-                        // registration failed :(
-                        console.log('ServiceWorker registration failed: ', err);
-                        });
+        <script type="module">
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function () {
+                    //navigator.serviceWorker.register('/sw.js')
+                    navigator.serviceWorker.register(new URL('/molstar/sw-alpha-orbitals.js', import.meta.url))
+                    //navigator.serviceWorker.register(new URL('/sw.js', import.meta.url), { scope: '/' })
+                    .then(function (registration) {
+                    // Registration was successful
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    }, function (err) {
+                    // registration failed :(
+                    console.log('ServiceWorker registration failed: ', err);
                     });
-                }
-            </script>
+                });
+            }
+        </script>
         </body>
 </html>

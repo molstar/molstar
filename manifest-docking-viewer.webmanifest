@@ -2,7 +2,7 @@
         "name": "Mol* docking-viewer",
         "short_name": "Mol*",
         "description": "Mol* docking-viewer",
-        "start_url": "molstar/build/docking-viewer/index-pwa.html",
+        "start_url": "/molstar/build/docking-viewer/index-pwa.html",
         "theme_color": "#eeffee",
         "background_color": "#eeffee",
         "display": "standalone",

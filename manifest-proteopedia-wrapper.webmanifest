@@ -2,7 +2,7 @@
         "name": "Mol* proteopedia-wrapper",
         "short_name": "Mol*",
         "description": "Mol* proteopedia-wrapper",
-        "start_url": "molstar/build/proteopedia-wrapper/index-pwa.html",
+        "start_url": "/molstar/build/proteopedia-wrapper/index-pwa.html",
         "theme_color": "#eeffee",
         "background_color": "#eeffee",
         "display": "standalone",
