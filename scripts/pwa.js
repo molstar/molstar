@@ -11,6 +11,7 @@ const { version } = require('../package.json');
 // Generate the service worker file.
 function generateServiceWorkerFile(name, dirname) {
     const cacheName = `molstar-${name}-${version}`;
+    const entryPoint = `index-pwa.html`;
     const filePath = path.join(__dirname, '..', `sw-${name}.js`);
     // Set faviconpath.
     let faviconPath;
@@ -36,7 +37,7 @@ const APP_STATIC_RESOURCES = [
     "src/icons/circle.svg",
     "src/icons/tire.svg",
     "src/icons/wheel.svg",
-    "src/${dirname}/${name}/index-pwa.html"
+    "src/${dirname}/${name}/${entryPoint}"
 ];
     
 // On install, cache the static resources.
@@ -71,7 +72,7 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
     // As a single page app, direct app to always go to cached home page.
     if (event.request.mode === "navigate") {
-        event.respondWith(caches.match("/"));
+        event.respondWith(caches.match("/${entryPoint}"));
         return;
     }
 
