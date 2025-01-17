@@ -16,7 +16,7 @@
     "test": "npm install --no-save \"gl@^6.0.2\" && npm run lint && jest",
     "jest": "jest",
     "build": "npm run build-tsc && npm run build-extra && npm run build-webpack",
-    "clean": "node ./scripts/clean.js && node/scripts/pwa-clean.js",
+    "clean": "node ./scripts/clean.js && node ./scripts/pwa-clean.js",
     "rebuild": "npm run clean && npm run build",
     "build-viewer": "npm run build-tsc && npm run build-extra && npm run build-webpack-viewer",
     "build-tsc": "concurrently \"tsc --incremental\" \"tsc --build tsconfig.commonjs.json --incremental\"",
