@@ -210,7 +210,12 @@ function readNextLine(
 
     for (let i = currentIndex; i < data.length; i++) {
         if (data[i] === 10) { // ASCII code for '\n'
-            result.line = decoder.decode(data.subarray(lineStart, i), { stream: true }).trim();
+            let endIndex = i;
+            // Check if there's a '\r' just before '\n'
+            if (i > 0 && data[i - 1] === 13) { // ASCII code for '\r'
+                endIndex = i - 1; // Exclude the '\r' from the decoded string
+            }
+            result.line = decoder.decode(data.subarray(lineStart, endIndex), { stream: true }).trim();
             nextIndex = i + 1; // Update the next index to the position after '\n'
             break;
         }
