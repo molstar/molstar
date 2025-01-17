@@ -15,6 +15,8 @@ const APP_STATIC_RESOURCES = [
     "src/icons/tire.svg",
     "src/icons/wheel.svg",
     "src/examples/alpha-orbitals/index-pwa.html"
+    "src/examples/alpha-orbitals/molstar.css",
+    "src/examples/alpha-orbitals/undefined,
 ];
     
 // On install, cache the static resources.

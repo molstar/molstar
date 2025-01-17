@@ -15,6 +15,8 @@ const APP_STATIC_RESOURCES = [
     "src/icons/tire.svg",
     "src/icons/wheel.svg",
     "src/apps/viewer/index-pwa.html"
+    "src/apps/viewer/molstar.css",
+    "src/apps/viewer/undefined,
 ];
     
 // On install, cache the static resources.

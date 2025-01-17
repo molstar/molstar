@@ -15,6 +15,8 @@ const APP_STATIC_RESOURCES = [
     "src/icons/tire.svg",
     "src/icons/wheel.svg",
     "src/examples/alphafolddb-pae/index-pwa.html"
+    "src/examples/alphafolddb-pae/molstar.css",
+    "src/examples/alphafolddb-pae/undefined,
 ];
     
 // On install, cache the static resources.

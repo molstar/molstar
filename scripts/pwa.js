@@ -9,7 +9,7 @@ const path = require('path');
 const { version } = require('../package.json');
 
 // Generate the service worker file.
-function generateServiceWorkerFile(name, dirname) {
+function generateServiceWorkerFile(name, dirname, jsname) {
     const cacheName = `molstar-${name}-${version}`;
     const entryPoint = `index-pwa.html`;
     const filePath = path.join(__dirname, '..', 'src', `sw-${name}.js`);
@@ -38,6 +38,8 @@ const APP_STATIC_RESOURCES = [
     "src/icons/tire.svg",
     "src/icons/wheel.svg",
     "src/${dirname}/${name}/${entryPoint}"
+    "src/${dirname}/${name}/molstar.css",
+    "src/${dirname}/${name}/${jsname},
 ];
     
 // On install, cache the static resources.
@@ -194,26 +196,28 @@ function processHtmlFile(name, dirname) {
     });
 }
 
-function createPWA(name, dirname) {
+function createPWA(name, dirname, jsname) {
     // (re)generate the service worker file
     generateServiceWorkerFile(name, dirname);
     // (re)generate the manifest files
-    generateManifestFile(name, dirname);
+    generateManifestFile(name, dirname, jsname);
     // (re)generate the html files
     processHtmlFile(name, dirname);
 }
 
 // Apps
-createPWA('viewer', 'apps');
-createPWA('docking-viewer', 'apps');
-createPWA('mesoscale-explorer', 'apps');
+let jsname = 'molstar.js';
+createPWA('viewer', 'apps', jsname);
+createPWA('docking-viewer', 'apps', jsname);
+createPWA('mesoscale-explorer', 'apps', jsname);
 
 // Examples
-createPWA('alpha-orbitals', 'examples');
-createPWA('alphafolddb-pae', 'examples');
-createPWA('basic-wrapper', 'examples');
-//createPWA('domain-annotation-server', 'examples');
-//createPWA('gbl-export', 'examples');
-//createPWA('image-renderer', 'examples');
-createPWA('lighting', 'examples');
-createPWA('proteopedia-wrapper', 'examples');
+jsname = 'index.js';
+createPWA('alpha-orbitals', 'examples', jsname);
+createPWA('alphafolddb-pae', 'examples', jsname);
+createPWA('basic-wrapper', 'examples', jsname);
+//createPWA('domain-annotation-server', 'examples', jsname);
+//createPWA('gbl-export', 'examples', jsname);
+//createPWA('image-renderer', 'examples', jsname);
+createPWA('lighting', 'examples', jsname);
+createPWA('proteopedia-wrapper', 'examples', jsname);

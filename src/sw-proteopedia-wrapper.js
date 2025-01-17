@@ -15,6 +15,8 @@ const APP_STATIC_RESOURCES = [
     "src/icons/tire.svg",
     "src/icons/wheel.svg",
     "src/examples/proteopedia-wrapper/index-pwa.html"
+    "src/examples/proteopedia-wrapper/molstar.css",
+    "src/examples/proteopedia-wrapper/undefined,
 ];
     
 // On install, cache the static resources.

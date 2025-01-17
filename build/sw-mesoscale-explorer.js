@@ -15,6 +15,8 @@ const APP_STATIC_RESOURCES = [
     "src/icons/tire.svg",
     "src/icons/wheel.svg",
     "src/apps/mesoscale-explorer/index-pwa.html"
+    "src/apps/mesoscale-explorer/molstar.css",
+    "src/apps/mesoscale-explorer/undefined,
 ];
     
 // On install, cache the static resources.
