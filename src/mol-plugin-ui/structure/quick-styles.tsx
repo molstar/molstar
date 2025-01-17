@@ -162,17 +162,29 @@ export class QuickStyles extends PurePluginUIComponent<{}, QuickStylesState> {
 
     render() {
         return <>
-            <div className='msp-flex-row'>
-                <ToggleButton label='Default' title='Applies default representation preset (depends on structure size)'
-                    toggle={() => this.changePreset('default')} isSelected={this.state.props.preset === 'default'} disabled={this.state.busy} />
-                <ToggleButton label='Cartoon' title='Applies cartoon polymer + ball-and-stick ligand representation preset'
-                    toggle={() => this.changePreset('cartoon')} isSelected={this.state.props.preset === 'cartoon'} disabled={this.state.busy} />
-                <ToggleButton label='Spacefill' title='Applies spacefill representation preset'
-                    toggle={() => this.changePreset('spacefill')} isSelected={this.state.props.preset === 'spacefill'} disabled={this.state.busy} />
-                <ToggleButton label='Surface' title='Applies molecular surface representation preset'
-                    toggle={() => this.changePreset('surface')} isSelected={this.state.props.preset === 'surface'} disabled={this.state.busy} />
-            </div>
-            <ParameterControls params={QuickStyleParams} values={this.state.props} onChangeValues={props => this.changeValues(props)} isDisabled={this.state.busy} />
+            <NoncollapsableGroup title='Apply Representation'>
+                <div className='msp-flex-row'>
+                    <ToggleButton label='Default' title='Applies default representation preset (depends on structure size)'
+                        toggle={() => this.changePreset('default')} isSelected={this.state.props.preset === 'default'} disabled={this.state.busy} />
+                    <ToggleButton label='Cartoon' title='Applies cartoon polymer + ball-and-stick ligand representation preset'
+                        toggle={() => this.changePreset('cartoon')} isSelected={this.state.props.preset === 'cartoon'} disabled={this.state.busy} />
+                    <ToggleButton label='Spacefill' title='Applies spacefill representation preset'
+                        toggle={() => this.changePreset('spacefill')} isSelected={this.state.props.preset === 'spacefill'} disabled={this.state.busy} />
+                    <ToggleButton label='Surface' title='Applies molecular surface representation preset'
+                        toggle={() => this.changePreset('surface')} isSelected={this.state.props.preset === 'surface'} disabled={this.state.busy} />
+                </div>
+            </NoncollapsableGroup>
+            <NoncollapsableGroup title='Apply Style'>
+                <ParameterControls params={QuickStyleParams} values={this.state.props} onChangeValues={props => this.changeValues(props)} isDisabled={this.state.busy} />
+            </NoncollapsableGroup>
         </>;
     }
+}
+
+/** Visually imitates `ControlGroup` but is always expanded */
+function NoncollapsableGroup(props: { title: string, children: any }) {
+    return <div className='msp-control-group-wrapper'>
+        <div className='msp-control-group-header'><div><b>{props.title}</b></div></div>
+        {props.children}
+    </div>;
 }
