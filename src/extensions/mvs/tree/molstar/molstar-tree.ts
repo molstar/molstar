@@ -5,7 +5,8 @@
  */
 
 import { omitObjectKeys, pickObjectKeys } from '../../../../mol-util/object';
-import { RequiredField, bool } from '../generic/params-schema';
+import { RequiredField, bool } from '../generic/field-schema';
+import { SimpleParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema } from '../generic/tree-schema';
 import { FullMVSTreeSchema } from '../mvs/mvs-tree';
 import { MolstarParseFormatT } from '../mvs/param-types';
@@ -18,37 +19,41 @@ export const MolstarTreeSchema = TreeSchema({
         ...FullMVSTreeSchema.nodes,
         download: {
             ...FullMVSTreeSchema.nodes.download,
-            params: {
-                ...FullMVSTreeSchema.nodes.download.params,
-                is_binary: RequiredField(bool),
-            },
+            params: SimpleParamsSchema({
+                ...FullMVSTreeSchema.nodes.download.params.fields,
+                is_binary: RequiredField(bool, 'Specifies whether file is downloaded as bytes array or string'),
+            }),
         },
         parse: {
             ...FullMVSTreeSchema.nodes.parse,
-            params: {
-                format: RequiredField(MolstarParseFormatT),
-            },
+            params: SimpleParamsSchema({
+                format: RequiredField(MolstarParseFormatT, 'File format'),
+            }),
         },
         /** Auxiliary node corresponding to Molstar's TrajectoryFrom*. */
         trajectory: {
             description: "Auxiliary node corresponding to Molstar's TrajectoryFrom*.",
             parent: ['parse'],
-            params: {
-                format: RequiredField(MolstarParseFormatT),
-                ...pickObjectKeys(FullMVSTreeSchema.nodes.structure.params, ['block_header', 'block_index'] as const),
-            },
+            params: SimpleParamsSchema({
+                format: RequiredField(MolstarParseFormatT, 'File format'),
+                ...pickObjectKeys(FullMVSTreeSchema.nodes.structure.params.fields, ['block_header', 'block_index'] as const),
+            }),
         },
         /** Auxiliary node corresponding to Molstar's ModelFromTrajectory. */
         model: {
             description: "Auxiliary node corresponding to Molstar's ModelFromTrajectory.",
             parent: ['trajectory'],
-            params: pickObjectKeys(FullMVSTreeSchema.nodes.structure.params, ['model_index'] as const),
+            params: SimpleParamsSchema(
+                pickObjectKeys(FullMVSTreeSchema.nodes.structure.params.fields, ['model_index'] as const)
+            ),
         },
         /** Auxiliary node corresponding to Molstar's StructureFromModel. */
         structure: {
             ...FullMVSTreeSchema.nodes.structure,
             parent: ['model'],
-            params: omitObjectKeys(FullMVSTreeSchema.nodes.structure.params, ['block_header', 'block_index', 'model_index'] as const),
+            params: SimpleParamsSchema(
+                omitObjectKeys(FullMVSTreeSchema.nodes.structure.params.fields, ['block_header', 'block_index', 'model_index'] as const)
+            ),
         },
     }
 });

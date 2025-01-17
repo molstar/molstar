@@ -128,6 +128,16 @@ export const HexColor = {
     },
 };
 
+/** Named color string, e.g. 'red' */
+export type ColorName = keyof ColorNames
+
+export const ColorName = {
+    /** Decide if a string is a valid named color string */
+    is(str: any): str is ColorName {
+        return str in ColorNames;
+    },
+};
+
 export function collectMVSReferences<T extends StateObject.Ctor>(type: T[], dependencies: Record<string, StateObject>): Record<string, StateObject.From<T>['data']> {
     const ret: any = {};
 
