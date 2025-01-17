@@ -26,6 +26,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix marking related image rendering issues
     - Handle pixels without a group
     - Take fog into account
+- MolViewSpec extension: Initial support for customizable representation parameters
 
 ## [v4.10.0] - 2024-12-15
 
