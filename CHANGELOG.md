@@ -27,6 +27,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Handle pixels without a group
     - Take fog into account
 - Renames PDB-Dev to PDB-IHM and adjusts data source
+- Support for custom Sequence Viewer mode options
 
 ## [v4.10.0] - 2024-12-15
 
