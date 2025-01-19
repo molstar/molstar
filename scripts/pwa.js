@@ -110,6 +110,7 @@ self.addEventListener("fetch", (event) => {
 function generateManifestFile(name) {
     const filePath = path.join(__dirname, '..', 'build', `${name}`, 'manifest.webmanifest');
     const content=`{
+        "id": "/molstar/build/viewer/index-pwa.html",
         "name": "Mol* ${name}",
         "short_name": "Mol*",
         "description": "Mol* ${name}",
