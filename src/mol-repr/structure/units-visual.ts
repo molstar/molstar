@@ -36,8 +36,9 @@ import { Lines } from '../../mol-geo/geometry/lines/lines';
 import { Text } from '../../mol-geo/geometry/text/text';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
+import { Image } from '../../mol-geo/geometry/image/image';
 import { SizeValues } from '../../mol-gl/renderable/schema';
-import { StructureParams, StructureMeshParams, StructureSpheresParams, StructurePointsParams, StructureLinesParams, StructureTextParams, StructureDirectVolumeParams, StructureTextureMeshParams, StructureCylindersParams } from './params';
+import { StructureParams, StructureMeshParams, StructureSpheresParams, StructurePointsParams, StructureLinesParams, StructureTextParams, StructureDirectVolumeParams, StructureTextureMeshParams, StructureCylindersParams, StructureImageParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { isPromiseLike } from '../../mol-util/type-helpers';
@@ -569,5 +570,22 @@ export function UnitsTextureMeshVisual<P extends UnitsTextureMeshParams>(builder
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true;
         },
         geometryUtils: TextureMesh.Utils
+    }, materialId);
+}
+
+// image
+
+export const UnitsImageParams = { ...StructureImageParams, ...StructureParams };
+export type UnitsImageParams = typeof UnitsImageParams
+export interface UnitsImageVisualBuilder<P extends UnitsImageParams> extends UnitsVisualBuilder<P, Image> { }
+
+export function UnitsImageVisual<P extends UnitsImageParams>(builder: UnitsImageVisualBuilder<P>, materialId: number): UnitsVisual<P> {
+    return UnitsVisual<Image, P>({
+        ...builder,
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructureGroup, currentStructureGroup);
+            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true;
+        },
+        geometryUtils: Image.Utils
     }, materialId);
 }

@@ -41,7 +41,7 @@ export const assign_color_varying = `
     #endif
 
     #ifdef dUsePalette
-        vPaletteV = ((vColor.r * 256.0 * 256.0 * 255.0 + vColor.g * 256.0 * 255.0 + vColor.b * 255.0) - 1.0) / 16777215.0;
+        vPaletteV = ((vColor.r * 256.0 * 256.0 * 255.0 + vColor.g * 256.0 * 255.0 + vColor.b * 255.0) - 1.0) / PALETTE_SCALE;
     #endif
 
     #ifdef dOverpaint

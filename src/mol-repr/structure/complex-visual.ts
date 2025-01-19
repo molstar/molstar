@@ -32,7 +32,7 @@ import { Text } from '../../mol-geo/geometry/text/text';
 import { SizeTheme } from '../../mol-theme/size';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
 import { createMarkers } from '../../mol-geo/geometry/marker-data';
-import { StructureParams, StructureMeshParams, StructureTextParams, StructureDirectVolumeParams, StructureLinesParams, StructureCylindersParams, StructureTextureMeshParams, StructureSpheresParams, StructurePointsParams } from './params';
+import { StructureParams, StructureMeshParams, StructureTextParams, StructureDirectVolumeParams, StructureLinesParams, StructureCylindersParams, StructureTextureMeshParams, StructureSpheresParams, StructurePointsParams, StructureImageParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
 import { WebGLContext } from '../../mol-gl/webgl/context';
@@ -41,6 +41,7 @@ import { Substance } from '../../mol-theme/substance';
 import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
 import { Emissive } from '../../mol-theme/emissive';
 import { Points } from '../../mol-geo/geometry/points/points';
+import { Image } from '../../mol-geo/geometry/image/image';
 
 export interface ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
@@ -490,5 +491,23 @@ export function ComplexTextureMeshVisual<P extends ComplexTextureMeshParams>(bui
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true;
         },
         geometryUtils: TextureMesh.Utils
+    }, materialId);
+}
+
+// image
+
+export const ComplexImageParams = { ...StructureImageParams, ...StructureParams };
+export type ComplexImageParams = typeof ComplexImageParams
+
+export interface ComplexImageVisualBuilder<P extends ComplexImageParams> extends ComplexVisualBuilder<P, Image> { }
+
+export function ComplexImageVisual<P extends ComplexImageParams>(builder: ComplexImageVisualBuilder<P>, materialId: number): ComplexVisual<P> {
+    return ComplexVisual<Image, P>({
+        ...builder,
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructure, currentStructure);
+            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true;
+        },
+        geometryUtils: Image.Utils
     }, materialId);
 }

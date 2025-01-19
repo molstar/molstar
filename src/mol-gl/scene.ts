@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -252,7 +252,8 @@ namespace Scene {
                 const xray = (p.values.dXrayShaded?.ref.value === 'on' || p.values.dXrayShaded?.ref.value === 'inverted') ? 0.5 : 1;
                 const fuzzy = p.values.dPointStyle?.ref.value === 'fuzzy' ? 0.5 : 1;
                 const text = p.values.dGeometryType.ref.value === 'text' ? 0.5 : 1;
-                opacityAverage += (1 - p.values.transparencyAverage.ref.value) * alpha * xray * fuzzy * text;
+                const image = p.values.dGeometryType.ref.value === 'image' ? 0.5 : 1;
+                opacityAverage += (1 - p.values.transparencyAverage.ref.value) * alpha * xray * fuzzy * text * image;
                 count += 1;
             }
             return count > 0 ? opacityAverage / count : 0;
@@ -272,7 +273,8 @@ namespace Scene {
                 if (p.values.dXrayShaded?.ref.value === 'on' ||
                     p.values.dXrayShaded?.ref.value === 'inverted' ||
                     p.values.dPointStyle?.ref.value === 'fuzzy' ||
-                    p.values.dGeometryType.ref.value === 'text'
+                    p.values.dGeometryType.ref.value === 'text' ||
+                    p.values.dGeometryType.ref.value === 'image'
                 ) transparenyValues.push(0.5);
                 if (p.values.transparencyMin.ref.value > 0) transparenyValues.push(p.values.transparencyMin.ref.value);
                 transparencyMin = Math.min(transparencyMin, ...transparenyValues);

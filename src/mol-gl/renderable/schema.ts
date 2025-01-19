@@ -204,6 +204,7 @@ export const ColorSchema = {
     uColorGridDim: UniformSpec('v3'),
     uColorGridTransform: UniformSpec('v4'),
     uPaletteDomain: UniformSpec('v2'),
+    uPaletteDefault: UniformSpec('v3'),
     tColor: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
     tPalette: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
     tColorGrid: TextureSpec('texture', 'rgb', 'ubyte', 'linear'),
