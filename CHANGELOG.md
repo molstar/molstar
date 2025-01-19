@@ -35,6 +35,11 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add support for trimming `image` geometry to a box
 - Improve/fix iso-level support of `slice` representation
 - Add support for rotating `slice` representation around an axis
+- Add `plane` structure representation
+    - Can be colored with any structure theme
+    - Can be colored with the `external-volume` theme
+    - Can show atoms as a cutout
+    - Supports principal axes and bounding box as a reference frame
 
 ## [v4.10.0] - 2024-12-15
 
