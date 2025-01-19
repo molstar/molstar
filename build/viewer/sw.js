@@ -8,7 +8,6 @@ const CACHE_NAME = `molstar-viewer-4.10.0`;
 
 // The static resources that the app needs to function.
 const APP_STATIC_RESOURCES = [
-    "./",
     "favicon.ico",
     "index-pwa.html",
     "molstar.css",
@@ -44,24 +43,30 @@ self.addEventListener("activate", (event) => {
     );
 });
 
-// On fetch, intercept server requests and respond with cached responses instead of going to network.
+// On fetch, respond with cached resources.
 self.addEventListener("fetch", (event) => {
-    // As a single page app, direct app to always go to cached home page.
-    if (event.request.mode === "navigate") {
-        event.respondWith(caches.match("/index-pwa.html"));
-        return;
-    }
-
-    // For all other requests, go to the cache first, and then the network.
     event.respondWith(
-        (async () => {
-            const cache = await caches.open(CACHE_NAME);
-            const cachedResponse = await cache.match(event.request.url);
-            if (cachedResponse) {
-                // If available, return the cached response.
-                return cachedResponse;
-            }
-            return new Response(null, { status: 404 });
-        })(),
+        caches.match(event.request).then((response) => {
+            // Return the cached response if found, otherwise fetch from network
+            return response || fetch(event.request).then((networkResponse) => {
+                // Check if the network response is valid
+                if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+                    return networkResponse;
+                }
+
+                // Clone the network response
+                const responseToCache = networkResponse.clone();
+
+                // Open the cache and put the network response in it
+                caches.open(CACHE_NAME).then((cache) => {
+                    cache.put(event.request, responseToCache);
+                });
+
+                return networkResponse;
+            }).catch((error) => {
+                console.error('Fetching failed:', error);
+                throw error;
+            });
+        })
     );
 });
