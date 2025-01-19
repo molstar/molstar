@@ -19,14 +19,18 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add support for position-location to `volume-value` color theme
 - Add support for color themes to `slice` representation
 - Improve/fix palette support in volume color themes
+- Add default color support for palette based themes
 - Support removal of independent selection controls in the viewport
 - Support custom selection controls
 - Support for custom granularity dropdown options
 - Fix `Plane3D.projectPoint`
-- Fix marking related image rendering issues
+- Fix marking related `image` rendering issues
     - Handle pixels without a group
     - Take fog into account
 - Support for custom Sequence Viewer mode options
+- Add support for trimming `image` geometry to a box
+- Improve/fix iso-level support of `slice` representation
+- Add support for rotating `slice` representation around an axis
 
 ## [v4.10.0] - 2024-12-15
 
