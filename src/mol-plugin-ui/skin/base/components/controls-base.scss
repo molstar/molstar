@@ -215,8 +215,12 @@
     color: $msp-btn-link-toggle-off-font-color !important;
 }
 
-.msp-btn-link-toggle-off:hover,  .msp-btn-link-toggle-on:hover {
-    color: $hover-font-color !important;
+.msp-btn-link-toggle-on:hover {
+    color: $msp-btn-link-toggle-on-hover-font-color !important;
+}
+
+.msp-btn-link-toggle-off:hover {
+    color: $msp-btn-link-toggle-off-hover-font-color !important;
 }
 
 @mixin msp-btn($name, $font, $bg) {

@@ -27,6 +27,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix marking related `image` rendering issues
     - Handle pixels without a group
     - Take fog into account
+- Quick Styles section reorganized
+- UI color improvements (scrollbar contrast, toggle button hover color)
+- overrideWater param for entity-id color theme
+- Renames PDB-Dev to PDB-IHM and adjusts data source
 - Support for custom Sequence Viewer mode options
 - Add support for trimming `image` geometry to a box
 - Improve/fix iso-level support of `slice` representation
@@ -98,7 +102,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix `findPredecessorIndex` bug when repeating values
 - MolViewSpec: Support for transparency and custom properties
 - MolViewSpec: MVP Support for geometrical primitives (mesh, lines, line, label, distance measurement)
-- Mesoscale Explorer: Add support for 4-character PDB IDs (e.g., 8ZZC) in PDB-Dev loader
+- Mesoscale Explorer: Add support for 4-character PDB IDs (e.g., 8ZZC) in PDB-IHM/PDB-Dev loader
 - Fix Sequence View in Safari 18
 - Improve performance of `IndexPairBonds` assignment when operator keys are available
 - ModelArchive QualityAssessment extension:
@@ -151,7 +155,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Improve entity-id coloring for structures with multiple models from the same source (#1221)
 - Wrap screenshot & image generation in a `Task`
 - AlphaFold DB: Add BinaryCIF support when fetching data
-- PDB-Dev: Add support for 4-character PDB IDs (e.g., 8ZZC)
+- PDB-IHM/PDB-Dev: Add support for 4-character PDB IDs (e.g., 8ZZC)
 - Fix polymer-gap visual coloring with cartoon theme
 - Add formal-charge color theme (#328)
 - Add more coloring options to cartoon theme

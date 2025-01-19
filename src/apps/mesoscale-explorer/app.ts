@@ -25,7 +25,7 @@ import { MesoFocusLoci } from './behavior/camera';
 import { GraphicsMode, MesoscaleState } from './data/state';
 import { MesoSelectLoci } from './behavior/select';
 import { Transparency } from '../../mol-gl/webgl/render-item';
-import { LoadModel, loadExampleEntry, loadPdb, loadPdbDev, loadUrl, openState } from './ui/states';
+import { LoadModel, loadExampleEntry, loadPdb, loadPdbIhm, loadUrl, openState } from './ui/states';
 import { Asset } from '../../mol-util/assets';
 import { AnimateCameraSpin } from '../../mol-plugin-state/animation/built-in/camera-spin';
 import { AnimateCameraRock } from '../../mol-plugin-state/animation/built-in/camera-rock';
@@ -120,8 +120,15 @@ export class MesoscaleExplorer {
         await loadPdb(this.plugin, id);
     }
 
+    /**
+     * @deprecated Scheduled for removal in v5. Use {@link loadPdbIhm | loadPdbIhm(id: string)} instead.
+     */
     async loadPdbDev(id: string) {
-        await loadPdbDev(this.plugin, id);
+        await this.loadPdbIhm(id);
+    }
+
+    async loadPdbIhm(id: string) {
+        await loadPdbIhm(this.plugin, id);
     }
 
     static async create(elementOrId: string | HTMLElement, options: Partial<MesoscaleExplorerOptions> = {}) {
