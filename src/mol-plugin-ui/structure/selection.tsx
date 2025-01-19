@@ -62,6 +62,8 @@ interface StructureSelectionActionsControlsState {
 
     action?: StructureSelectionModifier | 'theme' | 'add-component' | 'help',
     helper?: SelectionHelperType,
+
+    structureSelectionParams?: typeof StructureSelectionParams,
 }
 
 const ActionHeader = new Map<StructureSelectionModifier, string>([
@@ -79,6 +81,8 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
         isEmpty: true,
         isBusy: false,
         canUndo: false,
+
+        structureSelectionParams: StructureSelectionParams,
     };
 
     componentDidMount() {
@@ -103,6 +107,20 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
         this.subscribe(this.plugin.state.data.events.historyUpdated, ({ state }) => {
             this.setState({ canUndo: state.canUndo });
         });
+
+        // Update structureSelectionParams state if there are custom-defined granularityOptions
+        const granularityOptions = this.plugin.spec.components?.selectionTools?.granularityOptions;
+        if (granularityOptions) {
+            const granularitySet = new Set((granularityOptions));
+            const structureSelectionParams = {
+                ...StructureSelectionParams,
+                granularity: {
+                    ...StructureSelectionParams.granularity,
+                    options: StructureSelectionParams.granularity.options.filter(([firstItem]) => granularitySet.has(firstItem)),
+                },
+            };
+            this.setState({ structureSelectionParams: structureSelectionParams });
+        }
     }
 
     get isDisabled() {
@@ -265,7 +283,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
 
         return <>
             <div className='msp-flex-row' style={{ background: 'none' }}>
-                {(!hide?.granularity) && <PureSelectControl title={`Picking Level for selecting and highlighting`} param={StructureSelectionParams.granularity} name='granularity' value={granularity} onChange={this.setGranuality} isDisabled={this.isDisabled} />}
+                {(!hide?.granularity) && <PureSelectControl title={`Picking Level for selecting and highlighting`} param={this.state.structureSelectionParams.granularity} name='granularity' value={granularity} onChange={this.setGranuality} isDisabled={this.isDisabled} />}
                 {(!hide?.union) && <ToggleButton icon={UnionSvg} title={`${ActionHeader.get('add')}. Hold shift key to keep menu open.`} toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />}
                 {(!hide?.subtract) && <ToggleButton icon={SubtractSvg} title={`${ActionHeader.get('remove')}. Hold shift key to keep menu open.`} toggle={this.toggleRemove} isSelected={this.state.action === 'remove'} disabled={this.isDisabled} />}
                 {(!hide?.intersect) && <ToggleButton icon={IntersectSvg} title={`${ActionHeader.get('intersect')}. Hold shift key to keep menu open.`} toggle={this.toggleIntersect} isSelected={this.state.action === 'intersect'} disabled={this.isDisabled} />}

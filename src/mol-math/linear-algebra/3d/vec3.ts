@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -643,6 +643,11 @@ namespace Vec3 {
         sub(triangleNormalTmpAB, b, a);
         sub(triangleNormalTmpAC, c, a);
         return normalize(out, cross(out, triangleNormalTmpAB, triangleNormalTmpAC));
+    }
+
+    const centerTmpV = zero();
+    export function center(out: Vec3, a: Vec3, b: Vec3): Vec3 {
+        return Vec3.scaleAndAdd(out, a, Vec3.sub(centerTmpV, b, a), 0.5);
     }
 
     export function toString(a: Vec3, precision?: number) {

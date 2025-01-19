@@ -111,8 +111,11 @@
                 var pdb = getParam('pdb', '[^&]+').trim();
                 if (pdb) viewer.loadPdb(pdb);
 
+                var pdbIhm = getParam('pdb-ihm', '[^&]+').trim();
+                if (pdbIhm) viewer.loadPdbIhm(pdbIhm);
+                // support for deprecated pdb-dev param
                 var pdbDev = getParam('pdb-dev', '[^&]+').trim();
-                if (pdbDev) viewer.loadPdbDev(pdbDev);
+                if (pdbDev) viewer.loadPdbIhm(pdbDev);
 
                 var emdb = getParam('emdb', '[^&]+').trim();
                 if (emdb) viewer.loadEmdb(emdb);
