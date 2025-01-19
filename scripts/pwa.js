@@ -144,6 +144,15 @@ function generateManifestFile(name) {
                 "src": "tire.svg",
                 "sizes": "192x192"
             }
+        ],
+        "file_handlers": [
+            {
+                "action": "./index-pwa.html",
+                "accept": {
+                    "application/vnd.molstar": [".mol", ".mol2", ".sdf", ".pdb", ".mmcif", ".xyz", ".mmtf", ".bcif"],
+                    "application/vnd.cif": [".cif"]
+                }
+            }
         ]
     }`;
     // Write content to file.
