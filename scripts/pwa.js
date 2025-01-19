@@ -82,7 +82,16 @@ self.addEventListener("fetch", (event) => {
                 return networkResponse;
             }).catch((error) => {
                 console.error('Fetching failed:', error);
-                throw error;
+                return new Response('Network error occurred', {
+                    status: 408,
+                    statusText: 'Network error occurred'
+                });
+            });
+        }).catch((error) => {
+            console.error('Cache match failed:', error);
+            return new Response('Cache error occurred', {
+                status: 408,
+                statusText: 'Cache error occurred'
             });
         })
     );
