@@ -1,0 +1,15 @@
+{
+        "name": "Mol* viewer",
+        "short_name": "Mol*",
+        "description": "Mol* viewer",
+        "start_url": "./index-pwa.html",
+        "theme_color": "#eeffee",
+        "background_color": "#eeffee",
+        "display": "standalone",
+        "icons": [
+            {
+                "src": "favicon.ico",
+                "sizes": "48x48"
+            }
+        ]
+    }

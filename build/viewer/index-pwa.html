@@ -35,7 +35,7 @@
             }
         </style>
         <link rel="stylesheet" type="text/css" href="molstar.css" />
-        <link rel="manifest" href="/molstar/manifest-viewer.webmanifest" type="application/manifest+json">
+        <link rel="manifest" href="./manifest.webmanifest" type="application/manifest+json">
     </head>
     <body>
         <div id="app"></div>
@@ -135,15 +135,13 @@
         <script type="module">
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function () {
-                    //navigator.serviceWorker.register('/sw.js')
-                    navigator.serviceWorker.register(new URL('/molstar/build/viewer/sw-viewer.js', import.meta.url))
-                    //navigator.serviceWorker.register(new URL('/sw.js', import.meta.url), { scope: '/' })
+                    navigator.serviceWorker.register(new URL('./sw.js', import.meta.url))
                     .then(function (registration) {
-                    // Registration was successful
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                        // Registration was successful
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     }, function (err) {
-                    // registration failed :(
-                    console.log('ServiceWorker registration failed: ', err);
+                        // registration failed :(
+                        console.log('ServiceWorker registration failed: ', err);
                     });
                 });
             }
