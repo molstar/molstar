@@ -26,6 +26,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix marking related image rendering issues
     - Handle pixels without a group
     - Take fog into account
+- Quick Styles section reorganized
+- UI color improvements (scrollbar contrast, toggle button hover color)
+- overrideWater param for entity-id color theme
 - Renames PDB-Dev to PDB-IHM and adjusts data source
 - Support for custom Sequence Viewer mode options
 
