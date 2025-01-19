@@ -18,7 +18,7 @@ import { decodeColor } from './helpers/utils';
 import { MolstarLoadingContext } from './load';
 import { SnapshotMetadata } from './mvs-data';
 import { MolstarNodeParams } from './tree/molstar/molstar-tree';
-import { MVSDefaults } from './tree/mvs/mvs-defaults';
+import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 
 const DefaultFocusOptions = {
@@ -68,7 +68,9 @@ export async function setFocus(plugin: PluginContext, focuses: { target: StateOb
 }
 
 function snapshotFocusInfoFromMvsFocuses(focuses: { target: StateObjectSelector, params: MolstarNodeParams<'focus'> }[]): PluginState.SnapshotFocusInfo {
-    const { direction, up } = (focuses.length > 0) ? focuses[focuses.length - 1].params : MVSDefaults.focus;
+    const lastFocus = (focuses.length > 0) ? focuses[focuses.length - 1] : undefined;
+    const direction = lastFocus?.params.direction ?? MVSTreeSchema.nodes.focus.params.fields.direction.default;
+    const up = lastFocus?.params.up ?? MVSTreeSchema.nodes.focus.params.fields.up.default;
     return {
         targets: focuses.map<PluginState.SnapshotFocusTargetInfo>(f => ({
             targetRef: f.target.ref === '-=root=-' ? undefined : f.target.ref, // need to treat root separately so it does not include invisible structure parts etc.
@@ -80,7 +82,6 @@ function snapshotFocusInfoFromMvsFocuses(focuses: { target: StateObjectSelector,
         up: Vec3.create(...up),
     };
 }
-
 
 /** Adjust `sceneRadiusFactor` property so that the current scene is not cropped */
 function adjustSceneRadiusFactor(plugin: PluginContext, cameraTarget: Vec3 | undefined) {

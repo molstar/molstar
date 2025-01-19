@@ -303,7 +303,7 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     },
     primitives_from_uri(updateParent: UpdateTarget, tree: MolstarNode<'primitives_from_uri'>, context: MolstarLoadingContext): UpdateTarget {
         const data = UpdateTarget.apply(updateParent, MVSDownloadPrimitiveData, { uri: tree.params.uri, format: tree.params.format });
-        return applyPrimitiveVisuals(data, new Set(tree.params.references ?? []));
+        return applyPrimitiveVisuals(data, new Set(tree.params.references));
     },
 };
 

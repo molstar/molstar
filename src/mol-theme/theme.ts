@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,6 +13,7 @@ import { Shape } from '../mol-model/shape';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
 import { objectForEach } from '../mol-util/object';
 import { ColorType } from '../mol-geo/geometry/color-data';
+import { Location } from '../mol-model/location';
 
 export interface ThemeRegistryContext {
     colorThemeRegistry: ColorTheme.Registry
@@ -24,6 +25,8 @@ export interface ThemeDataContext {
     structure?: Structure
     volume?: Volume
     shape?: Shape
+    /** Hint to request support for specific kinds of locations */
+    locationKinds?: ReadonlyArray<Location['kind']>
 }
 
 export { Theme };
