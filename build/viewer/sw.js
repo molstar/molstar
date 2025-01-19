@@ -9,10 +9,11 @@ const CACHE_NAME = `molstar-viewer-4.10.0`;
 // The static resources that the app needs to function.
 const APP_STATIC_RESOURCES = [
     "./",
-    "build/viewer/favicon.ico",
-    "build/viewer/index-pwa.html"
-    "build/viewer/molstar.css",
-    "build/viewer/molstar.js"
+    "favicon.ico",
+    "index-pwa.html",
+    "molstar.css",
+    "molstar.js",
+    "manifest.webmanifest"
 ];
     
 // On install, cache the static resources.

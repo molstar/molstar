@@ -26,10 +26,11 @@ const CACHE_NAME = \`${cacheName}\`;
 // The static resources that the app needs to function.
 const APP_STATIC_RESOURCES = [
     "./",
-    "build/${name}/favicon.ico",
-    "build/${name}/${entryPoint}"
-    "build/${name}/molstar.css",
-    "build/${name}/molstar.js"
+    "favicon.ico",
+    "${entryPoint}",
+    "molstar.css",
+    "molstar.js",
+    "manifest.webmanifest"
 ];
     
 // On install, cache the static resources.
