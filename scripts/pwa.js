@@ -26,6 +26,10 @@ const CACHE_NAME = \`${cacheName}\`;
 // The static resources that the app needs to function.
 const APP_STATIC_RESOURCES = [
     "favicon.ico",
+    "circle.ico",
+    "circle.svg",
+    "wheel.svg",
+    "tire.svg",
     "${entryPoint}",
     "molstar.css",
     "molstar.js",
@@ -122,6 +126,23 @@ function generateManifestFile(name) {
             {
                 "src": "favicon.ico",
                 "sizes": "48x48"
+            },
+            {
+                "src": "circle.ico",
+                "sizes": "72x72"
+            },
+            {
+                "src": "circle.svg",
+                "sizes": "72x72 96x96",
+                "purpose": "maskable"
+            },
+            {
+                "src": "wheel.svg",
+                "sizes": "144x144"
+            },
+            {
+                "src": "tire.svg",
+                "sizes": "192x192"
             }
         ]
     }`;
