@@ -31,6 +31,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - overrideWater param for entity-id color theme
 - Renames PDB-Dev to PDB-IHM and adjusts data source
 - Support for custom Sequence Viewer mode options
+- Fix vertex based themes for spheres shader
 
 ## [v4.10.0] - 2024-12-15
 
