@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -14,6 +14,7 @@ import { SetUtils } from '../../mol-util/set';
 import { Box3D } from '../../mol-math/geometry';
 import { toHalfFloat } from '../../mol-util/number-conversion';
 import { clamp } from '../../mol-math/interpolate';
+import { LocationIterator } from '../../mol-geo/util/location-iterator';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3set = Vec3.set;
@@ -75,6 +76,18 @@ export function eachVolumeLoci(loci: Loci, volume: Volume, props: { isoValue?: V
         }
     }
     return changed;
+}
+
+export function createVolumeCellLocationIterator(volume: Volume): LocationIterator {
+    const [xn, yn, zn] = volume.grid.cells.space.dimensions;
+    const groupCount = xn * yn * zn;
+    const instanceCount = 1;
+    const location = Volume.Cell.Location(volume);
+    const getLocation = (groupIndex: number, _instanceIndex: number) => {
+        location.cell = groupIndex as Volume.CellIndex;
+        return location;
+    };
+    return LocationIterator(groupCount, instanceCount, 1, getLocation);
 }
 
 //
