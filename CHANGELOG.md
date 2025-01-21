@@ -21,10 +21,17 @@ Note that since we don't clearly distinguish between a public and private interf
 - Improve/fix palette support in volume color themes
 - Support removal of independent selection controls in the viewport
 - Support custom selection controls
+- Support for custom granularity dropdown options
 - Fix `Plane3D.projectPoint`
 - Fix marking related image rendering issues
     - Handle pixels without a group
     - Take fog into account
+- Quick Styles section reorganized
+- UI color improvements (scrollbar contrast, toggle button hover color)
+- overrideWater param for entity-id color theme
+- Renames PDB-Dev to PDB-IHM and adjusts data source
+- Support for custom Sequence Viewer mode options
+- Fix vertex based themes for spheres shader
 - Sequence panel: Mark focused loci (bold+underline)
 - Change modifier key behavior in Normal Mode (default = select only, Ctrl/Cmd = add to selection, Shift = extend last selected range)
 
@@ -94,7 +101,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix `findPredecessorIndex` bug when repeating values
 - MolViewSpec: Support for transparency and custom properties
 - MolViewSpec: MVP Support for geometrical primitives (mesh, lines, line, label, distance measurement)
-- Mesoscale Explorer: Add support for 4-character PDB IDs (e.g., 8ZZC) in PDB-Dev loader
+- Mesoscale Explorer: Add support for 4-character PDB IDs (e.g., 8ZZC) in PDB-IHM/PDB-Dev loader
 - Fix Sequence View in Safari 18
 - Improve performance of `IndexPairBonds` assignment when operator keys are available
 - ModelArchive QualityAssessment extension:
@@ -147,7 +154,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Improve entity-id coloring for structures with multiple models from the same source (#1221)
 - Wrap screenshot & image generation in a `Task`
 - AlphaFold DB: Add BinaryCIF support when fetching data
-- PDB-Dev: Add support for 4-character PDB IDs (e.g., 8ZZC)
+- PDB-IHM/PDB-Dev: Add support for 4-character PDB IDs (e.g., 8ZZC)
 - Fix polymer-gap visual coloring with cartoon theme
 - Add formal-charge color theme (#328)
 - Add more coloring options to cartoon theme

@@ -288,14 +288,21 @@ export class Viewer {
         }));
     }
 
+    /**
+     * @deprecated Scheduled for removal in v5. Use {@link loadPdbIhm | loadPdbIhm(pdbIhm: string)} instead.
+     */
     loadPdbDev(pdbDev: string) {
+        return this.loadPdbIhm(pdbDev);
+    }
+
+    loadPdbIhm(pdbIhm: string) {
         const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
         return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
             source: {
-                name: 'pdb-dev' as const,
+                name: 'pdb-ihm' as const,
                 params: {
                     provider: {
-                        id: pdbDev,
+                        id: pdbIhm,
                         encoding: 'bcif',
                     },
                     options: params.source.params.options,

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -70,7 +70,9 @@ void main(void){
         mapping = vec2(1.0, -1.0);
     }
 
-    vec4 positionGroup = readFromTexture(tPositionGroup, VertexID / 6, uTexDim);
+    int vertexId = VertexID / 6;
+
+    vec4 positionGroup = readFromTexture(tPositionGroup, vertexId, uTexDim);
     vec3 position = positionGroup.rgb;
     float group = positionGroup.a;
 
