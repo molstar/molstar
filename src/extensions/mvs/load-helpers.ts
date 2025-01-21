@@ -285,19 +285,21 @@ export function componentFromXProps(node: MolstarNode<'component_from_uri' | 'co
 /** Create props for `StructureRepresentation3D` transformer from a representation node. */
 export function representationProps(node: MolstarSubtree<'representation'>): Partial<StateTransformer.Params<StructureRepresentation3D>> {
     const alpha = alphaForNode(node);
-    switch (node.params.type) {
+    const params = node.params;
+    switch (params.type) {
         case 'cartoon':
             return {
-                type: { name: 'cartoon', params: { alpha } },
+                type: { name: 'cartoon', params: { alpha, tubularHelices: params.tubular_helices } },
+                sizeTheme: { name: 'uniform', params: { value: params.size_factor } },
             };
         case 'ball_and_stick':
             return {
-                type: { name: 'ball-and-stick', params: { sizeFactor: 0.5, sizeAspectRatio: 0.5, alpha } },
+                type: { name: 'ball-and-stick', params: { sizeFactor: (params.size_factor ?? 1) * 0.5, sizeAspectRatio: 0.5, alpha, ignoreHydrogens: params.ignore_hydrogens } },
             };
         case 'surface':
             return {
-                type: { name: 'molecular-surface', params: { alpha } },
-                sizeTheme: { name: 'physical', params: { scale: 1 } },
+                type: { name: 'molecular-surface', params: { alpha, ignoreHydrogens: params.ignore_hydrogens } },
+                sizeTheme: { name: 'physical', params: { scale: params.size_factor } },
             };
         default:
             throw new Error('NotImplementedError');

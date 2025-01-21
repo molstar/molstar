@@ -211,15 +211,15 @@ export async function loadPdb(ctx: PluginContext, id: string) {
     await createHierarchy(ctx, data.ref);
 }
 
-export async function loadPdbDev(ctx: PluginContext, id: string) {
+export async function loadPdbIhm(ctx: PluginContext, id: string) {
     await reset(ctx);
     let url: string;
     // 4 character PDB id, TODO: support extended PDB ID
     if (id.match(/^[1-9][A-Z0-9]{3}$/i) !== null) {
-        url = `https://pdb-dev.wwpdb.org/bcif/${id.toLowerCase()}.bcif`;
+        url = `https://pdb-ihm.org/bcif/${id.toLowerCase()}.bcif`;
     } else {
         const nId = id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`;
-        url = `https://pdb-dev.wwpdb.org/bcif/${nId.toUpperCase()}.bcif`;
+        url = `https://pdb-ihm.org/bcif/${nId.toUpperCase()}.bcif`;
     }
     const data = await ctx.builders.data.download({ url, isBinary: true });
     await createHierarchy(ctx, data.ref);
@@ -231,7 +231,7 @@ export const LoadDatabase = StateAction.build({
     display: { name: 'Database', description: 'Load from Database' },
     params: (a, ctx: PluginContext) => {
         return {
-            source: PD.Select('pdb', PD.objectToOptions({ pdb: 'PDB', pdbDev: 'PDB-Dev' })),
+            source: PD.Select('pdb', PD.objectToOptions({ pdb: 'PDB', pdbIhm: 'PDB-IHM' })),
             entry: PD.Text(''),
         };
     },
@@ -239,8 +239,8 @@ export const LoadDatabase = StateAction.build({
 })(({ params }, ctx: PluginContext) => Task.create('Loading from database...', async taskCtx => {
     if (params.source === 'pdb') {
         await loadPdb(ctx, params.entry);
-    } else if (params.source === 'pdbDev') {
-        await loadPdbDev(ctx, params.entry);
+    } else if (params.source === 'pdbIhm') {
+        await loadPdbIhm(ctx, params.entry);
     }
 }));
 
@@ -426,7 +426,7 @@ export class ExplorerInfo extends PluginUIComponent<{}, { isDisabled: boolean, s
         driver.setSteps([
             // Left panel
             { element: '#explorerinfo', popover: { title: 'Explorer Header Info', description: 'This section displays the explorer header with version information, documentation access, and tour navigation. Use the right and left arrow keys to navigate the tour.', side: 'left', align: 'start' } },
-            { element: '#database', popover: { title: 'Import from PDB', description: 'Load structures directly from PDB and PDB-DEV databases.', side: 'bottom', align: 'start' } },
+            { element: '#database', popover: { title: 'Import from PDB', description: 'Load structures directly from PDB and PDB-IHM databases.', side: 'bottom', align: 'start' } },
             { element: '#loader', popover: { title: 'Import from File', description: 'Load local files (.molx, .molj, .zip, .cif, .bcif) using this option.', side: 'bottom', align: 'start' } },
             { element: '#example', popover: { title: 'Example Models and Tours', description: 'Select from a range of example models and tours provided.', side: 'left', align: 'start' } },
             { element: '#session', popover: { title: 'Session Management', description: 'Download the current session in .molx format.', side: 'top', align: 'start' } },

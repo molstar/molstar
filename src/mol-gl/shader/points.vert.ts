@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -24,6 +24,8 @@ attribute float aInstance;
 attribute float aGroup;
 
 void main(){
+    int vertexId = VertexID;
+
     #include assign_group
     #include assign_color_varying
     #include assign_marker_varying

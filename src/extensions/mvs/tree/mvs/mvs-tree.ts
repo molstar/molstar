@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -8,8 +8,9 @@
 import { float, int, list, literal, nullable, OptionalField, RequiredField, str, tuple, union } from '../generic/field-schema';
 import { SimpleParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
+import { MVSRepresentationParams } from './mvs-tree-representations';
 import { MVSPrimitiveParams } from './mvs-tree-primitives';
-import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, RepresentationTypeT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
+import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
 
 
 const _DataFromUriParams = {
@@ -142,10 +143,7 @@ export const MVSTreeSchema = TreeSchema({
         representation: {
             description: 'This node instructs to create a visual representation of a component.',
             parent: ['component', 'component_from_uri', 'component_from_source'],
-            params: SimpleParamsSchema({
-                /** Method of visual representation of the component. */
-                type: RequiredField(RepresentationTypeT, 'Method of visual representation of the component.'),
-            }),
+            params: MVSRepresentationParams,
         },
         /** This node instructs to apply color to a visual representation. */
         color: {
