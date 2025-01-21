@@ -290,7 +290,7 @@ export function representationProps(node: MolstarSubtree<'representation'>): Par
         case 'cartoon':
             return {
                 type: { name: 'cartoon', params: { alpha, tubularHelices: params.tubular_helices } },
-                sizeTheme: { name: 'uniform', params: { value: params.size_factor ?? 1 } },
+                sizeTheme: { name: 'uniform', params: { value: params.size_factor } },
             };
         case 'ball_and_stick':
             return {
@@ -299,7 +299,7 @@ export function representationProps(node: MolstarSubtree<'representation'>): Par
         case 'surface':
             return {
                 type: { name: 'molecular-surface', params: { alpha, ignoreHydrogens: params.ignore_hydrogens } },
-                sizeTheme: { name: 'physical', params: { scale: params.size_factor ?? 1 } },
+                sizeTheme: { name: 'physical', params: { scale: params.size_factor } },
             };
         default:
             throw new Error('NotImplementedError');
