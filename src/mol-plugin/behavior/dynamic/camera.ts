@@ -28,7 +28,7 @@ export const DefaultClickResetCameraOnEmpty = Binding([
 export const DefaultClickResetCameraOnEmptySelectMode = Binding([
     Trigger(B.Flag.Secondary, M.create()),
     Trigger(B.Flag.Primary, M.create({ control: true }))
-], 'Reset camera focus', 'Click on nothing using ${triggers}');
+], 'Reset camera focus (Selection Mode)', 'Click on nothing using ${triggers}');
 
 type FocusLociBindings = {
     clickCenterFocus: Binding
@@ -45,7 +45,7 @@ export const DefaultFocusLociBindings: FocusLociBindings = {
     clickCenterFocusSelectMode: Binding([
         Trigger(B.Flag.Secondary, M.create()),
         Trigger(B.Flag.Primary, M.create({ control: true }))
-    ], 'Camera center and focus', 'Click element using ${triggers}'),
+    ], 'Camera center and focus (Selection Mode)', 'Click element using ${triggers}'),
     clickResetCameraOnEmpty: DefaultClickResetCameraOnEmpty,
     clickResetCameraOnEmptySelectMode: DefaultClickResetCameraOnEmptySelectMode,
 };
@@ -158,7 +158,7 @@ const DefaultCameraControlsBindings = {
     keyRockAnimation: Binding([Key('O')], 'Rock Animation', 'Press ${triggers}'),
     keyToggleFlyMode: Binding([Key('Space', M.create({ shift: true }))], 'Toggle Fly Mode', 'Press ${triggers}'),
     keyResetView: Binding([Key('T')], 'Reset View', 'Press ${triggers}'),
-    keyGlobalIllumination: Binding([Key('G')], 'Gobal Illumination', 'Press ${triggers}'),
+    keyGlobalIllumination: Binding([Key('G')], 'Global Illumination', 'Press ${triggers}'),
 };
 const CameraControlsParams = {
     bindings: PD.Value(DefaultCameraControlsBindings, { isHidden: true }),

@@ -32,6 +32,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Renames PDB-Dev to PDB-IHM and adjusts data source
 - Support for custom Sequence Viewer mode options
 - Fix vertex based themes for spheres shader
+- Sequence panel: Mark focused loci (bold+underline)
+- Change modifier key behavior in Normal Mode (default = select only, Ctrl/Cmd = add to selection, Shift = extend last selected range)
 
 ## [v4.10.0] - 2024-12-15
 

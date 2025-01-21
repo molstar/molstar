@@ -1,20 +1,22 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { StatefulPluginComponent } from '../../component';
-import { PluginContext } from '../../../mol-plugin/context';
-import { arrayRemoveAtInPlace } from '../../../mol-util/array';
-import { StructureElement, Structure } from '../../../mol-model/structure';
-import { Loci } from '../../../mol-model/loci';
-import { lociLabel } from '../../../mol-theme/label';
-import { PluginStateObject } from '../../objects';
-import { StateSelection } from '../../../mol-state';
-import { Vec3 } from '../../../mol-math/linear-algebra';
 import { Sphere3D } from '../../../mol-math/geometry';
+import { Vec3 } from '../../../mol-math/linear-algebra';
+import { Loci } from '../../../mol-model/loci';
+import { Structure, StructureElement } from '../../../mol-model/structure';
+import { PluginContext } from '../../../mol-plugin/context';
+import { StateSelection } from '../../../mol-state';
+import { lociLabel } from '../../../mol-theme/label';
+import { arrayRemoveAtInPlace } from '../../../mol-util/array';
+import { StatefulPluginComponent } from '../../component';
+import { PluginStateObject } from '../../objects';
+import { getLociRange } from './selection';
 
 export type FocusEntry = {
     label: string
@@ -50,6 +52,9 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
     get current() { return this.state.current; }
     get history() { return this.state.history; }
 
+    /** Last added or removed loci */
+    private referenceLoci: StructureElement.Loci | undefined;
+
     private tryAddHistory(entry: FocusEntry) {
         if (StructureElement.Loci.isEmpty(entry.loci)) return;
 
@@ -84,6 +89,10 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
         }
     }
 
+    tryGetRange(loci: Loci): StructureElement.Loci | undefined {
+        return getLociRange(this.referenceLoci, loci);
+    }
+
     setFromLoci(anyLoci: Loci) {
         const loci = Loci.normalize(anyLoci);
         if (!StructureElement.Loci.is(loci) || StructureElement.Loci.isEmpty(loci)) {
@@ -92,6 +101,7 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
         }
 
         this.set({ loci, label: lociLabel(loci, { reverse: true, hidePrefix: true, htmlStyling: false }) });
+        this.referenceLoci = loci;
     }
 
     addFromLoci(anyLoci: Loci) {
@@ -99,6 +109,21 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
             ? StructureElement.Loci.union(anyLoci, this.state.current.loci)
             : anyLoci;
         this.setFromLoci(union);
+        const refLoci = Loci.normalize(anyLoci);
+        this.referenceLoci = StructureElement.Loci.is(refLoci) ? refLoci : undefined;
+    }
+
+    toggleFromLoci(anyLoci: Loci) {
+        const { kind, loci } = toggleLoci(this.state.current?.loci, anyLoci);
+        this.setFromLoci(loci);
+        const refLoci = Loci.normalize(anyLoci);
+        this.referenceLoci = StructureElement.Loci.is(refLoci) && kind !== 'subtract' ? refLoci : undefined;
+    }
+
+    extendFromLoci(anyLoci: Loci) {
+        const range = this.tryGetRange(anyLoci) ?? anyLoci;
+        this.toggleFromLoci(range);
+
     }
 
     clear() {
@@ -106,6 +131,7 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
             this.state.current = undefined;
             this.behaviors.current.next(void 0);
         }
+        this.referenceLoci = undefined;
     }
 
     getSnapshot(): StructureFocusSnapshot {
@@ -190,5 +216,18 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
                 // TODO remap history as well
             }
         });
+    }
+}
+
+/** Return union of `currentLoci` and `newLoci`; or subtract `newLoci` from `currentLoci` if `newLoci` is a subset of `currentLoci`. */
+function toggleLoci(currentLoci: StructureElement.Loci | undefined, newLoci: Loci) {
+    if (currentLoci && StructureElement.Loci.is(newLoci) && newLoci.structure === currentLoci.structure) {
+        if (StructureElement.Loci.isSubset(currentLoci, newLoci)) {
+            return { kind: 'subtract', loci: StructureElement.Loci.subtract(currentLoci, newLoci) };
+        } else {
+            return { kind: 'add', loci: StructureElement.Loci.union(newLoci, currentLoci) };
+        }
+    } else {
+        return { kind: 'new', loci: newLoci };
     }
 }
