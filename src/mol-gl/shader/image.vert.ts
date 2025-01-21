@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -19,6 +19,8 @@ varying vec2 vUv;
 varying float vInstance;
 
 void main() {
+    int vertexId = VertexID;
+
     #include assign_position
 
     vUv = aUv;
