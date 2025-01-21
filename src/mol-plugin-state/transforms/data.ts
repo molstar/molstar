@@ -10,6 +10,7 @@ import * as CCP4 from '../../mol-io/reader/ccp4/parser';
 import { CIF } from '../../mol-io/reader/cif';
 import * as DSN6 from '../../mol-io/reader/dsn6/parser';
 import * as PLY from '../../mol-io/reader/ply/parser';
+import * as KIN from '../../mol-io/reader/kin/parser';
 import { parsePsf } from '../../mol-io/reader/psf/parser';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObject, StateTransformer } from '../../mol-state';
@@ -41,6 +42,7 @@ export { ParsePsf };
 export { ParsePrmtop };
 export { ParseTop };
 export { ParsePly };
+export { ParseKin }
 export { ParseCcp4 };
 export { ParseDsn6 };
 export { ParseDx };
@@ -401,6 +403,22 @@ const ParsePly = PluginStateTransform.BuiltIn({
             return new SO.Format.Ply(parsed.result, { label: parsed.result.comments[0] || 'PLY Data' });
         });
     }
+});
+
+type ParseKin = typeof ParseKin
+const ParseKin = PluginStateTransform.BuiltIn({
+  name: 'parse-kin',
+  display: { name: 'Parse KIN', description: 'Parse KIN from String data' },
+  from: [SO.Data.String],
+  to: SO.Format.Kin
+})({
+  apply({ a }) {
+    return Task.create('Parse KIN', async ctx => {
+      const parsed = await KIN.parseKin(a.data).runInContext(ctx);
+      if (parsed.isError) throw new Error(parsed.message);
+      return new SO.Format.Kin(parsed.result, { label: parsed.result.comments[0] || 'KIN Data' });
+    });
+  }
 });
 
 type ParseCcp4 = typeof ParseCcp4
