@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix for tubular helices issue (Fixes #1422)
 - Volume UI improvements
     - Render all volume entries instead of selecting them one-by-one
     - Toggle visibility of all volumes
