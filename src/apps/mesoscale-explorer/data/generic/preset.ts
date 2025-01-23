@@ -14,8 +14,8 @@ import { Mat3, Quat, Vec3 } from '../../../../mol-math/linear-algebra';
 import { GraphicsMode, MesoscaleGroup, MesoscaleState, getGraphicsModeProps, getMesoscaleGroupParams } from '../state';
 import { ColorNames } from '../../../../mol-util/color/names';
 import { ShapeRepresentation3D, StructureRepresentation3D } from '../../../../mol-plugin-state/transforms/representation';
-import { ParseCif, ParsePly, ReadFile } from '../../../../mol-plugin-state/transforms/data';
-import { ModelFromTrajectory, ShapeFromPly, TrajectoryFromGRO, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromMmCif, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../../../mol-plugin-state/transforms/model';
+import { ParseCif, ParsePly, ParseKin, ReadFile } from '../../../../mol-plugin-state/transforms/data';
+import { ModelFromTrajectory, ShapeFromPly, ShapeFromKin, TrajectoryFromGRO, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromMmCif, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../../../mol-plugin-state/transforms/model';
 import { Euler } from '../../../../mol-math/linear-algebra/3d/euler';
 import { Asset } from '../../../../mol-util/assets';
 import { Clip } from '../../../../mol-util/clip';
@@ -104,6 +104,34 @@ function getPlyShapeParams(color: Color, clipVariant: Clip.Variant) {
     };
 }
 
+function getKinShapeParams(color: Color, clipVariant: Clip.Variant) {
+  return {
+    ...PD.getDefaultValues(BaseGeometry.Params),
+    instanceGranularity: true,
+    ignoreLight: true,
+    clip: {
+      variant: clipVariant,
+      objects: [],
+    },
+    quality: 'custom',
+    doubleSided: true,
+    coloring: {
+      name: 'uniform',
+      params: { color }
+    },
+    grouping: {
+      name: 'none',
+      params: {}
+    },
+    material: {
+      metalness: 0.0,
+      roughness: 1.0,
+      bumpiness: 1.0,
+    },
+    bumpAmplitude: 0.1,
+    bumpFrequency: 0.1 / 10,
+  };
+}
 export async function createGenericHierarchy(plugin: PluginContext, file: Asset.File) {
     const asset = await plugin.runTask(plugin.managers.asset.resolve(file, 'zip'));
     let manifest: GenericManifest;
@@ -252,6 +280,15 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
                             .apply(ShapeFromPly, { label, transforms })
                             .apply(ShapeRepresentation3D, getPlyShapeParams(color, clipVariant), { tags });
                     }
+                } else if (['kin'].includes(info.ext)) {
+                  if (['kin'].includes(info.ext)) {
+                    const transforms = await getTransforms(plugin, instances);
+                    const clipVariant = transforms.length === 1 ? 'pixel' : 'instance';
+                    build = build
+                      .apply(ParseKin)
+                      .apply(ShapeFromKin, { label, transforms })
+                      .apply(ShapeRepresentation3D, getKinShapeParams(color, clipVariant), { tags });
+                  }
                 } else {
                     console.warn(`unknown file format '${info.ext}'`);
                 }
@@ -303,6 +340,7 @@ type GenericEntity = {
      *
      * meshes
      * - ply
+     * - kin
      */
     file: string
     label?: string
