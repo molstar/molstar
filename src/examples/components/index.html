@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <title>Mol* Components Example</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                font-family: sans-serif;
+            }
+            #viewer {
+                position: absolute;
+                left: 20px;
+                top: 20px;
+                width: 640px;
+                height: 480px;
+            }
+
+            #snapshot {
+                position: absolute;
+                left: 680px;
+                top: 20px;
+                width: 480px;
+                height: 480px;
+            }
+
+            #controls {
+                position: absolute;
+                left: 20px;
+                top: 520px;
+                font-family: sans-serif;
+                font-size: smaller;
+            }
+        </style>
+        <link rel="stylesheet" type="text/css" href="molstar.css" />
+        <script type="text/javascript" src="./index.js"></script>
+    </head>
+    <body>
+        <div id="viewer">
+            <mol-component-viewer />
+        </div>
+        <div id="snapshot">
+            <mol-component-snapshot-markdown />
+        </div>
+        <div id="controls">
+            <button id="load">Load MVS</button>
+        </div>
+        <script>
+            document.getElementById('load').addEventListener('click', () => {
+                window.componentContext.commands.next({ kind: 'load-mvs', url: 'http://localhost:9000/api/v1/examples/multiple-states-alignment-focus' })
+            });
+        </script>
+    </body>
+</html>

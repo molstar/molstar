@@ -1,6 +1,6 @@
 const { createApp, createExample, createBrowserTest } = require('./webpack.config.common.js');
 
-const examples = ['proteopedia-wrapper', 'basic-wrapper', 'lighting', 'alpha-orbitals', 'alphafolddb-pae'];
+const examples = ['proteopedia-wrapper', 'basic-wrapper', 'lighting', 'alpha-orbitals', 'alphafolddb-pae', 'components'];
 const tests = [
     'font-atlas',
     'marching-cubes',
