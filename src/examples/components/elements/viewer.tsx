@@ -4,17 +4,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { MolViewSpec } from '../../extensions/mvs/behavior';
-import { loadMVS } from '../../extensions/mvs/load';
-import { MVSData } from '../../extensions/mvs/mvs-data';
-import { PluginComponent } from '../../mol-plugin-state/component';
-import { createPluginUI } from '../../mol-plugin-ui';
-import { renderReact18 } from '../../mol-plugin-ui/react18';
-import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
-import { PluginConfig } from '../../mol-plugin/config';
-import { PluginContext } from '../../mol-plugin/context';
-import { PluginSpec } from '../../mol-plugin/spec';
-import { getMolComponentContext, MolComponentContext } from './context';
+import { MolViewSpec } from '../../../extensions/mvs/behavior';
+import { loadMVS } from '../../../extensions/mvs/load';
+import { MVSData } from '../../../extensions/mvs/mvs-data';
+import { PluginComponent } from '../../../mol-plugin-state/component';
+import { createPluginUI } from '../../../mol-plugin-ui';
+import { renderReact18 } from '../../../mol-plugin-ui/react18';
+import { DefaultPluginUISpec } from '../../../mol-plugin-ui/spec';
+import { PluginConfig } from '../../../mol-plugin/config';
+import { PluginContext } from '../../../mol-plugin/context';
+import { PluginSpec } from '../../../mol-plugin/spec';
+import { getMolComponentContext, MolComponentContext } from '../context';
 
 export class MolComponentViewerModel extends PluginComponent {
     readonly context: MolComponentContext;

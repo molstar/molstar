@@ -6,8 +6,8 @@
 
 import { getMolComponentContext } from './context';
 import './index.html';
-import './snapshot-markdown';
-import './viewer';
+import './elements/snapshot-markdown';
+import './elements/viewer';
 require('../../mol-plugin-ui/skin/light.scss');
 
 export class MolComponents {

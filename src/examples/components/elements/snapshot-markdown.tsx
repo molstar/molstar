@@ -5,15 +5,15 @@
  */
 
 import { BehaviorSubject, distinctUntilChanged, map } from 'rxjs';
-import { PluginComponent } from '../../mol-plugin-state/component';
-import { getMolComponentContext, MolComponentContext } from './context';
+import { PluginComponent } from '../../../mol-plugin-state/component';
+import { getMolComponentContext, MolComponentContext } from '../context';
 import { MolComponentViewerModel } from './viewer';
 import Markdown from 'react-markdown';
-import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
+import { useBehavior } from '../../../mol-plugin-ui/hooks/use-behavior';
 import { createRoot } from 'react-dom/client';
-import { PluginStateSnapshotManager } from '../../mol-plugin-state/manager/snapshots';
-import { MarkdownAnchor } from '../../mol-plugin-ui/controls';
-import { PluginReactContext } from '../../mol-plugin-ui/base';
+import { PluginStateSnapshotManager } from '../../../mol-plugin-state/manager/snapshots';
+import { MarkdownAnchor } from '../../../mol-plugin-ui/controls';
+import { PluginReactContext } from '../../../mol-plugin-ui/base';
 
 export class MolComponentSnapshotMarkdownModel extends PluginComponent {
     readonly context: MolComponentContext;

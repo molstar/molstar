@@ -6,7 +6,7 @@
 
 import { BehaviorSubject } from 'rxjs';
 import { MVSData } from '../../extensions/mvs/mvs-data';
-import type { MolComponentViewerModel } from './viewer';
+import type { MolComponentViewerModel } from './elements/viewer';
 
 export type MolComponentCommand =
     | { kind: 'load-mvs', format?: 'mvsj' | 'mvsx', url?: string, data?: MVSData }
