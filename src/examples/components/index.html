@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-        <title>Mol* Components Example</title>
+        <title>Mol* Components Proof of Concept</title>
         <style>
             * {
                 margin: 0;
@@ -23,35 +23,1940 @@
                 position: absolute;
                 left: 680px;
                 top: 20px;
-                width: 480px;
+                width: 320px;
                 height: 480px;
-            }
-
-            #controls {
-                position: absolute;
-                left: 20px;
-                top: 520px;
-                font-family: sans-serif;
-                font-size: smaller;
+                padding: 8px;
+                border: 1px solid #ccc; 
             }
         </style>
         <link rel="stylesheet" type="text/css" href="molstar.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css" integrity="sha512-EZLkOqwILORob+p0BXZc+Vm3RgJBOe1Iq/0fiI7r/wJgzOFZMlsqTa29UEl6v6U6gsV4uIpsNZoV32YZqrCRCQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
         <script type="text/javascript" src="./index.js"></script>
     </head>
     <body>
         <div id="viewer">
-            <mol-component-viewer />
+            <mc-viewer name="v1" />
         </div>
         <div id="snapshot">
-            <mol-component-snapshot-markdown />
+            <mc-snapshot-markdown viewer-name="v1" />
         </div>
-        <div id="controls">
-            <button id="load">Load MVS</button>
-        </div>
+        
         <script>
-            document.getElementById('load').addEventListener('click', () => {
-                window.componentContext.commands.next({ kind: 'load-mvs', url: 'http://localhost:9000/api/v1/examples/multiple-states-alignment-focus' })
-            });
+            setTimeout(() => {
+                window.mc.getContext().dispatch({
+                    kind: 'load-mvs',
+                    data: data,
+                });
+            }, 0);
+        </script>
+        <script>
+            const data = {
+  "kind": "multiple",
+  "metadata": {
+    "description": "test",
+    "timestamp": "2025-01-24T15:40:32.493808+00:00",
+    "version": "1.1"
+  },
+  "snapshots": [
+    {
+      "root": {
+        "kind": "root",
+        "children": [
+          {
+            "kind": "download",
+            "params": {
+              "url": "https://files.wwpdb.org/download/2e2n.cif"
+            },
+            "children": [
+              {
+                "kind": "parse",
+                "params": {
+                  "format": "mmcif"
+                },
+                "children": [
+                  {
+                    "kind": "structure",
+                    "params": {
+                      "type": "model"
+                    },
+                    "children": [
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "A"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "cartoon"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#dddddd"
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "focus",
+                            "params": {
+                              "direction": [
+                                0.84931414,
+                                -0.51038768,
+                                0.13479582
+                              ],
+                              "up": [
+                                -0.177081405072997,
+                                -0.0349061499228514,
+                                0.9835770110545166
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "download",
+            "params": {
+              "url": "https://files.wwpdb.org/download/2e2o.cif"
+            },
+            "children": [
+              {
+                "kind": "parse",
+                "params": {
+                  "format": "mmcif"
+                },
+                "children": [
+                  {
+                    "kind": "structure",
+                    "params": {
+                      "type": "model"
+                    },
+                    "children": [
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "A"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "cartoon"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#4fc64f"
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "focus",
+                            "params": {
+                              "direction": [
+                                0.84931414,
+                                -0.51038768,
+                                0.13479582
+                              ],
+                              "up": [
+                                -0.177081405072997,
+                                -0.0349061499228514,
+                                0.9835770110545166
+                              ]
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "B"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "ball_and_stick"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#4fc64f"
+                                }
+                              },
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "selector": {
+                                    "type_symbol": "O"
+                                  },
+                                  "color": "red"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "metadata": {
+        "title": "State A",
+        "description": "### We have these two proteins...\n- [Superposition](#B)\n- [Ligand](#C)\n- [Party](#F0)\n- [End](#I)",
+        "key": "A",
+        "linger_duration_ms": 3000,
+        "transition_duration_ms": 1000
+      }
+    },
+    {
+      "root": {
+        "kind": "root",
+        "children": [
+          {
+            "kind": "focus",
+            "params": {
+              "direction": [
+                0.84931414,
+                -0.51038768,
+                0.13479582
+              ],
+              "up": [
+                -0.177081405072997,
+                -0.0349061499228514,
+                0.9835770110545166
+              ]
+            }
+          },
+          {
+            "kind": "download",
+            "params": {
+              "url": "https://files.wwpdb.org/download/2e2n.cif"
+            },
+            "children": [
+              {
+                "kind": "parse",
+                "params": {
+                  "format": "mmcif"
+                },
+                "children": [
+                  {
+                    "kind": "structure",
+                    "params": {
+                      "type": "model"
+                    },
+                    "children": [
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "A"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "cartoon"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#dddddd"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "download",
+            "params": {
+              "url": "https://files.wwpdb.org/download/2e2o.cif"
+            },
+            "children": [
+              {
+                "kind": "parse",
+                "params": {
+                  "format": "mmcif"
+                },
+                "children": [
+                  {
+                    "kind": "structure",
+                    "params": {
+                      "type": "model"
+                    },
+                    "children": [
+                      {
+                        "kind": "transform",
+                        "params": {
+                          "rotation": [
+                            0.291445,
+                            0.949818,
+                            0.113601,
+                            -0.479952,
+                            0.042465,
+                            0.876266,
+                            0.827469,
+                            -0.309906,
+                            0.468243
+                          ],
+                          "translation": [
+                            2.237313,
+                            17.994696,
+                            -4.031342
+                          ]
+                        }
+                      },
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "A"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "cartoon"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#4fc64f"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "B"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "ball_and_stick"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#4fc64f"
+                                }
+                              },
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "selector": {
+                                    "type_symbol": "O"
+                                  },
+                                  "color": "red"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "metadata": {
+        "title": "State B",
+        "description": "### What if we superpose them? \n- [Superposition](#B)\n- [Ligand](#C)\n- [Party](#F0)\n- [End](#I)",
+        "key": "B",
+        "linger_duration_ms": 3000,
+        "transition_duration_ms": 1500
+      }
+    },
+    {
+      "root": {
+        "kind": "root",
+        "children": [
+          {
+            "kind": "download",
+            "params": {
+              "url": "https://files.wwpdb.org/download/2e2n.cif"
+            },
+            "children": [
+              {
+                "kind": "parse",
+                "params": {
+                  "format": "mmcif"
+                },
+                "children": [
+                  {
+                    "kind": "structure",
+                    "params": {
+                      "type": "model"
+                    },
+                    "children": [
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "A"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "cartoon"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#dddddd"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "download",
+            "params": {
+              "url": "https://files.wwpdb.org/download/2e2o.cif"
+            },
+            "children": [
+              {
+                "kind": "parse",
+                "params": {
+                  "format": "mmcif"
+                },
+                "children": [
+                  {
+                    "kind": "structure",
+                    "params": {
+                      "type": "model"
+                    },
+                    "children": [
+                      {
+                        "kind": "transform",
+                        "params": {
+                          "rotation": [
+                            0.291445,
+                            0.949818,
+                            0.113601,
+                            -0.479952,
+                            0.042465,
+                            0.876266,
+                            0.827469,
+                            -0.309906,
+                            0.468243
+                          ],
+                          "translation": [
+                            2.237313,
+                            17.994696,
+                            -4.031342
+                          ]
+                        }
+                      },
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "A"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "cartoon"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#4fc64f"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "B"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "ball_and_stick"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#4fc64f"
+                                }
+                              },
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "selector": {
+                                    "type_symbol": "O"
+                                  },
+                                  "color": "red"
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "focus",
+                            "params": {
+                              "direction": [
+                                0.84931414,
+                                -0.51038768,
+                                0.13479582
+                              ],
+                              "up": [
+                                -0.177081405072997,
+                                -0.0349061499228514,
+                                0.9835770110545166
+                              ],
+                              "radius_factor": 1.5,
+                              "radius_extent": 2
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "metadata": {
+        "title": "State C",
+        "description": "### Look, a ligand! \n- [Superposition](#B)\n- [Ligand](#C)\n- [Party](#F0)\n- [End](#I)",
+        "key": "C",
+        "linger_duration_ms": 500,
+        "transition_duration_ms": 3000
+      }
+    },
+    {
+      "root": {
+        "kind": "root",
+        "children": [
+          {
+            "kind": "download",
+            "params": {
+              "url": "https://files.wwpdb.org/download/2e2n.cif"
+            },
+            "children": [
+              {
+                "kind": "parse",
+                "params": {
+                  "format": "mmcif"
+                },
+                "children": [
+                  {
+                    "kind": "structure",
+                    "params": {
+                      "type": "model"
+                    },
+                    "children": [
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "A"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "cartoon"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#dddddd"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "download",
+            "params": {
+              "url": "https://files.wwpdb.org/download/2e2o.cif"
+            },
+            "children": [
+              {
+                "kind": "parse",
+                "params": {
+                  "format": "mmcif"
+                },
+                "children": [
+                  {
+                    "kind": "structure",
+                    "params": {
+                      "type": "model"
+                    },
+                    "children": [
+                      {
+                        "kind": "transform",
+                        "params": {
+                          "rotation": [
+                            0.291445,
+                            0.949818,
+                            0.113601,
+                            -0.479952,
+                            0.042465,
+                            0.876266,
+                            0.827469,
+                            -0.309906,
+                            0.468243
+                          ],
+                          "translation": [
+                            2.237313,
+                            17.994696,
+                            -4.031342
+                          ]
+                        }
+                      },
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "A"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "cartoon"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#4fc64f"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "B"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "ball_and_stick"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#4fc64f"
+                                }
+                              },
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "selector": {
+                                    "type_symbol": "O"
+                                  },
+                                  "color": "red"
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "focus",
+                            "params": {
+                              "direction": [
+                                0.67915562,
+                                0.59064435,
+                                -0.43576013
+                              ],
+                              "up": [
+                                0.5701116198257888,
+                                -0.050566846964212424,
+                                0.8200095944119795
+                              ],
+                              "radius_factor": 1.5,
+                              "radius_extent": 2
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "metadata": {
+        "title": "State D",
+        "description": "### ... a nice one... \n- [Superposition](#B)\n- [Ligand](#C)\n- [Party](#F0)\n- [End](#I)",
+        "key": "D",
+        "linger_duration_ms": 1000,
+        "transition_duration_ms": 1000
+      }
+    },
+    {
+      "root": {
+        "kind": "root",
+        "children": [
+          {
+            "kind": "download",
+            "params": {
+              "url": "https://files.wwpdb.org/download/2e2n.cif"
+            },
+            "children": [
+              {
+                "kind": "parse",
+                "params": {
+                  "format": "mmcif"
+                },
+                "children": [
+                  {
+                    "kind": "structure",
+                    "params": {
+                      "type": "model"
+                    },
+                    "children": [
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "A"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "cartoon"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#dddddd"
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "focus",
+                            "params": {
+                              "direction": [
+                                0.84931414,
+                                -0.51038768,
+                                0.13479582
+                              ],
+                              "up": [
+                                -0.177081405072997,
+                                -0.0349061499228514,
+                                0.9835770110545166
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "download",
+            "params": {
+              "url": "https://files.wwpdb.org/download/2e2o.cif"
+            },
+            "children": [
+              {
+                "kind": "parse",
+                "params": {
+                  "format": "mmcif"
+                },
+                "children": [
+                  {
+                    "kind": "structure",
+                    "params": {
+                      "type": "model"
+                    },
+                    "children": [
+                      {
+                        "kind": "transform",
+                        "params": {
+                          "rotation": [
+                            0.291445,
+                            0.949818,
+                            0.113601,
+                            -0.479952,
+                            0.042465,
+                            0.876266,
+                            0.827469,
+                            -0.309906,
+                            0.468243
+                          ],
+                          "translation": [
+                            2.237313,
+                            17.994696,
+                            -4.031342
+                          ]
+                        }
+                      },
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "A"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "cartoon"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#4fc64f"
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "focus",
+                            "params": {
+                              "direction": [
+                                0.84931414,
+                                -0.51038768,
+                                0.13479582
+                              ],
+                              "up": [
+                                -0.177081405072997,
+                                -0.0349061499228514,
+                                0.9835770110545166
+                              ]
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "B"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "ball_and_stick"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#4fc64f"
+                                }
+                              },
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "selector": {
+                                    "type_symbol": "O"
+                                  },
+                                  "color": "red"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "metadata": {
+        "title": "State E",
+        "description": "### What now? \n- [Superposition](#B)\n- [Ligand](#C)\n- [Party](#F0)\n- [End](#I)",
+        "key": "E",
+        "linger_duration_ms": 2000
+      }
+    },
+    {
+      "root": {
+        "kind": "root",
+        "children": [
+          {
+            "kind": "download",
+            "params": {
+              "url": "https://files.wwpdb.org/download/2e2n.cif"
+            },
+            "children": [
+              {
+                "kind": "parse",
+                "params": {
+                  "format": "mmcif"
+                },
+                "children": [
+                  {
+                    "kind": "structure",
+                    "params": {
+                      "type": "model"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "download",
+            "params": {
+              "url": "https://files.wwpdb.org/download/2e2o.cif"
+            },
+            "children": [
+              {
+                "kind": "parse",
+                "params": {
+                  "format": "mmcif"
+                },
+                "children": [
+                  {
+                    "kind": "structure",
+                    "params": {
+                      "type": "model"
+                    },
+                    "children": [
+                      {
+                        "kind": "transform",
+                        "params": {
+                          "rotation": [
+                            0.291445,
+                            0.949818,
+                            0.113601,
+                            -0.479952,
+                            0.042465,
+                            0.876266,
+                            0.827469,
+                            -0.309906,
+                            0.468243
+                          ],
+                          "translation": [
+                            2.237313,
+                            17.994696,
+                            -4.031342
+                          ]
+                        }
+                      },
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "A"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "cartoon"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#4fc64f"
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "focus",
+                            "params": {
+                              "direction": [
+                                0.84931414,
+                                -0.51038768,
+                                0.13479582
+                              ],
+                              "up": [
+                                -0.177081405072997,
+                                -0.0349061499228514,
+                                0.9835770110545166
+                              ]
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "B"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "ball_and_stick"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#4fc64f"
+                                }
+                              },
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "selector": {
+                                    "type_symbol": "O"
+                                  },
+                                  "color": "red"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "metadata": {
+        "title": "State F0",
+        "description": "### Party 1!!! \n- [Superposition](#B)\n- [Ligand](#C)\n- [Party](#F0)\n- [End](#I)",
+        "key": "F0",
+        "linger_duration_ms": 250
+      }
+    },
+    {
+      "root": {
+        "kind": "root",
+        "children": [
+          {
+            "kind": "download",
+            "params": {
+              "url": "https://files.wwpdb.org/download/2e2n.cif"
+            },
+            "children": [
+              {
+                "kind": "parse",
+                "params": {
+                  "format": "mmcif"
+                },
+                "children": [
+                  {
+                    "kind": "structure",
+                    "params": {
+                      "type": "model"
+                    },
+                    "children": [
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "A"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "cartoon"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#dddddd"
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "focus",
+                            "params": {
+                              "direction": [
+                                0.84931414,
+                                -0.51038768,
+                                0.13479582
+                              ],
+                              "up": [
+                                -0.177081405072997,
+                                -0.0349061499228514,
+                                0.9835770110545166
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "download",
+            "params": {
+              "url": "https://files.wwpdb.org/download/2e2o.cif"
+            },
+            "children": [
+              {
+                "kind": "parse",
+                "params": {
+                  "format": "mmcif"
+                },
+                "children": [
+                  {
+                    "kind": "structure",
+                    "params": {
+                      "type": "model"
+                    },
+                    "children": [
+                      {
+                        "kind": "transform",
+                        "params": {
+                          "rotation": [
+                            0.291445,
+                            0.949818,
+                            0.113601,
+                            -0.479952,
+                            0.042465,
+                            0.876266,
+                            0.827469,
+                            -0.309906,
+                            0.468243
+                          ],
+                          "translation": [
+                            2.237313,
+                            17.994696,
+                            -4.031342
+                          ]
+                        }
+                      },
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "B"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "ball_and_stick"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#4fc64f"
+                                }
+                              },
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "selector": {
+                                    "type_symbol": "O"
+                                  },
+                                  "color": "red"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "metadata": {
+        "title": "State G0",
+        "description": "### Party 2!!! \n- [Superposition](#B)\n- [Ligand](#C)\n- [Party](#F0)\n- [End](#I)",
+        "key": "G0",
+        "linger_duration_ms": 250
+      }
+    },
+    {
+      "root": {
+        "kind": "root",
+        "children": [
+          {
+            "kind": "download",
+            "params": {
+              "url": "https://files.wwpdb.org/download/2e2n.cif"
+            },
+            "children": [
+              {
+                "kind": "parse",
+                "params": {
+                  "format": "mmcif"
+                },
+                "children": [
+                  {
+                    "kind": "structure",
+                    "params": {
+                      "type": "model"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "download",
+            "params": {
+              "url": "https://files.wwpdb.org/download/2e2o.cif"
+            },
+            "children": [
+              {
+                "kind": "parse",
+                "params": {
+                  "format": "mmcif"
+                },
+                "children": [
+                  {
+                    "kind": "structure",
+                    "params": {
+                      "type": "model"
+                    },
+                    "children": [
+                      {
+                        "kind": "transform",
+                        "params": {
+                          "rotation": [
+                            0.291445,
+                            0.949818,
+                            0.113601,
+                            -0.479952,
+                            0.042465,
+                            0.876266,
+                            0.827469,
+                            -0.309906,
+                            0.468243
+                          ],
+                          "translation": [
+                            2.237313,
+                            17.994696,
+                            -4.031342
+                          ]
+                        }
+                      },
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "A"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "cartoon"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#4fc64f"
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "focus",
+                            "params": {
+                              "direction": [
+                                0.84931414,
+                                -0.51038768,
+                                0.13479582
+                              ],
+                              "up": [
+                                -0.177081405072997,
+                                -0.0349061499228514,
+                                0.9835770110545166
+                              ]
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "B"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "ball_and_stick"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#4fc64f"
+                                }
+                              },
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "selector": {
+                                    "type_symbol": "O"
+                                  },
+                                  "color": "red"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "metadata": {
+        "title": "State F1",
+        "description": "### Party 1!!! \n- [Superposition](#B)\n- [Ligand](#C)\n- [Party](#F0)\n- [End](#I)",
+        "key": "F1",
+        "linger_duration_ms": 250
+      }
+    },
+    {
+      "root": {
+        "kind": "root",
+        "children": [
+          {
+            "kind": "download",
+            "params": {
+              "url": "https://files.wwpdb.org/download/2e2n.cif"
+            },
+            "children": [
+              {
+                "kind": "parse",
+                "params": {
+                  "format": "mmcif"
+                },
+                "children": [
+                  {
+                    "kind": "structure",
+                    "params": {
+                      "type": "model"
+                    },
+                    "children": [
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "A"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "cartoon"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#dddddd"
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "focus",
+                            "params": {
+                              "direction": [
+                                0.84931414,
+                                -0.51038768,
+                                0.13479582
+                              ],
+                              "up": [
+                                -0.177081405072997,
+                                -0.0349061499228514,
+                                0.9835770110545166
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "download",
+            "params": {
+              "url": "https://files.wwpdb.org/download/2e2o.cif"
+            },
+            "children": [
+              {
+                "kind": "parse",
+                "params": {
+                  "format": "mmcif"
+                },
+                "children": [
+                  {
+                    "kind": "structure",
+                    "params": {
+                      "type": "model"
+                    },
+                    "children": [
+                      {
+                        "kind": "transform",
+                        "params": {
+                          "rotation": [
+                            0.291445,
+                            0.949818,
+                            0.113601,
+                            -0.479952,
+                            0.042465,
+                            0.876266,
+                            0.827469,
+                            -0.309906,
+                            0.468243
+                          ],
+                          "translation": [
+                            2.237313,
+                            17.994696,
+                            -4.031342
+                          ]
+                        }
+                      },
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "B"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "ball_and_stick"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#4fc64f"
+                                }
+                              },
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "selector": {
+                                    "type_symbol": "O"
+                                  },
+                                  "color": "red"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "metadata": {
+        "title": "State G1",
+        "description": "### Party 2!!! \n- [Superposition](#B)\n- [Ligand](#C)\n- [Party](#F0)\n- [End](#I)",
+        "key": "G1",
+        "linger_duration_ms": 250
+      }
+    },
+    {
+      "root": {
+        "kind": "root",
+        "children": [
+          {
+            "kind": "download",
+            "params": {
+              "url": "https://files.wwpdb.org/download/2e2n.cif"
+            },
+            "children": [
+              {
+                "kind": "parse",
+                "params": {
+                  "format": "mmcif"
+                },
+                "children": [
+                  {
+                    "kind": "structure",
+                    "params": {
+                      "type": "model"
+                    },
+                    "children": [
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "A"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "cartoon"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#dddddd"
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "focus",
+                            "params": {
+                              "direction": [
+                                0.84931414,
+                                -0.51038768,
+                                0.13479582
+                              ],
+                              "up": [
+                                -0.177081405072997,
+                                -0.0349061499228514,
+                                0.9835770110545166
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "download",
+            "params": {
+              "url": "https://files.wwpdb.org/download/2e2o.cif"
+            },
+            "children": [
+              {
+                "kind": "parse",
+                "params": {
+                  "format": "mmcif"
+                },
+                "children": [
+                  {
+                    "kind": "structure",
+                    "params": {
+                      "type": "model"
+                    },
+                    "children": [
+                      {
+                        "kind": "transform",
+                        "params": {
+                          "rotation": [
+                            0.291445,
+                            0.949818,
+                            0.113601,
+                            -0.479952,
+                            0.042465,
+                            0.876266,
+                            0.827469,
+                            -0.309906,
+                            0.468243
+                          ],
+                          "translation": [
+                            2.237313,
+                            17.994696,
+                            -4.031342
+                          ]
+                        }
+                      },
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "A"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "cartoon"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#4fc64f"
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "focus",
+                            "params": {
+                              "direction": [
+                                0.84931414,
+                                -0.51038768,
+                                0.13479582
+                              ],
+                              "up": [
+                                -0.177081405072997,
+                                -0.0349061499228514,
+                                0.9835770110545166
+                              ]
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "B"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "ball_and_stick"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#4fc64f"
+                                }
+                              },
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "selector": {
+                                    "type_symbol": "O"
+                                  },
+                                  "color": "red"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "metadata": {
+        "title": "State H",
+        "description": "### Almost there... \n- [Superposition](#B)\n- [Ligand](#C)\n- [Party](#F0)\n- [End](#I)",
+        "key": "H",
+        "linger_duration_ms": 500,
+        "transition_duration_ms": 10000
+      }
+    },
+    {
+      "root": {
+        "kind": "root",
+        "children": [
+          {
+            "kind": "download",
+            "params": {
+              "url": "https://files.wwpdb.org/download/2e2n.cif"
+            },
+            "children": [
+              {
+                "kind": "parse",
+                "params": {
+                  "format": "mmcif"
+                },
+                "children": [
+                  {
+                    "kind": "structure",
+                    "params": {
+                      "type": "model"
+                    },
+                    "children": [
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "A"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "cartoon"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#dddddd"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "download",
+            "params": {
+              "url": "https://files.wwpdb.org/download/2e2o.cif"
+            },
+            "children": [
+              {
+                "kind": "parse",
+                "params": {
+                  "format": "mmcif"
+                },
+                "children": [
+                  {
+                    "kind": "structure",
+                    "params": {
+                      "type": "model"
+                    },
+                    "children": [
+                      {
+                        "kind": "transform",
+                        "params": {
+                          "rotation": [
+                            0.291445,
+                            0.949818,
+                            0.113601,
+                            -0.479952,
+                            0.042465,
+                            0.876266,
+                            0.827469,
+                            -0.309906,
+                            0.468243
+                          ],
+                          "translation": [
+                            2.237313,
+                            17.994696,
+                            -4.031342
+                          ]
+                        }
+                      },
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "A"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "cartoon"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#4fc64f"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "component",
+                        "params": {
+                          "selector": {
+                            "label_asym_id": "B"
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "representation",
+                            "params": {
+                              "type": "ball_and_stick"
+                            },
+                            "children": [
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "color": "#4fc64f"
+                                }
+                              },
+                              {
+                                "kind": "color",
+                                "params": {
+                                  "selector": {
+                                    "type_symbol": "O"
+                                  },
+                                  "color": "red"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "camera",
+            "params": {
+              "target": [
+                49.825582,
+                -1.340038,
+                26.471059
+              ],
+              "position": [
+                -191.11654336839834,
+                143.45196107439443,
+                -11.769199212079403
+              ],
+              "up": [
+                -0.17708140507299697,
+                -0.03490614992285138,
+                0.9835770110545166
+              ]
+            }
+          }
+        ]
+      },
+      "metadata": {
+        "title": "State I",
+        "description": "### Thanks for watching\n[Go to start](#A)",
+        "key": "I",
+        "linger_duration_ms": 10000,
+        "transition_duration_ms": 1000
+      }
+    }
+  ]
+};
         </script>
     </body>
 </html>

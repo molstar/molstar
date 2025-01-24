@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { BehaviorSubject, Subject } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 import { MVSData } from '../../extensions/mvs/mvs-data';
 import type { MolComponentViewerModel } from './viewer';
 
@@ -13,10 +13,14 @@ export type MolComponentCommand =
 
 
 export class MolComponentContext {
-    commands = new Subject<MolComponentCommand>();
+    commands = new BehaviorSubject<MolComponentCommand | undefined>(undefined);
     behavior = {
         viewers: new BehaviorSubject<{ name?: string, model: MolComponentViewerModel }[]>([]),
     };
+
+    dispatch(command: MolComponentCommand) {
+        this.commands.next(command);
+    }
 
     constructor(public name?: string) {
     }
@@ -31,5 +35,3 @@ export function getMolComponentContext(options?: { name?: string, container?: ob
     }
     return container.componentContexts[name];
 }
-
-(window as any).componentContext = getMolComponentContext();

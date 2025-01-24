@@ -50,13 +50,15 @@ export class MolComponentViewerModel extends PluginComponent {
         });
 
         this.subscribe(this.context.commands, async (cmd) => {
+            if (!cmd) return;
+
             if (cmd.kind === 'load-mvs') {
                 if (cmd.url) {
                     const data = await this.plugin!.runTask(this.plugin!.fetch({ url: cmd.url, type: 'string' }));
                     const mvsData = MVSData.fromMVSJ(data);
-                    await loadMVS(this.plugin!, mvsData, { sanityChecks: true, sourceUrl: cmd.url });
+                    await loadMVS(this.plugin!, mvsData, { sanityChecks: true, sourceUrl: cmd.url, replaceExisting: true });
                 } else if (cmd.data) {
-                    await loadMVS(this.plugin!, cmd.data, { sanityChecks: true });
+                    await loadMVS(this.plugin!, cmd.data, { sanityChecks: true, replaceExisting: true });
                 }
             }
         });
@@ -87,13 +89,24 @@ function EmptyDescription() {
 }
 
 export class MolComponentViewer extends HTMLElement {
+    private model: MolComponentViewerModel | undefined = undefined;
+
     async connectedCallback() {
-        const model = new MolComponentViewerModel();
-        await model.mount(this);
+        this.model = new MolComponentViewerModel({
+            name: this.getAttribute('name') ?? undefined,
+            context: { name: this.getAttribute('context-name') ?? undefined },
+        });
+        await this.model.mount(this);
     }
+
+    disconnectedCallback() {
+        this.model?.dispose();
+        this.model = undefined;
+    }
+
     constructor() {
         super();
     }
 }
 
-window.customElements.define('mol-component-viewer', MolComponentViewer);
+window.customElements.define('mc-viewer', MolComponentViewer);

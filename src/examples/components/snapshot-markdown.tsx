@@ -11,20 +11,31 @@ import { MolComponentViewerModel } from './viewer';
 import Markdown from 'react-markdown';
 import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
 import { createRoot } from 'react-dom/client';
+import { PluginStateSnapshotManager } from '../../mol-plugin-state/manager/snapshots';
+import { MarkdownAnchor } from '../../mol-plugin-ui/controls';
+import { PluginReactContext } from '../../mol-plugin-ui/base';
 
 export class MolComponentSnapshotMarkdownModel extends PluginComponent {
     readonly context: MolComponentContext;
     root: HTMLElement | undefined = undefined;
 
-    state = new BehaviorSubject<string>('');
+    state = new BehaviorSubject<{
+        entry?: PluginStateSnapshotManager.Entry,
+        index?: number,
+        all: PluginStateSnapshotManager.Entry[],
+    }>({ all: [] });
 
     get viewer() {
         return this.context.behavior.viewers.value?.find(v => this.options?.viewerName === v.name);
     }
 
     sync() {
-        const snapshot = this.viewer?.model.plugin?.managers.snapshot.current;
-        this.state.next(snapshot?.description ?? 'no snapshot');
+        const mng = this.viewer?.model.plugin?.managers.snapshot;
+        this.state.next({
+            entry: mng?.current,
+            index: mng?.current ? mng?.getIndex(mng.current) : undefined,
+            all: mng?.state.entries.toArray() ?? [],
+        });
     }
 
     async mount(root: HTMLElement) {
@@ -49,7 +60,6 @@ export class MolComponentSnapshotMarkdownModel extends PluginComponent {
         });
 
         this.sync();
-
     }
 
     constructor(private options?: { context?: { name?: string, container?: object }, viewerName?: string }) {
@@ -61,21 +71,48 @@ export class MolComponentSnapshotMarkdownModel extends PluginComponent {
 
 export function MolComponentSnapshotMarkdownUI({ model }: { model: MolComponentSnapshotMarkdownModel }) {
     const state = useBehavior(model.state);
-    return <div>
-        <button onClick={() => model.viewer?.model.plugin?.managers.snapshot.applyNext(-1)}>Prev</button>
-        <button onClick={() => model.viewer?.model.plugin?.managers.snapshot.applyNext(1)}>Next</button>
-        <Markdown>{state}</Markdown>
+
+    if (state.all.length === 0) {
+        return <div>
+            <i>No snapshot loaded</i>
+        </div>;
+    }
+
+    return <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div>
+            <button onClick={() => model.viewer?.model.plugin?.managers.snapshot.applyNext(-1)} style={{ marginRight: 8 }}>Prev</button>
+            <button onClick={() => model.viewer?.model.plugin?.managers.snapshot.applyNext(1)} style={{ marginRight: 8 }}>Next</button>
+            {typeof state.index === 'number' ? state.index + 1 : '-'}/{state.all.length}
+        </div>
+        <div style={{ flexGrow: 1, overflow: 'hidden', overflowY: 'auto', position: 'relative' }}>
+            <div style={{ position: 'absolute', inset: 0 }}>
+                <PluginReactContext.Provider value={model.viewer?.model.plugin as any}>
+                    <Markdown skipHtml components={{ a: MarkdownAnchor }}>{state.entry?.description ?? 'Description not available'}</Markdown>
+                </PluginReactContext.Provider>
+            </div>
+        </div>
     </div>;
 }
 
 export class MolComponentSnapshotMarkdownViewer extends HTMLElement {
+    private model: MolComponentSnapshotMarkdownModel | undefined = undefined;
+
     async connectedCallback() {
-        const model = new MolComponentSnapshotMarkdownModel();
-        await model.mount(this);
+        this.model = new MolComponentSnapshotMarkdownModel({
+            context: { name: this.getAttribute('context-name') ?? undefined },
+            viewerName: this.getAttribute('viewer-name') ?? undefined,
+        });
+        await this.model.mount(this);
     }
+
+    disconnectedCallback() {
+        this.model?.dispose();
+        this.model = undefined;
+    }
+
     constructor() {
         super();
     }
 }
 
-window.customElements.define('mol-component-snapshot-markdown', MolComponentSnapshotMarkdownViewer);
+window.customElements.define('mc-snapshot-markdown', MolComponentSnapshotMarkdownViewer);
