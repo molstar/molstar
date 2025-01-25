@@ -25,8 +25,9 @@ export function VolumeValueSizeTheme(ctx: ThemeDataContext, props: PD.Values<Vol
     if (ctx.volume) {
         const { data } = ctx.volume.grid.cells;
 
+        const isLocation = Volume.Cell.isLocation;
         const size: LocationSize = (location: Location): number => {
-            if (Volume.Cell.isLocation(location)) {
+            if (isLocation(location)) {
                 return data[location.cell] * props.scale;
             } else {
                 return 0;
@@ -44,7 +45,7 @@ export function VolumeValueSizeTheme(ctx: ThemeDataContext, props: PD.Values<Vol
         return {
             factory: VolumeValueSizeTheme,
             granularity: 'uniform',
-            size: () => 1 * props.scale,
+            size: () => props.scale,
             props,
             description: Description
         };
