@@ -45,9 +45,6 @@ export const ComponentExpressionT = iots.partial({
 });
 export type ComponentExpressionT = ValueFor<typeof ComponentExpressionT>
 
-/** `type` parameter values for `representation` node in MVS tree */
-export const RepresentationTypeT = literal('ball_and_stick', 'cartoon', 'surface');
-
 /** `schema` parameter values for `*_from_uri` and `*_from_source` nodes in MVS tree */
 export const SchemaT = literal('whole_structure', 'entity', 'chain', 'auth_chain', 'residue', 'auth_residue', 'residue_range', 'auth_residue_range', 'atom', 'auth_atom', 'all_atomic');
 

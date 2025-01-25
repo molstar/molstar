@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix for tubular helices issue (Fixes #1422)
 - Volume UI improvements
     - Render all volume entries instead of selecting them one-by-one
     - Toggle visibility of all volumes
@@ -26,6 +27,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix marking related image rendering issues
     - Handle pixels without a group
     - Take fog into account
+- MolViewSpec extension: Initial support for customizable representation parameters
 - Quick Styles section reorganized
 - UI color improvements (scrollbar contrast, toggle button hover color)
 - overrideWater param for entity-id color theme
@@ -34,6 +36,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix vertex based themes for spheres shader
 - Add volume dot representation
 - Add volume-value size theme
+- Sequence panel: Mark focused loci (bold+underline)
+- Change modifier key behavior in Normal Mode (default = select only, Ctrl/Cmd = add to selection, Shift = extend last selected range)
 
 ## [v4.10.0] - 2024-12-15
 
