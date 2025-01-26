@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -34,7 +34,7 @@ export function isDataLocation(x: any): x is DataLocation {
 /**
  * A direct Location.
  *
- * For it, the location is implicitely clear from context and is not explicitely given.
+ * For it, the location is implicitly clear from context and is not explicitly given.
  * This is used for themes with direct-volume rendering where the location is the volume
  * grid cell itself and coloring is applied in a shader on the GPU.
  */
@@ -44,4 +44,4 @@ export function isDirectLocation(x: any): x is DirectLocation {
     return !!x && x.kind === 'direct-location';
 }
 
-export type Location = StructureElement.Location | Bond.Location | ShapeGroup.Location | PositionLocation | DataLocation | NullLocation | DirectLocation | Volume.Segment.Location
+export type Location = StructureElement.Location | Bond.Location | ShapeGroup.Location | PositionLocation | DataLocation | NullLocation | DirectLocation | Volume.Cell.Location | Volume.Segment.Location
