@@ -417,7 +417,9 @@ const TrajectoryFromLammpsData = PluginStateTransform.BuiltIn({
             const parsed = await parseLammpsData(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             const models = await trajectoryFromLammpsData(parsed.result, params.unitsStyle).runInContext(ctx);
+            await ctx.update('trajectoryFromLammpsData done');
             const props = trajectoryProps(models);
+            await ctx.update('trajectoryProps done');
             return new SO.Molecule.Trajectory(models, props);
         });
     }

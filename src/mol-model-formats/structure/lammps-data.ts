@@ -101,12 +101,7 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
             const key = bonds.bondId;
             const order = Column.ofConst(1, bonds.count, Column.Schema.int);
             const flag = Column.ofConst(BondType.Flag.Covalent, bonds.count, Column.Schema.int);
-            /*
-            const pairBonds = IndexPairBonds.fromData(
-                { pairs: { key, indexA, indexB, order, flag }, count: atoms.count },
-                { maxDistance: Infinity }
-            );
-            IndexPairBonds.Provider.set(first, pairBonds);*/
+
             // Assuming 'atoms' contains the coordinates after wrapping
             const newBonds = [];
             const pos1 = [0, 0, 0];
@@ -144,8 +139,9 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
                         flag: flag.value(i)
                     });
                 }
+                if ((i % 10000) === 0) await ctx.update({ message: 'Filtering bonds ...', current: i, max: bonds.count });
             }
-
+            await ctx.update('Filtering done, building IndexPairBonds...');
             const pairBonds = IndexPairBonds.fromData(
                 {
                     pairs: {
@@ -160,6 +156,7 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
                 { maxDistance: Infinity }
             );
             IndexPairBonds.Provider.set(first, pairBonds);
+            await ctx.update('IndexPairBonds done');
         }
 
         AtomPartialCharge.Provider.set(first, {
