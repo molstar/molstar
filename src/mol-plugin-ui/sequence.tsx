@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Ventura Rivera <venturaxrivera@gmail.com>
  */
 
 import * as React from 'react';
@@ -215,11 +216,12 @@ type SequenceViewState = {
     modelEntityId: string,
     chainGroupId: number,
     operatorKey: string,
-    mode: SequenceViewMode
+    mode: SequenceViewMode,
+    sequenceViewModeParam: typeof SequenceViewModeParam,
 }
 
 export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceViewMode }, SequenceViewState> {
-    state: SequenceViewState = { structureOptions: { options: [], all: [] }, structure: Structure.Empty, structureRef: '', modelEntityId: '', chainGroupId: -1, operatorKey: '', mode: 'single' };
+    state: SequenceViewState = { structureOptions: { options: [], all: [] }, structure: Structure.Empty, structureRef: '', modelEntityId: '', chainGroupId: -1, operatorKey: '', mode: 'single', sequenceViewModeParam: SequenceViewModeParam };
 
     componentDidMount() {
         if (this.plugin.state.data.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure)).length > 0) this.setState(this.getInitialState());
@@ -241,6 +243,16 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
                 this.sync();
             }
         });
+
+        const modeOptions = this.plugin.spec.components?.sequenceViewer?.modeOptions;
+        if (modeOptions) {
+            const modeSet = new Set(modeOptions);
+            const sequenceViewModeParam = {
+                ...SequenceViewModeParam,
+                options: SequenceViewModeParam.options.filter(([firstItem]) => modeSet.has(firstItem)),
+            };
+            this.setState({ sequenceViewModeParam: sequenceViewModeParam });
+        }
     }
 
     private sync() {
@@ -300,7 +312,9 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
             chainGroupId = this.state.chainGroupId;
             operatorKey = this.state.operatorKey;
         }
-        return { structureOptions, structure, structureRef, modelEntityId, chainGroupId, operatorKey, mode: this.props.defaultMode ?? 'single' };
+        const defaultMode = this.plugin.spec.components?.sequenceViewer?.defaultMode;
+        const initialMode = this.props.defaultMode ?? defaultMode ?? 'single';
+        return { structureOptions, structure, structureRef, modelEntityId, chainGroupId, operatorKey, mode: initialMode, sequenceViewModeParam: this.state.sequenceViewModeParam };
     }
 
     private get params() {
@@ -313,7 +327,7 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
             entity: PD.Select(entityOptions[0][0], entityOptions, { shortLabel: true }),
             chain: PD.Select(chainOptions[0][0], chainOptions, { shortLabel: true, twoColumns: true, label: 'Chain' }),
             operator: PD.Select(operatorOptions[0][0], operatorOptions, { shortLabel: true, twoColumns: true }),
-            mode: SequenceViewModeParam
+            mode: this.state.sequenceViewModeParam,
         };
     }
 
@@ -379,11 +393,11 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
         return <div className='msp-sequence'>
             <div className='msp-sequence-select'>
                 <Icon svg={HelpOutlineSvg} style={{ cursor: 'help', position: 'absolute', right: 0, top: 0 }}
-                    title='This shows a single sequence. Use the controls to show a different sequence.' />
+                    title='This shows a single sequence. Use the controls to show a different sequence. &#10;Use Ctrl or Cmd key to add a sequence range to focus; use Shift key to extend last focused/selected range.' />
 
                 <span>Sequence of</span>
                 <PureSelectControl title={`[Structure] ${PD.optionLabel(params.structure, values.structure)}`} param={params.structure} name='structure' value={values.structure} onChange={this.setParamProps} />
-                <PureSelectControl title={`[Mode]`} param={SequenceViewModeParam} name='mode' value={values.mode} onChange={this.setParamProps} />
+                <PureSelectControl title={`[Mode]`} param={this.state.sequenceViewModeParam} name='mode' value={values.mode} onChange={this.setParamProps} />
                 {values.mode === 'single' && <PureSelectControl title={`[Entity] ${PD.optionLabel(params.entity, values.entity)}`} param={params.entity} name='entity' value={values.entity} onChange={this.setParamProps} />}
                 {values.mode === 'single' && <PureSelectControl title={`[Chain] ${PD.optionLabel(params.chain, values.chain)}`} param={params.chain} name='chain' value={values.chain} onChange={this.setParamProps} />}
                 {params.operator.options.length > 1 && <>

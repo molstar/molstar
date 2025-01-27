@@ -8,6 +8,7 @@
 }
 
 $sequence-select-height: 24px;
+
 .msp-sequence-select {
     position: relative;
     height: $sequence-select-height;
@@ -84,6 +85,11 @@ $sequence-select-height: 24px;
         margin: 0em 0.2em 0em 0em;
     }
 
+    .msp-sequence-residue-focused {
+        font-weight: bold;
+        text-decoration: underline;
+    }
+
     .msp-sequence-label {
         color: $sequence-number-color;
         font-size: 90%;
@@ -91,7 +97,7 @@ $sequence-select-height: 24px;
         padding-bottom: 1em;
         padding-left: 0.2em;
     }
-    
+
     .msp-sequence-number {
         color: $sequence-number-color;
         word-break: keep-all;

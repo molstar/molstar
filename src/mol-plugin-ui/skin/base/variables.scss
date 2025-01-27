@@ -1,3 +1,5 @@
+@use "sass:color";
+
 // measures
 
 $control-label-width:   110px;
@@ -53,6 +55,8 @@ $msp-form-control-background: color-lower-contrast($default-background, 2.5%);
 $msp-btn-link-font-color: $font-color;
 $msp-btn-link-toggle-on-font-color: $font-color;
 $msp-btn-link-toggle-off-font-color: color-lower-contrast($font-color, 33%);
+$msp-btn-link-toggle-on-hover-font-color: $hover-font-color;
+$msp-btn-link-toggle-off-hover-font-color: color.adjust(color-lower-contrast($hover-font-color, 25%), $saturation: -30%, $space: hsl);
 
 // used for "actions" -- i.e. + in selection
 $msp-btn-remove-font-color: $font-color;

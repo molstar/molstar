@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -20,6 +20,10 @@ import { VertexArray } from './vertex-array';
 import { fillSerial } from '../../mol-util/array';
 import { deepClone } from '../../mol-util/object';
 import { cloneUniformValues, UniformsList } from './uniform';
+
+// Handle Firefox's preference [webgl.max-vert-ids-per-draw] which defaults to 30_000_000
+// since FF119, see https://bugzilla.mozilla.org/show_bug.cgi?id=1849433
+const MaxDrawCount = 30_000_000;
 
 const getNextRenderItemId = idFactory();
 
@@ -311,10 +315,16 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                     }
                 }
             } else {
-                if (elementsBuffer) {
-                    instancedArrays.drawElementsInstanced(glDrawMode, drawCount, elementsBuffer._dataType, 0, instanceCount);
-                } else {
-                    instancedArrays.drawArraysInstanced(glDrawMode, 0, drawCount, instanceCount);
+                let offset = 0;
+                while (true) {
+                    const count = Math.min(drawCount - offset, MaxDrawCount);
+                    if (elementsBuffer) {
+                        instancedArrays.drawElementsInstanced(glDrawMode, count, elementsBuffer._dataType, offset * elementsBuffer._bpe, instanceCount);
+                    } else {
+                        instancedArrays.drawArraysInstanced(glDrawMode, offset, count, instanceCount);
+                    }
+                    offset += count;
+                    if (offset >= drawCount) break;
                 }
                 if (isTimingMode) {
                     stats.calls.drawInstanced += 1;

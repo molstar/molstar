@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { OrderedSet } from '../../../mol-data/int';
@@ -351,28 +352,9 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
 
     tryGetRange(loci: Loci): StructureElement.Loci | undefined {
         if (!StructureElement.Loci.is(loci)) return;
-        if (loci.elements.length !== 1) return;
-        const entry = this.getEntry(loci.structure);
-        if (!entry) return;
+        if (!this.getEntry(loci.structure)) return;
 
-        const xs = loci.elements[0];
-        if (!xs) return;
-
-        const ref = this.referenceLoci;
-        if (!ref || !StructureElement.Loci.is(ref) || ref.structure !== loci.structure) return;
-
-        let e: StructureElement.Loci['elements'][0] | undefined;
-        for (const _e of ref.elements) {
-            if (xs.unit === _e.unit) {
-                e = _e;
-                break;
-            }
-        }
-        if (!e) return;
-
-        if (xs.unit !== e.unit) return;
-
-        return getElementRange(loci.structure, e, xs);
+        return getLociRange(this.referenceLoci, loci);
     }
 
     /** Count of all selected elements */
@@ -567,6 +549,31 @@ export interface StructureSelectionHistoryEntry {
 /** remap `selection-entry` to be related to `structure` if possible */
 function remapSelectionEntry(e: SelectionEntry, s: Structure): SelectionEntry {
     return new SelectionEntry(StructureElement.Loci.remap(e.selection, s));
+}
+
+/** Return loci spanning the range between `fromLoci` and `toLoci` (including both) if they belong to the same unit in the same structure */
+export function getLociRange(fromLoci: Loci | undefined, toLoci: Loci | undefined): StructureElement.Loci | undefined {
+    if (!StructureElement.Loci.is(fromLoci)) return;
+    if (!StructureElement.Loci.is(toLoci)) return;
+    if (fromLoci.structure !== toLoci.structure) return;
+
+    if (toLoci.elements.length !== 1) return;
+
+    const xs = toLoci.elements[0];
+    if (!xs) return;
+
+    let e: StructureElement.Loci['elements'][0] | undefined;
+    for (const _e of fromLoci.elements) {
+        if (xs.unit === _e.unit) {
+            e = _e;
+            break;
+        }
+    }
+    if (!e) return;
+
+    if (xs.unit !== e.unit) return;
+
+    return getElementRange(toLoci.structure, e, xs);
 }
 
 /**

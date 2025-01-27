@@ -1,15 +1,15 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { Structure, StructureElement } from '../../mol-model/structure';
-import { SequenceWrapper, StructureUnit } from './wrapper';
-import { OrderedSet, Interval } from '../../mol-data/int';
+import { Interval, OrderedSet } from '../../mol-data/int';
 import { Loci } from '../../mol-model/loci';
+import { Structure, StructureElement } from '../../mol-model/structure';
 import { ColorNames } from '../../mol-util/color/names';
-import { MarkerAction, applyMarkerAction } from '../../mol-util/marker-action';
+import { SequenceWrapper, StructureUnit } from './wrapper';
 
 export class ElementSequenceWrapper extends SequenceWrapper<StructureUnit> {
     private unitIndices: Map<number, Interval<StructureElement.UnitIndex>>;
@@ -24,30 +24,30 @@ export class ElementSequenceWrapper extends SequenceWrapper<StructureUnit> {
         return 'msp-sequence-present';
     }
 
-    mark(loci: Loci, action: MarkerAction) {
-        let changed = false;
+    override getSeqIndices(loci: Loci): OrderedSet {
         const { structure, units } = this.data;
         if (StructureElement.Loci.is(loci)) {
-            if (!Structure.areRootsEquivalent(loci.structure, structure)) return false;
+            if (!Structure.areRootsEquivalent(loci.structure, structure)) return Interval.Empty;
             loci = StructureElement.Loci.remap(loci, structure);
 
             for (const e of loci.elements) {
                 const indices = this.unitIndices.get(e.unit.id);
                 if (indices) {
                     if (OrderedSet.isSubset(indices, e.indices)) {
-                        if (applyMarkerAction(this.markerArray, e.indices, action)) changed = true;
+                        // this assumes this SequnceWrapper has only a single unit, otherwise we'd need to collect indices from all units and apply offsets
+                        return e.indices;
                     }
                 }
             }
         } else if (Structure.isLoci(loci)) {
-            if (!Structure.areRootsEquivalent(loci.structure, structure)) return false;
+            if (!Structure.areRootsEquivalent(loci.structure, structure)) return Interval.Empty;
 
             for (let i = 0, il = units.length; i < il; ++i) {
                 const indices = this.unitIndices.get(units[i].id)!;
-                if (applyMarkerAction(this.markerArray, indices, action)) changed = true;
+                return indices;
             }
         }
-        return changed;
+        return Interval.Empty;
     }
 
     getLoci(seqIdx: number) {
@@ -79,9 +79,8 @@ export class ElementSequenceWrapper extends SequenceWrapper<StructureUnit> {
             unitIndices.set(unit.id, indices);
             lociElements.push({ unit, indices });
         }
-        const markerArray = new Uint8Array(length);
 
-        super(data, markerArray, length);
+        super(data, length);
 
         this.unitIndices = unitIndices;
     }

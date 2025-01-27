@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2021-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { StructureProperties, StructureElement, Bond, Structure, Unit } from '../../mol-model/structure';
@@ -15,12 +16,16 @@ import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { ColorThemeCategory } from './categories';
 import { ModelFormat } from '../../mol-model-formats/format';
 
+
 const DefaultList = 'many-distinct';
 const DefaultColor = Color(0xFAFAFA);
+const DefaultWaterColor = Color(0xFF0D0D);
 const Description = 'Gives every chain a color based on its `label_entity_id` value.';
 
 export const EntityIdColorThemeParams = {
     ...getPaletteParams({ type: 'colors', colorList: DefaultList }),
+    overrideWater: PD.Boolean(false, { description: 'Override the color for water molecules.' }),
+    waterColor: PD.Color(DefaultWaterColor, { hideIf: p => !p.overrideWater, description: 'Color for water molecules (if overrideWater is true).' }),
 };
 export type EntityIdColorThemeParams = typeof EntityIdColorThemeParams
 export function getEntityIdColorThemeParams(ctx: ThemeDataContext) {
@@ -94,20 +99,25 @@ export function EntityIdColorTheme(ctx: ThemeDataContext, props: PD.Values<Entit
         legend = palette.legend;
 
         color = (location: Location): Color => {
-            let serial: number | undefined = undefined;
+            let structElemLoc: StructureElement.Location;
             if (StructureElement.Location.is(location)) {
-                const entityId = getEntityId(location);
-                const sourceSerial = sourceSerialMap.get(location.unit.model.sourceData) ?? -1;
-                const k = key(entityId, sourceSerial);
-                serial = entityIdSerialMap.get(k);
+                structElemLoc = location;
             } else if (Bond.isLocation(location)) {
                 l.unit = location.aUnit;
                 l.element = location.aUnit.elements[location.aIndex];
-                const entityId = getEntityId(l);
-                const sourceSerial = sourceSerialMap.get(l.unit.model.sourceData) ?? -1;
-                const k = key(entityId, sourceSerial);
-                serial = entityIdSerialMap.get(k);
+                structElemLoc = l;
+            } else {
+                return DefaultColor;
             }
+            const entityId = getEntityId(structElemLoc);
+            const sourceSerial = sourceSerialMap.get(structElemLoc.unit.model.sourceData) ?? -1;
+            if (props.overrideWater) {
+                const entities = structElemLoc.unit.model.entities;
+                const entityType = entities.data.type.value(entities.getEntityIndex(entityId));
+                if (entityType === 'water') return props.waterColor;
+            }
+            const k = key(entityId, sourceSerial);
+            const serial = entityIdSerialMap.get(k);
             return serial === undefined ? DefaultColor : palette.color(serial);
         };
     } else {
