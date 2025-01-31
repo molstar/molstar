@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix PDBj structure data URL
+
 ## [v4.11.0] - 2025-01-26
 
 - Fix for tubular helices issue (Fixes #1422)
