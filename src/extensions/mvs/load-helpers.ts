@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Mat3, Mat4, Vec3 } from '../../mol-math/linear-algebra';
@@ -296,6 +297,11 @@ export function representationProps(node: MolstarSubtree<'representation'>): Par
             return {
                 type: { name: 'ball-and-stick', params: { sizeFactor: (params.size_factor ?? 1) * 0.5, sizeAspectRatio: 0.5, alpha, ignoreHydrogens: params.ignore_hydrogens } },
             };
+        case 'spacefill':
+            return {
+                type: { name: 'spacefill', params: { alpha, ignoreHydrogens: params.ignore_hydrogens } },
+                sizeTheme: { name: 'physical', params: { scale: params.size_factor } },
+            };
         case 'surface':
             return {
                 type: { name: 'molecular-surface', params: { alpha, ignoreHydrogens: params.ignore_hydrogens } },
@@ -316,20 +322,22 @@ export function alphaForNode(node: MolstarSubtree<'representation'>): number {
     }
 }
 /** Create value for `colorTheme` prop for `StructureRepresentation3D` transformer from a representation node based on color* nodes in its subtree. */
-export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri' | 'color_from_source' | 'representation'> | undefined, context: MolstarLoadingContext): StateTransformer.Params<StructureRepresentation3D>['colorTheme'] {
+export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri' | 'color_from_source' | 'representation'> | undefined, context: MolstarLoadingContext): StateTransformer.Params<StructureRepresentation3D>['colorTheme'] | undefined {
     if (node?.kind === 'representation') {
         const children = getChildren(node).filter(c => c.kind === 'color' || c.kind === 'color_from_uri' || c.kind === 'color_from_source') as MolstarNode<'color' | 'color_from_uri' | 'color_from_source'>[];
         if (children.length === 0) {
-            return {
-                name: 'uniform',
-                params: { value: decodeColor(DefaultColor) },
-            };
+            // If no color child node is specified, use Mol*'s default
+            return undefined;
         } else if (children.length === 1 && appliesColorToWholeRepr(children[0])) {
             return colorThemeForNode(children[0], context);
         } else {
             const layers: MultilayerColorThemeProps['layers'] = children.map(
-                c => ({ theme: colorThemeForNode(c, context), selection: componentPropsFromSelector(c.kind === 'color' ? c.params.selector : undefined) })
-            );
+                c => {
+                    const theme = colorThemeForNode(c, context);
+                    if (!theme) return undefined;
+                    return { theme, selection: componentPropsFromSelector(c.kind === 'color' ? c.params.selector : undefined) };
+                }
+            ).filter(t => !!t);
             return {
                 name: MultilayerColorThemeName,
                 params: { layers },

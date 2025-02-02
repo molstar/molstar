@@ -6,6 +6,12 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix PDBj structure data URL
+- Add `atom.ihm.has-seq-id` symbol to the query language
+- Better IH/M support in MolViewSpec:
+  - Support `coarse` components
+  - Support `spacefill` representation
+  - Support `element_granularity` in component expressions
+  - If no color theme is specified explicitly, use Mol*'s defaults instead
 
 ## [v4.11.0] - 2025-01-26
 
