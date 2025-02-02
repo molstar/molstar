@@ -37,6 +37,7 @@
             }
         </style>
         <link rel="stylesheet" type="text/css" href="molstar.css" />
+        <link rel="manifest" href="/molstar/manifest-mesoscale-explorer.webmanifest" type="application/manifest+json">
     </head>
     <body>
         <div id="app"></div>
@@ -94,15 +95,9 @@
                     return;
                 }
 
-                var pdbihm = getParam('pdbihm', '[^&]+').trim();
-                if (pdbihm) {
-                    me.loadPdbIhm(pdbihm);
-                    return;
-                }
-                // support for deprecated pdb-dev param
                 var pdbdev = getParam('pdbdev', '[^&]+').trim();
                 if (pdbdev) {
-                    me.loadPdbIhm(pdbdev);
+                    me.loadPdbDev(pdbdev);
                     return;
                 }
                 window.addEventListener('unload', () => {
@@ -129,5 +124,22 @@
             }
         </script>
         <!-- __MOLSTAR_ANALYTICS__ -->
-    </body>
+        <!-- Register the app's service worker. -->
+        <script type="module">
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function () {
+                    //navigator.serviceWorker.register('/sw.js')
+                    navigator.serviceWorker.register(new URL('/molstar/build/mesoscale-explorer/sw-mesoscale-explorer.js', import.meta.url))
+                    //navigator.serviceWorker.register(new URL('/sw.js', import.meta.url), { scope: '/' })
+                    .then(function (registration) {
+                    // Registration was successful
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    }, function (err) {
+                    // registration failed :(
+                    console.log('ServiceWorker registration failed: ', err);
+                    });
+                });
+            }
+        </script>
+        </body>
 </html>
