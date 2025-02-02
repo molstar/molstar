@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -23,7 +23,7 @@ export type MolstarParseFormatT = ValueFor<typeof MolstarParseFormatT>
 export const StructureTypeT = literal('model', 'assembly', 'symmetry', 'symmetry_mates');
 
 /** `selector` parameter values for `component` node in MVS tree */
-export const ComponentSelectorT = literal('all', 'polymer', 'protein', 'nucleic', 'branched', 'ligand', 'ion', 'water');
+export const ComponentSelectorT = literal('all', 'polymer', 'protein', 'nucleic', 'branched', 'ligand', 'ion', 'water', 'coarse');
 
 /** `selector` parameter values for `component` node in MVS tree */
 export const ComponentExpressionT = iots.partial({

@@ -21,6 +21,13 @@ const BallAndStick = {
     ignore_hydrogens: OptionalField(bool, false, 'Controls whether hydrogen atoms are drawn.'),
 };
 
+const Spacefill = {
+    /** Scales the corresponding visuals */
+    size_factor: OptionalField(float, 1, 'Scales the corresponding visuals.'),
+    /** Controls whether hydrogen atoms are drawn. */
+    ignore_hydrogens: OptionalField(bool, false, 'Controls whether hydrogen atoms are drawn.'),
+};
+
 const Surface = {
     /** Scales the corresponding visuals */
     size_factor: OptionalField(float, 1, 'Scales the corresponding visuals.'),
@@ -34,6 +41,7 @@ export const MVSRepresentationParams = UnionParamsSchema(
     {
         cartoon: SimpleParamsSchema(Cartoon),
         ball_and_stick: SimpleParamsSchema(BallAndStick),
+        spacefill: SimpleParamsSchema(Spacefill),
         surface: SimpleParamsSchema(Surface),
     },
 );

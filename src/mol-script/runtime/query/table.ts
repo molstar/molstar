@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -7,7 +7,7 @@
 
 import { MolScriptSymbolTable as MolScript } from '../../language/symbol-table';
 import { DefaultQueryRuntimeTable, QuerySymbolRuntime, QueryRuntimeArguments } from './base';
-import { Queries, StructureProperties, StructureElement, QueryContext, UnitRing } from '../../../mol-model/structure';
+import { Queries, StructureProperties, StructureElement, QueryContext, UnitRing, Unit } from '../../../mol-model/structure';
 import { ElementSymbol, BondType, SecondaryStructureType } from '../../../mol-model/structure/model/types';
 import { SetUtils } from '../../../mol-util/set';
 import { upperCaseAny } from '../../../mol-util/string';
@@ -363,6 +363,15 @@ const symbols = [
     D(MolScript.structureQuery.atomProperty.macromolecular.secondaryStructureKey, atomProp(StructureProperties.residue.secondary_structure_key)),
     D(MolScript.structureQuery.atomProperty.macromolecular.secondaryStructureFlags, atomProp(StructureProperties.residue.secondary_structure_type)),
     D(MolScript.structureQuery.atomProperty.macromolecular.chemCompType, atomProp(StructureProperties.residue.chem_comp_type)),
+
+    D(MolScript.structureQuery.atomProperty.ihm.hasSeqId, function structureQuery_atomProperty_ihm_hasSeqId(ctx, xs) {
+        const current = ctx.element;
+        const seqId = (xs && xs[0] && xs[0](ctx) as any);
+        if (current.unit.kind === Unit.Kind.Atomic) {
+            return seqId === StructureProperties.residue.label_seq_id(current);
+        }
+        return seqId >= StructureProperties.coarse.seq_id_begin(current) && seqId <= StructureProperties.coarse.seq_id_end(current);
+    }),
 
     // ============= ATOM SET ================
 
