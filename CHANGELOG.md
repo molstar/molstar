@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix PDBj structure data URL
+- Improve logic when to cull in renderer
 - Add `atom.ihm.has-seq-id` symbol to the query language
 - Better IH/M support in MolViewSpec:
   - Support `coarse` components
