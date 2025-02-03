@@ -7,6 +7,7 @@
 import { ReaderResult as Result } from '../result';
 import { Task, RuntimeContext } from '../../../mol-task';
 import { KinFile, KinType, KinElement } from './schema';
+import KinParser from './ngl-based-parser';
 import { Tokenizer, TokenBuilder, Tokens } from '../common/text/tokenizer';
 import { Column } from '../../../mol-data/db';
 import { TokenColumn } from '../common/text/column/token';
@@ -239,6 +240,14 @@ function parseListElement(state: State, spec: ListElementSpec) {
 }
 
 async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<KinFile>> {
+
+    console.log('XXX Constructing KinParser');
+    const NGLParser = new KinParser(data);
+    console.log('XXX Getting data from KinParser');
+    const kinData = NGLParser.kinemage;
+    console.log(`XXX Number of vector lists: ${kinData.vectorLists.length}, ballLists: ${kinData.ballLists.length}, ribbonLists: ${kinData.ribbonLists.length}`);
+
+    /// @todo Replace this with code that pulls from the NGL-based data and constructs a KinFile
     const state = State(data, ctx);
     ctx.update({ message: 'Parsing...', current: 0, max: data.length });
     parseHeader(state);
