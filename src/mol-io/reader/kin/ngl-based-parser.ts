@@ -15,6 +15,8 @@
 // import { Vector3 } from 'three'
 // import Parser from './parser'
 
+import { Kinemage, RibbonObject } from './schema';
+
 function hsvToRgb (h: number, s: number, v: number) {
   h /= 360
   s /= 100
@@ -200,14 +202,6 @@ function parseGroup (line: string) {
            groupMasters: master
   }
 }
-interface RibbonObject {
-  labelArray: string[],
-  positionArray: number[],
-  breakArray: boolean[],
-  colorArray: number[],
-  name?: string,
-  masterArray: any[]
-}
 function convertKinTriangleArrays (ribbonObject: RibbonObject) {
   // have to convert ribbons/triangle lists from stripdrawmode to normal drawmode
   // index                    [ 0 1 2 3 4 5 6 7 8 91011 ]
@@ -305,45 +299,6 @@ function removePointBreaksTriangleArrays (convertedRibbonObject: RibbonObject) {
     breakArray: editedBreaks,
     colorArray: editedColors
   }
-}
-
-interface Kinemage {
-  kinemage?: number,
-  onewidth?: any,
-  '1viewid'?: string,
-  pdbfile?: string,
-  text: string,
-  texts: string[],
-  captions: string[],
-  caption: string,
-  groupDict: {[k:string]: {[k:string]: boolean}},
-  subgroupDict: {[k: string]: any},
-  masterDict: {[k:string]: {indent: boolean, visible: boolean}},
-  pointmasterDict: {[k: string]: any},
-  dotLists: DotList[],
-  vectorLists: VectorList[],
-  ballLists: any[],
-  ribbonLists: RibbonObject[]
-}
-
-interface DotList {
-  name?: string,
-  masterArray: any[],
-  labelArray: any[],
-  positionArray: any[],
-  colorArray: any[]
-}
-
-interface VectorList {
-  name?: string,
-  masterArray: any[],
-  label1Array: string[],
-  label2Array: string[],
-  position1Array: number[],
-  position2Array: number[],
-  color1Array: number[],
-  color2Array: number[],
-  width: number[]
 }
 
 class KinParser {
