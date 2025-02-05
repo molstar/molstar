@@ -9,7 +9,7 @@ import { Column, Table } from '../../../mol-data/db';
 import { pickObjectKeys } from '../../../mol-util/object';
 import { Choice } from '../../../mol-util/param-choice';
 
-const { str, int, Aliased } = Column.Schema;
+const { str, int } = Column.Schema;
 
 
 /** Names of allowed MVS annotation schemas (values for the annotation schema parameter) */
@@ -44,8 +44,6 @@ export function getCifAnnotationSchema<K extends MVSAnnotationSchema>(schemaName
 
 /** Definition of `all_atomic` schema for CIF (other atomic schemas are subschemas of this one) */
 const AllAtomicCifAnnotationSchema = {
-    element_granularity: Aliased<'atom' | 'coarse'>(str),
-
     /** Tag for grouping multiple annotation rows with the same `group_id` (e.g. to show one label for two chains);
      * if the `group_id` is not given, each row is processed separately */
     group_id: str,

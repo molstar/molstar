@@ -282,11 +282,7 @@ export function rowToExpression(row: MVSAnnotationRow): Expression {
 
     const residueTests: Expression[] = [];
     if (isDefined(row.label_seq_id)) {
-        if (row.element_granularity === 'coarse') {
-            residueTests.push(ihm.hasSeqId({ 0: row.label_seq_id }));
-        } else {
-            residueTests.push(eq([macromolecular.label_seq_id(), row.label_seq_id]));
-        }
+        residueTests.push(ihm.hasSeqId({ 0: row.label_seq_id }));
     }
     if (isDefined(row.auth_seq_id)) residueTests.push(eq([macromolecular.auth_seq_id(), row.auth_seq_id]));
     if (isDefined(row.pdbx_PDB_ins_code)) residueTests.push(eq([macromolecular.pdbx_PDB_ins_code(), row.pdbx_PDB_ins_code]));

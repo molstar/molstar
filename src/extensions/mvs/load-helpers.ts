@@ -326,7 +326,11 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
     if (node?.kind === 'representation') {
         const children = getChildren(node).filter(c => c.kind === 'color' || c.kind === 'color_from_uri' || c.kind === 'color_from_source') as MolstarNode<'color' | 'color_from_uri' | 'color_from_source'>[];
         if (children.length === 0) {
-            // If no color child node is specified, use Mol*'s default
+            return {
+                name: 'uniform',
+                params: { value: decodeColor(DefaultColor) },
+            };
+        } else if (children.length === 1 && children[0].custom?.molstar_use_default_coloring) {
             return undefined;
         } else if (children.length === 1 && appliesColorToWholeRepr(children[0])) {
             return colorThemeForNode(children[0], context);

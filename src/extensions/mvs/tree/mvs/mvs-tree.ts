@@ -11,6 +11,7 @@ import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema, TreeSchemaWi
 import { MVSRepresentationParams } from './mvs-tree-representations';
 import { MVSPrimitiveParams } from './mvs-tree-primitives';
 import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
+import { DefaultColor } from '../../load-helpers';
 
 
 const _DataFromUriParams = {
@@ -151,7 +152,7 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['representation'],
             params: SimpleParamsSchema({
                 /** Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`). */
-                color: RequiredField(ColorT, 'Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
+                color: OptionalField(ColorT, DefaultColor, 'Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
                 /** Defines to what part of the representation this color should be applied. */
                 selector: OptionalField(union([ComponentSelectorT, ComponentExpressionT, list(ComponentExpressionT)]), 'all', 'Defines to what part of the representation this color should be applied.'),
             }),
