@@ -11,7 +11,6 @@ import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema, TreeSchemaWi
 import { MVSRepresentationParams } from './mvs-tree-representations';
 import { MVSPrimitiveParams } from './mvs-tree-primitives';
 import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
-import { DefaultColor } from '../../load-helpers';
 
 
 const _DataFromUriParams = {
@@ -43,6 +42,9 @@ const _DataFromSourceParams = {
     /** Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...). The default value is 'color'/'label'/'tooltip'/'component' depending on the node type */
     field_name: RequiredField(str, 'Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...).'),
 };
+
+/** Color to be used e.g. for representations without 'color' node */
+export const DefaultColor = 'white';
 
 /** Schema for `MVSTree` (MolViewSpec tree) */
 export const MVSTreeSchema = TreeSchema({

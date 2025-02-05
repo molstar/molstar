@@ -28,6 +28,7 @@ import { MolstarLoadingContext } from './load';
 import { Subtree, getChildren } from './tree/generic/tree-schema';
 import { dfs, formatObject } from './tree/generic/tree-utils';
 import { MolstarKind, MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree } from './tree/molstar/molstar-tree';
+import { DefaultColor } from './tree/mvs/mvs-tree';
 
 
 export const AnnotationFromUriKinds = new Set(['color_from_uri', 'component_from_uri', 'label_from_uri', 'tooltip_from_uri'] satisfies MolstarKind[]);
@@ -35,10 +36,6 @@ export type AnnotationFromUriKind = ElementOfSet<typeof AnnotationFromUriKinds>
 
 export const AnnotationFromSourceKinds = new Set(['color_from_source', 'component_from_source', 'label_from_source', 'tooltip_from_source'] satisfies MolstarKind[]);
 export type AnnotationFromSourceKind = ElementOfSet<typeof AnnotationFromSourceKinds>
-
-/** Color to be used e.g. for representations without 'color' node */
-export const DefaultColor = 'white';
-
 
 /** Return a 4x4 matrix representing a rotation followed by a translation */
 export function transformFromRotationTranslation(rotation: number[] | null | undefined, translation: number[] | null | undefined): Mat4 {
