@@ -235,7 +235,7 @@ async function getPdbeDownloadParams(src: ReturnType<DownloadStructure['createDe
 
 async function getPdbjDownloadParams(src: ReturnType<DownloadStructure['createDefaultParams']>['source']) {
     if (src.name !== 'pdb' || src.params.provider.server.name !== 'pdbj') throw new Error('expected pdbj');
-    return getDownloadParams(src.params.provider.id, id => `https://data.pdbjbk1.pdbj.org/pub/pdb/data/structures/divided/mmCIF/${id.toLowerCase().substring(1, 3)}/${id.toLowerCase()}.cif`, id => `PDBj: ${id} (cif)`, false);
+    return getDownloadParams(src.params.provider.id, id => `https://data.pdbjlc1.pdbj.org/pub/pdb/data/structures/divided/mmCIF/${id.toLowerCase().substring(1, 3)}/${id.toLowerCase()}.cif`, id => `PDBj: ${id} (cif)`, false);
 }
 
 async function getRcsbDownloadParams(src: ReturnType<DownloadStructure['createDefaultParams']>['source']) {
