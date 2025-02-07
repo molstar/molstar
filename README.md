@@ -89,6 +89,21 @@ Use these commands to resolve occassional build failures which may arise after s
 ### Build for production:
     NODE_ENV=production npm run build
 
+### Viewer Progressive Web App
+To serve the viewer via GitHub Pages and make installable as a PWA:
+
+- Fork and clone molstar.
+- Create a new branch.
+- Checkout the new branch.
+- Build.
+- Edit .gitignore so that the build directory is included and not ignored.
+- Push.
+- On GitHub in settings serve out the branch via GitHub Pages
+- In a Web browser, navigate to the following replacing GitHub_User_or_Organisation with your GitHub username or GitHub organisation name:
+https://GitHub_User_or_Organisation.github.io/molstar/build/viewer/index-pwa.html
+- The PWA can then be installed (how to do this depends on your browser and underlying platform).
+
+
 **Run**
 
 If not installed previously:
