@@ -168,6 +168,9 @@ function generateManifestFile(name) {
 // Read the existing index.html file and create an index-pwa.html file injected with what a PWA needs.
 function processHtmlFile(name) {
     
+    // Ensure the destination directory exists
+    ensureDirectoryExistence(destPath);
+    
     // Define the source and destination file paths
     let inFilePath = path.join(__dirname, '..', 'src', 'apps', `${name}`, 'index.html');
     let outFilePath = path.join(__dirname, '..', 'build', `${name}`, 'index-pwa.html');
@@ -224,6 +227,16 @@ function createPWA() {
     generateManifestFile(name);
     // (re)generate the html files
     processHtmlFile(name);
+}
+
+// Function to create directories if they do not exist
+function ensureDirectoryExistence(filePath) {
+    const dirname = path.dirname(filePath);
+    if (fs.existsSync(dirname)) {
+        return true;
+    }
+    ensureDirectoryExistence(dirname);
+    fs.mkdirSync(dirname);
 }
 
 // Create the Progressive Web App
