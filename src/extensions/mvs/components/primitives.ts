@@ -12,6 +12,7 @@ import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Text } from '../../../mol-geo/geometry/text/text';
 import { TextBuilder } from '../../../mol-geo/geometry/text/text-builder';
+import { Box, BoxCage } from '../../../mol-geo/primitive/box';
 import { Circle } from '../../../mol-geo/primitive/circle';
 import { Primitive } from '../../../mol-geo/primitive/primitive';
 import { Box3D, Sphere3D } from '../../../mol-math/geometry';
@@ -301,6 +302,14 @@ const Builders: Record<PrimitiveParams['kind'], PrimitiveBuilder> = {
             addRef(params.center, refs);
             addRef(params.major_axis, refs);
             addRef(params.minor_axis, refs);
+        },
+    },
+    box: {
+        builders: {
+            mesh: addBoxMesh,
+        },
+        resolveRefs: (params: PrimitiveParams<'box'>, refs: Set<string>) => {
+            addRef(params.center, refs);
         },
     }
 };
@@ -691,7 +700,7 @@ function getCircle(options: { thetaStart?: number, thetaEnd?: number }) {
     return circle;
 }
 
-const ellipsis = {
+const EllipsisState = {
     centerPos: Vec3.zero(),
     majorPos: Vec3.zero(),
     minorPos: Vec3.zero(),
@@ -712,34 +721,75 @@ function addEllipsisMesh(context: PrimitiveBuilderContext, state: MeshBuilderSta
     const circle = getCircle({ thetaStart: params.theta_start, thetaEnd: params.theta_end });
     if (!circle) return;
 
-    resolvePosition(context, params.center, ellipsis.centerPos, undefined, undefined);
-    resolvePosition(context, params.major_axis, ellipsis.majorPos, undefined, undefined);
-    resolvePosition(context, params.minor_axis, ellipsis.minorPos, undefined, undefined);
+    resolvePosition(context, params.center, EllipsisState.centerPos, undefined, undefined);
+    resolvePosition(context, params.major_axis, EllipsisState.majorPos, undefined, undefined);
+    resolvePosition(context, params.minor_axis, EllipsisState.minorPos, undefined, undefined);
 
-    Vec3.sub(ellipsis.majorAxis, ellipsis.majorPos, ellipsis.centerPos);
-    Vec3.sub(ellipsis.minorAxis, ellipsis.minorPos, ellipsis.centerPos);
+    Vec3.sub(EllipsisState.majorAxis, EllipsisState.majorPos, EllipsisState.centerPos);
+    Vec3.sub(EllipsisState.minorAxis, EllipsisState.minorPos, EllipsisState.centerPos);
 
     const { mesh, groups } = state;
 
     // Translation
-    Mat4.fromTranslation(ellipsis.translationXform, ellipsis.centerPos);
+    Mat4.fromTranslation(EllipsisState.translationXform, EllipsisState.centerPos);
 
     // Scale
-    Vec3.set(ellipsis.scale, Vec3.magnitude(ellipsis.majorAxis), 1, Vec3.magnitude(ellipsis.minorAxis));
-    Mat4.fromScaling(ellipsis.scaleXform, ellipsis.scale);
+    Vec3.set(EllipsisState.scale, Vec3.magnitude(EllipsisState.majorAxis), 1, Vec3.magnitude(EllipsisState.minorAxis));
+    Mat4.fromScaling(EllipsisState.scaleXform, EllipsisState.scale);
 
     // Rotation
-    Vec3.cross(ellipsis.normal, ellipsis.majorAxis, ellipsis.minorAxis);
-    Vec3.cross(ellipsis.rotationAxis, Vec3.unitY, ellipsis.normal);
-    Mat4.fromRotation(ellipsis.rotationXform, -Vec3.angle(Vec3.unitY, ellipsis.normal), ellipsis.rotationAxis);
+    Vec3.cross(EllipsisState.normal, EllipsisState.majorAxis, EllipsisState.minorAxis);
+    Vec3.cross(EllipsisState.rotationAxis, Vec3.unitY, EllipsisState.normal);
+    Mat4.fromRotation(EllipsisState.rotationXform, -Vec3.angle(Vec3.unitY, EllipsisState.normal), EllipsisState.rotationAxis);
 
     // Final xform
-    Mat4.mul3(ellipsis.xform, ellipsis.translationXform, ellipsis.scaleXform, ellipsis.rotationXform);
+    Mat4.mul3(EllipsisState.xform, EllipsisState.translationXform, EllipsisState.scaleXform, EllipsisState.rotationXform);
 
     mesh.currentGroup = groups.allocateSingle(node);
     groups.updateColor(mesh.currentGroup, params.color);
     groups.updateTooltip(mesh.currentGroup, params.tooltip);
 
-    MeshBuilder.addPrimitive(mesh, ellipsis.xform, circle);
-    MeshBuilder.addPrimitiveFlipped(mesh, ellipsis.xform, circle);
+    MeshBuilder.addPrimitive(mesh, EllipsisState.xform, circle);
+    MeshBuilder.addPrimitiveFlipped(mesh, EllipsisState.xform, circle);
+}
+
+const BoxState = {
+    center: Vec3.zero(),
+    boundary: Box3D.zero(),
+    size: Vec3.zero(),
+    cage: BoxCage(),
+    translationXform: Mat4.identity(),
+    scaleXform: Mat4.identity(),
+    xform: Mat4.identity(),
+};
+
+function addBoxMesh(context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'box'>) {
+    if (!params.show_edges && !params.show_faces) return;
+
+    resolvePosition(context, params.center, BoxState.center, undefined, BoxState.boundary);
+    if (params.extent) {
+        Box3D.expand(BoxState.boundary, BoxState.boundary, params.extent as unknown as Vec3);
+    }
+
+    if (Box3D.volume(BoxState.boundary) < 1e-3) return;
+
+    const { mesh, groups } = state;
+
+    Mat4.fromScaling(BoxState.scaleXform, Box3D.size(BoxState.size, BoxState.boundary));
+    Mat4.fromTranslation(BoxState.translationXform, BoxState.center);
+    Mat4.mul(BoxState.xform, BoxState.translationXform, BoxState.scaleXform);
+
+    if (params.show_faces) {
+        mesh.currentGroup = groups.allocateSingle(node);
+        groups.updateColor(mesh.currentGroup, params.face_color);
+        groups.updateTooltip(mesh.currentGroup, params.tooltip);
+        MeshBuilder.addPrimitive(mesh, BoxState.xform, Box());
+    }
+
+    if (params.show_edges) {
+        mesh.currentGroup = groups.allocateSingle(node);
+        groups.updateColor(mesh.currentGroup, params.edge_color);
+        groups.updateTooltip(mesh.currentGroup, params.tooltip);
+        MeshBuilder.addCage(mesh, BoxState.xform, BoxCage(), params.edge_radius, 2, 8);
+    }
 }

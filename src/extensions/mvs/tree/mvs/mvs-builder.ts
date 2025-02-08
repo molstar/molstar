@@ -283,6 +283,11 @@ class Primitives extends _Base<'primitives'> implements FocusMixin {
         this.addChild('primitive', { kind: 'ellipsis', ...params });
         return this;
     }
+    /** Defines a box. */
+    box(params: MVSPrimitiveSubparams<'box'> & CustomAndRef): Primitives {
+        this.addChild('primitive', { kind: 'box', ...params });
+        return this;
+    }
     focus = bindMethod(this, FocusMixinImpl, 'focus');
 }
 

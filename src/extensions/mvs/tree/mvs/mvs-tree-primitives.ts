@@ -7,7 +7,7 @@
 
 import { bool, float, int, mapping, nullable, OptionalField, RequiredField, str } from '../generic/field-schema';
 import { SimpleParamsSchema, UnionParamsSchema } from '../generic/params-schema';
-import { ColorT, FloatList, IntList, PrimitivePositionT } from './param-types';
+import { ColorT, FloatList, IntList, PrimitivePositionT, Vector3 } from './param-types';
 
 
 const _TubeBase = {
@@ -102,7 +102,7 @@ const PrimitiveLabelParams = {
     label_offset: OptionalField(float, 0, 'Camera-facing offset to prevent overlap with geometry.'),
 };
 
-const EllisisParams = {
+const EllipsisParams = {
     /** Color of the primitive. If not specified, uses the parent primitives group `color`. */
     color: OptionalField(nullable(ColorT), null, 'Color of the tube. If not specified, uses the parent primitives group `color`.'),
     /** Ellipsis center. */
@@ -119,6 +119,25 @@ const EllisisParams = {
     tooltip: OptionalField(nullable(str), null, 'Tooltip to show when hovering over the tube. If not specified, uses the parent primitives group `tooltip`.'),
 };
 
+const BoxParams = {
+    /** The center of the box. */
+    center: RequiredField(PrimitivePositionT, 'The center of the box.'),
+    /** The width, the height, and the depth of the box. Added to the bounding box determined by the center. */
+    extent: OptionalField(nullable(Vector3), null, 'The width, the height, and the depth of the box. Added to the bounding box determined by the center.'),
+    /** Determine whether to render the faces of the box. */
+    show_faces: OptionalField(bool, true, 'Determine whether to render the faces of the box.'),
+    /** Color of the box faces. */
+    face_color: OptionalField(nullable(ColorT), null, 'Color of the box faces.'),
+    /** Determine whether to render the edges of the box. */
+    show_edges: OptionalField(bool, false, 'Determine whether to render the edges of the box.'),
+    /** Radius of the box edges. In angstroms. */
+    edge_radius: OptionalField(float, 0.1, 'Radius of the box edges. In angstroms.'),
+    /** Color of the box edges. */
+    edge_color: OptionalField(nullable(ColorT), null, 'Color of the edges.'),
+    /** Tooltip to show when hovering over the tube. If not specified, uses the parent primitives group `tooltip`. */
+    tooltip: OptionalField(nullable(str), null, 'Tooltip to show when hovering over the tube. If not specified, uses the parent primitives group `tooltip`.'),
+};
+
 export const MVSPrimitiveParams = UnionParamsSchema(
     'kind',
     'Kind of geometrical primitive',
@@ -128,6 +147,7 @@ export const MVSPrimitiveParams = UnionParamsSchema(
         'tube': SimpleParamsSchema(TubeParams),
         'distance_measurement': SimpleParamsSchema(DistanceMeasurementParams),
         'label': SimpleParamsSchema(PrimitiveLabelParams),
-        'ellipsis': SimpleParamsSchema(EllisisParams),
+        'ellipsis': SimpleParamsSchema(EllipsisParams),
+        'box': SimpleParamsSchema(BoxParams),
     },
 );
