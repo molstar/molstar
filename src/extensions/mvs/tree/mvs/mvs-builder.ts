@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { deepClone, pickObjectKeys } from '../../../../mol-util/object';
@@ -275,6 +276,11 @@ class Primitives extends _Base<'primitives'> implements FocusMixin {
     /** Defines a label. */
     label(params: MVSPrimitiveSubparams<'label'> & CustomAndRef): Primitives {
         this.addChild('primitive', { kind: 'label', ...params });
+        return this;
+    }
+    /** Defines an ellipsis. */
+    ellipsis(params: MVSPrimitiveSubparams<'ellipsis'> & CustomAndRef): Primitives {
+        this.addChild('primitive', { kind: 'ellipsis', ...params });
         return this;
     }
     focus = bindMethod(this, FocusMixinImpl, 'focus');

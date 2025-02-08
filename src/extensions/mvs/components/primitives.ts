@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Adam Midlik <midlik@gmail.com>
@@ -12,6 +12,8 @@ import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Text } from '../../../mol-geo/geometry/text/text';
 import { TextBuilder } from '../../../mol-geo/geometry/text/text-builder';
+import { Circle } from '../../../mol-geo/primitive/circle';
+import { Primitive } from '../../../mol-geo/primitive/primitive';
 import { Box3D, Sphere3D } from '../../../mol-math/geometry';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { Shape } from '../../../mol-model/shape';
@@ -291,6 +293,16 @@ const Builders: Record<PrimitiveParams['kind'], PrimitiveBuilder> = {
         },
         resolveRefs: resolveLineRefs,
     },
+    ellipsis: {
+        builders: {
+            mesh: addEllipsisMesh,
+        },
+        resolveRefs: (params: PrimitiveParams<'ellipsis'>, refs: Set<string>) => {
+            addRef(params.center, refs);
+            addRef(params.major_axis, refs);
+            addRef(params.minor_axis, refs);
+        },
+    }
 };
 
 
@@ -659,4 +671,75 @@ function addPrimitiveLabel(context: PrimitiveBuilderContext, state: LabelBuilder
     groups.updateSize(group, params.label_size);
 
     labels.add(params.text, labelPos[0], labelPos[1], labelPos[2], params.label_offset, 1, group);
+}
+
+const circleCache = new Map<string, Primitive>();
+
+function getCircle(options: { thetaStart?: number, thetaEnd?: number }) {
+    const key = JSON.stringify(options);
+    if (circleCache.has(key)) return circleCache.get(key)!;
+    const thetaLength = (options.thetaEnd ?? 2 * Math.PI) - (options.thetaStart ?? 0);
+    if (Math.abs(thetaLength) < 1e-3) return null;
+
+    const circle = Circle({
+        radius: 1,
+        thetaStart: options.thetaStart ?? 0,
+        thetaLength,
+        segments: Math.ceil(2 * Math.PI / thetaLength * 64),
+    });
+    circleCache.set(key, circle);
+    return circle;
+}
+
+const ellipsis = {
+    centerPos: Vec3.zero(),
+    majorPos: Vec3.zero(),
+    minorPos: Vec3.zero(),
+    majorAxis: Vec3.zero(),
+    minorAxis: Vec3.zero(),
+    scale: Vec3.zero(),
+    normal: Vec3.zero(),
+    rotationAxis: Vec3.zero(),
+    scaleXform: Mat4.identity(),
+    rotationXform: Mat4.identity(),
+    translationXform: Mat4.identity(),
+    xform: Mat4.zero(),
+};
+
+
+function addEllipsisMesh(context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'ellipsis'>) {
+    // Unit circle in the XZ plane (Y up)
+    const circle = getCircle({ thetaStart: params.theta_start, thetaEnd: params.theta_end });
+    if (!circle) return;
+
+    resolvePosition(context, params.center, ellipsis.centerPos, undefined, undefined);
+    resolvePosition(context, params.major_axis, ellipsis.majorPos, undefined, undefined);
+    resolvePosition(context, params.minor_axis, ellipsis.minorPos, undefined, undefined);
+
+    Vec3.sub(ellipsis.majorAxis, ellipsis.majorPos, ellipsis.centerPos);
+    Vec3.sub(ellipsis.minorAxis, ellipsis.minorPos, ellipsis.centerPos);
+
+    const { mesh, groups } = state;
+
+    // Translation
+    Mat4.fromTranslation(ellipsis.translationXform, ellipsis.centerPos);
+
+    // Scale
+    Vec3.set(ellipsis.scale, Vec3.magnitude(ellipsis.majorAxis), 1, Vec3.magnitude(ellipsis.minorAxis));
+    Mat4.fromScaling(ellipsis.scaleXform, ellipsis.scale);
+
+    // Rotation
+    Vec3.cross(ellipsis.normal, ellipsis.majorAxis, ellipsis.minorAxis);
+    Vec3.cross(ellipsis.rotationAxis, Vec3.unitY, ellipsis.normal);
+    Mat4.fromRotation(ellipsis.rotationXform, -Vec3.angle(Vec3.unitY, ellipsis.normal), ellipsis.rotationAxis);
+
+    // Final xform
+    Mat4.mul3(ellipsis.xform, ellipsis.translationXform, ellipsis.scaleXform, ellipsis.rotationXform);
+
+    mesh.currentGroup = groups.allocateSingle(node);
+    groups.updateColor(mesh.currentGroup, params.color);
+    groups.updateTooltip(mesh.currentGroup, params.tooltip);
+
+    MeshBuilder.addPrimitive(mesh, ellipsis.xform, circle);
+    MeshBuilder.addPrimitiveFlipped(mesh, ellipsis.xform, circle);
 }

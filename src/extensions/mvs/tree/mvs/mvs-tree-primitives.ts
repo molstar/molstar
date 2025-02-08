@@ -102,6 +102,23 @@ const PrimitiveLabelParams = {
     label_offset: OptionalField(float, 0, 'Camera-facing offset to prevent overlap with geometry.'),
 };
 
+const EllisisParams = {
+    /** Color of the primitive. If not specified, uses the parent primitives group `color`. */
+    color: OptionalField(nullable(ColorT), null, 'Color of the tube. If not specified, uses the parent primitives group `color`.'),
+    /** Ellipsis center. */
+    center: RequiredField(PrimitivePositionT, 'The center of the ellipsis.'),
+    /** Major axis of this circle. Computed as major_axis - center */
+    major_axis: RequiredField(PrimitivePositionT, 'Major axis of this circle. Computed as major_axis - center'),
+    /** Minor axis of this circle. Computed as minor_axis - center */
+    minor_axis: RequiredField(PrimitivePositionT, 'Minor axis of this circle. Computed as minor_axis - center'),
+    /** Start of the arc. In radians */
+    theta_start: OptionalField(float, 0, 'Start of the arc. In radians'),
+    /** End of the arc. In radians */
+    theta_end: OptionalField(float, 2 * Math.PI, 'End of the arc. In radians'),
+    /** Tooltip to show when hovering over the tube. If not specified, uses the parent primitives group `tooltip`. */
+    tooltip: OptionalField(nullable(str), null, 'Tooltip to show when hovering over the tube. If not specified, uses the parent primitives group `tooltip`.'),
+};
+
 export const MVSPrimitiveParams = UnionParamsSchema(
     'kind',
     'Kind of geometrical primitive',
@@ -111,5 +128,6 @@ export const MVSPrimitiveParams = UnionParamsSchema(
         'tube': SimpleParamsSchema(TubeParams),
         'distance_measurement': SimpleParamsSchema(DistanceMeasurementParams),
         'label': SimpleParamsSchema(PrimitiveLabelParams),
+        'ellipsis': SimpleParamsSchema(EllisisParams),
     },
 );
