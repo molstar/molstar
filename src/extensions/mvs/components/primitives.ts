@@ -300,8 +300,8 @@ const Builders: Record<PrimitiveParams['kind'], PrimitiveBuilder> = {
         },
         resolveRefs: (params: PrimitiveParams<'ellipsis'>, refs: Set<string>) => {
             addRef(params.center, refs);
-            addRef(params.major_axis, refs);
-            addRef(params.minor_axis, refs);
+            if (params.major_axis_endpoint) addRef(params.major_axis_endpoint, refs);
+            if (params.minor_axis_endpoint) addRef(params.minor_axis_endpoint, refs);
         },
     },
     box: {
@@ -722,11 +722,20 @@ function addEllipsisMesh(context: PrimitiveBuilderContext, state: MeshBuilderSta
     if (!circle) return;
 
     resolvePosition(context, params.center, EllipsisState.centerPos, undefined, undefined);
-    resolvePosition(context, params.major_axis, EllipsisState.majorPos, undefined, undefined);
-    resolvePosition(context, params.minor_axis, EllipsisState.minorPos, undefined, undefined);
 
-    Vec3.sub(EllipsisState.majorAxis, EllipsisState.majorPos, EllipsisState.centerPos);
-    Vec3.sub(EllipsisState.minorAxis, EllipsisState.minorPos, EllipsisState.centerPos);
+    if (params.major_axis_endpoint) {
+        resolvePosition(context, params.major_axis_endpoint, EllipsisState.majorPos, undefined, undefined);
+        Vec3.sub(EllipsisState.majorAxis, EllipsisState.majorPos, EllipsisState.centerPos);
+    } else {
+        Vec3.copy(EllipsisState.majorAxis, params.major_axis as Vec3);
+    }
+
+    if (params.minor_axis_endpoint) {
+        resolvePosition(context, params.minor_axis_endpoint, EllipsisState.minorPos, undefined, undefined);
+        Vec3.sub(EllipsisState.minorAxis, EllipsisState.minorPos, EllipsisState.centerPos);
+    } else {
+        Vec3.copy(EllipsisState.minorAxis, params.minor_axis as Vec3);
+    }
 
     const { mesh, groups } = state;
 
