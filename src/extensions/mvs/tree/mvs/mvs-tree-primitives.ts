@@ -105,6 +105,8 @@ const PrimitiveLabelParams = {
 const EllipsisParams = {
     /** Color of the primitive. If not specified, uses the parent primitives group `color`. */
     color: OptionalField(nullable(ColorT), null, 'Color of the tube. If not specified, uses the parent primitives group `color`.'),
+    /** If true, ignores radius_minor/magnitude of the minor axis */
+    as_circle: OptionalField(bool, false, 'If true, ignores radius_minor/magnitude of the minor axis.'),
     /** Ellipsis center. */
     center: RequiredField(PrimitivePositionT, 'The center of the ellipsis.'),
     /** Major axis of this ellipsis. */
@@ -115,6 +117,10 @@ const EllipsisParams = {
     major_axis_endpoint: OptionalField(nullable(PrimitivePositionT), null, 'Major axis endpoint. If specified, overrides major axis to be major_axis_endpoint - center.'),
     /** Minor axis endpoint. If specified, overrides minor axis to be minor_axis_endpoint - center. */
     minor_axis_endpoint: OptionalField(nullable(PrimitivePositionT), null, 'Minor axis endpoint. If specified, overrides minor axis to be minor_axis_endpoint - center.'),
+    /** Radius of the major axis. If unset, the length of the major axis is used. */
+    radius_major: OptionalField(nullable(float), null, 'Radius of the major axis. If unset, the length of the major axis is used.'),
+    /** Radius of the minor axis. If unset, the length of the minor axis is used. */
+    radius_minor: OptionalField(nullable(float), null, 'Radius of the minor axis. If unset, the length of the minor axis is used.'),
     /** Start of the arc. In radians */
     theta_start: OptionalField(float, 0, 'Start of the arc. In radians'),
     /** End of the arc. In radians */

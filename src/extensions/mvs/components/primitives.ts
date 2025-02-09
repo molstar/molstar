@@ -743,7 +743,14 @@ function addEllipsisMesh(context: PrimitiveBuilderContext, state: MeshBuilderSta
     Mat4.fromTranslation(EllipsisState.translationXform, EllipsisState.centerPos);
 
     // Scale
-    Vec3.set(EllipsisState.scale, Vec3.magnitude(EllipsisState.majorAxis), 1, Vec3.magnitude(EllipsisState.minorAxis));
+    if (params.as_circle) {
+        const r = params.radius_major ?? Vec3.magnitude(EllipsisState.majorAxis);
+        Vec3.set(EllipsisState.scale, r, 1, r);
+    } else {
+        const major = params.radius_major ?? Vec3.magnitude(EllipsisState.majorAxis);
+        const minor = params.radius_minor ?? Vec3.magnitude(EllipsisState.minorAxis);
+        Vec3.set(EllipsisState.scale, major, 1, minor);
+    }
     Mat4.fromScaling(EllipsisState.scaleXform, EllipsisState.scale);
 
     // Rotation
