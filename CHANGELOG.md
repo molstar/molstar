@@ -7,6 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Fix PDBj structure data URL
 - Improve logic when to cull in renderer
+- MolViewSpec extension: Add box, arrow, ellipsis, ellipsoid primitives
 
 ## [v4.11.0] - 2025-01-26
 
