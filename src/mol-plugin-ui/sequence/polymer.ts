@@ -1,17 +1,17 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { StructureSelection, StructureQuery, Structure, Queries, StructureProperties as SP, StructureElement, Unit } from '../../mol-model/structure';
-import { SequenceWrapper, StructureUnit } from './wrapper';
-import { OrderedSet, Interval, SortedArray } from '../../mol-data/int';
+import { Interval, OrderedSet, SortedArray } from '../../mol-data/int';
 import { Loci } from '../../mol-model/loci';
 import { Sequence } from '../../mol-model/sequence';
+import { Queries, StructureProperties as SP, Structure, StructureElement, StructureQuery, StructureSelection, Unit } from '../../mol-model/structure';
 import { MissingResidues } from '../../mol-model/structure/model/properties/common';
 import { ColorNames } from '../../mol-util/color/names';
-import { MarkerAction, applyMarkerAction, applyMarkerActionAtPosition } from '../../mol-util/marker-action';
+import { SequenceWrapper, StructureUnit } from './wrapper';
 
 export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
     private readonly unitMap: Map<number, Unit>;
@@ -41,28 +41,30 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
             : 'msp-sequence-present';
     }
 
-    mark(loci: Loci, action: MarkerAction): boolean {
-        let changed = false;
+    override getSeqIndices(loci: Loci): OrderedSet {
         const { structure } = this.data;
         const index = (seqId: number) => this.sequence.index(seqId);
+
         if (StructureElement.Loci.is(loci)) {
-            if (!Structure.areRootsEquivalent(loci.structure, structure)) return false;
+            if (!Structure.areRootsEquivalent(loci.structure, structure)) return Interval.Empty;
             loci = StructureElement.Loci.remap(loci, structure);
 
+            const out: number[] = [];
             for (const e of loci.elements) {
                 if (!this.unitMap.has(e.unit.id)) continue;
 
                 if (Unit.isAtomic(e.unit)) {
-                    changed = applyMarkerAtomic(e, action, this.markerArray, index) || changed;
+                    collectSeqIdxAtomic(out, e, index);
                 } else {
-                    changed = applyMarkerCoarse(e, action, this.markerArray, index) || changed;
+                    collectSeqIdxCoarse(out, e, index);
                 }
             }
+            return SortedArray.deduplicate(SortedArray.ofSortedArray(out));
         } else if (Structure.isLoci(loci)) {
-            if (!Structure.areRootsEquivalent(loci.structure, structure)) return false;
-            if (applyMarkerAction(this.markerArray, this.observed, action)) changed = true;
+            if (!Structure.areRootsEquivalent(loci.structure, structure)) return Interval.Empty;
+            return this.observed;
         }
-        return changed;
+        return Interval.Empty;
     }
 
     getLoci(seqIdx: number) {
@@ -75,9 +77,8 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
         const entitySeq = data.units[0].model.sequence.byEntityKey[SP.entity.key(l)];
 
         const length = entitySeq.sequence.length;
-        const markerArray = new Uint8Array(length);
 
-        super(data, markerArray, length);
+        super(data, length);
 
         this.unitMap = new Map();
         for (const unit of data.units) this.unitMap.set(unit.id, unit);
@@ -117,19 +118,20 @@ function createResidueQuery(chainGroupId: number, operatorName: string, label_se
     });
 }
 
-function applyMarkerAtomic(e: StructureElement.Loci.Element, action: MarkerAction, markerArray: Uint8Array, index: (seqId: number) => number) {
+function collectSeqIdxAtomic(out: number[], e: StructureElement.Loci.Element, index: (seqId: number) => number) {
     const { model, elements } = e.unit;
     const { index: residueIndex } = model.atomicHierarchy.residueAtomSegments;
     const { label_seq_id } = model.atomicHierarchy.residues;
 
     OrderedSet.forEachSegment(e.indices, i => residueIndex[elements[i]], rI => {
         const seqId = label_seq_id.value(rI);
-        applyMarkerActionAtPosition(markerArray, index(seqId), action);
+        const seqIdx = index(seqId);
+        out.push(seqIdx);
     });
     return true;
 }
 
-function applyMarkerCoarse(e: StructureElement.Loci.Element, action: MarkerAction, markerArray: Uint8Array, index: (seqId: number) => number) {
+function collectSeqIdxCoarse(out: number[], e: StructureElement.Loci.Element, index: (seqId: number) => number) {
     const { model, elements } = e.unit;
     const begin = Unit.isSpheres(e.unit) ? model.coarseHierarchy.spheres.seq_id_begin : model.coarseHierarchy.gaussians.seq_id_begin;
     const end = Unit.isSpheres(e.unit) ? model.coarseHierarchy.spheres.seq_id_end : model.coarseHierarchy.gaussians.seq_id_end;
@@ -137,7 +139,7 @@ function applyMarkerCoarse(e: StructureElement.Loci.Element, action: MarkerActio
     OrderedSet.forEach(e.indices, i => {
         const eI = elements[i];
         for (let s = index(begin.value(eI)), e = index(end.value(eI)); s <= e; s++) {
-            applyMarkerActionAtPosition(markerArray, s, action);
+            out.push(s);
         }
     });
     return true;

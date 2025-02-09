@@ -1,4 +1,5 @@
 @use "sass:math";
+@use "sass:color";
 
 .msp-control-row {
     position: relative;
@@ -332,7 +333,7 @@
 
 .msp-help:hover span {
     display: inline-block;
-    background: linear-gradient($default-background, change-color($default-background, $alpha: 0.8));
+    background: linear-gradient($default-background, color.change($default-background, $alpha: 0.8));
 }
 
 .msp-help-text {
