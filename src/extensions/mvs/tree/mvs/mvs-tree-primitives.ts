@@ -75,6 +75,37 @@ const TubeParams = {
     tooltip: OptionalField(nullable(str), null, 'Tooltip to show when hovering over the tube. If not specified, uses the parent primitives group `tooltip`.'),
 };
 
+const ArrowParams = {
+    /** Start point of the tube. */
+    start: RequiredField(PrimitivePositionT, 'Start point of the arrow.'),
+    /** End point of the tube. */
+    end: OptionalField(nullable(PrimitivePositionT), null, 'End point of the arrow.'),
+    /** If specified, the endpoint is computed as start + direction. */
+    direction: OptionalField(nullable(Vector3), null, 'If specified, the endpoint is computed as start + direction.'),
+    /** Length of the arrow. If unset, the distance between start and end is used. */
+    length: OptionalField(nullable(float), null, 'Length of the arrow. If unset, the distance between start and end is used.'),
+    /** Draw an arrow at the start of the arrow. */
+    arrow_start: OptionalField(bool, false, 'Draw an arrow at the start of the arrow.'),
+    /** Height of the arrow at the start. */
+    arrow_start_height: OptionalField(float, 0.1, 'Height of the arrow at the start.'),
+    /** Radius of the arrow at the start. */
+    arrow_start_radius: OptionalField(float, 0.1, ''),
+    /** Draw an arrow at the end of the arrow. */
+    arrow_end: OptionalField(bool, false, 'Draw an arrow at the end of the arrow.'),
+    /** Height of the arrow at the end. */
+    arrow_end_height: OptionalField(float, 0.1, 'Height of the arrow at the end.'),
+    /** Radius of the arrow at the end. */
+    arrow_end_radius: OptionalField(float, 0.1, 'Radius of the arrow at the end.'),
+    /** Tube radius (in Angstroms). */
+    radius: OptionalField(float, 0.05, 'Tube radius (in Angstroms).'),
+    /** Length of each dash and gap between dashes. If not specified (null), draw full line. */
+    dash_length: OptionalField(nullable(float), null, 'Length of each dash and gap between dashes. If not specified (null), draw full line.'),
+    /** Color of the tube. If not specified, uses the parent primitives group `color`. */
+    color: OptionalField(nullable(ColorT), null, 'Color of the tube. If not specified, uses the parent primitives group `color`.'),
+    /** Tooltip to show when hovering over the tube. If not specified, uses the parent primitives group `tooltip`. */
+    tooltip: OptionalField(nullable(str), null, 'Tooltip to show when hovering over the arrow. If not specified, uses the parent primitives group `tooltip`.'),
+};
+
 const DistanceMeasurementParams = {
     ..._TubeBase,
     /** Template used to construct the label. Use {{distance}} as placeholder for the distance. */
@@ -155,6 +186,7 @@ export const MVSPrimitiveParams = UnionParamsSchema(
         'mesh': SimpleParamsSchema(MeshParams),
         'lines': SimpleParamsSchema(LinesParams),
         'tube': SimpleParamsSchema(TubeParams),
+        'arrow': SimpleParamsSchema(ArrowParams),
         'distance_measurement': SimpleParamsSchema(DistanceMeasurementParams),
         'label': SimpleParamsSchema(PrimitiveLabelParams),
         'ellipsis': SimpleParamsSchema(EllipsisParams),

@@ -268,6 +268,11 @@ class Primitives extends _Base<'primitives'> implements FocusMixin {
         this.addChild('primitive', { kind: 'tube', ...params });
         return this;
     }
+    /** Defines an arrow. */
+    arrow(params: MVSPrimitiveSubparams<'arrow'> & CustomAndRef): Primitives {
+        this.addChild('primitive', { kind: 'arrow', ...params });
+        return this;
+    }
     /** Defines a tube, connecting a start and an end point, with label containing distance between start and end. */
     distance(params: MVSPrimitiveSubparams<'distance_measurement'> & CustomAndRef): Primitives {
         this.addChild('primitive', { kind: 'distance_measurement', ...params });

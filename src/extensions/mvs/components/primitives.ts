@@ -7,7 +7,7 @@
 
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 import { LinesBuilder } from '../../../mol-geo/geometry/lines/lines-builder';
-import { addFixedCountDashedCylinder, addSimpleCylinder, BasicCylinderProps } from '../../../mol-geo/geometry/mesh/builder/cylinder';
+import { addCylinder, addFixedCountDashedCylinder, addSimpleCylinder, BasicCylinderProps } from '../../../mol-geo/geometry/mesh/builder/cylinder';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Text } from '../../../mol-geo/geometry/text/text';
@@ -280,6 +280,15 @@ const Builders: Record<PrimitiveParams['kind'], PrimitiveBuilder> = {
             mesh: addTubeMesh,
         },
         resolveRefs: resolveLineRefs,
+    },
+    arrow: {
+        builders: {
+            mesh: addArrowMesh,
+        },
+        resolveRefs: (params: PrimitiveParams<'arrow'>, refs: Set<string>) => {
+            addRef(params.start, refs);
+            if (params.end) addRef(params.end, refs);
+        },
     },
     label: {
         builders: {
@@ -622,6 +631,84 @@ function addTubeMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBui
         addSimpleCylinder(mesh, lStart, lEnd, cylinderProps);
     }
 }
+
+const ArrowState = {
+    start: Vec3.zero(),
+    end: Vec3.zero(),
+    dir: Vec3.zero(),
+    startCap: Vec3.zero(),
+    endCap: Vec3.zero(),
+};
+
+function addArrowMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'arrow'>) {
+    resolveBasePosition(context, params.start, ArrowState.start);
+    if (params.end) {
+        resolveBasePosition(context, params.end, ArrowState.end);
+    }
+
+    if (params.direction) {
+        Vec3.add(ArrowState.end, ArrowState.start, params.direction as any as Vec3);
+    }
+
+    Vec3.sub(ArrowState.dir, ArrowState.end, ArrowState.start);
+    Vec3.normalize(ArrowState.dir, ArrowState.dir);
+
+    if (params.length) {
+        Vec3.scaleAndAdd(ArrowState.end, ArrowState.start, ArrowState.dir, params.length);
+    }
+
+    const length = Vec3.distance(ArrowState.start, ArrowState.end);
+    if (length < 1e-3) return;
+
+    const radius = params.radius;
+    const tubeProps: BasicCylinderProps = {
+        radiusBottom: radius,
+        radiusTop: radius,
+        topCap: !params.arrow_end,
+        bottomCap: !params.arrow_start,
+    };
+
+    mesh.currentGroup = groups.allocateSingle(node);
+    groups.updateColor(mesh.currentGroup, params.color);
+    groups.updateTooltip(mesh.currentGroup, params.tooltip);
+
+    const startRadius = params.arrow_start_radius ?? radius;
+    if (params.arrow_start) {
+        Vec3.scaleAndAdd(ArrowState.startCap, ArrowState.start, ArrowState.dir, startRadius);
+        addCylinder(mesh, ArrowState.start, ArrowState.startCap, 1, {
+            radiusBottom: startRadius,
+            radiusTop: 0,
+            topCap: false,
+            bottomCap: true,
+            radialSegments: 12,
+        });
+    } else {
+        Vec3.copy(ArrowState.startCap, ArrowState.start);
+    }
+
+    const endRadius = params.arrow_end_radius ?? radius;
+    if (params.arrow_end) {
+        Vec3.scaleAndAdd(ArrowState.endCap, ArrowState.end, ArrowState.dir, -endRadius);
+        addCylinder(mesh, ArrowState.end, ArrowState.endCap, 1, {
+            radiusBottom: endRadius,
+            radiusTop: 0,
+            topCap: false,
+            bottomCap: true,
+            radialSegments: 12,
+        });
+    } else {
+        Vec3.copy(ArrowState.endCap, ArrowState.end);
+    }
+
+    if (params.dash_length) {
+        const dist = Vec3.distance(ArrowState.startCap, ArrowState.endCap);
+        const count = Math.ceil(dist / (2 * params.dash_length));
+        addFixedCountDashedCylinder(mesh, ArrowState.startCap, ArrowState.endCap, 1.0, count, true, tubeProps);
+    } else {
+        addSimpleCylinder(mesh, ArrowState.startCap, ArrowState.endCap, tubeProps);
+    }
+}
+
 
 function getDistanceLabel(context: PrimitiveBuilderContext, params: PrimitiveParams<'distance_measurement'>) {
     resolveBasePosition(context, params.start, lStart);
