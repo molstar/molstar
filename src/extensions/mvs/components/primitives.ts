@@ -8,6 +8,7 @@
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 import { LinesBuilder } from '../../../mol-geo/geometry/lines/lines-builder';
 import { addCylinder, addFixedCountDashedCylinder, addSimpleCylinder, BasicCylinderProps } from '../../../mol-geo/geometry/mesh/builder/cylinder';
+import { addEllipsoid } from '../../../mol-geo/geometry/mesh/builder/ellipsoid';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Text } from '../../../mol-geo/geometry/text/text';
@@ -308,6 +309,16 @@ const Builders: Record<PrimitiveParams['kind'], PrimitiveBuilder> = {
             mesh: addEllipsisMesh,
         },
         resolveRefs: (params: PrimitiveParams<'ellipsis'>, refs: Set<string>) => {
+            addRef(params.center, refs);
+            if (params.major_axis_endpoint) addRef(params.major_axis_endpoint, refs);
+            if (params.minor_axis_endpoint) addRef(params.minor_axis_endpoint, refs);
+        },
+    },
+    ellipsoid: {
+        builders: {
+            mesh: addEllipsoidMesh,
+        },
+        resolveRefs: (params: PrimitiveParams<'ellipsoid'>, refs: Set<string>) => {
             addRef(params.center, refs);
             if (params.major_axis_endpoint) addRef(params.major_axis_endpoint, refs);
             if (params.minor_axis_endpoint) addRef(params.minor_axis_endpoint, refs);
@@ -816,14 +827,14 @@ function addEllipsisMesh(context: PrimitiveBuilderContext, state: MeshBuilderSta
         resolvePosition(context, params.major_axis_endpoint, EllipsisState.majorPos, undefined, undefined);
         Vec3.sub(EllipsisState.majorAxis, EllipsisState.majorPos, EllipsisState.centerPos);
     } else {
-        Vec3.copy(EllipsisState.majorAxis, params.major_axis as Vec3);
+        Vec3.copy(EllipsisState.majorAxis, params.major_axis as any as Vec3);
     }
 
     if (params.minor_axis_endpoint) {
         resolvePosition(context, params.minor_axis_endpoint, EllipsisState.minorPos, undefined, undefined);
         Vec3.sub(EllipsisState.minorAxis, EllipsisState.minorPos, EllipsisState.centerPos);
     } else {
-        Vec3.copy(EllipsisState.minorAxis, params.minor_axis as Vec3);
+        Vec3.copy(EllipsisState.minorAxis, params.minor_axis as any as Vec3);
     }
 
     const { mesh, groups } = state;
@@ -844,11 +855,13 @@ function addEllipsisMesh(context: PrimitiveBuilderContext, state: MeshBuilderSta
 
     // Rotation
     Vec3.cross(EllipsisState.normal, EllipsisState.majorAxis, EllipsisState.minorAxis);
+    Vec3.normalize(EllipsisState.normal, EllipsisState.normal);
     Vec3.cross(EllipsisState.rotationAxis, Vec3.unitY, EllipsisState.normal);
+    Vec3.normalize(EllipsisState.rotationAxis, EllipsisState.rotationAxis);
     Mat4.fromRotation(EllipsisState.rotationXform, -Vec3.angle(Vec3.unitY, EllipsisState.normal), EllipsisState.rotationAxis);
 
     // Final xform
-    Mat4.mul3(EllipsisState.xform, EllipsisState.translationXform, EllipsisState.scaleXform, EllipsisState.rotationXform);
+    Mat4.mul3(EllipsisState.xform, EllipsisState.translationXform, EllipsisState.rotationXform, EllipsisState.scaleXform);
 
     mesh.currentGroup = groups.allocateSingle(node);
     groups.updateColor(mesh.currentGroup, params.color);
@@ -857,6 +870,73 @@ function addEllipsisMesh(context: PrimitiveBuilderContext, state: MeshBuilderSta
     MeshBuilder.addPrimitive(mesh, EllipsisState.xform, circle);
     MeshBuilder.addPrimitiveFlipped(mesh, EllipsisState.xform, circle);
 }
+
+const EllipsoidState = {
+    centerPos: Vec3.zero(),
+    majorPos: Vec3.zero(),
+    minorPos: Vec3.zero(),
+    majorAxis: Vec3.zero(),
+    minorAxis: Vec3.zero(),
+    sphere: Sphere3D.zero(),
+    radius: Vec3.zero(),
+    extent: Vec3.zero(),
+    up: Vec3.zero(),
+};
+
+
+function addEllipsoidMesh(context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'ellipsoid'>) {
+    resolvePosition(context, params.center, EllipsoidState.centerPos, EllipsoidState.sphere, undefined);
+
+    if (params.major_axis_endpoint) {
+        resolvePosition(context, params.major_axis_endpoint, EllipsoidState.majorPos, undefined, undefined);
+        Vec3.sub(EllipsoidState.majorAxis, EllipsoidState.majorPos, EllipsoidState.centerPos);
+    } else if (params.major_axis) {
+        Vec3.copy(EllipsoidState.majorAxis, params.major_axis as any as Vec3);
+    } else {
+        Vec3.copy(EllipsoidState.majorAxis, Vec3.unitX);
+    }
+
+    if (params.minor_axis_endpoint) {
+        resolvePosition(context, params.minor_axis_endpoint, EllipsoidState.minorPos, undefined, undefined);
+        Vec3.sub(EllipsoidState.minorAxis, EllipsoidState.minorPos, EllipsoidState.centerPos);
+    } else if (params.minor_axis) {
+        Vec3.copy(EllipsoidState.minorAxis, params.minor_axis as any as Vec3);
+    } else {
+        Vec3.copy(EllipsoidState.minorAxis, Vec3.unitY);
+    }
+
+    if (typeof params.radius === 'number') {
+        Vec3.set(EllipsoidState.radius, params.radius, params.radius, params.radius);
+    } else if (params.radius) {
+        Vec3.copy(EllipsoidState.radius, params.radius as any as Vec3);
+    } else {
+        const r = EllipsoidState.sphere.radius;
+        Vec3.set(EllipsoidState.radius, r, r, r);
+    }
+
+    if (typeof params.radius_extent === 'number') {
+        Vec3.set(EllipsoidState.extent, params.radius_extent, params.radius_extent, params.radius_extent);
+    } else if (params.radius_extent) {
+        Vec3.copy(EllipsoidState.extent, params.radius_extent as any as Vec3);
+    } else {
+        Vec3.set(EllipsoidState.extent, 0, 0, 0);
+    }
+
+    Vec3.add(EllipsoidState.radius, EllipsoidState.radius, EllipsoidState.extent);
+
+    const { mesh, groups } = state;
+
+    mesh.currentGroup = groups.allocateSingle(node);
+    groups.updateColor(mesh.currentGroup, params.color);
+    groups.updateTooltip(mesh.currentGroup, params.tooltip);
+
+    Vec3.normalize(EllipsoidState.majorAxis, EllipsoidState.majorAxis);
+    Vec3.normalize(EllipsoidState.minorAxis, EllipsoidState.minorAxis);
+    Vec3.cross(EllipsoidState.up, EllipsoidState.majorAxis, EllipsoidState.minorAxis);
+
+    addEllipsoid(mesh, EllipsoidState.centerPos, EllipsoidState.up, EllipsoidState.minorAxis, EllipsoidState.radius, 3);
+}
+
 
 const BoxState = {
     center: Vec3.zero(),

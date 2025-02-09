@@ -288,6 +288,11 @@ class Primitives extends _Base<'primitives'> implements FocusMixin {
         this.addChild('primitive', { kind: 'ellipsis', ...params });
         return this;
     }
+    /** Defines an ellipsoid */
+    ellipsoid(params: MVSPrimitiveSubparams<'ellipsoid'> & CustomAndRef): Primitives {
+        this.addChild('primitive', { kind: 'ellipsoid', ...params });
+        return this;
+    }
     /** Defines a box. */
     box(params: MVSPrimitiveSubparams<'box'> & CustomAndRef): Primitives {
         this.addChild('primitive', { kind: 'box', ...params });

@@ -5,7 +5,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { bool, float, int, mapping, nullable, OptionalField, RequiredField, str } from '../generic/field-schema';
+import { bool, float, int, mapping, nullable, OptionalField, RequiredField, str, union } from '../generic/field-schema';
 import { SimpleParamsSchema, UnionParamsSchema } from '../generic/params-schema';
 import { ColorT, FloatList, IntList, PrimitivePositionT, Vector3 } from './param-types';
 
@@ -137,15 +137,15 @@ const PrimitiveLabelParams = {
 
 const EllipsisParams = {
     /** Color of the primitive. If not specified, uses the parent primitives group `color`. */
-    color: OptionalField(nullable(ColorT), null, 'Color of the tube. If not specified, uses the parent primitives group `color`.'),
+    color: OptionalField(nullable(ColorT), null, 'Color of the ellipsis. If not specified, uses the parent primitives group `color`.'),
     /** If true, ignores radius_minor/magnitude of the minor axis */
     as_circle: OptionalField(bool, false, 'If true, ignores radius_minor/magnitude of the minor axis.'),
     /** Ellipsis center. */
     center: RequiredField(PrimitivePositionT, 'The center of the ellipsis.'),
     /** Major axis of this ellipsis. */
-    major_axis: OptionalField(nullable(PrimitivePositionT), null, 'Major axis of this ellipsis.'),
+    major_axis: OptionalField(nullable(Vector3), null, 'Major axis of this ellipsis.'),
     /** Minor axis of this ellipsis. */
-    minor_axis: OptionalField(nullable(PrimitivePositionT), null, 'Minor axis of this ellipsis.'),
+    minor_axis: OptionalField(nullable(Vector3), null, 'Minor axis of this ellipsis.'),
     /** Major axis endpoint. If specified, overrides major axis to be major_axis_endpoint - center. */
     major_axis_endpoint: OptionalField(nullable(PrimitivePositionT), null, 'Major axis endpoint. If specified, overrides major axis to be major_axis_endpoint - center.'),
     /** Minor axis endpoint. If specified, overrides minor axis to be minor_axis_endpoint - center. */
@@ -158,6 +158,27 @@ const EllipsisParams = {
     theta_start: OptionalField(float, 0, 'Start of the arc. In radians'),
     /** End of the arc. In radians */
     theta_end: OptionalField(float, 2 * Math.PI, 'End of the arc. In radians'),
+    /** Tooltip to show when hovering over the tube. If not specified, uses the parent primitives group `tooltip`. */
+    tooltip: OptionalField(nullable(str), null, 'Tooltip to show when hovering over the tube. If not specified, uses the parent primitives group `tooltip`.'),
+};
+
+const EllipsoidParams = {
+    /** Color of the primitive. If not specified, uses the parent primitives group `color`. */
+    color: OptionalField(nullable(ColorT), null, 'Color of the ellipsoid. If not specified, uses the parent primitives group `color`.'),
+    /** Ellipsis center. */
+    center: RequiredField(PrimitivePositionT, 'The center of the ellipsis.'),
+    /** Major axis of this ellipsis. */
+    major_axis: OptionalField(nullable(Vector3), null, 'Major axis of this ellipsoid.'),
+    /** Minor axis of this ellipsis. */
+    minor_axis: OptionalField(nullable(Vector3), null, 'Minor axis of this ellipsoid.'),
+    /** Major axis endpoint. If specified, overrides major axis to be major_axis_endpoint - center. */
+    major_axis_endpoint: OptionalField(nullable(PrimitivePositionT), null, 'Major axis endpoint. If specified, overrides major axis to be major_axis_endpoint - center.'),
+    /** Minor axis endpoint. If specified, overrides minor axis to be minor_axis_endpoint - center. */
+    minor_axis_endpoint: OptionalField(nullable(PrimitivePositionT), null, 'Minor axis endpoint. If specified, overrides minor axis to be minor_axis_endpoint - center.'),
+    /** Radii of the ellipsoid along each axis. */
+    radius: OptionalField(nullable(union([Vector3, float])), null, 'Radii of the ellipsoid along each axis.'),
+    /** Added to the radii of the ellipsoid along each axis. */
+    radius_extent: OptionalField(nullable(union([Vector3, float])), null, 'Added to the radii of the ellipsoid along each axis.'),
     /** Tooltip to show when hovering over the tube. If not specified, uses the parent primitives group `tooltip`. */
     tooltip: OptionalField(nullable(str), null, 'Tooltip to show when hovering over the tube. If not specified, uses the parent primitives group `tooltip`.'),
 };
@@ -192,6 +213,7 @@ export const MVSPrimitiveParams = UnionParamsSchema(
         'distance_measurement': SimpleParamsSchema(DistanceMeasurementParams),
         'label': SimpleParamsSchema(PrimitiveLabelParams),
         'ellipsis': SimpleParamsSchema(EllipsisParams),
+        'ellipsoid': SimpleParamsSchema(EllipsoidParams),
         'box': SimpleParamsSchema(BoxParams),
     },
 );
