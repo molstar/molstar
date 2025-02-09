@@ -96,10 +96,12 @@ const ArrowParams = {
     arrow_end_height: OptionalField(float, 0.1, 'Height of the arrow at the end.'),
     /** Radius of the arrow at the end. */
     arrow_end_radius: OptionalField(float, 0.1, 'Radius of the arrow at the end.'),
+    /** Draw a tube connecting the start and end points. */
+    show_tube: OptionalField(bool, true, 'Draw a tube connecting the start and end points.'),
     /** Tube radius (in Angstroms). */
-    radius: OptionalField(float, 0.05, 'Tube radius (in Angstroms).'),
+    tube_radius: OptionalField(float, 0.05, 'Tube radius (in Angstroms).'),
     /** Length of each dash and gap between dashes. If not specified (null), draw full line. */
-    dash_length: OptionalField(nullable(float), null, 'Length of each dash and gap between dashes. If not specified (null), draw full line.'),
+    tube_dash_length: OptionalField(nullable(float), null, 'Length of each dash and gap between dashes. If not specified (null), draw full line.'),
     /** Color of the tube. If not specified, uses the parent primitives group `color`. */
     color: OptionalField(nullable(ColorT), null, 'Color of the tube. If not specified, uses the parent primitives group `color`.'),
     /** Tooltip to show when hovering over the tube. If not specified, uses the parent primitives group `tooltip`. */

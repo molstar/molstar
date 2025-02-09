@@ -660,10 +660,10 @@ function addArrowMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBu
     const length = Vec3.distance(ArrowState.start, ArrowState.end);
     if (length < 1e-3) return;
 
-    const radius = params.radius;
+    const tubeRadius = params.tube_radius;
     const tubeProps: BasicCylinderProps = {
-        radiusBottom: radius,
-        radiusTop: radius,
+        radiusBottom: tubeRadius,
+        radiusTop: tubeRadius,
         topCap: !params.arrow_end,
         bottomCap: !params.arrow_start,
     };
@@ -672,7 +672,7 @@ function addArrowMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBu
     groups.updateColor(mesh.currentGroup, params.color);
     groups.updateTooltip(mesh.currentGroup, params.tooltip);
 
-    const startRadius = params.arrow_start_radius ?? radius;
+    const startRadius = params.arrow_start_radius ?? tubeRadius;
     if (params.arrow_start) {
         Vec3.scaleAndAdd(ArrowState.startCap, ArrowState.start, ArrowState.dir, startRadius);
         addCylinder(mesh, ArrowState.start, ArrowState.startCap, 1, {
@@ -686,7 +686,7 @@ function addArrowMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBu
         Vec3.copy(ArrowState.startCap, ArrowState.start);
     }
 
-    const endRadius = params.arrow_end_radius ?? radius;
+    const endRadius = params.arrow_end_radius ?? tubeRadius;
     if (params.arrow_end) {
         Vec3.scaleAndAdd(ArrowState.endCap, ArrowState.end, ArrowState.dir, -endRadius);
         addCylinder(mesh, ArrowState.end, ArrowState.endCap, 1, {
@@ -700,12 +700,14 @@ function addArrowMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBu
         Vec3.copy(ArrowState.endCap, ArrowState.end);
     }
 
-    if (params.dash_length) {
-        const dist = Vec3.distance(ArrowState.startCap, ArrowState.endCap);
-        const count = Math.ceil(dist / (2 * params.dash_length));
-        addFixedCountDashedCylinder(mesh, ArrowState.startCap, ArrowState.endCap, 1.0, count, true, tubeProps);
-    } else {
-        addSimpleCylinder(mesh, ArrowState.startCap, ArrowState.endCap, tubeProps);
+    if (params.show_tube) {
+        if (params.tube_dash_length) {
+            const dist = Vec3.distance(ArrowState.startCap, ArrowState.endCap);
+            const count = Math.ceil(dist / (2 * params.tube_dash_length));
+            addFixedCountDashedCylinder(mesh, ArrowState.startCap, ArrowState.endCap, 1.0, count, true, tubeProps);
+        } else {
+            addSimpleCylinder(mesh, ArrowState.startCap, ArrowState.endCap, tubeProps);
+        }
     }
 }
 
