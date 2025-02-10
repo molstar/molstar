@@ -281,7 +281,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             const isHelixNext3 = isHelixSS(ssNext3);
 
             // handle positions for tubular helices
-            if (this.helixOrientationCenters && !(value.secStrucFirst && value.secStrucLast)) {
+            if (this.helixOrientationCenters && !(isHelix && value.secStrucFirst && value.secStrucLast)) {
                 if (isHelix !== isHelixPrev1) {
                     if (isHelix) {
                         Vec3.copy(this.p0, this.p3);
@@ -353,7 +353,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
                 this.setFromToVector(this.d34, residueIndexNext2, ssNext2);
             }
 
-            const helixFlag = isHelix && this.helixOrientationCenters && !(value.secStrucFirst && value.secStrucLast);
+            const helixFlag = isHelix && this.helixOrientationCenters;
 
             // extend termini
             const f = 1.5;
