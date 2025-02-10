@@ -18,7 +18,6 @@ import { objectForEach } from '../../mol-util/object';
 import { PLUGIN_VERSION } from '../../mol-plugin/version';
 import { canvasToBlob } from '../../mol-canvas3d/util';
 import { Task } from '../../mol-task';
-import { PluginCommands } from '../../mol-plugin/commands';
 
 export { PluginStateSnapshotManager };
 
@@ -177,7 +176,8 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
     applyNext(dir: -1 | 1) {
         const next = this.getNextId(this.state.current, dir);
         if (next) {
-            PluginCommands.State.Snapshots.Apply(this.plugin, { id: next });
+            const snapshot = this.setCurrent(next);
+            if (snapshot) return this.plugin.state.setSnapshot(snapshot);
         }
     }
 
