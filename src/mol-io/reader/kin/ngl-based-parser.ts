@@ -15,6 +15,8 @@
 // import { Vector3 } from 'three'
 // import Parser from './parser'
 
+/// @todo Fill in commments
+
 import { Kinemage, RibbonObject } from './schema';
 
 function hsvToRgb (h: number, s: number, v: number) {
@@ -315,6 +317,7 @@ class KinParser {
     // http://kinemage.biochem.duke.edu/software/king.php
 
     const kinemage: Kinemage = {
+      comments: [],
       kinemage: undefined,
       onewidth: undefined,
       '1viewid': undefined,
