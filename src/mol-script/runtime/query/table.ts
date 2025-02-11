@@ -373,6 +373,21 @@ const symbols = [
         return seqId >= StructureProperties.coarse.seq_id_begin(current) && seqId <= StructureProperties.coarse.seq_id_end(current);
     }),
 
+    D(MolScript.structureQuery.atomProperty.ihm.overlapsSeqIdRange, function structureQuery_atomProperty_ihm_hasSeqId(ctx, xs) {
+        const current = ctx.element;
+        const beg = (xs && xs.beg && xs.beg(ctx) as any) ?? -Number.MAX_VALUE;
+        const end = (xs && xs.end && xs.end(ctx) as any) ?? Number.MAX_VALUE;
+        if (current.unit.kind === Unit.Kind.Atomic) {
+            const value = StructureProperties.residue.label_seq_id(current);
+            return value >= beg && value <= end;
+        }
+
+        const a = StructureProperties.coarse.seq_id_begin(current);
+        const b = StructureProperties.coarse.seq_id_end(current);
+
+        return (a >= beg && a <= end) || (b >= beg && b <= end) || (a <= beg && b >= end);
+    }),
+
     // ============= ATOM SET ================
 
     D(MolScript.structureQuery.atomSet.atomCount,

@@ -286,8 +286,11 @@ export function rowToExpression(row: MVSAnnotationRow): Expression {
     }
     if (isDefined(row.auth_seq_id)) residueTests.push(eq([macromolecular.auth_seq_id(), row.auth_seq_id]));
     if (isDefined(row.pdbx_PDB_ins_code)) residueTests.push(eq([macromolecular.pdbx_PDB_ins_code(), row.pdbx_PDB_ins_code]));
-    if (isDefined(row.beg_label_seq_id)) residueTests.push(gte([macromolecular.label_seq_id(), row.beg_label_seq_id]));
-    if (isDefined(row.end_label_seq_id)) residueTests.push(lte([macromolecular.label_seq_id(), row.end_label_seq_id]));
+
+    if (isDefined(row.beg_label_seq_id) || isDefined(row.end_label_seq_id)) {
+        residueTests.push(ihm.overlapsSeqIdRange({ beg: row.beg_label_seq_id, end: row.end_label_seq_id }));
+    }
+
     if (isDefined(row.beg_auth_seq_id)) residueTests.push(gte([macromolecular.auth_seq_id(), row.beg_auth_seq_id]));
     if (isDefined(row.end_auth_seq_id)) residueTests.push(lte([macromolecular.auth_seq_id(), row.end_auth_seq_id]));
     if (residueTests.length === 1) {

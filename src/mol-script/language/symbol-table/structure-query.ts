@@ -330,6 +330,7 @@ const atomProperty = {
 
     ihm: {
         hasSeqId: symbol(Arguments.Dictionary({ 0: Argument(Type.Num) }), Type.Bool, 'Checks if the current element represents a given sequence id'),
+        overlapsSeqIdRange: symbol(Arguments.Dictionary({ beg: Argument(Type.Num), end: Argument(Type.Num) }), Type.Bool, 'Checks if the current element overlaps with the specified residue range'),
     },
 };
 
