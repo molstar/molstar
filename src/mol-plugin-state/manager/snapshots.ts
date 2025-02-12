@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -36,6 +36,11 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         changed: this.ev(),
         opened: this.ev(),
     };
+
+    get current() {
+        const id = this.state.current;
+        return this.state.entries.find(e => e.snapshot.id === id);
+    }
 
     getIndex(e: PluginStateSnapshotManager.Entry) {
         return this.state.entries.indexOf(e);
@@ -166,6 +171,14 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         if (idx < 0) idx += len;
 
         return this.state.entries.get(idx)!.snapshot.id;
+    }
+
+    applyNext(dir: -1 | 1) {
+        const next = this.getNextId(this.state.current, dir);
+        if (next) {
+            const snapshot = this.setCurrent(next);
+            if (snapshot) return this.plugin.state.setSnapshot(snapshot);
+        }
     }
 
     async setStateSnapshot(snapshot: PluginStateSnapshotManager.StateSnapshot): Promise<PluginState.Snapshot | undefined> {
