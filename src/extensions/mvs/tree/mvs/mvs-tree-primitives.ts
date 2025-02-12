@@ -5,9 +5,9 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { bool, float, int, mapping, nullable, OptionalField, RequiredField, str } from '../generic/field-schema';
+import { bool, float, int, mapping, nullable, OptionalField, RequiredField, str, union } from '../generic/field-schema';
 import { SimpleParamsSchema, UnionParamsSchema } from '../generic/params-schema';
-import { ColorT, FloatList, IntList, PrimitivePositionT } from './param-types';
+import { ColorT, FloatList, IntList, PrimitivePositionT, Vector3 } from './param-types';
 
 
 const _TubeBase = {
@@ -75,6 +75,39 @@ const TubeParams = {
     tooltip: OptionalField(nullable(str), null, 'Tooltip to show when hovering over the tube. If not specified, uses the parent primitives group `tooltip`.'),
 };
 
+const ArrowParams = {
+    /** Start point of the tube. */
+    start: RequiredField(PrimitivePositionT, 'Start point of the arrow.'),
+    /** End point of the tube. */
+    end: OptionalField(nullable(PrimitivePositionT), null, 'End point of the arrow.'),
+    /** If specified, the endpoint is computed as start + direction. */
+    direction: OptionalField(nullable(Vector3), null, 'If specified, the endpoint is computed as start + direction.'),
+    /** Length of the arrow. If unset, the distance between start and end is used. */
+    length: OptionalField(nullable(float), null, 'Length of the arrow. If unset, the distance between start and end is used.'),
+    /** Draw a cap at the start of the arrow. */
+    show_start_cap: OptionalField(bool, false, 'Draw a cap at the start of the arrow.'),
+    /** Length of the start cap. */
+    start_cap_length: OptionalField(float, 0.1, 'Length of the start cap.'),
+    /** Radius of the start cap. */
+    start_cap_radius: OptionalField(float, 0.1, 'Radius of the start cap.'),
+    /** Draw an arrow at the end of the arrow. */
+    show_end_cap: OptionalField(bool, false, 'Draw a cap at the end of the arrow.'),
+    /** Height of the arrow at the end. */
+    end_cap_length: OptionalField(float, 0.1, 'Length of the end cap.'),
+    /** Radius of the arrow at the end. */
+    end_cap_radius: OptionalField(float, 0.1, 'Radius of the end cap.'),
+    /** Draw a tube connecting the start and end points. */
+    show_tube: OptionalField(bool, true, 'Draw a tube connecting the start and end points.'),
+    /** Tube radius (in Angstroms). */
+    tube_radius: OptionalField(float, 0.05, 'Tube radius (in Angstroms).'),
+    /** Length of each dash and gap between dashes. If not specified (null), draw full line. */
+    tube_dash_length: OptionalField(nullable(float), null, 'Length of each dash and gap between dashes. If not specified (null), draw full line.'),
+    /** Color of the tube. If not specified, uses the parent primitives group `color`. */
+    color: OptionalField(nullable(ColorT), null, 'Color of the tube. If not specified, uses the parent primitives group `color`.'),
+    /** Tooltip to show when hovering over the tube. If not specified, uses the parent primitives group `tooltip`. */
+    tooltip: OptionalField(nullable(str), null, 'Tooltip to show when hovering over the arrow. If not specified, uses the parent primitives group `tooltip`.'),
+};
+
 const DistanceMeasurementParams = {
     ..._TubeBase,
     /** Template used to construct the label. Use {{distance}} as placeholder for the distance. */
@@ -102,6 +135,73 @@ const PrimitiveLabelParams = {
     label_offset: OptionalField(float, 0, 'Camera-facing offset to prevent overlap with geometry.'),
 };
 
+const EllipseParams = {
+    /** Color of the primitive. If not specified, uses the parent primitives group `color`. */
+    color: OptionalField(nullable(ColorT), null, 'Color of the ellipse. If not specified, uses the parent primitives group `color`.'),
+    /** If true, ignores radius_minor/magnitude of the minor axis */
+    as_circle: OptionalField(bool, false, 'If true, ignores radius_minor/magnitude of the minor axis.'),
+    /** ellipse center. */
+    center: RequiredField(PrimitivePositionT, 'The center of the ellipse.'),
+    /** Major axis of this ellipse. */
+    major_axis: OptionalField(nullable(Vector3), null, 'Major axis of this ellipse.'),
+    /** Minor axis of this ellipse. */
+    minor_axis: OptionalField(nullable(Vector3), null, 'Minor axis of this ellipse.'),
+    /** Major axis endpoint. If specified, overrides major axis to be major_axis_endpoint - center. */
+    major_axis_endpoint: OptionalField(nullable(PrimitivePositionT), null, 'Major axis endpoint. If specified, overrides major axis to be major_axis_endpoint - center.'),
+    /** Minor axis endpoint. If specified, overrides minor axis to be minor_axis_endpoint - center. */
+    minor_axis_endpoint: OptionalField(nullable(PrimitivePositionT), null, 'Minor axis endpoint. If specified, overrides minor axis to be minor_axis_endpoint - center.'),
+    /** Radius of the major axis. If unset, the length of the major axis is used. */
+    radius_major: OptionalField(nullable(float), null, 'Radius of the major axis. If unset, the length of the major axis is used.'),
+    /** Radius of the minor axis. If unset, the length of the minor axis is used. */
+    radius_minor: OptionalField(nullable(float), null, 'Radius of the minor axis. If unset, the length of the minor axis is used.'),
+    /** Start of the arc. In radians */
+    theta_start: OptionalField(float, 0, 'Start of the arc. In radians'),
+    /** End of the arc. In radians */
+    theta_end: OptionalField(float, 2 * Math.PI, 'End of the arc. In radians'),
+    /** Tooltip to show when hovering over the tube. If not specified, uses the parent primitives group `tooltip`. */
+    tooltip: OptionalField(nullable(str), null, 'Tooltip to show when hovering over the tube. If not specified, uses the parent primitives group `tooltip`.'),
+};
+
+const EllipsoidParams = {
+    /** Color of the primitive. If not specified, uses the parent primitives group `color`. */
+    color: OptionalField(nullable(ColorT), null, 'Color of the ellipsoid. If not specified, uses the parent primitives group `color`.'),
+    /** Ellipsoid center. */
+    center: RequiredField(PrimitivePositionT, 'The center of the ellipsoid.'),
+    /** Major axis of this ellipsoid. */
+    major_axis: OptionalField(nullable(Vector3), null, 'Major axis of this ellipsoid.'),
+    /** Minor axis of this ellipsoid. */
+    minor_axis: OptionalField(nullable(Vector3), null, 'Minor axis of this ellipsoid.'),
+    /** Major axis endpoint. If specified, overrides major axis to be major_axis_endpoint - center. */
+    major_axis_endpoint: OptionalField(nullable(PrimitivePositionT), null, 'Major axis endpoint. If specified, overrides major axis to be major_axis_endpoint - center.'),
+    /** Minor axis endpoint. If specified, overrides minor axis to be minor_axis_endpoint - center. */
+    minor_axis_endpoint: OptionalField(nullable(PrimitivePositionT), null, 'Minor axis endpoint. If specified, overrides minor axis to be minor_axis_endpoint - center.'),
+    /** Radii of the ellipsoid along each axis. */
+    radius: OptionalField(nullable(union([Vector3, float])), null, 'Radii of the ellipsoid along each axis.'),
+    /** Added to the radii of the ellipsoid along each axis. */
+    radius_extent: OptionalField(nullable(union([Vector3, float])), null, 'Added to the radii of the ellipsoid along each axis.'),
+    /** Tooltip to show when hovering over the tube. If not specified, uses the parent primitives group `tooltip`. */
+    tooltip: OptionalField(nullable(str), null, 'Tooltip to show when hovering over the tube. If not specified, uses the parent primitives group `tooltip`.'),
+};
+
+const BoxParams = {
+    /** The center of the box. */
+    center: RequiredField(PrimitivePositionT, 'The center of the box.'),
+    /** The width, the height, and the depth of the box. Added to the bounding box determined by the center. */
+    extent: OptionalField(nullable(Vector3), null, 'The width, the height, and the depth of the box. Added to the bounding box determined by the center.'),
+    /** Determine whether to render the faces of the box. */
+    show_faces: OptionalField(bool, true, 'Determine whether to render the faces of the box.'),
+    /** Color of the box faces. */
+    face_color: OptionalField(nullable(ColorT), null, 'Color of the box faces.'),
+    /** Determine whether to render the edges of the box. */
+    show_edges: OptionalField(bool, false, 'Determine whether to render the edges of the box.'),
+    /** Radius of the box edges. In angstroms. */
+    edge_radius: OptionalField(float, 0.1, 'Radius of the box edges. In angstroms.'),
+    /** Color of the box edges. */
+    edge_color: OptionalField(nullable(ColorT), null, 'Color of the edges.'),
+    /** Tooltip to show when hovering over the tube. If not specified, uses the parent primitives group `tooltip`. */
+    tooltip: OptionalField(nullable(str), null, 'Tooltip to show when hovering over the tube. If not specified, uses the parent primitives group `tooltip`.'),
+};
+
 export const MVSPrimitiveParams = UnionParamsSchema(
     'kind',
     'Kind of geometrical primitive',
@@ -109,7 +209,11 @@ export const MVSPrimitiveParams = UnionParamsSchema(
         'mesh': SimpleParamsSchema(MeshParams),
         'lines': SimpleParamsSchema(LinesParams),
         'tube': SimpleParamsSchema(TubeParams),
+        'arrow': SimpleParamsSchema(ArrowParams),
         'distance_measurement': SimpleParamsSchema(DistanceMeasurementParams),
         'label': SimpleParamsSchema(PrimitiveLabelParams),
+        'ellipse': SimpleParamsSchema(EllipseParams),
+        'ellipsoid': SimpleParamsSchema(EllipsoidParams),
+        'box': SimpleParamsSchema(BoxParams),
     },
 );

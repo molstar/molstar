@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { deepClone, pickObjectKeys } from '../../../../mol-util/object';
@@ -267,6 +268,11 @@ class Primitives extends _Base<'primitives'> implements FocusMixin {
         this.addChild('primitive', { kind: 'tube', ...params });
         return this;
     }
+    /** Defines an arrow. */
+    arrow(params: MVSPrimitiveSubparams<'arrow'> & CustomAndRef): Primitives {
+        this.addChild('primitive', { kind: 'arrow', ...params });
+        return this;
+    }
     /** Defines a tube, connecting a start and an end point, with label containing distance between start and end. */
     distance(params: MVSPrimitiveSubparams<'distance_measurement'> & CustomAndRef): Primitives {
         this.addChild('primitive', { kind: 'distance_measurement', ...params });
@@ -275,6 +281,21 @@ class Primitives extends _Base<'primitives'> implements FocusMixin {
     /** Defines a label. */
     label(params: MVSPrimitiveSubparams<'label'> & CustomAndRef): Primitives {
         this.addChild('primitive', { kind: 'label', ...params });
+        return this;
+    }
+    /** Defines an ellipse. */
+    ellipse(params: MVSPrimitiveSubparams<'ellipse'> & CustomAndRef): Primitives {
+        this.addChild('primitive', { kind: 'ellipse', ...params });
+        return this;
+    }
+    /** Defines an ellipsoid */
+    ellipsoid(params: MVSPrimitiveSubparams<'ellipsoid'> & CustomAndRef): Primitives {
+        this.addChild('primitive', { kind: 'ellipsoid', ...params });
+        return this;
+    }
+    /** Defines a box. */
+    box(params: MVSPrimitiveSubparams<'box'> & CustomAndRef): Primitives {
+        this.addChild('primitive', { kind: 'box', ...params });
         return this;
     }
     focus = bindMethod(this, FocusMixinImpl, 'focus');
