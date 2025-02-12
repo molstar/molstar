@@ -84,18 +84,18 @@ const ArrowParams = {
     direction: OptionalField(nullable(Vector3), null, 'If specified, the endpoint is computed as start + direction.'),
     /** Length of the arrow. If unset, the distance between start and end is used. */
     length: OptionalField(nullable(float), null, 'Length of the arrow. If unset, the distance between start and end is used.'),
-    /** Draw an arrow at the start of the arrow. */
-    arrow_start: OptionalField(bool, false, 'Draw an arrow at the start of the arrow.'),
-    /** Height of the arrow at the start. */
-    arrow_start_height: OptionalField(float, 0.1, 'Height of the arrow at the start.'),
-    /** Radius of the arrow at the start. */
-    arrow_start_radius: OptionalField(float, 0.1, ''),
+    /** Draw a cap at the start of the arrow. */
+    show_start_cap: OptionalField(bool, false, 'Draw a cap at the start of the arrow.'),
+    /** Length of the start cap. */
+    start_cap_length: OptionalField(float, 0.1, 'Length of the start cap.'),
+    /** Radius of the start cap. */
+    start_cap_radius: OptionalField(float, 0.1, 'Radius of the start cap.'),
     /** Draw an arrow at the end of the arrow. */
-    arrow_end: OptionalField(bool, false, 'Draw an arrow at the end of the arrow.'),
+    show_end_cap: OptionalField(bool, false, 'Draw a cap at the end of the arrow.'),
     /** Height of the arrow at the end. */
-    arrow_end_height: OptionalField(float, 0.1, 'Height of the arrow at the end.'),
+    end_cap_length: OptionalField(float, 0.1, 'Length of the end cap.'),
     /** Radius of the arrow at the end. */
-    arrow_end_radius: OptionalField(float, 0.1, 'Radius of the arrow at the end.'),
+    end_cap_radius: OptionalField(float, 0.1, 'Radius of the end cap.'),
     /** Draw a tube connecting the start and end points. */
     show_tube: OptionalField(bool, true, 'Draw a tube connecting the start and end points.'),
     /** Tube radius (in Angstroms). */
@@ -135,17 +135,17 @@ const PrimitiveLabelParams = {
     label_offset: OptionalField(float, 0, 'Camera-facing offset to prevent overlap with geometry.'),
 };
 
-const EllipsisParams = {
+const EllipseParams = {
     /** Color of the primitive. If not specified, uses the parent primitives group `color`. */
-    color: OptionalField(nullable(ColorT), null, 'Color of the ellipsis. If not specified, uses the parent primitives group `color`.'),
+    color: OptionalField(nullable(ColorT), null, 'Color of the ellipse. If not specified, uses the parent primitives group `color`.'),
     /** If true, ignores radius_minor/magnitude of the minor axis */
     as_circle: OptionalField(bool, false, 'If true, ignores radius_minor/magnitude of the minor axis.'),
-    /** Ellipsis center. */
-    center: RequiredField(PrimitivePositionT, 'The center of the ellipsis.'),
-    /** Major axis of this ellipsis. */
-    major_axis: OptionalField(nullable(Vector3), null, 'Major axis of this ellipsis.'),
-    /** Minor axis of this ellipsis. */
-    minor_axis: OptionalField(nullable(Vector3), null, 'Minor axis of this ellipsis.'),
+    /** ellipse center. */
+    center: RequiredField(PrimitivePositionT, 'The center of the ellipse.'),
+    /** Major axis of this ellipse. */
+    major_axis: OptionalField(nullable(Vector3), null, 'Major axis of this ellipse.'),
+    /** Minor axis of this ellipse. */
+    minor_axis: OptionalField(nullable(Vector3), null, 'Minor axis of this ellipse.'),
     /** Major axis endpoint. If specified, overrides major axis to be major_axis_endpoint - center. */
     major_axis_endpoint: OptionalField(nullable(PrimitivePositionT), null, 'Major axis endpoint. If specified, overrides major axis to be major_axis_endpoint - center.'),
     /** Minor axis endpoint. If specified, overrides minor axis to be minor_axis_endpoint - center. */
@@ -165,11 +165,11 @@ const EllipsisParams = {
 const EllipsoidParams = {
     /** Color of the primitive. If not specified, uses the parent primitives group `color`. */
     color: OptionalField(nullable(ColorT), null, 'Color of the ellipsoid. If not specified, uses the parent primitives group `color`.'),
-    /** Ellipsis center. */
-    center: RequiredField(PrimitivePositionT, 'The center of the ellipsis.'),
-    /** Major axis of this ellipsis. */
+    /** Ellipsoid center. */
+    center: RequiredField(PrimitivePositionT, 'The center of the ellipsoid.'),
+    /** Major axis of this ellipsoid. */
     major_axis: OptionalField(nullable(Vector3), null, 'Major axis of this ellipsoid.'),
-    /** Minor axis of this ellipsis. */
+    /** Minor axis of this ellipsoid. */
     minor_axis: OptionalField(nullable(Vector3), null, 'Minor axis of this ellipsoid.'),
     /** Major axis endpoint. If specified, overrides major axis to be major_axis_endpoint - center. */
     major_axis_endpoint: OptionalField(nullable(PrimitivePositionT), null, 'Major axis endpoint. If specified, overrides major axis to be major_axis_endpoint - center.'),
@@ -212,7 +212,7 @@ export const MVSPrimitiveParams = UnionParamsSchema(
         'arrow': SimpleParamsSchema(ArrowParams),
         'distance_measurement': SimpleParamsSchema(DistanceMeasurementParams),
         'label': SimpleParamsSchema(PrimitiveLabelParams),
-        'ellipsis': SimpleParamsSchema(EllipsisParams),
+        'ellipse': SimpleParamsSchema(EllipseParams),
         'ellipsoid': SimpleParamsSchema(EllipsoidParams),
         'box': SimpleParamsSchema(BoxParams),
     },

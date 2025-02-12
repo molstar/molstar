@@ -304,11 +304,11 @@ const Builders: Record<PrimitiveParams['kind'], PrimitiveBuilder> = {
         },
         resolveRefs: resolveLineRefs,
     },
-    ellipsis: {
+    ellipse: {
         builders: {
-            mesh: addEllipsisMesh,
+            mesh: addEllipseMesh,
         },
-        resolveRefs: (params: PrimitiveParams<'ellipsis'>, refs: Set<string>) => {
+        resolveRefs: (params: PrimitiveParams<'ellipse'>, refs: Set<string>) => {
             addRef(params.center, refs);
             if (params.major_axis_endpoint) addRef(params.major_axis_endpoint, refs);
             if (params.minor_axis_endpoint) addRef(params.minor_axis_endpoint, refs);
@@ -675,16 +675,16 @@ function addArrowMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBu
     const tubeProps: BasicCylinderProps = {
         radiusBottom: tubeRadius,
         radiusTop: tubeRadius,
-        topCap: !params.arrow_end,
-        bottomCap: !params.arrow_start,
+        topCap: !params.show_end_cap,
+        bottomCap: !params.show_start_cap,
     };
 
     mesh.currentGroup = groups.allocateSingle(node);
     groups.updateColor(mesh.currentGroup, params.color);
     groups.updateTooltip(mesh.currentGroup, params.tooltip);
 
-    const startRadius = params.arrow_start_radius ?? tubeRadius;
-    if (params.arrow_start) {
+    const startRadius = params.start_cap_radius ?? tubeRadius;
+    if (params.show_start_cap) {
         Vec3.scaleAndAdd(ArrowState.startCap, ArrowState.start, ArrowState.dir, startRadius);
         addCylinder(mesh, ArrowState.start, ArrowState.startCap, 1, {
             radiusBottom: startRadius,
@@ -697,8 +697,8 @@ function addArrowMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBu
         Vec3.copy(ArrowState.startCap, ArrowState.start);
     }
 
-    const endRadius = params.arrow_end_radius ?? tubeRadius;
-    if (params.arrow_end) {
+    const endRadius = params.end_cap_radius ?? tubeRadius;
+    if (params.show_end_cap) {
         Vec3.scaleAndAdd(ArrowState.endCap, ArrowState.end, ArrowState.dir, -endRadius);
         addCylinder(mesh, ArrowState.end, ArrowState.endCap, 1, {
             radiusBottom: endRadius,
@@ -800,7 +800,7 @@ function getCircle(options: { thetaStart?: number, thetaEnd?: number }) {
     return circle;
 }
 
-const EllipsisState = {
+const EllipseState = {
     centerPos: Vec3.zero(),
     majorPos: Vec3.zero(),
     minorPos: Vec3.zero(),
@@ -816,59 +816,59 @@ const EllipsisState = {
 };
 
 
-function addEllipsisMesh(context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'ellipsis'>) {
+function addEllipseMesh(context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'ellipse'>) {
     // Unit circle in the XZ plane (Y up)
     const circle = getCircle({ thetaStart: params.theta_start, thetaEnd: params.theta_end });
     if (!circle) return;
 
-    resolvePosition(context, params.center, EllipsisState.centerPos, undefined, undefined);
+    resolvePosition(context, params.center, EllipseState.centerPos, undefined, undefined);
 
     if (params.major_axis_endpoint) {
-        resolvePosition(context, params.major_axis_endpoint, EllipsisState.majorPos, undefined, undefined);
-        Vec3.sub(EllipsisState.majorAxis, EllipsisState.majorPos, EllipsisState.centerPos);
+        resolvePosition(context, params.major_axis_endpoint, EllipseState.majorPos, undefined, undefined);
+        Vec3.sub(EllipseState.majorAxis, EllipseState.majorPos, EllipseState.centerPos);
     } else {
-        Vec3.copy(EllipsisState.majorAxis, params.major_axis as any as Vec3);
+        Vec3.copy(EllipseState.majorAxis, params.major_axis as any as Vec3);
     }
 
     if (params.minor_axis_endpoint) {
-        resolvePosition(context, params.minor_axis_endpoint, EllipsisState.minorPos, undefined, undefined);
-        Vec3.sub(EllipsisState.minorAxis, EllipsisState.minorPos, EllipsisState.centerPos);
+        resolvePosition(context, params.minor_axis_endpoint, EllipseState.minorPos, undefined, undefined);
+        Vec3.sub(EllipseState.minorAxis, EllipseState.minorPos, EllipseState.centerPos);
     } else {
-        Vec3.copy(EllipsisState.minorAxis, params.minor_axis as any as Vec3);
+        Vec3.copy(EllipseState.minorAxis, params.minor_axis as any as Vec3);
     }
 
     const { mesh, groups } = state;
 
     // Translation
-    Mat4.fromTranslation(EllipsisState.translationXform, EllipsisState.centerPos);
+    Mat4.fromTranslation(EllipseState.translationXform, EllipseState.centerPos);
 
     // Scale
     if (params.as_circle) {
-        const r = params.radius_major ?? Vec3.magnitude(EllipsisState.majorAxis);
-        Vec3.set(EllipsisState.scale, r, 1, r);
+        const r = params.radius_major ?? Vec3.magnitude(EllipseState.majorAxis);
+        Vec3.set(EllipseState.scale, r, 1, r);
     } else {
-        const major = params.radius_major ?? Vec3.magnitude(EllipsisState.majorAxis);
-        const minor = params.radius_minor ?? Vec3.magnitude(EllipsisState.minorAxis);
-        Vec3.set(EllipsisState.scale, major, 1, minor);
+        const major = params.radius_major ?? Vec3.magnitude(EllipseState.majorAxis);
+        const minor = params.radius_minor ?? Vec3.magnitude(EllipseState.minorAxis);
+        Vec3.set(EllipseState.scale, major, 1, minor);
     }
-    Mat4.fromScaling(EllipsisState.scaleXform, EllipsisState.scale);
+    Mat4.fromScaling(EllipseState.scaleXform, EllipseState.scale);
 
     // Rotation
-    Vec3.cross(EllipsisState.normal, EllipsisState.majorAxis, EllipsisState.minorAxis);
-    Vec3.normalize(EllipsisState.normal, EllipsisState.normal);
-    Vec3.cross(EllipsisState.rotationAxis, Vec3.unitY, EllipsisState.normal);
-    Vec3.normalize(EllipsisState.rotationAxis, EllipsisState.rotationAxis);
-    Mat4.fromRotation(EllipsisState.rotationXform, -Vec3.angle(Vec3.unitY, EllipsisState.normal), EllipsisState.rotationAxis);
+    Vec3.cross(EllipseState.normal, EllipseState.majorAxis, EllipseState.minorAxis);
+    Vec3.normalize(EllipseState.normal, EllipseState.normal);
+    Vec3.cross(EllipseState.rotationAxis, Vec3.unitY, EllipseState.normal);
+    Vec3.normalize(EllipseState.rotationAxis, EllipseState.rotationAxis);
+    Mat4.fromRotation(EllipseState.rotationXform, -Vec3.angle(Vec3.unitY, EllipseState.normal), EllipseState.rotationAxis);
 
     // Final xform
-    Mat4.mul3(EllipsisState.xform, EllipsisState.translationXform, EllipsisState.rotationXform, EllipsisState.scaleXform);
+    Mat4.mul3(EllipseState.xform, EllipseState.translationXform, EllipseState.rotationXform, EllipseState.scaleXform);
 
     mesh.currentGroup = groups.allocateSingle(node);
     groups.updateColor(mesh.currentGroup, params.color);
     groups.updateTooltip(mesh.currentGroup, params.tooltip);
 
-    MeshBuilder.addPrimitive(mesh, EllipsisState.xform, circle);
-    MeshBuilder.addPrimitiveFlipped(mesh, EllipsisState.xform, circle);
+    MeshBuilder.addPrimitive(mesh, EllipseState.xform, circle);
+    MeshBuilder.addPrimitiveFlipped(mesh, EllipseState.xform, circle);
 }
 
 const EllipsoidState = {
