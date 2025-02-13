@@ -78,8 +78,8 @@ export const EmptyRepresentationProvider: RepresentationProvider = {
     factory: () => Representation.Empty,
     getParams: () => ({}),
     defaultValues: {},
-    defaultColorTheme: ColorTheme.EmptyProvider,
-    defaultSizeTheme: SizeTheme.EmptyProvider,
+    defaultColorTheme: { name: '' },
+    defaultSizeTheme: { name: '' },
     isApplicable: () => true
 };
 
