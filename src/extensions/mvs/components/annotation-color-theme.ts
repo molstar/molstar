@@ -6,8 +6,8 @@
 
 import { Location } from '../../../mol-model/location';
 import { Bond, StructureElement } from '../../../mol-model/structure';
-import { ColorTheme, LocationColor } from '../../../mol-theme/color';
-import { ThemeDataContext } from '../../../mol-theme/theme';
+import type { ColorTheme, LocationColor } from '../../../mol-theme/color';
+import type { ThemeDataContext } from '../../../mol-theme/theme';
 import { ColorNames } from '../../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { decodeColor } from '../helpers/utils';
@@ -73,7 +73,7 @@ export function MVSAnnotationColorTheme(ctx: ThemeDataContext, props: MVSAnnotat
 export const MVSAnnotationColorThemeProvider: ColorTheme.Provider<MVSAnnotationColorThemeParams, 'mvs-annotation'> = {
     name: 'mvs-annotation',
     label: 'MVS Annotation',
-    category: ColorTheme.Category.Misc,
+    category: 'Miscellaneous', // ColorTheme.Category.Misc can cause webpack build error due to import ordering
     factory: MVSAnnotationColorTheme,
     getParams: ctx => MVSAnnotationColorThemeParams,
     defaultValues: PD.getDefaultValues(MVSAnnotationColorThemeParams),

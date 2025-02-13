@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Adam Midlik <midlik@gmail.com>
@@ -7,11 +7,15 @@
 
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 import { LinesBuilder } from '../../../mol-geo/geometry/lines/lines-builder';
-import { addFixedCountDashedCylinder, addSimpleCylinder, BasicCylinderProps } from '../../../mol-geo/geometry/mesh/builder/cylinder';
+import { addCylinder, addFixedCountDashedCylinder, addSimpleCylinder, BasicCylinderProps } from '../../../mol-geo/geometry/mesh/builder/cylinder';
+import { addEllipsoid } from '../../../mol-geo/geometry/mesh/builder/ellipsoid';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Text } from '../../../mol-geo/geometry/text/text';
 import { TextBuilder } from '../../../mol-geo/geometry/text/text-builder';
+import { Box, BoxCage } from '../../../mol-geo/primitive/box';
+import { Circle } from '../../../mol-geo/primitive/circle';
+import { Primitive } from '../../../mol-geo/primitive/primitive';
 import { Box3D, Sphere3D } from '../../../mol-math/geometry';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { Shape } from '../../../mol-model/shape';
@@ -278,6 +282,15 @@ const Builders: Record<PrimitiveParams['kind'], PrimitiveBuilder> = {
         },
         resolveRefs: resolveLineRefs,
     },
+    arrow: {
+        builders: {
+            mesh: addArrowMesh,
+        },
+        resolveRefs: (params: PrimitiveParams<'arrow'>, refs: Set<string>) => {
+            addRef(params.start, refs);
+            if (params.end) addRef(params.end, refs);
+        },
+    },
     label: {
         builders: {
             label: addPrimitiveLabel,
@@ -291,6 +304,34 @@ const Builders: Record<PrimitiveParams['kind'], PrimitiveBuilder> = {
         },
         resolveRefs: resolveLineRefs,
     },
+    ellipse: {
+        builders: {
+            mesh: addEllipseMesh,
+        },
+        resolveRefs: (params: PrimitiveParams<'ellipse'>, refs: Set<string>) => {
+            addRef(params.center, refs);
+            if (params.major_axis_endpoint) addRef(params.major_axis_endpoint, refs);
+            if (params.minor_axis_endpoint) addRef(params.minor_axis_endpoint, refs);
+        },
+    },
+    ellipsoid: {
+        builders: {
+            mesh: addEllipsoidMesh,
+        },
+        resolveRefs: (params: PrimitiveParams<'ellipsoid'>, refs: Set<string>) => {
+            addRef(params.center, refs);
+            if (params.major_axis_endpoint) addRef(params.major_axis_endpoint, refs);
+            if (params.minor_axis_endpoint) addRef(params.minor_axis_endpoint, refs);
+        },
+    },
+    box: {
+        builders: {
+            mesh: addBoxMesh,
+        },
+        resolveRefs: (params: PrimitiveParams<'box'>, refs: Set<string>) => {
+            addRef(params.center, refs);
+        },
+    }
 };
 
 
@@ -602,6 +643,86 @@ function addTubeMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBui
     }
 }
 
+const ArrowState = {
+    start: Vec3.zero(),
+    end: Vec3.zero(),
+    dir: Vec3.zero(),
+    startCap: Vec3.zero(),
+    endCap: Vec3.zero(),
+};
+
+function addArrowMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'arrow'>) {
+    resolveBasePosition(context, params.start, ArrowState.start);
+    if (params.end) {
+        resolveBasePosition(context, params.end, ArrowState.end);
+    }
+
+    if (params.direction) {
+        Vec3.add(ArrowState.end, ArrowState.start, params.direction as any as Vec3);
+    }
+
+    Vec3.sub(ArrowState.dir, ArrowState.end, ArrowState.start);
+    Vec3.normalize(ArrowState.dir, ArrowState.dir);
+
+    if (params.length) {
+        Vec3.scaleAndAdd(ArrowState.end, ArrowState.start, ArrowState.dir, params.length);
+    }
+
+    const length = Vec3.distance(ArrowState.start, ArrowState.end);
+    if (length < 1e-3) return;
+
+    const tubeRadius = params.tube_radius;
+    const tubeProps: BasicCylinderProps = {
+        radiusBottom: tubeRadius,
+        radiusTop: tubeRadius,
+        topCap: !params.show_end_cap,
+        bottomCap: !params.show_start_cap,
+    };
+
+    mesh.currentGroup = groups.allocateSingle(node);
+    groups.updateColor(mesh.currentGroup, params.color);
+    groups.updateTooltip(mesh.currentGroup, params.tooltip);
+
+    const startRadius = params.start_cap_radius ?? tubeRadius;
+    if (params.show_start_cap) {
+        Vec3.scaleAndAdd(ArrowState.startCap, ArrowState.start, ArrowState.dir, startRadius);
+        addCylinder(mesh, ArrowState.start, ArrowState.startCap, 1, {
+            radiusBottom: startRadius,
+            radiusTop: 0,
+            topCap: false,
+            bottomCap: true,
+            radialSegments: 12,
+        });
+    } else {
+        Vec3.copy(ArrowState.startCap, ArrowState.start);
+    }
+
+    const endRadius = params.end_cap_radius ?? tubeRadius;
+    if (params.show_end_cap) {
+        Vec3.scaleAndAdd(ArrowState.endCap, ArrowState.end, ArrowState.dir, -endRadius);
+        addCylinder(mesh, ArrowState.end, ArrowState.endCap, 1, {
+            radiusBottom: endRadius,
+            radiusTop: 0,
+            topCap: false,
+            bottomCap: true,
+            radialSegments: 12,
+        });
+    } else {
+        Vec3.copy(ArrowState.endCap, ArrowState.end);
+    }
+
+    if (params.show_tube) {
+        if (params.tube_dash_length) {
+            const dist = Vec3.distance(ArrowState.startCap, ArrowState.endCap);
+            const count = Math.ceil(dist / (2 * params.tube_dash_length));
+            addFixedCountDashedCylinder(mesh, ArrowState.startCap, ArrowState.endCap, 1.0, count, true, tubeProps);
+        } else {
+            addSimpleCylinder(mesh, ArrowState.startCap, ArrowState.endCap, tubeProps);
+        }
+    }
+}
+
+
 function getDistanceLabel(context: PrimitiveBuilderContext, params: PrimitiveParams<'distance_measurement'>) {
     resolveBasePosition(context, params.start, lStart);
     resolveBasePosition(context, params.end, lEnd);
@@ -659,4 +780,201 @@ function addPrimitiveLabel(context: PrimitiveBuilderContext, state: LabelBuilder
     groups.updateSize(group, params.label_size);
 
     labels.add(params.text, labelPos[0], labelPos[1], labelPos[2], params.label_offset, 1, group);
+}
+
+const circleCache = new Map<string, Primitive>();
+
+function getCircle(options: { thetaStart?: number, thetaEnd?: number }) {
+    const key = JSON.stringify(options);
+    if (circleCache.has(key)) return circleCache.get(key)!;
+    const thetaLength = (options.thetaEnd ?? 2 * Math.PI) - (options.thetaStart ?? 0);
+    if (Math.abs(thetaLength) < 1e-3) return null;
+
+    const circle = Circle({
+        radius: 1,
+        thetaStart: options.thetaStart ?? 0,
+        thetaLength,
+        segments: Math.ceil(2 * Math.PI / thetaLength * 64),
+    });
+    circleCache.set(key, circle);
+    return circle;
+}
+
+const EllipseState = {
+    centerPos: Vec3.zero(),
+    majorPos: Vec3.zero(),
+    minorPos: Vec3.zero(),
+    majorAxis: Vec3.zero(),
+    minorAxis: Vec3.zero(),
+    scale: Vec3.zero(),
+    normal: Vec3.zero(),
+    rotationAxis: Vec3.zero(),
+    scaleXform: Mat4.identity(),
+    rotationXform: Mat4.identity(),
+    translationXform: Mat4.identity(),
+    xform: Mat4.zero(),
+};
+
+
+function addEllipseMesh(context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'ellipse'>) {
+    // Unit circle in the XZ plane (Y up)
+    const circle = getCircle({ thetaStart: params.theta_start, thetaEnd: params.theta_end });
+    if (!circle) return;
+
+    resolvePosition(context, params.center, EllipseState.centerPos, undefined, undefined);
+
+    if (params.major_axis_endpoint) {
+        resolvePosition(context, params.major_axis_endpoint, EllipseState.majorPos, undefined, undefined);
+        Vec3.sub(EllipseState.majorAxis, EllipseState.majorPos, EllipseState.centerPos);
+    } else {
+        Vec3.copy(EllipseState.majorAxis, params.major_axis as any as Vec3);
+    }
+
+    if (params.minor_axis_endpoint) {
+        resolvePosition(context, params.minor_axis_endpoint, EllipseState.minorPos, undefined, undefined);
+        Vec3.sub(EllipseState.minorAxis, EllipseState.minorPos, EllipseState.centerPos);
+    } else {
+        Vec3.copy(EllipseState.minorAxis, params.minor_axis as any as Vec3);
+    }
+
+    const { mesh, groups } = state;
+
+    // Translation
+    Mat4.fromTranslation(EllipseState.translationXform, EllipseState.centerPos);
+
+    // Scale
+    if (params.as_circle) {
+        const r = params.radius_major ?? Vec3.magnitude(EllipseState.majorAxis);
+        Vec3.set(EllipseState.scale, r, 1, r);
+    } else {
+        const major = params.radius_major ?? Vec3.magnitude(EllipseState.majorAxis);
+        const minor = params.radius_minor ?? Vec3.magnitude(EllipseState.minorAxis);
+        Vec3.set(EllipseState.scale, major, 1, minor);
+    }
+    Mat4.fromScaling(EllipseState.scaleXform, EllipseState.scale);
+
+    // Rotation
+    Vec3.cross(EllipseState.normal, EllipseState.majorAxis, EllipseState.minorAxis);
+    Vec3.normalize(EllipseState.normal, EllipseState.normal);
+    Vec3.cross(EllipseState.rotationAxis, Vec3.unitY, EllipseState.normal);
+    Vec3.normalize(EllipseState.rotationAxis, EllipseState.rotationAxis);
+    Mat4.fromRotation(EllipseState.rotationXform, -Vec3.angle(Vec3.unitY, EllipseState.normal), EllipseState.rotationAxis);
+
+    // Final xform
+    Mat4.mul3(EllipseState.xform, EllipseState.translationXform, EllipseState.rotationXform, EllipseState.scaleXform);
+
+    mesh.currentGroup = groups.allocateSingle(node);
+    groups.updateColor(mesh.currentGroup, params.color);
+    groups.updateTooltip(mesh.currentGroup, params.tooltip);
+
+    MeshBuilder.addPrimitive(mesh, EllipseState.xform, circle);
+    MeshBuilder.addPrimitiveFlipped(mesh, EllipseState.xform, circle);
+}
+
+const EllipsoidState = {
+    centerPos: Vec3.zero(),
+    majorPos: Vec3.zero(),
+    minorPos: Vec3.zero(),
+    majorAxis: Vec3.zero(),
+    minorAxis: Vec3.zero(),
+    sphere: Sphere3D.zero(),
+    radius: Vec3.zero(),
+    extent: Vec3.zero(),
+    up: Vec3.zero(),
+};
+
+
+function addEllipsoidMesh(context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'ellipsoid'>) {
+    resolvePosition(context, params.center, EllipsoidState.centerPos, EllipsoidState.sphere, undefined);
+
+    if (params.major_axis_endpoint) {
+        resolvePosition(context, params.major_axis_endpoint, EllipsoidState.majorPos, undefined, undefined);
+        Vec3.sub(EllipsoidState.majorAxis, EllipsoidState.majorPos, EllipsoidState.centerPos);
+    } else if (params.major_axis) {
+        Vec3.copy(EllipsoidState.majorAxis, params.major_axis as any as Vec3);
+    } else {
+        Vec3.copy(EllipsoidState.majorAxis, Vec3.unitX);
+    }
+
+    if (params.minor_axis_endpoint) {
+        resolvePosition(context, params.minor_axis_endpoint, EllipsoidState.minorPos, undefined, undefined);
+        Vec3.sub(EllipsoidState.minorAxis, EllipsoidState.minorPos, EllipsoidState.centerPos);
+    } else if (params.minor_axis) {
+        Vec3.copy(EllipsoidState.minorAxis, params.minor_axis as any as Vec3);
+    } else {
+        Vec3.copy(EllipsoidState.minorAxis, Vec3.unitY);
+    }
+
+    if (typeof params.radius === 'number') {
+        Vec3.set(EllipsoidState.radius, params.radius, params.radius, params.radius);
+    } else if (params.radius) {
+        Vec3.copy(EllipsoidState.radius, params.radius as any as Vec3);
+    } else {
+        const r = EllipsoidState.sphere.radius;
+        Vec3.set(EllipsoidState.radius, r, r, r);
+    }
+
+    if (typeof params.radius_extent === 'number') {
+        Vec3.set(EllipsoidState.extent, params.radius_extent, params.radius_extent, params.radius_extent);
+    } else if (params.radius_extent) {
+        Vec3.copy(EllipsoidState.extent, params.radius_extent as any as Vec3);
+    } else {
+        Vec3.set(EllipsoidState.extent, 0, 0, 0);
+    }
+
+    Vec3.add(EllipsoidState.radius, EllipsoidState.radius, EllipsoidState.extent);
+
+    const { mesh, groups } = state;
+
+    mesh.currentGroup = groups.allocateSingle(node);
+    groups.updateColor(mesh.currentGroup, params.color);
+    groups.updateTooltip(mesh.currentGroup, params.tooltip);
+
+    Vec3.normalize(EllipsoidState.majorAxis, EllipsoidState.majorAxis);
+    Vec3.normalize(EllipsoidState.minorAxis, EllipsoidState.minorAxis);
+    Vec3.cross(EllipsoidState.up, EllipsoidState.majorAxis, EllipsoidState.minorAxis);
+
+    addEllipsoid(mesh, EllipsoidState.centerPos, EllipsoidState.up, EllipsoidState.minorAxis, EllipsoidState.radius, 3);
+}
+
+
+const BoxState = {
+    center: Vec3.zero(),
+    boundary: Box3D.zero(),
+    size: Vec3.zero(),
+    cage: BoxCage(),
+    translationXform: Mat4.identity(),
+    scaleXform: Mat4.identity(),
+    xform: Mat4.identity(),
+};
+
+function addBoxMesh(context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'box'>) {
+    if (!params.show_edges && !params.show_faces) return;
+
+    resolvePosition(context, params.center, BoxState.center, undefined, BoxState.boundary);
+    if (params.extent) {
+        Box3D.expand(BoxState.boundary, BoxState.boundary, params.extent as unknown as Vec3);
+    }
+
+    if (Box3D.volume(BoxState.boundary) < 1e-3) return;
+
+    const { mesh, groups } = state;
+
+    Mat4.fromScaling(BoxState.scaleXform, Box3D.size(BoxState.size, BoxState.boundary));
+    Mat4.fromTranslation(BoxState.translationXform, BoxState.center);
+    Mat4.mul(BoxState.xform, BoxState.translationXform, BoxState.scaleXform);
+
+    if (params.show_faces) {
+        mesh.currentGroup = groups.allocateSingle(node);
+        groups.updateColor(mesh.currentGroup, params.face_color);
+        groups.updateTooltip(mesh.currentGroup, params.tooltip);
+        MeshBuilder.addPrimitive(mesh, BoxState.xform, Box());
+    }
+
+    if (params.show_edges) {
+        mesh.currentGroup = groups.allocateSingle(node);
+        groups.updateColor(mesh.currentGroup, params.edge_color);
+        groups.updateTooltip(mesh.currentGroup, params.tooltip);
+        MeshBuilder.addCage(mesh, BoxState.xform, BoxCage(), params.edge_radius, 2, 8);
+    }
 }
