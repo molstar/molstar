@@ -7,6 +7,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Fix PDBj structure data URL
 - Improve logic when to cull in renderer
+- MolViewSpec extension: Add box, arrow, ellipse, ellipsoid primitives
+- Add Components example
 - Add support for trimming `image` geometry to a box
 - Improve/fix iso-level support of `slice` representation
 - Add support for rotating `slice` representation around an axis
