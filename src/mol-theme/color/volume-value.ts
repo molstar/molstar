@@ -87,7 +87,7 @@ export function VolumeValueColorTheme(ctx: ThemeDataContext, props: PD.Values<Vo
                 }
 
                 const value = getTrilinearlyInterpolated(location.position);
-                if (isNaN(value)) return 0xFFFFFF as Color; // props.defaultColor;
+                if (isNaN(value)) return props.defaultColor;
 
                 return (clamp((value - domain[0]) / (domain[1] - domain[0]), 0, 1) * ColorTheme.PaletteScale) as Color;
             };
