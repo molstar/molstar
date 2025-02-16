@@ -419,7 +419,7 @@ export function SliceVisual(materialId: number): VolumeVisual<SliceParams> {
                 newProps.dimension.name !== currentProps.dimension.name ||
                 newProps.dimension.params !== currentProps.dimension.params ||
                 newProps.mode !== currentProps.mode ||
-                newProps.rotation.axis !== currentProps.rotation.axis ||
+                !Vec3.equals(newProps.rotation.axis, currentProps.rotation.axis) ||
                 newProps.rotation.angle !== currentProps.rotation.angle ||
                 newProps.offset !== currentProps.offset ||
                 newProps.axis !== currentProps.axis ||

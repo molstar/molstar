@@ -63,7 +63,7 @@ export function PlaneImageVisual(materialId: number): ComplexVisual<PlaneImagePa
                 newProps.margin !== currentProps.margin ||
                 newProps.frame !== currentProps.frame ||
                 newProps.extent !== currentProps.extent ||
-                newProps.rotation.axis !== currentProps.rotation.axis ||
+                !Vec3.equals(newProps.rotation.axis, currentProps.rotation.axis) ||
                 newProps.rotation.angle !== currentProps.rotation.angle ||
                 newProps.offset !== currentProps.offset ||
                 newProps.axis !== currentProps.axis ||
