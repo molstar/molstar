@@ -36,17 +36,17 @@ export const PlaneImageParams = {
     imageResolution: PD.Numeric(0.5, { min: 0.01, max: 20, step: 0.01 }, { description: 'Grid resolution/cell spacing.', ...BaseGeometry.CustomQualityParamInfo }),
     offset: PD.Numeric(0, { min: -1, max: 1, step: 0.01 }, { isEssential: true, immediateUpdate: true }),
     axis: PD.Select('c', PD.arrayToOptions(['a', 'b', 'c'] as const), { isEssential: true }),
-    margin: PD.Numeric(4, { min: 0, max: 50, step: 1 }, { immediateUpdate: true }),
+    margin: PD.Numeric(4, { min: 0, max: 50, step: 1 }, { immediateUpdate: true, description: 'Margin around the structure in Angstrom' }),
     frame: PD.Select('principalAxes', PD.arrayToOptions(['principalAxes', 'boundingBox'] as const)),
-    extent: PD.Select('frame', PD.arrayToOptions(['frame', 'sphere'] as const)),
+    extent: PD.Select('frame', PD.arrayToOptions(['frame', 'sphere'] as const), { description: 'Extent of the plane, either box (frame) or sphere.' }),
     rotation: PD.Group({
-        axis: PD.Vec3(Vec3.create(1, 0, 0)),
-        angle: PD.Numeric(0, { min: -180, max: 180, step: 1 }, { immediateUpdate: true, description: 'Angle in Degrees' }),
+        axis: PD.Vec3(Vec3.create(1, 0, 0), {}, { description: 'Axis of rotation' }),
+        angle: PD.Numeric(0, { min: -180, max: 180, step: 1 }, { immediateUpdate: true, description: 'Axis rotation angle in Degrees' }),
     }, { isExpanded: true }),
-    antialias: PD.Boolean(true),
-    cutout: PD.Boolean(false),
-    defaultColor: PD.Color(Color(0xCCCCCC)),
-    includeParent: PD.Boolean(false),
+    antialias: PD.Boolean(true, { description: 'Antialiasing of structure edges.' }),
+    cutout: PD.Boolean(false, { description: 'Cutout the structure from the image.' }),
+    defaultColor: PD.Color(Color(0xCCCCCC), { description: 'Default color for parts of the image that are not covered by the color theme.' }),
+    includeParent: PD.Boolean(false, { description: 'Show parent structure (but within extent of this structure).' }),
 };
 export type PlaneImageParams = typeof PlaneImageParams
 
@@ -69,7 +69,6 @@ export function PlaneImageVisual(materialId: number): ComplexVisual<PlaneImagePa
                 newProps.axis !== currentProps.axis ||
                 newProps.antialias !== currentProps.antialias ||
                 newProps.cutout !== currentProps.cutout ||
-                newProps.trim !== currentProps.trim ||
                 newProps.defaultColor !== currentProps.defaultColor ||
                 !ColorTheme.areEqual(newTheme.color, currentTheme.color) ||
                 !SizeTheme.areEqual(newTheme.size, currentTheme.size)
@@ -90,7 +89,6 @@ export interface PlaneImageProps {
     rotation: { axis: Vec3, angle: number },
     antialias: boolean,
     cutout: boolean,
-    trim: boolean,
     defaultColor: Color,
     includeParent: boolean,
 }
@@ -159,13 +157,12 @@ function getFrame(structure: Structure, props: PlaneImageProps) {
         Vec3.transformDirection(normal, normal, rm);
     }
 
-    if (extent === 'sphere') {
+    if (extent === 'sphere' || rotation.angle !== 0) {
         const r = structure.boundary.sphere.radius * 2;
-        if (props.trim) {
-            const s = Vec3.magnitude(Box3D.size(Vec3(), Box3D.fromSphere3D(Box3D(), structure.boundary.sphere)));
-            Vec3.set(size, s, s, r);
-        } else {
-            Vec3.set(size, r, r, r);
+        const s = Vec3.magnitude(Box3D.size(Vec3(), Box3D.fromSphere3D(Box3D(), structure.boundary.sphere)));
+        Vec3.set(size, s, s, r);
+        if (extent === 'sphere') {
+            Vec3.set(scale, r, r, r);
         }
     }
 
@@ -182,10 +179,11 @@ function getFrame(structure: Structure, props: PlaneImageProps) {
     }
 
     const trim: Image.Trim = {
-        type: 3,
+        type: extent === 'sphere' ? 2 : 3,
         center,
         scale,
         rotation: trimRotation,
+        transform: Mat4.identity(),
     };
 
     return { size, major, minor, normal, center, trim };

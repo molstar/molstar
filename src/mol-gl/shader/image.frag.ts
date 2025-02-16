@@ -64,11 +64,11 @@ varying float vInstance;
     uniform vec3 uPaletteDefault;
 #endif
 
-uniform bool uTrim;
 uniform int uTrimType;
 uniform vec3 uTrimCenter;
 uniform vec4 uTrimRotation;
 uniform vec3 uTrimScale;
+uniform mat4 uTrimTransform;
 
 uniform float uIsoLevel;
 
@@ -138,7 +138,10 @@ uniform float uIsoLevel;
 #endif
 
 void main() {
-    if (uTrim && getSignedDistance(vModelPosition, uTrimType, uTrimCenter, uTrimRotation, uTrimScale) > 0.0) discard;
+    if (uTrimType != 0) {
+        vec3 trimPosition = (uTrimTransform * vec4(vModelPosition, 1.0)).xyz;
+        if (getSignedDistance(trimPosition, uTrimType, uTrimCenter, uTrimRotation, uTrimScale) > 0.0) discard;
+    }
 
     #include fade_lod
     #include clip_pixel

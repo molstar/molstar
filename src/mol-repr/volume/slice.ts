@@ -35,15 +35,14 @@ export const SliceParams = {
         x: PD.Numeric(0, { min: 0, max: 0, step: 1 }, { immediateUpdate: true }),
         y: PD.Numeric(0, { min: 0, max: 0, step: 1 }, { immediateUpdate: true }),
         z: PD.Numeric(0, { min: 0, max: 0, step: 1 }, { immediateUpdate: true }),
-    }, { isEssential: true, hideIf: p => p.mode !== 'grid' }),
+    }, { isEssential: true, hideIf: p => p.mode !== 'grid', description: 'Slice position in grid coordinates.' }),
     isoValue: Volume.IsoValueParam,
-    mode: PD.Select('grid', PD.arrayToOptions(['grid', 'frame'] as const)),
-    offset: PD.Numeric(0, { min: -1, max: 1, step: 0.01 }, { isEssential: true, immediateUpdate: true, hideIf: p => p.mode !== 'frame' }),
-    axis: PD.Select('a', PD.arrayToOptions(['a', 'b', 'c'] as const), { isEssential: true, hideIf: p => p.mode !== 'frame' }),
-    extent: PD.Select('frame', PD.arrayToOptions(['frame', 'sphere'] as const), { hideIf: p => p.mode !== 'frame' }),
+    mode: PD.Select('grid', PD.arrayToOptions(['grid', 'frame'] as const), { description: 'Grid: slice through the volume along the grid axes in integer steps. Frame: slice through the volume along arbitrary axes in any step size.' }),
+    offset: PD.Numeric(0, { min: -1, max: 1, step: 0.01 }, { isEssential: true, immediateUpdate: true, hideIf: p => p.mode !== 'frame', description: 'Relative offset from center.' }),
+    axis: PD.Select('a', PD.arrayToOptions(['a', 'b', 'c'] as const), { isEssential: true, hideIf: p => p.mode !== 'frame', description: 'Axis of the frame.' }),
     rotation: PD.Group({
-        axis: PD.Vec3(Vec3.create(1, 0, 0)),
-        angle: PD.Numeric(0, { min: -180, max: 180, step: 1 }, { immediateUpdate: true, description: 'Angle in Degrees' }),
+        axis: PD.Vec3(Vec3.create(1, 0, 0), {}, { description: 'Axis of rotation' }),
+        angle: PD.Numeric(0, { min: -180, max: 180, step: 1 }, { immediateUpdate: true, description: 'Axis rotation angle in Degrees' }),
     }, { isExpanded: true, hideIf: p => p.mode !== 'frame' }),
 };
 export type SliceParams = typeof SliceParams
@@ -167,27 +166,24 @@ async function createFrameImage(ctx: VisualContext, volume: Volume, key: number,
 }
 
 function getFrame(volume: Volume, props: SliceProps) {
-    const { axis, extent, rotation } = props;
+    const { axis, rotation, mode } = props;
 
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
+    const cartnToGrid = Mat4.invert(Mat4(), gridToCartn);
     const [nx, ny, nz] = volume.grid.cells.space.dimensions;
 
-    const dirA = Vec3.create(nx - 1, 0, 0);
-    const dirB = Vec3.create(0, ny - 1, 0);
-    const dirC = Vec3.create(0, 0, nz - 1);
-    Vec3.transformMat4(dirA, dirA, gridToCartn);
-    Vec3.transformMat4(dirB, dirB, gridToCartn);
-    Vec3.transformMat4(dirC, dirC, gridToCartn);
+    const a = nx - 1;
+    const b = ny - 1;
+    const c = nz - 1;
 
-    const a = Vec3.magnitude(dirA);
-    const b = Vec3.magnitude(dirB);
-    const c = Vec3.magnitude(dirC);
-    const scale = Vec3.set(Vec3(), a, b, c);
+    const dirA = Vec3.create(a, 0, 0);
+    const dirB = Vec3.create(0, b, 0);
+    const dirC = Vec3.create(0, 0, c);
 
     const resolution = Math.max(a, b, c) / Math.max(nx, ny, nz);
 
     const min = Vec3.create(0, 0, 0);
-    const max = Vec3.create(nx - 1, ny - 1, nz - 1);
+    const max = Vec3.create(a, b, c);
     Vec3.transformMat4(min, min, gridToCartn);
     Vec3.transformMat4(max, max, gridToCartn);
     const center = Vec3.center(Vec3(), max, min);
@@ -227,27 +223,22 @@ function getFrame(volume: Volume, props: SliceProps) {
         Vec3.transformDirection(normal, normal, rm);
     }
 
-    if (extent === 'sphere') {
+    if (mode === 'frame') {
         const r = Vec3.distance(min, max);
-        if (props.trim) {
-            const s = Vec3.distance(min, max);
-            Vec3.set(size, s, s, r);
-        } else {
-            Vec3.set(size, r, r, r);
-        }
+        const s = Vec3.distance(min, max) * Math.SQRT2;
+        Vec3.set(size, s, s, r);
     }
 
-    const trimRotation = Quat.fromBasis(Quat(),
-        Vec3.normalize(Vec3(), dirA),
-        Vec3.normalize(Vec3(), dirB),
-        Vec3.normalize(Vec3(), dirC)
-    );
+    Vec3.transformDirection(major, major, gridToCartn);
+    Vec3.transformDirection(minor, minor, gridToCartn);
+    Vec3.transformDirection(normal, normal, gridToCartn);
 
     const trim: Image.Trim = {
         type: 3,
-        center,
-        scale,
-        rotation: trimRotation,
+        center: Vec3.create(a / 2, b / 2, c / 2),
+        scale: Vec3.create(a, b, c),
+        rotation: Quat.identity(),
+        transform: cartnToGrid,
     };
 
     return { size, major, minor, normal, center, trim, resolution };
@@ -428,12 +419,10 @@ export function SliceVisual(materialId: number): VolumeVisual<SliceParams> {
                 newProps.dimension.name !== currentProps.dimension.name ||
                 newProps.dimension.params !== currentProps.dimension.params ||
                 newProps.mode !== currentProps.mode ||
-                newProps.extent !== currentProps.extent ||
                 newProps.rotation.axis !== currentProps.rotation.axis ||
                 newProps.rotation.angle !== currentProps.rotation.angle ||
                 newProps.offset !== currentProps.offset ||
                 newProps.axis !== currentProps.axis ||
-                newProps.trim !== currentProps.trim ||
                 !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats) ||
                 !ColorTheme.areEqual(newTheme.color, currentTheme.color)
             );

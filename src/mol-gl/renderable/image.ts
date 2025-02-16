@@ -25,11 +25,11 @@ export const ImageSchema = {
     tGroupTex: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
     tValueTex: TextureSpec('image-float32', 'alpha', 'float', 'linear'),
 
-    uTrim: UniformSpec('b'),
     uTrimType: UniformSpec('i'),
     uTrimCenter: UniformSpec('v3'),
     uTrimRotation: UniformSpec('q'),
     uTrimScale: UniformSpec('v3'),
+    uTrimTransform: UniformSpec('m4'),
 
     uIsoLevel: UniformSpec('f'),
 
