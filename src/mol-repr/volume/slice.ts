@@ -135,9 +135,9 @@ async function createFrameImage(ctx: VisualContext, volume: Volume, key: number,
 
             const val = normalize(getTrilinearlyInterpolated(v), min, max);
             if (isUniform) {
-                imageArray[i] *= val * 2;
-                imageArray[i + 1] *= val * 2;
-                imageArray[i + 2] *= val * 2;
+                imageArray[i] *= val;
+                imageArray[i + 1] *= val;
+                imageArray[i + 2] *= val;
             }
             valueArray[i / 4] = val;
 
@@ -296,9 +296,9 @@ async function createGridImage(ctx: VisualContext, volume: Volume, key: number, 
 
                 const val = normalize(space.get(data, ix, iy, iz), min, max);
                 if (isUniform) {
-                    imageArray[i] *= val * 2;
-                    imageArray[i + 1] *= val * 2;
-                    imageArray[i + 2] *= val * 2;
+                    imageArray[i] *= val;
+                    imageArray[i + 1] *= val;
+                    imageArray[i + 2] *= val;
                 }
                 valueArray[i / 4] = val;
 
