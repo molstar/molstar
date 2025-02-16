@@ -18,6 +18,7 @@ import { getColorMapParams } from '../../../mol-util/color/params';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { TableLegend } from '../../../mol-util/legend';
 import { ObjectKeys } from '../../../mol-util/type-helpers';
+import { ColorThemeCategory } from '../../../mol-theme/color/categories';
 
 const Description = 'Assigns colors to NtC Tube segments';
 
@@ -87,7 +88,7 @@ export function NtCTubeColorTheme(ctx: ThemeDataContext, props: PD.Values<NtCTub
 export const NtCTubeColorThemeProvider: ColorTheme.Provider<NtCTubeColorThemeParams, 'ntc-tube'> = {
     name: 'ntc-tube',
     label: 'NtC Tube',
-    category: ColorTheme.Category.Residue,
+    category: ColorThemeCategory.Residue,
     factory: NtCTubeColorTheme,
     getParams: getNtCTubeColorThemeParams,
     defaultValues: PD.getDefaultValues(NtCTubeColorThemeParams),
