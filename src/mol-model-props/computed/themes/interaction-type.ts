@@ -15,6 +15,7 @@ import { TableLegend } from '../../../mol-util/legend';
 import { Interactions } from '../interactions/interactions';
 import { CustomProperty } from '../../common/custom-property';
 import { hash2 } from '../../../mol-data/util';
+import { ColorThemeCategory } from '../../../mol-theme/color/categories';
 
 const DefaultColor = Color(0xCCCCCC);
 const Description = 'Assigns colors according the interaction type of a link.';
@@ -110,7 +111,7 @@ export function InteractionTypeColorTheme(ctx: ThemeDataContext, props: PD.Value
 export const InteractionTypeColorThemeProvider: ColorTheme.Provider<InteractionTypeColorThemeParams, 'interaction-type'> = {
     name: 'interaction-type',
     label: 'Interaction Type',
-    category: ColorTheme.Category.Misc,
+    category: ColorThemeCategory.Misc,
     factory: InteractionTypeColorTheme,
     getParams: getInteractionTypeColorThemeParams,
     defaultValues: PD.getDefaultValues(InteractionTypeColorThemeParams),

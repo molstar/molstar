@@ -9,6 +9,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Improve logic when to cull in renderer
 - MolViewSpec extension: Add box, arrow, ellipse, ellipsoid primitives
 - Add Components example
+- Remove static uses of `ColorTheme` and `SizeTheme` fields. Should resolvent "undefined" errors in certain builds
 - Add support for trimming `image` geometry to a box
 - Improve/fix iso-level support of `slice` representation
 - Add support for rotating `slice` representation around an axis

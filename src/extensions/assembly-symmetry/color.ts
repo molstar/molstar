@@ -14,6 +14,7 @@ import { Location } from '../../mol-model/location';
 import { ScaleLegend, TableLegend } from '../../mol-util/legend';
 import { getPalette, getPaletteParams } from '../../mol-util/color/palette';
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
+import { ColorThemeCategory } from '../../mol-theme/color/categories';
 
 const DefaultColor = Color(0xCCCCCC);
 
@@ -102,7 +103,7 @@ export function AssemblySymmetryClusterColorTheme(ctx: ThemeDataContext, props: 
 export const AssemblySymmetryClusterColorThemeProvider: ColorTheme.Provider<AssemblySymmetryClusterColorThemeParams, AssemblySymmetryData.Tag.Cluster> = {
     name: AssemblySymmetryData.Tag.Cluster,
     label: 'Assembly Symmetry Cluster',
-    category: ColorTheme.Category.Symmetry,
+    category: ColorThemeCategory.Symmetry,
     factory: AssemblySymmetryClusterColorTheme,
     getParams: getAssemblySymmetryClusterColorThemeParams,
     defaultValues: PD.getDefaultValues(AssemblySymmetryClusterColorThemeParams),
