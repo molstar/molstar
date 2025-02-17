@@ -13,7 +13,9 @@ Note that since we don't clearly distinguish between a public and private interf
   - Support `spacefill` representation
   - Support for `custom.molstar_use_default_coloring` property on Color node.
   - Use `atom.ihm.has-seq-id` and `atom.ihm.overlaps-seq-id-range` for matching `label_seq_id` locations to support querying coarse elements.
+- MolViewSpec extension: Add box, arrow, ellipse, ellipsoid primitives
 - Add Components example
+- Remove static uses of `ColorTheme` and `SizeTheme` fields. Should resolvent "undefined" errors in certain builds
 
 ## [v4.11.0] - 2025-01-26
 
