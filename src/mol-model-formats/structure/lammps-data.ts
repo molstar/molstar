@@ -8,7 +8,7 @@
 
 import { Column, Table } from '../../mol-data/db';
 import { Model } from '../../mol-model/structure/model';
-import { LammpsDataFile, lammpsUnitStyles, UnitStyle } from '../../mol-io/reader/lammps/schema';
+import { LammpsDataFile, lammpsUnitStyles, AsymIdStyle, UnitStyle } from '../../mol-io/reader/lammps/schema';
 import { Trajectory, ArrayTrajectory } from '../../mol-model/structure';
 import { BondType, MoleculeType } from '../../mol-model/structure/model/types';
 import { RuntimeContext, Task } from '../../mol-task';
@@ -20,7 +20,7 @@ import { EntityBuilder } from './common/entity';
 import { IndexPairBonds } from './property/bonds/index-pair';
 import { AtomPartialCharge } from './property/partial-charge';
 
-async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: UnitStyle = 'real') {
+async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: UnitStyle = 'real', asymIdStyle: AsymIdStyle = 'auto'): Promise<Trajectory> {
     const { atoms, bonds, bounds } = mol;
     const models: Model[] = [];
     const count = atoms.count;
@@ -46,12 +46,21 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
     }
 
     const MOL = Column.ofConst('MOL', count, Column.Schema.str);
-    const asym_id = (count > 200000) ? Column.ofConst('A', count, Column.Schema.str)
-        : Column.ofLambda({
+    const asym_id = asymIdStyle === 'on' ?
+        Column.ofLambda({
             value: (row: number) => atoms.moleculeId.value(row).toString(),
             rowCount: count,
             schema: Column.Schema.str,
-        });
+        })
+        : asymIdStyle === 'off' ?
+            Column.ofConst('A', count, Column.Schema.str)
+            : (count > 200000) ?
+                Column.ofConst('A', count, Column.Schema.str)
+                : Column.ofLambda({
+                    value: (row: number) => atoms.moleculeId.value(row).toString(),
+                    rowCount: count,
+                    schema: Column.Schema.str,
+                });
 
     const seq_id = Column.ofConst(1, count, Column.Schema.int);
 
@@ -185,7 +194,8 @@ namespace LammpsDataFormat {
     }
 }
 
-export function trajectoryFromLammpsData(mol: LammpsDataFile, unitsStyle?: UnitStyle): Task<Trajectory> {
+export function trajectoryFromLammpsData(mol: LammpsDataFile, unitsStyle?: UnitStyle, asymId?: AsymIdStyle): Task<Trajectory> {
     if (unitsStyle === void 0) unitsStyle = 'real';
-    return Task.create('Parse Lammps Data', ctx => getModels(mol, ctx, unitsStyle));
+    if (asymId === void 0) asymId = 'auto';
+    return Task.create('Parse Lammps Data', ctx => getModels(mol, ctx, unitsStyle, asymId));
 }

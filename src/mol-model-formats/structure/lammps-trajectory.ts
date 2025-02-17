@@ -7,7 +7,7 @@
  */
 
 import { Coordinates, Frame, Time } from '../../mol-model/structure/coordinates';
-import { LammpsTrajectoryFile, lammpsUnitStyles, UnitStyle } from '../../mol-io/reader/lammps/schema';
+import { LammpsTrajectoryFile, lammpsUnitStyles, UnitStyle, AsymIdStyle } from '../../mol-io/reader/lammps/schema';
 import { Model } from '../../mol-model/structure/model';
 import { RuntimeContext, Task } from '../../mol-task';
 import { Column, Table } from '../../mol-data/db';
@@ -65,7 +65,7 @@ export function coordinatesFromLammpsTrajectory(file: LammpsTrajectoryFile, unit
     });
 }
 
-async function getModels(mol: LammpsTrajectoryFile, ctx: RuntimeContext, unitsStyle: UnitStyle = 'real') {
+async function getModels(mol: LammpsTrajectoryFile, ctx: RuntimeContext, unitsStyle: UnitStyle = 'real', asymIdStyle: AsymIdStyle = 'auto'): Promise<Trajectory> {
     const atoms = mol.frames[0];
     const count = atoms.count;
     const atomsMode = atoms.atomMode;
@@ -117,12 +117,21 @@ async function getModels(mol: LammpsTrajectoryFile, ctx: RuntimeContext, unitsSt
     }
 
     const MOL = Column.ofConst('MOL', count, Column.Schema.str);
-    const asym_id = (count > 200000) ? Column.ofConst('A', count, Column.Schema.str)
-        : Column.ofLambda({
+    const asym_id = asymIdStyle === 'on' ?
+        Column.ofLambda({
             value: (row: number) => atoms.moleculeId.value(row).toString(),
             rowCount: count,
             schema: Column.Schema.str,
-        });
+        })
+        : asymIdStyle === 'off' ?
+            Column.ofConst('A', count, Column.Schema.str)
+            : (count > 200000) ?
+                Column.ofConst('A', count, Column.Schema.str)
+                : Column.ofLambda({
+                    value: (row: number) => atoms.moleculeId.value(row).toString(),
+                    rowCount: count,
+                    schema: Column.Schema.str,
+                });
 
     const seq_id = Column.ofConst(1, count, Column.Schema.int);
 
@@ -183,7 +192,7 @@ namespace LammpsTrajectoryFormat {
     }
 }
 
-export function trajectoryFromLammpsTrajectory(mol: LammpsTrajectoryFile, unitsStyle?: UnitStyle): Task<Trajectory> {
+export function trajectoryFromLammpsTrajectory(mol: LammpsTrajectoryFile, unitsStyle?: UnitStyle, asymId?: AsymIdStyle): Task<Trajectory> {
     if (unitsStyle === void 0) unitsStyle = 'real';
-    return Task.create('Parse Lammps Traj Data', ctx => getModels(mol, ctx, unitsStyle));
+    return Task.create('Parse Lammps Traj Data', ctx => getModels(mol, ctx, unitsStyle, asymId));
 }
