@@ -33,34 +33,30 @@ function createKinShapeParams(kinemage?: Kinemage) {
 export const KinShapeParams = createKinShapeParams();
 export type KinShapeParams = typeof KinShapeParams
 
-async function getLines(ctx: RuntimeContext, vertices: VectorList, groupIds: ArrayLike<number>, lines?: Lines) {
-  const builderState = LinesBuilder.create(vertices.position1Array.length, vertices.position1Array.length / 4, lines);
+async function getLines(ctx: RuntimeContext, vectorLists: VectorList[]) {
+  const builderState = LinesBuilder.create();
 
-  /// @todo Does this cause copies?
-  const position1Array = vertices.position1Array;
-  const position2Array = vertices.position2Array;
+  for (let i = 0; i < vectorLists.length; i++) {
+    const vertices = vectorLists[i];
+    const position1Array = vertices.position1Array;
+    const position2Array = vertices.position2Array;
 
-  /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
-  /// @todo handle groups
+    /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
 
-  const group = 1;
-  const numLines = position1Array.length / 3
-  for (let i = 0; i < numLines; i++) {
-    builderState.add(position1Array[3 * i + 0], position1Array[3 * i + 1], position1Array[3 * i + 2],
-                     position2Array[3 * i + 0], position2Array[3 * i + 1], position2Array[3 * i + 2],
-                     group);
+    const group = i;  /// @todo Base this on something in the file instead?
+    const numLines = position1Array.length / 3
+    for (let i = 0; i < numLines; i++) {
+      builderState.add(position1Array[3 * i + 0], position1Array[3 * i + 1], position1Array[3 * i + 2],
+        position2Array[3 * i + 0], position2Array[3 * i + 1], position2Array[3 * i + 2],
+        group);
 
-    if (ctx.shouldUpdate && (i % 10000 == 0)) {
-      await ctx.update({ message: 'adding kin line vertices', current: i, max: numLines });
+      if (ctx.shouldUpdate && (i % 10000 == 0)) {
+        await ctx.update({ message: 'adding kin line vertices', current: i, max: numLines });
+      }
     }
   }
 
-  const _lines = builderState.getLines();
-
-  // TODO: check if needed
-  //ValueCell.updateIfChanged(_lines.varyingGroup, true);
-
-  return _lines;
+  return builderState.getLines();
 }
 
 function makeShapeGetter() {
@@ -87,8 +83,7 @@ function makeShapeGetter() {
         */
 
         // Get our lines, adding them from all of the entries in the vector lists
-        /// @todo Get all of the vector lists, not just the first.
-        const _lines = await getLines(ctx, kinData.source.vectorLists[0], []);
+        const _lines = await getLines(ctx, kinData.source.vectorLists);
 
         /*
         let _lines: Lines = {};
@@ -102,7 +97,7 @@ function makeShapeGetter() {
           'kin-lines',
           kinData.source,
           _lines,
-          () => Color(0xFFFFFF),  // @todo color function
+          () => Color(0x7F7F7F),  // @todo color function
           () => 1,                // size function
           () => ''                // @todo label function
         );
