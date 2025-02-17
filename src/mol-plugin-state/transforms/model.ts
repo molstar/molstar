@@ -432,7 +432,7 @@ const TrajectoryFromLammpsTrajData = PluginStateTransform.BuiltIn({
     params: LammpsParams
 })({
     apply({ a, params }) {
-        return Task.create('Parse Lammps Data', async ctx => {
+        return Task.create('Parse Lammps Traj Data', async ctx => {
             const parsed = await parseLammpsTrajectory(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             const models = await trajectoryFromLammpsTrajectory(parsed.result, params.unitsStyle, params.asymId).runInContext(ctx);
