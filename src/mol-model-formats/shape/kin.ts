@@ -7,10 +7,13 @@
 import { RuntimeContext, Task } from '../../mol-task';
 import { ShapeProvider } from '../../mol-model/shape/provider';
 import { Color } from '../../mol-util/color';
-import { Kinemage } from '../../mol-io/reader/kin/schema';
-import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
+import { Kinemage, VectorList } from '../../mol-io/reader/kin/schema';
+import { Lines } from '../../mol-geo/geometry/lines/lines';
+import { LinesBuilder } from '../../mol-geo/geometry/lines/lines-builder';
+//import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { Shape } from '../../mol-model/shape';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
+//import { ValueCell } from '../../mol-util/value-cell';
 import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
 
 /// @todo Fill in geometry and coloring information
@@ -23,18 +26,50 @@ export type KinData = {
 function createKinShapeParams(kinemage?: Kinemage) {
 
     return {
-        ...Mesh.Params,
+        ...Lines.Params,
     };
 }
 
 export const KinShapeParams = createKinShapeParams();
 export type KinShapeParams = typeof KinShapeParams
 
+async function getLines(ctx: RuntimeContext, vertices: VectorList, groupIds: ArrayLike<number>, lines?: Lines) {
+  const builderState = LinesBuilder.create(vertices.position1Array.length, vertices.position1Array.length / 4, lines);
+
+  /// @todo Does this cause copies?
+  const position1Array = vertices.position1Array;
+  const position2Array = vertices.position2Array;
+
+  /// @todo Update in chunks of 100000 like the Ply files do rather than all at once like we do here.
+  /// @todo handle groups
+
+  const group = 1;
+  const numLines = position1Array.length / 3
+  for (let i = 0; i < numLines; i++) {
+    builderState.add(position1Array[3 * i + 0], position1Array[3 * i + 1], position1Array[3 * i + 2],
+                     position2Array[3 * i + 0], position2Array[3 * i + 1], position2Array[3 * i + 2],
+                     group);
+
+    if (ctx.shouldUpdate && (i % 10000 == 0)) {
+      await ctx.update({ message: 'adding kin line vertices', current: i, max: numLines });
+    }
+  }
+
+  const _lines = builderState.getLines();
+
+  // TODO: check if needed
+  //ValueCell.updateIfChanged(_lines.varyingGroup, true);
+
+  return _lines;
+}
+
 function makeShapeGetter() {
 
-    const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapeParams>, shape?: Shape<Mesh>) => {
+    const getShape = async (ctx: RuntimeContext, kinData: KinData, props: PD.Values<KinShapeParams>, shape?: Shape<Lines>) => {
         console.log(`XXX Number of vector lists: ${kinData.source.vectorLists.length}, ballLists: ${kinData.source.ballLists.length}, ribbonLists: ${kinData.source.ribbonLists.length}`);
         /// @todo
+
+        /*
         // Create an empty Mesh
         const mesh = Mesh.createEmpty();
 
@@ -49,18 +84,41 @@ function makeShapeGetter() {
         );
 
         return emptyShape;
+        */
+
+        // Get our lines, adding them from all of the entries in the vector lists
+        /// @todo Get all of the vector lists, not just the first.
+        const _lines = await getLines(ctx, kinData.source.vectorLists[0], []);
+
+        /*
+        let _lines: Lines = {};
+        for (let i = 0; i < kinData.source.vectorLists.length; i++) {
+          _lines = getLines(ctx, kinData.source.vectorLists[i], [], _lines);
+        }
+        */
+
+        let _shape: Shape<Lines>;
+        _shape = Shape.create<Lines>(
+          'kin-lines',
+          kinData.source,
+          _lines,
+          () => Color(0xFFFFFF),  // @todo color function
+          () => 1,                // size function
+          () => ''                // @todo label function
+        );
+        return _shape;
     };
     return getShape;
 }
 
 export function shapeFromKin(source: Kinemage, params?: { transforms?: Mat4[] }) {
-    return Task.create<ShapeProvider<KinData, Mesh, KinShapeParams>>('Shape Provider', async ctx => {
+    return Task.create<ShapeProvider<KinData, Lines, KinShapeParams>>('Shape Provider', async ctx => {
         return {
-            label: 'Mesh',
+            label: 'Lines',
             data: { source, transforms: params?.transforms },
             params: createKinShapeParams(source),
             getShape: makeShapeGetter(),
-            geometryUtils: Mesh.Utils
+            geometryUtils: Lines.Utils
         };
     });
 }
