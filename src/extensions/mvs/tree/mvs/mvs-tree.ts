@@ -8,7 +8,7 @@
 import { float, int, list, literal, nullable, OptionalField, RequiredField, str, tuple, union } from '../generic/field-schema';
 import { SimpleParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
-import { MVSRepresentationParams } from './mvs-tree-representations';
+import { MVSRepresentationParams, MVSVolumeRepresentationParams } from './mvs-tree-representations';
 import { MVSPrimitiveParams } from './mvs-tree-primitives';
 import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
 
@@ -148,10 +148,22 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['component', 'component_from_uri', 'component_from_source'],
             params: MVSRepresentationParams,
         },
+        /** This node instructs to create a volume from a parsed data resource. "Volume" refers to an internal representation of volumetric data without any visual representation. */
+        volume: {
+            description: 'This node instructs to create a volume from a parsed data resource. "Volume" refers to an internal representation of volumetric data without any visual representation.',
+            parent: ['parse'],
+            params: SimpleParamsSchema({}),
+        },
+        /** This node instructs to create a visual representation of a volume. */
+        volume_representation: {
+            description: 'This node instructs to create a visual representation of a volume.',
+            parent: ['volume'],
+            params: MVSVolumeRepresentationParams,
+        },
         /** This node instructs to apply color to a visual representation. */
         color: {
             description: 'This node instructs to apply color to a visual representation.',
-            parent: ['representation'],
+            parent: ['representation', 'volume_representation'],
             params: SimpleParamsSchema({
                 /** Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`). */
                 color: OptionalField(ColorT, DefaultColor, 'Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
@@ -182,7 +194,7 @@ export const MVSTreeSchema = TreeSchema({
         /** This node instructs to apply opacity/transparency to a visual representation. */
         opacity: {
             description: 'This node instructs to apply opacity/transparency to a visual representation.',
-            parent: ['representation'],
+            parent: ['representation', 'volume_representation'],
             params: SimpleParamsSchema({
                 /** Opacity of a representation. 0.0: fully transparent, 1.0: fully opaque. */
                 opacity: RequiredField(float, 'Opacity of a representation. 0.0: fully transparent, 1.0: fully opaque.'),
@@ -249,7 +261,7 @@ export const MVSTreeSchema = TreeSchema({
         /** This node instructs to set the camera focus to a component (zoom in). */
         focus: {
             description: 'This node instructs to set the camera focus to a component (zoom in).',
-            parent: ['root', 'component', 'component_from_uri', 'component_from_source', 'primitives', 'primitives_from_uri'],
+            parent: ['root', 'component', 'component_from_uri', 'component_from_source', 'primitives', 'primitives_from_uri', 'volume', 'volume_representation'],
             params: SimpleParamsSchema({
                 /** Vector describing the direction of the view (camera position -> focused target). */
                 direction: OptionalField(Vector3, [0, 0, -1], 'Vector describing the direction of the view (camera position -> focused target).'),

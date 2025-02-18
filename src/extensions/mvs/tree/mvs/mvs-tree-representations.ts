@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { bool, float, OptionalField } from '../generic/field-schema';
+import { bool, float, nullable, OptionalField } from '../generic/field-schema';
 import { SimpleParamsSchema, UnionParamsSchema } from '../generic/params-schema';
 
 const Cartoon = {
@@ -43,5 +43,24 @@ export const MVSRepresentationParams = UnionParamsSchema(
         ball_and_stick: SimpleParamsSchema(BallAndStick),
         spacefill: SimpleParamsSchema(Spacefill),
         surface: SimpleParamsSchema(Surface),
+    },
+);
+
+const VolumeIsoSurface = {
+    /** Relative isovalue. */
+    relative_isovalue: OptionalField(nullable(float), null, 'Relative isovalue.'),
+    /** Absolute isovalue. Overrides `relative_isovalue`. */
+    absolute_isovalue: OptionalField(nullable(float), null, 'Absolute isovalue. Overrides `relative_isovalue`.'),
+    /** Show mesh wireframe. Defaults to false. */
+    show_wireframe: OptionalField(bool, true, 'Show mesh wireframe. Defaults to false.'),
+    /** Show mesh faces. Defaults to true. */
+    show_faces: OptionalField(bool, true, 'Show mesh faces. Defaults to true.'),
+};
+
+export const MVSVolumeRepresentationParams = UnionParamsSchema(
+    'type',
+    'Representation type',
+    {
+        'isosurface': SimpleParamsSchema(VolumeIsoSurface),
     },
 );

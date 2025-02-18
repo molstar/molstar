@@ -17,6 +17,7 @@ export const ParseFormatMvsToMolstar = {
     mmcif: { format: 'cif', is_binary: false },
     bcif: { format: 'cif', is_binary: true },
     pdb: { format: 'pdb', is_binary: false },
+    map: { format: 'map', is_binary: true },
 } satisfies { [p in ParseFormatT]: { format: MolstarParseFormatT, is_binary: boolean } };
 
 
@@ -71,6 +72,7 @@ const StructureFormatExtensions: Record<ParseFormatT, (FileExtension | '*')[]> =
     mmcif: ['.cif', '.mmif'],
     bcif: ['.bcif'],
     pdb: ['.pdb', '.ent'],
+    map: ['.map', '.ccp4', '.mrc', '.mrcs'],
 };
 
 /** Run some sanity check on a MVSTree. Return a list of potential problems (`undefined` if there are none) */
