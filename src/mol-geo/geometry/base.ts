@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -130,6 +130,7 @@ export namespace BaseGeometry {
             uClipObjectPosition: ValueCell.create(clip.objects.position),
             uClipObjectRotation: ValueCell.create(clip.objects.rotation),
             uClipObjectScale: ValueCell.create(clip.objects.scale),
+            uClipObjectTransform: ValueCell.create(clip.objects.transform),
 
             instanceGranularity: ValueCell.create(props.instanceGranularity),
             uLod: ValueCell.create(Vec4.create(props.lod[0], props.lod[1], props.lod[2], 0)),
@@ -152,6 +153,7 @@ export namespace BaseGeometry {
         ValueCell.update(values.uClipObjectPosition, clip.objects.position);
         ValueCell.update(values.uClipObjectRotation, clip.objects.rotation);
         ValueCell.update(values.uClipObjectScale, clip.objects.scale);
+        ValueCell.update(values.uClipObjectTransform, clip.objects.transform);
 
         ValueCell.updateIfChanged(values.instanceGranularity, props.instanceGranularity);
         ValueCell.update(values.uLod, Vec4.set(values.uLod.ref.value, props.lod[0], props.lod[1], props.lod[2], 0));

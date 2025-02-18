@@ -10,6 +10,16 @@ Note that since we don't clearly distinguish between a public and private interf
 - MolViewSpec extension: Add box, arrow, ellipse, ellipsoid primitives
 - Add Components example
 - Remove static uses of `ColorTheme` and `SizeTheme` fields. Should resolvent "undefined" errors in certain builds
+- Add `transform` property to clip objects
+- Add support for trimming `image` geometry to a box
+- Improve/fix iso-level support of `slice` representation
+- Add support for rotating `slice` representation around an axis
+- Add default color support for palette based themes
+- Add `plane` structure representation
+    - Can be colored with any structure theme
+    - Can be colored with the `external-volume` theme
+    - Can show atoms as a cutout
+    - Supports principal axes and bounding box as a reference frame
 
 ## [v4.11.0] - 2025-01-26
 
@@ -34,7 +44,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add support for color themes to `slice` representation
 - Improve/fix palette support in volume color themes
 - Fix `Plane3D.projectPoint`
-- Fix marking related image rendering issues
+- Fix marking related `image` rendering issues
     - Handle pixels without a group
     - Take fog into account
 - MolViewSpec extension: Initial support for customizable representation parameters

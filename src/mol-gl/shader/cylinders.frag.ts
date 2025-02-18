@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -84,7 +84,7 @@ bool CylinderImpostor(
         viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
         fragmentDepth = calcDepth(viewPosition);
         #if defined(dClipVariant_pixel) && dClipObjectCount != 0
-            if (clipTest(vec4(modelPosition, 0.0))) {
+            if (clipTest(modelPosition)) {
                 objectClipped = true;
                 fragmentDepth = -1.0;
                 #ifdef dSolidInterior
@@ -108,7 +108,7 @@ bool CylinderImpostor(
                 viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
                 fragmentDepth = calcDepth(viewPosition);
                 #if defined(dClipVariant_pixel) && dClipObjectCount != 0
-                    if (clipTest(vec4(modelPosition, 0.0))) {
+                    if (clipTest(modelPosition)) {
                         objectClipped = true;
                         fragmentDepth = -1.0;
                         #ifdef dSolidInterior
@@ -138,7 +138,7 @@ bool CylinderImpostor(
                 viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
                 fragmentDepth = calcDepth(viewPosition);
                 #if defined(dClipVariant_pixel) && dClipObjectCount != 0
-                    if (clipTest(vec4(modelPosition, 0.0))) {
+                    if (clipTest(modelPosition)) {
                         objectClipped = true;
                         fragmentDepth = -1.0;
                         #ifdef dSolidInterior
