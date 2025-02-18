@@ -44,19 +44,20 @@ float infiniteConeSD(const in vec3 position, const in vec4 rotation, const in ve
     return dot(size.xy, vec2(q, t.z));
 }
 
-float getSignedDistance(const in vec3 center, const in int type, const in vec3 position, const in vec4 rotation, const in vec3 scale) {
+float getSignedDistance(const in vec3 center, const in int type, const in vec3 position, const in vec4 rotation, const in vec3 scale, const in mat4 transform) {
+    vec3 c = (transform * vec4(center, 1.0)).xyz;
     if (type == 1) {
         vec3 normal = quaternionTransform(rotation, vec3(0.0, 1.0, 0.0));
         vec4 plane = computePlane(normal, position);
-        return planeSD(plane, center);
+        return planeSD(plane, c);
     } else if (type == 2) {
-        return sphereSD(position, rotation, scale * 0.5, center);
+        return sphereSD(position, rotation, scale * 0.5, c);
     } else if (type == 3) {
-        return cubeSD(position, rotation, scale * 0.5, center);
+        return cubeSD(position, rotation, scale * 0.5, c);
     } else if (type == 4) {
-        return cylinderSD(position, rotation, scale * 0.5, center);
+        return cylinderSD(position, rotation, scale * 0.5, c);
     } else if (type == 5) {
-        return infiniteConeSD(position, rotation, scale * 0.5, center);
+        return infiniteConeSD(position, rotation, scale * 0.5, c);
     } else {
         return 0.1;
     }
@@ -86,7 +87,7 @@ float getSignedDistance(const in vec3 center, const in int type, const in vec3 p
     }
 #endif
 
-bool clipTest(const in vec4 sphere) {
+bool clipTest(const in vec3 center) {
     // flag is a bit-flag for clip-objects to ignore (note, object ids start at 1 not 0)
     #if defined(dClipping)
         int flag = int(floor(vClipping * 255.0 + 0.5));
@@ -97,8 +98,7 @@ bool clipTest(const in vec4 sphere) {
     #pragma unroll_loop_start
     for (int i = 0; i < dClipObjectCount; ++i) {
         if (flag == 0 || hasBit(flag, UNROLLED_LOOP_INDEX + 1)) {
-            // TODO take sphere radius into account?
-            bool test = getSignedDistance(sphere.xyz, uClipObjectType[i], uClipObjectPosition[i], uClipObjectRotation[i], uClipObjectScale[i]) <= 0.0;
+            bool test = getSignedDistance(center, uClipObjectType[i], uClipObjectPosition[i], uClipObjectRotation[i], uClipObjectScale[i], uClipObjectTransform[i]) <= 0.0;
             if ((!uClipObjectInvert[i] && test) || (uClipObjectInvert[i] && !test)) {
                 return true;
             }

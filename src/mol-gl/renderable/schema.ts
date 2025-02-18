@@ -325,6 +325,7 @@ export const BaseSchema = {
     uClipObjectPosition: UniformSpec('v3[]', 'material'),
     uClipObjectRotation: UniformSpec('v4[]', 'material'),
     uClipObjectScale: UniformSpec('v3[]', 'material'),
+    uClipObjectTransform: UniformSpec('m4[]', 'material'),
 
     aInstance: AttributeSpec('float32', 1, 1),
     /**

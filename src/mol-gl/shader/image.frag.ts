@@ -138,10 +138,7 @@ uniform float uIsoLevel;
 #endif
 
 void main() {
-    if (uTrimType != 0) {
-        vec3 trimPosition = (uTrimTransform * vec4(vModelPosition, 1.0)).xyz;
-        if (getSignedDistance(trimPosition, uTrimType, uTrimCenter, uTrimRotation, uTrimScale) > 0.0) discard;
-    }
+    if (uTrimType != 0 && getSignedDistance(vModelPosition, uTrimType, uTrimCenter, uTrimRotation, uTrimScale, uTrimTransform) > 0.0) discard;
 
     #include fade_lod
     #include clip_pixel
