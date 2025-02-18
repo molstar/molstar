@@ -43,6 +43,9 @@ const _DataFromSourceParams = {
     field_name: RequiredField(str, 'Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...).'),
 };
 
+/** Color to be used e.g. for representations without 'color' node */
+export const DefaultColor = 'white';
+
 /** Schema for `MVSTree` (MolViewSpec tree) */
 export const MVSTreeSchema = TreeSchema({
     rootKind: 'root',
@@ -151,7 +154,7 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['representation'],
             params: SimpleParamsSchema({
                 /** Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`). */
-                color: RequiredField(ColorT, 'Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
+                color: OptionalField(ColorT, DefaultColor, 'Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
                 /** Defines to what part of the representation this color should be applied. */
                 selector: OptionalField(union([ComponentSelectorT, ComponentExpressionT, list(ComponentExpressionT)]), 'all', 'Defines to what part of the representation this color should be applied.'),
             }),

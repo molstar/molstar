@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Mat3, Mat4, Vec3 } from '../../mol-math/linear-algebra';
@@ -27,6 +28,7 @@ import { MolstarLoadingContext } from './load';
 import { Subtree, getChildren } from './tree/generic/tree-schema';
 import { dfs, formatObject } from './tree/generic/tree-utils';
 import { MolstarKind, MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree } from './tree/molstar/molstar-tree';
+import { DefaultColor } from './tree/mvs/mvs-tree';
 
 
 export const AnnotationFromUriKinds = new Set(['color_from_uri', 'component_from_uri', 'label_from_uri', 'tooltip_from_uri'] satisfies MolstarKind[]);
@@ -34,10 +36,6 @@ export type AnnotationFromUriKind = ElementOfSet<typeof AnnotationFromUriKinds>
 
 export const AnnotationFromSourceKinds = new Set(['color_from_source', 'component_from_source', 'label_from_source', 'tooltip_from_source'] satisfies MolstarKind[]);
 export type AnnotationFromSourceKind = ElementOfSet<typeof AnnotationFromSourceKinds>
-
-/** Color to be used e.g. for representations without 'color' node */
-export const DefaultColor = 'white';
-
 
 /** Return a 4x4 matrix representing a rotation followed by a translation */
 export function transformFromRotationTranslation(rotation: number[] | null | undefined, translation: number[] | null | undefined): Mat4 {
@@ -296,6 +294,11 @@ export function representationProps(node: MolstarSubtree<'representation'>): Par
             return {
                 type: { name: 'ball-and-stick', params: { sizeFactor: (params.size_factor ?? 1) * 0.5, sizeAspectRatio: 0.5, alpha, ignoreHydrogens: params.ignore_hydrogens } },
             };
+        case 'spacefill':
+            return {
+                type: { name: 'spacefill', params: { alpha, ignoreHydrogens: params.ignore_hydrogens } },
+                sizeTheme: { name: 'physical', params: { scale: params.size_factor } },
+            };
         case 'surface':
             return {
                 type: { name: 'molecular-surface', params: { alpha, ignoreHydrogens: params.ignore_hydrogens } },
@@ -316,7 +319,7 @@ export function alphaForNode(node: MolstarSubtree<'representation'>): number {
     }
 }
 /** Create value for `colorTheme` prop for `StructureRepresentation3D` transformer from a representation node based on color* nodes in its subtree. */
-export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri' | 'color_from_source' | 'representation'> | undefined, context: MolstarLoadingContext): StateTransformer.Params<StructureRepresentation3D>['colorTheme'] {
+export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri' | 'color_from_source' | 'representation'> | undefined, context: MolstarLoadingContext): StateTransformer.Params<StructureRepresentation3D>['colorTheme'] | undefined {
     if (node?.kind === 'representation') {
         const children = getChildren(node).filter(c => c.kind === 'color' || c.kind === 'color_from_uri' || c.kind === 'color_from_source') as MolstarNode<'color' | 'color_from_uri' | 'color_from_source'>[];
         if (children.length === 0) {
@@ -324,12 +327,18 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
                 name: 'uniform',
                 params: { value: decodeColor(DefaultColor) },
             };
+        } else if (children.length === 1 && children[0].custom?.molstar_use_default_coloring) {
+            return undefined;
         } else if (children.length === 1 && appliesColorToWholeRepr(children[0])) {
             return colorThemeForNode(children[0], context);
         } else {
             const layers: MultilayerColorThemeProps['layers'] = children.map(
-                c => ({ theme: colorThemeForNode(c, context), selection: componentPropsFromSelector(c.kind === 'color' ? c.params.selector : undefined) })
-            );
+                c => {
+                    const theme = colorThemeForNode(c, context);
+                    if (!theme) return undefined;
+                    return { theme, selection: componentPropsFromSelector(c.kind === 'color' ? c.params.selector : undefined) };
+                }
+            ).filter(t => !!t);
             return {
                 name: MultilayerColorThemeName,
                 params: { layers },
