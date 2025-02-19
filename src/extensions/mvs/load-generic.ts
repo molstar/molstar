@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -125,6 +125,9 @@ export interface UpdateTarget {
     readonly selector: StateObjectSelector,
     readonly targetManager: TargetManager,
     readonly mvsDependencyRefs: Set<string>,
+
+    readonly transformer?: StateTransformer,
+    readonly transformParams?: any,
 }
 export const UpdateTarget = {
     /** Create a new update, with `selector` pointing to the root. */
@@ -142,7 +145,7 @@ export const UpdateTarget = {
         }
         const ref = target.targetManager.getChildRef(target.selector, refSuffix);
         const msResult = target.update.to(target.selector).apply(transformer, params, { ...options, ref }).selector;
-        const result: UpdateTarget = { ...target, selector: msResult, mvsDependencyRefs: new Set() };
+        const result: UpdateTarget = { ...target, selector: msResult, mvsDependencyRefs: new Set(), transformer, transformParams: params };
         target.targetManager.allTargets.push(result);
         return result;
     },

@@ -152,6 +152,10 @@ export class Parse extends _Base<'parse'> {
             ref: params.ref,
         }));
     }
+    /** Add a 'volume' node representing raw volume data */
+    volume(params: MVSNodeParams<'volume'> & CustomAndRef = {}): any {
+        return this.addChild('volume', params);
+    }
 }
 
 
@@ -246,6 +250,33 @@ export class Representation extends _Base<'representation'> {
         this.addChild('opacity', params);
         return this;
     }
+}
+
+
+/** MVS builder pointing to a 'component' or 'component_from_uri' or 'component_from_source' node */
+export class Volume extends _Base<'volume'> implements FocusMixin {
+    /** Add a 'representation' node and return builder pointing to it. 'representation' node instructs to create a visual representation of a component. */
+    representation(params: Partial<MVSNodeParams<'volume_representation'>> & CustomAndRef = {}): VolumeRepresentation {
+        const fullParams: MVSNodeParams<'volume_representation'> = { ...params, type: params.type ?? 'isosurface' };
+        return new VolumeRepresentation(this._root, this.addChild('volume_representation', fullParams));
+    }
+    focus = bindMethod(this, FocusMixinImpl, 'focus');
+}
+
+
+/** MVS builder pointing to a 'volume_representation' node */
+export class VolumeRepresentation extends _Base<'volume_representation'> implements FocusMixin {
+    /** Add a 'color' node and return builder pointing back to the representation node. 'color' node instructs to apply color to a visual representation. */
+    color(params: MVSNodeParams<'color'> & CustomAndRef): VolumeRepresentation {
+        this.addChild('color', params);
+        return this;
+    }
+    /** Add an 'opacity' node and return builder pointing back to the representation node. 'opacity' node instructs to customize opacity/transparency of a visual representation. */
+    opacity(params: MVSNodeParams<'opacity'> & CustomAndRef): VolumeRepresentation {
+        this.addChild('opacity', params);
+        return this;
+    }
+    focus = bindMethod(this, FocusMixinImpl, 'focus');
 }
 
 
