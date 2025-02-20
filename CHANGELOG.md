@@ -10,7 +10,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `atom.ihm.has-seq-id` and `atom.ihm.overlaps-seq-id-range` symbol to the query language
 - MolViewSpec extension:
   - Add box, arrow, ellipse, ellipsoid primitives
-  - Add basic support for volumetic data
+  - Add basic support for volumetric data (map, Volume Server)
+  - Add support for `molstar_color_theme_name` custom extension
   - Better IH/M support:
     - Support `coarse` components
     - Support `spacefill` representation
@@ -29,6 +30,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Can be colored with the `external-volume` theme
     - Can show atoms as a cutout
     - Supports principal axes and bounding box as a reference frame
+- Add `Camera` section to "Screenshot / State" controls
 
 ## [v4.11.0] - 2025-01-26
 

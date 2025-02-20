@@ -48,6 +48,17 @@
         bottom: 0;
     }
 
+    > div.msp-control-row-text {
+        position: absolute;
+        left: $control-label-width + $control-spacing;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        padding: 0 $control-spacing;
+    }
+
     > div {
         background: $msp-form-control-background;
     }

@@ -52,7 +52,7 @@ const VolumeIsoSurface = {
     /** Absolute isovalue. Overrides `relative_isovalue`. */
     absolute_isovalue: OptionalField(nullable(float), null, 'Absolute isovalue. Overrides `relative_isovalue`.'),
     /** Show mesh wireframe. Defaults to false. */
-    show_wireframe: OptionalField(bool, true, 'Show mesh wireframe. Defaults to false.'),
+    show_wireframe: OptionalField(bool, false, 'Show mesh wireframe. Defaults to false.'),
     /** Show mesh faces. Defaults to true. */
     show_faces: OptionalField(bool, true, 'Show mesh faces. Defaults to true.'),
 };
