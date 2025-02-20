@@ -28,6 +28,11 @@ const Spacefill = {
     ignore_hydrogens: OptionalField(bool, false, 'Controls whether hydrogen atoms are drawn.'),
 };
 
+const Carbohydrate = {
+    /** Scales the corresponding visuals */
+    size_factor: OptionalField(float, 1, 'Scales the corresponding visuals.'),
+};
+
 const Surface = {
     /** Scales the corresponding visuals */
     size_factor: OptionalField(float, 1, 'Scales the corresponding visuals.'),
@@ -42,6 +47,7 @@ export const MVSRepresentationParams = UnionParamsSchema(
         cartoon: SimpleParamsSchema(Cartoon),
         ball_and_stick: SimpleParamsSchema(BallAndStick),
         spacefill: SimpleParamsSchema(Spacefill),
+        carbohydrate: SimpleParamsSchema(Carbohydrate),
         surface: SimpleParamsSchema(Surface),
     },
 );

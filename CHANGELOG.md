@@ -15,6 +15,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Better IH/M support:
     - Support `coarse` components
     - Support `spacefill` representation
+    - Support `carbohydrate` representation
     - Support for `custom.molstar_use_default_coloring` property on Color node.
     - Use `atom.ihm.has-seq-id` and `atom.ihm.overlaps-seq-id-range` for matching `label_seq_id` locations to support querying coarse elements.
     - Add ihm-restraints example

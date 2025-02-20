@@ -300,6 +300,10 @@ export function representationProps(node: MolstarSubtree<'representation'>): Par
                 type: { name: 'spacefill', params: { alpha, ignoreHydrogens: params.ignore_hydrogens } },
                 sizeTheme: { name: 'physical', params: { scale: params.size_factor } },
             };
+        case 'carbohydrate':
+            return {
+                type: { name: 'carbohydrate', params: { alpha, sizeFactor: params.size_factor ?? 1 } },
+            };
         case 'surface':
             return {
                 type: { name: 'molecular-surface', params: { alpha, ignoreHydrogens: params.ignore_hydrogens } },
