@@ -11,7 +11,7 @@ import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { Download, ParseCcp4, ParseCif } from '../../mol-plugin-state/transforms/data';
 import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromMmCif, TrajectoryFromPDB, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
 import { ShapeRepresentation3D, StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
-import { VolumeFromCcp4 } from '../../mol-plugin-state/transforms/volume';
+import { VolumeFromCcp4, VolumeFromDensityServerCif } from '../../mol-plugin-state/transforms/volume';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectSelector } from '../../mol-state';
@@ -279,6 +279,8 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     volume(updateParent: UpdateTarget, node: MolstarNode<'volume'>): UpdateTarget | undefined {
         if (updateParent.transformer?.definition.to.includes(PluginStateObject.Format.Ccp4)) {
             return UpdateTarget.apply(updateParent, VolumeFromCcp4, { });
+        } else if (updateParent.transformer?.definition.to.includes(PluginStateObject.Format.Cif)) {
+            return UpdateTarget.apply(updateParent, VolumeFromDensityServerCif, { blockHeader: node.params.channel_id || undefined });
         } else {
             console.error(`Unsupported volume format`);
             return undefined;

@@ -152,7 +152,9 @@ export const MVSTreeSchema = TreeSchema({
         volume: {
             description: 'This node instructs to create a volume from a parsed data resource. "Volume" refers to an internal representation of volumetric data without any visual representation.',
             parent: ['parse'],
-            params: SimpleParamsSchema({}),
+            params: SimpleParamsSchema({
+                channel_id: OptionalField(nullable(str), null, 'Channel identifier (only applies when the input data contain multiple channels).'),
+            }),
         },
         /** This node instructs to create a visual representation of a volume. */
         volume_representation: {
