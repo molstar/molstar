@@ -7,7 +7,7 @@
 
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 import { LinesBuilder } from '../../../mol-geo/geometry/lines/lines-builder';
-import { addCylinder, addFixedCountDashedCylinder, addSimpleCylinder, BasicCylinderProps } from '../../../mol-geo/geometry/mesh/builder/cylinder';
+import { addFixedCountDashedCylinder, addSimpleCylinder, BasicCylinderProps } from '../../../mol-geo/geometry/mesh/builder/cylinder';
 import { addEllipsoid } from '../../../mol-geo/geometry/mesh/builder/ellipsoid';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
@@ -698,7 +698,7 @@ function addArrowMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBu
     const startRadius = params.start_cap_radius ?? tubeRadius;
     if (params.show_start_cap) {
         Vec3.scaleAndAdd(ArrowState.startCap, ArrowState.start, ArrowState.dir, startRadius);
-        addCylinder(mesh, ArrowState.start, ArrowState.startCap, 1, {
+        addSimpleCylinder(mesh, ArrowState.startCap, ArrowState.start, {
             radiusBottom: startRadius,
             radiusTop: 0,
             topCap: false,
@@ -712,7 +712,7 @@ function addArrowMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBu
     const endRadius = params.end_cap_radius ?? tubeRadius;
     if (params.show_end_cap) {
         Vec3.scaleAndAdd(ArrowState.endCap, ArrowState.end, ArrowState.dir, -endRadius);
-        addCylinder(mesh, ArrowState.end, ArrowState.endCap, 1, {
+        addSimpleCylinder(mesh, ArrowState.endCap, ArrowState.end, {
             radiusBottom: endRadius,
             radiusTop: 0,
             topCap: false,

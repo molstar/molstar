@@ -70,6 +70,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Sequence panel: Mark focused loci (bold+underline)
 - Change modifier key behavior in Normal Mode (default = select only, Ctrl/Cmd = add to selection, Shift = extend last selected range)
 - Handle Firefox's limit on vertex ids per draw (#1116)
+- Fix behavior of `Vec3.makeRotation(out, a, b)` when `a ≈ -b`
 
 ## [v4.10.0] - 2024-12-15
 
