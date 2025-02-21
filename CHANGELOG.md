@@ -9,7 +9,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Improve logic when to cull in renderer
 - Add `atom.ihm.has-seq-id` and `atom.ihm.overlaps-seq-id-range` symbol to the query language
 - MolViewSpec extension:
-  - Add box, arrow, ellipse, ellipsoid primitives
+  - Add box, arrow, ellipse, ellipsoid, angle primitives
   - Add basic support for volumetric data (map, Volume Server)
   - Add support for `molstar_color_theme_name` custom extension
   - Better IH/M support:
