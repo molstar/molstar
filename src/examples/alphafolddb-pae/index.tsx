@@ -11,6 +11,7 @@ import { MAPairwiseScorePlot } from '../../extensions/model-archive/quality-asse
 import { QualityAssessment } from '../../extensions/model-archive/quality-assessment/prop';
 import { Model, ResidueIndex } from '../../mol-model/structure';
 import './index.html';
+import './index-pwa.html';
 require('mol-plugin-ui/skin/light.scss');
 
 export class AlphaFoldPAEExample {

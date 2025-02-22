@@ -25,6 +25,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
 import './index.html';
+import './index-pwa.html';
 import { ShowButtons, StructurePreset, ViewportComponent } from './viewport';
 
 require('mol-plugin-ui/skin/light.scss');
