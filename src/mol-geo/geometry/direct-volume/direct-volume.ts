@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -214,7 +214,7 @@ export namespace DirectVolume {
         const { bboxSize, bboxMin, bboxMax, gridDimension, transform: gridTransform } = directVolume;
 
         const { instanceCount, groupCount } = locationIt;
-        const positionIt = Utils.createPositionIterator(directVolume, transform);
+        const positionIt = createPositionIterator(directVolume, transform);
 
         const color = createColors(locationIt, positionIt, theme.color);
         const marker = props.instanceGranularity

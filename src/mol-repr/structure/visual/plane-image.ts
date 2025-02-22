@@ -334,7 +334,6 @@ export function createPlaneImage(ctx: VisualContext, structure: Structure, theme
                         if (isVertex) {
                             if (f === 1) {
                                 distArray[k] = distSq;
-                                packIntToRGBArray(idx, groupArray, k4);
                             } else {
                                 if (cutout) {
                                     if (groupArray[k4] !== 0 || groupArray[k4 + 1] !== 0 || groupArray[k4 + 2] !== 0) {
@@ -345,7 +344,6 @@ export function createPlaneImage(ctx: VisualContext, structure: Structure, theme
                         } else {
                             if (f === 1) {
                                 distArray[k] = distSq;
-                                packIntToRGBArray(idx, groupArray, k4);
                                 Color.toArray(col, imageArray, k4);
                             } else {
                                 if (cutout) {
@@ -358,6 +356,8 @@ export function createPlaneImage(ctx: VisualContext, structure: Structure, theme
                                 }
                             }
                         }
+                        packIntToRGBArray(idx, groupArray, k4);
+                        groupArray[k4 + 3] = antialias ? Math.round(255 * f) : 255;
 
                         if (cutout) {
                             imageArray[k * 4 + 3] = antialias ? Math.round(255 * f) : 255;

@@ -227,6 +227,8 @@ void main() {
     #endif
 
     #if defined(dRenderVariant_pick)
+        if (group == -1.0) discard;
+
         #include check_picking_alpha
         #ifdef requiredDrawBuffers
             gl_FragColor = vec4(packIntToRGB(float(uObjectId)), 1.0);
