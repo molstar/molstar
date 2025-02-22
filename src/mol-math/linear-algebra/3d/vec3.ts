@@ -584,8 +584,8 @@ namespace Vec3 {
         const by = angle(a, b);
         if (Math.abs(by) < 0.0001) return Mat4.setIdentity(mat);
         if (Math.abs(by - Math.PI) < EPSILON) {
-            // here, axis can be [0,0,0] but the rotation is a simple flip
-            return Mat4.fromScaling(mat, negUnit);
+            // choose arbitrary orthogonal axis
+            return Mat4.fromRotation(mat, Math.PI, Math.abs(a[0]) < 0.9 ? Vec3.unitX : Vec3.unitZ);
         }
         const axis = cross(rotTemp, a, b);
         return Mat4.fromRotation(mat, by, axis);
