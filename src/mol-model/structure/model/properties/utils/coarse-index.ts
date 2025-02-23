@@ -5,22 +5,22 @@
  */
 
 import { ElementIndex } from '../../indexing';
-import { CoarseElementData, CoarseElementReference, CoarseIndex, CoarseIndexElementKey } from '../coarse';
+import { CoarseElementData, CoarseElementReference, CoarseIndex, CoarseElementKey } from '../coarse';
 
 export function getCoarseIndex(data: { spheres: CoarseElementData, gaussians: CoarseElementData }): CoarseIndex {
     return new Index(data);
 }
 
 class EmptyIndex implements CoarseIndex {
-    findElement(key: CoarseIndexElementKey, out: CoarseElementReference): boolean {
+    findElement(key: CoarseElementKey, out: CoarseElementReference): boolean {
         out.kind = undefined;
         out.index = -1 as ElementIndex;
         return false;
     }
-    findSphereElement(key: CoarseIndexElementKey): ElementIndex {
+    findSphereElement(key: CoarseElementKey): ElementIndex {
         return -1 as ElementIndex;
     }
-    findGaussianElement(key: CoarseIndexElementKey): ElementIndex {
+    findGaussianElement(key: CoarseElementKey): ElementIndex {
         return -1 as ElementIndex;
     }
 }
@@ -41,7 +41,7 @@ class Index implements CoarseIndex {
         return this._gaussianMapping;
     }
 
-    findSphereElement(key: CoarseIndexElementKey): ElementIndex {
+    findSphereElement(key: CoarseElementKey): ElementIndex {
         const mapping = this.sphereMapping;
         let xs: any = mapping[key.label_entity_id];
         if (!xs) return -1 as ElementIndex;
@@ -50,7 +50,7 @@ class Index implements CoarseIndex {
         return xs[key.label_seq_id] ?? -1;
     }
 
-    findGaussianElement(key: CoarseIndexElementKey): ElementIndex {
+    findGaussianElement(key: CoarseElementKey): ElementIndex {
         const mapping = this.gaussianMapping;
         let xs: any = mapping[key.label_entity_id];
         if (!xs) return -1 as ElementIndex;
@@ -59,16 +59,16 @@ class Index implements CoarseIndex {
         return xs[key.label_seq_id] ?? -1;
     }
 
-    findElement(key: CoarseIndexElementKey, out: CoarseElementReference): boolean {
+    findElement(key: CoarseElementKey, out: CoarseElementReference): boolean {
         const sphere = this.findSphereElement(key);
         if (sphere >= 0) {
-            out.kind = 'sphere';
+            out.kind = 'spheres';
             out.index = sphere;
             return true;
         }
         const gaussian = this.findGaussianElement(key);
         if (gaussian >= 0) {
-            out.kind = 'gaussian';
+            out.kind = 'gaussians';
             out.index = gaussian;
             return true;
         }

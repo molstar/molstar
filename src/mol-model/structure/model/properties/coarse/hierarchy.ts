@@ -89,27 +89,27 @@ export interface CoarseIndex {
      * @param key
      * @returns index or -1 if the atom is not present.
      */
-    findSphereElement(key: CoarseIndexElementKey): ElementIndex
+    findSphereElement(key: CoarseElementKey): ElementIndex
 
     /**
      * Find element index of a gaussian
      * @param key
      * @returns index or -1 if the atom is not present.
      */
-    findGaussianElement(key: CoarseIndexElementKey): ElementIndex
+    findGaussianElement(key: CoarseElementKey): ElementIndex
 
     /**
      * Finds coarse element and assigns a reference to it.
      * @param key
      */
-    findElement(key: CoarseIndexElementKey, out: CoarseElementReference): boolean
+    findElement(key: CoarseElementKey, out: CoarseElementReference): boolean
 }
 
-export interface CoarseElementReference { kind?: 'sphere' | 'gaussian', index: ElementIndex }
-export function CoarseElementReference(): CoarseElementReference { return { kind: undefined, index: -1 as ElementIndex } }
+export interface CoarseElementReference { kind?: 'spheres' | 'gaussians', index: ElementIndex }
+export function CoarseElementReference(): CoarseElementReference { return { kind: undefined, index: -1 as ElementIndex }; }
 
-
-export interface CoarseIndexElementKey { label_entity_id: string, label_asym_id: string, label_seq_id: number }
+export interface CoarseElementKey { label_entity_id: string, label_asym_id: string, label_seq_id: number }
+export function CoarseElementKey(): CoarseElementKey { return { label_entity_id: '', label_asym_id: '', label_seq_id: -1 }; }
 
 export namespace CoarseHierarchy {
     export const Empty: CoarseHierarchy = {

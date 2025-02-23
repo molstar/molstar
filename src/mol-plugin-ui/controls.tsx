@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -302,7 +302,7 @@ export class LociLabels extends PluginUIComponent<{}, { labels: ReadonlyArray<Lo
 
         return <div className='msp-highlight-info'>
             {this.state.labels.map((e, i) => {
-                if (e.indexOf('\n') > 0) {
+                if (e.indexOf('\n') >= 0) {
                     return <div className='msp-highlight-markdown-row' key={'' + i}>
                         <Markdown skipHtml>{e}</Markdown>
                     </div>;
