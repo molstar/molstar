@@ -9,6 +9,7 @@ import { Column } from '../../../../../mol-data/db';
 import { Segmentation } from '../../../../../mol-data/int';
 import { ElementIndex, ChainIndex, EntityIndex } from '../../indexing';
 import { SortedRanges } from '../../../../../mol-data/int/sorted-ranges';
+import { EmptyCoarseIndex } from '../utils/coarse-index';
 
 export interface CoarsedElementKeys {
     /** Assign a key to each element */
@@ -60,7 +61,8 @@ export type CoarseElements = CoarsedElementKeys & CoarseElementData & CoarseRang
 export interface CoarseHierarchy {
     isDefined: boolean,
     spheres: CoarseElements,
-    gaussians: CoarseElements
+    gaussians: CoarseElements,
+    index: CoarseIndex
 }
 
 const EmptyCoarseElements: CoarseElements = {
@@ -81,10 +83,39 @@ const EmptyCoarseElements: CoarseElements = {
     gapRanges: SortedRanges.ofSortedRanges([]),
 };
 
+export interface CoarseIndex {
+    /**
+     * Find element index of a sphere
+     * @param key
+     * @returns index or -1 if the atom is not present.
+     */
+    findSphereElement(key: CoarseIndexElementKey): ElementIndex
+
+    /**
+     * Find element index of a gaussian
+     * @param key
+     * @returns index or -1 if the atom is not present.
+     */
+    findGaussianElement(key: CoarseIndexElementKey): ElementIndex
+
+    /**
+     * Finds coarse element and assigns a reference to it.
+     * @param key
+     */
+    findElement(key: CoarseIndexElementKey, out: CoarseElementReference): boolean
+}
+
+export interface CoarseElementReference { kind?: 'sphere' | 'gaussian', index: ElementIndex }
+export function CoarseElementReference(): CoarseElementReference { return { kind: undefined, index: -1 as ElementIndex } }
+
+
+export interface CoarseIndexElementKey { label_entity_id: string, label_asym_id: string, label_seq_id: number }
+
 export namespace CoarseHierarchy {
     export const Empty: CoarseHierarchy = {
         isDefined: false,
         spheres: EmptyCoarseElements,
-        gaussians: EmptyCoarseElements
+        gaussians: EmptyCoarseElements,
+        index: EmptyCoarseIndex,
     };
 }

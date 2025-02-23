@@ -32,6 +32,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Can show atoms as a cutout
     - Supports principal axes and bounding box as a reference frame
 - Add `Camera` section to "Screenshot / State" controls
+- Add `CoarseIndex` for fast lookup of coarse elements
 
 ## [v4.11.0] - 2025-01-26
 
