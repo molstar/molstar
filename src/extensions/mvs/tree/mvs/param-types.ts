@@ -90,6 +90,7 @@ export const ColorNamesT = literal(...Object.keys(ColorNames) as (keyof ColorNam
 
 /** `color` parameter values for `color` node in MVS tree */
 export const ColorT = union([ColorNameT, HexColorT]);
+export type ColorT = ValueFor<typeof ColorT>
 
 /** Type helpers */
 export function isVector3(x: any): x is Vector3 {

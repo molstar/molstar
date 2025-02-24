@@ -1,54 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-        <title>Mol* Components Proof of Concept (the Kinase Story)</title>
-        <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-                font-family: sans-serif;
-            }
-            #viewer {
-                position: absolute;
-                left: 20px;
-                top: 20px;
-                right: calc(33% + 10px);
-                bottom: 20px;
-            }
 
-            #snapshot {
-                position: absolute;
-                left: calc(66% + 50px);
-                top: 20px;
-                right: 20px;
-                bottom: 20px;
-                padding: 8px;
-                border: 1px solid #ccc; 
-            }
-        </style>
-        <link rel="stylesheet" type="text/css" href="molstar.css" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css" integrity="sha512-EZLkOqwILORob+p0BXZc+Vm3RgJBOe1Iq/0fiI7r/wJgzOFZMlsqTa29UEl6v6U6gsV4uIpsNZoV32YZqrCRCQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-        <script type="text/javascript" src="./index.js"></script>
-    </head>
-    <body>
-        <div id="viewer">
-            <mc-viewer name="v1" />
-        </div>
-        <div id="snapshot">
-            <mc-snapshot-markdown viewer-name="v1" />
-        </div>
-        
-        <script>
-            setTimeout(() => {
-                const story = window.buildStory();
-                window.mc.getContext().dispatch({
-                    kind: 'load-mvs',
-                    data: story,
-                });
-            }, 0);
-        </script>
-    </body>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <title>The Kinase Story</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        #viewer {
+            position: absolute;
+            left: 5px;
+            top: 5px;
+            right: 34%;
+            bottom: 5px;
+        }
+
+        #snapshot {
+            position: absolute;
+            left: 66%;
+            top: 5px;
+            right: 5px;
+            bottom: 5px;
+            padding: 16px;
+            border: 1px solid #ccc;
+            border-left: none;
+            background: #F6F5F3;
+        }
+    </style>
+    <link rel="stylesheet" type="text/css" href="molstar.css" />
+    <!-- link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css" integrity="sha512-EZLkOqwILORob+p0BXZc+Vm3RgJBOe1Iq/0fiI7r/wJgzOFZMlsqTa29UEl6v6U6gsV4uIpsNZoV32YZqrCRCQ==" crossorigin="anonymous" referrerpolicy="no-referrer" /-->
+    <script type="text/javascript" src="./index.js"></script>
+</head>
+
+<body>
+    <div id="viewer">
+        <mc-viewer name="v1" />
+    </div>
+    <div id="snapshot" class="markdown-explanation ">
+        <mc-snapshot-markdown viewer-name="v1" />
+    </div>
+
+    <script>
+        setTimeout(() => {
+            const story = window.buildStory();
+            window.mc.getContext().dispatch({
+                kind: 'load-mvs',
+                data: story,
+            });
+        }, 0);
+    </script>
+</body>
+
 </html>

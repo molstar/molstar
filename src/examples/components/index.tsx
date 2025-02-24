@@ -10,6 +10,7 @@ import './elements/snapshot-markdown';
 import './elements/viewer';
 import { buildStory } from './demo/kinases';
 require('../../mol-plugin-ui/skin/light.scss');
+require('./styles.scss');
 
 export class MolComponents {
     getContext(name?: string) {
