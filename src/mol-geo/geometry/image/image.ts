@@ -175,12 +175,16 @@ namespace Image {
         updateBoundingSphere,
         createRenderableState,
         updateRenderableState,
-        createPositionIterator: () => LocationIterator(1, 1, 1, () => NullLocation)
+        createPositionIterator
     };
+
+    function createPositionIterator(_image: Image, _transform: TransformData): LocationIterator {
+        return LocationIterator(1, 1, 1, () => NullLocation);
+    }
 
     function createValues(image: Image, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): ImageValues {
         const { instanceCount, groupCount } = locationIt;
-        const positionIt = Utils.createPositionIterator(image, transform);
+        const positionIt = createPositionIterator(image, transform);
 
         const color = createColors(locationIt, positionIt, theme.color);
         const marker = props.instanceGranularity

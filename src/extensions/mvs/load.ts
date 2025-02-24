@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -7,9 +7,11 @@
  */
 
 import { PluginStateSnapshotManager } from '../../mol-plugin-state/manager/snapshots';
-import { Download, ParseCif } from '../../mol-plugin-state/transforms/data';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
+import { Download, ParseCcp4, ParseCif } from '../../mol-plugin-state/transforms/data';
 import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromMmCif, TrajectoryFromPDB, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
-import { ShapeRepresentation3D, StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
+import { ShapeRepresentation3D, StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
+import { VolumeFromCcp4, VolumeFromDensityServerCif } from '../../mol-plugin-state/transforms/volume';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectSelector } from '../../mol-state';
@@ -24,7 +26,7 @@ import { IsMVSModelProps, IsMVSModelProvider } from './components/is-mvs-model-p
 import { getPrimitiveStructureRefs, MVSBuildPrimitiveShape, MVSDownloadPrimitiveData, MVSInlinePrimitiveData } from './components/primitives';
 import { NonCovalentInteractionsExtension } from './load-extensions/non-covalent-interactions';
 import { LoadingActions, LoadingExtension, loadTree, loadTreeVirtual, UpdateTarget } from './load-generic';
-import { AnnotationFromSourceKind, AnnotationFromUriKind, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps } from './load-helpers';
+import { AnnotationFromSourceKind, AnnotationFromUriKind, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps, volumeColorThemeForNode, volumeRepresentationProps } from './load-helpers';
 import { MVSData, SnapshotMetadata } from './mvs-data';
 import { validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
@@ -172,6 +174,8 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
             return UpdateTarget.apply(updateParent, ParseCif, {});
         } else if (format === 'pdb') {
             return updateParent;
+        } else if (format === 'map') {
+            return UpdateTarget.apply(updateParent, ParseCcp4, {});
         } else {
             console.error(`Unknown format in "parse" node: "${format}"`);
             return undefined;
@@ -270,6 +274,22 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         return UpdateTarget.apply(updateParent, StructureRepresentation3D, {
             ...representationProps(node),
             colorTheme: colorThemeForNode(node, context),
+        });
+    },
+    volume(updateParent: UpdateTarget, node: MolstarNode<'volume'>): UpdateTarget | undefined {
+        if (updateParent.transformer?.definition.to.includes(PluginStateObject.Format.Ccp4)) {
+            return UpdateTarget.apply(updateParent, VolumeFromCcp4, { });
+        } else if (updateParent.transformer?.definition.to.includes(PluginStateObject.Format.Cif)) {
+            return UpdateTarget.apply(updateParent, VolumeFromDensityServerCif, { blockHeader: node.params.channel_id || undefined });
+        } else {
+            console.error(`Unsupported volume format`);
+            return undefined;
+        }
+    },
+    volume_representation(updateParent: UpdateTarget, node: MolstarNode<'volume_representation'>, context: MolstarLoadingContext): UpdateTarget {
+        return UpdateTarget.apply(updateParent, VolumeRepresentation3D, {
+            ...volumeRepresentationProps(node),
+            colorTheme: volumeColorThemeForNode(node, context),
         });
     },
     color: undefined, // No action needed, already loaded in `representation`

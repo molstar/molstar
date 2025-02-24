@@ -6,9 +6,10 @@
  */
 
 import { Mat3, Mat4, Vec3 } from '../../mol-math/linear-algebra';
+import { Volume } from '../../mol-model/volume';
 import { StructureComponentParams } from '../../mol-plugin-state/helpers/structure-component';
 import { StructureFromModel, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
-import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
+import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { StateTransformer } from '../../mol-state';
 import { arrayDistinct } from '../../mol-util/array';
 import { canonicalJsonString } from '../../mol-util/json';
@@ -299,6 +300,10 @@ export function representationProps(node: MolstarSubtree<'representation'>): Par
                 type: { name: 'spacefill', params: { alpha, ignoreHydrogens: params.ignore_hydrogens } },
                 sizeTheme: { name: 'physical', params: { scale: params.size_factor } },
             };
+        case 'carbohydrate':
+            return {
+                type: { name: 'carbohydrate', params: { alpha, sizeFactor: params.size_factor ?? 1 } },
+            };
         case 'surface':
             return {
                 type: { name: 'molecular-surface', params: { alpha, ignoreHydrogens: params.ignore_hydrogens } },
@@ -310,7 +315,7 @@ export function representationProps(node: MolstarSubtree<'representation'>): Par
 }
 
 /** Create value for `type.params.alpha` prop for `StructureRepresentation3D` transformer from a representation node based on 'opacity' nodes in its subtree. */
-export function alphaForNode(node: MolstarSubtree<'representation'>): number {
+export function alphaForNode(node: MolstarSubtree<'representation' | 'volume_representation'>): number {
     const children = getChildren(node).filter(c => c.kind === 'opacity');
     if (children.length > 0) {
         return children[children.length - 1].params.opacity;
@@ -318,6 +323,12 @@ export function alphaForNode(node: MolstarSubtree<'representation'>): number {
         return 1;
     }
 }
+
+function hasMolStarUseDefaultColoring(node: MolstarNode): boolean {
+    if (!node.custom) return false;
+    return 'molstar_use_default_coloring' in node.custom || 'molstar_color_theme_name' in node.custom;
+}
+
 /** Create value for `colorTheme` prop for `StructureRepresentation3D` transformer from a representation node based on color* nodes in its subtree. */
 export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri' | 'color_from_source' | 'representation'> | undefined, context: MolstarLoadingContext): StateTransformer.Params<StructureRepresentation3D>['colorTheme'] | undefined {
     if (node?.kind === 'representation') {
@@ -327,8 +338,13 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
                 name: 'uniform',
                 params: { value: decodeColor(DefaultColor) },
             };
-        } else if (children.length === 1 && children[0].custom?.molstar_use_default_coloring) {
-            return undefined;
+        } else if (children.length === 1 && hasMolStarUseDefaultColoring(children[0])) {
+            if (children[0].custom?.molstar_use_default_coloring) return undefined;
+            const colorThemeName = children[0].custom?.molstar_color_theme_name;
+            return {
+                name: colorThemeName ?? undefined,
+                params: {},
+            };
         } else if (children.length === 1 && appliesColorToWholeRepr(children[0])) {
             return colorThemeForNode(children[0], context);
         } else {
@@ -399,4 +415,37 @@ export function makeNearestReprMap(root: MolstarTree) {
         }
     });
     return map;
+}
+
+/** Create props for `VolumeRepresentation3D` transformer from a representation node. */
+export function volumeRepresentationProps(node: MolstarSubtree<'volume_representation'>): Partial<StateTransformer.Params<VolumeRepresentation3D>> {
+    const alpha = alphaForNode(node);
+    const params = node.params;
+    switch (params.type) {
+        case 'isosurface':
+            const isoValue = typeof params.absolute_isovalue === 'number' ? Volume.IsoValue.absolute(params.absolute_isovalue) : Volume.IsoValue.relative(params.relative_isovalue ?? 0);
+            const visuals: ('wireframe' | 'solid')[] = [];
+            if (params.show_wireframe) visuals.push('wireframe');
+            if (params.show_faces) visuals.push('solid');
+            return {
+                type: { name: 'isosurface', params: { alpha, isoValue, visuals } },
+            };
+        default:
+            throw new Error('NotImplementedError');
+    }
+}
+
+/** Create value for `colorTheme` prop for `StructureRepresentation3D` transformer from a representation node based on color* nodes in its subtree. */
+export function volumeColorThemeForNode(node: MolstarSubtree<'volume_representation'> | undefined, context: MolstarLoadingContext): StateTransformer.Params<VolumeRepresentation3D>['colorTheme'] | undefined {
+    if (node?.kind !== 'volume_representation') return undefined;
+
+    const children = getChildren(node).filter(c => c.kind === 'color') as MolstarNode<'color'>[];
+    if (children.length === 0) {
+        return {
+            name: 'uniform',
+            params: { value: decodeColor(DefaultColor) },
+        };
+    } if (children.length === 1) {
+        return colorThemeForNode(children[0], context);
+    }
 }

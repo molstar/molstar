@@ -122,6 +122,37 @@ const DistanceMeasurementParams = {
     label_color: OptionalField(nullable(ColorT), null, 'Color of the label. If not specified, uses the parent primitives group `label_color`.'),
 };
 
+const AngleMeasurementParams = {
+    /** Point A. */
+    a: RequiredField(PrimitivePositionT, 'Point A.'),
+    /** Point B. */
+    b: RequiredField(PrimitivePositionT, 'Point B.'),
+    /** Point C. */
+    c: RequiredField(PrimitivePositionT, 'Point C.'),
+    /** Template used to construct the label. Use {{angle}} as placeholder for the angle in radians. */
+    label_template: OptionalField(str, '{{angle}}', 'Template used to construct the label. Use {{angle}} as placeholder for the angle in radians.'),
+    /** Size of the label (text height in Angstroms). If not specified, size will be relative to the distance (see label_auto_size_scale, label_auto_size_min). */
+    label_size: OptionalField(nullable(float), null, 'Size of the label (text height in Angstroms). If not specified, size will be relative to the distance (see label_auto_size_scale, label_auto_size_min).'),
+    /** Scaling factor for relative size. */
+    label_auto_size_scale: OptionalField(float, 0.33, 'Scaling factor for relative size.'),
+    /** Minimum size for relative size. */
+    label_auto_size_min: OptionalField(float, 0, 'Minimum size for relative size.'),
+    /** Color of the label. If not specified, uses the parent primitives group `label_color`. */
+    label_color: OptionalField(nullable(ColorT), null, 'Color of the label. If not specified, uses the parent primitives group `label_color`.'),
+    /** Draw vectors between (a, b) and (b, c). */
+    show_vector: OptionalField(bool, true, 'Draw vectors between (a, b) and (b, c).'),
+    /** Color of the vectors. */
+    vector_color: OptionalField(nullable(ColorT), null, 'Color of the vectors.'),
+    /** Draw a filled circle section representing the angle. */
+    show_section: OptionalField(bool, true, 'Draw a filled circle section representing the angle.'),
+    /** Color of the angle section. If not specified, the primitives group color is used. */
+    section_color: OptionalField(nullable(ColorT), null, 'Color of the angle section. If not specified, the primitives group color is used.'),
+    /** Radius of the angle section. In angstroms. */
+    section_radius: OptionalField(nullable(float), null, 'Radius of the angle section. In angstroms.'),
+    /** Factor to scale the radius of the angle section. Ignored if section_radius is set. */
+    section_radius_scale: OptionalField(float, 0.33, 'Factor to scale the radius of the angle section. Ignored if section_radius is set.'),
+};
+
 const PrimitiveLabelParams = {
     /** Position of this label. */
     position: RequiredField(PrimitivePositionT, 'Position of this label.'),
@@ -211,6 +242,7 @@ export const MVSPrimitiveParams = UnionParamsSchema(
         'tube': SimpleParamsSchema(TubeParams),
         'arrow': SimpleParamsSchema(ArrowParams),
         'distance_measurement': SimpleParamsSchema(DistanceMeasurementParams),
+        'angle_measurement': SimpleParamsSchema(AngleMeasurementParams),
         'label': SimpleParamsSchema(PrimitiveLabelParams),
         'ellipse': SimpleParamsSchema(EllipseParams),
         'ellipsoid': SimpleParamsSchema(EllipsoidParams),

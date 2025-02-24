@@ -12,11 +12,11 @@ import { ColorNames } from '../../../../mol-util/color/names';
 
 
 /** `format` parameter values for `parse` node in MVS tree */
-export const ParseFormatT = literal('mmcif', 'bcif', 'pdb');
+export const ParseFormatT = literal('mmcif', 'bcif', 'pdb', 'map');
 export type ParseFormatT = ValueFor<typeof ParseFormatT>
 
 /** `format` parameter values for `parse` node in Molstar tree */
-export const MolstarParseFormatT = literal('cif', 'pdb');
+export const MolstarParseFormatT = literal('cif', 'pdb', 'map');
 export type MolstarParseFormatT = ValueFor<typeof MolstarParseFormatT>
 
 /** `kind` parameter values for `structure` node in MVS tree */
