@@ -20,6 +20,7 @@ import { PluginConfig } from '../../mol-plugin/config';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginSpec } from '../../mol-plugin/spec';
 import { Task } from '../../mol-task';
+import { ajaxGet } from '../../mol-util/data-source';
 import './index.html';
 require('../../mol-plugin-ui/skin/light.scss');
 
@@ -102,10 +103,8 @@ function resolvePosition(model: Model, key: CoarseElementKey, position: Vec3) {
 const HarmonicRestraintTolerance = 0.1;
 
 async function parseRestraints(plugin: PluginContext, url: string) {
-    const req = await fetch(url);
-    const data = await req.text();
-
-    const parsed = await plugin.runTask(parseCifText(data), { useOverlay: true });
+    const data = await plugin.runTask(ajaxGet(url)) as string;
+    const parsed = await plugin.runTask(parseCifText(data));
 
     if (parsed.isError) {
         console.error(parsed);
@@ -233,6 +232,8 @@ function drawConstraints([, structure]: ReturnType<typeof baseStructure>, restra
 
 function restraintTooltip(r: IHMRestraintInfo) {
     return `
+- Element 1: ${r.e1.label_entity_id} ${r.e1.label_asym_id} ${r.e1.label_seq_id} ${r.e1.label_comp_id}
+- Element 2: ${r.e2.label_entity_id} ${r.e2.label_asym_id} ${r.e2.label_seq_id} ${r.e2.label_comp_id}
 - Distance: ${r.distance.toFixed(2)} Å
 - Threshold: ${r.threshold.toFixed(2)} Å
 - Constraint: ${r.restraintType}
