@@ -5,10 +5,11 @@
  */
 
 import { MVSData_States } from '../../../extensions/mvs/mvs-data';
-import { createMVSBuilder, Root, Structure as MVSStructure } from '../../../extensions/mvs/tree/mvs/mvs-builder';
+import { createMVSBuilder, Structure as MVSStructure, Root } from '../../../extensions/mvs/tree/mvs/mvs-builder';
 import { MVSNodeParams } from '../../../extensions/mvs/tree/mvs/mvs-tree';
-import { ColorT } from '../../../extensions/mvs/tree/mvs/param-types';
+import { ColorT, ComponentExpressionT, isPrimitiveComponentExpressions, PrimitiveComponentExpressionT, PrimitivePositionT } from '../../../extensions/mvs/tree/mvs/param-types';
 import { Mat3, Mat4, Vec3 } from '../../../mol-math/linear-algebra';
+import { Color } from '../../../mol-util/color';
 
 
 const Domains = {
@@ -46,6 +47,43 @@ const TransformsTo1IEP = {
     '2gqg': [0.0648740828, -0.7163272638, 0.6947421137, 0, 0.0160329972, -0.6953706204, -0.7184724374, 0, 0.9977646498, 0.0577490387, -0.0336266582, 0, -31.0690973964, 146.0940883054, 39.7107422531, 1] as unknown as Mat4,
     '3oxz': [0.7989033646, 0.5984398921, -0.0601922711, 0, -0.1303123126, 0.269921501, 0.9540236289, 0, 0.5871729857, -0.754328893, 0.2936252816, 0, -8.0697093741, 58.1709160658, 19.0363028443, 1] as unknown as Mat4,
 };
+
+type Interaction = [label: string, polymer: PrimitivePositionT, ligand: PrimitivePositionT, options?: { skipResidue?: boolean }]
+
+function drawInteractions(structure: MVSStructure, interactions: Interaction[]) {
+    const primitives = structure.primitives();
+
+    const interactingResidues: ComponentExpressionT[] = [];
+    const addedResidues = new Set<string>();
+
+    for (const [tooltip, a, b, options] of interactions) {
+        primitives.tube({ start: a, end: b, color: '#4289B5', tooltip, radius: 0.1, dash_length: 0.1 });
+
+        if (options?.skipResidue) continue;
+
+        const expressions = isPrimitiveComponentExpressions(a) ? a.expressions! : [a as ComponentExpressionT];
+        for (const _e of expressions) {
+            const e = { ..._e };
+            delete e.auth_atom_id;
+            delete e.label_atom_id;
+
+            const key = JSON.stringify(e);
+            if (addedResidues.has(key)) continue;
+            interactingResidues.push(e);
+            addedResidues.add(key);
+        }
+    }
+
+    structure
+        .component({ selector: interactingResidues })
+        .representation({ type: 'ball_and_stick' })
+        .color({
+            custom: {
+                molstar_color_theme_name: 'element-symbol',
+                molstar_color_theme_params: { carbonColor: { name: 'element-symbol', params: {} } },
+            }
+        });
+}
 
 function transform(structure: MVSStructure, id: keyof typeof TransformsTo1IEP) {
     const rotation = Mat3.fromMat4(Mat3.zero(), TransformsTo1IEP[id]);
@@ -85,14 +123,26 @@ BCR-ABL is a classic case of how structural biology can drive drug discovery. By
             const builder = createMVSBuilder();
 
             const _1opl = structure(builder, '1opl');
-            const comp = _1opl.component({ selector: 'polymer' });
+            const comp = _1opl.component({ selector: { auth_asym_id: 'A' } });
             comp
                 .representation()
-                .color({ selector: { auth_asym_id: 'A' }, color: Colors['1opl_A'] })
-                .color({ selector: { auth_asym_id: 'B' }, color: Colors['1opl_B'] });
+                .color({ selector: { auth_asym_id: 'A' }, color: Colors['1opl_A'] });
             comp.label({ text: 'ABL Kinase' });
 
-            // _1opl.component({ selector: 'ligand' }).representation({ type: 'ball_and_stick' }).color({ custom: { molstar_color_theme_name: 'element-symbol' } });
+            _1opl
+                .component({ selector: { label_asym_id: 'D' } })
+                .representation({ type: 'ball_and_stick' })
+                .color({
+                    custom: {
+                        molstar_color_theme_name: 'element-symbol',
+                        molstar_color_theme_params: { carbonColor: { name: 'uniform', params: { value: Color.fromHexStyle(Colors['1opl_A']) } } }
+                    }
+                });
+
+            _1opl
+                .component({ selector: { label_asym_id: 'C' } })
+                .representation({ type: 'ball_and_stick' })
+                .color({ color: Colors['1opl_A'] });
 
             return builder;
         },
@@ -103,7 +153,6 @@ BCR-ABL is a classic case of how structural biology can drive drug discovery. By
         } satisfies MVSNodeParams<'camera'>,
     }, {
         header: 'The Birth of a Rogue Kinase [1/2]',
-        transition_duration_ms: 1500,
         description: `
 ### The ABL Kinase: A Well-Regulated Enzyme
 
@@ -123,6 +172,21 @@ Normally, the ABL kinase ([PDB ID 1OPL](https://www.ebi.ac.uk/pdbe/entry/pdb/1op
 
             _1opl.component({ selector: Domains.SH3_1opl }).label({ text: 'SH3' });
             _1opl.component({ selector: Domains.SH2_1opl }).label({ text: 'SH2' });
+
+            _1opl
+                .component({ selector: { label_asym_id: 'D' } })
+                .representation({ type: 'ball_and_stick' })
+                .color({
+                    custom: {
+                        molstar_color_theme_name: 'element-symbol',
+                        molstar_color_theme_params: { carbonColor: { name: 'uniform', params: { value: Color.fromHexStyle(Colors['1opl_A']) } } }
+                    }
+                });
+
+            _1opl
+                .component({ selector: { label_asym_id: 'C' } })
+                .representation({ type: 'ball_and_stick' })
+                .color({ color: Colors['1opl_A'] });
 
             return builder;
         },
@@ -157,6 +221,21 @@ its normal regulation, BCR-ABL will keep signaling, unchecked causing unregulate
 
             _1opl.component({ selector: Domains.SH3_1opl }).label({ text: 'SH3' });
             _1opl.component({ selector: Domains.SH2_1opl }).label({ text: 'SH2' });
+
+            _1opl
+                .component({ selector: { label_asym_id: 'D' } })
+                .representation({ type: 'ball_and_stick' })
+                .color({
+                    custom: {
+                        molstar_color_theme_name: 'element-symbol',
+                        molstar_color_theme_params: { carbonColor: { name: 'uniform', params: { value: Color.fromHexStyle(Colors['1opl_A']) } } }
+                    }
+                });
+
+            _1opl
+                .component({ selector: { label_asym_id: 'C' } })
+                .representation({ type: 'ball_and_stick' })
+                .color({ color: Colors['1opl_A'] });
 
             const _2gqg = structure(builder, '2gqg');
 
@@ -465,7 +544,7 @@ The mutation is still allowing ATP to bind. The result? Resistance. BCR-ABL is a
         description: `
 ### Fighting Back: Ponatinib and the Future of Kinase Inhibitors
 
-The battle didn't end there. Scientists knew they needed a new inhibitor—one that could work even against T315I. Enter Ponatinib, a next-generation
+The battle didn't end there. Scientists knew they needed a new inhibitor—one that could work even against T315I. Enter Ponatinib (shown in [PDB ID 3OXZ](https://www.ebi.ac.uk/pdbe/entry/pdb/3oxz/index)), a next-generation
 drug designed to bypass resistance. Viewing the Ponatinib-bound structure, you'll see how it differs from Imatinib. Instead of being blocked by T315I,
 Ponatinib has a flexible triple-bond linker, allowing it to slip into the binding site without clashing with the mutation.
 
@@ -482,14 +561,14 @@ inside every cancer cell.
 
             const mutation = { auth_asym_id: 'A', auth_seq_id: 315 };
 
-            const _1iep = structure(builder, '1iep');
+            // const _1iep = structure(builder, '1iep');
 
-            _1iep
-                .component({ selector: { auth_asym_id: 'A' } })
-                .representation()
-                .color({ color: '#BCE4A0' });
+            // _1iep
+            //     .component({ selector: { auth_asym_id: 'A' } })
+            //     .representation()
+            //     .color({ color: '#BCE4A0' });
 
-            _1iep.component({ selector: mutation }).representation({ type: 'ball_and_stick' }).color({ color: 'green' });
+            // _1iep.component({ selector: mutation }).representation({ type: 'ball_and_stick' }).color({ color: 'green' });
 
             // const ligand = { auth_asym_id: 'A', auth_seq_id: 201 };
             // _1iep.component({ selector: ligand }).representation({ type: 'spacefill' }).color({ custom: { molstar_color_theme_name: 'element-symbol' } });
@@ -499,21 +578,39 @@ inside every cancer cell.
             _3oxz
                 .component({ selector: { auth_asym_id: 'A' } })
                 .representation()
-                .color({ color: '#E75B49' });
+                .color({ color: Colors.background });
 
-            _3oxz.component({ selector: mutation }).representation({ type: 'spacefill' }).color({ color: 'red' });
+            _3oxz
+                .component({ selector: mutation })
+                .representation({ type: 'ball_and_stick' })
+                .color({ color: 'red' });
 
-            const ligand = { label_asym_id: 'B' };
+            const _3ozx_ligand = { label_asym_id: 'B' };
             const _3oxz_lig = _3oxz
                 .component({
-                    selector: ligand,
-                    // This is not supported in snaps
+                    selector: _3ozx_ligand,
+                    // This is currently not supported in snapshots
                     // custom: { molstar_show_non_covalent_interactions: true, molstar_non_covalent_interactions_radius_ang: 5.0 },
                 });
+
+            const _3oxz_primitives = _3oxz.primitives();
+            _3oxz_primitives.label({ position: mutation, text: 'T315I', label_color: 'red' });
 
             _3oxz_lig
                 .representation({ type: 'ball_and_stick' })
                 .color({ custom: { molstar_color_theme_name: 'element-symbol' } });
+
+            drawInteractions(_3oxz, [
+                ['H-bond', { auth_asym_id: 'A', auth_seq_id: 360, auth_atom_id: 'O' }, { label_asym_id: 'B', label_atom_id: 'N4' }],
+                ['H-bond', { auth_asym_id: 'A', auth_seq_id: 361, auth_atom_id: 'O' }, { label_asym_id: 'B', label_atom_id: 'N4' }],
+                ['H-bond', { auth_asym_id: 'A', auth_seq_id: 286, auth_atom_id: 'OE2' }, { label_asym_id: 'B', label_atom_id: 'N2' }],
+                ['H-bond', { auth_asym_id: 'A', auth_seq_id: 381, auth_atom_id: 'N' }, { label_asym_id: 'B', label_atom_id: 'O1' }],
+                ['H-bond', { auth_asym_id: 'A', auth_seq_id: 318, auth_atom_id: 'N' }, { label_asym_id: 'B', label_atom_id: 'N1' }],
+                ['Pi-stacking',
+                    { expressions: ['CD1', 'CD2', 'CE1', 'CE2', 'CG', 'CZ'].map(a => ({ auth_asym_id: 'A', auth_seq_id: 253, auth_atom_id: a })) },
+                    { expressions: ['C81', 'C82', 'C83', 'C84', 'N81', 'N82'].map(a => ({ label_asym_id: 'B', auth_atom_id: a })) },
+                ],
+            ]);
 
             return builder;
         },
@@ -560,7 +657,7 @@ export function buildStory(): MVSData_States {
             description: s.description,
             description_format: 'markdown',
             linger_duration_ms: 5000,
-            transition_duration_ms: s.transition_duration_ms ?? 1000,
+            transition_duration_ms: 1500,
         });
     });
 

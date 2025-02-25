@@ -61,7 +61,7 @@ export const Matrix = list(float);
 /** Primitives-related types */
 export const PrimitiveComponentExpressionT = iots.partial({ structure_ref: str, expression_schema: SchemaT, expressions: list(ComponentExpressionT) });
 export type PrimitiveComponentExpressionT = ValueFor<typeof PrimitiveComponentExpressionT>
-export const PrimitivePositionT = iots.union([Vector3, ComponentExpressionT, list(PrimitiveComponentExpressionT)]);
+export const PrimitivePositionT = iots.union([Vector3, ComponentExpressionT, PrimitiveComponentExpressionT]);
 export type PrimitivePositionT = ValueFor<typeof PrimitivePositionT>
 
 export const FloatList = list(float);
