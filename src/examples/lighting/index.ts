@@ -14,6 +14,7 @@ import { PluginCommands } from '../../mol-plugin/commands';
 import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import './index.html';
+import './index-pwa.html';
 require('mol-plugin-ui/skin/light.scss');
 
 type LoadParams = { url: string, format?: BuiltInTrajectoryFormat, isBinary?: boolean, assemblyId?: string }
