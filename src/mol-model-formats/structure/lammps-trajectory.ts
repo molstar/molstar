@@ -7,7 +7,7 @@
  */
 
 import { Coordinates, Frame, Time } from '../../mol-model/structure/coordinates';
-import { LammpsTrajectoryFile, lammpsUnitStyles, UnitStyle } from '../../mol-io/reader/lammps/schema';
+import { LammpsTrajectoryFile, lammpsUnitStyles, UnitStyle, AsymIdStyle } from '../../mol-io/reader/lammps/schema';
 import { Model } from '../../mol-model/structure/model';
 import { RuntimeContext, Task } from '../../mol-task';
 import { Column, Table } from '../../mol-data/db';
@@ -65,7 +65,7 @@ export function coordinatesFromLammpsTrajectory(file: LammpsTrajectoryFile, unit
     });
 }
 
-async function getModels(mol: LammpsTrajectoryFile, ctx: RuntimeContext, unitsStyle: UnitStyle = 'real') {
+async function getModels(mol: LammpsTrajectoryFile, ctx: RuntimeContext, unitsStyle: UnitStyle = 'real', asymIdStyle: AsymIdStyle = 'auto'): Promise<Trajectory> {
     const atoms = mol.frames[0];
     const count = atoms.count;
     const atomsMode = atoms.atomMode;
@@ -74,6 +74,10 @@ async function getModels(mol: LammpsTrajectoryFile, ctx: RuntimeContext, unitsSt
     const offset_scale = { x: 1.0, y: 1.0, z: 1.0 };
     const scale = lammpsUnitStyles[unitsStyle].scale;
     // if caracter s in atomsMode, we need to scale the coordinates
+    // what about periodicity ?
+    const ll = box.length;
+    const lo = box.lower;
+
     if (atomsMode.includes('s')) {
         offset_scale.x = box.length[0];
         offset_scale.y = box.length[1];
@@ -92,20 +96,43 @@ async function getModels(mol: LammpsTrajectoryFile, ctx: RuntimeContext, unitsSt
     let offset = 0;
     for (let j = 0; j < count; j++) {
         type_symbols[offset] = atoms.atomType.value(j).toString();
-        cx[offset] = (atoms.x.value(j) * offset_scale.x + offset_pos.x) * scale;
-        cy[offset] = (atoms.y.value(j) * offset_scale.y + offset_pos.y) * scale;
-        cz[offset] = (atoms.z.value(j) * offset_scale.z + offset_pos.z) * scale;
+        let sx = (atoms.x.value(j) * offset_scale.x + offset_pos.x);
+        let sy = (atoms.y.value(j) * offset_scale.y + offset_pos.y);
+        let sz = (atoms.z.value(j) * offset_scale.z + offset_pos.z);
+        if (box.periodicity[0] === 'pp') {
+            sx = (sx - lo[0]) % ll[0] + lo[0];
+        }
+        if (box.periodicity[1] === 'pp') {
+            sy = (sy - lo[1]) % ll[1] + lo[1];
+        }
+        if (box.periodicity[2] === 'pp') {
+            sz = (sz - lo[2]) % ll[2] + lo[2];
+        }
+        cx[offset] = sx * scale;
+        cy[offset] = sy * scale;
+        cz[offset] = sz * scale;
         id[offset] = atoms.atomId.value(j);
         model_num[offset] = 0;
         offset++;
     }
 
     const MOL = Column.ofConst('MOL', count, Column.Schema.str);
-    const asym_id = Column.ofLambda({
-        value: (row: number) => atoms.moleculeId.value(row).toString(),
-        rowCount: count,
-        schema: Column.Schema.str,
-    });
+    const asym_id = asymIdStyle === 'on' ?
+        Column.ofLambda({
+            value: (row: number) => atoms.moleculeId.value(row).toString(),
+            rowCount: count,
+            schema: Column.Schema.str,
+        })
+        : asymIdStyle === 'off' ?
+            Column.ofConst('A', count, Column.Schema.str)
+            : (count > 200000) ?
+                Column.ofConst('A', count, Column.Schema.str)
+                : Column.ofLambda({
+                    value: (row: number) => atoms.moleculeId.value(row).toString(),
+                    rowCount: count,
+                    schema: Column.Schema.str,
+                });
+
     const seq_id = Column.ofConst(1, count, Column.Schema.int);
 
     const type_symbol = Column.ofStringArray(type_symbols);
@@ -165,7 +192,7 @@ namespace LammpsTrajectoryFormat {
     }
 }
 
-export function trajectoryFromLammpsTrajectory(mol: LammpsTrajectoryFile, unitsStyle?: UnitStyle): Task<Trajectory> {
+export function trajectoryFromLammpsTrajectory(mol: LammpsTrajectoryFile, unitsStyle?: UnitStyle, asymId?: AsymIdStyle): Task<Trajectory> {
     if (unitsStyle === void 0) unitsStyle = 'real';
-    return Task.create('Parse Lammps Traj Data', ctx => getModels(mol, ctx, unitsStyle));
+    return Task.create('Parse Lammps Traj Data', ctx => getModels(mol, ctx, unitsStyle, asymId));
 }
