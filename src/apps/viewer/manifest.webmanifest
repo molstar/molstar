@@ -1,9 +1,9 @@
 {
-        "id": "/molstar/build/viewer/index-pwa.html",
+        "id": "/molstar/build/viewer/index.html",
         "name": "Mol* viewer",
         "short_name": "Mol*",
         "description": "Mol* viewer",
-        "start_url": "./index-pwa.html",
+        "start_url": "./index.html",
         "theme_color": "#eeffee",
         "background_color": "#eeffee",
         "display": "standalone",
@@ -32,7 +32,7 @@
         ],
         "file_handlers": [
             {
-                "action": "./index-pwa.html",
+                "action": "./index.html",
                 "accept": {
                     "application/vnd.molstar": [".mol", ".mol2", ".sdf", ".pdb", ".mmcif", ".xyz", ".mmtf", ".bcif"],
                     "application/vnd.cif": [".cif"]

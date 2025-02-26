@@ -33,7 +33,7 @@ const APP_STATIC_RESOURCES = [
     "circle.svg",
     "wheel.svg",
     "tire.svg",
-    "index-pwa.html",
+    "index.html",
     "molstar.css",
     "molstar.js",
     "manifest.webmanifest"
