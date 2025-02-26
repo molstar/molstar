@@ -893,15 +893,21 @@ function resolveLabelRefs(params: PrimitiveParams<'label'>, refs: Set<string>) {
     addRef(params.position, refs);
 }
 
+const PrimitiveLabelState = {
+    position: Vec3.zero(),
+    sphere: Sphere3D.zero(),
+};
+
 function addPrimitiveLabel(context: PrimitiveBuilderContext, state: LabelBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'label'>) {
     const { labels, groups } = state;
-    resolveBasePosition(context, params.position, labelPos);
+    resolvePosition(context, params.position, PrimitiveLabelState.position, PrimitiveLabelState.sphere, undefined);
 
     const group = groups.allocateSingle(node);
     groups.updateColor(group, params.label_color);
     groups.updateSize(group, params.label_size);
 
-    labels.add(params.text, labelPos[0], labelPos[1], labelPos[2], params.label_offset, 1, group);
+    const offset = PrimitiveLabelState.sphere.radius + params.label_offset;
+    labels.add(params.text, PrimitiveLabelState.position[0], PrimitiveLabelState.position[1], PrimitiveLabelState.position[2], offset, 1, group);
 }
 
 const circleCache = new Map<string, Primitive>();
