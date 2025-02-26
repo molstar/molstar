@@ -35,14 +35,19 @@ import { setStructureSubstance } from '../../helpers/structure-substance';
 import { Material } from '../../../mol-util/material';
 import { Clip } from '../../../mol-util/clip';
 import { setStructureEmissive } from '../../helpers/structure-emissive';
+//import { RepresentationProvider } from '../../../mol-repr/representation';
+//import { StructureRepresentationState } from '../../../mol-repr/structure/representation';
+//import { NamedParams } from '../../../mol-repr/structure/representation/util';
 
 export { StructureComponentManager };
 
 interface StructureComponentManagerState {
     options: StructureComponentManager.Options
+    representations: string[];
 }
 
 class StructureComponentManager extends StatefulPluginComponent<StructureComponentManagerState> {
+
     readonly events = {
         optionsUpdated: this.ev<undefined>()
     };
@@ -86,6 +91,9 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
             if (interactionChanged) await this.updateInterationProps();
         });
     }
+
+    
+    
 
     private updateReprParams(update: StateBuilder.Root, component: StructureComponentRef) {
         const { hydrogens, visualQuality: quality, ignoreLight, materialStyle: material, clipObjects: clip } = this.state.options;
@@ -467,7 +475,10 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
     }
 
     constructor(public plugin: PluginContext) {
-        super({ options: PD.getDefaultValues(StructureComponentManager.OptionsParams) });
+        super({
+            options: PD.getDefaultValues(StructureComponentManager.OptionsParams),
+            representations: [] // Initialize as an empty array
+        });
     }
 }
 

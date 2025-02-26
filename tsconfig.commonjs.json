@@ -18,7 +18,9 @@
         "jsx": "react-jsx",
         "lib": [ "es2018", "dom", "ES2022.Object" ],
         "rootDir": "src",
-        "outDir": "lib/commonjs"
+        "outDir": "lib/commonjs",
+        "skipLibCheck": true
     },
-    "include": [ "src/**/*" ]
+    "include": [ "src/**/*" ],
+    "exclude": ["src/apps/viewer/sw.ts"]
 }
