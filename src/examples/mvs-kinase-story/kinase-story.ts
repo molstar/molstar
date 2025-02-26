@@ -186,7 +186,7 @@ its normal regulation, BCR-ABL will keep signaling, unchecked causing unregulate
         description: `
 ### ATP Binding and Unstoppable Signaling
 
-To function, every kinase needs [ATP] (https://en.wikipedia.org/wiki/Kinase), and BCR-ABL is no exception.
+To function, every kinase needs [ATP](https://en.wikipedia.org/wiki/Kinase), and BCR-ABL is no exception.
 Here, you can see non-hydrolysable ATP analogue [(AMP-PNP)](https://www.ebi.ac.uk/pdbe-srv/pdbechem/chemicalCompound/show/ANP)
 nestled in the active site. Look closely at the active site residues—Lys271, Glu286, and Asp381 (in orange).
 They form a crucial network that stabilizes the AMP-PNP (and also the ATP) and in the ATP bound kinase  catalyzes phosphorylation,
@@ -429,7 +429,7 @@ Forming a hydrogen bond with Imatinib, Thr315 was a crucial contact point. With 
         description: `
 ### Resistance Strikes: The T315I Mutation
 
-This mutation prevents Imatinib binding but still allows ATP to nestle into the active site.
+This mutation prevents Imatinib binding but still allows ANP-PNP ATP to nestle into the active site.
 The result? Resistance. BCR-ABL is active again, and the leukemia returns, this time untouchable by Imatinib.
 `,
         state: () => {
@@ -441,7 +441,7 @@ The result? Resistance. BCR-ABL is active again, and the leukemia returns, this 
             ligand(_2gqg, {
                 selector: { label_asym_id: 'C' },
                 surface: true,
-                label: 'ATP',
+                label: 'ANP-PNP ATP',
                 label_size: 2,
                 label_color: Colors['2gqg'],
             });
