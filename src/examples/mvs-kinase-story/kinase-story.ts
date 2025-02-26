@@ -4,12 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { decodeColor } from '../../../extensions/mvs/helpers/utils';
-import { MVSData_States } from '../../../extensions/mvs/mvs-data';
-import { createMVSBuilder, Structure as MVSStructure, Representation, Root } from '../../../extensions/mvs/tree/mvs/mvs-builder';
-import { MVSNodeParams } from '../../../extensions/mvs/tree/mvs/mvs-tree';
-import { ColorT, ComponentExpressionT, isPrimitiveComponentExpressions, PrimitivePositionT } from '../../../extensions/mvs/tree/mvs/param-types';
-import { Mat3, Mat4, Vec3 } from '../../../mol-math/linear-algebra';
+import { decodeColor } from '../../extensions/mvs/helpers/utils';
+import { MVSData_States } from '../../extensions/mvs/mvs-data';
+import { createMVSBuilder, Structure as MVSStructure, Representation, Root } from '../../extensions/mvs/tree/mvs/mvs-builder';
+import { MVSNodeParams } from '../../extensions/mvs/tree/mvs/mvs-tree';
+import { ColorT, ComponentExpressionT, isPrimitiveComponentExpressions, PrimitivePositionT } from '../../extensions/mvs/tree/mvs/param-types';
+import { Mat3, Mat4, Vec3 } from '../../mol-math/linear-algebra';
 
 const Domains = {
     ChainA: { auth_asym_id: 'A' },
@@ -555,9 +555,9 @@ Read more [here](https://pmc.ncbi.nlm.nih.gov/articles/PMC3513788/).
             return Steps[0].state();
         },
         camera: {
-            position: [167.49, 96.41, 33.61],
-            target: [-2.17, 75.1, 34.08],
-            up: [-0.01, 0.02, -1],
+            position: [103.72, 69.35, 20.52],
+            target: [0.36, 55.32, 21.8],
+            up: [-0.01, 0.01, -1],
         } satisfies MVSNodeParams<'camera'>,
     }
 ];

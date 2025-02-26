@@ -8,7 +8,7 @@ import { getMolComponentContext } from './context';
 import './index.html';
 import './elements/snapshot-markdown';
 import './elements/viewer';
-import { buildStory } from './demo/kinases';
+import { buildStory } from './kinase-story';
 require('../../mol-plugin-ui/skin/light.scss');
 require('./styles.scss');
 
