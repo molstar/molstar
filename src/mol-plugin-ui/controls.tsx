@@ -225,11 +225,13 @@ export function MarkdownAnchor({ href, children, element }: { href?: string, chi
             e.preventDefault();
             plugin.managers.snapshot.applyKey(href.substring(1));
         }}>{children}</a>;
+    } else if (href) {
+        return <a href={href} target='_blank' rel='noopener noreferrer'>{children}</a>;
     }
 
     // TODO: consider adding more "commands", for example !reset-camera
 
-    return element;
+    return children;
 }
 
 export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: boolean, isExpanded: boolean, isBusy: boolean, isAnimating: boolean, isPlaying: boolean }> {

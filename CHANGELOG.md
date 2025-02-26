@@ -19,7 +19,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Support for `custom.molstar_use_default_coloring` property on Color node.
     - Use `atom.ihm.has-seq-id` and `atom.ihm.overlaps-seq-id-range` for matching `label_seq_id` locations to support querying coarse elements.
     - Add ihm-restraints example
-- Add Components example
+- Add `mvs-kinase-story` example
 - Remove static uses of `ColorTheme` and `SizeTheme` fields. Should resolvent "undefined" errors in certain builds
 - Add `transform` property to clip objects
 - Add support for trimming `image` geometry to a box

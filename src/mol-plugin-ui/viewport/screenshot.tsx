@@ -140,6 +140,15 @@ function CameraInfo({ plugin }: { plugin: PluginContext }) {
         <CameraInfoSection title='Radius'>
             {round(state?.radius ?? 0, 2)}
         </CameraInfoSection>
+        <Button onClick={() => {
+            if (!navigator.clipboard) return;
+            const ret = `{
+    position: [${state?.position.map(v => round(v, 2)).join(', ')}],
+    target: [${state?.target.map(v => round(v, 2)).join(', ')}],
+    up: [${state?.up.map(v => round(v, 2)).join(', ')}],
+}`;
+            navigator.clipboard.writeText(ret);
+        }} style={{ marginTop: 1 }} title='Copy JSON usable in MolViewSpec'>Copy MVS JSON</Button>
     </div>;
 }
 

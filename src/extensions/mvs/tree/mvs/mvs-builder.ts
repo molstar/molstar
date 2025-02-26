@@ -283,7 +283,7 @@ export class VolumeRepresentation extends _Base<'volume_representation'> impleme
 type MVSPrimitiveSubparams<TKind extends MVSNodeParams<'primitive'>['kind']> = Omit<Extract<MVSNodeParams<'primitive'>, { kind: TKind }>, 'kind'>;
 
 /** MVS builder pointing to a 'primitives' node */
-class Primitives extends _Base<'primitives'> implements FocusMixin {
+export class Primitives extends _Base<'primitives'> implements FocusMixin {
     /** Construct custom meshes/shapes in a low-level fashion by providing vertices and indices. */
     mesh(params: MVSPrimitiveSubparams<'mesh'> & CustomAndRef): Primitives {
         this.addChild('primitive', { kind: 'mesh', ...params });

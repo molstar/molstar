@@ -340,10 +340,10 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
             };
         } else if (children.length === 1 && hasMolStarUseDefaultColoring(children[0])) {
             if (children[0].custom?.molstar_use_default_coloring) return undefined;
-            const colorThemeName = children[0].custom?.molstar_color_theme_name;
+            const custom = children[0].custom;
             return {
-                name: colorThemeName ?? undefined,
-                params: {},
+                name: custom?.molstar_color_theme_name ?? undefined,
+                params: custom?.molstar_color_theme_params ?? {},
             };
         } else if (children.length === 1 && appliesColorToWholeRepr(children[0])) {
             return colorThemeForNode(children[0], context);
