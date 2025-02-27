@@ -13,9 +13,18 @@
  */
 /// <reference lib="webworker" />
 
-// Use require to load the JSON file
-const packageJson = require('../../../package.json');
+// Added to make the file into a module in order to avoid the following error:
+// 'Cannot use import statement outside a module'
+export {};
+
+// Use dynamic import to load the JSON file
+const packageJson = await import('../../../package.json');
 const version = packageJson.version;
+
+// Previous attempts to load the JSON file and import the version.
+//// Use require to load the JSON file
+//const packageJson = require('../../../package.json');
+//const version = packageJson.version;
 //import { version } from '../../../package.json';
 
 const CACHE_NAME = `molstar-viewer-` + version;
