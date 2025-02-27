@@ -15,15 +15,6 @@
 
 import { version } from '../../../package.json';
 
-// Type guards to differentiate between DOM and Web Worker contexts
-//function isDOMContext(): boolean {
-//    return typeof window !== 'undefined' && typeof document !== 'undefined';
-//}
-
-//function isWorkerContext(): boolean {
-//    return typeof self !== 'undefined' && typeof self.importScripts === 'function';
-//}
-
 const CACHE_NAME = `molstar-viewer-` + version;
 
 // The static resources that the app needs to function.
@@ -39,80 +30,71 @@ const APP_STATIC_RESOURCES = [
     "manifest.webmanifest"
 ];
 
+// Cast self to ServiceWorkerGlobalScope
+const swSelf = self as unknown as ServiceWorkerGlobalScope;
 
-//if (isWorkerContext()) {
+// On install, cache the static resources.
+swSelf.addEventListener("install", (event: ExtendableEvent) => {
+    event.waitUntil(
+        (async () => {
+            const cache = await caches.open(CACHE_NAME);
+            await cache.addAll(APP_STATIC_RESOURCES);
+            await swSelf.skipWaiting();
+        })(),
+    );
+});
 
-    // Cast self to ServiceWorkerGlobalScope
-    const swSelf = self as unknown as ServiceWorkerGlobalScope;
-
-    // On install, cache the static resources.
-    swSelf.addEventListener("install", (event: ExtendableEvent) => {
-        event.waitUntil(
-            (async () => {
-                const cache = await caches.open(CACHE_NAME);
-                await cache.addAll(APP_STATIC_RESOURCES);
-                await swSelf.skipWaiting();
-            })(),
-        );
-    });
-
-    // On activate, delete old caches.
-    swSelf.addEventListener("activate", (event: ExtendableEvent) => {
-        event.waitUntil(
-            (async () => {
-                const keys = await caches.keys();
-                await Promise.all(
-                    keys.map((key) => {
-                        if (key !== CACHE_NAME) {
-                            return caches.delete(key);
-                        }
-                    }),
-                );
-                await swSelf.clients.claim();
-            })(),
-        );
-    });
-
-
-    // On fetch, respond with cached resources.
-    swSelf.addEventListener("fetch", (event: FetchEvent) => {
-        event.respondWith(
-            caches.match(event.request).then((response) => {
-                // Return the cached response if found, otherwise fetch from network
-                return response || fetch(event.request).then((networkResponse) => {
-                    // Check if the network response is valid
-                    if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-                        return networkResponse;
+// On activate, delete old caches.
+swSelf.addEventListener("activate", (event: ExtendableEvent) => {
+    event.waitUntil(
+        (async () => {
+            const keys = await caches.keys();
+            await Promise.all(
+                keys.map((key) => {
+                    if (key !== CACHE_NAME) {
+                        return caches.delete(key);
                     }
+                }),
+            );
+            await swSelf.clients.claim();
+        })(),
+    );
+});
 
-                    // Clone the network response
-                    const responseToCache = networkResponse.clone();
 
-                    // Open the cache and put the network response in it
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, responseToCache);
-                    });
-
+// On fetch, respond with cached resources.
+swSelf.addEventListener("fetch", (event: FetchEvent) => {
+    event.respondWith(
+        caches.match(event.request).then((response) => {
+            // Return the cached response if found, otherwise fetch from network
+            return response || fetch(event.request).then((networkResponse) => {
+                // Check if the network response is valid
+                if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
                     return networkResponse;
-                }).catch((error) => {
-                    console.error('Fetching failed:', error);
-                    return new Response('Network error occurred', {
-                        status: 408,
-                        statusText: 'Network error occurred'
-                    });
+                }
+
+                // Clone the network response
+                const responseToCache = networkResponse.clone();
+
+                // Open the cache and put the network response in it
+                caches.open(CACHE_NAME).then((cache) => {
+                    cache.put(event.request, responseToCache);
                 });
+
+                return networkResponse;
             }).catch((error) => {
-                console.error('Cache match failed:', error);
-                return new Response('Cache error occurred', {
+                console.error('Fetching failed:', error);
+                return new Response('Network error occurred', {
                     status: 408,
-                    statusText: 'Cache error occurred'
+                    statusText: 'Network error occurred'
                 });
-            })
-        );
-    });
-//} else if (isDOMContext()) {
-//    // DOM context
-//    document.addEventListener('DOMContentLoaded', () => {
-//        console.log('DOM fully loaded and parsed');
-//    });
-//}
+            });
+        }).catch((error) => {
+            console.error('Cache match failed:', error);
+            return new Response('Cache error occurred', {
+                status: 408,
+                statusText: 'Cache error occurred'
+            });
+        })
+    );
+});
