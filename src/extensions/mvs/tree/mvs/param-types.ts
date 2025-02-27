@@ -61,7 +61,7 @@ export const Matrix = list(float);
 /** Primitives-related types */
 export const PrimitiveComponentExpressionT = iots.partial({ structure_ref: str, expression_schema: SchemaT, expressions: list(ComponentExpressionT) });
 export type PrimitiveComponentExpressionT = ValueFor<typeof PrimitiveComponentExpressionT>
-export const PrimitivePositionT = iots.union([Vector3, ComponentExpressionT, list(PrimitiveComponentExpressionT)]);
+export const PrimitivePositionT = iots.union([Vector3, ComponentExpressionT, PrimitiveComponentExpressionT]);
 export type PrimitivePositionT = ValueFor<typeof PrimitivePositionT>
 
 export const FloatList = list(float);
@@ -90,6 +90,7 @@ export const ColorNamesT = literal(...Object.keys(ColorNames) as (keyof ColorNam
 
 /** `color` parameter values for `color` node in MVS tree */
 export const ColorT = union([ColorNameT, HexColorT]);
+export type ColorT = ValueFor<typeof ColorT>
 
 /** Type helpers */
 export function isVector3(x: any): x is Vector3 {

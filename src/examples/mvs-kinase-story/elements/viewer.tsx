@@ -30,8 +30,9 @@ export class MolComponentViewerModel extends PluginComponent {
                 layout: {
                     initial: {
                         isExpanded: false,
-                        showControls: false
-                    }
+                        showControls: false,
+                        controlsDisplay: 'landscape',
+                    },
                 },
                 components: {
                     remoteState: 'none',
