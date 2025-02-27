@@ -18,6 +18,7 @@ precision highp int;
     uniform vec3 uClipObjectPosition[dClipObjectCount];
     uniform vec4 uClipObjectRotation[dClipObjectCount];
     uniform vec3 uClipObjectScale[dClipObjectCount];
+    uniform mat4 uClipObjectTransform[dClipObjectCount];
 #endif
 #include common_clip
 
@@ -241,7 +242,7 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
 
         #if defined(dClipVariant_pixel) && dClipObjectCount != 0
             vec3 vModelPosition = v3m4(unitPos * uGridDim, modelTransform);
-            if (clipTest(vec4(vModelPosition, 0.0))) {
+            if (clipTest(modelPosition)) {
                 prevValue = value;
                 pos += step;
                 continue;

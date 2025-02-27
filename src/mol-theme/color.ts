@@ -101,9 +101,10 @@ namespace ColorTheme {
         colors: Color[],
         filter?: TextureFilter,
         domain?: [number, number],
+        defaultColor?: Color,
     }
 
-    export function Palette(list: ColorListEntry[], kind: 'set' | 'interpolate', domain?: [number, number]): Palette {
+    export function Palette(list: ColorListEntry[], kind: 'set' | 'interpolate', domain?: [number, number], defaultColor?: Color): Palette {
         const colors: Color[] = [];
 
         const hasOffsets = list.every(c => Array.isArray(c));
@@ -146,10 +147,11 @@ namespace ColorTheme {
             colors,
             filter: kind === 'set' ? 'nearest' : 'linear',
             domain,
+            defaultColor,
         };
     }
 
-    export const PaletteScale = (1 << 24) - 1;
+    export const PaletteScale = (1 << 24) - 2; // reserve (1 << 24) - 1 for undefiend values
 
     export type Props = { [k: string]: any }
     export type Factory<P extends PD.Params, G extends ColorType> = (ctx: ThemeDataContext, props: PD.Values<P>) => ColorTheme<P, G>

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -12,7 +12,7 @@ import { Color } from '../../../mol-util/color';
 import { Spheres } from '../../../mol-geo/geometry/spheres/spheres';
 import { Clip } from '../../../mol-util/clip';
 import { escapeRegExp, stringToWords } from '../../../mol-util/string';
-import { Vec3 } from '../../../mol-math/linear-algebra';
+import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { ParamMapping } from '../../../mol-util/param-mapping';
 import { EntityNode } from '../ui/entities';
 import { DistinctColorsProps, distinctColors } from '../../../mol-util/color/distinct';
@@ -211,7 +211,8 @@ export function getClipObjects(values: SimpleClipProps, boundingSphere: Sphere3D
         invert: values.invert,
         position,
         scale,
-        rotation: values.rotation
+        rotation: values.rotation,
+        transform: Mat4.identity(),
     }];
 }
 
