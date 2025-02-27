@@ -36,7 +36,7 @@ function createApp(name, library) {
         },
         plugins: [
             new webpack.DefinePlugin({
-                'process.env.VERSION': JSON.stringify(packageJson.version),
+                VERSION: JSON.stringify(packageJson.version),
             }),
         ],
         optimization: {
@@ -76,7 +76,7 @@ module.exports = [
         },
         plugins: [
             new webpack.DefinePlugin({
-                'process.env.VERSION': JSON.stringify(packageJson.version),
+                VERSION: JSON.stringify(packageJson.version),
             }),
         ]
     },
