@@ -13,8 +13,13 @@
  */
 /// <reference lib="webworker" />
 
-const version = process.env.VERSION;
+// Use the injected version number
+declare const VERSION: string;
+const version = VERSION;
 const CACHE_NAME = `molstar-viewer-${version}`;
+
+//const version = process.env.VERSION;
+//const CACHE_NAME = `molstar-viewer-${version}`;
 
 // The static resources that the app needs to function.
 const APP_STATIC_RESOURCES = [

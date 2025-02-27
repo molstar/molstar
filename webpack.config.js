@@ -9,6 +9,41 @@ const tests = [
 ];
 
 const path = require('path');
+const webpack = require('webpack');
+const packageJson = require('./package.json');
+
+function createApp(name, library) {
+    return {
+        entry: {
+            main: `./src/apps/${name}/index.ts`,
+            sw: `./src/apps/${name}/sw.ts`  // Ensure service worker is included
+        },
+        output: {
+            filename: '[name].[contenthash].js',  // Include hash for cache invalidation
+            path: path.resolve(__dirname, `build/${name}`)
+        },
+        module: {
+            rules: [
+                {
+                    test: /\.ts$/,
+                    use: 'ts-loader',
+                    exclude: /node_modules/
+                }
+            ]
+        },
+        resolve: {
+            extensions: ['.ts', '.js']
+        },
+        plugins: [
+            new webpack.DefinePlugin({
+                'process.env.VERSION': JSON.stringify(packageJson.version),
+            }),
+        ],
+        optimization: {
+            minimize: true
+        }
+    };
+}
 
 module.exports = [
     createApp('viewer', 'molstar'),
@@ -39,6 +74,11 @@ module.exports = [
         optimization: {
             minimize: true
         },
+        plugins: [
+            new webpack.DefinePlugin({
+                'process.env.VERSION': JSON.stringify(packageJson.version),
+            }),
+        ]
     },
     {
         entry: {
@@ -67,5 +107,10 @@ module.exports = [
         optimization: {
             minimize: false  // Do not minimize the service worker
         },
+        plugins: [
+            new webpack.DefinePlugin({
+                'process.env.VERSION': JSON.stringify(packageJson.version),
+            }),
+        ]
     }
 ];
