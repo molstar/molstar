@@ -42,23 +42,27 @@ module.exports = [
     },
     {
         entry: {
-            sw: './src/apps/viewer/sw.ts'  // Separate entry for the service worker
+            sw: './src/apps/viewer/sw.ts'  // Entry point for the service worker
         },
         output: {
-            filename: '[name].js',  // No hash for the service worker
-            path: path.resolve(__dirname, 'build/viewer')  // Output to 'build/viewer'
+            filename: '[name].js',
+            path: path.resolve(__dirname, 'build/viewer')
         },
         module: {
             rules: [
                 {
                     test: /\.ts$/,
                     use: 'ts-loader',
-                    exclude: '/node_modules'
+                    exclude: /node_modules/
+                },
+                {
+                    test: /\.json$/,
+                    type: 'json'
                 }
             ]
         },
         resolve: {
-            extensions: ['.ts', '.js']
+            extensions: ['.ts', '.js', '.json']
         },
         optimization: {
             minimize: false  // Do not minimize the service worker
