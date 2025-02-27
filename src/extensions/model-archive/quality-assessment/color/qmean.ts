@@ -12,6 +12,7 @@ import { ThemeDataContext } from '../../../../mol-theme/theme';
 import { Color, ColorScale } from '../../../../mol-util/color';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { CustomProperty } from '../../../../mol-model-props/common/custom-property';
+import { ColorThemeCategory } from '../../../../mol-theme/color/categories';
 
 const DefaultColor = Color(0xaaaaaa);
 
@@ -71,7 +72,7 @@ export function QmeanScoreColorTheme(ctx: ThemeDataContext, props: PD.Values<Qme
 export const QmeanScoreColorThemeProvider: ColorTheme.Provider<QmeanScoreColorThemeParams, 'qmean-score'> = {
     name: 'qmean-score',
     label: 'QMEAN Score',
-    category: ColorTheme.Category.Validation,
+    category: ColorThemeCategory.Validation,
     factory: QmeanScoreColorTheme,
     getParams: getQmeanScoreColorThemeParams,
     defaultValues: PD.getDefaultValues(getQmeanScoreColorThemeParams({})),

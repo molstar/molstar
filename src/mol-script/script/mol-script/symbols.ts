@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -251,6 +251,9 @@ export const SymbolTable = [
 
             Alias(MolScript.structureQuery.atomProperty.macromolecular.isModified, 'atom.is-modified'),
             Alias(MolScript.structureQuery.atomProperty.macromolecular.modifiedParentName, 'atom.modified-parent'),
+
+            Alias(MolScript.structureQuery.atomProperty.ihm.hasSeqId, 'atom.ihm.has-seq-id'),
+            Alias(MolScript.structureQuery.atomProperty.ihm.overlapsSeqIdRange, 'atom.ihm.overlaps-seq-id-range'),
 
             // Macro(MSymbol('atom.sec-struct.is', Arguments.List(Struct.Types.SecondaryStructureFlag), Type.Bool,
             //     `Test if the current atom is part of an secondary structure. Optionally specify allowed sec. struct. types: ${Type.oneOfValues(Struct.Types.SecondaryStructureFlag).join(', ')}`),

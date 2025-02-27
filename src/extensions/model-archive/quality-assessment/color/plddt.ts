@@ -15,6 +15,7 @@ import { Color } from '../../../../mol-util/color';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { CustomProperty } from '../../../../mol-model-props/common/custom-property';
 import { TableLegend } from '../../../../mol-util/legend';
+import { ColorThemeCategory } from '../../../../mol-theme/color/categories';
 
 const DefaultColor = Color(0xaaaaaa);
 const ConfidenceColors = {
@@ -87,7 +88,7 @@ export function PLDDTConfidenceColorTheme(ctx: ThemeDataContext, props: PD.Value
 export const PLDDTConfidenceColorThemeProvider: ColorTheme.Provider<PLDDTConfidenceColorThemeParams, 'plddt-confidence'> = {
     name: 'plddt-confidence',
     label: 'pLDDT Confidence',
-    category: ColorTheme.Category.Validation,
+    category: ColorThemeCategory.Validation,
     factory: PLDDTConfidenceColorTheme,
     getParams: getPLDDTConfidenceColorThemeParams,
     defaultValues: PD.getDefaultValues(getPLDDTConfidenceColorThemeParams({})),

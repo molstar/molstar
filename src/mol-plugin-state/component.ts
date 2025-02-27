@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -13,7 +13,8 @@ export class PluginComponent {
     private _ev: RxEventHelper | undefined;
     private subs: Subscription[] | undefined = void 0;
 
-    protected subscribe<T>(obs: Observable<T>, action: (v: T) => void) {
+    protected subscribe<T>(obs: Observable<T> | undefined, action: (v: T) => void) {
+        if (!obs) return { unsubscribe: () => {} };
         if (typeof this.subs === 'undefined') this.subs = [];
 
         let sub: Subscription | undefined = obs.subscribe(action);

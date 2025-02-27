@@ -7,6 +7,7 @@
 import { Location } from '../../../mol-model/location';
 import { Bond, StructureElement, Unit } from '../../../mol-model/structure';
 import { ColorTheme, LocationColor } from '../../../mol-theme/color';
+import { ColorThemeCategory } from '../../../mol-theme/color/categories';
 import { ThemeDataContext } from '../../../mol-theme/theme';
 import { Color } from '../../../mol-util/color';
 import { getPalette, getPaletteParams } from '../../../mol-util/color/palette';
@@ -82,7 +83,7 @@ export function SIFTSMappingColorTheme(ctx: ThemeDataContext, props: PD.Values<S
 export const SIFTSMappingColorThemeProvider: ColorTheme.Provider<SIFTSMappingColorThemeParams, 'sifts-mapping'> = {
     name: 'sifts-mapping',
     label: 'SIFTS Mapping',
-    category: ColorTheme.Category.Residue,
+    category: ColorThemeCategory.Residue,
     factory: SIFTSMappingColorTheme,
     getParams: getSIFTSMappingColorThemeParams,
     defaultValues: PD.getDefaultValues(SIFTSMappingColorThemeParams),

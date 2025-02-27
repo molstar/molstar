@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -12,18 +12,18 @@ import { ColorNames } from '../../../../mol-util/color/names';
 
 
 /** `format` parameter values for `parse` node in MVS tree */
-export const ParseFormatT = literal('mmcif', 'bcif', 'pdb');
+export const ParseFormatT = literal('mmcif', 'bcif', 'pdb', 'map');
 export type ParseFormatT = ValueFor<typeof ParseFormatT>
 
 /** `format` parameter values for `parse` node in Molstar tree */
-export const MolstarParseFormatT = literal('cif', 'pdb');
+export const MolstarParseFormatT = literal('cif', 'pdb', 'map');
 export type MolstarParseFormatT = ValueFor<typeof MolstarParseFormatT>
 
 /** `kind` parameter values for `structure` node in MVS tree */
 export const StructureTypeT = literal('model', 'assembly', 'symmetry', 'symmetry_mates');
 
 /** `selector` parameter values for `component` node in MVS tree */
-export const ComponentSelectorT = literal('all', 'polymer', 'protein', 'nucleic', 'branched', 'ligand', 'ion', 'water');
+export const ComponentSelectorT = literal('all', 'polymer', 'protein', 'nucleic', 'branched', 'ligand', 'ion', 'water', 'coarse');
 
 /** `selector` parameter values for `component` node in MVS tree */
 export const ComponentExpressionT = iots.partial({
