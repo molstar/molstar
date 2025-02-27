@@ -5,8 +5,8 @@
       "lib": ["es2018", "webworker"],
       "strict": true,
       "moduleResolution": "node",
-      "outDir": "lib",
-      "rootDir": "src",
+      "outDir": "build/viewer",
+      "rootDir": "src/apps/viewer",
       "resolveJsonModule": true,
       "skipLibCheck": true,
       "types": []
