@@ -15,7 +15,9 @@
 
 // Added to make the file into a module in order to avoid the following error:
 // 'Cannot use import statement outside a module'
-export { };
+// Removed again after everything put in an aync function due to the following error:
+// 'Unexpected token 'export'' 
+//export { };
 
 // Top-level async function to import package.json and set CACHE_NAME
 (async () => {
