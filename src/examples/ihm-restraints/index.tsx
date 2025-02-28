@@ -196,7 +196,7 @@ async function parseInfo(plugin: PluginContext, url: string): Promise<IHMStructu
     return { entity_labels, model_restraints };
 }
 
-function baseStructure(url: string, modelIndex: number, info: IHMStructureInfo) {
+function baseStructure(url: string, modelIndex: number, info: IHMStructureInfo, options?: { noEntityLabels?: boolean }) {
     const builder = createMVSBuilder();
 
     const structure = builder
@@ -216,11 +216,13 @@ function baseStructure(url: string, modelIndex: number, info: IHMStructureInfo) 
         .color({ custom: { molstar_use_default_coloring: true } })
         .opacity({ opacity: 0.51 });
 
-    const primitives = structure.primitives();
-    for (const [label_entity_id, text] of info.entity_labels) {
-        if (!text) continue;
-        primitives
-            .label({ position: { label_entity_id }, text, label_size: 16, label_color: '#cccccc' });
+    if (!options?.noEntityLabels) {
+        const primitives = structure.primitives();
+        for (const [label_entity_id, text] of info.entity_labels) {
+            if (!text) continue;
+            primitives
+                .label({ position: { label_entity_id }, text, label_size: 16, label_color: '#cccccc' });
+        }
     }
 
     return [builder, structure] as const;
