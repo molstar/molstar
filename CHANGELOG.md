@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v4.12.0] - 2025-02-28
+
 - Fix PDBj structure data URL
 - Improve logic when to cull in renderer
 - Add `atom.ihm.has-seq-id` and `atom.ihm.overlaps-seq-id-range` symbol to the query language
