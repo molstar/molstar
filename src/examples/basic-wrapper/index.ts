@@ -21,6 +21,7 @@ import { StripedResidues } from './coloring';
 import { CustomToastMessage } from './controls';
 import { CustomColorThemeProvider } from './custom-theme';
 import './index.html';
+import './index-pwa.html';
 import { buildStaticSuperposition, dynamicSuperpositionTest, StaticSuperpositionTestData } from './superposition';
 require('mol-plugin-ui/skin/light.scss');
 

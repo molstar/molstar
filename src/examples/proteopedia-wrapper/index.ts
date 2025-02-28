@@ -29,6 +29,7 @@ import { EvolutionaryConservation } from './annotation';
 import { createProteopediaCustomTheme } from './coloring';
 import { LoadParams, ModelInfo, RepresentationStyle, StateElements, SupportedFormats } from './helpers';
 import './index.html';
+import './index-pwa.html';
 import { volumeStreamingControls } from './ui/controls';
 require('../../mol-plugin-ui/skin/light.scss');
 
