@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- `ihm-restraints` example: show entity labels
+
 ## [v4.12.0] - 2025-02-28
 
 - Fix PDBj structure data URL
