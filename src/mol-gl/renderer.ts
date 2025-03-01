@@ -270,6 +270,10 @@ namespace Renderer {
                 return;
             }
 
+            if (!r.values.drawCount.ref.value) {
+                return;
+            }
+
             if (!Frustum3D.intersectsSphere3D(frustum, r.values.boundingSphere.ref.value)) {
                 return;
             }

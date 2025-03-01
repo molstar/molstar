@@ -25,6 +25,7 @@ function calculateBoundingSphere(renderables: GraphicsRenderable[], boundingSphe
 
     for (let i = 0, il = renderables.length; i < il; ++i) {
         if (onlyVisible && !renderables[i].state.visible) continue;
+        if (!renderables[i].values.drawCount.ref.value) continue;
 
         const boundingSphere = renderables[i].values.boundingSphere.ref.value;
         if (!boundingSphere.radius) continue;
@@ -34,6 +35,7 @@ function calculateBoundingSphere(renderables: GraphicsRenderable[], boundingSphe
     boundaryHelper.finishedIncludeStep();
     for (let i = 0, il = renderables.length; i < il; ++i) {
         if (onlyVisible && !renderables[i].state.visible) continue;
+        if (!renderables[i].values.drawCount.ref.value) continue;
 
         const boundingSphere = renderables[i].values.boundingSphere.ref.value;
         if (!boundingSphere.radius) continue;

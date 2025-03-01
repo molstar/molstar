@@ -9,6 +9,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Support bundles in `MultiStructureSelectionFromExpression`
 - Support measurements for coarse models
 - Fix `element-point` visual not using child unit
+- Ignore `renderables` with empty draw count
 
 ## [v4.12.0] - 2025-02-28
 
