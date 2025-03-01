@@ -39,7 +39,8 @@
     "plugin-state": "node lib/commonjs/servers/plugin-state/index.js --working-folder ./build/state --port 1339",
     "preversion": "npm run test",
     "version": "npm run rebuild && cpx .npmignore lib/",
-    "postversion": "git push && git push --tags"
+    "postversion": "git push && git push --tags",
+    "exp:build": "node build.mjs"
   },
   "files": [
     "lib/",
@@ -132,6 +133,8 @@
     "cpx2": "^8.0.0",
     "crypto-browserify": "^3.12.1",
     "css-loader": "^7.1.2",
+    "esbuild": "^0.25.0",
+    "esbuild-sass-plugin": "^3.3.1",
     "eslint": "^8.57.1",
     "extra-watch-webpack-plugin": "^1.0.3",
     "file-loader": "^6.2.0",
