@@ -65,6 +65,10 @@ interface IHMRestraintInfo {
     distance: number,
 }
 
+interface IHMStructureInfo {
+    entity_labels: [id: string | undefined, label: string | undefined][],
+    model_restraints: IHMRestraintInfo[][],
+}
 
 function getCoarseElementPosition(e: CoarseElementReference, model: Model, position: Vec3) {
     if (!e.kind) Vec3.set(position, 0, 0, 0);
@@ -102,30 +106,30 @@ function resolvePosition(model: Model, key: CoarseElementKey, position: Vec3) {
 
 const HarmonicRestraintTolerance = 0.1;
 
-async function parseRestraints(plugin: PluginContext, url: string) {
+async function parseInfo(plugin: PluginContext, url: string): Promise<IHMStructureInfo> {
     const data = await plugin.runTask(ajaxGet(url)) as string;
     const parsed = await plugin.runTask(parseCifText(data));
 
     if (parsed.isError) {
         console.error(parsed);
-        return [];
+        return { entity_labels: [], model_restraints: [] };
     }
 
     const trajectory = await plugin.runTask(trajectoryFromMmCIF(parsed.result.blocks[0], parsed.result));
 
     const dataBlocks = parsed.result.blocks;
 
-    const cat = dataBlocks[0].categories['ihm_cross_link_restraint'];
-    const entity_id_1 = cat.getField('entity_id_1')!;
-    const asym_id_1 = cat.getField('asym_id_1')!;
-    const seq_id_1 = cat.getField('seq_id_1')!;
-    const comp_id_1 = cat.getField('comp_id_1')!;
-    const entity_id_2 = cat.getField('entity_id_2')!;
-    const asym_id_2 = cat.getField('asym_id_2')!;
-    const seq_id_2 = cat.getField('seq_id_2')!;
-    const comp_id_2 = cat.getField('comp_id_2')!;
-    const restraint_type = cat.getField('restraint_type')!;
-    const threshold = cat.getField('distance_threshold')!;
+    const ihm_cross_link_restraint = dataBlocks[0].categories['ihm_cross_link_restraint'];
+    const entity_id_1 = ihm_cross_link_restraint.getField('entity_id_1')!;
+    const asym_id_1 = ihm_cross_link_restraint.getField('asym_id_1')!;
+    const seq_id_1 = ihm_cross_link_restraint.getField('seq_id_1')!;
+    const comp_id_1 = ihm_cross_link_restraint.getField('comp_id_1')!;
+    const entity_id_2 = ihm_cross_link_restraint.getField('entity_id_2')!;
+    const asym_id_2 = ihm_cross_link_restraint.getField('asym_id_2')!;
+    const seq_id_2 = ihm_cross_link_restraint.getField('seq_id_2')!;
+    const comp_id_2 = ihm_cross_link_restraint.getField('comp_id_2')!;
+    const restraint_type = ihm_cross_link_restraint.getField('restraint_type')!;
+    const threshold = ihm_cross_link_restraint.getField('distance_threshold')!;
 
     const e1key = CoarseElementKey();
     const e2key = CoarseElementKey();
@@ -133,16 +137,24 @@ async function parseRestraints(plugin: PluginContext, url: string) {
     const a = Vec3.zero();
     const b = Vec3.zero();
 
-    const modelRestraints: IHMRestraintInfo[][] = [];
+    const entity_labels: IHMStructureInfo['entity_labels'] = [];
+    const entity = dataBlocks[0].categories['entity'];
+    const entity_id = entity.getField('id');
+    const pdbx_description = entity.getField('pdbx_description');
+    for (let i = 0; i < entity.rowCount; i++) {
+        entity_labels.push([entity_id?.str(i), pdbx_description?.str(i)]);
+    }
+
+    const model_restraints: IHMRestraintInfo[][] = [];
 
     for (let modelIndex = 0; modelIndex < trajectory.frameCount; modelIndex++) {
         const _model = trajectory.getFrameAtIndex(modelIndex);
         const model = Task.is(_model) ? await plugin.runTask(_model) : _model;
 
         const restraints: IHMRestraintInfo[] = [];
-        modelRestraints.push(restraints);
+        model_restraints.push(restraints);
 
-        for (let i = 0; i < cat.rowCount; i++) {
+        for (let i = 0; i < ihm_cross_link_restraint.rowCount; i++) {
             e1key.label_entity_id = entity_id_1.str(i);
             e1key.label_asym_id = asym_id_1.str(i);
             e1key.label_seq_id = seq_id_1.int(i);
@@ -181,10 +193,10 @@ async function parseRestraints(plugin: PluginContext, url: string) {
         }
     }
 
-    return modelRestraints;
+    return { entity_labels, model_restraints };
 }
 
-function baseStructure(url: string, modelIndex: number) {
+function baseStructure(url: string, modelIndex: number, info: IHMStructureInfo, options?: { noEntityLabels?: boolean }) {
     const builder = createMVSBuilder();
 
     const structure = builder
@@ -203,6 +215,15 @@ function baseStructure(url: string, modelIndex: number) {
         .representation({ type: 'cartoon' })
         .color({ custom: { molstar_use_default_coloring: true } })
         .opacity({ opacity: 0.51 });
+
+    if (!options?.noEntityLabels) {
+        const primitives = structure.primitives();
+        for (const [label_entity_id, text] of info.entity_labels) {
+            if (!text) continue;
+            primitives
+                .label({ position: { label_entity_id }, text, label_size: 16, label_color: '#cccccc' });
+        }
+    }
 
     return [builder, structure] as const;
 }
@@ -245,17 +266,17 @@ export async function loadIHMRestraints(root: HTMLElement, url?: string) {
     url ??= 'https://pdb-ihm.org/cif/8zz1.cif';
 
     const plugin = await createViewer(root);
-    const modelRestraints = await parseRestraints(plugin, url);
+    const info = await parseInfo(plugin, url);
 
     const modelIndex = 0;
-    const restraints = modelRestraints[modelIndex];
+    const restraints = info.model_restraints[modelIndex];
 
     const nVialoted = restraints.filter(r => !r.satisfied).length;
     const nSatisfied = restraints.length - nVialoted;
 
     const snapshots: Snapshot[] = [];
 
-    let mvs = baseStructure(url, modelIndex);
+    let mvs = baseStructure(url, modelIndex, info);
     drawConstraints(mvs, restraints, {
         filter: r => true,
         color: r => r.e1.label_entity_id === r.e2.label_entity_id && r.e1.label_asym_id === r.e2.label_asym_id ? 'yellow' : 'blue',
@@ -273,7 +294,7 @@ export async function loadIHMRestraints(root: HTMLElement, url?: string) {
 `,
     }));
 
-    mvs = baseStructure(url, modelIndex);
+    mvs = baseStructure(url, modelIndex, info);
     drawConstraints(mvs, restraints, {
         filter: r => true,
         color: r => r.satisfied ? 'green' : 'red',
@@ -291,7 +312,7 @@ export async function loadIHMRestraints(root: HTMLElement, url?: string) {
 `,
     }));
 
-    mvs = baseStructure(url, modelIndex);
+    mvs = baseStructure(url, modelIndex, info);
     drawConstraints(mvs, restraints, {
         filter: r => !r.satisfied,
         color: r => r.satisfied ? 'green' : 'red',
@@ -308,7 +329,7 @@ ${nVialoted} restraints are violated.
 `,
     }));
 
-    mvs = baseStructure(url, modelIndex);
+    mvs = baseStructure(url, modelIndex, info);
     drawConstraints(mvs, restraints, {
         filter: r => r.satisfied,
         color: r => r.satisfied ? 'green' : 'red',
