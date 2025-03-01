@@ -318,8 +318,6 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
 
             const dependsOn = [cell.transform.ref];
 
-            console.log('xxx', loci);
-
             update
                 .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
                     selections: [
