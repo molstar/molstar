@@ -25,8 +25,8 @@ $logo-background: rgba(0,0,0,0.75);
     @return color.adjust($color, $lightness: $amount, $space: hsl);
 }
 
-@import 'mol-plugin-ui/skin/base/base';
-@import 'mol-plugin-ui/skin/base/variables';
+@import '../../mol-plugin-ui/skin/base/base';
+@import '../../mol-plugin-ui/skin/base/variables';
 
 a {
     color: $font-color;

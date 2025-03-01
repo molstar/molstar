@@ -50,21 +50,40 @@ const versionPlugin = {
 
 const start = Date.now();
 
-await esbuild.build({
-    entryPoints: ['./src/apps/viewer/index.ts'],
-    tsconfig: './tsconfig.json',
-    bundle: true,
-    // minify: true,
-    globalName: 'molstar',
-    outfile: './build/viewer/molstar.js',
-    plugins: [
-        versionPlugin,
-        fileLoaderPlugin({ out: `./build/viewer` }),
-        sassPlugin({ type: 'css' }),
-    ],
-    external: ['crypto', 'fs', 'path', 'stream'],
-    loader: {
-    },
-});
+const apps = ['viewer', 'docking-viewer', 'mesoscale-explorer'];
+const examples = ['proteopedia-wrapper', 'basic-wrapper', 'lighting', 'alpha-orbitals', 'alphafolddb-pae', 'mvs-kinase-story', 'ihm-restraints'];
+
+async function build(name, kind) {
+    const prefix = kind === 'app'
+        ? `./build/${name}`
+        : `./build/examples/${name}`;
+
+    let entry = `./src/${kind}s/${name}/index.ts`;
+    if (!fs.existsSync(entry)) {
+        entry = `./src/${kind}s/${name}/index.tsx`;
+    }
+
+    await esbuild.build({
+        entryPoints: [entry],
+        tsconfig: './tsconfig.json',
+        bundle: true,
+        // minify: true,
+        globalName: 'molstar',
+        outfile: kind === 'app'
+            ? `./build/${name}/molstar.js`
+            : `./build/examples/${name}/index.js`,
+        plugins: [
+            versionPlugin,
+            fileLoaderPlugin({ out: prefix }),
+            sassPlugin({ type: 'css' }),
+        ],
+        external: ['crypto', 'fs', 'path', 'stream'],
+        loader: {
+        },
+    });
+}
+
+await Promise.all(apps.map(name => build(name, 'app')));
+await Promise.all(examples.map(name => build(name, 'example')));
 
 console.log(`Build time: ${Date.now() - start}ms`);

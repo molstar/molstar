@@ -40,7 +40,7 @@
     "preversion": "npm run test",
     "version": "npm run rebuild && cpx .npmignore lib/",
     "postversion": "git push && git push --tags",
-    "exp:build": "node build.mjs"
+    "exp:build": "node build-dev.mjs"
   },
   "files": [
     "lib/",
