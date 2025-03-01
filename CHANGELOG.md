@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - `ihm-restraints` example: show entity labels
+- Support bundles in `MultiStructureSelectionFromExpression`
+- Support measurements for coarse models
 
 ## [v4.12.0] - 2025-02-28
 

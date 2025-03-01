@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -781,6 +781,11 @@ const StructureSelectionFromExpression = PluginStateTransform.BuiltIn({
     }
 });
 
+interface MultiStructureSelectionFromExpressionCache {
+    expressionEntries: Map<string, StructureQueryHelper.CacheEntry>,
+    bundleEntries: Map<string, { source: Structure }>
+}
+
 type MultiStructureSelectionFromExpression = typeof MultiStructureSelectionFromExpression
 const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
     name: 'structure-multi-selection-from-expression',
@@ -792,27 +797,38 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
             key: PD.Text(void 0, { description: 'A unique key.' }),
             ref: PD.Text(),
             groupId: PD.Optional(PD.Text()),
-            expression: PD.Value<Expression>(MolScriptBuilder.struct.generator.empty)
+            expression: PD.Optional(PD.Value<Expression | undefined>(MolScriptBuilder.struct.generator.empty)),
+            bundle: PD.Optional(PD.Value<StructureElement.Bundle | undefined>(undefined)),
         }, e => e.ref, { isHidden: true }),
         isTransitive: PD.Optional(PD.Boolean(false, { isHidden: true, description: 'Remap the selections from the original structure if structurally equivalent.' })),
         label: PD.Optional(PD.Text('', { isHidden: true }))
     })
 })({
     apply({ params, cache, dependencies }) {
-        const entries = new Map<string, StructureQueryHelper.CacheEntry>();
+        const expressionEntries = new Map<string, StructureQueryHelper.CacheEntry>();
+        const bundleEntries = new Map<string, { source: Structure }>();
 
         const selections: SO.Molecule.Structure.SelectionEntry[] = [];
         let totalSize = 0;
 
         for (const sel of params.selections) {
-            const { selection, entry } = StructureQueryHelper.createAndRun(dependencies![sel.ref].data as Structure, sel.expression);
-            entries.set(sel.key, entry);
-            const loci = Sel.toLociWithSourceUnits(selection);
-            selections.push({ key: sel.key, loci, groupId: sel.groupId });
-            totalSize += StructureElement.Loci.size(loci);
+            if (sel.bundle) {
+                const source = dependencies![sel.ref].data as Structure;
+                const loci = StructureElement.Bundle.toLoci(sel.bundle, source);
+                selections.push({ key: sel.key, loci, groupId: sel.groupId });
+                totalSize += StructureElement.Loci.size(loci);
+                bundleEntries.set(sel.key, { source });
+            } else if (sel.expression) {
+                const { selection, entry } = StructureQueryHelper.createAndRun(dependencies![sel.ref].data as Structure, sel.expression);
+                expressionEntries.set(sel.key, entry);
+                const loci = Sel.toLociWithSourceUnits(selection);
+                selections.push({ key: sel.key, loci, groupId: sel.groupId });
+                totalSize += StructureElement.Loci.size(loci);
+            }
         }
 
-        (cache as object as any).entries = entries;
+        (cache as MultiStructureSelectionFromExpressionCache).expressionEntries = expressionEntries;
+        (cache as MultiStructureSelectionFromExpressionCache).bundleEntries = bundleEntries;
 
         const props = { label: `${params.label || 'Multi-selection'}`, description: `${params.selections.length} source(s), ${totalSize} element(s) total` };
         return new SO.Molecule.Structure.Selections(selections, props);
@@ -820,11 +836,19 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
     update: ({ b, oldParams, newParams, cache, dependencies }) => {
         if (!!oldParams.isTransitive !== !!newParams.isTransitive) return StateTransformer.UpdateResult.Recreate;
 
-        const cacheEntries = (cache as any).entries as Map<string, StructureQueryHelper.CacheEntry>;
-        const entries = new Map<string, StructureQueryHelper.CacheEntry>();
+        const prevExpressionEntries = (cache as MultiStructureSelectionFromExpressionCache).expressionEntries;
+        const newExpressionEntries = new Map<string, StructureQueryHelper.CacheEntry>();
+
+        const prevBundleEntries = (cache as MultiStructureSelectionFromExpressionCache).bundleEntries;
+        const newBundleEntries = new Map<string, { source: Structure }>();
 
         const current = new Map<string, SO.Molecule.Structure.SelectionEntry>();
         for (const e of b.data) current.set(e.key, e);
+
+        const prevBundles = new Map<string, StructureElement.Bundle>();
+        for (const sel of oldParams.selections) {
+            if (sel.bundle) prevBundles.set(sel.key, sel.bundle);
+        }
 
         let changed = false;
         let totalSize = 0;
@@ -835,70 +859,104 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
 
             let recreate = false;
 
-            if (cacheEntries.has(sel.key)) {
-                const entry = cacheEntries.get(sel.key)!;
-                if (StructureQueryHelper.isUnchanged(entry, sel.expression, structure) && current.has(sel.key)) {
-                    const loci = current.get(sel.key)!;
-                    if (loci.groupId !== sel.groupId) {
-                        loci.groupId = sel.groupId;
-                        changed = true;
-                    }
-                    entries.set(sel.key, entry);
-                    selections.push(loci);
-                    totalSize += StructureElement.Loci.size(loci.loci);
-
-                    continue;
-                }
-                if (entry.expression !== sel.expression) {
-                    recreate = true;
-                } else {
-                    // TODO: properly support "transitive" queries. For that Structure.areUnitAndIndicesEqual needs to be fixed;
-                    let update = false;
-
-                    if (!!newParams.isTransitive) {
-                        if (Structure.areUnitIdsAndIndicesEqual(entry.originalStructure, structure)) {
-                            const selection = StructureQueryHelper.run(entry, entry.originalStructure);
-                            entry.currentStructure = structure;
-                            entries.set(sel.key, entry);
-                            const loci = StructureElement.Loci.remap(Sel.toLociWithSourceUnits(selection), structure);
-                            selections.push({ key: sel.key, loci, groupId: sel.groupId });
-                            totalSize += StructureElement.Loci.size(loci);
+            if (sel.expression) {
+                if (prevExpressionEntries.has(sel.key)) {
+                    const entry = prevExpressionEntries.get(sel.key)!;
+                    if (StructureQueryHelper.isUnchanged(entry, sel.expression, structure) && current.has(sel.key)) {
+                        const loci = current.get(sel.key)!;
+                        if (loci.groupId !== sel.groupId) {
+                            loci.groupId = sel.groupId;
                             changed = true;
+                        }
+                        newExpressionEntries.set(sel.key, entry);
+                        selections.push(loci);
+                        totalSize += StructureElement.Loci.size(loci.loci);
+
+                        continue;
+                    }
+                    if (entry.expression !== sel.expression) {
+                        recreate = true;
+                    } else {
+                        // TODO: properly support "transitive" queries. For that Structure.areUnitAndIndicesEqual needs to be fixed;
+                        let update = false;
+
+                        if (!!newParams.isTransitive) {
+                            if (Structure.areUnitIdsAndIndicesEqual(entry.originalStructure, structure)) {
+                                const selection = StructureQueryHelper.run(entry, entry.originalStructure);
+                                entry.currentStructure = structure;
+                                newExpressionEntries.set(sel.key, entry);
+                                const loci = StructureElement.Loci.remap(Sel.toLociWithSourceUnits(selection), structure);
+                                selections.push({ key: sel.key, loci, groupId: sel.groupId });
+                                totalSize += StructureElement.Loci.size(loci);
+                                changed = true;
+                            } else {
+                                update = true;
+                            }
                         } else {
                             update = true;
                         }
-                    } else {
-                        update = true;
-                    }
 
-                    if (update) {
-                        changed = true;
-                        const selection = StructureQueryHelper.updateStructure(entry, structure);
-                        entries.set(sel.key, entry);
-                        const loci = Sel.toLociWithSourceUnits(selection);
-                        selections.push({ key: sel.key, loci, groupId: sel.groupId });
-                        totalSize += StructureElement.Loci.size(loci);
+                        if (update) {
+                            changed = true;
+                            const selection = StructureQueryHelper.updateStructure(entry, structure);
+                            newExpressionEntries.set(sel.key, entry);
+                            const loci = Sel.toLociWithSourceUnits(selection);
+                            selections.push({ key: sel.key, loci, groupId: sel.groupId });
+                            totalSize += StructureElement.Loci.size(loci);
+                        }
                     }
+                } else {
+                    recreate = true;
                 }
-            } else {
-                recreate = true;
-            }
 
-            if (recreate) {
-                changed = true;
+                if (recreate) {
+                    changed = true;
 
-                // create new selection
-                const { selection, entry } = StructureQueryHelper.createAndRun(structure, sel.expression);
-                entries.set(sel.key, entry);
-                const loci = Sel.toLociWithSourceUnits(selection);
-                selections.push({ key: sel.key, loci });
-                totalSize += StructureElement.Loci.size(loci);
+                    // create new selection
+                    const { selection, entry } = StructureQueryHelper.createAndRun(structure, sel.expression);
+                    newExpressionEntries.set(sel.key, entry);
+                    const loci = Sel.toLociWithSourceUnits(selection);
+                    selections.push({ key: sel.key, loci, groupId: sel.groupId });
+                    totalSize += StructureElement.Loci.size(loci);
+                }
+            } else if (sel.bundle) {
+                if (prevBundleEntries.has(sel.key)) {
+                    const source = dependencies![sel.ref].data as Structure;
+                    const entry = prevBundleEntries.get(sel.key)!;
+                    const prev = prevBundles.get(sel.key);
+                    if (prev && source === entry.source && sel.bundle.hash === entry.source.hashCode && StructureElement.Bundle.areEqual(sel.bundle, prev)) {
+                        const loci = current.get(sel.key)!;
+                        if (loci.groupId !== sel.groupId) {
+                            loci.groupId = sel.groupId;
+                            changed = true;
+                        }
+                        newBundleEntries.set(sel.key, entry);
+                        selections.push(loci);
+                        totalSize += StructureElement.Loci.size(loci.loci);
+                        continue;
+                    }
+                    recreate = true;
+                } else {
+                    recreate = true;
+                }
+
+                if (recreate) {
+                    changed = true;
+
+                    // create new selection
+                    const source = dependencies![sel.ref].data as Structure;
+                    const loci = StructureElement.Bundle.toLoci(sel.bundle, source);
+                    selections.push({ key: sel.key, loci, groupId: sel.groupId });
+                    totalSize += StructureElement.Loci.size(loci);
+                    newBundleEntries.set(sel.key, { source });
+                }
             }
         }
 
         if (!changed) return StateTransformer.UpdateResult.Unchanged;
 
-        (cache as object as any).entries = entries;
+        (cache as MultiStructureSelectionFromExpressionCache).expressionEntries = newExpressionEntries;
+        (cache as MultiStructureSelectionFromExpressionCache).bundleEntries = newBundleEntries;
         b.data = selections;
         b.label = `${newParams.label || 'Multi-selection'}`;
         b.description = `${selections.length} source(s), ${totalSize} element(s) total`;
