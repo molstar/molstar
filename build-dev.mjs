@@ -1,8 +1,11 @@
 import * as esbuild from 'esbuild';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as argparse from 'argparse';
 import { sassPlugin } from 'esbuild-sass-plugin';
-import { Logger } from 'sass';
+
+const AllApps = ['viewer', 'docking-viewer', 'mesoscale-explorer'];
+const AllExamples = ['proteopedia-wrapper', 'basic-wrapper', 'lighting', 'alpha-orbitals', 'alphafolddb-pae', 'mvs-kinase-story', 'ihm-restraints'];
 
 function mkDir(dir) {
     if (!fs.existsSync(dir)) {
@@ -33,18 +36,11 @@ function fileLoaderPlugin(options) {
                     loader: 'empty',
                 }
             });
-            // build.onResolve({ filter: /\.(html|ico)$/ }, async (args) => {
-            //     console.log(args);
-            //     return { watchFiles: [args.path] };
-            // });
         },
     }
 }
 
-const apps = ['viewer', 'docking-viewer', 'mesoscale-explorer'];
-const examples = ['proteopedia-wrapper', 'basic-wrapper', 'lighting', 'alpha-orbitals', 'alphafolddb-pae', 'mvs-kinase-story', 'ihm-restraints'];
-
-async function build(name, kind) {
+async function watch(name, kind) {
     const prefix = kind === 'app'
         ? `./build/${name}`
         : `./build/examples/${name}`;
@@ -66,6 +62,7 @@ async function build(name, kind) {
             fileLoaderPlugin({ out: prefix }),
             sassPlugin({
                 type: 'css',
+                silenceDeprecations: ['import'],
                 logger: {
                     warn: (msg) => console.warn(msg),
                     debug: () => { },
@@ -75,27 +72,61 @@ async function build(name, kind) {
         external: ['crypto', 'fs', 'path', 'stream'],
         loader: {
         },
+        color: true,
+        logLevel: 'info',
     });
 
-    ctx.watch();
+    await ctx.rebuild();
+    await ctx.watch();
 }
 
-build('viewer', 'app');
+const argParser = new argparse.ArgumentParser({
+    add_help: true,
+    description: 'Mol* development build'
+});
+argParser.add_argument('--apps', '-a', {
+    help: 'Apps to build.',
+    required: false,
+    nargs: '*',
+});
+argParser.add_argument('--examples', '-e', {
+    help: 'Examples to build.',
+    required: false,
+    nargs: '*',
+});
+argParser.add_argument('--port', '-p', {
+    help: 'Port.',
+    required: false,
+    default: 1338,
+    type: 'int',
+});
 
-for (const app of apps) {
-    // build(app, 'app');
-}
+const args = argParser.parse_args();
+
+const apps = (args.apps ? args.apps : AllApps).filter(a => AllApps.includes(a));
+const examples = (args.examples ? args.examples : AllExamples).filter(e => AllExamples.includes(e));
+
+console.log('Apps:', apps);
+console.log('Examples:', examples);
+console.log('');
+
+const promises = [];
+for (const app of apps) promises.push(watch(app, 'app'));
+for (const example of examples) promises.push(watch(example, 'example'));
+
+console.log('Initial build...');
+
+await Promise.all(promises);
+console.log('Done.');
 
 const ctx = await esbuild.context({});
 ctx.serve({
     servedir: './build',
-    port: 5888,
+    port: args.port,
 });
 
-console.log('Serving on http://localhost:5888');
-
-
-// await Promise.all(apps.map(name => build(name, 'app')));
-// await Promise.all(examples.map(name => build(name, 'example')));
-
-// console.log(`Build time: ${Date.now() - start}ms`);
+console.log('');
+console.log(`Serving on http://localhost:${args.port}`);
+console.log('Watching for changes...');
+console.log('');
+console.log('Press Ctrl+C to stop.');

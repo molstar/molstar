@@ -32,6 +32,10 @@
     "watch-webpack": "webpack -w --mode development --stats minimal",
     "watch-webpack-viewer": "webpack -w --mode development --stats minimal --config ./webpack.config.viewer.js",
     "watch-webpack-viewer-debug": "webpack -w --mode development --stats minimal --config ./webpack.config.viewer.debug.js",
+    "dev": "node build-dev.mjs",
+    "dev:viewer": "node build-dev.mjs -a viewer -e",
+    "dev:apps": "node build-dev.mjs -e",
+    "dev:examples": "node build-dev.mjs -a",
     "serve": "http-server -p 1338 -g",
     "model-server": "node lib/commonjs/servers/model/server.js",
     "model-server-watch": "nodemon --watch lib lib/commonjs/servers/model/server.js",
@@ -39,8 +43,7 @@
     "plugin-state": "node lib/commonjs/servers/plugin-state/index.js --working-folder ./build/state --port 1339",
     "preversion": "npm run test",
     "version": "npm run rebuild && cpx .npmignore lib/",
-    "postversion": "git push && git push --tags",
-    "exp:build": "node build-dev.mjs"
+    "postversion": "git push && git push --tags"
   },
   "files": [
     "lib/",
