@@ -22,7 +22,7 @@ import { CustomToastMessage } from './controls';
 import { CustomColorThemeProvider } from './custom-theme';
 import './index.html';
 import { buildStaticSuperposition, dynamicSuperpositionTest, StaticSuperpositionTestData } from './superposition';
-require('mol-plugin-ui/skin/light.scss');
+import '../../mol-plugin-ui/skin/light.scss';
 
 type LoadParams = { url: string, format?: BuiltInTrajectoryFormat, isBinary?: boolean, assemblyId?: string }
 

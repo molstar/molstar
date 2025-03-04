@@ -9,8 +9,8 @@ import './index.html';
 import './elements/snapshot-markdown';
 import './elements/viewer';
 import { buildStory } from './kinase-story';
-require('../../mol-plugin-ui/skin/light.scss');
-require('./styles.scss');
+import '../../mol-plugin-ui/skin/light.scss';
+import './styles.scss';
 
 export class MolComponents {
     getContext(name?: string) {

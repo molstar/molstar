@@ -24,7 +24,7 @@ import { ParamDefinition } from '../../mol-util/param-definition';
 import { mountControls } from './controls';
 import { DemoMoleculeSDF, DemoOrbitals } from './example-data';
 import './index.html';
-require('mol-plugin-ui/skin/light.scss');
+import '../../mol-plugin-ui/skin/light.scss';
 
 import { setDebugMode, setTimingMode, consoleStats } from '../../mol-util/debug';
 
