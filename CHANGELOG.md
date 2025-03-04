@@ -8,8 +8,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - `ihm-restraints` example: show entity labels
 - Fix `element-point` visual not using child unit
 - Ignore `renderables` with empty draw count
-- Add experimental support for `esbuild` for development.
+- Add experimental support for `esbuild` for development
   - Use `npm run dev` for faster development builds
+- Use `StructureElement.Bundle` instead of expressions to serialize measurement elements
+  - Fixes measurements not being supported for coarse models
 
 
 ## [v4.12.0] - 2025-02-28
