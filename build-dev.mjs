@@ -9,7 +9,7 @@ const AllExamples = ['proteopedia-wrapper', 'basic-wrapper', 'lighting', 'alpha-
 
 function mkDir(dir) {
     if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir);
+        fs.mkdirSync(dir, { recursive: true });
     }
 }
 
@@ -103,8 +103,8 @@ argParser.add_argument('--port', '-p', {
 
 const args = argParser.parse_args();
 
-const apps = (args.apps ? args.apps : AllApps).filter(a => AllApps.includes(a));
-const examples = (args.examples ? args.examples : AllExamples).filter(e => AllExamples.includes(e));
+const apps = (!args.apps ? [] : (args.apps.length ? args.apps : AllApps)).filter(a => AllApps.includes(a));
+const examples = (!args.examples ? [] : (args.examples.length ? args.examples : AllExamples)).filter(e => AllExamples.includes(e));
 
 console.log('Apps:', apps);
 console.log('Examples:', examples);
@@ -127,6 +127,7 @@ ctx.serve({
 
 console.log('');
 console.log(`Serving on http://localhost:${args.port}`);
+console.log('');
 console.log('Watching for changes...');
 console.log('');
 console.log('Press Ctrl+C to stop.');

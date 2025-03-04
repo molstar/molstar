@@ -93,7 +93,7 @@ Experimental support for faster builds with `esbuild`
 - `npm run dev:viewer` - watch mode for viewer
 - `npm run dev:apps` - watch mode for all apps
 - `npm run dev:examples` - watch mode for all examples
-- `npm run dev -- -a <app name 1> <app name 2> -e <example name 1> ...` - watch mode for specified apps/examples. `-e` with any names means no examples will be built.
+- `npm run dev -- -a <app name 1> <app name 2> -e <example name 1> ...` - watch mode for specified apps/examples. `-a`/`-e` with without any names will build everything.
 
 ### Build for production:
     NODE_ENV=production npm run build
