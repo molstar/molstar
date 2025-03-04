@@ -6,8 +6,6 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - `ihm-restraints` example: show entity labels
-- Support bundles in `MultiStructureSelectionFromExpression`
-- Support measurements for coarse models
 - Fix `element-point` visual not using child unit
 - Ignore `renderables` with empty draw count
 - Add experimental support for `esbuild` for development.
