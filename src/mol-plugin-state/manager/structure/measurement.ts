@@ -6,7 +6,7 @@
  * @author Ryan DiRisio <rjdiris@gmail.com>
  */
 
-import { StructureElement, Unit } from '../../../mol-model/structure';
+import { StructureElement } from '../../../mol-model/structure';
 import { PluginContext } from '../../../mol-plugin/context';
 import { StateSelection, StateTransform, StateTransformer, StateObject, StateObjectCell } from '../../../mol-state';
 import { StateTransforms } from '../../transforms';
@@ -17,7 +17,6 @@ import { StatefulPluginComponent } from '../../component';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { MeasurementRepresentationCommonTextParams, LociLabelTextParams } from '../../../mol-repr/shape/loci/common';
 import { LineParams } from '../../../mol-repr/structure/representation/line';
-import { Expression } from '../../../mol-script/language/expression';
 import { Color } from '../../../mol-util/color';
 
 export { StructureMeasurementManager };
@@ -53,12 +52,7 @@ type StructureMeasurementManagerAddOptions = {
 }
 
 function serializeLoci(loci: StructureElement.Loci) {
-    for (const e of loci.elements) {
-        if (!Unit.isAtomic(e.unit)) {
-            return { bundle: StructureElement.Bundle.fromLoci(loci) };
-        }
-    }
-    return { expression: StructureElement.Loci.toExpression(loci) };
+    return { bundle: StructureElement.Bundle.fromLoci(loci) };
 }
 
 class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasurementManagerState> {
@@ -116,7 +110,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
 
         const update = this.getGroup();
         const selection = update
-            .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
+            .apply(StateTransforms.Model.MultiStructureSelectionFromBundle, {
                 selections: [
                     { key: 'a', groupId: 'a', ref: cellA.transform.ref, ...serializeLoci(a) },
                     { key: 'b', groupId: 'b', ref: cellB.transform.ref, ...serializeLoci(b) }
@@ -153,7 +147,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
 
         const update = this.getGroup();
         const selection = update
-            .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
+            .apply(StateTransforms.Model.MultiStructureSelectionFromBundle, {
                 selections: [
                     { key: 'a', ref: cellA.transform.ref, ...serializeLoci(a) },
                     { key: 'b', ref: cellB.transform.ref, ...serializeLoci(b) },
@@ -192,7 +186,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
 
         const update = this.getGroup();
         const selection = update
-            .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
+            .apply(StateTransforms.Model.MultiStructureSelectionFromBundle, {
                 selections: [
                     { key: 'a', ref: cellA.transform.ref, ...serializeLoci(a) },
                     { key: 'b', ref: cellB.transform.ref, ...serializeLoci(b) },
@@ -225,7 +219,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
 
         const update = this.getGroup();
         const selection = update
-            .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
+            .apply(StateTransforms.Model.MultiStructureSelectionFromBundle, {
                 selections: [
                     { key: 'a', ref: cellA.transform.ref, ...serializeLoci(a) },
                 ],
@@ -244,7 +238,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
     }
 
     async addOrientation(locis: StructureElement.Loci[]) {
-        const selections: { key: string, ref: string, groupId?: string, expression?: Expression, bundle?: StructureElement.Bundle }[] = [];
+        const selections: { key: string, ref: string, groupId?: string, bundle: StructureElement.Bundle }[] = [];
         const dependsOn: string[] = [];
 
         for (let i = 0, il = locis.length; i < il; ++i) {
@@ -260,7 +254,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
 
         const update = this.getGroup();
         const selection = update
-            .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
+            .apply(StateTransforms.Model.MultiStructureSelectionFromBundle, {
                 selections,
                 isTransitive: true,
                 label: 'Orientation'
@@ -274,7 +268,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
     }
 
     async addPlane(locis: StructureElement.Loci[]) {
-        const selections: { key: string, ref: string, groupId?: string, expression?: Expression, bundle?: StructureElement.Bundle }[] = [];
+        const selections: { key: string, ref: string, groupId?: string, bundle: StructureElement.Bundle }[] = [];
         const dependsOn: string[] = [];
 
         for (let i = 0, il = locis.length; i < il; ++i) {
@@ -290,7 +284,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
 
         const update = this.getGroup();
         const selection = update
-            .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
+            .apply(StateTransforms.Model.MultiStructureSelectionFromBundle, {
                 selections,
                 isTransitive: true,
                 label: 'Plane'
@@ -319,7 +313,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
             const dependsOn = [cell.transform.ref];
 
             update
-                .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
+                .apply(StateTransforms.Model.MultiStructureSelectionFromBundle, {
                     selections: [
                         { key: 'a', ref: cell.transform.ref, ...serializeLoci(loci) },
                     ],
