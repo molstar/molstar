@@ -20,7 +20,9 @@
     "rebuild": "npm run clean && npm run build",
     "build-viewer": "npm run build-tsc && npm run build-extra && npm run build-webpack-viewer",
     "build-tsc": "concurrently \"tsc --incremental\" \"tsc --build tsconfig.commonjs.json --incremental\"",
-    "build-extra": "cpx \"src/**/*.{scss,html,ico,jpg}\" lib/",
+    "build-tsc-sw": "tsc -p tsconfig.sw.json",
+    "build-extra": "cpx \"src/**/*.{scss,html,ico,jpg}\" lib/ && npm run build-pwa",
+    "build-pwa": "npm run build-tsc-sw && cpx \"src/apps/viewer/icons/**/*\" build/viewer/icons && cpx \"src/apps/viewer/manifest.webmanifest\" build/viewer/",
     "build-webpack": "webpack --mode production --config ./webpack.config.production.js",
     "build-webpack-viewer": "webpack --mode production --config ./webpack.config.viewer.js",
     "watch": "concurrently -c \"green,green,gray,gray\" --names \"tsc,srv,ext,wpc\" --kill-others \"npm:watch-tsc\" \"npm:watch-servers\" \"npm:watch-extra\" \"npm:watch-webpack\"",
@@ -119,7 +121,8 @@
     "Xavier Martinez <xavier.martinez.xm@gmail.com>",
     "Alex Chan <smalldirkalex@gmail.com>",
     "Simeon Borko <simeon.borko@gmail.com>",
-    "Ventura Rivera <venturaxrivera@gmail.com>"
+    "Ventura Rivera <venturaxrivera@gmail.com>",
+    "Andy Turner <agdturner@gmail.com>"
   ],
   "license": "MIT",
   "devDependencies": {

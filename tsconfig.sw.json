@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+      "target": "es2018",
+      "module": "esnext",
+      "lib": ["es2018", "webworker"],
+      "strict": true,
+      "moduleResolution": "node",
+      "outDir": "build/viewer",
+      "rootDir": "src/apps/viewer",
+      "resolveJsonModule": true,
+      "skipLibCheck": true,
+      "types": []
+    },
+    "include": ["src/apps/viewer/sw.ts"]
+}

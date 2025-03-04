@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Support for installing viewer as a Progressive Web App and deployment via GitHub Pages
 - `ihm-restraints` example: show entity labels
 - Support bundles in `MultiStructureSelectionFromExpression`
 - Support measurements for coarse models
