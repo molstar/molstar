@@ -1,0 +1,42 @@
+{
+        "id": "/molstar/build/viewer/index.html",
+        "name": "Mol* viewer",
+        "short_name": "Mol*",
+        "description": "Mol* viewer",
+        "start_url": "./index.html",
+        "theme_color": "#eeffee",
+        "background_color": "#eeffee",
+        "display": "standalone",
+        "icons": [
+            {
+                "src": "favicon.ico",
+                "sizes": "48x48"
+            },
+            {
+                "src": "icons/circle.ico",
+                "sizes": "72x72"
+            },
+            {
+                "src": "icons/circle.svg",
+                "sizes": "72x72 96x96",
+                "purpose": "maskable"
+            },
+            {
+                "src": "icons/wheel.svg",
+                "sizes": "144x144"
+            },
+            {
+                "src": "icons/tire.svg",
+                "sizes": "192x192"
+            }
+        ],
+        "file_handlers": [
+            {
+                "action": "./index.html",
+                "accept": {
+                    "application/vnd.molstar": [".mol", ".mol2", ".sdf", ".pdb", ".mmcif", ".xyz", ".mmtf", ".bcif"],
+                    "application/vnd.cif": [".cif"]
+                }
+            }
+        ]
+    }

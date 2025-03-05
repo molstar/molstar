@@ -35,6 +35,7 @@
             }
         </style>
         <link rel="stylesheet" type="text/css" href="molstar.css" />
+        <link rel="manifest" href="./manifest.webmanifest">
     </head>
     <body>
         <div id="app"></div>
@@ -131,6 +132,54 @@
                     viewer.dispose();
                 });
             });
+        </script>
+        <!-- Register Progressive Web App service worker. -->
+        <script type="module">
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function () {
+                    navigator.serviceWorker.register(new URL('./sw.js', import.meta.url))
+                    .then(function (registration) {
+                        // Registration was successful
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    }, function (err) {
+                        // registration failed :(
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+                });
+            }
+            // Handle incoming files
+            if ('launchQueue' in window) {
+                launchQueue.setConsumer((launchParams) => {
+                    if (!launchParams.files.length) {
+                        return;
+                    }
+                    for (const fileHandle of launchParams.files) {
+                        // Process the file(s).
+                        console.log(`Received file: \${fileHandle.name}`);
+                        if (!fileHandle.type) {
+                            console.error('File type not supported');
+                            continue;
+                        }
+                        if (fileHandle.type === 'chemical/x-cif') {
+                            // Load the file into the viewer
+                            fileHandle.getFile().then(file => {
+                                const reader = new FileReader();
+                                reader.onload = (event) => {
+                                    const data = event.target?.result; // string | number[]
+                                    const format = 'cif'; // BuiltInTrajectoryFormat
+                                    const options = { dataLabel: fileHandle.name }; // { dataLabel?: string }
+                                    // Assuming viewer is a global object or accessible in this scope
+                                    viewer.loadStructureFromData(data, format, options);
+                                };
+                                reader.readAsArrayBuffer(file); // or readAsText(file) depending on the expected data format
+                            });
+                        } else {
+                            console.error('File type not supported');
+                            continue;
+                        }
+                    }
+                });
+            }
         </script>
         <!-- __MOLSTAR_ANALYTICS__ -->
     </body>
