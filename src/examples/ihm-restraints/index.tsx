@@ -341,9 +341,9 @@ ${nVialoted} restraints are violated.
         title: 'Satisfied Restraints',
         linger_duration_ms: 5000,
         description: `
-### Violated Restraints
+### Satisfied Restraints
 
-${nSatisfied} restraints are violated.
+${nSatisfied} restraints are satisfied.
 `,
     }));
 
