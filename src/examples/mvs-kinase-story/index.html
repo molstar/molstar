@@ -30,6 +30,15 @@
             border: 1px solid #ccc;
             border-left: none;
             background: #F6F5F3;
+            z-index: -2;
+        }
+
+        #links {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            font-family: sans-serif;
+            font-size: 0.8rem;
             z-index: -1;
         }
     </style>
@@ -44,10 +53,18 @@
     <div id="snapshot" class="markdown-explanation ">
         <mc-snapshot-markdown viewer-name="v1" />
     </div>
+    <div id="links">
+        <a href="#" id="mvs-data" filename="kinase-story.mvsj">Download MVS State</a> | <a href="https://github.com/molstar/molstar/tree/master/src/examples/mvs-kinase-story" id="mvs-data" target="_blank" rel="noopener noreferrer">Source Code</a>
+    </div>
 
     <script>
         setTimeout(() => {
             const story = window.buildStory();
+            document.getElementById('mvs-data').addEventListener('click', (e) => {
+                e.preventDefault();
+                const data = JSON.stringify(story, null, 2);
+                molStarDownload(new Blob([data], { type: 'application/json' }), 'kinase-story.mvsj');
+            });
             window.mc.getContext().dispatch({
                 kind: 'load-mvs',
                 data: story,

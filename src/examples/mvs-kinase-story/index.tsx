@@ -11,6 +11,7 @@ import './elements/viewer';
 import { buildStory } from './kinase-story';
 import '../../mol-plugin-ui/skin/light.scss';
 import './styles.scss';
+import { download } from '../../mol-util/download';
 
 export class MolComponents {
     getContext(name?: string) {
@@ -20,3 +21,4 @@ export class MolComponents {
 
 (window as any).mc = new MolComponents();
 (window as any).buildStory = buildStory;
+(window as any).molStarDownload = download;
