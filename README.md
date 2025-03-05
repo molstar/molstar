@@ -89,7 +89,7 @@ Use these commands to resolve occasional build failures which may arise after so
 ### Develop with `esbuild` 
 
 Experimental support for faster builds with `esbuild`
-- `npm run dev` - watch mode for all apps and examples
+- `npm run dev:all` - watch mode for all apps and examples
 - `npm run dev:viewer` - watch mode for viewer
 - `npm run dev:apps` - watch mode for all apps
 - `npm run dev:examples` - watch mode for all examples
