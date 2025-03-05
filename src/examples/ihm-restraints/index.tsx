@@ -21,8 +21,9 @@ import { PluginContext } from '../../mol-plugin/context';
 import { PluginSpec } from '../../mol-plugin/spec';
 import { Task } from '../../mol-task';
 import { ajaxGet } from '../../mol-util/data-source';
+import { download } from '../../mol-util/download';
 import './index.html';
-require('../../mol-plugin-ui/skin/light.scss');
+import '../../mol-plugin-ui/skin/light.scss';
 
 async function createViewer(root: HTMLElement) {
     const spec = DefaultPluginUISpec();
@@ -357,6 +358,9 @@ ${nSatisfied} restraints are violated.
     };
 
     await loadMVS(plugin, data, { sanityChecks: true, replaceExisting: true, keepSnapshotCamera: true });
+
+    return data;
 }
 
 (window as any).loadIHMRestraints = loadIHMRestraints;
+(window as any).molStarDownload = download;
