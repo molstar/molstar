@@ -700,6 +700,10 @@ const colorGradientBanded = memoize1((colors: ColorListEntry[]) => {
     const hasOffsets = colors.every(c => Array.isArray(c));
     if (hasOffsets) {
         const off = colors as [Color, number][];
+        // 0 colors present
+        if (!off[0]) {
+            return 'linear-gradient(to right, #000 0%, #000 100%)';
+        }
         styles.push(`${Color.toStyle(off[0][0])} ${(100 * off[0][1]).toFixed(2)}%`);
         for (let i = 0, il = off.length - 1; i < il; ++i) {
             const [c0, o0] = off[i];
@@ -712,7 +716,7 @@ const colorGradientBanded = memoize1((colors: ColorListEntry[]) => {
         }
         styles.push(`${Color.toStyle(off[off.length - 1][0])} ${(100 * off[off.length - 1][1]).toFixed(2)}%`);
     } else {
-        const styles: string[] = [`${colorEntryToStyle(colors[0])} ${100 * (1 / n)}%`];
+        styles.push(`${colorEntryToStyle(colors[0])} ${100 * (1 / n)}%`);
         for (let i = 1, il = n - 1; i < il; ++i) {
             styles.push(
                 `${colorEntryToStyle(colors[i])} ${100 * (i / n)}%`,
@@ -817,7 +821,11 @@ export class ColorListControl extends React.PureComponent<ParamProps<PD.ColorLis
         const preset = ColorPresets[this.props.param.presetKind];
         if (this.state.show === 'presets') return <ActionMenu items={preset} onSelect={this.selectPreset} />;
 
-        const values = this.props.value.colors.map(color => ({ color }));
+        // It might happen that the colors are either in the form of [Color, number] or just Color, show them as just Color
+        const values = this.props.value.colors.map(color => ({
+            color: Array.isArray(color) ? color[0] : color
+        }));
+
         return <div className='msp-control-offset'>
             <ObjectListControl name='colors' param={ColorsParam} value={values} onChange={this.colorsChanged} isDisabled={this.props.isDisabled} onEnter={this.props.onEnter} />
             <BoolControl name='isInterpolated' param={IsInterpolatedParam} value={this.props.value.kind === 'interpolate'} onChange={this.isInterpolatedChanged} isDisabled={this.props.isDisabled} onEnter={this.props.onEnter} />
