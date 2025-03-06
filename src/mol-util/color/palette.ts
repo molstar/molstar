@@ -12,11 +12,11 @@ import { distinctColors, DistinctColorsParams } from './distinct';
 import { ColorListName, getColorListFromName } from './lists';
 import { ColorScale } from './scale';
 
-type PaletteType = 'generate' | 'colors'
+type PaletteType = 'generate' | 'colors';
 
 const DefaultGetPaletteProps = {
     type: 'generate' as PaletteType,
-    colorList: 'red-yellow-blue' as ColorListName
+    colorList: 'red-yellow-blue' as ColorListName,
 };
 type GetPaletteProps = typeof DefaultGetPaletteProps
 
@@ -30,7 +30,11 @@ export function getPaletteParams(props: Partial<GetPaletteProps> = {}) {
             generate: PD.Group({
                 ...DistinctColorsParams,
                 maxCount: PD.Numeric(75, { min: 1, max: 250, step: 1 }),
-            }, { isFlat: true })
+            }, { isFlat: true }),
+            load: PD.Group({
+                ...DistinctColorsParams,
+                maxCount: PD.Numeric(75, { min: 1, max: 250, step: 1 }),
+            })
         }, {
             options: [
                 ['colors', 'Color List'],

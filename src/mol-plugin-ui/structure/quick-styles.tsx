@@ -5,7 +5,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Adam Midlik <midlik@gmail.com>
  */
-
 import { PostprocessingParams } from '../../mol-canvas3d/passes/postprocessing';
 import { PresetStructureRepresentations } from '../../mol-plugin-state/builder/structure/representation-preset';
 import { PluginConfig } from '../../mol-plugin/config';
@@ -15,7 +14,6 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { CollapsableControls, PurePluginUIComponent } from '../base';
 import { Button } from '../controls/common';
 import { MagicWandSvg } from '../controls/icons';
-
 
 export class StructureQuickStylesControls extends CollapsableControls {
     defaultState() {
@@ -41,7 +39,6 @@ interface QuickStylesState {
     busy: boolean,
     style: StyleName,
 }
-
 
 export class QuickStyles extends PurePluginUIComponent<{}, QuickStylesState> {
     state: QuickStylesState = { busy: false, style: 'default' };

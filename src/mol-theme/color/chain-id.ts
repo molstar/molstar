@@ -33,7 +33,7 @@ export function getChainIdColorThemeParams(ctx: ThemeDataContext) {
 
 type AsymIdType = 'auth' | 'label';
 
-function getAsymId(unit: Unit, type: AsymIdType): StructureElement.Property<string> {
+export function getAsymId(unit: Unit, type: AsymIdType): StructureElement.Property<string> {
     switch (unit.kind) {
         case Unit.Kind.Atomic:
             return type === 'auth'
@@ -45,7 +45,7 @@ function getAsymId(unit: Unit, type: AsymIdType): StructureElement.Property<stri
     }
 }
 
-function getAsymIdKey(location: StructureElement.Location, type: AsymIdType) {
+export function getAsymIdKey(location: StructureElement.Location, type: AsymIdType) {
     const asymId = getAsymId(location.unit, type)(location);
     return location.structure.root.models.length > 1
         ? getKey(location.unit.model, asymId)
@@ -126,3 +126,30 @@ export const ChainIdColorThemeProvider: ColorTheme.Provider<ChainIdColorThemePar
     defaultValues: PD.getDefaultValues(ChainIdColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
 };
+
+export function saveColorTheme(themeParams: ChainIdColorThemeParams) {
+    const output = {
+        params: themeParams
+    };
+    const jsonString = JSON.stringify(output, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'color_theme.json';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+export function loadColorTheme(file: File): Promise<ChainIdColorThemeParams> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const text = event.target?.result as string;
+            const json = JSON.parse(text);
+            resolve(json.params);
+        };
+        reader.onerror = (error) => reject(error);
+        reader.readAsText(file);
+    });
+}

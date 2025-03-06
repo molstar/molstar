@@ -282,19 +282,28 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
      *   plugin.dataTransaction(async () => {
      *      for (const s of structure.hierarchy.selection.structures) await updateRepresentationsTheme(s.componets, ...);
      *   }, { canUndo: 'Update Theme' });
+     * 
+     * Updates the color and size themes of structure representations in a plugin context, allowing for both static and dynamic parameter updates.
+     * The first function overload allows for passing a static params object.
+     * The second function overload allows for passing a function that generates params for each component and representation.
      */
     updateRepresentationsTheme<C extends ColorTheme.BuiltIn, S extends SizeTheme.BuiltIn>(components: ReadonlyArray<StructureComponentRef>, params: StructureComponentManager.UpdateThemeParams<C, S>): Promise<any> | undefined
     updateRepresentationsTheme<C extends ColorTheme.BuiltIn, S extends SizeTheme.BuiltIn>(components: ReadonlyArray<StructureComponentRef>, params: (c: StructureComponentRef, r: StructureRepresentationRef) => StructureComponentManager.UpdateThemeParams<C, S>): Promise<any> | undefined
     updateRepresentationsTheme(components: ReadonlyArray<StructureComponentRef>, paramsOrProvider: StructureComponentManager.UpdateThemeParams<any, any> | ((c: StructureComponentRef, r: StructureRepresentationRef) => StructureComponentManager.UpdateThemeParams<any, any>)) {
         if (components.length === 0) return;
-
+        // Initialize an update state
         const update = this.dataState.build();
-
+        // Iterate over each component.
         for (const c of components) {
+            // Log the component changes to the console
+            //console.log(`Updating themes for component ${c.cell.obj?.data?.model?.id}:`, c);
+            // Iterate over each representation.
             for (const repr of c.representations) {
+                // Retrieve the old parameters from the representation.
                 const old = repr.cell.transform.params;
+                // Determine the new parameters (params) based on whether paramsOrProvider is a function or an object.
                 const params: StructureComponentManager.UpdateThemeParams<any, any> = typeof paramsOrProvider === 'function' ? paramsOrProvider(c, repr) : paramsOrProvider;
-
+                // Create new color and size themes based on the new parameters.
                 const colorTheme = params.color === 'default'
                     ? createStructureColorThemeParams(this.plugin, c.structure.cell.obj?.data, old?.type.name)
                     : params.color
@@ -305,8 +314,12 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
                     : params.color
                         ? createStructureSizeThemeParams(this.plugin, c.structure.cell.obj?.data, old?.type.name, params.size, params.sizeParams)
                         : void 0;
-
+                // If either theme is created, update the representation with the new themes.
                 if (colorTheme || sizeTheme) {
+                    // Log the color changes to the console
+                    //if (colorTheme) {
+                    //    console.log(`Updating color theme for component ${c.cell.obj?.data?.model?.id}, representation ${repr.cell.transform.ref}:`, colorTheme);
+                    //}
                     update.to(repr.cell).update(prev => {
                         if (colorTheme) prev.colorTheme = colorTheme;
                         if (sizeTheme) prev.sizeTheme = sizeTheme;
@@ -314,9 +327,11 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
                 }
             }
         }
-
+        // Commit the update state.
         return update.commit({ canUndo: 'Update Theme' });
     }
+
+
 
     addRepresentation(components: ReadonlyArray<StructureComponentRef>, type: string) {
         if (components.length === 0) return;
