@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Lukáš Polák <admin@lukaspolak.cz>
  */
 
 import * as React from 'react';
