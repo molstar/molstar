@@ -700,7 +700,7 @@ const colorGradientBanded = memoize1((colors: ColorListEntry[]) => {
 
     const hasOffsets = colors.every(c => Array.isArray(c));
     if (hasOffsets) {
-        const off = colors as [Color, number][];
+        const off = [...colors] as [Color, number][];
         // 0 colors present
         if (!off[0]) {
             return 'linear-gradient(to right, #000 0%, #000 100%)';
