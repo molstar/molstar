@@ -704,6 +704,9 @@ const colorGradientBanded = memoize1((colors: ColorListEntry[]) => {
         if (!off[0]) {
             return 'linear-gradient(to right, #000 0%, #000 100%)';
         }
+        if (off[0][1] > off[off.length - 1][1]) {
+            off.reverse();
+        }
         styles.push(`${Color.toStyle(off[0][0])} ${(100 * off[0][1]).toFixed(2)}%`);
         for (let i = 0, il = off.length - 1; i < il; ++i) {
             const [c0, o0] = off[i];
