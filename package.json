@@ -1,6 +1,6 @@
 {
   "name": "molstar",
-  "version": "4.11.0",
+  "version": "4.12.1",
   "description": "A comprehensive macromolecular library.",
   "homepage": "https://github.com/molstar/molstar#readme",
   "repository": {
@@ -32,6 +32,11 @@
     "watch-webpack": "webpack -w --mode development --stats minimal",
     "watch-webpack-viewer": "webpack -w --mode development --stats minimal --config ./webpack.config.viewer.js",
     "watch-webpack-viewer-debug": "webpack -w --mode development --stats minimal --config ./webpack.config.viewer.debug.js",
+    "dev": "node build-dev.mjs",
+    "dev:all": "node build-dev.mjs -a -e",
+    "dev:viewer": "node build-dev.mjs -a viewer",
+    "dev:apps": "node build-dev.mjs -a",
+    "dev:examples": "node build-dev.mjs -e",
     "serve": "http-server -p 1338 -g",
     "model-server": "node lib/commonjs/servers/model/server.js",
     "model-server-watch": "nodemon --watch lib lib/commonjs/servers/model/server.js",
@@ -132,6 +137,8 @@
     "cpx2": "^8.0.0",
     "crypto-browserify": "^3.12.1",
     "css-loader": "^7.1.2",
+    "esbuild": "^0.25.0",
+    "esbuild-sass-plugin": "^3.3.1",
     "eslint": "^8.57.1",
     "extra-watch-webpack-plugin": "^1.0.3",
     "file-loader": "^6.2.0",

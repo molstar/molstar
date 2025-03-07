@@ -5,6 +5,46 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- `ihm-restraints` example: show entity labels
+- Support bundles in `MultiStructureSelectionFromExpression`
+- Support measurements for coarse models
+- Fix `element-point` visual not using child unit
+- Ignore `renderables` with empty draw count
+- Add experimental support for `esbuild` for development.
+  - Use `npm run dev` for faster development builds
+
+
+## [v4.12.0] - 2025-02-28
+
+- Fix PDBj structure data URL
+- Improve logic when to cull in renderer
+- Add `atom.ihm.has-seq-id` and `atom.ihm.overlaps-seq-id-range` symbol to the query language
+- MolViewSpec extension:
+  - Add box, arrow, ellipse, ellipsoid, angle primitives
+  - Add basic support for volumetric data (map, Volume Server)
+  - Add support for `molstar_color_theme_name` custom extension
+  - Better IH/M support:
+    - Support `coarse` components
+    - Support `spacefill` representation
+    - Support `carbohydrate` representation
+    - Support for `custom.molstar_use_default_coloring` property on Color node.
+    - Use `atom.ihm.has-seq-id` and `atom.ihm.overlaps-seq-id-range` for matching `label_seq_id` locations to support querying coarse elements.
+    - Add ihm-restraints example
+- Add `mvs-kinase-story` example
+- Remove static uses of `ColorTheme` and `SizeTheme` fields. Should resolvent "undefined" errors in certain builds
+- Add `transform` property to clip objects
+- Add support for trimming `image` geometry to a box
+- Improve/fix iso-level support of `slice` representation
+- Add support for rotating `slice` representation around an axis
+- Add default color support for palette based themes
+- Add `plane` structure representation
+    - Can be colored with any structure theme
+    - Can be colored with the `external-volume` theme
+    - Can show atoms as a cutout
+    - Supports principal axes and bounding box as a reference frame
+- Add `Camera` section to "Screenshot / State" controls
+- Add `CoarseIndex` for fast lookup of coarse elements
+
 ## [v4.11.0] - 2025-01-26
 
 - Fix for tubular helices issue (Fixes #1422)
@@ -28,7 +68,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add support for color themes to `slice` representation
 - Improve/fix palette support in volume color themes
 - Fix `Plane3D.projectPoint`
-- Fix marking related image rendering issues
+- Fix marking related `image` rendering issues
     - Handle pixels without a group
     - Take fog into account
 - MolViewSpec extension: Initial support for customizable representation parameters
@@ -42,6 +82,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Sequence panel: Mark focused loci (bold+underline)
 - Change modifier key behavior in Normal Mode (default = select only, Ctrl/Cmd = add to selection, Shift = extend last selected range)
 - Handle Firefox's limit on vertex ids per draw (#1116)
+- Fix behavior of `Vec3.makeRotation(out, a, b)` when `a ≈ -b`
 
 ## [v4.10.0] - 2024-12-15
 

@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Column } from '../../../mol-data/db';
@@ -262,7 +263,7 @@ function matchesRange<T>(requiredMin: T | undefined | null, requiredMax: T | und
 export function rowToExpression(row: MVSAnnotationRow): Expression {
     const { and } = MS.core.logic;
     const { eq, gre: gte, lte } = MS.core.rel;
-    const { macromolecular } = MS.struct.atomProperty;
+    const { macromolecular, ihm } = MS.struct.atomProperty;
     const propTests: Partial<Record<string, Expression>> = {};
 
     if (isDefined(row.label_entity_id)) {
@@ -280,11 +281,16 @@ export function rowToExpression(row: MVSAnnotationRow): Expression {
     }
 
     const residueTests: Expression[] = [];
-    if (isDefined(row.label_seq_id)) residueTests.push(eq([macromolecular.label_seq_id(), row.label_seq_id]));
+    if (isDefined(row.label_seq_id)) {
+        residueTests.push(ihm.hasSeqId({ 0: row.label_seq_id }));
+    }
     if (isDefined(row.auth_seq_id)) residueTests.push(eq([macromolecular.auth_seq_id(), row.auth_seq_id]));
     if (isDefined(row.pdbx_PDB_ins_code)) residueTests.push(eq([macromolecular.pdbx_PDB_ins_code(), row.pdbx_PDB_ins_code]));
-    if (isDefined(row.beg_label_seq_id)) residueTests.push(gte([macromolecular.label_seq_id(), row.beg_label_seq_id]));
-    if (isDefined(row.end_label_seq_id)) residueTests.push(lte([macromolecular.label_seq_id(), row.end_label_seq_id]));
+
+    if (isDefined(row.beg_label_seq_id) || isDefined(row.end_label_seq_id)) {
+        residueTests.push(ihm.overlapsSeqIdRange({ beg: row.beg_label_seq_id, end: row.end_label_seq_id }));
+    }
+
     if (isDefined(row.beg_auth_seq_id)) residueTests.push(gte([macromolecular.auth_seq_id(), row.beg_auth_seq_id]));
     if (isDefined(row.end_auth_seq_id)) residueTests.push(lte([macromolecular.auth_seq_id(), row.end_auth_seq_id]));
     if (residueTests.length === 1) {

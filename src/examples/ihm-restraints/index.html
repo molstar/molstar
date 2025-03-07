@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <title>Mol* IHM Restraints Example</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                font-family: sans-serif;
+            }
+            #viewer {
+                position: absolute;
+                left: 20px;
+                top: 20px;
+                width: 640px;
+                height: 480px;
+            }
+
+            #links {
+                position: absolute;
+                bottom: 8px;
+                left: 8px;
+                font-family: sans-serif;
+                font-size: 0.8rem;
+                z-index: 2;
+            }
+        </style>
+        <link rel="stylesheet" type="text/css" href="molstar.css" />
+        <script type="text/javascript" src="./index.js"></script>
+    </head>
+    <body>
+        <div id="viewer"></div>
+        <div id="links">
+            <a href="#" id="mvs-data" filename="ihm-restraints.mvsj">Download MVS State</a> | <a href="https://github.com/molstar/molstar/tree/master/src/examples/ihm-restraints" id="mvs-data" target="_blank" rel="noopener noreferrer">Source Code</a>
+        </div> 
+        <script>
+            loadIHMRestraints(document.getElementById('viewer')).then(state => {
+                document.getElementById('mvs-data').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const data = JSON.stringify(state, null, 2);
+                    molStarDownload(new Blob([data], { type: 'application/json' }), 'ihm-restraints.mvsj');
+                });
+            });
+        </script>
+    </body>
+</html>

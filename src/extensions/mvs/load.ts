@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -7,9 +7,11 @@
  */
 
 import { PluginStateSnapshotManager } from '../../mol-plugin-state/manager/snapshots';
-import { Download, ParseCif } from '../../mol-plugin-state/transforms/data';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
+import { Download, ParseCcp4, ParseCif } from '../../mol-plugin-state/transforms/data';
 import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromMmCif, TrajectoryFromPDB, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
-import { ShapeRepresentation3D, StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
+import { ShapeRepresentation3D, StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
+import { VolumeFromCcp4, VolumeFromDensityServerCif } from '../../mol-plugin-state/transforms/volume';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectSelector } from '../../mol-state';
@@ -24,7 +26,7 @@ import { IsMVSModelProps, IsMVSModelProvider } from './components/is-mvs-model-p
 import { getPrimitiveStructureRefs, MVSBuildPrimitiveShape, MVSDownloadPrimitiveData, MVSInlinePrimitiveData } from './components/primitives';
 import { NonCovalentInteractionsExtension } from './load-extensions/non-covalent-interactions';
 import { LoadingActions, LoadingExtension, loadTree, loadTreeVirtual, UpdateTarget } from './load-generic';
-import { AnnotationFromSourceKind, AnnotationFromUriKind, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps } from './load-helpers';
+import { AnnotationFromSourceKind, AnnotationFromUriKind, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps, volumeColorThemeForNode, volumeRepresentationProps } from './load-helpers';
 import { MVSData, SnapshotMetadata } from './mvs-data';
 import { validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
@@ -32,13 +34,24 @@ import { MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree, MolstarTre
 import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 
+export interface MVSLoadOptions {
+    replaceExisting?: boolean,
+    keepCamera?: boolean,
+    keepSnapshotCamera?: boolean,
+    extensions?: MolstarLoadingExtension<any>[],
+    sanityChecks?: boolean,
+    sourceUrl?: string,
+    doNotReportErrors?: boolean
+}
+
 /** Load a MolViewSpec (MVS) tree into the Mol* plugin.
  * If `options.replaceExisting`, remove all objects in the current Mol* state; otherwise add to the current state.
  * If `options.keepCamera`, ignore any camera positioning from the MVS state and keep the current camera position instead.
+ * If `options.keepSnapshotCamera`, ignore any camera positioning when generating snapshots.
  * If `options.sanityChecks`, run some sanity checks and print potential issues to the console.
  * If `options.extensions` is provided, apply specified set of MVS-loading extensions (not a part of standard MVS specification); default: apply all builtin extensions; use `extensions: []` to avoid applying builtin extensions.
  * `options.sourceUrl` serves as the base for resolving relative URLs/URIs and may itself be relative to the window URL. */
-export async function loadMVS(plugin: PluginContext, data: MVSData, options: { replaceExisting?: boolean, keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[], sanityChecks?: boolean, sourceUrl?: string, doNotReportErrors?: boolean } = {}) {
+export async function loadMVS(plugin: PluginContext, data: MVSData, options: MVSLoadOptions = {}) {
     plugin.errorContext.clear('mvs');
     try {
         const mvsExtensionLoaded = plugin.state.hasBehavior(MolViewSpec);
@@ -113,13 +126,15 @@ async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, options
     }
 }
 
-function molstarTreeToEntry(plugin: PluginContext, tree: MolstarTree, metadata: SnapshotMetadata & { previousTransitionDurationMs?: number }, options?: { replaceExisting?: boolean, keepCamera?: boolean }) {
+function molstarTreeToEntry(plugin: PluginContext, tree: MolstarTree, metadata: SnapshotMetadata & { previousTransitionDurationMs?: number }, options?: { replaceExisting?: boolean, keepCamera?: boolean, keepSnapshotCamera?: boolean }) {
     const context = MolstarLoadingContext.create();
     const snapshot = loadTreeVirtual(plugin, tree, MolstarLoadingActions, context, options);
     snapshot.canvas3d = {
         props: plugin.canvas3d ? modifyCanvasProps(plugin.canvas3d.props, context.canvas) : undefined,
     };
-    snapshot.camera = createPluginStateSnapshotCamera(plugin, context, metadata);
+    if (!options?.keepSnapshotCamera) {
+        snapshot.camera = createPluginStateSnapshotCamera(plugin, context, metadata);
+    }
     snapshot.durationInMs = metadata.linger_duration_ms + (metadata.previousTransitionDurationMs ?? 0);
 
     const entryParams: PluginStateSnapshotManager.EntryParams = {
@@ -172,6 +187,8 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
             return UpdateTarget.apply(updateParent, ParseCif, {});
         } else if (format === 'pdb') {
             return updateParent;
+        } else if (format === 'map') {
+            return UpdateTarget.apply(updateParent, ParseCcp4, {});
         } else {
             console.error(`Unknown format in "parse" node: "${format}"`);
             return undefined;
@@ -270,6 +287,22 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         return UpdateTarget.apply(updateParent, StructureRepresentation3D, {
             ...representationProps(node),
             colorTheme: colorThemeForNode(node, context),
+        });
+    },
+    volume(updateParent: UpdateTarget, node: MolstarNode<'volume'>): UpdateTarget | undefined {
+        if (updateParent.transformer?.definition.to.includes(PluginStateObject.Format.Ccp4)) {
+            return UpdateTarget.apply(updateParent, VolumeFromCcp4, { });
+        } else if (updateParent.transformer?.definition.to.includes(PluginStateObject.Format.Cif)) {
+            return UpdateTarget.apply(updateParent, VolumeFromDensityServerCif, { blockHeader: node.params.channel_id || undefined });
+        } else {
+            console.error(`Unsupported volume format`);
+            return undefined;
+        }
+    },
+    volume_representation(updateParent: UpdateTarget, node: MolstarNode<'volume_representation'>, context: MolstarLoadingContext): UpdateTarget {
+        return UpdateTarget.apply(updateParent, VolumeRepresentation3D, {
+            ...volumeRepresentationProps(node),
+            colorTheme: volumeColorThemeForNode(node, context),
         });
     },
     color: undefined, // No action needed, already loaded in `representation`

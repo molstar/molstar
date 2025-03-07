@@ -18,6 +18,7 @@ import { getColorMapParams } from '../../../mol-util/color/params';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { TableLegend } from '../../../mol-util/legend';
 import { ObjectKeys } from '../../../mol-util/type-helpers';
+import { ColorThemeCategory } from '../../../mol-theme/color/categories';
 
 const Description = 'Assigns colors to confal pyramids';
 
@@ -62,7 +63,7 @@ export function ConfalPyramidsColorTheme(ctx: ThemeDataContext, props: PD.Values
 export const ConfalPyramidsColorThemeProvider: ColorTheme.Provider<ConfalPyramidsColorThemeParams, 'confal-pyramids'> = {
     name: 'confal-pyramids',
     label: 'Confal Pyramids',
-    category: ColorTheme.Category.Residue,
+    category: ColorThemeCategory.Residue,
     factory: ConfalPyramidsColorTheme,
     getParams: getConfalPyramidsColorThemeParams,
     defaultValues: PD.getDefaultValues(ConfalPyramidsColorThemeParams),

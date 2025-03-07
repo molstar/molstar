@@ -19,6 +19,7 @@ uniform int uPickType;
     uniform vec3 uClipObjectPosition[dClipObjectCount];
     uniform vec4 uClipObjectRotation[dClipObjectCount];
     uniform vec3 uClipObjectScale[dClipObjectCount];
+    uniform mat4 uClipObjectTransform[dClipObjectCount];
 
     #if defined(dClipping)
         uniform vec2 uClippingTexDim;

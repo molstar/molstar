@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -326,7 +326,12 @@ const atomProperty = {
         modifiedParentName: atomProp(Type.Str, `'3-letter' code of the modifed parent residue.`),
         isNonStandard: atomProp(Type.Bool, 'True if this is a non-standard residue.'),
         chemCompType: atomProp(Type.Str, `Type of the chemical component as defined in mmCIF.`),
-    }
+    },
+
+    ihm: {
+        hasSeqId: symbol(Arguments.Dictionary({ 0: Argument(Type.Num) }), Type.Bool, 'Checks if the current element represents a given sequence id'),
+        overlapsSeqIdRange: symbol(Arguments.Dictionary({ beg: Argument(Type.Num), end: Argument(Type.Num) }), Type.Bool, 'Checks if the current element overlaps with the specified residue range'),
+    },
 };
 
 const bondProperty = {

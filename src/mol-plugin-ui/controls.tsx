@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -215,7 +215,7 @@ export function ViewportSnapshotDescription() {
     </div>;
 }
 
-function MarkdownAnchor({ href, children, element }: { href?: string, children?: any, element?: any }) {
+export function MarkdownAnchor({ href, children, element }: { href?: string, children?: any, element?: any }) {
     const plugin = React.useContext(PluginReactContext);
 
     if (!href) return element;
@@ -225,11 +225,13 @@ function MarkdownAnchor({ href, children, element }: { href?: string, children?:
             e.preventDefault();
             plugin.managers.snapshot.applyKey(href.substring(1));
         }}>{children}</a>;
+    } else if (href) {
+        return <a href={href} target='_blank' rel='noopener noreferrer'>{children}</a>;
     }
 
     // TODO: consider adding more "commands", for example !reset-camera
 
-    return element;
+    return children;
 }
 
 export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: boolean, isExpanded: boolean, isBusy: boolean, isAnimating: boolean, isPlaying: boolean }> {
@@ -302,7 +304,7 @@ export class LociLabels extends PluginUIComponent<{}, { labels: ReadonlyArray<Lo
 
         return <div className='msp-highlight-info'>
             {this.state.labels.map((e, i) => {
-                if (e.indexOf('\n') > 0) {
+                if (e.indexOf('\n') >= 0) {
                     return <div className='msp-highlight-markdown-row' key={'' + i}>
                         <Markdown skipHtml>{e}</Markdown>
                     </div>;

@@ -47,7 +47,7 @@ export function VolumeValueColorTheme(ctx: ThemeDataContext, props: PD.Values<Vo
     if (ctx.volume) {
         const { min, max, mean, sigma } = ctx.volume.grid.stats;
         const domain: [number, number] = props.domain.name === 'custom' ? props.domain.params : [min, max];
-        const { colorList } = props;
+        const { colorList, defaultColor } = props;
 
         if (props.domain.name === 'auto' && props.isRelative) {
             domain[0] = (domain[0] - mean) / sigma;
@@ -69,7 +69,7 @@ export function VolumeValueColorTheme(ctx: ThemeDataContext, props: PD.Values<Vo
                 normalize(domain[1], min, max)
             ] as [number, number];
 
-            const palette = ColorTheme.Palette(colorList.colors, colorList.kind, normalizedDomain);
+            const palette = ColorTheme.Palette(colorList.colors, colorList.kind, normalizedDomain, defaultColor);
 
             return {
                 factory: VolumeValueColorTheme as any,
@@ -92,7 +92,7 @@ export function VolumeValueColorTheme(ctx: ThemeDataContext, props: PD.Values<Vo
                 return (clamp((value - domain[0]) / (domain[1] - domain[0]), 0, 1) * ColorTheme.PaletteScale) as Color;
             };
 
-            const palette = ColorTheme.Palette(colorList.colors, colorList.kind);
+            const palette = ColorTheme.Palette(colorList.colors, colorList.kind, undefined, defaultColor);
 
             return {
                 factory: VolumeValueColorTheme as any,

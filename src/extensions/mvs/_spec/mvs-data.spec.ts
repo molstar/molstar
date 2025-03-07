@@ -9,7 +9,7 @@ import { MVSData } from '../mvs-data';
 
 
 describe('MVSData', () => {
-    it('MVSData functions work', async () => {
+    it.skip('MVSData functions work', async () => {
         const data = fs.readFileSync('examples/mvs/1cbs.mvsj', { encoding: 'utf8' });
         const mvsData = MVSData.fromMVSJ(data);
         expect(mvsData).toBeTruthy();
@@ -26,7 +26,7 @@ describe('MVSData', () => {
         expect(prettyString.length).toBeGreaterThan(0);
     });
 
-    it('MVSData builder works', async () => {
+    it.skip('MVSData builder works', async () => {
         const builder = MVSData.createBuilder();
         expect(builder).toBeTruthy();
 

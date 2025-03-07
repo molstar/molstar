@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <title>The Kinase Story</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        #viewer {
+            position: absolute;
+            left: 5px;
+            top: 5px;
+            right: 34%;
+            bottom: 5px;
+        }
+
+        #snapshot {
+            position: absolute;
+            left: 66%;
+            top: 5px;
+            right: 5px;
+            bottom: 5px;
+            padding: 16px;
+            border: 1px solid #ccc;
+            border-left: none;
+            background: #F6F5F3;
+            z-index: -2;
+        }
+
+        #links {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            font-family: sans-serif;
+            font-size: 0.8rem;
+            z-index: -1;
+        }
+    </style>
+    <link rel="stylesheet" type="text/css" href="molstar.css" />
+    <script type="text/javascript" src="./index.js"></script>
+</head>
+
+<body>
+    <div id="viewer">
+        <mc-viewer name="v1" />
+    </div>
+    <div id="snapshot" class="markdown-explanation ">
+        <mc-snapshot-markdown viewer-name="v1" />
+    </div>
+    <div id="links">
+        <a href="#" id="mvs-data" filename="kinase-story.mvsj">Download MVS State</a> | <a href="https://github.com/molstar/molstar/tree/master/src/examples/mvs-kinase-story" id="mvs-data" target="_blank" rel="noopener noreferrer">Source Code</a>
+    </div>
+
+    <script>
+        setTimeout(() => {
+            const story = window.buildStory();
+            document.getElementById('mvs-data').addEventListener('click', (e) => {
+                e.preventDefault();
+                const data = JSON.stringify(story, null, 2);
+                molStarDownload(new Blob([data], { type: 'application/json' }), 'kinase-story.mvsj');
+            });
+            window.mc.getContext().dispatch({
+                kind: 'load-mvs',
+                data: story,
+            });
+        }, 0);
+    </script>
+</body>
+
+</html>
