@@ -176,7 +176,7 @@ export namespace ColorScale {
                 Color.toArrayNormalized(color(value), array, offset);
             },
             setDomain,
-            get legend() { return ScaleLegend(minLabel, maxLabel, [Color(0xff0000), Color(0x00ff00)]); }
+            get legend() { return ScaleLegend(minLabel, maxLabel, colors); }
         };
     }
 }
