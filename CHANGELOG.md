@@ -12,7 +12,11 @@ Note that since we don't clearly distinguish between a public and private interf
 - Ignore `renderables` with empty draw count
 - Add experimental support for `esbuild` for development.
   - Use `npm run dev` for faster development builds
-
+- Implementation of `ColorScale.createDiscrete` (#1458)
+- Add `ColorScale.createDiscrete` to the `uncertainty` color theme
+- Fix color palette shown in the UI (for non-gradient palettes)
+- Fix colors description in the UI (when using custom thresholds)
+- Fix an edge case in the UI when the user deletes all colors from the color list
 
 ## [v4.12.0] - 2025-02-28
 

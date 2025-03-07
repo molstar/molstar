@@ -120,7 +120,8 @@
     "Xavier Martinez <xavier.martinez.xm@gmail.com>",
     "Alex Chan <smalldirkalex@gmail.com>",
     "Simeon Borko <simeon.borko@gmail.com>",
-    "Ventura Rivera <venturaxrivera@gmail.com>"
+    "Ventura Rivera <venturaxrivera@gmail.com>",
+    "Lukáš Polák <admin@lukaspolak.cz>"
   ],
   "license": "MIT",
   "devDependencies": {
