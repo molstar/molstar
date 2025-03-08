@@ -690,7 +690,11 @@ function colorEntryToStyle(e: ColorListEntry, includeOffset = false) {
 }
 
 const colorGradientInterpolated = memoize1((colors: ColorListEntry[]) => {
-    const styles = colors.map(c => colorEntryToStyle(c, true));
+    const off = [...colors] as [Color, number][];
+    if (off[0][1] > off[off.length - 1][1]) {
+        off.reverse();
+    }
+    const styles = off.map(c => colorEntryToStyle(c, true));
     return `linear-gradient(to right, ${styles.join(', ')})`;
 });
 
