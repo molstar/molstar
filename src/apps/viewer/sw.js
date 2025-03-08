@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Andy Turner <agdturner@gmail.com>
+ *
  * @description Service worker for the viewer app.
  * The service worker:
  * - caches the static resources that the app needs to function
@@ -10,54 +11,41 @@
  * - responds with cached resources on fetch
  * - responds with a network error if fetching fails
  * - responds with a cache error if the cache match fails
+ *
+ * To not complicate the build process, this file is not transpiled but written in JavaScript.
+ * It is coppied to the build directory as is and no imports must be used.
  */
-/// <reference lib="webworker" />
 
-// Hardcoded version number as all ways of injecting the version number failed :(
-//const version = '1.0.0'; // Replace with your actual version number
+/** version from package.json, to be filled in at build time */
+const VERSION = '';
 
-// Declare the VERSION constant injected by Webpack
-declare const VERSION: string;
-//// Use the injected version number
-const version = VERSION;
-//const version = process.env.VERSION;
-console.log(`Service Worker version: ${version}`);
-const CACHE_NAME = `molstar-viewer-${version}`;
-
-//const version = process.env.VERSION;
-//const CACHE_NAME = `molstar-viewer-${version}`;
+const CACHE_NAME = `molstar-viewer-${VERSION}`;
 
 // The static resources that the app needs to function.
 const APP_STATIC_RESOURCES = [
-    "favicon.ico",
-    "circle.ico",
-    "circle.svg",
-    "wheel.svg",
-    "tire.svg",
-    "index.html",
-    "molstar.css",
-    "molstar.js",
-    "manifest.webmanifest"
+    'favicon.ico',
+    'index.html',
+    'molstar.css',
+    'molstar.js',
+    'manifest.webmanifest',
+    'logo-144.png'
 ];
 
-// Cast self to ServiceWorkerGlobalScope
-const swSelf = self as unknown as ServiceWorkerGlobalScope;
-
 // On install, cache the static resources.
-swSelf.addEventListener("install", (event: ExtendableEvent) => {
-    console.log(`Service Worker version ${version} installed.`);
+self.addEventListener('install', (event) => {
+    console.log(`Service Worker version ${VERSION} installed.`);
     event.waitUntil(
         (async () => {
             const cache = await caches.open(CACHE_NAME);
             await cache.addAll(APP_STATIC_RESOURCES);
-            await swSelf.skipWaiting(); // Ensures the new service worker takes control immediately.
+            await self.skipWaiting(); // Ensures the new service worker takes control immediately.
         })(),
     );
 });
 
 // On activate, delete old caches.
-swSelf.addEventListener("activate", (event: ExtendableEvent) => {
-    console.log(`Service Worker version ${version} activated.`);
+self.addEventListener('activate', (event) => {
+    console.log(`Service Worker version ${VERSION} activated.`);
     event.waitUntil(
         (async () => {
             const keys = await caches.keys();
@@ -68,13 +56,13 @@ swSelf.addEventListener("activate", (event: ExtendableEvent) => {
                     }
                 }),
             );
-            await swSelf.clients.claim(); // Ensures the new service worker takes control immediately.
+            await self.clients.claim(); // Ensures the new service worker takes control immediately.
         })(),
     );
 });
 
 // On fetch, respond with cached resources.
-swSelf.addEventListener("fetch", (event: FetchEvent) => {
+self.addEventListener('fetch', (event) => {
     event.respondWith(
         (async () => {
             try {

@@ -21,6 +21,5 @@
         "outDir": "lib"
     },
     "include": [ "src/**/*" ],
-    "exclude": [ "src/apps/viewer/sw.ts" ]
     // "exclude": [ "src/servers/**/*", "src/perf-tests/*", "src/cli/**/*" ]
 }

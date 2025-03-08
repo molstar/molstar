@@ -20,6 +20,5 @@
         "rootDir": "src",
         "outDir": "lib/commonjs"
     },
-    "include": [ "src/**/*" ],
-    "exclude": [ "src/apps/viewer/sw.ts" ]
+    "include": [ "src/**/*" ]
 }

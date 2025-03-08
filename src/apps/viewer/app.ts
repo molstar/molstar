@@ -58,6 +58,7 @@ import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
+import { OpenFiles } from '../../mol-plugin-state/actions/file';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { consoleStats, setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
@@ -557,6 +558,23 @@ export class Viewer {
             }));
         } else {
             throw new Error(`Unknown MolViewSpec format: ${format}`);
+        }
+    }
+
+    async loadFiles(files: File[]) {
+        const sessions = files.filter(f => {
+            const fn = f.name.toLowerCase();
+            return fn.endsWith('.molx') || fn.endsWith('.molj');
+        });
+
+        if (sessions.length > 0) {
+            PluginCommands.State.Snapshots.OpenFile(this.plugin, { file: sessions[0] });
+        } else {
+            return this.plugin.runTask(this.plugin.state.data.applyAction(OpenFiles, {
+                files: files.map(f => Asset.File(f)),
+                format: { name: 'auto', params: {} },
+                visuals: true
+            }));
         }
     }
 

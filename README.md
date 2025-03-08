@@ -86,7 +86,7 @@ Runs the cleanup script prior to building the project, forcing a full rebuild of
 
 Use these commands to resolve occasional build failures which may arise after some dependency updates. Once done, `npm run build` should work again. Note that full rebuilds take more time to complete.
 
-### Develop with `esbuild` 
+### Develop with `esbuild`
 
 Experimental support for faster builds with `esbuild`
 - `npm run dev` - watch mode for all apps and examples
@@ -111,20 +111,6 @@ From the root of the project:
     http-server -p PORT-NUMBER
 
 and navigate to `build/viewer`
-
-### Viewer Progressive Web App
-To serve the viewer via GitHub Pages and make installable as a PWA:
-
-- Fork and clone molstar.
-- Create a new branch.
-- Checkout the new branch.
-- Build.
-- Edit .gitignore so that the build directory is included and not ignored.
-- Push.
-- On GitHub in settings serve out the branch via GitHub Pages.
-- In a Web browser, navigate to the following replacing <GitHub_Name> with your GitHub username or GitHub organisation name:
-https://<GitHub_Name>.github.io/molstar/build/viewer/index-pwa.html
-- The PWA should be installable (how to do this depends on your browser and underlying platform).
 
 ### Code generation
 **CIF schemas**
