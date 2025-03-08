@@ -7,7 +7,7 @@
 
 import { Column } from '../../../mol-data/db';
 import { ChainIndex, ElementIndex, Model, ResidueIndex } from '../../../mol-model/structure';
-import { MolScriptBuilder as MS } from '../../../mol-script/language/builder';
+import { structureElementSchemaToExpression } from '../../../mol-model/structure/query/element';
 import { Expression } from '../../../mol-script/language/expression';
 import { arrayExtend, filterInPlace, range } from '../../../mol-util/array';
 import { AtomRanges } from './atom-ranges';
@@ -261,71 +261,14 @@ function matchesRange<T>(requiredMin: T | undefined | null, requiredMax: T | und
 
 /** Convert an annotation row into a MolScript expression */
 export function rowToExpression(row: MVSAnnotationRow): Expression {
-    const { and } = MS.core.logic;
-    const { eq, gre: gte, lte } = MS.core.rel;
-    const { macromolecular, ihm } = MS.struct.atomProperty;
-    const propTests: Partial<Record<string, Expression>> = {};
-
-    if (isDefined(row.label_entity_id)) {
-        propTests['entity-test'] = eq([macromolecular.label_entity_id(), row.label_entity_id]);
-    }
-
-    const chainTests: Expression[] = [];
-    if (isDefined(row.label_asym_id)) chainTests.push(eq([macromolecular.label_asym_id(), row.label_asym_id]));
-    if (isDefined(row.auth_asym_id)) chainTests.push(eq([macromolecular.auth_asym_id(), row.auth_asym_id]));
-
-    if (chainTests.length === 1) {
-        propTests['chain-test'] = chainTests[0];
-    } else if (chainTests.length > 1) {
-        propTests['chain-test'] = and(chainTests);
-    }
-
-    const residueTests: Expression[] = [];
-    if (isDefined(row.label_seq_id)) {
-        residueTests.push(ihm.hasSeqId({ 0: row.label_seq_id }));
-    }
-    if (isDefined(row.auth_seq_id)) residueTests.push(eq([macromolecular.auth_seq_id(), row.auth_seq_id]));
-    if (isDefined(row.pdbx_PDB_ins_code)) residueTests.push(eq([macromolecular.pdbx_PDB_ins_code(), row.pdbx_PDB_ins_code]));
-
-    if (isDefined(row.beg_label_seq_id) || isDefined(row.end_label_seq_id)) {
-        residueTests.push(ihm.overlapsSeqIdRange({ beg: row.beg_label_seq_id, end: row.end_label_seq_id }));
-    }
-
-    if (isDefined(row.beg_auth_seq_id)) residueTests.push(gte([macromolecular.auth_seq_id(), row.beg_auth_seq_id]));
-    if (isDefined(row.end_auth_seq_id)) residueTests.push(lte([macromolecular.auth_seq_id(), row.end_auth_seq_id]));
-    if (residueTests.length === 1) {
-        propTests['residue-test'] = residueTests[0];
-    } else if (residueTests.length > 1) {
-        propTests['residue-test'] = and(residueTests);
-    }
-
-    const atomTests: Expression[] = [];
-    if (isDefined(row.atom_id)) atomTests.push(eq([macromolecular.id(), row.atom_id]));
-    if (isDefined(row.atom_index)) atomTests.push(eq([MS.struct.atomProperty.core.sourceIndex(), row.atom_index]));
-    if (isDefined(row.label_atom_id)) atomTests.push(eq([macromolecular.label_atom_id(), row.label_atom_id]));
-    if (isDefined(row.auth_atom_id)) atomTests.push(eq([macromolecular.auth_atom_id(), row.auth_atom_id]));
-    if (isDefined(row.type_symbol)) atomTests.push(eq([MS.struct.atomProperty.core.elementSymbol(), row.type_symbol.toUpperCase()]));
-    if (atomTests.length === 1) {
-        propTests['atom-test'] = atomTests[0];
-    } else if (atomTests.length > 1) {
-        propTests['atom-test'] = and(atomTests);
-    }
-
-    return MS.struct.generator.atomGroups(propTests);
+    return structureElementSchemaToExpression(row);
 }
 
 /** Convert multiple annotation rows into a MolScript expression.
  * (with union semantics, i.e. an atom qualifies if it qualifies for at least one of the rows) */
 export function rowsToExpression(rows: readonly MVSAnnotationRow[]): Expression {
-    if (rows.length === 1) return rowToExpression(rows[0]);
-    return unionExpression(rows.map(rowToExpression));
+    return structureElementSchemaToExpression(rows);
 }
-
-/** Create MolScript expression covering the set union of the given expressions */
-function unionExpression(expressions: Expression[]): Expression {
-    return MS.struct.combinator.merge(expressions.map(e => MS.struct.modifier.union([e])));
-}
-
 
 /** Data structure for an array divided into contiguous groups */
 interface GroupedArray<T> {
