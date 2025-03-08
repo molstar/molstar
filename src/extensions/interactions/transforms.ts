@@ -63,12 +63,12 @@ export const InteractionsShape = Factory({
 })({
     apply({ a }) {
         return new SO.Shape.Provider({
-            label: 'Interactions Shape',
+            label: 'Interactions Shape Provider',
             data: a.data,
             params: PD.withDefaults(Mesh.Params, { }),
             getShape: (_, data, __, prev: any) => buildPrimitiveMesh(data, prev?.geometry),
             geometryUtils: Mesh.Utils,
-        }, { label: 'Interactions Shape' });
+        }, { label: 'Interactions Shape Provider' });
     }
 });
 
