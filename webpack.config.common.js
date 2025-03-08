@@ -3,6 +3,7 @@ const fs = require('fs');
 const webpack = require('webpack');
 const ExtraWatchWebpackPlugin = require('extra-watch-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
 const VERSION = require('./package.json').version;
 
 class VersionFilePlugin {
@@ -13,31 +14,8 @@ class VersionFilePlugin {
     }
 }
 
-const sharedConfig = {
-    module: {
-        rules: [
-            {
-                test: /\.(html|ico)$/,
-                use: [{
-                    loader: 'file-loader',
-                    options: { name: '[name].[ext]' }
-                }]
-            },
-            {
-                test: /\.(s*)css$/,
-                use: [
-                    MiniCssExtractPlugin.loader,
-                    { loader: 'css-loader', options: { sourceMap: false } },
-                    { loader: 'sass-loader', options: { sourceMap: false } },
-                ]
-            },
-            {
-                test: /\.(jpg)$/i,
-                type: 'asset/resource',
-            },
-        ]
-    },
-    plugins: [
+function getSharedConfig(copyPluginPatterns) {
+    const plugins = [
         new ExtraWatchWebpackPlugin({
             files: [
                 './lib/**/*.scss',
@@ -50,40 +28,73 @@ const sharedConfig = {
         }),
         new MiniCssExtractPlugin({ filename: 'molstar.css' }),
         new VersionFilePlugin(),
-    ],
-    resolve: {
-        modules: [
-            'node_modules',
-            path.resolve(__dirname, 'lib/')
-        ],
-        fallback: {
-            fs: false,
-            vm: false,
-            buffer: false,
-            crypto: require.resolve('crypto-browserify'),
-            path: require.resolve('path-browserify'),
-            stream: require.resolve('stream-browserify'),
-        }
-    },
-    watchOptions: {
-        aggregateTimeout: 750
+    ];
+
+    if (copyPluginPatterns && copyPluginPatterns.length > 0) {
+        plugins.push(new CopyPlugin({
+            patterns: copyPluginPatterns,
+        }));
     }
-};
+
+    return {
+        module: {
+            rules: [
+                {
+                    test: /\.(html|ico|webmanifest|png)$/,
+                    use: [{
+                        loader: 'file-loader',
+                        options: { name: '[name].[ext]' }
+                    }]
+                },
+                {
+                    test: /\.(s*)css$/,
+                    use: [
+                        MiniCssExtractPlugin.loader,
+                        { loader: 'css-loader', options: { sourceMap: false } },
+                        { loader: 'sass-loader', options: { sourceMap: false } },
+                    ]
+                },
+                {
+                    test: /\.(jpg)$/i,
+                    type: 'asset/resource',
+                },
+            ]
+        },
+        plugins: plugins,
+        resolve: {
+            modules: [
+                'node_modules',
+                path.resolve(__dirname, 'lib/')
+            ],
+            fallback: {
+                fs: false,
+                vm: false,
+                buffer: false,
+                crypto: require.resolve('crypto-browserify'),
+                path: require.resolve('path-browserify'),
+                stream: require.resolve('stream-browserify'),
+            }
+        },
+        watchOptions: {
+            aggregateTimeout: 750
+        }
+    };
+}
 
 function createEntry(src, outFolder, outFilename, isNode) {
     return {
         target: isNode ? 'node' : void 0,
         entry: path.resolve(__dirname, `lib/${src}.js`),
         output: { filename: `${outFilename}.js`, path: path.resolve(__dirname, `build/${outFolder}`) },
-        ...sharedConfig
+        ...getSharedConfig()
     };
 }
 
-function createEntryPoint(name, dir, out, library) {
+function createEntryPoint(name, dir, out, library, copyPluginPatterns) {
     return {
         entry: path.resolve(__dirname, `lib/${dir}/${name}.js`),
         output: { filename: `${library || name}.js`, path: path.resolve(__dirname, `build/${out}`), library: library || out, libraryTarget: 'umd', assetModuleFilename: 'images/[hash][ext][query]', 'publicPath': '' },
-        ...sharedConfig
+        ...getSharedConfig(copyPluginPatterns)
     };
 }
 
@@ -98,11 +109,11 @@ function createNodeEntryPoint(name, dir, out) {
             'util.promisify': 'require("util.promisify")',
             xhr2: 'require("xhr2")',
         },
-        ...sharedConfig
+        ...getSharedConfig()
     };
 }
 
-function createApp(name, library) { return createEntryPoint('index', `apps/${name}`, name, library); }
+function createApp(name, library, copyPluginPatterns) { return createEntryPoint('index', `apps/${name}`, name, library, copyPluginPatterns); }
 function createExample(name) { return createEntry(`examples/${name}/index`, `examples/${name}`, 'index'); }
 function createBrowserTest(name) { return createEntryPoint(name, 'tests/browser', 'tests'); }
 function createNodeApp(name) { return createNodeEntryPoint('index', `apps/${name}`, name); }

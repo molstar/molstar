@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add `Viewer.loadFiles` to open supported files
+- Support installing the viewer as a Progressive Web App (PWA)
 - `ihm-restraints` example: show entity labels
 - Support bundles in `MultiStructureSelectionFromExpression`
 - Support measurements for coarse models
@@ -12,7 +14,6 @@ Note that since we don't clearly distinguish between a public and private interf
 - Ignore `renderables` with empty draw count
 - Add experimental support for `esbuild` for development.
   - Use `npm run dev` for faster development builds
-
 
 ## [v4.12.0] - 2025-02-28
 
