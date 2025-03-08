@@ -5,15 +5,20 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { SymmetryOperator } from '../../../mol-math/geometry';
 import { MolScriptBuilder as MS } from '../../../mol-script/language/builder';
 import { Expression } from '../../../mol-script/language/expression';
+import { StructureElement, StructureProperties, Unit } from '../structure';
 
 export interface StructureElementSchemaItem {
+    operator_name?: string,
     label_entity_id?: string,
     label_asym_id?: string,
     auth_asym_id?: string,
     label_seq_id?: number
     auth_seq_id?: number
+    label_comp_id?: string,
+    auth_comp_id?: string,
     pdbx_PDB_ins_code?: string,
     beg_label_seq_id?: number
     end_label_seq_id?: number
@@ -33,19 +38,20 @@ export type StructureElementSchema = StructureElementSchemaItem | StructureEleme
 //  - add optimized query that works directly on StructureElementSchema instead of converting to atoms query
 //  - add more memory-efficient way to store StructureElements (e.g., struct of arrays, common prefix for multiple atoms in the same residue, etc.)
 
-function _structureElementSchemaToExpression(row: StructureElementSchemaItem): Expression {
+function structureElementSchemaItemToExpression(item: StructureElementSchemaItem): Expression {
     const { and } = MS.core.logic;
     const { eq, gre: gte, lte } = MS.core.rel;
-    const { macromolecular, ihm } = MS.struct.atomProperty;
+    const { macromolecular, ihm, core } = MS.struct.atomProperty;
     const propTests: Partial<Record<string, Expression>> = {};
 
-    if (isDefined(row.label_entity_id)) {
-        propTests['entity-test'] = eq([macromolecular.label_entity_id(), row.label_entity_id]);
+    if (isDefined(item.label_entity_id)) {
+        propTests['entity-test'] = eq([macromolecular.label_entity_id(), item.label_entity_id]);
     }
 
     const chainTests: Expression[] = [];
-    if (isDefined(row.label_asym_id)) chainTests.push(eq([macromolecular.label_asym_id(), row.label_asym_id]));
-    if (isDefined(row.auth_asym_id)) chainTests.push(eq([macromolecular.auth_asym_id(), row.auth_asym_id]));
+    if (isDefined(item.operator_name)) chainTests.push(eq([core.operatorName(), item.operator_name]));
+    if (isDefined(item.label_asym_id)) chainTests.push(eq([macromolecular.label_asym_id(), item.label_asym_id]));
+    if (isDefined(item.auth_asym_id)) chainTests.push(eq([macromolecular.auth_asym_id(), item.auth_asym_id]));
 
     if (chainTests.length === 1) {
         propTests['chain-test'] = chainTests[0];
@@ -54,18 +60,18 @@ function _structureElementSchemaToExpression(row: StructureElementSchemaItem): E
     }
 
     const residueTests: Expression[] = [];
-    if (isDefined(row.label_seq_id)) {
-        residueTests.push(ihm.hasSeqId({ 0: row.label_seq_id }));
+    if (isDefined(item.label_seq_id)) {
+        residueTests.push(ihm.hasSeqId({ 0: item.label_seq_id }));
     }
-    if (isDefined(row.auth_seq_id)) residueTests.push(eq([macromolecular.auth_seq_id(), row.auth_seq_id]));
-    if (isDefined(row.pdbx_PDB_ins_code)) residueTests.push(eq([macromolecular.pdbx_PDB_ins_code(), row.pdbx_PDB_ins_code]));
+    if (isDefined(item.auth_seq_id)) residueTests.push(eq([macromolecular.auth_seq_id(), item.auth_seq_id]));
+    if (isDefined(item.pdbx_PDB_ins_code)) residueTests.push(eq([macromolecular.pdbx_PDB_ins_code(), item.pdbx_PDB_ins_code]));
 
-    if (isDefined(row.beg_label_seq_id) || isDefined(row.end_label_seq_id)) {
-        residueTests.push(ihm.overlapsSeqIdRange({ beg: row.beg_label_seq_id, end: row.end_label_seq_id }));
+    if (isDefined(item.beg_label_seq_id) || isDefined(item.end_label_seq_id)) {
+        residueTests.push(ihm.overlapsSeqIdRange({ beg: item.beg_label_seq_id, end: item.end_label_seq_id }));
     }
 
-    if (isDefined(row.beg_auth_seq_id)) residueTests.push(gte([macromolecular.auth_seq_id(), row.beg_auth_seq_id]));
-    if (isDefined(row.end_auth_seq_id)) residueTests.push(lte([macromolecular.auth_seq_id(), row.end_auth_seq_id]));
+    if (isDefined(item.beg_auth_seq_id)) residueTests.push(gte([macromolecular.auth_seq_id(), item.beg_auth_seq_id]));
+    if (isDefined(item.end_auth_seq_id)) residueTests.push(lte([macromolecular.auth_seq_id(), item.end_auth_seq_id]));
     if (residueTests.length === 1) {
         propTests['residue-test'] = residueTests[0];
     } else if (residueTests.length > 1) {
@@ -73,11 +79,13 @@ function _structureElementSchemaToExpression(row: StructureElementSchemaItem): E
     }
 
     const atomTests: Expression[] = [];
-    if (isDefined(row.atom_id)) atomTests.push(eq([macromolecular.id(), row.atom_id]));
-    if (isDefined(row.atom_index)) atomTests.push(eq([MS.struct.atomProperty.core.sourceIndex(), row.atom_index]));
-    if (isDefined(row.label_atom_id)) atomTests.push(eq([macromolecular.label_atom_id(), row.label_atom_id]));
-    if (isDefined(row.auth_atom_id)) atomTests.push(eq([macromolecular.auth_atom_id(), row.auth_atom_id]));
-    if (isDefined(row.type_symbol)) atomTests.push(eq([MS.struct.atomProperty.core.elementSymbol(), row.type_symbol.toUpperCase()]));
+    if (isDefined(item.label_comp_id)) atomTests.push(eq([macromolecular.label_comp_id(), item.label_comp_id]));
+    if (isDefined(item.auth_comp_id)) atomTests.push(eq([macromolecular.auth_comp_id(), item.auth_comp_id]));
+    if (isDefined(item.atom_id)) atomTests.push(eq([macromolecular.id(), item.atom_id]));
+    if (isDefined(item.atom_index)) atomTests.push(eq([MS.struct.atomProperty.core.sourceIndex(), item.atom_index]));
+    if (isDefined(item.label_atom_id)) atomTests.push(eq([macromolecular.label_atom_id(), item.label_atom_id]));
+    if (isDefined(item.auth_atom_id)) atomTests.push(eq([macromolecular.auth_atom_id(), item.auth_atom_id]));
+    if (isDefined(item.type_symbol)) atomTests.push(eq([MS.struct.atomProperty.core.elementSymbol(), item.type_symbol.toUpperCase()]));
     if (atomTests.length === 1) {
         propTests['atom-test'] = atomTests[0];
     } else if (atomTests.length > 1) {
@@ -88,7 +96,7 @@ function _structureElementSchemaToExpression(row: StructureElementSchemaItem): E
 }
 
 export function structureElementSchemaToExpression(rows: StructureElementSchema): Expression {
-    if (!Array.isArray(rows)) return _structureElementSchemaToExpression(rows as StructureElementSchemaItem);
+    if (!Array.isArray(rows)) return structureElementSchemaItemToExpression(rows as StructureElementSchemaItem);
     if (rows.length === 1) return structureElementSchemaToExpression(rows[0]);
     return unionExpression(rows.map(structureElementSchemaToExpression));
 }
@@ -99,4 +107,58 @@ function unionExpression(expressions: Expression[]): Expression {
 
 function isDefined<T>(value: T | undefined | null): value is T {
     return value !== undefined && value !== null;
+}
+
+export function structureElementLocationToSchemaItem(loc: StructureElement.Location): StructureElementSchemaItem {
+    if (Unit.isAtomic(loc.unit)) {
+        let hasUniqueAtomId = true;
+        let hasUniqueCompId = true;
+
+        const { label_atom_id: atomIdCol, label_comp_id: compIdCol } = loc.unit.model.atomicHierarchy.atoms;
+        const { label_seq_id: seqIdCol, _rowCount: residueCount } = loc.unit.model.atomicHierarchy.residues;
+        const { residueAtomSegments } = loc.unit.model.atomicHierarchy;
+        const rI = residueAtomSegments.index[loc.element];
+        const label_atom_id = StructureProperties.atom.label_atom_id(loc);
+        const label_comp_id = StructureProperties.atom.label_comp_id(loc);
+        for (let i = residueAtomSegments.offsets[rI], il = residueAtomSegments.offsets[rI + 1]; i < il; ++i) {
+            if (i !== loc.element && atomIdCol.value(i) === label_atom_id) {
+                hasUniqueAtomId = false;
+            }
+            if (compIdCol.value(i) !== label_comp_id) {
+                hasUniqueCompId = false;
+            }
+        }
+
+        const ret: StructureElementSchemaItem = {};
+
+        if (hasUniqueAtomId && residueCount > 1) {
+            ret.label_atom_id = label_atom_id;
+            ret.label_entity_id = StructureProperties.chain.label_entity_id(loc);
+            ret.label_asym_id = StructureProperties.chain.label_asym_id(loc);
+
+            if (seqIdCol.valueKind(rI) > 0) {
+                ret.label_comp_id = StructureProperties.atom.label_comp_id(loc);
+            } else {
+                ret.label_seq_id = seqIdCol.value(rI);
+                if (!hasUniqueCompId && label_comp_id) {
+                    ret.label_comp_id = label_comp_id;
+                }
+            }
+        } else {
+            ret.atom_index = StructureProperties.atom.sourceIndex(loc);
+        }
+
+        if (loc.unit.conformation.operator.name !== SymmetryOperator.DefaultName && !loc.unit.conformation.operator.isIdentity) {
+            ret.operator_name = loc.unit.conformation.operator.name;
+        }
+
+        return ret;
+    } else {
+        return {
+            label_entity_id: StructureProperties.chain.label_entity_id(loc),
+            label_asym_id: StructureProperties.chain.label_asym_id(loc),
+            beg_label_seq_id: StructureProperties.coarse.seq_id_begin(loc),
+            end_label_seq_id: StructureProperties.coarse.seq_id_end(loc),
+        };
+    }
 }

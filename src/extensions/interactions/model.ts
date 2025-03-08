@@ -5,6 +5,7 @@
  */
 
 import { InteractionType } from '../../mol-model-props/computed/interactions/common';
+import { StructureElement } from '../../mol-model/structure';
 import { StructureElementSchema, StructureElementSchemaItem } from '../../mol-model/structure/query/schema';
 
 interface InteractionElementsSchema {
@@ -28,8 +29,14 @@ export type InteractionSchema =
 
 export type InteractionKind = InteractionSchema['kind']
 
+export interface StructureInteractionElement {
+    schema: InteractionSchema,
+    a: StructureElement.Loci,
+    b: StructureElement.Loci,
+}
+
 export interface StructureInteractions {
-    elements: InteractionSchema[],
+    elements: StructureInteractionElement[],
 }
 
 export const InteractionTypeToKind = {

@@ -4,8 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ComputeInteractions } from '../../extensions/interactions/transforms';
+import { ComputeInteractions, InteractionsShape } from '../../extensions/interactions/transforms';
 import { MolViewSpec } from '../../extensions/mvs/behavior';
+import { ShapeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { createPluginUI } from '../../mol-plugin-ui';
 import { renderReact18 } from '../../mol-plugin-ui/react18';
 import '../../mol-plugin-ui/skin/light.scss';
@@ -64,11 +65,13 @@ export async function loadInteractionsExample(root: HTMLElement) {
 
     const interactions = update.toRoot().apply(ComputeInteractions, {
         sources: refs.map(structureRef => ({ structureRef })),
-    }, { dependsOn: refs }).selector;
+    }, { dependsOn: refs });
+
+    interactions.apply(InteractionsShape).apply(ShapeRepresentation3D);
 
     await update.commit();
 
-    console.log(interactions.data);
+    console.log(interactions.selector.data);
 }
 
 loadInteractionsExample(document.getElementById('viewer')!);
