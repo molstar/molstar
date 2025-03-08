@@ -48,7 +48,7 @@ export async function computeInteractions(
             aStructureRef: unitIdToRef.get(e.unitA),
             a: toSchema(structure, e.unitA, e.indexA),
             bStructureRef: unitIdToRef.get(e.unitB),
-            b: toSchema(structure, e.unitA, e.indexA),
+            b: toSchema(structure, e.unitB, e.indexB),
         });
     }
 
