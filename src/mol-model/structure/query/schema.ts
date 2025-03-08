@@ -8,7 +8,7 @@
 import { MolScriptBuilder as MS } from '../../../mol-script/language/builder';
 import { Expression } from '../../../mol-script/language/expression';
 
-export interface StructureElementSchema {
+export interface StructureElementSchemaItem {
     label_entity_id?: string,
     label_asym_id?: string,
     auth_asym_id?: string,
@@ -26,14 +26,14 @@ export interface StructureElementSchema {
     atom_index?: number
 }
 
-export type StructureElementSchemaTable = { [K in keyof StructureElementSchema]: NonNullable<StructureElementSchema[K]>[] }
+export type StructureElementSchema = StructureElementSchemaItem | StructureElementSchemaItem[]
 
 // This is currently adapted from the MolViewSpec extension
 // but could/should be futher optimized later, possible improvements:
 //  - add optimized query that works directly on StructureElementSchema instead of converting to atoms query
 //  - add more memory-efficient way to store StructureElements (e.g., struct of arrays, common prefix for multiple atoms in the same residue, etc.)
 
-function _structureElementSchemaToExpression(row: StructureElementSchema): Expression {
+function _structureElementSchemaToExpression(row: StructureElementSchemaItem): Expression {
     const { and } = MS.core.logic;
     const { eq, gre: gte, lte } = MS.core.rel;
     const { macromolecular, ihm } = MS.struct.atomProperty;
@@ -87,8 +87,8 @@ function _structureElementSchemaToExpression(row: StructureElementSchema): Expre
     return MS.struct.generator.atomGroups(propTests);
 }
 
-export function structureElementSchemaToExpression(rows: StructureElementSchema | readonly StructureElementSchema[]): Expression {
-    if (!Array.isArray(rows)) return _structureElementSchemaToExpression(rows as StructureElementSchema);
+export function structureElementSchemaToExpression(rows: StructureElementSchema): Expression {
+    if (!Array.isArray(rows)) return _structureElementSchemaToExpression(rows as StructureElementSchemaItem);
     if (rows.length === 1) return structureElementSchemaToExpression(rows[0]);
     return unionExpression(rows.map(structureElementSchemaToExpression));
 }
