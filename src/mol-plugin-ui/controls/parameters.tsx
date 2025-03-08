@@ -690,11 +690,19 @@ function colorEntryToStyle(e: ColorListEntry, includeOffset = false) {
 }
 
 const colorGradientInterpolated = memoize1((colors: ColorListEntry[]) => {
-    const off = [...colors] as [Color, number][];
-    if (off[0][1] > off[off.length - 1][1]) {
-        off.reverse();
+    if (colors.length === 0) return 'linear-gradient(to right, #000 0%, #000 100%)';
+
+    const hasOffsets = colors.every(c => Array.isArray(c));
+    let styles;
+
+    if (hasOffsets) {
+        const off = [...colors] as [Color, number][];
+        off.sort((a, b) => a[1] - b[1]);
+        styles = off.map(c => colorEntryToStyle(c, true));
+    } else {
+        styles = colors.map(c => colorEntryToStyle(c));
     }
-    const styles = off.map(c => colorEntryToStyle(c, true));
+
     return `linear-gradient(to right, ${styles.join(', ')})`;
 });
 
@@ -709,9 +717,7 @@ const colorGradientBanded = memoize1((colors: ColorListEntry[]) => {
         if (!off[0]) {
             return 'linear-gradient(to right, #000 0%, #000 100%)';
         }
-        if (off[0][1] > off[off.length - 1][1]) {
-            off.reverse();
-        }
+        off.sort((a, b) => a[1] - b[1]);
         styles.push(`${Color.toStyle(off[0][0])} ${(100 * off[0][1]).toFixed(2)}%`);
         for (let i = 0, il = off.length - 1; i < il; ++i) {
             const [c0, o0] = off[i];
