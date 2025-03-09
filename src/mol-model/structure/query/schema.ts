@@ -109,13 +109,18 @@ function isDefined<T>(value: T | undefined | null): value is T {
     return value !== undefined && value !== null;
 }
 
-export function structureElementLocationToSchemaItem(loc: StructureElement.Location): StructureElementSchemaItem {
+export function structureElementLocationToSchemaItem(
+    loc: StructureElement.Location,
+    granularity: 'atom' | 'residue' | 'chain' = 'atom'
+): StructureElementSchemaItem {
+    // NOTE: Consider support for both auth_ and label_ prefixes
+
     if (Unit.isAtomic(loc.unit)) {
         let hasUniqueAtomId = true;
         let hasUniqueCompId = true;
 
         const { label_atom_id: atomIdCol, label_comp_id: compIdCol } = loc.unit.model.atomicHierarchy.atoms;
-        const { label_seq_id: seqIdCol, _rowCount: residueCount } = loc.unit.model.atomicHierarchy.residues;
+        const { label_seq_id: seqIdCol } = loc.unit.model.atomicHierarchy.residues;
         const { residueAtomSegments } = loc.unit.model.atomicHierarchy;
         const rI = residueAtomSegments.index[loc.element];
         const label_atom_id = StructureProperties.atom.label_atom_id(loc);
@@ -131,11 +136,12 @@ export function structureElementLocationToSchemaItem(loc: StructureElement.Locat
 
         const ret: StructureElementSchemaItem = {};
 
-        if (hasUniqueAtomId && residueCount > 1) {
-            ret.label_atom_id = label_atom_id;
+        if (granularity === 'residue' || granularity === 'chain' || (granularity === 'atom' && !hasUniqueAtomId)) {
             ret.label_entity_id = StructureProperties.chain.label_entity_id(loc);
             ret.label_asym_id = StructureProperties.chain.label_asym_id(loc);
+        }
 
+        if (granularity === 'residue' || (granularity === 'atom' && !hasUniqueAtomId)) {
             if (seqIdCol.valueKind(rI) > 0) {
                 ret.label_comp_id = StructureProperties.atom.label_comp_id(loc);
             } else {
@@ -144,8 +150,14 @@ export function structureElementLocationToSchemaItem(loc: StructureElement.Locat
                     ret.label_comp_id = label_comp_id;
                 }
             }
-        } else {
-            ret.atom_index = StructureProperties.atom.sourceIndex(loc);
+        }
+
+        if (granularity === 'atom') {
+            if (hasUniqueAtomId) {
+                ret.label_atom_id = label_atom_id;
+            } else {
+                ret.atom_index = StructureProperties.atom.sourceIndex(loc);
+            }
         }
 
         if (loc.unit.conformation.operator.name !== SymmetryOperator.DefaultName && !loc.unit.conformation.operator.isIdentity) {
@@ -154,11 +166,20 @@ export function structureElementLocationToSchemaItem(loc: StructureElement.Locat
 
         return ret;
     } else {
-        return {
+        const ret: StructureElementSchemaItem = {
             label_entity_id: StructureProperties.chain.label_entity_id(loc),
             label_asym_id: StructureProperties.chain.label_asym_id(loc),
-            beg_label_seq_id: StructureProperties.coarse.seq_id_begin(loc),
-            end_label_seq_id: StructureProperties.coarse.seq_id_end(loc),
         };
+
+        if (granularity === 'atom' || granularity === 'residue') {
+            ret.beg_label_seq_id = StructureProperties.coarse.seq_id_begin(loc);
+            ret.end_label_seq_id = StructureProperties.coarse.seq_id_end(loc);
+        }
+
+        if (loc.unit.conformation.operator.name !== SymmetryOperator.DefaultName && !loc.unit.conformation.operator.isIdentity) {
+            ret.operator_name = loc.unit.conformation.operator.name;
+        }
+
+        return ret;
     }
 }
