@@ -73,7 +73,7 @@ function toSchema(structure: Structure, interactions: Interactions, unitId: numb
     for (let o = fx.offsets[featureIndex], uIEnd = fx.offsets[featureIndex + 1]; o < uIEnd; o++) {
         const unitIndex = fx.members[o];
         _loc.element = _loc.unit.elements[unitIndex];
-        items.push(structureElementLocationToSchemaItem(_loc));
+        items.push(structureElementLocationToSchemaItem(_loc, 'atom'));
         builder.addElement(_loc.element);
     }
     builder.commitUnit();

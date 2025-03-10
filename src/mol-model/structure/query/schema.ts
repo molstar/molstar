@@ -109,6 +109,16 @@ function isDefined<T>(value: T | undefined | null): value is T {
     return value !== undefined && value !== null;
 }
 
+export function forEachSchemaItem(schema: StructureElementSchema, f: (item: StructureElementSchemaItem) => void) {
+    if (!Array.isArray(schema)) {
+        f(schema);
+    } else {
+        for (const item of schema) {
+            f(item);
+        }
+    }
+}
+
 export function structureElementLocationToSchemaItem(
     loc: StructureElement.Location,
     granularity: 'atom' | 'residue' | 'chain' = 'atom'
@@ -136,12 +146,12 @@ export function structureElementLocationToSchemaItem(
 
         const ret: StructureElementSchemaItem = {};
 
-        if (granularity === 'residue' || granularity === 'chain' || (granularity === 'atom' && !hasUniqueAtomId)) {
+        if (granularity === 'residue' || granularity === 'chain' || (granularity === 'atom' && hasUniqueAtomId)) {
             ret.label_entity_id = StructureProperties.chain.label_entity_id(loc);
             ret.label_asym_id = StructureProperties.chain.label_asym_id(loc);
         }
 
-        if (granularity === 'residue' || (granularity === 'atom' && !hasUniqueAtomId)) {
+        if (granularity === 'residue' || (granularity === 'atom' && hasUniqueAtomId)) {
             if (seqIdCol.valueKind(rI) > 0) {
                 ret.label_comp_id = StructureProperties.atom.label_comp_id(loc);
             } else {
