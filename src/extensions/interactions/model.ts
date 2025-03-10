@@ -13,6 +13,7 @@ interface InteractionElementsSchema {
     a: StructureElementSchema,
     bStructureRef?: string,
     b: StructureElementSchema,
+    description?: string,
 }
 
 export type InteractionSchema =

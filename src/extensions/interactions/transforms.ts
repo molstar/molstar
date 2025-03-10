@@ -4,18 +4,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { addFixedCountDashedCylinder } from '../../mol-geo/geometry/mesh/builder/cylinder';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
-import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
-import { Vec3 } from '../../mol-math/linear-algebra';
-import { Shape } from '../../mol-model/shape';
 import { Structure, StructureElement } from '../../mol-model/structure';
 import { PluginStateObject as SO } from '../../mol-plugin-state/objects';
 import { StateTransformer } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { computeInteractions, ComputeInteractionsOptions } from './compute';
-import { StructureInteractions } from './model';
+import { getCustomInteractionData } from './custom';
+import { InteractionSchema, StructureInteractions } from './model';
+import { buildInteractionsShape } from './visuals';
 
 const Factory = StateTransformer.builderFactory('interactions-extension');
 
@@ -55,6 +53,27 @@ export const ComputeInteractions = Factory({
     }
 });
 
+export const CustomInteractions = Factory({
+    name: 'custom-interactions',
+    display: 'Custom Interactions',
+    from: SO.Root,
+    to: InteractionData,
+    params: {
+        interactions: PD.Value<InteractionSchema[]>([], { isHidden: true }),
+    },
+})({
+    apply({ params, dependencies }) {
+        return Task.create('Custom Interactions', async ctx => {
+            const structures: { [ref: string]: Structure } = {};
+            for (const [k, v] of Object.entries(dependencies ?? {})) {
+                structures[k] = v.data as Structure;
+            }
+            const interactions = getCustomInteractionData(params.interactions, structures);
+            return new InteractionData({ interactions }, { label: 'Custom Interactions' });
+        });
+    }
+});
+
 export const InteractionsShape = Factory({
     name: 'interactions-shape',
     display: { name: 'Interactions Shape' },
@@ -64,44 +83,10 @@ export const InteractionsShape = Factory({
     apply({ a }) {
         return new SO.Shape.Provider({
             label: 'Interactions Shape Provider',
-            data: a.data,
+            data: a.data.interactions,
             params: PD.withDefaults(Mesh.Params, { }),
-            getShape: (_, data, __, prev: any) => buildPrimitiveMesh(data, prev?.geometry),
+            getShape: (_, data: StructureInteractions, __, prev: any) => buildInteractionsShape(data, prev?.geometry),
             geometryUtils: Mesh.Utils,
         }, { label: 'Interactions Shape Provider' });
     }
 });
-
-function buildPrimitiveMesh(data: InteractionData['data'], prev?: Mesh): Shape<Mesh> {
-    const mesh = MeshBuilder.createState(1024, 1024, prev);
-
-    mesh.currentGroup = -1;
-    const tooltips = new Map<number, string>();
-
-    for (const interaction of data.interactions.elements) {
-        mesh.currentGroup++;
-        tooltips.set(mesh.currentGroup, interaction.info.kind);
-
-        const a = StructureElement.Loci.getBoundary(interaction.a);
-        const b = StructureElement.Loci.getBoundary(interaction.b);
-
-        const radius = 0.1;
-        const dist = Vec3.distance(a.sphere.center, b.sphere.center);
-        const count = Math.ceil(dist / (2 * radius));
-        addFixedCountDashedCylinder(mesh, a.sphere.center, b.sphere.center, 1.0, count, true, {
-            radiusBottom: radius,
-            radiusTop: radius,
-            topCap: true,
-            bottomCap: true,
-        });
-    }
-
-    return Shape.create(
-        'Interactions',
-        data,
-        MeshBuilder.getMesh(mesh),
-        (g) => 0x0 as any,
-        (g) => 1,
-        (g) => tooltips.get(g) ?? ''
-    );
-}

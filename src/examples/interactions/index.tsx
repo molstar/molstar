@@ -5,7 +5,7 @@
  */
 
 import { StructureInteractions } from '../../extensions/interactions/model';
-import { ComputeInteractions, InteractionsShape } from '../../extensions/interactions/transforms';
+import { ComputeInteractions, CustomInteractions, InteractionsShape } from '../../extensions/interactions/transforms';
 import { MolViewSpec } from '../../extensions/mvs/behavior';
 import { ResidueIndex, Structure, StructureElement, StructureProperties, StructureQuery } from '../../mol-model/structure';
 import { atoms } from '../../mol-model/structure/query/queries/generators';
@@ -49,59 +49,6 @@ async function createViewer(root: HTMLElement) {
     });
 
     return plugin;
-}
-
-async function init(elem: HTMLElement | string) {
-    const root = typeof elem === 'string' ? document.getElementById('viewer')! : elem;
-    const plugin = await createViewer(root);
-    await Examples.computed(plugin);
-    return {
-        plugin,
-        examples: Object.fromEntries(Object.entries(Examples).map(([k, v]) => [k, () => v(plugin)])),
-    };
-}
-
-async function loadComputedExample(plugin: PluginContext) {
-    await plugin.clear();
-
-    // Set up the receptor and ligand structures
-    const receptorData = await plugin.builders.data.download({ url: '../../../examples/ace2.pdbqt' });
-    const receptorTrajectory = await plugin.builders.structure.parseTrajectory(receptorData, 'pdbqt');
-    const receptor = await plugin.builders.structure.hierarchy.applyPreset(receptorTrajectory, 'default');
-
-    const ligandData = await plugin.builders.data.download({ url: '../../../examples/ace2-hit.mol2' });
-    const ligandTrajectory = await plugin.builders.structure.parseTrajectory(ligandData, 'mol2');
-    const ligand = await plugin.builders.structure.hierarchy.applyPreset(ligandTrajectory, 'default', { representationPreset: 'atomic-detail' });
-
-    // Compute the interactions
-    const update = plugin.build();
-
-    const receptorRef = receptor?.representation.components.polymer.ref!;
-    const ligandRef = ligand?.representation.components.all.ref!;
-
-    const refs = [receptorRef, ligandRef];
-
-    const interactionsRef = update.toRoot().apply(ComputeInteractions, {
-        sources: refs.map(structureRef => ({ structureRef })),
-    }, { dependsOn: refs });
-
-    interactionsRef.apply(InteractionsShape).apply(ShapeRepresentation3D);
-
-    await update.commit();
-
-    console.log('Interactions', interactionsRef.selector.data?.interactions);
-
-    // Create ball and stick representations for the binding site and focus on the ligand
-    await createBindingSiteRepresentation(
-        plugin,
-        interactionsRef.selector.data?.interactions!,
-        new Map([[receptorRef, receptor?.representation.components.polymer.data]])
-    );
-    PluginCommands.Camera.FocusObject(plugin, {
-        targets: [{
-            targetRef: ligand?.representation.representations.all.ref
-        }]
-    });
 }
 
 async function createBindingSiteRepresentation(plugin: PluginContext, interactions: StructureInteractions, receptors: Map<string, Structure>) {
@@ -162,8 +109,124 @@ function getBindingSiteBundles(interactions: StructureInteractions, receptors: M
     return bundles;
 }
 
+
+
+async function loadComputedExample(plugin: PluginContext) {
+    await plugin.clear();
+
+    // Set up the receptor and ligand structures
+    const receptorData = await plugin.builders.data.download({ url: '../../../examples/ace2.pdbqt' });
+    const receptorTrajectory = await plugin.builders.structure.parseTrajectory(receptorData, 'pdbqt');
+    const receptor = await plugin.builders.structure.hierarchy.applyPreset(receptorTrajectory, 'default');
+
+    const ligandData = await plugin.builders.data.download({ url: '../../../examples/ace2-hit.mol2' });
+    const ligandTrajectory = await plugin.builders.structure.parseTrajectory(ligandData, 'mol2');
+    const ligand = await plugin.builders.structure.hierarchy.applyPreset(ligandTrajectory, 'default', { representationPreset: 'atomic-detail' });
+
+    // Compute the interactions
+    const update = plugin.build();
+
+    const receptorRef = receptor?.representation.components.polymer.ref!;
+    const ligandRef = ligand?.representation.components.all.ref!;
+
+    const refs = [receptorRef, ligandRef];
+
+    const interactionsRef = update.toRoot().apply(ComputeInteractions, {
+        sources: refs.map(structureRef => ({ structureRef })),
+    }, { dependsOn: refs });
+
+    interactionsRef.apply(InteractionsShape).apply(ShapeRepresentation3D);
+
+    await update.commit();
+
+    console.log('Interactions', interactionsRef.selector.data?.interactions);
+
+    // Create ball and stick representations for the binding site and focus on the ligand
+    await createBindingSiteRepresentation(
+        plugin,
+        interactionsRef.selector.data?.interactions!,
+        new Map([[receptorRef, receptor?.representation.components.polymer.data]])
+    );
+    PluginCommands.Camera.FocusObject(plugin, {
+        targets: [{
+            targetRef: ligand?.representation.representations.all.ref
+        }]
+    });
+}
+
+async function loadCustomExample(plugin: PluginContext) {
+    await plugin.clear();
+
+    // Set up the receptor and ligand structures
+    const receptorData = await plugin.builders.data.download({ url: '../../../examples/ace2.pdbqt' });
+    const receptorTrajectory = await plugin.builders.structure.parseTrajectory(receptorData, 'pdbqt');
+    const receptor = await plugin.builders.structure.hierarchy.applyPreset(receptorTrajectory, 'default');
+
+    const ligandData = await plugin.builders.data.download({ url: '../../../examples/ace2-hit.mol2' });
+    const ligandTrajectory = await plugin.builders.structure.parseTrajectory(ligandData, 'mol2');
+    const ligand = await plugin.builders.structure.hierarchy.applyPreset(ligandTrajectory, 'default', { representationPreset: 'atomic-detail' });
+
+    // Compute the interactions
+    const update = plugin.build();
+
+    const receptorRef = receptor?.representation.components.polymer.ref!;
+    const ligandRef = ligand?.representation.components.all.ref!;
+
+    const refs = [receptorRef, ligandRef];
+
+    const interactionsRef = update.toRoot().apply(CustomInteractions, {
+        interactions: [
+            {
+                kind: 'hydrogen-bond',
+                aStructureRef: receptorRef,
+                a: { auth_seq_id: 353, auth_atom_id: 'N' },
+                bStructureRef: ligandRef,
+                b: { atom_index: 9 },
+            },
+            {
+                kind: 'unknown',
+                aStructureRef: receptorRef,
+                a: { auth_seq_id: 354, auth_atom_id: 'N' },
+                bStructureRef: ligandRef,
+                b: [{ atom_index: 25 }, { atom_index: 26 }],
+                description: 'Random test interaction'
+            }
+        ]
+    }, { dependsOn: refs });
+
+    interactionsRef.apply(InteractionsShape).apply(ShapeRepresentation3D);
+
+    await update.commit();
+
+    console.log('Interactions', interactionsRef.selector.data?.interactions);
+
+    // Create ball and stick representations for the binding site and focus on the ligand
+    await createBindingSiteRepresentation(
+        plugin,
+        interactionsRef.selector.data?.interactions!,
+        new Map([[receptorRef, receptor?.representation.components.polymer.data]])
+    );
+    PluginCommands.Camera.FocusObject(plugin, {
+        targets: [{
+            targetRef: ligand?.representation.representations.all.ref
+        }]
+    });
+}
+
 const Examples = {
     computed: loadComputedExample,
+    custom: loadCustomExample
 };
+
+async function init(elem: HTMLElement | string, defaultExample: keyof typeof Examples = 'computed') {
+    const root = typeof elem === 'string' ? document.getElementById('viewer')! : elem;
+    const plugin = await createViewer(root);
+    Examples[defaultExample](plugin);
+    return {
+        plugin,
+        examples: Object.fromEntries(Object.entries(Examples).map(([k, v]) => [k, () => v(plugin)])),
+    };
+}
+
 
 (window as any).initInteractionsExample = init;
