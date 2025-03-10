@@ -149,17 +149,18 @@ export namespace Loci {
      * The loc argument of the callback is mutable, use Location.clone() if you intend to keep
      * the value around.
      */
-    export function forEachLocation(loci: Loci, f: (loc: Location) => void) {
+    export function forEachLocation(loci: Loci, f: (loc: Location) => void, location?: Location) {
         if (Loci.isEmpty(loci)) return;
 
-        const location = Location.create(loci.structure);
+        const loc = location ? location : Location.create(loci.structure);
+        loc.structure = loci.structure;
         for (const e of loci.elements) {
             const { unit, indices } = e;
-            location.unit = unit;
+            loc.unit = unit;
             const { elements } = e.unit;
             for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
-                location.element = elements[OrderedSet.getAt(indices, i)];
-                f(location);
+                loc.element = elements[OrderedSet.getAt(indices, i)];
+                f(loc);
             }
         }
     }
