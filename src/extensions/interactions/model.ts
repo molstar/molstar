@@ -21,17 +21,34 @@ export type InteractionSchema =
     | { kind: 'pi-stacking' } & InteractionElementsSchema
     | { kind: 'cation-pi' } & InteractionElementsSchema
     | { kind: 'halogen-bond' } & InteractionElementsSchema
-    | { kind: 'hydrogen-bond', hydrogen?: StructureElementSchemaItem } & InteractionElementsSchema
-    | { kind: 'weak-hydrogen-bond', hydrogen?: StructureElementSchemaItem } & InteractionElementsSchema
+    | { kind: 'hydrogen-bond', hydrogenStructureRef?: string, hydrogen?: StructureElementSchemaItem } & InteractionElementsSchema
+    | { kind: 'weak-hydrogen-bond', hydrogenStructureRef?: string, hydrogen?: StructureElementSchemaItem } & InteractionElementsSchema
     | { kind: 'hydrophobic' } & InteractionElementsSchema
     | { kind: 'metal-coordination' } & InteractionElementsSchema
     | { kind: 'covalent', degree?: number } & InteractionElementsSchema
 
 export type InteractionKind = InteractionSchema['kind']
 
+export type InteractionInfo =
+    | { kind: 'unknown' }
+    | { kind: 'ionic' }
+    | { kind: 'pi-stacking' }
+    | { kind: 'cation-pi' }
+    | { kind: 'halogen-bond' }
+    | { kind: 'hydrogen-bond', hydrogenStructureRef?: string, hydrogen?: StructureElement.Loci }
+    | { kind: 'weak-hydrogen-bond', hydrogenStructureRef?: string, hydrogen?: StructureElementSchemaItem }
+    | { kind: 'hydrophobic' }
+    | { kind: 'metal-coordination' }
+    | { kind: 'covalent', degree?: number }
+
 export interface StructureInteractionElement {
-    schema: InteractionSchema,
+    // Pass the schema when loading from custom data
+    sourceSchema?: InteractionSchema,
+
+    info: InteractionInfo,
+    aStructureRef?: string,
     a: StructureElement.Loci,
+    bStructureRef?: string,
     b: StructureElement.Loci,
 }
 

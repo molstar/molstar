@@ -6,13 +6,12 @@
 
 import { computeInteractions as _compute, Interactions } from '../../mol-model-props/computed/interactions/interactions';
 import { Structure, StructureElement } from '../../mol-model/structure';
-import { structureElementLocationToSchemaItem, StructureElementSchema, StructureElementSchemaItem } from '../../mol-model/structure/query/schema';
 import { RuntimeContext } from '../../mol-task';
 import { AssetManager } from '../../mol-util/assets';
 import { InteractionTypeToKind, StructureInteractions } from './model';
 
 export interface ComputeInteractionsOptions {
-    includeInterStructure?: boolean,
+    // includeInterStructure?: boolean,
     // kinds
 }
 
@@ -42,19 +41,12 @@ export async function computeInteractions(
     for (const e of edges) {
         if (e.unitA > e.unitB) continue;
 
-        const [lociA, a] = toSchema(structure, interactions, e.unitA, e.indexA);
-        const [lociB, b] = toSchema(structure, interactions, e.unitB, e.indexB);
-
         result.elements.push({
-            schema: {
-                kind: InteractionTypeToKind[e.props.type],
-                aStructureRef: unitIdToRef.get(e.unitA),
-                a,
-                bStructureRef: unitIdToRef.get(e.unitB),
-                b,
-            },
-            a: lociA,
-            b: lociB,
+            info: { kind: InteractionTypeToKind[e.props.type] },
+            aStructureRef: unitIdToRef.get(e.unitA)!,
+            bStructureRef: unitIdToRef.get(e.unitB)!,
+            a: toLoci(structure, interactions, e.unitA, e.indexA),
+            b: toLoci(structure, interactions, e.unitB, e.indexB),
         });
     }
 
@@ -62,24 +54,19 @@ export async function computeInteractions(
 }
 
 const _loc = StructureElement.Location.create();
-function toSchema(structure: Structure, interactions: Interactions, unitId: number, featureIndex: number): [StructureElement.Loci, StructureElementSchema] {
+function toLoci(structure: Structure, interactions: Interactions, unitId: number, featureIndex: number) {
     _loc.structure = structure;
     _loc.unit = structure.unitMap.get(unitId);
-    const fx = interactions.unitsFeatures.get(unitId)!;
+    const xs = interactions.unitsFeatures.get(unitId)!;
 
     const builder = structure.subsetBuilder(false);
     builder.beginUnit(_loc.unit.id);
-    const items: StructureElementSchemaItem[] = [];
-    for (let o = fx.offsets[featureIndex], uIEnd = fx.offsets[featureIndex + 1]; o < uIEnd; o++) {
-        const unitIndex = fx.members[o];
+    for (let o = xs.offsets[featureIndex], uIEnd = xs.offsets[featureIndex + 1]; o < uIEnd; o++) {
+        const unitIndex = xs.members[o];
         _loc.element = _loc.unit.elements[unitIndex];
-        items.push(structureElementLocationToSchemaItem(_loc, 'atom'));
         builder.addElement(_loc.element);
     }
     builder.commitUnit();
 
-    const schema = items.length === 1 ? items[0] : items;
-    const loci = Structure.toStructureElementLoci(builder.getStructure());
-
-    return [loci, schema];
+    return Structure.toStructureElementLoci(builder.getStructure());
 }

@@ -38,7 +38,7 @@ export type StructureElementSchema = StructureElementSchemaItem | StructureEleme
 //  - add optimized query that works directly on StructureElementSchema instead of converting to atoms query
 //  - add more memory-efficient way to store StructureElements (e.g., struct of arrays, common prefix for multiple atoms in the same residue, etc.)
 
-function structureElementSchemaItemToExpression(item: StructureElementSchemaItem): Expression {
+function schemaItemToExpression(item: StructureElementSchemaItem): Expression {
     const { and } = MS.core.logic;
     const { eq, gre: gte, lte } = MS.core.rel;
     const { macromolecular, ihm, core } = MS.struct.atomProperty;
@@ -95,10 +95,10 @@ function structureElementSchemaItemToExpression(item: StructureElementSchemaItem
     return MS.struct.generator.atomGroups(propTests);
 }
 
-export function structureElementSchemaToExpression(rows: StructureElementSchema): Expression {
-    if (!Array.isArray(rows)) return structureElementSchemaItemToExpression(rows as StructureElementSchemaItem);
-    if (rows.length === 1) return structureElementSchemaToExpression(rows[0]);
-    return unionExpression(rows.map(structureElementSchemaToExpression));
+function toExpression(rows: StructureElementSchema): Expression {
+    if (!Array.isArray(rows)) return schemaItemToExpression(rows as StructureElementSchemaItem);
+    if (rows.length === 1) return toExpression(rows[0]);
+    return unionExpression(rows.map(toExpression));
 }
 
 function unionExpression(expressions: Expression[]): Expression {
@@ -109,7 +109,7 @@ function isDefined<T>(value: T | undefined | null): value is T {
     return value !== undefined && value !== null;
 }
 
-export function forEachSchemaItem(schema: StructureElementSchema, f: (item: StructureElementSchemaItem) => void) {
+function forEachItem(schema: StructureElementSchema, f: (item: StructureElementSchemaItem) => void) {
     if (!Array.isArray(schema)) {
         f(schema);
     } else {
@@ -119,7 +119,7 @@ export function forEachSchemaItem(schema: StructureElementSchema, f: (item: Stru
     }
 }
 
-export function structureElementLocationToSchemaItem(
+function locationToSchemaItem(
     loc: StructureElement.Location,
     granularity: 'atom' | 'residue' | 'chain' = 'atom'
 ): StructureElementSchemaItem {
@@ -193,3 +193,9 @@ export function structureElementLocationToSchemaItem(
         return ret;
     }
 }
+
+export const StructureElementSchema = {
+    toExpression,
+    forEachItem,
+    locationToSchemaItem
+};

@@ -7,15 +7,17 @@
 import { StructureInteractions } from '../../extensions/interactions/model';
 import { ComputeInteractions, InteractionsShape } from '../../extensions/interactions/transforms';
 import { MolViewSpec } from '../../extensions/mvs/behavior';
-import { forEachSchemaItem, StructureElementSchema, StructureElementSchemaItem, structureElementSchemaToExpression } from '../../mol-model/structure/query/schema';
-import { StructureSelectionQuery } from '../../mol-plugin-state/helpers/structure-selection-query';
-import { ShapeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
+import { ResidueIndex, Structure, StructureElement, StructureProperties, StructureQuery } from '../../mol-model/structure';
+import { atoms } from '../../mol-model/structure/query/queries/generators';
+import { StructureSelectionFromBundle } from '../../mol-plugin-state/transforms/model';
+import { ShapeRepresentation3D, StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { createPluginUI } from '../../mol-plugin-ui';
 import { renderReact18 } from '../../mol-plugin-ui/react18';
 import '../../mol-plugin-ui/skin/light.scss';
 import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginConfig } from '../../mol-plugin/config';
+import { PluginContext } from '../../mol-plugin/context';
 import { PluginSpec } from '../../mol-plugin/spec';
 import './index.html';
 
@@ -49,9 +51,20 @@ async function createViewer(root: HTMLElement) {
     return plugin;
 }
 
-export async function loadInteractionsExample(root: HTMLElement) {
+async function init(elem: HTMLElement | string) {
+    const root = typeof elem === 'string' ? document.getElementById('viewer')! : elem;
     const plugin = await createViewer(root);
+    await Examples.computed(plugin);
+    return {
+        plugin,
+        examples: Object.fromEntries(Object.entries(Examples).map(([k, v]) => [k, () => v(plugin)])),
+    };
+}
 
+async function loadComputedExample(plugin: PluginContext) {
+    await plugin.clear();
+
+    // Set up the receptor and ligand structures
     const receptorData = await plugin.builders.data.download({ url: '../../../examples/ace2.pdbqt' });
     const receptorTrajectory = await plugin.builders.structure.parseTrajectory(receptorData, 'pdbqt');
     const receptor = await plugin.builders.structure.hierarchy.applyPreset(receptorTrajectory, 'default');
@@ -60,6 +73,7 @@ export async function loadInteractionsExample(root: HTMLElement) {
     const ligandTrajectory = await plugin.builders.structure.parseTrajectory(ligandData, 'mol2');
     const ligand = await plugin.builders.structure.hierarchy.applyPreset(ligandTrajectory, 'default', { representationPreset: 'atomic-detail' });
 
+    // Compute the interactions
     const update = plugin.build();
 
     const receptorRef = receptor?.representation.components.polymer.ref!;
@@ -75,13 +89,14 @@ export async function loadInteractionsExample(root: HTMLElement) {
 
     await update.commit();
 
-    const expression = getInteractionExpression(interactionsRef.selector.data?.interactions!, receptorRef);
-    await plugin.managers.structure.component.add({
-        selection: StructureSelectionQuery('Binding Site', expression),
-        representation: 'ball-and-stick',
-        options: { checkExisting: false, label: 'Binding Site' },
-    });
+    console.log('Interactions', interactionsRef.selector.data?.interactions);
 
+    // Create ball and stick representations for the binding site and focus on the ligand
+    await createBindingSiteRepresentation(
+        plugin,
+        interactionsRef.selector.data?.interactions!,
+        new Map([[receptorRef, receptor?.representation.components.polymer.data]])
+    );
     PluginCommands.Camera.FocusObject(plugin, {
         targets: [{
             targetRef: ligand?.representation.representations.all.ref
@@ -89,42 +104,66 @@ export async function loadInteractionsExample(root: HTMLElement) {
     });
 }
 
-function getInteractionExpression(interactions: StructureInteractions, receptorRef: string) {
-    // TODO: check if empty, etc.
+async function createBindingSiteRepresentation(plugin: PluginContext, interactions: StructureInteractions, receptors: Map<string, Structure>) {
+    const contactBundles = getBindingSiteBundles(interactions, receptors);
+    const update = plugin.build();
 
-    const added = new Set<string>();
-    const schema: StructureElementSchemaItem[] = [];
+    for (const [ref, bundle] of contactBundles) {
+        update.to(ref)
+            .apply(StructureSelectionFromBundle, { bundle, label: 'Binding Site' })
+            .apply(StructureRepresentation3D, {
+                type: { name: 'ball-and-stick', params: {} },
+                colorTheme: { name: 'element-symbol', params: { carbonColor: { name: 'element-symbol', params: {} } } },
+            });
+    }
 
-    const add = (a: StructureElementSchema) => {
-        forEachSchemaItem(a, item => {
-            const key = JSON.stringify(item);
-            if (!added.has(key)) {
-                added.add(key);
-                schema.push(item);
-            }
-        });
+    await update.commit();
+}
+
+function getBindingSiteBundles(interactions: StructureInteractions, receptors: Map<string, Structure>) {
+    const residueIndices = new Map<string, Set<ResidueIndex>>();
+
+    const loc = StructureElement.Location.create();
+    const add = (ref: string, loci: StructureElement.Loci) => {
+        if (!receptors.has(ref)) return;
+
+        let set: Set<ResidueIndex>;
+        if (residueIndices.has(ref)) {
+            set = residueIndices.get(ref)!;
+        } else {
+            set = new Set<ResidueIndex>();
+            residueIndices.set(ref, set);
+        }
+        StructureElement.Loci.forEachLocation(loci, l => {
+            set.add(StructureProperties.residue.key(l));
+        }, loc);
     };
 
     for (const e of interactions.elements) {
-        // TODO: add the residues from the LOCI instead!
-        if (e.schema.aStructureRef === receptorRef) add(normalizeSchema(e.schema.a));
-        if (e.schema.bStructureRef === receptorRef) add(normalizeSchema(e.schema.b));
+        add(e.aStructureRef!, e.a);
+        add(e.bStructureRef!, e.b);
     }
 
-    return structureElementSchemaToExpression(schema);
+    const bundles: [ref: string, bundle: StructureElement.Bundle][] = [];
+
+    for (const [ref, indices] of Array.from(residueIndices.entries())) {
+        if (indices.size === 0) continue;
+
+        const loci = StructureQuery.loci(
+            atoms({
+                residueTest: e => indices.has(StructureProperties.residue.key(e.element))
+            }),
+            receptors.get(ref)!,
+        );
+        if (StructureElement.Loci.isEmpty(loci)) continue;
+        bundles.push([ref, StructureElement.Bundle.fromLoci(loci)]);
+    }
+
+    return bundles;
 }
 
-function normalizeSchema(schema: StructureElementSchema) {
-    const ret: StructureElementSchema = [];
-    forEachSchemaItem(schema, item => {
-        const e = { ...item };
-        delete e.atom_id;
-        delete e.atom_index;
-        delete e.label_atom_id;
-        delete e.auth_atom_id;
-        ret.push(e);
-    });
-    return ret;
-}
+const Examples = {
+    computed: loadComputedExample,
+};
 
-loadInteractionsExample(document.getElementById('viewer')!);
+(window as any).initInteractionsExample = init;

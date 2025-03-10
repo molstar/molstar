@@ -80,7 +80,7 @@ function buildPrimitiveMesh(data: InteractionData['data'], prev?: Mesh): Shape<M
 
     for (const interaction of data.interactions.elements) {
         mesh.currentGroup++;
-        tooltips.set(mesh.currentGroup, interaction.schema.kind);
+        tooltips.set(mesh.currentGroup, interaction.info.kind);
 
         const a = StructureElement.Loci.getBoundary(interaction.a);
         const b = StructureElement.Loci.getBoundary(interaction.b);
