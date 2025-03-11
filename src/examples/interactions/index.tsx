@@ -115,12 +115,18 @@ async function loadComputedExample(plugin: PluginContext) {
     await plugin.clear();
 
     // Set up the receptor and ligand structures
-    const receptorData = await plugin.builders.data.download({ url: '../../../examples/ace2.pdbqt' });
-    const receptorTrajectory = await plugin.builders.structure.parseTrajectory(receptorData, 'pdbqt');
-    const receptor = await plugin.builders.structure.hierarchy.applyPreset(receptorTrajectory, 'default');
+    const receptorData = await plugin.builders.data.download({
+        // url: '../../../examples/docking/receptor_1.pdb'
+        url: 'https://files.rcsb.org/download/1IEP.cif'
+    });
+    const receptorTrajectory = await plugin.builders.structure.parseTrajectory(receptorData, 'mmcif');
+    const receptor = await plugin.builders.structure.hierarchy.applyPreset(receptorTrajectory, 'default', { representationPreset: 'polymer-cartoon' });
 
-    const ligandData = await plugin.builders.data.download({ url: '../../../examples/ace2-hit.mol2' });
-    const ligandTrajectory = await plugin.builders.structure.parseTrajectory(ligandData, 'mol2');
+    const ligandData = await plugin.builders.data.download({
+        // url: '../../../examples/docking/ligands_1.sdf'
+        url: 'https://models.rcsb.org/v1/1iep/atoms?label_asym_id=G&copy_all_categories=false'
+    });
+    const ligandTrajectory = await plugin.builders.structure.parseTrajectory(ligandData, 'mmcif');
     const ligand = await plugin.builders.structure.hierarchy.applyPreset(ligandTrajectory, 'default', { representationPreset: 'atomic-detail' });
 
     // Compute the interactions

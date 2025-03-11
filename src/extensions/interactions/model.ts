@@ -30,6 +30,19 @@ export type InteractionSchema =
 
 export type InteractionKind = InteractionSchema['kind']
 
+export const InteractionKinds: InteractionKind[] = [
+    'unknown',
+    'ionic',
+    'pi-stacking',
+    'cation-pi',
+    'halogen-bond',
+    'hydrogen-bond',
+    'weak-hydrogen-bond',
+    'hydrophobic',
+    'metal-coordination',
+    'covalent',
+];
+
 export type InteractionInfo =
     | { kind: 'unknown' }
     | { kind: 'ionic' }
