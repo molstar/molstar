@@ -4,14 +4,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StructureInteractions } from '../../extensions/interactions/model';
+import { createRoot } from 'react-dom/client';
+import { BehaviorSubject } from 'rxjs';
+import { InteractionElementSchema, InteractionKind, StructureInteractions } from '../../extensions/interactions/model';
 import { ComputeInteractions, CustomInteractions, InteractionsShape } from '../../extensions/interactions/transforms';
 import { MolViewSpec } from '../../extensions/mvs/behavior';
 import { ResidueIndex, Structure, StructureElement, StructureProperties, StructureQuery } from '../../mol-model/structure';
 import { atoms } from '../../mol-model/structure/query/queries/generators';
+import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 import { StructureSelectionFromBundle } from '../../mol-plugin-state/transforms/model';
 import { ShapeRepresentation3D, StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { createPluginUI } from '../../mol-plugin-ui';
+import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
 import { renderReact18 } from '../../mol-plugin-ui/react18';
 import '../../mol-plugin-ui/skin/light.scss';
 import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
@@ -111,22 +115,16 @@ function getBindingSiteBundles(interactions: StructureInteractions, receptors: M
 
 
 
-async function loadComputedExample(plugin: PluginContext) {
+async function loadComputedExample(plugin: PluginContext, { receptorUrl, ligandUrl }: { receptorUrl: [url: string, format: BuiltInTrajectoryFormat], ligandUrl: [url: string, format: BuiltInTrajectoryFormat] }) {
     await plugin.clear();
 
     // Set up the receptor and ligand structures
-    const receptorData = await plugin.builders.data.download({
-        // url: '../../../examples/docking/receptor_1.pdb'
-        url: 'https://files.rcsb.org/download/1IEP.cif'
-    });
-    const receptorTrajectory = await plugin.builders.structure.parseTrajectory(receptorData, 'mmcif');
+    const receptorData = await plugin.builders.data.download({ url: receptorUrl[0] });
+    const receptorTrajectory = await plugin.builders.structure.parseTrajectory(receptorData, receptorUrl[1]);
     const receptor = await plugin.builders.structure.hierarchy.applyPreset(receptorTrajectory, 'default', { representationPreset: 'polymer-cartoon' });
 
-    const ligandData = await plugin.builders.data.download({
-        // url: '../../../examples/docking/ligands_1.sdf'
-        url: 'https://models.rcsb.org/v1/1iep/atoms?label_asym_id=G&copy_all_categories=false'
-    });
-    const ligandTrajectory = await plugin.builders.structure.parseTrajectory(ligandData, 'mmcif');
+    const ligandData = await plugin.builders.data.download({ url: ligandUrl[0] });
+    const ligandTrajectory = await plugin.builders.structure.parseTrajectory(ligandData, ligandUrl[1]);
     const ligand = await plugin.builders.structure.hierarchy.applyPreset(ligandTrajectory, 'default', { representationPreset: 'atomic-detail' });
 
     // Compute the interactions
@@ -188,14 +186,6 @@ async function loadCustomExample(plugin: PluginContext) {
                 a: { auth_seq_id: 353, auth_atom_id: 'N' },
                 bStructureRef: ligandRef,
                 b: { atom_index: 9 },
-            },
-            {
-                kind: 'unknown',
-                aStructureRef: receptorRef,
-                a: { auth_seq_id: 354, auth_atom_id: 'N' },
-                bStructureRef: ligandRef,
-                b: [{ atom_index: 25 }, { atom_index: 26 }],
-                description: 'Random test interaction'
             }
         ]
     }, { dependsOn: refs });
@@ -219,19 +209,134 @@ async function loadCustomExample(plugin: PluginContext) {
     });
 }
 
+async function loadTestAllExample(plugin: PluginContext) {
+    await plugin.clear();
+
+    // Set up the receptor and ligand structures
+    const receptorData = await plugin.builders.data.download({ url: '../../../examples/ace2.pdbqt' });
+    const receptorTrajectory = await plugin.builders.structure.parseTrajectory(receptorData, 'pdbqt');
+    const receptor = await plugin.builders.structure.hierarchy.applyPreset(receptorTrajectory, 'default');
+
+    const ligandData = await plugin.builders.data.download({ url: '../../../examples/ace2-hit.mol2' });
+    const ligandTrajectory = await plugin.builders.structure.parseTrajectory(ligandData, 'mol2');
+    const ligand = await plugin.builders.structure.hierarchy.applyPreset(ligandTrajectory, 'default', { representationPreset: 'atomic-detail' });
+
+    // Compute the interactions
+    const update = plugin.build();
+
+    const receptorRef = receptor?.representation.components.polymer.ref!;
+    const ligandRef = ligand?.representation.components.all.ref!;
+
+    const refs = [receptorRef, ligandRef];
+
+    const basic = (kind: InteractionKind, atom_index: number): InteractionElementSchema => {
+        return {
+            kind,
+            aStructureRef: receptorRef,
+            a: { auth_seq_id: 354, auth_atom_id: 'N' },
+            bStructureRef: ligandRef,
+            b: { atom_index }
+        };
+    };
+
+    const covalent = (degree: number, atom_index: number): InteractionElementSchema => {
+        return {
+            kind: 'covalent',
+            degree,
+            aStructureRef: receptorRef,
+            a: { auth_seq_id: 354, auth_atom_id: 'N' },
+            bStructureRef: ligandRef,
+            b: { atom_index }
+        };
+    };
+
+    const interactionsRef = update.toRoot().apply(CustomInteractions, {
+        interactions: [
+            basic('unknown', 1),
+            basic('ionic', 2),
+            basic('pi-stacking', 3),
+            basic('cation-pi', 4),
+            basic('halogen-bond', 5),
+            basic('hydrogen-bond', 6),
+            basic('weak-hydrogen-bond', 7),
+            basic('hydrophobic', 8),
+            basic('metal-coordination', 9),
+            basic('salt-bridge', 10),
+            covalent(1, 11),
+            covalent(2, 12),
+            covalent(3, 13),
+            covalent(4, 14),
+        ]
+    }, { dependsOn: refs });
+
+    interactionsRef.apply(InteractionsShape).apply(ShapeRepresentation3D);
+
+    await update.commit();
+
+    console.log('Interactions', interactionsRef.selector.data?.interactions);
+
+    // Create ball and stick representations for the binding site and focus on the ligand
+    await createBindingSiteRepresentation(
+        plugin,
+        interactionsRef.selector.data?.interactions!,
+        new Map([[receptorRef, receptor?.representation.components.polymer.data]])
+    );
+    PluginCommands.Camera.FocusObject(plugin, {
+        targets: [{
+            targetRef: ligand?.representation.representations.all.ref
+        }]
+    });
+}
+
+// url: '../../../examples/docking/receptor_1.pdb'
+// url: '../../../examples/docking/ligands_1.sdf'
+
 const Examples = {
-    computed: loadComputedExample,
-    custom: loadCustomExample
+    'Computed (1iep)': (plugin: PluginContext) => loadComputedExample(plugin, {
+        receptorUrl: ['https://files.rcsb.org/download/1IEP.cif', 'mmcif'],
+        ligandUrl: ['https://models.rcsb.org/v1/1iep/atoms?label_asym_id=G&copy_all_categories=false', 'mmcif']
+    }),
+    'Computed (ACE2)': (plugin: PluginContext) => loadComputedExample(plugin, {
+        receptorUrl: ['../../../examples/ace2.pdbqt', 'pdbqt'],
+        ligandUrl: ['../../../examples/ace2-hit.mol2', 'mol2']
+    }),
+    'Custom': loadCustomExample,
+    'Synthetic': loadTestAllExample
 };
 
-async function init(elem: HTMLElement | string, defaultExample: keyof typeof Examples = 'computed') {
-    const root = typeof elem === 'string' ? document.getElementById('viewer')! : elem;
+function SelectExampleUI({ state, load }: { state: BehaviorSubject<{ name?: keyof typeof Examples, isLoading?: boolean }>, load: (name: keyof typeof Examples) => void }) {
+    const current = useBehavior(state);
+    return <div>
+        Current Example:{' '}
+        <select value={current.name} onChange={e => load(e.target.value as any)} disabled={current.isLoading}>
+            {Object.keys(Examples).map(k => <option key={k} value={k}>{k}</option>)}
+        </select>
+    </div>;
+}
+
+async function init(viewer: HTMLElement | string, controls: HTMLElement | string, defaultExample: keyof typeof Examples = 'Synthetic') {
+    const root = typeof viewer === 'string' ? document.getElementById('viewer')! : viewer;
     const plugin = await createViewer(root);
-    Examples[defaultExample](plugin);
-    return {
-        plugin,
-        examples: Object.fromEntries(Object.entries(Examples).map(([k, v]) => [k, () => v(plugin)])),
+
+    const state = new BehaviorSubject<{ name?: keyof typeof Examples, isLoading?: boolean }>({});
+    const loadExample = async (name: keyof typeof Examples) => {
+        state.next({ name, isLoading: true });
+        try {
+            await Examples[name](plugin);
+            state.next({ name });
+        } catch (e) {
+            console.error(e);
+        } finally {
+            state.next({});
+        }
     };
+
+    createRoot(
+        typeof controls === 'string' ? document.getElementById('controls')! : controls
+    ).render(<SelectExampleUI state={state} load={loadExample} />);
+
+    loadExample(defaultExample);
+    return { plugin, loadExample };
 }
 
 

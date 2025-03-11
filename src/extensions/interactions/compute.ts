@@ -4,11 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { FeatureType } from '../../mol-model-props/computed/interactions/common';
 import { computeInteractions as _compute, Interactions } from '../../mol-model-props/computed/interactions/interactions';
 import { Structure, StructureElement } from '../../mol-model/structure';
 import { RuntimeContext } from '../../mol-task';
 import { AssetManager } from '../../mol-util/assets';
-import { InteractionTypeToKind, StructureInteractions } from './model';
+import { InteractionInfo, InteractionTypeToKind, StructureInteractions } from './model';
 
 export interface ComputeInteractionsOptions {
     // includeInterStructure?: boolean,
@@ -37,36 +38,56 @@ export async function computeInteractions(
     const interactions = await _compute({ runtime: ctx, assetManager: new AssetManager() }, structure, { });
 
     const { edges } = interactions.contacts;
-    const result: StructureInteractions = { elements: [] };
+    const result: StructureInteractions = { kind: 'structure-interactions', elements: [] };
     for (const e of edges) {
         if (e.unitA > e.unitB) continue;
 
-        result.elements.push({
-            info: { kind: InteractionTypeToKind[e.props.type] },
-            aStructureRef: unitIdToRef.get(e.unitA)!,
-            bStructureRef: unitIdToRef.get(e.unitB)!,
-            a: toLoci(structure, interactions, e.unitA, e.indexA),
-            b: toLoci(structure, interactions, e.unitB, e.indexB),
-        });
+        const [a, aType] = processFeature(structure, interactions, e.unitA, e.indexA);
+        const [b] = processFeature(structure, interactions, e.unitB, e.indexB);
+
+        const kind = InteractionTypeToKind[e.props.type] ?? 'unknown';
+        const info: InteractionInfo = { kind };
+
+        if (kind === 'hydrogen-bond' || kind === 'weak-hydrogen-bond') {
+            const isADonor = aType === FeatureType.HydrogenDonor || aType === FeatureType.WeakHydrogenDonor;
+
+            result.elements.push({
+                info,
+                aStructureRef: isADonor ? unitIdToRef.get(e.unitA)! : unitIdToRef.get(e.unitB)!,
+                bStructureRef: isADonor ? unitIdToRef.get(e.unitB)! : unitIdToRef.get(e.unitA)!,
+                a: isADonor ? a : b,
+                b: isADonor ? b : a,
+            });
+        } else {
+            result.elements.push({
+                info,
+                aStructureRef: unitIdToRef.get(e.unitA)!,
+                bStructureRef: unitIdToRef.get(e.unitB)!,
+                a,
+                b,
+            });
+        }
     }
 
     return result;
 }
 
 const _loc = StructureElement.Location.create();
-function toLoci(structure: Structure, interactions: Interactions, unitId: number, featureIndex: number) {
+function processFeature(structure: Structure, interactions: Interactions, unitId: number, featureIndex: number) {
     _loc.structure = structure;
     _loc.unit = structure.unitMap.get(unitId);
     const xs = interactions.unitsFeatures.get(unitId)!;
 
+    let type: FeatureType = FeatureType.None;
     const builder = structure.subsetBuilder(false);
     builder.beginUnit(_loc.unit.id);
     for (let o = xs.offsets[featureIndex], uIEnd = xs.offsets[featureIndex + 1]; o < uIEnd; o++) {
         const unitIndex = xs.members[o];
         _loc.element = _loc.unit.elements[unitIndex];
         builder.addElement(_loc.element);
+        type = xs.types[o];
     }
     builder.commitUnit();
 
-    return Structure.toStructureElementLoci(builder.getStructure());
+    return [Structure.toStructureElementLoci(builder.getStructure()), type] as const;
 }

@@ -12,8 +12,8 @@ import { Task } from '../../mol-task';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { computeInteractions, ComputeInteractionsOptions } from './compute';
 import { getCustomInteractionData } from './custom';
-import { InteractionSchema, StructureInteractions } from './model';
-import { buildInteractionsShape } from './visuals';
+import { InteractionElementSchema, StructureInteractions } from './model';
+import { buildInteractionsShape, InteractionVisualParams } from './visuals';
 
 const Factory = StateTransformer.builderFactory('interactions-extension');
 
@@ -59,7 +59,7 @@ export const CustomInteractions = Factory({
     from: SO.Root,
     to: InteractionData,
     params: {
-        interactions: PD.Value<InteractionSchema[]>([], { isHidden: true }),
+        interactions: PD.Value<InteractionElementSchema[]>([], { isHidden: true }),
     },
 })({
     apply({ params, dependencies }) {
@@ -79,13 +79,15 @@ export const InteractionsShape = Factory({
     display: { name: 'Interactions Shape' },
     from: InteractionData,
     to: SO.Shape.Provider,
+    params: InteractionVisualParams
 })({
-    apply({ a }) {
+    canAutoUpdate: () => true,
+    apply({ a, params }) {
         return new SO.Shape.Provider({
             label: 'Interactions Shape Provider',
-            data: a.data.interactions,
+            data: { interactions: a.data.interactions, params },
             params: PD.withDefaults(Mesh.Params, { }),
-            getShape: (_, data: StructureInteractions, __, prev: any) => buildInteractionsShape(data, prev?.geometry),
+            getShape: (_, data: { interactions: StructureInteractions, params: InteractionVisualParams }, __, prev: any) => buildInteractionsShape(data.interactions, data.params, prev?.geometry),
             geometryUtils: Mesh.Utils,
         }, { label: 'Interactions Shape Provider' });
     }

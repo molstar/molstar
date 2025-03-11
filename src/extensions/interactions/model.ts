@@ -8,7 +8,7 @@ import { InteractionType } from '../../mol-model-props/computed/interactions/com
 import { StructureElement } from '../../mol-model/structure';
 import { StructureElementSchema, StructureElementSchemaItem } from '../../mol-model/structure/query/schema';
 
-interface InteractionElementsSchema {
+interface InteractionElementSchemaBase {
     aStructureRef?: string,
     a: StructureElementSchema,
     bStructureRef?: string,
@@ -16,19 +16,20 @@ interface InteractionElementsSchema {
     description?: string,
 }
 
-export type InteractionSchema =
-    | { kind: 'unknown' } & InteractionElementsSchema
-    | { kind: 'ionic' } & InteractionElementsSchema
-    | { kind: 'pi-stacking' } & InteractionElementsSchema
-    | { kind: 'cation-pi' } & InteractionElementsSchema
-    | { kind: 'halogen-bond' } & InteractionElementsSchema
-    | { kind: 'hydrogen-bond', hydrogenStructureRef?: string, hydrogen?: StructureElementSchemaItem } & InteractionElementsSchema
-    | { kind: 'weak-hydrogen-bond', hydrogenStructureRef?: string, hydrogen?: StructureElementSchemaItem } & InteractionElementsSchema
-    | { kind: 'hydrophobic' } & InteractionElementsSchema
-    | { kind: 'metal-coordination' } & InteractionElementsSchema
-    | { kind: 'covalent', degree?: number } & InteractionElementsSchema
+export type InteractionElementSchema =
+    | { kind: 'unknown' } & InteractionElementSchemaBase
+    | { kind: 'ionic' } & InteractionElementSchemaBase
+    | { kind: 'pi-stacking' } & InteractionElementSchemaBase
+    | { kind: 'cation-pi' } & InteractionElementSchemaBase
+    | { kind: 'halogen-bond' } & InteractionElementSchemaBase
+    | { kind: 'hydrogen-bond', hydrogenStructureRef?: string, hydrogen?: StructureElementSchemaItem } & InteractionElementSchemaBase
+    | { kind: 'weak-hydrogen-bond', hydrogenStructureRef?: string, hydrogen?: StructureElementSchemaItem } & InteractionElementSchemaBase
+    | { kind: 'hydrophobic' } & InteractionElementSchemaBase
+    | { kind: 'metal-coordination' } & InteractionElementSchemaBase
+    | { kind: 'salt-bridge' } & InteractionElementSchemaBase
+    | { kind: 'covalent', degree?: number } & InteractionElementSchemaBase
 
-export type InteractionKind = InteractionSchema['kind']
+export type InteractionKind = InteractionElementSchema['kind']
 
 export const InteractionKinds: InteractionKind[] = [
     'unknown',
@@ -40,6 +41,7 @@ export const InteractionKinds: InteractionKind[] = [
     'weak-hydrogen-bond',
     'hydrophobic',
     'metal-coordination',
+    'salt-bridge',
     'covalent',
 ];
 
@@ -50,14 +52,15 @@ export type InteractionInfo =
     | { kind: 'cation-pi' }
     | { kind: 'halogen-bond' }
     | { kind: 'hydrogen-bond', hydrogenStructureRef?: string, hydrogen?: StructureElement.Loci }
-    | { kind: 'weak-hydrogen-bond', hydrogenStructureRef?: string, hydrogen?: StructureElementSchemaItem }
+    | { kind: 'weak-hydrogen-bond', hydrogenStructureRef?: string, hydrogen?: StructureElement.Loci }
     | { kind: 'hydrophobic' }
     | { kind: 'metal-coordination' }
+    | { kind: 'salt-bridge' }
     | { kind: 'covalent', degree?: number }
 
 export interface StructureInteractionElement {
     // Pass the schema when loading from custom data
-    sourceSchema?: InteractionSchema,
+    sourceSchema?: InteractionElementSchema,
 
     info: InteractionInfo,
     aStructureRef?: string,
@@ -67,6 +70,7 @@ export interface StructureInteractionElement {
 }
 
 export interface StructureInteractions {
+    kind: 'structure-interactions',
     elements: StructureInteractionElement[],
 }
 

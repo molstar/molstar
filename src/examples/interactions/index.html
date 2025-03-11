@@ -20,13 +20,12 @@
             }
             #controls {
                 position: absolute;
-                left: 8px;
-                top: 8px;
+                left: 40%;
+                bottom: 8px;
                 font-family: sans-serif;
             }
-            #controls button {
-                display: block;
-                margin-top: 4px;
+            #controls select {
+                margin-left: 4px;
                 padding: 4px 8px;
             }
         </style>
@@ -35,19 +34,10 @@
     <body>
         <div id="viewer"></div>
         <div id="controls">
-            <div>Examples:</div>
         </div>
         <script type="text/javascript" src="./index.js"></script>
         <script>
-            initInteractionsExample('viewer', 'computed').then(({ examples }) => {
-                const controls = document.getElementById('controls');
-                for (const example of Object.keys(examples)) {
-                    const button = document.createElement('button');
-                    button.addEventListener('click', () => examples[example]());
-                    button.innerText = example;
-                    controls.appendChild(button);
-                }
-            });
+            initInteractionsExample('viewer', 'controls');
         </script>
     </body>
 </html>

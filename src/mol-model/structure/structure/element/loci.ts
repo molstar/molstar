@@ -24,6 +24,7 @@ import { StructureProperties } from '../properties';
 import { BoundaryHelper } from '../../../../mol-math/geometry/boundary-helper';
 import { Boundary } from '../../../../mol-math/geometry/boundary';
 import { IntTuple } from '../../../../mol-data/int/tuple';
+import { Box3D, Sphere3D } from '../../../../mol-math/geometry';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const itDiff = IntTuple.diff;
@@ -552,7 +553,7 @@ export namespace Loci {
 
     const boundaryHelper = new BoundaryHelper('98');
     const tempPosBoundary = Vec3();
-    export function getBoundary(loci: Loci, transform?: Mat4): Boundary {
+    export function getBoundary(loci: Loci, transform?: Mat4, result?: { box?: Box3D, sphere?: Sphere3D }): Boundary {
         boundaryHelper.reset();
 
         for (const e of loci.elements) {
@@ -575,6 +576,12 @@ export namespace Loci {
                 if (transform) Vec3.transformMat4(tempPosBoundary, tempPosBoundary, transform);
                 boundaryHelper.radiusPositionRadius(tempPosBoundary, conformation.r(eI));
             }
+        }
+
+        if (result) {
+            if (result.box) boundaryHelper.getBox(result.box);
+            if (result.sphere) boundaryHelper.getSphere(result.sphere);
+            return result as any;
         }
 
         return { box: boundaryHelper.getBox(), sphere: boundaryHelper.getSphere() };

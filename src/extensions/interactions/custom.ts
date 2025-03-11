@@ -7,23 +7,33 @@
 import { Structure, StructureSelection } from '../../mol-model/structure';
 import { StructureElementSchema } from '../../mol-model/structure/query/schema';
 import { StructureQueryHelper } from '../../mol-plugin-state/helpers/structure-query';
-import { InteractionSchema, StructureInteractionElement, StructureInteractions } from './model';
+import { InteractionInfo, InteractionElementSchema, StructureInteractionElement, StructureInteractions } from './model';
 
-export function getCustomInteractionData(interactions: InteractionSchema[], structures: { [ref: string]: Structure }): StructureInteractions {
+export function getCustomInteractionData(interactions: InteractionElementSchema[], structures: { [ref: string]: Structure }): StructureInteractions {
     const elements: StructureInteractionElement[] = [];
 
     for (const schema of interactions) {
+        let info: InteractionInfo;
+        if (schema.kind === 'hydrogen-bond' || schema.kind === 'weak-hydrogen-bond') {
+            info = {
+                kind: schema.kind,
+                hydrogenStructureRef: schema.hydrogenStructureRef,
+                hydrogen: schema.hydrogen ? resolveLoci(structures[schema.hydrogenStructureRef!], schema.hydrogen) : undefined,
+            };
+        } else {
+            info = { kind: schema.kind };
+        }
         elements.push({
             sourceSchema: schema,
-            info: { kind: schema.kind },
+            info,
             aStructureRef: schema.aStructureRef,
             a: resolveLoci(structures[schema.aStructureRef!], schema.a),
             bStructureRef: schema.bStructureRef,
-            b: resolveLoci(structures[schema.bStructureRef!], schema.b)
+            b: resolveLoci(structures[schema.bStructureRef!], schema.b),
         });
     }
 
-    return { elements };
+    return { kind: 'structure-interactions', elements };
 }
 
 function resolveLoci(structure: Structure, schema: StructureElementSchema) {
