@@ -307,7 +307,10 @@ const Examples = {
     'Synthetic': loadTestAllExample
 };
 
-function SelectExampleUI({ state, load }: { state: BehaviorSubject<{ name?: keyof typeof Examples, isLoading?: boolean }>, load: (name: keyof typeof Examples) => void }) {
+function SelectExampleUI({ state, load }: {
+    state: BehaviorSubject<{ name?: keyof typeof Examples, isLoading?: boolean }>,
+    load: (name: keyof typeof Examples) => void
+}) {
     const current = useBehavior(state);
     return <div>
         Current Example:{' '}
