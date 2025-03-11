@@ -229,20 +229,22 @@ async function loadTestAllExample(plugin: PluginContext) {
 
     const refs = [receptorRef, ligandRef];
 
-    const basic = (kind: InteractionKind, atom_index: number): InteractionElementSchema => {
+    const basic = (kind: InteractionKind, atom_index: number | number[], description?: string): InteractionElementSchema => {
         return {
             kind,
             aStructureRef: receptorRef,
             a: { auth_seq_id: 354, auth_atom_id: 'N' },
             bStructureRef: ligandRef,
-            b: { atom_index }
+            b: Array.isArray(atom_index) ? atom_index.map(i => ({ atom_index: i })) : { atom_index },
+            description,
         };
     };
 
     const covalent = (degree: number, atom_index: number): InteractionElementSchema => {
         return {
             kind: 'covalent',
-            degree,
+            degree: Math.abs(degree),
+            aromatic: degree === -1,
             aStructureRef: receptorRef,
             a: { auth_seq_id: 354, auth_atom_id: 'N' },
             bStructureRef: ligandRef,
@@ -265,7 +267,8 @@ async function loadTestAllExample(plugin: PluginContext) {
             covalent(1, 11),
             covalent(2, 12),
             covalent(3, 13),
-            covalent(4, 14),
+            covalent(-1, 14), // aromatic
+            basic('unknown', [0, 1, 2, 3, 13, 14], 'Testing centroid for atom set'),
         ]
     }, { dependsOn: refs });
 

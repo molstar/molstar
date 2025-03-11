@@ -11,6 +11,7 @@ import { Sphere3D } from '../../mol-math/geometry';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { Shape } from '../../mol-model/shape';
 import { StructureElement } from '../../mol-model/structure';
+import { addLinkCylinderMesh, AddLinkOptions, AddLinkParams, DefaultLinkCylinderProps, LinkStyle } from '../../mol-repr/structure/visual/util/link';
 import { Color } from '../../mol-util/color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { stringToWords } from '../../mol-util/string';
@@ -46,8 +47,11 @@ export const InteractionVisualParams = {
         'weak-hydrogen-bond': hydrogenVisualParams({ color: Color(0x0) }),
         'hydrophobic': visualParams({ color: Color(0x555555) }),
         'metal-coordination': visualParams({ color: Color(0x952e8f) }),
-        'salt-bridge': visualParams({ color: Color(0x952e8f) }),
-        'covalent': visualParams({ color: Color(0x555555), style: 'solid', radius: 0.1 }),
+        'salt-bridge': visualParams({ color: Color(0xF54029) }),
+        'covalent': PD.Group({
+            color: PD.Color(Color(0x999999)),
+            radius: PD.Numeric(0.1, { min: 0.01, max: 1, step: 0.01 }),
+        }),
     })
 };
 
@@ -73,13 +77,27 @@ export function buildInteractionsShape(interactions: StructureInteractions, para
     const dir = Vec3();
     const capPos = Vec3();
 
+    const addLinkOptions: AddLinkOptions = {
+        builderState: mesh,
+        props: { ...DefaultLinkCylinderProps },
+    };
+    const addLinkParams: AddLinkParams = {
+        a: pA,
+        b: pB,
+        group: 0,
+        linkStub: false,
+        linkStyle: LinkStyle.Solid,
+        linkRadius: 0,
+    };
+
     for (const interaction of interactions.elements) {
         mesh.currentGroup++;
         if (!visible.has(interaction.info.kind)) continue;
 
         let tooltip: string;
         if (interaction.info.kind === 'covalent') {
-            if (interaction.info.degree === 1) tooltip = 'Single';
+            if (interaction.info.aromatic) tooltip = 'Aromatic';
+            else if (interaction.info.degree === 1) tooltip = 'Single';
             else if (interaction.info.degree === 2) tooltip = 'Double';
             else if (interaction.info.degree === 3) tooltip = 'Triple';
             else if (interaction.info.degree === 4) tooltip = 'Quadruple';
@@ -92,7 +110,11 @@ export function buildInteractionsShape(interactions: StructureInteractions, para
         }
         tooltips.set(mesh.currentGroup, tooltip);
 
-        const style = params.styles[interaction.info.kind];
+        const options = params.styles[interaction.info.kind];
+        let style: 'dashed' | 'solid' = 'solid';
+        if (interaction.info.kind !== 'covalent') {
+            style = params.styles[interaction.info.kind].style;
+        }
 
         colors.set(mesh.currentGroup, params.styles[interaction.info.kind].color);
 
@@ -113,9 +135,9 @@ export function buildInteractionsShape(interactions: StructureInteractions, para
 
             if (hydrogenStyle.showArrow) {
                 const dist = Vec3.distance(pA, pB);
-                const height = style.radius * 3;
+                const height = options.radius * 3;
                 Vec3.scaleAndAdd(capPos, pB, dir, -height);
-                cylinder(mesh, pA, capPos, style.radius, style.style);
+                cylinder(mesh, pA, capPos, options.radius, style);
                 addCylinder(
                     mesh,
                     capPos,
@@ -124,14 +146,25 @@ export function buildInteractionsShape(interactions: StructureInteractions, para
                     { radiusTop: height, radiusBottom: 0, topCap: true, bottomCap: false }
                 );
             } else {
-                cylinder(mesh, pA, pB, style.radius, style.style);
+                cylinder(mesh, pA, pB, options.radius, style);
             }
         } else {
             if (interaction.info.kind !== 'covalent') {
-                cylinder(mesh, pA, pB, style.radius, style.style);
+                cylinder(mesh, pA, pB, options.radius, style);
             } else {
-                // TODO: support multiple bonds
-                cylinder(mesh, pA, pB, style.radius, style.style);
+                addLinkParams.group = mesh.currentGroup;
+                addLinkParams.linkRadius = options.radius;
+                const degree = interaction.info.degree ?? 1;
+                if (interaction.info.aromatic) addLinkParams.linkStyle = LinkStyle.Aromatic;
+                else if (degree === 2) addLinkParams.linkStyle = LinkStyle.Double;
+                else if (degree === 3) addLinkParams.linkStyle = LinkStyle.Triple;
+                else addLinkParams.linkStyle = LinkStyle.Solid;
+                addLinkParams.a = pA;
+                addLinkParams.b = pB;
+                addLinkCylinderMesh(addLinkOptions, addLinkParams);
+                addLinkParams.a = pB;
+                addLinkParams.b = pA;
+                addLinkCylinderMesh(addLinkOptions, addLinkParams);
             }
         }
     }

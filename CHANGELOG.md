@@ -20,6 +20,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `interactions` extension and a corresponding example that utilizes it
 - Add element source index to default atomic granularity hover labels
 - Add `StructureElementSchema` based on corresponding MolViewSpec imlementation that allows data-driven selection of structural elements
+- Add `addLinkCylinderMesh` (from `createLinkCylinderMesh`)
 
 ## [v4.12.0] - 2025-02-28
 

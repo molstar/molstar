@@ -27,7 +27,7 @@ export type InteractionElementSchema =
     | { kind: 'hydrophobic' } & InteractionElementSchemaBase
     | { kind: 'metal-coordination' } & InteractionElementSchemaBase
     | { kind: 'salt-bridge' } & InteractionElementSchemaBase
-    | { kind: 'covalent', degree?: number } & InteractionElementSchemaBase
+    | { kind: 'covalent', degree?: number, aromatic?: boolean } & InteractionElementSchemaBase
 
 export type InteractionKind = InteractionElementSchema['kind']
 
@@ -56,7 +56,7 @@ export type InteractionInfo =
     | { kind: 'hydrophobic' }
     | { kind: 'metal-coordination' }
     | { kind: 'salt-bridge' }
-    | { kind: 'covalent', degree?: number }
+    | { kind: 'covalent', degree?: number, aromatic?: boolean }
 
 export interface StructureInteractionElement {
     // Pass the schema when loading from custom data
