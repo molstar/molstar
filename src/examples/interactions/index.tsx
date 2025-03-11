@@ -332,7 +332,6 @@ async function init(viewer: HTMLElement | string, controls: HTMLElement | string
             state.next({ name });
         } catch (e) {
             console.error(e);
-        } finally {
             state.next({});
         }
     };
