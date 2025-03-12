@@ -6,12 +6,12 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - `ihm-restraints` example: show entity labels
-- Support bundles in `MultiStructureSelectionFromExpression`
-- Support measurements for coarse models
 - Fix `element-point` visual not using child unit
 - Ignore `renderables` with empty draw count
-- Add experimental support for `esbuild` for development.
+- Add experimental support for `esbuild` for development
   - Use `npm run dev` for faster development builds
+- Use `StructureElement.Bundle` instead of expressions to serialize measurement elements
+  - Fixes measurements not being supported for coarse models
 - Implementation of `ColorScale.createDiscrete` (#1458)
 - Add `ColorScale.createDiscrete` to the `uncertainty` color theme
 - Fix color palette shown in the UI (for non-gradient palettes)
