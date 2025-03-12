@@ -20,34 +20,18 @@ const Factory = StateTransformer.builderFactory('interactions-extension');
 
 export class InteractionData extends SO.Create<{ interactions: StructureInteractions }>({ name: 'Interactions', typeClass: 'Data' }) { }
 
-export interface ComputeInteractionSource {
-    structureRef: string,
-    bundle?: StructureElement.Bundle,
-    // schema?: StructureElementSchema,
-}
-
 export const ComputeContacts = Factory({
     name: 'compute-contacts',
     display: 'Compute Contacts',
-    from: SO.Root,
+    from: SO.Molecule.Structure.Selections,
     to: InteractionData,
     params: {
-        sources: PD.Value<ComputeInteractionSource[]>([], { isHidden: true }),
         interactions: PD.Group(InteractionsParams),
     },
 })({
-    apply({ params, dependencies }) {
+    apply({ params, a }) {
         return Task.create('Compute Contacts', async ctx => {
-            const loci: [string, StructureElement.Loci][] = [];
-            for (const src of params.sources) {
-                const structure = dependencies?.[src.structureRef].data as Structure;
-                if (src.bundle) {
-                    loci.push([src.structureRef, StructureElement.Bundle.toLoci(src.bundle, structure)]);
-                } else {
-                    loci.push([src.structureRef, Structure.toStructureElementLoci(structure)]);
-                }
-            }
-
+            const loci: [string, StructureElement.Loci][] = a.data.map(e => [e.structureRef, e.loci]);
             const interactions = await computeContacts(ctx, loci, { interactions: params.interactions });
             return new InteractionData({ interactions }, { label: 'Interactions' });
         });

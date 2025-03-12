@@ -131,11 +131,6 @@ argParser.add_argument('--port', '-p', {
     default: 1338,
     type: 'int',
 });
-argParser.add_argument('--host-root', {
-    help: 'Host root folder.',
-    required: false,
-    action: 'store_true',
-});
 
 const args = argParser.parse_args();
 
@@ -157,7 +152,7 @@ console.log('Done.');
 
 const ctx = await esbuild.context({});
 ctx.serve({
-    servedir: args.host_root ? './' : './build',
+    servedir: './',
     port: args.port,
 });
 

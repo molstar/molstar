@@ -18,7 +18,6 @@ export interface ComputeInteractionsOptions {
 
 export async function computeContacts(
     ctx: RuntimeContext,
-    // selection: PluginStateObject.Molecule.Structure.SelectionEntry[],
     selection: [ref: string, StructureElement.Loci][],
     options?: ComputeInteractionsOptions
 ): Promise<StructureInteractions> {

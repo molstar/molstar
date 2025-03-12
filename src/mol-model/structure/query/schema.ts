@@ -8,7 +8,10 @@
 import { SymmetryOperator } from '../../../mol-math/geometry';
 import { MolScriptBuilder as MS } from '../../../mol-script/language/builder';
 import { Expression } from '../../../mol-script/language/expression';
-import { StructureElement, StructureProperties, Unit } from '../structure';
+import { compile } from '../../../mol-script/runtime/query/base';
+import { Structure, StructureElement, StructureProperties, Unit } from '../structure';
+import { QueryContext } from './context';
+import { StructureSelection } from './selection';
 
 export interface StructureElementSchemaItem {
     operator_name?: string,
@@ -194,8 +197,21 @@ function locationToSchemaItem(
     }
 }
 
+function toLoci(structure: Structure, schema: StructureElementSchema): StructureElement.Loci {
+    const expr = toExpression(schema);
+    const selection = compile(expr)(new QueryContext(structure));
+    return StructureSelection.toLociWithSourceUnits(selection);
+}
+
+function toBundle(structure: Structure, schema: StructureElementSchema): StructureElement.Bundle {
+    const loci = toLoci(structure, schema);
+    return StructureElement.Bundle.fromLoci(loci);
+}
+
 export const StructureElementSchema = {
     toExpression,
     forEachItem,
-    locationToSchemaItem
+    locationToSchemaItem,
+    toLoci,
+    toBundle,
 };

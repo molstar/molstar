@@ -11,18 +11,20 @@ import { ComputeContacts, CustomInteractions, InteractionsShape } from '../../ex
 import { MolViewSpec } from '../../extensions/mvs/behavior';
 import { ResidueIndex, Structure, StructureElement, StructureProperties, StructureQuery } from '../../mol-model/structure';
 import { atoms } from '../../mol-model/structure/query/queries/generators';
+import { StructureElementSchema } from '../../mol-model/structure/query/schema';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
-import { StructureSelectionFromBundle } from '../../mol-plugin-state/transforms/model';
+import { MultiStructureSelectionFromBundle, StructureSelectionFromBundle } from '../../mol-plugin-state/transforms/model';
 import { ShapeRepresentation3D, StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { createPluginUI } from '../../mol-plugin-ui';
 import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
 import { renderReact18 } from '../../mol-plugin-ui/react18';
-import '../../mol-plugin-ui/skin/light.scss';
 import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginConfig } from '../../mol-plugin/config';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginSpec } from '../../mol-plugin/spec';
+
+import '../../mol-plugin-ui/skin/light.scss';
 import './index.html';
 
 async function createViewer(root: HTMLElement) {
@@ -47,7 +49,6 @@ async function createViewer(root: HTMLElement) {
             ],
             config: [
                 [PluginConfig.Viewport.ShowAnimation, false],
-                [PluginConfig.Viewport.ShowTrajectoryControls, false],
             ]
         }
     });
@@ -115,7 +116,11 @@ function getBindingSiteBundles(interactions: StructureInteractions, receptors: M
 
 
 
-async function loadComputedExample(plugin: PluginContext, { receptorUrl, ligandUrl }: { receptorUrl: [url: string, format: BuiltInTrajectoryFormat], ligandUrl: [url: string, format: BuiltInTrajectoryFormat] }) {
+async function loadComputedExample(
+    plugin: PluginContext,
+    { receptorUrl, ligandUrl }: { receptorUrl: [url: string, format: BuiltInTrajectoryFormat], ligandUrl: [url: string, format: BuiltInTrajectoryFormat] },
+    options: { receptor_label_asym_id: string | undefined }
+) {
     await plugin.clear();
 
     // Set up the receptor and ligand structures
@@ -130,14 +135,20 @@ async function loadComputedExample(plugin: PluginContext, { receptorUrl, ligandU
     // Compute the interactions
     const update = plugin.build();
 
-    const receptorRef = receptor?.representation.components.polymer.ref!;
-    const ligandRef = ligand?.representation.components.all.ref!;
+    const receptorRef = receptor?.structure.ref!;
+    const ligandRef = ligand?.structure.ref!;
 
     const refs = [receptorRef, ligandRef];
-
-    const interactionsRef = update.toRoot().apply(ComputeContacts, {
-        sources: refs.map(structureRef => ({ structureRef })),
-    }, { dependsOn: refs });
+    const interactionsRef = update.toRoot()
+        .apply(MultiStructureSelectionFromBundle, {
+            selections: [
+                { key: 'a', ref: receptorRef, bundle: StructureElementSchema.toBundle(receptor?.structure.data!, { label_asym_id: options.receptor_label_asym_id }) },
+                { key: 'b', ref: ligandRef, bundle: StructureElementSchema.toBundle(ligand?.structure.data!, { }) },
+            ],
+            isTransitive: true,
+            label: 'Label'
+        }, { dependsOn: refs })
+        .apply(ComputeContacts);
 
     interactionsRef.apply(InteractionsShape).apply(ShapeRepresentation3D);
 
@@ -149,8 +160,9 @@ async function loadComputedExample(plugin: PluginContext, { receptorUrl, ligandU
     await createBindingSiteRepresentation(
         plugin,
         interactionsRef.selector.data?.interactions!,
-        new Map([[receptorRef, receptor?.representation.components.polymer.data]])
+        new Map([[receptorRef, receptor?.structure.data!]])
     );
+
     PluginCommands.Camera.FocusObject(plugin, {
         targets: [{
             targetRef: ligand?.representation.representations.all.ref
@@ -291,18 +303,19 @@ async function loadTestAllExample(plugin: PluginContext) {
     });
 }
 
-// url: '../../../examples/docking/receptor_1.pdb'
-// url: '../../../examples/docking/ligands_1.sdf'
-
 const Examples = {
     'Computed (1iep)': (plugin: PluginContext) => loadComputedExample(plugin, {
         receptorUrl: ['https://files.rcsb.org/download/1IEP.cif', 'mmcif'],
         ligandUrl: ['https://models.rcsb.org/v1/1iep/atoms?label_asym_id=G&copy_all_categories=false', 'mmcif']
-    }),
+    }, { receptor_label_asym_id: 'A' }),
     'Computed (ACE2)': (plugin: PluginContext) => loadComputedExample(plugin, {
         receptorUrl: ['../../../examples/ace2.pdbqt', 'pdbqt'],
         ligandUrl: ['../../../examples/ace2-hit.mol2', 'mol2']
-    }),
+    }, { receptor_label_asym_id: 'B' }),
+    'Computed (multiple)': (plugin: PluginContext) => loadComputedExample(plugin, {
+        receptorUrl: ['../../../examples/docking/receptor_1.pdb', 'pdb'],
+        ligandUrl: ['../../../examples/docking/ligands_1.sdf', 'sdf']
+    }, { receptor_label_asym_id: undefined }),
     'Custom': loadCustomExample,
     'Synthetic': loadTestAllExample
 };
@@ -313,7 +326,7 @@ function SelectExampleUI({ state, load }: {
 }) {
     const current = useBehavior(state);
     return <div>
-        Current Example:{' '}
+        Select Example:{' '}
         <select value={current.name} onChange={e => load(e.target.value as any)} disabled={current.isLoading}>
             {Object.keys(Examples).map(k => <option key={k} value={k}>{k}</option>)}
         </select>
