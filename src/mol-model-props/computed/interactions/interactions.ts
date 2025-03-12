@@ -182,6 +182,8 @@ export type InteractionsProps = PD.Values<InteractionsParams>
 
 export async function computeInteractions(ctx: CustomProperty.Context, structure: Structure, props: Partial<InteractionsProps>): Promise<Interactions> {
     const p = { ...PD.getDefaultValues(InteractionsParams), ...props };
+    const cacheKey = JSON.stringify(p);
+
     await ValenceModelProvider.attach(ctx, structure);
 
     const contactTesters: ContactTester[] = [];
@@ -204,7 +206,7 @@ export async function computeInteractions(ctx: CustomProperty.Context, structure
         if (ctx.runtime.shouldUpdate) {
             await ctx.runtime.update({ message: 'computing interactions', current: i, max: il });
         }
-        const features = findUnitFeatures(structure, group.units[0], featureProviders);
+        const features = findUnitFeatures(structure, group.units[0], featureProviders, cacheKey);
         const intraUnitContacts = findIntraUnitContacts(structure, group.units[0], features, contactTesters, p.contacts);
         for (let j = 0, jl = group.units.length; j < jl; ++j) {
             const u = group.units[j];
@@ -220,7 +222,12 @@ export async function computeInteractions(ctx: CustomProperty.Context, structure
     return interactions;
 }
 
-function findUnitFeatures(structure: Structure, unit: Unit, featureProviders: Features.Provider[]) {
+export function findUnitFeatures(structure: Structure, unit: Unit, featureProviders: Features.Provider[], cacheKey: string) {
+    const key = `features-${cacheKey}`;
+    if (unit.transientCache.has(key)) {
+        return unit.transientCache.get(key) as Features;
+    }
+
     const count = unit.elements.length;
     const featuresBuilder = FeaturesBuilder.create(count, count / 2);
     if (Unit.isAtomic(unit)) {
@@ -228,7 +235,9 @@ function findUnitFeatures(structure: Structure, unit: Unit, featureProviders: Fe
             fp.add(structure, unit, featuresBuilder);
         }
     }
-    return featuresBuilder.getFeatures(count);
+    const features = featuresBuilder.getFeatures(count);
+    unit.transientCache.set(key, features);
+    return features;
 }
 
 function findIntraUnitContacts(structure: Structure, unit: Unit, features: Features, contactTesters: ReadonlyArray<ContactTester>, props: ContactsProps) {

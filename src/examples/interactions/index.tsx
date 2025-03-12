@@ -7,7 +7,7 @@
 import { createRoot } from 'react-dom/client';
 import { BehaviorSubject } from 'rxjs';
 import { InteractionElementSchema, InteractionKind, StructureInteractions } from '../../extensions/interactions/model';
-import { ComputeInteractions, CustomInteractions, InteractionsShape } from '../../extensions/interactions/transforms';
+import { ComputeContacts, CustomInteractions, InteractionsShape } from '../../extensions/interactions/transforms';
 import { MolViewSpec } from '../../extensions/mvs/behavior';
 import { ResidueIndex, Structure, StructureElement, StructureProperties, StructureQuery } from '../../mol-model/structure';
 import { atoms } from '../../mol-model/structure/query/queries/generators';
@@ -135,7 +135,7 @@ async function loadComputedExample(plugin: PluginContext, { receptorUrl, ligandU
 
     const refs = [receptorRef, ligandRef];
 
-    const interactionsRef = update.toRoot().apply(ComputeInteractions, {
+    const interactionsRef = update.toRoot().apply(ComputeContacts, {
         sources: refs.map(structureRef => ({ structureRef })),
     }, { dependsOn: refs });
 

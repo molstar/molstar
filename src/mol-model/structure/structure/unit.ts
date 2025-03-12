@@ -147,6 +147,7 @@ namespace Unit {
         readonly model: Model,
         readonly conformation: SymmetryOperator.ArrayMapping<ElementIndex>,
         readonly props: BaseProperties,
+        readonly transientCache: Map<any, any>,
 
         getChild(elements: StructureElement.Set): Unit,
         applyOperator(id: number, operator: SymmetryOperator, dontCompose?: boolean /* = false */): Unit,
@@ -213,6 +214,12 @@ namespace Unit {
         readonly chainIndex: ArrayLike<ChainIndex>;
 
         readonly props: AtomicProperties;
+
+        private _transientCache: Map<any, any> | undefined = undefined;
+        get transientCache() {
+            if (this._transientCache === void 0) this._transientCache = new Map<any, any>();
+            return this._transientCache;
+        }
 
         getChild(elements: StructureElement.Set): Unit {
             if (elements.length === this.elements.length) return this;
@@ -389,6 +396,12 @@ namespace Unit {
         readonly coarseConformation: C;
 
         readonly props: CoarseProperties;
+
+        private _transientCache: Map<any, any> | undefined = undefined;
+        get transientCache() {
+            if (this._transientCache === void 0) this._transientCache = new Map<any, any>();
+            return this._transientCache;
+        }
 
         getChild(elements: StructureElement.Set): Unit {
             if (elements.length === this.elements.length) return this as any as Unit; // lets call this an ugly temporary hack

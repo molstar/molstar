@@ -10,7 +10,7 @@ import { PluginStateObject as SO } from '../../mol-plugin-state/objects';
 import { StateTransformer } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { computeInteractions, ComputeInteractionsOptions } from './compute';
+import { computeContacts, ComputeInteractionsOptions } from './compute';
 import { getCustomInteractionData } from './custom';
 import { InteractionElementSchema, StructureInteractions } from './model';
 import { buildInteractionsShape, InteractionVisualParams } from './visuals';
@@ -25,9 +25,9 @@ export interface ComputeInteractionSource {
     // schema?: StructureElementSchema,
 }
 
-export const ComputeInteractions = Factory({
-    name: 'compute-interactions',
-    display: 'Compute Interactions',
+export const ComputeContacts = Factory({
+    name: 'compute-contacts',
+    display: 'Compute Contacts',
     from: SO.Root,
     to: InteractionData,
     params: {
@@ -36,7 +36,7 @@ export const ComputeInteractions = Factory({
     },
 })({
     apply({ params, dependencies }) {
-        return Task.create('Compute Interactions', async ctx => {
+        return Task.create('Compute Contacts', async ctx => {
             const loci: [string, StructureElement.Loci][] = [];
             for (const src of params.sources) {
                 const structure = dependencies?.[src.structureRef].data as Structure;
@@ -47,7 +47,7 @@ export const ComputeInteractions = Factory({
                 }
             }
 
-            const interactions = await computeInteractions(ctx, loci, params.options);
+            const interactions = await computeContacts(ctx, loci, params.options);
             return new InteractionData({ interactions }, { label: 'Interactions' });
         });
     }

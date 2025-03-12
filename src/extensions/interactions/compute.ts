@@ -16,7 +16,7 @@ export interface ComputeInteractionsOptions {
     // kinds
 }
 
-export async function computeInteractions(
+export async function computeContacts(
     ctx: RuntimeContext,
     loci: [ref: string, StructureElement.Loci][],
     options?: ComputeInteractionsOptions
@@ -90,4 +90,8 @@ function processFeature(structure: Structure, interactions: Interactions, unitId
     builder.commitUnit();
 
     return [Structure.toStructureElementLoci(builder.getStructure()), type] as const;
+}
+
+async function _computeContacts() {
+    // TODO
 }
