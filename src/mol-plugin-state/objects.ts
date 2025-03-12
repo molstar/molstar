@@ -119,7 +119,7 @@ export namespace PluginStateObject {
             }
             export class Representation3DState extends Create<Representation3DStateData>({ name: 'Structure 3D State', typeClass: 'Object' }) { }
 
-            export interface SelectionEntry { key: string, groupId?: string, loci: StructureElement.Loci }
+            export interface SelectionEntry { key: string, structureRef: string, groupId?: string, loci: StructureElement.Loci }
             export class Selections extends Create<ReadonlyArray<SelectionEntry>>({ name: 'Selections', typeClass: 'Object' }) {}
         }
     }

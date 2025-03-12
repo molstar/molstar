@@ -809,7 +809,7 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
             const { selection, entry } = StructureQueryHelper.createAndRun(dependencies![sel.ref].data as Structure, sel.expression);
             entries.set(sel.key, entry);
             const loci = Sel.toLociWithSourceUnits(selection);
-            selections.push({ key: sel.key, loci, groupId: sel.groupId });
+            selections.push({ key: sel.key, structureRef: sel.ref, loci, groupId: sel.groupId });
             totalSize += StructureElement.Loci.size(loci);
         }
 
@@ -862,7 +862,7 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
                             entry.currentStructure = structure;
                             entries.set(sel.key, entry);
                             const loci = StructureElement.Loci.remap(Sel.toLociWithSourceUnits(selection), structure);
-                            selections.push({ key: sel.key, loci, groupId: sel.groupId });
+                            selections.push({ key: sel.key, structureRef: sel.ref, loci, groupId: sel.groupId });
                             totalSize += StructureElement.Loci.size(loci);
                             changed = true;
                         } else {
@@ -877,7 +877,7 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
                         const selection = StructureQueryHelper.updateStructure(entry, structure);
                         entries.set(sel.key, entry);
                         const loci = Sel.toLociWithSourceUnits(selection);
-                        selections.push({ key: sel.key, loci, groupId: sel.groupId });
+                        selections.push({ key: sel.key, structureRef: sel.ref, loci, groupId: sel.groupId });
                         totalSize += StructureElement.Loci.size(loci);
                     }
                 }
@@ -892,7 +892,7 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
                 const { selection, entry } = StructureQueryHelper.createAndRun(structure, sel.expression);
                 entries.set(sel.key, entry);
                 const loci = Sel.toLociWithSourceUnits(selection);
-                selections.push({ key: sel.key, loci, groupId: sel.groupId });
+                selections.push({ key: sel.key, structureRef: sel.ref, loci, groupId: sel.groupId });
                 totalSize += StructureElement.Loci.size(loci);
             }
         }
@@ -934,7 +934,7 @@ const MultiStructureSelectionFromBundle = PluginStateTransform.BuiltIn({
         for (const sel of params.selections) {
             const source = dependencies![sel.ref].data as Structure;
             const loci = StructureElement.Bundle.toLoci(sel.bundle, source);
-            selections.push({ key: sel.key, loci, groupId: sel.groupId });
+            selections.push({ key: sel.key, structureRef: sel.ref, loci, groupId: sel.groupId });
             totalSize += StructureElement.Loci.size(loci);
             entries.set(sel.key, { source });
         }
@@ -991,7 +991,7 @@ const MultiStructureSelectionFromBundle = PluginStateTransform.BuiltIn({
                 // create new selection
                 const source = dependencies![sel.ref].data as Structure;
                 const loci = StructureElement.Bundle.toLoci(sel.bundle, source);
-                selections.push({ key: sel.key, loci, groupId: sel.groupId });
+                selections.push({ key: sel.key, structureRef: sel.ref, loci, groupId: sel.groupId });
                 totalSize += StructureElement.Loci.size(loci);
                 entries.set(sel.key, { source });
             }
