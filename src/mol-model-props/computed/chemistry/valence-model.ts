@@ -1,9 +1,10 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Fred Ludlow <Fred.Ludlow@astx.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Paul Pillot <paul.pillot@tandemai.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Structure, StructureElement, Unit, Bond } from '../../../mol-model/structure';
