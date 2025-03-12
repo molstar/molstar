@@ -66,7 +66,7 @@ async function createBindingSiteRepresentation(plugin: PluginContext, interactio
         update.to(ref)
             .apply(StructureSelectionFromBundle, { bundle, label: 'Binding Site' })
             .apply(StructureRepresentation3D, {
-                type: { name: 'ball-and-stick', params: {} },
+                type: { name: 'ball-and-stick', params: { sizeFactor: 0.2 } },
                 colorTheme: { name: 'element-symbol', params: { carbonColor: { name: 'element-symbol', params: {} } } },
             });
     }
