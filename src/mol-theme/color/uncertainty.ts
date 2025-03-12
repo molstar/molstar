@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Lukáš Polák <admin@lukaspolak.cz>
  */
 
 import { Color, ColorScale } from '../../mol-util/color';
@@ -35,11 +36,21 @@ export function getUncertainty(unit: Unit, element: ElementIndex): number {
 }
 
 export function UncertaintyColorTheme(ctx: ThemeDataContext, props: PD.Values<UncertaintyColorThemeParams>): ColorTheme<UncertaintyColorThemeParams> {
-    const scale = ColorScale.create({
-        reverse: true,
-        domain: props.domain,
-        listOrName: props.list.colors,
-    });
+    let scale: ColorScale;
+
+    if (props.list.kind === 'set') {
+        scale = ColorScale.createDiscrete({
+            reverse: true,
+            domain: props.domain,
+            listOrName: props.list.colors
+        });
+    } else {
+        scale = ColorScale.create({
+            reverse: true,
+            domain: props.domain,
+            listOrName: props.list.colors
+        });
+    }
 
     // TODO calc domain based on data, set min/max as 10/90 percentile to be robust against outliers
 

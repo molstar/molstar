@@ -32,7 +32,8 @@
     "watch-webpack": "webpack -w --mode development --stats minimal",
     "watch-webpack-viewer": "webpack -w --mode development --stats minimal --config ./webpack.config.viewer.js",
     "watch-webpack-viewer-debug": "webpack -w --mode development --stats minimal --config ./webpack.config.viewer.debug.js",
-    "dev": "node build-dev.mjs -a -e",
+    "dev": "node build-dev.mjs",
+    "dev:all": "node build-dev.mjs -a -e",
     "dev:viewer": "node build-dev.mjs -a viewer",
     "dev:apps": "node build-dev.mjs -a",
     "dev:examples": "node build-dev.mjs -e",
@@ -119,7 +120,8 @@
     "Xavier Martinez <xavier.martinez.xm@gmail.com>",
     "Alex Chan <smalldirkalex@gmail.com>",
     "Simeon Borko <simeon.borko@gmail.com>",
-    "Ventura Rivera <venturaxrivera@gmail.com>"
+    "Ventura Rivera <venturaxrivera@gmail.com>",
+    "Lukáš Polák <admin@lukaspolak.cz>"
   ],
   "license": "MIT",
   "devDependencies": {

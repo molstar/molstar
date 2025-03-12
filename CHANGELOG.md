@@ -12,7 +12,12 @@ Note that since we don't clearly distinguish between a public and private interf
   - Use `npm run dev` for faster development builds
 - Use `StructureElement.Bundle` instead of expressions to serialize measurement elements
   - Fixes measurements not being supported for coarse models
-
+- Implementation of `ColorScale.createDiscrete` (#1458)
+- Add `ColorScale.createDiscrete` to the `uncertainty` color theme
+- Fix color palette shown in the UI (for non-gradient palettes)
+- Fix colors description in the UI (when using custom thresholds)
+- Fix an edge case in the UI when the user deletes all colors from the color list
+- Fix `ElementBondIterator` indices mapping logic for inter-unit bonds
 
 ## [v4.12.0] - 2025-02-28
 
