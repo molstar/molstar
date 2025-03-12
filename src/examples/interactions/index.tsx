@@ -6,7 +6,7 @@
 
 import { createRoot } from 'react-dom/client';
 import { BehaviorSubject } from 'rxjs';
-import { InteractionElementSchema, InteractionKind, StructureInteractions } from '../../extensions/interactions/model';
+import { InteractionElementSchema, InteractionKind, StructureInteractionElement, StructureInteractions } from '../../extensions/interactions/model';
 import { ComputeContacts, CustomInteractions, InteractionsShape } from '../../extensions/interactions/transforms';
 import { MolViewSpec } from '../../extensions/mvs/behavior';
 import { ResidueIndex, Structure, StructureElement, StructureProperties, StructureQuery } from '../../mol-model/structure';
@@ -26,6 +26,8 @@ import { PluginSpec } from '../../mol-plugin/spec';
 
 import '../../mol-plugin-ui/skin/light.scss';
 import './index.html';
+import { Task } from '../../mol-task';
+import { computeContacts } from '../../extensions/interactions/compute';
 
 async function createViewer(root: HTMLElement) {
     const spec = DefaultPluginUISpec();
@@ -56,8 +58,8 @@ async function createViewer(root: HTMLElement) {
     return plugin;
 }
 
-async function createBindingSiteRepresentation(plugin: PluginContext, interactions: StructureInteractions, receptors: Map<string, Structure>) {
-    const contactBundles = getBindingSiteBundles(interactions, receptors);
+async function createBindingSiteRepresentation(plugin: PluginContext, interactions: StructureInteractions[], receptors: Map<string, Structure>) {
+    const contactBundles = getBindingSiteBundles(interactions.flatMap(e => e.elements), receptors);
     const update = plugin.build();
 
     for (const [ref, bundle] of contactBundles) {
@@ -72,7 +74,7 @@ async function createBindingSiteRepresentation(plugin: PluginContext, interactio
     await update.commit();
 }
 
-function getBindingSiteBundles(interactions: StructureInteractions, receptors: Map<string, Structure>) {
+function getBindingSiteBundles(interactions: StructureInteractionElement[], receptors: Map<string, Structure>) {
     const residueIndices = new Map<string, Set<ResidueIndex>>();
 
     const loc = StructureElement.Location.create();
@@ -91,7 +93,7 @@ function getBindingSiteBundles(interactions: StructureInteractions, receptors: M
         }, loc);
     };
 
-    for (const e of interactions.elements) {
+    for (const e of interactions) {
         add(e.aStructureRef!, e.a);
         add(e.bStructureRef!, e.b);
     }
@@ -114,12 +116,10 @@ function getBindingSiteBundles(interactions: StructureInteractions, receptors: M
     return bundles;
 }
 
-
-
 async function loadComputedExample(
     plugin: PluginContext,
     { receptorUrl, ligandUrl }: { receptorUrl: [url: string, format: BuiltInTrajectoryFormat], ligandUrl: [url: string, format: BuiltInTrajectoryFormat] },
-    options: { receptor_label_asym_id: string | undefined }
+    options: { receptor_label_asym_id: string | undefined, analyzeTrajectory?: boolean }
 ) {
     await plugin.clear();
 
@@ -154,14 +154,38 @@ async function loadComputedExample(
 
     await update.commit();
 
-    console.log('Interactions', interactionsRef.selector.data?.interactions);
+    if (!options.analyzeTrajectory) {
+        console.log('Interactions', interactionsRef.selector.data?.interactions);
 
-    // Create ball and stick representations for the binding site and focus on the ligand
-    await createBindingSiteRepresentation(
-        plugin,
-        interactionsRef.selector.data?.interactions!,
-        new Map([[receptorRef, receptor?.structure.data!]])
-    );
+        // Create ball and stick representations for the binding site and focus on the ligand
+        await createBindingSiteRepresentation(
+            plugin,
+            [interactionsRef.selector.data?.interactions!],
+            new Map([[receptorRef, receptor?.structure.data!]])
+        );
+    } else {
+        const trajectoryInteractions: StructureInteractions[] = [];
+        const receptorLoci = StructureElementSchema.toLoci(receptor?.structure.data!, { label_asym_id: options.receptor_label_asym_id });
+        for (let fI = 0; fI < ligandTrajectory.data!.frameCount; fI++) {
+            const model = await Task.resolveInContext(ligandTrajectory.data!.getFrameAtIndex(fI));
+            const structure = Structure.ofModel(model);
+            const currentInteractions = await plugin.runTask(Task.create('Compute Contacts', ctx => {
+                return computeContacts(ctx, [
+                    [receptorRef, receptorLoci],
+                    [ligandRef, Structure.toStructureElementLoci(structure)],
+                ]);
+            }));
+            trajectoryInteractions.push(currentInteractions);
+        }
+
+        console.log('Interactions', trajectoryInteractions);
+
+        await createBindingSiteRepresentation(
+            plugin,
+            trajectoryInteractions,
+            new Map([[receptorRef, receptor?.structure.data!]])
+        );
+    }
 
     PluginCommands.Camera.FocusObject(plugin, {
         targets: [{
@@ -211,7 +235,7 @@ async function loadCustomExample(plugin: PluginContext) {
     // Create ball and stick representations for the binding site and focus on the ligand
     await createBindingSiteRepresentation(
         plugin,
-        interactionsRef.selector.data?.interactions!,
+        [interactionsRef.selector.data?.interactions!],
         new Map([[receptorRef, receptor?.representation.components.polymer.data]])
     );
     PluginCommands.Camera.FocusObject(plugin, {
@@ -293,7 +317,7 @@ async function loadTestAllExample(plugin: PluginContext) {
     // Create ball and stick representations for the binding site and focus on the ligand
     await createBindingSiteRepresentation(
         plugin,
-        interactionsRef.selector.data?.interactions!,
+        [interactionsRef.selector.data?.interactions!],
         new Map([[receptorRef, receptor?.representation.components.polymer.data]])
     );
     PluginCommands.Camera.FocusObject(plugin, {
@@ -315,7 +339,7 @@ const Examples = {
     'Computed (multiple)': (plugin: PluginContext) => loadComputedExample(plugin, {
         receptorUrl: ['../../../examples/docking/receptor_1.pdb', 'pdb'],
         ligandUrl: ['../../../examples/docking/ligands_1.sdf', 'sdf']
-    }, { receptor_label_asym_id: undefined }),
+    }, { receptor_label_asym_id: undefined, analyzeTrajectory: true }),
     'Custom': loadCustomExample,
     'Synthetic': loadTestAllExample
 };
@@ -333,7 +357,7 @@ function SelectExampleUI({ state, load }: {
     </div>;
 }
 
-async function init(viewer: HTMLElement | string, controls: HTMLElement | string, defaultExample: keyof typeof Examples = 'Computed (1iep)') {
+async function init(viewer: HTMLElement | string, controls: HTMLElement | string, defaultExample: keyof typeof Examples = 'Computed (multiple)') {
     const root = typeof viewer === 'string' ? document.getElementById('viewer')! : viewer;
     const plugin = await createViewer(root);
 
