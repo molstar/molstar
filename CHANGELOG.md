@@ -21,6 +21,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add element source index to default atomic granularity hover labels
 - Add `StructureElementSchema` based on corresponding MolViewSpec implementation that allows data-driven selection of structural elements
 - Add `addLinkCylinderMesh` (from `createLinkCylinderMesh`)
+- Add `Unit.transientCache` and `Unit.getCopy`
 - Fix `ElementBondIterator` indices mapping logic for inter-unit bonds
 
 ## [v4.12.0] - 2025-02-28
