@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { addCylinder, addFixedCountDashedCylinder, addSimpleCylinder, BasicCylinderProps } from '../../mol-geo/geometry/mesh/builder/cylinder';
+import { addFixedCountDashedCylinder, addSimpleCylinder, BasicCylinderProps } from '../../mol-geo/geometry/mesh/builder/cylinder';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
 import { Sphere3D } from '../../mol-math/geometry';
@@ -134,16 +134,14 @@ export function buildInteractionsShape(interactions: StructureInteractions, para
             }
 
             if (hydrogenStyle.showArrow) {
-                const dist = Vec3.distance(pA, pB);
                 const height = options.radius * 3;
                 Vec3.scaleAndAdd(capPos, pB, dir, -height);
                 cylinder(mesh, pA, capPos, options.radius, style);
-                addCylinder(
+                addSimpleCylinder(
                     mesh,
                     capPos,
                     pB,
-                    Math.max(1, height / dist),
-                    { radiusTop: height, radiusBottom: 0, topCap: true, bottomCap: false }
+                    { radiusTop: 0, radiusBottom: height, topCap: false, bottomCap: true }
                 );
             } else {
                 cylinder(mesh, pA, pB, options.radius, style);

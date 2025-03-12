@@ -4,38 +4,52 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { InteractionsProps } from '../../mol-model-props/computed/interactions';
 import { FeatureType } from '../../mol-model-props/computed/interactions/common';
-import { computeInteractions as _compute, Interactions } from '../../mol-model-props/computed/interactions/interactions';
-import { Structure, StructureElement } from '../../mol-model/structure';
+import { computeInteractions, Interactions } from '../../mol-model-props/computed/interactions/interactions';
+import { Structure, StructureElement, Unit } from '../../mol-model/structure';
 import { RuntimeContext } from '../../mol-task';
 import { AssetManager } from '../../mol-util/assets';
 import { InteractionInfo, InteractionTypeToKind, StructureInteractions } from './model';
 
 export interface ComputeInteractionsOptions {
-    // includeInterStructure?: boolean,
-    // kinds
+    interactions?: InteractionsProps
 }
 
 export async function computeContacts(
     ctx: RuntimeContext,
-    loci: [ref: string, StructureElement.Loci][],
+    // selection: PluginStateObject.Molecule.Structure.SelectionEntry[],
+    selection: [ref: string, StructureElement.Loci][],
     options?: ComputeInteractionsOptions
 ): Promise<StructureInteractions> {
-    const unitIdToRef = new Map<number, string>();
+    const unitIdToStructureRef = new Map<number, string>();
+    const unitIdToContactGroupId = new Map<number, number>();
+    const units: Unit[] = [];
 
-    const builder = Structure.Builder({ masterModel: loci[0][1].structure.models[0] });
-    for (const [ref, l] of loci) {
-        const s = StructureElement.Loci.toStructure(l);
-        const unitIds: number[] = [];
+    let contactGroupId = 0;
+    const builder = Structure.Builder();
+    for (const [structureRef, loci] of selection) {
+        const s = StructureElement.Loci.toStructure(loci);
         for (const unit of s.units) {
-            const newUnit = builder.addUnit(unit.kind, unit.model, unit.conformation.operator, unit.elements, unit.traits);
-            unitIds.push(newUnit.id);
-            unitIdToRef.set(newUnit.id, ref);
+            const newUnit = builder.copyUnit(unit, { propagateTransientCache: true });
+            units.push(newUnit);
+            unitIdToStructureRef.set(newUnit.id, structureRef);
+            unitIdToContactGroupId.set(newUnit.id, contactGroupId);
         }
+
+        contactGroupId++;
     }
 
     const structure = builder.getStructure();
-    const interactions = await _compute({ runtime: ctx, assetManager: new AssetManager() }, structure, { });
+    const interactions = await computeInteractions(
+        { runtime: ctx, assetManager: new AssetManager() },
+        structure,
+        options?.interactions ?? {},
+        {
+            skipIntraContacts: true,
+            unitPairTest: (a, b) => unitIdToContactGroupId.get(a.id) !== unitIdToContactGroupId.get(b.id)
+        }
+    );
 
     const { edges } = interactions.contacts;
     const result: StructureInteractions = { kind: 'structure-interactions', elements: [] };
@@ -53,16 +67,16 @@ export async function computeContacts(
 
             result.elements.push({
                 info,
-                aStructureRef: isADonor ? unitIdToRef.get(e.unitA)! : unitIdToRef.get(e.unitB)!,
-                bStructureRef: isADonor ? unitIdToRef.get(e.unitB)! : unitIdToRef.get(e.unitA)!,
+                aStructureRef: isADonor ? unitIdToStructureRef.get(e.unitA)! : unitIdToStructureRef.get(e.unitB)!,
+                bStructureRef: isADonor ? unitIdToStructureRef.get(e.unitB)! : unitIdToStructureRef.get(e.unitA)!,
                 a: isADonor ? a : b,
                 b: isADonor ? b : a,
             });
         } else {
             result.elements.push({
                 info,
-                aStructureRef: unitIdToRef.get(e.unitA)!,
-                bStructureRef: unitIdToRef.get(e.unitB)!,
+                aStructureRef: unitIdToStructureRef.get(e.unitA)!,
+                bStructureRef: unitIdToStructureRef.get(e.unitB)!,
                 a,
                 b,
             });
@@ -90,8 +104,4 @@ function processFeature(structure: Structure, interactions: Interactions, unitId
     builder.commitUnit();
 
     return [Structure.toStructureElementLoci(builder.getStructure()), type] as const;
-}
-
-async function _computeContacts() {
-    // TODO
 }

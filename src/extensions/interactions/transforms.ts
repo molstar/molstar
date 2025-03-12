@@ -5,12 +5,13 @@
  */
 
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
+import { InteractionsParams } from '../../mol-model-props/computed/interactions';
 import { Structure, StructureElement } from '../../mol-model/structure';
 import { PluginStateObject as SO } from '../../mol-plugin-state/objects';
 import { StateTransformer } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { computeContacts, ComputeInteractionsOptions } from './compute';
+import { computeContacts } from './compute';
 import { getCustomInteractionData } from './custom';
 import { InteractionElementSchema, StructureInteractions } from './model';
 import { buildInteractionsShape, InteractionVisualParams } from './visuals';
@@ -32,7 +33,7 @@ export const ComputeContacts = Factory({
     to: InteractionData,
     params: {
         sources: PD.Value<ComputeInteractionSource[]>([], { isHidden: true }),
-        options: PD.Value<ComputeInteractionsOptions>({}, { isHidden: true }),
+        interactions: PD.Group(InteractionsParams),
     },
 })({
     apply({ params, dependencies }) {
@@ -47,7 +48,7 @@ export const ComputeContacts = Factory({
                 }
             }
 
-            const interactions = await computeContacts(ctx, loci, params.options);
+            const interactions = await computeContacts(ctx, loci, { interactions: params.interactions });
             return new InteractionData({ interactions }, { label: 'Interactions' });
         });
     }

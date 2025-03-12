@@ -886,6 +886,14 @@ namespace Structure {
             return this.add(unit);
         }
 
+        copyUnit(unit: Unit, options?: Unit.GetCopyOptions & { invariantId?: number }): Unit {
+            let invariantId = options?.invariantId;
+            if (invariantId === undefined) invariantId = this.invariantId();
+            const chainGroupId = this.inChainGroup ? this.chainGroupId : ++this.chainGroupId;
+            const newUnit = unit.getCopy(this.units.length, invariantId, chainGroupId, options);
+            return this.add(newUnit);
+        }
+
         private add(unit: Unit) {
             // this is to avoid adding many identical single atom units,
             // for example, from 'degenerate' spacegroups

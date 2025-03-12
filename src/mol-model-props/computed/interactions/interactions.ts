@@ -180,7 +180,12 @@ export const InteractionsParams = {
 export type InteractionsParams = typeof InteractionsParams
 export type InteractionsProps = PD.Values<InteractionsParams>
 
-export async function computeInteractions(ctx: CustomProperty.Context, structure: Structure, props: Partial<InteractionsProps>): Promise<Interactions> {
+export interface ComputeInterctionsOptions {
+    skipIntraContacts?: boolean,
+    unitPairTest?: (unitA: Unit, unitB: Unit) => boolean,
+}
+
+export async function computeInteractions(ctx: CustomProperty.Context, structure: Structure, props: Partial<InteractionsProps>, options?: ComputeInterctionsOptions): Promise<Interactions> {
     const p = { ...PD.getDefaultValues(InteractionsParams), ...props };
     const cacheKey = JSON.stringify(p);
 
@@ -207,22 +212,28 @@ export async function computeInteractions(ctx: CustomProperty.Context, structure
             await ctx.runtime.update({ message: 'computing interactions', current: i, max: il });
         }
         const features = findUnitFeatures(structure, group.units[0], featureProviders, cacheKey);
-        const intraUnitContacts = findIntraUnitContacts(structure, group.units[0], features, contactTesters, p.contacts);
         for (let j = 0, jl = group.units.length; j < jl; ++j) {
             const u = group.units[j];
             unitsFeatures.set(u.id, features);
+        }
+
+        if (options?.skipIntraContacts) continue;
+
+        const intraUnitContacts = findIntraUnitContacts(structure, group.units[0], features, contactTesters, p.contacts);
+        for (let j = 0, jl = group.units.length; j < jl; ++j) {
+            const u = group.units[j];
             unitsContacts.set(u.id, intraUnitContacts);
         }
     }
 
-    const contacts = findInterUnitContacts(structure, unitsFeatures, contactTesters, p.contacts);
+    const contacts = findInterUnitContacts(structure, unitsFeatures, contactTesters, p.contacts, options);
 
     const interactions = { unitsFeatures, unitsContacts, contacts };
     refineInteractions(structure, interactions);
     return interactions;
 }
 
-export function findUnitFeatures(structure: Structure, unit: Unit, featureProviders: Features.Provider[], cacheKey: string) {
+function findUnitFeatures(structure: Structure, unit: Unit, featureProviders: Features.Provider[], cacheKey: string) {
     const key = `features-${cacheKey}`;
     if (unit.transientCache.has(key)) {
         return unit.transientCache.get(key) as Features;
@@ -248,7 +259,7 @@ function findIntraUnitContacts(structure: Structure, unit: Unit, features: Featu
     return builder.getContacts();
 }
 
-function findInterUnitContacts(structure: Structure, unitsFeatures: IntMap<Features>, contactTesters: ReadonlyArray<ContactTester>, props: ContactsProps) {
+function findInterUnitContacts(structure: Structure, unitsFeatures: IntMap<Features>, contactTesters: ReadonlyArray<ContactTester>, props: ContactsProps, options?: ComputeInterctionsOptions) {
     const builder = InterContactsBuilder.create();
 
     Structure.eachUnitPair(structure, (unitA: Unit, unitB: Unit) => {
@@ -258,7 +269,10 @@ function findInterUnitContacts(structure: Structure, unitsFeatures: IntMap<Featu
     }, {
         maxRadius: Math.max(...contactTesters.map(t => t.maxDistance)),
         validUnit: (unit: Unit) => Unit.isAtomic(unit),
-        validUnitPair: (unitA: Unit, unitB: Unit) => Structure.validUnitPair(structure, unitA, unitB)
+        validUnitPair: (unitA: Unit, unitB: Unit) => {
+            if (options?.unitPairTest) return options.unitPairTest(unitA, unitB);
+            return Structure.validUnitPair(structure, unitA, unitB);
+        }
     });
 
     return builder.getContacts(unitsFeatures);

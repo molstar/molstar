@@ -320,7 +320,7 @@ function SelectExampleUI({ state, load }: {
     </div>;
 }
 
-async function init(viewer: HTMLElement | string, controls: HTMLElement | string, defaultExample: keyof typeof Examples = 'Synthetic') {
+async function init(viewer: HTMLElement | string, controls: HTMLElement | string, defaultExample: keyof typeof Examples = 'Computed (1iep)') {
     const root = typeof viewer === 'string' ? document.getElementById('viewer')! : viewer;
     const plugin = await createViewer(root);
 
