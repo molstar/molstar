@@ -8,7 +8,7 @@ import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
 import { MmcifProvider } from '../../../mol-plugin-state/formats/trajectory';
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { Button, ExpandGroup, IconButton } from '../../../mol-plugin-ui/controls/common';
-import { GetAppSvg, HelpOutlineSvg, MagicWandSvg, TourSvg, Icon, OpenInBrowserSvg } from '../../../mol-plugin-ui/controls/icons';
+import { GetAppSvg, HelpOutlineSvg, MagicWandSvg, TourSvg, Icon, OpenInBrowserSvg, FileOutlineSvg } from '../../../mol-plugin-ui/controls/icons';
 import { CollapsableControls, PluginUIComponent } from '../../../mol-plugin-ui/base';
 import { ApplyActionControl } from '../../../mol-plugin-ui/state/apply-action';
 import { LocalStateSnapshotList, LocalStateSnapshotParams, LocalStateSnapshots } from '../../../mol-plugin-ui/state/snapshots';
@@ -24,9 +24,10 @@ import { createCellpackHierarchy } from '../data/cellpack/preset';
 import { createGenericHierarchy } from '../data/generic/preset';
 import { createMmcifHierarchy } from '../data/mmcif/preset';
 import { createPetworldHierarchy } from '../data/petworld/preset';
-import { MesoscaleState, MesoscaleStateObject, setGraphicsCanvas3DProps, updateStyle } from '../data/state';
+import { getAllEntities, getEntityLabel, MesoscaleState, MesoscaleStateObject, setGraphicsCanvas3DProps, updateStyle } from '../data/state';
 import { isTimingMode } from '../../../mol-util/debug';
 import { now } from '../../../mol-util/now';
+import { Asset } from '../../../mol-util/assets';
 
 function adjustPluginProps(ctx: PluginContext) {
     const customState = ctx.customState as MesoscaleExplorerState;
@@ -299,7 +300,45 @@ export const LoadModel = StateAction.build({
     }
 }));
 
-//
+
+export const LoadCellPackColorsAction = StateAction.build({
+    display: { name: 'Load Colors', description: 'Load color data for tree entities' },
+    params: {
+        file: PD.File({ accept: '.json' }),
+    },
+})(async ({ params }, ctx: PluginContext) => {
+    if (!params.file) {
+        ctx.log.error('No color file selected');
+        return;
+    }
+    const { data } = await ctx.builders.data.readFile({ file: params.file, isBinary: false });
+    if (!data.cell?.obj || typeof data.cell.obj.data !== 'string') {
+        throw new Error('Invalid color data');
+    }
+    const colorData = JSON.parse(data.cell.obj.data);
+    const update = ctx.state.data.build();
+    const allEntities = getAllEntities(ctx);
+
+    for (const entityCell of allEntities) {
+        const label = getEntityLabel(ctx, entityCell);
+        const tags = entityCell.transform.tags;
+        const fullname = (tags?.[0].replace('comp:', '') ?? '') + '.' + label;
+        // test each tag, siwtch to uniform color
+        if (fullname in colorData) {
+            const { x, y, z } = colorData[fullname];
+            const color = Color.fromRgb(x, y, z);
+            update.to(entityCell).update(old => {
+                if (old.type) {
+                    old.colorTheme = { name: 'uniform', params: { value: color, lightness: old.colorTheme.params.lightness } };
+                    old.type.params.color = color;
+                } else if (old.coloring) {
+                    old.coloring.params.color = color;
+                }
+            });
+        }
+    }
+    await update.commit();
+});
 
 export class DatabaseControls extends PluginUIComponent {
     componentDidMount() {
@@ -334,6 +373,38 @@ export class ExampleControls extends PluginUIComponent {
         return <div id='example' style={{ margin: '5px' }}>
             <ApplyActionControl state={this.plugin.state.data} action={LoadExample} nodeRef={this.plugin.state.data.tree.root.ref} applyLabel={'Load'} hideHeader />
         </div>;
+    }
+}
+
+export class ColorLoaderControl extends PluginUIComponent {
+    triggerLoadColors = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = async (e) => {
+            const input = e.target as HTMLInputElement;
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+            // pass it as a  Asset.File
+            const asset = Asset.File(new File([file], file!.name));
+            await this.plugin.runTask(
+                this.plugin.state.data.applyAction(LoadCellPackColorsAction, { file: asset })
+            );
+        };
+        input.click();
+    };
+
+    render() {
+        return (
+            <div id='color-loader' style={{ margin: '5px' }}>
+                <IconButton
+                    svg={FileOutlineSvg}
+                    title='Load Colors'
+                    onClick={this.triggerLoadColors}
+                    // small
+                />
+            </div>
+        );
     }
 }
 
