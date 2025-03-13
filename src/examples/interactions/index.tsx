@@ -271,7 +271,7 @@ async function loadTestAllExample(plugin: PluginContext) {
             aStructureRef: receptorRef,
             a: { auth_seq_id: 354, auth_atom_id: 'N' },
             bStructureRef: ligandRef,
-            b: Array.isArray(atom_index) ? atom_index.map(i => ({ atom_index: i })) : { atom_index },
+            b: Array.isArray(atom_index) ? { items: { atom_index } } : { atom_index },
             description,
         };
     };

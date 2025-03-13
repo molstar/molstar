@@ -7,7 +7,7 @@ An example showcasing features of the `interactions` extension, including:
 - Specifying interaction manually from custom data source
 - Synthetic example showing all supported interaction types
 
-To run development build locally use
+To run development build locally from the root `molstar` directory (after `npm install`):
 
 ```bash
   npm run dev -- -e interactions

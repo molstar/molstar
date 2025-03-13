@@ -5,11 +5,10 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { SymmetryOperator } from '../../../mol-math/geometry';
 import { MolScriptBuilder as MS } from '../../../mol-script/language/builder';
 import { Expression } from '../../../mol-script/language/expression';
 import { compile } from '../../../mol-script/runtime/query/base';
-import { Structure, StructureElement, StructureProperties, Unit } from '../structure';
+import { Structure, StructureElement } from '../structure';
 import { QueryContext } from './context';
 import { StructureSelection } from './selection';
 
@@ -30,16 +29,24 @@ export interface StructureElementSchemaItem {
     label_atom_id?: string,
     auth_atom_id?: string,
     type_symbol?: string,
-    atom_id?: number
-    atom_index?: number
+    atom_id?: number,
+    atom_index?: number,
 }
 
-export type StructureElementSchema = StructureElementSchemaItem | StructureElementSchemaItem[]
+export interface StructureElementSchemaItems {
+    // The prefix is applied to each item in the list.
+    // Useful for example for referencing multiple atoms in a single residue or multiple residues in a chain.
+    prefix?: StructureElementSchemaItem,
+    items: StructureElementSchemaItem[] | { [K in keyof StructureElementSchemaItem]: StructureElementSchemaItem[K][] }
+}
 
-// This is currently adapted from the MolViewSpec extension
-// but could/should be futher optimized later, possible improvements:
-//  - add optimized query that works directly on StructureElementSchema instead of converting to atoms query
-//  - add more memory-efficient way to store StructureElements (e.g., struct of arrays, common prefix for multiple atoms in the same residue, etc.)
+export type StructureElementSchema =
+    | StructureElementSchemaItem
+    | StructureElementSchemaItems
+
+function isItems(schema: StructureElementSchema): schema is StructureElementSchemaItems {
+    return !!(schema as any).items;
+}
 
 function schemaItemToExpression(item: StructureElementSchemaItem): Expression {
     const { and } = MS.core.logic;
@@ -98,10 +105,11 @@ function schemaItemToExpression(item: StructureElementSchemaItem): Expression {
     return MS.struct.generator.atomGroups(propTests);
 }
 
-function toExpression(rows: StructureElementSchema): Expression {
-    if (!Array.isArray(rows)) return schemaItemToExpression(rows as StructureElementSchemaItem);
-    if (rows.length === 1) return toExpression(rows[0]);
-    return unionExpression(rows.map(toExpression));
+function toExpression(schema: StructureElementSchema): Expression {
+    const expressions: Expression[] = [];
+    forEachItem(schema, item => expressions.push(schemaItemToExpression(item)));
+    if (expressions.length === 1) return expressions[0];
+    return unionExpression(expressions);
 }
 
 function unionExpression(expressions: Expression[]): Expression {
@@ -112,88 +120,39 @@ function isDefined<T>(value: T | undefined | null): value is T {
     return value !== undefined && value !== null;
 }
 
+/**
+ * Iterate over all items in a structure element schema.
+ * @param schema Schema to iterate over
+ * @param f Function called for each item in the schema.
+ *          The value passed to the function can be mutable and should not be
+ *          modified => make a copy if the value is used outside the callback.
+ */
 function forEachItem(schema: StructureElementSchema, f: (item: StructureElementSchemaItem) => void) {
-    if (!Array.isArray(schema)) {
-        f(schema);
-    } else {
-        for (const item of schema) {
-            f(item);
-        }
-    }
-}
-
-function locationToSchemaItem(
-    loc: StructureElement.Location,
-    granularity: 'atom' | 'residue' | 'chain' = 'atom'
-): StructureElementSchemaItem {
-    // NOTE: Consider support for both auth_ and label_ prefixes
-
-    if (Unit.isAtomic(loc.unit)) {
-        let hasUniqueAtomId = true;
-        let hasUniqueCompId = true;
-
-        const { label_atom_id: atomIdCol, label_comp_id: compIdCol } = loc.unit.model.atomicHierarchy.atoms;
-        const { label_seq_id: seqIdCol } = loc.unit.model.atomicHierarchy.residues;
-        const { residueAtomSegments } = loc.unit.model.atomicHierarchy;
-        const rI = residueAtomSegments.index[loc.element];
-        const label_atom_id = StructureProperties.atom.label_atom_id(loc);
-        const label_comp_id = StructureProperties.atom.label_comp_id(loc);
-        for (let i = residueAtomSegments.offsets[rI], il = residueAtomSegments.offsets[rI + 1]; i < il; ++i) {
-            if (i !== loc.element && atomIdCol.value(i) === label_atom_id) {
-                hasUniqueAtomId = false;
-            }
-            if (compIdCol.value(i) !== label_comp_id) {
-                hasUniqueCompId = false;
-            }
-        }
-
-        const ret: StructureElementSchemaItem = {};
-
-        if (granularity === 'residue' || granularity === 'chain' || (granularity === 'atom' && hasUniqueAtomId)) {
-            ret.label_entity_id = StructureProperties.chain.label_entity_id(loc);
-            ret.label_asym_id = StructureProperties.chain.label_asym_id(loc);
-        }
-
-        if (granularity === 'residue' || (granularity === 'atom' && hasUniqueAtomId)) {
-            if (seqIdCol.valueKind(rI) > 0) {
-                ret.label_comp_id = StructureProperties.atom.label_comp_id(loc);
+    if (isItems(schema)) {
+        if (Array.isArray(schema.items)) {
+            if (schema.prefix) {
+                for (const item of schema.items) {
+                    f(Object.assign({}, schema.prefix, item));
+                }
             } else {
-                ret.label_seq_id = seqIdCol.value(rI);
-                if (!hasUniqueCompId && label_comp_id) {
-                    ret.label_comp_id = label_comp_id;
+                for (const item of schema.items) {
+                    f(item);
                 }
             }
-        }
+        } else {
+            const current: any = { ...schema.prefix };
+            const keys = Object.keys(schema.items);
+            const n = (schema.items as any)[keys[0]].length;
 
-        if (granularity === 'atom') {
-            if (hasUniqueAtomId) {
-                ret.label_atom_id = label_atom_id;
-            } else {
-                ret.atom_index = StructureProperties.atom.sourceIndex(loc);
+            for (let i = 0; i < n; i++) {
+                for (const k of keys) {
+                    current[k] = (schema.items as any)[k][i];
+                }
+                f(current);
             }
         }
-
-        if (loc.unit.conformation.operator.name !== SymmetryOperator.DefaultName && !loc.unit.conformation.operator.isIdentity) {
-            ret.operator_name = loc.unit.conformation.operator.name;
-        }
-
-        return ret;
     } else {
-        const ret: StructureElementSchemaItem = {
-            label_entity_id: StructureProperties.chain.label_entity_id(loc),
-            label_asym_id: StructureProperties.chain.label_asym_id(loc),
-        };
-
-        if (granularity === 'atom' || granularity === 'residue') {
-            ret.beg_label_seq_id = StructureProperties.coarse.seq_id_begin(loc);
-            ret.end_label_seq_id = StructureProperties.coarse.seq_id_end(loc);
-        }
-
-        if (loc.unit.conformation.operator.name !== SymmetryOperator.DefaultName && !loc.unit.conformation.operator.isIdentity) {
-            ret.operator_name = loc.unit.conformation.operator.name;
-        }
-
-        return ret;
+        f(schema);
     }
 }
 
@@ -211,7 +170,6 @@ function toBundle(structure: Structure, schema: StructureElementSchema): Structu
 export const StructureElementSchema = {
     toExpression,
     forEachItem,
-    locationToSchemaItem,
     toLoci,
     toBundle,
 };
