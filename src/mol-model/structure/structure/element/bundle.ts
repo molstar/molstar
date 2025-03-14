@@ -45,7 +45,7 @@ export namespace Bundle {
         return fromLoci(StructureSelection.toLociWithSourceUnits(selection));
     }
 
-    export function fromExpression(structure: Structure, expression: Expression, queryContext?: QueryContext): Bundle {
+    export function fromExpression(structure: Structure, expression: Expression | ((builder: typeof MS) => Expression), queryContext?: QueryContext): Bundle {
         return fromLoci(Loci.fromExpression(structure, expression, queryContext));
     }
 

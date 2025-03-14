@@ -106,8 +106,14 @@ export namespace Loci {
         return Loci(structure, []);
     }
 
-    export function fromExpression(structure: Structure, expression: Expression, queryContext?: QueryContext): Loci {
-        const selection = compile(expression)(queryContext ?? new QueryContext(structure));
+    export function fromExpression(structure: Structure, expression: Expression | ((builder: typeof MS) => Expression), queryContext?: QueryContext): Loci {
+        let expr;
+        if (typeof expression === 'function') {
+            expr = expression(MS);
+        } else {
+            expr = expression;
+        }
+        const selection = compile(expr)(queryContext ?? new QueryContext(structure));
         return StructureSelection.toLociWithSourceUnits(selection);
     }
 
