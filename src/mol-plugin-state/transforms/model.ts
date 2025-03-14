@@ -41,7 +41,7 @@ import { parseXtc } from '../../mol-io/reader/xtc/parser';
 import { coordinatesFromXtc } from '../../mol-model-formats/structure/xtc';
 import { parseXyz } from '../../mol-io/reader/xyz/parser';
 import { trajectoryFromXyz } from '../../mol-model-formats/structure/xyz';
-import { UnitStyles } from '../../mol-io/reader/lammps/schema';
+import { LammpsParams } from '../../mol-io/reader/lammps/schema';
 import { parseLammpsData } from '../../mol-io/reader/lammps/data/parser';
 import { trajectoryFromLammpsData } from '../../mol-model-formats/structure/lammps-data';
 import { parseLammpsTrajectory } from '../../mol-io/reader/lammps/traj/parser';
@@ -165,8 +165,8 @@ type CoordinatesFromLammpstraj = typeof CoordinatesFromLammpstraj
 const CoordinatesFromLammpstraj = PluginStateTransform.BuiltIn({
     name: 'coordinates-from-lammpstraj',
     display: { name: 'Parse LAMMPSTRAJ', description: 'Parse LAMMPSTRAJ data.' },
-    from: [SO.Data.String],
-    to: SO.Molecule.Coordinates
+    from: [SO.Data.Binary],
+    to: SO.Molecule.Coordinates,
 })({
     apply({ a }) {
         return Task.create('Parse LAMMPSTRAJ', async ctx => {
@@ -409,16 +409,16 @@ const TrajectoryFromLammpsData = PluginStateTransform.BuiltIn({
     display: { name: 'Parse Lammps Data', description: 'Parse Lammps Data from string and create trajectory.' },
     from: [SO.Data.String],
     to: SO.Molecule.Trajectory,
-    params: {
-        unitsStyle: PD.Select('real', PD.arrayToOptions(UnitStyles)),
-    }
+    params: LammpsParams
 })({
     apply({ a, params }) {
         return Task.create('Parse Lammps Data', async ctx => {
             const parsed = await parseLammpsData(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
-            const models = await trajectoryFromLammpsData(parsed.result, params.unitsStyle).runInContext(ctx);
+            const models = await trajectoryFromLammpsData(parsed.result, params.unitsStyle, params.asymId).runInContext(ctx);
+            await ctx.update('trajectoryFromLammpsData done');
             const props = trajectoryProps(models);
+            await ctx.update('trajectoryProps done');
             return new SO.Molecule.Trajectory(models, props);
         });
     }
@@ -428,17 +428,15 @@ type TrajectoryFromLammpsTrajData = typeof TrajectoryFromLammpsTrajData
 const TrajectoryFromLammpsTrajData = PluginStateTransform.BuiltIn({
     name: 'trajectory-from-lammps-traj-data',
     display: { name: 'Parse Lammps traj Data', description: 'Parse Lammps Traj Data string and create trajectory.' },
-    from: [SO.Data.String],
+    from: [SO.Data.Binary],
     to: SO.Molecule.Trajectory,
-    params: {
-        unitsStyle: PD.Select('real', PD.arrayToOptions(UnitStyles)),
-    }
+    params: LammpsParams
 })({
     apply({ a, params }) {
-        return Task.create('Parse Lammps Data', async ctx => {
+        return Task.create('Parse Lammps Traj Data', async ctx => {
             const parsed = await parseLammpsTrajectory(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
-            const models = await trajectoryFromLammpsTrajectory(parsed.result, params.unitsStyle).runInContext(ctx);
+            const models = await trajectoryFromLammpsTrajectory(parsed.result, params.unitsStyle, params.asymId).runInContext(ctx);
             const props = trajectoryProps(models);
             return new SO.Molecule.Trajectory(models, props);
         });
