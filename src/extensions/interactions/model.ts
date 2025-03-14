@@ -21,8 +21,8 @@ export type InteractionElementSchema =
     | { kind: 'pi-stacking' } & InteractionElementSchemaBase
     | { kind: 'cation-pi' } & InteractionElementSchemaBase
     | { kind: 'halogen-bond' } & InteractionElementSchemaBase
-    | { kind: 'hydrogen-bond', hydrogenStructureRef?: string, hydrogen?: StructureElement.SchemaItem } & InteractionElementSchemaBase
-    | { kind: 'weak-hydrogen-bond', hydrogenStructureRef?: string, hydrogen?: StructureElement.SchemaItem } & InteractionElementSchemaBase
+    | { kind: 'hydrogen-bond' } & InteractionElementSchemaBase
+    | { kind: 'weak-hydrogen-bond' } & InteractionElementSchemaBase
     | { kind: 'hydrophobic' } & InteractionElementSchemaBase
     | { kind: 'metal-coordination' } & InteractionElementSchemaBase
     | { kind: 'salt-bridge' } & InteractionElementSchemaBase

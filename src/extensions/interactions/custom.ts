@@ -12,13 +12,7 @@ export function getCustomInteractionData(interactions: InteractionElementSchema[
 
     for (const schema of interactions) {
         let info: InteractionInfo;
-        if (schema.kind === 'hydrogen-bond' || schema.kind === 'weak-hydrogen-bond') {
-            info = {
-                kind: schema.kind,
-                hydrogenStructureRef: schema.hydrogenStructureRef,
-                hydrogen: schema.hydrogen ? resolveLoci(structures[schema.hydrogenStructureRef!], schema.hydrogen) : undefined,
-            };
-        } else if (schema.kind === 'covalent') {
+        if (schema.kind === 'covalent') {
             info = { kind: schema.kind, degree: schema.degree };
         } else {
             info = { kind: schema.kind };
