@@ -96,7 +96,7 @@ export function buildInteractionsShape(interactions: StructureInteractions, para
 
         let tooltip: string;
         if (interaction.info.kind === 'covalent') {
-            if (interaction.info.aromatic) tooltip = 'Aromatic';
+            if (interaction.info.degree === 'aromatic') tooltip = 'Aromatic';
             else if (interaction.info.degree === 1) tooltip = 'Single';
             else if (interaction.info.degree === 2) tooltip = 'Double';
             else if (interaction.info.degree === 3) tooltip = 'Triple';
@@ -153,7 +153,7 @@ export function buildInteractionsShape(interactions: StructureInteractions, para
                 addLinkParams.group = mesh.currentGroup;
                 addLinkParams.linkRadius = options.radius;
                 const degree = interaction.info.degree ?? 1;
-                if (interaction.info.aromatic) addLinkParams.linkStyle = LinkStyle.Aromatic;
+                if (degree === 'aromatic') addLinkParams.linkStyle = LinkStyle.Aromatic;
                 else if (degree === 2) addLinkParams.linkStyle = LinkStyle.Double;
                 else if (degree === 3) addLinkParams.linkStyle = LinkStyle.Triple;
                 else addLinkParams.linkStyle = LinkStyle.Solid;

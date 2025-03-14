@@ -19,7 +19,7 @@ export function getCustomInteractionData(interactions: InteractionElementSchema[
                 hydrogen: schema.hydrogen ? resolveLoci(structures[schema.hydrogenStructureRef!], schema.hydrogen) : undefined,
             };
         } else if (schema.kind === 'covalent') {
-            info = { kind: schema.kind, degree: schema.degree, aromatic: schema.aromatic };
+            info = { kind: schema.kind, degree: schema.degree };
         } else {
             info = { kind: schema.kind };
         }
