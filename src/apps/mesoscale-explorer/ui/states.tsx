@@ -8,7 +8,7 @@ import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
 import { MmcifProvider } from '../../../mol-plugin-state/formats/trajectory';
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { Button, ExpandGroup, IconButton } from '../../../mol-plugin-ui/controls/common';
-import { GetAppSvg, HelpOutlineSvg, MagicWandSvg, TourSvg, Icon, OpenInBrowserSvg, FileOutlineSvg } from '../../../mol-plugin-ui/controls/icons';
+import { GetAppSvg, HelpOutlineSvg, MagicWandSvg, TourSvg, Icon, OpenInBrowserSvg } from '../../../mol-plugin-ui/controls/icons';
 import { CollapsableControls, PluginUIComponent } from '../../../mol-plugin-ui/base';
 import { ApplyActionControl } from '../../../mol-plugin-ui/state/apply-action';
 import { LocalStateSnapshotList, LocalStateSnapshotParams, LocalStateSnapshots } from '../../../mol-plugin-ui/state/snapshots';
@@ -396,14 +396,12 @@ export class ColorLoaderControl extends PluginUIComponent {
 
     render() {
         return (
-            <div id='color-loader' style={{ margin: '5px' }}>
-                <IconButton
-                    svg={FileOutlineSvg}
-                    title='Load Colors'
-                    onClick={this.triggerLoadColors}
-                    // small
-                />
-            </div>
+            <IconButton
+                svg={OpenInBrowserSvg}
+                title='Load Colors'
+                onClick={this.triggerLoadColors}
+                small
+            />
         );
     }
 }
