@@ -192,12 +192,13 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
                 const t = isBinary ? d : utf8Read(d, 0, d.length);
                 const file = Asset.File(new File([t], ent.file));
 
-                const color = ColorNames.skyblue;
+                const color = (ent.color) ? Color.fromRgb(ent.color[0], ent.color[1], ent.color[2]) : ColorNames.skyblue;
 
                 const sizeFactor = ent.sizeFactor || 1;
                 const tags = ent.groups.map(({ id, root }) => `${root}:${id}`);
                 const instances = ent.instances && getAssetInstances(ent.instances);
                 const description = ent.description;
+
                 const label = ent.label || ent.file.split('.')[0];
                 build = build
                     .toRoot()
@@ -300,6 +301,7 @@ type GenericEntity = {
     file: string
     label?: string
     description?: string
+    color?: number[]
     groups: {
         /** reference to `${GenericGroup.id}` */
         id: string,
