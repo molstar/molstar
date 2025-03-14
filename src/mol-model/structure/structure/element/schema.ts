@@ -35,9 +35,13 @@ export interface SchemaItem {
 
 export interface SchemaItems {
     // The prefix is applied to each item in the list.
-    // Useful for example for referencing multiple atoms in a single residue or multiple residues in a chain.
-    // E.g. `{ prefix: { label_asym_id: 'A' }, items: { label_seq_id: [1, 3, 5] } }`
+    // This is useful for example for referencing multiple atoms in a single
+    // residue or multiple residues in a chain, e.g.:
+    //    `{ prefix: { label_asym_id: 'A' }, items: { label_seq_id: [1, 3, 5] } }`
     prefix?: SchemaItem,
+
+    // Depending on the use-case, items can be specified either
+    // as a list of objects or using a more memory-efficient object of lists.
     items: SchemaItem[] | { [K in keyof SchemaItem]: SchemaItem[K][] }
 }
 
@@ -50,6 +54,10 @@ function isItems(schema: Schema): schema is SchemaItems {
 }
 
 function schemaItemToExpression(item: SchemaItem): Expression {
+    // NOTE: If needed, the schema item lookup can be significantly optimized
+    //       by accessing the data directly instead of constructing
+    //       the expression.
+
     const { and } = MS.core.logic;
     const { eq, gre: gte, lte } = MS.core.rel;
     const { macromolecular, ihm, core } = MS.struct.atomProperty;
