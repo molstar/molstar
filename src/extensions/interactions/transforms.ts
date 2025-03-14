@@ -6,7 +6,7 @@
 
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { InteractionsParams } from '../../mol-model-props/computed/interactions';
-import { Structure, StructureElement } from '../../mol-model/structure';
+import { Structure } from '../../mol-model/structure';
 import { PluginStateObject as SO } from '../../mol-plugin-state/objects';
 import { StateTransformer } from '../../mol-state';
 import { Task } from '../../mol-task';
@@ -31,8 +31,7 @@ export const ComputeContacts = Factory({
 })({
     apply({ params, a }) {
         return Task.create('Compute Contacts', async ctx => {
-            const loci: [string, StructureElement.Loci][] = a.data.map(e => [e.structureRef, e.loci]);
-            const interactions = await computeContacts(ctx, loci, { interactions: params.interactions });
+            const interactions = await computeContacts(ctx, a.data, { interactions: params.interactions });
             return new InteractionData({ interactions }, { label: 'Interactions' });
         });
     }

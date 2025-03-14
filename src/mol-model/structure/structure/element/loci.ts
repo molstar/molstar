@@ -25,6 +25,9 @@ import { BoundaryHelper } from '../../../../mol-math/geometry/boundary-helper';
 import { Boundary } from '../../../../mol-math/geometry/boundary';
 import { IntTuple } from '../../../../mol-data/int/tuple';
 import { Box3D, Sphere3D } from '../../../../mol-math/geometry';
+import { compile } from '../../../../mol-script/runtime/query/base';
+import { QueryContext, QueryFn, StructureSelection } from '../../query';
+import { Schema } from './schema';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const itDiff = IntTuple.diff;
@@ -101,6 +104,20 @@ export namespace Loci {
 
     export function none(structure: Structure): Loci {
         return Loci(structure, []);
+    }
+
+    export function fromExpression(structure: Structure, expression: Expression, queryContext?: QueryContext): Loci {
+        const selection = compile(expression)(queryContext ?? new QueryContext(structure));
+        return StructureSelection.toLociWithSourceUnits(selection);
+    }
+
+    export function fromQuery(structure: Structure, query: QueryFn, queryContext?: QueryContext): Loci {
+        const selection = query(queryContext ?? new QueryContext(structure));
+        return StructureSelection.toLociWithSourceUnits(selection);
+    }
+
+    export function fromSchema(structure: Structure, schema: Schema, queryContext?: QueryContext): Loci {
+        return Schema.toLoci(structure, schema, queryContext);
     }
 
     export function getFirstLocation(loci: Loci, e?: Location): Location | undefined {

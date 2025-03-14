@@ -19,7 +19,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix an edge case in the UI when the user deletes all colors from the color list
 - Add `interactions` extension and a corresponding example that utilizes it
 - Add element source index to default atomic granularity hover labels
-- Add `StructureElementSchema` based on corresponding MolViewSpec implementation that allows data-driven selection of structural elements
+- Add `StructureElement.Schema` based on corresponding MolViewSpec implementation that allows data-driven selection of structural elements
+- Add `StructureElement.Loci/Bundle.fromExpression/Query/Schema` helper functions
 - Add `addLinkCylinderMesh` (from `createLinkCylinderMesh`)
 - Add `Unit.transientCache` and `Unit.getCopy`
 - Fix `ElementBondIterator` indices mapping logic for inter-unit bonds

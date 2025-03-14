@@ -6,13 +6,12 @@
 
 import { InteractionType } from '../../mol-model-props/computed/interactions/common';
 import { StructureElement } from '../../mol-model/structure';
-import { StructureElementSchema, StructureElementSchemaItem } from '../../mol-model/structure/query/schema';
 
 interface InteractionElementSchemaBase {
     aStructureRef?: string,
-    a: StructureElementSchema,
+    a: StructureElement.Schema,
     bStructureRef?: string,
-    b: StructureElementSchema,
+    b: StructureElement.Schema,
     description?: string,
 }
 
@@ -22,8 +21,8 @@ export type InteractionElementSchema =
     | { kind: 'pi-stacking' } & InteractionElementSchemaBase
     | { kind: 'cation-pi' } & InteractionElementSchemaBase
     | { kind: 'halogen-bond' } & InteractionElementSchemaBase
-    | { kind: 'hydrogen-bond', hydrogenStructureRef?: string, hydrogen?: StructureElementSchemaItem } & InteractionElementSchemaBase
-    | { kind: 'weak-hydrogen-bond', hydrogenStructureRef?: string, hydrogen?: StructureElementSchemaItem } & InteractionElementSchemaBase
+    | { kind: 'hydrogen-bond', hydrogenStructureRef?: string, hydrogen?: StructureElement.SchemaItem } & InteractionElementSchemaBase
+    | { kind: 'weak-hydrogen-bond', hydrogenStructureRef?: string, hydrogen?: StructureElement.SchemaItem } & InteractionElementSchemaBase
     | { kind: 'hydrophobic' } & InteractionElementSchemaBase
     | { kind: 'metal-coordination' } & InteractionElementSchemaBase
     | { kind: 'salt-bridge' } & InteractionElementSchemaBase

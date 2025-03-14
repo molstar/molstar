@@ -18,7 +18,7 @@ export interface ComputeInteractionsOptions {
 
 export async function computeContacts(
     ctx: RuntimeContext,
-    selection: [ref: string, StructureElement.Loci][],
+    selection: readonly { structureRef: string, loci: StructureElement.Loci }[],
     options?: ComputeInteractionsOptions
 ): Promise<StructureInteractions> {
     const unitIdToStructureRef = new Map<number, string>();
@@ -27,7 +27,7 @@ export async function computeContacts(
 
     let contactGroupId = 0;
     const builder = Structure.Builder();
-    for (const [structureRef, loci] of selection) {
+    for (const { structureRef, loci } of selection) {
         const s = StructureElement.Loci.toStructure(loci);
         for (const unit of s.units) {
             const newUnit = builder.copyUnit(unit, { propagateTransientCache: true });

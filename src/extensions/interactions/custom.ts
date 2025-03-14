@@ -4,10 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Structure, StructureSelection } from '../../mol-model/structure';
-import { StructureElementSchema } from '../../mol-model/structure/query/schema';
-import { StructureQueryHelper } from '../../mol-plugin-state/helpers/structure-query';
-import { InteractionInfo, InteractionElementSchema, StructureInteractionElement, StructureInteractions } from './model';
+import { Structure, StructureElement } from '../../mol-model/structure';
+import { InteractionElementSchema, InteractionInfo, StructureInteractionElement, StructureInteractions } from './model';
 
 export function getCustomInteractionData(interactions: InteractionElementSchema[], structures: { [ref: string]: Structure }): StructureInteractions {
     const elements: StructureInteractionElement[] = [];
@@ -38,8 +36,6 @@ export function getCustomInteractionData(interactions: InteractionElementSchema[
     return { kind: 'structure-interactions', elements };
 }
 
-function resolveLoci(structure: Structure, schema: StructureElementSchema) {
-    const expr = StructureElementSchema.toExpression(schema);
-    const selection = StructureQueryHelper.createAndRun(structure, expr).selection;
-    return StructureSelection.toLociWithSourceUnits(selection);
+function resolveLoci(structure: Structure, schema: StructureElement.Schema) {
+    return StructureElement.Schema.toLoci(structure, schema);
 }

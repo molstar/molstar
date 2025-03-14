@@ -5,14 +5,14 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { MolScriptBuilder as MS } from '../../../mol-script/language/builder';
-import { Expression } from '../../../mol-script/language/expression';
-import { compile } from '../../../mol-script/runtime/query/base';
-import { Structure, StructureElement } from '../structure';
-import { QueryContext } from './context';
-import { StructureSelection } from './selection';
+import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder';
+import { Expression } from '../../../../mol-script/language/expression';
+import { QueryContext } from '../../query';
+import { Structure } from '../structure';
+import { Bundle } from './bundle';
+import { Loci } from './loci';
 
-export interface StructureElementSchemaItem {
+export interface SchemaItem {
     operator_name?: string,
     label_entity_id?: string,
     label_asym_id?: string,
@@ -33,22 +33,23 @@ export interface StructureElementSchemaItem {
     atom_index?: number,
 }
 
-export interface StructureElementSchemaItems {
+export interface SchemaItems {
     // The prefix is applied to each item in the list.
     // Useful for example for referencing multiple atoms in a single residue or multiple residues in a chain.
-    prefix?: StructureElementSchemaItem,
-    items: StructureElementSchemaItem[] | { [K in keyof StructureElementSchemaItem]: StructureElementSchemaItem[K][] }
+    // E.g. `{ prefix: { label_asym_id: 'A' }, items: { label_seq_id: [1, 3, 5] } }`
+    prefix?: SchemaItem,
+    items: SchemaItem[] | { [K in keyof SchemaItem]: SchemaItem[K][] }
 }
 
-export type StructureElementSchema =
-    | StructureElementSchemaItem
-    | StructureElementSchemaItems
+export type Schema =
+    | SchemaItem
+    | SchemaItems
 
-function isItems(schema: StructureElementSchema): schema is StructureElementSchemaItems {
+function isItems(schema: Schema): schema is SchemaItems {
     return !!(schema as any).items;
 }
 
-function schemaItemToExpression(item: StructureElementSchemaItem): Expression {
+function schemaItemToExpression(item: SchemaItem): Expression {
     const { and } = MS.core.logic;
     const { eq, gre: gte, lte } = MS.core.rel;
     const { macromolecular, ihm, core } = MS.struct.atomProperty;
@@ -105,7 +106,7 @@ function schemaItemToExpression(item: StructureElementSchemaItem): Expression {
     return MS.struct.generator.atomGroups(propTests);
 }
 
-function toExpression(schema: StructureElementSchema): Expression {
+function toExpression(schema: Schema): Expression {
     const expressions: Expression[] = [];
     forEachItem(schema, item => expressions.push(schemaItemToExpression(item)));
     if (expressions.length === 1) return expressions[0];
@@ -127,7 +128,7 @@ function isDefined<T>(value: T | undefined | null): value is T {
  *          The value passed to the function can be mutable and should not be
  *          modified => make a copy if the value is used outside the callback.
  */
-function forEachItem(schema: StructureElementSchema, f: (item: StructureElementSchemaItem) => void) {
+function forEachItem(schema: Schema, f: (item: SchemaItem) => void) {
     if (isItems(schema)) {
         if (Array.isArray(schema.items)) {
             if (schema.prefix) {
@@ -156,20 +157,19 @@ function forEachItem(schema: StructureElementSchema, f: (item: StructureElementS
     }
 }
 
-function toLoci(structure: Structure, schema: StructureElementSchema): StructureElement.Loci {
+function toLoci(structure: Structure, schema: Schema, queryContext?: QueryContext): Loci {
     const expr = toExpression(schema);
-    const selection = compile(expr)(new QueryContext(structure));
-    return StructureSelection.toLociWithSourceUnits(selection);
+    return Loci.fromExpression(structure, expr, queryContext);
 }
 
-function toBundle(structure: Structure, schema: StructureElementSchema): StructureElement.Bundle {
-    const loci = toLoci(structure, schema);
-    return StructureElement.Bundle.fromLoci(loci);
+function toBundle(structure: Structure, schema: Schema, queryContext?: QueryContext): Bundle {
+    const loci = toLoci(structure, schema, queryContext);
+    return Bundle.fromLoci(loci);
 }
 
-export const StructureElementSchema = {
-    toExpression,
+export const Schema = {
     forEachItem,
+    toExpression,
     toLoci,
     toBundle,
 };

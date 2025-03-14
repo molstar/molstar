@@ -11,7 +11,6 @@ import { ComputeContacts, CustomInteractions, InteractionsShape } from '../../ex
 import { MolViewSpec } from '../../extensions/mvs/behavior';
 import { ResidueIndex, Structure, StructureElement, StructureProperties, StructureQuery } from '../../mol-model/structure';
 import { atoms } from '../../mol-model/structure/query/queries/generators';
-import { StructureElementSchema } from '../../mol-model/structure/query/schema';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 import { MultiStructureSelectionFromBundle, StructureSelectionFromBundle } from '../../mol-plugin-state/transforms/model';
 import { ShapeRepresentation3D, StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
@@ -142,8 +141,8 @@ async function loadComputedExample(
     const interactionsRef = update.toRoot()
         .apply(MultiStructureSelectionFromBundle, {
             selections: [
-                { key: 'a', ref: receptorRef, bundle: StructureElementSchema.toBundle(receptor?.structure.data!, { label_asym_id: options.receptor_label_asym_id }) },
-                { key: 'b', ref: ligandRef, bundle: StructureElementSchema.toBundle(ligand?.structure.data!, { }) },
+                { key: 'a', ref: receptorRef, bundle: StructureElement.Schema.toBundle(receptor?.structure.data!, { label_asym_id: options.receptor_label_asym_id }) },
+                { key: 'b', ref: ligandRef, bundle: StructureElement.Schema.toBundle(ligand?.structure.data!, { }) },
             ],
             isTransitive: true,
             label: 'Label'
@@ -165,14 +164,14 @@ async function loadComputedExample(
         );
     } else {
         const trajectoryInteractions: StructureInteractions[] = [];
-        const receptorLoci = StructureElementSchema.toLoci(receptor?.structure.data!, { label_asym_id: options.receptor_label_asym_id });
+        const receptorLoci = StructureElement.Schema.toLoci(receptor?.structure.data!, { label_asym_id: options.receptor_label_asym_id });
         for (let fI = 0; fI < ligandTrajectory.data!.frameCount; fI++) {
             const model = await Task.resolveInContext(ligandTrajectory.data!.getFrameAtIndex(fI));
             const structure = Structure.ofModel(model);
             const currentInteractions = await plugin.runTask(Task.create('Compute Contacts', ctx => {
                 return computeContacts(ctx, [
-                    [receptorRef, receptorLoci],
-                    [ligandRef, Structure.toStructureElementLoci(structure)],
+                    { structureRef: receptorRef, loci: receptorLoci },
+                    { structureRef: ligandRef, loci: Structure.toStructureElementLoci(structure) },
                 ]);
             }));
             trajectoryInteractions.push(currentInteractions);

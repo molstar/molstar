@@ -12,3 +12,5 @@ To run development build locally from the root `molstar` directory (after `npm i
 ```bash
   npm run dev -- -e interactions
 ```
+
+and navigate to `build/examples/interactions` in the hosted server linked in the script output.

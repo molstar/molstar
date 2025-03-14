@@ -6,8 +6,7 @@
  */
 
 import { Column } from '../../../mol-data/db';
-import { ChainIndex, ElementIndex, Model, ResidueIndex } from '../../../mol-model/structure';
-import { StructureElementSchema } from '../../../mol-model/structure/query/schema';
+import { ChainIndex, ElementIndex, Model, ResidueIndex, StructureElement } from '../../../mol-model/structure';
 import { Expression } from '../../../mol-script/language/expression';
 import { arrayExtend, filterInPlace, range } from '../../../mol-util/array';
 import { AtomRanges } from './atom-ranges';
@@ -261,13 +260,13 @@ function matchesRange<T>(requiredMin: T | undefined | null, requiredMax: T | und
 
 /** Convert an annotation row into a MolScript expression */
 export function rowToExpression(row: MVSAnnotationRow): Expression {
-    return StructureElementSchema.toExpression(row);
+    return StructureElement.Schema.toExpression(row);
 }
 
 /** Convert multiple annotation rows into a MolScript expression.
  * (with union semantics, i.e. an atom qualifies if it qualifies for at least one of the rows) */
 export function rowsToExpression(rows: readonly MVSAnnotationRow[]): Expression {
-    return StructureElementSchema.toExpression(rows as StructureElementSchema);
+    return StructureElement.Schema.toExpression(rows as StructureElement.Schema);
 }
 
 /** Data structure for an array divided into contiguous groups */
