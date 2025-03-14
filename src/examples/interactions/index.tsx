@@ -278,8 +278,7 @@ async function loadTestAllExample(plugin: PluginContext) {
     const covalent = (degree: number, atom_index: number): InteractionElementSchema => {
         return {
             kind: 'covalent',
-            degree: Math.abs(degree),
-            aromatic: degree === -1,
+            degree: degree === -1 ? 'aromatic' : Math.abs(degree) as 1 | 2 | 3 | 4,
             aStructureRef: receptorRef,
             a: { auth_seq_id: 354, auth_atom_id: 'N' },
             bStructureRef: ligandRef,
