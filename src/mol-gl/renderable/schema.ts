@@ -204,6 +204,7 @@ export const ColorSchema = {
     uColorGridDim: UniformSpec('v3'),
     uColorGridTransform: UniformSpec('v4'),
     uPaletteDomain: UniformSpec('v2'),
+    uPaletteDefault: UniformSpec('v3'),
     tColor: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
     tPalette: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
     tColorGrid: TextureSpec('texture', 'rgb', 'ubyte', 'linear'),
@@ -324,6 +325,7 @@ export const BaseSchema = {
     uClipObjectPosition: UniformSpec('v3[]', 'material'),
     uClipObjectRotation: UniformSpec('v4[]', 'material'),
     uClipObjectScale: UniformSpec('v3[]', 'material'),
+    uClipObjectTransform: UniformSpec('m4[]', 'material'),
 
     aInstance: AttributeSpec('float32', 1, 1),
     /**

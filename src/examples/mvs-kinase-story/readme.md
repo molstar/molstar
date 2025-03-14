@@ -1,10 +1,11 @@
-# Components Example
+# MolViewSpec Kinase Story Example
 
-A proof of concept for separating Mol* into a ready-to-use web component library.
+This example illustrates:
 
-Implements loading of MolViewSpec states and rendering snapshot markdown descriptions in a separate component.
+- Using MolViewSpec to tell a story
+- A proof of concept for separating Mol* into a ready-to-use web component library.
 
-Usage:
+### Usage
 
 - Clone Mol* GitHub repo and build it.
 ```bash
@@ -14,7 +15,7 @@ Usage:
   npm build
 ```
 
-- Get `molstar.css` and `index.js` from `build/examples/components` and include these to your HTML page
+- Get `molstar.css` and `index.js` from `build/examples/mvs-kinase-story` and include these to your HTML page
 
 ```html
     <link rel="stylesheet" type="text/css" href="molstar.css" />
@@ -47,3 +48,9 @@ Usage:
 ```
 
 See [index.html](./index.html) for a full example.
+
+- For interactive development build (for production use `npm run build`) of the example that immediately reflects changes use:
+
+```bash
+  npm run dev -- -e mvs-kinase-story
+```

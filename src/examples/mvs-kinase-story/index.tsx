@@ -8,7 +8,10 @@ import { getMolComponentContext } from './context';
 import './index.html';
 import './elements/snapshot-markdown';
 import './elements/viewer';
-require('../../mol-plugin-ui/skin/light.scss');
+import { buildStory } from './kinase-story';
+import '../../mol-plugin-ui/skin/light.scss';
+import './styles.scss';
+import { download } from '../../mol-util/download';
 
 export class MolComponents {
     getContext(name?: string) {
@@ -17,3 +20,5 @@ export class MolComponents {
 }
 
 (window as any).mc = new MolComponents();
+(window as any).buildStory = buildStory;
+(window as any).molStarDownload = download;

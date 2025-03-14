@@ -27,7 +27,7 @@ import { ObjectKeys } from '../../mol-util/type-helpers';
 import './index.html';
 import { ShowButtons, StructurePreset, ViewportComponent } from './viewport';
 
-require('mol-plugin-ui/skin/light.scss');
+import '../../mol-plugin-ui/skin/light.scss';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode } from '../../mol-util/debug';

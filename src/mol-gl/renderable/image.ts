@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -23,6 +23,15 @@ export const ImageSchema = {
     uImageTexDim: UniformSpec('v2'),
     tImageTex: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
     tGroupTex: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
+    tValueTex: TextureSpec('image-float32', 'alpha', 'float', 'linear'),
+
+    uTrimType: UniformSpec('i'),
+    uTrimCenter: UniformSpec('v3'),
+    uTrimRotation: UniformSpec('q'),
+    uTrimScale: UniformSpec('v3'),
+    uTrimTransform: UniformSpec('m4'),
+
+    uIsoLevel: UniformSpec('f'),
 
     dInterpolation: DefineSpec('string', InterpolationTypeNames),
 };

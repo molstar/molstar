@@ -7,7 +7,7 @@
 
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 import { LinesBuilder } from '../../../mol-geo/geometry/lines/lines-builder';
-import { addCylinder, addFixedCountDashedCylinder, addSimpleCylinder, BasicCylinderProps } from '../../../mol-geo/geometry/mesh/builder/cylinder';
+import { addFixedCountDashedCylinder, addSimpleCylinder, BasicCylinderProps } from '../../../mol-geo/geometry/mesh/builder/cylinder';
 import { addEllipsoid } from '../../../mol-geo/geometry/mesh/builder/ellipsoid';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
@@ -18,6 +18,7 @@ import { Circle } from '../../../mol-geo/primitive/circle';
 import { Primitive } from '../../../mol-geo/primitive/primitive';
 import { Box3D, Sphere3D } from '../../../mol-math/geometry';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
+import { radToDeg } from '../../../mol-math/misc';
 import { Shape } from '../../../mol-model/shape';
 import { Structure, StructureElement, StructureSelection } from '../../../mol-model/structure';
 import { StructureQueryHelper } from '../../../mol-plugin-state/helpers/structure-query';
@@ -303,6 +304,17 @@ const Builders: Record<PrimitiveParams['kind'], PrimitiveBuilder> = {
             label: addDistanceLabel,
         },
         resolveRefs: resolveLineRefs,
+    },
+    angle_measurement: {
+        builders: {
+            mesh: addAngleMesh,
+            label: addAngleLabel,
+        },
+        resolveRefs: (params: PrimitiveParams<'angle_measurement'>, refs: Set<string>) => {
+            addRef(params.a, refs);
+            addRef(params.b, refs);
+            addRef(params.c, refs);
+        },
     },
     ellipse: {
         builders: {
@@ -686,7 +698,7 @@ function addArrowMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBu
     const startRadius = params.start_cap_radius ?? tubeRadius;
     if (params.show_start_cap) {
         Vec3.scaleAndAdd(ArrowState.startCap, ArrowState.start, ArrowState.dir, startRadius);
-        addCylinder(mesh, ArrowState.start, ArrowState.startCap, 1, {
+        addSimpleCylinder(mesh, ArrowState.startCap, ArrowState.start, {
             radiusBottom: startRadius,
             radiusTop: 0,
             topCap: false,
@@ -700,7 +712,7 @@ function addArrowMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBu
     const endRadius = params.end_cap_radius ?? tubeRadius;
     if (params.show_end_cap) {
         Vec3.scaleAndAdd(ArrowState.endCap, ArrowState.end, ArrowState.dir, -endRadius);
-        addCylinder(mesh, ArrowState.end, ArrowState.endCap, 1, {
+        addSimpleCylinder(mesh, ArrowState.endCap, ArrowState.end, {
             radiusBottom: endRadius,
             radiusTop: 0,
             topCap: false,
@@ -767,19 +779,135 @@ function addDistanceLabel(context: PrimitiveBuilderContext, state: LabelBuilderS
     labels.add(label, labelPos[0], labelPos[1], labelPos[2], 1.05 * (params.radius), 1, group);
 }
 
+
+const AngleState = {
+    a: Vec3(),
+    b: Vec3(),
+    c: Vec3(),
+    ba: Vec3(),
+    bc: Vec3(),
+    labelPos: Vec3(),
+    radius: 0,
+};
+
+function syncAngleState(context: PrimitiveBuilderContext, params: PrimitiveParams<'angle_measurement'>) {
+    resolveBasePosition(context, params.a, AngleState.a);
+    resolveBasePosition(context, params.b, AngleState.b);
+    resolveBasePosition(context, params.c, AngleState.c);
+    Vec3.sub(AngleState.ba, AngleState.a, AngleState.b);
+    Vec3.sub(AngleState.bc, AngleState.c, AngleState.b);
+    const value = radToDeg(Vec3.angle(AngleState.ba, AngleState.bc));
+
+    const angle = `${round(value, 2)}\u00B0`;
+    const label = typeof params.label_template === 'string' ? params.label_template.replace('{{angle}}', angle) : angle;
+
+    if (typeof params.section_radius === 'number') {
+        AngleState.radius = params.section_radius;
+    } else {
+        AngleState.radius = Math.min(Vec3.magnitude(AngleState.ba), Vec3.magnitude(AngleState.bc));
+        if (typeof params.section_radius_scale === 'number') {
+            AngleState.radius *= params.section_radius_scale;
+        }
+    }
+
+    return label;
+}
+
+function addAngleMesh(context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'angle_measurement'>) {
+    const label = syncAngleState(context, params);
+    const { groups, mesh } = state;
+
+    if (params.show_vector) {
+        const radius = 0.01;
+        const cylinderProps: BasicCylinderProps = {
+            radiusBottom: radius,
+            radiusTop: radius,
+            topCap: true,
+            bottomCap: true,
+        };
+
+        mesh.currentGroup = groups.allocateSingle(node);
+        groups.updateColor(mesh.currentGroup, params.vector_color);
+        groups.updateTooltip(mesh.currentGroup, label);
+
+        let count = Math.ceil(Vec3.magnitude(AngleState.ba) / (2 * radius));
+        addFixedCountDashedCylinder(mesh, AngleState.a, AngleState.b, 1.0, count, true, cylinderProps);
+        count = Math.ceil(Vec3.magnitude(AngleState.bc) / (2 * radius));
+        addFixedCountDashedCylinder(mesh, AngleState.b, AngleState.c, 1.0, count, true, cylinderProps);
+    }
+
+    if (params.show_section) {
+        const angle = Vec3.angle(AngleState.ba, AngleState.bc);
+        Vec3.normalize(AngleState.ba, AngleState.ba);
+        Vec3.normalize(AngleState.bc, AngleState.bc);
+        Vec3.scale(AngleState.ba, AngleState.ba, AngleState.radius);
+        Vec3.scale(AngleState.bc, AngleState.bc, AngleState.radius);
+
+        addEllipseMesh(context, state, node, {
+            kind: 'ellipse',
+            as_circle: true,
+            center: AngleState.b as any,
+            major_axis_endpoint: null,
+            major_axis: AngleState.ba as any,
+            minor_axis_endpoint: null,
+            minor_axis: AngleState.bc as any,
+            radius_major: AngleState.radius,
+            radius_minor: AngleState.radius,
+            theta_start: 0,
+            theta_end: angle,
+            color: params.section_color,
+            tooltip: label,
+        });
+    }
+}
+
+function addAngleLabel(context: PrimitiveBuilderContext, state: LabelBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'angle_measurement'>) {
+    const { labels, groups } = state;
+    const label = syncAngleState(context, params);
+
+    Vec3.normalize(AngleState.ba, AngleState.ba);
+    Vec3.normalize(AngleState.bc, AngleState.bc);
+    Vec3.scale(AngleState.ba, AngleState.ba, AngleState.radius);
+    Vec3.scale(AngleState.bc, AngleState.bc, AngleState.radius);
+
+    let size: number | undefined;
+    if (typeof params.label_size === 'number') {
+        size = params.label_size;
+    } else {
+        size = Math.max(AngleState.radius * (params.label_auto_size_scale), params.label_auto_size_min);
+    }
+
+    Vec3.add(AngleState.labelPos, AngleState.ba, AngleState.bc);
+    Vec3.normalize(AngleState.labelPos, AngleState.labelPos);
+    Vec3.scale(AngleState.labelPos, AngleState.labelPos, AngleState.radius);
+    Vec3.add(AngleState.labelPos, AngleState.labelPos, AngleState.b);
+
+    const group = groups.allocateSingle(node);
+    groups.updateColor(group, params.label_color);
+    groups.updateSize(group, size);
+
+    labels.add(label, AngleState.labelPos[0], AngleState.labelPos[1], AngleState.labelPos[2], 1, 1, group);
+}
+
 function resolveLabelRefs(params: PrimitiveParams<'label'>, refs: Set<string>) {
     addRef(params.position, refs);
 }
 
+const PrimitiveLabelState = {
+    position: Vec3.zero(),
+    sphere: Sphere3D.zero(),
+};
+
 function addPrimitiveLabel(context: PrimitiveBuilderContext, state: LabelBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'label'>) {
     const { labels, groups } = state;
-    resolveBasePosition(context, params.position, labelPos);
+    resolvePosition(context, params.position, PrimitiveLabelState.position, PrimitiveLabelState.sphere, undefined);
 
     const group = groups.allocateSingle(node);
     groups.updateColor(group, params.label_color);
     groups.updateSize(group, params.label_size);
 
-    labels.add(params.text, labelPos[0], labelPos[1], labelPos[2], params.label_offset, 1, group);
+    const offset = PrimitiveLabelState.sphere.radius + params.label_offset;
+    labels.add(params.text, PrimitiveLabelState.position[0], PrimitiveLabelState.position[1], PrimitiveLabelState.position[2], offset, 1, group);
 }
 
 const circleCache = new Map<string, Primitive>();
@@ -808,16 +936,17 @@ const EllipseState = {
     minorAxis: Vec3.zero(),
     scale: Vec3.zero(),
     normal: Vec3.zero(),
-    rotationAxis: Vec3.zero(),
     scaleXform: Mat4.identity(),
     rotationXform: Mat4.identity(),
     translationXform: Mat4.identity(),
-    xform: Mat4.zero(),
+    xform: Mat4.identity(),
 };
 
 
 function addEllipseMesh(context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'ellipse'>) {
     // Unit circle in the XZ plane (Y up)
+    // X = minor axis, Y = normal, Z = major axis
+
     const circle = getCircle({ thetaStart: params.theta_start, thetaEnd: params.theta_end });
     if (!circle) return;
 
@@ -849,16 +978,17 @@ function addEllipseMesh(context: PrimitiveBuilderContext, state: MeshBuilderStat
     } else {
         const major = params.radius_major ?? Vec3.magnitude(EllipseState.majorAxis);
         const minor = params.radius_minor ?? Vec3.magnitude(EllipseState.minorAxis);
-        Vec3.set(EllipseState.scale, major, 1, minor);
+        Vec3.set(EllipseState.scale, minor, 1, major);
     }
     Mat4.fromScaling(EllipseState.scaleXform, EllipseState.scale);
 
     // Rotation
+    Vec3.normalize(EllipseState.minorAxis, EllipseState.minorAxis);
+    Vec3.normalize(EllipseState.majorAxis, EllipseState.majorAxis);
     Vec3.cross(EllipseState.normal, EllipseState.majorAxis, EllipseState.minorAxis);
-    Vec3.normalize(EllipseState.normal, EllipseState.normal);
-    Vec3.cross(EllipseState.rotationAxis, Vec3.unitY, EllipseState.normal);
-    Vec3.normalize(EllipseState.rotationAxis, EllipseState.rotationAxis);
-    Mat4.fromRotation(EllipseState.rotationXform, -Vec3.angle(Vec3.unitY, EllipseState.normal), EllipseState.rotationAxis);
+
+    Mat4.targetTo(EllipseState.rotationXform, Vec3.origin, EllipseState.majorAxis, EllipseState.normal);
+    Mat4.mul(EllipseState.rotationXform, EllipseState.rotationXform, Mat4.rotY180);
 
     // Final xform
     Mat4.mul3(EllipseState.xform, EllipseState.translationXform, EllipseState.rotationXform, EllipseState.scaleXform);

@@ -42,6 +42,8 @@ export const common = `
 #define TWO_PI 6.2831853
 #define HALF_PI 1.570796325
 
+#define PALETTE_SCALE 16777214.0 // (1 << 24) - 2
+
 #define saturate(a) clamp(a, 0.0, 1.0)
 
 #if __VERSION__ == 100

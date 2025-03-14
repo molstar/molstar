@@ -1,6 +1,6 @@
 const { createApp, createExample } = require('./webpack.config.common.js');
 
-const examples = ['proteopedia-wrapper', 'basic-wrapper', 'lighting', 'alpha-orbitals', 'components'];
+const examples = ['proteopedia-wrapper', 'basic-wrapper', 'lighting', 'alpha-orbitals', 'mvs-kinase-story', 'ihm-restraints'];
 
 module.exports = [
     createApp('viewer', 'molstar'),
