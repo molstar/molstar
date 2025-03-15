@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -247,6 +247,18 @@ export class PickHelper {
 
     setViewport(x: number, y: number, width: number, height: number) {
         Viewport.set(this.viewport, x, y, width, height);
+        this.update();
+    }
+
+    setPickPadding(pickPadding: number) {
+        if (this.pickPadding !== pickPadding) {
+            this.pickPadding = pickPadding;
+            this.update();
+        }
+    }
+
+    private update() {
+        const { x, y, width, height } = this.viewport;
 
         this.pickRatio = this.pickPass.pickRatio;
         this.pickX = Math.ceil(x * this.pickRatio);
@@ -263,7 +275,8 @@ export class PickHelper {
             this.setupBuffers();
         }
 
-        this.spiral = spiral2d(Math.round(this.pickRatio * this.pickPadding));
+        this.spiral = spiral2d(Math.ceil(this.pickRatio * this.pickPadding));
+        this.dirty = true;
     }
 
     private syncBuffers() {
@@ -324,6 +337,10 @@ export class PickHelper {
     }
 
     private identifyInternal(x: number, y: number, camera: Camera | StereoCamera): PickData | undefined {
+        if (this.pickRatio !== this.pickPass.pickRatio) {
+            this.update();
+        }
+
         const { webgl, pickRatio } = this;
         if (webgl.isContextLost) return;
 
@@ -392,7 +409,7 @@ export class PickHelper {
         }
     }
 
-    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private helper: Helper, private pickPass: PickPass, viewport: Viewport, readonly pickPadding = 1) {
+    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private helper: Helper, private pickPass: PickPass, viewport: Viewport, private pickPadding = 1) {
         this.setViewport(viewport.x, viewport.y, viewport.width, viewport.height);
     }
 }

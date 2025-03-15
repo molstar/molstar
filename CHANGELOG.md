@@ -18,6 +18,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix colors description in the UI (when using custom thresholds)
 - Fix an edge case in the UI when the user deletes all colors from the color list
 - Fix `ElementBondIterator` indices mapping logic for inter-unit bonds
+- Fix `pickPadding` and `pickScale` not updating `PickHelper`
 
 ## [v4.12.0] - 2025-02-28
 
