@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -1070,7 +1070,10 @@ namespace Canvas3D {
                 if (props.cameraResetDurationMs !== undefined) p.cameraResetDurationMs = props.cameraResetDurationMs;
                 if (props.transparentBackground !== undefined) p.transparentBackground = props.transparentBackground;
                 if (props.dpoitIterations !== undefined) p.dpoitIterations = props.dpoitIterations;
-                if (props.pickPadding !== undefined) p.pickPadding = props.pickPadding;
+                if (props.pickPadding !== undefined) {
+                    p.pickPadding = props.pickPadding;
+                    pickHelper.setPickPadding(p.pickPadding);
+                }
                 if (props.userInteractionReleaseMs !== undefined) p.userInteractionReleaseMs = props.userInteractionReleaseMs;
                 if (props.viewport !== undefined) {
                     const doNotUpdate = p.viewport === props.viewport ||

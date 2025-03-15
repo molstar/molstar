@@ -95,7 +95,7 @@ BCR-ABL is a classic case of how structural biology can drive drug discovery. Th
         description: `
 ### The ABL Kinase: A Well-Regulated Enzyme
 
-Normally, the ABL kinase ([PDB ID 1OPL](https://www.ebi.ac.uk/pdbe/entry/pdb/1opl/index)) is a well-regulated enzyme, kept in check by its SH3 and SH2 domains which fold back onto the kinase domain like a safety lock.
+Normally, the ABL kinase ([PDB ID 1OPL](${wwPDBLink('1opl')})) is a well-regulated enzyme, kept in check by its SH3 and SH2 domains which fold back onto the kinase domain like a safety lock.
 `,
         state: () => {
             const builder = createMVSBuilder();
@@ -138,7 +138,7 @@ fusing the ABL1 gene from chromosome 9 with the BCR gene on chromosome 22. This 
 regulation of the wildtype protein. Read more about this [here](https://www.cancer.gov/publications/dictionaries/cancer-terms/def/philadelphia-chromosome)
 and [the history of its discovery](https://pmc.ncbi.nlm.nih.gov/articles/PMC1934591/).
 
-Comparing the normal protein to the kinase domain alone ([PDB ID 2GQG](https://www.ebi.ac.uk/pdbe/entry/pdb/2gqg/index), in light red), you can
+Comparing the normal protein to the kinase domain alone ([PDB ID 2GQG](${wwPDBLink('2gqg')}), in light red), you can
 see how the SH3 and SH2 domains (teal in normal ABL, red in BCR-ABL, with SH3 domain being unresolved in the crystal structure) are no longer positioned to restrain the kinase.
 
 With this lock removed, BCR-ABL is stuck in an active conformation, like an accelerator pedal jammed to the floor. Without
@@ -187,7 +187,7 @@ its normal regulation, BCR-ABL will keep signaling, unchecked causing unregulate
 ### ATP Binding and Unstoppable Signaling
 
 To function, every kinase needs [ATP](https://en.wikipedia.org/wiki/Kinase), and BCR-ABL is no exception.
-Here, you can see non-hydrolysable ATP analogue [(AMP-PNP)](https://www.ebi.ac.uk/pdbe-srv/pdbechem/chemicalCompound/show/ANP)
+Here, you can see non-hydrolysable ATP analogue ([AMP-PNP](https://www.ebi.ac.uk/pdbe-srv/pdbechem/chemicalCompound/show/ANP))
 nestled in the active site. Look closely at the active site residues—Lys271, Glu286, and Asp381 (in orange).
 They form a crucial network that stabilizes the AMP-PNP (and also the ATP) and in the ATP bound kinase  catalyzes phosphorylation,
 allowing BCR-ABL to continuously activate downstream signaling pathways.
@@ -257,7 +257,7 @@ the leukemia-driving signals keep firing.
 ### Imatinib: The Drug That Changed Everything
 
 For years, chronic myeloid leukemia (CML) was a death sentence. Then came Imatinib (Gleevec), a molecule designed to fit into the ATP-binding pocket
-and lock BCR-ABL in an inactive conformation. The Imatinib-bound structure ([PDB ID 1IEP](https://www.ebi.ac.uk/pdbe/entry/pdb/1iep/index))
+and lock BCR-ABL in an inactive conformation. The Imatinib-bound structure ([PDB ID 1IEP](${wwPDBLink('1iep')}))
 shows the difference: the kinase is frozen. The drug forms a key hydrogen bond with Thr315, known as the gatekeeper residue; as well as Met318, Asp381, Glu286, Ile360 and His361.
 `,
         state: () => {
@@ -382,7 +382,7 @@ conformation. Imatinib doesn't just block ATP—it forces the kinase into a stat
 ### Resistance Strikes: The T315I Mutation
 
 For a while, it seemed like leukemia had been beaten. But then, in some patients, the cancer returned. The culprit?
-What was once a threonine (Thr) is now an isoleucine (Ile), a single mutation [T315I](https://doi.org/10.1016/j.ccr.2011.03.003), shown on [PDB ID 3IK3](https://www.ebi.ac.uk/pdbe/entry/pdb/3ik3/index) in orange.
+What was once a threonine (Thr) is now an isoleucine (Ile), a single mutation [T315I](https://doi.org/10.1016/j.ccr.2011.03.003), shown on [PDB ID 3IK3](${wwPDBLink('3ik3')}) in orange.
 
 Forming a hydrogen bond with Imatinib, Thr315 was a crucial contact point. With bulkier and non-polar isoleucine in its place, the contact is lost and the drug won't bind.
 `,
@@ -482,7 +482,7 @@ The result? Resistance. BCR-ABL is active again, and the leukemia returns, this 
         description: `
 ### Fighting Back: Ponatinib and the Future of Kinase Inhibitors
 
-The battle didn't end there. Scientists knew they needed a new inhibitor—one that could work even against T315I. Enter Ponatinib (shown in [PDB ID 3OXZ](https://www.ebi.ac.uk/pdbe/entry/pdb/3oxz/index)), a next-generation
+The battle didn't end there. Scientists knew they needed a new inhibitor—one that could work even against T315I. Enter Ponatinib (shown in [PDB ID 3OXZ](${wwPDBLink('3oxz')})), a next-generation
 drug designed to bypass this resistance. Viewing the Ponatinib-bound structure, you'll see how it differs from Imatinib. Instead of being blocked by T315I,
 Ponatinib has a flexible triple-bond linker, allowing it to slip into the binding site without clashing with the mutation. 
 
@@ -604,6 +604,10 @@ function transform(structure: MVSStructure, id: keyof typeof Superpositions) {
     const rotation = Mat3.fromMat4(Mat3.zero(), Superpositions[id]);
     const translation = Mat4.getTranslation(Vec3.zero(), Superpositions[id]) as any;
     return structure.transform({ rotation, translation });
+}
+
+function wwPDBLink(id: string) {
+    return `https://doi.org/10.2210/pdb${id.toLowerCase()}/pdb`;
 }
 
 function structure(builder: Root, id: string): MVSStructure {

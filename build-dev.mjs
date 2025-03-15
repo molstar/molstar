@@ -40,6 +40,22 @@ function fileLoaderPlugin(options) {
     }
 }
 
+function examplesCssRenamePlugin({ root }) {
+    return {
+        name: 'example-css-rename',
+        setup(build) {
+            build.onEnd(async () => {
+                if (fs.existsSync(path.resolve(root, 'index.css'))) {
+                    await fs.promises.rename(
+                        path.resolve(root, 'index.css'),
+                        path.resolve(root, 'molstar.css')
+                    );
+                }
+            }); 
+        }
+    };
+}
+
 async function watch(name, kind) {
     const prefix = kind === 'app'
         ? `./build/${name}`
@@ -68,6 +84,7 @@ async function watch(name, kind) {
                     debug: () => { },
                 }
             }),
+            ...(kind === 'example' ? [examplesCssRenamePlugin({ root: prefix })] : []),
         ],
         external: ['crypto', 'fs', 'path', 'stream'],
         loader: {

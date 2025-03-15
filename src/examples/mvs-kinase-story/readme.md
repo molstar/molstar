@@ -48,3 +48,9 @@ This example illustrates:
 ```
 
 See [index.html](./index.html) for a full example.
+
+- For interactive development build (for production use `npm run build`) of the example that immediately reflects changes use:
+
+```bash
+  npm run dev -- -e mvs-kinase-story
+```

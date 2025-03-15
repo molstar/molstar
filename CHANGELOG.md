@@ -8,12 +8,19 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `Viewer.loadFiles` to open supported files
 - Support installing the viewer as a Progressive Web App (PWA)
 - `ihm-restraints` example: show entity labels
-- Support bundles in `MultiStructureSelectionFromExpression`
-- Support measurements for coarse models
 - Fix `element-point` visual not using child unit
 - Ignore `renderables` with empty draw count
-- Add experimental support for `esbuild` for development.
+- Add experimental support for `esbuild` for development
   - Use `npm run dev` for faster development builds
+- Use `StructureElement.Bundle` instead of expressions to serialize measurement elements
+  - Fixes measurements not being supported for coarse models
+- Implementation of `ColorScale.createDiscrete` (#1458)
+- Add `ColorScale.createDiscrete` to the `uncertainty` color theme
+- Fix color palette shown in the UI (for non-gradient palettes)
+- Fix colors description in the UI (when using custom thresholds)
+- Fix an edge case in the UI when the user deletes all colors from the color list
+- Fix `ElementBondIterator` indices mapping logic for inter-unit bonds
+- Fix `pickPadding` and `pickScale` not updating `PickHelper`
 
 ## [v4.12.0] - 2025-02-28
 
