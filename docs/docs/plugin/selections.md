@@ -70,7 +70,6 @@ This relies on the concept of `Expression` which is basically a intermediate rep
 ### Select residues 10-15 of chains A and F in a structure using a `SelectionQuery` object:
 
 ```typescript
-
 import { MolScriptBuilder as MS, MolScriptBuilder } from 'molstar/lib/mol-script/language/builder';
 import { Expression } from 'molstar/lib/mol-script/language/expression';
 import {  StructureSelectionQuery } from 'molstar/lib/mol-plugin-state/helpers/structure-selection-query'
@@ -82,8 +81,8 @@ export function select_multiple() {
  const groups: Expression[] = [];
  for (var chain of args) {
    groups.push(MS.struct.generator.atomGroups({
-     "chain-test": MS.core.rel.eq([MolScriptBuilder.struct.atomProperty.macromolecular.auth_asym_id(), chain[0]]),
-     "residue-test": MS.core.rel.inRange([MolScriptBuilder.struct.atomProperty.macromolecular.label_seq_id(), chain[1], chain[2]])
+     'chain-test': MS.core.rel.eq([MolScriptBuilder.struct.atomProperty.macromolecular.auth_asym_id(), chain[0]]),
+     'residue-test': MS.core.rel.inRange([MolScriptBuilder.struct.atomProperty.macromolecular.label_seq_id(), chain[1], chain[2]])
    }));
  }
  var sq = StructureSelectionQuery('residue_range_10_15_in_A_and_F', MS.struct.combinator.merge(groups))
@@ -98,13 +97,52 @@ Inspect these examples to get a better feeling for this syntax: `https://github.
 
 Furthermore, a query made this way can be converted to a `Loci` object which is important in many parts of the libary:
 ```typescript
-
 // Select residue 124 of chain A and convert to Loci
 const Q = MolScriptBuilder;
 var sel = Script.getStructureSelection(Q => Q.struct.generator.atomGroups({
-                'chain-test'  : Q.core.rel.eq([Q.struct.atomProperty.macromolecular.auth_asym_id(), A]),
-                "residue-test": Q.core.rel.eq([Q.struct.atomProperty.macromolecular.label_seq_id(), 124]),
-              }), objdata)
+  'chain-test': Q.core.rel.eq([Q.struct.atomProperty.macromolecular.auth_asym_id(), A]),
+  'residue-test': Q.core.rel.eq([Q.struct.atomProperty.macromolecular.label_seq_id(), 124]),
+}), objdata)
 
 let loci = StructureSelection.toLociWithSourceUnits(sel);
 ```
+
+## Query Functions
+
+Instead of building expressions, query functions can be created directly, e.g.:
+
+```ts
+import { atoms } from 'mol-model/structure/query/queries/generators';
+
+const query = atoms({
+  residueTest: ctx => {
+    const seqId = StructureProperties.residue.label_seq_id(ctx.element);
+    return seqId > 10 && seqId < 25;
+  },
+});
+
+const selection = query(new QueryContext(structure));
+// ...
+```
+
+## Selection Schema
+
+For simple selections, the `StructureElement.Schema` can be used to reference elements within a protein structure using mmCIF `atom_site` field names, e.g.:
+
+```ts
+const ala121: StructureElement.Schema = { label_asym_id: 'A', label_seq_id: 121 };
+const residues: StructureElement.Schema = { 
+  items: {
+    auth_asym_id: ['A', 'B'],
+    auth_seq_id: [10, 11],
+  }
+};
+
+const loci = StructureElement.Loci.fromSchema(structure, residues);
+```
+
+Usually, a code editor such as VS Code will auto-suggest all the available field names.
+
+## Helper Functions
+
+Given an `Expression`, `QueryFn`, or `StructureElement.Schema` it is possible to use `fromExpression/Query/Schema` functions on `StructureElement.Loci` and `StructureElement.Bundle`.

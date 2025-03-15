@@ -1,9 +1,10 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Fred Ludlow <Fred.Ludlow@astx.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Paul Pillot <paul.pillot@tandemai.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Structure, StructureElement, Unit, Bond } from '../../../mol-model/structure';
@@ -346,10 +347,18 @@ export type ValenceModelProps = PD.Values<ValenceModelParams>
 export async function calcValenceModel(ctx: RuntimeContext, structure: Structure, props: Partial<ValenceModelProps>) {
     const p = { ...PD.getDefaultValues(ValenceModelParams), ...props };
     const map = new Map<number, ValenceModel>();
+
+    const cacheKey = `valence-model-${JSON.stringify(p)}`;
     for (let i = 0, il = structure.units.length; i < il; ++i) {
         const u = structure.units[i];
         if (Unit.isAtomic(u)) {
-            const valenceModel = calcUnitValenceModel(structure, u, p);
+            let valenceModel;
+            if (u.transientCache.has(cacheKey)) {
+                valenceModel = u.transientCache.get(cacheKey);
+            } else {
+                valenceModel = calcUnitValenceModel(structure, u, p);
+                u.transientCache.set(cacheKey, valenceModel);
+            }
             map.set(u.id, valenceModel);
         }
     }

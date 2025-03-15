@@ -14,7 +14,8 @@ import { UnitIndex } from './element';
 import { Loci } from './loci';
 import { Expression } from '../../../../mol-script/language/expression';
 import { MolScriptBuilder as MS } from '../../../../mol-script/language/builder';
-import { StructureSelection } from '../../query';
+import { QueryContext, QueryFn, StructureSelection } from '../../query';
+import { Schema } from './schema';
 
 export interface BundleElement {
     /**
@@ -42,6 +43,18 @@ export namespace Bundle {
 
     export function fromSelection(selection: StructureSelection) {
         return fromLoci(StructureSelection.toLociWithSourceUnits(selection));
+    }
+
+    export function fromExpression(structure: Structure, expression: Expression | ((builder: typeof MS) => Expression), queryContext?: QueryContext): Bundle {
+        return fromLoci(Loci.fromExpression(structure, expression, queryContext));
+    }
+
+    export function fromQuery(structure: Structure, query: QueryFn, queryContext?: QueryContext): Bundle {
+        return fromLoci(Loci.fromQuery(structure, query, queryContext));
+    }
+
+    export function fromSchema(structure: Structure, schema: Schema, queryContext?: QueryContext): Bundle {
+        return Schema.toBundle(structure, schema, queryContext);
     }
 
     export function fromLoci(loci: Loci): Bundle {

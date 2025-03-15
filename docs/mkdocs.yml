@@ -56,6 +56,7 @@ nav:
     - MolViewSpec: 'extensions/mvs/index.md'
     - wwPDB StructConn: 'extensions/struct-conn.md'
     - Tunnels: 'extensions/tunnels.md'
+    - Interactions: 'extensions/interactions.md'
   - Misc:
     - Interesting PDB entries: misc/interesting-pdb-entries.md
     - Exporting component data: exporting-components.md
