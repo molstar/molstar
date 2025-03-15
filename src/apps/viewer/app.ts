@@ -61,7 +61,7 @@ import { ObjectKeys } from '../../mol-util/type-helpers';
 import { OpenFiles } from '../../mol-plugin-state/actions/file';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
-export { consoleStats, setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
+export { consoleStats, setDebugMode, setProductionMode, setTimingMode, isProductionMode, isDebugMode, isTimingMode } from '../../mol-util/debug';
 
 const CustomFormats = [
     ['g3d', G3dProvider] as const
@@ -561,14 +561,14 @@ export class Viewer {
         }
     }
 
-    async loadFiles(files: File[]) {
+    loadFiles(files: File[]) {
         const sessions = files.filter(f => {
             const fn = f.name.toLowerCase();
             return fn.endsWith('.molx') || fn.endsWith('.molj');
         });
 
         if (sessions.length > 0) {
-            PluginCommands.State.Snapshots.OpenFile(this.plugin, { file: sessions[0] });
+            return PluginCommands.State.Snapshots.OpenFile(this.plugin, { file: sessions[0] });
         } else {
             return this.plugin.runTask(this.plugin.state.data.applyAction(OpenFiles, {
                 files: files.map(f => Asset.File(f)),

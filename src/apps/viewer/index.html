@@ -35,7 +35,7 @@
             }
         </style>
         <link rel="stylesheet" type="text/css" href="molstar.css" />
-        <link rel="manifest" href="./manifest.webmanifest">
+        <!-- __MOLSTAR_MANIFEST__ -->
     </head>
     <body>
         <div id="app"></div>
@@ -132,37 +132,11 @@
                     viewer.dispose();
                 });
 
-                // Handle incoming files
-                if ('launchQueue' in window) {
-                    launchQueue.setConsumer((launchParams) => {
-                        if (!launchParams.files.length) return;
-
-                        const files = [];
-                        for (const fileHandle of launchParams.files) {
-                            files.push(fileHandle.getFile());
-                        }
-
-                        Promise.all(files).then((files) => {
-                            viewer.loadFiles(files);
-                        });
-                    });
-                }
+                const event = new CustomEvent("molstarViewerCreated", { detail: { viewer } });
+                window.dispatchEvent(event);
             });
-
-            // Register Progressive Web App service worker.
-            if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function () {
-                    navigator.serviceWorker.register('./sw.js')
-                        .then(function (registration) {
-                            // Registration was successful
-                            console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                        }, function (err) {
-                            // registration failed :(
-                            console.log('ServiceWorker registration failed: ', err);
-                        });
-                });
-            }
         </script>
+        <!-- __MOLSTAR_PWA__ -->
         <!-- __MOLSTAR_ANALYTICS__ -->
     </body>
 </html>

@@ -1,11 +1,11 @@
 {
-    "id": "/molstar/build/viewer/index.html",
+    "id": "https://molstar.org/viewer/",
     "name": "Mol* Viewer",
     "short_name": "Mol*",
-    "description": "Mol* Viewer",
+    "description": "Mol* Viewer: a modern web app for 3D visualization and analysis of large biomolecular structures.",
     "start_url": "./index.html",
-    "theme_color": "#eeffee",
-    "background_color": "#eeffee",
+    "theme_color": "#eeece7",
+    "background_color": "#eeece7",
     "display": "standalone",
     "icons": [
         {
