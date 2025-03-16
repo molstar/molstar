@@ -256,8 +256,6 @@ function matchesRange<T>(requiredMin: T | undefined | null, requiredMax: T | und
     return true;
 }
 
-
-
 /** Convert an annotation row into a MolScript expression */
 export function rowToExpression(row: MVSAnnotationRow): Expression {
     return StructureElement.Schema.toExpression(row);
@@ -266,7 +264,9 @@ export function rowToExpression(row: MVSAnnotationRow): Expression {
 /** Convert multiple annotation rows into a MolScript expression.
  * (with union semantics, i.e. an atom qualifies if it qualifies for at least one of the rows) */
 export function rowsToExpression(rows: readonly MVSAnnotationRow[]): Expression {
-    return StructureElement.Schema.toExpression(rows as StructureElement.Schema);
+    return StructureElement.Schema.toExpression({
+        items: rows as StructureElement.SchemaItem[]
+    });
 }
 
 /** Data structure for an array divided into contiguous groups */
