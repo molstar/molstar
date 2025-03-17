@@ -1,0 +1,39 @@
+{
+    "id": "https://molstar.org/viewer/",
+    "name": "Mol* Viewer",
+    "short_name": "Mol*",
+    "description": "Mol* Viewer: a modern web app for 3D visualization and analysis of large biomolecular structures.",
+    "start_url": "./index.html",
+    "theme_color": "#eeece7",
+    "background_color": "#eeece7",
+    "display": "standalone",
+    "icons": [
+        {
+            "src": "favicon.ico",
+            "sizes": "48x48"
+        },
+        {
+            "src": "logo-144.png",
+            "sizes": "144x144"
+        }
+    ],
+    "file_handlers": [
+        {
+            "action": "./index.html",
+            "accept": {
+                "application/vnd.molstar": [".molx", ".molj"],
+                "text/plain": [
+                    ".mol", ".mol2", ".sdf", ".sd", ".pdb", ".ent", ".pdbqt", ".cif", ".mcif", ".mmcif", ".xyz", ".gro", ".lammpstrj",
+                    ".cub", ".cube", ".dx"
+                ],
+                "application/octet-stream": [
+                    ".bcif",
+                    ".dxbin", ".ccp4", ".mrc", ".map", ".dsn6", ".brix"
+                ]
+            }
+        }
+    ],
+    "launch_handler": {
+        "client_mode": ["auto"]
+    }
+}

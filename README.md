@@ -86,7 +86,7 @@ Runs the cleanup script prior to building the project, forcing a full rebuild of
 
 Use these commands to resolve occasional build failures which may arise after some dependency updates. Once done, `npm run build` should work again. Note that full rebuilds take more time to complete.
 
-### Develop with `esbuild` 
+### Develop with `esbuild`
 
 Experimental support for faster builds with `esbuild`
 - `npm run dev:all` - watch mode for all apps and examples
@@ -111,7 +111,6 @@ From the root of the project:
     http-server -p PORT-NUMBER
 
 and navigate to `build/viewer`
-
 
 ### Code generation
 **CIF schemas**
