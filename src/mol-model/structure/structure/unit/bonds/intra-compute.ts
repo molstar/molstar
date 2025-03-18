@@ -160,6 +160,7 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
     let isWatery = true, isDictionaryBased = true, isSequenced = true;
 
     const structConnAdded = __structConnAdded;
+    const hasStructConnEntries = !!structConn?.residueCantorPairs.size;
 
     for (let _aI = 0 as StructureElement.UnitIndex; _aI < atomCount; _aI++) {
         const aI = atoms[_aI];
@@ -232,7 +233,7 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
             if (altA && altB && altA !== altB) continue;
 
             // Do not add bonds for residues that have a structConn entry
-            if (structConn?.residueCantorPairs.size) {
+            if (hasStructConnEntries) {
                 const residuePair = sortedCantorPairing(residueIndex[aI], residueIndex[bI]);
                 if (structConn.residueCantorPairs.has(residuePair)) continue;
             }
