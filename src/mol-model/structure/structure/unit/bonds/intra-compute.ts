@@ -189,10 +189,6 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
                 hasStructConn = true;
                 structConnAdded.add(_bI);
             }
-
-            // Do not add bonds for residues that have a structConn entry
-            const residuePair = sortedCantorPairing(residueIndex[aI], residueIndex[aI]);
-            if (structConn?.residueCantorPairs.has(residuePair)) continue;
         }
         if (structConnExhaustive) continue;
 
@@ -234,6 +230,12 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
 
             const altB = label_alt_id.value(bI);
             if (altA && altB && altA !== altB) continue;
+
+            // Do not add bonds for residues that have a structConn entry
+            if (structConn?.residueCantorPairs.size) {
+                const residuePair = sortedCantorPairing(residueIndex[aI], residueIndex[bI]);
+                if (structConn.residueCantorPairs.has(residuePair)) continue;
+            }
 
             const beI = getElementIdx(type_symbol.value(bI)!);
 
