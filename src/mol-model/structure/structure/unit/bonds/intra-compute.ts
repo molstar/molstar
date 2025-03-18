@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2024 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -20,6 +20,7 @@ import { Vec3 } from '../../../../../mol-math/linear-algebra';
 import { ElementIndex } from '../../../model/indexing';
 import { equalEps } from '../../../../../mol-math/linear-algebra/3d/common';
 import { Model } from '../../../model/model';
+import { sortedCantorPairing } from '../../../../../mol-data/util';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3distance = Vec3.distance;
@@ -188,6 +189,10 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
                 hasStructConn = true;
                 structConnAdded.add(_bI);
             }
+
+            // Do not add bonds for residues that have a structConn entry
+            const residuePair = sortedCantorPairing(residueIndex[aI], residueIndex[aI]);
+            if (structConn?.residueCantorPairs.has(residuePair)) continue;
         }
         if (structConnExhaustive) continue;
 
