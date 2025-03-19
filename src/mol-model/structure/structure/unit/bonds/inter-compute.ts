@@ -181,7 +181,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
                 }
             }
 
-            if (structConn) {
+            if (structConn && unitA.model === unitB.model) {
                 const residuePair = sortedCantorPairing(residueIndexA[aI], residueIndexB[bI]);
                 // Do not add bonds for residue pairs that have a structConn entry
                 if (structConn.residueCantorPairs.has(residuePair)) continue;
