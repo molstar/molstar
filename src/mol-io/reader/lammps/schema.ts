@@ -7,6 +7,7 @@
  */
 
 import { Column } from '../../../mol-data/db';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 
 interface LammpsUnitStyle {
     mass: string;
@@ -166,25 +167,13 @@ export const lammpsUnitStyles: { [key: string]: LammpsUnitStyle } = {
 export const UnitStyles = ['real', 'metal', 'si', 'cgs', 'electron', 'micro', 'nano', 'lj'] as const;
 export type UnitStyle = typeof UnitStyles[number];
 
-export interface LammpsDataFile {
-    readonly atoms: {
-        readonly count: number
-        readonly atomId: Column<number>
-        readonly moleculeId: Column<number>
-        readonly atomType: Column<number>
-        readonly charge: Column<number>
-        readonly x: Column<number>,
-        readonly y: Column<number>,
-        readonly z: Column<number>,
-    }
-    readonly bonds: {
-        readonly count: number
-        readonly bondId: Column<number>
-        readonly bondType: Column<number>
-        readonly atomIdA: Column<number>
-        readonly atomIdB: Column<number>
-    }
-}
+export const AsymIdStyles = ['auto', 'on', 'off'] as const;
+export type AsymIdStyle = typeof AsymIdStyles[number];
+
+export const LammpsParams = {
+    unitsStyle: PD.Select('real', PD.arrayToOptions(UnitStyles)),
+    asymId: PD.Select('auto', PD.arrayToOptions(AsymIdStyles)),
+};
 
 export interface LammpsBox {
     lower: [number, number, number],
@@ -209,4 +198,25 @@ export interface LammpsTrajectoryFile {
     bounds: LammpsBox[],
     timeOffset: number,
     deltaTime: number
+}
+
+export interface LammpsDataFile {
+    readonly atoms: {
+        readonly count: number
+        readonly atomId: Column<number>
+        readonly moleculeId: Column<number>
+        readonly atomType: Column<number>
+        readonly charge: Column<number>
+        readonly x: Column<number>,
+        readonly y: Column<number>,
+        readonly z: Column<number>,
+    }
+    readonly bonds: {
+        readonly count: number
+        readonly bondId: Column<number>
+        readonly bondType: Column<number>
+        readonly atomIdA: Column<number>
+        readonly atomIdB: Column<number>
+    }
+    readonly bounds: LammpsBox,
 }
