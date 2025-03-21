@@ -126,9 +126,9 @@ async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, options
     }
 }
 
-function molstarTreeToEntry(plugin: PluginContext, tree: MolstarTree, metadata: SnapshotMetadata & { previousTransitionDurationMs?: number }, options?: { replaceExisting?: boolean, keepCamera?: boolean, keepSnapshotCamera?: boolean }) {
+function molstarTreeToEntry(plugin: PluginContext, tree: MolstarTree, metadata: SnapshotMetadata & { previousTransitionDurationMs?: number }, options?: { replaceExisting?: boolean, keepCamera?: boolean, keepSnapshotCamera?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
     const context = MolstarLoadingContext.create();
-    const snapshot = loadTreeVirtual(plugin, tree, MolstarLoadingActions, context, options);
+    const snapshot = loadTreeVirtual(plugin, tree, MolstarLoadingActions, context, { ...options, extensions: options?.extensions ?? BuiltinLoadingExtensions });
     snapshot.canvas3d = {
         props: plugin.canvas3d ? modifyCanvasProps(plugin.canvas3d.props, context.canvas) : undefined,
     };
@@ -291,7 +291,7 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     },
     volume(updateParent: UpdateTarget, node: MolstarNode<'volume'>): UpdateTarget | undefined {
         if (updateParent.transformer?.definition.to.includes(PluginStateObject.Format.Ccp4)) {
-            return UpdateTarget.apply(updateParent, VolumeFromCcp4, { });
+            return UpdateTarget.apply(updateParent, VolumeFromCcp4, {});
         } else if (updateParent.transformer?.definition.to.includes(PluginStateObject.Format.Cif)) {
             return UpdateTarget.apply(updateParent, VolumeFromDensityServerCif, { blockHeader: node.params.channel_id || undefined });
         } else {

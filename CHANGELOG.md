@@ -25,6 +25,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `Unit.transientCache` and `Unit.getCopy`
 - Fix `ElementBondIterator` indices mapping logic for inter-unit bonds
 - Fix `pickPadding` and `pickScale` not updating `PickHelper`
+- MolViewSpec extension: support loading extensions when loading multistate files
 
 ## [v4.12.0] - 2025-02-28
 
