@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add `Viewer.loadFiles` to open supported files
+- Support installing the viewer as a Progressive Web App (PWA)
 - `ihm-restraints` example: show entity labels
 - Fix `element-point` visual not using child unit
 - Ignore `renderables` with empty draw count
