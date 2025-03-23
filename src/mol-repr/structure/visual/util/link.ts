@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Zhenyu Zhang <jump2cn@gmail.com>
@@ -123,133 +123,46 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
 
     if (!linkCount) return { mesh: Mesh.createEmpty(mesh) };
 
-    const { linkScale, linkSpacing, radialSegments, linkCap, aromaticScale, aromaticSpacing, aromaticDashCount, dashCount, dashScale, dashCap, stubCap } = props;
+    const { radialSegments, stubCap } = props;
 
     const vertexCountEstimate = radialSegments * 2 * linkCount * 2;
     const builderState = MeshBuilder.createState(vertexCountEstimate, vertexCountEstimate / 4, mesh);
 
-    const va = Vec3();
-    const vb = Vec3();
-    const vShift = Vec3();
-
     const center = Vec3();
     let count = 0;
 
-    const cylinderProps: CylinderProps = {
-        radiusTop: 1,
-        radiusBottom: 1,
-        radialSegments,
-        topCap: linkCap,
-        bottomCap: linkCap
+    let edgeIndex = 0;
+    const addOptions: AddLinkOptions = {
+        builderState,
+        props,
+        assignNonAdjustedPosition: (posA, posB) => {
+            position(posA, posB, edgeIndex, false);
+        },
+        referencePosition: referencePosition ? () => referencePosition(edgeIndex) : undefined,
+    };
+    const addParams: AddLinkParams = {
+        a: Vec3(),
+        b: Vec3(),
+        group: 0,
+        linkStub: false,
+        linkStyle: LinkStyle.Solid,
+        linkRadius: 0,
     };
 
-    for (let edgeIndex = 0, _eI = linkCount; edgeIndex < _eI; ++edgeIndex) {
+    for (let _eI = linkCount; edgeIndex < _eI; ++edgeIndex) {
         if (ignore && ignore(edgeIndex)) continue;
 
-        position(va, vb, edgeIndex, true);
+        position(addParams.a, addParams.b, edgeIndex, true);
 
-        v3add(center, center, va);
-        v3add(center, center, vb);
+        v3add(center, center, addParams.a);
+        v3add(center, center, addParams.b);
         count += 2;
 
-        v3sub(tmpV12, vb, va);
-        const dirFlag = v3dot(tmpV12, up) > 0;
-
-        const linkRadius = radius(edgeIndex);
-        const linkStyle = style ? style(edgeIndex) : LinkStyle.Solid;
-        const linkStub = stubCap && (stub ? stub(edgeIndex) : false);
-        const [topCap, bottomCap] = dirFlag ? [linkStub, linkCap] : [linkCap, linkStub];
-        builderState.currentGroup = edgeIndex;
-
-        if (linkStyle === LinkStyle.Solid) {
-            cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius;
-            cylinderProps.topCap = topCap;
-            cylinderProps.bottomCap = bottomCap;
-
-            addCylinder(builderState, va, vb, 0.5, cylinderProps);
-        } else if (linkStyle === LinkStyle.Dashed) {
-            cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius * dashScale;
-            cylinderProps.topCap = cylinderProps.bottomCap = dashCap;
-            addFixedCountDashedCylinder(builderState, va, vb, 0.5, dashCount, linkStub, cylinderProps);
-        } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple || linkStyle === LinkStyle.Aromatic || linkStyle === LinkStyle.MirroredAromatic) {
-            const order = (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble) ? 2 :
-                (linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple) ? 3 : 1.5;
-            const multiRadius = linkRadius * (linkScale / (0.5 * order));
-            const absOffset = (linkRadius - multiRadius) * linkSpacing;
-
-            calculateShiftDir(vShift, va, vb, referencePosition ? referencePosition(edgeIndex) : null);
-
-            cylinderProps.topCap = topCap;
-            cylinderProps.bottomCap = bottomCap;
-
-            if (linkStyle === LinkStyle.Aromatic || linkStyle === LinkStyle.MirroredAromatic) {
-                cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius;
-                addCylinder(builderState, va, vb, 0.5, cylinderProps);
-
-                const aromaticOffset = linkRadius + aromaticScale * linkRadius + aromaticScale * linkRadius * aromaticSpacing;
-
-                position(va, vb, edgeIndex, false);
-
-                v3setMagnitude(tmpV12, v3sub(tmpV12, vb, va), linkRadius * 0.5);
-                v3add(va, va, tmpV12);
-                v3sub(vb, vb, tmpV12);
-
-                cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius * aromaticScale;
-                cylinderProps.topCap = cylinderProps.bottomCap = dashCap;
-                v3setMagnitude(vShift, vShift, aromaticOffset);
-                v3sub(va, va, vShift);
-                v3sub(vb, vb, vShift);
-                addFixedCountDashedCylinder(builderState, va, vb, 0.5, aromaticDashCount, linkStub, cylinderProps);
-
-                if (linkStyle === LinkStyle.MirroredAromatic) {
-                    v3setMagnitude(vShift, vShift, aromaticOffset * 2);
-                    v3add(va, va, vShift);
-                    v3add(vb, vb, vShift);
-                    addFixedCountDashedCylinder(builderState, va, vb, 0.5, aromaticDashCount, linkStub, cylinderProps);
-                }
-            } else if (linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.OffsetTriple) {
-                const multipleOffset = linkRadius + multiRadius + linkScale * linkRadius * linkSpacing;
-                v3setMagnitude(vShift, vShift, multipleOffset);
-
-                cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius;
-                addCylinder(builderState, va, vb, 0.5, cylinderProps);
-
-                v3scale(tmpV12, tmpV12, linkSpacing * linkScale * 0.2);
-                v3add(va, va, tmpV12);
-                v3sub(vb, vb, tmpV12);
-
-                cylinderProps.radiusTop = cylinderProps.radiusBottom = multiRadius;
-                cylinderProps.topCap = dirFlag ? linkStub : dashCap;
-                cylinderProps.bottomCap = dirFlag ? dashCap : linkStub;
-                v3setMagnitude(vShift, vShift, multipleOffset);
-                v3sub(va, va, vShift);
-                v3sub(vb, vb, vShift);
-                addCylinder(builderState, va, vb, 0.5, cylinderProps);
-
-                if (order === 3) {
-                    v3setMagnitude(vShift, vShift, multipleOffset * 2);
-                    v3add(va, va, vShift);
-                    v3add(vb, vb, vShift);
-                    addCylinder(builderState, va, vb, 0.5, cylinderProps);
-                }
-            } else {
-                v3setMagnitude(vShift, vShift, absOffset);
-
-                cylinderProps.radiusTop = cylinderProps.radiusBottom = multiRadius;
-                if (order === 3) addCylinder(builderState, va, vb, 0.5, cylinderProps);
-                addDoubleCylinder(builderState, va, vb, 0.5, vShift, cylinderProps);
-            }
-        } else if (linkStyle === LinkStyle.Disk) {
-            v3scale(tmpV12, tmpV12, 0.475);
-            v3add(va, va, tmpV12);
-            v3sub(vb, vb, tmpV12);
-
-            cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius;
-            cylinderProps.topCap = topCap;
-            cylinderProps.bottomCap = bottomCap;
-
-            addCylinder(builderState, va, vb, 0.5, cylinderProps);
-        }
+        addParams.group = edgeIndex;
+        addParams.linkStub = stubCap && (stub ? stub(edgeIndex) : false);
+        addParams.linkRadius = radius(edgeIndex);
+        addParams.linkStyle = style ? style(edgeIndex) : LinkStyle.Solid;
+        addLinkCylinderMesh(addOptions, addParams);
     }
 
     const m = MeshBuilder.getMesh(builderState);
@@ -264,6 +177,145 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
         return { mesh: m };
     }
 }
+
+export interface AddLinkOptions {
+    builderState: MeshBuilder.State,
+    props: LinkCylinderProps,
+    assignNonAdjustedPosition?: (posA: Vec3, posB: Vec3) => void,
+    referencePosition?: () => Vec3 | null,
+};
+
+export interface AddLinkParams {
+    linkStub: boolean,
+    linkRadius: number,
+    linkStyle: LinkStyle,
+    a: Vec3,
+    b: Vec3,
+    group: number,
+}
+
+const AddLinkCylinderState = {
+    cylinderProps: {
+        radiusTop: 1,
+        radiusBottom: 1,
+        radialSegments: 8,
+        topCap: false,
+        bottomCap: false,
+    } as CylinderProps,
+    vShift: Vec3(),
+    va: Vec3(),
+    vb: Vec3(),
+};
+
+export function addLinkCylinderMesh(options: AddLinkOptions, params: AddLinkParams) {
+    const { builderState, props, assignNonAdjustedPosition, referencePosition } = options;
+    const { linkRadius, linkStub, linkStyle, a, b } = params;
+    const { linkScale, linkSpacing, radialSegments, linkCap, aromaticScale, aromaticSpacing, aromaticDashCount, dashCount, dashScale, dashCap } = props;
+
+    const { cylinderProps, vShift, va, vb } = AddLinkCylinderState;
+    cylinderProps.radialSegments = radialSegments;
+
+    Vec3.copy(va, a);
+    Vec3.copy(vb, b);
+
+    v3sub(tmpV12, vb, va);
+    const dirFlag = v3dot(tmpV12, up) > 0;
+
+    const [topCap, bottomCap] = dirFlag ? [linkStub, linkCap] : [linkCap, linkStub];
+    builderState.currentGroup = params.group;
+
+    if (linkStyle === LinkStyle.Solid) {
+        cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius;
+        cylinderProps.topCap = topCap;
+        cylinderProps.bottomCap = bottomCap;
+
+        addCylinder(builderState, va, vb, 0.5, cylinderProps);
+    } else if (linkStyle === LinkStyle.Dashed) {
+        cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius * dashScale;
+        cylinderProps.topCap = cylinderProps.bottomCap = dashCap;
+        addFixedCountDashedCylinder(builderState, va, vb, 0.5, dashCount, linkStub, cylinderProps);
+    } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple || linkStyle === LinkStyle.Aromatic || linkStyle === LinkStyle.MirroredAromatic) {
+        const order = (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble) ? 2 :
+            (linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple) ? 3 : 1.5;
+        const multiRadius = linkRadius * (linkScale / (0.5 * order));
+        const absOffset = (linkRadius - multiRadius) * linkSpacing;
+
+        calculateShiftDir(vShift, va, vb, referencePosition ? referencePosition() : null);
+
+        cylinderProps.topCap = topCap;
+        cylinderProps.bottomCap = bottomCap;
+
+        if (linkStyle === LinkStyle.Aromatic || linkStyle === LinkStyle.MirroredAromatic) {
+            cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius;
+            addCylinder(builderState, va, vb, 0.5, cylinderProps);
+
+            const aromaticOffset = linkRadius + aromaticScale * linkRadius + aromaticScale * linkRadius * aromaticSpacing;
+
+            if (assignNonAdjustedPosition) {
+                assignNonAdjustedPosition(va, vb);
+            }
+
+            v3setMagnitude(tmpV12, v3sub(tmpV12, vb, va), linkRadius * 0.5);
+            v3add(va, va, tmpV12);
+            v3sub(vb, vb, tmpV12);
+
+            cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius * aromaticScale;
+            cylinderProps.topCap = cylinderProps.bottomCap = dashCap;
+            v3setMagnitude(vShift, vShift, aromaticOffset);
+            v3sub(va, va, vShift);
+            v3sub(vb, vb, vShift);
+            addFixedCountDashedCylinder(builderState, va, vb, 0.5, aromaticDashCount, linkStub, cylinderProps);
+
+            if (linkStyle === LinkStyle.MirroredAromatic) {
+                v3setMagnitude(vShift, vShift, aromaticOffset * 2);
+                v3add(va, va, vShift);
+                v3add(vb, vb, vShift);
+                addFixedCountDashedCylinder(builderState, va, vb, 0.5, aromaticDashCount, linkStub, cylinderProps);
+            }
+        } else if (linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.OffsetTriple) {
+            const multipleOffset = linkRadius + multiRadius + linkScale * linkRadius * linkSpacing;
+            v3setMagnitude(vShift, vShift, multipleOffset);
+
+            cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius;
+            addCylinder(builderState, va, vb, 0.5, cylinderProps);
+
+            v3scale(tmpV12, tmpV12, linkSpacing * linkScale * 0.2);
+            v3add(va, va, tmpV12);
+            v3sub(vb, vb, tmpV12);
+
+            cylinderProps.radiusTop = cylinderProps.radiusBottom = multiRadius;
+            cylinderProps.topCap = dirFlag ? linkStub : dashCap;
+            cylinderProps.bottomCap = dirFlag ? dashCap : linkStub;
+            v3setMagnitude(vShift, vShift, multipleOffset);
+            v3sub(va, va, vShift);
+            v3sub(vb, vb, vShift);
+            addCylinder(builderState, va, vb, 0.5, cylinderProps);
+
+            if (order === 3) {
+                v3setMagnitude(vShift, vShift, multipleOffset * 2);
+                v3add(va, va, vShift);
+                v3add(vb, vb, vShift);
+                addCylinder(builderState, va, vb, 0.5, cylinderProps);
+            }
+        } else {
+            v3setMagnitude(vShift, vShift, absOffset);
+
+            cylinderProps.radiusTop = cylinderProps.radiusBottom = multiRadius;
+            if (order === 3) addCylinder(builderState, va, vb, 0.5, cylinderProps);
+            addDoubleCylinder(builderState, va, vb, 0.5, vShift, cylinderProps);
+        }
+    } else if (linkStyle === LinkStyle.Disk) {
+        v3scale(tmpV12, tmpV12, 0.475);
+        v3add(va, va, tmpV12);
+        v3sub(vb, vb, tmpV12);
+
+        cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius;
+        cylinderProps.topCap = topCap;
+        cylinderProps.bottomCap = bottomCap;
+
+        addCylinder(builderState, va, vb, 0.5, cylinderProps);
+    }
+};
 
 /**
  * Each edge is included twice to allow for coloring/picking

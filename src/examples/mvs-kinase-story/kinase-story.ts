@@ -589,6 +589,8 @@ function drawInteractions(structure: MVSStructure, interactions: Interaction[]) 
         }
     }
 
+    if (interactingResidues.length === 0) return;
+
     structure
         .component({ selector: interactingResidues })
         .representation({ type: 'ball_and_stick' })
