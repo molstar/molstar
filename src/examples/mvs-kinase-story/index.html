@@ -14,19 +14,20 @@
 
         #viewer {
             position: absolute;
-            left: 5px;
-            top: 5px;
+            left: 0;
+            top: 0;
             right: 34%;
-            bottom: 5px;
+            bottom: 0;
         }
 
         #snapshot {
             position: absolute;
             left: 66%;
-            top: 5px;
-            right: 5px;
-            bottom: 5px;
+            top: 0;
+            right: 0;
+            bottom: 0;
             padding: 16px;
+            padding-bottom: 20px;
             border: 1px solid #ccc;
             border-left: none;
             background: #F6F5F3;
@@ -35,11 +36,48 @@
 
         #links {
             position: absolute;
-            bottom: 10px;
-            right: 10px;
-            font-family: sans-serif;
-            font-size: 0.8rem;
+            bottom: 4px;
+            right: 8px;
+            font-family: "Raleway", "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 0.6rem;
             z-index: -1;
+            color: #666;
+        }
+
+        #links a {
+            color: #666;
+            text-decoration: none;
+        }
+
+        @media (orientation:portrait) {
+            #viewer {
+                position: absolute;
+                left: 0;
+                top: 0;
+                right: 0;
+                bottom: 40%;
+            }
+
+            #snapshot {
+                position: absolute;
+                left: 0;
+                top: 60%;
+                right: 0;
+                bottom: 0;
+                border-top: none;
+            }
+
+            .markdown-explanation {
+                font-size: 0.9rem !important;    
+            }
+
+            .markdown-explanation h3 {
+                font-size: 1.5rem !important;
+            }
+
+            .msp-viewport-controls-buttons {
+                display: none;
+            }
         }
     </style>
     <link rel="stylesheet" type="text/css" href="molstar.css" />
