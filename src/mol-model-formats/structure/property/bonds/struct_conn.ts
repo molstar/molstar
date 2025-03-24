@@ -21,7 +21,7 @@ import { FormatPropertyProvider } from '../../common/property';
 export interface StructConn {
     readonly data: Table<mmCIF_Schema['struct_conn']>
     readonly byAtomIndex: Map<ElementIndex, ReadonlyArray<StructConn.Entry>>
-    // Cantor pairs of residue indices that have a struct-conn record
+    /** Cantor pairs of residue indices that have a struct-conn record */
     readonly residueCantorPairs: Set<number>
     readonly entries: ReadonlyArray<StructConn.Entry>
 }
