@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Eric E <etongfu@@outlook.com>
+ */
 import * as esbuild from 'esbuild';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -58,16 +64,12 @@ function fileLoaderPlugin(options) {
                 }
             });
             build.onLoad({ filter: /\.(html|ico)$/ }, async (args) => {
-                try {
-                    const name = path.basename(args.path);
-                    await fs.promises.copyFile(args.path, path.resolve(options.out, name));
-                    return {
-                        contents: '',
-                        loader: 'empty',
-                    };
-                } catch (error) {
-                    handleFileError(error, 'copy', args.path);
-                }
+                const name = path.basename(args.path);
+                await fs.promises.copyFile(args.path, path.resolve(options.out, name));
+                return {
+                    contents: '',
+                    loader: 'empty',
+                };
             });
         },
     };
@@ -78,30 +80,15 @@ function examplesCssRenamePlugin({ root }) {
         name: 'example-css-rename',
         setup(build) {
             build.onEnd(async () => {
-                try {
-                    const cssPath = path.resolve(root, 'index.css');
-                    if (fs.existsSync(cssPath)) {
-                        await fs.promises.rename(
-                            cssPath,
-                            path.resolve(root, 'molstar.css')
-                        );
-                    }
-                } catch (error) {
-                    handleFileError(error, 'rename', path.resolve(root, 'index.css'));
+                if (fs.existsSync(path.resolve(root, 'index.css'))) {
+                    await fs.promises.rename(
+                        path.resolve(root, 'index.css'),
+                        path.resolve(root, 'molstar.css')
+                    );
                 }
             });
         }
     };
-}
-
-async function checkFileAccess(filePath, mode = fs.constants.R_OK) {
-    try {
-        await fs.promises.access(filePath, mode);
-        return true;
-    } catch (error) {
-        console.error(`Cannot access file ${filePath}:`, error);
-        return false;
-    }
 }
 
 async function watch(name, kind) {
@@ -112,22 +99,6 @@ async function watch(name, kind) {
     let entry = `./src/${kind}s/${name}/index.ts`;
     if (!fs.existsSync(entry)) {
         entry = `./src/${kind}s/${name}/index.tsx`;
-    }
-
-    if (!await checkFileAccess(entry)) {
-        console.error(`Entry file not found or not accessible: ${entry}`);
-        process.exit(1);
-    }
-
-    const outDir = path.dirname(kind === 'app'
-        ? `./build/${name}/molstar.js`
-        : `./build/examples/${name}/index.js`);
-
-    try {
-        await fs.promises.access(outDir, fs.constants.W_OK);
-    } catch (error) {
-        console.error(`Cannot write to output directory ${outDir}:`, error);
-        process.exit(1);
     }
 
     const ctx = await esbuild.context({
@@ -159,7 +130,6 @@ async function watch(name, kind) {
 
     await ctx.rebuild();
     await ctx.watch();
-    return ctx;
 }
 
 const argParser = new argparse.ArgumentParser({
@@ -215,72 +185,32 @@ function getLocalIPs() {
 
 async function main() {
     const promises = [];
-    const contexts = [];
-    let serverCtx;
+    for (const app of apps) promises.push(watch(app, 'app'));
+    for (const example of examples) promises.push(watch(example, 'example'));
 
-    // Handle cleanup on process termination
-    const cleanup = async () => {
-        console.log('\nCleaning up...');
-        for (const ctx of contexts) {
-            try {
-                await ctx.dispose();
-            } catch (error) {
-                console.error('Error during cleanup:', error);
-            }
-        }
-        if (serverCtx) {
-            try {
-                await serverCtx.dispose();
-            } catch (error) {
-                console.error('Error during server cleanup:', error);
-            }
-        }
-        process.exit(0);
-    };
+    console.log('Initial build...');
 
-    process.on('SIGINT', cleanup);
-    process.on('SIGTERM', cleanup);
+    await Promise.all(promises);
+    console.log('Done.');
 
-    try {
-        for (const app of apps) {
-            const ctx = await watch(app, 'app');
-            contexts.push(ctx);
-        }
-        for (const example of examples) {
-            const ctx = await watch(example, 'example');
-            contexts.push(ctx);
-        }
+    const ctx = await esbuild.context({});
+    ctx.serve({
+        servedir: './',
+        port: args.port,
+        host: '0.0.0.0', // Always listen on all interfaces
+    });
 
-        console.log('Initial build...');
-        await Promise.all(promises);
-        console.log('Done.');
-
-        serverCtx = await esbuild.context({});
-        serverCtx.serve({
-            servedir: './',
-            port: args.port,
-            host: '0.0.0.0', // Always listen on all interfaces
-        });
-
-        console.log('');
-        console.log(`Server URL: http://localhost:${args.port}`);
-        if (args.host) {
-            console.log('Available host addresses:');
-            const ips = getLocalIPs();
-            ips.forEach(ip => console.log(`  http://${ip}:${args.port}`));
-        }
-        console.log('');
-        console.log('Watching for changes...');
-        console.log('');
-        console.log('Press Ctrl+C to stop.');
-    } catch (error) {
-        console.error('Build failed:', error);
-        await cleanup();
-        process.exit(1);
+    console.log('');
+    console.log(`Server URL: http://localhost:${args.port}`);
+    if (args.host) {
+        console.log('Available host addresses:');
+        const ips = getLocalIPs();
+        ips.forEach(ip => console.log(`  http://${ip}:${args.port}`));
     }
+    console.log('');
+    console.log('Watching for changes...');
+    console.log('');
+    console.log('Press Ctrl+C to stop.');
 }
 
-main().catch(error => {
-    console.error('Build failed:', error);
-    process.exit(1);
-});
+main().catch(console.error);
