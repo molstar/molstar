@@ -57,6 +57,7 @@ export class MolComponentSnapshotMarkdownModel extends PluginComponent {
             sub = this.subscribe(viewer.model.plugin?.managers.snapshot.events.changed, () => {
                 this.sync();
             });
+            this.sync();
         });
 
         this.sync();
@@ -79,10 +80,10 @@ export function MolComponentSnapshotMarkdownUI({ model }: { model: MolComponentS
     }
 
     return <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <div>
-            <button onClick={() => model.viewer?.model.plugin?.managers.snapshot.applyNext(-1)} style={{ marginRight: 8 }}>Prev</button>
-            <button onClick={() => model.viewer?.model.plugin?.managers.snapshot.applyNext(1)} style={{ marginRight: 8 }}>Next</button>
-            {typeof state.index === 'number' ? state.index + 1 : '-'}/{state.all.length}
+        <div style={{ display: 'flex', flexDirection: 'row', width: '100%', gap: '8px' }} className='mc-snapshot-markdown-header'>
+            <span style={{ lineHeight: '38px', minWidth: 60, maxWidth: 60, flexShrink: 0 }}>{typeof state.index === 'number' ? state.index + 1 : '-'}/{state.all.length}</span>
+            <button onClick={() => model.viewer?.model.plugin?.managers.snapshot.applyNext(-1)} style={{ flexGrow: 1, flexShrink: 0 }}>Prev</button>
+            <button onClick={() => model.viewer?.model.plugin?.managers.snapshot.applyNext(1)} style={{ flexGrow: 1, flexShrink: 0 }}>Next</button>
         </div>
         <div style={{ flexGrow: 1, overflow: 'hidden', overflowY: 'auto', position: 'relative' }}>
             <div style={{ position: 'absolute', inset: 0 }}>

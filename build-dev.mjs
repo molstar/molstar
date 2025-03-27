@@ -4,8 +4,22 @@ import * as path from 'path';
 import * as argparse from 'argparse';
 import { sassPlugin } from 'esbuild-sass-plugin';
 
-const AllApps = ['viewer', 'docking-viewer', 'mesoscale-explorer'];
-const AllExamples = ['proteopedia-wrapper', 'basic-wrapper', 'lighting', 'alpha-orbitals', 'alphafolddb-pae', 'mvs-kinase-story', 'ihm-restraints'];
+const AllApps = [
+    'viewer',
+    'docking-viewer',
+    'mesoscale-explorer'
+];
+
+const AllExamples = [
+    'proteopedia-wrapper',
+    'basic-wrapper',
+    'lighting',
+    'alpha-orbitals',
+    'alphafolddb-pae',
+    'mvs-kinase-story',
+    'ihm-restraints',
+    'interactions',
+];
 
 function mkDir(dir) {
     if (!fs.existsSync(dir)) {
@@ -138,7 +152,7 @@ console.log('Done.');
 
 const ctx = await esbuild.context({});
 ctx.serve({
-    servedir: './build',
+    servedir: './',
     port: args.port,
 });
 

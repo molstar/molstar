@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -192,6 +192,8 @@ function _build(state: BuildState): Grid3D {
     };
 }
 
+const MaxVolume = 2 ** 24;
+
 function build(data: PositionData, boundary: Boundary, cellSizeOrCount?: Vec3 | number) {
     // need to expand the grid bounds to avoid rounding errors
     const expandedBox = Box3D.expand(Box3D(), boundary.box, Vec3.create(0.5, 0.5, 0.5));
@@ -218,6 +220,14 @@ function build(data: PositionData, boundary: Boundary, cellSizeOrCount?: Vec3 | 
     } else {
         delta = S;
         size = [1, 1, 1];
+    }
+
+    // guard against overly large grids
+    const volume = size[0] * size[1] * size[2];
+    if (volume > MaxVolume) {
+        const f = Math.cbrt(volume / MaxVolume);
+        size = [Math.ceil(size[0] / f), Math.ceil(size[1] / f), Math.ceil(size[2] / f)];
+        delta = [S[0] / size[0], S[1] / size[1], S[2] / size[2]];
     }
 
     const inputData: InputData = {

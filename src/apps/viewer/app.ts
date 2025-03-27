@@ -24,7 +24,6 @@ import { PDBeStructureQualityReport } from '../../extensions/pdbe';
 import { RCSBValidationReport } from '../../extensions/rcsb';
 import { AssemblySymmetry, AssemblySymmetryConfig } from '../../extensions/assembly-symmetry';
 import { SbNcbrPartialCharges, SbNcbrPartialChargesPreset, SbNcbrPartialChargesPropertyProvider, SbNcbrTunnels } from '../../extensions/sb-ncbr';
-import { Volseg, VolsegVolumeServerConfig } from '../../extensions/volumes-and-segmentations';
 import { wwPDBChemicalComponentDictionary } from '../../extensions/wwpdb/ccd/behavior';
 import { wwPDBStructConnExtensionFunctions } from '../../extensions/wwpdb/struct-conn';
 import { ZenodoImport } from '../../extensions/zenodo';
@@ -58,16 +57,16 @@ import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
+import { OpenFiles } from '../../mol-plugin-state/actions/file';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
-export { consoleStats, setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
+export { consoleStats, setDebugMode, setProductionMode, setTimingMode, isProductionMode, isDebugMode, isTimingMode } from '../../mol-util/debug';
 
 const CustomFormats = [
     ['g3d', G3dProvider] as const
 ];
 
 export const ExtensionMap = {
-    'volseg': PluginSpec.Behavior(Volseg),
     'backgrounds': PluginSpec.Behavior(Backgrounds),
     'dnatco-ntcs': PluginSpec.Behavior(DnatcoNtCs),
     'pdbe-structure-quality-report': PluginSpec.Behavior(PDBeStructureQualityReport),
@@ -121,7 +120,6 @@ const DefaultViewerOptions = {
     pdbProvider: PluginConfig.Download.DefaultPdbProvider.defaultValue,
     emdbProvider: PluginConfig.Download.DefaultEmdbProvider.defaultValue,
     saccharideCompIdMapType: 'default' as SaccharideCompIdMapType,
-    volumesAndSegmentationsDefaultServer: VolsegVolumeServerConfig.DefaultServer.defaultValue,
     rcsbAssemblySymmetryDefaultServerType: AssemblySymmetryConfig.DefaultServerType.defaultValue,
     rcsbAssemblySymmetryDefaultServerUrl: AssemblySymmetryConfig.DefaultServerUrl.defaultValue,
     rcsbAssemblySymmetryApplyColors: AssemblySymmetryConfig.ApplyColors.defaultValue,
@@ -202,7 +200,6 @@ export class Viewer {
                 [PluginConfig.Download.DefaultEmdbProvider, o.emdbProvider],
                 [PluginConfig.Structure.DefaultRepresentationPreset, ViewerAutoPreset.id],
                 [PluginConfig.Structure.SaccharideCompIdMapType, o.saccharideCompIdMapType],
-                [VolsegVolumeServerConfig.DefaultServer, o.volumesAndSegmentationsDefaultServer],
                 [AssemblySymmetryConfig.DefaultServerType, o.rcsbAssemblySymmetryDefaultServerType],
                 [AssemblySymmetryConfig.DefaultServerUrl, o.rcsbAssemblySymmetryDefaultServerUrl],
                 [AssemblySymmetryConfig.ApplyColors, o.rcsbAssemblySymmetryApplyColors],
@@ -557,6 +554,23 @@ export class Viewer {
             }));
         } else {
             throw new Error(`Unknown MolViewSpec format: ${format}`);
+        }
+    }
+
+    loadFiles(files: File[]) {
+        const sessions = files.filter(f => {
+            const fn = f.name.toLowerCase();
+            return fn.endsWith('.molx') || fn.endsWith('.molj');
+        });
+
+        if (sessions.length > 0) {
+            return PluginCommands.State.Snapshots.OpenFile(this.plugin, { file: sessions[0] });
+        } else {
+            return this.plugin.runTask(this.plugin.state.data.applyAction(OpenFiles, {
+                files: files.map(f => Asset.File(f)),
+                format: { name: 'auto', params: {} },
+                visuals: true
+            }));
         }
     }
 
