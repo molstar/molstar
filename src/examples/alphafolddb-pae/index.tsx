@@ -46,7 +46,7 @@ export class AlphaFoldPAEExample {
             const model = this.viewer.plugin.managers.structure.hierarchy.current.models[0]?.cell.obj?.data!;
             const metric = pairwiseMetricFromAlphaFoldDbJson(model, json)!;
 
-            createRoot(document.getElementById(this.plotContainerId)!).render(
+            plotRoot.render(
                 <div className='msp-plugin' style={{ background: 'white' }}>
                     <MAPairwiseScorePlot plugin={this.viewer.plugin} pairwiseMetric={metric} model={model} />
                 </div>

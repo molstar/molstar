@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-25 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { QualityAssessment, QualityAssessmentProvider } from '../prop';
@@ -17,7 +18,9 @@ import { ColorThemeCategory } from '../../../../mol-theme/color/categories';
 const DefaultColor = Color(0xaaaaaa);
 
 export function getQmeanScoreColorThemeParams(ctx: ThemeDataContext) {
-    return {};
+    return {
+        metricId: QualityAssessment.getLocalOptions(ctx.structure?.models[0], 'qmean'),
+    };
 }
 export type QmeanScoreColorThemeParams = ReturnType<typeof getQmeanScoreColorThemeParams>
 
@@ -38,7 +41,8 @@ export function QmeanScoreColorTheme(ctx: ThemeDataContext, props: PD.Values<Qme
             const { unit, element } = location;
             if (!Unit.isAtomic(unit)) return DefaultColor;
             const qualityAssessment = QualityAssessmentProvider.get(unit.model).value;
-            const score = qualityAssessment?.qmean?.get(unit.model.atomicHierarchy.residueAtomSegments.index[element]) ?? -1;
+            const metric = qualityAssessment?.localMap.get(props.metricId!)?.values ?? qualityAssessment?.qmean;
+            const score = metric?.get(unit.model.atomicHierarchy.residueAtomSegments.index[element]) ?? -1;
             if (score < 0) {
                 return DefaultColor;
             } else {
