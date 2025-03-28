@@ -74,7 +74,6 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
                         return;
                     }
                     const loci = Loci.normalize(current.loci, modifiers.control ? 'entity' : this.ctx.managers.interactivity.props.granularity);
-                    console.log(current.loci, loci, this.ctx.managers.interactivity.props.granularity);
                     this.ctx.managers.interactivity.lociSelects.toggle({ loci }, false);
                     if (StructureElement.Loci.is(current.loci)) {
                         const cell = this.ctx.helpers.substructureParent.get(current.loci.structure);

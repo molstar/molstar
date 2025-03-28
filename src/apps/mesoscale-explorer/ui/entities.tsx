@@ -29,7 +29,7 @@ import { Sphere3D } from '../../../mol-math/geometry';
 import { MesoFocusLoci } from '../behavior/camera';
 import Markdown from 'react-markdown';
 import { combineLatest } from 'rxjs';
-import { ColorLoaderControl } from './states';
+import { ColorLoaderControls } from './states';
 
 function centerLoci(plugin: PluginContext, loci: Loci, durationMs = 250) {
     const { canvas3d } = plugin;
@@ -883,7 +883,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         const root = (isRoot && this.allGroups.length > 1) && <IconButton svg={BrushSvg} toggleState={false} disabled={disabled} small onClick={this.toggleRoot} />;
         const clip = <IconButton svg={ContentCutSvg} toggleState={false} disabled={disabled} small onClick={this.toggleClip} />;
         const visibility = <IconButton svg={state.isHidden ? VisibilityOffOutlinedSvg : VisibilityOutlinedSvg} toggleState={false} disabled={disabled} small onClick={this.toggleVisible} />;
-        const loadColorButton = (depth === 0) && <ColorLoaderControl />; // <IconButton svg={FileOutlineSvg} toggleState={false} disabled={disabled} small onClick={this.loadColorsFromFile} />;
+        const loadColorButton = (depth === 0) && <ColorLoaderControls plugin={this.plugin} />;
         return <>
             <div className={`msp-flex-row`} style={{ margin: `1px 5px 1px ${depth * 10 + 5}px` }}>
                 {expand}
