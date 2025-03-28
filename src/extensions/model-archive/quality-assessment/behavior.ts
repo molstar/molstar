@@ -166,7 +166,7 @@ function metricLabels(loci: Loci): string[] | undefined {
     for (const { metric, scoreSum, seenResidues } of seenMetrics) {
         let countInfo = '';
         if (seenResidues.size > 1) {
-            countInfo = ` <small>(${seenResidues.size} Residues avg.</small>`;
+            countInfo = ` <small>(${seenResidues.size} Residues avg.)</small>`;
         }
         const scoreAvg = scoreSum / seenResidues.size;
         const label = buildLabel(metric, scoreAvg, countInfo);

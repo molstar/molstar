@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024-25 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -29,6 +29,18 @@ function drawMetricPNG(model: Model, metric: QualityAssessment.Pairwise, colorRa
     ctx.fillStyle = Color.toStyle(noDataColor);
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    const colorCache = new Map<number, string>();
+    const getColor = (t: number) => {
+        const rounded = Math.round(t * 0xffff);
+        if (colorCache.has(rounded)) {
+            return colorCache.get(rounded)!;
+        }
+        const color = Color.interpolate(minColor, maxColor, rounded / 0xffff);
+        const style = Color.toStyle(color);
+        colorCache.set(rounded, style);
+        return style;
+    };
+
     for (let rA = minResidueIndex; rA <= maxResidueIndex; rA++) {
         const row = values[rA];
         if (!row) continue;
@@ -40,11 +52,12 @@ function drawMetricPNG(model: Model, metric: QualityAssessment.Pairwise, colorRa
             const x = rA - minResidueIndex;
             const y = rB - minResidueIndex;
             const t = (value - minMetric) / valueRange;
-
-            const color = Color.interpolate(minColor, maxColor, t);
-            ctx.fillStyle = Color.toStyle(color);
+            ctx.fillStyle = getColor(t);
             ctx.fillRect(x, y, 1, 1);
-            ctx.fillRect(y, x, 1, 1);
+
+            if (typeof values[rB]?.[rA] !== 'number') {
+                ctx.fillRect(y, x, 1, 1);
+            }
         }
     }
 
