@@ -99,7 +99,7 @@ export namespace Model {
         const srcIndexArray = getSourceIndexArray(model);
         const coarseGrained = isCoarseGrained(model);
         const elementCount = model.atomicHierarchy.atoms._rowCount;
-
+        const oldIndex = IndexPairBonds.Provider.get(model);
         for (let i = 0, il = frames.length; i < il; ++i) {
             const f = frames[i];
             if (f.elementCount !== elementCount) {
@@ -122,7 +122,10 @@ export namespace Model {
                 const symmetry = ModelSymmetry.fromCell(f.cell.size, f.cell.anglesInRadians);
                 ModelSymmetry.Provider.set(m, symmetry);
             }
-
+            if (oldIndex) {
+                // can I update here the indexPair Bond to take in account the periodicity?
+                IndexPairBonds.Provider.set(m, oldIndex);
+            }
             TrajectoryInfo.set(m, { index: i, size: frames.length });
             CoarseGrained.set(m, coarseGrained);
 
