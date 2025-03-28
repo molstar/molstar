@@ -85,7 +85,7 @@ const DefaultMesoscaleExplorerOptions = {
     viewportShowExpand: PluginConfig.Viewport.ShowExpand.defaultValue,
     viewportShowControls: PluginConfig.Viewport.ShowControls.defaultValue,
     viewportShowSettings: PluginConfig.Viewport.ShowSettings.defaultValue,
-    viewportShowSelectionMode: false,
+    viewportShowSelectionMode: true,
     viewportShowAnimation: false,
     viewportShowTrajectoryControls: false,
     pluginStateServer: PluginConfig.State.DefaultServer.defaultValue,
@@ -150,7 +150,7 @@ export class MesoscaleExplorer {
 
                 PluginSpec.Behavior(MesoFocusLoci),
                 PluginSpec.Behavior(MesoSelectLoci),
-
+                PluginSpec.Behavior(PluginBehaviors.Representation.SelectLoci),
                 ...o.extensions.map(e => Extensions[e]),
             ],
             animations: [
