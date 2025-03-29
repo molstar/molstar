@@ -1,8 +1,15 @@
+/**
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Eric E <etongfu@@outlook.com>
+ */
 import * as esbuild from 'esbuild';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as argparse from 'argparse';
 import { sassPlugin } from 'esbuild-sass-plugin';
+import * as os from 'os';
 
 const AllApps = [
     'viewer',
@@ -22,24 +29,38 @@ const AllExamples = [
 ];
 
 function mkDir(dir) {
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
+    try {
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+    } catch (error) {
+        console.error(`Failed to create directory ${dir}:`, error);
+        process.exit(1);
     }
 }
 
+function handleFileError(error, operation, path) {
+    console.error(`Failed to ${operation} ${path}:`, error);
+    process.exit(1);
+}
+
 function fileLoaderPlugin(options) {
-    mkDir(options.out, { recursive: true });
+    mkDir(options.out);
 
     return {
         name: 'file-loader',
         setup(build) {
             build.onLoad({ filter: /\.jpg$/ }, async (args) => {
-                const name = path.basename(args.path);
-                mkDir(path.resolve(options.out, 'images'));
-                await fs.promises.copyFile(args.path, path.resolve(options.out, 'images', name));
-                return {
-                    contents: `images/${name}`,
-                    loader: 'text',
+                try {
+                    const name = path.basename(args.path);
+                    mkDir(path.resolve(options.out, 'images'));
+                    await fs.promises.copyFile(args.path, path.resolve(options.out, 'images', name));
+                    return {
+                        contents: `images/${name}`,
+                        loader: 'text',
+                    };
+                } catch (error) {
+                    handleFileError(error, 'copy', args.path);
                 }
             });
             build.onLoad({ filter: /\.(html|ico)$/ }, async (args) => {
@@ -48,10 +69,10 @@ function fileLoaderPlugin(options) {
                 return {
                     contents: '',
                     loader: 'empty',
-                }
+                };
             });
         },
-    }
+    };
 }
 
 function examplesCssRenamePlugin({ root }) {
@@ -65,7 +86,7 @@ function examplesCssRenamePlugin({ root }) {
                         path.resolve(root, 'molstar.css')
                     );
                 }
-            }); 
+            });
         }
     };
 }
@@ -132,6 +153,12 @@ argParser.add_argument('--port', '-p', {
     type: 'int',
 });
 
+argParser.add_argument('--host', {
+    help: 'Show all available host addresses.',
+    required: false,
+    action: 'store_true',
+});
+
 const args = argParser.parse_args();
 
 const apps = (!args.apps ? [] : (args.apps.length ? args.apps : AllApps)).filter(a => AllApps.includes(a));
@@ -141,24 +168,49 @@ console.log('Apps:', apps);
 console.log('Examples:', examples);
 console.log('');
 
-const promises = [];
-for (const app of apps) promises.push(watch(app, 'app'));
-for (const example of examples) promises.push(watch(example, 'example'));
+function getLocalIPs() {
+    const interfaces = os.networkInterfaces();
+    const ips = [];
 
-console.log('Initial build...');
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            // Skip internal and non-IPv4 addresses
+            if (iface.internal || iface.family !== 'IPv4') continue;
+            ips.push(iface.address);
+        }
+    }
 
-await Promise.all(promises);
-console.log('Done.');
+    return ips;
+}
 
-const ctx = await esbuild.context({});
-ctx.serve({
-    servedir: './',
-    port: args.port,
-});
+async function main() {
+    const promises = [];
+    for (const app of apps) promises.push(watch(app, 'app'));
+    for (const example of examples) promises.push(watch(example, 'example'));
 
-console.log('');
-console.log(`Serving on http://localhost:${args.port}`);
-console.log('');
-console.log('Watching for changes...');
-console.log('');
-console.log('Press Ctrl+C to stop.');
+    console.log('Initial build...');
+
+    await Promise.all(promises);
+    console.log('Done.');
+
+    const ctx = await esbuild.context({});
+    ctx.serve({
+        servedir: './',
+        port: args.port,
+        host: '0.0.0.0', // Always listen on all interfaces
+    });
+
+    console.log('');
+    console.log(`Server URL: http://localhost:${args.port}`);
+    if (args.host) {
+        console.log('Available host addresses:');
+        const ips = getLocalIPs();
+        ips.forEach(ip => console.log(`  http://${ip}:${args.port}`));
+    }
+    console.log('');
+    console.log('Watching for changes...');
+    console.log('');
+    console.log('Press Ctrl+C to stop.');
+}
+
+main().catch(console.error);
