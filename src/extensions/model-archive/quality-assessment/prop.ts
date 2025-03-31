@@ -27,8 +27,9 @@ interface QualityAssessment {
     /** id -> metric info */
     localMap: Map<number, QualityAssessment.Local>
 
-    // default pLDDT and qmean metrics
+    /** default pLDDT metric */
     pLDDT?: Map<ResidueIndex, number>
+    /** default qmean metric */
     qmean?: Map<ResidueIndex, number>
 
     /**
