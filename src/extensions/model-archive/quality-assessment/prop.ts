@@ -37,7 +37,7 @@ interface QualityAssessment {
      * NOTE: Keeping this around in case someone is using it
      * TODO: Remove in Mol* 5.0
      */
-     localMetrics: Map<string, Map<ResidueIndex, number>>
+    localMetrics: Map<string, Map<ResidueIndex, number>>
 }
 
 namespace QualityAssessment {
