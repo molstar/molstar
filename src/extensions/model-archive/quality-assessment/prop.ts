@@ -31,9 +31,12 @@ interface QualityAssessment {
     pLDDT?: Map<ResidueIndex, number>
     qmean?: Map<ResidueIndex, number>
 
-    // NOTE: Keeping this around in case someone is using it
-    // TODO: Remove in Mol* 5.0
-    localMetrics: Map<string, Map<ResidueIndex, number>>
+    /**
+     * @deprecated
+     * NOTE: Keeping this around in case someone is using it
+     * TODO: Remove in Mol* 5.0
+     */
+     localMetrics: Map<string, Map<ResidueIndex, number>>
 }
 
 namespace QualityAssessment {
