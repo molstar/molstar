@@ -28,6 +28,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix `ElementBondIterator` indices mapping logic for inter-unit bonds
 - Fix `pickPadding` and `pickScale` not updating `PickHelper`
 - Do not add bonds for pairs of residues that have a `struct_conn` entry
+- Improved `ma_qa_metric` support
+  - Parse all local metrics
+  - Ability to select alternate metrics in the pLDDT/qmean themes
+  - Do not assume PAE plot is symmetric
 
 ## [v4.12.0] - 2025-02-28
 
