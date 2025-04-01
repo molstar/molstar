@@ -1,9 +1,10 @@
 /**
- * Copyright (c) 2021-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Mandar Deshpande <mandar@ebi.ac.uk>
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { QualityAssessment, QualityAssessmentProvider } from '../prop';
@@ -29,7 +30,9 @@ const ConfidenceColors = {
 const ConfidenceColorLegend = TableLegend(Object.entries(ConfidenceColors));
 
 export function getPLDDTConfidenceColorThemeParams(ctx: ThemeDataContext) {
-    return {};
+    return {
+        metricId: QualityAssessment.getLocalOptions(ctx.structure?.models[0], 'pLDDT'),
+    };
 }
 export type PLDDTConfidenceColorThemeParams = ReturnType<typeof getPLDDTConfidenceColorThemeParams>
 
@@ -44,7 +47,8 @@ export function PLDDTConfidenceColorTheme(ctx: ThemeDataContext, props: PD.Value
             if (!Unit.isAtomic(unit)) return DefaultColor;
 
             const qualityAssessment = QualityAssessmentProvider.get(unit.model).value;
-            let score = qualityAssessment?.pLDDT?.get(unit.model.atomicHierarchy.residueAtomSegments.index[element]);
+            const metric = qualityAssessment?.localMap.get(props.metricId!)?.values ?? qualityAssessment?.pLDDT;
+            let score = metric?.get(unit.model.atomicHierarchy.residueAtomSegments.index[element]);
             if (typeof score !== 'number') {
                 score = unit.model.atomicConformation.B_iso_or_equiv.value(element);
             }

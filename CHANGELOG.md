@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
-
+- Support `--host` option for build-dev.mjs script.
+- Add `Viewer.loadFiles` to open supported files
+- Support installing the viewer as a Progressive Web App (PWA)
 - `ihm-restraints` example: show entity labels
 - Fix `element-point` visual not using child unit
 - Ignore `renderables` with empty draw count
@@ -26,6 +28,11 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix `ElementBondIterator` indices mapping logic for inter-unit bonds
 - Fix `pickPadding` and `pickScale` not updating `PickHelper`
 - MolViewSpec extension: support loading extensions when loading multistate files
+- Do not add bonds for pairs of residues that have a `struct_conn` entry
+- Improved `ma_qa_metric` support
+  - Parse all local metrics
+  - Ability to select alternate metrics in the pLDDT/qmean themes
+  - Do not assume PAE plot is symmetric
 
 ## [v4.12.0] - 2025-02-28
 

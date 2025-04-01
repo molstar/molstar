@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -25,6 +25,7 @@ import { CCD_Database } from '../../mol-io/reader/cif/schema/ccd';
 import { EntityBuilder } from './common/entity';
 import { MoleculeType } from '../../mol-model/structure/model/types';
 import { ComponentBuilder } from './common/component';
+import { sortedCantorPairing } from '../../mol-data/util';
 
 function modelSymmetryFromMmcif(model: Model) {
     if (!MmcifFormat.is(model.sourceData)) return;
@@ -68,9 +69,16 @@ function structConnFromMmcif(model: Model) {
     const { struct_conn } = model.sourceData.data.db;
     if (struct_conn._rowCount === 0) return;
     const entries = StructConn.getEntriesFromStructConn(struct_conn, model);
+
+    const residueCantorPairs = new Set<number>();
+    for (const e of entries) {
+        residueCantorPairs.add(sortedCantorPairing(e.partnerA.residueIndex, e.partnerB.residueIndex));
+    }
+
     return {
         data: struct_conn,
         byAtomIndex: StructConn.getAtomIndexFromEntries(entries),
+        residueCantorPairs,
         entries,
     };
 }

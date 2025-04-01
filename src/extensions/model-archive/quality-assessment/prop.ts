@@ -18,17 +18,39 @@ import { AtomicIndex } from '../../../mol-model/structure/model/properties/atomi
 import { CustomPropSymbol } from '../../../mol-script/language/symbol';
 import { Type } from '../../../mol-script/language/type';
 import { QuerySymbolRuntime } from '../../../mol-script/runtime/query/compiler';
-import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { ParamDefinition, ParamDefinition as PD } from '../../../mol-util/param-definition';
 
 export { QualityAssessment };
 
 interface QualityAssessment {
-    localMetrics: Map<string, Map<ResidueIndex, number>>
+    local: QualityAssessment.Local[]
+    /** id -> metric info */
+    localMap: Map<number, QualityAssessment.Local>
+
+    /** default pLDDT metric */
     pLDDT?: Map<ResidueIndex, number>
+    /** default qmean metric */
     qmean?: Map<ResidueIndex, number>
+
+    /**
+     * @deprecated
+     * NOTE: Keeping this around in case someone is using it
+     * TODO: Remove in Mol* 5.0
+     */
+    localMetrics: Map<string, Map<ResidueIndex, number>>
 }
 
 namespace QualityAssessment {
+    export interface Local {
+        id: number
+        kind?: 'pLDDT' | 'qmean';
+        type: mmCIF_Schema['ma_qa_metric']['type']['T']
+        name: string
+        domain?: [number, number]
+        valueRange: [number, number]
+        values: Map<ResidueIndex, number>
+    }
+
     export interface Pairwise {
         id: number
         name: string
@@ -40,6 +62,8 @@ namespace QualityAssessment {
 
     const Empty = {
         value: {
+            local: [],
+            localMap: new Map<number, Local>(),
             localMetrics: new Map(),
         } satisfies QualityAssessment
     };
@@ -52,14 +76,24 @@ namespace QualityAssessment {
             db.ma_qa_metric_local.ordinal_id.isDefined
         );
         if (localMetricName && hasLocalMetric) {
+            const nameQuery = localMetricName.toLowerCase();
             for (let i = 0, il = db.ma_qa_metric._rowCount; i < il; i++) {
                 if (db.ma_qa_metric.mode.value(i) !== 'local') continue;
-                if (localMetricName === db.ma_qa_metric.name.value(i)) return true;
+                const name = db.ma_qa_metric.name.value(i).toLowerCase();
+                if (name.includes(nameQuery)) return true;
             }
             return false;
         } else {
             return hasLocalMetric;
         }
+    }
+
+    export function getLocalOptions(model: Model | undefined, kind: 'pLDDT' | 'qmean') {
+        if (!model) return ParamDefinition.Select(undefined, [], { label: 'Metric', isHidden: true });
+        const local = QualityAssessmentProvider.get(model).value?.local;
+        if (!local) return ParamDefinition.Select(undefined, [], { label: 'Metric', isHidden: true });
+        const options = local.filter(m => m.kind === kind).map(m => [m.id, `${m.name} (${m.type})`] as [number, string]);
+        return ParamDefinition.Select(options[0]?.[0], options, { label: 'Metric ' });
     }
 
     export async function obtain(ctx: CustomProperty.Context, model: Model, props: QualityAssessmentProps): Promise<CustomProperty.Data<QualityAssessment>> {
@@ -68,21 +102,51 @@ namespace QualityAssessment {
         const { model_id, label_asym_id, label_seq_id, metric_id, metric_value } = ma_qa_metric_local;
         const { index } = model.atomicHierarchy;
 
+        const locals: Local[] = [];
+        const localMetrics = new Map<number, Local>();
+
         // for simplicity we assume names in ma_qa_metric for mode 'local' are unique
-        const localMetrics = new Map<string, Map<ResidueIndex, number>>();
+        const localMetricValues = new Map<string, Map<ResidueIndex, number>>();
         const localNames = new Map<number, string>();
 
         for (let i = 0, il = ma_qa_metric._rowCount; i < il; i++) {
             if (ma_qa_metric.mode.value(i) !== 'local') continue;
 
+            const id = ma_qa_metric.id.value(i);
             const name = ma_qa_metric.name.value(i);
-            if (localMetrics.has(name)) {
+            const type = ma_qa_metric.type.value(i);
+            const values: Map<ResidueIndex, number> = new Map();
+            const ispPLDDType = type.toLowerCase().includes('plddt');
+            const has01Range = type.replace(/\s/g, '').includes('[0,1]');
+
+            let domain: [number, number] | undefined;
+            if (has01Range) {
+                domain = [0, 1];
+            } else if (ispPLDDType) {
+                domain = [0, 100];
+            }
+
+            let kind: 'pLDDT' | 'qmean' | undefined;
+
+            const nameLower = name.toLowerCase();
+            if (nameLower.includes('plddt')) kind = 'pLDDT';
+            else if (nameLower.includes('qmean')) kind = 'qmean';
+
+            if (!kind && ispPLDDType) kind = 'pLDDT';
+            if (!kind && has01Range) kind = 'qmean';
+
+            const metric: Local = { id, kind, type, name, domain, valueRange: [Number.MAX_VALUE, -Number.MAX_VALUE], values };
+
+            localMetrics.set(id, metric);
+            locals.push(metric);
+
+            if (localMetricValues.has(name)) {
                 console.warn(`local ma_qa_metric with name '${name}' already added`);
                 continue;
             }
 
-            localMetrics.set(name, new Map());
-            localNames.set(ma_qa_metric.id.value(i), name);
+            localMetricValues.set(name, values);
+            localNames.set(id, name);
         }
 
         const residueKey: AtomicIndex.ResidueLabelKey = {
@@ -104,16 +168,25 @@ namespace QualityAssessment {
 
             const rI = index.findResidueLabel(residueKey);
             if (rI >= 0) {
-                const name = localNames.get(metric_id.value(i))!;
-                localMetrics.get(name)!.set(rI, metric_value.value(i));
+                const entry = localMetrics.get(metric_id.value(i));
+                if (!entry) continue;
+
+                const value = metric_value.value(i);
+                const range = entry.valueRange;
+                if (value < range[0]) range[0] = value;
+                if (value > range[1]) range[1] = value;
+                entry.values.set(rI, value);
             }
         }
 
         return {
             value: {
-                localMetrics,
-                pLDDT: localMetrics.get('pLDDT'),
-                qmean: localMetrics.get('qmean'),
+                local: Array.from(localMetrics.values()),
+                localMap: localMetrics,
+                pLDDT: locals.find(m => m.kind === 'pLDDT')?.values,
+                qmean: locals.find(m => m.kind === 'qmean')?.values,
+
+                localMetrics: localMetricValues,
             }
         };
     }

@@ -24,9 +24,10 @@ import { createCellpackHierarchy } from '../data/cellpack/preset';
 import { createGenericHierarchy } from '../data/generic/preset';
 import { createMmcifHierarchy } from '../data/mmcif/preset';
 import { createPetworldHierarchy } from '../data/petworld/preset';
-import { MesoscaleState, MesoscaleStateObject, setGraphicsCanvas3DProps, updateStyle } from '../data/state';
+import { getAllEntities, getEntityLabel, MesoscaleState, MesoscaleStateObject, setGraphicsCanvas3DProps, updateStyle } from '../data/state';
 import { isTimingMode } from '../../../mol-util/debug';
 import { now } from '../../../mol-util/now';
+import { readFromFile } from '../../../mol-util/data-source';
 
 function adjustPluginProps(ctx: PluginContext) {
     const customState = ctx.customState as MesoscaleExplorerState;
@@ -225,6 +226,33 @@ export async function loadPdbIhm(ctx: PluginContext, id: string) {
     await createHierarchy(ctx, data.ref);
 }
 
+async function loadColors(ctx: PluginContext, file: File) {
+    const data = await ctx.runTask(readFromFile(file, 'string'));
+    const colorData = JSON.parse(data);
+
+    const update = ctx.state.data.build();
+    const allEntities = getAllEntities(ctx);
+
+    for (const entityCell of allEntities) {
+        const label = getEntityLabel(ctx, entityCell);
+        const tags = entityCell.transform.tags;
+        const fullname = (tags?.[0].replace('comp:', '') ?? '') + '.' + label;
+        // test each tag, siwtch to uniform color
+        if (fullname in colorData) {
+            const { x, y, z } = colorData[fullname];
+            const color = Color.fromRgb(x, y, z);
+            update.to(entityCell).update(old => {
+                if (old.type) {
+                    old.colorTheme = { name: 'uniform', params: { value: color, lightness: old.colorTheme.params.lightness } };
+                    old.type.params.color = color;
+                } else if (old.coloring) {
+                    old.coloring.params.color = color;
+                }
+            });
+        }
+    }
+    await update.commit();
+}
 //
 
 export const LoadDatabase = StateAction.build({
@@ -299,7 +327,6 @@ export const LoadModel = StateAction.build({
     }
 }));
 
-//
 
 export class DatabaseControls extends PluginUIComponent {
     componentDidMount() {
@@ -335,6 +362,30 @@ export class ExampleControls extends PluginUIComponent {
             <ApplyActionControl state={this.plugin.state.data} action={LoadExample} nodeRef={this.plugin.state.data.tree.root.ref} applyLabel={'Load'} hideHeader />
         </div>;
     }
+}
+
+export function ColorLoaderControls({ plugin }: { plugin: PluginContext }) {
+    const triggerLoadColors = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = async (e) => {
+            const input = e.target as HTMLInputElement;
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+            await loadColors(plugin, new File([file], file.name));
+        };
+        input.click();
+    };
+
+    return (
+        <IconButton
+            svg={OpenInBrowserSvg}
+            title="Load Colors"
+            onClick={triggerLoadColors}
+            small
+        />
+    );
 }
 
 export async function openState(ctx: PluginContext, file: File) {
@@ -485,7 +536,6 @@ export class ExplorerInfo extends PluginUIComponent<{}, { isDisabled: boolean, s
         </>;
     }
 }
-
 
 export class MesoQuickStylesControls extends CollapsableControls {
     defaultState() {
