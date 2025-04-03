@@ -10,6 +10,8 @@ import { ReaderResult as Result } from '../result';
 import { TokenColumnProvider as TokenColumn } from '../common/text/column/token';
 import { Column, Table } from '../../../mol-data/db';
 import { Mutable } from '../../../mol-util/type-helpers';
+import { StringLike } from '../../common/string-like';
+
 
 // https://manual.gromacs.org/2021-current/reference-manual/file-formats.html#top
 
@@ -232,7 +234,7 @@ function handleMolecules(state: State) {
     });
 }
 
-async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<TopFile>> {
+async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Result<TopFile>> {
     const t = Tokenizer(data);
     const state = State(t, ctx);
 
@@ -296,7 +298,7 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
     return Result.success(result);
 }
 
-export function parseTop(data: string) {
+export function parseTop(data: StringLike) {
     return Task.create<Result<TopFile>>('Parse TOP', async ctx => {
         return await parseInternal(data, ctx);
     });

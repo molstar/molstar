@@ -13,6 +13,8 @@ import { Column } from '../../../mol-data/db';
 import { Task, chunkedSubtask, RuntimeContext } from '../../../mol-task';
 import { ReaderResult as Result } from '../result';
 import { parseFloat as fastParseFloat } from '../common/text/number-parser';
+import { StringLike } from '../../common/string-like';
+
 
 // https://h5cube-spec.readthedocs.io/en/latest/cubeformat.html
 
@@ -130,7 +132,7 @@ function readValues(ctx: RuntimeContext, tokenizer: Tokenizer, header: CubeFile.
     }, (ctx, _, i) => ctx.update({ current: Math.min(i, N), max: N }));
 }
 
-export function parseCube(data: string, name: string) {
+export function parseCube(data: StringLike, name: string) {
     return Task.create<Result<CubeFile>>('Parse Cube', async taskCtx => {
         await taskCtx.update('Reading header...');
         const tokenizer = Tokenizer(data);

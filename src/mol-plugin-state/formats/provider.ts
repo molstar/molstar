@@ -6,10 +6,12 @@
  */
 
 import { decodeMsgPack } from '../../mol-io/common/msgpack/decode';
+import { StringLike } from '../../mol-io/common/string-like';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectRef } from '../../mol-state';
 import { FileNameInfo } from '../../mol-util/file-info';
 import { PluginStateObject } from '../objects';
+
 
 export interface DataFormatProvider<P = any, R = any, V = any> {
     label: string,
@@ -17,7 +19,7 @@ export interface DataFormatProvider<P = any, R = any, V = any> {
     category?: string,
     stringExtensions?: string[],
     binaryExtensions?: string[],
-    isApplicable?(info: FileNameInfo, data: string | Uint8Array): boolean,
+    isApplicable?(info: FileNameInfo, data: StringLike | Uint8Array): boolean,
     parse(plugin: PluginContext, data: StateObjectRef<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, params?: P): Promise<R>,
     visuals?(plugin: PluginContext, data: R): Promise<V> | undefined
 }
@@ -25,7 +27,7 @@ export interface DataFormatProvider<P = any, R = any, V = any> {
 export function DataFormatProvider<P extends DataFormatProvider>(provider: P): P { return provider; }
 
 type cifVariants = 'dscif' | 'segcif' | 'coreCif' | -1
-export function guessCifVariant(info: FileNameInfo, data: Uint8Array | string): cifVariants {
+export function guessCifVariant(info: FileNameInfo, data: Uint8Array | StringLike): cifVariants {
     if (info.ext === 'bcif') {
         try {
             // TODO: find a way to run msgpackDecode only once

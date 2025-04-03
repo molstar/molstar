@@ -10,6 +10,8 @@ import { ReaderResult as Result } from '../result';
 import { TokenColumnProvider as TokenColumn } from '../common/text/column/token';
 import { Column } from '../../../mol-data/db';
 import { Mutable } from '../../../mol-util/type-helpers';
+import { StringLike } from '../../common/string-like';
+
 
 // http://ambermd.org/prmtop.pdf
 // https://ambermd.org/FileFormats.php#topology
@@ -108,7 +110,7 @@ function handleTokens(state: State, count: number, countPerLine: number, itemSiz
     return tokens;
 }
 
-async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<PrmtopFile>> {
+async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Result<PrmtopFile>> {
     const t = Tokenizer(data);
     const state = State(t, ctx);
 
@@ -172,7 +174,7 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
     return Result.success(result);
 }
 
-export function parsePrmtop(data: string) {
+export function parsePrmtop(data: StringLike) {
     return Task.create<Result<PrmtopFile>>('Parse PRMTOP', async ctx => {
         return await parseInternal(data, ctx);
     });

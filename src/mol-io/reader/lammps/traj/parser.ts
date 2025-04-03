@@ -12,6 +12,8 @@ import { ReaderResult as Result } from '../../result';
 import { TokenColumnProvider as TokenColumn } from '../../common/text/column/token';
 import { Column } from '../../../../mol-data/db';
 import { LammpsFrame, LammpsTrajectoryFile } from '../schema';
+import { StringLike } from '../../../common/string-like';
+
 
 const { readLine, skipWhitespace, eatValue, eatLine, markStart } = Tokenizer;
 
@@ -105,7 +107,7 @@ async function handleAtoms(state: State, count: number, parts: string[]): Promis
  * ylo yhi
  * zlo zhi
  */
-async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<LammpsTrajectoryFile>> {
+async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Result<LammpsTrajectoryFile>> {
     const tokenizer = Tokenizer(data);
     const state = State(tokenizer, ctx);
     const f: LammpsTrajectoryFile = {
@@ -161,7 +163,7 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
     return Result.success(f);
 }
 
-export function parseLammpsTrajectory(data: string) {
+export function parseLammpsTrajectory(data: StringLike) {
     return Task.create<Result<LammpsTrajectoryFile>>('Parse Lammp Trajectory', async ctx => {
         return await parseInternal(data, ctx);
     });

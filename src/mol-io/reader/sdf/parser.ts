@@ -14,6 +14,8 @@ import { ReaderResult as Result } from '../result';
 import { Tokenizer, TokenBuilder } from '../common/text/tokenizer';
 import { TokenColumnProvider as TokenColumn } from '../common/text/column/token';
 import { handleAtomsV3, handleBondsV3, handleCountsV3, isV3 } from './parser-v3-util';
+import { StringLike } from '../../common/string-like';
+
 
 /** http://c4.cabrillo.edu/404/ctfile.pdf - page 41 & 79 */
 
@@ -114,7 +116,7 @@ function handleMolFile(tokenizer: Tokenizer) {
     };
 }
 
-function parseInternal(data: string): Result<SdfFile> {
+function parseInternal(data: StringLike): Result<SdfFile> {
     const tokenizer = Tokenizer(data);
 
     const compounds: SdfFile['compounds'] = [];
@@ -126,7 +128,7 @@ function parseInternal(data: string): Result<SdfFile> {
     return Result.success({ compounds });
 }
 
-export function parseSdf(data: string) {
+export function parseSdf(data: StringLike) {
     return Task.create<Result<SdfFile>>('Parse Sdf', async () => {
         return parseInternal(data);
     });
