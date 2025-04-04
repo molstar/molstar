@@ -6,6 +6,7 @@
 
 
 interface CustomString {
+    // TODO think about this extending full `String` interface, and impl classes just throwing `NotImplementedError` on more advanced methods -> less likely to break typing of dependant code (will only break runtime when running on big strings)
     __string_like__: true,
 
     readonly [index: number]: string;
@@ -372,12 +373,13 @@ export function stringLikeToString(s: StringLike): string {
 const MAX_STRING_LENGTH = 536_870_888;
 
 /** String chunk size to be used by `ChunkedBigString`. */
-const STRING_CHUNK_SIZE = 8; // TODO use a sensible value, close to MAX_STRING_LENGTH (e.g. 2**28)
+const STRING_CHUNK_SIZE = 2 ** 28; // largest power of 2 smaller than MAX_STRING_LENGTH
+// const STRING_CHUNK_SIZE = 8; // DEBUG, TODO use a sensible value, close to MAX_STRING_LENGTH (e.g. 2**28)
 
 
 export class ChunkedBigString implements CustomString {
     readonly __string_like__: true;
-    private chunks: string[] = [];
+    private _chunks: string[] = [];
 
     readonly [index: number]: string; // implemented in the constructor
 
@@ -397,8 +399,62 @@ export class ChunkedBigString implements CustomString {
 
     static fromString(content: string): ChunkedBigString {
         const out = new ChunkedBigString();
-        chopString(content, STRING_CHUNK_SIZE, out.chunks);
+        chopString(content, STRING_CHUNK_SIZE, out._chunks);
         return out;
+    }
+
+    // potentially more performant impl, but ugly code, TODO benchmark and choose
+    static fromStrings_(content: string[]): ChunkedBigString {
+        const out = new ChunkedBigString();
+        shakeStringChunks(content, STRING_CHUNK_SIZE, out._chunks);
+        return out;
+    }
+
+    static fromStrings(content: string[]): ChunkedBigString {
+        const out = new ChunkedBigString();
+        for (const inputChunk of content) {
+            out._append(inputChunk);
+        }
+        return out;
+    }
+
+    /** This is for NodeJs only, browsers don't have `Buffer`, methinks */
+    static fromUtf8Buffer(buffer: Buffer, start: number = 0, end: number = buffer.length): ChunkedBigString {
+        const bufferChunkSize = STRING_CHUNK_SIZE; // n bytes will always decode to <=n characters
+        console.log('ChunkedBigString.fromUtf8Buffer length', buffer.length, 'isAscii', buffer.every(x => x < 128))
+        const stringChunks: string[] = [];
+        let readStart = start;
+        while (readStart < end) {
+            // TODO ensure multi-byte characters on chunk boundary are parsed correctly!
+            let readEnd = Math.min(readStart + bufferChunkSize, end);
+            if (readEnd < end) {
+                // this is chunk boundary, adjust to avoid cutting multi-byte characters
+                while ((buffer[readEnd] & 0xC0) === 0x80) { // byte after the cut is a continuation byte (10xxxxxx)
+                    readEnd--;
+                }
+                if (readEnd === readStart) throw new Error('Input is rubbish');
+            } // else this is end of read region -> default error handling
+            console.log('decoding', readStart, '-', readEnd, '=', readEnd - readStart)
+            const stringChunk = buffer.toString('utf-8', readStart, readEnd);
+            stringChunks.push(stringChunk);
+            readStart = readEnd;
+        }
+        return ChunkedBigString.fromStrings(stringChunks);
+    }
+
+    private _append(inputChunk: string): void {
+        const chunkSize = STRING_CHUNK_SIZE;
+        const tail = (this._chunks.length === 0 || this._chunks[this._chunks.length - 1].length === chunkSize) ? '' : this._chunks.pop()!;
+        if (tail.length + inputChunk.length <= chunkSize) {
+            this._chunks.push(tail + inputChunk);
+        } else {
+            let inputPtr = chunkSize - tail.length;
+            this._chunks.push(tail + inputChunk.substring(0, inputPtr));
+            for (; inputPtr < inputChunk.length; inputPtr += chunkSize) {
+                this._chunks.push(inputChunk.substring(inputPtr, inputPtr + chunkSize));
+            }
+        }
+        // TODO optimize - avoid concat when tail==='' (expected on ASCII inputs)
     }
 
     private getPosition(index: number): [iChunk: number, indexInChunk: number, outOfRange: boolean] {
@@ -412,21 +468,25 @@ export class ChunkedBigString implements CustomString {
     at(index: number): string | undefined {
         const [iChunk, indexInChunk, outOfRange] = this.getPosition(index);
         if (outOfRange) return undefined;
-        return this.chunks[iChunk][indexInChunk];
+        return this._chunks[iChunk][indexInChunk];
     }
 
     toString(): string {
         try {
-            return this.chunks.join('');
+            return this._chunks.join('');
         } catch (err) {
             throw new Error(`Failed to convert StringLike object into string. This might be because the length ${this.length} exceeds maximum allowed string length ${MAX_STRING_LENGTH}. (${err})`);
         }
     }
 
+    _repr(): string {
+        return this._chunks.join('-');
+    }
+
     charCodeAt(index: number): number {
         const [iChunk, indexInChunk, outOfRange] = this.getPosition(index);
         if (outOfRange) return NaN;
-        return this.chunks[iChunk].charCodeAt(indexInChunk);
+        return this._chunks[iChunk].charCodeAt(indexInChunk);
     }
 
     indexOf(searchString: string, position?: number): number {
@@ -448,21 +508,21 @@ export class ChunkedBigString implements CustomString {
         const [iLastChunk, indexInChunkTo] = this.getPosition(end_);
         const newChunks: string[] = [];
         if (iFirstChunk === iLastChunk) {
-            newChunks.push(this.chunks[iFirstChunk].substring(indexInChunkFrom, indexInChunkTo));
+            newChunks.push(this._chunks[iFirstChunk].substring(indexInChunkFrom, indexInChunkTo));
         } else {
-            newChunks.push(this.chunks[iFirstChunk].substring(indexInChunkFrom, STRING_CHUNK_SIZE));
+            newChunks.push(this._chunks[iFirstChunk].substring(indexInChunkFrom, STRING_CHUNK_SIZE));
             for (let iChunk = iFirstChunk + 1; iChunk < iLastChunk; iChunk++) {
-                newChunks.push(this.chunks[iChunk]);
+                newChunks.push(this._chunks[iChunk]);
             }
-            newChunks.push(this.chunks[iLastChunk].substring(0, indexInChunkTo));
+            newChunks.push(this._chunks[iLastChunk].substring(0, indexInChunkTo));
         }
         return newChunks.join('');
     }
 
     get length(): number {
-        const nChunks = this.chunks.length;
+        const nChunks = this._chunks.length;
         if (nChunks === 0) return 0;
-        return (nChunks - 1) * STRING_CHUNK_SIZE + this.chunks[nChunks - 1].length;
+        return (nChunks - 1) * STRING_CHUNK_SIZE + this._chunks[nChunks - 1].length;
         // TODO compute at creation
     }
 }
@@ -474,5 +534,39 @@ function chopString(content: string, chunkSize: number, out: string[]): void {
     }
 }
 
-// const foo = ChunkedBigString.fromString('abcdefghijklmnopqrstuvwxyz');
-// console.log('foo', foo)
+function shakeStringChunks(input: string[], chunkSize: number, out: string[]): void {
+    let current = '';
+    for (const inputChunk of input) {
+        if (current.length + inputChunk.length <= chunkSize) {
+            current += inputChunk;
+            if (current.length === chunkSize) {
+                out.push(current);
+                current = '';
+            }
+        } else {
+            let inputPtr = chunkSize - current.length;
+            current += inputChunk.substring(0, inputPtr);
+            out.push(current);
+            for (; inputPtr < inputChunk.length; inputPtr += chunkSize) {
+                current = inputChunk.substring(inputPtr, Math.min(inputPtr + chunkSize, inputChunk.length));
+                if (current.length === chunkSize) {
+                    out.push(current);
+                    current = '';
+                }
+            }
+        }
+    }
+    if (current.length > 0) {
+        out.push(current);
+    }
+    // TODO write proper tests
+}
+
+export function decodeBigUtf8String(buffer: Buffer, start: number = 0, end: number = buffer.length): StringLike {
+    // return ChunkedBigString.fromUtf8Buffer(buffer, start, end); // DEBUG
+    if (end - start <= MAX_STRING_LENGTH) {
+        return buffer.toString('utf-8', start, end);
+    }
+    const out = ChunkedBigString.fromUtf8Buffer(buffer, start, end);
+    return out.length <= MAX_STRING_LENGTH ? out.toString() : out;
+}
