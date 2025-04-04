@@ -9,12 +9,12 @@ interface CustomString {
     __string_like__: true,
 
     readonly [index: number]: string;
-    
+
     // [Symbol.iterator]: () => StringIterator<string>;
 
     // from @types/node/compatibility/indexable.d.ts
 
-    // at(index: number): string | undefined;
+    at(index: number): string | undefined;
 
     // // from typescript/lib/lib.es5.d.ts
 
@@ -359,9 +359,6 @@ export function isStringLike(s: unknown): s is StringLike {
     return typeof s === 'string' || s instanceof String || (s as CustomString).__string_like__;
 }
 
-/** Maximum allow string length (might be bigger for some engines, but in Chrome and Node it is this). */
-const MAX_STRING_LENGTH = 536_870_888;
-
 /** Try to convert `StringLike` to a primitive `string`. Might fail if the contents is longer that max allowed string length. */
 export function stringLikeToString(s: StringLike): string {
     try {
@@ -370,3 +367,112 @@ export function stringLikeToString(s: StringLike): string {
         throw new Error(`Failed to convert StringLike object into string. This might be because the length ${s.length} exceeds maximum allowed string length ${MAX_STRING_LENGTH}. (${err})`);
     }
 }
+
+/** Maximum allowed string length (might be bigger for some engines, but in Chrome and Node it is this). */
+const MAX_STRING_LENGTH = 536_870_888;
+
+/** String chunk size to be used by `ChunkedBigString`. */
+const STRING_CHUNK_SIZE = 8; // TODO use a sensible value, close to MAX_STRING_LENGTH (e.g. 2**28)
+
+
+export class ChunkedBigString implements CustomString {
+    readonly __string_like__: true;
+    private chunks: string[] = [];
+
+    readonly [index: number]: string; // implemented in the constructor
+
+    constructor() {
+        return new Proxy(this, {
+            // overrides getting this[index]
+            get(self, index) {
+                if (typeof index === 'symbol') return self[index as any];
+                const i = Number.parseInt(index);
+                if (isNaN(i)) return self[index as any];
+                else return self.at(i);
+                // TODO See how this proxy thing affects performance (CIF parsing itself uses custom parseInt because Number.parseInt is slow)
+                // and possibly avoid it in favor of using .at() everywhere instead of [].
+            },
+        });
+    }
+
+    static fromString(content: string): ChunkedBigString {
+        const out = new ChunkedBigString();
+        chopString(content, STRING_CHUNK_SIZE, out.chunks);
+        return out;
+    }
+
+    private getPosition(index: number): [iChunk: number, indexInChunk: number, outOfRange: boolean] {
+        const iChunk = Math.floor(index / STRING_CHUNK_SIZE);
+        const indexInChunk = index - iChunk * STRING_CHUNK_SIZE;
+        const outOfRange = index < 0 || index >= this.length;
+        return [iChunk, indexInChunk, outOfRange];
+        // TODO think about optimizations to avoid creating array
+    }
+
+    at(index: number): string | undefined {
+        const [iChunk, indexInChunk, outOfRange] = this.getPosition(index);
+        if (outOfRange) return undefined;
+        return this.chunks[iChunk][indexInChunk];
+    }
+
+    toString(): string {
+        try {
+            return this.chunks.join('');
+        } catch (err) {
+            throw new Error(`Failed to convert StringLike object into string. This might be because the length ${this.length} exceeds maximum allowed string length ${MAX_STRING_LENGTH}. (${err})`);
+        }
+    }
+
+    charCodeAt(index: number): number {
+        const [iChunk, indexInChunk, outOfRange] = this.getPosition(index);
+        if (outOfRange) return NaN;
+        return this.chunks[iChunk].charCodeAt(indexInChunk);
+    }
+
+    indexOf(searchString: string, position?: number): number {
+        throw new Error('NotImplementedError');
+    }
+
+    substring(start?: number, end?: number): string { // optional `start` not part of contract but works in Chrome
+        const start_ = Math.min(Math.max(start ?? 0, 0), this.length);
+        const end_ = Math.min(Math.max(end ?? this.length, 0), this.length);
+        if (end_ < start_) {
+            return this.substring(end_, start_);
+        }
+
+        if (end_ - start_ > MAX_STRING_LENGTH) {
+            throw new Error(`Trying to create get a substring longer (${end_ - start_}) than maximum allowed string length (${MAX_STRING_LENGTH}).`);
+        }
+
+        const [iFirstChunk, indexInChunkFrom] = this.getPosition(start_);
+        const [iLastChunk, indexInChunkTo] = this.getPosition(end_);
+        const newChunks: string[] = [];
+        if (iFirstChunk === iLastChunk) {
+            newChunks.push(this.chunks[iFirstChunk].substring(indexInChunkFrom, indexInChunkTo));
+        } else {
+            newChunks.push(this.chunks[iFirstChunk].substring(indexInChunkFrom, STRING_CHUNK_SIZE));
+            for (let iChunk = iFirstChunk + 1; iChunk < iLastChunk; iChunk++) {
+                newChunks.push(this.chunks[iChunk]);
+            }
+            newChunks.push(this.chunks[iLastChunk].substring(0, indexInChunkTo));
+        }
+        return newChunks.join('');
+    }
+
+    get length(): number {
+        const nChunks = this.chunks.length;
+        if (nChunks === 0) return 0;
+        return (nChunks - 1) * STRING_CHUNK_SIZE + this.chunks[nChunks - 1].length;
+        // TODO compute at creation
+    }
+}
+
+function chopString(content: string, chunkSize: number, out: string[]): void {
+    const nChunks = Math.ceil(content.length / chunkSize);
+    for (let i = 0; i < nChunks; i++) {
+        out.push(content.substring(i * chunkSize, (i + 1) * chunkSize));
+    }
+}
+
+// const foo = ChunkedBigString.fromString('abcdefghijklmnopqrstuvwxyz');
+// console.log('foo', foo)
