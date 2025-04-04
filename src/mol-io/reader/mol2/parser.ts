@@ -18,6 +18,8 @@ import { TokenColumnProvider as TokenColumn } from '../common/text/column/token'
 import * as Schema from './schema';
 import { ReaderResult as Result } from '../result';
 import { Task, RuntimeContext, chunkedSubtask } from '../../../mol-task';
+import { StringLike } from '../../common/string-like';
+
 
 const { skipWhitespace, eatValue, markLine, getTokenString, skipStrictWhitespace } = Tokenizer;
 
@@ -282,7 +284,7 @@ function handleCrysin(state: State) {
     };
 }
 
-async function parseInternal(ctx: RuntimeContext, data: string, name: string): Promise<Result<Schema.Mol2File>> {
+async function parseInternal(ctx: RuntimeContext, data: StringLike, name: string): Promise<Result<Schema.Mol2File>> {
     const tokenizer = Tokenizer(data);
 
     ctx.update({ message: 'Parsing...', current: 0, max: data.length });
@@ -304,7 +306,7 @@ async function parseInternal(ctx: RuntimeContext, data: string, name: string): P
     return Result.success(result);
 }
 
-export function parseMol2(data: string, name: string) {
+export function parseMol2(data: StringLike, name: string) {
     return Task.create<Result<Schema.Mol2File>>('Parse MOL2', async ctx => {
         return await parseInternal(ctx, data, name);
     });

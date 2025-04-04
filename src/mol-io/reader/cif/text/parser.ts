@@ -27,6 +27,8 @@ import * as Data from '../data-model';
 import { Tokens, TokenBuilder, Tokenizer } from '../../common/text/tokenizer';
 import { ReaderResult as Result } from '../../result';
 import { Task, RuntimeContext, chunkedSubtask } from '../../../../mol-task';
+import { StringLike } from '../../../common/string-like';
+
 
 /**
  * Types of supported mmCIF tokens.
@@ -42,7 +44,7 @@ const enum CifTokenType {
 }
 
 interface TokenizerState {
-    data: string,
+    data: StringLike,
 
     position: number,
     length: number,
@@ -484,7 +486,7 @@ function moveNext(state: TokenizerState) {
     while (state.tokenType === CifTokenType.Comment) moveNextInternal(state);
 }
 
-function createTokenizer(data: string, runtimeCtx: RuntimeContext): TokenizerState {
+function createTokenizer(data: StringLike, runtimeCtx: RuntimeContext): TokenizerState {
     return {
         data,
         length: data.length,
@@ -702,7 +704,7 @@ function result(data: Data.CifFile) {
  *
  * @returns CifParserResult wrapper of the result.
  */
-async function parseInternal(data: string, runtimeCtx: RuntimeContext) {
+async function parseInternal(data: StringLike, runtimeCtx: RuntimeContext) {
     const dataBlocks: Data.CifBlock[] = [];
     const tokenizer = createTokenizer(data, runtimeCtx);
     let blockHeader = '';
@@ -784,7 +786,7 @@ async function parseInternal(data: string, runtimeCtx: RuntimeContext) {
     return result(Data.CifFile(dataBlocks));
 }
 
-export function parseCifText(data: string) {
+export function parseCifText(data: StringLike) {
     return Task.create<Result<Data.CifFile>>('Parse CIF', async ctx => {
         return await parseInternal(data, ctx);
     });
