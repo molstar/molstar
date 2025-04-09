@@ -266,13 +266,7 @@ The next time you look at a macromolecular structure, remember: each atom tells 
 Read more [here](https://pdb101.rcsb.org/motm/289).
 `,
         state: (): Root => {
-            const builder = createMVSBuilder();
-
-            const _7enc = structure(builder, '7enc');
-            select(_7enc, { color: Colors['7enc'] });
-            // TODO add labels according to MotM
-
-            return builder;
+            return Steps[Steps.length - 2].state();
         },
         camera: {
             position: [591.05, 316.22, 162.66],
