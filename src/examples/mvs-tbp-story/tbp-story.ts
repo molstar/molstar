@@ -30,7 +30,7 @@ const Superpositions = {
 
 const Steps = [
     {
-        header: 'TATA-Binding Protein: Initiating Transcription',
+        header: 'TATA-Binding Protein',
         key: 'intro',
         description: `
 ### TATA-Binding Protein Tells RNA Polymerase Where To Get Started on a Gene
@@ -63,7 +63,7 @@ The convex face of the saddle would interact with other proteins during transcri
             up: [-0.55, 0.83, 0.1],
         } satisfies MVSNodeParams<'camera'>,
     }, {
-        header: 'TATA-Binding Protein: Highly Conserved in Eukaryotes',
+        header: 'TBP: Highly Conserved in Eukaryotes',
         key: 'highly-conserved',
         description: `
 ### TATA-Binding Protein Is Highly Conserved in Eukaryotes
@@ -97,8 +97,8 @@ The structures of *Arabidopsis thaliana* and human core TBP-TATA element co-crys
             up: [-0.55, 0.83, 0.1],
         } satisfies MVSNodeParams<'camera'>,
     }, {
-        header: 'TATA-Binding Protein: Binding to TATA Box',
-        key: 'tata-box',
+        header: 'TBP: Binding to TATA Box [1/5]',
+        key: 'tata-box-overview',
         transition_duration_ms: 750,
         description: `
 ### TATA-Binding Protein Binds to the Minor Groove of the TATA Box
@@ -107,19 +107,14 @@ When the first structures of TBP were determined, researchers discovered that TB
 Instead, it grabs the TATA sequence and bends it sharply, as seen in PDB entries ([PDB ID 1VTL](${wwPDBLink('1vtl')})) and ([PDB ID 1CDW](${wwPDBLink('1cdw')})). 
 
 Interactions with the minor groove can be divided into different classes as seen in PDB ([PDB ID 1CDW](${wwPDBLink('1cdw')})).
-
-1. A string of lysine and arginine amino acids interact with the phosphate groups of the DNA (either directly or mediated through water) and glues the protein to the DNA (Arg192, Arg199, Arg290, Lys221, Lys312, Lys204, Lys214, Lys295, Lys305).
-2. At either end of the TATA element there are two pairs of phenylalanine side chains partially inserted between adjacent base pairs, producing the two dramatic kinks (Phe193, Phe210, Phe284, and Phe301). Between the two kinks the DNA is partially unwound.
-3. Polar side chains make minor groove hydrogen bonds with acceptors of base pairs centred about the approximate 2-fold symmetry axis (Asn163, Asn253, and Thr309).
-4. Several residues projecting from the concave surface of TBP make hydrophobic or van der Waals side-chain/base contacts (<4 Å between non-hydrogen atoms) with the TATA element. The combination of interactions allows TATA-binding protein to recognize the proper DNA sequence.
 `,
         state: () => {
             const builder = createMVSBuilder();
 
-            const _1vtl = structure(builder, '1vtl');
-            select(_1vtl, { color: Colors['1vtl'], selector: { label_asym_id: 'E' } });
-            select(_1vtl, { color: Colors['1vtl'], selector: { label_asym_id: 'A' } });
-            select(_1vtl, { color: Colors['1vtl'], selector: { label_asym_id: 'B' } });
+            const _1cdw = structure(builder, '1cdw');
+            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'C' } });
+            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'A' } });
+            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'B' } });
 
             return builder;
         },
@@ -129,7 +124,103 @@ Interactions with the minor groove can be divided into different classes as seen
             up: [-0.55, 0.83, 0.1],
         } satisfies MVSNodeParams<'camera'>,
     }, {
-        header: 'TATA-Binding Protein and Transcription Pre-Initiation Complex',
+        header: 'TBP: Basic Amino Acids [2/5]',
+        key: 'tata-box-1',
+        transition_duration_ms: 750,
+        description: `
+### Basic Amino Acids
+
+A string of lysine and arginine amino acids interact with the phosphate groups of the DNA (either directly or mediated through water) and glues the protein to the DNA (Arg192, Arg199, Arg290, Lys221, Lys312, Lys204, Lys214, Lys295, Lys305).
+`,
+        state: () => {
+            const builder = createMVSBuilder();
+
+            const _1cdw = structure(builder, '1cdw');
+            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'C' } });
+            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'A' } });
+            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'B' } });
+
+            return builder;
+        },
+        camera: {
+            position: [155.18, 118.49, 49.18],
+            target: [74.81, 66.8, 30.7],
+            up: [-0.55, 0.83, 0.1],
+        } satisfies MVSNodeParams<'camera'>,
+    }, {
+        header: 'TBP: Phenylalanine [3/5]',
+        key: 'tata-box-2',
+        transition_duration_ms: 750,
+        description: `
+### Phenylalanine-Induced Kinks
+
+At either end of the TATA element there are two pairs of phenylalanine side chains partially inserted between adjacent base pairs, producing the two dramatic kinks (Phe193, Phe210, Phe284, and Phe301). Between the two kinks the DNA is partially unwound.
+`,
+        state: () => {
+            const builder = createMVSBuilder();
+
+            const _1cdw = structure(builder, '1cdw');
+            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'C' } });
+            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'A' } });
+            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'B' } });
+
+            return builder;
+        },
+        camera: {
+            position: [155.18, 118.49, 49.18],
+            target: [74.81, 66.8, 30.7],
+            up: [-0.55, 0.83, 0.1],
+        } satisfies MVSNodeParams<'camera'>,
+    }, {
+        header: 'TBP: H-Bonds in Minor Groove [4/5]',
+        key: 'tata-box-3',
+        transition_duration_ms: 750,
+        description: `
+### Hydrogen Bonds in the Minor Groove
+
+Polar side chains make minor groove hydrogen bonds with acceptors of base pairs centred about the approximate 2-fold symmetry axis (Asn163, Asn253, and Thr309).
+`,
+        state: () => {
+            const builder = createMVSBuilder();
+
+            const _1cdw = structure(builder, '1cdw');
+            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'C' } });
+            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'A' } });
+            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'B' } });
+
+            return builder;
+        },
+        camera: {
+            position: [155.18, 118.49, 49.18],
+            target: [74.81, 66.8, 30.7],
+            up: [-0.55, 0.83, 0.1],
+        } satisfies MVSNodeParams<'camera'>,
+    }, {
+        header: 'TBP: Non-Polar Interactions [5/5]',
+        key: 'tata-box-4',
+        transition_duration_ms: 750,
+        description: `
+### Hydrophobic and van der Waals Interactions
+
+Several residues projecting from the concave surface of TBP make hydrophobic or van der Waals side-chain/base contacts (<4 Å between non-hydrogen atoms) with the TATA element. The combination of interactions allows TATA-binding protein to recognize the proper DNA sequence.
+`,
+        state: () => {
+            const builder = createMVSBuilder();
+
+            const _1cdw = structure(builder, '1cdw');
+            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'C' } });
+            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'A' } });
+            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'B' } });
+
+            return builder;
+        },
+        camera: {
+            position: [155.18, 118.49, 49.18],
+            target: [74.81, 66.8, 30.7],
+            up: [-0.55, 0.83, 0.1],
+        } satisfies MVSNodeParams<'camera'>,
+    }, {
+        header: 'TBP and Transcription Pre-Initiation Complex',
         key: 'pre-init-complex',
         description: `
 ### TATA-Binding Protein and the Transcription Pre-Initiation Complex
@@ -172,14 +263,20 @@ That's all folks! We hope you enjoyed this interactive journey through the struc
 
 The next time you look at a macromolecular structure, remember: each atom tells a story, and each discovery shapes the future of medicine.
 
-Read more [here](https://doi.org/10.1038/nsb0994-621).
+Read more [here](https://pdb101.rcsb.org/motm/289).
 `,
         state: (): Root => {
-            return Steps[0].state();
+            const builder = createMVSBuilder();
+
+            const _7enc = structure(builder, '7enc');
+            select(_7enc, { color: Colors['7enc'] });
+            // TODO add labels according to MotM
+
+            return builder;
         },
         camera: {
-            position: [155.18, 118.49, 49.18],
-            target: [74.81, 66.8, 30.7],
+            position: [591.05, 316.22, 162.66],
+            target: [82.39, -10.93, 45.7],
             up: [-0.55, 0.83, 0.1],
         } satisfies MVSNodeParams<'camera'>,
     }
