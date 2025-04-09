@@ -83,11 +83,13 @@ The structures of *Arabidopsis thaliana* and human core TBP-TATA element co-crys
             const _1cdw = structure(builder, '1cdw');
             select(_1cdw, { color: Colors['1cdw'], selector: 'protein' });
             select(_1cdw, { color: Colors['1cdw'], selector: 'nucleic', opacity: 0.5 });
+            // TODO domain for TATA fragment?
 
             const _1vtl = structure(builder, '1vtl');
             select(_1vtl, { color: Colors['1vtl'], selector: { label_asym_id: 'E' } });
             select(_1vtl, { color: Colors['1vtl'], selector: { label_asym_id: 'A' }, opacity: 0.5 });
             select(_1vtl, { color: Colors['1vtl'], selector: { label_asym_id: 'B' }, opacity: 0.5 });
+            // TODO domain for TATA fragment?
 
             return builder;
         },
@@ -139,6 +141,8 @@ A string of lysine and arginine amino acids interact with the phosphate groups o
             select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'C' } });
             select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'A' } });
             select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'B' } });
+            // Arg: 38, 45, 136
+            // Lys: 67, 158, 50, 60, 141, 151
 
             return builder;
         },
@@ -163,6 +167,7 @@ At either end of the TATA element there are two pairs of phenylalanine side chai
             select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'C' } });
             select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'A' } });
             select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'B' } });
+            // Phe: 39, 56, 130, 147
 
             return builder;
         },
@@ -187,6 +192,7 @@ Polar side chains make minor groove hydrogen bonds with acceptors of base pairs 
             select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'C' } });
             select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'A' } });
             select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'B' } });
+            // Asn: 9, 99, 155
 
             return builder;
         },
@@ -211,6 +217,7 @@ Several residues projecting from the concave surface of TBP make hydrophobic or 
             select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'C' } });
             select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'A' } });
             select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'B' } });
+            // TODO need selection
 
             return builder;
         },
