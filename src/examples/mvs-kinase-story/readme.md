@@ -22,7 +22,7 @@ This example illustrates:
     <script type="text/javascript" src="index.js"></script>
 ```
 
-- Plate the components in your page wrapper in `<div>` elements to set up positioning:
+- Place the components in your page wrapper in `<div>` elements to set up positioning:
 
 ```html
 <div class="viewer">
@@ -41,7 +41,7 @@ This example illustrates:
         kind: 'load-mvs',
         format: 'mvsj',
         url: 'https://path/to/file.mvsj',
-        // or provide data direcly
+        // or provide data directly
         // data: mvsJSON
     });
 </script>
