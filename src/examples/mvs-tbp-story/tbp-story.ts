@@ -8,12 +8,18 @@
 import { MVSData_States } from '../../extensions/mvs/mvs-data';
 import { createMVSBuilder, Structure as MVSStructure, Root } from '../../extensions/mvs/tree/mvs/mvs-builder';
 import { MVSNodeParams } from '../../extensions/mvs/tree/mvs/mvs-tree';
-import { ColorT } from '../../extensions/mvs/tree/mvs/param-types';
+import {
+    ColorT,
+    ComponentExpressionT,
+    isPrimitiveComponentExpressions,
+    PrimitivePositionT
+} from '../../extensions/mvs/tree/mvs/param-types';
 import { Mat3, Mat4, Vec3 } from '../../mol-math/linear-algebra';
 
 const Colors = {
     '1vok': '#4577B2' as ColorT,
     '1cdw': '#BC536D' as ColorT,
+    '1cdw-2': '#c5a3af' as ColorT,
     '1vtl': '#B9E3A0' as ColorT,
     '7enc': '#F3774B' as ColorT,
 
@@ -152,15 +158,15 @@ Interactions with the minor groove can be divided into different classes as seen
 
             const _1cdw = structure(builder, '1cdw');
             select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'C' } });
-            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'A' } });
-            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'B' } });
+            select(_1cdw, { color: Colors['1cdw-2'], selector: { label_asym_id: 'A' } });
+            select(_1cdw, { color: Colors['1cdw-2'], selector: { label_asym_id: 'B' } });
 
             return builder;
         },
         camera: {
-            position: [155.18, 118.49, 49.18],
-            target: [74.81, 66.8, 30.7],
-            up: [-0.55, 0.83, 0.1],
+            position: [122.15, 104.37, 72.23],
+            target: [77.48, 59.61, 30.36],
+            up: [-0.73, 0.68, 0.06],
         } satisfies MVSNodeParams<'camera'>,
     }, {
         header: 'TBP: Basic Amino Acids [2/5]',
@@ -176,17 +182,41 @@ A string of lysine and arginine amino acids interact with the phosphate groups o
 
             const _1cdw = structure(builder, '1cdw');
             select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'C' } });
-            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'A' } });
-            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'B' } });
-            // Arg: 38, 45, 136
-            // Lys: 67, 158, 50, 60, 141, 151
+            select(_1cdw, { color: Colors['1cdw-2'], selector: { label_asym_id: 'A' } });
+            select(_1cdw, { color: Colors['1cdw-2'], selector: { label_asym_id: 'B' } });
+            label(_1cdw, { selector: { label_asym_id: 'C', label_seq_id: 38 }, text: 'Arg192' });
+            drawInteractions(_1cdw, [
+                ['H-bond', { label_asym_id: 'C', label_seq_id: 38, label_atom_id: 'NH2' }, { label_asym_id: 'B', label_seq_id: 7, label_atom_id: 'OP1' }],
+                ['H-bond', { label_asym_id: 'C', label_seq_id: 38, label_atom_id: 'NH2' }, { label_asym_id: 'B', label_seq_id: 6, label_atom_id: `O3'` }],
+                ['H-bond', { label_asym_id: 'C', label_seq_id: 38, label_atom_id: 'NH1' }, { label_asym_id: 'B', label_seq_id: 7, label_atom_id: 'OP1' }],
+            ]);
+            label(_1cdw, { selector: { label_asym_id: 'C', label_seq_id: 45 }, text: 'Arg199' });
+            drawInteractions(_1cdw, [
+                ['H-bond', { label_asym_id: 'C', label_seq_id: 45, label_atom_id: 'NE' }, { label_asym_id: 'B', label_seq_id: 8, label_atom_id: 'OP1' }],
+                ['H-bond', { label_asym_id: 'C', label_seq_id: 45, label_atom_id: 'NH2' }, { label_asym_id: 'B', label_seq_id: 8, label_atom_id: 'OP1' }],
+            ]);
+            // TODO could add water-mediated h-bonds
+            label(_1cdw, { selector: { label_asym_id: 'C', label_seq_id: 136 }, text: 'Arg290' });
+            drawInteractions(_1cdw, [
+                ['H-bond', { label_asym_id: 'C', label_seq_id: 136, label_atom_id: 'NH1' }, { label_asym_id: 'A', label_seq_id: 8, label_atom_id: 'OP1' }],
+            ]);
+            label(_1cdw, { selector: { label_asym_id: 'C', label_seq_id: 67 }, text: 'Lys221' });
+            label(_1cdw, { selector: { label_asym_id: 'C', label_seq_id: 158 }, text: 'Lys312' });
+            label(_1cdw, { selector: { label_asym_id: 'C', label_seq_id: 50 }, text: 'Arg204' });
+            drawInteractions(_1cdw, [
+                ['H-bond', { label_asym_id: 'B', label_seq_id: 9, label_atom_id: 'OP1' }, { label_asym_id: 'C', label_seq_id: 50, label_atom_id: 'NH1' }],
+                ['H-bond', { label_asym_id: 'B', label_seq_id: 9, label_atom_id: 'OP1' }, { label_asym_id: 'C', label_seq_id: 50, label_atom_id: 'NH2' }],
+            ]);
+            label(_1cdw, { selector: { label_asym_id: 'C', label_seq_id: 60 }, text: 'Lys214' });
+            label(_1cdw, { selector: { label_asym_id: 'C', label_seq_id: 141 }, text: 'Arg295' });
+            label(_1cdw, { selector: { label_asym_id: 'C', label_seq_id: 151 }, text: 'Lys305' });
 
             return builder;
         },
         camera: {
-            position: [155.18, 118.49, 49.18],
-            target: [74.81, 66.8, 30.7],
-            up: [-0.55, 0.83, 0.1],
+            position: [113.39, 87.77, 39.97],
+            target: [76.74, 60.72, 30.08],
+            up: [-0.55, 0.81, -0.19],
         } satisfies MVSNodeParams<'camera'>,
     }, {
         header: 'TBP: Phenylalanine [3/5]',
@@ -205,6 +235,7 @@ At either end of the TATA element there are two pairs of phenylalanine side chai
             select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'A' } });
             select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'B' } });
             // Phe: 39, 56, 130, 147
+            // TODO annotate interactions & set camera
 
             return builder;
         },
@@ -230,6 +261,7 @@ Polar side chains make minor groove hydrogen bonds with acceptors of base pairs 
             select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'A' } });
             select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'B' } });
             // Asn: 9, 99, 155
+            // TODO annotate interactions & set camera
 
             return builder;
         },
@@ -319,6 +351,50 @@ Read more [here](https://pdb101.rcsb.org/motm/289).
         } satisfies MVSNodeParams<'camera'>,
     }
 ];
+
+type Interaction = [label: string, res1: PrimitivePositionT, res2: PrimitivePositionT, options?: { skipResidue?: boolean }]
+
+function drawInteractions(structure: MVSStructure, interactions: Interaction[]) {
+    const primitives = structure.primitives();
+
+    const interactingResidues: ComponentExpressionT[] = [];
+    const addedResidues = new Set<string>();
+
+    function drawResidue(a: PrimitivePositionT) {
+        const expressions = isPrimitiveComponentExpressions(a) ? a.expressions! : [a as ComponentExpressionT];
+        for (const _e of expressions) {
+            const e = { ..._e };
+            delete e.auth_atom_id;
+            delete e.label_atom_id;
+
+            const key = JSON.stringify(e);
+            if (addedResidues.has(key)) continue;
+            interactingResidues.push(e);
+            addedResidues.add(key);
+        }
+    }
+
+    for (const [tooltip, a, b, options] of interactions) {
+        primitives.tube({ start: a, end: b, color: '#4289B5', tooltip, radius: 0.1, dash_length: 0.1 });
+
+        if (options?.skipResidue) continue;
+
+        drawResidue(a);
+        drawResidue(b);
+    }
+
+    if (interactingResidues.length === 0) return;
+
+    structure
+        .component({ selector: interactingResidues })
+        .representation({ type: 'ball_and_stick' })
+        .color({
+            custom: {
+                molstar_color_theme_name: 'element-symbol',
+                molstar_color_theme_params: { carbonColor: { name: 'element-symbol', params: {} } },
+            }
+        });
+}
 
 function transform(structure: MVSStructure, id: keyof typeof Superpositions) {
     const rotation = Mat3.fromMat4(Mat3.zero(), Superpositions[id]);
