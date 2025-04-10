@@ -38,7 +38,7 @@ const Steps = [
 Specialized DNA sequences next to genes, called promoters, define the proper start site and direction for transcription.
 Promoters vary in sequence and location from organism to organism.
 In eukaryotic cells, a complex promoter system that uses dozens of different proteins ensures that the proper RNA polymerase is targeted to each gene.
-The TATA-binding protein (TBP) is the central element of this system.
+The TATA-binding protein (TBP) is the central element of this system, participating in transcription by all three RNA polymerases.
 
 The crystal structure of TBP from *Arabidopsis thaliana* in its apo form is shown ([PDB ID 1VOK](${wwPDBLink('1vok')})).
 The structure reveals a highly symmetric DNA-binding fold composed of two topologically identical domains derived from the two direct repeats in the phylogenetically conserved sequence.
@@ -46,7 +46,7 @@ The domains are related by an approximate 2-fold axis, and consist of a five-str
 It is thought that an ancient gene duplication created this protein by combining two copies of the same gene. 
 
 The intramolecular symmetry generates a saddle-shaped structure dominated by a curved antiparallel beta sheet, which forms the saddle's concave face and interacts with the DNA.
-The convex face of the saddle would interact with other proteins during transcription.
+The convex face of the saddle would interact with other proteins during transcription initiation.
 `,
         state: (): Root => {
             const builder = createMVSBuilder();
@@ -68,14 +68,14 @@ The convex face of the saddle would interact with other proteins during transcri
         description: `
 ### TATA-Binding Protein Is Highly Conserved in Eukaryotes
 
-Eukaryotic protein-coding genes have a characteristic sequence of nucleotides, termed the TATA box, in front of the start site of transcription.
+Eukaryotic protein-coding genes transcribed by RNA polymerase II (pol II)  have a characteristic sequence of nucleotides, termed the TATA box, in front of the start site of transcription.
 The typical sequence is something like T-A-T-A-a/t-A-a/t, where a/t refers to positions that can be either A or T.
-TBP recognizes this TATA sequence and binds to it, creating a landmark that marks the start site of transcription. 
+TBP recognizes this TATA sequence and binds to it, creating a landmark that directs pol II to the transcription start site. 
 
-TBP has a phylogenetically conserved, 180 amino-acid carboxy-terminal portion (ranging from 38 to 93% identity), containing two structural repeats flanking a highly basic segment known as the basic repeat.
+TBP has a phylogenetically conserved, 180 amino-acid carboxy-terminal domain (ranging from 38 to 93% identity among eukaryotes and archaebacteria), containing two structural repeats flanking a highly basic segment known as the basic repeat.
 The C-terminal or core portion of the protein binds the TATA consensus sequence with high affinity, interacting with the minor groove and promoting DNA bending.
-Structural superposition of TBP bound to DNA in human ([PDB ID 1CDW](${wwPDBLink('1cdw')})) and *Arabidopsis thaliana* ([PDB ID 1VTL](${wwPDBLink('1vtl')})) shows that their sequences are 83% identical and the RMSD between the structures is 0.43 Å.
-The structures of *Arabidopsis thaliana* and human core TBP-TATA element co-crystal structures demonstrate a common induced-fit mechanism of protein-DNA recognition involving subtle conformation changes in the protein and an unprecedented DNA distortion. 
+Structural superposition of TBP bound to DNA in human ([PDB ID 1CDW](${wwPDBLink('1cdw')})) and *A. thaliana* ([PDB ID 1VTL](${wwPDBLink('1vtl')})) shows that their sequences are 83% identical and the RMSD between the structures is 0.43 Å.
+The structures of *A. thaliana* and human core TBP-TATA element co-crystal structures demonstrate a common induced-fit mechanism of protein-DNA recognition involving subtle conformation changes in the protein and an unprecedented DNA distortion. 
 `,
         state: () => {
             const builder = createMVSBuilder();
@@ -105,8 +105,8 @@ The structures of *Arabidopsis thaliana* and human core TBP-TATA element co-crys
         description: `
 ### TATA-Binding Protein Binds to the Minor Groove of the TATA Box
 
-When the first structures of TBP were determined, researchers discovered that TBP is not gentle when it binds to DNA.
-Instead, it grabs the TATA sequence and bends it sharply, as seen in PDB entries ([PDB ID 1VTL](${wwPDBLink('1vtl')})) and ([PDB ID 1CDW](${wwPDBLink('1cdw')})). 
+When the first structures of TBP-DNA complexes were determined, researchers discovered that TBP is not gentle when it binds to DNA.
+Instead, it grabs the TATA sequence, bends and unwinds it to open up the minor groove, and kinks it sharply in two places (*e.g.*, [PDB ID 1VTL](${wwPDBLink('1vtl')})) and ([PDB ID 1CDW](${wwPDBLink('1cdw')})). 
 
 Interactions with the minor groove can be divided into different classes as seen in PDB ([PDB ID 1CDW](${wwPDBLink('1cdw')})).
 `,
@@ -232,17 +232,17 @@ Several residues projecting from the concave surface of TBP make hydrophobic or 
         description: `
 ### TATA-Binding Protein and the Transcription Pre-Initiation Complex
 
-The structure shown here, from [PDB ID 7ENC](${wwPDBLink('7enc')}), is a “pre-initiation complex” (PIC) poised to start transcription.
-This complex includes eukaryotic Mediator and RNA polymerase II, along with a collection of general transcription factors that perform the necessary tasks of recognizing the transcription start site of genes, separating the two strands of the DNA double helix, and facilitating transcription initiation by RNA polymerase II.
+The structure shown here, from [PDB ID 7ENC](${wwPDBLink('7enc')}), is that of a pol II “pre-initiation complex” (PIC) poised to start transcription.
+This complex includes eukaryotic Mediator and pol II, along with a collection of general transcription factors that perform the necessary tasks of recognizing the transcription start site of genes, separating the two strands of the DNA double helix, and facilitating transcription initiation by RNA polymerase II.
 
-TBP starts the process of transcription and works as part of a larger transcription factor, TFIID, that belongs to the collection of general transcription factors that cradle RNA polymerase in the PIC.
+TBP starts the process of assembling the PIC and works with TBP-associated factors (TAFs) as part of a large multi-component transcription factor, TFIID, that belongs to the collection of general transcription factors that cradle pol II with in the PIC.
 After TBP binds to the promoter, it recruits additional transcription factors.
 TFIIA and TFIIB interact with surrounding regions of the DNA and, along with TFIIF, assist with positioning of RNA polymerase II at the transcription start site.
 TFIIE, TFIIH, and other TFIID subunits bring additional functionality to the complex.
 In particular, part of TFIIH is a translocase that separates the two strands of DNA in preparation for transcription, and the CAK module of TFIIH adds phosphate groups to the long tail of RNA polymerase II, sending the signal that it is time to get started with mRNA synthesis. 
 
 TBP is a critical player that gets the transcription process started and is central to the pre-initiation complex.
-Under tremendous selection pressure, it is highly conserved in eukaryotes.
+Lying at the very heart of this complex macromolecular machine, it is highly conserved among eukaryotes and *archaea*. 
 `,
         state: () => {
             const builder = createMVSBuilder();
