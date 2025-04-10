@@ -63,8 +63,8 @@ The convex face of the saddle would interact with other proteins during transcri
             up: [-0.55, 0.83, 0.1],
         } satisfies MVSNodeParams<'camera'>,
     }, {
-        header: 'TBP: Highly Conserved in Eukaryotes',
-        key: 'highly-conserved',
+        header: 'TBP: Highly Conserved in Eukaryotes [1/2]',
+        key: 'highly-conserved-1',
         description: `
 ### TATA-Binding Protein Is Highly Conserved in Eukaryotes
 
@@ -82,21 +82,58 @@ The structures of *A. thaliana* and human core TBP-TATA element co-crystal struc
 
             const _1cdw = structure(builder, '1cdw');
             select(_1cdw, { color: Colors['1cdw'], selector: 'protein' });
-            select(_1cdw, { color: Colors['1cdw'], selector: 'nucleic', opacity: 0.5 });
-            // TODO domain for TATA fragment?
+            select(_1cdw, { color: Colors['1cdw'], selector: 'nucleic', opacity: 0.5 })[0].label({ text: 'DNA' });
+            label(_1cdw, { selector: { label_asym_id: 'C', label_seq_id: 172 }, text: 'TBP (H. sapiens)' });
 
             const _1vtl = structure(builder, '1vtl');
             select(_1vtl, { color: Colors['1vtl'], selector: { label_asym_id: 'E' } });
             select(_1vtl, { color: Colors['1vtl'], selector: { label_asym_id: 'A' }, opacity: 0.5 });
             select(_1vtl, { color: Colors['1vtl'], selector: { label_asym_id: 'B' }, opacity: 0.5 });
-            // TODO domain for TATA fragment?
+            label(_1vtl, { selector: { label_asym_id: 'E', label_seq_id: 80 }, text: 'TBP (A. thaliana)' });
 
             return builder;
         },
         camera: {
-            position: [155.18, 118.49, 49.18],
-            target: [74.81, 66.8, 30.7],
-            up: [-0.55, 0.83, 0.1],
+            position: [122.15, 104.37, 72.23],
+            target: [77.48, 59.61, 30.36],
+            up: [-0.73, 0.68, 0.06],
+        } satisfies MVSNodeParams<'camera'>,
+    }, {
+        header: 'TBP: Minor Groove [2/2]',
+        key: 'highly-conserved-2',
+        description: `
+### TATA-Binding Protein Is Highly Conserved in Eukaryotes
+
+TBP has a phylogenetically conserved, 180 amino-acid carboxy-terminal domain (ranging from 38 to 93% identity among eukaryotes and archaebacteria), containing two structural repeats flanking a highly basic segment known as the basic repeat.
+The C-terminal or core portion of the protein binds the TATA consensus sequence with high affinity, interacting with the minor groove and promoting DNA bending.
+Structural superposition of TBP bound to DNA in human ([PDB ID 1CDW](${wwPDBLink('1cdw')})) and *A. thaliana* ([PDB ID 1VTL](${wwPDBLink('1vtl')})) shows that their sequences are 83% identical and the RMSD between the structures is 0.43 Å.
+The structures of *A. thaliana* and human core TBP-TATA element co-crystal structures demonstrate a common induced-fit mechanism of protein-DNA recognition involving subtle conformation changes in the protein and an unprecedented DNA distortion.
+`,
+        state: () => {
+            const builder = createMVSBuilder();
+
+            const _1cdw = structure(builder, '1cdw');
+            select(_1cdw, { color: Colors['1cdw'], selector: 'protein' });
+            select(_1cdw, { color: Colors['1cdw'], selector: 'nucleic', opacity: 0.5 });
+            // select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'A', beg_label_seq_id: 6, end_label_seq_id: 11 } })[0].label({ text: 'TATA box' });
+            label(_1cdw, { selector: { label_asym_id: 'A', label_seq_id: 5 }, text: 'T' });
+            label(_1cdw, { selector: { label_asym_id: 'A', label_seq_id: 6 }, text: 'A' });
+            label(_1cdw, { selector: { label_asym_id: 'A', label_seq_id: 7 }, text: 'T' });
+            label(_1cdw, { selector: { label_asym_id: 'A', label_seq_id: 8 }, text: 'A' });
+            label(_1cdw, { selector: { label_asym_id: 'A', label_seq_id: 9 }, text: 'A' });
+            label(_1cdw, { selector: { label_asym_id: 'A', label_seq_id: 10 }, text: 'A' });
+
+            const _1vtl = structure(builder, '1vtl');
+            select(_1vtl, { color: Colors['1vtl'], selector: { label_asym_id: 'E' } });
+            select(_1vtl, { color: Colors['1vtl'], selector: { label_asym_id: 'A' }, opacity: 0.5 });
+            select(_1vtl, { color: Colors['1vtl'], selector: { label_asym_id: 'B' }, opacity: 0.5 });
+
+            return builder;
+        },
+        camera: {
+            position: [108.48, 92.12, 4.1],
+            target: [80.16, 56.15, 28.96],
+            up: [-0.71, 0.68, 0.17],
         } satisfies MVSNodeParams<'camera'>,
     }, {
         header: 'TBP: Binding to TATA Box [1/5]',
@@ -311,6 +348,11 @@ function select(structure: MVSStructure, { color, opacity = 1.0, selector = 'pol
     const representation = component.representation({ type: 'cartoon' });
     representation.color({ color }).opacity({ opacity });
     return [component, representation] as const;
+}
+
+function label(structure: MVSStructure, { selector, text }: { selector: Partial<MVSNodeParams<'component'>>['selector'], text: string }) {
+    structure.component({ selector })
+        .label({ text });
 }
 
 function pdbUrl(id: string) {
