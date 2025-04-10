@@ -58,8 +58,15 @@ The convex face of the saddle would interact with other proteins during transcri
             const builder = createMVSBuilder();
 
             const _1vok = structure(builder, '1vok');
-            const [_1vok_poly,] = select(_1vok, { color: Colors['1vok'] });
-            _1vok_poly.label({ text: 'TATA-Binding Protein' });
+            const _1vok_comp = _1vok.component({ selector: { label_asym_id: 'A' } });
+            _1vok_comp.representation({ type: 'cartoon' })
+                .color({
+                    custom: {
+                        molstar_color_theme_name: 'sequence-id',
+                        molstar_color_theme_params: { carbonColor: { name: 'sequence-id', params: {} } },
+                    }
+                });
+            _1vok_comp.label({ text: 'TATA-Binding Protein' });
 
             return builder;
         },
@@ -89,13 +96,14 @@ The structures of *A. thaliana* and human core TBP-TATA element co-crystal struc
             const _1cdw = structure(builder, '1cdw');
             select(_1cdw, { color: Colors['1cdw'], selector: 'protein' });
             select(_1cdw, { color: Colors['1cdw'], selector: 'nucleic', opacity: 0.5 })[0].label({ text: 'DNA' });
-            label(_1cdw, { selector: { label_asym_id: 'C', label_seq_id: 172 }, text: 'TBP (H. sapiens)' });
+            // uses a range to 'adjust' font size of label
+            label(_1cdw, { selector: { label_asym_id: 'C', beg_label_seq_id: 160, end_label_seq_id: 177 }, text: 'TBP (H. sapiens)' });
 
             const _1vtl = structure(builder, '1vtl');
             select(_1vtl, { color: Colors['1vtl'], selector: { label_asym_id: 'E' } });
             select(_1vtl, { color: Colors['1vtl'], selector: { label_asym_id: 'A' }, opacity: 0.5 });
             select(_1vtl, { color: Colors['1vtl'], selector: { label_asym_id: 'B' }, opacity: 0.5 });
-            label(_1vtl, { selector: { label_asym_id: 'E', label_seq_id: 80 }, text: 'TBP (A. thaliana)' });
+            label(_1vtl, { selector: { label_asym_id: 'E', beg_label_seq_id: 75, end_label_seq_id: 92 }, text: 'TBP (A. thaliana)' });
 
             return builder;
         },
@@ -169,13 +177,13 @@ Interactions with the minor groove can be divided into different classes as seen
             up: [-0.73, 0.68, 0.06],
         } satisfies MVSNodeParams<'camera'>,
     }, {
-        header: 'TBP: Basic Amino Acids [2/5]',
+        header: 'TBP: Arginine [2/5]',
         key: 'tata-box-1',
         transition_duration_ms: 750,
         description: `
-### Basic Amino Acids
+### Arginine Residues
 
-A string of lysine and arginine amino acids interact with the phosphate groups of the DNA (either directly or mediated through water) and glues the protein to the DNA (Arg192, Arg199, Arg290, Lys221, Lys312, Lys204, Lys214, Lys295, Lys305).
+A string of arginine amino acids interact with the phosphate groups of the DNA and glues the protein to the DNA: Arg192, Arg199, Arg204, and Arg290.
 `,
         state: () => {
             const builder = createMVSBuilder();
@@ -184,39 +192,37 @@ A string of lysine and arginine amino acids interact with the phosphate groups o
             select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'C' } });
             select(_1cdw, { color: Colors['1cdw-2'], selector: { label_asym_id: 'A' } });
             select(_1cdw, { color: Colors['1cdw-2'], selector: { label_asym_id: 'B' } });
+
             label(_1cdw, { selector: { label_asym_id: 'C', label_seq_id: 38 }, text: 'Arg192' });
             drawInteractions(_1cdw, [
                 ['H-bond', { label_asym_id: 'C', label_seq_id: 38, label_atom_id: 'NH2' }, { label_asym_id: 'B', label_seq_id: 7, label_atom_id: 'OP1' }],
                 ['H-bond', { label_asym_id: 'C', label_seq_id: 38, label_atom_id: 'NH2' }, { label_asym_id: 'B', label_seq_id: 6, label_atom_id: `O3'` }],
                 ['H-bond', { label_asym_id: 'C', label_seq_id: 38, label_atom_id: 'NH1' }, { label_asym_id: 'B', label_seq_id: 7, label_atom_id: 'OP1' }],
             ]);
+
             label(_1cdw, { selector: { label_asym_id: 'C', label_seq_id: 45 }, text: 'Arg199' });
             drawInteractions(_1cdw, [
                 ['H-bond', { label_asym_id: 'C', label_seq_id: 45, label_atom_id: 'NE' }, { label_asym_id: 'B', label_seq_id: 8, label_atom_id: 'OP1' }],
                 ['H-bond', { label_asym_id: 'C', label_seq_id: 45, label_atom_id: 'NH2' }, { label_asym_id: 'B', label_seq_id: 8, label_atom_id: 'OP1' }],
             ]);
-            // TODO could add water-mediated h-bonds
+
             label(_1cdw, { selector: { label_asym_id: 'C', label_seq_id: 136 }, text: 'Arg290' });
             drawInteractions(_1cdw, [
                 ['H-bond', { label_asym_id: 'C', label_seq_id: 136, label_atom_id: 'NH1' }, { label_asym_id: 'A', label_seq_id: 8, label_atom_id: 'OP1' }],
             ]);
-            label(_1cdw, { selector: { label_asym_id: 'C', label_seq_id: 67 }, text: 'Lys221' });
-            label(_1cdw, { selector: { label_asym_id: 'C', label_seq_id: 158 }, text: 'Lys312' });
+
             label(_1cdw, { selector: { label_asym_id: 'C', label_seq_id: 50 }, text: 'Arg204' });
             drawInteractions(_1cdw, [
                 ['H-bond', { label_asym_id: 'B', label_seq_id: 9, label_atom_id: 'OP1' }, { label_asym_id: 'C', label_seq_id: 50, label_atom_id: 'NH1' }],
                 ['H-bond', { label_asym_id: 'B', label_seq_id: 9, label_atom_id: 'OP1' }, { label_asym_id: 'C', label_seq_id: 50, label_atom_id: 'NH2' }],
             ]);
-            label(_1cdw, { selector: { label_asym_id: 'C', label_seq_id: 60 }, text: 'Lys214' });
-            label(_1cdw, { selector: { label_asym_id: 'C', label_seq_id: 141 }, text: 'Arg295' });
-            label(_1cdw, { selector: { label_asym_id: 'C', label_seq_id: 151 }, text: 'Lys305' });
 
             return builder;
         },
         camera: {
-            position: [113.39, 87.77, 39.97],
-            target: [76.74, 60.72, 30.08],
-            up: [-0.55, 0.81, -0.19],
+            position: [113.87, 71.89, 26.29],
+            target: [77.29, 61.61, 18.73],
+            up: [-0.28, 0.96, 0.04],
         } satisfies MVSNodeParams<'camera'>,
     }, {
         header: 'TBP: Phenylalanine [3/5]',
