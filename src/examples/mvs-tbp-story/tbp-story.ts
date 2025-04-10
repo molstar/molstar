@@ -15,6 +15,7 @@ import {
     PrimitivePositionT
 } from '../../extensions/mvs/tree/mvs/param-types';
 import { Mat3, Mat4, Vec3 } from '../../mol-math/linear-algebra';
+import { decodeColor } from '../../extensions/mvs/helpers/utils';
 
 const Colors = {
     '1vok': '#4577B2' as ColorT,
@@ -103,6 +104,7 @@ The structures of *A. thaliana* and human core TBP-TATA element co-crystal struc
             select(_1vtl, { color: Colors['1vtl'], selector: { label_asym_id: 'E' } });
             select(_1vtl, { color: Colors['1vtl'], selector: { label_asym_id: 'A' }, opacity: 0.5 });
             select(_1vtl, { color: Colors['1vtl'], selector: { label_asym_id: 'B' }, opacity: 0.5 });
+            // uses a range to 'adjust' font size of label
             label(_1vtl, { selector: { label_asym_id: 'E', beg_label_seq_id: 75, end_label_seq_id: 92 }, text: 'TBP (A. thaliana)' });
 
             return builder;
@@ -152,7 +154,6 @@ The structures of *A. thaliana* and human core TBP-TATA element co-crystal struc
     }, {
         header: 'TBP: Binding to TATA Box [1/5]',
         key: 'tata-box-overview',
-        transition_duration_ms: 750,
         description: `
 ### TATA-Binding Protein Binds to the Minor Groove of the TATA Box
 
@@ -179,7 +180,6 @@ Interactions with the minor groove can be divided into different classes as seen
     }, {
         header: 'TBP: Arginine [2/5]',
         key: 'tata-box-1',
-        transition_duration_ms: 750,
         description: `
 ### Arginine Residues
 
@@ -227,7 +227,6 @@ A string of arginine amino acids interact with the phosphate groups of the DNA a
     }, {
         header: 'TBP: Phenylalanine [3/5]',
         key: 'tata-box-2',
-        transition_duration_ms: 750,
         description: `
 ### Phenylalanine-Induced Kinks
 
@@ -238,22 +237,26 @@ At either end of the TATA element there are two pairs of phenylalanine side chai
 
             const _1cdw = structure(builder, '1cdw');
             select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'C' } });
-            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'A' } });
-            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'B' } });
-            // Phe: 39, 56, 130, 147
-            // TODO annotate interactions & set camera
+            select(_1cdw, { color: Colors['1cdw-2'], selector: { label_asym_id: 'A' } });
+            select(_1cdw, { color: Colors['1cdw-2'], selector: { label_asym_id: 'B' } });
+
+            bindingSite(_1cdw, [
+                [{ label_asym_id: 'C', label_seq_id: 39 }, 'Phe193'],
+                [{ label_asym_id: 'C', label_seq_id: 56 }, 'Phe210'],
+                [{ label_asym_id: 'C', label_seq_id: 130 }, 'Phe284'],
+                [{ label_asym_id: 'C', label_seq_id: 147 }, 'Phe301'],
+            ], { color: Colors['active-site'] });
 
             return builder;
         },
         camera: {
-            position: [155.18, 118.49, 49.18],
-            target: [74.81, 66.8, 30.7],
-            up: [-0.55, 0.83, 0.1],
+            position: [111.01, 69.92, -3.14],
+            target: [85.52, 57.53, 19.15],
+            up: [-0.51, 0.85, -0.11],
         } satisfies MVSNodeParams<'camera'>,
     }, {
         header: 'TBP: H-Bonds in Minor Groove [4/5]',
         key: 'tata-box-3',
-        transition_duration_ms: 750,
         description: `
 ### Hydrogen Bonds in the Minor Groove
 
@@ -264,22 +267,31 @@ Polar side chains make minor groove hydrogen bonds with acceptors of base pairs 
 
             const _1cdw = structure(builder, '1cdw');
             select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'C' } });
-            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'A' } });
-            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'B' } });
+            select(_1cdw, { color: Colors['1cdw-2'], selector: { label_asym_id: 'A' } });
+            select(_1cdw, { color: Colors['1cdw-2'], selector: { label_asym_id: 'B' } });
+
             // Asn: 9, 99, 155
-            // TODO annotate interactions & set camera
+            label(_1cdw, { selector: { label_asym_id: 'C', label_seq_id: 9 }, text: 'Asn163' });
+            label(_1cdw, { selector: { label_asym_id: 'C', label_seq_id: 155 }, text: 'Thr309' });
+            drawInteractions(_1cdw, [
+                ['H-bond', { label_asym_id: 'C', label_seq_id: 9, label_atom_id: 'ND2' }, { label_asym_id: 'B', label_seq_id: 8, label_atom_id: 'O2' }],
+                ['H-bond', { label_asym_id: 'B', label_seq_id: 9, label_atom_id: 'O2' }, { label_asym_id: 'C', label_seq_id: 9, label_atom_id: 'ND2' }],
+                ['H-bond', { label_asym_id: 'C', label_seq_id: 155, label_atom_id: 'OG1' }, { label_asym_id: 'A', label_seq_id: 8, label_atom_id: 'N3' }],
+            ]);
+            bindingSite(_1cdw, [
+                [{ label_asym_id: 'C', label_seq_id: 99 }, 'Asn253'],
+            ], { color: 'gray', label_color: Colors['1cdw'] });
 
             return builder;
         },
         camera: {
-            position: [155.18, 118.49, 49.18],
-            target: [74.81, 66.8, 30.7],
-            up: [-0.55, 0.83, 0.1],
+            position: [69.71, 56.65, 17.62],
+            target: [75.68, 63.48, 32.29],
+            up: [-0.9, 0.39, 0.18],
         } satisfies MVSNodeParams<'camera'>,
     }, {
         header: 'TBP: Non-Polar Interactions [5/5]',
         key: 'tata-box-4',
-        transition_duration_ms: 750,
         description: `
 ### Hydrophobic and van der Waals Interactions
 
@@ -290,16 +302,24 @@ Several residues projecting from the concave surface of TBP make hydrophobic or 
 
             const _1cdw = structure(builder, '1cdw');
             select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'C' } });
-            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'A' } });
-            select(_1cdw, { color: Colors['1cdw'], selector: { label_asym_id: 'B' } });
-            // TODO need selection
+            select(_1cdw, { color: Colors['1cdw-2'], selector: { label_asym_id: 'A' } });
+            select(_1cdw, { color: Colors['1cdw-2'], selector: { label_asym_id: 'B' } });
+
+            surface(_1cdw, {
+                selector: { label_asym_id: 'A' },
+                carbon_color: Colors['1cdw-2'],
+            });
+            surface(_1cdw, {
+                selector: { label_asym_id: 'B' },
+                carbon_color: Colors['1cdw-2'],
+            });
 
             return builder;
         },
         camera: {
-            position: [155.18, 118.49, 49.18],
-            target: [74.81, 66.8, 30.7],
-            up: [-0.55, 0.83, 0.1],
+            position: [122.15, 104.37, 72.23],
+            target: [77.48, 59.61, 30.36],
+            up: [-0.73, 0.68, 0.06],
         } satisfies MVSNodeParams<'camera'>,
     }, {
         header: 'TBP and Transcription Pre-Initiation Complex',
@@ -331,9 +351,9 @@ Lying at the very heart of this complex macromolecular machine, it is highly con
             return builder;
         },
         camera: {
-            position: [155.18, 118.49, 49.18],
-            target: [74.81, 66.8, 30.7],
-            up: [-0.55, 0.83, 0.1],
+            position: [122.15, 104.37, 72.23],
+            target: [77.48, 59.61, 30.36],
+            up: [-0.73, 0.68, 0.06],
         } satisfies MVSNodeParams<'camera'>,
     }, {
         header: 'The End',
@@ -345,7 +365,7 @@ That's all folks! We hope you enjoyed this interactive journey through the struc
 
 The next time you look at a macromolecular structure, remember: each atom tells a story, and each discovery shapes the future of medicine.
 
-Read more [here](https://pdb101.rcsb.org/motm/289).
+Read more in the relevant publications on PDB IDs [1VOK](https://doi.org/10.1038/nsb0994-621), [1CDW](https://doi.org/10.1073/pnas.93.10.4862), [1VTL](https://doi.org/10.1038/365520a0), and [7ENC](https://doi.org/10.1126/science.abg0635) as well as the Molecule of the Month articles on the [TATA-binding protein](https://pdb101.rcsb.org/motm/67) and [Mediator](https://pdb101.rcsb.org/motm/289).
 `,
         state: (): Root => {
             return Steps[Steps.length - 2].state();
@@ -437,6 +457,48 @@ function label(structure: MVSStructure, { selector, text }: { selector: Partial<
         .label({ text });
 }
 
+function surface(structure: MVSStructure, options: {
+    selector: ComponentExpressionT | ComponentExpressionT[],
+    carbon_color?: ColorT,
+}) {
+    const comp = structure.component({ selector: options.selector });
+    const coloring = {
+        custom: {
+            molstar_color_theme_name: 'element-symbol',
+            molstar_color_theme_params: { carbonColor: options?.carbon_color ? { name: 'uniform', params: { value: decodeColor(options?.carbon_color) } } : { name: 'element-symbol', params: { } } }
+        }
+    };
+    comp.representation({ type: 'surface' }).color(coloring).opacity({ opacity: 0.33 });
+
+    return comp;
+}
+
+function bindingSite(structure: MVSStructure, residues: [selector: ComponentExpressionT, label: string][], options: {
+    color?: ColorT,
+    label_size?: number,
+    label_color?: ColorT,
+}) {
+    const color: ColorT = options.color ?? '#5B53A4';
+    const coloring = {
+        custom: {
+            molstar_color_theme_name: 'element-symbol',
+            molstar_color_theme_params: { carbonColor: { name: 'uniform', params: { value: decodeColor(color) } } }
+        }
+    };
+
+    structure.component({ selector: residues.map(r => r[0]) }).representation({ type: 'ball_and_stick' }).color(coloring);
+
+    const primitives = structure.primitives();
+    for (const [selector, label] of residues) {
+        primitives.label({
+            position: selector,
+            text: label,
+            label_color: options?.label_color ?? color,
+            label_size: options?.label_size ?? 1.5
+        });
+    }
+}
+
 function pdbUrl(id: string) {
     return `https://www.ebi.ac.uk/pdbe/entry-files/download/${id.toLowerCase()}.bcif`;
 }
@@ -454,7 +516,7 @@ export function buildStory(): MVSData_States {
             description,
             description_format: 'markdown',
             linger_duration_ms: 5000,
-            transition_duration_ms: s.transition_duration_ms ?? 1500,
+            transition_duration_ms: 1500,
         });
     });
 
