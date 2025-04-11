@@ -66,7 +66,12 @@ The convex face of the saddle would interact with other proteins during transcri
                         molstar_color_theme_params: { carbonColor: { name: 'sequence-id', params: {} } },
                     }
                 });
-            _1vok_comp.label({ text: 'TATA-Binding Protein' });
+            _1vok.primitives().label({
+                position: { label_asym_id: 'A', label_seq_id: 88, label_atom_id: 'OD2' },
+                text: 'TATA-Binding Protein',
+                label_size: 5,
+                label_color: Colors['1vok']
+            });
 
             return builder;
         },
@@ -346,6 +351,13 @@ Lying at the very heart of this complex macromolecular machine, it is highly con
             select(_7enc, { color: Colors['7enc'], selector: { label_asym_id: 'GB' } });
             select(_7enc, { color: Colors['7enc'], selector: { label_asym_id: 'HB' } });
             select(_7enc, { color: Colors['7enc'], opacity: 0.5 });
+
+            _7enc.primitives()
+                .label({ position: { label_entity_id: '57' }, text: 'pol II', label_size: 20, label_color: Colors['7enc'] })
+                .label({ position: { label_entity_id: '53' }, text: 'DNA', label_size: 20, label_color: Colors['7enc'] })
+                .label({ position: { label_entity_id: '21' }, text: 'mediator', label_size: 20, label_color: Colors['7enc'] })
+                .label({ position: { label_entity_id: '42' }, text: 'transcription initiation factor', label_size: 20, label_color: Colors['7enc'] })
+            ;
 
             return builder;
         },
