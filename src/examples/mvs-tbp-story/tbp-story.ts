@@ -86,14 +86,9 @@ The convex face of the saddle would interact with other proteins during transcri
         description: `
 ### TATA-Binding Protein Is Highly Conserved in Eukaryotes
 
-Eukaryotic protein-coding genes transcribed by RNA polymerase II (pol II)  have a characteristic sequence of nucleotides, termed the TATA box, in front of the start site of transcription.
-The typical sequence is something like T-A-T-A-a/t-A-a/t, where a/t refers to positions that can be either A or T.
-TBP recognizes this TATA sequence and binds to it, creating a landmark that directs pol II to the transcription start site. 
-
 TBP has a phylogenetically conserved, 180 amino-acid carboxy-terminal domain (ranging from 38 to 93% identity among eukaryotes and archaebacteria), containing two structural repeats flanking a highly basic segment known as the basic repeat.
 The C-terminal or core portion of the protein binds the TATA consensus sequence with high affinity, interacting with the minor groove and promoting DNA bending.
 Structural superposition of TBP bound to DNA in human ([PDB ID 1CDW](${wwPDBLink('1cdw')})) and *A. thaliana* ([PDB ID 1VTL](${wwPDBLink('1vtl')})) shows that their sequences are 83% identical and the RMSD between the structures is 0.43 Å.
-The structures of *A. thaliana* and human core TBP-TATA element co-crystal structures demonstrate a common induced-fit mechanism of protein-DNA recognition involving subtle conformation changes in the protein and an unprecedented DNA distortion. 
 `,
         state: () => {
             const builder = createMVSBuilder();
@@ -124,9 +119,9 @@ The structures of *A. thaliana* and human core TBP-TATA element co-crystal struc
         description: `
 ### TATA-Binding Protein Is Highly Conserved in Eukaryotes
 
-TBP has a phylogenetically conserved, 180 amino-acid carboxy-terminal domain (ranging from 38 to 93% identity among eukaryotes and archaebacteria), containing two structural repeats flanking a highly basic segment known as the basic repeat.
-The C-terminal or core portion of the protein binds the TATA consensus sequence with high affinity, interacting with the minor groove and promoting DNA bending.
-Structural superposition of TBP bound to DNA in human ([PDB ID 1CDW](${wwPDBLink('1cdw')})) and *A. thaliana* ([PDB ID 1VTL](${wwPDBLink('1vtl')})) shows that their sequences are 83% identical and the RMSD between the structures is 0.43 Å.
+Eukaryotic protein-coding genes transcribed by RNA polymerase II (pol II)  have a characteristic sequence of nucleotides, termed the TATA box, in front of the start site of transcription.
+The typical sequence is something like T-A-T-A-a/t-A-a/t, where a/t refers to positions that can be either A or T.
+TBP recognizes this TATA sequence and binds to it, creating a landmark that directs pol II to the transcription start site. 
 The structures of *A. thaliana* and human core TBP-TATA element co-crystal structures demonstrate a common induced-fit mechanism of protein-DNA recognition involving subtle conformation changes in the protein and an unprecedented DNA distortion.
 `,
         state: () => {
@@ -165,6 +160,7 @@ When the first structures of TBP-DNA complexes were determined, researchers disc
 Instead, it grabs the TATA sequence, bends and unwinds it to open up the minor groove, and kinks it sharply in two places (*e.g.*, [PDB ID 1VTL](${wwPDBLink('1vtl')})) and ([PDB ID 1CDW](${wwPDBLink('1cdw')})). 
 
 Interactions with the minor groove can be divided into different classes as seen in PDB ([PDB ID 1CDW](${wwPDBLink('1cdw')})).
+The combination of interactions allows TATA-binding protein to recognize the proper DNA sequence.
 `,
         state: () => {
             const builder = createMVSBuilder();
@@ -299,7 +295,7 @@ Polar side chains make minor groove hydrogen bonds with acceptors of base pairs 
         description: `
 ### Hydrophobic and van der Waals Interactions
 
-Several residues projecting from the concave surface of TBP make hydrophobic or van der Waals side-chain/base contacts (<4 Å between non-hydrogen atoms) with the TATA element. The combination of interactions allows TATA-binding protein to recognize the proper DNA sequence.
+Several residues projecting from the concave surface of TBP make hydrophobic or van der Waals side-chain/base contacts (<4 Å between non-hydrogen atoms) with the TATA element.
 `,
         state: () => {
             const builder = createMVSBuilder();
