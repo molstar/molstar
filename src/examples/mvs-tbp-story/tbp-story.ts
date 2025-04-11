@@ -25,7 +25,6 @@ const Colors = {
     '7enc': '#F3774B' as ColorT,
 
     'active-site': '#F3794C' as ColorT,
-    'binding-site': '#FEEB9F' as ColorT,
 };
 
 // Obtained using https://www.rcsb.org/alignment
@@ -371,8 +370,8 @@ Read more in the relevant publications on PDB IDs [1VOK](https://doi.org/10.1038
             return Steps[Steps.length - 2].state();
         },
         camera: {
-            position: [591.05, 316.22, 162.66],
-            target: [82.39, -10.93, 45.7],
+            position: [461.95, 218.66, 140.67],
+            target: [87.56, -22.14, 54.59],
             up: [-0.55, 0.83, 0.1],
         } satisfies MVSNodeParams<'camera'>,
     }
