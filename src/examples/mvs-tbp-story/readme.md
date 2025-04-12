@@ -1,4 +1,4 @@
-# MolViewSpec Kinase Story Example
+# MolViewSpec TATA-Binding Protein Story Example
 
 This example illustrates:
 
@@ -15,7 +15,7 @@ This example illustrates:
   npm build
 ```
 
-- Get `molstar.css` and `index.js` from `build/examples/mvs-kinase-story` and include these to your HTML page
+- Get `molstar.css` and `index.js` from `build/examples/mvs-tbp-story` and include these to your HTML page
 
 ```html
     <link rel="stylesheet" type="text/css" href="molstar.css" />
@@ -52,5 +52,5 @@ See [index.html](./index.html) for a full example.
 - For interactive development build (for production use `npm run build`) of the example that immediately reflects changes use:
 
 ```bash
-  npm run dev -- -e mvs-kinase-story
+  npm run dev -- -e mvs-tbp-story
 ```
