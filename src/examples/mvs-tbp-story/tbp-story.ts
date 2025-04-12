@@ -22,9 +22,10 @@ const Colors = {
     '1cdw': '#BC536D' as ColorT,
     '1cdw-2': '#c5a3af' as ColorT,
     '1vtl': '#B9E3A0' as ColorT,
-    '7enc': '#F3774B' as ColorT,
-
-    'active-site': '#F3794C' as ColorT,
+    '7enc': '#0072B2' as ColorT,
+    '7enc-2': '#D55E00' as ColorT,
+    '7enc-3': '#009E73' as ColorT,
+    '7enc-4': '#56B4E9' as ColorT,
 };
 
 // Obtained using https://www.rcsb.org/alignment
@@ -245,7 +246,7 @@ At either end of the TATA element there are two pairs of phenylalanine side chai
                 [{ label_asym_id: 'C', label_seq_id: 56 }, 'Phe210'],
                 [{ label_asym_id: 'C', label_seq_id: 130 }, 'Phe284'],
                 [{ label_asym_id: 'C', label_seq_id: 147 }, 'Phe301'],
-            ], { color: Colors['active-site'] });
+            ], { color: Colors['1cdw'] });
 
             return builder;
         },
@@ -343,16 +344,17 @@ Lying at the very heart of this complex macromolecular machine, it is highly con
             const builder = createMVSBuilder();
 
             const _7enc = structure(builder, '7enc');
-            select(_7enc, { color: Colors['7enc'], selector: { label_asym_id: 'CB' } });
-            select(_7enc, { color: Colors['7enc'], selector: { label_asym_id: 'GB' } });
-            select(_7enc, { color: Colors['7enc'], selector: { label_asym_id: 'HB' } });
-            select(_7enc, { color: Colors['7enc'], opacity: 0.5 });
+            select(_7enc, { color: Colors['7enc'], selector: { label_asym_id: 'CB' } })[0].label({ text: 'TBP' });
+            select(_7enc, { color: Colors['7enc-2'], selector: { label_asym_id: 'GB' } });
+            select(_7enc, { color: Colors['7enc-2'], selector: { label_asym_id: 'HB' } });
+            select(_7enc, { color: Colors['7enc-3'], opacity: 0.5 });
 
             _7enc.primitives()
                 .label({ position: { label_entity_id: '57' }, text: 'pol II', label_size: 20, label_color: Colors['7enc'] })
-                .label({ position: { label_entity_id: '53' }, text: 'DNA', label_size: 20, label_color: Colors['7enc'] })
-                .label({ position: { label_entity_id: '21' }, text: 'mediator', label_size: 20, label_color: Colors['7enc'] })
-                .label({ position: { label_entity_id: '42' }, text: 'transcription initiation factor', label_size: 20, label_color: Colors['7enc'] })
+                .label({ position: { label_entity_id: '53' }, text: 'DNA', label_size: 20, label_color: Colors['7enc-2'] })
+                .label({ position: { label_entity_id: '21' }, text: 'mediator', label_size: 20, label_color: Colors['7enc-3'] })
+                .label({ position: { label_entity_id: '42' }, text: 'TBP-associated factors (TAFs)', label_size: 20, label_color: Colors['7enc-4'] })
+                .label({ position: [100, 150, 0], text: 'PIC', label_size: 30, label_color: Colors['1vok'] })
             ;
 
             return builder;
