@@ -121,7 +121,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                 </div>
                 <div>
                     <div className='msp-semi-transparent-background' />
-                    {this.icon(CameraOutlinedSvg, this.toggleScreenshotExpanded, 'Screenshot / State Snapshot', this.state.isScreenshotExpanded)}
+                    {this.plugin.config.get(PluginConfig.Viewport.ShowScreenshotControls) && this.icon(CameraOutlinedSvg, this.toggleScreenshotExpanded, 'Screenshot / State Snapshot', this.state.isScreenshotExpanded)}
                 </div>
                 <div>
                     <div className='msp-semi-transparent-background' />
