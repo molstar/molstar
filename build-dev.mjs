@@ -23,7 +23,7 @@ const AllExamples = [
     'lighting',
     'alpha-orbitals',
     'alphafolddb-pae',
-    'mvs-kinase-story',
+    'mvs-stories',
     'ihm-restraints',
     'interactions',
 ];

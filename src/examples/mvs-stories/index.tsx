@@ -25,40 +25,17 @@ export class MolComponents {
 
 const MC = new MolComponents();
 
-const CurrentStory = new BehaviorSubject<{ kind: 'built-in', id: string } | { kind: 'url', url: string, format: 'mvsx' | 'mvsj' } | undefined>(undefined);
-CurrentStory.subscribe(story => {
-    if (!story) {
-        history.replaceState({}, '', '');
-    } else if (story.kind === 'url') {
-        history.replaceState({}, '', story ? `?story-url=${encodeURIComponent(story.url)}&data-format=${story.format}` : '');
-        MC.getContext().dispatch({
-            kind: 'load-mvs',
-            format: story.format,
-            url: story.url,
-        });
-    } else if (story.kind === 'built-in') {
-        history.replaceState({}, '', story ? `?story=${story.id}` : '');
-        const s = Stories.find(s => s.id === story.id);
-        if (s) {
-            MC.getContext().dispatch({
-                kind: 'load-mvs',
-                data: s.buildStory(),
-            });
-        } else {
-            console.warn('Story not found:', story.id);
-            CurrentStory.next({ kind: 'built-in', id: Stories[0].id });
-        }
-    }
-});
+type Story = { kind: 'built-in', id: string } | { kind: 'url', url: string, format: 'mvsx' | 'mvsj' } | undefined;
+const CurrentStory = new BehaviorSubject<Story>(undefined);
 
-function SelectStoryUI() {
-    const current = useBehavior(CurrentStory);
+function SelectStoryUI({ subject }: { subject: BehaviorSubject<Story> }) {
+    const current = useBehavior(subject);
 
     return <select onChange={e => {
         const value = e.currentTarget.value;
         const s = Stories.find(s => s.id === value);
         if (!s) return;
-        CurrentStory.next({ kind: 'built-in', id: s.id });
+        subject.next({ kind: 'built-in', id: s.id });
     }}>
         {!current && <option value=''>Select a story...</option>}
         {Stories.map(s => <option key={s.name} value={s.id} selected={current?.kind === 'built-in' && current.id === s.id}>Story: {s.name}</option>)}
@@ -67,16 +44,32 @@ function SelectStoryUI() {
     </select>;
 }
 
-(window as any).mc = MC;
-(window as any).buildStory = buildStory;
-(window as any).downloadStory = () => {
-    if (CurrentStory.value?.kind !== 'built-in') return;
-    const name = CurrentStory.value.id;
-    const story = Stories.find(s => s.name === name);
-    const data = JSON.stringify(story, null, 2);
-    download(new Blob([data], { type: 'application/json' }), 'story.mvsj');
-};
-(window as any).init = () => {
+function init() {
+    CurrentStory.subscribe(story => {
+        if (!story) {
+            history.replaceState({}, '', '');
+        } else if (story.kind === 'url') {
+            history.replaceState({}, '', story ? `?story-url=${encodeURIComponent(story.url)}&data-format=${story.format}` : '');
+            MC.getContext().dispatch({
+                kind: 'load-mvs',
+                format: story.format,
+                url: story.url,
+            });
+        } else if (story.kind === 'built-in') {
+            history.replaceState({}, '', story ? `?story=${story.id}` : '');
+            const s = Stories.find(s => s.id === story.id);
+            if (s) {
+                MC.getContext().dispatch({
+                    kind: 'load-mvs',
+                    data: s.buildStory(),
+                });
+            } else {
+                console.warn('Story not found:', story.id);
+                CurrentStory.next({ kind: 'built-in', id: Stories[0].id });
+            }
+        }
+    });
+
     const urlParams = new URLSearchParams(window.location.search);
     const storyUrl = urlParams.get('story-url');
     const dataFormat = urlParams.get('data-format') as 'mvsx' | 'mvsj' | null;
@@ -90,5 +83,16 @@ function SelectStoryUI() {
         CurrentStory.next({ kind: 'built-in', id: Stories[0].id });
     }
 
-    createRoot(document.getElementById('select-story')!).render(<SelectStoryUI />);
+    createRoot(document.getElementById('select-story')!).render(<SelectStoryUI subject={CurrentStory} />);
+}
+
+(window as any).mc = MC;
+(window as any).buildStory = buildStory;
+(window as any).downloadStory = () => {
+    if (CurrentStory.value?.kind !== 'built-in') return;
+    const id = CurrentStory.value.id;
+    const story = Stories.find(s => s.id === id);
+    const data = JSON.stringify(story, null, 2);
+    download(new Blob([data], { type: 'application/json' }), 'story.mvsj');
 };
+(window as any).init = init;
