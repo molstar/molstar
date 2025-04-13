@@ -20,7 +20,7 @@
             bottom: 0;
         }
 
-        #snapshot {
+        #controls {
             position: absolute;
             left: 66%;
             top: 0;
@@ -32,6 +32,9 @@
             border-left: none;
             background: #F6F5F3;
             z-index: -2;
+            display: flex; 
+            flex-direction: column;
+            gap: 16px;
         }
 
         #links {
@@ -58,13 +61,13 @@
                 bottom: 40%;
             }
 
-            #snapshot {
+            #controls {
                 position: absolute;
                 left: 0;
                 top: 60%;
                 right: 0;
-                bottom: 0;
-                border-top: none;
+                bottom: 0;  
+                border-top: none;  
             }
 
             .markdown-explanation {
@@ -88,8 +91,11 @@
     <div id="viewer">
         <mc-viewer name="v1" />
     </div>
-    <div id="snapshot" class="markdown-explanation ">
-        <mc-snapshot-markdown viewer-name="v1" />
+    <div id="controls">
+        <div id="select-story" class="select-story"></div>
+        <div class="markdown-explanation" style="flex-grow: 1;">
+            <mc-snapshot-markdown viewer-name="v1" />
+        </div>
     </div>
     <div id="links">
         <a href="#" id="mvs-data" filename="kinase-story.mvsj">Download MVS State</a> | <a href="https://github.com/molstar/molstar/tree/master/src/examples/mvs-kinase-story" id="mvs-data" target="_blank" rel="noopener noreferrer">Source Code</a>
@@ -97,16 +103,11 @@
 
     <script>
         setTimeout(() => {
-            const story = window.buildStory();
             document.getElementById('mvs-data').addEventListener('click', (e) => {
                 e.preventDefault();
-                const data = JSON.stringify(story, null, 2);
-                molStarDownload(new Blob([data], { type: 'application/json' }), 'kinase-story.mvsj');
+                window.downloadStory();
             });
-            window.mc.getContext().dispatch({
-                kind: 'load-mvs',
-                data: story,
-            });
+            window.init();
         }, 0);
     </script>
 </body>

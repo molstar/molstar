@@ -4,12 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { decodeColor } from '../../extensions/mvs/helpers/utils';
-import { MVSData_States } from '../../extensions/mvs/mvs-data';
-import { createMVSBuilder, Structure as MVSStructure, Representation, Root } from '../../extensions/mvs/tree/mvs/mvs-builder';
-import { MVSNodeParams } from '../../extensions/mvs/tree/mvs/mvs-tree';
-import { ColorT, ComponentExpressionT, isPrimitiveComponentExpressions, PrimitivePositionT } from '../../extensions/mvs/tree/mvs/param-types';
-import { Mat3, Mat4, Vec3 } from '../../mol-math/linear-algebra';
+import { decodeColor } from '../../../extensions/mvs/helpers/utils';
+import { MVSData_States } from '../../../extensions/mvs/mvs-data';
+import { createMVSBuilder, Structure as MVSStructure, Representation, Root } from '../../../extensions/mvs/tree/mvs/mvs-builder';
+import { MVSNodeParams } from '../../../extensions/mvs/tree/mvs/mvs-tree';
+import { ColorT, ComponentExpressionT, isPrimitiveComponentExpressions, PrimitivePositionT } from '../../../extensions/mvs/tree/mvs/param-types';
+import { Mat3, Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 
 const Domains = {
     ChainA: { auth_asym_id: 'A' },
