@@ -153,8 +153,8 @@ export class Parse extends _Base<'parse'> {
         }));
     }
     /** Add a 'volume' node representing raw volume data */
-    volume(params: MVSNodeParams<'volume'> & CustomAndRef = {}): any {
-        return this.addChild('volume', params);
+    volume(params: MVSNodeParams<'volume'> & CustomAndRef = {}): Volume {
+        return new Volume(this._root, this.addChild('volume', params));
     }
 }
 
