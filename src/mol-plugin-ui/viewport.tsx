@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Chetan Mishra <chetan.s115@gmail.com>
  */
 
 import * as React from 'react';
