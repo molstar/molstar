@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Chetan Mishra <chetan.s115@gmail.com>
  */
 
 import * as React from 'react';
@@ -121,7 +122,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                 </div>
                 <div>
                     <div className='msp-semi-transparent-background' />
-                    {this.icon(CameraOutlinedSvg, this.toggleScreenshotExpanded, 'Screenshot / State Snapshot', this.state.isScreenshotExpanded)}
+                    {this.plugin.config.get(PluginConfig.Viewport.ShowScreenshotControls) && this.icon(CameraOutlinedSvg, this.toggleScreenshotExpanded, 'Screenshot / State Snapshot', this.state.isScreenshotExpanded)}
                 </div>
                 <div>
                     <div className='msp-semi-transparent-background' />

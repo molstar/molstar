@@ -33,6 +33,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Parse all local metrics
   - Ability to select alternate metrics in the pLDDT/qmean themes
   - Do not assume PAE plot is symmetric
+- Added `PluginConfig.Viewport.ShowScreenshotControls` to control visibility of screenshot controls
 - Fix MolViewSpec builder for volumes.
 
 ## [v4.12.0] - 2025-02-28
