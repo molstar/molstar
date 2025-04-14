@@ -3,7 +3,11 @@ All notable changes to this project will be documented in this file, following t
 
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
+
 ## [Unreleased]
+
+
+## [v4.13.0] - 2025-04-14
 - Support `--host` option for build-dev.mjs script.
 - Add `Viewer.loadFiles` to open supported files
 - Support installing the viewer as a Progressive Web App (PWA)
