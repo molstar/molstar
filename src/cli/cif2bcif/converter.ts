@@ -15,7 +15,7 @@ import { classifyFloatArray, classifyIntArray } from '../../mol-io/common/binary
 import { BinaryEncodingProvider } from '../../mol-io/writer/cif/encoder/binary';
 import { Category } from '../../mol-io/writer/cif/encoder';
 import { ReaderResult } from '../../mol-io/reader/result';
-import { decodeBigUtf8String, StringLike } from '../../mol-io/common/string-like';
+import { decodeBigUtf8String } from '../../mol-io/common/string-like';
 
 function showProgress(p: Progress) {
     process.stdout.write(`\r${new Array(80).join(' ')}`);
@@ -32,17 +32,28 @@ async function readFile(ctx: RuntimeContext, filename: string): Promise<ReaderRe
         if (isGz) input = await unzipAsync(input);
         return await CIF.parseBinary(new Uint8Array(input)).runInContext(ctx);
     } else {
-        let str: StringLike;
-        if (isGz) {
-            const data = await unzipAsync(await readFileAsync(filename));
-            str = decodeBigUtf8String(data);
-            // str = data.toString('utf8');
-        } else {
-            const data = await readFileAsync(filename);
-            str = decodeBigUtf8String(data);
-            // str = await readFileAsync(filename, 'utf8');
-        }
-        return await CIF.parseText(str).runInContext(ctx);
+        // let str: StringLike;
+        // if (isGz) {
+        //     const data = await unzipAsync(await readFileAsync(filename));
+        //     str = decodeBigUtf8String(data);
+        //     // str = data.toString('utf8');
+        // } else {
+        //     const data = await readFileAsync(filename);
+        //     str = decodeBigUtf8String(data);
+        //     // str = await readFileAsync(filename, 'utf8');
+        // }
+        console.time('read')
+        const data = isGz ? await unzipAsync(await readFileAsync(filename)) : await readFileAsync(filename);
+        console.timeEnd('read')
+        
+        console.time('decode')
+        const str = decodeBigUtf8String(data);
+        console.timeEnd('decode')
+
+        console.time('parse')
+        const cif = await CIF.parseText(str).runInContext(ctx);
+        console.timeEnd('parse')
+        return cif;
     }
 }
 
