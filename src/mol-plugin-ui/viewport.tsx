@@ -120,10 +120,10 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                     </div>
                     <div className='msp-hover-box-spacer'></div>
                 </div>
-                <div>
+                {this.plugin.config.get(PluginConfig.Viewport.ShowScreenshotControls) && <div>
                     <div className='msp-semi-transparent-background' />
-                    {this.plugin.config.get(PluginConfig.Viewport.ShowScreenshotControls) && this.icon(CameraOutlinedSvg, this.toggleScreenshotExpanded, 'Screenshot / State Snapshot', this.state.isScreenshotExpanded)}
-                </div>
+                    {this.icon(CameraOutlinedSvg, this.toggleScreenshotExpanded, 'Screenshot / State Snapshot', this.state.isScreenshotExpanded)}
+                </div>}
                 <div>
                     <div className='msp-semi-transparent-background' />
                     {this.plugin.config.get(PluginConfig.Viewport.ShowControls) && this.icon(BuildOutlinedSvg, this.toggleControls, 'Toggle Controls Panel', this.plugin.layout.state.showControls)}

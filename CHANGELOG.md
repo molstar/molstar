@@ -35,6 +35,10 @@ Note that since we don't clearly distinguish between a public and private interf
   - Do not assume PAE plot is symmetric
 - Added `PluginConfig.Viewport.ShowScreenshotControls` to control visibility of screenshot controls
 - Fix MolViewSpec builder for volumes.
+- Generalize `mvs-kinase-story` example to `mvs-stories`
+  - Add TATA-binding protein story
+  - Improve the Kinase story 
+- Fix alpha orbitals example
 
 ## [v4.12.0] - 2025-02-28
 
