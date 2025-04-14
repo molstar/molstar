@@ -8,7 +8,6 @@ import { getMolComponentContext } from './context';
 import './index.html';
 import './elements/snapshot-markdown';
 import './elements/viewer';
-import { buildStory } from './stories/kinase';
 import '../../mol-plugin-ui/skin/light.scss';
 import './styles.scss';
 import { download } from '../../mol-util/download';
@@ -87,12 +86,13 @@ function init() {
 }
 
 (window as any).mc = MC;
-(window as any).buildStory = buildStory;
 (window as any).downloadStory = () => {
     if (CurrentStory.value?.kind !== 'built-in') return;
     const id = CurrentStory.value.id;
     const story = Stories.find(s => s.id === id);
-    const data = JSON.stringify(story, null, 2);
+    if (!story) return;
+    const data = JSON.stringify(story.buildStory(), null, 2);
     download(new Blob([data], { type: 'application/json' }), 'story.mvsj');
 };
-(window as any).init = init;
+(window as any).initStories = init;
+(window as any).CurrentStory = CurrentStory;

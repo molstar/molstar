@@ -533,7 +533,7 @@ export function buildStory(): MVSData_States {
         kind: 'multiple',
         snapshots,
         metadata: {
-            title: 'The Structural Story of TATA-Binding Protein and Its Role in Transcription Initiation',
+            title: 'The Structural Story of TATA-Binding Protein and its Role in Transcription Initiation',
             version: '1.0',
             timestamp: new Date().toISOString(),
         }
