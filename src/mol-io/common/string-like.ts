@@ -372,9 +372,11 @@ export function stringLikeToString(s: StringLike): string {
 /** Maximum allowed string length (might be bigger for some engines, but in Chrome and Node it is this). */
 const MAX_STRING_LENGTH = 536_870_888;
 
+const STRING_CHUNK_SHIFT = 28;
+const STRING_CHUNK_MASK = 2 ** STRING_CHUNK_SHIFT - 1;
 /** String chunk size to be used by `ChunkedBigString`. */
-const STRING_CHUNK_SIZE = 2 ** 28; // largest power of 2 smaller than MAX_STRING_LENGTH
-// const STRING_CHUNK_SIZE = 8; // DEBUG, TODO use a sensible value, close to MAX_STRING_LENGTH (e.g. 2**28)
+const STRING_CHUNK_SIZE = 2 ** STRING_CHUNK_SHIFT; // largest power of 2 smaller than MAX_STRING_LENGTH
+// Having these as private props in ChunkedBigString makes it slightly slower
 
 
 export class ChunkedBigString implements CustomString {
@@ -383,19 +385,21 @@ export class ChunkedBigString implements CustomString {
 
     readonly [index: number]: string; // implemented in the constructor
 
-    constructor() {
-        return new Proxy(this, {
-            // overrides getting this[index]
-            get(self, index) {
-                if (typeof index === 'symbol') return self[index as any];
-                const i = Number.parseInt(index);
-                if (isNaN(i)) return self[index as any];
-                else return self.at(i);
-                // TODO See how this proxy thing affects performance (CIF parsing itself uses custom parseInt because Number.parseInt is slow)
-                // and possibly avoid it in favor of using .at() everywhere instead of [].
-            },
-        });
-    }
+    // constructor() {
+    //     return new Proxy(this, {
+    //         // overrides getting this[index]
+    //         get(self, index) {
+    //             if (typeof index === 'symbol') return self[index as any];
+    //             const i = Number.parseInt(index);
+    //             if (isNaN(i)) return self[index as any];
+    //             else return self.at(i);
+    //             // TODO See how this proxy thing affects performance (CIF parsing itself uses custom parseInt because Number.parseInt is slow)
+    //             // and possibly avoid it in favor of using .at() everywhere instead of [].
+    //             // -> yes, it is indeed an issue (it slows everything down ~10x, even if the [] syntax is never called)
+    //             // TODO remove [] from interface
+    //         },
+    //     });
+    // }
 
     static fromString(content: string): ChunkedBigString {
         const out = new ChunkedBigString();
@@ -457,17 +461,20 @@ export class ChunkedBigString implements CustomString {
         // TODO optimize - avoid concat when tail==='' (expected on ASCII inputs)
     }
 
-    private getPosition(index: number): [iChunk: number, indexInChunk: number, outOfRange: boolean] {
-        const iChunk = Math.floor(index / STRING_CHUNK_SIZE);
-        const indexInChunk = index - iChunk * STRING_CHUNK_SIZE;
-        const outOfRange = index < 0 || index >= this.length;
-        return [iChunk, indexInChunk, outOfRange];
-        // TODO think about optimizations to avoid creating array
+    private _getChunkIndex(index: number) {
+        return index >>> STRING_CHUNK_SHIFT;
+    }
+    private _getIndexInChunk(index: number) {
+        return index & STRING_CHUNK_MASK;
+    }
+    private _isOutOfRange(index: number) {
+        return index < 0 || index >= this.length;
     }
 
     at(index: number): string | undefined {
-        const [iChunk, indexInChunk, outOfRange] = this.getPosition(index);
-        if (outOfRange) return undefined;
+        if (this._isOutOfRange(index)) return undefined;
+        const iChunk = this._getChunkIndex(index);
+        const indexInChunk = this._getIndexInChunk(index);
         return this._chunks[iChunk][indexInChunk];
     }
 
@@ -484,8 +491,9 @@ export class ChunkedBigString implements CustomString {
     }
 
     charCodeAt(index: number): number {
-        const [iChunk, indexInChunk, outOfRange] = this.getPosition(index);
-        if (outOfRange) return NaN;
+        if (this._isOutOfRange(index)) return NaN;
+        const iChunk = this._getChunkIndex(index);
+        const indexInChunk = this._getIndexInChunk(index);
         return this._chunks[iChunk].charCodeAt(indexInChunk);
     }
 
@@ -504,8 +512,11 @@ export class ChunkedBigString implements CustomString {
             throw new Error(`Trying to create get a substring longer (${end_ - start_}) than maximum allowed string length (${MAX_STRING_LENGTH}).`);
         }
 
-        const [iFirstChunk, indexInChunkFrom] = this.getPosition(start_);
-        const [iLastChunk, indexInChunkTo] = this.getPosition(end_);
+        const iFirstChunk = this._getChunkIndex(start_);
+        const indexInChunkFrom = this._getIndexInChunk(start_);
+        const iLastChunk = this._getChunkIndex(end_);
+        const indexInChunkTo = this._getIndexInChunk(end_);
+
         const newChunks: string[] = [];
         if (iFirstChunk === iLastChunk) {
             newChunks.push(this._chunks[iFirstChunk].substring(indexInChunkFrom, indexInChunkTo));
@@ -563,10 +574,12 @@ function shakeStringChunks(input: string[], chunkSize: number, out: string[]): v
 }
 
 export function decodeBigUtf8String(buffer: Buffer, start: number = 0, end: number = buffer.length): StringLike {
-    // return ChunkedBigString.fromUtf8Buffer(buffer, start, end); // DEBUG
-    if (end - start <= MAX_STRING_LENGTH) {
-        return buffer.toString('utf-8', start, end);
-    }
-    const out = ChunkedBigString.fromUtf8Buffer(buffer, start, end);
-    return out.length <= MAX_STRING_LENGTH ? out.toString() : out;
+    return ChunkedBigString.fromUtf8Buffer(buffer, start, end); // DEBUG
+    // return ChunkedBigString.fromUtf8Buffer(buffer, start, end).toString(); // DEBUG
+    // return buffer.toString('utf-8', start, end); // DEBUG
+    // if (end - start <= MAX_STRING_LENGTH) {
+    //     return buffer.toString('utf-8', start, end);
+    // }
+    // const out = ChunkedBigString.fromUtf8Buffer(buffer, start, end);
+    // return out.length <= MAX_STRING_LENGTH ? out.toString() : out;
 }
