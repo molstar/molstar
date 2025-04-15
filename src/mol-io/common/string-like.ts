@@ -373,6 +373,7 @@ export function stringLikeToString(s: StringLike): string {
 const MAX_STRING_LENGTH = 536_870_888;
 
 const STRING_CHUNK_SHIFT = 28;
+// const STRING_CHUNK_SHIFT = 8; // DEBUG
 const STRING_CHUNK_MASK = 2 ** STRING_CHUNK_SHIFT - 1;
 /** String chunk size to be used by `ChunkedBigString`. */
 const STRING_CHUNK_SIZE = 2 ** STRING_CHUNK_SHIFT; // largest power of 2 smaller than MAX_STRING_LENGTH
@@ -382,6 +383,12 @@ const STRING_CHUNK_SIZE = 2 ** STRING_CHUNK_SHIFT; // largest power of 2 smaller
 export class ChunkedBigString implements CustomString {
     readonly __string_like__: true;
     private _chunks: string[] = [];
+
+    private _length: number = 0;
+
+    get length(): number {
+        return this._length;
+    }
 
     readonly [index: number]: string; // implemented in the constructor
 
@@ -403,14 +410,15 @@ export class ChunkedBigString implements CustomString {
 
     static fromString(content: string): ChunkedBigString {
         const out = new ChunkedBigString();
-        chopString(content, STRING_CHUNK_SIZE, out._chunks);
+        out._append(content);
         return out;
     }
 
-    // potentially more performant impl, but ugly code, TODO benchmark and choose
+    // potentially more performant impl, but ugly code -> benchmark -> perf improvement not worth it
     static fromStrings_(content: string[]): ChunkedBigString {
         const out = new ChunkedBigString();
         shakeStringChunks(content, STRING_CHUNK_SIZE, out._chunks);
+        out._length = content.map(s => s.length).reduce((a, b) => a + b);
         return out;
     }
 
@@ -435,15 +443,16 @@ export class ChunkedBigString implements CustomString {
                 // this is chunk boundary, adjust to avoid cutting multi-byte characters
                 while ((buffer[readEnd] & 0xC0) === 0x80) { // byte after the cut is a continuation byte (10xxxxxx)
                     readEnd--;
+                    if (readEnd === readStart) throw new Error('Input is rubbish, no UTF-8 character start found in a chunk');
                 }
-                if (readEnd === readStart) throw new Error('Input is rubbish');
             } // else this is end of read region -> default error handling
-            console.log('decoding', readStart, '-', readEnd, '=', readEnd - readStart)
+            // console.log('decoding', readStart, '-', readEnd, '=', readEnd - readStart)
             const stringChunk = buffer.toString('utf-8', readStart, readEnd);
             stringChunks.push(stringChunk);
             readStart = readEnd;
         }
         return ChunkedBigString.fromStrings(stringChunks);
+        // TODO write proper tests
     }
 
     private _append(inputChunk: string): void {
@@ -458,6 +467,7 @@ export class ChunkedBigString implements CustomString {
                 this._chunks.push(inputChunk.substring(inputPtr, inputPtr + chunkSize));
             }
         }
+        this._length += inputChunk.length;
         // TODO optimize - avoid concat when tail==='' (expected on ASCII inputs)
     }
 
@@ -499,6 +509,7 @@ export class ChunkedBigString implements CustomString {
 
     indexOf(searchString: string, position?: number): number {
         throw new Error('NotImplementedError');
+        // TODO implement using this?: (chunk[i].substring(/* end */) + chunk[i+1].substring(/* beginning */)).indexOf(searchString)
     }
 
     substring(start?: number, end?: number): string { // optional `start` not part of contract but works in Chrome
@@ -529,21 +540,8 @@ export class ChunkedBigString implements CustomString {
         }
         return newChunks.join('');
     }
-
-    get length(): number {
-        const nChunks = this._chunks.length;
-        if (nChunks === 0) return 0;
-        return (nChunks - 1) * STRING_CHUNK_SIZE + this._chunks[nChunks - 1].length;
-        // TODO compute at creation
-    }
 }
 
-function chopString(content: string, chunkSize: number, out: string[]): void {
-    const nChunks = Math.ceil(content.length / chunkSize);
-    for (let i = 0; i < nChunks; i++) {
-        out.push(content.substring(i * chunkSize, (i + 1) * chunkSize));
-    }
-}
 
 function shakeStringChunks(input: string[], chunkSize: number, out: string[]): void {
     let current = '';
