@@ -69,9 +69,11 @@ const SAMPLE_UNICODE_PA = `ਵਿਕੀਪੀਡੀਆ, ਇੱਕ ਆਜ਼ਾ�
 `;
 
 
+const TESTING_LOG_STRING_CHUNK_SIZE = 3; // chunk of size 8
+
 function testUtf8Decoding(text: string) {
     const bytes = Buffer.from(text, 'utf-8');
-    const bigString = ChunkedBigString.fromUtf8Buffer(bytes);
+    const bigString = ChunkedBigString.fromUtf8Buffer(bytes, undefined, undefined, TESTING_LOG_STRING_CHUNK_SIZE);
     const redecoded = bigString.toString();
     expect(redecoded).toEqual(text);
 }
@@ -92,7 +94,7 @@ describe('ChunkedBigString.fromUtf8Buffer', () => {
 
 describe('ChunkedBigString.at', () => {
     test('at ASCII', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_ASCII);
+        const bigString = ChunkedBigString.fromString(SAMPLE_ASCII, TESTING_LOG_STRING_CHUNK_SIZE);
         expect(bigString.at(0))
             .toEqual('B');
         expect(bigString.at(SAMPLE_ASCII.indexOf('9')))
@@ -102,7 +104,7 @@ describe('ChunkedBigString.at', () => {
     });
 
     test('at CS', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS);
+        const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS, TESTING_LOG_STRING_CHUNK_SIZE);
         expect(bigString.at(0))
             .toEqual('Z');
         expect(bigString.at(SAMPLE_UNICODE_CS.indexOf('ř')))
@@ -118,7 +120,7 @@ describe('ChunkedBigString.at', () => {
 
 describe('ChunkedBigString.charAt', () => {
     test('charAt ASCII', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_ASCII);
+        const bigString = ChunkedBigString.fromString(SAMPLE_ASCII, TESTING_LOG_STRING_CHUNK_SIZE);
         expect(bigString.charAt(0))
             .toEqual('B');
         expect(bigString.charAt(SAMPLE_ASCII.indexOf('9')))
@@ -128,7 +130,7 @@ describe('ChunkedBigString.charAt', () => {
     });
 
     test('charAt CS', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS);
+        const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS, TESTING_LOG_STRING_CHUNK_SIZE);
         expect(bigString.charAt(0))
             .toEqual('Z');
         expect(bigString.charAt(SAMPLE_UNICODE_CS.indexOf('ř')))
@@ -144,7 +146,7 @@ describe('ChunkedBigString.charAt', () => {
 
 describe('ChunkedBigString.charCodeAt', () => {
     test('charCodeAt ASCII', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_ASCII);
+        const bigString = ChunkedBigString.fromString(SAMPLE_ASCII, TESTING_LOG_STRING_CHUNK_SIZE);
         expect(bigString.charCodeAt(0))
             .toEqual('B'.charCodeAt(0));
         expect(bigString.charCodeAt(SAMPLE_ASCII.indexOf('9')))
@@ -154,7 +156,7 @@ describe('ChunkedBigString.charCodeAt', () => {
     });
 
     test('charCodeAt CS', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS);
+        const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS, TESTING_LOG_STRING_CHUNK_SIZE);
         expect(bigString.charCodeAt(0))
             .toEqual('Z'.charCodeAt(0));
         expect(bigString.charCodeAt(SAMPLE_UNICODE_CS.indexOf('ř')))
@@ -166,7 +168,7 @@ describe('ChunkedBigString.charCodeAt', () => {
 
 describe('ChunkedBigString.indexOf', () => {
     test('indexOf ASCII, within chunk', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_ASCII);
+        const bigString = ChunkedBigString.fromString(SAMPLE_ASCII, TESTING_LOG_STRING_CHUNK_SIZE);
         expect(bigString.indexOf('Basket'))
             .toEqual(SAMPLE_ASCII.indexOf('Basket'));
         expect(bigString.indexOf('another'))
@@ -176,13 +178,13 @@ describe('ChunkedBigString.indexOf', () => {
     });
 
     test('indexOf ASCII, across chunks', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_ASCII);
+        const bigString = ChunkedBigString.fromString(SAMPLE_ASCII, TESTING_LOG_STRING_CHUNK_SIZE);
         expect(bigString.indexOf('sport'))
             .toEqual(SAMPLE_ASCII.indexOf('sport'));
     });
 
     test('indexOf CS, within chunk', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS);
+        const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS, TESTING_LOG_STRING_CHUNK_SIZE);
         expect(bigString.indexOf('Zámecký'))
             .toEqual(SAMPLE_UNICODE_CS.indexOf('Zámecký'));
         expect(bigString.indexOf('zámkem'))
@@ -192,13 +194,13 @@ describe('ChunkedBigString.indexOf', () => {
     });
 
     test('indexOf CS, across chunks', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS);
+        const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS, TESTING_LOG_STRING_CHUNK_SIZE);
         expect(bigString.indexOf('městě'))
             .toEqual(SAMPLE_UNICODE_CS.indexOf('městě'));
     });
 
     test('indexOf CS, with position param', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS);
+        const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS, TESTING_LOG_STRING_CHUNK_SIZE);
         expect(bigString.indexOf('pivovar')).toEqual(8);
         expect(bigString.indexOf('pivovar', 8)).toEqual(8);
         expect(bigString.indexOf('pivovar', 9)).toEqual(286);
@@ -217,7 +219,7 @@ describe('ChunkedBigString.indexOf', () => {
 
 describe('ChunkedBigString.substring', () => {
     test('substring ASCII', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_ASCII);
+        const bigString = ChunkedBigString.fromString(SAMPLE_ASCII, TESTING_LOG_STRING_CHUNK_SIZE);
         expect(bigString.substring())
             .toEqual(SAMPLE_ASCII);
         expect(bigString.substring(0, 10))
@@ -229,7 +231,7 @@ describe('ChunkedBigString.substring', () => {
     });
 
     test('substring CS', async () => {
-        const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS);
+        const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS, TESTING_LOG_STRING_CHUNK_SIZE);
         expect(bigString.substring())
             .toEqual(SAMPLE_UNICODE_CS);
         expect(bigString.substring(0, 7))
