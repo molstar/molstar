@@ -25,7 +25,9 @@ import { assertUnreachable } from '../../mol-util/type-helpers';
 import { parsePrmtop } from '../../mol-io/reader/prmtop/parser';
 import { parseTop } from '../../mol-io/reader/top/parser';
 import { ungzip } from '../../mol-util/zip/zip';
+import { isStringLike, stringLikeToString } from '../../mol-io/common/string-like';
 import { utf8Read } from '../../mol-io/common/utf8';
+
 
 export { Download };
 export { DownloadBlob };
@@ -313,7 +315,7 @@ const ParseCif = PluginStateTransform.BuiltIn({
 })({
     apply({ a }) {
         return Task.create('Parse CIF', async ctx => {
-            const parsed = await (typeof a.data === 'string' ? CIF.parse(a.data) : CIF.parseBinary(a.data)).runInContext(ctx);
+            const parsed = await (isStringLike(a.data) ? CIF.parse(a.data) : CIF.parseBinary(a.data)).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             if (parsed.result.blocks.length === 0) return StateObject.Null;
             return new SO.Format.Cif(parsed.result);
@@ -508,7 +510,7 @@ const ParseJson = PluginStateTransform.BuiltIn({
 })({
     apply({ a }) {
         return Task.create('Parse JSON', async ctx => {
-            const json = await (new Response(a.data)).json(); // async JSON parsing via fetch API
+            const json = await (new Response(stringLikeToString(a.data))).json(); // async JSON parsing via fetch API
             return new SO.Format.Json(json);
         });
     }

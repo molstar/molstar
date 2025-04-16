@@ -5,6 +5,7 @@
  */
 
 import { hashFnv32a } from '../../../mol-data/util';
+import { stringLikeToString } from '../../../mol-io/common/string-like';
 import { DataFormatProvider } from '../../../mol-plugin-state/formats/provider';
 import { PluginStateObject as SO } from '../../../mol-plugin-state/objects';
 import { Download } from '../../../mol-plugin-state/transforms/data';
@@ -30,7 +31,7 @@ export const ParseMVSJ = MVSTransform({
     to: Mvs,
 })({
     apply({ a }, plugin: PluginContext) {
-        const mvsData = MVSData.fromMVSJ(a.data);
+        const mvsData = MVSData.fromMVSJ(stringLikeToString(a.data));
         const sourceUrl = tryGetDownloadUrl(a, plugin);
         return new Mvs({ mvsData, sourceUrl });
     },
