@@ -109,6 +109,36 @@ describe('ChunkedBigString.at', () => {
             .toEqual('ř');
         expect(bigString.at(10_000))
             .toEqual(undefined);
+        expect(bigString.at(-10_000))
+            .toEqual(undefined);
+        expect(bigString.at(-10))
+            .toEqual('n');
+    });
+});
+
+describe('ChunkedBigString.charAt', () => {
+    test('charAt ASCII', async () => {
+        const bigString = ChunkedBigString.fromString(SAMPLE_ASCII);
+        expect(bigString.charAt(0))
+            .toEqual('B');
+        expect(bigString.charAt(SAMPLE_ASCII.indexOf('9')))
+            .toEqual('9');
+        expect(bigString.charAt(10_000))
+            .toEqual('');
+    });
+
+    test('charAt CS', async () => {
+        const bigString = ChunkedBigString.fromString(SAMPLE_UNICODE_CS);
+        expect(bigString.charAt(0))
+            .toEqual('Z');
+        expect(bigString.charAt(SAMPLE_UNICODE_CS.indexOf('ř')))
+            .toEqual('ř');
+        expect(bigString.charAt(10_000))
+            .toEqual('');
+        expect(bigString.charAt(-10_000))
+            .toEqual('');
+        expect(bigString.charAt(-10))
+            .toEqual('');
     });
 });
 

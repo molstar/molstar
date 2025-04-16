@@ -56,7 +56,7 @@ function handleTitle(state: State): string[] {
     const title: string[] = [];
 
     while (tokenizer.tokenEnd < tokenizer.length) {
-        if (tokenizer.data[tokenizer.position] === '%') break;
+        if (tokenizer.data.charAt(tokenizer.position) === '%') break;
         const line = readLine(tokenizer).trim();
         if (line) title.push(line);
     }
@@ -72,7 +72,7 @@ function handlePointers(state: State): Record<PointerName, number> {
 
     let curIdx = 0;
     while (tokenizer.tokenEnd < tokenizer.length) {
-        if (tokenizer.data[tokenizer.position] === '%') break;
+        if (tokenizer.data.charAt(tokenizer.position) === '%') break;
         const line = readLine(tokenizer);
 
         const n = Math.min(curIdx + 10, 32);
@@ -93,7 +93,7 @@ function handleTokens(state: State, count: number, countPerLine: number, itemSiz
 
     let curIdx = 0;
     while (tokenizer.tokenEnd < tokenizer.length) {
-        if (tokenizer.data[tokenizer.position] === '%') break;
+        if (tokenizer.data.charAt(tokenizer.position) === '%') break;
 
         tokenizer.tokenStart = tokenizer.position;
         const n = Math.min(curIdx + countPerLine, count);
@@ -164,7 +164,7 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
                 result.radii = TokenColumn(tokens)(Column.Schema.float);
             } else {
                 while (t.tokenEnd < t.length) {
-                    if (t.data[t.position] === '%') break;
+                    if (t.data.charAt(t.position) === '%') break;
                     markLine(t);
                 }
             }

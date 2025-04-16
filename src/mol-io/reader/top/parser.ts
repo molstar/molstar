@@ -67,7 +67,7 @@ function handleMoleculetype(state: State) {
 
     while (tokenizer.tokenEnd < tokenizer.length) {
         skipWhitespace(tokenizer);
-        const c = tokenizer.data[tokenizer.position];
+        const c = tokenizer.data.charAt(tokenizer.position);
         if (c === '[') break;
         if (c === ';' || c === '*') {
             markLine(tokenizer);
@@ -99,7 +99,7 @@ function handleAtoms(state: State) {
 
     while (tokenizer.tokenEnd < tokenizer.length) {
         skipWhitespace(tokenizer);
-        const c = tokenizer.data[tokenizer.position];
+        const c = tokenizer.data.charAt(tokenizer.position);
         if (c === '[') break;
         if (c === ';' || c === '*') {
             markLine(tokenizer);
@@ -146,7 +146,7 @@ function handleBonds(state: State) {
 
     while (tokenizer.tokenEnd < tokenizer.length) {
         skipWhitespace(tokenizer);
-        const c = tokenizer.data[tokenizer.position];
+        const c = tokenizer.data.charAt(tokenizer.position);
         if (c === '[') break;
         if (c === ';' || c === '*') {
             markLine(tokenizer);
@@ -180,7 +180,7 @@ function handleSystem(state: State) {
 
     while (tokenizer.tokenEnd < tokenizer.length) {
         skipWhitespace(tokenizer);
-        const c = tokenizer.data[tokenizer.position];
+        const c = tokenizer.data.charAt(tokenizer.position);
         if (c === '[') break;
         if (c === ';' || c === '*') {
             markLine(tokenizer);
@@ -206,7 +206,7 @@ function handleMolecules(state: State) {
         skipWhitespace(tokenizer);
         if (tokenizer.position >= tokenizer.length) break;
 
-        const c = tokenizer.data[tokenizer.position];
+        const c = tokenizer.data.charAt(tokenizer.position);
         if (c === '[') break;
         if (c === ';' || c === '*') {
             markLine(tokenizer);
@@ -288,7 +288,7 @@ async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Res
                 result.molecules = handleMolecules(state);
             } else {
                 while (t.tokenEnd < t.length) {
-                    if (t.data[t.position] === '[') break;
+                    if (t.data.charAt(t.position) === '[') break;
                     markLine(t);
                 }
             }

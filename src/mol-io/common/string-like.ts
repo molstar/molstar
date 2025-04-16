@@ -9,12 +9,16 @@ interface CustomString {
     // TODO think about this extending full `String` interface, and impl classes just throwing `NotImplementedError` on more advanced methods -> less likely to break typing of dependant code (will only break runtime when running on big strings)
     __string_like__: true,
 
-    readonly [index: number]: string;
+    // readonly [index: number]: string;
 
     // [Symbol.iterator]: () => StringIterator<string>;
 
     // from @types/node/compatibility/indexable.d.ts
 
+    // /**
+    //  * Returns the character at the specified index.
+    //  * @param pos The zero-based index of the desired character.
+    //  */
     at(index: number): string | undefined;
 
     // // from typescript/lib/lib.es5.d.ts
@@ -22,11 +26,11 @@ interface CustomString {
     /** Returns a string representation of a string. */
     toString(): string; // TODO make supersure this is implemented properly
 
-    // /**
-    //  * Returns the character at the specified index.
-    //  * @param pos The zero-based index of the desired character.
-    //  */
-    // charAt(pos: number): string;
+    /**
+     * Returns the character at the specified index.
+     * @param pos The zero-based index of the desired character.
+     */
+    charAt(pos: number): string;
 
     /**
      * Returns the Unicode value of the character at the specified location.
@@ -390,24 +394,6 @@ export class ChunkedBigString implements CustomString {
         return this._length;
     }
 
-    readonly [index: number]: string; // implemented in the constructor
-
-    // constructor() {
-    //     return new Proxy(this, {
-    //         // overrides getting this[index]
-    //         get(self, index) {
-    //             if (typeof index === 'symbol') return self[index as any];
-    //             const i = Number.parseInt(index);
-    //             if (isNaN(i)) return self[index as any];
-    //             else return self.at(i);
-    //             // TODO See how this proxy thing affects performance (CIF parsing itself uses custom parseInt because Number.parseInt is slow)
-    //             // and possibly avoid it in favor of using .at() everywhere instead of [].
-    //             // -> yes, it is indeed an issue (it slows everything down ~10x, even if the [] syntax is never called)
-    //             // TODO remove [] from interface
-    //         },
-    //     });
-    // }
-
     static fromString(content: string): ChunkedBigString {
         const out = new ChunkedBigString();
         out._append(content);
@@ -446,13 +432,11 @@ export class ChunkedBigString implements CustomString {
                     if (readEnd === readStart) throw new Error('Input is rubbish, no UTF-8 character start found in a chunk');
                 }
             } // Else this is the end of the read region, let default error handling do its job
-            // console.log('decoding', readStart, '-', readEnd, '=', readEnd - readStart)
             const stringChunk = buffer.toString('utf-8', readStart, readEnd);
             stringChunks.push(stringChunk);
             readStart = readEnd;
         }
         return ChunkedBigString.fromStrings(stringChunks);
-        // TODO write proper tests
     }
 
     private _append(inputChunk: string): void {
@@ -478,7 +462,14 @@ export class ChunkedBigString implements CustomString {
     }
 
     at(index: number): string | undefined {
-        if (this._isOutOfRange(index)) return undefined;
+        if (-this.length <= index && index < 0) {
+            return this.at(index + this.length);
+        }
+        return this.charAt(index) || undefined;
+    }
+
+    charAt(index: number): string {
+        if (this._isOutOfRange(index)) return '';
         const iChunk = this._getChunkIndex(index);
         const indexInChunk = this._getIndexInChunk(index);
         return this._chunks[iChunk][indexInChunk];
