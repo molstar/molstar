@@ -24,7 +24,7 @@ export function stringLikeToString(str: StringLike): string {
 
 /** Decode bytes from `buffer` using UTF8 encoding. Return as primitive `string` if possible; or as `ChunkedBigString` if the result is bigger than MAX_STRING_LENGTH. */
 export function decodeBigUtf8String(buffer: Buffer, start: number = 0, end: number = buffer.length): StringLike {
-    return ChunkedBigString.fromUtf8Buffer(buffer, start, end); // DEBUG
+    return ChunkedBigString.fromUtf8Buffer(buffer, start, end); // DEBUG TODO revert
     // return ChunkedBigString.fromUtf8Buffer(buffer, start, end).toString(); // DEBUG
     // return buffer.toString('utf-8', start, end); // DEBUG
     // if (end - start <= MAX_STRING_LENGTH) {
@@ -209,17 +209,22 @@ export class ChunkedBigString implements CustomString {
         const iLastChunk = this._getChunkIndex(end_);
         const indexInChunkTo = this._getIndexInChunk(end_);
 
-        const newChunks: string[] = [];
         if (iFirstChunk === iLastChunk) {
-            newChunks.push(this._chunks[iFirstChunk].substring(indexInChunkFrom, indexInChunkTo));
+            return this._chunks[iFirstChunk].substring(indexInChunkFrom, indexInChunkTo);
         } else {
-            newChunks.push(this._chunks[iFirstChunk].substring(indexInChunkFrom, this.STRING_CHUNK_SIZE));
+            const out = this._getTmpArray();
+            out.push(this._chunks[iFirstChunk].substring(indexInChunkFrom, this.STRING_CHUNK_SIZE));
             for (let iChunk = iFirstChunk + 1; iChunk < iLastChunk; iChunk++) {
-                newChunks.push(this._chunks[iChunk]);
+                out.push(this._chunks[iChunk]);
             }
-            newChunks.push(this._chunks[iLastChunk].substring(0, indexInChunkTo));
+            out.push(this._chunks[iLastChunk].substring(0, indexInChunkTo));
+            return out.join('');
         }
-        return newChunks.join('');
+    }
+    private readonly _tmpArray: string[] = [];
+    private _getTmpArray() {
+        while (this._tmpArray.length) this._tmpArray.pop(); // this seems to be faster than `this._tmpArray.length = 0` for short arrays
+        return this._tmpArray;
     }
 
     indexOf(searchString: string, position: number = 0): number {
