@@ -6,6 +6,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { decodeBigUtf8String, StringLike } from './string-like';
+
+
 export function utf8Write(data: Uint8Array, offset: number, str: string) {
     for (let i = 0, l = str.length; i < l; i++) {
         const codePoint = str.charCodeAt(i);
@@ -97,13 +100,18 @@ function _utf8Read(data: Uint8Array, offset: number, length: number) {
 }
 
 const utf8Decoder = (typeof TextDecoder !== 'undefined') ? new TextDecoder() : undefined;
-export function utf8Read(data: Uint8Array, offset: number, length: number) {
+/** Decode UTF8 data. Return as primitive `string` type, or fail if the result is bigger than MAX_STRING_LENGTH. */
+export function utf8ReadPrimitive(data: Uint8Array, offset: number, length: number): string {
     if (utf8Decoder) {
         const input = (offset || length !== data.length) ? data.subarray(offset, offset + length) : data;
         return utf8Decoder.decode(input);
     } else {
         return _utf8Read(data, offset, length);
     }
+}
+/** Decode UTF8 data. Return as primitive `string` if possible; or as `ChunkedBigString` if the result is bigger than MAX_STRING_LENGTH. */
+export function utf8Read(data: Uint8Array, offset: number, length: number): StringLike {
+    return decodeBigUtf8String(data, offset, offset + length);
 }
 
 export function utf8ByteCount(str: string) {

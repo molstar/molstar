@@ -4,13 +4,15 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { utf8ReadPrimitive } from './utf8';
+
 
 /** Generalized string type */
 export type StringLike = string | String | CustomString
 
 /** Return true if `obj` is instance of `StringLike` */
 export function isStringLike(obj: unknown): obj is StringLike {
-    return typeof obj === 'string' || obj instanceof String || (obj as CustomString).__string_like__;
+    return typeof obj === 'string' || obj instanceof String || (obj as CustomString)._StringLike_ || false;
 }
 
 /** Try to convert `StringLike` to a primitive `string`. Might fail if the contents is longer that max allowed string length. */
@@ -23,14 +25,14 @@ export function stringLikeToString(str: StringLike): string {
 }
 
 /** Decode bytes from `buffer` using UTF8 encoding. Return as primitive `string` if possible; or as `ChunkedBigString` if the result is bigger than MAX_STRING_LENGTH. */
-export function decodeBigUtf8String(buffer: Buffer, start: number = 0, end: number = buffer.length): StringLike {
-    return ChunkedBigString.fromUtf8Buffer(buffer, start, end); // DEBUG TODO revert
-    // return ChunkedBigString.fromUtf8Buffer(buffer, start, end).toString(); // DEBUG
-    // return buffer.toString('utf-8', start, end); // DEBUG
+export function decodeBigUtf8String(data: Uint8Array, start: number = 0, end: number = data.length): StringLike {
+    return ChunkedBigString.fromUtf8Data(data, start, end); // DEBUG TODO revert
+    // return utf8ReadPrimitive(data, start, end - start); // DEBUG
+
     // if (end - start <= MAX_STRING_LENGTH) {
-    //     return buffer.toString('utf-8', start, end);
+    //     return utf8ReadPrimitive(data, start, end - start);
     // }
-    // const out = ChunkedBigString.fromUtf8Buffer(buffer, start, end);
+    // const out = ChunkedBigString.fromUtf8Data(data, start, end);
     // return out.length <= MAX_STRING_LENGTH ? out.toString() : out;
 }
 
@@ -38,7 +40,7 @@ export function decodeBigUtf8String(buffer: Buffer, start: number = 0, end: numb
 /** Essential subset of `string` functionality. Add more string methods if needed. */
 interface CustomString {
     /** Flag for recognizing `StringLike` objects */
-    __string_like__: true,
+    _StringLike_: true,
 
     /** Returns the length of a String object. */
     readonly length: number;
@@ -92,7 +94,7 @@ const DEFAULT_LOG_STRING_CHUNK_SIZE = 28; // 2**28 is the largest power of 2 whi
 
 /** Implementation of `CustomString`, based on an array of fixed-length strings (chunks). */
 export class ChunkedBigString implements CustomString {
-    readonly __string_like__: true;
+    readonly _StringLike_ = true;
     private _chunks: string[] = [];
 
     /** Length of string chunks (default 2**28). */
@@ -128,22 +130,20 @@ export class ChunkedBigString implements CustomString {
         return out;
     }
 
-    /** This is for NodeJs only, browsers don't have `Buffer`, methinks */
-    static fromUtf8Buffer(buffer: Buffer, start: number = 0, end: number = buffer.length, logStringChunkSize: number = DEFAULT_LOG_STRING_CHUNK_SIZE): ChunkedBigString {
+    static fromUtf8Data(data: Uint8Array, start: number = 0, end: number = data.length, logStringChunkSize: number = DEFAULT_LOG_STRING_CHUNK_SIZE): ChunkedBigString {
         const bufferChunkSize = 2 ** logStringChunkSize; // n bytes will always decode to <=n characters
-        // console.log('ChunkedBigString.fromUtf8Buffer length', buffer.length, 'isAscii', buffer.every(x => x < 128))
         const stringChunks: string[] = [];
         let readStart = start;
         while (readStart < end) {
             let readEnd = Math.min(readStart + bufferChunkSize, end);
             if (readEnd < end) {
                 // This is buffer chunk boundary, adjust to avoid cutting multi-byte characters
-                while ((buffer[readEnd] & 0xC0) === 0x80) { // Byte after the cut is a continuation byte (10xxxxxx)
+                while ((data[readEnd] & 0xC0) === 0x80) { // Byte after the cut is a continuation byte (10xxxxxx)
                     readEnd--;
                     if (readEnd === readStart) throw new Error('Input is rubbish, no UTF-8 character start found in a chunk');
                 }
             } // Else this is the end of the read region, let default error handling do its job
-            const stringChunk = buffer.toString('utf-8', readStart, readEnd);
+            const stringChunk = utf8ReadPrimitive(data, readStart, readEnd - readStart);
             stringChunks.push(stringChunk);
             readStart = readEnd;
         }

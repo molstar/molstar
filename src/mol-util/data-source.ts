@@ -8,6 +8,7 @@
  * Adapted from LiteMol
  */
 
+import { isStringLike, StringLike } from '../mol-io/common/string-like';
 import { utf8Read } from '../mol-io/common/utf8';
 import { RuntimeContext, Task } from '../mol-task';
 import { Asset, AssetManager } from './assets';
@@ -136,7 +137,7 @@ async function decompress(ctx: RuntimeContext, data: Uint8Array, compression: Da
     }
 }
 
-async function processFile<T extends DataType>(ctx: RuntimeContext, fileContent: string | ArrayBuffer | null, type: T, compression: DataCompressionMethod): Promise<DataResponse<T>> {
+async function processFile<T extends DataType>(ctx: RuntimeContext, fileContent: StringLike | ArrayBuffer | null, type: T, compression: DataCompressionMethod): Promise<DataResponse<T>> {
     let data = fileContent instanceof ArrayBuffer ? new Uint8Array(fileContent) : fileContent;
     if (data === null) throw new Error('no data given');
 
@@ -155,8 +156,11 @@ async function processFile<T extends DataType>(ctx: RuntimeContext, fileContent:
         return data as DataResponse<T>;
     } else if (type === 'zip' && data instanceof Uint8Array) {
         return await unzip(ctx, data.buffer) as DataResponse<T>;
-    } else if (type === 'string' && typeof data === 'string') {
+    } else if (type === 'string' && isStringLike(data)) {
         return data as DataResponse<T>;
+    } else if (type === 'string' && !isStringLike(data) && data !== null) {
+        const str = utf8Read(data, 0, data.length);
+        return str as DataResponse<T>;
     } else if (type === 'xml' && typeof data === 'string') {
         const parser = new DOMParser();
         return parser.parseFromString(data, 'application/xml') as DataResponse<T>;
@@ -177,7 +181,7 @@ function readFromFileInternal<T extends DataType>(file: File, type: T): Task<Dat
             // unzipping for type 'zip' handled explicitly in `processFile`
             const compression = type === 'zip' ? DataCompressionMethod.None : getCompression(file.name);
 
-            if (type === 'binary' || type === 'zip' || compression !== DataCompressionMethod.None) {
+            if (type === 'binary' || type === 'zip' || type === 'string' || compression !== DataCompressionMethod.None) {
                 reader.readAsArrayBuffer(file);
             } else {
                 reader.readAsText(file);
@@ -301,7 +305,7 @@ function ajaxGetInternal<T extends DataType>(title: string | undefined, url: str
 }
 
 // NOTE: a workaround for using this in Node.js
-let _fs: (typeof import ('fs')) | undefined = undefined;
+let _fs: (typeof import('fs')) | undefined = undefined;
 function getFS() {
     if (!_fs) {
         throw new Error('When running in Node.js and reading from files, call mol-util/data-source\'s setFSModule function first.');
@@ -309,7 +313,7 @@ function getFS() {
     return _fs;
 }
 
-export function setFSModule(fs: typeof import ('fs')) {
+export function setFSModule(fs: typeof import('fs')) {
     _fs = fs;
 }
 

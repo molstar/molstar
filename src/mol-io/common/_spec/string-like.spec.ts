@@ -73,12 +73,12 @@ const TESTING_LOG_STRING_CHUNK_SIZE = 3; // chunk of size 8
 
 function testUtf8Decoding(text: string) {
     const bytes = Buffer.from(text, 'utf-8');
-    const bigString = ChunkedBigString.fromUtf8Buffer(bytes, undefined, undefined, TESTING_LOG_STRING_CHUNK_SIZE);
+    const bigString = ChunkedBigString.fromUtf8Data(bytes, undefined, undefined, TESTING_LOG_STRING_CHUNK_SIZE);
     const redecoded = bigString.toString();
     expect(redecoded).toEqual(text);
 }
 
-describe('ChunkedBigString.fromUtf8Buffer', () => {
+describe('ChunkedBigString.fromUtf8Data', () => {
     test('decode ASCII', async () => {
         testUtf8Decoding(SAMPLE_ASCII);
     });

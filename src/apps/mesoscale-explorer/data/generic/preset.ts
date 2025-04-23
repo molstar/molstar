@@ -9,7 +9,7 @@ import { StateBuilder, StateObjectSelector } from '../../../../mol-state';
 import { PluginContext } from '../../../../mol-plugin/context';
 import { SpacefillRepresentationProvider } from '../../../../mol-repr/structure/representation/spacefill';
 import { Color } from '../../../../mol-util/color';
-import { utf8Read } from '../../../../mol-io/common/utf8';
+import { utf8ReadPrimitive } from '../../../../mol-io/common/utf8';
 import { Mat3, Quat, Vec3 } from '../../../../mol-math/linear-algebra';
 import { GraphicsMode, MesoscaleGroup, MesoscaleState, getGraphicsModeProps, getMesoscaleGroupParams } from '../state';
 import { ColorNames } from '../../../../mol-util/color/names';
@@ -104,13 +104,13 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
     // TODO: remove special handling for martini prototype
     if (asset.data['instanced_structure.json']) {
         const d = asset.data['instanced_structure.json'];
-        const t = utf8Read(d, 0, d.length);
+        const t = utf8ReadPrimitive(d, 0, d.length);
         const martini = JSON.parse(t) as { model: string, positions: Vec3[], rotations: Vec3[], function: string }[];
         console.log(martini);
         manifest = martiniToGeneric(martini);
     } else if (asset.data['manifest.json']) {
         const d = asset.data['manifest.json'];
-        const t = utf8Read(d, 0, d.length);
+        const t = utf8ReadPrimitive(d, 0, d.length);
         manifest = JSON.parse(t) as GenericManifest;
     } else {
         throw new Error('no manifest found');
@@ -189,7 +189,7 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
                 const info = getFileNameInfo(ent.file);
                 const isBinary = ['bcif'].includes(info.ext);
 
-                const t = isBinary ? d : utf8Read(d, 0, d.length);
+                const t = isBinary ? d : utf8ReadPrimitive(d, 0, d.length);
                 const file = Asset.File(new File([t], ent.file));
 
                 const color = (ent.color) ? Color.fromRgb(ent.color[0], ent.color[1], ent.color[2]) : ColorNames.skyblue;

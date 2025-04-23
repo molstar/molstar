@@ -25,7 +25,7 @@ import { assertUnreachable } from '../../mol-util/type-helpers';
 import { parsePrmtop } from '../../mol-io/reader/prmtop/parser';
 import { parseTop } from '../../mol-io/reader/top/parser';
 import { ungzip } from '../../mol-util/zip/zip';
-import { isStringLike, stringLikeToString } from '../../mol-io/common/string-like';
+import { stringLikeToString } from '../../mol-io/common/string-like';
 import { utf8Read } from '../../mol-io/common/utf8';
 
 
@@ -315,7 +315,7 @@ const ParseCif = PluginStateTransform.BuiltIn({
 })({
     apply({ a }) {
         return Task.create('Parse CIF', async ctx => {
-            const parsed = await (isStringLike(a.data) ? CIF.parse(a.data) : CIF.parseBinary(a.data)).runInContext(ctx);
+            const parsed = await (CIF.parse(a.data)).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             if (parsed.result.blocks.length === 0) return StateObject.Null;
             return new SO.Format.Cif(parsed.result);
