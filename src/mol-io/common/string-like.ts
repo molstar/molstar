@@ -4,7 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { utf8ReadPrimitive } from './utf8';
+import { utf8Read } from './utf8';
 
 
 /** Generalized string type */
@@ -22,18 +22,6 @@ export function stringLikeToString(str: StringLike): string {
     } catch (err) {
         throw new Error(`Failed to convert StringLike object into string. This might be because the length ${str.length} exceeds maximum allowed string length ${MAX_STRING_LENGTH}. (${err})`);
     }
-}
-
-/** Decode bytes from `buffer` using UTF8 encoding. Return as primitive `string` if possible; or as `ChunkedBigString` if the result is bigger than MAX_STRING_LENGTH. */
-export function decodeBigUtf8String(data: Uint8Array, start: number = 0, end: number = data.length): StringLike {
-    return ChunkedBigString.fromUtf8Data(data, start, end); // DEBUG TODO revert
-    // return utf8ReadPrimitive(data, start, end - start); // DEBUG
-
-    // if (end - start <= MAX_STRING_LENGTH) {
-    //     return utf8ReadPrimitive(data, start, end - start);
-    // }
-    // const out = ChunkedBigString.fromUtf8Data(data, start, end);
-    // return out.length <= MAX_STRING_LENGTH ? out.toString() : out;
 }
 
 
@@ -102,7 +90,7 @@ interface CustomString {
 
 
 /** Maximum allowed string length (might be bigger for some engines, but in Chrome and Node it is this). */
-const MAX_STRING_LENGTH = 536_870_888;
+export const MAX_STRING_LENGTH = 536_870_888;
 
 /** Binary logarithm of default string chunk size for `ChunkedBigString`. */
 const DEFAULT_LOG_STRING_CHUNK_SIZE = 28; // 2**28 is the largest power of 2 which is <= MAX_STRING_LENGTH
@@ -146,6 +134,7 @@ export class ChunkedBigString implements CustomString {
         return out;
     }
 
+    /** Create instance from UTF8 data. (Do not call directly, prefer `utf8ReadLong` in utf8.ts.) */
     static fromUtf8Data(data: Uint8Array, start: number = 0, end: number = data.length, logStringChunkSize: number = DEFAULT_LOG_STRING_CHUNK_SIZE): ChunkedBigString {
         const bufferChunkSize = 2 ** logStringChunkSize; // n bytes will always decode to <=n characters
         const stringChunks: string[] = [];
@@ -159,7 +148,7 @@ export class ChunkedBigString implements CustomString {
                     if (readEnd === readStart) throw new Error('Input is rubbish, no UTF-8 character start found in a chunk');
                 }
             } // Else this is the end of the read region, let default error handling do its job
-            const stringChunk = utf8ReadPrimitive(data, readStart, readEnd - readStart);
+            const stringChunk = utf8Read(data, readStart, readEnd - readStart);
             stringChunks.push(stringChunk);
             readStart = readEnd;
         }
@@ -212,8 +201,11 @@ export class ChunkedBigString implements CustomString {
     substring(start?: number, end?: number): string { // optional `start` not part of contract but works in Chrome
         const start_ = Math.min(Math.max(start ?? 0, 0), this.length);
         const end_ = Math.min(Math.max(end ?? this.length, 0), this.length);
-        if (end_ < start_) {
+        if (start_ > end_) {
             return this.substring(end_, start_);
+        }
+        if (start_ === end_) {
+            return '';
         }
 
         if (end_ - start_ > MAX_STRING_LENGTH) {

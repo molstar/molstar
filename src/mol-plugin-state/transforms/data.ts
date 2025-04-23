@@ -26,7 +26,7 @@ import { parsePrmtop } from '../../mol-io/reader/prmtop/parser';
 import { parseTop } from '../../mol-io/reader/top/parser';
 import { ungzip } from '../../mol-util/zip/zip';
 import { stringLikeToString } from '../../mol-io/common/string-like';
-import { utf8Read } from '../../mol-io/common/utf8';
+import { utf8ReadLong } from '../../mol-io/common/utf8';
 
 
 export { Download };
@@ -159,7 +159,7 @@ const DeflateData = PluginStateTransform.BuiltIn({
             const label = params.label ? params.label : a.label;
             // handle decoding based on stringEncoding param
             if (params.isString) {
-                const textData = utf8Read(decompressedData, 0, decompressedData.length);
+                const textData = utf8ReadLong(decompressedData);
                 return new SO.Data.String(textData, { label });
             }
             return new SO.Data.Binary(decompressedData as Uint8Array, { label });

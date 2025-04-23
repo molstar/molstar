@@ -9,7 +9,7 @@
  */
 
 import { isStringLike, StringLike } from '../mol-io/common/string-like';
-import { utf8Read } from '../mol-io/common/utf8';
+import { utf8ReadLong } from '../mol-io/common/utf8';
 import { RuntimeContext, Task } from '../mol-task';
 import { Asset, AssetManager } from './assets';
 import { File_ as File, RUNNING_IN_NODEJS, XMLHttpRequest_ as XMLHttpRequest } from './nodejs-shims';
@@ -138,6 +138,7 @@ async function decompress(ctx: RuntimeContext, data: Uint8Array, compression: Da
 }
 
 async function processFile<T extends DataType>(ctx: RuntimeContext, fileContent: StringLike | ArrayBuffer | null, type: T, compression: DataCompressionMethod): Promise<DataResponse<T>> {
+    console.log('processFile', typeof fileContent, type, compression)
     let data = fileContent instanceof ArrayBuffer ? new Uint8Array(fileContent) : fileContent;
     if (data === null) throw new Error('no data given');
 
@@ -146,7 +147,7 @@ async function processFile<T extends DataType>(ctx: RuntimeContext, fileContent:
         const decompressed = await decompress(ctx, data, compression);
         if (type === 'string') {
             await ctx.update({ message: 'Decoding text...' });
-            data = utf8Read(decompressed, 0, decompressed.length);
+            data = utf8ReadLong(decompressed);
         } else {
             data = decompressed;
         }
@@ -159,7 +160,7 @@ async function processFile<T extends DataType>(ctx: RuntimeContext, fileContent:
     } else if (type === 'string' && isStringLike(data)) {
         return data as DataResponse<T>;
     } else if (type === 'string' && !isStringLike(data) && data !== null) {
-        const str = utf8Read(data, 0, data.length);
+        const str = utf8ReadLong(data);
         return str as DataResponse<T>;
     } else if (type === 'xml' && typeof data === 'string') {
         const parser = new DOMParser();

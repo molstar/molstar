@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { decodeBigUtf8String, StringLike } from './string-like';
+import { ChunkedBigString, StringLike } from './string-like';
 
 
 export function utf8Write(data: Uint8Array, offset: number, str: string) {
@@ -100,8 +100,8 @@ function _utf8Read(data: Uint8Array, offset: number, length: number) {
 }
 
 const utf8Decoder = (typeof TextDecoder !== 'undefined') ? new TextDecoder() : undefined;
-/** Decode UTF8 data. Return as primitive `string` type, or fail if the result is bigger than MAX_STRING_LENGTH. */
-export function utf8ReadPrimitive(data: Uint8Array, offset: number, length: number): string {
+/** Decode UTF8 data. Return as primitive `string` type, or fail if the result is longer than MAX_STRING_LENGTH. */
+export function utf8Read(data: Uint8Array, offset: number, length: number): string {
     if (utf8Decoder) {
         const input = (offset || length !== data.length) ? data.subarray(offset, offset + length) : data;
         return utf8Decoder.decode(input);
@@ -109,9 +109,17 @@ export function utf8ReadPrimitive(data: Uint8Array, offset: number, length: numb
         return _utf8Read(data, offset, length);
     }
 }
-/** Decode UTF8 data. Return as primitive `string` if possible; or as `ChunkedBigString` if the result is bigger than MAX_STRING_LENGTH. */
-export function utf8Read(data: Uint8Array, offset: number, length: number): StringLike {
-    return decodeBigUtf8String(data, offset, offset + length);
+
+/** Decode UTF8 data, potentially exceeding MAX_STRING_LENGTH. Return as primitive `string` if possible; or as `ChunkedBigString` if the result is longer than MAX_STRING_LENGTH. */
+export function utf8ReadLong(data: Uint8Array, offset: number = 0, length: number = data.length): StringLike {
+    return ChunkedBigString.fromUtf8Data(data, offset, offset + length); // DEBUG TODO revert
+    // return utf8Read(data, offset, length); // DEBUG
+
+    // if (length <= MAX_STRING_LENGTH) {
+    //     return utf8Read(data, offset, length);
+    // }
+    // const out = ChunkedBigString.fromUtf8Data(data, offset, offset + length);
+    // return out.length <= MAX_STRING_LENGTH ? out.toString() : out;
 }
 
 export function utf8ByteCount(str: string) {
