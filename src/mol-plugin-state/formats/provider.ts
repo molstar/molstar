@@ -26,8 +26,8 @@ export interface DataFormatProvider<P = any, R = any, V = any> {
 
 export function DataFormatProvider<P extends DataFormatProvider>(provider: P): P { return provider; }
 
-type cifVariants = 'dscif' | 'segcif' | 'coreCif' | -1
-export function guessCifVariant(info: FileNameInfo, data: Uint8Array | StringLike): cifVariants {
+type CifVariants = 'dscif' | 'segcif' | 'coreCif' | -1
+export function guessCifVariant(info: FileNameInfo, data: Uint8Array | StringLike): CifVariants {
     if (info.ext === 'bcif') {
         try {
             // TODO: find a way to run msgpackDecode only once
@@ -40,7 +40,7 @@ export function guessCifVariant(info: FileNameInfo, data: Uint8Array | StringLik
             console.error(e);
         }
     } else if (info.ext === 'cif') {
-        const str = data as string;
+        const str = data as StringLike;
         if (str.startsWith('data_SERVER\n#\n_density_server_result')) return 'dscif';
         if (str.startsWith('data_SERVER\n#\ndata_SEGMENTATION_DATA')) return 'segcif';
         if (str.includes('atom_site_fract_x') || str.includes('atom_site.fract_x')) return 'coreCif';

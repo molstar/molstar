@@ -80,6 +80,22 @@ interface CustomString {
      */
     indexOf(searchString: string, position?: number): number;
 
+    /**
+     * Returns true if searchString appears as a substring of the result of converting this
+     * object to a String, at one or more positions that are
+     * greater than or equal to position; otherwise, returns false.
+     * @param searchString search string
+     * @param position If position is undefined, 0 is assumed, so as to search all of the String.
+     */
+    includes(searchString: string, position?: number): boolean;
+
+    /**
+     * Returns true if the sequence of elements of searchString converted to a String is the
+     * same as the corresponding elements of this object (converted to a String) starting at
+     * position. Otherwise returns false.
+     */
+    startsWith(searchString: string, position?: number): boolean;
+
     /** Returns a string representation of a string. */
     toString(): string;
 }
@@ -253,6 +269,18 @@ export class ChunkedBigString implements CustomString {
             }
         }
         return -1;
+    }
+
+    includes(searchString: string, position: number = 0): boolean {
+        return this.indexOf(searchString, position) >= 0;
+    }
+
+    startsWith(searchString: string, position: number = 0): boolean {
+        if (searchString.length > this.STRING_CHUNK_SIZE) {
+            throw new Error('NotImplementedError: startsWith is only implemented for searchString shorter than STRING_CHUNK_SIZE');
+            // In real use-cases STRING_CHUNK_SIZE is big and it doesn't make sense to search for such long substrings.
+        }
+        return this.substring(position, position + searchString.length) === searchString;
     }
 
     toString(): string {
