@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - Fix `Viewer.loadTrajectory` when loading a topology file.
+- IHM improvements:
+  - Disable volume streaming
 
 ## [v4.13.0] - 2025-04-14
 - Support `--host` option for build-dev.mjs script.
