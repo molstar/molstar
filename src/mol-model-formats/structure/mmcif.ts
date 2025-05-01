@@ -72,7 +72,9 @@ function structConnFromMmcif(model: Model) {
 
     const residueCantorPairs = new Set<number>();
     for (const e of entries) {
-        residueCantorPairs.add(sortedCantorPairing(e.partnerA.residueIndex, e.partnerB.residueIndex));
+        if (e.partnerA.residueIndex !== e.partnerB.residueIndex) {
+            residueCantorPairs.add(sortedCantorPairing(e.partnerA.residueIndex, e.partnerB.residueIndex));
+        }
     }
 
     return {

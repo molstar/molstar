@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - Fix `Viewer.loadTrajectory` when loading a topology file.
+- Fix `StructConn.residueCantorPairs` to not include identity pairs.
 - IHM improvements:
   - Disable volume streaming
   - Disable validation report visualization
