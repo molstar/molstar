@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -494,7 +494,8 @@ export class Viewer {
                 : await plugin.builders.data.download({ url: params.model.url, isBinary: params.model.isBinary, label: params.modelLabel });
 
             const provider = plugin.dataFormats.get(params.model.format);
-            model = await provider!.parse(plugin, data);
+            const parsed = await provider!.parse(plugin, data);
+            model = parsed.topology;
         }
 
         const data = params.coordinates.kind === 'coordinates-data'

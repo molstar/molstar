@@ -4,12 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { decodeColor } from '../../extensions/mvs/helpers/utils';
-import { MVSData_States } from '../../extensions/mvs/mvs-data';
-import { createMVSBuilder, Structure as MVSStructure, Representation, Root } from '../../extensions/mvs/tree/mvs/mvs-builder';
-import { MVSNodeParams } from '../../extensions/mvs/tree/mvs/mvs-tree';
-import { ColorT, ComponentExpressionT, isPrimitiveComponentExpressions, PrimitivePositionT } from '../../extensions/mvs/tree/mvs/param-types';
-import { Mat3, Mat4, Vec3 } from '../../mol-math/linear-algebra';
+import { decodeColor } from '../../../extensions/mvs/helpers/utils';
+import { MVSData_States } from '../../../extensions/mvs/mvs-data';
+import { createMVSBuilder, Structure as MVSStructure, Representation, Root } from '../../../extensions/mvs/tree/mvs/mvs-builder';
+import { MVSNodeParams } from '../../../extensions/mvs/tree/mvs/mvs-tree';
+import { ColorT, ComponentExpressionT, isPrimitiveComponentExpressions, PrimitivePositionT } from '../../../extensions/mvs/tree/mvs/param-types';
+import { Mat3, Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 
 const Domains = {
     ChainA: { auth_asym_id: 'A' },
@@ -32,6 +32,7 @@ const DomainColors = {
 const Colors = {
     '1opl': '#4577B2' as ColorT,
     '2gqg': '#BC536D' as ColorT,
+    '2g2i': '#BC536D' as ColorT,
     '1iep': '#B9E3A0' as ColorT,
     '3ik3': '#F3774B' as ColorT,
     '3oxz': '#7D7EA5' as ColorT,
@@ -41,10 +42,12 @@ const Colors = {
 };
 
 // Obtained using https://www.rcsb.org/alignment
+// Aligned to 1iep
 const Superpositions = {
     '1opl': [-0.6321036327, 0.3450463255, 0.6938213248, 0, -0.6288677634, -0.7515716885, -0.1991615756, 0, 0.4527364948, -0.5622126202, 0.6920597055, 0, 36.3924122492, 118.2516908402, -26.4992054179, 1] as unknown as Mat4,
     '3ik3': [-0.7767826245, -0.6295936551, 0.0148520572, 0, 0.6059737752, -0.7408035481, 0.2898376906, 0, -0.1714775143, 0.2341408391, 0.9569605684, 0, 21.0648276775, 53.0266628762, -0.3385906075, 1] as unknown as Mat4,
     '2gqg': [0.0648740828, -0.7163272638, 0.6947421137, 0, 0.0160329972, -0.6953706204, -0.7184724374, 0, 0.9977646498, 0.0577490387, -0.0336266582, 0, -31.0690973964, 146.0940883054, 39.7107422531, 1] as unknown as Mat4,
+    '2g2i': [-0.5680242227, 0.6527660987, 0.5012433569, 0, -0.10067389, 0.5493518768, -0.8295042395, 0, -0.8168312251, -0.5216406194, -0.2463286704, 0, -8.1905690894, 75.7603329146, -6.1327389269, 1] as unknown as Mat4,
     '3oxz': [0.7989033646, 0.5984398921, -0.0601922711, 0, -0.1303123126, 0.269921501, 0.9540236289, 0, 0.5871729857, -0.754328893, 0.2936252816, 0, -8.0697093741, 58.1709160658, 19.0363028443, 1] as unknown as Mat4,
 };
 
@@ -186,40 +189,44 @@ its normal regulation, BCR-ABL will keep signaling, unchecked causing unregulate
         description: `
 ### ATP Binding and Unstoppable Signaling
 
-To function, every kinase needs [ATP](https://en.wikipedia.org/wiki/Kinase), and BCR-ABL is no exception.
-Here, you can see non-hydrolysable ATP analogue ([AMP-PNP](https://www.ebi.ac.uk/pdbe-srv/pdbechem/chemicalCompound/show/ANP))
-nestled in the active site. Look closely at the active site residues—Lys271, Glu286, and Asp381 (in orange).
-They form a crucial network that stabilizes the AMP-PNP (and also the ATP) and in the ATP bound kinase  catalyzes phosphorylation,
-allowing BCR-ABL to continuously activate downstream signaling pathways.
+To function, every kinase needs [ATP](https://en.wikipedia.org/wiki/Kinase), and BCR-ABL is no exception. ATP donates a phosphate group that is transferred to a substrate
+during phosphorylation — a key step in signaling pathways that control cell growth. However, ATP is chemically unstable under the conditions
+used for crystallography. It often breaks down into ADP (adenosine diphosphate), losing one of its three phosphate
+groups — the very group that would normally be transferred during catalysis.
+
+Because of this instability, we don't have crystal structures of BCR-ABL bound to ATP itself. Instead, researchers have studied
+the H396P mutant, which locks the kinase in a permanently active conformation, to understand how it binds nucleotides.
+In this structure, [ADP](https://www.ebi.ac.uk/pdbe-srv/pdbechem/chemicalCompound/show/ADP) is clearly nestled in the kinase's active site.
+
+Key catalytic residues — Lys271, Glu286, and Asp381 (in orange) — form a highly conserved network that helps position and stabilize the nucleotide.
+Glu286, in particular, forms a salt bridge with Lys271, anchoring the active site in a catalytically competent conformation. This arrangement
+supports efficient phosphate transfer, which is central to BCR-ABL's ability to activate downstream signaling pathways.
 `,
         state: () => {
             const builder = createMVSBuilder();
 
-            const _2gqg = structure(builder, '2gqg');
-            const [, _2gqg_poly_repr] = polymer(_2gqg, { color: Colors['2gqg'] });
+            const _2g2i = structure(builder, '2g2i');
+            const [, _2g2i_poly_repr] = polymer(_2g2i, { color: Colors['2g2i'] });
 
-            ligand(_2gqg, {
-                selector: { label_asym_id: 'C' },
+            ligand(_2g2i, {
+                selector: { label_asym_id: 'E' },
                 surface: true,
-                label: 'AMP-PNP ATP',
+                label: 'ADP',
                 label_size: 2,
-                label_color: Colors['2gqg'],
+                label_color: Colors['2g2i'],
             });
 
-            domains(_2gqg, _2gqg_poly_repr, [
+            domains(_2g2i, _2g2i_poly_repr, [
                 [Domains.SH2, DomainColors['SH2_BCR'], 'SH2'],
                 [Domains.P_loop, DomainColors['P_loop'], 'P Loop'],
                 [Domains.Activation_loop, DomainColors['Activation_loop'], 'Activation Loop (active)', { label_size: 3 }],
             ], { label_size: 3 });
 
-            drawInteractions(_2gqg, [
-                ['H-bond', { auth_asym_id: 'A', auth_seq_id: 318, auth_atom_id: 'O' }, { label_asym_id: 'C', label_atom_id: 'N' }],
-                ['H-bond', { auth_asym_id: 'A', auth_seq_id: 318, auth_atom_id: 'N' }, { label_asym_id: 'C', label_atom_id: 'N1' }],
-                ['H-bond', { auth_asym_id: 'A', auth_seq_id: 315, auth_atom_id: 'OG1' }, { label_asym_id: 'C', label_atom_id: 'N2' }],
-                ['H-bond', { auth_asym_id: 'A', auth_seq_id: 620, auth_atom_id: 'O' }, { label_asym_id: 'C', label_atom_id: 'N3' }],
+            drawInteractions(_2g2i, [
+                ['Salt Bridge', { auth_asym_id: 'A', auth_seq_id: 271, auth_atom_id: 'NZ' }, { auth_asym_id: 'A', auth_seq_id: 286, auth_atom_id: 'OE1' }, { skipResidue: true }],
             ]);
 
-            bindingSite(_2gqg, [
+            bindingSite(_2g2i, [
                 [{ auth_asym_id: 'A', auth_seq_id: 271 }, 'Lys271'],
                 [{ auth_asym_id: 'A', auth_seq_id: 286 }, 'Glu286'],
                 [{ auth_asym_id: 'A', auth_seq_id: 381 }, 'Asp381'],
@@ -228,9 +235,9 @@ allowing BCR-ABL to continuously activate downstream signaling pathways.
             return builder;
         },
         camera: {
-            position: [38.76, 81.69, 5.8],
-            target: [13.01, 60.13, 11.63],
-            up: [0.19, -0.46, -0.87],
+            position: [49.01, 78.47, 38.92],
+            target: [15.59, 54.81, 12.37],
+            up: [0.61, 0.03, -0.79],
         } satisfies MVSNodeParams<'camera'>,
     }, {
         header: 'ATP Binding and Unstoppable Signaling [2/2]',
@@ -239,8 +246,8 @@ allowing BCR-ABL to continuously activate downstream signaling pathways.
 
 Note the location of the activation loop (in red) which sits in its active conformation.
 
-In a normal kinase, ATP binding is a carefully controlled step. But in BCR-ABL, there's no regulation. ATP binds, reactions happen, and
-the leukemia-driving signals keep firing.
+In normal cells, kinases like ABL are tightly regulated — ATP binding and activation only occur when needed. But in BCR-ABL, this regulation is lost.
+ATP binds freely, phosphorylation proceeds unchecked, and the signaling pathways that drive leukemia remain constantly switched on.
 `,
         state: (): Root => {
             return Steps.find((s: any) => s.key === 'unstoppable-signaling')?.state()!;
@@ -256,9 +263,17 @@ the leukemia-driving signals keep firing.
         description: `
 ### Imatinib: The Drug That Changed Everything
 
-For years, chronic myeloid leukemia (CML) was a death sentence. Then came Imatinib (Gleevec), a molecule designed to fit into the ATP-binding pocket
-and lock BCR-ABL in an inactive conformation. The Imatinib-bound structure ([PDB ID 1IEP](${wwPDBLink('1iep')}))
-shows the difference: the kinase is frozen. The drug forms a key hydrogen bond with Thr315, known as the gatekeeper residue; as well as Met318, Asp381, Glu286, Ile360 and His361.
+For years, chronic myeloid leukemia (CML) was a death sentence. Then came Imatinib (Gleevec) — a small molecule designed to fit into the ATP-binding pocket of BCR-ABL and lock the kinase in an inactive conformation. It was the first targeted cancer therapy of its kind.
+
+Take a look at the Imatinib-bound structure ([PDB ID 1IEP](${wwPDBLink('1iep')})), and you'll notice a key difference — this time, the kinase is frozen in its inactive form. The drug (shown in colour) nestles deep in the ATP-binding site and blocks ATP from binding.
+
+Imatinib forms specific interactions with several important residues:
+- A hydrogen bond with Thr315, the gatekeeper residue, which plays a major role in drug sensitivity and resistance.
+- Asp381, part of the DFG motif, which helps coordinate catalytic magnesium ions and position the phosphate for transfer.
+- Glu286, located in the αC-helix, normally forms a salt bridge with Lys271 in the active conformation — but here, it's flipped away.
+- Ile360 and His361, part of the activation loop, help stabilize the inactive conformation that Imatinib prefers.
+
+Together, these interactions stabilize the inactive kinase, shutting down its activity and halting the signaling cascade that drives leukemia.
 `,
         state: () => {
             const builder = createMVSBuilder();
@@ -316,8 +331,14 @@ shows the difference: the kinase is frozen. The drug forms a key hydrogen bond w
         description: `
 ### Imatinib: The Drug That Changed Everything
 
-Notice how the P-loop, which normally cradles ATP, has shifted into a closed conformation and the activation loop is also flipped into its closed
-conformation. Imatinib doesn't just block ATP—it forces the kinase into a state where it can't function at all. The change is decisive: BCR-ABL is silenced.
+Notice how the P-loop, which normally cradles ATP in the active state, which was not visible in the active state, has shifted into a stabilised closed and collapsed conformation.
+At the same time, the activation loop (in green), which needs to be extended and open for the kinase to catalyse phosphorylation, is now flipped into a closed, inactive position.
+
+Imatinib doesn't just block ATP from binding — it locks BCR-ABL into an inactive conformation, one where the active site is misaligned and the kinase simply can't function.
+
+By switching between the ADP-bound active structure and the Imatinib-bound inactive structure, you can clearly see the conformational changes. The shift is dramatic and decisive: the enzyme goes from a catalytically ready state to one that is completely switched off.
+
+The change is decisive: BCR-ABL is finally silenced.
 `,
         state: () => {
             const builder = createMVSBuilder();
@@ -429,30 +450,28 @@ Forming a hydrogen bond with Imatinib, Thr315 was a crucial contact point. With 
         description: `
 ### Resistance Strikes: The T315I Mutation
 
-This mutation prevents Imatinib binding but still allows ANP-PNP ATP to nestle into the active site.
+This mutation prevents Imatinib binding but still allows ATP (here represented by the ADP) to nestle into the active site.
 The result? Resistance. BCR-ABL is active again, and the leukemia returns, this time untouchable by Imatinib.
 `,
         state: () => {
             const builder = createMVSBuilder();
 
-            const _2gqg = structure(builder, '2gqg');
-            const [, _2gqg_poly_repr] = polymer(_2gqg, { color: Colors['2gqg'] });
+            const _2g2i = structure(builder, '2g2i');
+            const [, _2g2i_poly_repr] = polymer(_2g2i, { color: Colors['2g2i'] });
 
-            ligand(_2gqg, {
-                selector: { label_asym_id: 'C' },
+            ligand(_2g2i, {
+                selector: { label_asym_id: 'E' },
                 surface: true,
-                label: 'ANP-PNP ATP',
+                label: 'ADP',
                 label_size: 2,
-                label_color: Colors['2gqg'],
+                label_color: Colors['2g2i'],
             });
 
-            drawInteractions(_2gqg, [
-                ['H-bond', { auth_asym_id: 'A', auth_seq_id: 318, auth_atom_id: 'O' }, { label_asym_id: 'C', label_atom_id: 'N' }],
-                ['H-bond', { auth_asym_id: 'A', auth_seq_id: 318, auth_atom_id: 'N' }, { label_asym_id: 'C', label_atom_id: 'N1' }],
-                ['H-bond', { auth_asym_id: 'A', auth_seq_id: 620, auth_atom_id: 'O' }, { label_asym_id: 'C', label_atom_id: 'N3' }],
+            drawInteractions(_2g2i, [
+                ['Salt Bridge', { auth_asym_id: 'A', auth_seq_id: 271, auth_atom_id: 'NZ' }, { auth_asym_id: 'A', auth_seq_id: 286, auth_atom_id: 'OE1' }, { skipResidue: true }],
             ]);
 
-            bindingSite(_2gqg, [
+            bindingSite(_2g2i, [
                 [{ auth_asym_id: 'A', auth_seq_id: 271 }, 'Lys271'],
                 [{ auth_asym_id: 'A', auth_seq_id: 286 }, 'Glu286'],
                 [{ auth_asym_id: 'A', auth_seq_id: 381 }, 'Asp381'],
@@ -472,9 +491,9 @@ The result? Resistance. BCR-ABL is active again, and the leukemia returns, this 
             return builder;
         },
         camera: {
-            position: [19.42, 97.24, -0.29],
-            target: [13.02, 54.12, 9.71],
-            up: [0.37, -0.26, -0.89],
+            position: [-3.29, 89.29, 2.7],
+            target: [16.64, 55.48, 15.94],
+            up: [0.24, -0.23, -0.94],
         } satisfies MVSNodeParams<'camera'>,
     }, {
         header: 'Fighting Back: Ponatinib and the Future of Kinase Inhibitors',
@@ -658,7 +677,7 @@ function ligand(structure: MVSStructure, options: {
         : {
             custom: {
                 molstar_color_theme_name: 'element-symbol',
-                molstar_color_theme_params: { carbonColor: options?.carbon_color ? { name: 'uniform', params: { value: decodeColor(options?.carbon_color) } } : { name: 'element-symbol', params: { } } }
+                molstar_color_theme_params: { carbonColor: options?.carbon_color ? { name: 'uniform', params: { value: decodeColor(options?.carbon_color) } } : { name: 'element-symbol', params: {} } }
             }
         };
 

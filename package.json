@@ -1,6 +1,6 @@
 {
   "name": "molstar",
-  "version": "4.12.1",
+  "version": "4.13.0",
   "description": "A comprehensive macromolecular library.",
   "homepage": "https://github.com/molstar/molstar#readme",
   "repository": {
@@ -9,6 +9,9 @@
   },
   "bugs": {
     "url": "https://github.com/molstar/molstar/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "scripts": {
     "lint": "eslint .",
@@ -122,7 +125,8 @@
     "Simeon Borko <simeon.borko@gmail.com>",
     "Ventura Rivera <venturaxrivera@gmail.com>",
     "Andy Turner <agdturner@gmail.com>",
-    "Lukáš Polák <admin@lukaspolak.cz>"
+    "Lukáš Polák <admin@lukaspolak.cz>",
+    "Chetan Mishra <chetan.s115@gmail.com>"
   ],
   "license": "MIT",
   "devDependencies": {
