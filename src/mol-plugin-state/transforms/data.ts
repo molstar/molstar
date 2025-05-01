@@ -25,7 +25,7 @@ import { assertUnreachable } from '../../mol-util/type-helpers';
 import { parsePrmtop } from '../../mol-io/reader/prmtop/parser';
 import { parseTop } from '../../mol-io/reader/top/parser';
 import { ungzip } from '../../mol-util/zip/zip';
-import { stringLikeToString } from '../../mol-io/common/string-like';
+import { StringLike } from '../../mol-io/common/string-like';
 import { utf8ReadLong } from '../../mol-io/common/utf8';
 
 
@@ -510,7 +510,7 @@ const ParseJson = PluginStateTransform.BuiltIn({
 })({
     apply({ a }) {
         return Task.create('Parse JSON', async ctx => {
-            const json = await (new Response(stringLikeToString(a.data))).json(); // async JSON parsing via fetch API
+            const json = await (new Response(StringLike.toString(a.data))).json(); // async JSON parsing via fetch API
             return new SO.Format.Json(json);
         });
     }

@@ -10,19 +10,21 @@ import { utf8Read } from './utf8';
 /** Generalized string type */
 export type StringLike = string | String | CustomString
 
-/** Return true if `obj` is instance of `StringLike` */
-export function isStringLike(obj: unknown): obj is StringLike {
-    return typeof obj === 'string' || obj instanceof String || (obj as CustomString)._StringLike_ || false;
-}
+export const StringLike = {
+    /** Return true if `obj` is instance of `StringLike` */
+    is(obj: unknown): obj is StringLike {
+        return typeof obj === 'string' || obj instanceof String || (obj as CustomString)._StringLike_ || false;
+    },
 
-/** Try to convert `StringLike` to a primitive `string`. Might fail if the contents is longer that max allowed string length. */
-export function stringLikeToString(str: StringLike): string {
-    try {
-        return str.toString();
-    } catch (err) {
-        throw new Error(`Failed to convert StringLike object into string. This might be because the length ${str.length} exceeds maximum allowed string length ${MAX_STRING_LENGTH}. (${err})`);
-    }
-}
+    /** Try to convert `StringLike` to a primitive `string`. Might fail if the content is longer that max allowed string length. */
+    toString(str: StringLike): string {
+        try {
+            return str.toString();
+        } catch (err) {
+            throw new Error(`Failed to convert StringLike object into string. This might be because the length ${str.length} exceeds maximum allowed string length ${MAX_STRING_LENGTH}. (${err})`);
+        }
+    },
+};
 
 
 /** Essential subset of `string` functionality. Add more string methods if needed. */
@@ -92,7 +94,7 @@ interface CustomString {
 /** Maximum allowed string length (might be bigger for some engines, but in Chrome and Node it is this). */
 export const MAX_STRING_LENGTH = 536_870_888;
 
-/** Binary logarithm of default string chunk size for `ChunkedBigString`. */
+/** Binary logarithm of default string chunk size for `ChunkedBigString`. (string chunk size is chosen to be a power of 2, so we can use faster bit shift operator instead of integer division) */
 const DEFAULT_LOG_STRING_CHUNK_SIZE = 28; // 2**28 is the largest power of 2 which is <= MAX_STRING_LENGTH
 
 
@@ -168,10 +170,10 @@ export class ChunkedBigString implements CustomString {
     }
 
     private _getChunkIndex(index: number) {
-        return index >>> this.STRING_CHUNK_SHIFT;
+        return index >>> this.STRING_CHUNK_SHIFT; // equivalent to `Math.floor(index / STRING_CHUNK_SIZE)`
     }
     private _getIndexInChunk(index: number) {
-        return index & this.STRING_CHUNK_MASK;
+        return index & this.STRING_CHUNK_MASK; // equivalent to `index % STRING_CHUNK_SIZE`
     }
     private _isOutOfRange(index: number) {
         return index < 0 || index >= this.length;
