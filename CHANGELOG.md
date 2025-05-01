@@ -8,6 +8,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix `Viewer.loadTrajectory` when loading a topology file.
 - IHM improvements:
   - Disable volume streaming
+  - Disable validation report visualization
   - Enable assembly symmetry for integrative models
 
 ## [v4.13.0] - 2025-04-14
