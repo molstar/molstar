@@ -8,7 +8,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix `Viewer.loadTrajectory` when loading a topology file.
 - Fix `StructConn.residueCantorPairs` to not include identity pairs.
 - Add `StateBuilder.To.updateState`
-- MVS: Support updating transform states
+- MVS:
+  - Support updating transform states
+  - Add support for `molstar_is_hidden` custom state as an extension
 
 ## [v4.13.0] - 2025-04-14
 - Support `--host` option for build-dev.mjs script.
