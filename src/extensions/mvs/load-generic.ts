@@ -123,6 +123,7 @@ function loadTreeInUpdate<TTree extends Tree, TContext>(updateRoot: UpdateTarget
 export interface UpdateTarget {
     readonly update: StateBuilder.Root,
     readonly selector: StateObjectSelector,
+    readonly builder: StateBuilder.To<any>,
     readonly targetManager: TargetManager,
     readonly mvsDependencyRefs: Set<string>,
 
@@ -133,8 +134,8 @@ export const UpdateTarget = {
     /** Create a new update, with `selector` pointing to the root. */
     create(plugin: PluginContext, replaceExisting: boolean): UpdateTarget {
         const update = plugin.build();
-        const msTarget = update.toRoot().selector;
-        return { update, selector: msTarget, targetManager: new TargetManager(plugin, replaceExisting), mvsDependencyRefs: new Set() };
+        const msTarget = update.toRoot();
+        return { update, selector: msTarget.selector, builder: msTarget, targetManager: new TargetManager(plugin, replaceExisting), mvsDependencyRefs: new Set() };
     },
     /** Add a child node to `target.selector`, return a new `UpdateTarget` pointing to the new child. */
     apply<A extends StateObject, B extends StateObject, P extends {}>(target: UpdateTarget, transformer: StateTransformer<A, B, P>, params?: Partial<P>, options?: Partial<StateTransform.Options>): UpdateTarget {
@@ -144,8 +145,8 @@ export const UpdateTarget = {
             refSuffix += `:${reprType}`;
         }
         const ref = target.targetManager.getChildRef(target.selector, refSuffix);
-        const msResult = target.update.to(target.selector).apply(transformer, params, { ...options, ref }).selector;
-        const result: UpdateTarget = { ...target, selector: msResult, mvsDependencyRefs: new Set(), transformer, transformParams: params };
+        const apply = target.update.to(target.selector).apply(transformer, params, { ...options, ref });
+        const result: UpdateTarget = { ...target, selector: apply.selector, builder: apply, mvsDependencyRefs: new Set(), transformer, transformParams: params };
         target.targetManager.allTargets.push(result);
         return result;
     },

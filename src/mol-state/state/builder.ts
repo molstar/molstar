@@ -251,6 +251,18 @@ namespace StateBuilder {
             return this.root;
         }
 
+        updateState(state: Partial<StateTransform.State>) {
+            const transform = this.state.tree.transforms.get(this.ref)!;
+            if (StateTransform.isStateChange(transform.state, state)) {
+                this.state.tree.assignState(this.ref, state);
+                this.editInfo.count++;
+                this.editInfo.lastUpdate = this.ref;
+                if (!this.state.actions.find(a => a.kind === 'update' && a.ref === this.ref)) {
+                    this.state.actions.push({ kind: 'update', ref: this.ref, params: transform.params });
+                }
+            }
+        }
+
         /** Add tags to the current node */
         tag(tags: string | string[]) {
             const transform = this.state.tree.transforms.get(this.ref)!;
