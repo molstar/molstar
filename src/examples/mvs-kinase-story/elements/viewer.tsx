@@ -7,6 +7,7 @@
 import { MolViewSpec } from '../../../extensions/mvs/behavior';
 import { loadMVS } from '../../../extensions/mvs/load';
 import { MVSData } from '../../../extensions/mvs/mvs-data';
+import { StringLike } from '../../../mol-io/common/string-like';
 import { PluginComponent } from '../../../mol-plugin-state/component';
 import { createPluginUI } from '../../../mol-plugin-ui';
 import { renderReact18 } from '../../../mol-plugin-ui/react18';
@@ -56,7 +57,7 @@ export class MolComponentViewerModel extends PluginComponent {
             if (cmd.kind === 'load-mvs') {
                 if (cmd.url) {
                     const data = await this.plugin!.runTask(this.plugin!.fetch({ url: cmd.url, type: 'string' }));
-                    const mvsData = MVSData.fromMVSJ(data);
+                    const mvsData = MVSData.fromMVSJ(StringLike.toString(data));
                     await loadMVS(this.plugin!, mvsData, { sanityChecks: true, sourceUrl: cmd.url, replaceExisting: true });
                 } else if (cmd.data) {
                     await loadMVS(this.plugin!, cmd.data, { sanityChecks: true, replaceExisting: true });

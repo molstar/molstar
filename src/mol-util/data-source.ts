@@ -8,6 +8,7 @@
  * Adapted from LiteMol
  */
 
+import { StringLike } from '../mol-io/common/string-like';
 import { utf8Read, utf8ReadLong } from '../mol-io/common/utf8';
 import { RuntimeContext, Task } from '../mol-task';
 import { Asset, AssetManager } from './assets';
@@ -26,7 +27,7 @@ export type DataValue = 'string' | any | XMLDocument | Uint8Array
 export type DataResponse<T extends DataType> =
     T extends 'json' ? any :
         T extends 'xml' ? XMLDocument :
-            T extends 'string' ? string : // TODO StringLike here
+            T extends 'string' ? StringLike :
                 T extends 'binary' ? Uint8Array :
                     T extends 'zip' ? { [k: string]: Uint8Array } : never
 
