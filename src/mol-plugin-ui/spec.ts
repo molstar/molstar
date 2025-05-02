@@ -32,7 +32,8 @@ interface PluginUISpec extends PluginSpec {
             view?: React.ComponentClass | React.FC
             modeOptions?: SequenceViewMode[],
             defaultMode?: SequenceViewMode,
-        }
+        },
+        lociLabels?: React.ComponentClass | React.FC,
         hideTaskOverlay?: boolean,
         disableDragOverlay?: boolean,
         selectionTools?: {

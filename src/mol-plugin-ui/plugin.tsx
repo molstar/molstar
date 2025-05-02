@@ -271,6 +271,7 @@ export class DefaultViewport extends PluginUIComponent {
         const VPControls = this.plugin.spec.components?.viewport?.controls || ViewportControls;
         const SVPControls = this.plugin.spec.components?.selectionTools?.controls || SelectionViewportControls;
         const SnapshotDescription = this.plugin.spec.components?.viewport?.snapshotDescription || ViewportSnapshotDescription;
+        const Labels = this.plugin.spec.components?.lociLabels || LociLabels;
 
         return <>
             <Viewport />
@@ -284,7 +285,7 @@ export class DefaultViewport extends PluginUIComponent {
             <VPControls />
             <BackgroundTaskProgress />
             <div className='msp-highlight-toast-wrapper'>
-                <LociLabels />
+                <Labels />
                 <Toasts />
             </div>
         </>;
