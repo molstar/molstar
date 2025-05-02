@@ -12,6 +12,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Support updating transform states
   - Add support for `is_hidden` custom state as an extension
   - Add `queryMVSRef` and `createMVSRefMap` utility functions
+- Allowed users to override the default LociLabel with a custom component 
 
 ## [v4.13.0] - 2025-04-14
 - Support `--host` option for build-dev.mjs script.

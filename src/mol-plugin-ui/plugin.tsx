@@ -5,6 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Christian Dominguez <christian.99dominguez@gmail.com>
  * @author Ventura Rivera <venturaxrivera@gmail.com>
+ * @author Chetan Mishra <chetan.s115@gmail.com>
  */
 
 import { List } from 'immutable';

@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Chetan Mishra <chetan.s115@gmail.com>
  */
 
 import { PartialCanvas3DProps } from '../mol-canvas3d/canvas3d';
