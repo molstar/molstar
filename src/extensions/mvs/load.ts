@@ -354,5 +354,6 @@ function applyPrimitiveVisuals(data: UpdateTarget, refs: Set<string>) {
 export type MolstarLoadingExtension<TExtensionContext> = LoadingExtension<MolstarTree, MolstarLoadingContext, TExtensionContext>;
 
 export const BuiltinLoadingExtensions: MolstarLoadingExtension<any>[] = [
-    NonCovalentInteractionsExtension
+    NonCovalentInteractionsExtension,
+    IsHiddenCustomStateExtension,
 ];
