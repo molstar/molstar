@@ -18,6 +18,10 @@
     "lint-fix": "eslint . --fix",
     "test": "npm install --no-save \"gl@^6.0.2\" && npm run lint && jest",
     "jest": "jest",
+    "test:jest": "jest",
+    "test:vitest": "vitest",
+    "test:vitest:watch": "vitest --watch",
+    "test:vitest:coverage": "vitest run --coverage --coverage.reporter=text-summary",
     "build": "npm run build-tsc && npm run build-extra && npm run build-webpack",
     "clean": "node ./scripts/clean.js",
     "rebuild": "npm run clean && npm run build",
@@ -74,23 +78,6 @@
     "ignore": [],
     "delay": "2500"
   },
-  "jest": {
-    "moduleFileExtensions": [
-      "ts",
-      "js"
-    ],
-    "transform": {
-      "\\.ts$": "ts-jest"
-    },
-    "moduleDirectories": [
-      "node_modules",
-      "lib"
-    ],
-    "testEnvironmentOptions": {
-      "url": "http://localhost/"
-    },
-    "testRegex": "\\.spec\\.ts$"
-  },
   "author": "Mol* Contributors",
   "contributors": [
     "Alexander Rose <alexander.rose@weirdbyte.de>",
@@ -133,6 +120,7 @@
     "@types/cors": "^2.8.17",
     "@types/gl": "^6.0.5",
     "@types/jest": "^29.5.14",
+    "@types/node": "^22.15.3",
     "@types/pngjs": "^6.0.5",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
@@ -162,8 +150,9 @@
     "simple-git": "^3.27.0",
     "stream-browserify": "^3.0.0",
     "style-loader": "^4.0.0",
-    "ts-jest": "^29.2.5",
+    "ts-jest": "^29.3.2",
     "typescript": "^5.7.3",
+    "vitest": "^3.1.2",
     "webpack": "^5.97.1",
     "webpack-cli": "^6.0.1"
   },
@@ -172,7 +161,6 @@
     "@types/benchmark": "^2.1.5",
     "@types/compression": "1.7.5",
     "@types/express": "^5.0.0",
-    "@types/node": "^18.19.74",
     "@types/node-fetch": "^2.6.12",
     "@types/swagger-ui-dist": "3.30.5",
     "argparse": "^2.0.1",
