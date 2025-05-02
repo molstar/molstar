@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         "declaration": true,
-        "target": "ES2018",
+        "target": "ES2020",
         "alwaysStrict": true,
         "noImplicitAny": true,
         "noImplicitThis": true,
@@ -9,7 +9,7 @@
         "noUnusedLocals": true,
         "strictNullChecks": true,
         "strictFunctionTypes": true,
-        "module": "ES2015",
+        "module": "Node16",
         "esModuleInterop": true,
         "moduleResolution": "node16",
         "importHelpers": true,
@@ -18,7 +18,8 @@
         "jsx": "react-jsx",
         "lib": [ "ES2018", "dom", "ES2022.Object" ],
         "rootDir": "src",
-        "outDir": "lib"
+        "outDir": "lib",
+        "skipLibCheck": true
     },
     "include": [ "src/**/*" ],
     // "exclude": [ "src/servers/**/*", "src/perf-tests/*", "src/cli/**/*" ]
