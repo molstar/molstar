@@ -11,7 +11,7 @@
         "strictFunctionTypes": true,
         "module": "esnext",
         "esModuleInterop": true,
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
         "importHelpers": true,
         "noEmitHelpers": true,
         "allowSyntheticDefaultImports": true,
