@@ -202,8 +202,10 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
     }
 
     // max resolution based on volume (for 'auto' quality)
-    resolution = Math.max(resolution, volume / 500_000_000);
-    resolution = Math.min(resolution, 20);
+    if (volume > 0) {
+        resolution = Math.max(resolution, volume / 300_000_000);
+        resolution = Math.min(resolution, 20);
+    }
 
     if (props.transparentBackfaces === 'off' && ((props.alpha !== undefined && props.alpha < 1) || !!props.xrayShaded)) {
         doubleSided = false;
