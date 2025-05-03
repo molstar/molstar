@@ -16,6 +16,7 @@ import { PluginComponent } from '../../mol-plugin-state/component';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateSelection } from '../../mol-state';
 import { RuntimeContext, Task } from '../../mol-task';
+import { isSafari } from '../../mol-util/browser';
 import { Color } from '../../mol-util/color';
 import { download } from '../../mol-util/download';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -30,6 +31,19 @@ namespace ViewportScreenshotHelper {
 }
 
 type ViewportScreenshotHelperParams = PD.Values<ReturnType<ViewportScreenshotHelper['createParams']>>
+
+function checkWebPSupport() {
+    // adapted from https://stackoverflow.com/a/27232658
+    const elem = document.createElement('canvas');
+
+    if (!!(elem.getContext && elem.getContext('2d'))) {
+        // was able or not to get WebP representation
+        return elem.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+    } else {
+        // very old browser like IE 8, canvas not supported
+        return false;
+    }
+}
 
 class ViewportScreenshotHelper extends PluginComponent {
     private createParams() {
@@ -65,7 +79,13 @@ class ViewportScreenshotHelper extends PluginComponent {
                 jpeg: PD.Group({
                     quality: PD.Numeric(0.9, { min: 0, max: 1, step: 0.01 })
                 }),
-            }, { options: [['png', 'PNG'], ['webp', 'WebP'], ['jpeg', 'JPEG']] }),
+            }, {
+                options: [
+                    ['png', 'PNG'],
+                    ['jpeg', 'JPEG'],
+                    ...(checkWebPSupport() ? [['webp', 'WebP'] as ['webp', string]] : []),
+                ]
+            }),
             transparent: PD.Boolean(false),
             axes: CameraHelperParams.axes,
             illumination: PD.Group({
