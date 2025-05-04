@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -16,6 +16,7 @@ import { PluginComponent } from '../../mol-plugin-state/component';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateSelection } from '../../mol-state';
 import { RuntimeContext, Task } from '../../mol-task';
+import { isSafari } from '../../mol-util/browser';
 import { Color } from '../../mol-util/color';
 import { download } from '../../mol-util/download';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -30,6 +31,19 @@ namespace ViewportScreenshotHelper {
 }
 
 type ViewportScreenshotHelperParams = PD.Values<ReturnType<ViewportScreenshotHelper['createParams']>>
+
+function checkWebPSupport() {
+    // adapted from https://stackoverflow.com/a/27232658
+    const elem = document.createElement('canvas');
+
+    if (!!(elem.getContext && elem.getContext('2d'))) {
+        // was able or not to get WebP representation
+        return elem.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+    } else {
+        // very old browser like IE 8, canvas not supported
+        return false;
+    }
+}
 
 class ViewportScreenshotHelper extends PluginComponent {
     private createParams() {
@@ -57,6 +71,21 @@ class ViewportScreenshotHelper extends PluginComponent {
                     ['custom', 'Custom']
                 ]
             }),
+            format: PD.MappedStatic('png', {
+                png: PD.Group({}),
+                webp: PD.Group({
+                    quality: PD.Numeric(0.9, { min: 0, max: 1, step: 0.01 })
+                }),
+                jpeg: PD.Group({
+                    quality: PD.Numeric(0.9, { min: 0, max: 1, step: 0.01 })
+                }),
+            }, {
+                options: [
+                    ['png', 'PNG'],
+                    ['jpeg', 'JPEG'],
+                    ...(checkWebPSupport() ? [['webp', 'WebP'] as ['webp', string]] : []),
+                ]
+            }),
             transparent: PD.Boolean(false),
             axes: CameraHelperParams.axes,
             illumination: PD.Group({
@@ -74,6 +103,7 @@ class ViewportScreenshotHelper extends PluginComponent {
     readonly behaviors = {
         values: this.ev.behavior<ViewportScreenshotHelperParams>({
             transparent: this.params.transparent.defaultValue,
+            format: { name: 'png', params: {} },
             axes: { name: 'off', params: {} },
             resolution: this.params.resolution.defaultValue,
             illumination: this.params.illumination.defaultValue,
@@ -180,7 +210,8 @@ class ViewportScreenshotHelper extends PluginComponent {
         return this._imagePass = this.createPass(false);
     }
 
-    getFilename(extension = '.png') {
+    getFilename(extension?: string) {
+        if (typeof extension !== 'string') extension = this.extension;
         const models = this.plugin.state.data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Model)).map(s => s.obj!.data);
         const uniqueIds = new Set<string>();
         models.forEach(m => uniqueIds.add(m.entryId.toUpperCase()));
@@ -365,18 +396,42 @@ class ViewportScreenshotHelper extends PluginComponent {
         return Task.create('Copy Image', async ctx => {
             await this.draw(ctx);
             await ctx.update('Converting image...');
-            const blob = await canvasToBlob(this.canvas, 'png');
-            const item = new ClipboardItem({ 'image/png': blob });
+            const mime = this.mimeType;
+            const blob = await canvasToBlob(this.canvas, mime, this.quality);
+            const item = new ClipboardItem({ [mime]: blob });
             await cb.write([item]);
             this.plugin.log.message('Image copied to clipboard.');
         });
+    }
+
+    private get mimeType() {
+        return `image/${this.values.format?.name ?? 'png'}`;
+    }
+
+    private get extension() {
+        switch (this.values.format?.name) {
+            case 'jpeg':
+                return '.jpg';
+            default:
+                return `.${this.values.format?.name ?? 'png'}`;
+        }
+    }
+
+    private get quality() {
+        switch (this.values.format?.name) {
+            case 'webp':
+            case 'jpeg':
+                return this.values.format?.params?.quality ?? 0.9;
+            default:
+                return undefined;
+        }
     }
 
     getImageDataUri() {
         return this.plugin.runTask(Task.create('Generate Image', async ctx => {
             await this.draw(ctx);
             await ctx.update('Converting image...');
-            return this.canvas.toDataURL('png');
+            return this.canvas.toDataURL(this.mimeType);
         }));
     }
 
@@ -390,8 +445,8 @@ class ViewportScreenshotHelper extends PluginComponent {
         return Task.create('Download Image', async ctx => {
             await this.draw(ctx);
             await ctx.update('Downloading image...');
-            const blob = await canvasToBlob(this.canvas, 'png');
-            download(blob, filename ?? this.getFilename());
+            const blob = await canvasToBlob(this.canvas, this.mimeType, this.quality);
+            download(blob, filename ?? this.getFilename(this.extension));
         });
     }
 
