@@ -16,7 +16,6 @@ import { PluginComponent } from '../../mol-plugin-state/component';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateSelection } from '../../mol-state';
 import { RuntimeContext, Task } from '../../mol-task';
-import { isSafari } from '../../mol-util/browser';
 import { Color } from '../../mol-util/color';
 import { download } from '../../mol-util/download';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
