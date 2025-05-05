@@ -14,6 +14,8 @@ export async function getJSONCifFile(molfile: string = ExampleMol) {
 
     to_mmCIF('mol', structure, false, {
         encoder,
+        exportExplicitBonds: true,
+        keepAtomSiteId: true,
         includeCategoryNames: new Set(['atom_site']),
     });
 

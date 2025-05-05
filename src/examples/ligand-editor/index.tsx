@@ -66,7 +66,7 @@ async function loadMolfile(model: EditorModel, molfile?: string) {
     const update = plugin.build();
 
     const data = update.toRoot()
-        .apply(ParseJSONCifFileData, { data: file })
+        .apply(ParseJSONCifFileData, { data: file });
 
     data
         .apply(TrajectoryFromMmCif)
@@ -76,7 +76,7 @@ async function loadMolfile(model: EditorModel, molfile?: string) {
             type: { name: 'ball-and-stick', params: { } },
             colorTheme: {
                 name: 'element-symbol',
-                params: { carbonColor: { name: 'element-symbol', params: {} } } 
+                params: { carbonColor: { name: 'element-symbol', params: {} } }
             }
         });
 
