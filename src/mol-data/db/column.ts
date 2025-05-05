@@ -25,12 +25,13 @@ interface Column<T> {
 namespace Column {
     export type ArrayCtor<T> = { new(size: number): ArrayLike<T> }
 
-    export type Schema<T = any> = Schema.Str | Schema.Int | Schema.Float | Schema.Coordinate | Schema.Aliased<T> | Schema.Tensor | Schema.List<number | string>
+    export type Schema<T = any> = Schema.Any | Schema.Str | Schema.Int | Schema.Float | Schema.Coordinate | Schema.Aliased<T> | Schema.Tensor | Schema.List<number | string>
 
     export namespace Schema {
         // T also serves as a default value for undefined columns
 
         type Base<T extends string> = { valueType: T }
+        export type Any = { '@type': 'any', T: any } & Base<'any'>
         export type Str = { '@type': 'str', T: string, transform?: 'uppercase' | 'lowercase' } & Base<'str'>
         export type Int = { '@type': 'int', T: number } & Base<'int'>
         export type Float = { '@type': 'float', T: number } & Base<'float'>
@@ -40,6 +41,7 @@ namespace Column {
         export type Aliased<T> = { '@type': 'aliased', T: T, transform?: T extends string ? 'uppercase' | 'lowercase' : never } & Base<T extends string ? 'str' : 'int'>
         export type List<T extends number | string> = { '@type': 'list', T: T[], separator: string, itemParse: (x: string) => T } & Base<'list'>
 
+        export const any: Any = { '@type': 'any', T: undefined, valueType: 'any' };
         export const str: Str = { '@type': 'str', T: '', valueType: 'str' };
         export const ustr: Str = { '@type': 'str', T: '', valueType: 'str', transform: 'uppercase' };
         export const lstr: Str = { '@type': 'str', T: '', valueType: 'str', transform: 'lowercase' };
@@ -189,6 +191,23 @@ namespace Column {
             },
             rowCount: count,
             schema: Schema.str,
+        });
+    }
+
+    export function ofObjectFields<T>(data: T[], field: keyof T, options?: {
+        schema?: Column.Schema,
+    }) {
+        return lambdaColumn({
+            value: (row: number) => data[row][field],
+            areValuesEqual: (rowA, rowB) => data[rowA][field] === data[rowB][field],
+            valueKind: (row: number) => {
+                const v = data[row][field];
+                if (v === undefined) return ValueKinds.Unknown;
+                if (v === null) return ValueKinds.NotPresent;
+                return ValueKinds.Present;
+            },
+            rowCount: data.length,
+            schema: options?.schema ?? Schema.any,
         });
     }
 

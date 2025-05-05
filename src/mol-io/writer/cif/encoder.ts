@@ -324,6 +324,9 @@ function cifFieldsFromTableSchema(schema: Table.Schema) {
             fields.push({ name: k, type: Field.Type.Str, value: columnListValue(k), valueKind: columnValueKind(k) });
         } else if (t.valueType === 'tensor') {
             fields.push(...getTensorDefinitions(k, t.space));
+        } else if (t.valueType === 'any') {
+            // NOTE: test property is the "str" type will work here
+            fields.push({ name: k, type: Field.Type.Str, value: columnValue(k), valueKind: columnValueKind(k) });
         } else {
             assertUnreachable(t.valueType);
         }
