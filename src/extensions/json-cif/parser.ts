@@ -49,7 +49,7 @@ function Category(data: JSONCifCategory): CifCategory {
 
     return {
         rowCount: data.rows.length,
-        name: data.name.substring(1),
+        name: data.name,
         fieldNames: data.fieldNames,
         getField(name) {
             if (!nameSet.has(name)) return void 0;
@@ -76,8 +76,8 @@ export function parseJSONCif(data: JSONCifFile) {
 
     return CifFile(data.dataBlocks.map(block => {
         const cats = Object.create(null);
-        for (const cat of block.categories) cats[cat.name.substring(1)] = Category(cat);
-        return CifBlock(block.categories.map(c => c.name.substring(1)), cats, block.header);
+        for (const cat of block.categoryNames) cats[cat] = Category(block.categories[cat]);
+        return CifBlock(block.categoryNames, cats, block.header);
     }));
 }
 

@@ -14,7 +14,8 @@ export interface JSONCifFile {
 
 export interface JSONCifDataBlock {
     header: string,
-    categories: JSONCifCategory[],
+    categoryNames: string[],
+    categories: Record<string, JSONCifCategory>,
 }
 
 export interface JSONCifCategory {

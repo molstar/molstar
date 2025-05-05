@@ -1,57 +1,26 @@
-/**
- * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
- *
- * @author David Sehnal <david.sehnal@gmail.com>
- */
+import { JSONCifEncoder } from '../../extensions/json-cif/encoder';
+import { parseMol } from '../../mol-io/reader/mol/parser';
+import { trajectoryFromMol } from '../../mol-model-formats/structure/mol';
+import { Structure, to_mmCIF } from '../../mol-model/structure';
+import { Task } from '../../mol-task';
 
-import { CifFile } from '../../../mol-io/reader/cif';
-import { parseMol } from '../../../mol-io/reader/mol/parser';
-import { trajectoryFromMol } from '../../../mol-model-formats/structure/mol';
-import { Structure, to_mmCIF } from '../../../mol-model/structure';
-import { Task } from '../../../mol-task';
-import { JSONCifEncoder } from '../encoder';
-import { trajectoryFromMmCIF } from '../../../mol-model-formats/structure/mmcif';
-import { parseJSONCif } from '../parser';
-
-describe('json-cif', () => {
-    it('roundtrips', async () => {
-        const s = await parseMolStructure(MolString);
-        const encoder = new JSONCifEncoder('Mol*', { formatJSON: true });
-
-        to_mmCIF('mol', s, false, {
-            encoder,
-            includeCategoryNames: new Set(['atom_site']),
-        });
-
-        const file = encoder.getFile();
-
-        expect(file.dataBlocks.length).toBe(1);
-        expect(file.dataBlocks[0].categoryNames.length).toBe(1);
-        expect(file.dataBlocks[0].categoryNames[0]).toBe('atom_site');
-        expect(file.dataBlocks[0].categories['atom_site'].rows.length).toBe(s.elementCount);
-
-        const parsed = parseJSONCif(file);
-        const parsedModel = await parseCifModel(parsed);
-        expect(parsedModel.atomicHierarchy.atoms._rowCount).toBe(s.elementCount);
-    });
-});
-
-async function parseCifModel(file: CifFile) {
-    const models = await trajectoryFromMmCIF(file.blocks[0], file).run();
-    const model = await Task.resolveInContext(models.getFrameAtIndex(0));
-    return model;
-}
-
-async function parseMolStructure(data: string) {
-    const parsed = await parseMol(data).run();
+export async function getJSONCifFile(molfile: string = ExampleMol) {
+    const parsed = await parseMol(molfile).run();
     if (parsed.isError) throw new Error(parsed.message);
     const models = await trajectoryFromMol(parsed.result).run();
     const model = await Task.resolveInContext(models.getFrameAtIndex(0));
     const structure = Structure.ofModel(model);
-    return structure;
+    const encoder = new JSONCifEncoder('Mol*', { formatJSON: true });
+
+    to_mmCIF('mol', structure, false, {
+        encoder,
+        includeCategoryNames: new Set(['atom_site']),
+    });
+
+    return encoder.getFile();
 }
 
-const MolString = `2244
+const ExampleMol = `2244
   -OEChem-04072009073D
 
  21 21  0     0  0  0  0  0  0999 V2000
