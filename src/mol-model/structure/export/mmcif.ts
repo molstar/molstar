@@ -130,6 +130,7 @@ function getCustomPropCategories(customProp: CustomPropertyDescriptor, ctx: CifE
     const ret: CifExportCategoryInfo[] = [];
     for (const cat of cats) {
         if (params?.skipCategoryNames?.has(cat.name)) continue;
+        if (params?.includeCategoryNames && !params.includeCategoryNames.has(cat.name)) continue;
         if (cat.name.indexOf(prefix) !== 0) throw new Error(`Custom category '${cat.name}' name must start with prefix '${prefix}.'`);
         ret.push([cat, propCtx]);
     }
@@ -138,9 +139,11 @@ function getCustomPropCategories(customProp: CustomPropertyDescriptor, ctx: CifE
 
 type encode_mmCIF_categories_Params = {
     skipCategoryNames?: Set<string>,
+    includeCategoryNames?: Set<string>,
     exportCtx?: CifExportContext,
     copyAllCategories?: boolean,
-    customProperties?: CustomPropertyDescriptor[]
+    customProperties?: CustomPropertyDescriptor[],
+    encoder?: CifWriter.Encoder,
 }
 
 /** Doesn't start a data block */
@@ -161,6 +164,7 @@ export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structures: 
 function encode_mmCIF_categories_default(encoder: CifWriter.Encoder, ctx: CifExportContext, params?: encode_mmCIF_categories_Params) {
     for (const cat of Categories) {
         if (params?.skipCategoryNames && params?.skipCategoryNames.has(cat.name)) continue;
+        if (params?.includeCategoryNames && !params.includeCategoryNames.has(cat.name)) continue;
         encoder.writeCategory(cat, ctx);
     }
 
@@ -255,7 +259,7 @@ function encode_mmCIF_categories_copyAll(encoder: CifWriter.Encoder, ctx: CifExp
 
 
 function to_mmCIF(name: string, structure: Structure, asBinary = false, params?: encode_mmCIF_categories_Params) {
-    const enc = CifWriter.createEncoder({ binary: asBinary });
+    const enc = params?.encoder ?? CifWriter.createEncoder({ binary: asBinary });
     enc.startDataBlock(name);
     encode_mmCIF_categories(enc, structure, params);
     return enc.getData();
