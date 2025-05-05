@@ -5,10 +5,18 @@ Note that since we don't clearly distinguish between a public and private interf
 
 
 ## [Unreleased]
-- Fix `Viewer.loadTrajectory` when loading a topology file.
+- Fix `Viewer.loadTrajectory` when loading a topology file
+- Fix `StructConn.residueCantorPairs` to not include identity pairs
+- Add format selection option to image export UI (PNG, WebP, JPEG)
+- Add `StateBuilder.To.updateState`
+- MVS:
+  - Support updating transform states
+  - Add support for `is_hidden` custom state as an extension
+  - Add `queryMVSRef` and `createMVSRefMap` utility functions
+- Fix switching representation type in Volume UI
 
 ## [v4.13.0] - 2025-04-14
-- Support `--host` option for build-dev.mjs script.
+- Support `--host` option for build-dev.mjs script
 - Add `Viewer.loadFiles` to open supported files
 - Support installing the viewer as a Progressive Web App (PWA)
 - `ihm-restraints` example: show entity labels
