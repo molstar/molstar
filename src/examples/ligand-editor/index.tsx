@@ -13,7 +13,6 @@ import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginConfig } from '../../mol-plugin/config';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginSpec } from '../../mol-plugin/spec';
-
 import { useState } from 'react';
 import { ParseJSONCifFileData } from '../../extensions/json-cif/transformers';
 import '../../mol-plugin-ui/skin/light.scss';

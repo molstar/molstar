@@ -86,6 +86,9 @@
       "node_modules",
       "lib"
     ],
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/src/$1"
+    },
     "testEnvironmentOptions": {
       "url": "http://localhost/"
     },
