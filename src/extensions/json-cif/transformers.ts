@@ -21,7 +21,7 @@ export const ParseJSONCifFileData = Transform({
         data: ParamDefinition.Value<JSONCifFile>(undefined as any, { isHidden: true }),
     }
 })({
-    apply({ a, params }) {
+    apply({ params }) {
         return Task.create('Parse JSON Cif', async ctx => {
             const parsed = parseJSONCif(params.data);
             return new PluginStateObject.Format.Cif(parsed, { label: 'CIF Data' });

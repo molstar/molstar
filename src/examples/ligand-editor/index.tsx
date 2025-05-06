@@ -22,7 +22,7 @@ import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/rep
 import { StateObjectSelector } from '../../mol-state';
 import { JSONCifDataBlock, JSONCifFile } from '../../extensions/json-cif/model';
 import { StructureElement, StructureProperties } from '../../mol-model/structure';
-import { JSONCifLigandGraph } from '@/extensions/json-cif/ligand-graph';
+import { JSONCifLigandGraph, LigandGraphBondProps } from '@/extensions/json-cif/ligand-graph';
 
 async function createViewer(root: HTMLElement) {
     const spec = DefaultPluginUISpec();
@@ -110,7 +110,7 @@ class EditorModel {
         await update.commit();
     }
 
-    async undo() {
+    undo = async () => {
         if (!this.dataSelector) return;
         if (this.history.length === 0) return;
 
@@ -118,7 +118,7 @@ class EditorModel {
         const update = this.plugin.build();
         update.to(this.dataSelector).update({ data });
         await update.commit();
-    }
+    };
 
     private getSelectedAtomIds() {
         const selection = this.plugin.managers.structure.selection;
@@ -143,10 +143,10 @@ class EditorModel {
             graph.modifyAtom(id, { type_symbol: symbol });
         }
 
-        await this.update(graph.getData());
+        await this.update(graph.getData().block);
     }
 
-    async deleteAtoms() {
+    removeAtoms = async () => {
         const { data } = this;
         if (!data) return;
 
@@ -158,8 +158,47 @@ class EditorModel {
             graph.removeAtom(id);
         }
 
-        await this.update(graph.getData());
-    }
+        await this.update(graph.getData().block);
+    };
+
+    removeBonds = async () => {
+        const { data } = this;
+        if (!data) return;
+
+        const ids = this.getSelectedAtomIds();
+        if (!ids.length) return;
+
+        const graph = this.createGraph();
+
+        for (let i = 0; i < ids.length; ++i) {
+            for (let j = i + 1; j < ids.length; ++j) {
+                graph.removeBond(ids[i], ids[j]);
+            }
+        }
+
+        await this.update(graph.getData().block);
+    };
+
+    updateBonds = async (props: LigandGraphBondProps) => {
+        const { data } = this;
+        if (!data) return;
+
+        const ids = this.getSelectedAtomIds();
+        if (!ids.length) return;
+
+        const graph = this.createGraph();
+
+        // TODO: iterate on the all-pairs behavior
+        // e.g. only add bonds if there is no path connecting them,
+        // or by a distance threshold, ...
+        for (let i = 0; i < ids.length; ++i) {
+            for (let j = i + 1; j < ids.length; ++j) {
+                graph.addOrUpdateBond(ids[i], ids[j], props);
+            }
+        }
+
+        await this.update(graph.getData().block);
+    };
 
     constructor(public plugin: PluginContext) { }
 }
@@ -174,15 +213,27 @@ function EditElementSymbolUI({ model }: { model: EditorModel }) {
     const [symbol, setSymbol] = useState('C');
 
     return <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-        <div>
-            <input type="text" value={symbol} onChange={e => setSymbol(e.target.value)} />
-            <button onClick={() => model.setElementSymbol(symbol)}>Set Element Symbol</button>
+        <div style={{ display: 'flex', gap: '5px' }}>
+            <b>Atoms:</b>
+            <button onClick={model.removeAtoms}>Remove</button>
+            <div>
+                <input type="text" value={symbol} style={{ width: 50 }} onChange={e => setSymbol(e.target.value)} />
+                <button onClick={() => model.setElementSymbol(symbol)}>Set Element</button>
+            </div>
+        </div>
+        <div style={{ display: 'flex', gap: '5px' }}>
+            <b>Bonds:</b>
+            <button onClick={model.removeBonds}>Remove</button>
+            <button onClick={() => model.updateBonds({ value_order: 'sing', type_id: 'covale' })}>-</button>
+            <button onClick={() => model.updateBonds({ value_order: 'doub', type_id: 'covale' })}>=</button>
+            <button onClick={() => model.updateBonds({ value_order: 'trip', type_id: 'covale' })}>≡</button>
+        </div>
+        <div style={{ display: 'flex', gap: '5px' }}>
+            <b>Attach:</b>
+            <div>TODO</div>
         </div>
         <div>
-            <button onClick={() => model.deleteAtoms()}>Delete Atoms</button>
-        </div>
-        <div>
-            <button onClick={() => model.undo()}>Undo</button>
+            <button onClick={model.undo}>Undo</button>
         </div>
     </div>;
 }

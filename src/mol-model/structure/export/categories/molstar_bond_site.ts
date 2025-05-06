@@ -17,23 +17,23 @@ export function molstar_bond_site(ctx: CifExportContext): CifExportCategoryInfo 
     return [Category, entries, { ignoreFilter: true }];
 }
 
-type ValueOrder = 'sing' | 'doub' | 'trip' | 'quad' | 'arom';
-type TypeId = 'covale' | 'disulf' | 'metalc' | 'hydrog';
+export type MolstarBondSiteValueOrder = 'sing' | 'doub' | 'trip' | 'quad' | 'arom';
+export type MolstarBondSiteTypeId = 'covale' | 'disulf' | 'metalc' | 'hydrog';
 
 export const MolstarBondSiteSchema = {
     molstar_bond_site: {
         atom_id_1: Column.Schema.int,
         atom_id_2: Column.Schema.int,
-        value_order: Column.Schema.Aliased<ValueOrder>(Column.Schema.lstr),
-        type_id: Column.Schema.Aliased<TypeId>(Column.Schema.lstr),
+        value_order: Column.Schema.Aliased<MolstarBondSiteValueOrder>(Column.Schema.lstr),
+        type_id: Column.Schema.Aliased<MolstarBondSiteTypeId>(Column.Schema.lstr),
     }
 };
 
 interface Entry {
     atom_id_1: number,
     atom_id_2: number,
-    value_order?: ValueOrder,
-    type_id?: TypeId,
+    value_order?: MolstarBondSiteValueOrder,
+    type_id?: MolstarBondSiteTypeId,
 }
 
 const Fields = CifWriter.fields<number, Entry[], keyof (typeof MolstarBondSiteSchema)['molstar_bond_site']>()
@@ -55,7 +55,7 @@ const Category: CifWriter.Category<Entry[]> = {
     }
 };
 
-function assignValueOrder(order: number, flags: BondType.Flag, out: [ValueOrder | undefined, TypeId | undefined]) {
+function assignValueOrder(order: number, flags: BondType.Flag, out: [MolstarBondSiteValueOrder | undefined, MolstarBondSiteTypeId | undefined]) {
     out[0] = undefined;
     out[1] = undefined;
 
@@ -78,7 +78,7 @@ function getEntries(ctx: CifExportContext) {
     const loc = StructureElement.Location.create();
     const { id: atom_id } = StructureProperties.atom;
 
-    const info: [ValueOrder | undefined, TypeId | undefined] = [undefined, undefined];
+    const info: [MolstarBondSiteValueOrder | undefined, MolstarBondSiteTypeId | undefined] = [undefined, undefined];
 
     const add = (a: number, b: number) => {
         const key = sortedCantorPairing(a, b);

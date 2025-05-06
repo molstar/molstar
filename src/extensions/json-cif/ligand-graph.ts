@@ -7,35 +7,69 @@
 import { UUID } from '@/mol-util';
 import { JSONCifDataBlock } from './model';
 import { arrayMapAdd } from '@/mol-util/map';
+import { mmCIF_Schema } from '@/mol-io/reader/cif/schema/mmcif';
+import { Table } from '@/mol-data/db';
+import { MolstarBondSiteTypeId, MolstarBondSiteValueOrder } from '@/mol-model/structure/export/categories/molstar_bond_site';
+
+type Atom = Partial<Table.Row<mmCIF_Schema['atom_site']>>
+
+export interface LigandGraphBondProps {
+    value_order: MolstarBondSiteValueOrder | undefined;
+    type_id: MolstarBondSiteTypeId | undefined;
+}
 
 export interface AtomSiteRow {
     key: string;
     final_id: number | undefined;
-    row: Record<string, any>;
+    row: Atom;
 }
 
-export interface Bond {
+export interface LigandGraphBond extends LigandGraphBondProps {
     atom_1: AtomSiteRow;
     atom_2: AtomSiteRow;
-    value_order: string | undefined;
-    type_id: string | undefined;
+}
+
+export interface JSONCifLigandGraphData {
+    block: JSONCifDataBlock;
+    atomIdRemapping: Map<number, number>;
+    addedAtomIds: number[];
+    removedAtomIds: number[];
 }
 
 export class JSONCifLigandGraph {
     readonly atoms: AtomSiteRow[] = [];
     readonly atomsById: Map<number, AtomSiteRow> = new Map();
-    readonly bondByKey: Map<string, Bond[]> = new Map();
+    readonly bondByKey: Map<string, LigandGraphBond[]> = new Map();
+    readonly removedAtomIds: Set<number> = new Set();
 
-    modifyAtom(id: number, data: Record<string, any>) {
+    getAtom(atomOrId: number | AtomSiteRow) {
+        return typeof atomOrId === 'number' ? this.atomsById.get(atomOrId) : atomOrId;
+    }
+
+    modifyAtom(id: number, data: Atom) {
         const atom = this.atomsById.get(id);
         if (!atom) return;
         atom.row = { ...atom.row, ...data };
     }
 
-    removeAtom(id: number) {
-        const atom = this.atomsById.get(id);
+    addAtom(data: Omit<Atom, 'id'>) {
+        const atom: AtomSiteRow = {
+            key: UUID.create22(),
+            final_id: undefined,
+            row: { ...data, id: undefined },
+        };
+        this.atoms.push(atom);
+        return atom;
+    }
+
+    removeAtom(atomOrId: number | AtomSiteRow) {
+        const atom = this.getAtom(atomOrId);
         if (!atom) return;
-        this.atomsById.delete(id);
+        if (typeof atom.row.id === 'number') {
+            this.removedAtomIds.add(atom.row.id);
+            this.atomsById.delete(atom.row.id);
+        }
+
         this.atoms.splice(this.atoms.indexOf(atom), 1);
 
         const bonds = this.bondByKey.get(atom.key);
@@ -49,13 +83,48 @@ export class JSONCifLigandGraph {
         }
     }
 
-    getData(): JSONCifDataBlock {
+    addOrUpdateBond(atom1: number | AtomSiteRow, atom2: number | AtomSiteRow, props: LigandGraphBondProps) {
+        const a1 = this.getAtom(atom1);
+        const a2 = this.getAtom(atom2);
+        if (!a1 || !a2) return;
+
+        this.removeBond(atom1, atom2);
+        arrayMapAdd(this.bondByKey, a1.key, { atom_1: a1, atom_2: a2, ...props });
+        arrayMapAdd(this.bondByKey, a2.key, { atom_1: a2, atom_2: a1, ...props });
+    }
+
+    removeBond(atom1: number | AtomSiteRow, atom2: number | AtomSiteRow) {
+        const a1 = this.getAtom(atom1);
+        const a2 = this.getAtom(atom2);
+        if (!a1 || !a2) return;
+        const a1Bonds = this.bondByKey.get(a1.key);
+        if (a1Bonds) {
+            this.bondByKey.set(a1.key, a1Bonds.filter(b => b.atom_2 !== a2));
+        }
+        const a2Bonds = this.bondByKey.get(a2.key);
+        if (a2Bonds) {
+            this.bondByKey.set(a2.key, a2Bonds.filter(b => b.atom_2 !== a1));
+        }
+    }
+
+    getData(): JSONCifLigandGraphData {
+        const atomIdRemapping = new Map<number, number>();
+        const addedAtomIds: number[] = [];
+
         for (let i = 0; i < this.atoms.length; ++i) {
-            this.atoms[i].final_id = i + 1;
-            this.atoms[i].row['id'] = i + 1;
+            const id = i + 1;
+
+            if (this.atoms[i].row.id === undefined) {
+                addedAtomIds.push(id);
+            } else {
+                atomIdRemapping.set(this.atoms[i].row.id!, id);
+            }
+
+            this.atoms[i].final_id = id;
+            this.atoms[i].row.id = id;
         }
 
-        const ret: JSONCifDataBlock = {
+        const block: JSONCifDataBlock = {
             ...this.data,
             categories: {
                 ...this.data.categories,
@@ -82,14 +151,19 @@ export class JSONCifLigandGraph {
             }
         }
 
-        if (ret.categories.molstar_bond_site) {
-            ret.categories['molstar_bond_site'] = {
-                ...ret.categories['molstar_bond_site'],
+        if (block.categories.molstar_bond_site) {
+            block.categories['molstar_bond_site'] = {
+                ...block.categories['molstar_bond_site'],
                 rows: bonds
             };
         }
 
-        return ret;
+        return {
+            block,
+            atomIdRemapping,
+            addedAtomIds,
+            removedAtomIds: Array.from(this.removedAtomIds).sort((a, b) => a - b),
+        };
     }
 
     constructor(private data: JSONCifDataBlock) {
