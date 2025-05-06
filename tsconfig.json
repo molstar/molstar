@@ -19,7 +19,7 @@
         "lib": [ "es2018", "dom", "ES2022.Object" ],
         "rootDir": "src",
         "paths": {
-        "@/*": [
+          "@/*": [
             "./src/*"
           ]
         },
