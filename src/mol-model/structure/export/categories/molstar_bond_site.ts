@@ -4,12 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Column } from '@/mol-data/db';
-import { CifWriter } from '@/mol-io/writer/cif';
+import { Column } from '../../../../mol-data/db';
+import { CifWriter } from '../../../../mol-io/writer/cif';
 import { BondType } from '../../model/types';
 import { StructureElement, StructureProperties, Unit } from '../../structure';
 import { CifExportCategoryInfo, CifExportContext } from '../mmcif';
-import { sortedCantorPairing } from '@/mol-data/util';
+import { sortedCantorPairing } from '../../../../mol-data/util';
 
 export function molstar_bond_site(ctx: CifExportContext): CifExportCategoryInfo | undefined {
     const entries = getEntries(ctx);

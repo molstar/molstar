@@ -27,8 +27,8 @@ import { BondType, MoleculeType } from '../../mol-model/structure/model/types';
 import { ComponentBuilder } from './common/component';
 import { sortedCantorPairing } from '../../mol-data/util';
 import { IndexPairBonds } from './property/bonds/index-pair';
-import { toDatabase } from '@/mol-io/reader/cif/schema';
-import { MolstarBondSiteSchema } from '@/mol-model/structure/export/categories/molstar_bond_site';
+import { toDatabase } from '../../mol-io/reader/cif/schema';
+import { MolstarBondSiteSchema } from '../../mol-model/structure/export/categories/molstar_bond_site';
 
 function modelSymmetryFromMmcif(model: Model) {
     if (!MmcifFormat.is(model.sourceData)) return;

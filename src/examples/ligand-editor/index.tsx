@@ -21,9 +21,9 @@ import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/rep
 import { StateObjectSelector } from '../../mol-state';
 import { JSONCifDataBlock, JSONCifFile } from '../../extensions/json-cif/model';
 import { StructureElement, StructureProperties } from '../../mol-model/structure';
-import { JSONCifLigandGraph, LigandGraphBondProps } from '@/extensions/json-cif/ligand-graph';
+import { JSONCifLigandGraph, LigandGraphBondProps } from '../../extensions/json-cif/ligand-graph';
 import { BehaviorSubject } from 'rxjs';
-import { useBehavior } from '@/mol-plugin-ui/hooks/use-behavior';
+import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
 
 async function createViewer(root: HTMLElement) {
     const spec = DefaultPluginUISpec();
