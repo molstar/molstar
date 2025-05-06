@@ -13,7 +13,6 @@ import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginConfig } from '../../mol-plugin/config';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginSpec } from '../../mol-plugin/spec';
-import { useState } from 'react';
 import { ParseJSONCifFileData } from '../../extensions/json-cif/transformers';
 import '../../mol-plugin-ui/skin/light.scss';
 import './index.html';
@@ -23,6 +22,8 @@ import { StateObjectSelector } from '../../mol-state';
 import { JSONCifDataBlock, JSONCifFile } from '../../extensions/json-cif/model';
 import { StructureElement, StructureProperties } from '../../mol-model/structure';
 import { JSONCifLigandGraph, LigandGraphBondProps } from '@/extensions/json-cif/ligand-graph';
+import { BehaviorSubject } from 'rxjs';
+import { useBehavior } from '@/mol-plugin-ui/hooks/use-behavior';
 
 async function createViewer(root: HTMLElement) {
     const spec = DefaultPluginUISpec();
@@ -88,6 +89,10 @@ class EditorModel {
     dataSelector: StateObjectSelector | undefined = undefined;
     history: JSONCifFile[] = [];
 
+    state = {
+        element: new BehaviorSubject<string>('C'),
+    };
+
     get data() {
         return this.dataSelector?.cell?.transform?.params?.data as JSONCifFile | undefined;
     }
@@ -131,7 +136,10 @@ class EditorModel {
         return ids;
     }
 
-    async setElementSymbol(symbol: string) {
+    setElement = async () => {
+        const symbol = this.state.element.value.trim();
+        if (!symbol) return;
+
         const { data } = this;
         if (!data) return;
 
@@ -144,7 +152,25 @@ class EditorModel {
         }
 
         await this.update(graph.getData().block);
-    }
+    };
+
+    addElement = async () => {
+        const symbol = this.state.element.value.trim();
+        if (!symbol) return;
+
+        const { data } = this;
+        if (!data) return;
+
+        const ids = this.getSelectedAtomIds();
+        if (ids.length !== 1) return;
+
+        const graph = this.createGraph();
+        for (const id of ids) {
+            graph.attachAtom(id, { type_symbol: symbol });
+        }
+
+        await this.update(graph.getData().block);
+    };
 
     removeAtoms = async () => {
         const { data } = this;
@@ -210,15 +236,14 @@ function ControlsUI({ model }: { model: EditorModel }) {
 }
 
 function EditElementSymbolUI({ model }: { model: EditorModel }) {
-    const [symbol, setSymbol] = useState('C');
-
     return <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
         <div style={{ display: 'flex', gap: '5px' }}>
             <b>Atoms:</b>
             <button onClick={model.removeAtoms}>Remove</button>
             <div>
-                <input type="text" value={symbol} style={{ width: 50 }} onChange={e => setSymbol(e.target.value)} />
-                <button onClick={() => model.setElementSymbol(symbol)}>Set Element</button>
+                <ElementEditUI model={model} />
+                <button onClick={model.setElement}>Set</button>
+                <button onClick={model.addElement}>Add</button>
             </div>
         </div>
         <div style={{ display: 'flex', gap: '5px' }}>
@@ -229,13 +254,18 @@ function EditElementSymbolUI({ model }: { model: EditorModel }) {
             <button onClick={() => model.updateBonds({ value_order: 'trip', type_id: 'covale' })}>≡</button>
         </div>
         <div style={{ display: 'flex', gap: '5px' }}>
-            <b>Attach:</b>
+            <b>R-groups:</b>
             <div>TODO</div>
         </div>
         <div>
             <button onClick={model.undo}>Undo</button>
         </div>
     </div>;
+}
+
+function ElementEditUI({ model }: { model: EditorModel }) {
+    const element = useBehavior(model.state.element);
+    return <input type="text" value={element} style={{ width: 50 }} onChange={e => model.state.element.next(e.target.value)} />;
 }
 
 async function init(viewer: HTMLElement | string, controls: HTMLElement | string) {
