@@ -3,6 +3,7 @@ All notable changes to this project will be documented in this file, following t
 
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
+## [Unreleased]
 
 ## [v4.14.0] - 2025-05-07
 - Fix `Viewer.loadTrajectory` when loading a topology file
