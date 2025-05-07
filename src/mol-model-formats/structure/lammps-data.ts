@@ -8,7 +8,7 @@
 
 import { Column, Table } from '../../mol-data/db';
 import { Model } from '../../mol-model/structure/model';
-import { LammpsDataFile, lammpsUnitStyles, UnitStyle } from '../../mol-io/reader/lammps/schema';
+import { LammpsDataFile, lammpsUnitStyles, AsymIdStyle, UnitStyle } from '../../mol-io/reader/lammps/schema';
 import { Trajectory, ArrayTrajectory } from '../../mol-model/structure';
 import { BondType, MoleculeType } from '../../mol-model/structure/model/types';
 import { RuntimeContext, Task } from '../../mol-task';
@@ -20,8 +20,8 @@ import { EntityBuilder } from './common/entity';
 import { IndexPairBonds } from './property/bonds/index-pair';
 import { AtomPartialCharge } from './property/partial-charge';
 
-async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: UnitStyle = 'real') {
-    const { atoms, bonds } = mol;
+async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: UnitStyle = 'real', asymIdStyle: AsymIdStyle = 'auto'): Promise<Trajectory> {
+    const { atoms, bonds, bounds } = mol;
     const models: Model[] = [];
     const count = atoms.count;
     const scale = lammpsUnitStyles[unitsStyle].scale;
@@ -32,23 +32,36 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
     const cz = new Float32Array(count);
     const model_num = new Int32Array(count);
 
+    const ll = bounds.length;
+    const lo = bounds.lower;
     let offset = 0;
     for (let j = 0; j < count; j++) {
         type_symbols[offset] = atoms.atomType.value(j).toString();
-        cx[offset] = atoms.x.value(j) * scale;
-        cy[offset] = atoms.y.value(j) * scale;
-        cz[offset] = atoms.z.value(j) * scale;
+        cx[offset] = ((atoms.x.value(j) - lo[0]) % ll[0] + lo[0]) * scale;
+        cy[offset] = ((atoms.y.value(j) - lo[1]) % ll[1] + lo[1]) * scale;
+        cz[offset] = ((atoms.z.value(j) - lo[2]) % ll[2] + lo[2]) * scale;
         id[offset] = atoms.atomId.value(j) - 1;
         model_num[offset] = 0;
         offset++;
     }
 
     const MOL = Column.ofConst('MOL', count, Column.Schema.str);
-    const asym_id = Column.ofLambda({
-        value: (row: number) => atoms.moleculeId.value(row).toString(),
-        rowCount: count,
-        schema: Column.Schema.str,
-    });
+    const asym_id = asymIdStyle === 'on' ?
+        Column.ofLambda({
+            value: (row: number) => atoms.moleculeId.value(row).toString(),
+            rowCount: count,
+            schema: Column.Schema.str,
+        })
+        : asymIdStyle === 'off' ?
+            Column.ofConst('A', count, Column.Schema.str)
+            : (count > 200000) ?
+                Column.ofConst('A', count, Column.Schema.str)
+                : Column.ofLambda({
+                    value: (row: number) => atoms.moleculeId.value(row).toString(),
+                    rowCount: count,
+                    schema: Column.Schema.str,
+                });
+
     const seq_id = Column.ofConst(1, count, Column.Schema.int);
 
     const type_symbol = Column.ofStringArray(type_symbols);
@@ -97,11 +110,62 @@ async function getModels(mol: LammpsDataFile, ctx: RuntimeContext, unitsStyle: U
             const key = bonds.bondId;
             const order = Column.ofConst(1, bonds.count, Column.Schema.int);
             const flag = Column.ofConst(BondType.Flag.Covalent, bonds.count, Column.Schema.int);
+
+            // Assuming 'atoms' contains the coordinates after wrapping
+            const newBonds = [];
+            const pos1 = [0, 0, 0];
+            const pos2 = [0, 0, 0];
+            for (let i = 0; i < bonds.count; i++) {
+                const [atom1Index, atom2Index] = [indexA.value(i), indexB.value(i)];
+
+                // Here, you would ideally have access to the wrapped positions of atom1 and atom2
+                // If not, you might need to apply wrapping logic here:
+                pos1[0] = atoms.x.value(atom1Index);
+                pos1[1] = atoms.y.value(atom1Index);
+                pos1[2] = atoms.z.value(atom1Index);
+                pos2[0] = atoms.x.value(atom2Index);
+                pos2[1] = atoms.y.value(atom2Index);
+                pos2[2] = atoms.z.value(atom2Index);
+                let crossBoundary = false;
+
+                // Check periodicity and apply wrapping if necessary (pseudo-code, adjust according to your actual structure)
+                for (let dim = 0; dim < 3; dim++) {
+                    // Wrapping logic as previously described
+                    pos1[dim] = ((pos1[dim] - bounds.lower[dim]) % bounds.length[dim] + bounds.length[dim]) % bounds.length[dim] + bounds.lower[dim];
+                    pos2[dim] = ((pos2[dim] - bounds.lower[dim]) % bounds.length[dim] + bounds.length[dim]) % bounds.length[dim] + bounds.lower[dim];
+                    if (Math.abs(pos1[dim] - pos2[dim]) > bounds.length[dim] / 2) {
+                        crossBoundary = true;
+                    }
+                }
+
+                // Decide whether to keep this bond based on whether it crosses the boundary
+                if (!crossBoundary) {
+                    newBonds.push({
+                        key: key.value(i),
+                        indexA: atom1Index,
+                        indexB: atom2Index,
+                        order: order.value(i),
+                        flag: flag.value(i)
+                    });
+                }
+                if ((i % 10000) === 0) await ctx.update({ message: 'Filtering bonds ...', current: i, max: bonds.count });
+            }
+            await ctx.update('Filtering done, building IndexPairBonds...');
             const pairBonds = IndexPairBonds.fromData(
-                { pairs: { key, indexA, indexB, order, flag }, count: atoms.count },
+                {
+                    pairs: {
+                        key: Column.ofIntArray(newBonds.map(b => b.key)),
+                        indexA: Column.ofIntArray(newBonds.map(b => b.indexA)),
+                        indexB: Column.ofIntArray(newBonds.map(b => b.indexB)),
+                        order: Column.ofIntArray(newBonds.map(b => b.order)),
+                        flag: Column.ofIntArray(newBonds.map(b => b.flag))
+                    },
+                    count: atoms.count
+                },
                 { maxDistance: Infinity }
             );
             IndexPairBonds.Provider.set(first, pairBonds);
+            await ctx.update('IndexPairBonds done');
         }
 
         AtomPartialCharge.Provider.set(first, {
@@ -130,7 +194,8 @@ namespace LammpsDataFormat {
     }
 }
 
-export function trajectoryFromLammpsData(mol: LammpsDataFile, unitsStyle?: UnitStyle): Task<Trajectory> {
+export function trajectoryFromLammpsData(mol: LammpsDataFile, unitsStyle?: UnitStyle, asymId?: AsymIdStyle): Task<Trajectory> {
     if (unitsStyle === void 0) unitsStyle = 'real';
-    return Task.create('Parse Lammps Data', ctx => getModels(mol, ctx, unitsStyle));
+    if (asymId === void 0) asymId = 'auto';
+    return Task.create('Parse Lammps Data', ctx => getModels(mol, ctx, unitsStyle, asymId));
 }

@@ -126,7 +126,7 @@ export const LammpsTrajectoryDataProvider: TrajectoryFormatProvider = {
     label: 'Lammps Trajectory Data',
     description: 'Lammps Trajectory Data',
     category: TrajectoryFormatCategory,
-    stringExtensions: ['lammpstrj'],
+    binaryExtensions: ['lammpstrj'],
     parse: directTrajectory(StateTransforms.Model.TrajectoryFromLammpsTrajData),
     visuals: defaultVisuals
 };

@@ -257,7 +257,6 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
             if (mdbDataList) {
                 for (const mdbData of mdbDataList) {
                     if (mdbData.count === 0) continue;
-
                     program.setUniforms(mdbData.uniforms);
                     // console.log(mdbData.uniforms)
                     if (multiDrawInstancedBaseVertexBaseInstance) {
@@ -288,7 +287,13 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                                 if (mdbData.counts[i] > 0) {
                                     program.uniform('uDrawId', i);
                                     program.offsetAttributes(instanceBuffers, mdbData.baseInstances[i]);
-                                    instancedArrays.drawElementsInstanced(glDrawMode, mdbData.counts[i], elementsBuffer._dataType, mdbData.offsets[i], mdbData.instanceCounts[i]);
+                                    let offset = 0;
+                                    while (true) {
+                                        const count = Math.min(mdbData.counts[i] - offset, MaxDrawCount);
+                                        instancedArrays.drawElementsInstanced(glDrawMode, count, elementsBuffer._dataType, offset * elementsBuffer._bpe + mdbData.offsets[i], mdbData.instanceCounts[i]);
+                                        offset += count;
+                                        if (offset >= mdbData.counts[i]) break;
+                                    }
                                 }
                             }
                         } else {
@@ -296,7 +301,13 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                                 if (mdbData.counts[i] > 0) {
                                     program.uniform('uDrawId', i);
                                     program.offsetAttributes(instanceBuffers, mdbData.baseInstances[i]);
-                                    instancedArrays.drawArraysInstanced(glDrawMode, 0, mdbData.counts[i], mdbData.instanceCounts[i]);
+                                    let offset = 0;
+                                    while (true) {
+                                        const count = Math.min(mdbData.counts[i] - offset, MaxDrawCount);
+                                        instancedArrays.drawArraysInstanced(glDrawMode, offset, count, mdbData.instanceCounts[i]);
+                                        offset += count;
+                                        if (offset >= mdbData.counts[i]) break;
+                                    }
                                 }
                             }
                         }
