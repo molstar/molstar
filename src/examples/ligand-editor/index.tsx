@@ -27,7 +27,8 @@ import { TopologyEdits } from './edits';
 import { ExampleMol } from './example-data';
 import './index.html';
 import { RGroupName } from './r-groups';
-import { jsonCifToMolfile, molfileToJSONCif } from './utils';
+import { molfileToJSONCif } from './utils';
+import { jsonCifToMolfile } from '../../extensions/json-cif/molfile';
 
 async function init(target: HTMLElement | string, molfile: string = ExampleMol) {
     const root = typeof target === 'string' ? document.getElementById(target)! : target;
