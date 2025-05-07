@@ -11,32 +11,44 @@
                 box-sizing: border-box;
                 font-family: sans-serif;
             }
-            #viewer {
+            #app {
                 position: absolute;
-                left: 20px;
-                top: 20px;
-                width: 640px;
-                height: 480px;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                right: 0;
             }
-            #controls {
-                position: absolute;
-                left: 680px;
-                top: 20px;
-                font-family: sans-serif;
-                padding: 8px;
-                border: 1px dotted #aaa;
-                background: rgba(255, 255, 255, 0.5);
+
+            .editor-controls button {
+                padding: 0 8px;
+                background-color: transparent;
+                color: black;
+                border: 1px solid rgb(206, 200, 186);
+                border-radius: 4px;
+                cursor: pointer;
+                height: 24px;
+            }
+            .editor-controls input, .editor-controls textarea {
+                padding: 0 8px;
+                border: 1px solid rgb(206, 200, 186);
+                border-radius: 4px;
+                height: 24px;
+            }
+
+            .editor-controls textarea {
+                padding: 4px 8px;
+                border: 1px solid rgb(206, 200, 186);
+                border-radius: 4px;
             }
         </style>
         <link rel="stylesheet" type="text/css" href="molstar.css" />
     </head>
     <body>
-        <div id="viewer"></div>
-        <div id="controls">
+        <div id="app"></div>
         </div>
         <script type="text/javascript" src="./index.js"></script>
         <script>
-            initLigandEditorExample('viewer', 'controls');
+            initLigandEditorExample('app');
         </script>
     </body>
 </html>

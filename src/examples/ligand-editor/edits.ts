@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { JSONCifLigandGraph, LigandGraphBondProps } from '../../extensions/json-cif/ligand-graph';
+import { JSONCifLigandGraph, JSONCifLigandGraphBondProps } from '../../extensions/json-cif/ligand-graph';
 import { attachRGroup, RGroupName } from './r-groups';
 
 export const TopologyEdits = {
@@ -29,7 +29,7 @@ export const TopologyEdits = {
             }
         }
     },
-    updateBonds: async (graph: JSONCifLigandGraph, atomIds: number[], props: LigandGraphBondProps) => {
+    updateBonds: async (graph: JSONCifLigandGraph, atomIds: number[], props: JSONCifLigandGraphBondProps) => {
         // TODO: iterate on the all-pairs behavior
         // e.g. only add bonds if there is no path connecting them,
         // or by a distance threshold, ...

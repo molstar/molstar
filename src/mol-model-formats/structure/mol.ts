@@ -45,7 +45,7 @@ export async function getMolModels(mol: MolFile, format: ModelFormat<any> | unde
         Cartn_x: Column.asArrayColumn(atoms.x, Float32Array),
         Cartn_y: Column.asArrayColumn(atoms.y, Float32Array),
         Cartn_z: Column.asArrayColumn(atoms.z, Float32Array),
-        id: Column.range(0, atoms.count - 1),
+        id: Column.range(1, atoms.count),
 
         label_asym_id: A,
         label_atom_id: type_symbol,

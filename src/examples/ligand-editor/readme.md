@@ -1,6 +1,6 @@
 # Ligand Editor Example
 
-An example showcasing basic small molecule editing features utilizing the `json-cif` format/extension.
+Basic small molecule editing features utilizing the `json-cif` format/extension.
 This application is (at least currently) not meant to be a production-ready molecule editor.
 
 To run development build locally from the root `molstar` directory (after `npm install`):

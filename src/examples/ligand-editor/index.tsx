@@ -6,7 +6,7 @@
 
 import { createRoot } from 'react-dom/client';
 import { BehaviorSubject } from 'rxjs';
-import { JSONCifLigandGraph, LigandGraphBondProps } from '../../extensions/json-cif/ligand-graph';
+import { JSONCifLigandGraph, JSONCifLigandGraphBondProps } from '../../extensions/json-cif/ligand-graph';
 import { JSONCifDataBlock, JSONCifFile } from '../../extensions/json-cif/model';
 import { ParseJSONCifFileData } from '../../extensions/json-cif/transformers';
 import { MolViewSpec } from '../../extensions/mvs/behavior';
@@ -14,46 +14,57 @@ import { StructureElement, StructureProperties } from '../../mol-model/structure
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { ModelFromTrajectory, StructureFromModel, TrajectoryFromMmCif } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
-import { createPluginUI } from '../../mol-plugin-ui';
+import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
-import { renderReact18 } from '../../mol-plugin-ui/react18';
+import { Plugin } from '../../mol-plugin-ui/plugin';
 import '../../mol-plugin-ui/skin/light.scss';
 import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginConfig } from '../../mol-plugin/config';
-import { PluginContext } from '../../mol-plugin/context';
 import { PluginSpec } from '../../mol-plugin/spec';
 import { StateObjectSelector } from '../../mol-state';
+import { download } from '../../mol-util/download';
 import { TopologyEdits } from './edits';
 import { ExampleMol } from './example-data';
 import './index.html';
 import { RGroupName } from './r-groups';
 import { jsonCifToMolfile, molfileToJSONCif } from './utils';
 
+async function init(target: HTMLElement | string, molfile: string = ExampleMol) {
+    const root = typeof target === 'string' ? document.getElementById(target)! : target;
+    const plugin = await createViewer(root);
+    const model = new EditorModel(plugin);
+    createRoot(root).render(<AppUI model={model} />);
+    loadMolfile(model, molfile);
+    return model;
+}
+
+(window as any).initLigandEditorExample = init;
+
 async function createViewer(root: HTMLElement) {
     const spec = DefaultPluginUISpec();
-    const plugin = await createPluginUI({
-        target: root,
-        render: renderReact18,
-        spec: {
-            ...spec,
-            layout: {
-                initial: {
-                    isExpanded: false,
-                    showControls: false
-                }
-            },
-            components: {
-                remoteState: 'none',
-            },
-            behaviors: [
-                ...spec.behaviors,
-                PluginSpec.Behavior(MolViewSpec)
-            ],
-            config: [
-                [PluginConfig.Viewport.ShowAnimation, false],
-            ]
-        }
+    const plugin = new PluginUIContext({
+        ...spec,
+        layout: {
+            initial: {
+                isExpanded: false,
+                showControls: false
+            }
+        },
+        components: {
+            remoteState: 'none',
+        },
+        behaviors: [
+            ...spec.behaviors,
+            PluginSpec.Behavior(MolViewSpec)
+        ],
+        config: [
+            [PluginConfig.Viewport.ShowAnimation, false],
+            [PluginConfig.Viewport.ShowSelectionMode, false],
+            [PluginConfig.Viewport.ShowExpand, false],
+            [PluginConfig.Viewport.ShowControls, false],
+        ]
     });
+    await plugin.init();
     plugin.managers.interactivity.setProps({ granularity: 'element' });
     plugin.selectionMode = true;
 
@@ -66,9 +77,7 @@ async function loadMolfile(model: EditorModel, molfile: string) {
     await plugin.clear();
 
     const file = await molfileToJSONCif(molfile);
-
     const update = plugin.build();
-
     const data = update.toRoot()
         .apply(ParseJSONCifFileData, { data: file.data });
 
@@ -85,22 +94,24 @@ async function loadMolfile(model: EditorModel, molfile: string) {
         });
 
     await update.commit();
-
     model.setDataSelector(data.selector);
 }
 
 class EditorModel {
     private dataSelector: StateObjectSelector | undefined = undefined;
 
-    history: JSONCifFile[] = [];
-
     state = {
         element: new BehaviorSubject<string>('C'),
+        history: new BehaviorSubject<JSONCifFile[]>([]),
         molfile: new BehaviorSubject<string>(''),
     };
 
     get data() {
         return this.dataSelector?.cell?.transform?.params?.data as JSONCifFile | undefined;
+    }
+
+    get history() {
+        return this.state.history.value;
     }
 
     createGraph() {
@@ -132,7 +143,7 @@ class EditorModel {
             dataBlocks: [data],
         };
 
-        this.history.push(this.data!);
+        this.state.history.next([...this.history, this.data!]);
         const update = this.plugin.build();
         update.to(this.dataSelector!).update({ data: updated });
         await update.commit();
@@ -144,7 +155,9 @@ class EditorModel {
         if (!this.dataSelector) return;
         if (this.history.length === 0) return;
 
-        const data = this.history.pop()!;
+        const data = this.history[this.history.length - 1];
+        this.state.history.next(this.history.slice(0, this.history.length - 1));
+
         const update = this.plugin.build();
         update.to(this.dataSelector).update({ data });
         await update.commit();
@@ -225,7 +238,7 @@ class EditorModel {
         await this.editGraphTopology(TopologyEdits.removeBonds, ids);
     };
 
-    updateBonds = async (props: LigandGraphBondProps) => {
+    updateBonds = async (props: JSONCifLigandGraphBondProps) => {
         const ids = this.getSelectedAtomIds();
         if (!ids.length) return;
 
@@ -239,11 +252,22 @@ class EditorModel {
         await this.editGraphTopology(TopologyEdits.attachRgroup, ids[0], name);
     };
 
-    constructor(public plugin: PluginContext) { }
+    constructor(public plugin: PluginUIContext) { }
+}
+
+function AppUI({ model }: { model: EditorModel }) {
+    return <div style={{ display: 'flex', flexDirection: 'row', height: '100%', width: '100%' }}>
+        <div style={{ flexGrow: 1, display: 'block', position: 'relative' }}>
+            <Plugin plugin={model.plugin} />
+        </div>
+        <div style={{ flexShrink: 0, minWidth: 500, width: 400, display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            <ControlsUI model={model} />
+        </div>
+    </div>;
 }
 
 function ControlsUI({ model }: { model: EditorModel }) {
-    return <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+    return <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: 8 }} className='editor-controls'>
         <EditElementSymbolUI model={model} />
         <MolFileUI model={model} />
     </div>;
@@ -252,56 +276,47 @@ function ControlsUI({ model }: { model: EditorModel }) {
 function MolFileUI({ model }: { model: EditorModel }) {
     const molfile = useBehavior(model.state.molfile);
     return <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-        <b>Molfile:</b>
-        <textarea value={molfile} readOnly style={{ width: 450, height: 200, fontFamily: 'monospace', fontSize: '10px' }} />
+        <b>Molfile</b>
+        <textarea value={molfile} readOnly style={{ width: '100%', height: 200, fontFamily: 'monospace', fontSize: '10px' }} />
+        <div style={{ display: 'flex', gap: '5px' }}>
+            <button onClick={() => navigator.clipboard.writeText(molfile)}>Copy</button>
+            <button onClick={() => download(new Blob([molfile], { type: 'text/plain' }), `edited-molecule-${Date.now()}.mol`)}>Save</button>
+        </div>
     </div>;
 }
 
 function EditElementSymbolUI({ model }: { model: EditorModel }) {
-    return <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-        <div style={{ display: 'flex', gap: '5px' }}>
-            <b>Atoms:</b>
-            <button onClick={model.removeAtoms}>Remove</button>
-            <div>
-                <ElementEditUI model={model} />
-                <button onClick={model.setElement}>Set</button>
-                <button onClick={model.addElement}>Add</button>
-            </div>
+    return <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', position: 'relative' }}>
+        <div>
+            <UndoButton model={model} />
         </div>
+        <b>Atoms</b>
         <div style={{ display: 'flex', gap: '5px' }}>
-            <b>Bonds:</b>
+            <button onClick={model.removeAtoms}>Remove</button>
+            <button onClick={model.setElement}>Set Element</button>
+            <button onClick={model.addElement}>Add Element</button>
+            <ElementEditUI model={model} />
+        </div>
+        <b>Bonds</b>
+        <div style={{ display: 'flex', gap: '5px' }}>
             <button onClick={model.removeBonds}>Remove</button>
             <button onClick={() => model.updateBonds({ value_order: 'sing', type_id: 'covale' })}>-</button>
             <button onClick={() => model.updateBonds({ value_order: 'doub', type_id: 'covale' })}>=</button>
             <button onClick={() => model.updateBonds({ value_order: 'trip', type_id: 'covale' })}>≡</button>
         </div>
+        <b>R-groups</b>
         <div style={{ display: 'flex', gap: '5px' }}>
-            <b>R-groups:</b>
             <button onClick={() => model.attachRgroup('CH3')}>-CH<sub>3</sub></button>
         </div>
-        <div>
-            <button onClick={model.undo}>Undo</button>
-        </div>
     </div>;
+}
+
+function UndoButton({ model }: { model: EditorModel }) {
+    const history = useBehavior(model.state.history);
+    return <button onClick={model.undo} disabled={history.length === 0}>Undo</button>;
 }
 
 function ElementEditUI({ model }: { model: EditorModel }) {
     const element = useBehavior(model.state.element);
     return <input type="text" value={element} style={{ width: 50 }} onChange={e => model.state.element.next(e.target.value)} />;
 }
-
-async function init(viewer: HTMLElement | string, controls: HTMLElement | string) {
-    const root = typeof viewer === 'string' ? document.getElementById('viewer')! : viewer;
-    const plugin = await createViewer(root);
-
-    const model = new EditorModel(plugin);
-
-    createRoot(
-        typeof controls === 'string' ? document.getElementById('controls')! : controls
-    ).render(<ControlsUI model={model} />);
-
-    loadMolfile(model, ExampleMol);
-    return model;
-}
-
-(window as any).initLigandEditorExample = init;

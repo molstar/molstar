@@ -16,21 +16,21 @@ import { ElementSymbol } from '../../mol-model/structure/model/types';
 
 type Atom = Partial<Table.Row<mmCIF_Schema['atom_site']>>
 
-export interface LigandGraphBondProps {
+export interface JSONCifLigandGraphBondProps {
     value_order: MolstarBondSiteValueOrder | undefined;
     type_id: MolstarBondSiteTypeId | undefined;
 }
 
-export interface LigandGraphAtom {
+export interface JSONCifLigandGraphAtom {
     key: string;
     final_id: number | undefined;
     row: Atom;
 }
 
-export interface LigandGraphBond {
-    atom_1: LigandGraphAtom;
-    atom_2: LigandGraphAtom;
-    props: LigandGraphBondProps;
+export interface JSONCifLigandGraphBond {
+    atom_1: JSONCifLigandGraphAtom;
+    atom_2: JSONCifLigandGraphAtom;
+    props: JSONCifLigandGraphBondProps;
 }
 
 export interface JSONCifLigandGraphData {
@@ -46,33 +46,33 @@ const _State = {
 };
 
 export class JSONCifLigandGraph {
-    readonly atoms: LigandGraphAtom[] = [];
-    readonly atomsById: Map<number, LigandGraphAtom> = new Map();
-    readonly bondByKey: Map<string, LigandGraphBond[]> = new Map();
+    readonly atoms: JSONCifLigandGraphAtom[] = [];
+    readonly atomsById: Map<number, JSONCifLigandGraphAtom> = new Map();
+    readonly bondByKey: Map<string, JSONCifLigandGraphBond[]> = new Map();
     readonly removedAtomIds: Set<number> = new Set();
 
     getAtomAtIndex(index: number) {
         return this.atoms[index];
     }
 
-    getAtom(atomOrId: number | LigandGraphAtom) {
+    getAtom(atomOrId: number | JSONCifLigandGraphAtom) {
         return typeof atomOrId === 'number' ? this.atomsById.get(atomOrId) : atomOrId;
     }
 
-    getBonds(atomOrId: number | LigandGraphAtom) {
+    getBonds(atomOrId: number | JSONCifLigandGraphAtom) {
         const atom = this.getAtom(atomOrId);
         if (!atom) return [];
         return this.bondByKey.get(atom.key) ?? [];
     }
 
-    getAtomCoords(atomOrId: number | LigandGraphAtom, out: Vec3 = Vec3()) {
+    getAtomCoords(atomOrId: number | JSONCifLigandGraphAtom, out: Vec3 = Vec3()) {
         const atom = this.getAtom(atomOrId);
         if (!atom) return out;
         const { Cartn_x, Cartn_y, Cartn_z } = atom.row;
         return Vec3.set(out, Cartn_x!, Cartn_y!, Cartn_z!);
     }
 
-    getBondDirection(bond: LigandGraphBond, out: Vec3 = Vec3()) {
+    getBondDirection(bond: JSONCifLigandGraphBond, out: Vec3 = Vec3()) {
         const a1 = this.getAtomCoords(bond.atom_1, _State.p1);
         const a2 = this.getAtomCoords(bond.atom_2, _State.p2);
         const dir = Vec3.sub(out, a2, a1);
@@ -86,7 +86,7 @@ export class JSONCifLigandGraph {
     }
 
     addAtom(data: Omit<Atom, 'id'>) {
-        const atom: LigandGraphAtom = {
+        const atom: JSONCifLigandGraphAtom = {
             key: UUID.create22(),
             final_id: undefined,
             row: { ...data, id: undefined },
@@ -105,7 +105,7 @@ export class JSONCifLigandGraph {
         }
     }
 
-    attachAtom(parent: number | LigandGraphAtom, atom: Atom) {
+    attachAtom(parent: number | JSONCifLigandGraphAtom, atom: Atom) {
         const p = this.getAtom(parent);
         if (!p) return;
 
@@ -129,7 +129,7 @@ export class JSONCifLigandGraph {
         return newAtom;
     }
 
-    removeAtom(atomOrId: number | LigandGraphAtom) {
+    removeAtom(atomOrId: number | JSONCifLigandGraphAtom) {
         const atom = this.getAtom(atomOrId);
         if (!atom) return;
         if (typeof atom.row.id === 'number') {
@@ -150,7 +150,7 @@ export class JSONCifLigandGraph {
         }
     }
 
-    addOrUpdateBond(atom1: number | LigandGraphAtom, atom2: number | LigandGraphAtom, props: LigandGraphBondProps) {
+    addOrUpdateBond(atom1: number | JSONCifLigandGraphAtom, atom2: number | JSONCifLigandGraphAtom, props: JSONCifLigandGraphBondProps) {
         const a1 = this.getAtom(atom1);
         const a2 = this.getAtom(atom2);
         if (!a1 || !a2) return;
@@ -162,14 +162,14 @@ export class JSONCifLigandGraph {
     }
 
     // TODO: iterate on this?
-    addBondPart(atom1: number | LigandGraphAtom, atom2: number | LigandGraphAtom, props: LigandGraphBondProps) {
+    addBondPart(atom1: number | JSONCifLigandGraphAtom, atom2: number | JSONCifLigandGraphAtom, props: JSONCifLigandGraphBondProps) {
         const a1 = this.getAtom(atom1);
         const a2 = this.getAtom(atom2);
         if (!a1 || !a2) return;
         arrayMapAdd(this.bondByKey, a1.key, { atom_1: a1, atom_2: a2, props: { ...props } });
     }
 
-    removeBond(atom1: number | LigandGraphAtom, atom2: number | LigandGraphAtom) {
+    removeBond(atom1: number | JSONCifLigandGraphAtom, atom2: number | JSONCifLigandGraphAtom) {
         const a1 = this.getAtom(atom1);
         const a2 = this.getAtom(atom2);
         if (!a1 || !a2) return;
@@ -243,7 +243,7 @@ export class JSONCifLigandGraph {
         };
     }
 
-    private getAddAtomDirection(parent: LigandGraphAtom) {
+    private getAddAtomDirection(parent: JSONCifLigandGraphAtom) {
         // NOTE: this will not correctly handle all cases...
 
         let deltas: Vec3[] = [];
@@ -293,7 +293,7 @@ export class JSONCifLigandGraph {
 
     constructor(private data: JSONCifDataBlock) {
         for (const row of data.categories['atom_site'].rows) {
-            const atom: LigandGraphAtom = {
+            const atom: JSONCifLigandGraphAtom = {
                 key: UUID.create22(),
                 final_id: row.final_id,
                 row: { ...row },
