@@ -18,6 +18,7 @@ import { objectForEach } from '../../mol-util/object';
 import { PLUGIN_VERSION } from '../../mol-plugin/version';
 import { canvasToBlob } from '../../mol-canvas3d/util';
 import { Task } from '../../mol-task';
+import { StringLike } from '../../mol-io/common/string-like';
 
 export { PluginStateSnapshotManager };
 
@@ -289,7 +290,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
             const fn = file.name.toLowerCase();
             if (fn.endsWith('json') || fn.endsWith('molj')) {
                 const data = await this.plugin.runTask(readFromFile(file, 'string'));
-                const snapshot = JSON.parse(data);
+                const snapshot = JSON.parse(StringLike.toString(data));
 
                 if (PluginStateSnapshotManager.isStateSnapshot(snapshot)) {
                     await this.setStateSnapshot(snapshot);
@@ -308,18 +309,17 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
                     assetData[name] = v;
                 });
                 const stateFile = new File([data['state.json']], 'state.json');
-                const stateData = await this.plugin.runTask(readFromFile(stateFile, 'string'));
+                const snapshot = await this.plugin.runTask(readFromFile(stateFile, 'json'));
 
                 if (data['assets.json']) {
                     const file = new File([data['assets.json']], 'assets.json');
-                    const json = JSON.parse(await this.plugin.runTask(readFromFile(file, 'string')));
+                    const json = await this.plugin.runTask(readFromFile(file, 'json'));
 
                     for (const [id, asset] of json) {
                         this.plugin.managers.asset.set(asset, new File([assetData[id]], asset.name));
                     }
                 }
 
-                const snapshot = JSON.parse(stateData);
                 await this.setStateSnapshot(snapshot);
             }
             this.events.opened.next(void 0);

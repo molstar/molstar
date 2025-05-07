@@ -4,9 +4,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { StringLike } from '../../mol-io/common/string-like';
 import { TokenBuilder, Tokens } from '../../mol-io/reader/common/text/tokenizer';
 
-export function guessElementSymbolTokens(tokens: Tokens, str: string, start: number, end: number) {
+
+export function guessElementSymbolTokens(tokens: Tokens, str: StringLike, start: number, end: number) {
     let s = start, e = end - 1;
 
     // trim spaces and numbers

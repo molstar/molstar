@@ -227,8 +227,7 @@ export async function loadPdbIhm(ctx: PluginContext, id: string) {
 }
 
 async function loadColors(ctx: PluginContext, file: File) {
-    const data = await ctx.runTask(readFromFile(file, 'string'));
-    const colorData = JSON.parse(data);
+    const colorData = await ctx.runTask(readFromFile(file, 'json'));
 
     const update = ctx.state.data.build();
     const allEntities = getAllEntities(ctx);

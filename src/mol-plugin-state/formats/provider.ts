@@ -6,10 +6,12 @@
  */
 
 import { decodeMsgPack } from '../../mol-io/common/msgpack/decode';
+import { StringLike } from '../../mol-io/common/string-like';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectRef } from '../../mol-state';
 import { FileNameInfo } from '../../mol-util/file-info';
 import { PluginStateObject } from '../objects';
+
 
 export interface DataFormatProvider<P = any, R = any, V = any> {
     label: string,
@@ -17,15 +19,15 @@ export interface DataFormatProvider<P = any, R = any, V = any> {
     category?: string,
     stringExtensions?: string[],
     binaryExtensions?: string[],
-    isApplicable?(info: FileNameInfo, data: string | Uint8Array): boolean,
+    isApplicable?(info: FileNameInfo, data: StringLike | Uint8Array): boolean,
     parse(plugin: PluginContext, data: StateObjectRef<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, params?: P): Promise<R>,
     visuals?(plugin: PluginContext, data: R): Promise<V> | undefined
 }
 
 export function DataFormatProvider<P extends DataFormatProvider>(provider: P): P { return provider; }
 
-type cifVariants = 'dscif' | 'segcif' | 'coreCif' | -1
-export function guessCifVariant(info: FileNameInfo, data: Uint8Array | string): cifVariants {
+type CifVariants = 'dscif' | 'segcif' | 'coreCif' | -1
+export function guessCifVariant(info: FileNameInfo, data: Uint8Array | StringLike): CifVariants {
     if (info.ext === 'bcif') {
         try {
             // TODO: find a way to run msgpackDecode only once
@@ -38,7 +40,7 @@ export function guessCifVariant(info: FileNameInfo, data: Uint8Array | string): 
             console.error(e);
         }
     } else if (info.ext === 'cif') {
-        const str = data as string;
+        const str = data as StringLike;
         if (str.startsWith('data_SERVER\n#\n_density_server_result')) return 'dscif';
         if (str.startsWith('data_SERVER\n#\ndata_SEGMENTATION_DATA')) return 'segcif';
         if (str.includes('atom_site_fract_x') || str.includes('atom_site.fract_x')) return 'coreCif';

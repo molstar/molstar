@@ -12,3 +12,4 @@ tsconfig.commonjs.tsbuildinfo
 .idea
 
 .DS_Store
+tmp/

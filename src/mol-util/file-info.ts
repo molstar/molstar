@@ -43,10 +43,9 @@ export function getFileNameInfo(fileName: string): FileNameInfo {
 
     if (COMPRESSED_EXT_LIST.includes(ext)) {
         const n = path.length - ext.length - 1;
-        // TODO: change logic to String.prototype.substring since substr is deprecated
-        ext = (path.substr(0, n).split('.').pop() || '').toLowerCase();
+        ext = (path.substring(0, n).split('.').pop() || '').toLowerCase();
         const m = base.length - ext.length - 1;
-        base = base.substr(0, m);
+        base = base.substring(0, m);
     }
 
     // Note: it appears that most of this data never gets used.

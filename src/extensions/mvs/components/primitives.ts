@@ -16,6 +16,7 @@ import { TextBuilder } from '../../../mol-geo/geometry/text/text-builder';
 import { Box, BoxCage } from '../../../mol-geo/primitive/box';
 import { Circle } from '../../../mol-geo/primitive/circle';
 import { Primitive } from '../../../mol-geo/primitive/primitive';
+import { StringLike } from '../../../mol-io/common/string-like';
 import { Box3D, Sphere3D } from '../../../mol-math/geometry';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { radToDeg } from '../../../mol-math/misc';
@@ -75,7 +76,7 @@ export const MVSDownloadPrimitiveData = MVSTransform({
         return Task.create('Download Primitive Data', async ctx => {
             const url = Asset.getUrlAsset(plugin.managers.asset, params.uri);
             const asset = await plugin.managers.asset.resolve(url, 'string').runInContext(ctx);
-            const node = JSON.parse(asset.data) as MolstarSubtree<'primitives'>;
+            const node = JSON.parse(StringLike.toString(asset.data)) as MolstarSubtree<'primitives'>;
             (cache as any).asset = asset;
             return new MVSPrimitivesData({
                 node,

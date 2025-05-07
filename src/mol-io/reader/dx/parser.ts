@@ -9,10 +9,12 @@
 
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { chunkedSubtask, RuntimeContext, Task } from '../../../mol-task';
+import { StringLike } from '../../common/string-like';
+import { utf8Read } from '../../common/utf8';
 import { parseFloat as fastParseFloat } from '../common/text/number-parser';
 import { Tokenizer } from '../common/text/tokenizer';
 import { ReaderResult as Result } from '../result';
-import { utf8Read } from '../../common/utf8';
+
 
 // http://apbs-pdb2pqr.readthedocs.io/en/latest/formats/opendx.html
 
@@ -89,7 +91,7 @@ function readValuesText(ctx: RuntimeContext, tokenizer: Tokenizer, header: DxFil
     }, (ctx, _, i) => ctx.update({ current: Math.min(i, N), max: N }));
 }
 
-async function parseText(taskCtx: RuntimeContext, data: string, name: string) {
+async function parseText(taskCtx: RuntimeContext, data: StringLike, name: string) {
     await taskCtx.update('Reading header...');
     const tokenizer = Tokenizer(data as string);
     const { header } = readHeader(tokenizer);
@@ -121,9 +123,9 @@ async function parseBinary(taskCtx: RuntimeContext, data: Uint8Array, name: stri
     return Result.success({ header, values, name });
 }
 
-export function parseDx(data: string | Uint8Array, name: string) {
+export function parseDx(data: StringLike | Uint8Array, name: string) {
     return Task.create<Result<DxFile>>('Parse DX', taskCtx => {
-        if (typeof data === 'string') return parseText(taskCtx, data, name);
+        if (StringLike.is(data)) return parseText(taskCtx, data, name);
         return parseBinary(taskCtx, data, name);
     });
 }
