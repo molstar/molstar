@@ -16,7 +16,7 @@ import { PluginSpec } from '../../mol-plugin/spec';
 import { ParseJSONCifFileData } from '../../extensions/json-cif/transformers';
 import '../../mol-plugin-ui/skin/light.scss';
 import './index.html';
-import { getJSONCifFile } from './load';
+import { molfileToJSONCif } from './utils';
 import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { StateObjectSelector } from '../../mol-state';
 import { JSONCifDataBlock, JSONCifFile } from '../../extensions/json-cif/model';
@@ -24,6 +24,8 @@ import { StructureElement, StructureProperties } from '../../mol-model/structure
 import { JSONCifLigandGraph, LigandGraphBondProps } from '../../extensions/json-cif/ligand-graph';
 import { BehaviorSubject } from 'rxjs';
 import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
+import { attachRGroup, RGroupName } from './r-groups';
+import { ExampleMol } from './example-data';
 
 async function createViewer(root: HTMLElement) {
     const spec = DefaultPluginUISpec();
@@ -56,17 +58,17 @@ async function createViewer(root: HTMLElement) {
     return plugin;
 }
 
-async function loadMolfile(model: EditorModel, molfile?: string) {
+async function loadMolfile(model: EditorModel, molfile: string) {
     const { plugin } = model;
 
     await plugin.clear();
 
-    const file = await getJSONCifFile(molfile);
+    const file = await molfileToJSONCif(molfile);
 
     const update = plugin.build();
 
     const data = update.toRoot()
-        .apply(ParseJSONCifFileData, { data: file });
+        .apply(ParseJSONCifFileData, { data: file.data });
 
     data
         .apply(TrajectoryFromMmCif)
@@ -226,6 +228,19 @@ class EditorModel {
         await this.update(graph.getData().block);
     };
 
+    attachRgroup = async (name: RGroupName) => {
+        const { data } = this;
+        if (!data) return;
+
+        const ids = this.getSelectedAtomIds();
+        if (ids.length !== 1) return;
+
+        const graph = this.createGraph();
+        const updated = await attachRGroup(graph, name, ids[0]);
+        if (!updated) return;
+        await this.update(updated.getData().block);
+    };
+
     constructor(public plugin: PluginContext) { }
 }
 
@@ -255,7 +270,7 @@ function EditElementSymbolUI({ model }: { model: EditorModel }) {
         </div>
         <div style={{ display: 'flex', gap: '5px' }}>
             <b>R-groups:</b>
-            <div>TODO</div>
+            <button onClick={() => model.attachRgroup('CH3')}>CH3</button>
         </div>
         <div>
             <button onClick={model.undo}>Undo</button>
@@ -278,7 +293,7 @@ async function init(viewer: HTMLElement | string, controls: HTMLElement | string
         typeof controls === 'string' ? document.getElementById('controls')! : controls
     ).render(<ControlsUI model={model} />);
 
-    loadMolfile(model);
+    loadMolfile(model, ExampleMol);
     return model;
 }
 

@@ -98,6 +98,20 @@ M  CHG  1   2  -1
 M  CHG  2   3   1   4   1
 M  END`;
 
+const MolStringWithAPOProperty = `
+  Ketcher  1 72215442D 1   1.00000     0.00000     0
+
+  4  3  0  0  0  0            999 V2000
+    0.0000    0.0000    0.0000 C   0  1  0  0  0  0  0  0  0  0  0  0
+    0.8660    0.5000    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.8660    0.5000    0.0000 S   0  0  0  0  0  0  0  0  0  0  0  0
+    0.0000   -1.0000    0.0000 P   0  0  0  0  0  0  0  0  0  0  0  0
+  1  4  2  0  0  0  0
+  3  1  1  0  0  0  0
+  2  1  1  0  0  0  0
+M  APO  1   2   1
+M  END`;
+
 describe('mol reader', () => {
     it('basic', async () => {
         const parsed = await parseMol(MolString).run();
