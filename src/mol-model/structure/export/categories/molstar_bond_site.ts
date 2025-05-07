@@ -29,6 +29,8 @@ export const MolstarBondSiteSchema = {
     }
 };
 
+export type MolstarBondSiteSchema = typeof MolstarBondSiteSchema;
+
 interface Entry {
     atom_id_1: number,
     atom_id_2: number,
@@ -36,7 +38,7 @@ interface Entry {
     type_id?: MolstarBondSiteTypeId,
 }
 
-const Fields = CifWriter.fields<number, Entry[], keyof (typeof MolstarBondSiteSchema)['molstar_bond_site']>()
+const Fields = CifWriter.fields<number, Entry[], keyof MolstarBondSiteSchema['molstar_bond_site']>()
     .int('atom_id_1', (i, xs) => xs[i].atom_id_1)
     .int('atom_id_2', (i, xs) => xs[i].atom_id_2)
     .str('value_order', (i, xs) => xs[i].value_order ?? '', {

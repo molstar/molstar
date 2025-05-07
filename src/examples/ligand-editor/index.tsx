@@ -27,7 +27,7 @@ import { TopologyEdits } from './edits';
 import { ExampleMol } from './example-data';
 import './index.html';
 import { RGroupName } from './r-groups';
-import { molfileToJSONCif } from './utils';
+import { jsonCifToMolfile, molfileToJSONCif } from './utils';
 
 async function createViewer(root: HTMLElement) {
     const spec = DefaultPluginUISpec();
@@ -86,15 +86,17 @@ async function loadMolfile(model: EditorModel, molfile: string) {
 
     await update.commit();
 
-    model.dataSelector = data.selector;
+    model.setDataSelector(data.selector);
 }
 
 class EditorModel {
-    dataSelector: StateObjectSelector | undefined = undefined;
+    private dataSelector: StateObjectSelector | undefined = undefined;
+
     history: JSONCifFile[] = [];
 
     state = {
         element: new BehaviorSubject<string>('C'),
+        molfile: new BehaviorSubject<string>(''),
     };
 
     get data() {
@@ -103,6 +105,23 @@ class EditorModel {
 
     createGraph() {
         return new JSONCifLigandGraph(this.data?.dataBlocks[0]!);
+    }
+
+    setDataSelector(selector: StateObjectSelector) {
+        this.dataSelector = selector;
+        this.updateMolFile();
+    }
+
+    updateMolFile() {
+        if (!this.data) return this.state.molfile.next('');
+
+        try {
+            const molfile = jsonCifToMolfile('edited molecule', this.data?.dataBlocks[0]);
+            this.state.molfile.next(molfile);
+        } catch (e) {
+            console.error('Failed to convert to molfile');
+            console.error(e);
+        }
     }
 
     async update(data: JSONCifDataBlock) {
@@ -117,6 +136,8 @@ class EditorModel {
         const update = this.plugin.build();
         update.to(this.dataSelector!).update({ data: updated });
         await update.commit();
+
+        this.updateMolFile();
     }
 
     undo = async () => {
@@ -222,8 +243,17 @@ class EditorModel {
 }
 
 function ControlsUI({ model }: { model: EditorModel }) {
-    return <div>
+    return <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
         <EditElementSymbolUI model={model} />
+        <MolFileUI model={model} />
+    </div>;
+}
+
+function MolFileUI({ model }: { model: EditorModel }) {
+    const molfile = useBehavior(model.state.molfile);
+    return <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+        <b>Molfile:</b>
+        <textarea value={molfile} readOnly style={{ width: 450, height: 200, fontFamily: 'monospace', fontSize: '10px' }} />
     </div>;
 }
 
@@ -247,7 +277,7 @@ function EditElementSymbolUI({ model }: { model: EditorModel }) {
         </div>
         <div style={{ display: 'flex', gap: '5px' }}>
             <b>R-groups:</b>
-            <button onClick={() => model.attachRgroup('CH3')}>CH3</button>
+            <button onClick={() => model.attachRgroup('CH3')}>-CH<sub>3</sub></button>
         </div>
         <div>
             <button onClick={model.undo}>Undo</button>
