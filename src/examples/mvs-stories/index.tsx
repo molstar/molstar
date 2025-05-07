@@ -29,17 +29,18 @@ const CurrentStory = new BehaviorSubject<Story>(undefined);
 
 function SelectStoryUI({ subject }: { subject: BehaviorSubject<Story> }) {
     const current = useBehavior(subject);
+    const selectedId = current?.kind === 'built-in' ? current.id : current?.kind === 'url' ? 'url' : '';
 
     return <select onChange={e => {
         const value = e.currentTarget.value;
         const s = Stories.find(s => s.id === value);
         if (!s) return;
         subject.next({ kind: 'built-in', id: s.id });
-    }}>
+    }} value={selectedId}>
         {!current && <option value=''>Select a story...</option>}
-        {Stories.map(s => <option key={s.name} value={s.id} selected={current?.kind === 'built-in' && current.id === s.id}>Story: {s.name}</option>)}
+        {Stories.map(s => <option key={s.name} value={s.id}>Story: {s.name}</option>)}
         {current?.kind === 'url' && <option disabled>------------------</option>}
-        {current?.kind === 'url' && <option value='url' selected>{current.url}</option>}
+        {current?.kind === 'url' && <option value='url'>{current.url}</option>}
     </select>;
 }
 
