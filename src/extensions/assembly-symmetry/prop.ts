@@ -88,7 +88,7 @@ export namespace AssemblySymmetryData {
     export async function fetchRCSB(ctx: CustomProperty.Context, structure: Structure, props: AssemblySymmetryDataProps): Promise<CustomProperty.Data<AssemblySymmetryDataValue>> {
         const client = new GraphQLClient(props.serverUrl, ctx.assetManager);
         const variables = {
-            assembly_id: structure.units[0].conformation.operator.assembly?.id || '1', // data.rcsb.org guarantees assembly '1' to be present for IHM
+            assembly_id: structure.units[0].conformation.operator.assembly?.id || 'deposited', // data.rcsb.org guarantees assembly 'deposited' to be present for IHM
             entry_id: structure.units[0].model.entryId
         };
         const result = await client.request(ctx.runtime, rcsb_symmetry_gql, variables);
