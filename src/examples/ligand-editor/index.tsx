@@ -5,27 +5,29 @@
  */
 
 import { createRoot } from 'react-dom/client';
+import { BehaviorSubject } from 'rxjs';
+import { JSONCifLigandGraph, LigandGraphBondProps } from '../../extensions/json-cif/ligand-graph';
+import { JSONCifDataBlock, JSONCifFile } from '../../extensions/json-cif/model';
+import { ParseJSONCifFileData } from '../../extensions/json-cif/transformers';
 import { MolViewSpec } from '../../extensions/mvs/behavior';
+import { StructureElement, StructureProperties } from '../../mol-model/structure';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { ModelFromTrajectory, StructureFromModel, TrajectoryFromMmCif } from '../../mol-plugin-state/transforms/model';
+import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { createPluginUI } from '../../mol-plugin-ui';
+import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
 import { renderReact18 } from '../../mol-plugin-ui/react18';
+import '../../mol-plugin-ui/skin/light.scss';
 import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginConfig } from '../../mol-plugin/config';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginSpec } from '../../mol-plugin/spec';
-import { ParseJSONCifFileData } from '../../extensions/json-cif/transformers';
-import '../../mol-plugin-ui/skin/light.scss';
-import './index.html';
-import { molfileToJSONCif } from './utils';
-import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { StateObjectSelector } from '../../mol-state';
-import { JSONCifDataBlock, JSONCifFile } from '../../extensions/json-cif/model';
-import { StructureElement, StructureProperties } from '../../mol-model/structure';
-import { JSONCifLigandGraph, LigandGraphBondProps } from '../../extensions/json-cif/ligand-graph';
-import { BehaviorSubject } from 'rxjs';
-import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
-import { attachRGroup, RGroupName } from './r-groups';
+import { TopologyEdits } from './edits';
 import { ExampleMol } from './example-data';
+import './index.html';
+import { RGroupName } from './r-groups';
+import { molfileToJSONCif } from './utils';
 
 async function createViewer(root: HTMLElement) {
     const spec = DefaultPluginUISpec();
@@ -127,10 +129,27 @@ class EditorModel {
         await update.commit();
     };
 
+    private getEditableStructures() {
+        if (!this.dataSelector?.isOk) return new Set();
+
+        const structures = this.plugin.state.data.selectQ(q => q
+            .byRef(this.dataSelector?.ref!)
+            .subtree()
+            .filter(c => PluginStateObject.Molecule.Structure.is(c.obj))
+        );
+        return new Set(structures.map(s => s.obj?.data));
+    }
+
     private getSelectedAtomIds() {
-        const selection = this.plugin.managers.structure.selection;
+        if (!this.data) return [];
+
+        const structures = this.getEditableStructures();
+        if (structures.size === 0) return [];
+
+        const { selection } = this.plugin.managers.structure;
         const ids: number[] = [];
         selection.entries.forEach(e => {
+            if (!structures.has(e.selection.structure)) return;
             StructureElement.Loci.forEachLocation(e.selection, (l) => {
                 ids.push(StructureProperties.atom.id(l));
             });
@@ -138,107 +157,65 @@ class EditorModel {
         return ids;
     }
 
+    async editGraphTopology<Args extends any[], T>(fn: (graph: JSONCifLigandGraph, ...args: Args) => Promise<T>, ...args: Args) {
+        try {
+            const graph = this.createGraph();
+            const result = await fn(graph, ...args);
+            const data = graph.getData().block;
+            await this.update(data);
+            return result;
+        } catch (e) {
+            console.error('Failed to edit graph');
+            console.error(e);
+        }
+    }
+
     setElement = async () => {
         const symbol = this.state.element.value.trim();
         if (!symbol) return;
 
-        const { data } = this;
-        if (!data) return;
-
         const ids = this.getSelectedAtomIds();
         if (!ids.length) return;
 
-        const graph = this.createGraph();
-        for (const id of ids) {
-            graph.modifyAtom(id, { type_symbol: symbol });
-        }
-
-        await this.update(graph.getData().block);
+        await this.editGraphTopology(TopologyEdits.setElement, ids, symbol);
     };
 
     addElement = async () => {
         const symbol = this.state.element.value.trim();
         if (!symbol) return;
 
-        const { data } = this;
-        if (!data) return;
-
         const ids = this.getSelectedAtomIds();
         if (ids.length !== 1) return;
 
-        const graph = this.createGraph();
-        for (const id of ids) {
-            graph.attachAtom(id, { type_symbol: symbol });
-        }
-
-        await this.update(graph.getData().block);
+        await this.editGraphTopology(TopologyEdits.addElement, ids[0], symbol);
     };
 
     removeAtoms = async () => {
-        const { data } = this;
-        if (!data) return;
-
         const ids = this.getSelectedAtomIds();
         if (!ids.length) return;
 
-        const graph = this.createGraph();
-        for (const id of ids) {
-            graph.removeAtom(id);
-        }
-
-        await this.update(graph.getData().block);
+        await this.editGraphTopology(TopologyEdits.removeAtoms, ids);
     };
 
     removeBonds = async () => {
-        const { data } = this;
-        if (!data) return;
-
         const ids = this.getSelectedAtomIds();
         if (!ids.length) return;
 
-        const graph = this.createGraph();
-
-        for (let i = 0; i < ids.length; ++i) {
-            for (let j = i + 1; j < ids.length; ++j) {
-                graph.removeBond(ids[i], ids[j]);
-            }
-        }
-
-        await this.update(graph.getData().block);
+        await this.editGraphTopology(TopologyEdits.removeBonds, ids);
     };
 
     updateBonds = async (props: LigandGraphBondProps) => {
-        const { data } = this;
-        if (!data) return;
-
         const ids = this.getSelectedAtomIds();
         if (!ids.length) return;
 
-        const graph = this.createGraph();
-
-        // TODO: iterate on the all-pairs behavior
-        // e.g. only add bonds if there is no path connecting them,
-        // or by a distance threshold, ...
-        for (let i = 0; i < ids.length; ++i) {
-            for (let j = i + 1; j < ids.length; ++j) {
-                graph.addOrUpdateBond(ids[i], ids[j], props);
-            }
-        }
-
-        await this.update(graph.getData().block);
+        await this.editGraphTopology(TopologyEdits.updateBonds, ids, props);
     };
 
     attachRgroup = async (name: RGroupName) => {
-        const { data } = this;
-        if (!data) return;
-
         const ids = this.getSelectedAtomIds();
         if (ids.length !== 1) return;
 
-        const graph = this.createGraph();
-        const updated = await attachRGroup(graph, name, ids[0]);
-        if (!updated) return;
-        await this.update(updated.getData().block);
+        await this.editGraphTopology(TopologyEdits.attachRgroup, ids[0], name);
     };
 
     constructor(public plugin: PluginContext) { }

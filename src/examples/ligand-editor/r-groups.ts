@@ -10,15 +10,24 @@ import { molfileToJSONCif } from './utils';
 
 export type RGroupName = keyof typeof RGroups;
 
-export async function attachRGroup(pGraph: JSONCifLigandGraph, rgroupName: RGroupName, pAtom: number | LigandGraphAtom) {
+export async function attachRGroup(pGraph: JSONCifLigandGraph, rgroupName: RGroupName, pAtomOrId: number | LigandGraphAtom) {
+    const pAtom = pGraph.getAtom(pAtomOrId);
+    if (pAtom?.row?.type_symbol !== 'H') {
+        throw new Error('R-group attachment point must be a hydrogen atom.');
+    }
+
     const { molfile, data: rgroupData } = await molfileToJSONCif(RGroups[rgroupName]);
     const attachIdx = molfile.attachmentPoints?.[0].atomIdx;
 
-    if (typeof attachIdx !== 'number') return;
+    if (typeof attachIdx !== 'number') {
+        throw new Error('R-group attachment point not specified.');
+    }
 
     // Compute and apply rGroup transformation
     const pBonds = pGraph.getBonds(pAtom);
-    if (!pBonds.length) return;
+    if (pBonds.length !== 1) {
+        throw new Error('R-group attachment point must have exactly 1 bond.');
+    }
     const pDir = pGraph.getBondDirection(pBonds[0]);
     const pPivot = pBonds[0].atom_2;
     Vec3.negate(pDir, pDir);
@@ -26,9 +35,16 @@ export async function attachRGroup(pGraph: JSONCifLigandGraph, rgroupName: RGrou
 
     const rGraph = new JSONCifLigandGraph(rgroupData.dataBlocks[0]);
     const rAtom = rGraph.getAtomAtIndex(attachIdx - 1);
+
+    if (rAtom.row?.type_symbol !== 'R#') {
+        throw new Error('R-group attachment point is not a R# atom.');
+    }
+
     const rCoords = rGraph.getAtomCoords(rAtom);
     const rBonds = rGraph.getBonds(rAtom);
-    if (!rBonds.length) return;
+    if (rBonds.length !== 1) {
+        throw new Error('R-group R# atom must have exactly 1 bond.');
+    }
     const rPivot = rGraph.getAtom(rBonds[0].atom_2);
     const rDir = rGraph.getBondDirection(rBonds[0]);
     Vec3.normalize(rDir, rDir);
@@ -81,7 +97,7 @@ const RGroups = {
 
   5  4  0     0  0  0  0  0  0999 V2000
     0.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
-    0.5541    0.7996    0.4965 H   0  0  0  0  0  0  0  0  0  0  0  0
+    0.5541    0.7996    0.4965 R#   0  0  0  0  0  0  0  0  0  0  0  0
     0.6833   -0.8134   -0.2536 H   0  0  0  0  0  0  0  0  0  0  0  0
    -0.7782   -0.3735    0.6692 H   0  0  0  0  0  0  0  0  0  0  0  0
    -0.4593    0.3874   -0.9121 H   0  0  0  0  0  0  0  0  0  0  0  0
