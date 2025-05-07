@@ -7,31 +7,12 @@
 import { utf8Read } from './utf8';
 
 
-/** Generalized string type */
-export type StringLike = string | String | CustomString
-
-export const StringLike = {
-    /** Return true if `obj` is instance of `StringLike` */
-    is(obj: unknown): obj is StringLike {
-        return typeof obj === 'string' || obj instanceof String || (obj as CustomString)._StringLike_ || false;
-    },
-
-    /** Try to convert `StringLike` to a primitive `string`. Might fail if the content is longer that max allowed string length. */
-    toString(str: StringLike): string {
-        try {
-            return str.toString();
-        } catch (err) {
-            throw new Error(`Failed to convert StringLike object into string. This might be because the length ${str.length} exceeds maximum allowed string length ${MAX_STRING_LENGTH}. (${err})`);
-        }
-    },
-};
-
-
-/** Essential subset of `string` functionality. Add more string methods if needed. */
-interface CustomString {
-    /** Flag for recognizing `StringLike` objects */
-    _StringLike_: true,
-
+/**
+ * Essential subset of `string` functionality.
+ * Can be builtin `string` or `String` type or a class instance implementing necessary methods.
+ * Add more string methods if needed.
+ */
+export interface StringLike {
     /** Returns the length of a String object. */
     readonly length: number;
 
@@ -90,6 +71,22 @@ interface CustomString {
     toString(): string;
 }
 
+export const StringLike = {
+    /** Return true if `obj` is instance of `StringLike` */
+    is(obj: unknown): obj is StringLike {
+        return typeof (obj as StringLike).charCodeAt === 'function'; // a bit hacky
+    },
+
+    /** Try to convert `StringLike` to a primitive `string`. Might fail if the content is longer that max allowed string length. */
+    toString(str: StringLike): string {
+        try {
+            return str.toString();
+        } catch (err) {
+            throw new Error(`Failed to convert StringLike object into string. This might be because the length ${str.length} exceeds maximum allowed string length ${MAX_STRING_LENGTH}. (${err})`);
+        }
+    },
+};
+
 
 /** Maximum allowed string length (might be bigger for some engines, but in Chrome and Node it is this). */
 export const MAX_STRING_LENGTH = 536_870_888;
@@ -99,8 +96,7 @@ const DEFAULT_LOG_STRING_CHUNK_SIZE = 28; // 2**28 is the largest power of 2 whi
 
 
 /** Implementation of `CustomString`, based on an array of fixed-length strings (chunks). */
-export class ChunkedBigString implements CustomString {
-    readonly _StringLike_ = true;
+export class ChunkedBigString implements StringLike {
     private _chunks: string[] = [];
 
     /** Length of string chunks (default 2**28). */
