@@ -192,4 +192,14 @@ describe('mol reader', () => {
         expect(atoms.formal_charge.value(2)).toBe(0);
         expect(atoms.formal_charge.value(3)).toBe(0);
     });
+    it('APO property', async () => {
+        const parsed = await parseMol(MolStringWithAPOProperty).run();
+        if (parsed.isError) {
+            throw new Error(parsed.message);
+        }
+        const { attachmentPoints } = parsed.result;
+        expect(attachmentPoints?.length).toBe(1);
+        expect(attachmentPoints![0].atomIdx).toBe(2);
+        expect(attachmentPoints![0].kind).toBe(1);
+    });
 });
