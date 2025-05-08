@@ -3,17 +3,26 @@ All notable changes to this project will be documented in this file, following t
 
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
-
 ## [Unreleased]
-- Fix `Viewer.loadTrajectory` when loading a topology file.
-- Fix `StructConn.residueCantorPairs` to not include identity pairs.
 - IHM improvements:
   - Disable volume streaming
   - Disable validation report visualization
   - Enable assembly symmetry for integrative models
 
+## [v4.14.0] - 2025-05-07
+- Fix `Viewer.loadTrajectory` when loading a topology file
+- Fix `StructConn.residueCantorPairs` to not include identity pairs
+- Add format selection option to image export UI (PNG, WebP, JPEG)
+- Add `StateBuilder.To.updateState`
+- MVS:
+  - Support updating transform states
+  - Add support for `is_hidden` custom state as an extension
+  - Add `queryMVSRef` and `createMVSRefMap` utility functions
+- Fix switching representation type in Volume UI
+- VolumeServer: Avoid grid expansion when requiring unit cell (avoids including an extra layer of cells outside the unit cell query box)
+
 ## [v4.13.0] - 2025-04-14
-- Support `--host` option for build-dev.mjs script.
+- Support `--host` option for build-dev.mjs script
 - Add `Viewer.loadFiles` to open supported files
 - Support installing the viewer as a Progressive Web App (PWA)
 - `ihm-restraints` example: show entity labels
