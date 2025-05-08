@@ -329,26 +329,7 @@ function AppUI({ model }: { model: EditorModel }) {
 }
 
 function ControlsUI({ model }: { model: EditorModel }) {
-    return <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: 8 }} className='editor-controls'>
-        <EditElementSymbolUI model={model} />
-        <MolFileUI model={model} />
-    </div>;
-}
-
-function MolFileUI({ model }: { model: EditorModel }) {
-    const molfile = useBehavior(model.state.molfile);
-    return <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-        <b>Molfile</b>
-        <textarea value={molfile} readOnly style={{ width: '100%', height: 200, fontFamily: 'monospace', fontSize: '10px' }} />
-        <div style={{ display: 'flex', gap: '5px' }}>
-            <button onClick={() => navigator.clipboard.writeText(molfile)}>Copy</button>
-            <button onClick={() => download(new Blob([molfile], { type: 'text/plain' }), `edited-molecule-${Date.now()}.mol`)}>Save</button>
-        </div>
-    </div>;
-}
-
-function EditElementSymbolUI({ model }: { model: EditorModel }) {
-    return <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', position: 'relative' }}>
+    return <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: 8, overflow: 'hidden', overflowY: 'auto' }} className='editor-controls'>
         <div>
             <UndoButton model={model} />
         </div>
@@ -375,7 +356,20 @@ function EditElementSymbolUI({ model }: { model: EditorModel }) {
         <b>Geometry</b>
         <TwistUI model={model} />
         <StretchUI model={model} />
+        <b>Molfile</b>
+        <MolFileUI model={model} />
     </div>;
+}
+
+function MolFileUI({ model }: { model: EditorModel }) {
+    const molfile = useBehavior(model.state.molfile);
+    return <>
+        <textarea value={molfile} readOnly style={{ width: '100%', height: 200, fontFamily: 'monospace', fontSize: '10px' }} />
+        <div style={{ display: 'flex', gap: '5px' }}>
+            <button onClick={() => navigator.clipboard.writeText(molfile)}>Copy</button>
+            <button onClick={() => download(new Blob([molfile], { type: 'text/plain' }), `edited-molecule-${Date.now()}.mol`)}>Save</button>
+        </div>
+    </>;
 }
 
 function UndoButton({ model }: { model: EditorModel }) {
@@ -395,7 +389,7 @@ function TwistUI({ model }: { model: EditorModel }) {
 
     return <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} >
         <i style={{ width: GeometryLabelWidth }}>Twist</i> <input
-            type='range' min={-59} max={60} step={1} value={value}
+            type='range' min={-60} max={60} step={1} value={value}
             onMouseDown={model.twist}
             onMouseUp={(e) => {
                 requestAnimationFrame(() => {
