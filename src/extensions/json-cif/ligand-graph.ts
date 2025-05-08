@@ -79,10 +79,10 @@ export class JSONCifLigandGraph {
         return dir;
     }
 
-    modifyAtom(atomOrId: number | JSONCifLigandGraphAtom, data: Atom) {
+    modifyAtom(atomOrId: number | JSONCifLigandGraphAtom, data: Omit<Atom, 'id'>) {
         const atom = this.getAtom(atomOrId);
         if (!atom) return;
-        atom.row = { ...atom.row, ...data };
+        atom.row = { ...atom.row, ...data, id: atom.row.id };
     }
 
     addAtom(data: Omit<Atom, 'id'>) {

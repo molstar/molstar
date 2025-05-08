@@ -169,6 +169,8 @@ class EditorModel {
         const update = this.plugin.build();
         update.to(this.dataSelector).update({ data });
         await update.commit();
+
+        this.updateMolFile();
     };
 
     private getEditableStructures() {
