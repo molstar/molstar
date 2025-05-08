@@ -74,8 +74,8 @@ export namespace AssemblySymmetryData {
     export const DefaultServerUrl = 'https://data.rcsb.org/graphql'; // Alternative: 'https://www.ebi.ac.uk/pdbe/aggregated-api/pdb/symmetry' (if serverType is 'pdbe')
 
     export function isApplicable(structure?: Structure): boolean {
-        if (!structure || !Model.hasPdbId(structure.models[0])) return false;
-        return (structure.models.length === 1 && isBiologicalAssembly(structure)) || Model.isIntegrative(structure.models[0]);
+        if (!structure || structure.models.length !== 1 || !Model.hasPdbId(structure.models[0])) return false;
+        return isBiologicalAssembly(structure) || Model.isIntegrative(structure.models[0]);
     }
 
     export async function fetch(ctx: CustomProperty.Context, structure: Structure, props: AssemblySymmetryDataProps): Promise<CustomProperty.Data<AssemblySymmetryDataValue>> {
