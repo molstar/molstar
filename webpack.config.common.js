@@ -63,9 +63,6 @@ const sharedConfig = {
             crypto: require.resolve('crypto-browserify'),
             path: require.resolve('path-browserify'),
             stream: require.resolve('stream-browserify'),
-        },
-        alias: {
-            "@/*": path.resolve(__dirname, 'src/*'),
         }
     },
     watchOptions: {

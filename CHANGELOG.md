@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- mmCIF Support
+  - Add custom `molstar_bond_site` category that enables serializing explicit bonds by referencing `atom_site.id`
+  - Add `includeCategoryNames`, `keepAtomSiteId`, `exportExplicitBonds`, `encoder` properties to `to_mmCIF` exporter
+- Add `Column.ofObjectFields` and `Column.Schema.Any`
+- Add support for attachment points property (`M APO`) to the MOL V2000 parser
+- Add `json-cif` extension that should pave way towards structure editing capabilities in Mol\*
+  - JSON-based encoding of the CIF data format
+  - `JSONCifLigandGraph` that enables editing of small molecules via modifying `atom_site` and `molstar_bond_site` categories
+- Add `ligand-editor` example that showcases possible use-cases of the `json-cif` extension
+
 
 ## [v4.14.0] - 2025-05-07
 - Fix `Viewer.loadTrajectory` when loading a topology file
