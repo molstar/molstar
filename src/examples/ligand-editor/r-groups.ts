@@ -5,8 +5,8 @@
  */
 
 import { JSONCifLigandGraph, JSONCifLigandGraphAtom } from '../../extensions/json-cif/ligand-graph';
+import { molfileToJSONCif } from '../../extensions/json-cif/utils';
 import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
-import { molfileToJSONCif } from './utils';
 
 export type RGroupName = keyof typeof RGroups;
 
@@ -16,7 +16,7 @@ export async function attachRGroup(pGraph: JSONCifLigandGraph, rgroupName: RGrou
         throw new Error('R-group attachment point must be a hydrogen atom.');
     }
 
-    const { molfile, data: rgroupData } = await molfileToJSONCif(RGroups[rgroupName]);
+    const { molfile, jsoncif: rgroupData } = await molfileToJSONCif(RGroups[rgroupName]);
     const attachIdx = molfile.attachmentPoints?.[0].atomIdx;
 
     if (typeof attachIdx !== 'number') {

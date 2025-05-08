@@ -4,35 +4,92 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { molfileToJSONCif } from '../utils';
 import { CifFile } from '../../../mol-io/reader/cif';
-import { parseMol } from '../../../mol-io/reader/mol/parser';
-import { trajectoryFromMol } from '../../../mol-model-formats/structure/mol';
-import { Structure, to_mmCIF } from '../../../mol-model/structure';
-import { Task } from '../../../mol-task';
-import { JSONCifEncoder } from '../encoder';
 import { trajectoryFromMmCIF } from '../../../mol-model-formats/structure/mmcif';
+import { Task } from '../../../mol-task';
+import { JSONCifLigandGraph } from '../ligand-graph';
 import { parseJSONCif } from '../parser';
+import { JSONCifDataBlock } from '../model';
 
 describe('json-cif', () => {
     it('roundtrips', async () => {
-        const s = await parseMolStructure(MolString);
-        const encoder = new JSONCifEncoder('Mol*', { formatJSON: true });
-
-        to_mmCIF('mol', s, false, {
-            encoder,
-            includeCategoryNames: new Set(['atom_site']),
-        });
-
-        const file = encoder.getFile();
+        const { structure, jsoncif: file } = await molfileToJSONCif(MolString);
 
         expect(file.dataBlocks.length).toBe(1);
-        expect(file.dataBlocks[0].categoryNames.length).toBe(1);
+        expect(file.dataBlocks[0].categoryNames.length).toBe(2);
         expect(file.dataBlocks[0].categoryNames[0]).toBe('atom_site');
-        expect(file.dataBlocks[0].categories['atom_site'].rows.length).toBe(s.elementCount);
+        expect(file.dataBlocks[0].categories['atom_site'].rows.length).toBe(structure.elementCount);
 
         const parsed = parseJSONCif(file);
         const parsedModel = await parseCifModel(parsed);
-        expect(parsedModel.atomicHierarchy.atoms._rowCount).toBe(s.elementCount);
+        expect(parsedModel.atomicHierarchy.atoms._rowCount).toBe(structure.elementCount);
+    });
+
+    it('ligand graph', async () => {
+        const { structure, jsoncif: file } = await molfileToJSONCif(MolString);
+
+        // remove atom
+        let graph = new JSONCifLigandGraph(file.dataBlocks[0]);
+        graph.removeAtom(graph.atoms[0]);
+        let data = graph.getData().block;
+        expect(data.categories.atom_site.rows.length).toBe(structure.elementCount - 1);
+
+        // modify atom
+        graph = new JSONCifLigandGraph(file.dataBlocks[0]);
+        expect(file.dataBlocks[0].categories.atom_site.rows[0].type_symbol !== 'N').toBe(true);
+        graph.modifyAtom(1, { type_symbol: 'N' });
+        data = graph.getData().block;
+        expect(data.categories.atom_site.rows[0].type_symbol).toBe('N');
+
+        // add atom and bond
+        graph = new JSONCifLigandGraph(file.dataBlocks[0]);
+        const newAtom = graph.addAtom({ type_symbol: 'C', Cartn_x: 0, Cartn_y: 0, Cartn_z: 0 });
+        graph.addOrUpdateBond(graph.atoms[0], newAtom, { value_order: 'sing', type_id: 'covale' });
+        data = graph.getData().block;
+        expect(data.categories.atom_site.rows.length).toBe(structure.elementCount + 1);
+        expect(data.categories.molstar_bond_site.rows.length).toBe(file.dataBlocks[0].categories.molstar_bond_site.rows.length + 1);
+
+        // remove bond
+        graph.removeBond(graph.atoms[0], newAtom);
+        data = graph.getData().block;
+        expect(data.categories.atom_site.rows.length).toBe(structure.elementCount + 1);
+        expect(data.categories.molstar_bond_site.rows.length).toBe(file.dataBlocks[0].categories.molstar_bond_site.rows.length);
+    });
+
+    it('ligand graph traversal', () => {
+        const data: JSONCifDataBlock = {
+            header: 'test',
+            categoryNames: ['atom_site', 'molstar_bond_site'],
+            categories: {
+                atom_site: {
+                    name: 'atom_site',
+                    fieldNames: ['id', 'type_symbol'],
+                    rows: [
+                        { id: 1, type_symbol: 'C', Cartn_x: 0, Cartn_y: 0, Cartn_z: 0 },
+                        { id: 2, type_symbol: 'C', Cartn_x: 1, Cartn_y: 0, Cartn_z: 0 },
+                        { id: 3, type_symbol: 'C', Cartn_x: 2, Cartn_y: 0, Cartn_z: 0 },
+                        { id: 4, type_symbol: 'C', Cartn_x: 2, Cartn_y: 0, Cartn_z: 0 },
+                    ],
+                },
+                molstar_bond_site: {
+                    name: 'molstar_bond_site',
+                    fieldNames: ['atom_id_1', 'atom_id_2'],
+                    rows: [
+                        { atom_id_1: 1, atom_id_2: 4 },
+                        { atom_id_1: 1, atom_id_2: 2 },
+                        { atom_id_1: 2, atom_id_2: 3 },
+                    ],
+                },
+            },
+        };
+
+        const graph = new JSONCifLigandGraph(data);
+
+        const bfs = graph.traverse(1, 'bfs', [] as number[], (a, s) => s.push(a.row.id!));
+        expect(bfs).toEqual([1, 4, 2, 3]);
+        const dfs = graph.traverse(1, 'dfs', [] as number[], (a, s) => s.push(a.row.id!));
+        expect(dfs).toEqual([1, 2, 3, 4]);
     });
 });
 
@@ -40,15 +97,6 @@ async function parseCifModel(file: CifFile) {
     const models = await trajectoryFromMmCIF(file.blocks[0], file).run();
     const model = await Task.resolveInContext(models.getFrameAtIndex(0));
     return model;
-}
-
-async function parseMolStructure(data: string) {
-    const parsed = await parseMol(data).run();
-    if (parsed.isError) throw new Error(parsed.message);
-    const models = await trajectoryFromMol(parsed.result).run();
-    const model = await Task.resolveInContext(models.getFrameAtIndex(0));
-    const structure = Structure.ofModel(model);
-    return structure;
 }
 
 const MolString = `2244

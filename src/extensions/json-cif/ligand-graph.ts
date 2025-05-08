@@ -162,18 +162,18 @@ export class JSONCifLigandGraph {
     traverse<S>(
         atomOrId: number | JSONCifLigandGraphAtom,
         how: 'dfs' | 'bfs',
+        state: S,
         visitAtom: (atom: JSONCifLigandGraphAtom, state: S, pred: JSONCifLigandGraphBond | undefined, graph: JSONCifLigandGraph) => void,
-        state: S = undefined as any,
     ): S {
         const start = this.getAtom(atomOrId);
         if (!start) return state;
 
         const visited = new Set<string>();
         const pred = new Map<string, JSONCifLigandGraphBond>();
-        const q: string[] = [start.key];
+        const queue: string[] = [start.key];
 
-        while (q.length) {
-            const key = how === 'bfs' ? q.shift()! : q.pop()!;
+        while (queue.length) {
+            const key = how === 'bfs' ? queue.shift()! : queue.pop()!;
             if (visited.has(key)) continue;
 
             const a = this.atomsByKey.get(key)!;
@@ -184,8 +184,7 @@ export class JSONCifLigandGraph {
             if (!bs?.length) continue;
             for (const b of bs) {
                 if (visited.has(b.atom_2.key)) continue;
-                if (how === 'dfs') q.push(b.atom_2.key);
-                else q.unshift(b.atom_2.key);
+                queue.push(b.atom_2.key);
                 pred.set(b.atom_2.key, b);
             }
         }

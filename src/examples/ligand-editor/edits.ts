@@ -193,9 +193,9 @@ function approximateAddAtomDirection(graph: JSONCifLigandGraph, parent: JSONCifL
 }
 
 function getAtomDepths(graph: JSONCifLigandGraph, atomId: number) {
-    return graph.traverse(atomId, 'bfs', (a, depths, pred) => {
+    return graph.traverse(atomId, 'bfs', new Map<string, number>(), (a, depths, pred) => {
         depths.set(a.key, pred ? depths.get(pred.atom_1.key)! + 1 : 0);
-    }, new Map<string, number>());
+    });
 }
 
 function splitGraph(graph: JSONCifLigandGraph, leftId: number, rightId: number) {

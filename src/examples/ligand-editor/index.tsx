@@ -30,7 +30,8 @@ import { ExampleMol } from './example-data';
 import './index.html';
 import { jsonCifToMolfile } from './molfile';
 import { RGroupName } from './r-groups';
-import { molfileToJSONCif, SingleTaskQueue } from './utils';
+import { SingleTaskQueue } from './utils';
+import { molfileToJSONCif } from '../../extensions/json-cif/utils';
 
 async function init(target: HTMLElement | string, molfile: string = ExampleMol) {
     const root = typeof target === 'string' ? document.getElementById(target)! : target;
@@ -82,7 +83,7 @@ async function loadMolfile(model: EditorModel, molfile: string) {
     const file = await molfileToJSONCif(molfile);
     const update = plugin.build();
     const data = update.toRoot()
-        .apply(ParseJSONCifFileData, { data: file.data });
+        .apply(ParseJSONCifFileData, { data: file.jsoncif });
 
     data
         .apply(TrajectoryFromMmCif)
