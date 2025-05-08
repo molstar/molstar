@@ -82,7 +82,7 @@ export async function attachRGroup(pGraph: JSONCifLigandGraph, rgroupName: RGrou
         for (const b of bonds) {
             if (b.atom_2 === rAtom) continue;
             const atom2 = newAtomMap.get(b.atom_2.key)!;
-            pGraph.addBondPart(atom1, atom2, b.props);
+            pGraph.addOrUpdateBond(atom1, atom2, b.props);
         }
     }
 

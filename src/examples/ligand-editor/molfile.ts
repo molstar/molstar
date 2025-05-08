@@ -39,6 +39,9 @@ function mapMolBondOrder(order: MolstarBondSiteValueOrder, type: MolstarBondSite
 }
 
 export function jsonCifToMolfile(data: JSONCifDataBlock, options?: { name?: string, comment?: string }) {
+    // The method works in the sense that Mol* can re-open the file.
+    // For production use, this will likely need more testing and tweaks (e.g., support for M CHG property).
+
     if (data.categories.atom_site === undefined || data.categories.molstar_bond_site === undefined) {
         throw new Error('The data block must contain atom_site and molstar_bond_site categories.');
     }
@@ -55,8 +58,11 @@ export function jsonCifToMolfile(data: JSONCifDataBlock, options?: { name?: stri
         `${padLeft(atoms.rows.length)}${padLeft(bonds.rows.length)}  0  0  0  0  0  0  0  0 V2000`,
     ];
 
-    for (const a of atoms.rows) {
-        const { Cartn_x, Cartn_y, Cartn_z, type_symbol, pdbx_formal_charge } = a;
+    const atomIdToIndex = new Map<number, number>();
+    for (let i = 0; i < atoms.rows.length; ++i) {
+        const a = atoms.rows[i];
+        const { id, Cartn_x, Cartn_y, Cartn_z, type_symbol, pdbx_formal_charge } = a;
+        atomIdToIndex.set(id, i + 1);
         const fields = [
             padLeft(Cartn_x.toFixed(4), 10),
             padLeft(Cartn_y.toFixed(4), 10),
@@ -73,8 +79,8 @@ export function jsonCifToMolfile(data: JSONCifDataBlock, options?: { name?: stri
     for (const b of bonds.rows) {
         const { atom_id_1, atom_id_2, value_order, type_id } = b;
         const fields = [
-            padLeft(atom_id_1, 3),
-            padLeft(atom_id_2, 3),
+            padLeft(atomIdToIndex.get(atom_id_1)!, 3),
+            padLeft(atomIdToIndex.get(atom_id_2)!, 3),
             padLeft(mapMolBondOrder(value_order, type_id), 3),
             '  0  0  0  0',
         ];

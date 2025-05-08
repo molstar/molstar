@@ -4,15 +4,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { UUID } from '../../mol-util';
-import { JSONCifDataBlock } from './model';
-import { arrayMapAdd } from '../../mol-util/map';
-import { mmCIF_Schema } from '../../mol-io/reader/cif/schema/mmcif';
 import { Table } from '../../mol-data/db';
-import { MolstarBondSiteTypeId, MolstarBondSiteValueOrder } from '../../mol-model/structure/export/categories/molstar_bond_site';
+import { mmCIF_Schema } from '../../mol-io/reader/cif/schema/mmcif';
 import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
-import { VdwRadius } from '../../mol-model/structure/model/properties/atomic';
-import { ElementSymbol } from '../../mol-model/structure/model/types';
+import { MolstarBondSiteTypeId, MolstarBondSiteValueOrder } from '../../mol-model/structure/export/categories/molstar_bond_site';
+import { UUID } from '../../mol-util';
+import { arrayMapAdd } from '../../mol-util/map';
+import { JSONCifDataBlock } from './model';
 
 type Atom = Partial<Table.Row<mmCIF_Schema['atom_site']>>
 
@@ -48,6 +46,7 @@ const _State = {
 export class JSONCifLigandGraph {
     readonly atoms: JSONCifLigandGraphAtom[] = [];
     readonly atomsById: Map<number, JSONCifLigandGraphAtom> = new Map();
+    /** Bond with the provided key is always atom_1 */
     readonly bondByKey: Map<string, JSONCifLigandGraphBond[]> = new Map();
     readonly removedAtomIds: Set<number> = new Set();
 
@@ -95,40 +94,6 @@ export class JSONCifLigandGraph {
         return atom;
     }
 
-    transformCoords(xform: Mat4) {
-        for (const a of this.atoms) {
-            const p = this.getAtomCoords(a, _State.p1);
-            Vec3.transformMat4(p, p, xform);
-            a.row.Cartn_x = p[0];
-            a.row.Cartn_y = p[1];
-            a.row.Cartn_z = p[2];
-        }
-    }
-
-    attachAtom(parent: number | JSONCifLigandGraphAtom, atom: Atom) {
-        const p = this.getAtom(parent);
-        if (!p) return;
-
-        const c = this.getAtomCoords(p);
-        const dir = this.getAddAtomDirection(p);
-        const r = 2 / 5 * (VdwRadius(ElementSymbol(p.row.type_symbol ?? 'C')) + VdwRadius(ElementSymbol(atom.type_symbol ?? 'C')));
-        const newAtom = this.addAtom({
-            ...p.row,
-            // NOTE: this is not correct for editing protein atoms
-            // as they should have atom names from CCD, or at least the should be
-            // unique. This should be fine for small ligand editing.
-            auth_atom_id: atom.type_symbol,
-            label_atom_id: atom.type_symbol,
-            ...atom,
-            Cartn_x: c[0] + dir[0] * r,
-            Cartn_y: c[1] + dir[1] * r,
-            Cartn_z: c[2] + dir[2] * r
-        });
-        this.addOrUpdateBond(p, newAtom, { value_order: 'sing', type_id: 'covale' });
-
-        return newAtom;
-    }
-
     removeAtom(atomOrId: number | JSONCifLigandGraphAtom) {
         const atom = this.getAtom(atomOrId);
         if (!atom) return;
@@ -161,14 +126,6 @@ export class JSONCifLigandGraph {
         arrayMapAdd(this.bondByKey, a2.key, { atom_1: a2, atom_2: a1, props: ps });
     }
 
-    // TODO: iterate on this?
-    addBondPart(atom1: number | JSONCifLigandGraphAtom, atom2: number | JSONCifLigandGraphAtom, props: JSONCifLigandGraphBondProps) {
-        const a1 = this.getAtom(atom1);
-        const a2 = this.getAtom(atom2);
-        if (!a1 || !a2) return;
-        arrayMapAdd(this.bondByKey, a1.key, { atom_1: a1, atom_2: a2, props: { ...props } });
-    }
-
     removeBond(atom1: number | JSONCifLigandGraphAtom, atom2: number | JSONCifLigandGraphAtom) {
         const a1 = this.getAtom(atom1);
         const a2 = this.getAtom(atom2);
@@ -183,22 +140,49 @@ export class JSONCifLigandGraph {
         }
     }
 
+    private transformAtomCoords(xform: Mat4, atomOrId: number | JSONCifLigandGraphAtom) {
+        const atom = this.getAtom(atomOrId);
+        if (!atom) return;
+        const p = this.getAtomCoords(atom, _State.p1);
+        Vec3.transformMat4(p, p, xform);
+        atom.row.Cartn_x = p[0];
+        atom.row.Cartn_y = p[1];
+        atom.row.Cartn_z = p[2];
+    }
+
+    transformCoords(xform: Mat4, atoms?: (number | JSONCifLigandGraphAtom)[]) {
+        for (const a of atoms ?? this.atoms) {
+            this.transformAtomCoords(xform, a);
+        }
+    }
+
     getData(): JSONCifLigandGraphData {
         const atomIdRemapping = new Map<number, number>();
         const addedAtomIds: number[] = [];
+
+        const sortedAtoms = this.atoms.map((a, i) => [a, i] as const);
+        sortedAtoms.sort((a, b) => {
+            const x = a[0].row.type_symbol;
+            const y = b[0].row.type_symbol;
+            if (x === 'H' && y !== 'H') return 1;
+            if (x !== 'H' && y === 'H') return -1;
+            return a[1] - b[1];
+        });
+
         const atoms: Atom[] = [];
 
-        for (let i = 0; i < this.atoms.length; ++i) {
+        for (let i = 0; i < sortedAtoms.length; ++i) {
+            const a = sortedAtoms[i][0];
             const id = i + 1;
 
-            if (this.atoms[i].row.id === undefined) {
+            if (a.row.id === undefined) {
                 addedAtomIds.push(id);
             } else {
-                atomIdRemapping.set(this.atoms[i].row.id!, id);
+                atomIdRemapping.set(a.row.id!, id);
             }
 
-            this.atoms[i].final_id = id;
-            atoms.push({ ...this.atoms[i].row, id });
+            a.final_id = id;
+            atoms.push({ ...a.row, id });
         }
 
         const block: JSONCifDataBlock = {
@@ -213,7 +197,7 @@ export class JSONCifLigandGraph {
         };
 
         const bonds: Record<string, any>[] = [];
-        for (const a of this.atoms) {
+        for (const [a] of sortedAtoms) {
             const xs = this.bondByKey.get(a.key);
             if (!xs) continue;
             for (const bb of xs) {
@@ -227,6 +211,11 @@ export class JSONCifLigandGraph {
                 });
             }
         }
+        bonds.sort((a, b) => {
+            if (a.atom_id_1 !== b.atom_id_1) return a.atom_id_1 - b.atom_id_1;
+            if (a.atom_id_2 !== b.atom_id_2) return a.atom_id_2 - b.atom_id_2;
+            return 0;
+        });
 
         if (block.categories.molstar_bond_site) {
             block.categories['molstar_bond_site'] = {
@@ -241,54 +230,6 @@ export class JSONCifLigandGraph {
             addedAtomIds,
             removedAtomIds: Array.from(this.removedAtomIds).sort((a, b) => a - b),
         };
-    }
-
-    private getAddAtomDirection(parent: JSONCifLigandGraphAtom) {
-        // NOTE: this will not correctly handle all cases...
-
-        let deltas: Vec3[] = [];
-        const bonds = this.bondByKey.get(parent.key);
-        if (!bonds?.length) return Vec3.create(1, 0, 0);
-
-        const c = this.getAtomCoords(parent);
-        for (const b of bonds) {
-            const delta = Vec3.sub(Vec3(), this.getAtomCoords(b.atom_2), c);
-            deltas.push(delta);
-        }
-
-        if (deltas.length === 1) {
-            const ret = Vec3.negate(Vec3(), deltas[0]);
-            Vec3.normalize(ret, ret);
-            return ret;
-        }
-
-        if (deltas.length === 2) {
-            const ret = Vec3.add(Vec3(), deltas[0], deltas[1]);
-            Vec3.normalize(ret, ret);
-            Vec3.negate(ret, ret);
-            return ret;
-        }
-
-        // For now, just take the first three deltas and cross-product them
-        deltas = deltas.slice(0, 3);
-        const crossProducts: Vec3[] = [];
-        for (let i = 0; i < deltas.length; ++i) {
-            for (let j = i + 1; j < deltas.length; ++j) {
-                const cross = Vec3.cross(Vec3(), deltas[i], deltas[j]);
-                Vec3.normalize(cross, cross);
-                crossProducts.push(cross);
-            }
-        }
-        for (let i = 1; i < crossProducts.length; ++i) {
-            Vec3.matchDirection(crossProducts[i], crossProducts[i], crossProducts[0]);
-        }
-
-        const avg = Vec3.create(0, 0, 0);
-        for (const cp of crossProducts) {
-            Vec3.add(avg, avg, cp);
-        }
-        Vec3.normalize(avg, avg);
-        return avg;
     }
 
     constructor(private data: JSONCifDataBlock) {

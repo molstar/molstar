@@ -28,7 +28,7 @@ import { ExampleMol } from './example-data';
 import './index.html';
 import { RGroupName } from './r-groups';
 import { molfileToJSONCif } from './utils';
-import { jsonCifToMolfile } from '../../extensions/json-cif/molfile';
+import { jsonCifToMolfile } from './molfile';
 
 async function init(target: HTMLElement | string, molfile: string = ExampleMol) {
     const root = typeof target === 'string' ? document.getElementById(target)! : target;
@@ -296,9 +296,11 @@ function EditElementSymbolUI({ model }: { model: EditorModel }) {
         <b>Atoms</b>
         <div style={{ display: 'flex', gap: '5px' }}>
             <button onClick={model.removeAtoms}>Remove</button>
-            <button onClick={model.setElement}>Set Element</button>
-            <button onClick={model.addElement}>Add Element</button>
-            <ElementEditUI model={model} />
+            <div>
+                <ElementEditUI model={model} />
+                <button onClick={model.setElement} style={{ borderLeft: 'none' }}>Set Element</button>
+                <button onClick={model.addElement} style={{ borderLeft: 'none' }}>Add Element</button>
+            </div>
         </div>
         <b>Bonds</b>
         <div style={{ display: 'flex', gap: '5px' }}>
