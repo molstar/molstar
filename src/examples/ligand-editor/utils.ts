@@ -20,9 +20,14 @@ export class SingleTaskQueue {
 
     private async next() {
         while (this.queue.length > 0) {
-            const fn = this.queue[0];
-            await fn();
-            this.queue.shift();
+            try {
+                const fn = this.queue[0];
+                await fn();
+            } catch (e) {
+                console.error('Error in SingleTaskQueue execution:', e);
+            } finally {
+                this.queue.shift();
+            }
         }
     }
 }
