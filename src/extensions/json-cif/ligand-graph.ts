@@ -45,6 +45,7 @@ const _State = {
 
 export class JSONCifLigandGraph {
     readonly atoms: JSONCifLigandGraphAtom[] = [];
+    readonly atomsByKey: Map<string, JSONCifLigandGraphAtom> = new Map();
     readonly atomsById: Map<number, JSONCifLigandGraphAtom> = new Map();
     /** Bond with the provided key is always atom_1 */
     readonly bondByKey: Map<string, JSONCifLigandGraphBond[]> = new Map();
@@ -78,8 +79,8 @@ export class JSONCifLigandGraph {
         return dir;
     }
 
-    modifyAtom(id: number, data: Atom) {
-        const atom = this.atomsById.get(id);
+    modifyAtom(atomOrId: number | JSONCifLigandGraphAtom, data: Atom) {
+        const atom = this.getAtom(atomOrId);
         if (!atom) return;
         atom.row = { ...atom.row, ...data };
     }
@@ -90,6 +91,7 @@ export class JSONCifLigandGraph {
             final_id: undefined,
             row: { ...data, id: undefined },
         };
+        this.atomsByKey.set(atom.key, atom);
         this.atoms.push(atom);
         return atom;
     }
@@ -103,6 +105,7 @@ export class JSONCifLigandGraph {
         }
 
         this.atoms.splice(this.atoms.indexOf(atom), 1);
+        this.atomsByKey.delete(atom.key);
 
         const bonds = this.bondByKey.get(atom.key);
         if (!bonds) return;
@@ -154,6 +157,39 @@ export class JSONCifLigandGraph {
         for (const a of atoms ?? this.atoms) {
             this.transformAtomCoords(xform, a);
         }
+    }
+
+    traverse<S>(
+        atomOrId: number | JSONCifLigandGraphAtom,
+        how: 'dfs' | 'bfs',
+        visitAtom: (atom: JSONCifLigandGraphAtom, state: S, pred: JSONCifLigandGraphBond | undefined, graph: JSONCifLigandGraph) => void,
+        state: S = undefined as any,
+    ): S {
+        const start = this.getAtom(atomOrId);
+        if (!start) return state;
+
+        const visited = new Set<string>();
+        const pred = new Map<string, JSONCifLigandGraphBond>();
+        const q: string[] = [start.key];
+
+        while (q.length) {
+            const key = how === 'bfs' ? q.shift()! : q.pop()!;
+            if (visited.has(key)) continue;
+
+            const a = this.atomsByKey.get(key)!;
+            visited.add(a.key);
+            visitAtom(a, state, pred.get(key), this);
+
+            const bs = this.bondByKey.get(a.key);
+            if (!bs?.length) continue;
+            for (const b of bs) {
+                if (visited.has(b.atom_2.key)) continue;
+                if (how === 'dfs') q.push(b.atom_2.key);
+                else q.unshift(b.atom_2.key);
+                pred.set(b.atom_2.key, b);
+            }
+        }
+        return state;
     }
 
     getData(): JSONCifLigandGraphData {
@@ -240,6 +276,7 @@ export class JSONCifLigandGraph {
                 row: { ...row },
             };
             this.atoms.push(atom);
+            this.atomsByKey.set(atom.key, atom);
             this.atomsById.set(row.id, atom);
         }
 

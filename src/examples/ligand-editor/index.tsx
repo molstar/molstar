@@ -4,8 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Subscription, throttleTime } from 'rxjs';
 import { JSONCifLigandGraph, JSONCifLigandGraphBondProps } from '../../extensions/json-cif/ligand-graph';
 import { JSONCifDataBlock, JSONCifFile } from '../../extensions/json-cif/model';
 import { ParseJSONCifFileData } from '../../extensions/json-cif/transformers';
@@ -19,17 +20,17 @@ import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
 import { Plugin } from '../../mol-plugin-ui/plugin';
 import '../../mol-plugin-ui/skin/light.scss';
 import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
+import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginConfig } from '../../mol-plugin/config';
 import { PluginSpec } from '../../mol-plugin/spec';
 import { StateObjectSelector } from '../../mol-state';
 import { download } from '../../mol-util/download';
-import { TopologyEdits } from './edits';
+import { GeometryEditFn, GeometryEdits, TopologyEdits } from './edits';
 import { ExampleMol } from './example-data';
 import './index.html';
-import { RGroupName } from './r-groups';
-import { molfileToJSONCif } from './utils';
 import { jsonCifToMolfile } from './molfile';
-import { PluginCommands } from '../../mol-plugin/commands';
+import { RGroupName } from './r-groups';
+import { molfileToJSONCif, SingleTaskQueue } from './utils';
 
 async function init(target: HTMLElement | string, molfile: string = ExampleMol) {
     const root = typeof target === 'string' ? document.getElementById(target)! : target;
@@ -86,9 +87,9 @@ async function loadMolfile(model: EditorModel, molfile: string) {
     data
         .apply(TrajectoryFromMmCif)
         .apply(ModelFromTrajectory)
-        .apply(StructureFromModel, { type: { name: 'model', params: { } } })
+        .apply(StructureFromModel, { type: { name: 'model', params: {} } })
         .apply(StructureRepresentation3D, {
-            type: { name: 'ball-and-stick', params: { } },
+            type: { name: 'ball-and-stick', params: {} },
             colorTheme: {
                 name: 'element-symbol',
                 params: { carbonColor: { name: 'element-symbol', params: {} } }
@@ -140,7 +141,7 @@ class EditorModel {
         }
     }
 
-    async update(data: JSONCifDataBlock) {
+    async update(data: JSONCifDataBlock, pushHistory = true, historyData?: JSONCifFile) {
         if (!this.data) return;
 
         const updated: JSONCifFile = {
@@ -148,7 +149,9 @@ class EditorModel {
             dataBlocks: [data],
         };
 
-        this.state.history.next([...this.history, this.data!]);
+        if (pushHistory) {
+            this.state.history.next([...this.history, historyData ?? this.data!]);
+        }
         const update = this.plugin.build();
         update.to(this.dataSelector!).update({ data: updated });
         await update.commit();
@@ -187,6 +190,7 @@ class EditorModel {
 
         const { selection } = this.plugin.managers.structure;
         const ids: number[] = [];
+
         selection.entries.forEach(e => {
             if (!structures.has(e.selection.structure)) return;
             StructureElement.Loci.forEachLocation(e.selection, (l) => {
@@ -206,12 +210,12 @@ class EditorModel {
         } catch (e) {
             console.error('Failed to edit graph');
             console.error(e);
-            PluginCommands.Toast.Show(this.plugin, { key: '<edit>', title: 'Error', message: `${e}`, timeoutMs: 5000 });
+            this.notify(`${e}`, 5000);
         }
     }
 
-    private notify(message: string) {
-        PluginCommands.Toast.Show(this.plugin, { key: '<edit>', title: 'Edit', message, timeoutMs: 2500 });
+    private notify(message: string, timeoutMs = 2500) {
+        PluginCommands.Toast.Show(this.plugin, { key: '<edit>', title: 'Edit', message, timeoutMs });
     }
 
     setElement = async () => {
@@ -260,6 +264,54 @@ class EditorModel {
         if (ids.length !== 1) return this.notify('Select a single hydrogen atom to attach an R-group to');
 
         await this.editGraphTopology(TopologyEdits.attachRgroup, ids[0], name);
+    };
+
+    private geometryEditInitialData: JSONCifFile | undefined = undefined;
+    private geometryEditValues = new BehaviorSubject<[value: number, finish: boolean]>([0, false]);
+    private currentGeometryEdit: GeometryEditFn | undefined = undefined;
+    private currentGeomeryEditSub: Subscription | undefined = undefined;
+    private geometryEditQueue = new SingleTaskQueue();
+
+    private applyGeometryEdit = ([param, finish]: [param: number, finish: boolean]) => {
+        if (!this.currentGeometryEdit) return;
+        const graph = this.currentGeometryEdit(param);
+        const data = graph.getData().block;
+        const initialData = this.geometryEditInitialData;
+        if (finish) {
+            this.currentGeometryEdit = undefined;
+            this.currentGeomeryEditSub?.unsubscribe();
+            this.currentGeomeryEditSub = undefined;
+            this.geometryEditInitialData = undefined;
+        }
+        this.geometryEditQueue.run(() => this.update(data, finish, initialData));
+    };
+
+    beginGeometryEdit<Args extends any[], T>(fn: (graph: JSONCifLigandGraph, ...args: Args) => GeometryEditFn, initial: number, ...args: Args) {
+        try {
+            this.geometryEditValues.next([initial, false]);
+            const graph = this.createGraph();
+            this.geometryEditInitialData = this.data!;
+            this.currentGeometryEdit = fn(graph, ...args);
+            this.currentGeomeryEditSub = this.geometryEditValues
+                .pipe(throttleTime(1000 / 60, undefined, { leading: true, trailing: true }))
+                .subscribe(this.applyGeometryEdit);
+        } catch (e) {
+            console.error('Failed to edit graph');
+            console.error(e);
+            this.notify(`${e}`, 5000);
+        }
+    }
+
+    setGeometryEditValue(param: number, finish = false) {
+        this.geometryEditValues.next([param, finish]);
+    }
+
+    twist = () => {
+        this.beginGeometryEdit(GeometryEdits.twist, 0, this.getSelectedAtomIds());
+    };
+
+    stretch = () => {
+        this.beginGeometryEdit(GeometryEdits.stretch, 0, this.getSelectedAtomIds());
     };
 
     constructor(public plugin: PluginUIContext) { }
@@ -320,6 +372,9 @@ function EditElementSymbolUI({ model }: { model: EditorModel }) {
         <div style={{ display: 'flex', gap: '5px' }}>
             <button onClick={() => model.attachRgroup('CH3')}>-CH<sub>3</sub></button>
         </div>
+        <b>Geometry</b>
+        <TwistUI model={model} />
+        <StretchUI model={model} />
     </div>;
 }
 
@@ -331,4 +386,50 @@ function UndoButton({ model }: { model: EditorModel }) {
 function ElementEditUI({ model }: { model: EditorModel }) {
     const element = useBehavior(model.state.element);
     return <input type="text" value={element} style={{ width: 50 }} onChange={e => model.state.element.next(e.target.value)} />;
+}
+
+const GeometryLabelWidth = 60;
+
+function TwistUI({ model }: { model: EditorModel }) {
+    const [value, setValue] = useState(0);
+
+    return <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} >
+        <i style={{ width: GeometryLabelWidth }}>Twist</i> <input
+            type='range' min={-59} max={60} step={1} value={value}
+            onMouseDown={model.twist}
+            onMouseUp={(e) => {
+                requestAnimationFrame(() => {
+                    model.setGeometryEditValue(Math.PI * value / 60, true);
+                    setValue(0);
+                });
+            }}
+            onChange={e => {
+                const value = +e.target.value;
+                setValue(value);
+                model.setGeometryEditValue(Math.PI * value / 60);
+            }}
+        />
+    </div>;
+}
+
+function StretchUI({ model }: { model: EditorModel }) {
+    const [value, setValue] = useState(0);
+
+    return <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} >
+        <i style={{ width: GeometryLabelWidth }}>Stretch</i> <input
+            type='range' min={-60} max={60} step={1} value={value}
+            onMouseDown={model.stretch}
+            onMouseUp={(e) => {
+                requestAnimationFrame(() => {
+                    model.setGeometryEditValue(0.5 * value / 60, true);
+                    setValue(0);
+                });
+            }}
+            onChange={e => {
+                const value = +e.target.value;
+                setValue(value);
+                model.setGeometryEditValue(0.5 * value / 60);
+            }}
+        />
+    </div>;
 }

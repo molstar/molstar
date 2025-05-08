@@ -5,7 +5,7 @@
  */
 
 import { JSONCifLigandGraph, JSONCifLigandGraphAtom, JSONCifLigandGraphBondProps } from '../../extensions/json-cif/ligand-graph';
-import { Vec3 } from '../../mol-math/linear-algebra';
+import { Quat, Vec3 } from '../../mol-math/linear-algebra';
 import { VdwRadius } from '../../mol-model/structure/model/properties/atomic';
 import { ElementSymbol } from '../../mol-model/structure/model/types';
 import { attachRGroup, RGroupName } from './r-groups';
@@ -65,6 +65,87 @@ export const TopologyEdits = {
     }
 };
 
+export type GeometryEditFn = (param: number) => JSONCifLigandGraph;
+
+export const GeometryEdits = {
+    twist: (graph: JSONCifLigandGraph, atomIds: number[]): GeometryEditFn => {
+        if (atomIds.length !== 2) {
+            throw new Error('Twist requires exactly two atoms.');
+        }
+
+        const { left, right } = splitGraph(graph, atomIds[0], atomIds[1]);
+
+        const active = left.length <= right.length ? left : right;
+        const a = left.length <= right.length ? atomIds[0] : atomIds[1];
+        const b = left.length <= right.length ? atomIds[1] : atomIds[0];
+
+        const pivot = graph.getAtomCoords(a);
+        const axis = Vec3.sub(Vec3(), pivot, graph.getAtomCoords(b));
+        Vec3.normalize(axis, axis);
+
+        const basePositions = active.map(a => graph.getAtomCoords(a));
+        const xform = Quat();
+        const p = Vec3();
+
+        return (angle: number) => {
+            Quat.setAxisAngle(xform, axis, angle);
+            for (let i = 0; i < active.length; ++i) {
+                Vec3.copy(p, basePositions[i]);
+                Vec3.sub(p, p, pivot);
+                Vec3.transformQuat(p, p, xform);
+                Vec3.add(p, p, pivot);
+                graph.modifyAtom(active[i], {
+                    Cartn_x: p[0],
+                    Cartn_y: p[1],
+                    Cartn_z: p[2]
+                });
+            }
+            return graph;
+        };
+    },
+    stretch: (graph: JSONCifLigandGraph, atomIds: number[]): GeometryEditFn => {
+        if (atomIds.length !== 2) {
+            throw new Error('Stretch requires exactly two atoms.');
+        }
+
+        const { left, right } = splitGraph(graph, atomIds[0], atomIds[1]);
+
+        const a = graph.getAtomCoords(atomIds[0]);
+        const b = graph.getAtomCoords(atomIds[1]);
+        const center = Vec3.add(Vec3(), b, a);
+        Vec3.scale(center, center, 0.5);
+        const baseDelta = Vec3.sub(Vec3(), a, center);
+        const baseLeft = left.map(a => graph.getAtomCoords(a));
+        const baseRight = right.map(a => graph.getAtomCoords(a));
+
+        const p = Vec3();
+        const delta = Vec3();
+
+        return (factor: number) => {
+            Vec3.scale(delta, baseDelta, factor);
+            for (let i = 0; i < left.length; ++i) {
+                Vec3.copy(p, baseLeft[i]);
+                Vec3.add(p, p, delta);
+                graph.modifyAtom(left[i], {
+                    Cartn_x: p[0],
+                    Cartn_y: p[1],
+                    Cartn_z: p[2]
+                });
+            }
+            for (let i = 0; i < right.length; ++i) {
+                Vec3.copy(p, baseRight[i]);
+                Vec3.sub(p, p, delta);
+                graph.modifyAtom(right[i], {
+                    Cartn_x: p[0],
+                    Cartn_y: p[1],
+                    Cartn_z: p[2]
+                });
+            }
+            return graph;
+        };
+    },
+};
+
 function approximateAddAtomDirection(graph: JSONCifLigandGraph, parent: JSONCifLigandGraphAtom) {
     let deltas: Vec3[] = [];
     const bonds = graph.bondByKey.get(parent.key);
@@ -109,4 +190,30 @@ function approximateAddAtomDirection(graph: JSONCifLigandGraph, parent: JSONCifL
     }
     Vec3.normalize(avg, avg);
     return avg;
+}
+
+function getAtomDepths(graph: JSONCifLigandGraph, atomId: number) {
+    return graph.traverse(atomId, 'bfs', (a, depths, pred) => {
+        depths.set(a.key, pred ? depths.get(pred.atom_1.key)! + 1 : 0);
+    }, new Map<string, number>());
+}
+
+function splitGraph(graph: JSONCifLigandGraph, leftId: number, rightId: number) {
+    const xs = getAtomDepths(graph, leftId);
+    const ys = getAtomDepths(graph, rightId);
+
+    const l: JSONCifLigandGraphAtom[] = [];
+    const r: JSONCifLigandGraphAtom[] = [];
+    for (const a of graph.atoms) {
+        if (xs.has(a.key) && ys.has(a.key)) {
+            if (xs.get(a.key)! < ys.get(a.key)!) l.push(a);
+            else r.push(a);
+        } else if (xs.has(a.key)) {
+            l.push(a);
+        } else if (ys.has(a.key)) {
+            r.push(a);
+        }
+    }
+
+    return { left: l, right: r };
 }
