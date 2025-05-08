@@ -29,6 +29,7 @@ import './index.html';
 import { RGroupName } from './r-groups';
 import { molfileToJSONCif } from './utils';
 import { jsonCifToMolfile } from './molfile';
+import { PluginCommands } from '../../mol-plugin/commands';
 
 async function init(target: HTMLElement | string, molfile: string = ExampleMol) {
     const root = typeof target === 'string' ? document.getElementById(target)! : target;
@@ -135,6 +136,7 @@ class EditorModel {
         } catch (e) {
             console.error('Failed to convert to molfile');
             console.error(e);
+            this.state.molfile.next(`Error: ${e}`);
         }
     }
 
@@ -204,53 +206,58 @@ class EditorModel {
         } catch (e) {
             console.error('Failed to edit graph');
             console.error(e);
+            PluginCommands.Toast.Show(this.plugin, { key: '<edit>', title: 'Error', message: `${e}`, timeoutMs: 5000 });
         }
+    }
+
+    private notify(message: string) {
+        PluginCommands.Toast.Show(this.plugin, { key: '<edit>', title: 'Edit', message, timeoutMs: 2500 });
     }
 
     setElement = async () => {
         const symbol = this.state.element.value.trim();
-        if (!symbol) return;
+        if (!symbol) return this.notify('No element symbol provided');
 
         const ids = this.getSelectedAtomIds();
-        if (!ids.length) return;
+        if (!ids.length) return this.notify('No atoms selected');
 
         await this.editGraphTopology(TopologyEdits.setElement, ids, symbol);
     };
 
     addElement = async () => {
         const symbol = this.state.element.value.trim();
-        if (!symbol) return;
+        if (!symbol) return this.notify('No element symbol provided');
 
         const ids = this.getSelectedAtomIds();
-        if (ids.length !== 1) return;
+        if (ids.length !== 1) return this.notify('Select a single atom to add a new atom to');
 
         await this.editGraphTopology(TopologyEdits.addElement, ids[0], symbol);
     };
 
     removeAtoms = async () => {
         const ids = this.getSelectedAtomIds();
-        if (!ids.length) return;
+        if (!ids.length) return this.notify('No atoms selected');
 
         await this.editGraphTopology(TopologyEdits.removeAtoms, ids);
     };
 
     removeBonds = async () => {
         const ids = this.getSelectedAtomIds();
-        if (!ids.length) return;
+        if (!ids.length) return this.notify('No atoms selected');
 
         await this.editGraphTopology(TopologyEdits.removeBonds, ids);
     };
 
     updateBonds = async (props: JSONCifLigandGraphBondProps) => {
         const ids = this.getSelectedAtomIds();
-        if (!ids.length) return;
+        if (!ids.length) return this.notify('No atoms selected');
 
         await this.editGraphTopology(TopologyEdits.updateBonds, ids, props);
     };
 
     attachRgroup = async (name: RGroupName) => {
         const ids = this.getSelectedAtomIds();
-        if (ids.length !== 1) return;
+        if (ids.length !== 1) return this.notify('Select a single hydrogen atom to attach an R-group to');
 
         await this.editGraphTopology(TopologyEdits.attachRgroup, ids[0], name);
     };
@@ -318,7 +325,7 @@ function EditElementSymbolUI({ model }: { model: EditorModel }) {
 
 function UndoButton({ model }: { model: EditorModel }) {
     const history = useBehavior(model.state.history);
-    return <button onClick={model.undo} disabled={history.length === 0}>Undo</button>;
+    return <button onClick={model.undo} disabled={history.length === 0}>Undo [{history.length}]</button>;
 }
 
 function ElementEditUI({ model }: { model: EditorModel }) {
