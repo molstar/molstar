@@ -48,7 +48,6 @@ function getColumnCtor(t: Column.Schema): ColumnCtor {
         case 'str': return (f, c, k) => createStringColumn(t, f, f.str, f.toStringArray);
         case 'int': return (f, c, k) => createColumn(t, f, f.int, f.toIntArray);
         case 'float': return (f, c, k) => createColumn(t, f, f.float, f.toFloatArray);
-        case 'any': return (f, c, k) => createColumn(t, f, f.str, f.toStringArray);
         case 'list': throw new Error('Use createListColumn instead.');
         case 'tensor': throw new Error('Use createTensorColumn instead.');
     }

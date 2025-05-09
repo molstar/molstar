@@ -7,7 +7,6 @@ Note that since we don't clearly distinguish between a public and private interf
 - mmCIF Support
   - Add custom `molstar_bond_site` category that enables serializing explicit bonds by referencing `atom_site.id`
   - Add `includeCategoryNames`, `keepAtomSiteId`, `exportExplicitBonds`, `encoder` properties to `to_mmCIF` exporter
-- Add `Column.ofObjectFields` and `Column.Schema.Any`
 - Add support for attachment points property (`M APO`) to the MOL V2000 parser
 - Add `json-cif` extension that should pave way towards structure editing capabilities in Mol\*
   - JSON-based encoding of the CIF data format
