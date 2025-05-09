@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Structure, Model, StructureSelection, QueryContext } from '../../mol-model/structure';
-import { Database as _Database, Column } from '../../mol-data/db';
+import { Column } from '../../mol-data/db';
 import { GraphQLClient } from '../../mol-util/graphql-client';
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
 import { CustomStructureProperty } from '../../mol-model-props/common/custom-structure-property';
@@ -74,11 +74,8 @@ export namespace AssemblySymmetryData {
     export const DefaultServerUrl = 'https://data.rcsb.org/graphql'; // Alternative: 'https://www.ebi.ac.uk/pdbe/aggregated-api/pdb/symmetry' (if serverType is 'pdbe')
 
     export function isApplicable(structure?: Structure): boolean {
-        return (
-            !!structure && structure.models.length === 1 &&
-            Model.hasPdbId(structure.models[0]) &&
-            isBiologicalAssembly(structure)
-        );
+        if (!structure || structure.models.length !== 1 || !Model.hasPdbId(structure.models[0])) return false;
+        return isBiologicalAssembly(structure) || Model.isIntegrative(structure.models[0]);
     }
 
     export async function fetch(ctx: CustomProperty.Context, structure: Structure, props: AssemblySymmetryDataProps): Promise<CustomProperty.Data<AssemblySymmetryDataValue>> {
@@ -91,7 +88,7 @@ export namespace AssemblySymmetryData {
     export async function fetchRCSB(ctx: CustomProperty.Context, structure: Structure, props: AssemblySymmetryDataProps): Promise<CustomProperty.Data<AssemblySymmetryDataValue>> {
         const client = new GraphQLClient(props.serverUrl, ctx.assetManager);
         const variables = {
-            assembly_id: structure.units[0].conformation.operator.assembly?.id || '',
+            assembly_id: structure.units[0].conformation.operator.assembly?.id || 'deposited', // data.rcsb.org guarantees assembly 'deposited' to be present for IHM
             entry_id: structure.units[0].model.entryId
         };
         const result = await client.request(ctx.runtime, rcsb_symmetry_gql, variables);
