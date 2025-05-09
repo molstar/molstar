@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -131,7 +131,7 @@ function getCustomPropCategories(customProp: CustomPropertyDescriptor, ctx: CifE
     const ret: CifExportCategoryInfo[] = [];
     for (const cat of cats) {
         if (params?.skipCategoryNames?.has(cat.name)) continue;
-        if (params?.includeCategoryNames && !params.includeCategoryNames.has(cat.name)) continue;
+        if (params?.includedCategoryNames && !params.includedCategoryNames.has(cat.name)) continue;
         if (cat.name.indexOf(prefix) !== 0) throw new Error(`Custom category '${cat.name}' name must start with prefix '${prefix}.'`);
         ret.push([cat, propCtx]);
     }
@@ -139,14 +139,28 @@ function getCustomPropCategories(customProp: CustomPropertyDescriptor, ctx: CifE
 }
 
 type encode_mmCIF_categories_Params = {
-    skipCategoryNames?: Set<string>,
-    includeCategoryNames?: Set<string>,
-    keepAtomSiteId?: boolean,
-    exportExplicitBonds?: boolean,
     exportCtx?: CifExportContext,
-    copyAllCategories?: boolean,
-    customProperties?: CustomPropertyDescriptor[],
     encoder?: CifWriter.Encoder,
+
+    /** Skip provided categories */
+    skipCategoryNames?: Set<string>,
+    /** If defined, include only specified categories */
+    includedCategoryNames?: Set<string>,
+    /** If true, copy all categories present in an input mmCIF file */
+    copyAllCategories?: boolean,
+    /** If enabled, keep atom_site.id from the input data, otherwise use 1-based index of atom */
+    doNotReindexAtomSiteId?: boolean,
+    /** List of custom properties to include */
+    customProperties?: CustomPropertyDescriptor[],
+
+    extensions?: {
+        /**
+         * If specified, includes molstar_bond_site category with explicit bonds based on atom_site.id.
+         * Forces doNotReindexAtomSiteId to true.
+         * Note: This is not a standard mmCIF category and is currently specific to Mol*.
+         */
+        molstar_bond_site?: boolean,
+    }
 }
 
 /** Doesn't start a data block */
@@ -165,9 +179,11 @@ export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structures: 
 }
 
 function encode_mmCIF_categories_default(encoder: CifWriter.Encoder, ctx: CifExportContext, params?: encode_mmCIF_categories_Params) {
-    for (const cat of Categories({ keepAtomSiteId: params?.keepAtomSiteId })) {
+    for (const cat of Categories({
+        keepAtomSiteId: params?.extensions?.molstar_bond_site || params?.doNotReindexAtomSiteId
+    })) {
         if (params?.skipCategoryNames && params?.skipCategoryNames.has(cat.name)) continue;
-        if (params?.includeCategoryNames && !params.includeCategoryNames.has(cat.name)) continue;
+        if (params?.includedCategoryNames && !params.includedCategoryNames.has(cat.name)) continue;
         encoder.writeCategory(cat, ctx);
     }
 
@@ -176,7 +192,7 @@ function encode_mmCIF_categories_default(encoder: CifWriter.Encoder, ctx: CifExp
         if (info) encoder.writeCategory(info[0], info[1], info[2]);
     }
 
-    if (params?.exportExplicitBonds) {
+    if (params?.extensions?.molstar_bond_site) {
         const info = molstar_bond_site(ctx);
         if (info) encoder.writeCategory(info[0], info[1], info[2]);
     }
@@ -209,7 +225,9 @@ function encode_mmCIF_categories_default(encoder: CifWriter.Encoder, ctx: CifExp
 function encode_mmCIF_categories_copyAll(encoder: CifWriter.Encoder, ctx: CifExportContext, params?: encode_mmCIF_categories_Params) {
     const providedCategories = new Map<string, CifExportCategoryInfo>();
 
-    for (const cat of Categories({ keepAtomSiteId: params?.keepAtomSiteId })) {
+    for (const cat of Categories({
+        keepAtomSiteId: params?.extensions?.molstar_bond_site || params?.doNotReindexAtomSiteId
+    })) {
         providedCategories.set(cat.name, [cat, ctx]);
     }
 
@@ -264,7 +282,7 @@ function encode_mmCIF_categories_copyAll(encoder: CifWriter.Encoder, ctx: CifExp
         if (!handled.has(name)) encoder.writeCategory(info[0], info[1], info[2]);
     });
 
-    if (params?.exportExplicitBonds) {
+    if (params?.extensions?.molstar_bond_site) {
         const info = molstar_bond_site(ctx);
         if (info) encoder.writeCategory(info[0], info[1], info[2]);
     }

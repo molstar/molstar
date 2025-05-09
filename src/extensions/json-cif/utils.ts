@@ -20,9 +20,10 @@ export async function molfileToJSONCif(molfile: string) {
 
     to_mmCIF('mol', structure, false, {
         encoder,
-        exportExplicitBonds: true,
-        keepAtomSiteId: true,
-        includeCategoryNames: new Set(['atom_site']),
+        includedCategoryNames: new Set(['atom_site']),
+        extensions: {
+            molstar_bond_site: true,
+        }
     });
 
     return {

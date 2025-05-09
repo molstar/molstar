@@ -89,7 +89,7 @@ function structConnFromMmcif(model: Model) {
 }
 StructConn.Provider.formatRegistry.add('mmCIF', structConnFromMmcif);
 
-function indexPairBondsFromMmcif(model: Model) {
+function indexPairBondsFromMolstarBondSite(model: Model) {
     if (!MmcifFormat.is(model.sourceData)) return;
 
     const { molstar_bond_site: entries } = toDatabase(MolstarBondSiteSchema, model.sourceData.data.frame);
@@ -155,7 +155,7 @@ function indexPairBondsFromMmcif(model: Model) {
     return pairBonds;
 }
 
-IndexPairBonds.Provider.formatRegistry.add('mmCIF', indexPairBondsFromMmcif);
+IndexPairBonds.Provider.formatRegistry.add('mmCIF', indexPairBondsFromMolstarBondSite);
 
 GlobalModelTransformInfo.Provider.formatRegistry.add('mmCIF', GlobalModelTransformInfo.fromMmCif, GlobalModelTransformInfo.hasData);
 
