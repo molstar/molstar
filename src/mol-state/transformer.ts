@@ -170,7 +170,7 @@ namespace Transformer {
         const id = `${namespace}.${name}` as Id;
 
         if (registry.has(id)) {
-            throw new Error(`A transform with id '${name}' is already registered. Please pick a unique identifier for your transforms and/or register them only once. This is to ensure that transforms can be serialized and replayed.`);
+            console.warn(`A transform with id '${name}' is already registered. Please pick a unique identifier for your transforms and/or register them only once. This is to ensure that transforms can be serialized and replayed.`);
         }
 
         const t: Transformer<A, B, P> = {
