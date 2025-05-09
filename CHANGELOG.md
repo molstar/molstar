@@ -17,6 +17,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Support updating transform states
   - Add support for `is_hidden` custom state as an extension
   - Add `queryMVSRef` and `createMVSRefMap` utility functions
+- Adjust max resolution of surfaces for auto quality (#1501)
 - Fix switching representation type in Volume UI
 - VolumeServer: Avoid grid expansion when requiring unit cell (avoids including an extra layer of cells outside the unit cell query box)
 
@@ -54,7 +55,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix MolViewSpec builder for volumes.
 - Generalize `mvs-kinase-story` example to `mvs-stories`
   - Add TATA-binding protein story
-  - Improve the Kinase story 
+  - Improve the Kinase story
 - Fix alpha orbitals example
 
 ## [v4.12.0] - 2025-02-28
