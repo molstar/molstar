@@ -5,6 +5,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v4.14.1] - 2025-05-09
+- Do not raise error when creating duplicate state transformers and print console warning instead
+
 ## [v4.14.0] - 2025-05-07
 - Fix `Viewer.loadTrajectory` when loading a topology file
 - Fix `StructConn.residueCantorPairs` to not include identity pairs
