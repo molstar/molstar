@@ -14,6 +14,12 @@ function padLeft(v: any, n = 3) {
     return s;
 }
 
+function padRight(v: any, n = 3) {
+    let s = `${v}`;
+    while (s.length < n) s = s + ' ';
+    return s;
+}
+
 function mapMolChage(v: number) {
     switch (v) {
         case 3: return 1;
@@ -68,7 +74,7 @@ export function jsonCifToMolfile(data: JSONCifDataBlock, options?: { name?: stri
             padLeft(Cartn_y.toFixed(4), 10),
             padLeft(Cartn_z.toFixed(4), 10),
             ' ',
-            padLeft(type_symbol, 2),
+            padRight(type_symbol, 2),
             '  0',
             padLeft(mapMolChage(pdbx_formal_charge), 3),
             '  0  0  0  0  0  0  0  0  0  0',

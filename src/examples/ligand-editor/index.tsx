@@ -209,6 +209,7 @@ class EditorModel {
             const result = await fn(graph, ...args);
             const data = graph.getData().block;
             await this.update(data);
+            this.plugin.managers.interactivity.lociSelects.deselectAll();
             return result;
         } catch (e) {
             console.error('Failed to edit graph');

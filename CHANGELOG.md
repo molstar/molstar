@@ -12,6 +12,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - JSON-based encoding of the CIF data format
   - `JSONCifLigandGraph` that enables editing of small molecules via modifying `atom_site` and `molstar_bond_site` categories
 - Add `ligand-editor` example that showcases possible use-cases of the `json-cif` extension
+- Breaking: Changed `atom_site.id` indexing to 1-based in `mol-model-formats/structure/mol.ts::getMolModels`.
 
 
 ## [v4.14.0] - 2025-05-07
