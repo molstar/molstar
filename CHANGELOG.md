@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Fix transparency rendering with occlusion in NodeJS
 
 ## [v4.14.1] - 2025-05-09
 - Do not raise error when creating duplicate state transformers and print console warning instead
