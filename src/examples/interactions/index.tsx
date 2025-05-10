@@ -356,7 +356,7 @@ function SelectExampleUI({ state, load }: {
 }
 
 async function init(viewer: HTMLElement | string, controls: HTMLElement | string, defaultExample: keyof typeof Examples = 'Computed (1iep)') {
-    const root = typeof viewer === 'string' ? document.getElementById('viewer')! : viewer;
+    const root = typeof viewer === 'string' ? document.getElementById(viewer)! : viewer;
     const plugin = await createViewer(root);
 
     const state = new BehaviorSubject<{ name?: keyof typeof Examples, isLoading?: boolean }>({});
@@ -372,7 +372,7 @@ async function init(viewer: HTMLElement | string, controls: HTMLElement | string
     };
 
     createRoot(
-        typeof controls === 'string' ? document.getElementById('controls')! : controls
+        typeof controls === 'string' ? document.getElementById(controls)! : controls
     ).render(<SelectExampleUI state={state} load={loadExample} />);
 
     loadExample(defaultExample);

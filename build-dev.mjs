@@ -26,6 +26,7 @@ const AllExamples = [
     'mvs-stories',
     'ihm-restraints',
     'interactions',
+    'ligand-editor',
 ];
 
 function mkDir(dir) {

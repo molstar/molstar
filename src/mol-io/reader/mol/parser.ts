@@ -35,6 +35,10 @@ export interface MolFile {
         readonly atomIdx: Column<number>;
         readonly charge: Column<number>;
     }
+    readonly attachmentPoints?: {
+        readonly atomIdx: number;
+        readonly kind: number;
+    }[];
 }
 
 /*
@@ -147,7 +151,6 @@ interface FormalChargesRawData {
     charge: Array<number>;
 }
 export function handleFormalCharges(tokenizer: Tokenizer, lineStart: number, formalCharges: FormalChargesRawData) {
-
     Tokenizer.trim(tokenizer, lineStart + 6, lineStart + 9);
     const numOfCharges = parseInt(Tokenizer.getTokenString(tokenizer));
     for (let i = 0; i < numOfCharges; ++i) {
@@ -177,15 +180,27 @@ export function handleFormalCharges(tokenizer: Tokenizer, lineStart: number, for
     Tokenizer.eatLine(tokenizer);
 }
 
-/** Call an appropriate handler based on the property type.
- * (For now it only calls the formal charge handler, additional handlers can
- * be added for other properties.)
- */
-export function handlePropertiesBlock(tokenizer: Tokenizer): MolFile['formalCharges'] {
+function handleAttachmentPoints(line: string): MolFile['attachmentPoints'] {
+    const tokens = line.trim().split(/\s+/g);
+    const points: MolFile['attachmentPoints'] = [];
+    for (let i = 1; i < tokens.length; i += 2) {
+        const atomIdx = +tokens[i];
+        const kind = +tokens[i + 1] || 0;
+        points.push({ atomIdx, kind });
+    }
+    return points;
+}
 
+/** Call an appropriate handler based on the property type.
+ */
+export function handlePropertiesBlock(tokenizer: Tokenizer): {
+    formalCharges: MolFile['formalCharges'],
+    attachmentPoints: MolFile['attachmentPoints']
+} {
     const _atomIdx: Array<number> = [];
     const _charge: Array<number> = [];
     const _formalCharges: FormalChargesRawData = { atomIdx: _atomIdx, charge: _charge };
+    let attachmentPoints: MolFile['attachmentPoints'] = undefined;
 
     while (tokenizer.position < tokenizer.length) {
         const { position: s } = tokenizer;
@@ -200,6 +215,9 @@ export function handlePropertiesBlock(tokenizer: Tokenizer): MolFile['formalChar
             case 'CHG':
                 handleFormalCharges(tokenizer, s, _formalCharges);
                 break;
+            case 'APO':
+                attachmentPoints = handleAttachmentPoints(Tokenizer.getTokenString(tokenizer).substring(3));
+                break;
             default:
                 break;
         }
@@ -209,7 +227,7 @@ export function handlePropertiesBlock(tokenizer: Tokenizer): MolFile['formalChar
         atomIdx: Column.ofIntArray(_formalCharges.atomIdx),
         charge: Column.ofIntArray(_formalCharges.charge)
     };
-    return formalCharges;
+    return { formalCharges, attachmentPoints };
 }
 
 function parseInternal(data: string): Result<MolFile> {
@@ -226,15 +244,13 @@ function parseInternal(data: string): Result<MolFile> {
     const atoms = handleAtoms(tokenizer, atomCount);
     const bonds = handleBonds(tokenizer, bondCount);
 
-    const formalCharges = handlePropertiesBlock(tokenizer);
-
     const result: MolFile = {
         title,
         program,
         comment,
         atoms,
         bonds,
-        formalCharges,
+        ...handlePropertiesBlock(tokenizer),
     };
     return Result.success(result);
 }
