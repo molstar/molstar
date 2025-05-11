@@ -8,6 +8,7 @@ import { Mat4, Vec3 } from '../../linear-algebra';
 import { Box3D } from '../primitives/box3d';
 import { Frustum3D } from '../primitives/frustum3d';
 import { Sphere3D } from '../primitives/sphere3d';
+import { describe, it, expect } from 'vitest';
 
 const v3 = Vec3.create;
 const s3 = Sphere3D.create;

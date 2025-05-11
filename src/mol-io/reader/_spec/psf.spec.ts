@@ -5,6 +5,7 @@
  */
 
 import { parsePsf } from '../psf/parser';
+import { describe, it, expect } from 'vitest';
 
 const psfString = `PSF CMAP CHEQ
 

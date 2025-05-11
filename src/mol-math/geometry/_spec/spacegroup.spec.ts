@@ -6,6 +6,7 @@
 
 import { Spacegroup, SpacegroupCell } from '../spacegroup/construction';
 import { Vec3 } from '../../linear-algebra';
+import { describe, it, expect } from 'vitest';
 
 function getSpacegroup(name: string) {
     const size = Vec3.create(1, 1, 1);

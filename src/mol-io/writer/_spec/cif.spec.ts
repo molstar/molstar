@@ -7,6 +7,7 @@ import { TextEncoder } from '../cif/encoder/text';
 import * as C from '../cif/encoder';
 import { Column, Database, Table } from '../../../mol-data/db';
 import { parseCifText } from '../../reader/cif/text/parser';
+import { test, expect } from 'vitest';
 
 const cartn_x = Data.CifField.ofNumbers([1.001, 1.002, 1.003, 1.004, 1.005, 1.006, 1.007, 1.008, 1.009]);
 const cartn_y = Data.CifField.ofNumbers([-3.0, -2.666, -2.3333, -2.0, -1.666, -1.333, -1.0, -0.666, -0.333]);

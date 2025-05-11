@@ -1,5 +1,6 @@
 import { ArrayEncoding } from '../binary-cif/array-encoder';
 import { decode } from '../binary-cif/decoder';
+import { test, expect } from 'vitest';
 
 const E = ArrayEncoding;
 

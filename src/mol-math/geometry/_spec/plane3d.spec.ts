@@ -6,6 +6,7 @@
 
 import { Vec3 } from '../../linear-algebra';
 import { Plane3D } from '../primitives/plane3d';
+import { describe, it, expect } from 'vitest';
 
 describe('plane3d', () => {
     it('fromNormalAndCoplanarPoint', () => {

@@ -8,6 +8,7 @@
 
 import { Transpiler } from '../transpiler';
 import { KeywordDict, PropertyDict, OperatorList } from '../types';
+import { describe, it, expect } from 'vitest';
 
 export function testKeywords(keywords: KeywordDict, transpiler: Transpiler) {
     for (const name in keywords) {
