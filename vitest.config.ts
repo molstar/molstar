@@ -1,7 +1,6 @@
-// vitest.config.ts
 import { defineConfig } from 'vitest/config';
 
-export const vitestConfig = defineConfig({
+export default defineConfig({
     test: {
         globals: true,
         environment: 'jsdom',
