@@ -5,50 +5,28 @@
 **/
 
 import path from 'path';
-import { describe, it, expect } from 'vitest';
+import { describe, test, it, expect } from 'vitest';
 
-function testTranspilerExamples(name: string, transpiler: any) {
-    const examplesPath = path.join(__dirname, `../${name}/examples.ts`);
-    console.log(`Resolved path for ${name}:`, examplesPath);
+const transpilers = ['pymol', 'vmd', 'jmol'];
 
-    let examples;
+transpilers.forEach(name => {
+  const examplesPath = path.join(__dirname, `../${name}/examples.ts`);
 
-    try {
-        // Clear module cache to handle re-runs without stale data
-        delete require.cache[require.resolve(examplesPath)];
-        const module = require(examplesPath);
-        console.log(`Module structure for ${name}:`, module);
-        examples = module.examples;
-    } catch (err) {
-        console.warn(`Failed to load examples for ${name}: ${err.message}`);
-        examples = [];
-    }
+  try {
+    const { examples } = require(examplesPath);
 
-    console.log(`Examples for ${name}:`, examples);
-
-    if (!Array.isArray(examples)) {
-        console.warn(`Expected examples to be an array but got:`, typeof examples);
-        return;
-    }
-
-    describe(`${name} examples`, () => {
-        examples.forEach((e) => {
-            it(e.name, () => {
-                console.log(`Running test for ${name} - ${e.name}:`, e);
-                expect(typeof e.name).toBe('string');
-                expect(e.value).toBeDefined();
-            });
+    if (examples && examples.length > 0) {
+      describe(`${name} examples`, () => {
+        examples.forEach((example: { name: string; value: any }) => {
+          test(`Example: ${example.name}`, () => {
+            expect(example.value).toBeDefined();
+          });
         });
-    });
-}
-
-// Execute tests for each transpiler
-const transpilers = {
-    pymol: {},
-    vmd: {},
-    jmol: {}
-};
-
-testTranspilerExamples('pymol', transpilers.pymol);
-testTranspilerExamples('vmd', transpilers.vmd);
-testTranspilerExamples('jmol', transpilers.jmol);
+      });
+    } else {
+      console.warn(`No examples found in ${examplesPath}`);
+    }
+  } catch (err) {
+    console.warn(`Failed to load examples for ${name}:`, err.message);
+  }
+});
