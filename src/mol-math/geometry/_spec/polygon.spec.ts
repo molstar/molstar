@@ -6,6 +6,7 @@
 
 import { Vec2 } from '../../linear-algebra';
 import { pointInPolygon } from '../polygon';
+import { describe, it, expect } from 'vitest';
 
 describe('pointInPolygon', () => {
     it('basic', () => {
