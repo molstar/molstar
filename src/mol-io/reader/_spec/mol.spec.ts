@@ -7,6 +7,7 @@
  */
 
 import { parseMol, formalChargeMapper } from '../mol/parser';
+import { describe, it, expect } from 'vitest';
 
 const MolString = `2244
   -OEChem-04072009073D

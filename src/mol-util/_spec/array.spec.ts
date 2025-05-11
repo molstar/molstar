@@ -5,7 +5,7 @@
  */
 
 import { filterInPlace, range } from '../array';
-
+import { describe, it, expect } from 'vitest';
 
 describe('filterInPlace', () => {
     it('filterInPlace works', async () => {

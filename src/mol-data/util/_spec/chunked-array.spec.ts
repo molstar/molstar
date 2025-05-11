@@ -5,6 +5,7 @@
  */
 
 import { ChunkedArray } from '../chunked-array';
+import { describe, it, expect } from 'vitest';
 
 describe('Chunked Array', () => {
     it('creation', () => {

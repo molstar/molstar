@@ -5,6 +5,7 @@
  */
 
 import { Interval } from '../interval';
+import { describe, it, expect } from 'vitest';
 
 describe('interval', () => {
     function testI(name: string, a: Interval, b: Interval) {

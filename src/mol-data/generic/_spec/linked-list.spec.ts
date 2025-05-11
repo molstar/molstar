@@ -5,6 +5,7 @@
  */
 
 import { LinkedList } from '../linked-list';
+import { describe, it, expect } from 'vitest';
 
 describe('linked list', () => {
 

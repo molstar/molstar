@@ -5,6 +5,7 @@
  */
 
 import { idFactory } from '../id-factory';
+import { describe, it, expect } from 'vitest';
 
 describe('id-factory', () => {
     it('basic', () => {

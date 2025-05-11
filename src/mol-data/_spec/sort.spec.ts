@@ -5,6 +5,7 @@
  */
 
 import * as Sort from '../util/sort';
+import { describe, it, expect } from 'vitest';
 
 function shuffle<T>(data: T, len: number, clone: (s: T) => T, swap: Sort.Swapper = Sort.arraySwap) {
     const a = clone(data);

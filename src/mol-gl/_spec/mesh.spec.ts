@@ -11,6 +11,7 @@ import { setDebugMode } from '../../mol-util/debug';
 import { ColorNames } from '../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
+import { describe, it, expect } from 'vitest';
 
 export function createMesh() {
     const mesh = Mesh.createEmpty();

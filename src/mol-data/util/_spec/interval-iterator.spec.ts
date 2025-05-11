@@ -6,6 +6,7 @@
 
 import { Interval, OrderedSet, SortedArray } from '../../int';
 import { IntervalIterator } from '../interval-iterator';
+import { describe, it, expect } from 'vitest';
 
 describe('interval', () => {
     function testIterator(name: string, interval: Interval, set: OrderedSet, expectedValues: { index: number[], start: number[], end: number[]}) {

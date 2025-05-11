@@ -5,6 +5,7 @@
  */
 
 import { CIF } from '../../../mol-io/reader/cif';
+import { describe, it, expect } from 'vitest';
 
 const cifCoreString = `data_n1379
 _audit_block_doi                 10.5517/ccy42jn

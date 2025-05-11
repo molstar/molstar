@@ -5,6 +5,7 @@
  */
 
 import { MonadicParser as P } from '../monadic-parser';
+import { describe, it, expect } from 'vitest';
 
 describe('parser', () => {
     it('string', () => {

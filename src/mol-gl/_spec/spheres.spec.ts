@@ -11,6 +11,7 @@ import { setDebugMode } from '../../mol-util/debug';
 import { ColorNames } from '../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
+import { describe, it, expect } from 'vitest';
 
 export function createSpheres() {
     const spheres = Spheres.createEmpty();

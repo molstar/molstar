@@ -8,6 +8,7 @@
 import * as ColumnHelpers from '../column-helpers';
 import { Column } from '../column';
 import { Table } from '../table';
+import { describe, it, expect } from 'vitest';
 
 describe('column', () => {
     const cc = Column.ofConst(10, 2, Column.Schema.int);

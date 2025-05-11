@@ -6,6 +6,7 @@
 
 import { Mat3 } from '../3d/mat3';
 import { Vec3 } from '../3d/vec3';
+import { describe, it, expect } from 'vitest';
 
 describe('Mat3', () => {
     it('symmetricEigenvalues', () => {

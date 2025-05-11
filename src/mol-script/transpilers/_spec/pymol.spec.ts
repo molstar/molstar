@@ -11,6 +11,7 @@ import { transpiler } from '../pymol/parser';
 import { keywords } from '../pymol/keywords';
 import { properties } from '../pymol/properties';
 import { operators } from '../pymol/operators';
+import { describe, it, expect } from 'vitest';
 
 const general = {
     supported: [

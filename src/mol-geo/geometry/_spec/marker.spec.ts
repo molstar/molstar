@@ -5,6 +5,7 @@
  */
 
 import { getMarkersAverage } from '../marker-data';
+import { describe, it, expect } from 'vitest';
 
 describe('marker-data', () => {
     it('getMarkersAverage', () => {

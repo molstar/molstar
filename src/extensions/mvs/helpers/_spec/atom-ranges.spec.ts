@@ -5,7 +5,7 @@
  */
 
 import { AtomRanges } from '../atom-ranges';
-
+import { describe, it, expect } from 'vitest';
 
 describe('union', () => {
     it('union non-overlapping', async () => {

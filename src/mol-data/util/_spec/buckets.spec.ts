@@ -6,6 +6,7 @@
 
 import { createRangeArray } from '../array';
 import { makeBuckets } from '../buckets';
+import { describe, it, expect } from 'vitest';
 
 describe('buckets', () => {
 

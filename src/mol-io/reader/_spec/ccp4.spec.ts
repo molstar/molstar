@@ -5,6 +5,7 @@
  */
 
 import * as CCP4 from '../ccp4/parser';
+import { describe, it, expect } from 'vitest';
 
 function createCcp4Data() {
     const data = new Uint8Array(4 * 256 + 6);

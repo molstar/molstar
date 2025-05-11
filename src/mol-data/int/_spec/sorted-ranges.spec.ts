@@ -7,6 +7,7 @@
 import { SortedRanges } from '../sorted-ranges';
 import { OrderedSet } from '../ordered-set';
 import { SortedArray } from '../sorted-array';
+import { describe, it, expect } from 'vitest';
 
 describe('rangesArray', () => {
     function test(name: string, a: any, b: any) {

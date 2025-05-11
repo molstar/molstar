@@ -7,6 +7,7 @@
 import { Mat4 } from '../3d/mat4';
 import { Euler } from '../3d/euler';
 import { Quat } from '../3d/quat';
+import { describe, it, expect } from 'vitest';
 
 const t = [
     [Euler.create(0, 0, 0), 'XYZ'],

@@ -5,6 +5,7 @@
  */
 
 import { fasterPow2, fasterExp, fasterLog, fasterLog10, fasterSin, fasterCos, fastAtan, fastAtan2, fasterTan, fasterTanh, fasterCosh, fasterSinh, fastPow2, fastExp, fastLog, fastLog10, fastSinh, fastCosh, fastTanh, fastSin, fastCos, fastTan } from '../../approx';
+import { describe, it, expect } from 'vitest';
 
 describe('approx', () => {
     it('fastPow2', () => {

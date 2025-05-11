@@ -11,6 +11,7 @@ import { setDebugMode } from '../../mol-util/debug';
 import { ColorNames } from '../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Image } from '../../mol-geo/geometry/image/image';
+import { describe, it, expect } from 'vitest';
 
 export function createImage() {
     const image = Image.createEmpty();

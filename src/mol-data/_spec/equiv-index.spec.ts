@@ -5,6 +5,7 @@
  */
 
 import { EquivalenceClasses } from '../util';
+import { describe, it, expect } from 'vitest';
 
 describe('equiv-classes', () => {
     it('integer mod classes', () => {

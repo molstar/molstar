@@ -5,6 +5,7 @@
  */
 
 import { parseFloat as fastParseFloat, parseInt as fastParseInt, getNumberType, NumberTypes } from '../../../mol-io/reader/common/text/number-parser';
+import { describe, it, expect } from 'vitest';
 
 describe('common', () => {
     it('number-parser fastParseFloat', () => {

@@ -5,6 +5,7 @@
  */
 
 import { parseCsv } from '../csv/parser';
+import { describe, it, expect } from 'vitest';
 
 const csvStringBasic = `StrCol,IntCol,FloatCol
 # comment
