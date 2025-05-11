@@ -10,25 +10,25 @@ import path from 'path';
 const transpilers = ['pymol', 'vmd', 'jmol'];
 
 transpilers.forEach(name => {
-  const examplesPath = path.join(__dirname, `../${name}/examples.ts`);
+    const examplesPath = path.join(__dirname, `../${name}/examples.ts`);
 
-  try {
-    console.log(`Attempting to load examples from: ${examplesPath}`);
-    const module = require(examplesPath);
+    try {
+        console.log(`Attempting to load examples from: ${examplesPath}`);
+        const module = require(examplesPath);
 
-    if (module && module.examples && Array.isArray(module.examples)) {
-      console.log(`Found ${module.examples.length} examples for ${name}`);
-      describe(`${name} examples`, () => {
-        module.examples.forEach((example: { name: string; value: any }) => {
-          test(`Example: ${example.name}`, () => {
-            expect(example.value).toBeDefined();
-          });
-        });
-      });
-    } else {
-      console.warn(`No valid examples found in ${examplesPath}`);
+        if (module && module.examples && Array.isArray(module.examples)) {
+            console.log(`Found ${module.examples.length} examples for ${name}`);
+            describe(`${name} examples`, () => {
+                module.examples.forEach((example: { name: string; value: any }) => {
+                    test(`Example: ${example.name}`, () => {
+                        expect(example.value).toBeDefined();
+                    });
+                });
+            });
+        } else {
+            console.warn(`No valid examples found in ${examplesPath}`);
+        }
+    } catch (err) {
+        console.warn(`Failed to load examples for ${name}:`, err.message);
     }
-  } catch (err) {
-    console.warn(`Failed to load examples for ${name}:`, err.message);
-  }
 });
