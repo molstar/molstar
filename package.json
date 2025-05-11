@@ -17,7 +17,7 @@
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
     "test": "npm install --no-save \"gl@^6.0.2\" && npm run lint && npm run vitest",
-    "test:vitest": "vitest --config vitest.config.ts",
+    "test:vitest": "vitest",
     "test:vitest:watch": "vitest --watch",
     "test:vitest:coverage": "vitest run --coverage --coverage.reporter=text-summary --coverage.dir=./coverage",
     "build": "npm run build-tsc && npm run build-extra && npm run build-webpack",
