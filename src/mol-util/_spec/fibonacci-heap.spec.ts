@@ -5,6 +5,7 @@
  */
 
 import { FibonacciHeap } from '../fibonacci-heap';
+import { describe, it, expect } from 'vitest';
 
 describe('fibonacci-heap', () => {
     it('basic', () => {

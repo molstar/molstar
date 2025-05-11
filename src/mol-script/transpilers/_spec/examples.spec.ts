@@ -6,6 +6,7 @@
 
 import { Transpiler } from '../transpiler';
 import { _transpiler as transpilers } from '../all';
+import { describe, it, expect } from 'vitest';
 
 function testTranspilerExamples(name: string, transpiler: Transpiler) {
     describe(`${name} examples`, () => {

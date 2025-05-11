@@ -6,7 +6,7 @@
 
 import { OptionalField, RequiredField, bool, float, int, str } from '../field-schema';
 import { SimpleParamsSchema, UnionParamsSchema, paramsValidationIssues } from '../params-schema';
-
+import { describe, it, expect } from 'vitest';
 
 const simpleSchema = SimpleParamsSchema({
     name: OptionalField(str, 'Anonymous', 'Testing optional field name'),

@@ -11,6 +11,7 @@ import { transpiler } from '../vmd/parser';
 import { keywords } from '../vmd/keywords';
 import { properties } from '../vmd/properties';
 import { operators } from '../vmd/operators';
+import { describe, it, expect } from 'vitest';
 
 const general = {
     supported: [
