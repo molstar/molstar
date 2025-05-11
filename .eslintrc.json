@@ -117,6 +117,12 @@
                 "@typescript-eslint/func-call-spacing": ["error"],
                 "@typescript-eslint/keyword-spacing": ["error"]
             }
+        },
+        {
+            "files": ["vitest.config.ts"],
+            "rules": {
+                "no-restricted-syntax": "off"
+            }
         }
     ]
 }
