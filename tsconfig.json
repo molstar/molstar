@@ -21,6 +21,6 @@
         "rootDir": "src",
         "outDir": "lib"
     },
-    "include": [ "src/**/*" ],
+    "include": [ "src/**/*", "vitest.config.ts" ],
     // "exclude": [ "src/servers/**/*", "src/perf-tests/*", "src/cli/**/*" ]
 }
