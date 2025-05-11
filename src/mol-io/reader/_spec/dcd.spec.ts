@@ -5,6 +5,7 @@
  */
 
 import { parseDcd } from '../dcd/parser';
+import { describe, it, expect } from 'vitest';
 
 function createDcdData() {
     const data = new Uint8Array(4 * 128);

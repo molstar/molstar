@@ -11,6 +11,7 @@ import { setDebugMode } from '../../mol-util/debug';
 import { ColorNames } from '../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
+import { describe, it, expect } from 'vitest';
 
 export function createDirectVolume() {
     const directVolume = DirectVolume.createEmpty();

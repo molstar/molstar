@@ -11,6 +11,7 @@ import { setDebugMode } from '../../mol-util/debug';
 import { ColorNames } from '../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
+import { describe, it, expect } from 'vitest';
 
 export function createTextureMesh() {
     const textureMesh = TextureMesh.createEmpty();

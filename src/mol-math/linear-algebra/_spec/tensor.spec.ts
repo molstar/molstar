@@ -6,6 +6,7 @@
 
 import { Tensor as T } from '../tensor';
 import { Mat4 } from '../3d/mat4';
+import { describe, it, expect } from 'vitest';
 
 describe('tensor', () => {
     it('vector', () => {

@@ -12,6 +12,7 @@ import { transpiler } from '../jmol/parser';
 import { keywords } from '../jmol/keywords';
 import { properties } from '../jmol/properties';
 import { operators } from '../jmol/operators';
+import { describe, it, expect } from 'vitest';
 
 const general = {
     supported: [

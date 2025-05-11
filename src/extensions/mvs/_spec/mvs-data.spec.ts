@@ -6,7 +6,7 @@
 
 import fs from 'fs';
 import { MVSData } from '../mvs-data';
-
+import { describe, it, expect } from 'vitest';
 
 describe('MVSData', () => {
     it.skip('MVSData functions work', async () => {
