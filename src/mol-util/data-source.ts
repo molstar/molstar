@@ -12,7 +12,7 @@ import { StringLike } from '../mol-io/common/string-like';
 import { utf8Read, utf8ReadLong } from '../mol-io/common/utf8';
 import { RuntimeContext, Task } from '../mol-task';
 import { Asset, AssetManager } from './assets';
-import { File_ as File, RUNNING_IN_NODEJS, XMLHttpRequest_ as XMLHttpRequest } from './nodejs-shims';
+import { RUNNING_IN_NODEJS, XMLHttpRequest_ as XMLHttpRequest } from './nodejs-shims';
 import { ungzip, unzip } from './zip/zip';
 
 
@@ -299,6 +299,15 @@ export function setFSModule(fs: typeof import('fs')) {
     _fs = fs;
 }
 
+function readFileAsync(filename: string): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+        getFS().readFile(filename, (err, data) => {
+            if (err) reject(err);
+            else resolve(data);
+        });
+    });
+}
+
 /** Alternative implementation of ajaxGetInternal (because xhr2 does not support file:// protocol) */
 function ajaxGetInternal_file_NodeJS<T extends DataType>(title: string | undefined, url: string, type: T, body?: string, headers?: [string, string][]): Task<DataResponse<T>> {
     if (!RUNNING_IN_NODEJS) throw new Error('This function should only be used when running in Node.js');
@@ -306,9 +315,11 @@ function ajaxGetInternal_file_NodeJS<T extends DataType>(title: string | undefin
 
     return Task.create(title ?? 'Download', async ctx => {
         const filename = url.substring('file://'.length);
-        const data = getFS().readFileSync(filename);
-        const file = new File([data], 'raw-data');
-        const result = await readFromFile(file, type).runInContext(ctx);
+        await ctx.update({ message: 'Loading file...', canAbort: false });
+        const data = await readFileAsync(filename);
+
+        await ctx.update({ message: 'Parsing response...', canAbort: false });
+        const result = await processFile(ctx, data, type, DataCompressionMethod.None);
         return result;
     });
 }
