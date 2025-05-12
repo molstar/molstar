@@ -317,9 +317,10 @@ function ajaxGetInternal_file_NodeJS<T extends DataType>(title: string | undefin
 function ajaxGetInternal_http_NodeJS<T extends DataType>(title: string | undefined, url: string, type: T, body?: string, headers?: [string, string][]): Task<DataResponse<T>> {
     if (!RUNNING_IN_NODEJS) throw new Error('This function should only be used when running in Node.js');
 
+    const aborter = new AbortController();
     return Task.create(title ?? 'Download', async ctx => {
-        await ctx.update({ message: 'Downloading...', canAbort: false });
-        const response = await fetch(url);
+        await ctx.update({ message: 'Downloading...', canAbort: true });
+        const response = await fetch(url, { signal: aborter.signal });
         if (!(response.status >= 200 && response.status < 400)) {
             throw new Error(`Download failed with status code ${response.status}`);
         }
@@ -328,6 +329,8 @@ function ajaxGetInternal_http_NodeJS<T extends DataType>(title: string | undefin
         await ctx.update({ message: 'Parsing response...', canAbort: false });
         const result = await processFile(ctx, fileContent, type, DataCompressionMethod.None);
         return result;
+    }, () => {
+        aborter.abort();
     });
 }
 
