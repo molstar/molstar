@@ -15,6 +15,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Add `queryMVSRef` and `createMVSRefMap` utility functions
 - Fix switching representation type in Volume UI
 - Load potentially big text files as StringLike to bypass string size limit
+- Remove `xhr2` dependency for NodeJS, use `fetch`
 
 ## [v4.13.0] - 2025-04-14
 - Support `--host` option for build-dev.mjs script
