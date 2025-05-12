@@ -12,7 +12,7 @@ import { StringLike } from '../mol-io/common/string-like';
 import { utf8Read, utf8ReadLong } from '../mol-io/common/utf8';
 import { RuntimeContext, Task } from '../mol-task';
 import { Asset, AssetManager } from './assets';
-import { RUNNING_IN_NODEJS, XMLHttpRequest_ as XMLHttpRequest } from './nodejs-shims';
+import { RUNNING_IN_NODEJS } from './nodejs-shims';
 import { ungzip, unzip } from './zip/zip';
 
 
@@ -61,7 +61,8 @@ export function ajaxGet<T extends DataType>(params: AjaxGetParams<T> | string) {
 export type AjaxTask = typeof ajaxGet
 
 function isDone(data: XMLHttpRequest | FileReader) {
-    if (!RUNNING_IN_NODEJS && data instanceof FileReader) { // FileReader is not available in Node.js
+    if (RUNNING_IN_NODEJS) throw new Error('`isDone` should not be used when running in Node.js'); // XMLHttpRequest and FileReader are not available in Node.js
+    if (data instanceof FileReader) {
         return data.readyState === FileReader.DONE;
     } else if (data instanceof XMLHttpRequest) {
         return data.readyState === XMLHttpRequest.DONE;
@@ -75,6 +76,7 @@ function genericError(isDownload: boolean) {
 }
 
 function readData<T extends XMLHttpRequest | FileReader>(ctx: RuntimeContext, action: string, data: T): Promise<T> {
+    if (RUNNING_IN_NODEJS) throw new Error('`readData` should not be used when running in Node.js'); // XMLHttpRequest is not available in Node.js
     return new Promise<T>((resolve, reject) => {
         // first check if data reading is already done
         if (isDone(data)) {
@@ -198,6 +200,7 @@ class RequestPool {
     private static poolSize = 15;
 
     static get() {
+        if (RUNNING_IN_NODEJS) throw new Error('`RequestPool.get` should not be used when running in Node.js'); // XMLHttpRequest is not available in Node.js
         if (this.pool.length) {
             return this.pool.pop()!;
         }
@@ -308,7 +311,7 @@ function readFileAsync(filename: string): Promise<Buffer> {
     });
 }
 
-/** Alternative implementation of ajaxGetInternal (because xhr2 does not support file:// protocol) */
+/** Alternative implementation of ajaxGetInternal for NodeJS for file:// protocol */
 function ajaxGetInternal_file_NodeJS<T extends DataType>(title: string | undefined, url: string, type: T, body?: string, headers?: [string, string][]): Task<DataResponse<T>> {
     if (!RUNNING_IN_NODEJS) throw new Error('This function should only be used when running in Node.js');
     if (!url.startsWith('file://')) throw new Error('This function is only for URLs with protocol file://');
@@ -324,7 +327,7 @@ function ajaxGetInternal_file_NodeJS<T extends DataType>(title: string | undefin
     });
 }
 
-/** Alternative implementation of ajaxGetInternal (because xhr2 doesn't decompress when server sends gzipped data) */
+/** Alternative implementation of ajaxGetInternal for NodeJS for http(s):// protocol */
 function ajaxGetInternal_http_NodeJS<T extends DataType>(title: string | undefined, url: string, type: T, body?: string, headers?: [string, string][]): Task<DataResponse<T>> {
     if (!RUNNING_IN_NODEJS) throw new Error('This function should only be used when running in Node.js');
 
