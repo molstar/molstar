@@ -18,6 +18,12 @@ Note that since we don't clearly distinguish between a public and private interf
   - `JSONCifLigandGraph` that enables editing of small molecules via modifying `atom_site` and `molstar_bond_site` categories
 - Add `ligand-editor` example that showcases possible use-cases of the `json-cif` extension
 - Breaking (minor): Changed `atom_site.id` indexing to 1-based in `mol-model-formats/structure/mol.ts::getMolModels`.
+- WebGL ContextLost handling
+    - Fix missing framebuffer & drawbuffer re-attachments
+    - Fix missing cube texture re-initialization
+    - Fix missing extensions reset
+    - Fix timer clearing edge case
+    - Add reset support for geometry generated on he GPU
 
 ## [v4.14.1] - 2025-05-09
 - Do not raise error when creating duplicate state transformers and print console warning instead
