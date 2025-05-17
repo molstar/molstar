@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -105,7 +105,7 @@ export class ImagePass {
         const ctx = { renderer: this.renderer, camera: this._camera, scene: this.scene, helper: this.helper };
         if (this.illuminationPass.supported && this.props.illumination.enabled) {
             await runtime.update({ message: 'Tracing...', current: 1, max: this.illuminationPass.getMaxIterations(this.props) });
-            this.illuminationPass.reset(true);
+            this.illuminationPass.restart(true);
             while (this.illuminationPass.shouldRender(this.props)) {
                 if (isTimingMode) this.webgl.timer.mark('ImagePass.render', { captureStats: true });
                 this.illuminationPass.render(ctx, this.props, false);

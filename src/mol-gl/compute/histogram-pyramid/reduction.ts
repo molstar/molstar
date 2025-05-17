@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -75,8 +75,8 @@ function getLevelTextureFramebuffer(ctx: WebGLContext, level: number) {
     let framebuffer = tryGetFramebuffer(name, ctx);
     if (!framebuffer) {
         framebuffer = getFramebuffer(name, ctx);
-        texture.attachFramebuffer(framebuffer, 0);
     }
+    texture.attachFramebuffer(framebuffer, 0);
     return { texture, framebuffer };
 }
 

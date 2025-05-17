@@ -179,6 +179,32 @@ export class PickPass {
         }
     }
 
+    reset() {
+        const { drawBuffers } = this.webgl.extensions;
+
+        if (drawBuffers) {
+            this.framebuffer.bind();
+            drawBuffers!.drawBuffers([
+                drawBuffers!.COLOR_ATTACHMENT0,
+                drawBuffers!.COLOR_ATTACHMENT1,
+                drawBuffers!.COLOR_ATTACHMENT2,
+                drawBuffers!.COLOR_ATTACHMENT3,
+            ]);
+
+            this.objectPickTexture.attachFramebuffer(this.framebuffer, 'color0');
+            this.instancePickTexture.attachFramebuffer(this.framebuffer, 'color1');
+            this.groupPickTexture.attachFramebuffer(this.framebuffer, 'color2');
+            this.depthPickTexture.attachFramebuffer(this.framebuffer, 'color3');
+
+            this.depthRenderbuffer.attachFramebuffer(this.framebuffer);
+
+            this.objectPickTexture.attachFramebuffer(this.objectPickFramebuffer, 'color0');
+            this.instancePickTexture.attachFramebuffer(this.instancePickFramebuffer, 'color0');
+            this.groupPickTexture.attachFramebuffer(this.groupPickFramebuffer, 'color0');
+            this.depthPickTexture.attachFramebuffer(this.depthPickFramebuffer, 'color0');
+        }
+    }
+
     private renderVariant(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, variant: 'pick' | 'depth', pickType: number) {
         renderer.clear(false);
         renderer.update(camera, scene);

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -44,17 +44,13 @@ export function computeUnitGaussianDensity(structure: Structure, unit: Unit, siz
 export function computeUnitGaussianDensityTexture(structure: Structure, unit: Unit, sizeTheme: SizeTheme<any>, props: GaussianDensityProps, webgl: WebGLContext, texture?: Texture) {
     const { position, boundary, radius } = getUnitConformationAndRadius(structure, unit, sizeTheme, props);
     const p = ensureReasonableResolution(boundary.box, props, getTextureMaxCells(webgl, structure));
-    return Task.create('Gaussian Density', async ctx => {
-        return GaussianDensityTexture(webgl, position, boundary.box, radius, p, texture);
-    });
+    return GaussianDensityTexture(webgl, position, boundary.box, radius, p, texture);
 }
 
 export function computeUnitGaussianDensityTexture2d(structure: Structure, unit: Unit, sizeTheme: SizeTheme<any>, powerOfTwo: boolean, props: GaussianDensityProps, webgl: WebGLContext, texture?: Texture) {
     const { position, boundary, radius } = getUnitConformationAndRadius(structure, unit, sizeTheme, props);
     const p = ensureReasonableResolution(boundary.box, props, getTextureMaxCells(webgl, structure));
-    return Task.create('Gaussian Density', async ctx => {
-        return GaussianDensityTexture2d(webgl, position, boundary.box, radius, powerOfTwo, p, texture);
-    });
+    return GaussianDensityTexture2d(webgl, position, boundary.box, radius, powerOfTwo, p, texture);
 }
 
 //
@@ -70,16 +66,12 @@ export function computeStructureGaussianDensity(structure: Structure, sizeTheme:
 export function computeStructureGaussianDensityTexture(structure: Structure, sizeTheme: SizeTheme<any>, props: GaussianDensityProps, webgl: WebGLContext, texture?: Texture) {
     const { position, boundary, radius } = getStructureConformationAndRadius(structure, sizeTheme, props);
     const p = ensureReasonableResolution(boundary.box, props);
-    return Task.create('Gaussian Density', async ctx => {
-        return GaussianDensityTexture(webgl, position, boundary.box, radius, p, texture);
-    });
+    return GaussianDensityTexture(webgl, position, boundary.box, radius, p, texture);
 }
 
 export function computeStructureGaussianDensityTexture2d(structure: Structure, sizeTheme: SizeTheme<any>, powerOfTwo: boolean, props: GaussianDensityProps, webgl: WebGLContext, texture?: Texture) {
     const { box } = structure.lookup3d.boundary;
     const { position, boundary, radius } = getStructureConformationAndRadius(structure, sizeTheme, props);
     const p = ensureReasonableResolution(boundary.box, props);
-    return Task.create('Gaussian Density', async ctx => {
-        return GaussianDensityTexture2d(webgl, position, box, radius, powerOfTwo, p, texture);
-    });
+    return GaussianDensityTexture2d(webgl, position, box, radius, powerOfTwo, p, texture);
 }

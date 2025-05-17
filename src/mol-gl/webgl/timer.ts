@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -113,11 +113,6 @@ export function createTimer(gl: GLRenderingContext, extensions: WebGLExtensions,
     let capturingStats = false;
 
     const clear = () => {
-        if (!dtq) return;
-
-        queries.forEach((_, query) => {
-            dtq.deleteQuery(query);
-        });
         pending.clear();
         stack.length = 0;
         gpuAvgs.clear();
@@ -126,6 +121,13 @@ export function createTimer(gl: GLRenderingContext, extensions: WebGLExtensions,
         measures = [];
         current = null;
         capturingStats = false;
+
+        if (dtq) {
+            queries.forEach((_, query) => {
+                dtq.deleteQuery(query);
+            });
+        }
+        queries.clear();
     };
 
     const add = () => {

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -225,11 +225,11 @@ export function StructureGaussianSurfaceMeshVisual(materialId: number): ComplexV
 
 const GaussianSurfaceName = 'gaussian-surface';
 
-async function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, textureMesh?: TextureMesh): Promise<TextureMesh> {
-    if (!ctx.webgl) throw new Error('webgl context required to create gaussian surface texture-mesh');
+function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, textureMesh?: TextureMesh): TextureMesh {
+    const { webgl } = ctx;
+    if (!webgl) throw new Error('webgl context required to create gaussian surface texture-mesh');
 
-    if (isTimingMode) ctx.webgl.timer.mark('createGaussianSurfaceTextureMesh');
-    const { namedTextures, resources, extensions: { colorBufferFloat, textureFloat, colorBufferHalfFloat, textureHalfFloat } } = ctx.webgl;
+    const { namedTextures, resources, extensions: { colorBufferFloat, textureFloat, colorBufferHalfFloat, textureHalfFloat } } = webgl;
     if (!namedTextures[GaussianSurfaceName]) {
         namedTextures[GaussianSurfaceName] = colorBufferHalfFloat && textureHalfFloat
             ? resources.texture('image-float16', 'rgba', 'fp16', 'linear')
@@ -238,19 +238,29 @@ async function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, 
                 : resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
     }
 
-    const densityTextureData = await computeUnitGaussianDensityTexture2d(structure, unit, theme.size, true, props, ctx.webgl, namedTextures[GaussianSurfaceName]).runInContext(ctx.runtime);
-    const isoLevel = Math.exp(-props.smoothness) / densityTextureData.radiusFactor;
-
     const axisOrder = Vec3.create(0, 1, 2);
-    const buffer = textureMesh?.doubleBuffer.get();
-    const gv = extractIsosurface(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, axisOrder, true, buffer?.vertex, buffer?.group, buffer?.normal);
-    if (isTimingMode) ctx.webgl.timer.markEnd('createGaussianSurfaceTextureMesh');
-
     const groupCount = unit.elements.length;
-    const boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, densityTextureData.maxRadius);
-    const surface = TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
-    (surface.meta as GaussianSurfaceMeta).resolution = densityTextureData.resolution;
-    surface.meta.webgl = ctx.webgl;
+
+    const create = (textureMesh?: TextureMesh) => {
+        if (isTimingMode) webgl.timer.mark('createGaussianSurfaceTextureMesh');
+        const densityTextureData = computeUnitGaussianDensityTexture2d(structure, unit, theme.size, true, props, webgl, namedTextures[GaussianSurfaceName]);
+        const isoLevel = Math.exp(-props.smoothness) / densityTextureData.radiusFactor;
+
+        const buffer = textureMesh?.doubleBuffer.get();
+        const gv = extractIsosurface(webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, axisOrder, true, buffer?.vertex, buffer?.group, buffer?.normal);
+        if (isTimingMode) webgl.timer.markEnd('createGaussianSurfaceTextureMesh');
+
+        const boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, densityTextureData.maxRadius);
+        const surface = TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
+        (surface.meta as GaussianSurfaceMeta).resolution = densityTextureData.resolution;
+        return surface;
+    };
+
+    const surface = create(textureMesh);
+    surface.meta.webgl = webgl;
+    surface.meta.reset = () => {
+        create(surface);
+    };
 
     return surface;
 }
@@ -301,11 +311,11 @@ export function GaussianSurfaceTextureMeshVisual(materialId: number): UnitsVisua
 
 //
 
-async function createStructureGaussianSurfaceTextureMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: GaussianDensityProps, textureMesh?: TextureMesh): Promise<TextureMesh> {
-    if (!ctx.webgl) throw new Error('webgl context required to create structure gaussian surface texture-mesh');
+function createStructureGaussianSurfaceTextureMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: GaussianDensityProps, textureMesh?: TextureMesh): TextureMesh {
+    const { webgl } = ctx;
+    if (!webgl) throw new Error('webgl context required to create structure gaussian surface texture-mesh');
 
-    if (isTimingMode) ctx.webgl.timer.mark('createStructureGaussianSurfaceTextureMesh');
-    const { namedTextures, resources, extensions: { colorBufferFloat, textureFloat, colorBufferHalfFloat, textureHalfFloat } } = ctx.webgl;
+    const { namedTextures, resources, extensions: { colorBufferFloat, textureFloat, colorBufferHalfFloat, textureHalfFloat } } = webgl;
     if (!namedTextures[GaussianSurfaceName]) {
         namedTextures[GaussianSurfaceName] = colorBufferHalfFloat && textureHalfFloat
             ? resources.texture('image-float16', 'rgba', 'fp16', 'linear')
@@ -314,19 +324,29 @@ async function createStructureGaussianSurfaceTextureMesh(ctx: VisualContext, str
                 : resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
     }
 
-    const densityTextureData = await computeStructureGaussianDensityTexture2d(structure, theme.size, true, props, ctx.webgl, namedTextures[GaussianSurfaceName]).runInContext(ctx.runtime);
-    const isoLevel = Math.exp(-props.smoothness) / densityTextureData.radiusFactor;
-
     const axisOrder = Vec3.create(0, 1, 2);
-    const buffer = textureMesh?.doubleBuffer.get();
-    const gv = extractIsosurface(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, axisOrder, true, buffer?.vertex, buffer?.group, buffer?.normal);
-    if (isTimingMode) ctx.webgl.timer.markEnd('createStructureGaussianSurfaceTextureMesh');
-
     const groupCount = structure.elementCount;
-    const boundingSphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, densityTextureData.maxRadius);
-    const surface = TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
-    (surface.meta as GaussianSurfaceMeta).resolution = densityTextureData.resolution;
-    surface.meta.webgl = ctx.webgl;
+
+    const create = (textureMesh?: TextureMesh) => {
+        if (isTimingMode) webgl.timer.mark('createStructureGaussianSurfaceTextureMesh');
+        const densityTextureData = computeStructureGaussianDensityTexture2d(structure, theme.size, true, props, webgl, namedTextures[GaussianSurfaceName]);
+        const isoLevel = Math.exp(-props.smoothness) / densityTextureData.radiusFactor;
+
+        const buffer = textureMesh?.doubleBuffer.get();
+        const gv = extractIsosurface(webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, axisOrder, true, buffer?.vertex, buffer?.group, buffer?.normal);
+        if (isTimingMode) webgl.timer.markEnd('createStructureGaussianSurfaceTextureMesh');
+
+        const boundingSphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, densityTextureData.maxRadius);
+        const surface = TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
+        (surface.meta as GaussianSurfaceMeta).resolution = densityTextureData.resolution;
+        return surface;
+    };
+
+    const surface = create(textureMesh);
+    surface.meta.webgl = webgl;
+    surface.meta.reset = () => {
+        create(surface);
+    };
 
     return surface;
 }
