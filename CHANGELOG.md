@@ -23,7 +23,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Fix missing cube texture re-initialization
     - Fix missing extensions reset
     - Fix timer clearing edge case
-    - Add reset support for geometry generated on he GPU
+    - Add reset support for geometry generated on the GPU
 
 ## [v4.14.1] - 2025-05-09
 - Do not raise error when creating duplicate state transformers and print console warning instead
