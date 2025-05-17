@@ -9,6 +9,7 @@ import { Vec3 } from '../../../mol-math/linear-algebra';
 import { RuntimeContext } from '../../../mol-task';
 import { sphericalCollocation } from '../collocation';
 import { Basis, CubeGridInfo } from '../data-model';
+import { describe, it, expect } from 'vitest';
 
 describe('alpha-orbitals-cubes', () => {
     it('water', async () => {

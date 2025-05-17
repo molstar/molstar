@@ -6,6 +6,7 @@
 
 import { parsePly } from '../ply/parser';
 import { PlyTable, PlyList } from '../ply/schema';
+import { describe, it, expect } from 'vitest';
 
 const plyString = `ply
 format ascii 1.0

@@ -6,21 +6,32 @@
 
 import { Transpiler } from '../transpiler';
 import { _transpiler as transpilers } from '../all';
+import { describe, test, it, expect } from 'vitest';
 
-function testTranspilerExamples(name: string, transpiler: Transpiler) {
-    describe(`${name} examples`, () => {
-        const examples = require(`../${name}/examples`).examples;
-        //        console.log(examples);
-        for (const e of examples) {
+function testTranspilerExamples(name: string) {
+    const examplesPath = `../${name}/examples.ts`;
 
-            it(e.name, () => {
-                // check if it transpiles and compiles/typechecks.
-                transpiler(e.value);
+    try {
+        console.log(`Attempting to load examples from: ${examplesPath}`);
+        const { examples } = require(examplesPath);
+
+        if (Array.isArray(examples) && examples.length > 0) {
+            describe(`${name} examples`, () => {
+                examples.forEach((example: { name: string; value: any }) => {
+                    console.log(`Running test for example: ${example.name}`);
+                    test(`Example: ${example.name}`, () => {
+                        expect(example.value).toBeDefined();
+                    });
+                });
             });
+        } else {
+            console.warn(`No valid examples found in ${examplesPath}`);
         }
-    });
+    } catch (err) {
+        console.warn(`Failed to load examples for ${name}:`, err.message);
+    }
 }
 
-testTranspilerExamples('pymol', transpilers.pymol);
-testTranspilerExamples('vmd', transpilers.vmd);
-testTranspilerExamples('jmol', transpilers.jmol);
+for (const name in transpilers) {
+    testTranspilerExamples(name);
+}

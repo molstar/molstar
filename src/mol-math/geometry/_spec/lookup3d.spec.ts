@@ -9,6 +9,7 @@ import { GridLookup3D } from '../../geometry';
 import { sortArray } from '../../../mol-data/util';
 import { OrderedSet } from '../../../mol-data/int';
 import { getBoundary } from '../boundary';
+import { describe, it, expect } from 'vitest';
 
 const xs = [0, 0, 1];
 const ys = [0, 1, 0];

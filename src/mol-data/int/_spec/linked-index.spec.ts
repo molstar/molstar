@@ -5,6 +5,7 @@
  */
 
 import { LinkedIndex } from '../linked-index';
+import { describe, it, expect } from 'vitest';
 
 describe('linked-index', () => {
     it('initial state', () => {

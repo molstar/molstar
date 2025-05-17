@@ -5,7 +5,7 @@
  */
 
 import { RequiredField, fieldValidationIssues, float, int, literal, nullable, str, union } from '../field-schema';
-
+import { describe, it, expect } from 'vitest';
 
 describe('fieldValidationIssues', () => {
     it('fieldValidationIssues string', async () => {

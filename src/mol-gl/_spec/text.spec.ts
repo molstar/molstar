@@ -11,6 +11,7 @@ import { setDebugMode } from '../../mol-util/debug';
 import { ColorNames } from '../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Text } from '../../mol-geo/geometry/text/text';
+import { describe, it, expect } from 'vitest';
 
 export function createText() {
     const text = Text.createEmpty();

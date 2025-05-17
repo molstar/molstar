@@ -7,6 +7,7 @@
  */
 
 import { parseSdf } from '../sdf/parser';
+import { describe, it, expect } from 'vitest';
 
 const SdfString = `
   Mrv1718007121815122D
