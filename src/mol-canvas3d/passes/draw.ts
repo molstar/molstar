@@ -314,7 +314,7 @@ export class DrawPass {
                     if (!this.packedDepth) {
                         this.depthTextureOpaque.attachFramebuffer(this.transparentColorTarget.framebuffer, 'depth');
                     } else {
-                        this.colorTarget.depthRenderbuffer?.detachFramebuffer(this.transparentColorTarget.framebuffer);
+                        this.colorTarget.depthRenderbuffer?.attachFramebuffer(this.transparentColorTarget.framebuffer);
                     }
                 }
 

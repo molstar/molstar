@@ -8,6 +8,19 @@ Note that since we don't clearly distinguish between a public and private interf
   - Disable volume streaming
   - Disable validation report visualization
   - Enable assembly symmetry for integrative models
+- Fix transparency rendering with occlusion in NodeJS
+- mmCIF Support
+  - Add custom `molstar_bond_site` category that enables serializing explicit bonds by referencing `atom_site.id`
+  - Add `includeCategoryNames`, `keepAtomSiteId`, `exportExplicitBonds`, `encoder` properties to `to_mmCIF` exporter
+- Add support for attachment points property (`M APO`) to the MOL V2000 parser
+- Add `json-cif` extension that should pave way towards structure editing capabilities in Mol\*
+  - JSON-based encoding of the CIF data format
+  - `JSONCifLigandGraph` that enables editing of small molecules via modifying `atom_site` and `molstar_bond_site` categories
+- Add `ligand-editor` example that showcases possible use-cases of the `json-cif` extension
+- Breaking (minor): Changed `atom_site.id` indexing to 1-based in `mol-model-formats/structure/mol.ts::getMolModels`.
+
+## [v4.14.1] - 2025-05-09
+- Do not raise error when creating duplicate state transformers and print console warning instead
 
 ## [v4.14.0] - 2025-05-07
 - Fix `Viewer.loadTrajectory` when loading a topology file
@@ -18,6 +31,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Support updating transform states
   - Add support for `is_hidden` custom state as an extension
   - Add `queryMVSRef` and `createMVSRefMap` utility functions
+- Adjust max resolution of surfaces for auto quality (#1501)
 - Fix switching representation type in Volume UI
 - VolumeServer: Avoid grid expansion when requiring unit cell (avoids including an extra layer of cells outside the unit cell query box)
 
@@ -55,7 +69,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix MolViewSpec builder for volumes.
 - Generalize `mvs-kinase-story` example to `mvs-stories`
   - Add TATA-binding protein story
-  - Improve the Kinase story 
+  - Improve the Kinase story
 - Fix alpha orbitals example
 
 ## [v4.12.0] - 2025-02-28
