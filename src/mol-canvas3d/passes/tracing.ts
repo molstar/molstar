@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -165,9 +165,26 @@ export class TracingPass {
         }
     }
 
+    reset() {
+        const { drawBuffers } = this.webgl.extensions;
+
+        this.framebuffer.bind();
+        drawBuffers!.drawBuffers([
+            drawBuffers!.COLOR_ATTACHMENT0,
+            drawBuffers!.COLOR_ATTACHMENT1,
+            drawBuffers!.COLOR_ATTACHMENT2,
+        ]);
+
+        this.shadedTextureOpaque.attachFramebuffer(this.framebuffer, 'color0');
+        this.normalTextureOpaque.attachFramebuffer(this.framebuffer, 'color1');
+        this.colorTextureOpaque.attachFramebuffer(this.framebuffer, 'color2');
+
+        this.restart(true);
+    }
+
     private clearAdjustedProps = true;
 
-    reset(clearAdjustedProps = false) {
+    restart(clearAdjustedProps = false) {
         const { gl, state } = this.webgl;
 
         this.accumulateTarget.bind();

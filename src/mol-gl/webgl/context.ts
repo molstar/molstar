@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -8,7 +8,7 @@ import { GLRenderingContext, isWebGL2 } from './compat';
 import { checkFramebufferStatus, Framebuffer } from './framebuffer';
 import { Scheduler } from '../../mol-task';
 import { isDebugMode } from '../../mol-util/debug';
-import { createExtensions, WebGLExtensions } from './extensions';
+import { createExtensions, resetExtensions, WebGLExtensions } from './extensions';
 import { WebGLState, createState } from './state';
 import { PixelData } from '../../mol-util/image';
 import { WebGLResources, createResources } from './resources';
@@ -379,7 +379,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
             timer.clear();
         },
         handleContextRestored: (extraResets?: () => void) => {
-            Object.assign(extensions, createExtensions(gl));
+            resetExtensions(gl, extensions);
 
             state.reset();
             state.currentMaterialId = -1;

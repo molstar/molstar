@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -123,6 +123,7 @@ export class DrawPass {
     reset() {
         this.wboit.reset();
         this.dpoit.reset();
+        this.postprocessing.reset();
     }
 
     setSize(width: number, height: number) {
