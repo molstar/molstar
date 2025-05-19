@@ -26,6 +26,8 @@ export const bool = iots.boolean;
 export const tuple = iots.tuple;
 /** Type definition for a list/array, e.g. `list(str)`  */
 export const list = iots.array;
+/** Type definition for a dict/record, e.g. `dict(str, int)`  */
+export const dict = iots.record;
 /** Type definition for union types, e.g. `union([str, int])` means string or integer  */
 export const union = iots.union;
 /** Type definition used to create objects */

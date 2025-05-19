@@ -6,9 +6,9 @@
  */
 
 import * as iots from 'io-ts';
-import { HexColor, ColorName } from '../../helpers/utils';
-import { ValueFor, float, int, list, literal, str, tuple, union } from '../generic/field-schema';
 import { ColorNames } from '../../../../mol-util/color/names';
+import { ColorName, HexColor } from '../../helpers/utils';
+import { ValueFor, bool, dict, float, int, list, literal, obj, partial, str, tuple, union } from '../generic/field-schema';
 
 
 /** `format` parameter values for `parse` node in MVS tree */
@@ -26,7 +26,7 @@ export const StructureTypeT = literal('model', 'assembly', 'symmetry', 'symmetry
 export const ComponentSelectorT = literal('all', 'polymer', 'protein', 'nucleic', 'branched', 'ligand', 'ion', 'water', 'coarse');
 
 /** `selector` parameter values for `component` node in MVS tree */
-export const ComponentExpressionT = iots.partial({
+export const ComponentExpressionT = partial({
     label_entity_id: str,
     label_asym_id: str,
     auth_asym_id: str,
@@ -59,9 +59,9 @@ export type Vector3 = ValueFor<typeof Vector3>
 export const Matrix = list(float);
 
 /** Primitives-related types */
-export const PrimitiveComponentExpressionT = iots.partial({ structure_ref: str, expression_schema: SchemaT, expressions: list(ComponentExpressionT) });
+export const PrimitiveComponentExpressionT = partial({ structure_ref: str, expression_schema: SchemaT, expressions: list(ComponentExpressionT) });
 export type PrimitiveComponentExpressionT = ValueFor<typeof PrimitiveComponentExpressionT>
-export const PrimitivePositionT = iots.union([Vector3, ComponentExpressionT, PrimitiveComponentExpressionT]);
+export const PrimitivePositionT = union([Vector3, ComponentExpressionT, PrimitiveComponentExpressionT]);
 export type PrimitivePositionT = ValueFor<typeof PrimitivePositionT>
 
 export const FloatList = list(float);
@@ -104,3 +104,55 @@ export function isPrimitiveComponentExpressions(x: any): x is PrimitiveComponent
 export function isComponentExpression(x: any): x is ComponentExpressionT {
     return !!x && typeof x === 'object' && !x.expressions;
 }
+
+
+const CategoricalPaletteName = literal('Set1', 'Set2', 'Set3'); // TODO all from https://observablehq.com/@d3/color-schemes
+export const CategoricalPalette = iots.intersection([
+    obj({ kind: literal('categorical') }),
+    partial({
+        colors: union([
+            CategoricalPaletteName,
+            list(ColorT),
+            dict(str, ColorT),
+        ]),
+        /** Color to use when a) `color` is a dictionary and given key is not present, or b) `color` is a list or a named palette and there are more real values than listed values and `repeat_color_list` is not true. */
+        missing_color: ColorT,
+        /** Repeat color list once all colors are depleted (only applies if `color` is a list or a named palette). */
+        repeat_color_list: bool,
+        // ... TODO continue here
+    }),
+]);
+
+// Draft from https://docs.google.com/document/d/1p9yePdtvO8RzYQ90jEdCHM5sMqxFpy4f8DbleXagRDE/edit?tab=t.0
+
+// class GradientPalette:
+//     kind: Literal["gradient"] = "gradient"
+//     # either uniformly distributed or explicitly scaled between 0, 1
+//     # [('red', 0), ('green', 0.2), ('blue', 1)]
+//     stops: list[tuple[ColorT, float]] | list[tuple[ColorT, float, float]] | list[ColorT] | None
+//     stop_value_kind: Literal["normalized", "explicit"]
+//     name: PalleteNameT | None
+
+//     value_domain: tuple[float, float] | None = None  # min, max | none <=> auto
+
+
+// class DiscretePalette:
+//     kind: Literal["discrete"] = "discrete"
+//     # either uniformly distributed or explicitly scaled between 0, 1
+//     # [('red', 0), ('green', 0.2), ('blue', 1)]
+//     stops: list[tuple[ColorT, float]] | list[tuple[ColorT, float, float]] | list[ColorT] | None
+//     stop_value_kind: Literal["normalized", "explicit"]
+//     name: PalleteNameT | None
+
+//     value_domain: tuple[float, float] | None = None  # min, max | none <=> auto
+
+
+// class CategoricalPalette:
+//     kind: Literal["categorical"] = "categorical"
+
+//     colors: dict[Any, ColorT] | list[ColorT] | None
+//     name: PalleteNameT | None
+
+//     missing_color: ColorT | None = None # applied when color is missing dict[Any, ColorT]
+//     sort_values: Literal["ascending", "descending"] | None = None
+//     sort_kind: Literal["lexical", "numeric"] | None = None
