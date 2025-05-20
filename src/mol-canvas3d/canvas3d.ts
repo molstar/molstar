@@ -120,8 +120,8 @@ interface Canvas3DContext {
     readonly passes: Passes
     readonly attribs: Readonly<Canvas3DContext.Attribs>
     readonly props: Readonly<Canvas3DContext.Props>
-    readonly contextLost?: BehaviorSubject<now.Timestamp>
-    readonly contextRestored?: BehaviorSubject<now.Timestamp>
+    readonly contextLost?: Subject<now.Timestamp>
+    readonly contextRestored?: Subject<now.Timestamp>
     readonly assetManager: AssetManager
     readonly changed?: BehaviorSubject<undefined>
     readonly pixelScale: number
@@ -213,7 +213,7 @@ namespace Canvas3DContext {
 
         // https://www.khronos.org/webgl/wiki/HandlingContextLost
 
-        const contextLost = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp);
+        const contextLost = new Subject<now.Timestamp>();
 
         const handleWebglContextLost = (e: Event) => {
             webgl.setContextLost();
@@ -589,7 +589,7 @@ namespace Canvas3D {
         let drawPaused = false;
 
         function draw(options?: { force?: boolean }) {
-            if (drawPaused || isContextLost) return;
+            if (drawPaused) return;
             if (render(!!options?.force) && notifyDidDraw) {
                 didDraw.next(now() - startTime as now.Timestamp);
             }
@@ -602,8 +602,6 @@ namespace Canvas3D {
         let animationFrameHandle = 0;
 
         function tick(t: now.Timestamp, options?: { isSynchronous?: boolean, manualDraw?: boolean, updateControls?: boolean }) {
-            if (isContextLost) return;
-
             currentTime = t;
             commit(options?.isSynchronous);
 
@@ -866,16 +864,13 @@ namespace Canvas3D {
             };
         }
 
-        let isContextLost = true;
         const contextLostSub = contextLost?.subscribe(() => {
-            isContextLost = true;
+            pause(true);
             fenceSync = null;
             pickHelper.dirty = true;
         });
 
         const contextRestoredSub = contextRestored.subscribe(() => {
-            isContextLost = false;
-
             scene.forEach(r => {
                 if (r.values.meta?.ref.value.reset) {
                     r.values.meta.ref.value.reset();
@@ -883,6 +878,7 @@ namespace Canvas3D {
                 }
             });
 
+            animate();
             draw({ force: true });
             // Unclear why, but in Chrome with wboit enabled the first `draw` only clears
             // the drawingBuffer. Note that in Firefox the drawingBuffer is preserved after
