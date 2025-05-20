@@ -10,6 +10,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Merged `loadMVS` options `keepCamera` and `keepSnapshotCamera` -> `keepCamera`
   - Removed `loadMVS` option `replaceExisting` (is now default)
   - Added `loadMVS` option `appendSnapshots`
+- Fix camera not being interpolated in MP4 export due to updates in WebGL ContextLost handling
 
 ## [v4.15.0] - 2025-05-19
 - IHM improvements:

@@ -589,7 +589,7 @@ namespace Canvas3D {
         let drawPaused = false;
 
         function draw(options?: { force?: boolean }) {
-            if (drawPaused) return;
+            if (drawPaused || isContextLost) return;
             if (render(!!options?.force) && notifyDidDraw) {
                 didDraw.next(now() - startTime as now.Timestamp);
             }
@@ -602,6 +602,8 @@ namespace Canvas3D {
         let animationFrameHandle = 0;
 
         function tick(t: now.Timestamp, options?: { isSynchronous?: boolean, manualDraw?: boolean, updateControls?: boolean }) {
+            if (isContextLost) return;
+
             currentTime = t;
             commit(options?.isSynchronous);
 
@@ -864,13 +866,16 @@ namespace Canvas3D {
             };
         }
 
+        let isContextLost = true;
         const contextLostSub = contextLost?.subscribe(() => {
-            pause(true);
+            isContextLost = true;
             fenceSync = null;
             pickHelper.dirty = true;
         });
 
         const contextRestoredSub = contextRestored.subscribe(() => {
+            isContextLost = false;
+
             scene.forEach(r => {
                 if (r.values.meta?.ref.value.reset) {
                     r.values.meta.ref.value.reset();
@@ -878,7 +883,6 @@ namespace Canvas3D {
                 }
             });
 
-            animate();
             draw({ force: true });
             // Unclear why, but in Chrome with wboit enabled the first `draw` only clears
             // the drawingBuffer. Note that in Firefox the drawingBuffer is preserved after
