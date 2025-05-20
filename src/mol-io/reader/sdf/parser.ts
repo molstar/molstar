@@ -107,11 +107,11 @@ function handleMolFile(tokenizer: Tokenizer) {
 
     const atoms = molIsV3 ? handleAtomsV3(tokenizer, atomCount) : handleAtoms(tokenizer, atomCount);
     const bonds = molIsV3 ? handleBondsV3(tokenizer, bondCount) : handleBonds(tokenizer, bondCount);
-    const formalCharges = molIsV3 ? nullFormalCharges : handlePropertiesBlock(tokenizer);
+    const properties = molIsV3 ? { formalCharges: nullFormalCharges } : handlePropertiesBlock(tokenizer);
     const dataItems = handleDataItems(tokenizer);
 
     return {
-        molFile: { title, program, comment, atoms, bonds, formalCharges },
+        molFile: { title, program, comment, atoms, bonds, ...properties },
         dataItems
     };
 }
