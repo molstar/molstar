@@ -92,7 +92,7 @@
       },
       "setupFiles": [],
       "resolveSnapshotPath": {
-        "lib": "./lib"
+        "lib": "./src"
       },
       "alias": {
         "lib": "./lib",
