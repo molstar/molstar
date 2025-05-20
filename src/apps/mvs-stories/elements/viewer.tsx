@@ -112,14 +112,14 @@ async function loadMvsData(plugin: PluginContext, data: MVSData | StringLike | U
         } else {
             mvsData = data as MVSData;
         }
-        await loadMVS(plugin, mvsData, { sanityChecks: true, sourceUrl: undefined, replaceExisting: true, ...options });
+        await loadMVS(plugin, mvsData, { sanityChecks: true, sourceUrl: undefined, ...options });
     } else if (format === 'mvsx') {
         if (typeof data === 'string') {
             throw new Error("loadMvsData: if `format` is 'mvsx', then `data` must be a Uint8Array or a base64-encoded string prefixed with 'base64,'.");
         }
         await plugin.runTask(Task.create('Load MVSX file', async ctx => {
             const parsed = await loadMVSX(plugin, ctx, data as Uint8Array);
-            await loadMVS(plugin, parsed.mvsData, { sanityChecks: true, sourceUrl: parsed.sourceUrl, replaceExisting: true, ...options });
+            await loadMVS(plugin, parsed.mvsData, { sanityChecks: true, sourceUrl: parsed.sourceUrl, ...options });
         }));
     } else {
         throw new Error(`Unknown MolViewSpec format: ${format}`);

@@ -7,6 +7,11 @@ Note that since we don't clearly distinguish between a public and private interf
 - Load potentially big text files as `StringLike` to bypass string size limit
 - Add `mvs-stories` app included in the `molstar` NPM package
   - Use the app in the corresponding example
+- MolViewSpec extension:
+  - Load single-state MVS as if it were multi-state with one state
+  - Merged `loadMVS` options `keepCamera` and `keepSnapshotCamera` -> `keepCamera`
+  - Removed `loadMVS` option `replaceExisting` (is now default)
+  - Added `loadMVS` option `appendSnapshots`
 
 ## [v4.15.0] - 2025-05-19
 - IHM improvements:
