@@ -20,5 +20,5 @@
         "rootDir": "src",
         "outDir": "lib/commonjs"
     },
-    "include": [ "src/**/*" ]
+    "include": [ "src/**/*" , "vitest.config.ts" ]
 }

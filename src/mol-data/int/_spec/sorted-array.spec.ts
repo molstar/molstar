@@ -6,6 +6,7 @@
 
 import { Interval } from '../interval';
 import { SortedArray } from '../sorted-array';
+import { describe, it, expect } from 'vitest';
 
 describe('sortedArray', () => {
     function testI(name: string, a: Interval, b: Interval) {

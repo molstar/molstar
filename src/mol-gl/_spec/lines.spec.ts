@@ -11,6 +11,7 @@ import { setDebugMode } from '../../mol-util/debug';
 import { ColorNames } from '../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Lines } from '../../mol-geo/geometry/lines/lines';
+import { describe, it, expect } from 'vitest';
 
 export function createLines() {
     const lines = Lines.createEmpty();

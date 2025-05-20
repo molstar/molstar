@@ -5,6 +5,7 @@
  */
 
 import { Iterator } from '../iterator';
+import { describe, it, expect } from 'vitest';
 
 function iteratorToArray<T>(it: Iterator<T>): T[] {
     const ret = [];

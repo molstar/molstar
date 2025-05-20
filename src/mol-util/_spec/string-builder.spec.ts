@@ -5,6 +5,7 @@
  */
 
 import { StringBuilder as SB } from '../string-builder';
+import { describe, it, expect } from 'vitest';
 
 describe('string-builder', () => {
 

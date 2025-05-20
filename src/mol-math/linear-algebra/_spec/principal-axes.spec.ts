@@ -8,6 +8,7 @@
 import { NumberArray } from '../../../mol-util/type-helpers';
 import { Vec3 } from '../3d/vec3';
 import { PrincipalAxes } from '../matrix/principal-axes';
+import { describe, it, expect } from 'vitest';
 
 describe('PrincipalAxes', () => {
     it('same-cartesian-plane', () => {
