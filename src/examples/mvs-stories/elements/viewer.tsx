@@ -58,9 +58,9 @@ export class MolComponentViewerModel extends PluginComponent {
                 if (cmd.url) {
                     const data = await this.plugin!.runTask(this.plugin!.fetch({ url: cmd.url, type: 'string' }));
                     const mvsData = MVSData.fromMVSJ(StringLike.toString(data));
-                    await loadMVS(this.plugin!, mvsData, { sanityChecks: true, sourceUrl: cmd.url, replaceExisting: true });
+                    await loadMVS(this.plugin!, mvsData, { sanityChecks: true, sourceUrl: cmd.url });
                 } else if (cmd.data) {
-                    await loadMVS(this.plugin!, cmd.data, { sanityChecks: true, replaceExisting: true });
+                    await loadMVS(this.plugin!, cmd.data, { sanityChecks: true });
                 }
             }
         });

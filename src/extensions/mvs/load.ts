@@ -36,20 +36,20 @@ import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 
 export interface MVSLoadOptions {
-    replaceExisting?: boolean,
+    /** Add snapshots from MVS into current snapshot list, instead of replacing the list. */
+    appendSnapshots?: boolean,
+    /** Ignore any camera positioning from the MVS state and keep the current camera position instead, ignore any camera positioning when generating snapshots. */
     keepCamera?: boolean,
+    /** Specifies a set of MVS-loading extensions (not a part of standard MVS specification). If undefined, apply all builtin extensions. If `[]`, do not apply builtin extensions. */
     extensions?: MolstarLoadingExtension<any>[],
+    /** Run some sanity checks and print potential issues to the console. */
     sanityChecks?: boolean,
+    /** Base for resolving relative URLs/URIs. May itself be a relative URL (relative to the window URL). */
     sourceUrl?: string,
     doNotReportErrors?: boolean
 }
 
-/** Load a MolViewSpec (MVS) tree into the Mol* plugin.
- * If `options.replaceExisting`, remove all objects in the current Mol* state; otherwise add to the current state.
- * If `options.keepCamera`, ignore any camera positioning from the MVS state and keep the current camera position instead, ignore any camera positioning when generating snapshots.
- * If `options.sanityChecks`, run some sanity checks and print potential issues to the console.
- * If `options.extensions` is provided, apply specified set of MVS-loading extensions (not a part of standard MVS specification); default: apply all builtin extensions; use `extensions: []` to avoid applying builtin extensions.
- * `options.sourceUrl` serves as the base for resolving relative URLs/URIs and may itself be relative to the window URL. */
+/** Load a MolViewSpec (MVS) state(s) into the Mol* plugin as plugin state snapshots. */
 export async function loadMVS(plugin: PluginContext, data: MVSData, options: MVSLoadOptions = {}) {
     plugin.errorContext.clear('mvs');
     try {
@@ -68,7 +68,9 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: MVS
             const entry = molstarTreeToEntry(plugin, molstarTree, { ...snapshot.metadata, previousTransitionDurationMs: previousSnapshot.metadata.transition_duration_ms }, options);
             entries.push(entry);
         }
-        plugin.managers.snapshot.clear();
+        if (!options.appendSnapshots) {
+            plugin.managers.snapshot.clear();
+        }
         for (const entry of entries) {
             plugin.managers.snapshot.add(entry);
         }
@@ -94,9 +96,9 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: MVS
 }
 
 
-function molstarTreeToEntry(plugin: PluginContext, tree: MolstarTree, metadata: SnapshotMetadata & { previousTransitionDurationMs?: number }, options?: { replaceExisting?: boolean, keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
+function molstarTreeToEntry(plugin: PluginContext, tree: MolstarTree, metadata: SnapshotMetadata & { previousTransitionDurationMs?: number }, options?: { keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
     const context = MolstarLoadingContext.create();
-    const snapshot = loadTreeVirtual(plugin, tree, MolstarLoadingActions, context, { ...options, extensions: options?.extensions ?? BuiltinLoadingExtensions });
+    const snapshot = loadTreeVirtual(plugin, tree, MolstarLoadingActions, context, { replaceExisting: true, extensions: options?.extensions ?? BuiltinLoadingExtensions });
     snapshot.canvas3d = {
         props: plugin.canvas3d ? modifyCanvasProps(plugin.canvas3d.props, context.canvas) : undefined,
     };
