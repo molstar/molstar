@@ -3,19 +3,47 @@ All notable changes to this project will be documented in this file, following t
 
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
-
 ## [Unreleased]
-- Fix `Viewer.loadTrajectory` when loading a topology file.
-- Fix `StructConn.residueCantorPairs` to not include identity pairs.
+- Load potentially big text files as StringLike to bypass string size limit
+- Remove `xhr2` dependency for NodeJS, use `fetch`
+
+## [v4.15.0] - 2025-05-19
+- IHM improvements:
+  - Disable volume streaming
+  - Disable validation report visualization
+  - Enable assembly symmetry for integrative models
+- Fix transparency rendering with occlusion in NodeJS
+- mmCIF Support
+  - Add custom `molstar_bond_site` category that enables serializing explicit bonds by referencing `atom_site.id`
+  - Add `includeCategoryNames`, `keepAtomSiteId`, `exportExplicitBonds`, `encoder` properties to `to_mmCIF` exporter
+- Add support for attachment points property (`M APO`) to the MOL V2000 parser
+- Add `json-cif` extension that should pave way towards structure editing capabilities in Mol\*
+  - JSON-based encoding of the CIF data format
+  - `JSONCifLigandGraph` that enables editing of small molecules via modifying `atom_site` and `molstar_bond_site` categories
+- Add `ligand-editor` example that showcases possible use-cases of the `json-cif` extension
+- Breaking (minor): Changed `atom_site.id` indexing to 1-based in `mol-model-formats/structure/mol.ts::getMolModels`.
+- WebGL ContextLost handling
+    - Fix missing framebuffer & drawbuffer re-attachments
+    - Fix missing cube texture re-initialization
+    - Fix missing extensions reset
+    - Fix timer clearing edge case
+    - Add reset support for geometry generated on the GPU
+
+## [v4.14.1] - 2025-05-09
+- Do not raise error when creating duplicate state transformers and print console warning instead
+
+## [v4.14.0] - 2025-05-07
+- Fix `Viewer.loadTrajectory` when loading a topology file
+- Fix `StructConn.residueCantorPairs` to not include identity pairs
 - Add format selection option to image export UI (PNG, WebP, JPEG)
 - Add `StateBuilder.To.updateState`
 - MVS:
   - Support updating transform states
   - Add support for `is_hidden` custom state as an extension
   - Add `queryMVSRef` and `createMVSRefMap` utility functions
+- Adjust max resolution of surfaces for auto quality (#1501)
 - Fix switching representation type in Volume UI
-- Load potentially big text files as StringLike to bypass string size limit
-- Remove `xhr2` dependency for NodeJS, use `fetch`
+- VolumeServer: Avoid grid expansion when requiring unit cell (avoids including an extra layer of cells outside the unit cell query box)
 
 ## [v4.13.0] - 2025-04-14
 - Support `--host` option for build-dev.mjs script
@@ -51,7 +79,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix MolViewSpec builder for volumes.
 - Generalize `mvs-kinase-story` example to `mvs-stories`
   - Add TATA-binding protein story
-  - Improve the Kinase story 
+  - Improve the Kinase story
 - Fix alpha orbitals example
 
 ## [v4.12.0] - 2025-02-28

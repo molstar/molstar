@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -264,10 +264,18 @@ export class IlluminationPass {
         this.drawPass.setSize(width, height);
     }
 
-    reset(clearAdjustedProps = false) {
+    reset() {
         if (!this._supported) return;
 
-        this.tracing.reset(clearAdjustedProps);
+        this.tracing.reset();
+        this._iteration = 0;
+        this.prevSampleIndex = -1;
+    }
+
+    restart(clearAdjustedProps = false) {
+        if (!this._supported) return;
+
+        this.tracing.restart(clearAdjustedProps);
         this._iteration = 0;
         this.prevSampleIndex = -1;
     }

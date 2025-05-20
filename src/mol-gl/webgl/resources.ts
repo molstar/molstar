@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -177,6 +177,7 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
             sets.program.forEach(r => r.reset());
             sets.vertexArray.forEach(r => r.reset());
             sets.texture.forEach(r => r.reset());
+            sets.cubeTexture.forEach(r => r.reset());
         },
         destroy: () => {
             sets.attribute.forEach(r => r.destroy());
@@ -187,6 +188,7 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
             sets.program.forEach(r => r.destroy());
             sets.vertexArray.forEach(r => r.destroy());
             sets.texture.forEach(r => r.destroy());
+            sets.cubeTexture.forEach(r => r.destroy());
 
             shaderCache.clear();
             programCache.clear();
