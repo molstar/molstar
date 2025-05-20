@@ -14,7 +14,8 @@ import * as os from 'os';
 const AllApps = [
     'viewer',
     'docking-viewer',
-    'mesoscale-explorer'
+    'mesoscale-explorer',
+    'mvs-stories',
 ];
 
 const AllExamples = [
@@ -28,6 +29,10 @@ const AllExamples = [
     'interactions',
     'ligand-editor',
 ];
+
+const GlobalNames = {
+    'mvs-stories': 'mvsStories',
+};
 
 function mkDir(dir) {
     try {
@@ -106,7 +111,7 @@ async function watch(name, kind) {
         entryPoints: [entry],
         tsconfig: './tsconfig.json',
         bundle: true,
-        globalName: 'molstar',
+        globalName: GlobalNames[name] ? GlobalNames[name] : 'molstar',
         outfile: kind === 'app'
             ? `./build/${name}/molstar.js`
             : `./build/examples/${name}/index.js`,
