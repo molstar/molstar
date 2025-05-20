@@ -37,21 +37,6 @@ export interface LoadingExtension<TTree extends Tree, TContext, TExtensionContex
 }
 
 
-/** Load a tree into Mol*, by applying loading actions in DFS order and then commiting at once.
- * If `options.replaceExisting`, remove all objects in the current Mol* state; otherwise add to the current state. */
-export async function loadTree<TTree extends Tree, TContext>(
-    plugin: PluginContext,
-    tree: TTree,
-    loadingActions: LoadingActions<TTree, TContext>,
-    context: TContext,
-    options?: { replaceExisting?: boolean, extensions?: LoadingExtension<TTree, TContext, any>[] }
-) {
-    const updateRoot: UpdateTarget = UpdateTarget.create(plugin, options?.replaceExisting ?? false);
-    loadTreeInUpdate(updateRoot, tree, loadingActions, context, options);
-    await UpdateTarget.commit(updateRoot);
-}
-
-
 export function loadTreeVirtual<TTree extends Tree, TContext>(
     plugin: PluginContext,
     tree: TTree,

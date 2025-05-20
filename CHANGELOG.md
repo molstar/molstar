@@ -5,6 +5,11 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - Load potentially big text files as `StringLike` to bypass string size limit
+- MolViewSpec extension:
+  - Load single-state MVS as if it were multi-state with one state
+  - Merged `loadMVS` options `keepCamera` and `keepSnapshotCamera` -> `keepCamera`
+  - Removed `loadMVS` option `replaceExisting` (is now default)
+  - Added `loadMVS` option `appendSnapshots`
 
 ## [v4.15.0] - 2025-05-19
 - IHM improvements:
