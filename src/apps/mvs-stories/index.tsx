@@ -5,12 +5,8 @@
  */
 
 import { getMVSStoriesContext } from './context';
-import './index.html';
-import './elements/snapshot-markdown';
-import './elements/viewer';
+import './elements';
 import { MVSData } from '../../extensions/mvs/mvs-data';
-import './elements/snapshot-markdown';
-import './elements/viewer';
 
 import './favicon.ico';
 import '../../mol-plugin-ui/skin/light.scss';

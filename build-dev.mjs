@@ -18,6 +18,10 @@ const AllApps = [
     'mvs-stories',
 ];
 
+const AppGlobalNames = {
+    'mvs-stories': 'mvsStories',
+};
+
 const AllExamples = [
     'proteopedia-wrapper',
     'basic-wrapper',
@@ -29,10 +33,6 @@ const AllExamples = [
     'interactions',
     'ligand-editor',
 ];
-
-const GlobalNames = {
-    'mvs-stories': 'mvsStories',
-};
 
 function mkDir(dir) {
     try {
@@ -111,7 +111,7 @@ async function watch(name, kind) {
         entryPoints: [entry],
         tsconfig: './tsconfig.json',
         bundle: true,
-        globalName: GlobalNames[name] ? GlobalNames[name] : 'molstar',
+        globalName: kind === 'app' && AppGlobalNames[name] ? AppGlobalNames[name] : 'molstar',
         outfile: kind === 'app'
             ? `./build/${name}/molstar.js`
             : `./build/examples/${name}/index.js`,

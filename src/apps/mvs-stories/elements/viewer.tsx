@@ -13,6 +13,7 @@ import { PluginComponent } from '../../../mol-plugin-state/component';
 import { createPluginUI } from '../../../mol-plugin-ui';
 import { renderReact18 } from '../../../mol-plugin-ui/react18';
 import { DefaultPluginUISpec } from '../../../mol-plugin-ui/spec';
+import { PluginCommands } from '../../../mol-plugin/commands';
 import { PluginConfig } from '../../../mol-plugin/config';
 import { PluginContext } from '../../../mol-plugin/context';
 import { PluginSpec } from '../../../mol-plugin/spec';
@@ -54,15 +55,23 @@ export class MVSStoriesViewerModel extends PluginComponent {
         });
 
         this.subscribe(this.context.commands, async (cmd) => {
-            if (!cmd) return;
+            if (!cmd || !this.plugin) return;
 
-            if (cmd.kind === 'load-mvs') {
-                if (cmd.url) {
-                    const data = await this.plugin!.runTask(this.plugin!.fetch({ url: cmd.url, type: cmd.format === 'mvsx' ? 'binary' : 'string' }));
-                    await loadMvsData(this.plugin!, data, cmd.format ?? 'mvsj', { sourceUrl: cmd.url });
-                } else if (cmd.data) {
-                    await loadMvsData(this.plugin!, cmd.data, cmd.format ?? 'mvsj');
+            try {
+                if (cmd.kind === 'load-mvs') {
+                    if (cmd.url) {
+                        const data = await this.plugin.runTask(this.plugin!.fetch({ url: cmd.url, type: cmd.format === 'mvsx' ? 'binary' : 'string' }));
+                        await loadMvsData(this.plugin, data, cmd.format ?? 'mvsj', { sourceUrl: cmd.url });
+                    } else if (cmd.data) {
+                        await loadMvsData(this.plugin, cmd.data, cmd.format ?? 'mvsj');
+                    }
                 }
+            } catch (e) {
+                console.error(e);
+                PluginCommands.Toast.Show(
+                    this.plugin,
+                    { key: '<mvsload>', title: 'Error', message: e?.message ? `${e?.message}` : `${e}`, timeoutMs: 10000 }
+                );
             }
         });
 
