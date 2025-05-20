@@ -357,7 +357,7 @@ ${nSatisfied} restraints are satisfied.
         }
     };
 
-    await loadMVS(plugin, data, { sanityChecks: true, replaceExisting: true, keepSnapshotCamera: true });
+    await loadMVS(plugin, data, { sanityChecks: true, replaceExisting: true, keepCamera: true });
 
     return data;
 }

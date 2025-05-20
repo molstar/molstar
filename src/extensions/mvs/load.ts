@@ -38,7 +38,6 @@ import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 export interface MVSLoadOptions {
     replaceExisting?: boolean,
     keepCamera?: boolean,
-    keepSnapshotCamera?: boolean,
     extensions?: MolstarLoadingExtension<any>[],
     sanityChecks?: boolean,
     sourceUrl?: string,
@@ -47,8 +46,7 @@ export interface MVSLoadOptions {
 
 /** Load a MolViewSpec (MVS) tree into the Mol* plugin.
  * If `options.replaceExisting`, remove all objects in the current Mol* state; otherwise add to the current state.
- * If `options.keepCamera`, ignore any camera positioning from the MVS state and keep the current camera position instead.
- * If `options.keepSnapshotCamera`, ignore any camera positioning when generating snapshots.
+ * If `options.keepCamera`, ignore any camera positioning from the MVS state and keep the current camera position instead, ignore any camera positioning when generating snapshots.
  * If `options.sanityChecks`, run some sanity checks and print potential issues to the console.
  * If `options.extensions` is provided, apply specified set of MVS-loading extensions (not a part of standard MVS specification); default: apply all builtin extensions; use `extensions: []` to avoid applying builtin extensions.
  * `options.sourceUrl` serves as the base for resolving relative URLs/URIs and may itself be relative to the window URL. */
@@ -96,13 +94,13 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: MVS
 }
 
 
-function molstarTreeToEntry(plugin: PluginContext, tree: MolstarTree, metadata: SnapshotMetadata & { previousTransitionDurationMs?: number }, options?: { replaceExisting?: boolean, keepCamera?: boolean, keepSnapshotCamera?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
+function molstarTreeToEntry(plugin: PluginContext, tree: MolstarTree, metadata: SnapshotMetadata & { previousTransitionDurationMs?: number }, options?: { replaceExisting?: boolean, keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
     const context = MolstarLoadingContext.create();
     const snapshot = loadTreeVirtual(plugin, tree, MolstarLoadingActions, context, { ...options, extensions: options?.extensions ?? BuiltinLoadingExtensions });
     snapshot.canvas3d = {
         props: plugin.canvas3d ? modifyCanvasProps(plugin.canvas3d.props, context.canvas) : undefined,
     };
-    if (!options?.keepSnapshotCamera) {
+    if (!options?.keepCamera) {
         snapshot.camera = createPluginStateSnapshotCamera(plugin, context, metadata);
     }
     snapshot.durationInMs = metadata.linger_duration_ms + (metadata.previousTransitionDurationMs ?? 0);
