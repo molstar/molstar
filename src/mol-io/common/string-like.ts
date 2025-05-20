@@ -19,20 +19,20 @@ export interface StringLike {
     // readonly [index: number]: string; // Avoided implementing this as it would require using Proxy, which drastically affects performance.
 
     /**
-     * Returns the character at the specified index.
+     * Returns the character at the specified index, or `undefined` if the index is out of range. Supports relative indexing from the end of the string when passed a negative index.
      * @param pos The zero-based index of the desired character.
      */
     at(index: number): string | undefined;
 
     /**
-     * Returns the character at the specified index.
+     * Returns the character at the specified index, or an empty string if the index is out of range.
      * @param pos The zero-based index of the desired character.
      */
     charAt(pos: number): string;
 
     /**
      * Returns the Unicode value of the character at the specified location.
-     * @param index The zero-based index of the desired character. If there is no character at the specified index, NaN is returned.
+     * @param index The zero-based index of the desired character. If the specified index is out of range, NaN is returned.
      */
     charCodeAt(index: number): number;
 
@@ -45,7 +45,7 @@ export interface StringLike {
     substring(start: number, end?: number): string;
 
     /**
-     * Returns the position of the first occurrence of a substring.
+     * Returns the position of the first occurrence of a substring, or -1 if not found.
      * @param searchString The substring to search for in the string
      * @param position The index at which to begin searching the String object. If omitted, search starts at the beginning of the string.
      */
@@ -88,7 +88,7 @@ export const StringLike = {
 };
 
 
-/** Maximum allowed string length (might be bigger for some engines, but in Chrome and Node it is this). */
+/** Maximum allowed string length (might be bigger for some engines, but in Chrome 136 and Node 22 it is this). */
 export const MAX_STRING_LENGTH = 536_870_888;
 
 /** Binary logarithm of default string chunk size for `ChunkedBigString`. (string chunk size is chosen to be a power of 2, so we can use faster bit shift operator instead of integer division) */
@@ -279,9 +279,5 @@ export class ChunkedBigString implements StringLike {
         } catch (err) {
             throw new Error(`Failed to convert StringLike object into string. This might be because the length ${this.length} exceeds maximum allowed string length ${MAX_STRING_LENGTH}. (${err})`);
         }
-    }
-
-    _repr(): string {
-        return this._chunks.join('|');
     }
 }
