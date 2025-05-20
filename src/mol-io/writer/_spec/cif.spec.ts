@@ -167,8 +167,8 @@ function process(encoder: C.Encoder) {
     const unpacked = decodeMsgPack(encoded) as EncodedFile;
     return Data.CifFile(unpacked.dataBlocks.map(block => {
         const cats = Object.create(null);
-        for (const cat of block.categories) cats[cat.name.substr(1)] = Category(cat);
-        return Data.CifBlock(block.categories.map(c => c.name.substr(1)), cats, block.header);
+        for (const cat of block.categories) cats[cat.name.substring(1)] = Category(cat);
+        return Data.CifBlock(block.categories.map(c => c.name.substring(1)), cats, block.header);
     }));
 }
 
@@ -197,7 +197,7 @@ function Category(data: EncodedCategory): Data.CifCategory {
     for (const col of data.columns) map[col.name] = col;
     return {
         rowCount: data.rowCount,
-        name: data.name.substr(1),
+        name: data.name.substring(1),
         fieldNames: data.columns.map(c => c.name),
         getField(name) {
             const col = map[name];

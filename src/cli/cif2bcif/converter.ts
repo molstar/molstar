@@ -15,6 +15,7 @@ import { classifyFloatArray, classifyIntArray } from '../../mol-io/common/binary
 import { BinaryEncodingProvider } from '../../mol-io/writer/cif/encoder/binary';
 import { Category } from '../../mol-io/writer/cif/encoder';
 import { ReaderResult } from '../../mol-io/reader/result';
+import { utf8ReadLong } from '../../mol-io/common/utf8';
 
 function showProgress(p: Progress) {
     process.stdout.write(`\r${new Array(80).join(' ')}`);
@@ -31,14 +32,10 @@ async function readFile(ctx: RuntimeContext, filename: string): Promise<ReaderRe
         if (isGz) input = await unzipAsync(input);
         return await CIF.parseBinary(new Uint8Array(input)).runInContext(ctx);
     } else {
-        let str: string;
-        if (isGz) {
-            const data = await unzipAsync(await readFileAsync(filename));
-            str = data.toString('utf8');
-        } else {
-            str = await readFileAsync(filename, 'utf8');
-        }
-        return await CIF.parseText(str).runInContext(ctx);
+        const data = isGz ? await unzipAsync(await readFileAsync(filename)) : await readFileAsync(filename);
+        const str = utf8ReadLong(data);
+        const cif = await CIF.parseText(str).runInContext(ctx);
+        return cif;
     }
 }
 

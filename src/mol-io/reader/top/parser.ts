@@ -10,6 +10,8 @@ import { ReaderResult as Result } from '../result';
 import { TokenColumnProvider as TokenColumn } from '../common/text/column/token';
 import { Column, Table } from '../../../mol-data/db';
 import { Mutable } from '../../../mol-util/type-helpers';
+import { StringLike } from '../../common/string-like';
+
 
 // https://manual.gromacs.org/2021-current/reference-manual/file-formats.html#top
 
@@ -65,7 +67,7 @@ function handleMoleculetype(state: State) {
 
     while (tokenizer.tokenEnd < tokenizer.length) {
         skipWhitespace(tokenizer);
-        const c = tokenizer.data[tokenizer.position];
+        const c = tokenizer.data.charAt(tokenizer.position);
         if (c === '[') break;
         if (c === ';' || c === '*') {
             markLine(tokenizer);
@@ -97,7 +99,7 @@ function handleAtoms(state: State) {
 
     while (tokenizer.tokenEnd < tokenizer.length) {
         skipWhitespace(tokenizer);
-        const c = tokenizer.data[tokenizer.position];
+        const c = tokenizer.data.charAt(tokenizer.position);
         if (c === '[') break;
         if (c === ';' || c === '*') {
             markLine(tokenizer);
@@ -144,7 +146,7 @@ function handleBonds(state: State) {
 
     while (tokenizer.tokenEnd < tokenizer.length) {
         skipWhitespace(tokenizer);
-        const c = tokenizer.data[tokenizer.position];
+        const c = tokenizer.data.charAt(tokenizer.position);
         if (c === '[') break;
         if (c === ';' || c === '*') {
             markLine(tokenizer);
@@ -178,7 +180,7 @@ function handleSystem(state: State) {
 
     while (tokenizer.tokenEnd < tokenizer.length) {
         skipWhitespace(tokenizer);
-        const c = tokenizer.data[tokenizer.position];
+        const c = tokenizer.data.charAt(tokenizer.position);
         if (c === '[') break;
         if (c === ';' || c === '*') {
             markLine(tokenizer);
@@ -204,7 +206,7 @@ function handleMolecules(state: State) {
         skipWhitespace(tokenizer);
         if (tokenizer.position >= tokenizer.length) break;
 
-        const c = tokenizer.data[tokenizer.position];
+        const c = tokenizer.data.charAt(tokenizer.position);
         if (c === '[') break;
         if (c === ';' || c === '*') {
             markLine(tokenizer);
@@ -232,7 +234,7 @@ function handleMolecules(state: State) {
     });
 }
 
-async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<TopFile>> {
+async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Result<TopFile>> {
     const t = Tokenizer(data);
     const state = State(t, ctx);
 
@@ -286,7 +288,7 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
                 result.molecules = handleMolecules(state);
             } else {
                 while (t.tokenEnd < t.length) {
-                    if (t.data[t.position] === '[') break;
+                    if (t.data.charAt(t.position) === '[') break;
                     markLine(t);
                 }
             }
@@ -296,7 +298,7 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
     return Result.success(result);
 }
 
-export function parseTop(data: string) {
+export function parseTop(data: StringLike) {
     return Task.create<Result<TopFile>>('Parse TOP', async ctx => {
         return await parseInternal(data, ctx);
     });

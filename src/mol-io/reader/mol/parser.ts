@@ -7,6 +7,7 @@
 
 import { Column } from '../../../mol-data/db';
 import { Task } from '../../../mol-task';
+import { StringLike } from '../../common/string-like';
 import { TokenColumnProvider as TokenColumn } from '../common/text/column/token';
 import { TokenBuilder, Tokenizer } from '../common/text/tokenizer';
 import { ReaderResult as Result } from '../result';
@@ -230,7 +231,7 @@ export function handlePropertiesBlock(tokenizer: Tokenizer): {
     return { formalCharges, attachmentPoints };
 }
 
-function parseInternal(data: string): Result<MolFile> {
+function parseInternal(data: StringLike): Result<MolFile> {
     const tokenizer = Tokenizer(data);
 
     const title = Tokenizer.readLine(tokenizer).trim();
@@ -255,7 +256,7 @@ function parseInternal(data: string): Result<MolFile> {
     return Result.success(result);
 }
 
-export function parseMol(data: string) {
+export function parseMol(data: StringLike) {
     return Task.create<Result<MolFile>>('Parse Mol', async () => {
         return parseInternal(data);
     });
