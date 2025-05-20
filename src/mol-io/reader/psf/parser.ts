@@ -9,6 +9,8 @@ import { Tokenizer, TokenBuilder } from '../common/text/tokenizer';
 import { ReaderResult as Result } from '../result';
 import { TokenColumnProvider as TokenColumn } from '../common/text/column/token';
 import { Column } from '../../../mol-data/db';
+import { StringLike } from '../../common/string-like';
+
 
 // http://www.ks.uiuc.edu/Training/Tutorials/namd/namd-tutorial-unix-html/node23.html
 
@@ -164,7 +166,7 @@ function parseTitle(state: State, count: number) {
     return title;
 }
 
-async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<PsfFile>> {
+async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Result<PsfFile>> {
     const tokenizer = Tokenizer(data);
     const state = State(tokenizer, ctx);
 
@@ -230,7 +232,7 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
     return Result.success(result);
 }
 
-export function parsePsf(data: string) {
+export function parsePsf(data: StringLike) {
     return Task.create<Result<PsfFile>>('Parse PSF', async ctx => {
         return await parseInternal(data, ctx);
     });

@@ -10,6 +10,8 @@ import { ReaderResult as Result } from '../result';
 import { TokenColumnProvider as TokenColumn } from '../common/text/column/token';
 import { Column } from '../../../mol-data/db';
 import { Mutable } from '../../../mol-util/type-helpers';
+import { StringLike } from '../../common/string-like';
+
 
 // http://ambermd.org/prmtop.pdf
 // https://ambermd.org/FileFormats.php#topology
@@ -54,7 +56,7 @@ function handleTitle(state: State): string[] {
     const title: string[] = [];
 
     while (tokenizer.tokenEnd < tokenizer.length) {
-        if (tokenizer.data[tokenizer.position] === '%') break;
+        if (tokenizer.data.charAt(tokenizer.position) === '%') break;
         const line = readLine(tokenizer).trim();
         if (line) title.push(line);
     }
@@ -70,7 +72,7 @@ function handlePointers(state: State): Record<PointerName, number> {
 
     let curIdx = 0;
     while (tokenizer.tokenEnd < tokenizer.length) {
-        if (tokenizer.data[tokenizer.position] === '%') break;
+        if (tokenizer.data.charAt(tokenizer.position) === '%') break;
         const line = readLine(tokenizer);
 
         const n = Math.min(curIdx + 10, 32);
@@ -91,7 +93,7 @@ function handleTokens(state: State, count: number, countPerLine: number, itemSiz
 
     let curIdx = 0;
     while (tokenizer.tokenEnd < tokenizer.length) {
-        if (tokenizer.data[tokenizer.position] === '%') break;
+        if (tokenizer.data.charAt(tokenizer.position) === '%') break;
 
         tokenizer.tokenStart = tokenizer.position;
         const n = Math.min(curIdx + countPerLine, count);
@@ -108,7 +110,7 @@ function handleTokens(state: State, count: number, countPerLine: number, itemSiz
     return tokens;
 }
 
-async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<PrmtopFile>> {
+async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Result<PrmtopFile>> {
     const t = Tokenizer(data);
     const state = State(t, ctx);
 
@@ -162,7 +164,7 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
                 result.radii = TokenColumn(tokens)(Column.Schema.float);
             } else {
                 while (t.tokenEnd < t.length) {
-                    if (t.data[t.position] === '%') break;
+                    if (t.data.charAt(t.position) === '%') break;
                     markLine(t);
                 }
             }
@@ -172,7 +174,7 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
     return Result.success(result);
 }
 
-export function parsePrmtop(data: string) {
+export function parsePrmtop(data: StringLike) {
     return Task.create<Result<PrmtopFile>>('Parse PRMTOP', async ctx => {
         return await parseInternal(data, ctx);
     });

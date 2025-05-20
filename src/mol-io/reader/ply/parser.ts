@@ -10,13 +10,15 @@ import { PlyFile, PlyType, PlyElement } from './schema';
 import { Tokenizer, TokenBuilder, Tokens } from '../common/text/tokenizer';
 import { Column } from '../../../mol-data/db';
 import { TokenColumn } from '../common/text/column/token';
+import { StringLike } from '../../common/string-like';
+
 
 // TODO add support for binary ply files
 // TODO parse elements asynchronously
 // TODO handle lists with appended properties
 
 interface State {
-    data: string
+    data: StringLike
     tokenizer: Tokenizer
     runtimeCtx: RuntimeContext
 
@@ -25,7 +27,7 @@ interface State {
     elements: PlyElement[]
 }
 
-function State(data: string, runtimeCtx: RuntimeContext): State {
+function State(data: StringLike, runtimeCtx: RuntimeContext): State {
     const tokenizer = Tokenizer(data);
     return {
         data,
@@ -243,7 +245,7 @@ function parseListElement(state: State, spec: ListElementSpec) {
     });
 }
 
-async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<PlyFile>> {
+async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Result<PlyFile>> {
     const state = State(data, ctx);
     ctx.update({ message: 'Parsing...', current: 0, max: data.length });
     parseHeader(state);
@@ -254,7 +256,7 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
     return Result.success(result);
 }
 
-export function parsePly(data: string) {
+export function parsePly(data: StringLike) {
     return Task.create<Result<PlyFile>>('Parse PLY', async ctx => {
         return await parseInternal(data, ctx);
     });

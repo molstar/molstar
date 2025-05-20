@@ -55,6 +55,11 @@ export interface DirectVolume {
     readonly boundingSphere: Sphere3D
 
     setBoundingSphere(boundingSphere: Sphere3D): void
+
+    readonly meta: {
+        /** Called to restore when a webgl context is lost */
+        reset?: () => void
+    }
 }
 
 export namespace DirectVolume {
@@ -108,7 +113,8 @@ export namespace DirectVolume {
             setBoundingSphere(sphere: Sphere3D) {
                 Sphere3D.copy(boundingSphere, sphere);
                 currentHash = hashCode(directVolume);
-            }
+            },
+            meta: {}
         };
         return directVolume;
     }
@@ -279,6 +285,8 @@ export namespace DirectVolume {
             dIgnoreLight: ValueCell.create(props.ignoreLight),
             dCelShaded: ValueCell.create(props.celShaded),
             dXrayShaded: ValueCell.create(props.xrayShaded === 'inverted' ? 'inverted' : props.xrayShaded === true ? 'on' : 'off'),
+
+            meta: ValueCell.create(directVolume.meta),
         };
     }
 

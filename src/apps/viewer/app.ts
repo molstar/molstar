@@ -58,6 +58,7 @@ import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
 import { OpenFiles } from '../../mol-plugin-state/actions/file';
+import { StringLike } from '../../mol-io/common/string-like';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { consoleStats, setDebugMode, setProductionMode, setTimingMode, isProductionMode, isDebugMode, isTimingMode } from '../../mol-util/debug';
@@ -519,7 +520,7 @@ export class Viewer {
     async loadMvsFromUrl(url: string, format: 'mvsj' | 'mvsx', options?: { replaceExisting?: boolean, keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
         if (format === 'mvsj') {
             const data = await this.plugin.runTask(this.plugin.fetch({ url, type: 'string' }));
-            const mvsData = MVSData.fromMVSJ(data);
+            const mvsData = MVSData.fromMVSJ(StringLike.toString(data));
             await loadMVS(this.plugin, mvsData, { sanityChecks: true, sourceUrl: url, ...options });
         } else if (format === 'mvsx') {
             const data = await this.plugin.runTask(this.plugin.fetch({ url, type: 'binary' }));

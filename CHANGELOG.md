@@ -4,7 +4,29 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Load potentially big text files as `StringLike` to bypass string size limit
+
+## [v4.15.0] - 2025-05-19
+- IHM improvements:
+  - Disable volume streaming
+  - Disable validation report visualization
+  - Enable assembly symmetry for integrative models
 - Fix transparency rendering with occlusion in NodeJS
+- mmCIF Support
+  - Add custom `molstar_bond_site` category that enables serializing explicit bonds by referencing `atom_site.id`
+  - Add `includeCategoryNames`, `keepAtomSiteId`, `exportExplicitBonds`, `encoder` properties to `to_mmCIF` exporter
+- Add support for attachment points property (`M APO`) to the MOL V2000 parser
+- Add `json-cif` extension that should pave way towards structure editing capabilities in Mol\*
+  - JSON-based encoding of the CIF data format
+  - `JSONCifLigandGraph` that enables editing of small molecules via modifying `atom_site` and `molstar_bond_site` categories
+- Add `ligand-editor` example that showcases possible use-cases of the `json-cif` extension
+- Breaking (minor): Changed `atom_site.id` indexing to 1-based in `mol-model-formats/structure/mol.ts::getMolModels`.
+- WebGL ContextLost handling
+    - Fix missing framebuffer & drawbuffer re-attachments
+    - Fix missing cube texture re-initialization
+    - Fix missing extensions reset
+    - Fix timer clearing edge case
+    - Add reset support for geometry generated on the GPU
 
 ## [v4.14.1] - 2025-05-09
 - Do not raise error when creating duplicate state transformers and print console warning instead

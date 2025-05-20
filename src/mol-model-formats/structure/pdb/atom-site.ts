@@ -11,9 +11,11 @@ import { TokenBuilder, Tokenizer } from '../../../mol-io/reader/common/text/toke
 import { guessElementSymbolTokens } from '../util';
 import { Column } from '../../../mol-data/db';
 import { areTokensEmpty } from '../../../mol-io/reader/common/text/column/token';
+import { StringLike } from '../../../mol-io/common/string-like';
+
 
 type AtomSiteTemplate = typeof getAtomSiteTemplate extends (...args: any) => infer T ? T : never
-export function getAtomSiteTemplate(data: string, count: number) {
+export function getAtomSiteTemplate(data: StringLike, count: number) {
     const str = () => [] as string[];
     const ts = () => TokenBuilder.create(data, 2 * count);
     return {

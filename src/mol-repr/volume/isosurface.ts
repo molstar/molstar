@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -152,6 +152,9 @@ export function IsosurfaceMeshVisual(materialId: number): VolumeVisual<Isosurfac
 namespace VolumeIsosurfaceTexture {
     const name = 'volume-isosurface-texture';
     export const descriptor = CustomPropertyDescriptor({ name });
+    export function clear(volume: Volume) {
+        delete volume._propertyData[name];
+    }
     export function get(volume: Volume, webgl: WebGLContext, props: VolumeIsosurfaceGpuProps) {
         const transform = Grid.getGridToCartesianTransform(volume.grid);
         const gridDimension = Vec3.clone(volume.grid.cells.space.dimensions as Vec3);
@@ -193,8 +196,9 @@ namespace VolumeIsosurfaceTexture {
     }
 }
 
-async function createVolumeIsosurfaceTextureMesh(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: VolumeIsosurfaceGpuProps, textureMesh?: TextureMesh) {
-    if (!ctx.webgl) throw new Error('webgl context required to create volume isosurface texture-mesh');
+function createVolumeIsosurfaceTextureMesh(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: VolumeIsosurfaceGpuProps, textureMesh?: TextureMesh) {
+    const { webgl } = ctx;
+    if (!webgl) throw new Error('webgl context required to create volume isosurface texture-mesh');
 
     if (volume.grid.cells.data.length <= 1) {
         return TextureMesh.createEmpty(textureMesh);
@@ -205,16 +209,25 @@ async function createVolumeIsosurfaceTextureMesh(ctx: VisualContext, volume: Vol
     const value = Volume.IsoValue.toAbsolute(props.isoValue, volume.grid.stats).absoluteValue;
     const isoLevel = ((value - min) / diff);
 
-    const { texture, gridDimension, gridTexDim, gridTexScale, transform } = VolumeIsosurfaceTexture.get(volume, ctx.webgl, props);
-
     const axisOrder = volume.grid.cells.space.axisOrderSlowToFast as Vec3;
-    const buffer = textureMesh?.doubleBuffer.get();
-    const gv = extractIsosurface(ctx.webgl, texture, gridDimension, gridTexDim, gridTexScale, transform, isoLevel, value < 0, false, axisOrder, true, buffer?.vertex, buffer?.group, buffer?.normal);
-
     const groupCount = volume.grid.cells.data.length;
     const boundingSphere = Volume.getBoundingSphere(volume); // getting isosurface bounding-sphere is too expensive here
-    const surface = TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
-    surface.meta.webgl = ctx.webgl;
+
+    const create = (textureMesh?: TextureMesh) => {
+        const { texture, gridDimension, gridTexDim, gridTexScale, transform } = VolumeIsosurfaceTexture.get(volume, webgl, props);
+
+        const buffer = textureMesh?.doubleBuffer.get();
+        const gv = extractIsosurface(webgl, texture, gridDimension, gridTexDim, gridTexScale, transform, isoLevel, value < 0, false, axisOrder, true, buffer?.vertex, buffer?.group, buffer?.normal);
+
+        return TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
+    };
+
+    const surface = create(textureMesh);
+    surface.meta.webgl = webgl;
+    surface.meta.reset = () => {
+        VolumeIsosurfaceTexture.clear(volume);
+        create(surface);
+    };
 
     return surface;
 }

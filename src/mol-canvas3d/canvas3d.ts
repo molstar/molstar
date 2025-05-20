@@ -226,6 +226,8 @@ namespace Canvas3DContext {
             if (!webgl.isContextLost) return;
             webgl.handleContextRestored(() => {
                 passes.draw.reset();
+                passes.pick.reset();
+                passes.illumination.reset();
             });
             if (isDebugMode) console.log('context restored');
         };
@@ -373,7 +375,7 @@ namespace Canvas3D {
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, page?: Vec2, position?: Vec3 }
 
     export function create(ctx: Canvas3DContext, props: Partial<Canvas3DProps> = {}): Canvas3D {
-        const { webgl, input, passes, assetManager, canvas } = ctx;
+        const { webgl, input, passes, assetManager, canvas, contextLost } = ctx;
         const p: Canvas3DProps = { ...deepClone(DefaultCanvas3DParams), ...deepClone(props) };
 
         const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>();
@@ -532,7 +534,7 @@ namespace Canvas3D {
             if (passes.illumination.supported && p.illumination.enabled) {
                 if (shouldRender || markingUpdated) {
                     renderer.setOcclusionTest(null);
-                    passes.illumination.reset();
+                    passes.illumination.restart();
                 }
 
                 if (passes.illumination.shouldRender(p)
@@ -862,8 +864,21 @@ namespace Canvas3D {
             };
         }
 
-        const contextRestoredSub = contextRestored.subscribe(() => {
+        const contextLostSub = contextLost?.subscribe(() => {
+            pause(true);
+            fenceSync = null;
             pickHelper.dirty = true;
+        });
+
+        const contextRestoredSub = contextRestored.subscribe(() => {
+            scene.forEach(r => {
+                if (r.values.meta?.ref.value.reset) {
+                    r.values.meta.ref.value.reset();
+                    r.update();
+                }
+            });
+
+            animate();
             draw({ force: true });
             // Unclear why, but in Chrome with wboit enabled the first `draw` only clears
             // the drawingBuffer. Note that in Firefox the drawingBuffer is preserved after
@@ -1133,6 +1148,7 @@ namespace Canvas3D {
                 return interactionHelper.events;
             },
             dispose: () => {
+                contextLostSub?.unsubscribe();
                 contextRestoredSub.unsubscribe();
                 ctxChangedSub?.unsubscribe();
 
