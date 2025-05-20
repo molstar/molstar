@@ -157,6 +157,25 @@ export const MVSData = {
             metadata: GlobalMetadata.create(metadata),
         };
     },
+
+    /** Convert single-state MVSData into multi-state MVSData with one state. */
+    stateToStates(state: MVSData_State): MVSData_States {
+        return {
+            kind: 'multiple',
+            metadata: state.metadata,
+            snapshots: [{
+                metadata: {
+                    title: state.metadata.title,
+                    description: state.metadata.description,
+                    description_format: state.metadata.description_format,
+                    key: undefined,
+                    linger_duration_ms: 1000,
+                    transition_duration_ms: 250,
+                },
+                root: state.root,
+            }],
+        };
+    },
 };
 
 
