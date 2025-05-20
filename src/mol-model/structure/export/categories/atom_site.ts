@@ -139,13 +139,13 @@ const atom_site_fields = (keepId?: boolean) => {
         .str('pdbx_sifts_xref_db_name', SIFTS.pdbx_sifts_xref_db_name.value, { shouldInclude: SIFTS.shouldInclude, valueKind: SIFTS.pdbx_sifts_xref_db_name.valueKind })
         .str('pdbx_sifts_xref_db_acc', SIFTS.pdbx_sifts_xref_db_acc.value, { shouldInclude: SIFTS.shouldInclude, valueKind: SIFTS.pdbx_sifts_xref_db_acc.valueKind })
         .str('pdbx_sifts_xref_db_num', SIFTS.pdbx_sifts_xref_db_num.value, { shouldInclude: SIFTS.shouldInclude, valueKind: SIFTS.pdbx_sifts_xref_db_num.valueKind })
-        .str('pdbx_sifts_xref_db_res', SIFTS.pdbx_sifts_xref_db_res.value, { shouldInclude: SIFTS.shouldInclude, valueKind: SIFTS.pdbx_sifts_xref_db_res.valueKind })
+        .str('pdbx_sifts_xref_db_res', SIFTS.pdbx_sifts_xref_db_res.value, { shouldInclude: SIFTS.shouldInclude, valueKind: SIFTS.pdbx_sifts_xref_db_res.valueKind });
 
     // .str('operator_name', P.unit.operator_name, {
     //     shouldInclude: structure => structure.units.some(u => !u.conformation.operator.isIdentity)
     // })
     return fields.getFields();
-}
+};
 
 interface AtomSiteData {
     structure: Structure,
