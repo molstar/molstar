@@ -79,10 +79,11 @@ function createEntry(src, outFolder, outFilename, isNode) {
     };
 }
 
-function createEntryPoint(name, dir, out, library) {
+function createEntryPoint(name, dir, out, library, options) {
+    const filename = options && options.filename ? options.filename : `${library || name}.js`;
     return {
         entry: path.resolve(__dirname, `lib/${dir}/${name}.js`),
-        output: { filename: `${library || name}.js`, path: path.resolve(__dirname, `build/${out}`), library: library || out, libraryTarget: 'umd', assetModuleFilename: 'images/[hash][ext][query]', 'publicPath': '' },
+        output: { filename: filename, path: path.resolve(__dirname, `build/${out}`), library: library || out, libraryTarget: 'umd', assetModuleFilename: 'images/[hash][ext][query]', 'publicPath': '' },
         ...sharedConfig
     };
 }
@@ -102,7 +103,7 @@ function createNodeEntryPoint(name, dir, out) {
     };
 }
 
-function createApp(name, library) { return createEntryPoint('index', `apps/${name}`, name, library); }
+function createApp(name, library, options) { return createEntryPoint('index', `apps/${name}`, name, library, options); }
 function createExample(name) { return createEntry(`examples/${name}/index`, `examples/${name}`, 'index'); }
 function createBrowserTest(name) { return createEntryPoint(name, 'tests/browser', 'tests'); }
 function createNodeApp(name) { return createNodeEntryPoint('index', `apps/${name}`, name); }

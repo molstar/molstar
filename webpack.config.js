@@ -22,7 +22,7 @@ module.exports = [
     createApp('viewer', 'molstar'),
     createApp('docking-viewer', 'molstar'),
     createApp('mesoscale-explorer', 'molstar'),
-    createApp('mvs-stories', 'mvsStories'),
+    createApp('mvs-stories', 'mvsStories', { filename: 'molstar.js' }),
     ...examples.map(createExample),
     ...tests.map(createBrowserTest)
 ];
