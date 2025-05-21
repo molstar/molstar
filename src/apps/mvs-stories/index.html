@@ -74,9 +74,17 @@
     </div>
 
     <script>
+        var urlParams = new URLSearchParams(window.location.search);
+        var storyUrl = urlParams.get('story-url');
+        var format = urlParams.get('data-format');
+
+        if (!storyUrl) {
+            storyUrl = 'https://raw.githubusercontent.com/molstar/molstar/master/examples/mvs/kinase-story.mvsj';
+        }
+
         mvsStories.loadFromURL(
-            'https://raw.githubusercontent.com/molstar/molstar/master/examples/mvs/kinase-story.mvsj',
-            { format: 'mvsj' }
+            storyUrl,
+            { format: format || 'mvsj' }
         );
     </script>
 </body>
