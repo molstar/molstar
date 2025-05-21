@@ -78,9 +78,10 @@
         var storyUrl = urlParams.get('story-url');
         var format = urlParams.get('data-format');
 
-        if (!storyUrl) {
-            storyUrl = 'https://raw.githubusercontent.com/molstar/molstar/master/examples/mvs/kinase-story.mvsj';
-        }
+        // For testing purposes:
+        // if (!storyUrl) {
+        //     storyUrl = 'https://raw.githubusercontent.com/molstar/molstar/master/examples/mvs/kinase-story.mvsj';
+        // }
 
         mvsStories.loadFromURL(
             storyUrl,
