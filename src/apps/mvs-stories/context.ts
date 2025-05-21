@@ -14,8 +14,9 @@ export type MVSStoriesCommand =
 
 export class MVSStoriesContext {
     commands = new BehaviorSubject<MVSStoriesCommand | undefined>(undefined);
-    behavior = {
+    state = {
         viewers: new BehaviorSubject<{ name?: string, model: MVSStoriesViewerModel }[]>([]),
+        isLoading: new BehaviorSubject(false),
     };
 
     dispatch(command: MVSStoriesCommand) {

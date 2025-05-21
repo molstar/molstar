@@ -14,6 +14,7 @@ import { createRoot } from 'react-dom/client';
 import { PluginStateSnapshotManager } from '../../../mol-plugin-state/manager/snapshots';
 import { MarkdownAnchor } from '../../../mol-plugin-ui/controls';
 import { PluginReactContext } from '../../../mol-plugin-ui/base';
+import { CSSProperties } from 'react';
 
 export class MVSStoriesSnapshotMarkdownModel extends PluginComponent {
     readonly context: MVSStoriesContext;
@@ -26,7 +27,7 @@ export class MVSStoriesSnapshotMarkdownModel extends PluginComponent {
     }>({ all: [] });
 
     get viewer() {
-        return this.context.behavior.viewers.value?.find(v => this.options?.viewerName === v.name);
+        return this.context.state.viewers.value?.find(v => this.options?.viewerName === v.name);
     }
 
     sync() {
@@ -45,7 +46,7 @@ export class MVSStoriesSnapshotMarkdownModel extends PluginComponent {
 
         let currentViewer: MVSStoriesViewerModel | undefined = undefined;
         let sub: { unsubscribe: () => void } | undefined = undefined;
-        this.subscribe(this.context.behavior.viewers.pipe(
+        this.subscribe(this.context.state.viewers.pipe(
             map(xs => xs.find(v => this.options?.viewerName === v.name)),
             distinctUntilChanged((a, b) => a?.model === b?.model)
         ), viewer => {
@@ -72,14 +73,24 @@ export class MVSStoriesSnapshotMarkdownModel extends PluginComponent {
 
 export function MVSStoriesSnapshotMarkdownUI({ model }: { model: MVSStoriesSnapshotMarkdownModel }) {
     const state = useBehavior(model.state);
+    const isLoading = useBehavior(model.context.state.isLoading);
+
+    const style: CSSProperties = { display: 'flex', flexDirection: 'column', height: '100%' };
+    const className = 'mvs-stories-markdown-explanation';
+
+    if (isLoading) {
+        return <div style={style} className={className}>
+            <i>Loading...</i>
+        </div>;
+    }
 
     if (state.all.length === 0) {
-        return <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }} className='mvs-stories-markdown-explanation'>
+        return <div style={style} className={className}>
             <i>No snapshot loaded or no description available</i>
         </div>;
     }
 
-    return <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }} className='mvs-stories-markdown-explanation'>
+    return <div style={style} className={className}>
         <div style={{ display: 'flex', flexDirection: 'row', width: '100%', gap: '8px' }}>
             <span style={{ lineHeight: '38px', minWidth: 60, maxWidth: 60, flexShrink: 0 }}>{typeof state.index === 'number' ? state.index + 1 : '-'}/{state.all.length}</span>
             <button onClick={() => model.viewer?.model.plugin?.managers.snapshot.applyNext(-1)} style={{ flexGrow: 1, flexShrink: 0 }}>Prev</button>

@@ -12,27 +12,26 @@ import { sassPlugin } from 'esbuild-sass-plugin';
 import * as os from 'os';
 
 const Apps = [
-    { name: 'viewer' },
-    { name: 'docking-viewer' },
-    { name: 'mesoscale-explorer' },
-    { name: 'mvs-stories', globalName: 'mvsStories', filename: 'mvs-stories.js' },
-];
+    // Apps
+    { kind: 'app', name: 'viewer' },
+    { kind: 'app', name: 'docking-viewer' },
+    { kind: 'app', name: 'mesoscale-explorer' },
+    { kind: 'app', name: 'mvs-stories', globalName: 'mvsStories', filename: 'mvs-stories.js' },
 
-const Examples = [
-    { name: 'proteopedia-wrapper' },
-    { name: 'basic-wrapper' },
-    { name: 'lighting' },
-    { name: 'alpha-orbitals' },
-    { name: 'alphafolddb-pae' },
-    { name: 'mvs-stories' },
-    { name: 'ihm-restraints' },
-    { name: 'interactions' },
-    { name: 'ligand-editor' },
+    // Examples
+    { kind: 'example', name: 'proteopedia-wrapper' },
+    { kind: 'example', name: 'basic-wrapper' },
+    { kind: 'example', name: 'lighting' },
+    { kind: 'example', name: 'alpha-orbitals' },
+    { kind: 'example', name: 'alphafolddb-pae' },
+    { kind: 'example', name: 'mvs-stories' },
+    { kind: 'example', name: 'ihm-restraints' },
+    { kind: 'example', name: 'interactions' },
+    { kind: 'example', name: 'ligand-editor' },
 ];
 
 function findApp(name, kind) {
-    if (kind === 'app') return Apps.find(a => a.name === name);
-    if (kind === 'example') return Examples.find(e => e.name === name);
+    return Apps.find(a => a.name === name && a.kind === kind);
 }
 
 function mkDir(dir) {
@@ -98,8 +97,8 @@ function examplesCssRenamePlugin({ root }) {
     };
 }
 
-async function watch(app, kind) {
-    const name = app.name;
+async function watch(app) {
+    const { name, kind } = app;
 
     const prefix = kind === 'app'
         ? `./build/${name}`
@@ -175,8 +174,8 @@ argParser.add_argument('--host', {
 
 const args = argParser.parse_args();
 
-const apps = (!args.apps ? [] : (args.apps.length ? args.apps.filter(a => findApp(a, 'app')) : Apps));
-const examples = (!args.examples ? [] : (args.examples.length ? args.examples.filter(e => findApp(e, 'example')) : Examples));
+const apps = (!args.apps ? [] : (args.apps.length ? args.apps.map(a => findApp(a, 'app')).filter(a => a) : Apps.filter(a => a.kind === 'app')));
+const examples = (!args.examples ? [] : (args.examples.length ? args.examples.map(e => findApp(e, 'example')).filter(a => a) : Apps.filter(a => a.kind === 'example')));
 
 console.log('Apps:', apps.map(a => a.name));
 console.log('Examples:', examples.map(e => e.name));
@@ -199,8 +198,8 @@ function getLocalIPs() {
 
 async function main() {
     const promises = [];
-    for (const app of apps) promises.push(watch(app, 'app'));
-    for (const example of examples) promises.push(watch(example, 'example'));
+    for (const app of apps) promises.push(watch(app));
+    for (const example of examples) promises.push(watch(example));
 
     console.log('Initial build...');
 

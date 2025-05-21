@@ -54,6 +54,7 @@ export class MVSStoriesViewerModel extends PluginComponent {
             if (!cmd || !this.plugin) return;
 
             try {
+                this.context.state.isLoading.next(true);
                 if (cmd.kind === 'load-mvs') {
                     if (cmd.url) {
                         const data = await this.plugin.runTask(this.plugin.fetch({ url: cmd.url, type: cmd.format === 'mvsx' ? 'binary' : 'string' }));
@@ -68,12 +69,14 @@ export class MVSStoriesViewerModel extends PluginComponent {
                     this.plugin,
                     { key: '<mvsload>', title: 'Error', message: e?.message ? `${e?.message}` : `${e}`, timeoutMs: 10000 }
                 );
+            } finally {
+                this.context.state.isLoading.next(false);
             }
         });
 
-        const viewers = this.context.behavior.viewers.value;
+        const viewers = this.context.state.viewers.value;
         const next = [...viewers, { name: this.options?.name, model: this }];
-        this.context.behavior.viewers.next(next);
+        this.context.state.viewers.next(next);
     }
 
     constructor(private options?: { context?: { name?: string, container?: object }, name?: string }) {
@@ -81,13 +84,13 @@ export class MVSStoriesViewerModel extends PluginComponent {
 
         this.context = getMVSStoriesContext(options?.context);
 
-        const viewers = this.context.behavior.viewers.value;
+        const viewers = this.context.state.viewers.value;
         const index = viewers.findIndex(v => v.name === options?.name);
         if (index >= 0) {
             const next = [...viewers];
             next[index].model.dispose();
             next.splice(index, 0);
-            this.context.behavior.viewers.next(next);
+            this.context.state.viewers.next(next);
         }
     }
 }
