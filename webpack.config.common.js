@@ -97,7 +97,6 @@ function createNodeEntryPoint(name, dir, out) {
             argparse: 'require("argparse")',
             'node-fetch': 'require("node-fetch")',
             'util.promisify': 'require("util.promisify")',
-            xhr2: 'require("xhr2")',
         },
         ...sharedConfig
     };

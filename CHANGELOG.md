@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Remove `xhr2` dependency for NodeJS, use `fetch`
+
+## [v4.16.0] - 2025-05-20
 - Load potentially big text files as `StringLike` to bypass string size limit
 - Add `mvs-stories` app included in the `molstar` NPM package
   - Use the app in the corresponding example
@@ -12,6 +15,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Merged `loadMVS` options `keepCamera` and `keepSnapshotCamera` -> `keepCamera`
   - Removed `loadMVS` option `replaceExisting` (is now default)
   - Added `loadMVS` option `appendSnapshots`
+- Fix camera not being interpolated in MP4 export due to updates in WebGL ContextLost handling
 
 ## [v4.15.0] - 2025-05-19
 - IHM improvements:

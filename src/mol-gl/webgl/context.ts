@@ -13,7 +13,7 @@ import { WebGLState, createState } from './state';
 import { PixelData } from '../../mol-util/image';
 import { WebGLResources, createResources } from './resources';
 import { RenderTarget, createRenderTarget } from './render-target';
-import { BehaviorSubject } from 'rxjs';
+import { Subject } from 'rxjs';
 import { now } from '../../mol-util/now';
 import { Texture, TextureFilter } from './texture';
 import { ComputeRenderable } from '../renderable';
@@ -240,7 +240,7 @@ export interface WebGLContext {
     readonly shaderPrecisionFormats: { vertex: WebGLShaderPrecisionFormats, fragment: WebGLShaderPrecisionFormats }
 
     readonly isContextLost: boolean
-    readonly contextRestored: BehaviorSubject<now.Timestamp>
+    readonly contextRestored: Subject<now.Timestamp>
     setContextLost: () => void
     handleContextRestored: (extraResets?: () => void) => void
 
@@ -302,7 +302,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
     epv?.provokingVertex(epv.FIRST_VERTEX_CONVENTION);
 
     let isContextLost = false;
-    const contextRestored = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp);
+    const contextRestored = new Subject<now.Timestamp>();
 
     let pixelScale = props.pixelScale || 1;
 
