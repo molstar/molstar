@@ -66,11 +66,12 @@
 </head>
 
 <body>
+    <!-- the context-name parameter is optional and useful when embedding multiple stories in a single page -->
     <div id="viewer">
-        <mvs-stories-viewer />
+        <mvs-stories-viewer context-name="story1" />
     </div>
     <div id="controls">
-        <mvs-stories-snapshot-markdown style="flex-grow: 1;" />
+        <mvs-stories-snapshot-markdown context-name="story1" style="flex-grow: 1;" />
     </div>
 
     <script>
@@ -85,7 +86,7 @@
 
         mvsStories.loadFromURL(
             storyUrl,
-            { format: format || 'mvsj' }
+            { format: format || 'mvsj', contextName: 'story1' },
         );
     </script>
 </body>

@@ -41,3 +41,26 @@ mvsStories.loadFromURL('https://raw.githubusercontent.com/molstar/molstar/master
 ```bash
 npm run dev -- -a mvs-stories
 ```
+
+### Multiple Stories on a Single Page
+
+To support multiple instances of stories, use the `context-name='unique-name'` attribute  on the `mvs-` components together with `loadFromURL/Data(..., { contextName: 'unique-name' })`.
+
+For example (simplified to not include layout):
+
+```html
+<div>
+    <mvs-stories-viewer context-name="1" />
+    <mvs-stories-snapshot-markdown context-name="1" />
+</div>
+<div>
+    <mvs-stories-viewer context-name="2" />
+    <mvs-stories-snapshot-markdown context-name="2" />
+</div>
+
+<script>
+    mvsStories.loadFromURL('1.mvsj', { format: 'mvsj', contextName: '1' });
+    mvsStories.loadFromURL('2.mvsj', { format: 'mvsj', contextName: '2' });
+</script>
+
+```
