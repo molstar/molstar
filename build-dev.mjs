@@ -11,28 +11,29 @@ import * as argparse from 'argparse';
 import { sassPlugin } from 'esbuild-sass-plugin';
 import * as os from 'os';
 
-const AllApps = [
-    'viewer',
-    'docking-viewer',
-    'mesoscale-explorer',
-    'mvs-stories',
+const Apps = [
+    { name: 'viewer' },
+    { name: 'docking-viewer' },
+    { name: 'mesoscale-explorer' },
+    { name: 'mvs-stories', globalName: 'mvsStories', filename: 'mvs-stories.js' },
 ];
 
-const AppGlobalNames = {
-    'mvs-stories': 'mvsStories',
-};
-
-const AllExamples = [
-    'proteopedia-wrapper',
-    'basic-wrapper',
-    'lighting',
-    'alpha-orbitals',
-    'alphafolddb-pae',
-    'mvs-stories',
-    'ihm-restraints',
-    'interactions',
-    'ligand-editor',
+const Examples = [
+    { name: 'proteopedia-wrapper' },
+    { name: 'basic-wrapper' },
+    { name: 'lighting' },
+    { name: 'alpha-orbitals' },
+    { name: 'alphafolddb-pae' },
+    { name: 'mvs-stories' },
+    { name: 'ihm-restraints' },
+    { name: 'interactions' },
+    { name: 'ligand-editor' },
 ];
+
+function findApp(name, kind) {
+    if (kind === 'app') return Apps.find(a => a.name === name);
+    if (kind === 'example') return Examples.find(e => e.name === name);
+}
 
 function mkDir(dir) {
     try {
@@ -97,7 +98,9 @@ function examplesCssRenamePlugin({ root }) {
     };
 }
 
-async function watch(name, kind) {
+async function watch(app, kind) {
+    const name = app.name;
+
     const prefix = kind === 'app'
         ? `./build/${name}`
         : `./build/examples/${name}`;
@@ -107,14 +110,19 @@ async function watch(name, kind) {
         entry = `./src/${kind}s/${name}/index.tsx`;
     }
 
+    let filename = app.filename;
+    if (!filename) {
+        filename = kind === 'app' ? 'molstar.js' : 'index.js';
+    }
+
     const ctx = await esbuild.context({
         entryPoints: [entry],
         tsconfig: './tsconfig.json',
         bundle: true,
-        globalName: kind === 'app' && AppGlobalNames[name] ? AppGlobalNames[name] : 'molstar',
+        globalName: app.globalName || 'molstar',
         outfile: kind === 'app'
-            ? `./build/${name}/molstar.js`
-            : `./build/examples/${name}/index.js`,
+            ? `./build/${name}/${filename}`
+            : `./build/examples/${name}/${filename}`,
         plugins: [
             fileLoaderPlugin({ out: prefix }),
             sassPlugin({
@@ -167,11 +175,11 @@ argParser.add_argument('--host', {
 
 const args = argParser.parse_args();
 
-const apps = (!args.apps ? [] : (args.apps.length ? args.apps : AllApps)).filter(a => AllApps.includes(a));
-const examples = (!args.examples ? [] : (args.examples.length ? args.examples : AllExamples)).filter(e => AllExamples.includes(e));
+const apps = (!args.apps ? [] : (args.apps.length ? args.apps.filter(a => findApp(a, 'app')) : Apps));
+const examples = (!args.examples ? [] : (args.examples.length ? args.examples.filter(e => findApp(e, 'example')) : Examples));
 
-console.log('Apps:', apps);
-console.log('Examples:', examples);
+console.log('Apps:', apps.map(a => a.name));
+console.log('Examples:', examples.map(e => e.name));
 console.log('');
 
 function getLocalIPs() {

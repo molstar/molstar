@@ -6,14 +6,14 @@ See the [mvs-stories](../../examples/mvs-stories) example that includes specific
 
 ### Usage
 
-- Get `molstar.css` and `molstar.js` from `build/mvs-stories` and include these to your HTML page
+- Get `mvs-stories.css` and `mvs-stories.js` from `build/mvs-stories` and include these to your HTML page
 
 ```html
-<link rel="stylesheet" type="text/css" href="molstar.css" />
-<script type="text/javascript" src="molstar.js"></script>
+<link rel="stylesheet" type="text/css" href="mvs-stories.css" />
+<script type="text/javascript" src="mvs-stories.js"></script>
 ```
 
-Can also use `https://cdn.jsdelivr.net/npm/molstar@latest/build/mvs-stories/molstar.js` (and `.css`). `latest` can be substituted by specific version.
+Can also use `https://cdn.jsdelivr.net/npm/molstar@latest/build/mvs-stories/mvs-stories.js` (and `.css`). `latest` can be substituted by specific version.
 
 - Place the components in your page wrapper in `<div>` elements to set up positioning:
 
@@ -33,6 +33,8 @@ Can also use `https://cdn.jsdelivr.net/npm/molstar@latest/build/mvs-stories/mols
 mvsStories.loadFromURL('https://raw.githubusercontent.com/molstar/molstar/master/examples/mvs/1cbs.mvsj');
 </script>
 ```
+ 
+- See [index.html](./index.html) for full example of how to embed the app.
 
 - For interactive development build (for production use `npm run build`) of the example that immediately reflects changes use:
 
