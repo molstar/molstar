@@ -25,7 +25,6 @@ export type InteractionElementSchema =
     | { kind: 'weak-hydrogen-bond' } & InteractionElementSchemaBase
     | { kind: 'hydrophobic' } & InteractionElementSchemaBase
     | { kind: 'metal-coordination' } & InteractionElementSchemaBase
-    | { kind: 'salt-bridge' } & InteractionElementSchemaBase
     | { kind: 'covalent', degree?: 'aromatic' | 1 | 2 | 3 | 4 } & InteractionElementSchemaBase
 
 export type InteractionKind = InteractionElementSchema['kind']
@@ -40,7 +39,6 @@ export const InteractionKinds: InteractionKind[] = [
     'weak-hydrogen-bond',
     'hydrophobic',
     'metal-coordination',
-    'salt-bridge',
     'covalent',
 ];
 
@@ -54,7 +52,6 @@ export type InteractionInfo =
     | { kind: 'weak-hydrogen-bond', hydrogenStructureRef?: string, hydrogen?: StructureElement.Loci }
     | { kind: 'hydrophobic' }
     | { kind: 'metal-coordination' }
-    | { kind: 'salt-bridge' }
     | { kind: 'covalent', degree?: 'aromatic' | 1 | 2 | 3 | 4 }
 
 export interface StructureInteractionElement {
