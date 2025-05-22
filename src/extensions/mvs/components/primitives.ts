@@ -216,8 +216,16 @@ interface PrimitiveBuilderContext {
     structureRefs: Record<string, Structure | undefined>;
     primitives: MolstarNode<'primitive'>[];
     options: PrimitivesParams;
-    positionCache: Map<string, [Sphere3D, Box3D]>;
+    positionCache: Map<string, [isDefined: boolean, Sphere3D, Box3D]>;
     instances: Mat4[] | undefined;
+    emptySelectionWarningPrinted?: boolean;
+}
+
+function printEmptySelectionWarning(ctx: PrimitiveBuilderContext, position: PrimitivePositionT): void {
+    if (!ctx.emptySelectionWarningPrinted) {
+        console.warn('Some primitives use positions which refer to empty substructure, not showing these primitives.', position, '(There may be more)');
+        ctx.emptySelectionWarningPrinted = true;
+    }
 }
 
 interface MeshBuilderState {
@@ -373,14 +381,17 @@ function hasPrimitiveKind(context: PrimitiveBuilderContext, kind: 'mesh' | 'line
     return false;
 }
 
-function resolveBasePosition(context: PrimitiveBuilderContext, position: PrimitivePositionT, targetPosition: Vec3) {
+function resolveBasePosition(context: PrimitiveBuilderContext, position: PrimitivePositionT, targetPosition: Vec3): boolean {
     return resolvePosition(context, position, targetPosition, undefined, undefined);
 }
 
 const _EmptySphere = Sphere3D.zero();
 const _EmptyBox = Box3D.zero();
 
-function resolvePosition(context: PrimitiveBuilderContext, position: PrimitivePositionT, targetPosition: Vec3 | undefined, targetSphere: Sphere3D | undefined, targetBox: Box3D | undefined) {
+/** Save resolved position into `targetPosition`, `targetSphere`, `targetBox`.
+ * Return `true` if the resolved position is defined (i.e. vector or non-empty selection);
+ * return `false` if the resolved position is not defined (i.e. empty selection). */
+function resolvePosition(context: PrimitiveBuilderContext, position: PrimitivePositionT, targetPosition: Vec3 | undefined, targetSphere: Sphere3D | undefined, targetBox: Box3D | undefined): boolean {
     let expr: Expression | undefined;
     let pivotRef: string | undefined;
 
@@ -388,7 +399,7 @@ function resolvePosition(context: PrimitiveBuilderContext, position: PrimitivePo
         if (targetPosition) Vec3.copy(targetPosition, position as any);
         if (targetSphere) Sphere3D.set(targetSphere, position as any, 0);
         if (targetBox) Box3D.set(targetBox, position as any, position as any);
-        return;
+        return true;
     }
 
     if (isPrimitiveComponentExpressions(position)) {
@@ -409,36 +420,41 @@ function resolvePosition(context: PrimitiveBuilderContext, position: PrimitivePo
         throw new Error(`Structure with ref '${pivotRef ?? '<default>'}' not found.`);
     }
 
-    const cackeKey = JSON.stringify(position);
-    if (context.positionCache.has(cackeKey)) {
-        const cached = context.positionCache.get(cackeKey)!;
-        if (targetPosition) Vec3.copy(targetPosition, cached[0].center);
-        if (targetSphere) Sphere3D.copy(targetSphere, cached[0]);
-        if (targetBox) Box3D.copy(targetBox, cached[1]);
-        return;
+    const cacheKey = JSON.stringify(position);
+    if (context.positionCache.has(cacheKey)) {
+        const [isDefined, sphere, box] = context.positionCache.get(cacheKey)!;
+        if (targetPosition) Vec3.copy(targetPosition, sphere.center);
+        if (targetSphere) Sphere3D.copy(targetSphere, sphere);
+        if (targetBox) Box3D.copy(targetBox, box);
+        return isDefined;
     }
 
     const { selection } = StructureQueryHelper.createAndRun(pivot, expr);
 
     let box: Box3D;
     let sphere: Sphere3D;
+    let isDefined: boolean;
 
     if (StructureSelection.isEmpty(selection)) {
         if (targetPosition) Vec3.set(targetPosition, 0, 0, 0);
         box = _EmptyBox;
         sphere = _EmptySphere;
+        isDefined = false;
+        printEmptySelectionWarning(context, position);
     } else {
         const loci = StructureSelection.toLociWithSourceUnits(selection);
         const boundary = StructureElement.Loci.getBoundary(loci);
         if (targetPosition) Vec3.copy(targetPosition, boundary.sphere.center);
         box = boundary.box;
         sphere = boundary.sphere;
+        isDefined = true;
     }
 
     if (targetSphere) Sphere3D.copy(targetSphere, sphere);
     if (targetBox) Box3D.copy(targetBox, box);
 
-    context.positionCache.set(cackeKey, [sphere, box]);
+    context.positionCache.set(cacheKey, [isDefined, sphere, box]);
+    return isDefined;
 }
 
 function getInstances(options: PrimitivesParams | undefined): Mat4[] | undefined {
@@ -736,19 +752,26 @@ function addArrowMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBu
 }
 
 
-function getDistanceLabel(context: PrimitiveBuilderContext, params: PrimitiveParams<'distance_measurement'>) {
-    resolveBasePosition(context, params.start, lStart);
-    resolveBasePosition(context, params.end, lEnd);
+/** Return distance in angstroms, or `undefined` if any of the endpoints corresponds to empty substructure.
+ * This function also sets `lStart`, `lEnd` globals. */
+function computeDistance(context: PrimitiveBuilderContext, start: PrimitivePositionT, end: PrimitivePositionT): number | undefined {
+    const startDefined = resolveBasePosition(context, start, lStart);
+    const endDefined = resolveBasePosition(context, end, lEnd);
+    if (startDefined && endDefined) return Vec3.distance(lStart, lEnd);
+    else return undefined;
+}
 
-    const dist = Vec3.distance(lStart, lEnd);
-    const distance = `${round(dist, 2)} Å`;
-    const label = typeof params.label_template === 'string' ? params.label_template.replace('{{distance}}', distance) : distance;
-
-    return label;
+// /** Return text for distance measurement label/tooltip. */
+function distanceLabel(distance: number, params: PrimitiveParams<'distance_measurement'>): string {
+    const distStr = `${round(distance, 2)} Å`;
+    if (typeof params.label_template === 'string') return params.label_template.replace('{{distance}}', distStr);
+    else return distStr;
 }
 
 function addDistanceMesh(context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'distance_measurement'>) {
-    const tooltip = getDistanceLabel(context, params);
+    const distance = computeDistance(context, params.start, params.end); // sets lStart, lEnd
+    if (distance === undefined) return; // empty substructure in measurement
+    const tooltip = distanceLabel(distance, params);
     addTubeMesh(context, state, node, { ...params, tooltip } as any, { skipResolvePosition: true });
 }
 
@@ -756,12 +779,8 @@ const labelPos = Vec3.zero();
 
 function addDistanceLabel(context: PrimitiveBuilderContext, state: LabelBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'distance_measurement'>) {
     const { labels, groups } = state;
-    resolveBasePosition(context, params.start, lStart);
-    resolveBasePosition(context, params.end, lEnd);
-
-    const dist = Vec3.distance(lStart, lEnd);
-    const distance = `${round(dist, 2)} Å`;
-    const label = typeof params.label_template === 'string' ? params.label_template.replace('{{distance}}', distance) : distance;
+    const dist = computeDistance(context, params.start, params.end); // sets lStart, lEnd
+    if (dist === undefined) return; // empty substructure in measurement
 
     let size: number | undefined;
     if (typeof params.label_size === 'number') {
@@ -777,7 +796,7 @@ function addDistanceLabel(context: PrimitiveBuilderContext, state: LabelBuilderS
     groups.updateColor(group, params.label_color);
     groups.updateSize(group, size);
 
-    labels.add(label, labelPos[0], labelPos[1], labelPos[2], 1.05 * (params.radius), 1, group);
+    labels.add(distanceLabel(dist, params), labelPos[0], labelPos[1], labelPos[2], 1.05 * (params.radius), 1, group);
 }
 
 
