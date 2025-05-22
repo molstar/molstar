@@ -1,22 +1,4 @@
-.select-story {
-    select {
-        width: 100%;
-        display: inline-block;
-        height: 38px;
-        padding: 0 8px;
-        color: #555;
-        line-height: 38px;
-        text-decoration: none;
-        white-space: nowrap;
-        background-color: transparent;
-        border-radius: 4px;
-        border: 1px solid #bbb;
-        cursor: pointer;
-        box-sizing: border-box;
-    }
-}
-
-.markdown-explanation {
+.mvs-stories-markdown-explanation {
     // Adapted from skeleton.css, The MIT License (MIT), Copyright (c) 2011-2014 Dave Gamache 
     line-height: 1.4;
     font-weight: 400;
@@ -178,5 +160,15 @@
         margin-bottom: 1rem;
         border-width: 0;
         border-top: 1px solid #E1E1E1;
+    }
+}
+
+@media (orientation:portrait) {
+    .mvs-stories-markdown-explanation {
+        font-size: 0.9rem;    
+    }
+
+    .mvs-stories-markdown-explanation h3 {
+        font-size: 1.5rem;
     }
 }

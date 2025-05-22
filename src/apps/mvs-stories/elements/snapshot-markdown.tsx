@@ -6,17 +6,18 @@
 
 import { BehaviorSubject, distinctUntilChanged, map } from 'rxjs';
 import { PluginComponent } from '../../../mol-plugin-state/component';
-import { getMolComponentContext, MolComponentContext } from '../context';
-import { MolComponentViewerModel } from './viewer';
+import { getMVSStoriesContext, MVSStoriesContext } from '../context';
+import { MVSStoriesViewerModel } from './viewer';
 import Markdown from 'react-markdown';
 import { useBehavior } from '../../../mol-plugin-ui/hooks/use-behavior';
 import { createRoot } from 'react-dom/client';
 import { PluginStateSnapshotManager } from '../../../mol-plugin-state/manager/snapshots';
 import { MarkdownAnchor } from '../../../mol-plugin-ui/controls';
 import { PluginReactContext } from '../../../mol-plugin-ui/base';
+import { CSSProperties } from 'react';
 
-export class MolComponentSnapshotMarkdownModel extends PluginComponent {
-    readonly context: MolComponentContext;
+export class MVSStoriesSnapshotMarkdownModel extends PluginComponent {
+    readonly context: MVSStoriesContext;
     root: HTMLElement | undefined = undefined;
 
     state = new BehaviorSubject<{
@@ -26,7 +27,7 @@ export class MolComponentSnapshotMarkdownModel extends PluginComponent {
     }>({ all: [] });
 
     get viewer() {
-        return this.context.behavior.viewers.value?.find(v => this.options?.viewerName === v.name);
+        return this.context.state.viewers.value?.find(v => this.options?.viewerName === v.name);
     }
 
     sync() {
@@ -41,11 +42,11 @@ export class MolComponentSnapshotMarkdownModel extends PluginComponent {
     async mount(root: HTMLElement) {
         this.root = root;
 
-        createRoot(root).render(<MolComponentSnapshotMarkdownUI model={this} />);
+        createRoot(root).render(<MVSStoriesSnapshotMarkdownUI model={this} />);
 
-        let currentViewer: MolComponentViewerModel | undefined = undefined;
+        let currentViewer: MVSStoriesViewerModel | undefined = undefined;
         let sub: { unsubscribe: () => void } | undefined = undefined;
-        this.subscribe(this.context.behavior.viewers.pipe(
+        this.subscribe(this.context.state.viewers.pipe(
             map(xs => xs.find(v => this.options?.viewerName === v.name)),
             distinctUntilChanged((a, b) => a?.model === b?.model)
         ), viewer => {
@@ -66,21 +67,31 @@ export class MolComponentSnapshotMarkdownModel extends PluginComponent {
     constructor(private options?: { context?: { name?: string, container?: object }, viewerName?: string }) {
         super();
 
-        this.context = getMolComponentContext(options?.context);
+        this.context = getMVSStoriesContext(options?.context);
     }
 }
 
-export function MolComponentSnapshotMarkdownUI({ model }: { model: MolComponentSnapshotMarkdownModel }) {
+export function MVSStoriesSnapshotMarkdownUI({ model }: { model: MVSStoriesSnapshotMarkdownModel }) {
     const state = useBehavior(model.state);
+    const isLoading = useBehavior(model.context.state.isLoading);
 
-    if (state.all.length === 0) {
-        return <div>
-            <i>No snapshot loaded</i>
+    const style: CSSProperties = { display: 'flex', flexDirection: 'column', height: '100%' };
+    const className = 'mvs-stories-markdown-explanation';
+
+    if (isLoading) {
+        return <div style={style} className={className}>
+            <i>Loading...</i>
         </div>;
     }
 
-    return <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <div style={{ display: 'flex', flexDirection: 'row', width: '100%', gap: '8px' }} className='mc-snapshot-markdown-header'>
+    if (state.all.length === 0) {
+        return <div style={style} className={className}>
+            <i>No snapshot loaded or no description available</i>
+        </div>;
+    }
+
+    return <div style={style} className={className}>
+        <div style={{ display: 'flex', flexDirection: 'row', width: '100%', gap: '8px' }}>
             <span style={{ lineHeight: '38px', minWidth: 60, maxWidth: 60, flexShrink: 0 }}>{typeof state.index === 'number' ? state.index + 1 : '-'}/{state.all.length}</span>
             <button onClick={() => model.viewer?.model.plugin?.managers.snapshot.applyNext(-1)} style={{ flexGrow: 1, flexShrink: 0 }}>Prev</button>
             <button onClick={() => model.viewer?.model.plugin?.managers.snapshot.applyNext(1)} style={{ flexGrow: 1, flexShrink: 0 }}>Next</button>
@@ -95,11 +106,11 @@ export function MolComponentSnapshotMarkdownUI({ model }: { model: MolComponentS
     </div>;
 }
 
-export class MolComponentSnapshotMarkdownViewer extends HTMLElement {
-    private model: MolComponentSnapshotMarkdownModel | undefined = undefined;
+export class MVSStoriesSnapshotMarkdownViewer extends HTMLElement {
+    private model: MVSStoriesSnapshotMarkdownModel | undefined = undefined;
 
     async connectedCallback() {
-        this.model = new MolComponentSnapshotMarkdownModel({
+        this.model = new MVSStoriesSnapshotMarkdownModel({
             context: { name: this.getAttribute('context-name') ?? undefined },
             viewerName: this.getAttribute('viewer-name') ?? undefined,
         });
@@ -116,4 +127,4 @@ export class MolComponentSnapshotMarkdownViewer extends HTMLElement {
     }
 }
 
-window.customElements.define('mc-snapshot-markdown', MolComponentSnapshotMarkdownViewer);
+window.customElements.define('mvs-stories-snapshot-markdown', MVSStoriesSnapshotMarkdownViewer);

@@ -4,25 +4,22 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { getMolComponentContext } from './context';
-import './index.html';
-import './elements/snapshot-markdown';
-import './elements/viewer';
-import '../../mol-plugin-ui/skin/light.scss';
-import './styles.scss';
 import { download } from '../../mol-util/download';
 import { BehaviorSubject } from 'rxjs';
 import { Stories } from './stories';
 import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
 import { createRoot } from 'react-dom/client';
+import { getMVSStoriesContext } from '../../apps/mvs-stories/context';
+import '../../apps/mvs-stories/elements';
 
-export class MolComponents {
-    getContext(name?: string) {
-        return getMolComponentContext({ name });
-    }
+import './favicon.ico';
+import '../../mol-plugin-ui/skin/light.scss';
+import '../../apps/mvs-stories/styles.scss';
+import './index.html';
+
+function getContext(name?: string) {
+    return getMVSStoriesContext({ name });
 }
-
-const MC = new MolComponents();
 
 type Story = { kind: 'built-in', id: string } | { kind: 'url', url: string, format: 'mvsx' | 'mvsj' } | undefined;
 const CurrentStory = new BehaviorSubject<Story>(undefined);
@@ -50,7 +47,7 @@ function init() {
             history.replaceState({}, '', '');
         } else if (story.kind === 'url') {
             history.replaceState({}, '', story ? `?story-url=${encodeURIComponent(story.url)}&data-format=${story.format}` : '');
-            MC.getContext().dispatch({
+            getContext().dispatch({
                 kind: 'load-mvs',
                 format: story.format,
                 url: story.url,
@@ -59,7 +56,7 @@ function init() {
             history.replaceState({}, '', story ? `?story=${story.id}` : '');
             const s = Stories.find(s => s.id === story.id);
             if (s) {
-                MC.getContext().dispatch({
+                getContext().dispatch({
                     kind: 'load-mvs',
                     data: s.buildStory(),
                 });
@@ -86,14 +83,13 @@ function init() {
     createRoot(document.getElementById('select-story')!).render(<SelectStoryUI subject={CurrentStory} />);
 }
 
-(window as any).mc = MC;
 (window as any).downloadStory = () => {
     if (CurrentStory.value?.kind !== 'built-in') return;
     const id = CurrentStory.value.id;
     const story = Stories.find(s => s.id === id);
     if (!story) return;
     const data = JSON.stringify(story.buildStory(), null, 2);
-    download(new Blob([data], { type: 'application/json' }), 'story.mvsj');
+    download(new Blob([data], { type: 'application/json' }), `${id}-story.mvsj`);
 };
 (window as any).initStories = init;
 (window as any).CurrentStory = CurrentStory;
