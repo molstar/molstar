@@ -51,7 +51,8 @@
   },
   "files": [
     "lib/",
-    "build/viewer/"
+    "build/viewer/",
+    "build/mvs-stories/"
   ],
   "bin": {
     "cif2bcif": "lib/commonjs/cli/cif2bcif/index.js",

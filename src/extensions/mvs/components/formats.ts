@@ -15,7 +15,7 @@ import { RuntimeContext, Task } from '../../../mol-task';
 import { Asset, AssetManager } from '../../../mol-util/assets';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { unzip } from '../../../mol-util/zip/zip';
-import { loadMVS } from '../load';
+import { loadMVS, MVSLoadOptions } from '../load';
 import { MVSData } from '../mvs-data';
 import { MVSTransform } from './annotation-structure-component';
 
@@ -129,6 +129,36 @@ export async function loadMVSX(plugin: PluginContext, runtimeCtx: RuntimeContext
     const mvsData = MVSData.fromMVSJ(decodeUtf8(mainFile));
     const sourceUrl = arcpUri(archiveId, mainFilePath);
     return { mvsData, sourceUrl };
+}
+
+export async function loadMVSData(plugin: PluginContext, data: MVSData | StringLike | Uint8Array, format: 'mvsj' | 'mvsx', options?: MVSLoadOptions) {
+    if (typeof data === 'string' && data.startsWith('base64')) {
+        data = Uint8Array.from(atob(data.substring(7)), c => c.charCodeAt(0)); // Decode base64 string to Uint8Array
+    }
+
+    if (format === 'mvsj') {
+        if ((data as Uint8Array).BYTES_PER_ELEMENT && (data as Uint8Array).buffer) {
+            data = new TextDecoder().decode(data as Uint8Array); // Decode Uint8Array to string using UTF8
+        }
+
+        let mvsData: MVSData;
+        if (typeof data === 'string') {
+            mvsData = MVSData.fromMVSJ(data);
+        } else {
+            mvsData = data as MVSData;
+        }
+        await loadMVS(plugin, mvsData, { sanityChecks: true, sourceUrl: undefined, ...options });
+    } else if (format === 'mvsx') {
+        if (typeof data === 'string') {
+            throw new Error("loadMvsData: if `format` is 'mvsx', then `data` must be a Uint8Array or a base64-encoded string prefixed with 'base64,'.");
+        }
+        await plugin.runTask(Task.create('Load MVSX file', async ctx => {
+            const parsed = await loadMVSX(plugin, ctx, data as Uint8Array);
+            await loadMVS(plugin, parsed.mvsData, { sanityChecks: true, sourceUrl: parsed.sourceUrl, ...options });
+        }));
+    } else {
+        throw new Error(`Unknown MolViewSpec format: ${format}`);
+    }
 }
 
 /** If the PluginStateObject `pso` comes from a Download transform, try to get its `url` parameter. */
