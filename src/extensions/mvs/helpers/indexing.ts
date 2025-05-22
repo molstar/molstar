@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -19,6 +19,12 @@ export interface IndicesAndSortings {
     residuesSortedByLabelSeqId: Mapping<ChainIndex, Sorting<ResidueIndex, number>>,
     residuesSortedByAuthSeqId: Mapping<ChainIndex, Sorting<ResidueIndex, number>>,
     residuesByInsCode: Mapping<ChainIndex, Mapping<string, readonly ResidueIndex[]>>,
+    residuesByLabelCompId: Mapping<ChainIndex, Mapping<string, readonly ResidueIndex[]>>,
+    /** Indicates if each residue is listed only once in `residuesByLabelCompId` (i.e. if each residue has only one label_comp_id) */
+    residuesByLabelCompIdIsPure: boolean,
+    residuesByAuthCompId: Mapping<ChainIndex, Mapping<string, readonly ResidueIndex[]>>,
+    /** Indicates if each residue is listed only once in `residuesByAuthCompId` (i.e. if each residue has only one auth_comp_id) */
+    residuesByAuthCompIdIsPure: boolean,
     atomsById: Mapping<number, ElementIndex>,
     atomsByIndex: Mapping<number, ElementIndex>,
 }
@@ -36,6 +42,7 @@ export const IndicesAndSortings = {
         const nChains = h.chains._rowCount;
         const { label_entity_id, label_asym_id, auth_asym_id } = h.chains;
         const { label_seq_id, auth_seq_id, pdbx_PDB_ins_code } = h.residues;
+        const { label_comp_id, auth_comp_id } = h.atoms;
         const { Present } = Column.ValueKind;
 
         const chainsByLabelEntityId = new MultiMap<string, ChainIndex>();
@@ -44,8 +51,15 @@ export const IndicesAndSortings = {
         const residuesSortedByLabelSeqId = new Map<ChainIndex, Sorting<ResidueIndex, number>>();
         const residuesSortedByAuthSeqId = new Map<ChainIndex, Sorting<ResidueIndex, number>>();
         const residuesByInsCode = new Map<ChainIndex, MultiMap<string, ResidueIndex>>();
+        const residuesByLabelCompId = new Map<ChainIndex, MultiMap<string, ResidueIndex>>();
+        let residuesByLabelCompIdIsPure = true;
+        const residuesByAuthCompId = new Map<ChainIndex, MultiMap<string, ResidueIndex>>();
+        let residuesByAuthCompIdIsPure = true;
         const atomsById = new NumberMap<number, ElementIndex>(nAtoms + 1);
         const atomsByIndex = new NumberMap<number, ElementIndex>(nAtoms);
+
+        const _labelCompIdSet = new Set<string>();
+        const _authCompIdSet = new Set<string>();
 
         for (let iChain = 0 as ChainIndex; iChain < nChains; iChain++) {
             chainsByLabelEntityId.add(label_entity_id.value(iChain), iChain);
@@ -62,12 +76,28 @@ export const IndicesAndSortings = {
             residuesSortedByAuthSeqId.set(iChain, Sorting.create(residuesWithAuthSeqId, auth_seq_id.value));
 
             const residuesHereByInsCode = new MultiMap<string, ResidueIndex>();
+            const residuesHereByLabelCompId = new MultiMap<string, ResidueIndex>();
+            const residuesHereByAuthCompId = new MultiMap<string, ResidueIndex>();
             for (let iRes = iResFrom; iRes < iResTo; iRes++) {
                 if (pdbx_PDB_ins_code.valueKind(iRes) === Present) {
                     residuesHereByInsCode.add(pdbx_PDB_ins_code.value(iRes), iRes);
                 }
+                const iAtomFrom = h.residueAtomSegments.offsets[iRes];
+                const iAtomTo = h.residueAtomSegments.offsets[iRes + 1];
+                for (let iAtom = iAtomFrom; iAtom < iAtomTo; iAtom++) {
+                    _labelCompIdSet.add(label_comp_id.value(iAtom));
+                    _authCompIdSet.add(auth_comp_id.value(iAtom));
+                }
+                if (_labelCompIdSet.size > 1) residuesByLabelCompIdIsPure = false;
+                if (_authCompIdSet.size > 1) residuesByAuthCompIdIsPure = false;
+                for (const labelCompId of _labelCompIdSet) residuesHereByLabelCompId.add(labelCompId, iRes);
+                for (const authCompId of _authCompIdSet) residuesHereByAuthCompId.add(authCompId, iRes);
+                _labelCompIdSet.clear();
+                _authCompIdSet.clear();
             }
             residuesByInsCode.set(iChain, residuesHereByInsCode);
+            residuesByLabelCompId.set(iChain, residuesHereByLabelCompId);
+            residuesByAuthCompId.set(iChain, residuesHereByAuthCompId);
         }
 
         const atomId = model.atomicConformation.atomId.value;
@@ -80,6 +110,7 @@ export const IndicesAndSortings = {
         return {
             chainsByLabelEntityId, chainsByLabelAsymId, chainsByAuthAsymId,
             residuesSortedByLabelSeqId, residuesSortedByAuthSeqId, residuesByInsCode,
+            residuesByLabelCompId, residuesByLabelCompIdIsPure, residuesByAuthCompId, residuesByAuthCompIdIsPure,
             atomsById, atomsByIndex,
         };
     },

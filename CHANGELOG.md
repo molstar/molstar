@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - Remove `xhr2` dependency for NodeJS, use `fetch`
+- MolViewSpec extension:
+  - Support for label_comp_id and auth_comp_id in annotations
 
 ## [v4.16.0] - 2025-05-20
 - Load potentially big text files as `StringLike` to bypass string size limit
