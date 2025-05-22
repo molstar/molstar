@@ -297,11 +297,10 @@ async function loadTestAllExample(plugin: PluginContext) {
             basic('weak-hydrogen-bond', 7),
             basic('hydrophobic', 8),
             basic('metal-coordination', 9),
-            basic('salt-bridge', 10),
-            covalent(1, 11),
-            covalent(2, 12),
-            covalent(3, 13),
-            covalent(-1, 14), // aromatic
+            covalent(1, 10),
+            covalent(2, 11),
+            covalent(3, 12),
+            covalent(-1, 13), // aromatic
             basic('unknown', [0, 1, 2, 3, 13, 14], 'Testing centroid for atom set'),
         ]
     }, { dependsOn: refs });

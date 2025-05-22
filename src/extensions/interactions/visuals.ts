@@ -47,7 +47,6 @@ export const InteractionVisualParams = {
         'weak-hydrogen-bond': hydrogenVisualParams({ color: Color(0x0) }),
         'hydrophobic': visualParams({ color: Color(0x555555) }),
         'metal-coordination': visualParams({ color: Color(0x952e8f) }),
-        'salt-bridge': visualParams({ color: Color(0xF54029) }),
         'covalent': PD.Group({
             color: PD.Color(Color(0x999999)),
             radius: PD.Numeric(0.1, { min: 0.01, max: 1, step: 0.01 }),
