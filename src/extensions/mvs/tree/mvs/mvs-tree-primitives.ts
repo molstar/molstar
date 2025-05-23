@@ -87,15 +87,15 @@ const ArrowParams = {
     /** Draw a cap at the start of the arrow. */
     show_start_cap: OptionalField(bool, false, 'Draw a cap at the start of the arrow.'),
     /** Length of the start cap. */
-    start_cap_length: OptionalField(float, 0.1, 'Length of the start cap.'),
+    start_cap_length: OptionalField(nullable(float), null, 'Length of the start cap. If not provided, will be 2 * start_cap_radius.'),
     /** Radius of the start cap. */
-    start_cap_radius: OptionalField(float, 0.1, 'Radius of the start cap.'),
+    start_cap_radius: OptionalField(nullable(float), null, 'Radius of the start cap. If not provided, will be 2 * tube_radius.'),
     /** Draw an arrow at the end of the arrow. */
     show_end_cap: OptionalField(bool, false, 'Draw a cap at the end of the arrow.'),
     /** Height of the arrow at the end. */
-    end_cap_length: OptionalField(float, 0.1, 'Length of the end cap.'),
+    end_cap_length: OptionalField(nullable(float), null, 'Length of the end cap. If not provided, will be 2 * end_cap_radius.'),
     /** Radius of the arrow at the end. */
-    end_cap_radius: OptionalField(float, 0.1, 'Radius of the end cap.'),
+    end_cap_radius: OptionalField(nullable(float), null, 'Radius of the end cap. If not provided, will be 2 * tube_radius.'),
     /** Draw a tube connecting the start and end points. */
     show_tube: OptionalField(bool, true, 'Draw a tube connecting the start and end points.'),
     /** Tube radius (in Angstroms). */
@@ -143,6 +143,8 @@ const AngleMeasurementParams = {
     show_vector: OptionalField(bool, true, 'Draw vectors between (a, b) and (b, c).'),
     /** Color of the vectors. */
     vector_color: OptionalField(nullable(ColorT), null, 'Color of the vectors.'),
+    /** Radius of the vectors. */
+    vector_radius: OptionalField(float, 0.05, 'Radius of the vectors.'),
     /** Draw a filled circle section representing the angle. */
     show_section: OptionalField(bool, true, 'Draw a filled circle section representing the angle.'),
     /** Color of the angle section. If not specified, the primitives group color is used. */

@@ -63,6 +63,9 @@ const AllAtomicCifAnnotationSchema = {
     beg_auth_seq_id: int,
     /** Maximum auth_seq_id (inclusive) */
     end_auth_seq_id: int,
+    label_comp_id: str,
+    auth_comp_id: str,
+    // residue_index: int, // 0-based residue index in the source file // TODO this is defined in Python builder but not supported by Molstar yet
 
     /** Atom name like 'CA', 'N', 'O'... */
     label_atom_id: str,
