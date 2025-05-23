@@ -143,6 +143,8 @@ const AngleMeasurementParams = {
     show_vector: OptionalField(bool, true, 'Draw vectors between (a, b) and (b, c).'),
     /** Color of the vectors. */
     vector_color: OptionalField(nullable(ColorT), null, 'Color of the vectors.'),
+    /** Radius of the vectors. */
+    vector_radius: OptionalField(float, 0.05, 'Radius of the vectors.'),
     /** Draw a filled circle section representing the angle. */
     show_section: OptionalField(bool, true, 'Draw a filled circle section representing the angle.'),
     /** Color of the angle section. If not specified, the primitives group color is used. */

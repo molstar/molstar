@@ -818,6 +818,7 @@ const AngleState = {
     ba: Vec3(),
     bc: Vec3(),
     labelPos: Vec3(),
+    /** Sector radius */
     radius: 0,
     label: '',
 };
@@ -853,7 +854,7 @@ function addAngleMesh(context: PrimitiveBuilderContext, state: MeshBuilderState,
     const { groups, mesh } = state;
 
     if (params.show_vector) {
-        const radius = 0.01;
+        const radius = params.vector_radius ?? 0.05;
         const cylinderProps: BasicCylinderProps = {
             radiusBottom: radius,
             radiusTop: radius,
