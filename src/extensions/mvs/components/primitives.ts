@@ -381,6 +381,9 @@ function hasPrimitiveKind(context: PrimitiveBuilderContext, kind: 'mesh' | 'line
     return false;
 }
 
+/** Save resolved position into `targetPosition`.
+ * Return `true` if the resolved position is defined (i.e. vector or non-empty selection);
+ * return `false` if the resolved position is not defined (i.e. empty selection). */
 function resolveBasePosition(context: PrimitiveBuilderContext, position: PrimitivePositionT, targetPosition: Vec3): boolean {
     return resolvePosition(context, position, targetPosition, undefined, undefined);
 }
@@ -647,8 +650,9 @@ const lEnd = Vec3.zero();
 
 function addTubeMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'tube'>, options?: { skipResolvePosition?: boolean }) {
     if (!options?.skipResolvePosition) {
-        resolveBasePosition(context, params.start, lStart);
-        resolveBasePosition(context, params.end, lEnd);
+        const startDefined = resolveBasePosition(context, params.start, lStart);
+        const endDefined = resolveBasePosition(context, params.end, lEnd);
+        if (!startDefined || !endDefined) return;
     }
     const radius = params.radius;
 
@@ -681,13 +685,17 @@ const ArrowState = {
 };
 
 function addArrowMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'arrow'>) {
-    resolveBasePosition(context, params.start, ArrowState.start);
-    if (params.end) {
-        resolveBasePosition(context, params.end, ArrowState.end);
-    }
+    const startDefined = resolveBasePosition(context, params.start, ArrowState.start);
+    if (!startDefined) return;
 
-    if (params.direction) {
+    if (params.end) {
+        const endDefined = resolveBasePosition(context, params.end, ArrowState.end);
+        if (!endDefined) return;
+    } else if (params.direction) {
         Vec3.add(ArrowState.end, ArrowState.start, params.direction as any as Vec3);
+    } else {
+        console.warn(`Primitive arrow does not contain "end" nor "distance". Not showing.`);
+        return;
     }
 
     Vec3.sub(ArrowState.dir, ArrowState.end, ArrowState.start);
@@ -712,9 +720,10 @@ function addArrowMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBu
     groups.updateColor(mesh.currentGroup, params.color);
     groups.updateTooltip(mesh.currentGroup, params.tooltip);
 
-    const startRadius = params.start_cap_radius ?? tubeRadius;
     if (params.show_start_cap) {
-        Vec3.scaleAndAdd(ArrowState.startCap, ArrowState.start, ArrowState.dir, startRadius);
+        const startRadius = params.start_cap_radius ?? 2 * tubeRadius;
+        const startCapLength = params.start_cap_length ?? 2 * startRadius;
+        Vec3.scaleAndAdd(ArrowState.startCap, ArrowState.start, ArrowState.dir, startCapLength);
         addSimpleCylinder(mesh, ArrowState.startCap, ArrowState.start, {
             radiusBottom: startRadius,
             radiusTop: 0,
@@ -726,9 +735,10 @@ function addArrowMesh(context: PrimitiveBuilderContext, { groups, mesh }: MeshBu
         Vec3.copy(ArrowState.startCap, ArrowState.start);
     }
 
-    const endRadius = params.end_cap_radius ?? tubeRadius;
     if (params.show_end_cap) {
-        Vec3.scaleAndAdd(ArrowState.endCap, ArrowState.end, ArrowState.dir, -endRadius);
+        const endRadius = params.end_cap_radius ?? 2 * tubeRadius;
+        const endCapLength = params.end_cap_length ?? 2 * endRadius;
+        Vec3.scaleAndAdd(ArrowState.endCap, ArrowState.end, ArrowState.dir, -endCapLength);
         addSimpleCylinder(mesh, ArrowState.endCap, ArrowState.end, {
             radiusBottom: endRadius,
             radiusTop: 0,
@@ -801,6 +811,7 @@ function addDistanceLabel(context: PrimitiveBuilderContext, state: LabelBuilderS
 
 
 const AngleState = {
+    isDefined: false,
     a: Vec3(),
     b: Vec3(),
     c: Vec3(),
@@ -808,18 +819,22 @@ const AngleState = {
     bc: Vec3(),
     labelPos: Vec3(),
     radius: 0,
+    label: '',
 };
 
-function syncAngleState(context: PrimitiveBuilderContext, params: PrimitiveParams<'angle_measurement'>) {
-    resolveBasePosition(context, params.a, AngleState.a);
-    resolveBasePosition(context, params.b, AngleState.b);
-    resolveBasePosition(context, params.c, AngleState.c);
+function syncAngleState(context: PrimitiveBuilderContext, params: PrimitiveParams<'angle_measurement'>): void {
+    const aDefined = resolveBasePosition(context, params.a, AngleState.a);
+    const bDefined = resolveBasePosition(context, params.b, AngleState.b);
+    const cDefined = resolveBasePosition(context, params.c, AngleState.c);
+    AngleState.isDefined = aDefined && bDefined && cDefined;
+    if (!AngleState.isDefined) return;
+
     Vec3.sub(AngleState.ba, AngleState.a, AngleState.b);
     Vec3.sub(AngleState.bc, AngleState.c, AngleState.b);
     const value = radToDeg(Vec3.angle(AngleState.ba, AngleState.bc));
 
     const angle = `${round(value, 2)}\u00B0`;
-    const label = typeof params.label_template === 'string' ? params.label_template.replace('{{angle}}', angle) : angle;
+    AngleState.label = typeof params.label_template === 'string' ? params.label_template.replace('{{angle}}', angle) : angle;
 
     if (typeof params.section_radius === 'number') {
         AngleState.radius = params.section_radius;
@@ -829,12 +844,12 @@ function syncAngleState(context: PrimitiveBuilderContext, params: PrimitiveParam
             AngleState.radius *= params.section_radius_scale;
         }
     }
-
-    return label;
 }
 
 function addAngleMesh(context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'angle_measurement'>) {
-    const label = syncAngleState(context, params);
+    syncAngleState(context, params);
+    if (!AngleState.isDefined) return; // empty substructure in measurement
+
     const { groups, mesh } = state;
 
     if (params.show_vector) {
@@ -848,7 +863,7 @@ function addAngleMesh(context: PrimitiveBuilderContext, state: MeshBuilderState,
 
         mesh.currentGroup = groups.allocateSingle(node);
         groups.updateColor(mesh.currentGroup, params.vector_color);
-        groups.updateTooltip(mesh.currentGroup, label);
+        groups.updateTooltip(mesh.currentGroup, AngleState.label);
 
         let count = Math.ceil(Vec3.magnitude(AngleState.ba) / (2 * radius));
         addFixedCountDashedCylinder(mesh, AngleState.a, AngleState.b, 1.0, count, true, cylinderProps);
@@ -876,14 +891,15 @@ function addAngleMesh(context: PrimitiveBuilderContext, state: MeshBuilderState,
             theta_start: 0,
             theta_end: angle,
             color: params.section_color,
-            tooltip: label,
+            tooltip: AngleState.label,
         });
     }
 }
 
 function addAngleLabel(context: PrimitiveBuilderContext, state: LabelBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'angle_measurement'>) {
     const { labels, groups } = state;
-    const label = syncAngleState(context, params);
+    syncAngleState(context, params);
+    if (!AngleState.isDefined) return; // empty substructure in measurement
 
     Vec3.normalize(AngleState.ba, AngleState.ba);
     Vec3.normalize(AngleState.bc, AngleState.bc);
@@ -906,7 +922,7 @@ function addAngleLabel(context: PrimitiveBuilderContext, state: LabelBuilderStat
     groups.updateColor(group, params.label_color);
     groups.updateSize(group, size);
 
-    labels.add(label, AngleState.labelPos[0], AngleState.labelPos[1], AngleState.labelPos[2], 1, 1, group);
+    labels.add(AngleState.label, AngleState.labelPos[0], AngleState.labelPos[1], AngleState.labelPos[2], 1, 1, group);
 }
 
 function resolveLabelRefs(params: PrimitiveParams<'label'>, refs: Set<string>) {
@@ -920,7 +936,8 @@ const PrimitiveLabelState = {
 
 function addPrimitiveLabel(context: PrimitiveBuilderContext, state: LabelBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'label'>) {
     const { labels, groups } = state;
-    resolvePosition(context, params.position, PrimitiveLabelState.position, PrimitiveLabelState.sphere, undefined);
+    const positionDefined = resolvePosition(context, params.position, PrimitiveLabelState.position, PrimitiveLabelState.sphere, undefined);
+    if (!positionDefined) return;
 
     const group = groups.allocateSingle(node);
     groups.updateColor(group, params.label_color);
@@ -970,17 +987,20 @@ function addEllipseMesh(context: PrimitiveBuilderContext, state: MeshBuilderStat
     const circle = getCircle({ thetaStart: params.theta_start, thetaEnd: params.theta_end });
     if (!circle) return;
 
-    resolvePosition(context, params.center, EllipseState.centerPos, undefined, undefined);
+    const centerDefined = resolvePosition(context, params.center, EllipseState.centerPos, undefined, undefined);
+    if (!centerDefined) return;
 
     if (params.major_axis_endpoint) {
-        resolvePosition(context, params.major_axis_endpoint, EllipseState.majorPos, undefined, undefined);
+        const endpointDefined = resolvePosition(context, params.major_axis_endpoint, EllipseState.majorPos, undefined, undefined);
+        if (!endpointDefined) return;
         Vec3.sub(EllipseState.majorAxis, EllipseState.majorPos, EllipseState.centerPos);
     } else {
         Vec3.copy(EllipseState.majorAxis, params.major_axis as any as Vec3);
     }
 
     if (params.minor_axis_endpoint) {
-        resolvePosition(context, params.minor_axis_endpoint, EllipseState.minorPos, undefined, undefined);
+        const endpointDefined = resolvePosition(context, params.minor_axis_endpoint, EllipseState.minorPos, undefined, undefined);
+        if (!endpointDefined) return;
         Vec3.sub(EllipseState.minorAxis, EllipseState.minorPos, EllipseState.centerPos);
     } else {
         Vec3.copy(EllipseState.minorAxis, params.minor_axis as any as Vec3);
@@ -1035,10 +1055,12 @@ const EllipsoidState = {
 
 
 function addEllipsoidMesh(context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'ellipsoid'>) {
-    resolvePosition(context, params.center, EllipsoidState.centerPos, EllipsoidState.sphere, undefined);
+    const centerDefined = resolvePosition(context, params.center, EllipsoidState.centerPos, EllipsoidState.sphere, undefined);
+    if (!centerDefined) return;
 
     if (params.major_axis_endpoint) {
-        resolvePosition(context, params.major_axis_endpoint, EllipsoidState.majorPos, undefined, undefined);
+        const endpointDefined = resolvePosition(context, params.major_axis_endpoint, EllipsoidState.majorPos, undefined, undefined);
+        if (!endpointDefined) return;
         Vec3.sub(EllipsoidState.majorAxis, EllipsoidState.majorPos, EllipsoidState.centerPos);
     } else if (params.major_axis) {
         Vec3.copy(EllipsoidState.majorAxis, params.major_axis as any as Vec3);
@@ -1047,7 +1069,8 @@ function addEllipsoidMesh(context: PrimitiveBuilderContext, state: MeshBuilderSt
     }
 
     if (params.minor_axis_endpoint) {
-        resolvePosition(context, params.minor_axis_endpoint, EllipsoidState.minorPos, undefined, undefined);
+        const endpointDefined = resolvePosition(context, params.minor_axis_endpoint, EllipsoidState.minorPos, undefined, undefined);
+        if (!endpointDefined) return;
         Vec3.sub(EllipsoidState.minorAxis, EllipsoidState.minorPos, EllipsoidState.centerPos);
     } else if (params.minor_axis) {
         Vec3.copy(EllipsoidState.minorAxis, params.minor_axis as any as Vec3);
@@ -1101,7 +1124,8 @@ const BoxState = {
 function addBoxMesh(context: PrimitiveBuilderContext, state: MeshBuilderState, node: MVSNode<'primitive'>, params: PrimitiveParams<'box'>) {
     if (!params.show_edges && !params.show_faces) return;
 
-    resolvePosition(context, params.center, BoxState.center, undefined, BoxState.boundary);
+    const positionDefined = resolvePosition(context, params.center, BoxState.center, undefined, BoxState.boundary);
+    if (!positionDefined) return;
     if (params.extent) {
         Box3D.expand(BoxState.boundary, BoxState.boundary, params.extent as unknown as Vec3);
     }

@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 - MolViewSpec extension:
   - Support for label_comp_id and auth_comp_id in annotations
+  - Geometric primitives - do not render if position refers to empty substructure
+  - Primitive arrow - nicer default cap size (relative to tube_radius)
 
 ## [v4.17.0] - 2025-05-22
 - Remove `xhr2` dependency for NodeJS, use `fetch`
