@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -12,7 +12,7 @@ import { StringLike } from '../mol-io/common/string-like';
 import { utf8Read, utf8ReadLong } from '../mol-io/common/utf8';
 import { RuntimeContext, Task } from '../mol-task';
 import { Asset, AssetManager } from './assets';
-import { File_ as File, RUNNING_IN_NODEJS, XMLHttpRequest_ as XMLHttpRequest } from './nodejs-shims';
+import { RUNNING_IN_NODEJS } from './nodejs-shims';
 import { ungzip, unzip } from './zip/zip';
 
 
@@ -61,7 +61,8 @@ export function ajaxGet<T extends DataType>(params: AjaxGetParams<T> | string) {
 export type AjaxTask = typeof ajaxGet
 
 function isDone(data: XMLHttpRequest | FileReader) {
-    if (!RUNNING_IN_NODEJS && data instanceof FileReader) { // FileReader is not available in Node.js
+    if (RUNNING_IN_NODEJS) throw new Error('`isDone` should not be used when running in Node.js'); // XMLHttpRequest and FileReader are not available in Node.js
+    if (data instanceof FileReader) {
         return data.readyState === FileReader.DONE;
     } else if (data instanceof XMLHttpRequest) {
         return data.readyState === XMLHttpRequest.DONE;
@@ -75,6 +76,7 @@ function genericError(isDownload: boolean) {
 }
 
 function readData<T extends XMLHttpRequest | FileReader>(ctx: RuntimeContext, action: string, data: T): Promise<T> {
+    if (RUNNING_IN_NODEJS) throw new Error('`readData` should not be used when running in Node.js'); // XMLHttpRequest is not available in Node.js
     return new Promise<T>((resolve, reject) => {
         // first check if data reading is already done
         if (isDone(data)) {
@@ -198,6 +200,7 @@ class RequestPool {
     private static poolSize = 15;
 
     static get() {
+        if (RUNNING_IN_NODEJS) throw new Error('`RequestPool.get` should not be used when running in Node.js'); // XMLHttpRequest is not available in Node.js
         if (this.pool.length) {
             return this.pool.pop()!;
         }
@@ -249,9 +252,14 @@ function getRequestResponseType(type: DataType): XMLHttpRequestResponseType {
 }
 
 function ajaxGetInternal<T extends DataType>(title: string | undefined, url: string, type: T, body?: string, headers?: [string, string][]): Task<DataResponse<T>> {
-    if (RUNNING_IN_NODEJS && url.startsWith('file://')) {
-        return ajaxGetInternal_file_NodeJS(title, url, type, body, headers);
+    if (RUNNING_IN_NODEJS) {
+        if (url.startsWith('file://')) {
+            return ajaxGetInternal_file_NodeJS(title, url, type, body, headers);
+        } else {
+            return ajaxGetInternal_http_NodeJS(title, url, type, body, headers);
+        }
     }
+
     let xhttp: XMLHttpRequest | undefined = void 0;
     return Task.create(title ? title : 'Download', async ctx => {
         xhttp = RequestPool.get();
@@ -294,14 +302,50 @@ export function setFSModule(fs: typeof import('fs')) {
     _fs = fs;
 }
 
-/** Alternative implementation of ajaxGetInternal (because xhr2 does not support file:// protocol) */
+function readFileAsync(filename: string): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+        getFS().readFile(filename, (err, data) => {
+            if (err) reject(err);
+            else resolve(data);
+        });
+    });
+}
+
+/** Alternative implementation of ajaxGetInternal for NodeJS for file:// protocol */
 function ajaxGetInternal_file_NodeJS<T extends DataType>(title: string | undefined, url: string, type: T, body?: string, headers?: [string, string][]): Task<DataResponse<T>> {
     if (!RUNNING_IN_NODEJS) throw new Error('This function should only be used when running in Node.js');
     if (!url.startsWith('file://')) throw new Error('This function is only for URLs with protocol file://');
-    const filename = url.substring('file://'.length);
-    const data = getFS().readFileSync(filename);
-    const file = new File([data], 'raw-data');
-    return readFromFile(file, type);
+
+    return Task.create(title ?? 'Download', async ctx => {
+        const filename = url.substring('file://'.length);
+        await ctx.update({ message: 'Loading file...', canAbort: false });
+        const data = await readFileAsync(filename);
+
+        await ctx.update({ message: 'Parsing response...', canAbort: false });
+        const result = await processFile(ctx, data, type, DataCompressionMethod.None);
+        return result;
+    });
+}
+
+/** Alternative implementation of ajaxGetInternal for NodeJS for http(s):// protocol */
+function ajaxGetInternal_http_NodeJS<T extends DataType>(title: string | undefined, url: string, type: T, body?: string, headers?: [string, string][]): Task<DataResponse<T>> {
+    if (!RUNNING_IN_NODEJS) throw new Error('This function should only be used when running in Node.js');
+
+    const aborter = new AbortController();
+    return Task.create(title ?? 'Download', async ctx => {
+        await ctx.update({ message: 'Downloading...', canAbort: true });
+        const response = await fetch(url, { signal: aborter.signal });
+        if (!(response.status >= 200 && response.status < 400)) {
+            throw new Error(`Download failed with status code ${response.status}`);
+        }
+        const fileContent = await response.bytes();
+
+        await ctx.update({ message: 'Parsing response...', canAbort: false });
+        const result = await processFile(ctx, fileContent, type, DataCompressionMethod.None);
+        return result;
+    }, () => {
+        aborter.abort();
+    });
 }
 
 export type AjaxGetManyEntry = { kind: 'ok', id: string, result: Asset.Wrapper<'string' | 'binary'> } | { kind: 'error', id: string, error: any }

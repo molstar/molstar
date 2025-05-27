@@ -15,5 +15,6 @@ module.exports = [
     createApp('viewer', 'molstar'),
     createApp('docking-viewer', 'molstar'),
     createApp('mesoscale-explorer', 'molstar'),
+    createApp('mvs-stories', 'mvsStories', { filename: 'mvs-stories.js', cssFilename: 'mvs-stories.css' }),
     ...examples.map(createExample)
 ];

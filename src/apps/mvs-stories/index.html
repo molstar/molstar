@@ -38,21 +38,6 @@
             gap: 16px;
         }
 
-        #links {
-            position: absolute;
-            bottom: 4px;
-            right: 8px;
-            font-family: "Raleway", "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
-            font-size: 0.6rem;
-            z-index: -1;
-            color: #666;
-        }
-
-        #links a {
-            color: #666;
-            text-decoration: none;
-        }
-
         @media (orientation:portrait) {
             #viewer {
                 position: absolute;
@@ -75,48 +60,34 @@
                 display: none;
             }
         }
-
-        .select-story select {
-            width: 100%;
-            display: inline-block;
-            height: 38px;
-            padding: 0 8px;
-            color: #555;
-            line-height: 38px;
-            text-decoration: none;
-            white-space: nowrap;
-            background-color: transparent;
-            border-radius: 4px;
-            border: 1px solid #bbb;
-            cursor: pointer;
-            box-sizing: border-box;
-        }
     </style>
-    <link rel="stylesheet" type="text/css" href="molstar.css" />
-    <script type="text/javascript" src="index.js"></script>
+    <link rel="stylesheet" type="text/css" href="mvs-stories.css" />
+    <script type="text/javascript" src="mvs-stories.js"></script>
 </head>
 
 <body>
+    <!-- the context-name parameter is optional and useful when embedding multiple stories in a single page -->
     <div id="viewer">
-        <mvs-stories-viewer />
+        <mvs-stories-viewer context-name="story1" />
     </div>
     <div id="controls">
-        <div id="select-story" class="select-story"></div>
-        <mvs-stories-snapshot-markdown style="flex-grow: 1;" />
-    </div>
-    <div id="links">
-        <a href="#" id="mvs-data" filename="kinase-story.mvsj">Download MVS State</a> | <a href="https://github.com/molstar/molstar/tree/master/src/examples/mvs-stories" id="mvs-data" target="_blank" rel="noopener noreferrer">Source Code</a>
+        <mvs-stories-snapshot-markdown context-name="story1" style="flex-grow: 1;" />
     </div>
 
     <script>
-        document.getElementById('mvs-data').addEventListener('click', (e) => {
-            e.preventDefault();
-            window.downloadStory();
-        });
+        var urlParams = new URLSearchParams(window.location.search);
+        var storyUrl = urlParams.get('story-url');
+        var format = urlParams.get('data-format');
 
-        setTimeout(() => {
-            window.initStories();
-        }, 0);
+        // For testing purposes:
+        // if (!storyUrl) {
+        //     storyUrl = 'https://raw.githubusercontent.com/molstar/molstar/master/examples/mvs/kinase-story.mvsj';
+        // }
+
+        mvsStories.loadFromURL(
+            storyUrl,
+            { format: format || 'mvsj', contextName: 'story1' },
+        );
     </script>
 </body>
 

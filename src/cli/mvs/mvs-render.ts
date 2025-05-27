@@ -100,7 +100,7 @@ async function main(args: Args): Promise<void> {
         } else {
             throw new Error(`Input file name must end with .mvsj or .mvsx: ${input}`);
         }
-        await loadMVS(plugin, mvsData, { sanityChecks: true, replaceExisting: true, sourceUrl: sourceUrl, extensions: args.no_extensions ? [] : undefined });
+        await loadMVS(plugin, mvsData, { sanityChecks: true, sourceUrl: sourceUrl, extensions: args.no_extensions ? [] : undefined });
 
         fs.mkdirSync(path.dirname(output), { recursive: true });
         if (args.molj) {

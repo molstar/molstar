@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author Russell Parker <russell@benchling.com>
@@ -12,20 +12,8 @@
 /** Determines whether the current code is running in Node.js */
 export const RUNNING_IN_NODEJS = typeof process !== 'undefined' && process.versions != null && process.versions.node != null;
 
-/** Like `XMLHttpRequest` but works also in Node.js */
-export const XMLHttpRequest_ = getXMLHttpRequest();
-
 /** Like `File` but works also in Node.js */
 export const File_ = getFile();
-
-
-function getXMLHttpRequest(): typeof XMLHttpRequest {
-    if (typeof XMLHttpRequest === 'undefined' || RUNNING_IN_NODEJS) {
-        return require('xhr2');
-    } else {
-        return XMLHttpRequest;
-    }
-}
 
 function getFile(): typeof File {
     if (typeof File === 'undefined' || RUNNING_IN_NODEJS) {

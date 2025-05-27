@@ -173,7 +173,7 @@ const MVSDragAndDropHandler: DragAndDropHandler = {
                 const task = Task.create('Load MVSJ file', async ctx => {
                     const data = await file.text();
                     const mvsData = MVSData.fromMVSJ(data);
-                    await loadMVS(plugin, mvsData, { sanityChecks: true, replaceExisting: !applied, sourceUrl: undefined });
+                    await loadMVS(plugin, mvsData, { sanityChecks: true, appendSnapshots: applied, sourceUrl: undefined });
                 });
                 await plugin.runTask(task);
                 applied = true;
@@ -183,7 +183,7 @@ const MVSDragAndDropHandler: DragAndDropHandler = {
                     const buffer = await file.arrayBuffer();
                     const array = new Uint8Array(buffer);
                     const parsed = await loadMVSX(plugin, ctx, array);
-                    await loadMVS(plugin, parsed.mvsData, { sanityChecks: true, replaceExisting: !applied, sourceUrl: parsed.sourceUrl });
+                    await loadMVS(plugin, parsed.mvsData, { sanityChecks: true, appendSnapshots: applied, sourceUrl: parsed.sourceUrl });
                 });
                 await plugin.runTask(task);
                 applied = true;

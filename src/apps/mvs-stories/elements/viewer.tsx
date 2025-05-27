@@ -5,20 +5,19 @@
  */
 
 import { MolViewSpec } from '../../../extensions/mvs/behavior';
-import { loadMVS } from '../../../extensions/mvs/load';
-import { MVSData } from '../../../extensions/mvs/mvs-data';
-import { StringLike } from '../../../mol-io/common/string-like';
+import { loadMVSData } from '../../../extensions/mvs/components/formats';
 import { PluginComponent } from '../../../mol-plugin-state/component';
 import { createPluginUI } from '../../../mol-plugin-ui';
 import { renderReact18 } from '../../../mol-plugin-ui/react18';
 import { DefaultPluginUISpec } from '../../../mol-plugin-ui/spec';
+import { PluginCommands } from '../../../mol-plugin/commands';
 import { PluginConfig } from '../../../mol-plugin/config';
 import { PluginContext } from '../../../mol-plugin/context';
 import { PluginSpec } from '../../../mol-plugin/spec';
-import { getMolComponentContext, MolComponentContext } from '../context';
+import { getMVSStoriesContext, MVSStoriesContext } from '../context';
 
-export class MolComponentViewerModel extends PluginComponent {
-    readonly context: MolComponentContext;
+export class MVSStoriesViewerModel extends PluginComponent {
+    readonly context: MVSStoriesContext;
     plugin?: PluginContext = undefined;
 
     async mount(root: HTMLElement) {
@@ -52,36 +51,46 @@ export class MolComponentViewerModel extends PluginComponent {
         });
 
         this.subscribe(this.context.commands, async (cmd) => {
-            if (!cmd) return;
+            if (!cmd || !this.plugin) return;
 
-            if (cmd.kind === 'load-mvs') {
-                if (cmd.url) {
-                    const data = await this.plugin!.runTask(this.plugin!.fetch({ url: cmd.url, type: 'string' }));
-                    const mvsData = MVSData.fromMVSJ(StringLike.toString(data));
-                    await loadMVS(this.plugin!, mvsData, { sanityChecks: true, sourceUrl: cmd.url, replaceExisting: true });
-                } else if (cmd.data) {
-                    await loadMVS(this.plugin!, cmd.data, { sanityChecks: true, replaceExisting: true });
+            try {
+                this.context.state.isLoading.next(true);
+                if (cmd.kind === 'load-mvs') {
+                    if (cmd.url) {
+                        const data = await this.plugin.runTask(this.plugin.fetch({ url: cmd.url, type: cmd.format === 'mvsx' ? 'binary' : 'string' }));
+                        await loadMVSData(this.plugin, data, cmd.format ?? 'mvsj', { sourceUrl: cmd.url });
+                    } else if (cmd.data) {
+                        await loadMVSData(this.plugin, cmd.data, cmd.format ?? 'mvsj');
+                    }
                 }
+            } catch (e) {
+                console.error(e);
+                PluginCommands.Toast.Show(
+                    this.plugin,
+                    { key: '<mvsload>', title: 'Error', message: e?.message ? `${e?.message}` : `${e}`, timeoutMs: 10000 }
+                );
+            } finally {
+                this.context.state.isLoading.next(false);
             }
         });
 
-        const viewers = this.context.behavior.viewers.value;
+        const viewers = this.context.state.viewers.value;
         const next = [...viewers, { name: this.options?.name, model: this }];
-        this.context.behavior.viewers.next(next);
+        this.context.state.viewers.next(next);
     }
 
     constructor(private options?: { context?: { name?: string, container?: object }, name?: string }) {
         super();
 
-        this.context = getMolComponentContext(options?.context);
+        this.context = getMVSStoriesContext(options?.context);
 
-        const viewers = this.context.behavior.viewers.value;
+        const viewers = this.context.state.viewers.value;
         const index = viewers.findIndex(v => v.name === options?.name);
         if (index >= 0) {
             const next = [...viewers];
             next[index].model.dispose();
             next.splice(index, 0);
-            this.context.behavior.viewers.next(next);
+            this.context.state.viewers.next(next);
         }
     }
 }
@@ -90,11 +99,11 @@ function EmptyDescription() {
     return <></>;
 }
 
-export class MolComponentViewer extends HTMLElement {
-    private model: MolComponentViewerModel | undefined = undefined;
+export class MVSStoriesViewer extends HTMLElement {
+    private model: MVSStoriesViewerModel | undefined = undefined;
 
     async connectedCallback() {
-        this.model = new MolComponentViewerModel({
+        this.model = new MVSStoriesViewerModel({
             name: this.getAttribute('name') ?? undefined,
             context: { name: this.getAttribute('context-name') ?? undefined },
         });
@@ -111,4 +120,4 @@ export class MolComponentViewer extends HTMLElement {
     }
 }
 
-window.customElements.define('mc-viewer', MolComponentViewer);
+window.customElements.define('mvs-stories-viewer', MVSStoriesViewer);
