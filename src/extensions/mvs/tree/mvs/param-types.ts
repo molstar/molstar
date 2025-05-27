@@ -84,7 +84,7 @@ export const HexColorT = new iots.Type<HexColor>(
 export const ColorNameT = new iots.Type<ColorName>(
     'ColorName',
     ((value: any) => typeof value === 'string') as any,
-    (value, ctx) => ColorName.is(value) ? { _tag: 'Right', right: value } : { _tag: 'Left', left: [{ value: value, context: ctx, message: `"${value}" is not a valid hex color string` }] },
+    (value, ctx) => ColorName.is(value) ? { _tag: 'Right', right: value } : { _tag: 'Left', left: [{ value: value, context: ctx, message: `"${value}" is not a valid color name` }] },
     value => value
 );
 
