@@ -10,7 +10,7 @@ import { SimpleParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
 import { MVSRepresentationParams, MVSVolumeRepresentationParams } from './mvs-tree-representations';
 import { MVSPrimitiveParams } from './mvs-tree-primitives';
-import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
+import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, Palette, ParseFormatT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
 
 
 const _DataFromUriParams = {
@@ -181,6 +181,8 @@ export const MVSTreeSchema = TreeSchema({
                 ..._DataFromUriParams,
                 /** Name of the column in CIF or field name (key) in JSON that contains the color. */
                 field_name: OptionalField(str, 'color', 'Name of the column in CIF or field name (key) in JSON that contains the color.'),
+                /** TODO docstring */
+                palette: OptionalField(nullable(Palette), null, 'TODO docstring'),
             }),
         },
         /** This node instructs to apply colors to a visual representation. The colors are defined by an annotation resource included in the same file this structure was loaded from. Only applicable if the structure was loaded from an mmCIF or BinaryCIF file. */
@@ -191,6 +193,8 @@ export const MVSTreeSchema = TreeSchema({
                 ..._DataFromSourceParams,
                 /** Name of the column in CIF or field name (key) in JSON that contains the color. */
                 field_name: OptionalField(str, 'color', 'Name of the column in CIF or field name (key) in JSON that contains the color.'),
+                /** TODO docstring */
+                palette: OptionalField(nullable(Palette), null, 'TODO docstring'),
             }),
         },
         /** This node instructs to apply opacity/transparency to a visual representation. */

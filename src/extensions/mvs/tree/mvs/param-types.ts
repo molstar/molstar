@@ -8,7 +8,7 @@
 import * as iots from 'io-ts';
 import { ColorNames } from '../../../../mol-util/color/names';
 import { ColorName, HexColor } from '../../helpers/utils';
-import { ValueFor, bool, dict, float, int, list, literal, obj, partial, str, tuple, union } from '../generic/field-schema';
+import { ValueFor, bool, dict, float, int, list, literal, nullable, obj, partial, str, tuple, union } from '../generic/field-schema';
 
 
 /** `format` parameter values for `parse` node in MVS tree */
@@ -109,7 +109,7 @@ export function isComponentExpression(x: any): x is ComponentExpressionT {
 }
 
 
-const CategoricalPaletteName = literal('Set1', 'Set2', 'Set3'); // TODO all from https://observablehq.com/@d3/color-schemes
+const CategoricalPaletteName = literal('Set1', 'Set2', 'Set3'); // TODO all from https://observablehq.com/@d3/color-schemes (list palettes) + others (mapping palettes, e.g. type symbol colors)
 export const CategoricalPalette = iots.intersection([
     obj({ kind: literal('categorical') }),
     partial({
@@ -122,9 +122,17 @@ export const CategoricalPalette = iots.intersection([
         missing_color: ColorT,
         /** Repeat color list once all colors are depleted (only applies if `color` is a list or a named palette). */
         repeat_color_list: bool,
-        // ... TODO continue here
+        /** Sort real values before assigning colors from a list or named palette. */
+        sort: nullable(literal('lexical', 'numeric')),
+        /** Sort direction (only applies if `sort` is provided). */
+        sort_direction: literal('ascending', 'descending'),
     }),
 ]);
+
+// TODO consider spreading the palette param directly into color_from_uri/color_from_source params (though this will be tricky) or achieve smart error messages
+
+export const Palette = CategoricalPalette;
+// export const Palette = union([CategoricalPalette, DiscretePalette, ContinuousPalette]);
 
 // Draft from https://docs.google.com/document/d/1p9yePdtvO8RzYQ90jEdCHM5sMqxFpy4f8DbleXagRDE/edit?tab=t.0
 

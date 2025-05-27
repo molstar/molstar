@@ -8,10 +8,12 @@ import { Location } from '../../../mol-model/location';
 import { Bond, StructureElement } from '../../../mol-model/structure';
 import type { ColorTheme, LocationColor } from '../../../mol-theme/color';
 import type { ThemeDataContext } from '../../../mol-theme/theme';
+import { Color } from '../../../mol-util/color';
+import { ColorLists } from '../../../mol-util/color/lists';
 import { ColorNames } from '../../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { decodeColor } from '../helpers/utils';
-import { getMVSAnnotationForStructure } from './annotation-prop';
+import { getMVSAnnotationForStructure, MVSAnnotation } from './annotation-prop';
 import { isMVSStructure } from './is-mvs-model-prop';
 
 
@@ -20,6 +22,26 @@ export const MVSAnnotationColorThemeParams = {
     annotationId: PD.Text('', { description: 'Reference to "Annotation" custom model property' }),
     fieldName: PD.Text('color', { description: 'Annotation field (column) from which to take color values' }),
     background: PD.Color(ColorNames.gainsboro, { description: 'Color for elements without annotation' }),
+    palette: PD.MappedStatic('direct', {
+        'direct': PD.EmptyGroup(),
+        'categorical': PD.Group({
+            colors: PD.MappedStatic('list', {
+                list: PD.ColorList({ kind: 'set', colors: ColorLists['set-1'].list }, { description: 'TODO' }),
+                mapping: PD.ObjectList({ // TODO consider having PD.ColorMapping for this, with UI and presets, like PD.ColorList
+                    value: PD.Text(),
+                    color: PD.Color(ColorNames.white),
+                }, e => `${e.value}: ${Color.toHexStyle(e.color)}`, { description: 'TODO' }),
+            }),
+            repeatColorList: PD.Boolean(false, { hideIf: g => g.colors.name !== 'list', description: 'Repeat color list once all colors are depleted (only applies if `color` is a list or a named palette).' }),
+            sort: PD.Select('none', [['none', 'None'], ['lexical', 'Lexical'], ['numeric', 'Numeric']] as const, { hideIf: g => g.colors.name !== 'list', description: 'Sort real values before assigning colors from a list or named palette.' }),
+            /** Sort direction (only applies if `sort` is provided). */
+            sortDirection: PD.Select('ascending', [['ascending', 'Ascending'], ['descending', 'Descending']] as const, { hideIf: g => g.colors.name !== 'list' || g.sort === 'none', description: 'Sort direction (only applies if `sort` is provided)' }),
+            setMissingColor: PD.Boolean(false, { description: 'Allow setting a color for missing values.' }),
+            missingColor: PD.Color(ColorNames.white, { hideIf: g => !g.setMissingColor, description: 'Color to use when (a) `color` is a dictionary and given key is not present, or (b) `color` is a list or a named palette and there are more real values than listed values and `repeat_color_list` is not true.' }),
+            // ... TODO continue here
+            // ... TODO adjust descriptions
+        }),
+    }),
 };
 export type MVSAnnotationColorThemeParams = typeof MVSAnnotationColorThemeParams
 
@@ -36,9 +58,14 @@ export function MVSAnnotationColorTheme(ctx: ThemeDataContext, props: MVSAnnotat
     if (ctx.structure && !ctx.structure.isEmpty) {
         const { annotation } = getMVSAnnotationForStructure(ctx.structure, props.annotationId);
         if (annotation) {
+            const paletteFunction = makePaletteFunction(props.palette, annotation, props.fieldName);
+
             const colorForStructureElementLocation = (location: StructureElement.Location) => {
                 // if (annot.getAnnotationForLocation(location)?.color !== annot.getAnnotationForLocation_Reference(location)?.color) throw new Error('AssertionError');
-                return decodeColor(annotation?.getValueForLocation(location, props.fieldName)) ?? props.background;
+                const annotValue = annotation?.getValueForLocation(location, props.fieldName);
+                const color = annotValue !== undefined ? paletteFunction(annotValue) : undefined;
+                return color ?? props.background;
+                // return decodeColor(annotation?.getValueForLocation(location, props.fieldName)) ?? props.background;
             };
             const auxLocation = StructureElement.Location.create(ctx.structure);
 
@@ -79,3 +106,34 @@ export const MVSAnnotationColorThemeProvider: ColorTheme.Provider<MVSAnnotationC
     defaultValues: PD.getDefaultValues(MVSAnnotationColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && isMVSStructure(ctx.structure),
 };
+
+
+function makePaletteFunction(props: MVSAnnotationColorThemeProps['palette'], annotation: MVSAnnotation, fieldName: string): (v: string) => Color | undefined {
+    if (props.name === 'direct') return decodeColor;
+
+    if (props.name === 'categorical') {
+        const colorMap: { [value: string]: Color } = {};
+        if (props.params.colors.name === 'mapping') {
+            for (const { value, color } of props.params.colors.params) {
+                colorMap[value] = color;
+            }
+        } else if (props.params.colors.name === 'list') {
+            const values = annotation.getDistinctValuesInField(fieldName);
+            if (props.params.sort === 'lexical') values.sort();
+            else if (props.params.sort === 'numeric') values.sort((a, b) => Number.parseFloat(a) - Number.parseFloat(b));
+            if (props.params.sort !== 'none' && props.params.sortDirection === 'descending') values.reverse();
+
+            const colorList = props.params.colors.params.colors.map(entry => typeof entry === 'number' ? entry : entry[0]);
+            let next = 0;
+            for (const value of values) {
+                colorMap[value] = colorList[next++];
+                if (next >= colorList.length && props.params.repeatColorList) next = 0; // else will get index-out-of-range and assign undefined
+            }
+        }
+        const missingColor = props.params.setMissingColor ? props.params.missingColor : undefined;
+        console.log('makePaletteFunction categorical', colorMap, missingColor);
+        return (value: string) => colorMap[value] ?? missingColor;
+    }
+
+    throw new Error(`NotImplementedError: makePaletteFunction for ${(props as any).name}`);
+}
