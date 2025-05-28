@@ -12,6 +12,7 @@ import { StructureFromModel, TransformStructureConformation } from '../../mol-pl
 import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { StateTransformer } from '../../mol-state';
 import { arrayDistinct } from '../../mol-util/array';
+import { ColorNames } from '../../mol-util/color/names';
 import { canonicalJsonString } from '../../mol-util/json';
 import { stringToWords } from '../../mol-util/string';
 import { MVSAnnotationColorThemeProps, MVSAnnotationColorThemeProvider } from './components/annotation-color-theme';
@@ -361,30 +362,26 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
             };
         }
     }
-    let annotationId: string | undefined = undefined;
-    let fieldName: string | undefined = undefined;
-    let color: string | undefined = undefined;
-    switch (node?.kind) {
-        case 'color_from_uri':
-        case 'color_from_source':
-            annotationId = context.annotationMap.get(node);
-            fieldName = node.params.field_name;
-            break;
-        case 'color':
-            color = node.params.color;
-            break;
-    }
-    if (annotationId) {
-        return {
-            name: MVSAnnotationColorThemeProvider.name,
-            params: { annotationId, fieldName, background: NoColor } satisfies Partial<MVSAnnotationColorThemeProps>,
-        };
-    } else {
+    if (node?.kind === 'color') {
         return {
             name: 'uniform',
-            params: { value: decodeColor(color) },
+            params: { value: decodeColor(node.params.color) },
         };
     }
+    if (node?.kind === 'color_from_uri' || node?.kind === 'color_from_source') {
+        const annotationId = context.annotationMap.get(node);
+        if (annotationId === undefined) return {
+            name: 'uniform',
+            params: {},
+        };
+
+        const fieldName = node.params.field_name;
+        return {
+            name: MVSAnnotationColorThemeProvider.name,
+            params: { annotationId, fieldName, background: NoColor, palette: palettePropsFromMVSPalette(node.params.palette) } satisfies Partial<MVSAnnotationColorThemeProps>,
+        };
+    }
+    // TODO test this
 }
 function appliesColorToWholeRepr(node: MolstarNode<'color' | 'color_from_uri' | 'color_from_source'>): boolean {
     if (node.kind === 'color') {
@@ -392,6 +389,32 @@ function appliesColorToWholeRepr(node: MolstarNode<'color' | 'color_from_uri' | 
     } else {
         return true;
     }
+}
+function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri' | 'color_from_source'>['params']['palette']): MVSAnnotationColorThemeProps['palette'] {
+    const FALLBACK_COLOR = decodeColor(DefaultColor)!;
+
+    if (!palette) {
+        return { name: 'direct', params: {} };
+    }
+    if (palette.kind === 'categorical') {
+        return {
+            name: 'categorical',
+            params: {
+                colors:
+                    Array.isArray(palette.colors)
+                        ? { name: 'list', params: { kind: 'set', colors: palette.colors.map(c => decodeColor(c) ?? FALLBACK_COLOR) } }
+                        : typeof palette.colors === 'object'
+                            ? { name: 'mapping', params: Object.entries(palette.colors).map(([value, color]) => ({ value, color: decodeColor(color) ?? FALLBACK_COLOR })) }
+                            : { name: 'list', params: { kind: 'set', colors: [] } },
+                repeatColorList: palette.repeat_color_list ?? false,
+                sort: palette.sort ?? 'none',
+                sortDirection: palette.sort_direction ?? 'ascending',
+                setMissingColor: !!palette.missing_color,
+                missingColor: decodeColor(palette.missing_color) ?? FALLBACK_COLOR,
+            },
+        };
+    }
+    throw new Error('NotImplementedError')
 }
 
 /** Create a mapping of nearest representation nodes for each node in the tree

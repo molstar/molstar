@@ -9,7 +9,6 @@ import { Bond, StructureElement } from '../../../mol-model/structure';
 import type { ColorTheme, LocationColor } from '../../../mol-theme/color';
 import type { ThemeDataContext } from '../../../mol-theme/theme';
 import { Color } from '../../../mol-util/color';
-import { ColorLists } from '../../../mol-util/color/lists';
 import { ColorNames } from '../../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { decodeColor } from '../helpers/utils';
@@ -26,7 +25,8 @@ export const MVSAnnotationColorThemeParams = {
         'direct': PD.EmptyGroup(),
         'categorical': PD.Group({
             colors: PD.MappedStatic('list', {
-                list: PD.ColorList({ kind: 'set', colors: ColorLists['set-1'].list }, { description: 'TODO' }),
+                // list: PD.ColorList({ kind: 'set', colors: ColorLists['set-1'].list }, { description: 'TODO' }),
+                list: PD.ColorList('set-1', { description: 'TODO' }),
                 mapping: PD.ObjectList({ // TODO consider having PD.ColorMapping for this, with UI and presets, like PD.ColorList
                     value: PD.Text(),
                     color: PD.Color(ColorNames.white),
@@ -131,7 +131,7 @@ function makePaletteFunction(props: MVSAnnotationColorThemeProps['palette'], ann
             }
         }
         const missingColor = props.params.setMissingColor ? props.params.missingColor : undefined;
-        console.log('makePaletteFunction categorical', colorMap, missingColor);
+        console.log('makePaletteFunction categorical', props, missingColor, colorMap);
         return (value: string) => colorMap[value] ?? missingColor;
     }
 
