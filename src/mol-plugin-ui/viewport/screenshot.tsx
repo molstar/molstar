@@ -18,6 +18,7 @@ import { LocalStateSnapshotParams, StateExportImportControls } from '../state/sn
 import { useEffect, useState } from 'react';
 import { round } from '../../mol-util';
 import { Vec3 } from '../../mol-math/linear-algebra';
+import { Camera } from '../../mol-canvas3d/camera';
 
 interface ImageControlsState {
     showPreview: boolean,
@@ -112,6 +113,16 @@ function CameraInfoSection({ title, children }: { title: string, children: any }
     </div>;
 }
 
+function fovAdjustedCameraPosition(camera?: Camera.Snapshot) {
+    if (!camera) return;
+
+    // MolViewSpec uses FOV-adjusted camera position
+    //   => need to apply inverse here so it doesn't offset the view when loaded
+    const f = camera.mode === 'orthographic' ? 1 / (2 * Math.tan(camera.fov / 2)) : 1 / (2 * Math.sin(camera.fov / 2));
+    const delta = Vec3.sub(Vec3(), camera.position, camera.target);
+    return Vec3.scaleAndAdd(delta, camera.target, delta, 1 / (f || 1));
+}
+
 function CameraInfo({ plugin }: { plugin: PluginContext }) {
     const [, setUpdate] = useState({});
     useEffect(() => {
@@ -120,10 +131,14 @@ function CameraInfo({ plugin }: { plugin: PluginContext }) {
     }, [plugin]);
 
     const state = plugin.canvas3d?.camera.state;
+    const fovAdjusted = fovAdjustedCameraPosition(state);
 
     return <div>
-        <CameraInfoSection title='Position'>
+        <CameraInfoSection title='Ref. Position'>
             {renderVector(state?.position)}
+        </CameraInfoSection>
+        <CameraInfoSection title='FoV Adj. Pos.'>
+            {renderVector(fovAdjusted)}
         </CameraInfoSection>
         <CameraInfoSection title='Target'>
             {renderVector(state?.target)}
@@ -143,7 +158,7 @@ function CameraInfo({ plugin }: { plugin: PluginContext }) {
         <Button onClick={() => {
             if (!navigator.clipboard) return;
             const ret = `{
-    position: [${state?.position.map(v => round(v, 2)).join(', ')}],
+    position: [${fovAdjusted?.map(v => round(v, 2)).join(', ')}],
     target: [${state?.target.map(v => round(v, 2)).join(', ')}],
     up: [${state?.up.map(v => round(v, 2)).join(', ')}],
 }`;
