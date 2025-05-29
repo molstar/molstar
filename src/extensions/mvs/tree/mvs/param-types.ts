@@ -109,12 +109,37 @@ export function isComponentExpression(x: any): x is ComponentExpressionT {
 }
 
 
-const CategoricalPaletteName = literal('Set1', 'Set2', 'Set3'); // TODO all from https://observablehq.com/@d3/color-schemes (list palettes) + others (mapping palettes, e.g. type symbol colors)
+export const ColorListNameT = literal(
+    // Color lists from https://observablehq.com/@d3/color-schemes (definitions: https://colorbrewer2.org/export/colorbrewer.js)
+    // Sequential single-hue
+    'Blues', 'Greens', 'Greys', 'Oranges', 'Purples', 'Reds',
+    // Sequential multi-hue
+    'BuGn', 'BuPu', 'GnBu', 'OrRd', 'PuBuGn', 'PuBu', 'PuRd', 'RdPu', 'YlGnBu', 'YlGn', 'YlOrBr', 'YlOrRd',
+    'Cividis', 'Viridis', 'Inferno', 'Magma', 'Plasma', 'Warm', 'Cool', 'CubehelixDefault', 'Turbo',
+    // Diverging
+    'BrBG', 'PRGn', 'PiYG', 'PuOr', 'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn', 'Spectral',
+    // Cyclical
+    'Rainbow', 'Sinebow',
+    // Categorical
+    'Observable10', 'Category10', 'Tableau10',
+    'Set1', 'Set2', 'Set3', 'Pastel1', 'Pastel2', 'Dark2', 'Paired', 'Accent',
+); // TODO anything else?
+export type ColorListNameT = ValueFor<typeof ColorListNameT>;
+
+export const ColorMappingNameT = literal('ElementSymbol', 'ResidueName', 'ResidueProperties');
+// TODO add meaningful options
+// TODO decide on naming (ResidueName vs JmolResidueName, ResidueProperties vs ClustalResidueProperties)
+// TODO would it make sense to have a switch for case-insensitive
+export type ColorMappingNameT = ValueFor<typeof ColorMappingNameT>;
+
+export const CategoricalPaletteNameT = union([ColorListNameT, ColorMappingNameT]);
+export type CategoricalPaletteNameT = ValueFor<typeof CategoricalPaletteNameT>;
+
 export const CategoricalPalette = iots.intersection([
     obj({ kind: literal('categorical') }),
     partial({
         colors: union([
-            CategoricalPaletteName,
+            CategoricalPaletteNameT,
             list(ColorT),
             dict(str, ColorT),
         ]),
@@ -128,6 +153,7 @@ export const CategoricalPalette = iots.intersection([
         sort_direction: literal('ascending', 'descending'),
     }),
 ]);
+export type CategoricalPalette = ValueFor<typeof CategoricalPalette>;
 
 // TODO consider spreading the palette param directly into color_from_uri/color_from_source params (though this will be tricky) or achieve smart error messages
 
