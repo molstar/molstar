@@ -9,7 +9,10 @@ Note that since we don't clearly distinguish between a public and private interf
   - Geometric primitives - do not render if position refers to empty substructure
   - Primitive arrow - nicer default cap size (relative to tube_radius)
   - Primitive angle_measurement - added vector_radius param
+  - Fix MVSX file assets being disposed in multi-snapshot states
 - Show FOV adjusted position in `CameraInfo` UI and use it in "Copy MVS State"
+- Support static resources in `AssetManager`
+
 
 ## [v4.17.0] - 2025-05-22
 - Remove `xhr2` dependency for NodeJS, use `fetch`

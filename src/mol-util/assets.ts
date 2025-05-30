@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -67,7 +67,7 @@ class AssetManager {
     // TODO: add URL based ref-counted cache?
     // TODO: when serializing, check for duplicates?
 
-    private _assets = new Map<string, { asset: Asset, file: File, refCount: number }>();
+    private _assets = new Map<string, { asset: Asset, file: File, refCount: number, isStatic?: boolean, tag?: string }>();
 
     get assets() {
         return iterableToArray(this._assets.values());
@@ -83,8 +83,8 @@ class AssetManager {
         }
     }
 
-    set(asset: Asset, file: File) {
-        this._assets.set(asset.id, { asset, file, refCount: 0 });
+    set(asset: Asset, file: File, options?: { isStatic?: boolean, tag?: string }) {
+        this._assets.set(asset.id, { asset, file, refCount: 0, tag: options?.tag, isStatic: options?.isStatic });
     }
 
     get(asset: Asset) {
@@ -139,7 +139,17 @@ class AssetManager {
         const entry = this._assets.get(asset.id);
         if (!entry) return;
         entry.refCount--;
-        if (entry.refCount <= 0) this._assets.delete(asset.id);
+        if (entry.refCount <= 0 && !entry.isStatic) this._assets.delete(asset.id);
+    }
+
+    clearTag(tag: string) {
+        const keys = Array.from(this._assets.keys());
+        for (const key of keys) {
+            const entry = this._assets.get(key);
+            if (entry && entry.tag === tag) {
+                this._assets.delete(key);
+            }
+        }
     }
 
     clear() {
