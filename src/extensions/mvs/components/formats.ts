@@ -114,7 +114,7 @@ export const MVSXFormatProvider: DataFormatProvider<{}, StateObjectRef<Mvs>, any
  * Return parsed MVS data and `sourceUrl` for resolution of relative URIs.  */
 export async function loadMVSX(plugin: PluginContext, runtimeCtx: RuntimeContext, data: Uint8Array, mainFilePath: string = 'index.mvsj'): Promise<{ mvsData: MVSData, sourceUrl: string }> {
     // Ensure at most one generation of MVSX file assets exists in the asset manager.
-    // Hopefully, this is a reasonable compromise to encure MVSX files work in multi-snapshot
+    // Hopefully, this is a reasonable compromise to ensure MVSX files work in multi-snapshot
     // states.
     clearMVSXFileAssets(plugin);
 
