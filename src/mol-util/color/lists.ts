@@ -14,119 +14,121 @@ export const ColorLists = {
      * Copyright (c) 2002 Cynthia Brewer, Mark Harrower, and The Pennsylvania State University.
      * Licensed under the Apache License, Version 2.0 (the "License");
      */
+    'reds': ColorList('Reds', 'sequential',
+        'Reds, sequential color scheme from ColorBrewer 2.0',
+        [0xfff5f0, 0xfee0d2, 0xfcbba1, 0xfc9272, 0xfb6a4a, 0xef3b2c, 0xcb181d, 0xa50f15, 0x67000d]
+    ),
+    'oranges': ColorList('Oranges', 'sequential',
+        'Oranges, sequential color scheme from ColorBrewer 2.0',
+        [0xfff5eb, 0xfee6ce, 0xfdd0a2, 0xfdae6b, 0xfd8d3c, 0xf16913, 0xd94801, 0xa63603, 0x7f2704]
+    ),
+    'greens': ColorList('Greens', 'sequential',
+        'Greens, sequential color scheme from ColorBrewer 2.0',
+        [0xf7fcf5, 0xe5f5e0, 0xc7e9c0, 0xa1d99b, 0x74c476, 0x41ab5d, 0x238b45, 0x006d2c, 0x00441b]
+    ),
+    'blues': ColorList('Blues', 'sequential',
+        'Blues, sequential color scheme from ColorBrewer 2.0',
+        [0xf7fbff, 0xdeebf7, 0xc6dbef, 0x9ecae1, 0x6baed6, 0x4292c6, 0x2171b5, 0x08519c, 0x08306b]
+    ),
+    'purples': ColorList('Purples', 'sequential',
+        'Purples, sequential color scheme from ColorBrewer 2.0',
+        [0xfcfbfd, 0xefedf5, 0xdadaeb, 0xbcbddc, 0x9e9ac8, 0x807dba, 0x6a51a3, 0x54278f, 0x3f007d]
+    ),
+    'greys': ColorList('Greys', 'sequential',
+        'Greys, sequential color scheme from ColorBrewer 2.0',
+        [0xffffff, 0xf0f0f0, 0xd9d9d9, 0xbdbdbd, 0x969696, 0x737373, 0x525252, 0x252525, 0x000000]
+    ),
     'orange-red': ColorList('Orange-Red', 'sequential',
-        'Orange-Red, sequential color scheme from ColorBrewer 2.0',
+        'OrRd, sequential color scheme from ColorBrewer 2.0',
         [0xfff7ec, 0xfee8c8, 0xfdd49e, 0xfdbb84, 0xfc8d59, 0xef6548, 0xd7301f, 0xb30000, 0x7f0000]
     ),
+    'blue-green': ColorList('Blue-Green', 'sequential',
+        'BuGn, sequential color scheme from ColorBrewer 2.0',
+        [0xf7fcfd, 0xe5f5f9, 0xccece6, 0x99d8c9, 0x66c2a4, 0x41ae76, 0x238b45, 0x006d2c, 0x00441b]
+    ),
+    'purple-blue-green': ColorList('Purple-Blue-Green', 'sequential',
+        'PuBuGn, sequential color scheme from ColorBrewer 2.0',
+        [0xfff7fb, 0xece2f0, 0xd0d1e6, 0xa6bddb, 0x67a9cf, 0x3690c0, 0x02818a, 0x016c59, 0x014636]
+    ),
+    'green-blue': ColorList('Green-Blue', 'sequential',
+        'GnBu, sequential color scheme from ColorBrewer 2.0',
+        [0xf7fcf0, 0xe0f3db, 0xccebc5, 0xa8ddb5, 0x7bccc4, 0x4eb3d3, 0x2b8cbe, 0x0868ac, 0x084081]
+    ),
     'purple-blue': ColorList('Purple-Blue', 'sequential',
-        'Purple-Blue, sequential color scheme from ColorBrewer 2.0',
+        'PuBu, sequential color scheme from ColorBrewer 2.0',
         [0xfff7fb, 0xece7f2, 0xd0d1e6, 0xa6bddb, 0x74a9cf, 0x3690c0, 0x0570b0, 0x045a8d, 0x023858]
     ),
     'blue-purple': ColorList('Blue-Purple', 'sequential',
-        'Blue-Purple, sequential color scheme from ColorBrewer 2.0',
+        'BuPu, sequential color scheme from ColorBrewer 2.0',
         [0xf7fcfd, 0xe0ecf4, 0xbfd3e6, 0x9ebcda, 0x8c96c6, 0x8c6bb1, 0x88419d, 0x810f7c, 0x4d004b]
     ),
-    'oranges': ColorList('Oranges', 'sequential',
-        '',
-        [0xfff5eb, 0xfee6ce, 0xfdd0a2, 0xfdae6b, 0xfd8d3c, 0xf16913, 0xd94801, 0xa63603, 0x7f2704]
+    'red-purple': ColorList('Red-Purple', 'sequential',
+        'RdPu, sequential color scheme from ColorBrewer 2.0',
+        [0xfff7f3, 0xfde0dd, 0xfcc5c0, 0xfa9fb5, 0xf768a1, 0xdd3497, 0xae017e, 0x7a0177, 0x49006a]
     ),
-    'blue-green': ColorList('Blue-Green', 'sequential',
-        '',
-        [0xf7fcfd, 0xe5f5f9, 0xccece6, 0x99d8c9, 0x66c2a4, 0x41ae76, 0x238b45, 0x006d2c, 0x00441b]
+    'purple-red': ColorList('Purple-Red', 'sequential',
+        'PuRd, sequential color scheme from ColorBrewer 2.0',
+        [0xf7f4f9, 0xe7e1ef, 0xd4b9da, 0xc994c7, 0xdf65b0, 0xe7298a, 0xce1256, 0x980043, 0x67001f]
+    ),
+    'yellow-orange-red': ColorList('Yellow-Orange-Red', 'sequential',
+        'YlOrRd, sequential color scheme from ColorBrewer 2.0',
+        [0xffffcc, 0xffeda0, 0xfed976, 0xfeb24c, 0xfd8d3c, 0xfc4e2a, 0xe31a1c, 0xbd0026, 0x800026]
     ),
     'yellow-orange-brown': ColorList('Yellow-Orange-Brown', 'sequential',
-        '',
+        'YlOrBr, sequential color scheme from ColorBrewer 2.0',
         [0xffffe5, 0xfff7bc, 0xfee391, 0xfec44f, 0xfe9929, 0xec7014, 0xcc4c02, 0x993404, 0x662506]
     ),
     'yellow-green': ColorList('Yellow-Green', 'sequential',
-        '',
+        'YlGn, sequential color scheme from ColorBrewer 2.0',
         [0xffffe5, 0xf7fcb9, 0xd9f0a3, 0xaddd8e, 0x78c679, 0x41ab5d, 0x238443, 0x006837, 0x004529]
     ),
-    'reds': ColorList('Reds', 'sequential',
-        '',
-        [0xfff5f0, 0xfee0d2, 0xfcbba1, 0xfc9272, 0xfb6a4a, 0xef3b2c, 0xcb181d, 0xa50f15, 0x67000d]
-    ),
-    'red-purple': ColorList('Red-Purple', 'sequential',
-        '',
-        [0xfff7f3, 0xfde0dd, 0xfcc5c0, 0xfa9fb5, 0xf768a1, 0xdd3497, 0xae017e, 0x7a0177, 0x49006a]
-    ),
-    'greens': ColorList('Greens', 'sequential',
-        '',
-        [0xf7fcf5, 0xe5f5e0, 0xc7e9c0, 0xa1d99b, 0x74c476, 0x41ab5d, 0x238b45, 0x006d2c, 0x00441b]
-    ),
     'yellow-green-blue': ColorList('Yellow-Green-Blue', 'sequential',
-        '',
+        'YlGnBu, sequential color scheme from ColorBrewer 2.0',
         [0xffffd9, 0xedf8b1, 0xc7e9b4, 0x7fcdbb, 0x41b6c4, 0x1d91c0, 0x225ea8, 0x253494, 0x081d58]
     ),
-    'purples': ColorList('Purples', 'sequential',
-        '',
-        [0xfcfbfd, 0xefedf5, 0xdadaeb, 0xbcbddc, 0x9e9ac8, 0x807dba, 0x6a51a3, 0x54278f, 0x3f007d]
-    ),
-    'green-blue': ColorList('Green-Blue', 'sequential',
-        '',
-        [0xf7fcf0, 0xe0f3db, 0xccebc5, 0xa8ddb5, 0x7bccc4, 0x4eb3d3, 0x2b8cbe, 0x0868ac, 0x084081]
-    ),
-    'greys': ColorList('Greys', 'sequential',
-        '',
-        [0xffffff, 0xf0f0f0, 0xd9d9d9, 0xbdbdbd, 0x969696, 0x737373, 0x525252, 0x252525, 0x000000]
-    ),
-    'yellow-orange-red': ColorList('Yellow-Orange-Red', 'sequential',
-        '',
-        [0xffffcc, 0xffeda0, 0xfed976, 0xfeb24c, 0xfd8d3c, 0xfc4e2a, 0xe31a1c, 0xbd0026, 0x800026]
-    ),
-    'purple-red': ColorList('Purple-Red', 'sequential',
-        '',
-        [0xf7f4f9, 0xe7e1ef, 0xd4b9da, 0xc994c7, 0xdf65b0, 0xe7298a, 0xce1256, 0x980043, 0x67001f]
-    ),
-    'blues': ColorList('Blues', 'sequential',
-        '',
-        [0xf7fbff, 0xdeebf7, 0xc6dbef, 0x9ecae1, 0x6baed6, 0x4292c6, 0x2171b5, 0x08519c, 0x08306b]
-    ),
-    'purple-blue-green': ColorList('Purple-Blue-Green', 'sequential',
-        '',
-        [0xfff7fb, 0xece2f0, 0xd0d1e6, 0xa6bddb, 0x67a9cf, 0x3690c0, 0x02818a, 0x016c59, 0x014636]
-    ),
-    'spectral': ColorList('Spectral', 'diverging',
-        '',
-        [0x9e0142, 0xd53e4f, 0xf46d43, 0xfdae61, 0xfee08b, 0xffffbf, 0xe6f598, 0xabdda4, 0x66c2a5, 0x3288bd, 0x5e4fa2]
-    ),
-    'red-yellow-green': ColorList('Red-Yellow-Green', 'diverging',
-        '',
-        [0xa50026, 0xd73027, 0xf46d43, 0xfdae61, 0xfee08b, 0xffffbf, 0xd9ef8b, 0xa6d96a, 0x66bd63, 0x1a9850, 0x006837]
-    ),
+
     'red-blue': ColorList('Red-Blue', 'diverging',
-        '',
+        'RdBu, diverging color scheme from ColorBrewer 2.0',
         [0x67001f, 0xb2182b, 0xd6604d, 0xf4a582, 0xfddbc7, 0xf7f7f7, 0xd1e5f0, 0x92c5de, 0x4393c3, 0x2166ac, 0x053061]
     ),
+    'red-grey': ColorList('Red-Grey', 'diverging',
+        'RdGy, diverging color scheme from ColorBrewer 2.0',
+        [0x67001f, 0xb2182b, 0xd6604d, 0xf4a582, 0xfddbc7, 0xffffff, 0xe0e0e0, 0xbababa, 0x878787, 0x4d4d4d, 0x1a1a1a]
+    ),
     'pink-yellow-green': ColorList('Pink-Yellow-Green', 'diverging',
-        '',
+        'PiYG, diverging color scheme from ColorBrewer 2.0',
         [0x8e0152, 0xc51b7d, 0xde77ae, 0xf1b6da, 0xfde0ef, 0xf7f7f7, 0xe6f5d0, 0xb8e186, 0x7fbc41, 0x4d9221, 0x276419]
     ),
-    'purple-green': ColorList('Purple-Green', 'diverging',
-        '',
-        [0x40004b, 0x762a83, 0x9970ab, 0xc2a5cf, 0xe7d4e8, 0xf7f7f7, 0xd9f0d3, 0xa6dba0, 0x5aae61, 0x1b7837, 0x00441b]
-    ),
-    'red-yellow-blue': ColorList('Red-Yellow-Blue', 'diverging',
-        'Red-Yellow-Blue, diverging color scheme from ColorBrewer 2.0',
-        [0xa50026, 0xd73027, 0xf46d43, 0xfdae61, 0xfee090, 0xffffbf, 0xe0f3f8, 0xabd9e9, 0x74add1, 0x4575b4, 0x313695]
-    ),
     'brown-white-green': ColorList('Brown-White-Green', 'diverging',
-        '',
+        'BrBG, diverging color scheme from ColorBrewer 2.0',
         [0x543005, 0x8c510a, 0xbf812d, 0xdfc27d, 0xf6e8c3, 0xf5f5f5, 0xc7eae5, 0x80cdc1, 0x35978f, 0x01665e, 0x003c30]
     ),
-    'red-grey': ColorList('Red-Grey', 'diverging',
-        '',
-        [0x67001f, 0xb2182b, 0xd6604d, 0xf4a582, 0xfddbc7, 0xffffff, 0xe0e0e0, 0xbababa, 0x878787, 0x4d4d4d, 0x1a1a1a]
+    'purple-green': ColorList('Purple-Green', 'diverging',
+        'PRGn, diverging color scheme from ColorBrewer 2.0',
+        [0x40004b, 0x762a83, 0x9970ab, 0xc2a5cf, 0xe7d4e8, 0xf7f7f7, 0xd9f0d3, 0xa6dba0, 0x5aae61, 0x1b7837, 0x00441b]
     ),
     // Including both purple-orange and orange-purple here because ColorBrew is a bit messy (calls it PuOr but the order is orange->purple), D3.js has PuOr in the correct order
     'purple-orange': ColorList('Purple-Orange', 'diverging',
-        '',
+        'PuOr, diverging color scheme from ColorBrewer 2.0',
         [0x2d004b, 0x542788, 0x8073ac, 0xb2abd2, 0xd8daeb, 0xf7f7f7, 0xfee0b6, 0xfdb863, 0xe08214, 0xb35806, 0x7f3b08]
     ),
     'orange-purple': ColorList('Orange-Purple', 'diverging',
-        '',
+        'Reversed PuOr, diverging color scheme from ColorBrewer 2.0',
         [0x7f3b08, 0xb35806, 0xe08214, 0xfdb863, 0xfee0b6, 0xf7f7f7, 0xd8daeb, 0xb2abd2, 0x8073ac, 0x542788, 0x2d004b]
     ),
+    'red-yellow-blue': ColorList('Red-Yellow-Blue', 'diverging',
+        'RdYlBu, diverging color scheme from ColorBrewer 2.0',
+        [0xa50026, 0xd73027, 0xf46d43, 0xfdae61, 0xfee090, 0xffffbf, 0xe0f3f8, 0xabd9e9, 0x74add1, 0x4575b4, 0x313695]
+    ),
+    'red-yellow-green': ColorList('Red-Yellow-Green', 'diverging',
+        'RdYlGn, diverging color scheme from ColorBrewer 2.0',
+        [0xa50026, 0xd73027, 0xf46d43, 0xfdae61, 0xfee08b, 0xffffbf, 0xd9ef8b, 0xa6d96a, 0x66bd63, 0x1a9850, 0x006837]
+    ),
+    'spectral': ColorList('Spectral', 'diverging',
+        'Spectral, diverging color scheme from ColorBrewer 2.0',
+        [0x9e0142, 0xd53e4f, 0xf46d43, 0xfdae61, 0xfee08b, 0xffffbf, 0xe6f598, 0xabdda4, 0x66c2a5, 0x3288bd, 0x5e4fa2]
+    ),
+
     'set-2': ColorList('Set-2', 'qualitative',
         '',
         [0x66c2a5, 0xfc8d62, 0x8da0cb, 0xe78ac3, 0xa6d854, 0xffd92f, 0xe5c494, 0xb3b3b3]
@@ -159,7 +161,6 @@ export const ColorLists = {
         '',
         [0xfbb4ae, 0xb3cde3, 0xccebc5, 0xdecbe4, 0xfed9a6, 0xffffcc, 0xe5d8bd, 0xfddaec, 0xf2f2f2]
     ),
-
     'many-distinct': ColorList('Many-Distinct', 'qualitative',
         '',
         [
