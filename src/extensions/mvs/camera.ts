@@ -13,6 +13,7 @@ import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginState } from '../../mol-plugin/state';
 import { StateObjectSelector } from '../../mol-state';
+import { fovAdjustedPosition } from '../../mol-util/camera';
 import { ColorNames } from '../../mol-util/color/names';
 import { decodeColor } from './helpers/utils';
 import { MolstarLoadingContext } from './load';
@@ -96,24 +97,6 @@ function adjustSceneRadiusFactor(plugin: PluginContext, cameraTarget: Vec3 | und
 function resetSceneRadiusFactor(plugin: PluginContext) {
     const sceneRadiusFactor = Canvas3DParams.sceneRadiusFactor.defaultValue;
     plugin.canvas3d?.setProps({ sceneRadiusFactor });
-}
-
-/** Return the distance adjustment ratio for conversion from the "reference camera"
- * to a camera with an arbitrary field of view `fov`. */
-function distanceAdjustment(mode: Camera.Mode, fov: number) {
-    if (mode === 'orthographic') return 1 / (2 * Math.tan(fov / 2));
-    else return 1 / (2 * Math.sin(fov / 2));
-}
-
-/** Return the position for a camera with an arbitrary field of view `fov`
- * necessary to just fit into view the same sphere (with center at `target`)
- * as the "reference camera" placed at `refPosition` would fit, while keeping the camera orientation.
- * The "reference camera" is a camera which can just fit into view a sphere of radius R with center at distance 2R
- * (this corresponds to FOV = 2 * asin(1/2) in perspective mode or FOV = 2 * atan(1/2) in orthographic mode). */
-function fovAdjustedPosition(target: Vec3, refPosition: Vec3, mode: Camera.Mode, fov: number) {
-    const delta = Vec3.sub(Vec3(), refPosition, target);
-    const adjustment = distanceAdjustment(mode, fov);
-    return Vec3.scaleAndAdd(delta, target, delta, adjustment); // return target + delta * adjustment
 }
 
 /** Create object for PluginState.Snapshot.camera based on tree loading context and MVS snapshot metadata */

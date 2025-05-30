@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { hashFnv32a } from '../../../mol-data/util';
@@ -112,6 +113,11 @@ export const MVSXFormatProvider: DataFormatProvider<{}, StateObjectRef<Mvs>, any
  * and parse the main file in the archive as MVSJ.
  * Return parsed MVS data and `sourceUrl` for resolution of relative URIs.  */
 export async function loadMVSX(plugin: PluginContext, runtimeCtx: RuntimeContext, data: Uint8Array, mainFilePath: string = 'index.mvsj'): Promise<{ mvsData: MVSData, sourceUrl: string }> {
+    // Ensure at most one generation of MVSX file assets exists in the asset manager.
+    // Hopefully, this is a reasonable compromise to ensure MVSX files work in multi-snapshot
+    // states.
+    clearMVSXFileAssets(plugin);
+
     const archiveId = `ni,fnv1a;${hashFnv32a(data)}`;
     let files: { [path: string]: Uint8Array };
     try {
@@ -122,7 +128,8 @@ export async function loadMVSX(plugin: PluginContext, runtimeCtx: RuntimeContext
     }
     for (const path in files) {
         const url = arcpUri(archiveId, path);
-        ensureUrlAsset(plugin.managers.asset, url, files[path]);
+        // Need to use static assets so they persist accross snapsho
+        ensureUrlAsset(plugin.managers.asset, url, files[path], { isFile: true });
     }
     const mainFile = files[mainFilePath];
     if (!mainFile) throw new Error(`File ${mainFilePath} not found in the MVSX archive`);
@@ -154,11 +161,15 @@ export async function loadMVSData(plugin: PluginContext, data: MVSData | StringL
         }
         await plugin.runTask(Task.create('Load MVSX file', async ctx => {
             const parsed = await loadMVSX(plugin, ctx, data as Uint8Array);
-            await loadMVS(plugin, parsed.mvsData, { sanityChecks: true, sourceUrl: parsed.sourceUrl, ...options });
+            await loadMVS(plugin, parsed.mvsData, { sanityChecks: true, ...options, sourceUrl: parsed.sourceUrl });
         }));
     } else {
         throw new Error(`Unknown MolViewSpec format: ${format}`);
     }
+}
+
+function clearMVSXFileAssets(plugin: PluginContext) {
+    plugin.managers.asset.clearTag('mvsx-file');
 }
 
 /** If the PluginStateObject `pso` comes from a Download transform, try to get its `url` parameter. */
@@ -177,11 +188,13 @@ function arcpUri(archiveId: string, path: string): string {
 
 /** Add a URL asset to asset manager.
  * Skip if an asset with the same URL already exists. */
-function ensureUrlAsset(manager: AssetManager, url: string, data: Uint8Array) {
+function ensureUrlAsset(manager: AssetManager, url: string, data: Uint8Array, options?: { isFile?: boolean }) {
     const asset = Asset.getUrlAsset(manager, url);
     if (!manager.has(asset)) {
         const filename = url.split('/').pop() ?? 'file';
-        manager.set(asset, new File([data], filename));
+        // We need to mark files as static resources to prevent deleting them
+        // when changing state snapshots.
+        manager.set(asset, new File([data], filename), options?.isFile ? { isStatic: true, tag: 'mvsx-file' } : undefined);
     }
 }
 
