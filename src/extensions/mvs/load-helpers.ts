@@ -420,6 +420,7 @@ function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri' | 'col
 }
 
 function categoricalPalettePropsFromMVSColors(colors: CategoricalPalette['colors']): MVSCategoricalPaletteProps['colors'] {
+    // TODO undefined -> default
     if (typeof colors === 'string') {
         if (colors in MvsNamedColorListToMolstarName) {
             const molstarColorListName = MvsNamedColorListToMolstarName[colors as keyof typeof MvsNamedColorListToMolstarName];
@@ -481,18 +482,19 @@ const ResiduePropertyColors = {
 };
 
 const MvsNamedColorListToMolstarName: Record<ColorListNameT, ColorListName> = {
-    // TODO Add missing palettes to lists.ts and update here (warm cool cube-helix-default purple-orange sinebow observable-10 category-10 tableau-10)
     Blues: 'blues', Greens: 'greens', Greys: 'greys', Oranges: 'oranges', Purples: 'purples', Reds: 'reds',
     BuGn: 'blue-green', BuPu: 'blue-purple', GnBu: 'green-blue', OrRd: 'orange-red', PuBuGn: 'purple-blue-green',
     PuBu: 'purple-blue', PuRd: 'purple-red', RdPu: 'red-purple', YlGnBu: 'yellow-green-blue', YlGn: 'yellow-green',
     YlOrBr: 'yellow-orange-brown', YlOrRd: 'yellow-orange-red',
     Cividis: 'cividis', Viridis: 'viridis', Inferno: 'inferno', Magma: 'magma', Plasma: 'plasma',
-    Warm: 'reds', Cool: 'reds', CubehelixDefault: 'reds', Turbo: 'turbo',
-    BrBG: 'brown-white-green', PRGn: 'purple-green', PiYG: 'pink-yellow-green', PuOr: 'reds', RdBu: 'red-blue',
+    Warm: 'warm', Cool: 'cool', CubehelixDefault: 'cubehelix-default', Turbo: 'turbo',
+    BrBG: 'brown-white-green', PRGn: 'purple-green', PiYG: 'pink-yellow-green', PuOr: 'purple-orange', RdBu: 'red-blue',
     RdGy: 'red-grey', RdYlBu: 'red-yellow-blue', RdYlGn: 'red-yellow-green', Spectral: 'spectral',
-    Rainbow: 'rainbow', Sinebow: 'reds',
-    Observable10: 'reds', Category10: 'reds', Tableau10: 'reds',
+    Rainbow: 'rainbow',
+    Sinebow: 'sinebow',
+    Category10: 'category-10', Observable10: 'observable-10', Tableau10: 'tableau-10',
     Set1: 'set-1', Set2: 'set-2', Set3: 'set-3', Pastel1: 'pastel-1', Pastel2: 'pastel-2', Dark2: 'dark-2', Paired: 'paired', Accent: 'accent',
+    Chainbow: 'turbo-no-black'
 };
 
 const MvsNamedColorMappings: Record<ColorMappingNameT, Record<string, Color>> = {

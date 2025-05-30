@@ -121,9 +121,12 @@ export const ColorListNameT = literal(
     // Cyclical
     'Rainbow', 'Sinebow',
     // Categorical
-    'Observable10', 'Category10', 'Tableau10',
+    'Category10', 'Observable10', 'Tableau10',
     'Set1', 'Set2', 'Set3', 'Pastel1', 'Pastel2', 'Dark2', 'Paired', 'Accent',
-); // TODO anything else?
+
+    // Additional list, not standard for visualization in general, but commonly used for structures
+    'Chainbow',
+);
 export type ColorListNameT = ValueFor<typeof ColorListNameT>;
 
 export const ColorMappingNameT = literal('ElementSymbol', 'ResidueName', 'ResidueProperties');

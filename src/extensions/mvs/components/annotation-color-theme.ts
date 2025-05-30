@@ -18,7 +18,7 @@ import { isMVSStructure } from './is-mvs-model-prop';
 
 export const MVSCategoricalPaletteParams = {
     colors: PD.MappedStatic('list', {
-        list: PD.ColorList('set-1', { description: 'TODO' }),
+        list: PD.ColorList('category-10', { description: 'TODO', presetKind: 'set' }),
         mapping: PD.ObjectList({ // TODO consider having PD.ColorMapping for this, with UI and presets, like PD.ColorList
             value: PD.Text(),
             color: PD.Color(ColorNames.white),
