@@ -18,19 +18,17 @@ import { isMVSStructure } from './is-mvs-model-prop';
 
 export const MVSCategoricalPaletteParams = {
     colors: PD.MappedStatic('list', {
-        list: PD.ColorList('category-10', { description: 'TODO', presetKind: 'set' }),
-        mapping: PD.ObjectList({ // TODO consider having PD.ColorMapping for this, with UI and presets, like PD.ColorList
+        list: PD.ColorList('category-10', { description: 'List of colors', presetKind: 'set' }),
+        dictionary: PD.ObjectList({
             value: PD.Text(),
             color: PD.Color(ColorNames.white),
-        }, e => `${e.value}: ${Color.toHexStyle(e.color)}`, { description: 'TODO' }),
+        }, e => `${e.value}: ${Color.toHexStyle(e.color)}`, { description: 'Mapping of annotation values to colors' }),
     }),
-    repeatColorList: PD.Boolean(false, { hideIf: g => g.colors.name !== 'list', description: 'Repeat color list once all colors are depleted (only applies if `color` is a list or a named palette).' }),
-    sort: PD.Select('none', [['none', 'None'], ['lexical', 'Lexical'], ['numeric', 'Numeric']] as const, { hideIf: g => g.colors.name !== 'list', description: 'Sort real values before assigning colors from a list or named palette.' }),
-    /** Sort direction (only applies if `sort` is provided). */
-    sortDirection: PD.Select('ascending', [['ascending', 'Ascending'], ['descending', 'Descending']] as const, { hideIf: g => g.colors.name !== 'list' || g.sort === 'none', description: 'Sort direction (only applies if `sort` is provided)' }),
+    repeatColorList: PD.Boolean(false, { hideIf: g => g.colors.name !== 'list', description: 'Repeat color list once all colors are depleted (only applies if `colors` is a list).' }),
+    sort: PD.Select('none', [['none', 'None'], ['lexical', 'Lexical'], ['numeric', 'Numeric']] as const, { hideIf: g => g.colors.name !== 'list', description: 'Sort real annotation values before assigning colors from a list (none = take values in order of their first occurrence).' }),
+    sortDirection: PD.Select('ascending', [['ascending', 'Ascending'], ['descending', 'Descending']] as const, { hideIf: g => g.colors.name !== 'list', description: 'Sort direction.' }),
     setMissingColor: PD.Boolean(false, { description: 'Allow setting a color for missing values.' }),
-    missingColor: PD.Color(ColorNames.white, { hideIf: g => !g.setMissingColor, description: 'Color to use when (a) `color` is a dictionary and given key is not present, or (b) `color` is a list or a named palette and there are more real values than listed values and `repeat_color_list` is not true.' }),
-    // ... TODO adjust descriptions
+    missingColor: PD.Color(ColorNames.white, { hideIf: g => !g.setMissingColor, description: 'Color to use when (a) `colors` is a dictionary and given key is not present, or (b) `color` is a list and there are more real annotation values than listed colors and `repeat_color_list` is not true.' }),
 };
 export type MVSCategoricalPaletteParams = typeof MVSCategoricalPaletteParams
 export type MVSCategoricalPaletteProps = PD.Values<MVSCategoricalPaletteParams>
@@ -51,8 +49,6 @@ export type MVSAnnotationColorThemeParams = typeof MVSAnnotationColorThemeParams
 /** Parameter values for color theme "MVS Annotation" */
 export type MVSAnnotationColorThemeProps = PD.Values<MVSAnnotationColorThemeParams>
 
-type x = Extract<MVSCategoricalPaletteProps['colors'], { name: 'list' }>['params']
-
 /** Return color theme that assigns colors based on an annotation file.
  * The annotation file itself is handled by a custom model property (`MVSAnnotationsProvider`),
  * the color theme then just uses this property. */
@@ -69,7 +65,6 @@ export function MVSAnnotationColorTheme(ctx: ThemeDataContext, props: MVSAnnotat
                 const annotValue = annotation?.getValueForLocation(location, props.fieldName);
                 const color = annotValue !== undefined ? paletteFunction(annotValue) : undefined;
                 return color ?? props.background;
-                // return decodeColor(annotation?.getValueForLocation(location, props.fieldName)) ?? props.background;
             };
             const auxLocation = StructureElement.Location.create(ctx.structure);
 
@@ -117,7 +112,7 @@ function makePaletteFunction(props: MVSAnnotationColorThemeProps['palette'], ann
 
     if (props.name === 'categorical') {
         const colorMap: { [value: string]: Color } = {};
-        if (props.params.colors.name === 'mapping') {
+        if (props.params.colors.name === 'dictionary') {
             for (const { value, color } of props.params.colors.params) {
                 colorMap[value] = color;
             }
@@ -135,7 +130,6 @@ function makePaletteFunction(props: MVSAnnotationColorThemeProps['palette'], ann
             }
         }
         const missingColor = props.params.setMissingColor ? props.params.missingColor : undefined;
-        console.log('makePaletteFunction categorical', props, missingColor, colorMap);
         return (value: string) => colorMap[value] ?? missingColor;
     }
 

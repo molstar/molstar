@@ -116,13 +116,13 @@ export const ColorLists = {
         'Reversed PuOr, diverging color scheme from ColorBrewer 2.0',
         [0x7f3b08, 0xb35806, 0xe08214, 0xfdb863, 0xfee0b6, 0xf7f7f7, 0xd8daeb, 0xb2abd2, 0x8073ac, 0x542788, 0x2d004b]
     ),
-    'red-yellow-blue': ColorList('Red-Yellow-Blue', 'diverging',
-        'RdYlBu, diverging color scheme from ColorBrewer 2.0',
-        [0xa50026, 0xd73027, 0xf46d43, 0xfdae61, 0xfee090, 0xffffbf, 0xe0f3f8, 0xabd9e9, 0x74add1, 0x4575b4, 0x313695]
-    ),
     'red-yellow-green': ColorList('Red-Yellow-Green', 'diverging',
         'RdYlGn, diverging color scheme from ColorBrewer 2.0',
         [0xa50026, 0xd73027, 0xf46d43, 0xfdae61, 0xfee08b, 0xffffbf, 0xd9ef8b, 0xa6d96a, 0x66bd63, 0x1a9850, 0x006837]
+    ),
+    'red-yellow-blue': ColorList('Red-Yellow-Blue', 'diverging',
+        'RdYlBu, diverging color scheme from ColorBrewer 2.0',
+        [0xa50026, 0xd73027, 0xf46d43, 0xfdae61, 0xfee090, 0xffffbf, 0xe0f3f8, 0xabd9e9, 0x74add1, 0x4575b4, 0x313695]
     ),
     'spectral': ColorList('Spectral', 'diverging',
         'Spectral, diverging color scheme from ColorBrewer 2.0',

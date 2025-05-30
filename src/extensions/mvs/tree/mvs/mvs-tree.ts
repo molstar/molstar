@@ -181,8 +181,8 @@ export const MVSTreeSchema = TreeSchema({
                 ..._DataFromUriParams,
                 /** Name of the column in CIF or field name (key) in JSON that contains the color. */
                 field_name: OptionalField(str, 'color', 'Name of the column in CIF or field name (key) in JSON that contains the color.'),
-                /** TODO docstring */
-                palette: OptionalField(nullable(Palette), null, 'TODO docstring'),
+                /** Customize mapping of annotation values to colors. */
+                palette: OptionalField(nullable(Palette), null, 'Customize mapping of annotation values to colors.'),
             }),
         },
         /** This node instructs to apply colors to a visual representation. The colors are defined by an annotation resource included in the same file this structure was loaded from. Only applicable if the structure was loaded from an mmCIF or BinaryCIF file. */
@@ -193,8 +193,8 @@ export const MVSTreeSchema = TreeSchema({
                 ..._DataFromSourceParams,
                 /** Name of the column in CIF or field name (key) in JSON that contains the color. */
                 field_name: OptionalField(str, 'color', 'Name of the column in CIF or field name (key) in JSON that contains the color.'),
-                /** TODO docstring */
-                palette: OptionalField(nullable(Palette), null, 'TODO docstring'),
+                /** Customize mapping of annotation values to colors. */
+                palette: OptionalField(nullable(Palette), null, 'Customize mapping of annotation values to colors.'),
             }),
         },
         /** This node instructs to apply opacity/transparency to a visual representation. */

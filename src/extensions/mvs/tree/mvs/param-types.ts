@@ -8,7 +8,7 @@
 import * as iots from 'io-ts';
 import { ColorNames } from '../../../../mol-util/color/names';
 import { ColorName, HexColor } from '../../helpers/utils';
-import { ValueFor, bool, dict, float, int, list, literal, nullable, obj, partial, str, tuple, union } from '../generic/field-schema';
+import { ValueFor, bool, dict, float, int, list, literal, obj, partial, str, tuple, union } from '../generic/field-schema';
 
 
 /** `format` parameter values for `parse` node in MVS tree */
@@ -112,14 +112,14 @@ export function isComponentExpression(x: any): x is ComponentExpressionT {
 export const ColorListNameT = literal(
     // Color lists from https://observablehq.com/@d3/color-schemes (definitions: https://colorbrewer2.org/export/colorbrewer.js)
     // Sequential single-hue
-    'Blues', 'Greens', 'Greys', 'Oranges', 'Purples', 'Reds',
+    'Reds', 'Oranges', 'Greens', 'Blues', 'Purples', 'Greys',
     // Sequential multi-hue
-    'BuGn', 'BuPu', 'GnBu', 'OrRd', 'PuBuGn', 'PuBu', 'PuRd', 'RdPu', 'YlGnBu', 'YlGn', 'YlOrBr', 'YlOrRd',
-    'Cividis', 'Viridis', 'Inferno', 'Magma', 'Plasma', 'Warm', 'Cool', 'CubehelixDefault', 'Turbo',
-    // Diverging
-    'BrBG', 'PRGn', 'PiYG', 'PuOr', 'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn', 'Spectral',
+    'OrRd', 'BuGn', 'PuBuGn', 'GnBu', 'PuBu', 'BuPu', 'RdPu', 'PuRd', 'YlOrRd', 'YlOrBr', 'YlGn', 'YlGnBu',
+    'Magma', 'Inferno', 'Plasma', 'Viridis', 'Cividis', 'Turbo', 'Warm', 'Cool', 'CubehelixDefault',
     // Cyclical
     'Rainbow', 'Sinebow',
+    // Diverging
+    'RdBu', 'RdGy', 'PiYG', 'BrBG', 'PRGn', 'PuOr', 'RdYlGn', 'RdYlBu', 'Spectral',
     // Categorical
     'Category10', 'Observable10', 'Tableau10',
     'Set1', 'Set2', 'Set3', 'Pastel1', 'Pastel2', 'Dark2', 'Paired', 'Accent',
@@ -129,36 +129,34 @@ export const ColorListNameT = literal(
 );
 export type ColorListNameT = ValueFor<typeof ColorListNameT>;
 
-export const ColorMappingNameT = literal('ElementSymbol', 'ResidueName', 'ResidueProperties');
+export const ColorDictNameT = literal('ElementSymbol', 'ResidueName', 'ResidueProperties');
 // TODO add meaningful options
 // TODO decide on naming (ResidueName vs JmolResidueName, ResidueProperties vs ClustalResidueProperties)
-// TODO would it make sense to have a switch for case-insensitive
-export type ColorMappingNameT = ValueFor<typeof ColorMappingNameT>;
-
-export const CategoricalPaletteNameT = union([ColorListNameT, ColorMappingNameT]);
-export type CategoricalPaletteNameT = ValueFor<typeof CategoricalPaletteNameT>;
+// TODO would it make sense to have a switch for case-insensitive values?
+export type ColorDictNameT = ValueFor<typeof ColorDictNameT>;
 
 export const CategoricalPalette = iots.intersection([
     obj({ kind: literal('categorical') }),
     partial({
         colors: union([
-            CategoricalPaletteNameT,
+            ColorListNameT,
+            ColorDictNameT,
             list(ColorT),
             dict(str, ColorT),
         ]),
-        /** Color to use when a) `color` is a dictionary and given key is not present, or b) `color` is a list or a named palette and there are more real values than listed values and `repeat_color_list` is not true. */
+        /** Color to use when a) `colors` is a dictionary (or a color dictionary name) and given key is not present, or b) `colors` is a list (or a color list name) and there are more real annotation values than listed colors and `repeat_color_list` is not true. */
         missing_color: ColorT,
-        /** Repeat color list once all colors are depleted (only applies if `color` is a list or a named palette). */
+        /** Repeat color list once all colors are depleted (only applies if `colors` is a list or a color list name). */
         repeat_color_list: bool,
-        /** Sort real values before assigning colors from a list or named palette. */
-        sort: nullable(literal('lexical', 'numeric')),
-        /** Sort direction (only applies if `sort` is provided). */
+        /** Sort real annotation values before assigning colors from a list (none = take values in order of their first occurrence). */
+        sort: literal('none', 'lexical', 'numeric'),
+        /** Sort direction. */
         sort_direction: literal('ascending', 'descending'),
     }),
 ]);
 export type CategoricalPalette = ValueFor<typeof CategoricalPalette>;
 
-// TODO consider spreading the palette param directly into color_from_uri/color_from_source params (though this will be tricky) or achieve smart error messages
+// TODO consider spreading the palette param directly into color_from_uri/color_from_source params (though this will be tricky) or achieve smart error messages and default value handling
 
 export const Palette = CategoricalPalette;
 // export const Palette = union([CategoricalPalette, DiscretePalette, ContinuousPalette]);

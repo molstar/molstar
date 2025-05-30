@@ -15,8 +15,7 @@ import { ElementSymbolColors } from '../../mol-theme/color/element-symbol';
 import { ResidueNameColors } from '../../mol-theme/color/residue-name';
 import { arrayDistinct } from '../../mol-util/array';
 import { Color } from '../../mol-util/color';
-import { ColorListName, ColorListNames, ColorLists } from '../../mol-util/color/lists';
-import { ColorNames } from '../../mol-util/color/names';
+import { ColorListName, ColorLists } from '../../mol-util/color/lists';
 import { canonicalJsonString } from '../../mol-util/json';
 import { omitObjectKeys } from '../../mol-util/object';
 import { stringToWords } from '../../mol-util/string';
@@ -36,7 +35,7 @@ import { Subtree, getChildren } from './tree/generic/tree-schema';
 import { dfs, formatObject } from './tree/generic/tree-utils';
 import { MolstarKind, MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree } from './tree/molstar/molstar-tree';
 import { DefaultColor } from './tree/mvs/mvs-tree';
-import { CategoricalPalette, CategoricalPaletteNameT, ColorListNameT, ColorMappingNameT } from './tree/mvs/param-types';
+import { CategoricalPalette, ColorDictNameT, ColorListNameT } from './tree/mvs/param-types';
 
 
 export const AnnotationFromUriKinds = new Set(['color_from_uri', 'component_from_uri', 'label_from_uri', 'tooltip_from_uri'] satisfies MolstarKind[]);
@@ -407,12 +406,13 @@ function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri' | 'col
         return {
             name: 'categorical',
             params: {
-                colors: categoricalPalettePropsFromMVSColors(palette.colors),
+                colors: categoricalPalettePropsFromMVSColors(palette.colors ?? 'Category10'),
                 repeatColorList: palette.repeat_color_list ?? false,
                 sort: palette.sort ?? 'none',
                 sortDirection: palette.sort_direction ?? 'ascending',
                 setMissingColor: !!palette.missing_color,
                 missingColor: decodeColor(palette.missing_color) ?? FALLBACK_COLOR,
+                // TODO specify defaults with param-types or mvs-tree
             },
         };
     }
@@ -420,7 +420,6 @@ function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri' | 'col
 }
 
 function categoricalPalettePropsFromMVSColors(colors: CategoricalPalette['colors']): MVSCategoricalPaletteProps['colors'] {
-    // TODO undefined -> default
     if (typeof colors === 'string') {
         if (colors in MvsNamedColorListToMolstarName) {
             const molstarColorListName = MvsNamedColorListToMolstarName[colors as keyof typeof MvsNamedColorListToMolstarName];
@@ -429,9 +428,9 @@ function categoricalPalettePropsFromMVSColors(colors: CategoricalPalette['colors
                 return { name: 'list', params: { kind: 'set', colors: colorList.list } };
             }
         }
-        if (colors in MvsNamedColorMappings) {
-            const mapping = MvsNamedColorMappings[colors as keyof typeof MvsNamedColorMappings];
-            return { name: 'mapping', params: Object.entries(mapping).map(([value, color]) => ({ value, color })) };
+        if (colors in MvsNamedColorDicts) {
+            const dict = MvsNamedColorDicts[colors as keyof typeof MvsNamedColorDicts];
+            return { name: 'dictionary', params: Object.entries(dict).map(([value, color]) => ({ value, color })) };
         }
         console.warn(`Could not find named color palette "${colors}"`);
     }
@@ -439,7 +438,7 @@ function categoricalPalettePropsFromMVSColors(colors: CategoricalPalette['colors
         return { name: 'list', params: { kind: 'set', colors: colors.map(c => decodeColor(c) ?? FALLBACK_COLOR) } };
     }
     if (typeof colors === 'object') {
-        return { name: 'mapping', params: Object.entries(colors).map(([value, color]) => ({ value, color: decodeColor(color) ?? FALLBACK_COLOR })) };
+        return { name: 'dictionary', params: Object.entries(colors).map(([value, color]) => ({ value, color: decodeColor(color) ?? FALLBACK_COLOR })) };
     }
     return { name: 'list', params: { kind: 'set', colors: [] } };
 }
@@ -486,18 +485,17 @@ const MvsNamedColorListToMolstarName: Record<ColorListNameT, ColorListName> = {
     BuGn: 'blue-green', BuPu: 'blue-purple', GnBu: 'green-blue', OrRd: 'orange-red', PuBuGn: 'purple-blue-green',
     PuBu: 'purple-blue', PuRd: 'purple-red', RdPu: 'red-purple', YlGnBu: 'yellow-green-blue', YlGn: 'yellow-green',
     YlOrBr: 'yellow-orange-brown', YlOrRd: 'yellow-orange-red',
-    Cividis: 'cividis', Viridis: 'viridis', Inferno: 'inferno', Magma: 'magma', Plasma: 'plasma',
-    Warm: 'warm', Cool: 'cool', CubehelixDefault: 'cubehelix-default', Turbo: 'turbo',
     BrBG: 'brown-white-green', PRGn: 'purple-green', PiYG: 'pink-yellow-green', PuOr: 'purple-orange', RdBu: 'red-blue',
     RdGy: 'red-grey', RdYlBu: 'red-yellow-blue', RdYlGn: 'red-yellow-green', Spectral: 'spectral',
-    Rainbow: 'rainbow',
-    Sinebow: 'sinebow',
+    Cividis: 'cividis', Viridis: 'viridis', Inferno: 'inferno', Magma: 'magma', Plasma: 'plasma',
+    Warm: 'warm', Cool: 'cool', CubehelixDefault: 'cubehelix-default', Turbo: 'turbo',
+    Rainbow: 'rainbow', Sinebow: 'sinebow',
     Category10: 'category-10', Observable10: 'observable-10', Tableau10: 'tableau-10',
     Set1: 'set-1', Set2: 'set-2', Set3: 'set-3', Pastel1: 'pastel-1', Pastel2: 'pastel-2', Dark2: 'dark-2', Paired: 'paired', Accent: 'accent',
-    Chainbow: 'turbo-no-black'
+    Chainbow: 'turbo-no-black',
 };
 
-const MvsNamedColorMappings: Record<ColorMappingNameT, Record<string, Color>> = {
+const MvsNamedColorDicts: Record<ColorDictNameT, Record<string, Color>> = {
     ElementSymbol: omitObjectKeys(ElementSymbolColors, ['C']),
     ResidueName: ResidueNameColors,
     ResidueProperties: ResiduePropertyColors,
