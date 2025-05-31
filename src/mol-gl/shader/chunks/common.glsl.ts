@@ -25,7 +25,7 @@ export const common = `
     #define dXrayShaded
 #endif
 
-#if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || (defined(dRenderVariant_depth) && defined(dXrayShaded))
+#if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || ((defined(dRenderVariant_depth) || defined(dRenderVariant_pick)) && defined(dXrayShaded))
     #define dNeedsNormal
 #endif
 
