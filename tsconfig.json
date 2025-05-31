@@ -12,6 +12,7 @@
         "module": "esnext",
         "esModuleInterop": true,
         "moduleResolution": "node",
+        "isolatedModules": true,
         "importHelpers": true,
         "noEmitHelpers": true,
         "allowSyntheticDefaultImports": true,
