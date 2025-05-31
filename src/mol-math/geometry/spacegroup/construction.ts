@@ -7,7 +7,7 @@
 
 import { Vec3, Mat4 } from '../../linear-algebra';
 import { SpacegroupName, TransformData, GroupData, getSpacegroupIndex, OperatorData, SpacegroupNumber } from './tables';
-import { SymmetryOperator } from '../../geometry';
+import { SymmetryOperator } from '../../geometry/symmetry-operator';
 
 interface SpacegroupCell {
     /** Index into spacegroup data table */

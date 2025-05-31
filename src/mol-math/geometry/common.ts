@@ -7,7 +7,7 @@
 
 import { OrderedSet } from '../../mol-data/int';
 import { Mat4, Tensor, Vec3, Vec2 } from '../linear-algebra';
-import { Box3D } from '../geometry';
+import { Box3D } from './primitives/box3d';
 import { Texture } from '../../mol-gl/webgl/texture';
 
 export interface PositionData {

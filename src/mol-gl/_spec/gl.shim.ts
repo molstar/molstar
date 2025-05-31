@@ -787,5 +787,5 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
         stencilOpSeparate: function () { },
         // Caused TSC build error with isolated modules
         // unpackColorSpace: 'srgb',
-    };
+    } as unknown as WebGLRenderingContext;
 }
