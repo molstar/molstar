@@ -26,6 +26,8 @@ export const bool = iots.boolean;
 export const tuple = iots.tuple;
 /** Type definition for a list/array, e.g. `list(str)`  */
 export const list = iots.array;
+/** Type definition for a dict/record, e.g. `dict(str, int)`  */
+export const dict = iots.record;
 /** Type definition for union types, e.g. `union([str, int])` means string or integer  */
 export const union = iots.union;
 /** Type definition used to create objects */
@@ -34,8 +36,12 @@ export const obj = iots.type;
 export const partial = iots.partial;
 
 /** Type definition for nullable types, e.g. `nullable(str)` means string or `null`  */
-export function nullable<T extends iots.Type<any>>(type: T) {
-    return union([type, iots.null]);
+export function nullable<V>(type: iots.Type<V>): iots.Type<V | null> {
+    if (type instanceof iots.UnionType) {
+        return union([...type.types, iots.null] as any);
+    } else {
+        return union([type, iots.null]);
+    }
 }
 /** Type definition for literal types, e.g. `literal('red', 'green', 'blue')` means 'red' or 'green' or 'blue'  */
 export function literal<V extends string | number | boolean>(...values: V[]) {
@@ -43,10 +49,11 @@ export function literal<V extends string | number | boolean>(...values: V[]) {
         throw new Error(`literal type must have at least one value`);
     }
     const typeName = `(${values.map(v => onelinerJsonString(v)).join(' | ')})`;
+    const valueSet = new Set(values);
     return new iots.Type<V>(
         typeName,
-        ((value: any) => values.includes(value)) as any,
-        (value, ctx) => values.includes(value as any) ? { _tag: 'Right', right: value as any } : { _tag: 'Left', left: [{ value: value, context: ctx, message: `"${value}" is not a valid value for literal type ${typeName}` }] },
+        ((value: any) => valueSet.has(value)) as any,
+        (value, ctx) => valueSet.has(value as any) ? { _tag: 'Right', right: value as any } : { _tag: 'Left', left: [{ value: value, context: ctx, message: `"${value}" is not a valid value for literal type ${typeName}` }] },
         value => value
     );
 }

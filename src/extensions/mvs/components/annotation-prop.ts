@@ -142,11 +142,14 @@ export class MVSAnnotation {
     /** Store mapping `ElementIndex` -> annotation row index for each `Model`, -1 means no row applies */
     private indexedModels = new Map<UUID, number[]>();
     private rows: MVSAnnotationRow[] | undefined = undefined;
+    public nRows: number;
 
     constructor(
         public data: MVSAnnotationData,
         public schema: MVSAnnotationSchema,
-    ) { }
+    ) {
+        this.nRows = getRowCount(data);
+    }
 
     /** Create a new `MVSAnnotation` based on specification `spec`. Use `file` if provided, otherwise download the file.
      * Throw error if download fails or problem with data. */
@@ -165,7 +168,7 @@ export class MVSAnnotation {
                 switch (blockSpec.name) {
                     case 'header':
                         const foundBlock = file.data.blocks.find(b => b.header === blockSpec.params.header);
-                        if (!foundBlock) throw new Error(`CIF block with header ${blockSpec.params.header} not found`);
+                        if (!foundBlock) throw new Error(`CIF block with header "${blockSpec.params.header}" not found`);
                         block = foundBlock;
                         break;
                     case 'index':
@@ -176,7 +179,7 @@ export class MVSAnnotation {
                 const categoryName = spec.cifCategory ?? Object.keys(block.categories)[0];
                 if (!categoryName) throw new Error('There are no categories in CIF block');
                 const category = block.categories[categoryName];
-                if (!category) throw new Error(`CIF category ${categoryName} not found`);
+                if (!category) throw new Error(`CIF category "${categoryName}" not found`);
                 data = { format: 'cif', data: category };
                 break;
         }
@@ -253,6 +256,20 @@ export class MVSAnnotation {
     getRows(): readonly MVSAnnotationRow[] {
         return this.rows ??= this._getRows();
     }
+
+    /** Return list of all distinct values appearing in field `fieldName`, in order of first occurrence. Ignores special values `.` and `?`. */
+    getDistinctValuesInField(fieldName: string): string[] {
+        const seen = new Set<string | undefined>();
+        const out = [];
+        for (let i = 0; i < this.nRows; i++) {
+            const value = this.getValueForRow(i, fieldName);
+            if (value !== undefined && !seen.has(value)) {
+                seen.add(value);
+                out.push(value);
+            }
+        }
+        return out;
+    }
 }
 
 function getValueFromJson<T>(rowIndex: number, fieldName: string, data: Jsonable): T | undefined {
@@ -270,6 +287,34 @@ function getValueFromCif(rowIndex: number, fieldName: string, data: CifCategory)
     if (!column) return undefined;
     if (column.valueKind(rowIndex) !== Column.ValueKind.Present) return undefined;
     return column.str(rowIndex);
+}
+
+/** Return number of rows in this annotation (without parsing all the data) */
+function getRowCount(data: MVSAnnotationData): number {
+    switch (data.format) {
+        case 'json':
+            return getRowCountFromJson(data.data);
+        case 'cif':
+            return getRowCountFromCif(data.data);
+    }
+}
+function getRowCountFromJson(data: Jsonable): number {
+    const js = data as any;
+    if (Array.isArray(js)) {
+        // array of objects
+        return js.length;
+    } else {
+        // object of arrays
+        const keys = Object.keys(js);
+        if (keys.length > 0) {
+            return js[keys[0]].length;
+        } else {
+            return 0;
+        }
+    }
+}
+function getRowCountFromCif(data: CifCategory): number {
+    return data.rowCount;
 }
 
 function getRowsFromJson(data: Jsonable, schema: MVSAnnotationSchema): MVSAnnotationRow[] {

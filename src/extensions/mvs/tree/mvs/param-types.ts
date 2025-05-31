@@ -6,9 +6,9 @@
  */
 
 import * as iots from 'io-ts';
-import { HexColor, ColorName } from '../../helpers/utils';
-import { ValueFor, float, int, list, literal, str, tuple, union } from '../generic/field-schema';
 import { ColorNames } from '../../../../mol-util/color/names';
+import { ColorName, HexColor } from '../../helpers/utils';
+import { ValueFor, bool, dict, float, int, list, literal, obj, partial, str, tuple, union } from '../generic/field-schema';
 
 
 /** `format` parameter values for `parse` node in MVS tree */
@@ -26,7 +26,7 @@ export const StructureTypeT = literal('model', 'assembly', 'symmetry', 'symmetry
 export const ComponentSelectorT = literal('all', 'polymer', 'protein', 'nucleic', 'branched', 'ligand', 'ion', 'water', 'coarse');
 
 /** `selector` parameter values for `component` node in MVS tree */
-export const ComponentExpressionT = iots.partial({
+export const ComponentExpressionT = partial({
     label_entity_id: str,
     label_asym_id: str,
     auth_asym_id: str,
@@ -62,9 +62,9 @@ export type Vector3 = ValueFor<typeof Vector3>
 export const Matrix = list(float);
 
 /** Primitives-related types */
-export const PrimitiveComponentExpressionT = iots.partial({ structure_ref: str, expression_schema: SchemaT, expressions: list(ComponentExpressionT) });
+export const PrimitiveComponentExpressionT = partial({ structure_ref: str, expression_schema: SchemaT, expressions: list(ComponentExpressionT) });
 export type PrimitiveComponentExpressionT = ValueFor<typeof PrimitiveComponentExpressionT>
-export const PrimitivePositionT = iots.union([Vector3, ComponentExpressionT, PrimitiveComponentExpressionT]);
+export const PrimitivePositionT = union([Vector3, ComponentExpressionT, PrimitiveComponentExpressionT]);
 export type PrimitivePositionT = ValueFor<typeof PrimitivePositionT>
 
 export const FloatList = list(float);
@@ -84,7 +84,7 @@ export const HexColorT = new iots.Type<HexColor>(
 export const ColorNameT = new iots.Type<ColorName>(
     'ColorName',
     ((value: any) => typeof value === 'string') as any,
-    (value, ctx) => ColorName.is(value) ? { _tag: 'Right', right: value } : { _tag: 'Left', left: [{ value: value, context: ctx, message: `"${value}" is not a valid hex color string` }] },
+    (value, ctx) => ColorName.is(value) ? { _tag: 'Right', right: value } : { _tag: 'Left', left: [{ value: value, context: ctx, message: `"${value}" is not a valid color name` }] },
     value => value
 );
 
@@ -107,3 +107,90 @@ export function isPrimitiveComponentExpressions(x: any): x is PrimitiveComponent
 export function isComponentExpression(x: any): x is ComponentExpressionT {
     return !!x && typeof x === 'object' && !x.expressions;
 }
+
+
+export const ColorListNameT = literal(
+    // Color lists from https://observablehq.com/@d3/color-schemes (definitions: https://colorbrewer2.org/export/colorbrewer.js)
+    // Sequential single-hue
+    'Reds', 'Oranges', 'Greens', 'Blues', 'Purples', 'Greys',
+    // Sequential multi-hue
+    'OrRd', 'BuGn', 'PuBuGn', 'GnBu', 'PuBu', 'BuPu', 'RdPu', 'PuRd', 'YlOrRd', 'YlOrBr', 'YlGn', 'YlGnBu',
+    'Magma', 'Inferno', 'Plasma', 'Viridis', 'Cividis', 'Turbo', 'Warm', 'Cool', 'CubehelixDefault',
+    // Cyclical
+    'Rainbow', 'Sinebow',
+    // Diverging
+    'RdBu', 'RdGy', 'PiYG', 'BrBG', 'PRGn', 'PuOr', 'RdYlGn', 'RdYlBu', 'Spectral',
+    // Categorical
+    'Category10', 'Observable10', 'Tableau10',
+    'Set1', 'Set2', 'Set3', 'Pastel1', 'Pastel2', 'Dark2', 'Paired', 'Accent',
+
+    // Additional list, not standard for visualization in general, but commonly used for structures
+    'Chainbow',
+);
+export type ColorListNameT = ValueFor<typeof ColorListNameT>;
+
+export const ColorDictNameT = literal('ElementSymbol', 'ResidueName', 'ResidueProperties');
+// TODO add meaningful options
+// TODO decide on naming (ResidueName vs JmolResidueName, ResidueProperties vs ClustalResidueProperties)
+// TODO would it make sense to have a switch for case-insensitive values?
+export type ColorDictNameT = ValueFor<typeof ColorDictNameT>;
+
+export const CategoricalPalette = iots.intersection([
+    obj({ kind: literal('categorical') }),
+    partial({
+        colors: union([
+            ColorListNameT,
+            ColorDictNameT,
+            list(ColorT),
+            dict(str, ColorT),
+        ]),
+        /** Color to use when a) `colors` is a dictionary (or a color dictionary name) and given key is not present, or b) `colors` is a list (or a color list name) and there are more real annotation values than listed colors and `repeat_color_list` is not true. */
+        missing_color: ColorT,
+        /** Repeat color list once all colors are depleted (only applies if `colors` is a list or a color list name). */
+        repeat_color_list: bool,
+        /** Sort real annotation values before assigning colors from a list (none = take values in order of their first occurrence). */
+        sort: literal('none', 'lexical', 'numeric'),
+        /** Sort direction. */
+        sort_direction: literal('ascending', 'descending'),
+    }),
+]);
+export type CategoricalPalette = ValueFor<typeof CategoricalPalette>;
+
+// TODO consider spreading the palette param directly into color_from_uri/color_from_source params (though this will be tricky) or achieve smart error messages and default value handling
+
+export const Palette = CategoricalPalette;
+// export const Palette = union([CategoricalPalette, DiscretePalette, ContinuousPalette]);
+
+// Draft from https://docs.google.com/document/d/1p9yePdtvO8RzYQ90jEdCHM5sMqxFpy4f8DbleXagRDE/edit?tab=t.0
+
+// class GradientPalette:
+//     kind: Literal["gradient"] = "gradient"
+//     # either uniformly distributed or explicitly scaled between 0, 1
+//     # [('red', 0), ('green', 0.2), ('blue', 1)]
+//     stops: list[tuple[ColorT, float]] | list[tuple[ColorT, float, float]] | list[ColorT] | None
+//     stop_value_kind: Literal["normalized", "explicit"]
+//     name: PalleteNameT | None
+
+//     value_domain: tuple[float, float] | None = None  # min, max | none <=> auto
+
+
+// class DiscretePalette:
+//     kind: Literal["discrete"] = "discrete"
+//     # either uniformly distributed or explicitly scaled between 0, 1
+//     # [('red', 0), ('green', 0.2), ('blue', 1)]
+//     stops: list[tuple[ColorT, float]] | list[tuple[ColorT, float, float]] | list[ColorT] | None
+//     stop_value_kind: Literal["normalized", "explicit"]
+//     name: PalleteNameT | None
+
+//     value_domain: tuple[float, float] | None = None  # min, max | none <=> auto
+
+
+// class CategoricalPalette:
+//     kind: Literal["categorical"] = "categorical"
+
+//     colors: dict[Any, ColorT] | list[ColorT] | None
+//     name: PalleteNameT | None
+
+//     missing_color: ColorT | None = None # applied when color is missing dict[Any, ColorT]
+//     sort_values: Literal["ascending", "descending"] | None = None
+//     sort_kind: Literal["lexical", "numeric"] | None = None
