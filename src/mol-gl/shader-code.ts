@@ -176,7 +176,7 @@ function ignoreDefine(name: string, variant: string, defines: ShaderDefines): bo
             'dColorMarker', 'dCelShaded',
             'dLightCount',
         ];
-        if (variant !== 'depth') {
+        if (variant !== 'depth' && !variant.startsWith('pick')) {
             ignore.push('dXrayShaded');
         }
         if (variant !== 'emissive') {
