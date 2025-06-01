@@ -16,7 +16,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - General:
   - Use `isolatedModules` tsconfig flag
   - Fix TurboPack build when using ES6 modules
-
+- Support `pickingAlphaThreshold` when `xrayShaded` is enabled
 
 ## [v4.17.0] - 2025-05-22
 - Remove `xhr2` dependency for NodeJS, use `fetch`

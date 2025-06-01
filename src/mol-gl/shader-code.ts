@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -176,7 +176,7 @@ function ignoreDefine(name: string, variant: string, defines: ShaderDefines): bo
             'dColorMarker', 'dCelShaded',
             'dLightCount',
         ];
-        if (variant !== 'depth') {
+        if (variant !== 'depth' && !variant.startsWith('pick')) {
             ignore.push('dXrayShaded');
         }
         if (variant !== 'emissive') {
