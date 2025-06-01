@@ -588,7 +588,7 @@ function getPrdAsymIdx(structure: Structure) {
     const model = structure.models[0];
     const ids = new Set<string>();
 
-    // Need to do this menually to prevent a cyclical import causing
+    // Need to do this manually to prevent a cyclical import causing
     // errors with turbopack when ES6 modules are used.
     if (model.sourceData?.kind !== 'mmCIF') return ids;
     const { _rowCount, asym_id } = (model.sourceData as MmcifFormat).data.db.pdbx_molecule;
@@ -602,7 +602,7 @@ function getStructConnInfo(structure: Structure) {
     const model = structure.models[0];
     const graph = new StructConnGraph();
 
-    // Need to do this menually to prevent a cyclical import causing
+    // Need to do this manually to prevent a cyclical import causing
     // errors with turbopack when ES6 modules are used.
     if (model.sourceData?.kind !== 'mmCIF') return graph;
 
