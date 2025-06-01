@@ -16,10 +16,13 @@ import { structureIntersect, structureSubtract, structureUnion } from '../utils/
 import { UniqueArray } from '../../../../mol-data/generic';
 import { StructureSubsetBuilder } from '../../structure/util/subset-builder';
 import { StructureElement } from '../../structure/element';
-import { MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
 import { ResidueSet, ResidueSetEntry } from '../../model/properties/utils/residue-set';
 import { StructureProperties } from '../../structure/properties';
 import { arraySetAdd } from '../../../../mol-util/array';
+// MmcifFormat needs to be imported as a type otherwise it causes out-of-order
+// code execution in turbopack (and possibly other bundlers)... but interestingly
+// only when ES6 modules are used (CommonJS fine)
+import type { MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
 
 function getWholeResidues(ctx: QueryContext, source: Structure, structure: Structure) {
     const builder = source.subsetBuilder(true);
@@ -452,6 +455,11 @@ export interface SurroundingLigandsParams {
  * Includes expanded surrounding ligands based on radius from the source, struct_conn entries & pdbx_molecule entries.
  */
 export function surroundingLigands({ query, radius, includeWater }: SurroundingLigandsParams): StructureQuery {
+    const _ent_type = StructureProperties.entity.type;
+    function testIsWater(l: StructureElement.Location) {
+        return _ent_type(l) === 'water';
+    }
+
     return function query_surroundingLigands(ctx) {
 
         const inner = StructureSelection.unionStructure(query(ctx));
@@ -576,16 +584,14 @@ export function surroundingLigands({ query, radius, includeWater }: SurroundingL
     };
 }
 
-const _entity_type = StructureProperties.entity.type;
-function testIsWater(l: StructureElement.Location) {
-    return _entity_type(l) === 'water';
-}
-
 function getPrdAsymIdx(structure: Structure) {
     const model = structure.models[0];
     const ids = new Set<string>();
-    if (!MmcifFormat.is(model.sourceData)) return ids;
-    const { _rowCount, asym_id } = model.sourceData.data.db.pdbx_molecule;
+
+    // Need to do this menually to prevent a cyclical import causing
+    // errors with turbopack when ES6 modules are used.
+    if (model.sourceData?.kind !== 'mmCIF') return ids;
+    const { _rowCount, asym_id } = (model.sourceData as MmcifFormat).data.db.pdbx_molecule;
     for (let i = 0; i < _rowCount; i++) {
         ids.add(asym_id.value(i));
     }
@@ -596,9 +602,11 @@ function getStructConnInfo(structure: Structure) {
     const model = structure.models[0];
     const graph = new StructConnGraph();
 
-    if (!MmcifFormat.is(model.sourceData)) return graph;
+    // Need to do this menually to prevent a cyclical import causing
+    // errors with turbopack when ES6 modules are used.
+    if (model.sourceData?.kind !== 'mmCIF') return graph;
 
-    const struct_conn = model.sourceData.data.db.struct_conn;
+    const struct_conn = (model.sourceData as MmcifFormat).data.db.struct_conn;
     const { conn_type_id } = struct_conn;
     const { ptnr1_label_asym_id, ptnr1_label_comp_id, ptnr1_label_seq_id, ptnr1_symmetry, pdbx_ptnr1_label_alt_id, pdbx_ptnr1_PDB_ins_code } = struct_conn;
     const { ptnr2_label_asym_id, ptnr2_label_comp_id, ptnr2_label_seq_id, ptnr2_symmetry, pdbx_ptnr2_label_alt_id, pdbx_ptnr2_PDB_ins_code } = struct_conn;
