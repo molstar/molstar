@@ -786,5 +786,5 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
         stencilOp: function () { },
         stencilOpSeparate: function () { },
         unpackColorSpace: 'srgb',
-    } as unknown as WebGLRenderingContext;
+    };
 }
