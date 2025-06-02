@@ -21,6 +21,14 @@ export class ResidueSet {
     private index = new Map<string, Map<number, ResidueSetEntry[]>>();
     private checkOperator: boolean = false;
 
+    // perf optimization for .has()
+    private _asym_id = StructureProperties.chain.label_asym_id;
+    private _seq_id = StructureProperties.residue.label_seq_id;
+    private _comp_id = StructureProperties.atom.label_comp_id;
+    private _alt_id = StructureProperties.atom.label_alt_id;
+    private _ins_code = StructureProperties.residue.pdbx_PDB_ins_code;
+    private _op_name = StructureProperties.unit.operator_name;
+
     add(entry: ResidueSetEntry) {
         let root = this.index.get(entry.label_asym_id);
         if (!root) {
@@ -48,17 +56,17 @@ export class ResidueSet {
     }
 
     has(loc: StructureElement.Location) {
-        const asym_id = _asym_id(loc);
+        const asym_id = this._asym_id(loc);
         if (!this.index.has(asym_id)) return;
         const root = this.index.get(asym_id)!;
-        const seq_id = _seq_id(loc);
+        const seq_id = this._seq_id(loc);
         if (!root.has(seq_id)) return;
         const entries = root.get(seq_id)!;
 
-        const comp_id = _comp_id(loc);
-        const alt_id = _alt_id(loc);
-        const ins_code = _ins_code(loc);
-        const op_name = _op_name(loc) ?? '1_555';
+        const comp_id = this._comp_id(loc);
+        const alt_id = this._alt_id(loc);
+        const ins_code = this._ins_code(loc);
+        const op_name = this._op_name(loc) ?? '1_555';
 
         for (const e of entries) {
             if (e.label_comp_id !== comp_id || e.label_alt_id !== alt_id || e.ins_code !== ins_code) continue;
@@ -74,12 +82,12 @@ export class ResidueSet {
 
     static getEntryFromLocation(loc: StructureElement.Location): ResidueSetEntry {
         return {
-            label_asym_id: _asym_id(loc),
-            label_comp_id: _comp_id(loc),
-            label_seq_id: _seq_id(loc),
-            label_alt_id: _alt_id(loc),
-            ins_code: _ins_code(loc),
-            operator_name: _op_name(loc) ?? '1_555'
+            label_asym_id: StructureProperties.chain.label_asym_id(loc),
+            label_comp_id: StructureProperties.atom.label_comp_id(loc),
+            label_seq_id: StructureProperties.residue.label_seq_id(loc),
+            label_alt_id: StructureProperties.atom.label_alt_id(loc),
+            ins_code: StructureProperties.residue.pdbx_PDB_ins_code(loc),
+            operator_name: StructureProperties.unit.operator_name(loc) ?? '1_555'
         };
     }
 
@@ -98,10 +106,3 @@ export class ResidueSet {
         this.checkOperator = options?.checkOperator ?? false;
     }
 }
-
-const _asym_id = StructureProperties.chain.label_asym_id;
-const _seq_id = StructureProperties.residue.label_seq_id;
-const _comp_id = StructureProperties.atom.label_comp_id;
-const _alt_id = StructureProperties.atom.label_alt_id;
-const _ins_code = StructureProperties.residue.pdbx_PDB_ins_code;
-const _op_name = StructureProperties.unit.operator_name;

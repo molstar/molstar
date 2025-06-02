@@ -15,9 +15,7 @@ import { VolumeStreamingCustomControls } from './custom/volume';
 import { Loci } from '../mol-model/loci';
 import { SequenceViewMode } from './sequence';
 
-export { PluginUISpec };
-
-interface PluginUISpec extends PluginSpec {
+export interface PluginUISpec extends PluginSpec {
     customParamEditors?: [StateAction | StateTransformer, StateTransformParameters.Class][],
     components?: {
         controls?: PluginUISpec.LayoutControls
@@ -55,7 +53,7 @@ interface PluginUISpec extends PluginSpec {
     },
 }
 
-namespace PluginUISpec {
+export namespace PluginUISpec {
     export interface LayoutControls {
         top?: React.ComponentClass | React.FC | 'none',
         left?: React.ComponentClass | React.FC | 'none',

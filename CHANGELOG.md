@@ -13,6 +13,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `mol-utils/camera.ts` with `fovAdjustedPosition` and `fovNormalizedCameraPosition`
 - Show FOV normalized position in `CameraInfo` UI and use it in "Copy MVS State"
 - Support static resources in `AssetManager`
+- General:
+  - Use `isolatedModules` tsconfig flag
+  - Fix TurboPack build when using ES6 modules
 - Support `pickingAlphaThreshold` when `xrayShaded` is enabled
 
 ## [v4.17.0] - 2025-05-22

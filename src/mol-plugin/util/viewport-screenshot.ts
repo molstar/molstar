@@ -22,14 +22,12 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { SetUtils } from '../../mol-util/set';
 import { PluginContext } from '../context';
 
-export { ViewportScreenshotHelper, ViewportScreenshotHelperParams };
-
-namespace ViewportScreenshotHelper {
+export namespace ViewportScreenshotHelper {
     export type ResolutionSettings = PD.Values<ReturnType<ViewportScreenshotHelper['createParams']>>['resolution']
     export type ResolutionTypes = ResolutionSettings['name']
 }
 
-type ViewportScreenshotHelperParams = PD.Values<ReturnType<ViewportScreenshotHelper['createParams']>>
+export type ViewportScreenshotHelperParams = PD.Values<ReturnType<ViewportScreenshotHelper['createParams']>>
 
 function checkWebPSupport() {
     // adapted from https://stackoverflow.com/a/27232658
@@ -44,7 +42,7 @@ function checkWebPSupport() {
     }
 }
 
-class ViewportScreenshotHelper extends PluginComponent {
+export class ViewportScreenshotHelper extends PluginComponent {
     private createParams() {
         let max = 8192;
         if (this.plugin.canvas3d) {
