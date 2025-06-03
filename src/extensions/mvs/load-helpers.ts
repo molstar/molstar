@@ -16,10 +16,11 @@ import { ResidueNameColors } from '../../mol-theme/color/residue-name';
 import { arrayDistinct } from '../../mol-util/array';
 import { Color } from '../../mol-util/color';
 import { ColorListName, ColorLists } from '../../mol-util/color/lists';
+import { ColorNames } from '../../mol-util/color/names';
 import { canonicalJsonString } from '../../mol-util/json';
 import { omitObjectKeys } from '../../mol-util/object';
 import { stringToWords } from '../../mol-util/string';
-import { MVSAnnotationColorThemeProps, MVSAnnotationColorThemeProvider, MVSCategoricalPaletteProps } from './components/annotation-color-theme';
+import { MVSAnnotationColorThemeProps, MVSAnnotationColorThemeProvider, MVSCategoricalPaletteProps, MVSContinuousPaletteProps } from './components/annotation-color-theme';
 import { MVSAnnotationLabelRepresentationProvider } from './components/annotation-label/representation';
 import { MVSAnnotationSpec } from './components/annotation-prop';
 import { MVSAnnotationStructureComponentProps } from './components/annotation-structure-component';
@@ -35,7 +36,7 @@ import { Subtree, getChildren } from './tree/generic/tree-schema';
 import { dfs, formatObject } from './tree/generic/tree-utils';
 import { MolstarKind, MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree } from './tree/molstar/molstar-tree';
 import { DefaultColor } from './tree/mvs/mvs-tree';
-import { CategoricalPalette, ColorDictNameT, ColorListNameT } from './tree/mvs/param-types';
+import { CategoricalPalette, ColorDictNameT, ColorListNameT, ContinuousPalette } from './tree/mvs/param-types';
 
 
 export const AnnotationFromUriKinds = new Set(['color_from_uri', 'component_from_uri', 'label_from_uri', 'tooltip_from_uri'] satisfies MolstarKind[]);
@@ -413,10 +414,26 @@ function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri' | 'col
                 setMissingColor: !!palette.missing_color,
                 missingColor: decodeColor(palette.missing_color) ?? FALLBACK_COLOR,
                 // TODO specify defaults with param-types or mvs-tree
-            },
+            } satisfies MVSCategoricalPaletteProps,
         };
     }
-    throw new Error(`NotImplementedError: palettePropsFromMVSPalette is not implemented for palette kind "${palette.kind}"`);
+    if (palette.kind === 'continuous') {
+        return {
+            name: 'continuous',
+            params: {
+                colors: continuousPalettePropsFromMVSColors(palette.colors ?? 'Blues'), // TODO sensible default
+                mode: palette.mode ?? 'normalized',
+                xMin: palette.value_domain?.[0] ?? undefined,
+                xMax: palette.value_domain?.[1] ?? undefined,
+                setUnderflowColor: !!palette.underflow_color,
+                underflowColor: decodeColor(palette.underflow_color) ?? FALLBACK_COLOR,
+                setOverflowColor: !!palette.overflow_color,
+                overflowColor: decodeColor(palette.overflow_color) ?? FALLBACK_COLOR,
+                // TODO specify defaults with param-types or mvs-tree
+            } satisfies MVSContinuousPaletteProps,
+        };
+    }
+    throw new Error(`NotImplementedError: palettePropsFromMVSPalette is not implemented for palette kind "${(palette as any).kind}"`);
 }
 
 function categoricalPalettePropsFromMVSColors(colors: CategoricalPalette['colors']): MVSCategoricalPaletteProps['colors'] {
@@ -441,6 +458,26 @@ function categoricalPalettePropsFromMVSColors(colors: CategoricalPalette['colors
         return { name: 'dictionary', params: Object.entries(colors).map(([value, color]) => ({ value, color: decodeColor(color) ?? FALLBACK_COLOR })) };
     }
     return { name: 'list', params: { kind: 'set', colors: [] } };
+}
+
+function continuousPalettePropsFromMVSColors(colors: ContinuousPalette['colors']): MVSContinuousPaletteProps['colors'] {
+    // if (typeof colors === 'string') {
+    //     if (colors in MvsNamedColorListToMolstarName) {
+    //         const molstarColorListName = MvsNamedColorListToMolstarName[colors as keyof typeof MvsNamedColorListToMolstarName];
+    //         const colorList = ColorLists[molstarColorListName];
+    //         if (colorList) {
+    //             return { name: 'list', params: { kind: 'set', colors: colorList.list } };
+    //         }
+    //     }
+    //     console.warn(`Could not find named color palette "${colors}"`);
+    // }
+    // if (Array.isArray(colors)) {
+    //     return { name: 'list', params: { kind: 'set', colors: colors.map(c => decodeColor(c) ?? FALLBACK_COLOR) } };
+    // }
+    // if (typeof colors === 'object') {
+    //     return { name: 'dictionary', params: Object.entries(colors).map(([value, color]) => ({ value, color: decodeColor(color) ?? FALLBACK_COLOR })) };
+    // }
+    return { kind: 'interpolate', colors: [ColorNames.white, ColorNames.red] };
 }
 
 /** Colors for amino acid groups, based on Clustal (https://www.jalview.org/help/html/colourSchemes/clustal.html) */

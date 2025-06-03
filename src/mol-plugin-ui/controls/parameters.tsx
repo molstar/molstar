@@ -419,53 +419,38 @@ function TextCtrl({ props, placeholder, update }: { props: ParamProps<PD.Text>, 
     const [value, setValue] = React.useState(props.value);
     React.useEffect(() => setValue(props.value), [props.value]);
 
+    const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        if (props.param.disableInteractiveUpdates) setValue(e.target.value);
+        else update(e.target.value);
+    };
+    const onBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        if (props.param.disableInteractiveUpdates) update(e.target.value);
+    };
+    const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        if (e.key !== 'Enter') return;
+        if (props.onEnter && !props.param.multiline) {
+            e.stopPropagation();
+            props.onEnter();
+        } else if (e.shiftKey || e.ctrlKey || e.metaKey) {
+            e.currentTarget.blur();
+        } else if (props.param.disableInteractiveUpdates && !props.param.multiline) {
+            update(value);
+        }
+    };
+
     if (props.param.multiline) {
         return <div className='msp-control-text-area-wrapper'>
             <textarea
-                value={props.param.disableInteractiveUpdates ? (value || '') : props.value}
-                placeholder={placeholder}
-                onChange={e => {
-                    if (props.param.disableInteractiveUpdates) setValue(e.target.value);
-                    else update(e.target.value);
-                }}
-                onBlur={e => {
-                    if (props.param.disableInteractiveUpdates) update(e.target.value);
-                }}
-                onKeyDown={e => {
-                    if (e.key === 'Enter' && (e.shiftKey || e.ctrlKey || e.metaKey)) {
-                        e.currentTarget.blur();
-                    }
-                }}
-                disabled={props.isDisabled}
+                value={value || ''} placeholder={placeholder} disabled={props.isDisabled}
+                onChange={onChange} onBlur={onBlur} onKeyDown={onKeyDown}
             />
         </div>;
+    } else {
+        return <input type='text'
+            value={value || ''} placeholder={placeholder} disabled={props.isDisabled}
+            onChange={onChange} onBlur={onBlur} onKeyDown={onKeyDown}
+        />;
     }
-
-    return <input
-        type='text'
-        value={props.param.disableInteractiveUpdates ? (value || '') : props.value}
-        placeholder={placeholder}
-        onChange={e => {
-            if (props.param.disableInteractiveUpdates) setValue(e.target.value);
-            else update(e.target.value);
-        }}
-        onBlur={e => {
-            if (props.param.disableInteractiveUpdates) update(e.target.value);
-        }}
-        disabled={props.isDisabled}
-        onKeyDown={e => {
-            if (e.key !== 'Enter') return;
-
-            if (props.onEnter) {
-                e.stopPropagation();
-                props.onEnter();
-            } else if (e.key === 'Enter' && (e.shiftKey || e.ctrlKey || e.metaKey)) {
-                e.currentTarget.blur();
-            } else if (props.param.disableInteractiveUpdates) {
-                update(value);
-            }
-        }}
-    />;
 }
 
 export class PureSelectControl extends React.PureComponent<ParamProps<PD.Select<string | number>> & { title?: string }> {
