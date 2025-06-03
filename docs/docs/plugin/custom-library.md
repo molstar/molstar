@@ -141,7 +141,7 @@ export async function loadStructure(plugin: PluginUIContext, url: string, option
 ```
 - Create `src/style.scss`:
 ```scss
-@import '../node_modules/molstar/lib/mol-plugin-ui/skin/light.scss';
+@use '../node_modules/molstar/lib/mol-plugin-ui/skin/light.scss';
 ```
 - Create `build/ui.html`:
 ```html

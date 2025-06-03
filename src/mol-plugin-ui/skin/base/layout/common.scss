@@ -1,72 +1,78 @@
+@use '../vars' as *;
 
-
-.msp-layout-expanded, .msp-layout-standard {
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-}
-
-.msp-layout-standard {
-    border: 1px solid $border-color;
-}
-
-.msp-layout-region {
-    overflow: hidden;
-}
-
-.msp-layout-static, .msp-layout-scrollable {
-    position: absolute;
-}
-
-.msp-scrollable {
-    overflow-y: auto;
-}
-
-.msp-scrollable-container {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    overflow-y: auto;
-}
-
-.msp-layout-static {
-    overflow: hidden;
-}
-
-.msp-layout-top, .msp-layout-main, .msp-layout-bottom {
-    .msp-layout-static {
+@mixin layout-common {
+    .msp-layout-expanded,
+    .msp-layout-standard {
         left: 0;
         right: 0;
         top: 0;
         bottom: 0;
     }
-}
 
-.msp-layout-right {
-    .msp-layout-static {
-        left: 0;
-        right: 0;
-        top: 0;
-        bottom: 0; // height: $row-height + $control-spacing;
+    .msp-layout-standard {
+        border: 1px solid $border-color;
     }
 
+    .msp-layout-region {
+        overflow: hidden;
+    }
+
+    .msp-layout-static,
     .msp-layout-scrollable {
+        position: absolute;
+    }
+
+    .msp-scrollable {
+        overflow-y: auto;
+    }
+
+    .msp-scrollable-container {
+        position: absolute;
         left: 0;
         right: 0;
-        top: $row-height + $control-spacing + 1;
-        bottom: 0;
-     }
-
-}
-
-.msp-layout-left {
-    .msp-layout-static {
-        left: 0;
-        right: 0;
-        bottom: 0;
         top: 0;
+        bottom: 0;
+        overflow-y: auto;
+    }
+
+    .msp-layout-static {
+        overflow: hidden;
+    }
+
+    .msp-layout-top,
+    .msp-layout-main,
+    .msp-layout-bottom {
+        .msp-layout-static {
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+        }
+    }
+
+    .msp-layout-right {
+        .msp-layout-static {
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0; // height: $row-height + $control-spacing;
+        }
+
+        .msp-layout-scrollable {
+            left: 0;
+            right: 0;
+            top: $row-height + $control-spacing + 1;
+            bottom: 0;
+        }
+
+    }
+
+    .msp-layout-left {
+        .msp-layout-static {
+            left: 0;
+            right: 0;
+            bottom: 0;
+            top: 0;
+        }
     }
 }

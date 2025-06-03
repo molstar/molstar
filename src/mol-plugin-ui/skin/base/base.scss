@@ -1,4 +1,11 @@
 ﻿
+@use "sass:meta";
+@use 'vars' as *;
+@use 'normalize' as *;
+@use 'layout' as *;
+@use 'ui' as *;
+@use 'logo' as *;
+
 @mixin user-select($select) {
   -webkit-user-select: $select;
      -moz-user-select: $select;
@@ -17,13 +24,11 @@
     right: 0;
     bottom: 0;
 
-    @import 'variables';
+    @include normalize;
 
-    @import "normalize";
-
-    @import 'layout';
-    @import 'ui';
-    @import 'logo';
+    @include layout;    
+    @include ui;
+    @include logo;
 
     .msp-plugin-content {
         color: $font-color;

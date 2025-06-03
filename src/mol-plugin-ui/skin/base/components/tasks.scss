@@ -1,99 +1,104 @@
-.msp-task-state {
+@use '../vars' as *;
+@use '../common' as *;
 
-    line-height: $row-height;
-    //height: $row-height;
-    //position: relative;
-    //margin-top: 1px;
-
-    > span {
-        @include non-selectable;
-        //display: inline-block;
-        //padding: 0 $control-spacing;
-    }
-}
-
-.msp-overlay-tasks {
-    position: absolute;
-    display: flex;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    right: 0;
-    height: 100%;
-    width: 100%;
-    z-index: 1000;
-    justify-content: center;
-    align-items: center;
-    background: rgba(0, 0, 0, 0.25);
-
+@mixin tasks {
     .msp-task-state {
-        $size: $row-height;
 
-        > div {
-            height: $size;
-            margin-top: 1px;
-            position: relative;
-            width: 100%;
-            background: $default-background;
+        line-height: $row-height;
+        //height: $row-height;
+        //position: relative;
+        //margin-top: 1px;
 
-            > div {
+        >span {
+            @include non-selectable;
+            //display: inline-block;
+            //padding: 0 $control-spacing;
+        }
+    }
+
+    .msp-overlay-tasks {
+        position: absolute;
+        display: flex;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+        height: 100%;
+        width: 100%;
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+        background: rgba(0, 0, 0, 0.25);
+
+        .msp-task-state {
+            $size: $row-height;
+
+            >div {
                 height: $size;
-                line-height: $size;
-                display: inline-block;
-                padding: 0 ($control-spacing);
-                @include non-selectable;
-                white-space: nowrap;
+                margin-top: 1px;
+                position: relative;
+                width: 100%;
                 background: $default-background;
-                position: absolute;
-            }
 
-            > button {
-                display: inline-block;
-                margin-top: -3px;
-                // font-size: 140%;
+                >div {
+                    height: $size;
+                    line-height: $size;
+                    display: inline-block;
+                    padding: 0 ($control-spacing);
+                    @include non-selectable;
+                    white-space: nowrap;
+                    background: $default-background;
+                    position: absolute;
+                }
+
+                >button {
+                    display: inline-block;
+                    margin-top: -3px;
+                    // font-size: 140%;
+                }
             }
         }
     }
-}
 
-/* background */
+    /* background */
 
-.msp-background-tasks {
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    z-index: 1000;
+    .msp-background-tasks {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        z-index: 1000;
 
-    .msp-task-state {
-        $size: $row-height;
+        .msp-task-state {
+            $size: $row-height;
 
-        > div {
-            height: $size;
-            margin-top: 1px;
-            position: relative;
-            width: 100%;
-            background: $default-background;
-
-            > div {
+            >div {
                 height: $size;
-                line-height: $size;
-                display: inline-block;
-                padding: 0 ($control-spacing);
-                @include non-selectable;
-                white-space: nowrap;
+                margin-top: 1px;
+                position: relative;
+                width: 100%;
                 background: $default-background;
-                position: absolute;
-            }
 
-            > button {
-                display: inline-block;
-                margin-top: -3px;
-                // font-size: 140%;
+                >div {
+                    height: $size;
+                    line-height: $size;
+                    display: inline-block;
+                    padding: 0 ($control-spacing);
+                    @include non-selectable;
+                    white-space: nowrap;
+                    background: $default-background;
+                    position: absolute;
+                }
+
+                >button {
+                    display: inline-block;
+                    margin-top: -3px;
+                    // font-size: 140%;
+                }
             }
         }
     }
-}
 
-// .msp-background-tasks .msp-task-state {
-//     color:
-// }
+    // .msp-background-tasks .msp-task-state {
+    //     color:
+    // }
+}

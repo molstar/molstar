@@ -1,164 +1,173 @@
-.msp-transformer {
+@use '../vars' as *;
+@use '../common' as *;
 
-    .msp-entity-badge {
-        position: absolute;
-        top: 0;
-        right: 0;
-        height: $row-height;
-        line-height: $row-height;
-        width: $row-height;
+@mixin transformer {
+    .msp-transformer {
+
+        .msp-entity-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: $row-height;
+            line-height: $row-height;
+            width: $row-height;
+        }
     }
-}
 
-.msp-layout-right, .msp-layout-left {
-    background: $control-background;
-}
+    .msp-layout-right,
+    .msp-layout-left {
+        background: $control-background;
+    }
 
-.msp-transformer-wrapper {
-    position: relative;
-}
+    .msp-transformer-wrapper {
+        position: relative;
+    }
 
-.msp-transformer-wrapper {
+    .msp-transformer-wrapper {
 
-    .msp-entity-badge {
+        .msp-entity-badge {
+            left: 0;
+            top: 0;
+        }
+
+        &:first-child {
+            .msp-panel-description-content {
+                top: $row-height + 1;
+            }
+        }
+
+        &:not(:first-child) {
+            .msp-panel-description-content {
+                bottom: $row-height + 1;
+            }
+        }
+    }
+
+    .msp-transform-wrapper {
+        margin-bottom: $control-spacing;
+    }
+
+    .msp-transform-wrapper-collapsed {
+        margin-bottom: 1px;
+    }
+
+    .msp-transform-update-wrapper {
+        margin-bottom: 1px;
+    }
+
+    .msp-transform-update-wrapper-collapsed {
+        margin-bottom: 1px;
+    }
+
+    .msp-transform-update-wrapper,
+    .msp-transform-update-wrapper-collapsed {
+        >.msp-transform-header>button {
+            text-align: left;
+            padding-left: $row-height;
+            line-height: 24px;
+            background: color-lower-contrast($control-background, 4%); // $control-background; // color-lower-contrast($default-background, 4%);
+            // font-weight: bold;
+        }
+    }
+
+    .msp-transform-wrapper>.msp-transform-header>button {
+        text-align: left;
+        background: $default-background; // color-lower-contrast($default-background, 4%);
+        font-weight: bold;
+        padding-right: 5px;
+    }
+
+    .msp-transform-header {
+        position: relative;
+        // border-top: 1px solid $entity-color-Behaviour; // TODO: separate color
+
+        // > button {
+        //     text-align: left;
+        //     padding-left: $row-height;
+        //     background: $control-background; // color-lower-contrast($default-background, 4%);
+        //     font-weight: bold;
+        // }
+
+        >button>small {
+            font-weight: normal;
+            float: right;
+        }
+
+        >button {
+            >span:first-child {
+                margin-right: 10px;
+            }
+        }
+
+        >button:hover {
+            color: color-lower-contrast($font-color, 15%);
+        }
+    }
+
+    .msp-transform-header-brand {
+        // padding-left: 42px;
+        margin-bottom: -1px;
+
+        svg {
+            fill: $font-color;
+            stroke: $font-color;
+        }
+
+        // > div {
+        //     position: absolute;
+        //     height: 32px;
+        //     line-height: 32px;
+        //     width: 32px;
+        //     top: 0;
+        //     left: 0;
+        //     text-align: center;
+        //     color: #eceff3;
+        //     fill: #eceff3;
+        //     stroke: #eceff3;
+        //     font-size: 85%;
+        // }
+    }
+
+    .msp-transform-default-params {
+        background: $default-background;
+        position: absolute;
         left: 0;
         top: 0;
+        width: $row-height;
+        padding: 0;
     }
 
-    &:first-child {
-        .msp-panel-description-content {
-            top: $row-height + 1;
-        }
+    .msp-transform-default-params:hover {
+        background: color-lower-contrast($default-background, 20%);
     }
 
-    &:not(:first-child) {
-        .msp-panel-description-content {
-            bottom: $row-height + 1;
-        }
-    }
-}
-
-.msp-transform-wrapper {
-    margin-bottom: $control-spacing;
-}
-
-.msp-transform-wrapper-collapsed {
-    margin-bottom: 1px;
-}
-
-.msp-transform-update-wrapper {
-    margin-bottom: 1px;
-}
-
-.msp-transform-update-wrapper-collapsed {
-    margin-bottom: 1px;
-}
-
-.msp-transform-update-wrapper, .msp-transform-update-wrapper-collapsed {
-    > .msp-transform-header > button {
-        text-align: left;
-        padding-left: $row-height;
-        line-height: 24px;
-        background: color-lower-contrast($control-background, 4%); // $control-background; // color-lower-contrast($default-background, 4%);
-        // font-weight: bold;
-    }
-}
-
-.msp-transform-wrapper > .msp-transform-header > button {
-    text-align: left;
-    background: $default-background; // color-lower-contrast($default-background, 4%);
-    font-weight: bold;
-    padding-right: 5px;
-}
-
-.msp-transform-header {
-    position: relative;
-    // border-top: 1px solid $entity-color-Behaviour; // TODO: separate color
-
-    // > button {
-    //     text-align: left;
-    //     padding-left: $row-height;
-    //     background: $control-background; // color-lower-contrast($default-background, 4%);
-    //     font-weight: bold;
-    // }
-
-    > button > small {
-        font-weight: normal;
-        float: right;
-    }
-    
-    > button {
-        > span:first-child {
-            margin-right: 10px;
-        }
+    .msp-transform-apply-wrap {
+        position: relative;
+        margin-top: 1px;
+        width: 100%;
+        height: $row-height;
     }
 
-    > button:hover {
-        color: color-lower-contrast($font-color, 15%);
+    .msp-transform-refresh {
+        width: $control-label-width + $control-spacing - $row-height - 1;
+        margin-left: $row-height + 1;
+        background: $default-background;
+        text-align: right;
     }
-}
 
-.msp-transform-header-brand {
-    // padding-left: 42px;
-    margin-bottom: -1px;
-    svg {
-        fill: $font-color;
-        stroke: $font-color;
+    .msp-transform-apply {
+        display: block;
+        position: absolute;
+        left: $control-label-width + $control-spacing;
+        right: 0;
+        top: 0;
     }
-    // > div {
-    //     position: absolute;
-    //     height: 32px;
-    //     line-height: 32px;
-    //     width: 32px;
-    //     top: 0;
-    //     left: 0;
-    //     text-align: center;
-    //     color: #eceff3;
-    //     fill: #eceff3;
-    //     stroke: #eceff3;
-    //     font-size: 85%;
-    // }
-}
 
-.msp-transform-default-params {
-    background: $default-background;
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: $row-height;
-    padding: 0;
-}
+    .msp-transform-apply-wider {
+        margin-left: $row-height + 1px;
+    }
 
-.msp-transform-default-params:hover {
-    background: color-lower-contrast($default-background, 20%);
-}
-
-.msp-transform-apply-wrap {
-    position: relative;
-    margin-top: 1px;
-    width: 100%;
-    height: $row-height;
-}
-
-.msp-transform-refresh {
-    width: $control-label-width + $control-spacing - $row-height - 1;
-    margin-left: $row-height + 1;
-    background: $default-background;
-    text-align: right;
-}
-
-.msp-transform-apply {
-    display: block;
-    position: absolute;
-    left: $control-label-width + $control-spacing;
-    right: 0;
-    top: 0;
-}
-
-.msp-transform-apply-wider {
-    margin-left: $row-height + 1px;
-}
-
-.msp-data-beh {
-    margin: $control-spacing 0 !important;
+    .msp-data-beh {
+        margin: $control-spacing 0 !important;
+    }
 }

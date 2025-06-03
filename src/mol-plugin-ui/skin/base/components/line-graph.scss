@@ -1,68 +1,80 @@
-.msp-canvas {
-    width: 100%;
-    height: 100%;
-    background-color: #f3f2ee;
-    
-    text {
-        -webkit-touch-callout: none; /* iOS Safari */
-        -webkit-user-select: none; /* Safari */
-        -khtml-user-select: none; /* Konqueror HTML */
-        -moz-user-select: none; /* Firefox */
-        -ms-user-select: none; /* Internet Explorer/Edge */
-        user-select: none; /* Non-prefixed version, currently
-                              supported by Chrome and Opera */
-    }
+@use '../vars' as *;
+@use '../common' as *;
 
-    circle {
-        stroke: black;
-        stroke-width: 10;
-        stroke-opacity: .3;
+@mixin line-graph {
+    .msp-canvas {
+        width: 100%;
+        height: 100%;
+        background-color: #f3f2ee;
 
-        &:hover {
-            fill: #ae5d04;
-            stroke: black;
-            stroke-width: 10px;
-        }
-    }
-
-    .info {
-        fill: white;
-        stroke: black;
-        stroke-width: 3;
-    }
-
-    .show {
-        visibility: visible;
-    }
-    .hide {
-        visibility: hidden;
-    }
-
-    .delete-button {
-        rect {
-            fill: #ED4337;
-            stroke: black;
-        }
-        
         text {
-            stroke: white;
-            fill: white;
+            -webkit-touch-callout: none;
+            /* iOS Safari */
+            -webkit-user-select: none;
+            /* Safari */
+            -khtml-user-select: none;
+            /* Konqueror HTML */
+            -moz-user-select: none;
+            /* Firefox */
+            -ms-user-select: none;
+            /* Internet Explorer/Edge */
+            user-select: none;
+            /* Non-prefixed version, currently
+                              supported by Chrome and Opera */
         }
 
-        &:hover {
+        circle {
+            stroke: black;
+            stroke-width: 10;
+            stroke-opacity: .3;
+
+            &:hover {
+                fill: #ae5d04;
+                stroke: black;
+                stroke-width: 10px;
+            }
+        }
+
+        .info {
+            fill: white;
             stroke: black;
             stroke-width: 3;
-            fill: #ff6961;
+        }
+
+        .show {
+            visibility: visible;
+        }
+
+        .hide {
+            visibility: hidden;
+        }
+
+        .delete-button {
+            rect {
+                fill: #ED4337;
+                stroke: black;
+            }
+
+            text {
+                stroke: white;
+                fill: white;
+            }
+
+            &:hover {
+                stroke: black;
+                stroke-width: 3;
+                fill: #ff6961;
+            }
+        }
+
+        .infoCircle {
+            &:hover {
+                fill: #4c66b2;
+            }
         }
     }
 
-    .infoCircle {
-        &:hover {
-            fill: #4c66b2;
-        }
+    .msp-canvas:focus {
+        outline: none;
     }
-}
-
-.msp-canvas:focus {
-    outline: none;
 }

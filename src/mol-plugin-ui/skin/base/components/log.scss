@@ -1,102 +1,106 @@
+@use '../vars' as *;
+@use '../common' as *;
 
-.msp-log-wrap {
-    position: absolute;
-    right: 0;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    overflow: hidden;
-}
-
-.msp-log {
-    position: absolute;
-    right: -20px;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    overflow-y: scroll;
-    overflow-x: hidden;    
-    font-size: 90%;
-    background: $control-background;
-}
-
-.msp-log {
-    font-size: 90%;
-
-    ul {
-        padding: 0;
-        margin: 0;
+@mixin log {
+    .msp-log-wrap {
+        position: absolute;
+        right: 0;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        overflow: hidden;
     }
-    
-    & {
-        color: $log-font-color;
+
+    .msp-log {
+        position: absolute;
+        right: -20px;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        overflow-y: scroll;
+        overflow-x: hidden;
+        font-size: 90%;
+        background: $control-background;
     }
-    
-    li {
-        clear: both;
-        margin: 0;        
-        background: $default-background;        
-        position: relative;
-        
-        &:not(:last-child) {
-            border-bottom: 1px solid $border-color;
+
+    .msp-log {
+        font-size: 90%;
+
+        ul {
+            padding: 0;
+            margin: 0;
+        }
+
+        & {
+            color: $log-font-color;
+        }
+
+        li {
+            clear: both;
+            margin: 0;
+            background: $default-background;
+            position: relative;
+
+            &:not(:last-child) {
+                border-bottom: 1px solid $border-color;
+            }
+        }
+
+
+        .msp-log-entry {
+            margin-left: $control-label-width;
+            background: color-lower-contrast($control-background, 5%);
+            padding: $info-vertical-padding (
+                $control-spacing + 15px) $info-vertical-padding $control-spacing ;
+        }
+
+        .msp-log-timestamp {
+            padding: $info-vertical-padding $control-spacing $info-vertical-padding $control-spacing;
+            float: left;
+            text-align: right;
+            width: $control-label-width;
+            color: $log-timestamp-font-color;
+            //vertical-align: baseline;
+            //line-height: $row-height;
+            font-size: 100%;
+        }
+
+        .msp-log-timestamp small {
+            font-size: 100%;
         }
     }
-       
-    
-    .msp-log-entry {
-        margin-left: $control-label-width;
-        background: color-lower-contrast($control-background, 5%);
-        padding: $info-vertical-padding ($control-spacing + 15px) $info-vertical-padding $control-spacing ;
+
+    // .msp-log hr {
+    //     border-color: $separator-color;
+    //     margin: 3px 3px 0 5px;
+    // }
+
+    .msp-log .label {
+        margin-top: -3px;
+        font-size: 7pt;
     }
-    
-    .msp-log-timestamp {
-        padding: $info-vertical-padding $control-spacing $info-vertical-padding $control-spacing;
-        float: left;
-        text-align: right;
-        width: $control-label-width;
-        color: $log-timestamp-font-color;
-        //vertical-align: baseline;
-        //line-height: $row-height;
-        font-size: 100%;
-    }    
-    
-    .msp-log-timestamp small {
-        font-size: 100%;
+
+    .msp-log-entry-badge {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 6px;
+    }
+
+    .msp-log-entry-message {
+        background: $log-message;
+    }
+
+    .msp-log-entry-info {
+        background: $log-info;
+    }
+
+    .msp-log-entry-error {
+        background: $log-error;
+    }
+
+    .msp-log-entry-warning {
+        background: $log-warning;
     }
 }
-
-// .msp-log hr {
-//     border-color: $separator-color;
-//     margin: 3px 3px 0 5px;
-// }
-
-.msp-log .label { 
-    margin-top: -3px;
-    font-size: 7pt;
-}
-
-.msp-log-entry-badge {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 6px;
-}
-
-.msp-log-entry-message {
-    background: $log-message;
-}
-
-.msp-log-entry-info {
-    background: $log-info;
-}
-
-.msp-log-entry-error {
-    background: $log-error;
-}
-
-.msp-log-entry-warning {
-    background: $log-warning;
-}
-

@@ -1,90 +1,104 @@
-﻿
-.msp-layout-main {                
-    position: absolute;
-    left: $expanded-left-width;
-    right: $expanded-right-width;
-    bottom: $expanded-bottom-height;
-    top: $expanded-top-height;
-}
+﻿@use '../vars' as *;
 
-.msp-layout-top {        
-    position: absolute;
-    left: $expanded-left-width;
-    right: $expanded-right-width;
-    height: $expanded-top-height;
-    top: 0;
-    border-bottom: 1px solid $border-color;
-}
-
-.msp-layout-bottom {        
-    position: absolute;
-    left: $expanded-left-width;
-    right: $expanded-right-width;
-    height: $expanded-bottom-height;
-    bottom: 0;
-    border-top: 1px solid $border-color;
-}
-
-.msp-layout-right {
-    position: absolute;
-    width: $expanded-right-width;
-    right: 0;
-    bottom: 0;
-    top: 0;
-    border-left: 1px solid $border-color;
-}
-
-.msp-layout-left {
-    position: absolute;
-    width: $expanded-left-width;
-    left: 0;
-    bottom: 0;
-    top: 0;
-    border-right: 1px solid $border-color;
-}
-
-.msp-layout-hide-right {
-    .msp-layout-right {
-        display: none;
-    }    
-    .msp-layout-main, .msp-layout-top, .msp-layout-bottom {
-        right: 0;
-    }    
-}
-
-
-.msp-layout-hide-left {
-    .msp-layout-left {
-        display: none;
-    }    
-    .msp-layout-main, .msp-layout-top, .msp-layout-bottom {
-        left: 0;
-    }    
-}
-
-.msp-layout-collapse-left {
-    .msp-layout-left {
-        width: $collapsed-left-width; 
+@mixin layout-landscape {
+    .msp-layout-main {
+        position: absolute;
+        left: $expanded-left-width;
+        right: $expanded-right-width;
+        bottom: $expanded-bottom-height;
+        top: $expanded-top-height;
     }
-    .msp-layout-main, .msp-layout-top, .msp-layout-bottom {
-        left: $collapsed-left-width;
-    }    
-}
 
-.msp-layout-hide-bottom {
-    .msp-layout-bottom {
-        display: none;
-    }    
-    .msp-layout-main {
-        bottom: 0;
-    }    
-}
-
-.msp-layout-hide-top {
     .msp-layout-top {
-        display: none;
-    }    
-    .msp-layout-main {
+        position: absolute;
+        left: $expanded-left-width;
+        right: $expanded-right-width;
+        height: $expanded-top-height;
         top: 0;
-    }    
+        border-bottom: 1px solid $border-color;
+    }
+
+    .msp-layout-bottom {
+        position: absolute;
+        left: $expanded-left-width;
+        right: $expanded-right-width;
+        height: $expanded-bottom-height;
+        bottom: 0;
+        border-top: 1px solid $border-color;
+    }
+
+    .msp-layout-right {
+        position: absolute;
+        width: $expanded-right-width;
+        right: 0;
+        bottom: 0;
+        top: 0;
+        border-left: 1px solid $border-color;
+    }
+
+    .msp-layout-left {
+        position: absolute;
+        width: $expanded-left-width;
+        left: 0;
+        bottom: 0;
+        top: 0;
+        border-right: 1px solid $border-color;
+    }
+
+    .msp-layout-hide-right {
+        .msp-layout-right {
+            display: none;
+        }
+
+        .msp-layout-main,
+        .msp-layout-top,
+        .msp-layout-bottom {
+            right: 0;
+        }
+    }
+
+
+    .msp-layout-hide-left {
+        .msp-layout-left {
+            display: none;
+        }
+
+        .msp-layout-main,
+        .msp-layout-top,
+        .msp-layout-bottom {
+            left: 0;
+        }
+    }
+
+    .msp-layout-collapse-left {
+        .msp-layout-left {
+            width: $collapsed-left-width;
+        }
+
+        .msp-layout-main,
+        .msp-layout-top,
+        .msp-layout-bottom {
+            left: $collapsed-left-width;
+        }
+    }
+
+    .msp-layout-hide-bottom {
+        .msp-layout-bottom {
+            display: none;
+        }
+
+        .msp-layout-main {
+            bottom: 0;
+        }
+    }
+
+    .msp-layout-hide-top {
+        .msp-layout-top {
+            display: none;
+        }
+
+        .msp-layout-main {
+            top: 0;
+        }
+    }
 }

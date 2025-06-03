@@ -1,4 +1,6 @@
 @use "sass:color";
+@use "colors" as *;
+@forward "colors"; 
 
 // measures
 

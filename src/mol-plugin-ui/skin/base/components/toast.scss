@@ -1,84 +1,94 @@
-
 @use "sass:math";
+@use '../vars' as *;
+@use '../common' as *;
 
-.msp-toast-container {
-    position: relative;
-    // bottom: $control-spacing;    
-    // right: $control-spacing;
-    // margin-left: $control-spacing;
-    z-index: 1001;
+@mixin toast {
 
-    .msp-toast-entry {
-        color: $font-color;
-        background: $control-background;
+    .msp-toast-container {
         position: relative;
-        float: right;
-        min-height: $row-height;
-        margin-top: $control-spacing;
-        border: 1px solid $border-color;
-        display: table;
+        // bottom: $control-spacing;    
+        // right: $control-spacing;
+        // margin-left: $control-spacing;
+        z-index: 1001;
 
-        .msp-toast-title {
-            height: 100%;
-            line-height: $row-height;
-            padding: 0 $control-spacing;
-            background: $default-background;
-            font-weight: bold;
-            display: table-cell;
+        .msp-toast-entry {
+            color: $font-color;
+            background: $control-background;
+            position: relative;
+            float: right;
+            min-height: $row-height;
+            margin-top: $control-spacing;
+            border: 1px solid $border-color;
+            display: table;
 
-            -webkit-user-select: none; /* Chrome/Safari */        
-            -moz-user-select: none; /* Firefox */
-            -ms-user-select: none; /* IE10+ */
-
-            /* Rules below not implemented in browsers yet */
-            -o-user-select: none;
-            user-select: none;
-            
-            font-weight: light;
-            
-            cursor: pointer;
-        }
-
-        .msp-toast-message {
-            padding: $info-vertical-padding ($control-spacing + $row-height) $info-vertical-padding $control-spacing;
-            display: table-cell;
-
-            a {
-                text-decoration: none;
-                color: $msp-btn-commit-on-font-color;
+            .msp-toast-title {
+                height: 100%;
+                line-height: $row-height;
+                padding: 0 $control-spacing;
+                background: $default-background;
                 font-weight: bold;
+                display: table-cell;
 
-                &:hover {
-                    text-decoration: underline;
-                    color: $msp-btn-commit-on-hover-font-color;
-                }
+                -webkit-user-select: none;
+                /* Chrome/Safari */
+                -moz-user-select: none;
+                /* Firefox */
+                -ms-user-select: none;
+                /* IE10+ */
 
-                &:active, &:focus {
+                /* Rules below not implemented in browsers yet */
+                -o-user-select: none;
+                user-select: none;
+
+                font-weight: light;
+
+                cursor: pointer;
+            }
+
+            .msp-toast-message {
+                padding: $info-vertical-padding (
+                    $control-spacing + $row-height) $info-vertical-padding $control-spacing;
+                display: table-cell;
+
+                a {
+                    text-decoration: none;
                     color: $msp-btn-commit-on-font-color;
-                    outline-offset: 0;
-                    outline: none;    
+                    font-weight: bold;
+
+                    &:hover {
+                        text-decoration: underline;
+                        color: $msp-btn-commit-on-hover-font-color;
+                    }
+
+                    &:active,
+                    &:focus {
+                        color: $msp-btn-commit-on-font-color;
+                        outline-offset: 0;
+                        outline: none;
+                    }
                 }
             }
-        }
 
-        .msp-toast-hide {
-            position: absolute;
-            width: $row-height + $control-spacing;
-            right: 0;
-            top: 0;
-            bottom: 0;
-
-            .msp-btn-icon {
-                background: transparent;
+            .msp-toast-hide {
                 position: absolute;
-                top: 1px;
+                width: $row-height + $control-spacing;
                 right: 0;
-                left: 0;
+                top: 0;
                 bottom: 0;
-                width: 100%;
-                text-align: right;
-                padding-right: math.div($control-spacing, 2);
-            }            
+
+                .msp-btn-icon {
+                    background: transparent;
+                    position: absolute;
+                    top: 1px;
+                    right: 0;
+                    left: 0;
+                    bottom: 0;
+                    width: 100%;
+                    text-align: right;
+                    padding-right: math.div($control-spacing, 2
+                    );
+            }
         }
     }
+}
 }
