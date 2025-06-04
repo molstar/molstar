@@ -78,10 +78,8 @@ export function MVSAnnotationColorTheme(ctx: ThemeDataContext, props: MVSAnnotat
             const paletteFunction = makePaletteFunction(props.palette, annotation, props.fieldName);
 
             const colorForStructureElementLocation = (location: StructureElement.Location) => {
-                // if (annot.getAnnotationForLocation(location)?.color !== annot.getAnnotationForLocation_Reference(location)?.color) throw new Error('AssertionError');
                 const annotValue = annotation?.getValueForLocation(location, props.fieldName);
                 const color = annotValue !== undefined ? paletteFunction(annotValue) : undefined;
-                // console.log('annotValue', annotValue, 'color', color !== undefined ? Color.toHexStyle(color) : undefined);
                 return color ?? props.background;
             };
             const auxLocation = StructureElement.Location.create(ctx.structure);
@@ -125,98 +123,99 @@ export const MVSAnnotationColorThemeProvider: ColorTheme.Provider<MVSAnnotationC
 };
 
 
-function makePaletteFunction(props: MVSAnnotationColorThemeProps['palette'], annotation: MVSAnnotation, fieldName: string): (v: string) => Color | undefined {
+function makePaletteFunction(props: MVSAnnotationColorThemeProps['palette'], annotation: MVSAnnotation, fieldName: string): (value: string) => Color | undefined {
     if (props.name === 'direct') return decodeColor;
-
-    if (props.name === 'categorical') {
-        const colorMap: { [value: string]: Color } = {};
-        if (props.params.colors.name === 'dictionary') {
-            for (const { value, color } of props.params.colors.params) {
-                colorMap[value] = color;
-            }
-        } else if (props.params.colors.name === 'list') {
-            const values = annotation.getDistinctValuesInField(fieldName);
-            if (props.params.sort === 'lexical') values.sort();
-            else if (props.params.sort === 'numeric') values.sort((a, b) => Number.parseFloat(a) - Number.parseFloat(b));
-            if (props.params.sortDirection === 'descending') values.reverse();
-
-            const colorList = props.params.colors.params.colors.map(Color.fromColorListEntry);
-            let next = 0;
-            for (const value of values) {
-                colorMap[value] = colorList[next++];
-                if (next >= colorList.length && props.params.repeatColorList) next = 0; // else will get index-out-of-range and assign undefined
-            }
-        }
-        const missingColor = props.params.setMissingColor ? props.params.missingColor : undefined;
-        return (value: string) => colorMap[value] ?? missingColor;
-    }
-
-    if (props.name === 'continuous') {
-        let scale: (value: number) => number;
-        if (props.params.mode === 'normalized') {
-            let xMin = props.params.xMin;
-            let xMax = props.params.xMax;
-            if (xMin === undefined || xMax === undefined) {
-                const values = annotation.getDistinctValuesInField(fieldName).map(parseFloat).filter(x => !isNaN(x));
-                if (values.length > 0) {
-                    xMin ??= values.reduce((a, b) => a < b ? a : b, Infinity); // xMin ??= min(values)
-                    xMax ??= values.reduce((a, b) => a > b ? a : b, -Infinity); // xMax ??= max(values)
-                } else {
-                    xMin ??= 0;
-                    xMax ??= 1;
-                }
-            }
-            const range = xMax - xMin;
-            if (range === 0) {
-                scale = x => (x < xMin ? -0.5 : x === xMin ? 0.5 : 1.5);
-            } else {
-                const invRange = 1 / range;
-                scale = x => (x - xMin) * invRange;
-            }
-            // console.log('Mode normalized', xMin, xMax);
-        } else {
-            // console.log('Mode absolute');
-            scale = x => x;
-        }
-
-        let colors: Color[];
-        let checkpoints: SortedArray<number>;
-        if (props.params.colors.colors.every(x => Array.isArray(x))) {
-            // Explicit checkpoints
-            const sorted = props.params.colors.colors.sort((a, b) => a[1] - b[1]);
-            colors = sorted.map(Color.fromColorListEntry);
-            checkpoints = SortedArray.ofSortedArray(sorted.map(t => t[1]));
-        } else {
-            colors = props.params.colors.colors.map(Color.fromColorListEntry);
-            const n = colors.length - 1;
-            checkpoints = SortedArray.ofSortedArray(colors.map((_, i) => i / n));
-        }
-
-        // console.log('colors:', colors)
-        // console.log('checkpoints:', checkpoints)
-        if (checkpoints.length === 0) return value => undefined;
-
-        const underflowColor = props.params.setUnderflowColor ? props.params.underflowColor : undefined;
-        const overflowColor = props.params.setOverflowColor ? props.params.overflowColor : undefined;
-
-        return (value: string) => {
-            const xAbs = parseFloat(value);
-            if (isNaN(xAbs)) return undefined;
-            const x = scale(xAbs);
-            const gteIdx = SortedArray.findPredecessorIndex(checkpoints, x); // Index of the first greater or equal checkpoint
-            if (gteIdx === 0) {
-                if (x === checkpoints[0]) return colors[0];
-                else return underflowColor;
-            }
-            if (gteIdx === checkpoints.length) {
-                return overflowColor;
-            }
-            const q = (x - checkpoints[gteIdx - 1]) / (checkpoints[gteIdx] - checkpoints[gteIdx - 1]);
-            // TODO consider optimizing this - avoid repeated division (but probably not worth it)
-            // TODO consider optimizing this - cache color per value
-            return Color.interpolate(colors[gteIdx - 1], colors[gteIdx], q);
-        };
-    }
-
+    if (props.name === 'categorical') return makePaletteFunctionCategorical(props, annotation, fieldName);
+    if (props.name === 'continuous') return makePaletteFunctionContinuous(props, annotation, fieldName);
     throw new Error(`NotImplementedError: makePaletteFunction for ${(props as any).name}`);
+}
+
+function makePaletteFunctionCategorical(props: MVSAnnotationColorThemeProps['palette'] & { name: 'categorical' }, annotation: MVSAnnotation, fieldName: string): (value: string) => Color | undefined {
+    const colorMap: { [value: string]: Color } = {};
+    if (props.params.colors.name === 'dictionary') {
+        for (const { value, color } of props.params.colors.params) {
+            colorMap[value] = color;
+        }
+    } else if (props.params.colors.name === 'list') {
+        const values = annotation.getDistinctValuesInField(fieldName);
+        if (props.params.sort === 'lexical') values.sort();
+        else if (props.params.sort === 'numeric') values.sort((a, b) => Number.parseFloat(a) - Number.parseFloat(b));
+        if (props.params.sortDirection === 'descending') values.reverse();
+
+        const colorList = props.params.colors.params.colors.map(Color.fromColorListEntry);
+        let next = 0;
+        for (const value of values) {
+            colorMap[value] = colorList[next++];
+            if (next >= colorList.length && props.params.repeatColorList) next = 0; // else will get index-out-of-range and assign undefined
+        }
+    }
+    const missingColor = props.params.setMissingColor ? props.params.missingColor : undefined;
+    return (value: string) => colorMap[value] ?? missingColor;
+}
+
+function makePaletteFunctionContinuous(props: MVSAnnotationColorThemeProps['palette'] & { name: 'continuous' }, annotation: MVSAnnotation, fieldName: string): (value: string) => Color | undefined {
+    const { colors, checkpoints } = makeContinuousPaletteCheckpoints(props);
+    if (colors.length === 0) return () => undefined;
+
+    const scale = makeContinuousPaletteScale(props, annotation, fieldName);
+    const underflowColor = props.params.setUnderflowColor ? props.params.underflowColor : undefined;
+    const overflowColor = props.params.setOverflowColor ? props.params.overflowColor : undefined;
+
+    return (value: string) => {
+        const xAbs = parseFloat(value);
+        if (isNaN(xAbs)) return undefined;
+        const x = scale(xAbs);
+        const gteIdx = SortedArray.findPredecessorIndex(checkpoints, x); // Index of the first greater or equal checkpoint
+        if (gteIdx === 0) {
+            if (x === checkpoints[0]) return colors[0];
+            else return underflowColor;
+        }
+        if (gteIdx === checkpoints.length) {
+            return overflowColor;
+        }
+        const q = (x - checkpoints[gteIdx - 1]) / (checkpoints[gteIdx] - checkpoints[gteIdx - 1]);
+        return Color.interpolate(colors[gteIdx - 1], colors[gteIdx], q);
+    };
+}
+
+function makeContinuousPaletteScale(props: MVSAnnotationColorThemeProps['palette'] & { name: 'continuous' }, annotation: MVSAnnotation, fieldName: string): (x: number) => number {
+    if (props.params.mode === 'normalized') {
+        // Mode normalized
+        let xMin = props.params.xMin;
+        let xMax = props.params.xMax;
+        if (xMin === undefined || xMax === undefined) {
+            const values = annotation.getDistinctValuesInField(fieldName).map(parseFloat).filter(x => !isNaN(x));
+            if (values.length > 0) {
+                xMin ??= values.reduce((a, b) => a < b ? a : b, Infinity); // xMin ??= min(values)
+                xMax ??= values.reduce((a, b) => a > b ? a : b, -Infinity); // xMax ??= max(values)
+            } else {
+                xMin ??= 0;
+                xMax ??= 1;
+            }
+        }
+        if (xMin === xMax) {
+            return x => (x < xMin ? -0.5 : x === xMin ? 0.5 : 1.5);
+        } else {
+            return x => (x - xMin) / (xMax - xMin);
+        }
+    } else {
+        // Mode absolute
+        return x => x;
+    }
+}
+
+function makeContinuousPaletteCheckpoints(props: MVSAnnotationColorThemeProps['palette'] & { name: 'continuous' }) {
+    if (props.params.colors.colors.every(x => Array.isArray(x))) {
+        // Explicit checkpoints
+        const sorted = props.params.colors.colors.sort((a, b) => a[1] - b[1]);
+        const colors = sorted.map(Color.fromColorListEntry);
+        const checkpoints = SortedArray.ofSortedArray(sorted.map(t => t[1]));
+        return { colors, checkpoints };
+    } else {
+        // Auto checkpoints (linspace 0 to 1)
+        const colors = props.params.colors.colors.map(Color.fromColorListEntry);
+        const n = colors.length - 1;
+        const checkpoints = SortedArray.ofSortedArray(colors.map((_, i) => i / n));
+        return { colors, checkpoints };
+    }
 }
