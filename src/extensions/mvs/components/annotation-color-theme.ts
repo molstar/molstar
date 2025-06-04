@@ -9,7 +9,6 @@ import { Location } from '../../../mol-model/location';
 import { Bond, StructureElement } from '../../../mol-model/structure';
 import type { ColorTheme, LocationColor } from '../../../mol-theme/color';
 import type { ThemeDataContext } from '../../../mol-theme/theme';
-import { arrayIsSorted } from '../../../mol-util/array';
 import { Color } from '../../../mol-util/color';
 import { ColorNames } from '../../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -186,8 +185,8 @@ function makeContinuousPaletteScale(props: MVSAnnotationColorThemeProps['palette
         if (xMin === undefined || xMax === undefined) {
             const values = annotation.getDistinctValuesInField(fieldName).map(parseFloat).filter(x => !isNaN(x));
             if (values.length > 0) {
-                xMin ??= values.reduce((a, b) => a < b ? a : b, Infinity); // xMin ??= min(values)
-                xMax ??= values.reduce((a, b) => a > b ? a : b, -Infinity); // xMax ??= max(values)
+                xMin ??= values.reduce((a, b) => a < b ? a : b); // xMin ??= min(values)
+                xMax ??= values.reduce((a, b) => a > b ? a : b); // xMax ??= max(values)
             } else {
                 xMin ??= 0;
                 xMax ??= 1;

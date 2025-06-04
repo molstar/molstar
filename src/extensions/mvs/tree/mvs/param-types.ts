@@ -167,16 +167,16 @@ export const ContinuousPalette = iots.intersection([
             list(ColorT),
             list(tuple([ColorT, float])),
         ]),
+        /** Reverse order of `colors` list. Only has effect when `colors` is a color list name or a color list without explicit checkpoints. */
+        reverse: bool,
         /** Defines whether the annotation values should be normalized before assigning color based on checkpoints in `colors` (`x_normalized = (x - x_min) / (x_max - x_min)`, where `[x_min, x_max]` are either `value_domain` if provided, or the lowest and the highest value encountered in the annotation). Default is `"normalized"`. */
         mode: literal('normalized', 'absolute'),
         /** Defines `x_min` and `x_max` for normalization of annotation values. Either can be `null`, meaning that minimum/maximum of the real values will be used. Only used when `mode` is `"normalized"`. */
         value_domain: tuple([nullable(float), nullable(float)]),
-        /** Color to use for values above the highest checkpoint. */
-        overflow_color: nullable(ColorT),
-        /** Color to use for values below the lowest checkpoint. */
-        underflow_color: nullable(ColorT),
-        // TODO over/underflow - allow 'auto'
-        // TODO `reversed`? (makes sense for named color lists, less so for lists)
+        /** Color to use for values below the lowest checkpoint. 'auto' means color of the lowest checkpoint. */
+        underflow_color: nullable(union([literal('auto'), ColorT])),
+        /** Color to use for values above the highest checkpoint. 'auto' means color of the highest checkpoint. */
+        overflow_color: nullable(union([literal('auto'), ColorT])),
     }),
 ]);
 export type ContinuousPalette = ValueFor<typeof ContinuousPalette>;

@@ -15,6 +15,7 @@ import { ElementSymbolColors } from '../../mol-theme/color/element-symbol';
 import { ResidueNameColors } from '../../mol-theme/color/residue-name';
 import { arrayDistinct } from '../../mol-util/array';
 import { Color } from '../../mol-util/color';
+import { ColorListEntry } from '../../mol-util/color/color';
 import { ColorListName, ColorLists } from '../../mol-util/color/lists';
 import { canonicalJsonString } from '../../mol-util/json';
 import { omitObjectKeys } from '../../mol-util/object';
@@ -417,17 +418,22 @@ function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri' | 'col
         };
     }
     if (palette.kind === 'continuous') {
+        const colors = continuousPalettePropsFromMVSColors(
+            palette.colors ?? 'YlGn', // YlGn selected as default because (a) matplotlib's default Viridis looks ugly in 3D and (b) YlGn does not contain white, so it's easier to see it's doing something when values are very small
+            palette.reverse ?? false,
+        );
+
         return {
             name: 'continuous',
             params: {
-                colors: continuousPalettePropsFromMVSColors(palette.colors ?? 'YlGn'), // YlGn selected as default because (a) matplotlib's default Viridis looks ugly in 3D and (b) YlGn does not contain white, so it's easier to see it's doing something when values are very small
+                colors: colors,
                 mode: palette.mode ?? 'normalized',
                 xMin: palette.value_domain?.[0] ?? undefined,
                 xMax: palette.value_domain?.[1] ?? undefined,
                 setUnderflowColor: !!palette.underflow_color,
-                underflowColor: decodeColor(palette.underflow_color) ?? FALLBACK_COLOR,
+                underflowColor: (palette.underflow_color === 'auto' ? minColor(colors.colors) : decodeColor(palette.underflow_color)) ?? FALLBACK_COLOR,
                 setOverflowColor: !!palette.overflow_color,
-                overflowColor: decodeColor(palette.overflow_color) ?? FALLBACK_COLOR,
+                overflowColor: (palette.overflow_color === 'auto' ? maxColor(colors.colors) : decodeColor(palette.overflow_color)) ?? FALLBACK_COLOR,
                 // TODO specify defaults with param-types or mvs-tree
             } satisfies MVSContinuousPaletteProps,
         };
@@ -459,15 +465,16 @@ function categoricalPalettePropsFromMVSColors(colors: CategoricalPalette['colors
     return { name: 'list', params: { kind: 'set', colors: [] } };
 }
 
-function continuousPalettePropsFromMVSColors(colors: ContinuousPalette['colors']): MVSContinuousPaletteProps['colors'] {
+function continuousPalettePropsFromMVSColors(colors: ContinuousPalette['colors'], reverse: boolean): MVSContinuousPaletteProps['colors'] {
     if (typeof colors === 'string') {
         // Named color list
         if (colors in MvsNamedColorListToMolstarName) {
             const molstarColorListName = MvsNamedColorListToMolstarName[colors as keyof typeof MvsNamedColorListToMolstarName];
             const colorList = ColorLists[molstarColorListName];
             if (colorList) {
-                const n = colorList.list.length - 1;
-                return { kind: 'interpolate', colors: colorList.list.map((col, i) => [Color.fromColorListEntry(col), i / n]) };
+                const list = reverse ? colorList.list.slice().reverse() : colorList.list;
+                const n = list.length - 1;
+                return { kind: 'interpolate', colors: list.map((col, i) => [Color.fromColorListEntry(col), i / n]) };
             }
         }
         console.warn(`Could not find named color palette "${colors}"`);
@@ -475,9 +482,11 @@ function continuousPalettePropsFromMVSColors(colors: ContinuousPalette['colors']
     if (Array.isArray(colors)) {
         if (colors.every(t => Array.isArray(t))) {
             // Color list with checkpoints
+            // Not applying `reverse` here, as it would have no effect
             return { kind: 'interpolate', colors: colors.map(t => [decodeColor(t[0]) ?? FALLBACK_COLOR, t[1]]) };
         } else {
             // Color list without checkpoints
+            if (reverse) colors = colors.slice().reverse();
             const n = colors.length - 1;
             return { kind: 'interpolate', colors: colors.map((col, i) => [decodeColor(col) ?? FALLBACK_COLOR, i / n]) };
         }
@@ -542,6 +551,17 @@ const MvsNamedColorDicts: Record<ColorDictNameT, Record<string, Color>> = {
     ResidueName: ResidueNameColors,
     ResidueProperties: ResiduePropertyColors,
 };
+
+function minColor(colors: ColorListEntry[]): Color | undefined {
+    if (colors.length === 0) return undefined;
+    if (colors.every(t => Array.isArray(t))) return Color.fromColorListEntry(colors.reduce((a, b) => a[1] < b[1] ? a : b));
+    return Color.fromColorListEntry(colors[0]);
+}
+function maxColor(colors: ColorListEntry[]): Color | undefined {
+    if (colors.length === 0) return undefined;
+    if (colors.every(t => Array.isArray(t))) return Color.fromColorListEntry(colors.reduce((a, b) => a[1] > b[1] ? a : b));
+    return Color.fromColorListEntry(colors[colors.length - 1]);
+}
 
 /** Create a mapping of nearest representation nodes for each node in the tree
  * (to transfer coloring to label nodes smartly).
