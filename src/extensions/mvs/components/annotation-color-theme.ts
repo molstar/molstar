@@ -35,6 +35,19 @@ export const MVSCategoricalPaletteParams = {
 export type MVSCategoricalPaletteParams = typeof MVSCategoricalPaletteParams
 export type MVSCategoricalPaletteProps = PD.Values<MVSCategoricalPaletteParams>
 
+export const MVSDiscretePaletteParams = {
+    colors: PD.ObjectList({
+        color: PD.Color(ColorNames.white),
+        fromValue: PD.Numeric(-Infinity),
+        toValue: PD.Numeric(Infinity), // TODO check if this is JSONable, use MaybeFloat if not
+    }, e => `${Color.toHexStyle(e.color)} [${e.fromValue}, ${e.toValue}]`, { description: 'Mapping of annotation value ranges to colors.' }),
+    mode: PD.Select('normalized', [['normalized', 'Normalized'], ['absolute', 'Absolute']] as const, { description: 'Defines whether the annotation values should be normalized before assigning color based on checkpoints in `colors` (`x_normalized = (x - x_min) / (x_max - x_min)`, where `[x_min, x_max]` are either `value_domain` if provided, or the lowest and the highest value encountered in the annotation).' }),
+    xMin: MaybeFloatParamDefinition(undefined, { hideIf: g => g.mode !== 'normalized', placeholder: 'auto', description: 'Defines `x_min` for normalization of annotation values. If not provided, minimum of the real values will be used. Only used when `mode` is `"normalized"' }),
+    xMax: MaybeFloatParamDefinition(undefined, { hideIf: g => g.mode !== 'normalized', placeholder: 'auto', description: 'Defines `x_max` for normalization of annotation values. If not provided, maximum of the real values will be used. Only used when `mode` is `"normalized"' }),
+};
+export type MVSDiscretePaletteParams = typeof MVSDiscretePaletteParams
+export type MVSDiscretePaletteProps = PD.Values<MVSDiscretePaletteParams>
+
 export const MVSContinuousPaletteParams = {
     colors: PD.ColorList('yellow-green', { description: 'List of colors, with optional checkpoints.', presetKind: 'scale', offsets: true }),
     mode: PD.Select('normalized', [['normalized', 'Normalized'], ['absolute', 'Absolute']] as const, { description: 'Defines whether the annotation values should be normalized before assigning color based on checkpoints in `colors` (`x_normalized = (x - x_min) / (x_max - x_min)`, where `[x_min, x_max]` are either `value_domain` if provided, or the lowest and the highest value encountered in the annotation).' }),
@@ -57,6 +70,7 @@ export const MVSAnnotationColorThemeParams = {
     palette: PD.MappedStatic('direct', {
         'direct': PD.EmptyGroup(),
         'categorical': PD.Group(MVSCategoricalPaletteParams),
+        'discrete': PD.Group(MVSDiscretePaletteParams),
         'continuous': PD.Group(MVSContinuousPaletteParams),
     }),
 };
@@ -124,41 +138,59 @@ export const MVSAnnotationColorThemeProvider: ColorTheme.Provider<MVSAnnotationC
 
 function makePaletteFunction(props: MVSAnnotationColorThemeProps['palette'], annotation: MVSAnnotation, fieldName: string): (value: string) => Color | undefined {
     if (props.name === 'direct') return decodeColor;
-    if (props.name === 'categorical') return makePaletteFunctionCategorical(props, annotation, fieldName);
-    if (props.name === 'continuous') return makePaletteFunctionContinuous(props, annotation, fieldName);
+    if (props.name === 'categorical') return makePaletteFunctionCategorical(props.params, annotation, fieldName);
+    if (props.name === 'discrete') return makePaletteFunctionDiscrete(props.params as MVSDiscretePaletteProps, annotation, fieldName);
+    if (props.name === 'continuous') return makePaletteFunctionContinuous(props.params as MVSContinuousPaletteProps, annotation, fieldName);
     throw new Error(`NotImplementedError: makePaletteFunction for ${(props as any).name}`);
 }
 
-function makePaletteFunctionCategorical(props: MVSAnnotationColorThemeProps['palette'] & { name: 'categorical' }, annotation: MVSAnnotation, fieldName: string): (value: string) => Color | undefined {
+function makePaletteFunctionCategorical(props: MVSCategoricalPaletteProps, annotation: MVSAnnotation, fieldName: string): (value: string) => Color | undefined {
     const colorMap: { [value: string]: Color } = {};
-    if (props.params.colors.name === 'dictionary') {
-        for (const { value, color } of props.params.colors.params) {
+    if (props.colors.name === 'dictionary') {
+        for (const { value, color } of props.colors.params) {
             colorMap[value] = color;
         }
-    } else if (props.params.colors.name === 'list') {
+    } else if (props.colors.name === 'list') {
         const values = annotation.getDistinctValuesInField(fieldName);
-        if (props.params.sort === 'lexical') values.sort();
-        else if (props.params.sort === 'numeric') values.sort((a, b) => Number.parseFloat(a) - Number.parseFloat(b));
-        if (props.params.sortDirection === 'descending') values.reverse();
+        if (props.sort === 'lexical') values.sort();
+        else if (props.sort === 'numeric') values.sort((a, b) => Number.parseFloat(a) - Number.parseFloat(b));
+        if (props.sortDirection === 'descending') values.reverse();
 
-        const colorList = props.params.colors.params.colors.map(Color.fromColorListEntry);
+        const colorList = props.colors.params.colors.map(Color.fromColorListEntry);
         let next = 0;
         for (const value of values) {
             colorMap[value] = colorList[next++];
-            if (next >= colorList.length && props.params.repeatColorList) next = 0; // else will get index-out-of-range and assign undefined
+            if (next >= colorList.length && props.repeatColorList) next = 0; // else will get index-out-of-range and assign undefined
         }
     }
-    const missingColor = props.params.setMissingColor ? props.params.missingColor : undefined;
+    const missingColor = props.setMissingColor ? props.missingColor : undefined;
     return (value: string) => colorMap[value] ?? missingColor;
 }
 
-function makePaletteFunctionContinuous(props: MVSAnnotationColorThemeProps['palette'] & { name: 'continuous' }, annotation: MVSAnnotation, fieldName: string): (value: string) => Color | undefined {
+function makePaletteFunctionDiscrete(props: MVSDiscretePaletteProps, annotation: MVSAnnotation, fieldName: string): (value: string) => Color | undefined {
+    if (props.colors.length === 0) return () => undefined;
+
+    const scale = makeNumericPaletteScale(props, annotation, fieldName);
+
+    return (value: string) => {
+        const xAbs = parseFloat(value);
+        if (isNaN(xAbs)) return undefined;
+        const x = scale(xAbs);
+
+        for (let i = props.colors.length - 1; i >= 0; i--) {
+            const { color, fromValue, toValue } = props.colors[i];
+            if (fromValue <= x && x <= toValue) return color;
+        }
+    };
+}
+
+function makePaletteFunctionContinuous(props: MVSContinuousPaletteProps, annotation: MVSAnnotation, fieldName: string): (value: string) => Color | undefined {
     const { colors, checkpoints } = makeContinuousPaletteCheckpoints(props);
     if (colors.length === 0) return () => undefined;
 
-    const scale = makeContinuousPaletteScale(props, annotation, fieldName);
-    const underflowColor = props.params.setUnderflowColor ? props.params.underflowColor : undefined;
-    const overflowColor = props.params.setOverflowColor ? props.params.overflowColor : undefined;
+    const scale = makeNumericPaletteScale(props, annotation, fieldName);
+    const underflowColor = props.setUnderflowColor ? props.underflowColor : undefined;
+    const overflowColor = props.setOverflowColor ? props.overflowColor : undefined;
 
     return (value: string) => {
         const xAbs = parseFloat(value);
@@ -177,11 +209,11 @@ function makePaletteFunctionContinuous(props: MVSAnnotationColorThemeProps['pale
     };
 }
 
-function makeContinuousPaletteScale(props: MVSAnnotationColorThemeProps['palette'] & { name: 'continuous' }, annotation: MVSAnnotation, fieldName: string): (x: number) => number {
-    if (props.params.mode === 'normalized') {
+function makeNumericPaletteScale(props: MVSContinuousPaletteProps | MVSDiscretePaletteProps, annotation: MVSAnnotation, fieldName: string): (x: number) => number {
+    if (props.mode === 'normalized') {
         // Mode normalized
-        let xMin = props.params.xMin;
-        let xMax = props.params.xMax;
+        let xMin = props.xMin;
+        let xMax = props.xMax;
         if (xMin === undefined || xMax === undefined) {
             const values = annotation.getDistinctValuesInField(fieldName).map(parseFloat).filter(x => !isNaN(x));
             if (values.length > 0) {
@@ -203,16 +235,16 @@ function makeContinuousPaletteScale(props: MVSAnnotationColorThemeProps['palette
     }
 }
 
-function makeContinuousPaletteCheckpoints(props: MVSAnnotationColorThemeProps['palette'] & { name: 'continuous' }) {
-    if (props.params.colors.colors.every(x => Array.isArray(x))) {
+function makeContinuousPaletteCheckpoints(props: MVSContinuousPaletteProps) {
+    if (props.colors.colors.every(x => Array.isArray(x))) {
         // Explicit checkpoints
-        const sorted = props.params.colors.colors.sort((a, b) => a[1] - b[1]);
+        const sorted = props.colors.colors.sort((a, b) => a[1] - b[1]);
         const colors = sorted.map(Color.fromColorListEntry);
         const checkpoints = SortedArray.ofSortedArray(sorted.map(t => t[1]));
         return { colors, checkpoints };
     } else {
         // Auto checkpoints (linspace 0 to 1)
-        const colors = props.params.colors.colors.map(Color.fromColorListEntry);
+        const colors = props.colors.colors.map(Color.fromColorListEntry);
         const n = colors.length - 1;
         const checkpoints = SortedArray.ofSortedArray(colors.map((_, i) => i / n));
         return { colors, checkpoints };

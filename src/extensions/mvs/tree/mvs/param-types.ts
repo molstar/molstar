@@ -156,6 +156,31 @@ export const CategoricalPalette = iots.intersection([
 ]);
 export type CategoricalPalette = ValueFor<typeof CategoricalPalette>;
 
+export const DiscretePalette = iots.intersection([
+    obj({ kind: literal('discrete') }),
+    partial({
+        /** Define colors for the discrete color palette and optionally corresponding checkpoints.
+         * Checkpoints refer to the values normalized to interval [0, 1] if `mode` is `"normalized"` (default), or to the values directly if `mode` is `"absolute"`.
+         * If checkpoints are not provided, they will created automatically (uniformly distributed over interval [0, 1]).
+         * If 1 checkpoint is provided for each color, then the color applies to values from this checkpoint (inclusive) until the next listed checkpoint (exclusive); the last color applies until Infinity.
+         * If 2 checkpoints are provided for each color, then the color applies to values from the first until the second checkpoint (inclusive); null means +/-Infinity; if ranges overlap, the later listed takes precedence.
+         */
+        colors: union([
+            ColorListNameT,
+            list(ColorT),
+            list(tuple([ColorT, float])),
+            list(tuple([nullable(ColorT), nullable(float), nullable(float)])),
+        ]),
+        /** Reverse order of `colors` list. Only has effect when `colors` is a color list name or a color list without explicit checkpoints. */
+        reverse: bool,
+        /** Defines whether the annotation values should be normalized before assigning color based on checkpoints in `colors` (`x_normalized = (x - x_min) / (x_max - x_min)`, where `[x_min, x_max]` are either `value_domain` if provided, or the lowest and the highest value encountered in the annotation). Default is `"normalized"`. */
+        mode: literal('normalized', 'absolute'),
+        /** Defines `x_min` and `x_max` for normalization of annotation values. Either can be `null`, meaning that minimum/maximum of the real values will be used. Only used when `mode` is `"normalized"`. */
+        value_domain: tuple([nullable(float), nullable(float)]),
+    }),
+]);
+export type DiscretePalette = ValueFor<typeof DiscretePalette>;
+
 export const ContinuousPalette = iots.intersection([
     obj({ kind: literal('continuous') }),
     partial({
@@ -183,9 +208,7 @@ export type ContinuousPalette = ValueFor<typeof ContinuousPalette>;
 
 // TODO consider spreading the palette param directly into color_from_uri/color_from_source params (though this will be tricky) or achieve smart error messages and default value handling
 
-// export const Palette = CategoricalPalette;
-export const Palette = union([CategoricalPalette, ContinuousPalette]);
-// export const Palette = union([CategoricalPalette, DiscretePalette, ContinuousPalette]);
+export const Palette = union([CategoricalPalette, DiscretePalette, ContinuousPalette]);
 
 // Draft from https://docs.google.com/document/d/1p9yePdtvO8RzYQ90jEdCHM5sMqxFpy4f8DbleXagRDE/edit?tab=t.0
 

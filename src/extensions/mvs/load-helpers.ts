@@ -20,7 +20,7 @@ import { ColorListName, ColorLists } from '../../mol-util/color/lists';
 import { canonicalJsonString } from '../../mol-util/json';
 import { omitObjectKeys } from '../../mol-util/object';
 import { stringToWords } from '../../mol-util/string';
-import { MVSAnnotationColorThemeProps, MVSAnnotationColorThemeProvider, MVSCategoricalPaletteProps, MVSContinuousPaletteProps } from './components/annotation-color-theme';
+import { MVSAnnotationColorThemeProps, MVSAnnotationColorThemeProvider, MVSCategoricalPaletteProps, MVSContinuousPaletteProps, MVSDiscretePaletteProps } from './components/annotation-color-theme';
 import { MVSAnnotationLabelRepresentationProvider } from './components/annotation-label/representation';
 import { MVSAnnotationSpec } from './components/annotation-prop';
 import { MVSAnnotationStructureComponentProps } from './components/annotation-structure-component';
@@ -36,7 +36,7 @@ import { Subtree, getChildren } from './tree/generic/tree-schema';
 import { dfs, formatObject } from './tree/generic/tree-utils';
 import { MolstarKind, MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree } from './tree/molstar/molstar-tree';
 import { DefaultColor } from './tree/mvs/mvs-tree';
-import { CategoricalPalette, ColorDictNameT, ColorListNameT, ContinuousPalette } from './tree/mvs/param-types';
+import { CategoricalPalette, ColorDictNameT, ColorListNameT, ContinuousPalette, DiscretePalette } from './tree/mvs/param-types';
 
 
 export const AnnotationFromUriKinds = new Set(['color_from_uri', 'component_from_uri', 'label_from_uri', 'tooltip_from_uri'] satisfies MolstarKind[]);
@@ -417,6 +417,17 @@ function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri' | 'col
             } satisfies MVSCategoricalPaletteProps,
         };
     }
+    if (palette.kind === 'discrete') {
+        return {
+            name: 'discrete',
+            params: {
+                colors: discretePalettePropsFromMVSColors(palette.colors ?? 'YlGn', palette.reverse ?? false),
+                mode: palette.mode ?? 'normalized',
+                xMin: palette.value_domain?.[0] ?? undefined,
+                xMax: palette.value_domain?.[1] ?? undefined,
+            },
+        };
+    }
     if (palette.kind === 'continuous') {
         const colors = continuousPalettePropsFromMVSColors(
             palette.colors ?? 'YlGn', // YlGn selected as default because (a) matplotlib's default Viridis looks ugly in 3D and (b) YlGn does not contain white, so it's easier to see it's doing something when values are very small
@@ -463,6 +474,33 @@ function categoricalPalettePropsFromMVSColors(colors: CategoricalPalette['colors
         return { name: 'dictionary', params: Object.entries(colors).map(([value, color]) => ({ value, color: decodeColor(color) ?? FALLBACK_COLOR })) };
     }
     return { name: 'list', params: { kind: 'set', colors: [] } };
+}
+
+function discretePalettePropsFromMVSColors(colors: DiscretePalette['colors'], reverse: boolean): MVSDiscretePaletteProps['colors'] {
+    if (typeof colors === 'string') {
+        if (colors in MvsNamedColorListToMolstarName) {
+            const molstarColorListName = MvsNamedColorListToMolstarName[colors as keyof typeof MvsNamedColorListToMolstarName];
+            const colorList = ColorLists[molstarColorListName];
+            if (colorList) {
+                const list = reverse ? colorList.list.slice().reverse() : colorList.list;
+                const sectionLength = 1 / list.length;
+                return list.map((e, i) => ({ color: Color.fromColorListEntry(e), fromValue: i * sectionLength, toValue: (i + 1) * sectionLength }));
+            }
+        }
+        console.warn(`Could not find named color palette "${colors}"`);
+    }
+    if (Array.isArray(colors) && colors.every(t => typeof t === 'string')) {
+        if (reverse) colors = colors.slice().reverse();
+        const sectionLength = 1 / colors.length;
+        return colors.map((c, i) => ({ color: decodeColor(c) ?? NoColor, fromValue: i * sectionLength, toValue: (i + 1) * sectionLength }));
+    }
+    if (Array.isArray(colors) && colors.every(t => Array.isArray(t) && t.length === 2)) {
+        return colors.map((t, i) => ({ color: decodeColor(t[0]) ?? NoColor, fromValue: t[1], toValue: colors[i + 1]?.[1] ?? Infinity }));
+    }
+    if (Array.isArray(colors) && colors.every(t => Array.isArray(t) && t.length === 3)) {
+        return colors.map(t => ({ color: decodeColor(t[0]) ?? NoColor, fromValue: t[1] ?? -Infinity, toValue: t[2] ?? Infinity }));
+    }
+    return [];
 }
 
 function continuousPalettePropsFromMVSColors(colors: ContinuousPalette['colors'], reverse: boolean): MVSContinuousPaletteProps['colors'] {
