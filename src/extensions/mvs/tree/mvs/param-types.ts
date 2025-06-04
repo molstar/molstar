@@ -175,6 +175,8 @@ export const ContinuousPalette = iots.intersection([
         overflow_color: nullable(ColorT),
         /** Color to use for values below the lowest checkpoint. */
         underflow_color: nullable(ColorT),
+        // TODO over/underflow - allow 'auto'
+        // TODO `reversed`? (makes sense for named color lists, less so for lists)
     }),
 ]);
 export type ContinuousPalette = ValueFor<typeof ContinuousPalette>;

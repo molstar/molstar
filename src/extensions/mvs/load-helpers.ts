@@ -16,7 +16,6 @@ import { ResidueNameColors } from '../../mol-theme/color/residue-name';
 import { arrayDistinct } from '../../mol-util/array';
 import { Color } from '../../mol-util/color';
 import { ColorListName, ColorLists } from '../../mol-util/color/lists';
-import { ColorNames } from '../../mol-util/color/names';
 import { canonicalJsonString } from '../../mol-util/json';
 import { omitObjectKeys } from '../../mol-util/object';
 import { stringToWords } from '../../mol-util/string';
@@ -421,7 +420,7 @@ function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri' | 'col
         return {
             name: 'continuous',
             params: {
-                colors: continuousPalettePropsFromMVSColors(palette.colors ?? 'Blues'), // TODO sensible default
+                colors: continuousPalettePropsFromMVSColors(palette.colors ?? 'YlGn'), // YlGn selected as default because (a) matplotlib's default Viridis looks ugly in 3D and (b) YlGn does not contain white, so it's easier to see it's doing something when values are very small
                 mode: palette.mode ?? 'normalized',
                 xMin: palette.value_domain?.[0] ?? undefined,
                 xMax: palette.value_domain?.[1] ?? undefined,
@@ -461,23 +460,29 @@ function categoricalPalettePropsFromMVSColors(colors: CategoricalPalette['colors
 }
 
 function continuousPalettePropsFromMVSColors(colors: ContinuousPalette['colors']): MVSContinuousPaletteProps['colors'] {
-    // if (typeof colors === 'string') {
-    //     if (colors in MvsNamedColorListToMolstarName) {
-    //         const molstarColorListName = MvsNamedColorListToMolstarName[colors as keyof typeof MvsNamedColorListToMolstarName];
-    //         const colorList = ColorLists[molstarColorListName];
-    //         if (colorList) {
-    //             return { name: 'list', params: { kind: 'set', colors: colorList.list } };
-    //         }
-    //     }
-    //     console.warn(`Could not find named color palette "${colors}"`);
-    // }
-    // if (Array.isArray(colors)) {
-    //     return { name: 'list', params: { kind: 'set', colors: colors.map(c => decodeColor(c) ?? FALLBACK_COLOR) } };
-    // }
-    // if (typeof colors === 'object') {
-    //     return { name: 'dictionary', params: Object.entries(colors).map(([value, color]) => ({ value, color: decodeColor(color) ?? FALLBACK_COLOR })) };
-    // }
-    return { kind: 'interpolate', colors: [ColorNames.white, ColorNames.red] };
+    if (typeof colors === 'string') {
+        // Named color list
+        if (colors in MvsNamedColorListToMolstarName) {
+            const molstarColorListName = MvsNamedColorListToMolstarName[colors as keyof typeof MvsNamedColorListToMolstarName];
+            const colorList = ColorLists[molstarColorListName];
+            if (colorList) {
+                const n = colorList.list.length - 1;
+                return { kind: 'interpolate', colors: colorList.list.map((col, i) => [Color.fromColorListEntry(col), i / n]) };
+            }
+        }
+        console.warn(`Could not find named color palette "${colors}"`);
+    }
+    if (Array.isArray(colors)) {
+        if (colors.every(t => Array.isArray(t))) {
+            // Color list with checkpoints
+            return { kind: 'interpolate', colors: colors.map(t => [decodeColor(t[0]) ?? FALLBACK_COLOR, t[1]]) };
+        } else {
+            // Color list without checkpoints
+            const n = colors.length - 1;
+            return { kind: 'interpolate', colors: colors.map((col, i) => [decodeColor(col) ?? FALLBACK_COLOR, i / n]) };
+        }
+    }
+    return { kind: 'interpolate', colors: [] };
 }
 
 /** Colors for amino acid groups, based on Clustal (https://www.jalview.org/help/html/colourSchemes/clustal.html) */

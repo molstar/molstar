@@ -4,10 +4,12 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { SortedArray } from '../../../mol-data/int';
 import { Location } from '../../../mol-model/location';
 import { Bond, StructureElement } from '../../../mol-model/structure';
 import type { ColorTheme, LocationColor } from '../../../mol-theme/color';
 import type { ThemeDataContext } from '../../../mol-theme/theme';
+import { arrayIsSorted } from '../../../mol-util/array';
 import { Color } from '../../../mol-util/color';
 import { ColorNames } from '../../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -35,11 +37,10 @@ export type MVSCategoricalPaletteParams = typeof MVSCategoricalPaletteParams
 export type MVSCategoricalPaletteProps = PD.Values<MVSCategoricalPaletteParams>
 
 export const MVSContinuousPaletteParams = {
-    // TODO sensible default
-    colors: PD.ColorList('blues', { description: 'List of colors, with optional checkpoints.', presetKind: 'scale', offsets: true }), // TODO allow twoColumns and ensure correct rendering?
+    colors: PD.ColorList('yellow-green', { description: 'List of colors, with optional checkpoints.', presetKind: 'scale', offsets: true }),
     mode: PD.Select('normalized', [['normalized', 'Normalized'], ['absolute', 'Absolute']] as const, { description: 'Defines whether the annotation values should be normalized before assigning color based on checkpoints in `colors` (`x_normalized = (x - x_min) / (x_max - x_min)`, where `[x_min, x_max]` are either `value_domain` if provided, or the lowest and the highest value encountered in the annotation).' }),
-    xMin: MaybeFloatParamDefinition(undefined, { placeholder: 'auto', description: 'Defines `x_min` for normalization of annotation values. If not provided, minimum of the real values will be used. Only used when `mode` is `"normalized"' }),
-    xMax: MaybeFloatParamDefinition(undefined, { placeholder: 'auto', description: 'Defines `x_max` for normalization of annotation values. If not provided, maximum of the real values will be used. Only used when `mode` is `"normalized"' }),
+    xMin: MaybeFloatParamDefinition(undefined, { hideIf: g => g.mode !== 'normalized', placeholder: 'auto', description: 'Defines `x_min` for normalization of annotation values. If not provided, minimum of the real values will be used. Only used when `mode` is `"normalized"' }),
+    xMax: MaybeFloatParamDefinition(undefined, { hideIf: g => g.mode !== 'normalized', placeholder: 'auto', description: 'Defines `x_max` for normalization of annotation values. If not provided, maximum of the real values will be used. Only used when `mode` is `"normalized"' }),
     setUnderflowColor: PD.Boolean(false, { description: 'Allow setting a color for values below the lowest checkpoint.' }),
     underflowColor: PD.Color(ColorNames.white, { hideIf: g => !g.setUnderflowColor, description: 'Color for values below the lowest checkpoint.' }),
     setOverflowColor: PD.Boolean(false, { description: 'Allow setting a color for values above the highest checkpoint.' }),
@@ -80,6 +81,7 @@ export function MVSAnnotationColorTheme(ctx: ThemeDataContext, props: MVSAnnotat
                 // if (annot.getAnnotationForLocation(location)?.color !== annot.getAnnotationForLocation_Reference(location)?.color) throw new Error('AssertionError');
                 const annotValue = annotation?.getValueForLocation(location, props.fieldName);
                 const color = annotValue !== undefined ? paletteFunction(annotValue) : undefined;
+                // console.log('annotValue', annotValue, 'color', color !== undefined ? Color.toHexStyle(color) : undefined);
                 return color ?? props.background;
             };
             const auxLocation = StructureElement.Location.create(ctx.structure);
@@ -138,7 +140,7 @@ function makePaletteFunction(props: MVSAnnotationColorThemeProps['palette'], ann
             else if (props.params.sort === 'numeric') values.sort((a, b) => Number.parseFloat(a) - Number.parseFloat(b));
             if (props.params.sortDirection === 'descending') values.reverse();
 
-            const colorList = props.params.colors.params.colors.map(entry => typeof entry === 'number' ? entry : entry[0]);
+            const colorList = props.params.colors.params.colors.map(Color.fromColorListEntry);
             let next = 0;
             for (const value of values) {
                 colorMap[value] = colorList[next++];
@@ -150,27 +152,70 @@ function makePaletteFunction(props: MVSAnnotationColorThemeProps['palette'], ann
     }
 
     if (props.name === 'continuous') {
-        return (value: string) => ColorNames.cornflowerblue; // TODO
-        // const colorMap: { [value: string]: Color } = {};
-        // if (props.params.colors.name === 'dictionary') {
-        //     for (const { value, color } of props.params.colors.params) {
-        //         colorMap[value] = color;
-        //     }
-        // } else if (props.params.colors.name === 'list') {
-        //     const values = annotation.getDistinctValuesInField(fieldName);
-        //     if (props.params.sort === 'lexical') values.sort();
-        //     else if (props.params.sort === 'numeric') values.sort((a, b) => Number.parseFloat(a) - Number.parseFloat(b));
-        //     if (props.params.sortDirection === 'descending') values.reverse();
+        let scale: (value: number) => number;
+        if (props.params.mode === 'normalized') {
+            let xMin = props.params.xMin;
+            let xMax = props.params.xMax;
+            if (xMin === undefined || xMax === undefined) {
+                const values = annotation.getDistinctValuesInField(fieldName).map(parseFloat).filter(x => !isNaN(x));
+                if (values.length > 0) {
+                    xMin ??= values.reduce((a, b) => a < b ? a : b, Infinity); // xMin ??= min(values)
+                    xMax ??= values.reduce((a, b) => a > b ? a : b, -Infinity); // xMax ??= max(values)
+                } else {
+                    xMin ??= 0;
+                    xMax ??= 1;
+                }
+            }
+            const range = xMax - xMin;
+            if (range === 0) {
+                scale = x => (x < xMin ? -0.5 : x === xMin ? 0.5 : 1.5);
+            } else {
+                const invRange = 1 / range;
+                scale = x => (x - xMin) * invRange;
+            }
+            // console.log('Mode normalized', xMin, xMax);
+        } else {
+            // console.log('Mode absolute');
+            scale = x => x;
+        }
 
-        //     const colorList = props.params.colors.params.colors.map(entry => typeof entry === 'number' ? entry : entry[0]);
-        //     let next = 0;
-        //     for (const value of values) {
-        //         colorMap[value] = colorList[next++];
-        //         if (next >= colorList.length && props.params.repeatColorList) next = 0; // else will get index-out-of-range and assign undefined
-        //     }
-        // }
-        // const missingColor = props.params.setMissingColor ? props.params.missingColor : undefined;
-        // return (value: string) => colorMap[value] ?? missingColor;
+        let colors: Color[];
+        let checkpoints: SortedArray<number>;
+        if (props.params.colors.colors.every(x => Array.isArray(x))) {
+            // Explicit checkpoints
+            const sorted = props.params.colors.colors.sort((a, b) => a[1] - b[1]);
+            colors = sorted.map(Color.fromColorListEntry);
+            checkpoints = SortedArray.ofSortedArray(sorted.map(t => t[1]));
+        } else {
+            colors = props.params.colors.colors.map(Color.fromColorListEntry);
+            const n = colors.length - 1;
+            checkpoints = SortedArray.ofSortedArray(colors.map((_, i) => i / n));
+        }
+
+        // console.log('colors:', colors)
+        // console.log('checkpoints:', checkpoints)
+        if (checkpoints.length === 0) return value => undefined;
+
+        const underflowColor = props.params.setUnderflowColor ? props.params.underflowColor : undefined;
+        const overflowColor = props.params.setOverflowColor ? props.params.overflowColor : undefined;
+
+        return (value: string) => {
+            const xAbs = parseFloat(value);
+            if (isNaN(xAbs)) return undefined;
+            const x = scale(xAbs);
+            const gteIdx = SortedArray.findPredecessorIndex(checkpoints, x); // Index of the first greater or equal checkpoint
+            if (gteIdx === 0) {
+                if (x === checkpoints[0]) return colors[0];
+                else return underflowColor;
+            }
+            if (gteIdx === checkpoints.length) {
+                return overflowColor;
+            }
+            const q = (x - checkpoints[gteIdx - 1]) / (checkpoints[gteIdx] - checkpoints[gteIdx - 1]);
+            // TODO consider optimizing this - avoid repeated division (but probably not worth it)
+            // TODO consider optimizing this - cache color per value
+            return Color.interpolate(colors[gteIdx - 1], colors[gteIdx], q);
+        };
     }
 
     throw new Error(`NotImplementedError: makePaletteFunction for ${(props as any).name}`);
