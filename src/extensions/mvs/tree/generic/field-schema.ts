@@ -26,29 +26,38 @@ export const bool = iots.boolean;
 export const tuple = iots.tuple;
 /** Type definition for a list/array, e.g. `list(str)`  */
 export const list = iots.array;
-/** Type definition for a dict/record, e.g. `dict(str, int)`  */
+/** Type definition for a dictionary/record, e.g. `dict(str, int)`  */
 export const dict = iots.record;
-/** Type definition for union types, e.g. `union([str, int])` means string or integer  */
-export const union = iots.union;
 /** Type definition used to create objects */
 export const obj = iots.type;
 /** Type definition used to create partial objects */
 export const partial = iots.partial;
 
+
+/** Type definition for union types, e.g. `union(str, int)` means string or integer */
+export function union<T1 extends iots.Mixed, T2 extends iots.Mixed, TOthers extends iots.Mixed[]>(first: T1, second: T2, ...others: TOthers): iots.UnionC<[T1, T2, ...TOthers]> {
+    const baseTypes: iots.Mixed[] = [];
+    for (const type of [first, second, ...others]) {
+        if (type instanceof iots.UnionType) {
+            baseTypes.push(...type.types);
+        } else {
+            baseTypes.push(type);
+        }
+    }
+    return iots.union(baseTypes as any);
+}
+
 /** Type definition for nullable types, e.g. `nullable(str)` means string or `null`  */
 export function nullable<V>(type: iots.Type<V>): iots.Type<V | null> {
-    if (type instanceof iots.UnionType) {
-        return union([...type.types, iots.null] as any);
-    } else {
-        return union([type, iots.null]);
-    }
+    return union(type, iots.null);
 }
+
 /** Type definition for literal types, e.g. `literal('red', 'green', 'blue')` means 'red' or 'green' or 'blue'  */
 export function literal<V extends string | number | boolean>(...values: V[]) {
     if (values.length === 0) {
         throw new Error(`literal type must have at least one value`);
     }
-    const typeName = `(${values.map(v => onelinerJsonString(v)).join(' | ')})`;
+    const typeName = values.length === 1 ? onelinerJsonString(values[0]) : `(${values.map(v => onelinerJsonString(v)).join(' | ')})`;
     const valueSet = new Set(values);
     return new iots.Type<V>(
         typeName,

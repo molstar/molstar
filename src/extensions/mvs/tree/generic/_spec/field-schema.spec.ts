@@ -48,7 +48,7 @@ describe('fieldValidationIssues', () => {
         expect(fieldValidationIssues(numberParam, undefined)).toBeTruthy();
     });
     it('fieldValidationIssues union', async () => {
-        const stringOrNumberParam = RequiredField(union([str, float]), 'Testing required field stringOrNumberParam');
+        const stringOrNumberParam = RequiredField(union(str, float), 'Testing required field stringOrNumberParam');
         expect(fieldValidationIssues(stringOrNumberParam, 1)).toBeUndefined();
         expect(fieldValidationIssues(stringOrNumberParam, 2)).toBeUndefined();
         expect(fieldValidationIssues(stringOrNumberParam, 'hello')).toBeUndefined();

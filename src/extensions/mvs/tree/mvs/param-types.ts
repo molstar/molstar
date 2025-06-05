@@ -6,7 +6,6 @@
  */
 
 import * as iots from 'io-ts';
-import { ColorNames } from '../../../../mol-util/color/names';
 import { ColorName, HexColor } from '../../helpers/utils';
 import { ValueFor, bool, dict, float, int, list, literal, nullable, obj, partial, str, tuple, union } from '../generic/field-schema';
 
@@ -64,7 +63,7 @@ export const Matrix = list(float);
 /** Primitives-related types */
 export const PrimitiveComponentExpressionT = partial({ structure_ref: str, expression_schema: SchemaT, expressions: list(ComponentExpressionT) });
 export type PrimitiveComponentExpressionT = ValueFor<typeof PrimitiveComponentExpressionT>
-export const PrimitivePositionT = union([Vector3, ComponentExpressionT, PrimitiveComponentExpressionT]);
+export const PrimitivePositionT = union(Vector3, ComponentExpressionT, PrimitiveComponentExpressionT);
 export type PrimitivePositionT = ValueFor<typeof PrimitivePositionT>
 
 export const FloatList = list(float);
@@ -89,10 +88,7 @@ export const ColorNameT = new iots.Type<ColorName>(
 );
 
 /** `color` parameter values for `color` node in MVS tree */
-export const ColorNamesT = literal(...Object.keys(ColorNames) as (keyof ColorNames)[]);
-
-/** `color` parameter values for `color` node in MVS tree */
-export const ColorT = union([ColorNameT, HexColorT]);
+export const ColorT = union(ColorNameT, HexColorT);
 export type ColorT = ValueFor<typeof ColorT>
 
 /** Type helpers */
@@ -138,12 +134,12 @@ export type ColorDictNameT = ValueFor<typeof ColorDictNameT>;
 export const CategoricalPalette = iots.intersection([
     obj({ kind: literal('categorical') }),
     partial({
-        colors: union([
+        colors: union(
             ColorListNameT,
             ColorDictNameT,
             list(ColorT),
             dict(str, ColorT),
-        ]),
+        ),
         /** Color to use when a) `colors` is a dictionary (or a color dictionary name) and given key is not present, or b) `colors` is a list (or a color list name) and there are more real annotation values than listed colors and `repeat_color_list` is not true. */
         missing_color: ColorT,
         /** Repeat color list once all colors are depleted (only applies if `colors` is a list or a color list name). */
@@ -165,12 +161,12 @@ export const DiscretePalette = iots.intersection([
          * If 1 checkpoint is provided for each color, then the color applies to values from this checkpoint (inclusive) until the next listed checkpoint (exclusive); the last color applies until Infinity.
          * If 2 checkpoints are provided for each color, then the color applies to values from the first until the second checkpoint (inclusive); null means +/-Infinity; if ranges overlap, the later listed takes precedence.
          */
-        colors: union([
+        colors: union(
             ColorListNameT,
             list(ColorT),
             list(tuple([ColorT, float])),
             list(tuple([nullable(ColorT), nullable(float), nullable(float)])),
-        ]),
+        ),
         /** Reverse order of `colors` list. Only has effect when `colors` is a color list name or a color list without explicit checkpoints. */
         reverse: bool,
         /** Defines whether the annotation values should be normalized before assigning color based on checkpoints in `colors` (`x_normalized = (x - x_min) / (x_max - x_min)`, where `[x_min, x_max]` are either `value_domain` if provided, or the lowest and the highest value encountered in the annotation). Default is `"normalized"`. */
@@ -187,11 +183,11 @@ export const ContinuousPalette = iots.intersection([
         /** Define colors for the continuous color palette and optionally corresponding checkpoints (i.e. annotation values that are mapped to each color).
          * Checkpoints refer to the values normalized to interval [0, 1] if `mode` is `"normalized"` (default), or to the values directly if `mode` is `"absolute"`.
          * If checkpoints are not provided, they will created automatically (uniformly distributed over interval [0, 1]). */
-        colors: union([
+        colors: union(
             ColorListNameT,
             list(ColorT),
             list(tuple([ColorT, float])),
-        ]),
+        ),
         /** Reverse order of `colors` list. Only has effect when `colors` is a color list name or a color list without explicit checkpoints. */
         reverse: bool,
         /** Defines whether the annotation values should be normalized before assigning color based on checkpoints in `colors` (`x_normalized = (x - x_min) / (x_max - x_min)`, where `[x_min, x_max]` are either `value_domain` if provided, or the lowest and the highest value encountered in the annotation). Default is `"normalized"`. */
@@ -199,47 +195,13 @@ export const ContinuousPalette = iots.intersection([
         /** Defines `x_min` and `x_max` for normalization of annotation values. Either can be `null`, meaning that minimum/maximum of the real values will be used. Only used when `mode` is `"normalized"`. */
         value_domain: tuple([nullable(float), nullable(float)]),
         /** Color to use for values below the lowest checkpoint. 'auto' means color of the lowest checkpoint. */
-        underflow_color: nullable(union([literal('auto'), ColorT])),
+        underflow_color: nullable(union(literal('auto'), ColorT)),
         /** Color to use for values above the highest checkpoint. 'auto' means color of the highest checkpoint. */
-        overflow_color: nullable(union([literal('auto'), ColorT])),
+        overflow_color: nullable(union(literal('auto'), ColorT)),
     }),
 ]);
 export type ContinuousPalette = ValueFor<typeof ContinuousPalette>;
 
 // TODO consider spreading the palette param directly into color_from_uri/color_from_source params (though this will be tricky) or achieve smart error messages and default value handling
 
-export const Palette = union([CategoricalPalette, DiscretePalette, ContinuousPalette]);
-
-// Draft from https://docs.google.com/document/d/1p9yePdtvO8RzYQ90jEdCHM5sMqxFpy4f8DbleXagRDE/edit?tab=t.0
-
-// class GradientPalette:
-//     kind: Literal["gradient"] = "gradient"
-//     # either uniformly distributed or explicitly scaled between 0, 1
-//     # [('red', 0), ('green', 0.2), ('blue', 1)]
-//     stops: list[tuple[ColorT, float]] | list[tuple[ColorT, float, float]] | list[ColorT] | None
-//     stop_value_kind: Literal["normalized", "explicit"]
-//     name: PalleteNameT | None
-
-//     value_domain: tuple[float, float] | None = None  # min, max | none <=> auto
-
-
-// class DiscretePalette:
-//     kind: Literal["discrete"] = "discrete"
-//     # either uniformly distributed or explicitly scaled between 0, 1
-//     # [('red', 0), ('green', 0.2), ('blue', 1)]
-//     stops: list[tuple[ColorT, float]] | list[tuple[ColorT, float, float]] | list[ColorT] | None
-//     stop_value_kind: Literal["normalized", "explicit"]
-//     name: PalleteNameT | None
-
-//     value_domain: tuple[float, float] | None = None  # min, max | none <=> auto
-
-
-// class CategoricalPalette:
-//     kind: Literal["categorical"] = "categorical"
-
-//     colors: dict[Any, ColorT] | list[ColorT] | None
-//     name: PalleteNameT | None
-
-//     missing_color: ColorT | None = None # applied when color is missing dict[Any, ColorT]
-//     sort_values: Literal["ascending", "descending"] | None = None
-//     sort_kind: Literal["lexical", "numeric"] | None = None
+export const Palette = union(CategoricalPalette, DiscretePalette, ContinuousPalette);

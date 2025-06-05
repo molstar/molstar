@@ -209,9 +209,9 @@ const EllipsoidParams = {
     /** Minor axis endpoint. If specified, overrides minor axis to be minor_axis_endpoint - center. */
     minor_axis_endpoint: OptionalField(nullable(PrimitivePositionT), null, 'Minor axis endpoint. If specified, overrides minor axis to be minor_axis_endpoint - center.'),
     /** Radii of the ellipsoid along each axis. */
-    radius: OptionalField(nullable(union([Vector3, float])), null, 'Radii of the ellipsoid along each axis.'),
+    radius: OptionalField(nullable(union(Vector3, float)), null, 'Radii of the ellipsoid along each axis.'),
     /** Added to the radii of the ellipsoid along each axis. */
-    radius_extent: OptionalField(nullable(union([Vector3, float])), null, 'Added to the radii of the ellipsoid along each axis.'),
+    radius_extent: OptionalField(nullable(union(Vector3, float)), null, 'Added to the radii of the ellipsoid along each axis.'),
     /** Tooltip to show when hovering over the tube. If not specified, uses the parent primitives group `tooltip`. */
     tooltip: OptionalField(nullable(str), null, 'Tooltip to show when hovering over the tube. If not specified, uses the parent primitives group `tooltip`.'),
 };
