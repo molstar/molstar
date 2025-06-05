@@ -6,7 +6,7 @@
 
 import { OrderedSet } from '../../mol-data/int/ordered-set';
 import { fillSerial } from '../../mol-util/array';
-import { Box3D } from '../geometry';
+import { Box3D } from '../geometry/primitives/box3d';
 import { Vec3 } from '../linear-algebra/3d/vec3';
 import { PositionData } from './common';
 import { GridLookup3D } from './lookup3d/grid';

@@ -18,6 +18,8 @@ import { LocalStateSnapshotParams, StateExportImportControls } from '../state/sn
 import { useEffect, useState } from 'react';
 import { round } from '../../mol-util';
 import { Vec3 } from '../../mol-math/linear-algebra';
+import { Camera } from '../../mol-canvas3d/camera';
+import { fovNormalizedCameraPosition } from '../../mol-util/camera';
 
 interface ImageControlsState {
     showPreview: boolean,
@@ -112,6 +114,17 @@ function CameraInfoSection({ title, children }: { title: string, children: any }
     </div>;
 }
 
+function normalizedCameraPosition(camera?: Camera.Snapshot) {
+    if (!camera) return;
+
+    return fovNormalizedCameraPosition(
+        camera.target,
+        camera.position,
+        camera.mode,
+        camera.fov,
+    );
+}
+
 function CameraInfo({ plugin }: { plugin: PluginContext }) {
     const [, setUpdate] = useState({});
     useEffect(() => {
@@ -120,16 +133,23 @@ function CameraInfo({ plugin }: { plugin: PluginContext }) {
     }, [plugin]);
 
     const state = plugin.canvas3d?.camera.state;
+    const fovNormalized = normalizedCameraPosition(state);
+
+    const direction = Vec3.sub(Vec3(), state?.target ?? Vec3.origin, state?.position ?? Vec3.origin);
+    Vec3.normalize(direction, direction);
 
     return <div>
         <CameraInfoSection title='Position'>
             {renderVector(state?.position)}
         </CameraInfoSection>
+        <CameraInfoSection title='FoV Norm. Pos.'>
+            {renderVector(fovNormalized)}
+        </CameraInfoSection>
         <CameraInfoSection title='Target'>
             {renderVector(state?.target)}
         </CameraInfoSection>
         <CameraInfoSection title='Direction'>
-            {renderVector(Vec3.sub(Vec3(), state?.target ?? Vec3.origin, state?.position ?? Vec3.origin))}
+            {renderVector(direction)}
         </CameraInfoSection>
         <CameraInfoSection title='Up'>
             {renderVector(state?.up)}
@@ -143,12 +163,12 @@ function CameraInfo({ plugin }: { plugin: PluginContext }) {
         <Button onClick={() => {
             if (!navigator.clipboard) return;
             const ret = `{
-    position: [${state?.position.map(v => round(v, 2)).join(', ')}],
+    position: [${fovNormalized?.map(v => round(v, 2)).join(', ')}],
     target: [${state?.target.map(v => round(v, 2)).join(', ')}],
     up: [${state?.up.map(v => round(v, 2)).join(', ')}],
 }`;
             navigator.clipboard.writeText(ret);
-        }} style={{ marginTop: 1 }} title='Copy JSON usable in MolViewSpec'>Copy MVS JSON</Button>
+        }} style={{ marginTop: 1 }} title='Copy JSON usable in MolViewSpec, uses FoV Normalized Position'>Copy MVS JSON</Button>
     </div>;
 }
 

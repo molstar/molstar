@@ -9,7 +9,7 @@ import { Matrix } from './matrix';
 import { Vec3 } from '../3d/vec3';
 import { svd } from './svd';
 import { NumberArray } from '../../../mol-util/type-helpers';
-import { Axes3D } from '../../geometry';
+import { Axes3D } from '../../geometry/primitives/axes3d';
 import { EPSILON } from '../3d/common';
 
 export { PrincipalAxes };

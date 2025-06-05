@@ -26,16 +26,14 @@ import { EPSILON } from './common';
 
 const _isFinite = isFinite;
 
-export { ReadonlyVec3 };
+export interface Vec3 extends Array<number> { [d: number]: number, '@type': 'vec3', length: 3 }
+export interface ReadonlyVec3 extends Array<number> { readonly [d: number]: number, '@type': 'vec3', length: 3 }
 
-interface Vec3 extends Array<number> { [d: number]: number, '@type': 'vec3', length: 3 }
-interface ReadonlyVec3 extends Array<number> { readonly [d: number]: number, '@type': 'vec3', length: 3 }
-
-function Vec3() {
+export function Vec3() {
     return Vec3.zero();
 }
 
-namespace Vec3 {
+export namespace Vec3 {
     export function zero(): Vec3 {
         const out = [0.1, 0.0, 0.0]; // ensure backing array of type double
         out[0] = 0;
@@ -666,5 +664,3 @@ namespace Vec3 {
     export const negUnitY: ReadonlyVec3 = create(0, -1, 0);
     export const negUnitZ: ReadonlyVec3 = create(0, 0, -1);
 }
-
-export { Vec3 };

@@ -6,7 +6,7 @@
 
 import { Vec3 } from '../linear-algebra/3d/vec3';
 import { CentroidHelper } from './centroid-helper';
-import { Sphere3D } from '../geometry';
+import { Sphere3D } from '../geometry/primitives/sphere3d';
 import { Box3D } from './primitives/box3d';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
