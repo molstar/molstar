@@ -124,7 +124,7 @@ export const ColorListNameT = literal(
     'Category10', 'Observable10', 'Tableau10',
     'Set1', 'Set2', 'Set3', 'Pastel1', 'Pastel2', 'Dark2', 'Paired', 'Accent',
 
-    // Additional list, not standard for visualization in general, but commonly used for structures
+    // Additional lists, not standard for visualization in general, but commonly used for structures
     'Chainbow',
 );
 export type ColorListNameT = ValueFor<typeof ColorListNameT>;

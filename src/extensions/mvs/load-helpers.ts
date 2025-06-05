@@ -11,14 +11,10 @@ import { StructureComponentParams } from '../../mol-plugin-state/helpers/structu
 import { StructureFromModel, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { StateTransformer } from '../../mol-state';
-import { ElementSymbolColors } from '../../mol-theme/color/element-symbol';
-import { ResidueNameColors } from '../../mol-theme/color/residue-name';
 import { arrayDistinct } from '../../mol-util/array';
 import { Color } from '../../mol-util/color';
 import { ColorListEntry } from '../../mol-util/color/color';
-import { ColorListName, ColorLists } from '../../mol-util/color/lists';
 import { canonicalJsonString } from '../../mol-util/json';
-import { omitObjectKeys } from '../../mol-util/object';
 import { stringToWords } from '../../mol-util/string';
 import { MVSAnnotationColorThemeProps, MVSAnnotationColorThemeProvider, MVSCategoricalPaletteProps, MVSContinuousPaletteProps, MVSDiscretePaletteProps } from './components/annotation-color-theme';
 import { MVSAnnotationLabelRepresentationProvider } from './components/annotation-label/representation';
@@ -29,6 +25,7 @@ import { CustomLabelTextProps } from './components/custom-label/visual';
 import { CustomTooltipsProps } from './components/custom-tooltips-prop';
 import { MultilayerColorThemeName, MultilayerColorThemeProps, NoColor } from './components/multilayer-color-theme';
 import { SelectorAll } from './components/selector';
+import { MvsNamedColorDicts, MvsNamedColorLists } from './helpers/colors';
 import { rowToExpression, rowsToExpression } from './helpers/selections';
 import { ElementOfSet, decodeColor, isDefined, stringHash } from './helpers/utils';
 import { MolstarLoadingContext } from './load';
@@ -454,16 +451,13 @@ function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri' | 'col
 
 function categoricalPalettePropsFromMVSColors(colors: CategoricalPalette['colors']): MVSCategoricalPaletteProps['colors'] {
     if (typeof colors === 'string') {
-        if (colors in MvsNamedColorListToMolstarName) {
-            const molstarColorListName = MvsNamedColorListToMolstarName[colors as keyof typeof MvsNamedColorListToMolstarName];
-            const colorList = ColorLists[molstarColorListName];
-            if (colorList) {
-                return { name: 'list', params: { kind: 'set', colors: colorList.list } };
-            }
+        if (colors in MvsNamedColorLists) {
+            const colorList = MvsNamedColorLists[colors as ColorListNameT];
+            return { name: 'list', params: { kind: 'set', colors: colorList.list } };
         }
         if (colors in MvsNamedColorDicts) {
-            const dict = MvsNamedColorDicts[colors as keyof typeof MvsNamedColorDicts];
-            return { name: 'dictionary', params: Object.entries(dict).map(([value, color]) => ({ value, color })) };
+            const colorDict = MvsNamedColorDicts[colors as ColorDictNameT];
+            return { name: 'dictionary', params: Object.entries(colorDict).map(([value, color]) => ({ value, color })) };
         }
         console.warn(`Could not find named color palette "${colors}"`);
     }
@@ -478,21 +472,18 @@ function categoricalPalettePropsFromMVSColors(colors: CategoricalPalette['colors
 
 function discretePalettePropsFromMVSColors(colors: DiscretePalette['colors'], reverse: boolean): MVSDiscretePaletteProps['colors'] {
     if (typeof colors === 'string') {
-        if (colors in MvsNamedColorListToMolstarName) {
-            const molstarColorListName = MvsNamedColorListToMolstarName[colors as keyof typeof MvsNamedColorListToMolstarName];
-            const colorList = ColorLists[molstarColorListName];
-            if (colorList) {
-                const list = reverse ? colorList.list.slice().reverse() : colorList.list;
-                const sectionLength = 1 / list.length;
-                return list.map((e, i) => ({ color: Color.fromColorListEntry(e), fromValue: i * sectionLength, toValue: (i + 1) * sectionLength }));
-            }
+        if (colors in MvsNamedColorLists) {
+            const colorList = MvsNamedColorLists[colors];
+            const list = reverse ? colorList.list.slice().reverse() : colorList.list;
+            const sectionLength = 1 / list.length;
+            return list.map((e, i) => ({ color: Color.fromColorListEntry(e), fromValue: i * sectionLength, toValue: (i + 1) * sectionLength }));
         }
         console.warn(`Could not find named color palette "${colors}"`);
     }
     if (Array.isArray(colors) && colors.every(t => typeof t === 'string')) {
-        if (reverse) colors = colors.slice().reverse();
+        const list = reverse ? colors.slice().reverse() : colors;
         const sectionLength = 1 / colors.length;
-        return colors.map((c, i) => ({ color: decodeColor(c) ?? NoColor, fromValue: i * sectionLength, toValue: (i + 1) * sectionLength }));
+        return list.map((c, i) => ({ color: decodeColor(c) ?? NoColor, fromValue: i * sectionLength, toValue: (i + 1) * sectionLength }));
     }
     if (Array.isArray(colors) && colors.every(t => Array.isArray(t) && t.length === 2)) {
         return colors.map((t, i) => ({ color: decodeColor(t[0]) ?? NoColor, fromValue: t[1], toValue: colors[i + 1]?.[1] ?? Infinity }));
@@ -506,14 +497,11 @@ function discretePalettePropsFromMVSColors(colors: DiscretePalette['colors'], re
 function continuousPalettePropsFromMVSColors(colors: ContinuousPalette['colors'], reverse: boolean): MVSContinuousPaletteProps['colors'] {
     if (typeof colors === 'string') {
         // Named color list
-        if (colors in MvsNamedColorListToMolstarName) {
-            const molstarColorListName = MvsNamedColorListToMolstarName[colors as keyof typeof MvsNamedColorListToMolstarName];
-            const colorList = ColorLists[molstarColorListName];
-            if (colorList) {
-                const list = reverse ? colorList.list.slice().reverse() : colorList.list;
-                const n = list.length - 1;
-                return { kind: 'interpolate', colors: list.map((col, i) => [Color.fromColorListEntry(col), i / n]) };
-            }
+        if (colors in MvsNamedColorLists) {
+            const colorList = MvsNamedColorLists[colors];
+            const list = reverse ? colorList.list.slice().reverse() : colorList.list;
+            const n = list.length - 1;
+            return { kind: 'interpolate', colors: list.map((col, i) => [Color.fromColorListEntry(col), i / n]) };
         }
         console.warn(`Could not find named color palette "${colors}"`);
     }
@@ -524,77 +512,21 @@ function continuousPalettePropsFromMVSColors(colors: ContinuousPalette['colors']
             return { kind: 'interpolate', colors: colors.map(t => [decodeColor(t[0]) ?? FALLBACK_COLOR, t[1]]) };
         } else {
             // Color list without checkpoints
-            if (reverse) colors = colors.slice().reverse();
-            const n = colors.length - 1;
-            return { kind: 'interpolate', colors: colors.map((col, i) => [decodeColor(col) ?? FALLBACK_COLOR, i / n]) };
+            const list = reverse ? colors.slice().reverse() : colors;
+            const n = list.length - 1;
+            return { kind: 'interpolate', colors: list.map((col, i) => [decodeColor(col) ?? FALLBACK_COLOR, i / n]) };
         }
     }
     return { kind: 'interpolate', colors: [] };
 }
 
-/** Colors for amino acid groups, based on Clustal (https://www.jalview.org/help/html/colourSchemes/clustal.html) */
-const AminoGroupColors = {
-    aromatic: decodeColor('#15A4A4')!,
-    hydrophobic: decodeColor('#80A0F0')!,
-    polar: decodeColor('#15C015')!,
-    positive: decodeColor('#F01505')!,
-    negative: decodeColor('#C048C0')!,
-    proline: decodeColor('#C0C000')!,
-    cysteine: decodeColor('#F08080')!,
-    glycine: decodeColor('#F09048')!,
-};
-
-/** Colors for individual amino acids, based on Clustal (https://www.jalview.org/help/html/colourSchemes/clustal.html) */
-const ResiduePropertyColors = {
-    ...ResidueNameColors,
-    HIS: AminoGroupColors.aromatic,
-    TYR: AminoGroupColors.aromatic,
-    ALA: AminoGroupColors.hydrophobic,
-    VAL: AminoGroupColors.hydrophobic,
-    LEU: AminoGroupColors.hydrophobic,
-    ILE: AminoGroupColors.hydrophobic,
-    MET: AminoGroupColors.hydrophobic,
-    PHE: AminoGroupColors.hydrophobic,
-    TRP: AminoGroupColors.hydrophobic,
-    SER: AminoGroupColors.polar,
-    THR: AminoGroupColors.polar,
-    ASN: AminoGroupColors.polar,
-    GLN: AminoGroupColors.polar,
-    LYS: AminoGroupColors.positive,
-    ARG: AminoGroupColors.positive,
-    ASP: AminoGroupColors.negative,
-    GLU: AminoGroupColors.negative,
-    PRO: AminoGroupColors.proline,
-    CYS: AminoGroupColors.cysteine,
-    GLY: AminoGroupColors.glycine,
-};
-
-const MvsNamedColorListToMolstarName: Record<ColorListNameT, ColorListName> = {
-    Blues: 'blues', Greens: 'greens', Greys: 'greys', Oranges: 'oranges', Purples: 'purples', Reds: 'reds',
-    BuGn: 'blue-green', BuPu: 'blue-purple', GnBu: 'green-blue', OrRd: 'orange-red', PuBuGn: 'purple-blue-green',
-    PuBu: 'purple-blue', PuRd: 'purple-red', RdPu: 'red-purple', YlGnBu: 'yellow-green-blue', YlGn: 'yellow-green',
-    YlOrBr: 'yellow-orange-brown', YlOrRd: 'yellow-orange-red',
-    BrBG: 'brown-white-green', PRGn: 'purple-green', PiYG: 'pink-yellow-green', PuOr: 'purple-orange', RdBu: 'red-blue',
-    RdGy: 'red-grey', RdYlBu: 'red-yellow-blue', RdYlGn: 'red-yellow-green', Spectral: 'spectral',
-    Cividis: 'cividis', Viridis: 'viridis', Inferno: 'inferno', Magma: 'magma', Plasma: 'plasma',
-    Warm: 'warm', Cool: 'cool', CubehelixDefault: 'cubehelix-default', Turbo: 'turbo',
-    Rainbow: 'rainbow', Sinebow: 'sinebow',
-    Category10: 'category-10', Observable10: 'observable-10', Tableau10: 'tableau-10',
-    Set1: 'set-1', Set2: 'set-2', Set3: 'set-3', Pastel1: 'pastel-1', Pastel2: 'pastel-2', Dark2: 'dark-2', Paired: 'paired', Accent: 'accent',
-    Chainbow: 'turbo-no-black',
-};
-
-const MvsNamedColorDicts: Record<ColorDictNameT, Record<string, Color>> = {
-    ElementSymbol: omitObjectKeys(ElementSymbolColors, ['C']),
-    ResidueName: ResidueNameColors,
-    ResidueProperties: ResiduePropertyColors,
-};
-
+/** Return the color with the lowest checkpoint, or the first color if checkpoints not available. */
 function minColor(colors: ColorListEntry[]): Color | undefined {
     if (colors.length === 0) return undefined;
     if (colors.every(t => Array.isArray(t))) return Color.fromColorListEntry(colors.reduce((a, b) => a[1] < b[1] ? a : b));
     return Color.fromColorListEntry(colors[0]);
 }
+/** Return the color with the highest checkpoint, or the last color if checkpoints not available. */
 function maxColor(colors: ColorListEntry[]): Color | undefined {
     if (colors.length === 0) return undefined;
     if (colors.every(t => Array.isArray(t))) return Color.fromColorListEntry(colors.reduce((a, b) => a[1] > b[1] ? a : b));

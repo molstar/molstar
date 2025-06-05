@@ -332,7 +332,7 @@ export function groupRows(rows: readonly MVSAnnotationRow[]): GroupedArray<numbe
     const groups: number[] = [];
     for (let i = 0; i < rows.length; i++) {
         const group_id = rows[i].group_id;
-        if (group_id === undefined) {
+        if (!isDefined(group_id)) {
             groups.push(counter++);
         } else {
             const groupIndex = groupMap.get(group_id);
