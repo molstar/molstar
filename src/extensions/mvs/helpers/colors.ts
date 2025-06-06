@@ -52,7 +52,7 @@ const ResiduePropertyColors = {
 };
 
 export const MvsNamedColorDicts: Record<ColorDictNameT, Record<string, Color>> = {
-    ElementSymbol: omitObjectKeys(ElementSymbolColors, ['C']),
+    ElementSymbol: omitObjectKeys(ElementSymbolColors, ['C']), // ommitting carbon color to allow easier combination of multiple color layers
     ResidueName: ResidueNameColors,
     ResidueProperties: ResiduePropertyColors,
 };

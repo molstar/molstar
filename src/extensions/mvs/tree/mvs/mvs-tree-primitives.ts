@@ -5,7 +5,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { bool, float, int, mapping, nullable, OptionalField, RequiredField, str, union } from '../generic/field-schema';
+import { bool, dict, float, int, nullable, OptionalField, RequiredField, str, union } from '../generic/field-schema';
 import { SimpleParamsSchema, UnionParamsSchema } from '../generic/params-schema';
 import { ColorT, FloatList, IntList, PrimitivePositionT, Vector3 } from './param-types';
 
@@ -31,9 +31,9 @@ const MeshParams = {
     /** Assign a number to each triangle to group them. If not specified, each triangle is considered a separate group (triangle i = group i). */
     triangle_groups: OptionalField(nullable(IntList), null, 'Assign a number to each triangle to group them. If not specified, each triangle is considered a separate group (triangle i = group i).'),
     /** Assign a color to each group. Where not assigned, uses `color`. */
-    group_colors: OptionalField(mapping(int, ColorT), {}, 'Assign a color to each group. Where not assigned, uses `color`.'),
+    group_colors: OptionalField(dict(int, ColorT), {}, 'Assign a color to each group. Where not assigned, uses `color`.'),
     /** Assign a tooltip to each group. Where not assigned, uses `tooltip`. */
-    group_tooltips: OptionalField(mapping(int, str), {}, 'Assign a tooltip to each group. Where not assigned, uses `tooltip`.'),
+    group_tooltips: OptionalField(dict(int, str), {}, 'Assign a tooltip to each group. Where not assigned, uses `tooltip`.'),
     /** Color of the triangles and wireframe. Can be overwritten by `group_colors`. If not specified, uses the parent primitives group `color`. */
     color: OptionalField(nullable(ColorT), null, 'Color of the triangles and wireframe. Can be overwritten by `group_colors`. If not specified, uses the parent primitives group `color`.'),
     /** Tooltip shown when hovering over the mesh. Can be overwritten by `group_tooltips`. If not specified, uses the parent primitives group `tooltip`. */
@@ -56,11 +56,11 @@ const LinesParams = {
     /** Assign a number to each triangle to group them. If not specified, each line is considered a separate group (line i = group i). */
     line_groups: OptionalField(nullable(IntList), null, 'Assign a number to each triangle to group them. If not specified, each line is considered a separate group (line i = group i).'),
     /** Assign a color to each group. Where not assigned, uses `color`. */
-    group_colors: OptionalField(mapping(int, ColorT), {}, 'Assign a color to each group. Where not assigned, uses `color`.'),
+    group_colors: OptionalField(dict(int, ColorT), {}, 'Assign a color to each group. Where not assigned, uses `color`.'),
     /** Assign a tooltip to each group. Where not assigned, uses `tooltip`. */
-    group_tooltips: OptionalField(mapping(int, str), {}, 'Assign a tooltip to each group. Where not assigned, uses `tooltip`.'),
+    group_tooltips: OptionalField(dict(int, str), {}, 'Assign a tooltip to each group. Where not assigned, uses `tooltip`.'),
     /** Assign a line width to each group. Where not assigned, uses `width`. */
-    group_widths: OptionalField(mapping(int, float), {}, 'Assign a line width to each group. Where not assigned, uses `width`.'),
+    group_widths: OptionalField(dict(int, float), {}, 'Assign a line width to each group. Where not assigned, uses `width`.'),
     /** Color of the lines. Can be overwritten by `group_colors`. If not specified, uses the parent primitives group `color`. */
     color: OptionalField(nullable(ColorT), null, 'Color of the lines. Can be overwritten by `group_colors`. If not specified, uses the parent primitives group `color`.'),
     /** Tooltip shown when hovering over the lines. Can be overwritten by `group_tooltips`. If not specified, uses the parent primitives group `tooltip`. */

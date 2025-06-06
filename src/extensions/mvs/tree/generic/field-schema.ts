@@ -26,13 +26,41 @@ export const bool = iots.boolean;
 export const tuple = iots.tuple;
 /** Type definition for a list/array, e.g. `list(str)`  */
 export const list = iots.array;
-/** Type definition for a dictionary/record, e.g. `dict(str, int)`  */
+/** Type definition for a dictionary/mapping/record, e.g. `dict(str, float)` means type `{ [K in string]: number }` */
 export const dict = iots.record;
-/** Type definition used to create objects */
-export const obj = iots.type;
-/** Type definition used to create partial objects */
-export const partial = iots.partial;
 
+/** Type definition used to create objects, e.g. `object({ name: str, age: float }, { address: str })` means type `{ name: string, age: number, address?: string }` */
+export function object<P extends iots.Props, Q extends iots.Props>(props: P, optionalProps: undefined, name?: string): iots.TypeC<P>;
+export function object<P extends iots.Props, Q extends iots.Props>(props: P, optionalProps: Q, name?: string): iots.IntersectionC<[iots.TypeC<P>, iots.PartialC<Q>]>;
+export function object<P extends iots.Props, Q extends iots.Props>(props: P, optionalProps?: Q, name?: string) {
+    if (!optionalProps) {
+        return iots.type(props, name);
+    }
+
+    if (name === undefined) {
+        const nameChunks = [];
+        for (const key in props) {
+            nameChunks.push(`${key}: ${props[key].name}`);
+        }
+        for (const key in optionalProps) {
+            nameChunks.push(`${key}?: ${optionalProps[key].name}`);
+        }
+        name = `{ ${nameChunks.join(', ')} }`;
+    }
+    return iots.intersection([iots.type(props), iots.partial(optionalProps)], name);
+}
+
+/** Type definition used to create partial objects, e.g. `partial({ name: str, age: float })` means type `{ name?: string, age?: number }` */
+export function partial<P extends iots.Props>(props: P, name?: string) {
+    if (name === undefined) {
+        const nameChunks = [];
+        for (const key in props) {
+            nameChunks.push(`${key}?: ${props[key].name}`);
+        }
+        name = `{ ${nameChunks.join(', ')} }`;
+    }
+    return iots.partial(props, name);
+}
 
 /** Type definition for union types, e.g. `union(str, int)` means string or integer */
 export function union<T1 extends iots.Mixed, T2 extends iots.Mixed, TOthers extends iots.Mixed[]>(first: T1, second: T2, ...others: TOthers): iots.UnionC<[T1, T2, ...TOthers]> {
@@ -65,10 +93,6 @@ export function literal<V extends string | number | boolean>(...values: V[]) {
         (value, ctx) => valueSet.has(value as any) ? { _tag: 'Right', right: value as any } : { _tag: 'Left', left: [{ value: value, context: ctx, message: `"${value}" is not a valid value for literal type ${typeName}` }] },
         value => value
     );
-}
-/** Type definition for mapping between two types, e.g. `mapping(str, float)` means type `{ [key in string]: number }` */
-export function mapping<A extends iots.Type<any>, B extends iots.Type<any>>(from: A, to: B) {
-    return iots.record(from, to);
 }
 
 
