@@ -21,7 +21,7 @@ const DefaultColor = Color(0xFAFAFA);
 const Description = 'Assigns a color based on the relative accessible surface area of a residue.';
 
 export const AccessibleSurfaceAreaColorThemeParams = {
-    list: PD.ColorList('rainbow', { presetKind: 'scale' })
+    list: PD.ColorList('yellow-green-blue', { presetKind: 'scale' })
 };
 export type AccessibleSurfaceAreaColorThemeParams = typeof AccessibleSurfaceAreaColorThemeParams
 export function getAccessibleSurfaceAreaColorThemeParams(ctx: ThemeDataContext) {

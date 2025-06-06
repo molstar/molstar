@@ -10,7 +10,7 @@ import { SimpleParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
 import { MVSRepresentationParams, MVSVolumeRepresentationParams } from './mvs-tree-representations';
 import { MVSPrimitiveParams } from './mvs-tree-primitives';
-import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
+import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, Palette, ParseFormatT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
 
 
 const _DataFromUriParams = {
@@ -115,7 +115,7 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['structure'],
             params: SimpleParamsSchema({
                 /** Defines what part of the parent structure should be included in this component. */
-                selector: RequiredField(union([ComponentSelectorT, ComponentExpressionT, list(ComponentExpressionT)]), 'Defines what part of the parent structure should be included in this component.'),
+                selector: RequiredField(union(ComponentSelectorT, ComponentExpressionT, list(ComponentExpressionT)), 'Defines what part of the parent structure should be included in this component.'),
             }),
         },
         /** This node instructs to create a component defined by an external annotation resource. */
@@ -170,7 +170,7 @@ export const MVSTreeSchema = TreeSchema({
                 /** Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`). */
                 color: OptionalField(ColorT, DefaultColor, 'Color to apply to the representation. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
                 /** Defines to what part of the representation this color should be applied. */
-                selector: OptionalField(union([ComponentSelectorT, ComponentExpressionT, list(ComponentExpressionT)]), 'all', 'Defines to what part of the representation this color should be applied.'),
+                selector: OptionalField(union(ComponentSelectorT, ComponentExpressionT, list(ComponentExpressionT)), 'all', 'Defines to what part of the representation this color should be applied.'),
             }),
         },
         /** This node instructs to apply colors to a visual representation. The colors are defined by an external annotation resource. */
@@ -181,6 +181,8 @@ export const MVSTreeSchema = TreeSchema({
                 ..._DataFromUriParams,
                 /** Name of the column in CIF or field name (key) in JSON that contains the color. */
                 field_name: OptionalField(str, 'color', 'Name of the column in CIF or field name (key) in JSON that contains the color.'),
+                /** Customize mapping of annotation values to colors. */
+                palette: OptionalField(nullable(Palette), null, 'Customize mapping of annotation values to colors.'),
             }),
         },
         /** This node instructs to apply colors to a visual representation. The colors are defined by an annotation resource included in the same file this structure was loaded from. Only applicable if the structure was loaded from an mmCIF or BinaryCIF file. */
@@ -191,6 +193,8 @@ export const MVSTreeSchema = TreeSchema({
                 ..._DataFromSourceParams,
                 /** Name of the column in CIF or field name (key) in JSON that contains the color. */
                 field_name: OptionalField(str, 'color', 'Name of the column in CIF or field name (key) in JSON that contains the color.'),
+                /** Customize mapping of annotation values to colors. */
+                palette: OptionalField(nullable(Palette), null, 'Customize mapping of annotation values to colors.'),
             }),
         },
         /** This node instructs to apply opacity/transparency to a visual representation. */

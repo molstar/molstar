@@ -63,6 +63,11 @@ export namespace Color {
         return fromNormalizedRgb(array[offset], array[offset + 1], array[offset + 2]);
     }
 
+    export function fromColorListEntry(entry: ColorListEntry): Color {
+        if (typeof entry === 'number') return entry;
+        else return entry[0];
+    }
+
     /** Copies hex color to rgb array */
     export function toArray<T extends NumberArray>(hexColor: Color, array: T, offset: number): T {
         array[offset] = (hexColor >> 16 & 255);
