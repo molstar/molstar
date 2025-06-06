@@ -33,7 +33,7 @@ import { Subtree, getChildren } from './tree/generic/tree-schema';
 import { dfs, formatObject } from './tree/generic/tree-utils';
 import { MolstarKind, MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree } from './tree/molstar/molstar-tree';
 import { DefaultColor } from './tree/mvs/mvs-tree';
-import { CategoricalPalette, ColorDictNameT, ColorListNameT, ContinuousPalette, DiscretePalette } from './tree/mvs/param-types';
+import { CategoricalPalette, CategoricalPaletteDefaults, ColorDictNameT, ColorListNameT, ContinuousPalette, ContinuousPaletteDefaults, DiscretePalette, DiscretePaletteDefaults } from './tree/mvs/param-types';
 
 
 export const AnnotationFromUriKinds = new Set(['color_from_uri', 'component_from_uri', 'label_from_uri', 'tooltip_from_uri'] satisfies MolstarKind[]);
@@ -401,55 +401,62 @@ function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri' | 'col
         return { name: 'direct', params: {} };
     }
     if (palette.kind === 'categorical') {
+        const fullParams: Required<CategoricalPalette> = objMerge(CategoricalPaletteDefaults, palette);
         return {
             name: 'categorical',
             params: {
-                colors: categoricalPalettePropsFromMVSColors(palette.colors ?? 'Category10'),
-                repeatColorList: palette.repeat_color_list ?? false,
-                sort: palette.sort ?? 'none',
-                sortDirection: palette.sort_direction ?? 'ascending',
-                setMissingColor: !!palette.missing_color,
-                missingColor: decodeColor(palette.missing_color) ?? FALLBACK_COLOR,
-                // TODO specify defaults with param-types or mvs-tree
+                colors: categoricalPalettePropsFromMVSColors(fullParams.colors),
+                repeatColorList: fullParams.repeat_color_list,
+                sort: fullParams.sort,
+                sortDirection: fullParams.sort_direction,
+                setMissingColor: !!fullParams.missing_color,
+                missingColor: decodeColor(fullParams.missing_color) ?? FALLBACK_COLOR,
             } satisfies MVSCategoricalPaletteProps,
         };
     }
     if (palette.kind === 'discrete') {
+        const fullParams: Required<DiscretePalette> = objMerge(DiscretePaletteDefaults, palette);
         return {
             name: 'discrete',
             params: {
-                colors: discretePalettePropsFromMVSColors(palette.colors ?? 'YlGn', palette.reverse ?? false),
-                mode: palette.mode ?? 'normalized',
-                xMin: palette.value_domain?.[0] ?? undefined,
-                xMax: palette.value_domain?.[1] ?? undefined,
-            },
+                colors: discretePalettePropsFromMVSColors(fullParams.colors, fullParams.reverse),
+                mode: fullParams.mode,
+                xMin: fullParams.value_domain[0] ?? undefined,
+                xMax: fullParams.value_domain[1] ?? undefined,
+            } satisfies MVSDiscretePaletteProps,
         };
     }
     if (palette.kind === 'continuous') {
-        const colors = continuousPalettePropsFromMVSColors(
-            palette.colors ?? 'YlGn', // YlGn selected as default because (a) matplotlib's default Viridis looks ugly in 3D and (b) YlGn does not contain white, so it's easier to see it's doing something when values are very small
-            palette.reverse ?? false,
-        );
-
+        const fullParams: Required<ContinuousPalette> = objMerge(ContinuousPaletteDefaults, palette);
+        const colors = continuousPalettePropsFromMVSColors(fullParams.colors, fullParams.reverse);
         return {
             name: 'continuous',
             params: {
                 colors: colors,
-                mode: palette.mode ?? 'normalized',
-                xMin: palette.value_domain?.[0] ?? undefined,
-                xMax: palette.value_domain?.[1] ?? undefined,
-                setUnderflowColor: !!palette.underflow_color,
-                underflowColor: (palette.underflow_color === 'auto' ? minColor(colors.colors) : decodeColor(palette.underflow_color)) ?? FALLBACK_COLOR,
-                setOverflowColor: !!palette.overflow_color,
-                overflowColor: (palette.overflow_color === 'auto' ? maxColor(colors.colors) : decodeColor(palette.overflow_color)) ?? FALLBACK_COLOR,
-                // TODO specify defaults with param-types or mvs-tree
+                mode: fullParams.mode,
+                xMin: fullParams.value_domain[0] ?? undefined,
+                xMax: fullParams.value_domain[1] ?? undefined,
+                setUnderflowColor: !!fullParams.underflow_color,
+                underflowColor: (fullParams.underflow_color === 'auto' ? minColor(colors.colors) : decodeColor(fullParams.underflow_color)) ?? FALLBACK_COLOR,
+                setOverflowColor: !!fullParams.overflow_color,
+                overflowColor: (fullParams.overflow_color === 'auto' ? maxColor(colors.colors) : decodeColor(fullParams.overflow_color)) ?? FALLBACK_COLOR,
             } satisfies MVSContinuousPaletteProps,
         };
     }
     throw new Error(`NotImplementedError: palettePropsFromMVSPalette is not implemented for palette kind "${(palette as any).kind}"`);
 }
 
-function categoricalPalettePropsFromMVSColors(colors: CategoricalPalette['colors']): MVSCategoricalPaletteProps['colors'] {
+/** Merge properties of two object into a new object. Property values from `second` override those from `first`, but `undefined` is treated as if property missing while `null` as a regular value. */
+function objMerge<T extends object, U extends object>(first: T, second: U): T & U {
+    const out: Partial<T & U> = { ...first };
+    for (const key in second) {
+        const value = second[key];
+        if (value !== undefined) out[key] = value as any;
+    }
+    return out as T & U;
+}
+
+function categoricalPalettePropsFromMVSColors(colors: Required<CategoricalPalette>['colors']): MVSCategoricalPaletteProps['colors'] {
     if (typeof colors === 'string') {
         if (colors in MvsNamedColorLists) {
             const colorList = MvsNamedColorLists[colors as ColorListNameT];
@@ -470,7 +477,7 @@ function categoricalPalettePropsFromMVSColors(colors: CategoricalPalette['colors
     return { name: 'list', params: { kind: 'set', colors: [] } };
 }
 
-function discretePalettePropsFromMVSColors(colors: DiscretePalette['colors'], reverse: boolean): MVSDiscretePaletteProps['colors'] {
+function discretePalettePropsFromMVSColors(colors: Required<DiscretePalette>['colors'], reverse: boolean): MVSDiscretePaletteProps['colors'] {
     if (typeof colors === 'string') {
         if (colors in MvsNamedColorLists) {
             const colorList = MvsNamedColorLists[colors];
@@ -494,7 +501,7 @@ function discretePalettePropsFromMVSColors(colors: DiscretePalette['colors'], re
     return [];
 }
 
-function continuousPalettePropsFromMVSColors(colors: ContinuousPalette['colors'], reverse: boolean): MVSContinuousPaletteProps['colors'] {
+function continuousPalettePropsFromMVSColors(colors: Required<ContinuousPalette>['colors'], reverse: boolean): MVSContinuousPaletteProps['colors'] {
     if (typeof colors === 'string') {
         // Named color list
         if (colors in MvsNamedColorLists) {

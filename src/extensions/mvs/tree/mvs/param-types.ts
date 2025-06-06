@@ -128,6 +128,7 @@ export type ColorListNameT = ValueFor<typeof ColorListNameT>;
 export const ColorDictNameT = literal('ElementSymbol', 'ResidueName', 'ResidueProperties');
 export type ColorDictNameT = ValueFor<typeof ColorDictNameT>;
 
+
 export const CategoricalPalette = object(
     {
         kind: literal('categorical'),
@@ -140,17 +141,27 @@ export const CategoricalPalette = object(
             list(ColorT),
             dict(str, ColorT),
         ),
-        /** Color to use when a) `colors` is a dictionary (or a color dictionary name) and given key is not present, or b) `colors` is a list (or a color list name) and there are more real annotation values than listed colors and `repeat_color_list` is not true. */
-        missing_color: ColorT,
+        /** Color to use when a) `colors` is a dictionary (or a color dictionary name) and given key is not present, or b) `colors` is a list (or a color list name) and there are more actual annotation values than listed colors and `repeat_color_list` is not true. */
+        missing_color: nullable(ColorT),
         /** Repeat color list once all colors are depleted (only applies if `colors` is a list or a color list name). */
         repeat_color_list: bool,
-        /** Sort real annotation values before assigning colors from a list (none = take values in order of their first occurrence). */
+        /** Sort actual annotation values before assigning colors from a list (none = take values in order of their first occurrence). */
         sort: literal('none', 'lexical', 'numeric'),
         /** Sort direction. */
         sort_direction: literal('ascending', 'descending'),
     }
 );
 export type CategoricalPalette = ValueFor<typeof CategoricalPalette>;
+
+export const CategoricalPaletteDefaults: Required<CategoricalPalette> = {
+    kind: 'categorical',
+    colors: 'Category10', // this is also default for categorical in Matplotlib
+    missing_color: null,
+    repeat_color_list: false,
+    sort: 'none',
+    sort_direction: 'ascending',
+};
+
 
 export const DiscretePalette = object(
     {
@@ -174,11 +185,20 @@ export const DiscretePalette = object(
         reverse: bool,
         /** Defines whether the annotation values should be normalized before assigning color based on checkpoints in `colors` (`x_normalized = (x - x_min) / (x_max - x_min)`, where `[x_min, x_max]` are either `value_domain` if provided, or the lowest and the highest value encountered in the annotation). Default is `"normalized"`. */
         mode: literal('normalized', 'absolute'),
-        /** Defines `x_min` and `x_max` for normalization of annotation values. Either can be `null`, meaning that minimum/maximum of the real values will be used. Only used when `mode` is `"normalized"`. */
+        /** Defines `x_min` and `x_max` for normalization of annotation values. Either can be `null`, meaning that minimum/maximum of the actual values will be used. Only used when `mode` is `"normalized"`. */
         value_domain: tuple([nullable(float), nullable(float)]),
     }
 );
 export type DiscretePalette = ValueFor<typeof DiscretePalette>;
+
+export const DiscretePaletteDefaults: Required<DiscretePalette> = {
+    kind: 'discrete',
+    colors: 'YlGn', // YlGn was selected as default because (a) Matplotlib's default Viridis looks ugly in 3D and (b) YlGn does not contain white, so it's easier to see that it's doing something even when values are in wrong range
+    reverse: false,
+    mode: 'normalized',
+    value_domain: [null, null],
+};
+
 
 export const ContinuousPalette = object(
     {
@@ -199,7 +219,7 @@ export const ContinuousPalette = object(
         reverse: bool,
         /** Defines whether the annotation values should be normalized before assigning color based on checkpoints in `colors` (`x_normalized = (x - x_min) / (x_max - x_min)`, where `[x_min, x_max]` are either `value_domain` if provided, or the lowest and the highest value encountered in the annotation). Default is `"normalized"`. */
         mode: literal('normalized', 'absolute'),
-        /** Defines `x_min` and `x_max` for normalization of annotation values. Either can be `null`, meaning that minimum/maximum of the real values will be used. Only used when `mode` is `"normalized"`. */
+        /** Defines `x_min` and `x_max` for normalization of annotation values. Either can be `null`, meaning that minimum/maximum of the actual values will be used. Only used when `mode` is `"normalized"`. */
         value_domain: tuple([nullable(float), nullable(float)]),
         /** Color to use for values below the lowest checkpoint. 'auto' means color of the lowest checkpoint. */
         underflow_color: nullable(union(literal('auto'), ColorT)),
@@ -209,7 +229,16 @@ export const ContinuousPalette = object(
 );
 export type ContinuousPalette = ValueFor<typeof ContinuousPalette>;
 
-// TODO declare defaults here (for now)
+export const ContinuousPaletteDefaults: Required<ContinuousPalette> = {
+    kind: 'continuous',
+    colors: 'YlGn', // YlGn was selected as default because (a) Matplotlib's default Viridis looks ugly in 3D and (b) YlGn does not contain white, so it's easier to see that it's doing something even when values are in wrong range
+    reverse: false,
+    mode: 'normalized',
+    value_domain: [null, null],
+    underflow_color: null,
+    overflow_color: null,
+};
+
 // TODO consider spreading the palette param directly into color_from_uri/color_from_source params (though this will be tricky)
 // TODO consider implementing some kind of recursion for object-typed params to achieve smart error messages and default value handling
 

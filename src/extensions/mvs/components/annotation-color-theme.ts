@@ -27,10 +27,10 @@ export const MVSCategoricalPaletteParams = {
         }, e => `${e.value}: ${Color.toHexStyle(e.color)}`, { description: 'Mapping of annotation values to colors.' }),
     }),
     repeatColorList: PD.Boolean(false, { hideIf: g => g.colors.name !== 'list', description: 'Repeat color list once all colors are depleted (only applies if `colors` is a list).' }),
-    sort: PD.Select('none', [['none', 'None'], ['lexical', 'Lexical'], ['numeric', 'Numeric']] as const, { hideIf: g => g.colors.name !== 'list', description: 'Sort real annotation values before assigning colors from a list (none = take values in order of their first occurrence).' }),
+    sort: PD.Select('none', [['none', 'None'], ['lexical', 'Lexical'], ['numeric', 'Numeric']] as const, { hideIf: g => g.colors.name !== 'list', description: 'Sort actual annotation values before assigning colors from a list (none = take values in order of their first occurrence).' }),
     sortDirection: PD.Select('ascending', [['ascending', 'Ascending'], ['descending', 'Descending']] as const, { hideIf: g => g.colors.name !== 'list', description: 'Sort direction.' }),
     setMissingColor: PD.Boolean(false, { description: 'Allow setting a color for missing values.' }),
-    missingColor: PD.Color(ColorNames.white, { hideIf: g => !g.setMissingColor, description: 'Color to use when (a) `colors` is a dictionary and given key is not present, or (b) `color` is a list and there are more real annotation values than listed colors and `repeat_color_list` is not true.' }),
+    missingColor: PD.Color(ColorNames.white, { hideIf: g => !g.setMissingColor, description: 'Color to use when (a) `colors` is a dictionary and given key is not present, or (b) `color` is a list and there are more actual annotation values than listed colors and `repeat_color_list` is not true.' }),
 };
 export type MVSCategoricalPaletteParams = typeof MVSCategoricalPaletteParams
 export type MVSCategoricalPaletteProps = PD.Values<MVSCategoricalPaletteParams>
@@ -42,8 +42,8 @@ export const MVSDiscretePaletteParams = {
         toValue: PD.Numeric(Infinity), // TODO check if this is JSONable, use MaybeFloat if not
     }, e => `${Color.toHexStyle(e.color)} [${e.fromValue}, ${e.toValue}]`, { description: 'Mapping of annotation value ranges to colors.' }),
     mode: PD.Select('normalized', [['normalized', 'Normalized'], ['absolute', 'Absolute']] as const, { description: 'Defines whether the annotation values should be normalized before assigning color based on checkpoints in `colors` (`x_normalized = (x - x_min) / (x_max - x_min)`, where `[x_min, x_max]` are either `value_domain` if provided, or the lowest and the highest value encountered in the annotation).' }),
-    xMin: MaybeFloatParamDefinition(undefined, { hideIf: g => g.mode !== 'normalized', placeholder: 'auto', description: 'Defines `x_min` for normalization of annotation values. If not provided, minimum of the real values will be used. Only used when `mode` is `"normalized"' }),
-    xMax: MaybeFloatParamDefinition(undefined, { hideIf: g => g.mode !== 'normalized', placeholder: 'auto', description: 'Defines `x_max` for normalization of annotation values. If not provided, maximum of the real values will be used. Only used when `mode` is `"normalized"' }),
+    xMin: MaybeFloatParamDefinition(undefined, { hideIf: g => g.mode !== 'normalized', placeholder: 'auto', description: 'Defines `x_min` for normalization of annotation values. If not provided, minimum of the actual values will be used. Only used when `mode` is `"normalized"' }),
+    xMax: MaybeFloatParamDefinition(undefined, { hideIf: g => g.mode !== 'normalized', placeholder: 'auto', description: 'Defines `x_max` for normalization of annotation values. If not provided, maximum of the actual values will be used. Only used when `mode` is `"normalized"' }),
 };
 export type MVSDiscretePaletteParams = typeof MVSDiscretePaletteParams
 export type MVSDiscretePaletteProps = PD.Values<MVSDiscretePaletteParams>
@@ -51,8 +51,8 @@ export type MVSDiscretePaletteProps = PD.Values<MVSDiscretePaletteParams>
 export const MVSContinuousPaletteParams = {
     colors: PD.ColorList('yellow-green', { description: 'List of colors, with optional checkpoints.', presetKind: 'scale', offsets: true }),
     mode: PD.Select('normalized', [['normalized', 'Normalized'], ['absolute', 'Absolute']] as const, { description: 'Defines whether the annotation values should be normalized before assigning color based on checkpoints in `colors` (`x_normalized = (x - x_min) / (x_max - x_min)`, where `[x_min, x_max]` are either `value_domain` if provided, or the lowest and the highest value encountered in the annotation).' }),
-    xMin: MaybeFloatParamDefinition(undefined, { hideIf: g => g.mode !== 'normalized', placeholder: 'auto', description: 'Defines `x_min` for normalization of annotation values. If not provided, minimum of the real values will be used. Only used when `mode` is `"normalized"' }),
-    xMax: MaybeFloatParamDefinition(undefined, { hideIf: g => g.mode !== 'normalized', placeholder: 'auto', description: 'Defines `x_max` for normalization of annotation values. If not provided, maximum of the real values will be used. Only used when `mode` is `"normalized"' }),
+    xMin: MaybeFloatParamDefinition(undefined, { hideIf: g => g.mode !== 'normalized', placeholder: 'auto', description: 'Defines `x_min` for normalization of annotation values. If not provided, minimum of the actual values will be used. Only used when `mode` is `"normalized"' }),
+    xMax: MaybeFloatParamDefinition(undefined, { hideIf: g => g.mode !== 'normalized', placeholder: 'auto', description: 'Defines `x_max` for normalization of annotation values. If not provided, maximum of the actual values will be used. Only used when `mode` is `"normalized"' }),
     setUnderflowColor: PD.Boolean(false, { description: 'Allow setting a color for values below the lowest checkpoint.' }),
     underflowColor: PD.Color(ColorNames.white, { hideIf: g => !g.setUnderflowColor, description: 'Color for values below the lowest checkpoint.' }),
     setOverflowColor: PD.Boolean(false, { description: 'Allow setting a color for values above the highest checkpoint.' }),
