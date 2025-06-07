@@ -21,6 +21,6 @@
         "rootDir": "src",
         "outDir": "lib"
     },
-    "include": ["src/**/*"]
-    // "exclude": [ "src/servers/**/*", "src/perf-tests/*", "src/cli/**/*" ]
+    "include": ["src/**/*"],
+    "exclude": [ "**/*.spec.ts", "src/servers/**/*", "src/perf-tests/*", "src/cli/**/*"]
 }
