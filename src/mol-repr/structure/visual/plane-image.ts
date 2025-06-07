@@ -9,7 +9,7 @@ import { VisualUpdateState } from '../../util';
 import { VisualContext } from '../../visual';
 import { Structure, StructureElement } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
-import { Mat4, Quat, Vec3 } from '../../../mol-math/linear-algebra';
+import { EPSILON, Mat4, Quat, Vec3 } from '../../../mol-math/linear-algebra';
 import { Axes3D, Box3D } from '../../../mol-math/geometry';
 import { ComplexImageParams, ComplexImageVisual, ComplexVisual } from '../complex-visual';
 import { eachSerialElement, ElementIterator, getSerialElementLoci } from './util/element';
@@ -34,15 +34,20 @@ export const PlaneImageParams = {
     ...ComplexImageParams,
     interpolation: PD.Select('nearest', PD.objectToOptions(InterpolationTypes)),
     imageResolution: PD.Numeric(0.5, { min: 0.01, max: 20, step: 0.01 }, { description: 'Grid resolution/cell spacing.', ...BaseGeometry.CustomQualityParamInfo }),
-    offset: PD.Numeric(0, { min: -1, max: 1, step: 0.01 }, { isEssential: true, immediateUpdate: true }),
-    axis: PD.Select('c', PD.arrayToOptions(['a', 'b', 'c'] as const), { isEssential: true }),
-    margin: PD.Numeric(4, { min: 0, max: 50, step: 1 }, { immediateUpdate: true, description: 'Margin around the structure in Angstrom' }),
-    frame: PD.Select('principalAxes', PD.arrayToOptions(['principalAxes', 'boundingBox'] as const)),
-    extent: PD.Select('frame', PD.arrayToOptions(['frame', 'sphere'] as const), { description: 'Extent of the plane, either box (frame) or sphere.' }),
+    mode: PD.Select('frame', PD.arrayToOptions(['frame', 'plane'] as const), { description: 'Frame: slice through the structure along arbitrary axes in any step size. Plane: an arbitrary plane defined by point and normal.' }),
+    offset: PD.Numeric(0, { min: -1, max: 1, step: 0.01 }, { isEssential: true, immediateUpdate: true, hideIf: p => p.mode !== 'frame', description: 'Relative offset from center.' }),
+    axis: PD.Select('c', PD.arrayToOptions(['a', 'b', 'c'] as const), { isEssential: true, hideIf: p => p.mode !== 'frame' }),
     rotation: PD.Group({
         axis: PD.Vec3(Vec3.create(1, 0, 0), {}, { description: 'Axis of rotation' }),
         angle: PD.Numeric(0, { min: -180, max: 180, step: 1 }, { immediateUpdate: true, description: 'Axis rotation angle in Degrees' }),
-    }, { isExpanded: true }),
+    }, { isExpanded: true, hideIf: p => p.mode !== 'frame' }),
+    plane: PD.Group({
+        point: PD.Vec3(Vec3.create(0, 0, 0), {}, { description: 'Plane point' }),
+        normal: PD.Vec3(Vec3.create(1, 0, 0), {}, { description: 'Plane normal' }),
+    }, { isExpanded: true, hideIf: p => p.mode !== 'plane' }),
+    extent: PD.Select('frame', PD.arrayToOptions(['frame', 'sphere'] as const), { description: 'Extent of the plane, either box (frame) or sphere.' }),
+    margin: PD.Numeric(4, { min: 0, max: 50, step: 1 }, { immediateUpdate: true, description: 'Margin around the structure in Angstrom' }),
+    frame: PD.Select('principalAxes', PD.arrayToOptions(['principalAxes', 'boundingBox'] as const)),
     antialias: PD.Boolean(true, { description: 'Antialiasing of structure edges.' }),
     cutout: PD.Boolean(false, { description: 'Cutout the structure from the image.' }),
     defaultColor: PD.Color(Color(0xCCCCCC), { description: 'Default color for parts of the image that are not covered by the color theme.' }),
@@ -60,6 +65,7 @@ export function PlaneImageVisual(materialId: number): ComplexVisual<PlaneImagePa
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PlaneImageParams>, currentProps: PD.Values<PlaneImageParams>, newTheme: Theme, currentTheme: Theme) => {
             state.createGeometry = (
                 newProps.imageResolution !== currentProps.imageResolution ||
+                newProps.mode !== currentProps.mode ||
                 newProps.margin !== currentProps.margin ||
                 newProps.frame !== currentProps.frame ||
                 newProps.extent !== currentProps.extent ||
@@ -67,6 +73,8 @@ export function PlaneImageVisual(materialId: number): ComplexVisual<PlaneImagePa
                 newProps.rotation.angle !== currentProps.rotation.angle ||
                 newProps.offset !== currentProps.offset ||
                 newProps.axis !== currentProps.axis ||
+                !Vec3.equals(newProps.plane.point, currentProps.plane.point) ||
+                !Vec3.equals(newProps.plane.normal, currentProps.plane.normal) ||
                 newProps.antialias !== currentProps.antialias ||
                 newProps.cutout !== currentProps.cutout ||
                 newProps.defaultColor !== currentProps.defaultColor ||
@@ -81,12 +89,14 @@ export function PlaneImageVisual(materialId: number): ComplexVisual<PlaneImagePa
 
 export interface PlaneImageProps {
     imageResolution: number,
+    mode: 'frame' | 'plane',
     offset: number,
     axis: 'a' | 'b' | 'c',
     margin: number,
     frame: 'principalAxes' | 'boundingBox',
     extent: 'frame' | 'sphere',
     rotation: { axis: Vec3, angle: number },
+    plane: { point: Vec3, normal: Vec3 },
     antialias: boolean,
     cutout: boolean,
     defaultColor: Color,
@@ -94,7 +104,7 @@ export interface PlaneImageProps {
 }
 
 function getFrame(structure: Structure, props: PlaneImageProps) {
-    const { axis, frame, extent, margin, rotation, includeParent } = props;
+    const { mode, axis, frame, extent, margin, rotation, plane, includeParent } = props;
 
     if (includeParent && structure.child) {
         structure = structure.child;
@@ -176,6 +186,20 @@ function getFrame(structure: Structure, props: PlaneImageProps) {
             Vec3.normalize(Vec3(), dirB),
             Vec3.normalize(Vec3(), dirC)
         );
+    }
+
+    if (mode === 'plane') {
+        Vec3.copy(center, plane.point);
+        Vec3.copy(normal, plane.normal);
+
+        Vec3.cross(major, normal, Vec3.unitX);
+        if (Vec3.dot(major, major) < EPSILON) {
+            Vec3.cross(major, normal, Vec3.unitY);
+        }
+        Vec3.normalize(major, major);
+
+        Vec3.cross(minor, normal, major);
+        Vec3.normalize(minor, minor);
     }
 
     const trim: Image.Trim = {

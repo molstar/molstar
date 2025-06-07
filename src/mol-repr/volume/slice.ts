@@ -27,6 +27,7 @@ import { Quat } from '../../mol-math/linear-algebra/3d/quat';
 import { degToRad } from '../../mol-math/misc';
 import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
 import { clamp, normalize } from '../../mol-math/interpolate';
+import { assertUnreachable } from '../../mol-util/type-helpers';
 
 export const SliceParams = {
     ...Image.Params,
@@ -37,13 +38,17 @@ export const SliceParams = {
         z: PD.Numeric(0, { min: 0, max: 0, step: 1 }, { immediateUpdate: true }),
     }, { isEssential: true, hideIf: p => p.mode !== 'grid', description: 'Slice position in grid coordinates.' }),
     isoValue: Volume.IsoValueParam,
-    mode: PD.Select('grid', PD.arrayToOptions(['grid', 'frame'] as const), { description: 'Grid: slice through the volume along the grid axes in integer steps. Frame: slice through the volume along arbitrary axes in any step size.' }),
+    mode: PD.Select('grid', PD.arrayToOptions(['grid', 'frame', 'plane'] as const), { description: 'Grid: slice through the volume along the grid axes in integer steps. Frame: slice through the volume along arbitrary axes in any step size. Plane: an arbitrary plane defined by point and normal.' }),
     offset: PD.Numeric(0, { min: -1, max: 1, step: 0.01 }, { isEssential: true, immediateUpdate: true, hideIf: p => p.mode !== 'frame', description: 'Relative offset from center.' }),
     axis: PD.Select('a', PD.arrayToOptions(['a', 'b', 'c'] as const), { isEssential: true, hideIf: p => p.mode !== 'frame', description: 'Axis of the frame.' }),
     rotation: PD.Group({
         axis: PD.Vec3(Vec3.create(1, 0, 0), {}, { description: 'Axis of rotation' }),
         angle: PD.Numeric(0, { min: -180, max: 180, step: 1 }, { immediateUpdate: true, description: 'Axis rotation angle in Degrees' }),
     }, { isExpanded: true, hideIf: p => p.mode !== 'frame' }),
+    plane: PD.Group({
+        point: PD.Vec3(Vec3.create(0, 0, 0), {}, { description: 'Plane point' }),
+        normal: PD.Vec3(Vec3.create(1, 0, 0), {}, { description: 'Plane normal' }),
+    }, { isExpanded: true, hideIf: p => p.mode !== 'plane' }),
 };
 export type SliceParams = typeof SliceParams
 export type SliceProps = PD.Values<SliceParams>
@@ -61,109 +66,19 @@ export function getSliceParams(ctx: ThemeRegistryContext, volume: Volume) {
 }
 
 export async function createImage(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: SliceProps, image?: Image): Promise<Image> {
-    if (props.mode === 'frame') {
-        return createFrameImage(ctx, volume, key, theme, props, image);
-    } else {
-        return createGridImage(ctx, volume, key, theme, props, image);
+    switch (props.mode) {
+        case 'frame':
+            return createFrameImage(ctx, volume, key, theme, props, image);
+        case 'grid':
+            return createGridImage(ctx, volume, key, theme, props, image);
+        case 'plane':
+            return createPlaneImage(ctx, volume, key, theme, props, image);
+        default:
+            assertUnreachable(props.mode);
     }
 }
 
 //
-
-async function createFrameImage(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: SliceProps, image?: Image): Promise<Image> {
-    const { offset, isoValue } = props;
-
-    const { cells: { space }, stats } = volume.grid;
-    const { min, max } = stats;
-
-    const isUniform = theme.color.granularity === 'uniform';
-    const color = 'color' in theme.color && theme.color.color
-        ? theme.color.color
-        : () => Color(0xffffff);
-
-    const { size, major, minor, normal, center, trim, resolution } = getFrame(volume, props);
-    const scaleFactor = 1 / resolution;
-
-    const scale = Vec3.create(size[0], size[1], 1);
-    const offsetDir = Vec3.setMagnitude(Vec3(), normal, size[2] / 2);
-
-    const width = Math.floor(size[1] * scaleFactor);
-    const height = Math.floor(size[0] * scaleFactor);
-
-    const m = Mat4.identity();
-    const v = Vec3();
-    const anchor = Vec3();
-
-    Vec3.add(v, center, major);
-    Mat4.targetTo(m, center, v, minor);
-    Vec3.scaleAndAdd(anchor, center, offsetDir, offset);
-    Mat4.setTranslation(m, anchor);
-    Mat4.mul(m, m, Mat4.rotY90);
-    Mat4.scale(m, m, scale);
-
-    const imageArray = new Uint8Array(width * height * 4);
-    const groupArray = new Uint8Array(width * height * 4);
-    const valueArray = new Float32Array(width * height);
-
-    const [mx, my, mz] = space.dimensions;
-    const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
-    const cartnToGrid = Mat4.invert(Mat4(), gridToCartn);
-    const gridCoords = Vec3();
-
-    const pl = PositionLocation(Vec3(), Vec3());
-    const getTrilinearlyInterpolated = Grid.makeGetTrilinearlyInterpolated(volume.grid, 'none');
-
-    let i = 0;
-    for (let ih = 0; ih < height; ++ih) {
-        for (let iw = 0; iw < width; ++iw) {
-            const y = (clamp(iw + 0.5, 0, width - 1) / width) - 0.5;
-            const x = (clamp(ih + 0.5, 0, height - 1) / height) - 0.5;
-            Vec3.set(v, x, -y, 0);
-            Vec3.transformMat4(v, v, m);
-
-            Vec3.copy(gridCoords, v);
-            Vec3.transformMat4(gridCoords, gridCoords, cartnToGrid);
-
-            const ix = Math.trunc(gridCoords[0]);
-            const iy = Math.trunc(gridCoords[1]);
-            const iz = Math.trunc(gridCoords[2]);
-
-            Vec3.copy(pl.position, v);
-            const c = color(pl, false);
-            Color.toArray(c, imageArray, i);
-
-            const val = normalize(getTrilinearlyInterpolated(v), min, max);
-            if (isUniform) {
-                imageArray[i] *= val;
-                imageArray[i + 1] *= val;
-                imageArray[i + 2] *= val;
-            }
-            valueArray[i / 4] = val;
-
-            if (ix >= 0 && ix < mx && iy >= 0 && iy < my && iz >= 0 && iz < mz) {
-                packIntToRGBArray(space.dataOffset(ix, iy, iz), groupArray, i);
-            }
-
-            i += 4;
-        }
-    }
-
-    const imageTexture = { width, height, array: imageArray, flipY: true };
-    const groupTexture = { width, height, array: groupArray, flipY: true };
-    const valueTexture = { width, height, array: valueArray, flipY: true };
-
-    const corners = new Float32Array([
-        -0.5, 0.5, 0,
-        0.5, 0.5, 0,
-        -0.5, -0.5, 0,
-        0.5, -0.5, 0
-    ]);
-    transformPositionArray(m, corners, 0, 4);
-
-    const isoLevel = clamp(normalize(Volume.IsoValue.toAbsolute(isoValue, stats).absoluteValue, min, max), 0, 1);
-
-    return Image.create(imageTexture, corners, groupTexture, valueTexture, trim, isoLevel, image);
-}
 
 function getFrame(volume: Volume, props: SliceProps) {
     const { axis, rotation, mode } = props;
@@ -244,7 +159,157 @@ function getFrame(volume: Volume, props: SliceProps) {
     return { size, major, minor, normal, center, trim, resolution };
 }
 
-//
+type SamplingInfo = {
+    m: Mat4
+    width: number
+    height: number
+};
+
+function getSampledImage(volume: Volume, theme: Theme, info: SamplingInfo, isoValue: Volume.IsoValue, trim: Image.Trim, image?: Image): Image {
+    const { m, width, height } = info;
+
+    const { cells: { space }, stats } = volume.grid;
+    const { min, max } = stats;
+
+    const isUniform = theme.color.granularity === 'uniform';
+    const color = 'color' in theme.color && theme.color.color
+        ? theme.color.color
+        : () => Color(0xffffff);
+
+    const v = Vec3();
+
+    const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
+    const cartnToGrid = Mat4.invert(Mat4(), gridToCartn);
+    const [mx, my, mz] = space.dimensions;
+
+    const imageArray = new Uint8Array(width * height * 4);
+    const groupArray = new Uint8Array(width * height * 4);
+    const valueArray = new Float32Array(width * height);
+
+    const gridCoords = Vec3();
+
+    const pl = PositionLocation(Vec3(), Vec3());
+    const getTrilinearlyInterpolated = Grid.makeGetTrilinearlyInterpolated(volume.grid, 'none');
+
+    let i = 0;
+    for (let ih = 0; ih < height; ++ih) {
+        for (let iw = 0; iw < width; ++iw) {
+            const y = (clamp(iw + 0.5, 0, width - 1) / width) - 0.5;
+            const x = (clamp(ih + 0.5, 0, height - 1) / height) - 0.5;
+            Vec3.set(v, x, -y, 0);
+            Vec3.transformMat4(v, v, m);
+
+            Vec3.copy(gridCoords, v);
+            Vec3.transformMat4(gridCoords, gridCoords, cartnToGrid);
+
+            const ix = Math.trunc(gridCoords[0]);
+            const iy = Math.trunc(gridCoords[1]);
+            const iz = Math.trunc(gridCoords[2]);
+
+            Vec3.copy(pl.position, v);
+            const c = color(pl, false);
+            Color.toArray(c, imageArray, i);
+
+            const val = normalize(getTrilinearlyInterpolated(v), min, max);
+            if (isUniform) {
+                imageArray[i] *= val;
+                imageArray[i + 1] *= val;
+                imageArray[i + 2] *= val;
+            }
+            valueArray[i / 4] = val;
+
+            if (ix >= 0 && ix < mx && iy >= 0 && iy < my && iz >= 0 && iz < mz) {
+                packIntToRGBArray(space.dataOffset(ix, iy, iz), groupArray, i);
+            }
+
+            i += 4;
+        }
+    }
+
+    const imageTexture = { width, height, array: imageArray, flipY: true };
+    const groupTexture = { width, height, array: groupArray, flipY: true };
+    const valueTexture = { width, height, array: valueArray, flipY: true };
+
+    const corners = new Float32Array([
+        -0.5, 0.5, 0,
+        0.5, 0.5, 0,
+        -0.5, -0.5, 0,
+        0.5, -0.5, 0
+    ]);
+    transformPositionArray(m, corners, 0, 4);
+
+    const isoLevel = clamp(normalize(Volume.IsoValue.toAbsolute(isoValue, stats).absoluteValue, min, max), 0, 1);
+
+    const im = Image.create(imageTexture, corners, groupTexture, valueTexture, trim, isoLevel, image);
+    im.setBoundingSphere(Volume.getBoundingSphere(volume));
+    return im;
+}
+
+async function createFrameImage(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: SliceProps, image?: Image): Promise<Image> {
+    const { offset, isoValue } = props;
+
+    const { size, major, minor, normal, center, trim, resolution } = getFrame(volume, props);
+    const scaleFactor = 1 / resolution;
+
+    const scale = Vec3.create(size[0], size[1], 1);
+    const offsetDir = Vec3.setMagnitude(Vec3(), normal, size[2] / 2);
+
+    const width = Math.floor(size[1] * scaleFactor);
+    const height = Math.floor(size[0] * scaleFactor);
+
+    const m = Mat4.identity();
+    const v = Vec3();
+    const anchor = Vec3();
+
+    Vec3.add(v, center, major);
+    Mat4.targetTo(m, center, v, minor);
+    Vec3.scaleAndAdd(anchor, center, offsetDir, offset);
+    Mat4.setTranslation(m, anchor);
+    Mat4.mul(m, m, Mat4.rotY90);
+    Mat4.scale(m, m, scale);
+
+    const info = { m, width, height };
+
+    return getSampledImage(volume, theme, info, isoValue, trim, image);
+}
+
+async function createPlaneImage(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: SliceProps, image?: Image): Promise<Image> {
+    const { plane: { point, normal }, isoValue } = props;
+
+    const m = Mat4.fromPlane(Mat4(), normal, point);
+
+    const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
+    const cartnToGrid = Mat4.invert(Mat4(), gridToCartn);
+    const [mx, my, mz] = volume.grid.cells.space.dimensions;
+
+    const a = mx - 1;
+    const b = my - 1;
+    const c = mz - 1;
+
+    const resolution = Math.max(a, b, c) / Math.max(mx, my, mz);
+    const scaleFactor = 1 / resolution;
+
+    const s = Vec3.distance(Vec3.create(0, 0, 0), Vec3.create(a, b, c)) * Math.SQRT2;
+    const size = Vec3.set(Vec3(), s, s, s);
+
+    Mat4.mul(m, m, Mat4.rotY90);
+    Mat4.scale(m, m, size);
+
+    const width = Math.floor(size[1] * scaleFactor);
+    const height = Math.floor(size[0] * scaleFactor);
+
+    const trim: Image.Trim = {
+        type: 3,
+        center: Vec3.create(a / 2, b / 2, c / 2),
+        scale: Vec3.create(a, b, c),
+        rotation: Quat.identity(),
+        transform: cartnToGrid,
+    };
+
+    const info: SamplingInfo = { m, width, height };
+
+    return getSampledImage(volume, theme, info, isoValue, trim, image);
+}
 
 async function createGridImage(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: SliceProps, image?: Image): Promise<Image> {
     const { dimension: { name: dim }, isoValue } = props;
@@ -308,8 +373,12 @@ async function createGridImage(ctx: VisualContext, volume: Volume, key: number, 
     const trim = Image.createEmptyTrim();
     const isoLevel = clamp(normalize(Volume.IsoValue.toAbsolute(isoValue, stats).absoluteValue, min, max), 0, 1);
 
-    return Image.create(imageTexture, corners, groupTexture, valueTexture, trim, isoLevel, image);
+    const im = Image.create(imageTexture, corners, groupTexture, valueTexture, trim, isoLevel, image);
+    im.setBoundingSphere(Volume.getBoundingSphere(volume));
+    return im;
 }
+
+//
 
 function getSliceInfo(grid: Grid, props: SliceProps) {
     const { dimension: { name: dim, params: index } } = props;
@@ -423,6 +492,8 @@ export function SliceVisual(materialId: number): VolumeVisual<SliceParams> {
                 newProps.rotation.angle !== currentProps.rotation.angle ||
                 newProps.offset !== currentProps.offset ||
                 newProps.axis !== currentProps.axis ||
+                !Vec3.equals(newProps.plane.point, currentProps.plane.point) ||
+                !Vec3.equals(newProps.plane.normal, currentProps.plane.normal) ||
                 !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats) ||
                 !ColorTheme.areEqual(newTheme.color, currentTheme.color)
             );
