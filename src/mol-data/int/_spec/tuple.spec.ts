@@ -5,6 +5,7 @@
  */
 
 import { IntTuple } from '../tuple';
+import { describe, it, expect } from 'vitest';
 
 describe('int pair', () => {
     it('works', () => {

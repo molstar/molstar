@@ -11,6 +11,7 @@ import { Renderer } from '../renderer';
 import { createContext } from '../webgl/context';
 import { Scene } from '../scene';
 import { createPoints } from './points.spec';
+import { describe, it, expect } from 'vitest';
 
 export function createRenderer(gl: WebGLRenderingContext) {
     const ctx = createContext(gl);

@@ -7,6 +7,7 @@
 import { OrderedSet } from '../ordered-set';
 import { Interval } from '../interval';
 import { Segmentation } from '../segmentation';
+import { describe, it, expect } from 'vitest';
 
 describe('segments', () => {
     const data = OrderedSet.ofSortedArray([4, 9, 10, 11, 14, 15, 16]);

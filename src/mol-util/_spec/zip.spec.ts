@@ -6,6 +6,7 @@
 
 import { deflate, inflate, unzip, zip } from '../zip/zip';
 import { SyncRuntimeContext } from '../../mol-task/execution/synchronous';
+import { describe, it, expect } from 'vitest';
 
 describe('zip', () => {
     it('roundtrip deflate/inflate', async () => {

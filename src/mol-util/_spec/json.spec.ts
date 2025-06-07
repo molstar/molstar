@@ -5,7 +5,7 @@
  */
 
 import { canonicalJsonString } from '../json';
-
+import { describe, it, expect } from 'vitest';
 
 describe('object utils', () => {
     it('canonicalJsonString', async () => {

@@ -11,6 +11,7 @@ import { setDebugMode } from '../../mol-util/debug';
 import { ColorNames } from '../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Cylinders } from '../../mol-geo/geometry/cylinders/cylinders';
+import { describe, it, expect } from 'vitest';
 
 export function createCylinders() {
     const cylinders = Cylinders.createEmpty();

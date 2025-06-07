@@ -5,6 +5,7 @@
  */
 
 import { getFileNameInfo } from '../file-info';
+import { describe, it, expect } from 'vitest';
 
 describe('getFileNameInfo', () => {
     it('handles empty string', () => {

@@ -5,6 +5,7 @@
  */
 
 import { IntAdjacencyGraph } from '../int-adjacency-graph';
+import { describe, it, expect } from 'vitest';
 
 describe('IntGraph', () => {
     const vc = 3;

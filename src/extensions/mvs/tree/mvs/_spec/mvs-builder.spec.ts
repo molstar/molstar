@@ -7,7 +7,7 @@
 
 import { MVSData } from '../../../mvs-data';
 import { builderDemo, createMVSBuilder } from '../mvs-builder';
-
+import { describe, it, expect } from 'vitest';
 
 describe('mvs-builder', () => {
     it('mvs-builder demo works', () => {

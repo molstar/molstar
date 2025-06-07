@@ -6,6 +6,7 @@
 
 import { TokenBuilder } from '../../../mol-io/reader/common/text/tokenizer';
 import { guessElementSymbolTokens } from '../util';
+import { describe, it, expect } from 'vitest';
 
 const records = [
     ['ATOM     19 HD23 LEU A   1     151.940 143.340 155.670  0.00  0.00', 'H'],

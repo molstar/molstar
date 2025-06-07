@@ -5,6 +5,7 @@
  */
 
 import { createReferenceCache } from '../reference-cache';
+import { describe, it, expect } from 'vitest';
 
 describe('reference-cache', () => {
     it('basic', () => {
