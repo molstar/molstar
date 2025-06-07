@@ -95,10 +95,6 @@
       "resolveSnapshotPath": {
         "lib": "./src"
       },
-      "alias": {
-        "lib": "./lib",
-        "@": "./src"
-      },
       "environmentOptions": {
         "jsdom": {
           "url": "http://localhost/"
