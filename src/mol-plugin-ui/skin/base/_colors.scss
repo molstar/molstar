@@ -1,0 +1,28 @@
+@use "sass:color";
+
+$default-background:         color.invert(#111318, $space: rgb) !default;
+$font-color:                 color.invert(#ccd4e0, $space: rgb) !default;
+$hover-font-color:           color.invert(#51A2FB, $space: rgb) !default;
+$entity-current-font-color:  color.invert(#68BEFD, $space: rgb) !default;
+$msp-btn-commit-on-font-color:   color.invert(#68BEFD, $space: rgb) !default;
+$entity-badge-font-color:    color.adjust(#ccd4e0, $lightness: 10%) !default;
+$msp-btn-remove-background:      #DE0A28 !default;
+$msp-btn-remove-hover-font-color:#F2F4F7 !default;
+
+// used in LOG
+$log-message:          #0CCA5D !default;
+$log-info:             #5E3673 !default;
+$log-warning:          #FCC937 !default;
+$log-error:            #FD354B !default;
+
+$logo-background: color.invert(#111318, $space: rgb) !default;
+
+$color-adjust-sign:     1 !default;
+
+@function color-lower-contrast($color, $amount) {
+    @return color.adjust($color, $lightness: $color-adjust-sign * $amount, $space: hsl);
+}
+
+@function color-increase-contrast($color, $amount) {
+    @return color.adjust($color, $lightness: -$color-adjust-sign * $amount, $space: hsl);
+}

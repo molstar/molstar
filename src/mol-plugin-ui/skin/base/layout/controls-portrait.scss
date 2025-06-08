@@ -1,109 +1,117 @@
-﻿
-.msp-layout-main {                
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: $expanded-portrait-bottom-height;
-    top: $expanded-portrait-top-height;
-}
+﻿@use '../vars' as *;
 
-.msp-layout-top {        
-    position: absolute;
-    right: 0;
-    height: $expanded-portrait-top-height;
-    top: 0;
-    width: 50%;
-    border-left: 1px solid $border-color;
-    border-bottom: 1px solid $border-color;
-}
-
-.msp-layout-bottom {        
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: $expanded-portrait-top-height;
-    width: 50%;    
-    border-bottom: 1px solid $border-color;
-}
-
-.msp-layout-right {
-    position: absolute;
-    width: 50%;
-    right: 0;
-    bottom: 0;
-    height: $expanded-portrait-bottom-height;
-    border-left: 1px solid $border-color;
-    border-top: 1px solid $border-color;
-}
-
-.msp-layout-left {
-    position: absolute;
-    width: 50%;
-    left: 0;
-    bottom: 0;
-    height: $expanded-portrait-bottom-height;
-    border-top: 1px solid $border-color;
-}
-
-/////////////////////////////////////////
-.msp-layout-hide-right {
-    .msp-layout-right {
-        display: none;
-    }    
-    .msp-layout-left {
-        width: 100%;        
-    }    
-}
-
-.msp-layout-hide-left {
-    .msp-layout-left {
-        display: none;
-    }    
-    .msp-layout-right {
-        width: 100%;
-        border-left: none;
-    }    
-}
-
-.msp-layout-hide-right.msp-layout-hide-left {
+@mixin layout-portrait {
     .msp-layout-main {
-        bottom: 0;
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: $expanded-portrait-bottom-height;
+        top: $expanded-portrait-top-height;
     }
-}
 
-.msp-layout-collapse-left {
-    .msp-layout-left {
-        width: $collapsed-left-width; 
-    }
-    .msp-layout-right {
-        left: $collapsed-left-width;
-        width: auto;
-    }    
-}
-
-///////////////////////////////////
-.msp-layout-hide-top {
     .msp-layout-top {
-        display: none;
-    }    
-    .msp-layout-bottom {
-        width: 100%;
-        border-left: none;
-    }    
-}
-
-.msp-layout-hide-bottom {
-    .msp-layout-bottom {
-        display: none;
-    }    
-    .msp-layout-top {
-        width: 100%;
-        border-left: none;
-    }    
-}
-
-.msp-layout-hide-top.msp-layout-hide-bottom {
-    .msp-layout-main {
+        position: absolute;
+        right: 0;
+        height: $expanded-portrait-top-height;
         top: 0;
+        width: 50%;
+        border-left: 1px solid $border-color;
+        border-bottom: 1px solid $border-color;
+    }
+
+    .msp-layout-bottom {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: $expanded-portrait-top-height;
+        width: 50%;
+        border-bottom: 1px solid $border-color;
+    }
+
+    .msp-layout-right {
+        position: absolute;
+        width: 50%;
+        right: 0;
+        bottom: 0;
+        height: $expanded-portrait-bottom-height;
+        border-left: 1px solid $border-color;
+        border-top: 1px solid $border-color;
+    }
+
+    .msp-layout-left {
+        position: absolute;
+        width: 50%;
+        left: 0;
+        bottom: 0;
+        height: $expanded-portrait-bottom-height;
+        border-top: 1px solid $border-color;
+    }
+
+    /////////////////////////////////////////
+    .msp-layout-hide-right {
+        .msp-layout-right {
+            display: none;
+        }
+
+        .msp-layout-left {
+            width: 100%;
+        }
+    }
+
+    .msp-layout-hide-left {
+        .msp-layout-left {
+            display: none;
+        }
+
+        .msp-layout-right {
+            width: 100%;
+            border-left: none;
+        }
+    }
+
+    .msp-layout-hide-right.msp-layout-hide-left {
+        .msp-layout-main {
+            bottom: 0;
+        }
+    }
+
+    .msp-layout-collapse-left {
+        .msp-layout-left {
+            width: $collapsed-left-width;
+        }
+
+        .msp-layout-right {
+            left: $collapsed-left-width;
+            width: auto;
+        }
+    }
+
+    ///////////////////////////////////
+    .msp-layout-hide-top {
+        .msp-layout-top {
+            display: none;
+        }
+
+        .msp-layout-bottom {
+            width: 100%;
+            border-left: none;
+        }
+    }
+
+    .msp-layout-hide-bottom {
+        .msp-layout-bottom {
+            display: none;
+        }
+
+        .msp-layout-top {
+            width: 100%;
+            border-left: none;
+        }
+    }
+
+    .msp-layout-hide-top.msp-layout-hide-bottom {
+        .msp-layout-main {
+            top: 0;
+        }
     }
 }
