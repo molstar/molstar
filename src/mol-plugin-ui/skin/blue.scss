@@ -1,2 +1,21 @@
-@import 'colors/blue';
-@import 'base/base';
+@use 'base/colors' with (
+    $default-background:         #2D3E50,
+    $font-color:                 #EDF1F2, 
+    $hover-font-color:           #3B9AD9,
+    $entity-current-font-color:  #FFFFFF,
+    $msp-btn-remove-background:      #BF3A31,
+    $msp-btn-remove-hover-font-color:#ffffff,
+    $msp-btn-commit-on-font-color:   #ffffff, 
+    $entity-badge-font-color:    #ccd4e0,
+
+    $log-message:          #0CCA5D,
+    $log-info:             #5E3673,
+    $log-warning:          #FCC937,
+    $log-error:            #FD354B,
+
+    $logo-background: rgba(0,0,0,0.75),
+
+    $color-adjust-sign: -1,
+);
+ 
+@use 'base/base';
