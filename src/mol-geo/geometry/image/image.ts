@@ -70,7 +70,7 @@ interface Image {
     readonly isoLevel: ValueCell<number>,
 
     /** Bounding sphere of the image */
-    boundingSphere: Sphere3D
+    readonly boundingSphere: Sphere3D
 
     setBoundingSphere(boundingSphere: Sphere3D): void
 }
