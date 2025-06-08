@@ -1,13 +1,15 @@
 /*! normalize.css v3.0.3 | MIT License | github.com/necolas/normalize.css */
 
-//
-// 1. Set default font family to sans-serif.
-// 2. Prevent iOS and IE text size adjust after device orientation change,
-//    without disabling user zoom.
-//
-* {
-  box-sizing: border-box; // 1
-}
+
+@mixin normalize {
+  //
+  // 1. Set default font family to sans-serif.
+  // 2. Prevent iOS and IE text size adjust after device orientation change,
+  //    without disabling user zoom.
+  //
+  * {
+    box-sizing: border-box; // 1
+  }
 
   //
   // Address `[hidden]` styling not present in IE 8/9/10.
@@ -208,3 +210,4 @@
   textarea {
     overflow: auto;
   }
+}

@@ -70,7 +70,9 @@ interface Image {
     readonly isoLevel: ValueCell<number>,
 
     /** Bounding sphere of the image */
-    boundingSphere: Sphere3D
+    readonly boundingSphere: Sphere3D
+
+    setBoundingSphere(boundingSphere: Sphere3D): void
 }
 
 namespace Image {
@@ -126,6 +128,10 @@ namespace Image {
                     currentHash = newHash;
                 }
                 return boundingSphere;
+            },
+            setBoundingSphere(sphere: Sphere3D) {
+                Sphere3D.copy(boundingSphere, sphere);
+                currentHash = hashCode(image);
             },
         };
         return image;
