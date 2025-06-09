@@ -1,0 +1,45 @@
+{
+  "name": "molviewspec",
+  "version": "1.0.0",
+  "description": "MolViewSpec - A specification for molecular visualization",
+  "type": "module",
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tree/generic/tree-schema": "./src/tree/generic/tree-schema.ts",
+    "./tree/generic/tree-utils": "./src/tree/generic/tree-utils.ts",
+    "./tree/generic/params-schema": "./src/tree/generic/params-schema.ts",
+    "./tree/generic/field-schema": "./src/tree/generic/field-schema.ts",
+    "./tree/mvs/mvs-tree": "./src/tree/mvs/mvs-tree.ts",
+    "./tree/mvs/mvs-builder": "./src/tree/mvs/mvs-builder.ts",
+    "./tree/mvs/param-types": "./src/tree/mvs/param-types.ts",
+    "./tree/mvs/mvs-tree-primitives": "./src/tree/mvs/mvs-tree-primitives.ts",
+    "./tree/mvs/mvs-tree-representations": "./src/tree/mvs/mvs-tree-representations.ts",
+    "./util/json": "./src/util/json.ts",
+    "./util/object": "./src/util/object.ts",
+    "./util/color": "./src/util/color.ts",
+    "./util/helpers": "./src/util/helpers.ts"
+  },
+  "files": [
+    "src/**/*"
+  ],
+  "scripts": {
+    "dev": "echo 'ES6 modules - no build required'",
+    "test": "echo 'Tests run from parent workspace'"
+  },
+  "keywords": [
+    "molecular-visualization",
+    "molstar",
+    "mvs",
+    "es6",
+    "typescript"
+  ],
+  "author": "Mol* Contributors",
+  "license": "MIT",
+  "dependencies": {},
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
