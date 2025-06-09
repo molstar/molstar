@@ -6,10 +6,10 @@
  */
 
 import {
-  createTreeSchema,
-  TreeSchema,
-} from "molviewspec/tree/generic/tree-schema";
-import { MVSTree, MVSTreeSchema } from "molviewspec/tree/mvs/mvs-tree";
+    createTreeSchema,
+    TreeSchema,
+} from 'molviewspec/tree/generic/tree-schema';
+import { MVSTree, MVSTreeSchema } from 'molviewspec/tree/mvs/mvs-tree';
 
 /** MolstarTree extends MVSTree with additional Molstar-specific nodes */
 export type MolstarTree = MVSTree;
@@ -18,12 +18,12 @@ export type MolstarTree = MVSTree;
 export const MolstarTreeSchema: TreeSchema<MolstarTree> = MVSTreeSchema;
 
 /** Union of all possible node kinds in MolstarTree */
-export type MolstarKind = MVSTree["kind"];
+export type MolstarKind = MVSTree['kind'];
 
 /** Union of all possible nodes in MolstarTree */
 export type MolstarNode<K extends MolstarKind = MolstarKind> = Extract<
-  MVSTree,
-  { kind: K }
+MVSTree,
+{ kind: K }
 >;
 
 /** Union of all possible subtrees in MolstarTree */
