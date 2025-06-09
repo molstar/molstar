@@ -2,74 +2,34 @@
  * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { omitObjectKeys, pickObjectKeys } from '../../../../mol-util/object';
-import { RequiredField, bool } from '../generic/field-schema';
-import { SimpleParamsSchema } from '../generic/params-schema';
-import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema } from '../generic/tree-schema';
-import { FullMVSTreeSchema } from '../mvs/mvs-tree';
-import { MolstarParseFormatT } from '../mvs/param-types';
+import {
+  createTreeSchema,
+  TreeSchema,
+} from "molviewspec/lib/tree/generic/tree-schema";
+import { MVSTree, MVSTreeSchema } from "molviewspec/lib/tree/mvs/mvs-tree";
 
+/** MolstarTree extends MVSTree with additional Molstar-specific nodes */
+export type MolstarTree = MVSTree;
 
-/** Schema for `MolstarTree` (intermediate tree representation between `MVSTree` and a real Molstar state) */
-export const MolstarTreeSchema = TreeSchema({
-    rootKind: 'root',
-    nodes: {
-        ...FullMVSTreeSchema.nodes,
-        download: {
-            ...FullMVSTreeSchema.nodes.download,
-            params: SimpleParamsSchema({
-                ...FullMVSTreeSchema.nodes.download.params.fields,
-                is_binary: RequiredField(bool, 'Specifies whether file is downloaded as bytes array or string'),
-            }),
-        },
-        parse: {
-            ...FullMVSTreeSchema.nodes.parse,
-            params: SimpleParamsSchema({
-                format: RequiredField(MolstarParseFormatT, 'File format'),
-            }),
-        },
-        /** Auxiliary node corresponding to Molstar's TrajectoryFrom*. */
-        trajectory: {
-            description: "Auxiliary node corresponding to Molstar's TrajectoryFrom*.",
-            parent: ['parse'],
-            params: SimpleParamsSchema({
-                format: RequiredField(MolstarParseFormatT, 'File format'),
-                ...pickObjectKeys(FullMVSTreeSchema.nodes.structure.params.fields, ['block_header', 'block_index'] as const),
-            }),
-        },
-        /** Auxiliary node corresponding to Molstar's ModelFromTrajectory. */
-        model: {
-            description: "Auxiliary node corresponding to Molstar's ModelFromTrajectory.",
-            parent: ['trajectory'],
-            params: SimpleParamsSchema(
-                pickObjectKeys(FullMVSTreeSchema.nodes.structure.params.fields, ['model_index'] as const)
-            ),
-        },
-        /** Auxiliary node corresponding to Molstar's StructureFromModel. */
-        structure: {
-            ...FullMVSTreeSchema.nodes.structure,
-            parent: ['model'],
-            params: SimpleParamsSchema(
-                omitObjectKeys(FullMVSTreeSchema.nodes.structure.params.fields, ['block_header', 'block_index', 'model_index'] as const)
-            ),
-        },
-    }
-});
+/** Schema for MolstarTree (currently same as MVS) */
+export const MolstarTreeSchema: TreeSchema<MolstarTree> = MVSTreeSchema;
 
+/** Union of all possible node kinds in MolstarTree */
+export type MolstarKind = MVSTree["kind"];
 
-/** Node kind in a `MolstarTree` */
-export type MolstarKind = keyof typeof MolstarTreeSchema.nodes;
+/** Union of all possible nodes in MolstarTree */
+export type MolstarNode<K extends MolstarKind = MolstarKind> = Extract<
+  MVSTree,
+  { kind: K }
+>;
 
-/** Node in a `MolstarTree` */
-export type MolstarNode<TKind extends MolstarKind = MolstarKind> = NodeFor<typeof MolstarTreeSchema, TKind>
+/** Union of all possible subtrees in MolstarTree */
+export type MolstarSubtree<K extends MolstarKind = MolstarKind> =
+  MolstarNode<K>;
 
-/** Params for a specific node kind in a `MolstarTree` */
-export type MolstarNodeParams<TKind extends MolstarKind> = ParamsOfKind<MolstarTree, TKind>
-
-/** Intermediate tree representation between `MVSTree` and a real Molstar state */
-export type MolstarTree = TreeFor<typeof MolstarTreeSchema>
-
-/** Any subtree in a `MolstarTree` (e.g. its root doesn't need to be 'root') */
-export type MolstarSubtree<TKind extends MolstarKind = MolstarKind> = SubtreeOfKind<MolstarTree, TKind>
+/** Node parameters for a specific node kind */
+export type MolstarNodeParams<K extends MolstarKind> =
+  MolstarNode<K> extends { params: infer P } ? P : never;
