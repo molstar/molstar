@@ -50,7 +50,11 @@ export const MVSAnnotationsParams = {
                 index: PD.Group({ index: PD.Numeric(0, { min: 0, step: 1 }, { description: '0-based index of the block' }) }),
                 header: PD.Group({ header: PD.Text(undefined, { description: 'Block header' }) }),
             }, { description: 'Specify which CIF block contains annotation data (only relevant when format=cif or format=bcif)' }),
-            cifCategory: MaybeStringParamDefinition(undefined, { description: 'Specify which CIF category contains annotation data (only relevant when format=cif or format=bcif)' }),
+            cifCategory: MaybeStringParamDefinition({ placeholder: 'Take first category', description: 'Specify which CIF category contains annotation data (only relevant when format=cif or format=bcif)' }),
+            fieldRemapping: PD.ObjectList({
+                standardName: PD.Text('', { placeholder: ' ', description: 'Standard name of the selector field (e.g. label_asym_id)' }),
+                actualName: MaybeStringParamDefinition({ placeholder: 'Ignore field', description: 'Actual name of the field in annotation data (e.g. spam_chain_id), null to ignore the field with standard name' }),
+            }, e => `"${e.standardName}": ${e.actualName === null ? 'null' : `"${e.actualName}"`}`),
             id: PD.Text('', { description: 'Arbitrary identifier that can be referenced by MVSAnnotationColorTheme' }),
         },
         obj => obj.id
@@ -137,6 +141,8 @@ export function getMVSAnnotationForStructure(structure: Structure, annotationId:
     return { annotation: undefined, model: undefined };
 }
 
+type FieldsRemapping = Record<string, string | null>;
+
 /** Main class for processing MVS annotation */
 export class MVSAnnotation {
     /** Store mapping `ElementIndex` -> annotation row index for each `Model`, -1 means no row applies */
@@ -147,8 +153,10 @@ export class MVSAnnotation {
     constructor(
         public data: MVSAnnotationData,
         public schema: MVSAnnotationSchema,
+        public fieldsRemapping: FieldsRemapping,
     ) {
         this.nRows = getRowCount(data);
+        console.log('new MVSAnnotation', this.nRows, this.fieldsRemapping)
     }
 
     /** Create a new `MVSAnnotation` based on specification `spec`. Use `file` if provided, otherwise download the file.
@@ -183,11 +191,11 @@ export class MVSAnnotation {
                 data = { format: 'cif', data: category };
                 break;
         }
-        return new MVSAnnotation(data, spec.schema);
+        return new MVSAnnotation(data, spec.schema, Object.fromEntries(spec.fieldRemapping.map(e => [e.standardName, e.actualName])));
     }
 
     static createEmpty(schema: MVSAnnotationSchema): MVSAnnotation {
-        return new MVSAnnotation({ format: 'json', data: [] }, schema);
+        return new MVSAnnotation({ format: 'json', data: [] }, schema, {});
     }
 
     /** Reference implementation of `getAnnotationForLocation`, just for checking, DO NOT USE DIRECTLY */
@@ -247,9 +255,9 @@ export class MVSAnnotation {
     private _getRows(): MVSAnnotationRow[] {
         switch (this.data.format) {
             case 'json':
-                return getRowsFromJson(this.data.data, this.schema);
+                return getRowsFromJson(this.data.data, this.schema, this.fieldsRemapping);
             case 'cif':
-                return getRowsFromCif(this.data.data, this.schema);
+                return getRowsFromCif(this.data.data, this.schema, this.fieldsRemapping);
         }
     }
     /** Parse and return all annotation rows in this annotation, or return cached result if available */
@@ -317,7 +325,11 @@ function getRowCountFromCif(data: CifCategory): number {
     return data.rowCount;
 }
 
-function getRowsFromJson(data: Jsonable, schema: MVSAnnotationSchema): MVSAnnotationRow[] {
+function getRowsFromJson(data: Jsonable, schema: MVSAnnotationSchema, fieldsRemapping: FieldsRemapping): MVSAnnotationRow[] {
+    // console.log('getRowsFromJson', fieldsRemapping)
+    // if (1) throw new Error('NotImplementedError: getRowsFromJson with fieldsRemapping')
+    // TODO implement fieldsRemapping: FieldsRemapping
+
     const js = data as any;
     const cifSchema = getCifAnnotationSchema(schema);
     if (Array.isArray(js)) {
@@ -342,7 +354,11 @@ function getRowsFromJson(data: Jsonable, schema: MVSAnnotationSchema): MVSAnnota
     }
 }
 
-function getRowsFromCif(data: CifCategory, schema: MVSAnnotationSchema): MVSAnnotationRow[] {
+function getRowsFromCif(data: CifCategory, schema: MVSAnnotationSchema, fieldsRemapping: FieldsRemapping): MVSAnnotationRow[] {
+    // console.log('getRowsFromCif', fieldsRemapping)
+    // if (1) throw new Error('NotImplementedError: getRowsFromCif with fieldsRemapping')
+    // TODO implement fieldsRemapping: FieldsRemapping
+
     const rows: MVSAnnotationRow[] = [];
     const cifSchema = getCifAnnotationSchema(schema);
     const table = toTable(cifSchema, data);

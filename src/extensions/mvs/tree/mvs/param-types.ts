@@ -125,7 +125,7 @@ export const ColorListNameT = literal(
 );
 export type ColorListNameT = ValueFor<typeof ColorListNameT>;
 
-export const ColorDictNameT = literal('ElementSymbol', 'ResidueName', 'ResidueProperties');
+export const ColorDictNameT = literal('ElementSymbol', 'ResidueName', 'ResidueProperties'); // TODO add 'SecondaryStructure'
 export type ColorDictNameT = ValueFor<typeof ColorDictNameT>;
 
 

@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { float, int, list, literal, nullable, OptionalField, RequiredField, str, tuple, union } from '../generic/field-schema';
+import { dict, float, int, list, literal, nullable, OptionalField, RequiredField, str, tuple, union } from '../generic/field-schema';
 import { SimpleParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
 import { MVSRepresentationParams, MVSVolumeRepresentationParams } from './mvs-tree-representations';
@@ -28,6 +28,11 @@ const _DataFromUriParams = {
     category_name: OptionalField(nullable(str), null, 'Name of the CIF category to read annotation from (only applies when `format` is `"cif"` or `"bcif"`). If `null`, the first category in the block is used.'),
     /** Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...). The default value is 'color'/'label'/'tooltip'/'component' depending on the node type */
     field_name: RequiredField(str, 'Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...).'),
+    /** TODO docstring
+     * Mapping of field names `{ stdName: actualName, ... }`.
+     * Fields not mentioned in keys are mapped implicitely (as if `{ stdName: stdName }` ).
+     * Use `{ stdName: null }` to ignore a field. */
+    fields_remapping: OptionalField(dict(str, nullable(str)), {}, 'TODO docstring'),
 };
 
 const _DataFromSourceParams = {
@@ -41,6 +46,8 @@ const _DataFromSourceParams = {
     category_name: OptionalField(nullable(str), null, 'Name of the CIF category to read annotation from. If `null`, the first category in the block is used.'),
     /** Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...). The default value is 'color'/'label'/'tooltip'/'component' depending on the node type */
     field_name: RequiredField(str, 'Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...).'),
+    /** TODO docstring */
+    fields_remapping: OptionalField(dict(str, str), {}, 'TODO docstring'),
 };
 
 /** Color to be used e.g. for representations without 'color' node */

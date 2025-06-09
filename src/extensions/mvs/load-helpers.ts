@@ -94,10 +94,18 @@ export function collectAnnotationReferences(tree: Subtree<MolstarTree>, context:
         let spec: Omit<MVSAnnotationSpec, 'id'> | undefined = undefined;
         if (AnnotationFromUriKinds.has(node.kind as any)) {
             const p = (node as MolstarNode<AnnotationFromUriKind>).params;
-            spec = { source: { name: 'url', params: { url: p.uri, format: p.format } }, schema: p.schema, cifBlock: blockSpec(p.block_header, p.block_index), cifCategory: p.category_name ?? undefined };
+            spec = {
+                source: { name: 'url', params: { url: p.uri, format: p.format } }, schema: p.schema,
+                cifBlock: blockSpec(p.block_header, p.block_index), cifCategory: p.category_name,
+                fieldRemapping: Object.entries(p.fields_remapping).map(([key, value]) => ({ standardName: key, actualName: value })),
+            };
         } else if (AnnotationFromSourceKinds.has(node.kind as any)) {
             const p = (node as MolstarNode<AnnotationFromSourceKind>).params;
-            spec = { source: { name: 'source-cif', params: {} }, schema: p.schema, cifBlock: blockSpec(p.block_header, p.block_index), cifCategory: p.category_name ?? undefined };
+            spec = {
+                source: { name: 'source-cif', params: {} }, schema: p.schema,
+                cifBlock: blockSpec(p.block_header, p.block_index), cifCategory: p.category_name,
+                fieldRemapping: Object.entries(p.fields_remapping).map(([key, value]) => ({ standardName: key, actualName: value })),
+            };
         }
         if (spec) {
             const key = canonicalJsonString(spec as any);
@@ -421,8 +429,8 @@ function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri' | 'col
             params: {
                 colors: discretePalettePropsFromMVSColors(fullParams.colors, fullParams.reverse),
                 mode: fullParams.mode,
-                xMin: fullParams.value_domain[0] ?? undefined,
-                xMax: fullParams.value_domain[1] ?? undefined,
+                xMin: fullParams.value_domain[0],
+                xMax: fullParams.value_domain[1],
             } satisfies MVSDiscretePaletteProps,
         };
     }
@@ -434,8 +442,8 @@ function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri' | 'col
             params: {
                 colors: colors,
                 mode: fullParams.mode,
-                xMin: fullParams.value_domain[0] ?? undefined,
-                xMax: fullParams.value_domain[1] ?? undefined,
+                xMin: fullParams.value_domain[0],
+                xMax: fullParams.value_domain[1],
                 setUnderflowColor: !!fullParams.underflow_color,
                 underflowColor: (fullParams.underflow_color === 'auto' ? minColor(colors.colors) : decodeColor(fullParams.underflow_color)) ?? FALLBACK_COLOR,
                 setOverflowColor: !!fullParams.overflow_color,
