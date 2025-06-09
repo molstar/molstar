@@ -5,25 +5,25 @@
  */
 
 // Re-export everything from the molviewspec package
-export * from "molviewspec";
+export * from 'molviewspec';
 
 // Import types and values separately for proper re-export
 import {
-  MVSData as _MVSData,
-  MVSTreeSchema as _MVSTreeSchema,
-  createMVSBuilder as _createMVSBuilder,
-  GlobalMetadata as _GlobalMetadata,
-} from "molviewspec";
+    MVSData as _MVSData,
+    MVSTreeSchema as _MVSTreeSchema,
+    createMVSBuilder as _createMVSBuilder,
+    GlobalMetadata as _GlobalMetadata,
+} from 'molviewspec';
 
 import type {
-  MVSData as MVSDataType,
-  MVSTree as MVSTreeType,
-  SnapshotMetadata as SnapshotMetadataType,
-  Snapshot as SnapshotType,
-  MVSData_State as MVSData_StateType,
-  MVSData_States as MVSData_StatesType,
-  Root as RootType,
-} from "molviewspec";
+    MVSData as MVSDataType,
+    MVSTree as MVSTreeType,
+    SnapshotMetadata as SnapshotMetadataType,
+    Snapshot as SnapshotType,
+    MVSData_State as MVSData_StateType,
+    MVSData_States as MVSData_StatesType,
+    Root as RootType,
+} from 'molviewspec';
 
 // Re-export values for compatibility
 export const MVSData = _MVSData;
