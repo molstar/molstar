@@ -140,7 +140,7 @@ export function getMVSAnnotationForStructure(structure: Structure, annotationId:
     return { annotation: undefined, model: undefined };
 }
 
-type FieldsRemapping = Record<string, string | null>;
+type FieldRemapping = Record<string, string | null>;
 
 /** Main class for processing MVS annotation */
 export class MVSAnnotation {
@@ -152,7 +152,7 @@ export class MVSAnnotation {
     constructor(
         public data: MVSAnnotationData,
         public schema: MVSAnnotationSchema,
-        public fieldsRemapping: FieldsRemapping,
+        public fieldRemapping: FieldRemapping,
     ) {
         this.nRows = getRowCount(data);
     }
@@ -253,9 +253,9 @@ export class MVSAnnotation {
     private _getRows(): MVSAnnotationRow[] {
         switch (this.data.format) {
             case 'json':
-                return getRowsFromJson(this.data.data, this.schema, this.fieldsRemapping);
+                return getRowsFromJson(this.data.data, this.schema, this.fieldRemapping);
             case 'cif':
-                return getRowsFromCif(this.data.data, this.schema, this.fieldsRemapping);
+                return getRowsFromCif(this.data.data, this.schema, this.fieldRemapping);
         }
     }
     /** Parse and return all annotation rows in this annotation, or return cached result if available */
@@ -323,26 +323,26 @@ function getRowCountFromCif(data: CifCategory): number {
     return data.rowCount;
 }
 
-function getRowsFromJson(data: Jsonable, schema: MVSAnnotationSchema, fieldsRemapping: FieldsRemapping): MVSAnnotationRow[] {
+function getRowsFromJson(data: Jsonable, schema: MVSAnnotationSchema, fieldRemapping: FieldRemapping): MVSAnnotationRow[] {
     const js = data as any;
     const cifSchema = getCifAnnotationSchema(schema);
     const cifSchemaKeys = Object.keys(cifSchema);
     if (Array.isArray(js)) {
         // array of objects
-        return js.map(row => pickObjectKeysWithRemapping(row, cifSchemaKeys, fieldsRemapping));
+        return js.map(row => pickObjectKeysWithRemapping(row, cifSchemaKeys, fieldRemapping));
     } else {
         // object of arrays
-        const selectedFields: Record<string, any[]> = pickObjectKeysWithRemapping(js, cifSchemaKeys, fieldsRemapping);
+        const selectedFields: Record<string, any[]> = pickObjectKeysWithRemapping(js, cifSchemaKeys, fieldRemapping);
         return objectOfArraysToArrayOfObjects(selectedFields);
     }
 }
 
-function getRowsFromCif(data: CifCategory, schema: MVSAnnotationSchema, fieldsRemapping: FieldsRemapping): MVSAnnotationRow[] {
+function getRowsFromCif(data: CifCategory, schema: MVSAnnotationSchema, fieldRemapping: FieldRemapping): MVSAnnotationRow[] {
     const cifSchema = getCifAnnotationSchema(schema);
     const cifSchemaKeys = Object.keys(cifSchema) as (keyof typeof cifSchema)[];
     const columns: Partial<Record<keyof typeof cifSchema, any[]>> = {};
     for (const key of cifSchemaKeys) {
-        let srcKey = fieldsRemapping[key];
+        let srcKey = fieldRemapping[key];
         if (srcKey === null) continue; // Ignore key
         if (srcKey === undefined) srcKey = key; // Implicit key mapping
         const columnArray = getArrayFromCifCategory(data, srcKey, cifSchema[key]); // Avoiding `column.toArray` as it replaces . and ? fields by 0 or ''

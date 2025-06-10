@@ -97,14 +97,14 @@ export function collectAnnotationReferences(tree: Subtree<MolstarTree>, context:
             spec = {
                 source: { name: 'url', params: { url: p.uri, format: p.format } }, schema: p.schema,
                 cifBlock: blockSpec(p.block_header, p.block_index), cifCategory: p.category_name,
-                fieldRemapping: Object.entries(p.fields_remapping).map(([key, value]) => ({ standardName: key, actualName: value })),
+                fieldRemapping: Object.entries(p.field_remapping).map(([key, value]) => ({ standardName: key, actualName: value })),
             };
         } else if (AnnotationFromSourceKinds.has(node.kind as any)) {
             const p = (node as MolstarNode<AnnotationFromSourceKind>).params;
             spec = {
                 source: { name: 'source-cif', params: {} }, schema: p.schema,
                 cifBlock: blockSpec(p.block_header, p.block_index), cifCategory: p.category_name,
-                fieldRemapping: Object.entries(p.fields_remapping).map(([key, value]) => ({ standardName: key, actualName: value })),
+                fieldRemapping: Object.entries(p.field_remapping).map(([key, value]) => ({ standardName: key, actualName: value })),
             };
         }
         if (spec) {

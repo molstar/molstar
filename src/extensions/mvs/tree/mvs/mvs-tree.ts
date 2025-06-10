@@ -29,7 +29,7 @@ const _DataFromUriParams = {
     /** Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...). The default value is 'color'/'label'/'tooltip'/'component' depending on the node type */
     field_name: RequiredField(str, 'Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...).'),
     /** Optional remapping of annotation field names `{ standardName1: actualName1, ... }`. Use `{ "label_asym_id": "X" }` to load actual field "X" as "label_asym_id". Use `{ "label_asym_id": null }` to ignore actual field "label_asym_id". Fields not mentioned here are mapped implicitely (i.e. actual name = standard name). */
-    fields_remapping: OptionalField(dict(str, nullable(str)), {}, 'Optional remapping of annotation field names `{ standardName1: actualName1, ... }`. Use `{ "label_asym_id": "X" }` to load actual field "X" as "label_asym_id". Use `{ "label_asym_id": null }` to ignore actual field "label_asym_id". Fields not mentioned here are mapped implicitely (i.e. actual name = standard name).'),
+    field_remapping: OptionalField(dict(str, nullable(str)), {}, 'Optional remapping of annotation field names `{ standardName1: actualName1, ... }`. Use `{ "label_asym_id": "X" }` to load actual field "X" as "label_asym_id". Use `{ "label_asym_id": null }` to ignore actual field "label_asym_id". Fields not mentioned here are mapped implicitely (i.e. actual name = standard name).'),
 };
 
 const _DataFromSourceParams = {
@@ -44,7 +44,7 @@ const _DataFromSourceParams = {
     /** Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...). The default value is 'color'/'label'/'tooltip'/'component' depending on the node type */
     field_name: RequiredField(str, 'Name of the column in CIF or field name (key) in JSON that contains the dependent variable (color/label/tooltip/component_id...).'),
     /** Optional remapping of annotation field names `{ standardName1: actualName1, ... }`. Use `{ "label_asym_id": "X" }` to load actual field "X" as "label_asym_id". Use `{ "label_asym_id": null }` to ignore actual field "label_asym_id". Fields not mentioned here are mapped implicitely (i.e. actual name = standard name). */
-    fields_remapping: OptionalField(dict(str, nullable(str)), {}, 'Optional remapping of annotation field names `{ standardName1: actualName1, ... }`. Use `{ "label_asym_id": "X" }` to load actual field "X" as "label_asym_id". Use `{ "label_asym_id": null }` to ignore actual field "label_asym_id". Fields not mentioned here are mapped implicitely (i.e. actual name = standard name).'),
+    field_remapping: OptionalField(dict(str, nullable(str)), {}, 'Optional remapping of annotation field names `{ standardName1: actualName1, ... }`. Use `{ "label_asym_id": "X" }` to load actual field "X" as "label_asym_id". Use `{ "label_asym_id": null }` to ignore actual field "label_asym_id". Fields not mentioned here are mapped implicitely (i.e. actual name = standard name).'),
 };
 
 /** Color to be used e.g. for representations without 'color' node */
