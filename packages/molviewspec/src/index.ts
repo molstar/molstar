@@ -22,4 +22,5 @@ export * from './tree/mvs/param-types';
 export * from './util/json';
 export * from './util/object';
 export * from './util/color';
-export { HexColor, ColorName as NamedColor, decodeColor, stringHash, isDefined, isAnyDefined, filterDefined, Maybe, safePromise } from './util/helpers';
+export type { HexColor, ColorName as NamedColor, Maybe } from './util/helpers';
+export { decodeColor, stringHash, isDefined, isAnyDefined, filterDefined, safePromise } from './util/helpers';

@@ -7,7 +7,7 @@
 import { treeValidationIssues } from './tree/generic/tree-schema';
 import { treeToString } from './tree/generic/tree-utils';
 import { Root, createMVSBuilder, GlobalMetadata, SnapshotMetadata, Snapshot, MVSData_State } from './tree/mvs/mvs-builder';
-import { MVSTree, MVSTreeSchema } from './tree/mvs/mvs-tree';
+import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 /** MVSData with multiple states (snapshots) */
 export interface MVSData_States {
@@ -22,7 +22,8 @@ export interface MVSData_States {
 export type MVSData = MVSData_State | MVSData_States
 
 // Re-export from builder
-export { GlobalMetadata, SnapshotMetadata, Snapshot, MVSData_State, Root, createMVSBuilder };
+export type { GlobalMetadata, SnapshotMetadata, Snapshot, MVSData_State };
+export { Root, createMVSBuilder };
 
 export const MVSData = {
     /** Currently supported major version of MolViewSpec format (e.g. 1 for version '1.0.8') */
