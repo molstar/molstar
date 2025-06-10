@@ -101,7 +101,7 @@ export function deepClone<T>(source: T): T {
 /** Return a new object with the same keys, where function `f` is applied to each value.
  * Equivalent to Pythonic `{k: f(v) for k, v in obj.items()}` */
 export function mapObjectMap<T, S>(obj: { [k: string]: T }, f: (v: T) => S): { [k: string]: S } {
-    const ret: any = { };
+    const ret: any = {};
     for (const k of Object.keys(obj)) {
         ret[k] = f((obj as any)[k]);
     }
@@ -125,7 +125,7 @@ export function objectForEach<T extends {}, V extends T[K], K extends keyof T & 
     }
 }
 
-/** Return an object with keys `keys` and their values same as in `obj` */
+/** Return an object with keys `keys` and their values same as in `obj`, i.e. `{ key: obj[key] for key in keys }` */
 export function pickObjectKeys<T extends {}, K extends keyof T>(obj: T, keys: readonly K[]): Pick<T, K> {
     const result: Partial<Pick<T, K>> = {};
     for (const key of keys) {
@@ -134,6 +134,40 @@ export function pickObjectKeys<T extends {}, K extends keyof T>(obj: T, keys: re
         }
     }
     return result as Pick<T, K>;
+}
+
+/** Same as `pickObjectKeys` but allows loading values into a different key or skipping keys, i.e. return `{ key: obj[remapping[key] ?? key] for key in keys if remapping[key] !== null }`  */
+export function pickObjectKeysWithRemapping<V>(obj: Record<string, V>, keys: string[], remapping: Record<string, string | null>): Record<string, V> {
+    const result: Record<string, V> = {};
+    for (const key of keys) {
+        let srcKey = remapping[key];
+        if (srcKey === null) continue; // Ignore key
+        if (srcKey === undefined) srcKey = key; // Implicit key mapping
+        if (Object.hasOwn(obj, srcKey)) {
+            result[key] = obj[srcKey];
+        }
+    }
+    return result;
+}
+
+export function objectOfArraysToArrayOfObjects<T extends object>(objectOfArrays: { [key in keyof T]: T[key][] }): T[] {
+    let n: number | undefined = undefined;
+    for (const key in objectOfArrays) {
+        const length = objectOfArrays[key].length;
+        if (n !== undefined && n !== length) throw new Error('FormatError: arrays must have the same length.');
+        n = length;
+    }
+    if (n === undefined) return []; // empty input object
+
+    const out: T[] = new Array(n);
+    for (let i = 0; i < n; i++) {
+        const item: Partial<T> = {};
+        for (const key in objectOfArrays) {
+            item[key] = objectOfArrays[key][i];
+        }
+        out[i] = item as T;
+    }
+    return out;
 }
 
 /** Return an object same as `obj` but without keys `keys` */

@@ -39,7 +39,7 @@ export const MVSDiscretePaletteParams = {
     colors: PD.ObjectList({
         color: PD.Color(ColorNames.white),
         fromValue: PD.Numeric(-Infinity),
-        toValue: PD.Numeric(Infinity), // TODO check if this is JSONable, use MaybeFloat if not
+        toValue: PD.Numeric(Infinity),
     }, e => `${Color.toHexStyle(e.color)} [${e.fromValue}, ${e.toValue}]`, { description: 'Mapping of annotation value ranges to colors.' }),
     mode: PD.Select('normalized', [['normalized', 'Normalized'], ['absolute', 'Absolute']] as const, { description: 'Defines whether the annotation values should be normalized before assigning color based on checkpoints in `colors` (`x_normalized = (x - x_min) / (x_max - x_min)`, where `[x_min, x_max]` are either `value_domain` if provided, or the lowest and the highest value encountered in the annotation).' }),
     xMin: MaybeFloatParamDefinition({ hideIf: g => g.mode !== 'normalized', placeholder: 'auto', description: 'Defines `x_min` for normalization of annotation values. If not provided, minimum of the actual values will be used. Only used when `mode` is `"normalized"' }),
