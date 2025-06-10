@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+
+## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:
   - Support for label_comp_id and auth_comp_id in annotations
   - Geometric primitives - do not render if position refers to empty substructure
@@ -17,6 +19,8 @@ Note that since we don't clearly distinguish between a public and private interf
   - Use `isolatedModules` tsconfig flag
   - Fix TurboPack build when using ES6 modules
 - Support `pickingAlphaThreshold` when `xrayShaded` is enabled
+- Support sampling from arbitrary planes for structure plane and volume slice representations
+- Refactor SCSS to not use `@import` (fixes deprecation warnings)
 
 ## [v4.17.0] - 2025-05-22
 - Remove `xhr2` dependency for NodeJS, use `fetch`
