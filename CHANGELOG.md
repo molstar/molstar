@@ -5,6 +5,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- MolViewSpec extension:
+  - Generic color schemes (`palette` parameter for color_from_* nodes)
+  - Annotation field remapping (`field_remapping` parameter for color_from_* nodes)
+
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:
   - Support for label_comp_id and auth_comp_id in annotations
