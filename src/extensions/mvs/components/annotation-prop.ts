@@ -53,7 +53,7 @@ export const MVSAnnotationsParams = {
             fieldRemapping: PD.ObjectList({
                 standardName: PD.Text('', { placeholder: ' ', description: 'Standard name of the selector field (e.g. label_asym_id)' }),
                 actualName: MaybeStringParamDefinition({ placeholder: 'Ignore field', description: 'Actual name of the field in the annotation data (e.g. spam_chain_id), null to ignore the field with standard name' }),
-            }, e => `"${e.standardName}": ${e.actualName === null ? 'null' : `"${e.actualName}"`}`),
+            }, e => `"${e.standardName}": ${e.actualName === null ? 'null' : `"${e.actualName}"`}`, { description: 'Optional remapping of annotation field names { standardName1: actualName1, ... }. Use { "label_asym_id": "X" } to load actual field "X" as "label_asym_id". Use { "label_asym_id": null } to ignore actual field "label_asym_id". Fields not mentioned here are mapped implicitely (i.e. actual name = standard name).' }),
             id: PD.Text('', { description: 'Arbitrary identifier that can be referenced by MVSAnnotationColorTheme' }),
         },
         obj => obj.id
