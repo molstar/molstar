@@ -12,6 +12,8 @@
     "module": "CommonJS",
     "esModuleInterop": true,
     "moduleResolution": "node",
+    "skipLibCheck": true,
+    "allowJs": true,
     "isolatedModules": true,
     "importHelpers": true,
     "noEmitHelpers": true,

@@ -6,30 +6,27 @@
  */
 
 import {
-    createTreeSchema,
-    TreeSchema,
-} from 'molviewspec/tree/generic/tree-schema';
-import { MVSTree, MVSTreeSchema } from 'molviewspec/tree/mvs/mvs-tree';
+  MVSTree,
+  MVSTreeSchema,
+  MVSKind,
+  MVSNode,
+  MVSNodeParams,
+} from "molviewspec/tree/mvs/mvs-tree";
 
 /** MolstarTree extends MVSTree with additional Molstar-specific nodes */
 export type MolstarTree = MVSTree;
 
 /** Schema for MolstarTree (currently same as MVS) */
-export const MolstarTreeSchema: TreeSchema<MolstarTree> = MVSTreeSchema;
+export const MolstarTreeSchema = MVSTreeSchema;
 
 /** Union of all possible node kinds in MolstarTree */
-export type MolstarKind = MVSTree['kind'];
+export type MolstarKind = MVSKind;
 
 /** Union of all possible nodes in MolstarTree */
-export type MolstarNode<K extends MolstarKind = MolstarKind> = Extract<
-MVSTree,
-{ kind: K }
->;
+export type MolstarNode<K extends MolstarKind = MolstarKind> = MVSNode<K>;
 
 /** Union of all possible subtrees in MolstarTree */
-export type MolstarSubtree<K extends MolstarKind = MolstarKind> =
-  MolstarNode<K>;
+export type MolstarSubtree<K extends MolstarKind = MolstarKind> = MVSNode<K>;
 
 /** Node parameters for a specific node kind */
-export type MolstarNodeParams<K extends MolstarKind> =
-  MolstarNode<K> extends { params: infer P } ? P : never;
+export type MolstarNodeParams<K extends MolstarKind> = MVSNodeParams<K>;
