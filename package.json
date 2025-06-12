@@ -22,7 +22,8 @@
     "clean": "node ./scripts/clean.js",
     "rebuild": "npm run clean && npm run build",
     "build-viewer": "npm run build-tsc && npm run build-extra && npm run build-webpack-viewer",
-    "build-tsc": "concurrently \"tsc --incremental\" \"tsc --build tsconfig.commonjs.json --incremental\"",
+    "build-tsc": "npm run build-tsc-orig && tsc-alias -p tsconfig.json",
+    "build-tsc-orig": "concurrently \"tsc --incremental\" \"tsc --build tsconfig.commonjs.json --incremental\"",
     "build-extra": "cpx \"src/**/*.{scss,html,ico,jpg}\" lib/",
     "build-webpack": "webpack --mode production --config ./webpack.config.production.js",
     "build-webpack-viewer": "webpack --mode production --config ./webpack.config.viewer.js",
@@ -164,6 +165,7 @@
     "stream-browserify": "^3.0.0",
     "style-loader": "^4.0.0",
     "ts-jest": "^29.3.4",
+    "tsc-alias": "^1.8.16",
     "typescript": "^5.8.3",
     "webpack": "^5.99.9",
     "webpack-cli": "^6.0.1"

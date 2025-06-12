@@ -1,26 +1,30 @@
 {
-    "compilerOptions": {
-        "declaration": true,
-        "target": "es2018",
-        "alwaysStrict": true,
-        "noImplicitAny": true,
-        "noImplicitThis": true,
-        "sourceMap": false,
-        "noUnusedLocals": true,
-        "strictNullChecks": true,
-        "strictFunctionTypes": true,
-        "module": "esnext",
-        "esModuleInterop": true,
-        "moduleResolution": "node",
-        "isolatedModules": true,
-        "importHelpers": true,
-        "noEmitHelpers": true,
-        "allowSyntheticDefaultImports": true,
-        "jsx": "react-jsx",
-        "lib": [ "es2018", "dom", "ES2022.Object" ],
-        "rootDir": "src",
-        "outDir": "lib"
-    },
-    "include": [ "src/**/*" ],
-    // "exclude": [ "src/servers/**/*", "src/perf-tests/*", "src/cli/**/*" ]
+  "compilerOptions": {
+    "declaration": true,
+    "target": "es2018",
+    "alwaysStrict": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "sourceMap": false,
+    "noUnusedLocals": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "module": "esnext",
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "isolatedModules": true,
+    "importHelpers": true,
+    "noEmitHelpers": true,
+    "allowSyntheticDefaultImports": true,
+    "jsx": "react-jsx",
+    "lib": ["es2018", "dom", "ES2022.Object"],
+    "rootDir": "src",
+    "outDir": "lib"
+  },
+  "tsc-alias": {
+    "resolveFullPaths": true,
+    "verbose": true
+  },
+  "include": ["src/**/*"]
+  // "exclude": [ "src/servers/**/*", "src/perf-tests/*", "src/cli/**/*" ]
 }
