@@ -6,6 +6,7 @@
 
 import { ElementSymbolColors } from '../../../mol-theme/color/element-symbol';
 import { ResidueNameColors } from '../../../mol-theme/color/residue-name';
+import { SecondaryStructureColors as SecStrColors } from '../../../mol-theme/color/secondary-structure';
 import { Color } from '../../../mol-util/color';
 import { ColorList } from '../../../mol-util/color/color';
 import { ColorLists } from '../../../mol-util/color/lists';
@@ -51,10 +52,30 @@ const ResiduePropertyColors = {
     GLY: AminoGroupColors.glycine,
 };
 
+/** Colors for secondary structure types, based on Jmol colors (http://jmol.sourceforge.net/jscolors/) */
+const SecondaryStructureColors = {
+    // Simple categories
+    helix: SecStrColors.alphaHelix,
+    strand: SecStrColors.betaStrand,
+    turn: SecStrColors.betaTurn,
+    bend: SecStrColors.bend,
+
+    // DSSP categories
+    H: SecStrColors.alphaHelix,
+    B: SecStrColors.betaStrand,
+    E: SecStrColors.betaStrand,
+    G: SecStrColors.threeTenHelix,
+    I: SecStrColors.piHelix,
+    P: Color(0xA00000), // Polyproline II helix, Jmol has no color for it
+    T: SecStrColors.betaTurn,
+    S: SecStrColors.bend,
+};
+
 export const MvsNamedColorDicts: Record<ColorDictNameT, Record<string, Color>> = {
     ElementSymbol: omitObjectKeys(ElementSymbolColors, ['C']), // ommitting carbon color to allow easier combination of multiple color layers
     ResidueName: ResidueNameColors,
     ResidueProperties: ResiduePropertyColors,
+    SecondaryStructure: SecondaryStructureColors,
 };
 
 export const MvsNamedColorLists: Record<ColorListNameT, ColorList> = {
