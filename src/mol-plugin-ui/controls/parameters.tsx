@@ -441,13 +441,13 @@ function TextCtrl({ props, placeholder, update }: { props: ParamProps<PD.Text>, 
     if (props.param.multiline) {
         return <div className='msp-control-text-area-wrapper'>
             <textarea
-                value={value || ''} placeholder={placeholder} disabled={props.isDisabled}
+                value={value ?? ''} placeholder={placeholder} disabled={props.isDisabled}
                 onChange={onChange} onBlur={onBlur} onKeyDown={onKeyDown}
             />
         </div>;
     } else {
         return <input type='text'
-            value={value || ''} placeholder={placeholder} disabled={props.isDisabled}
+            value={value ?? ''} placeholder={placeholder} disabled={props.isDisabled}
             onChange={onChange} onBlur={onBlur} onKeyDown={onKeyDown}
         />;
     }
