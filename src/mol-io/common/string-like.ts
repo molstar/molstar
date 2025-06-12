@@ -9,10 +9,13 @@ import { utf8Read } from './utf8';
 
 /**
  * Essential subset of `string` functionality.
- * Can be builtin `string` or `String` type or a class instance implementing necessary methods.
+ * Can be builtin `string` or `String` type or a class instance implementing necessary methods (`StringLikeInterface` interface).
  * Add more string methods if needed.
  */
-export interface StringLike {
+export type StringLike = string | String | StringLikeInterface; // using this type union because with some TypeScript versions `string` cannot be assigned to `StringLikeInterface`
+
+/** Classes that want to implement `StringLike` should use `implements StringLikeInterface` (it is not possible to use `implements` with union type directly). */
+export interface StringLikeInterface {
     /** Returns the length of a String object. */
     readonly length: number;
 
@@ -96,7 +99,7 @@ const DEFAULT_LOG_STRING_CHUNK_SIZE = 28; // 2**28 is the largest power of 2 whi
 
 
 /** Implementation of `CustomString`, based on an array of fixed-length strings (chunks). */
-export class ChunkedBigString implements StringLike {
+export class ChunkedBigString implements StringLikeInterface {
     private _chunks: string[] = [];
 
     /** Length of string chunks (default 2**28). */
