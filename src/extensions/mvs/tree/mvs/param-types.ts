@@ -141,14 +141,16 @@ export const CategoricalPalette = object(
             list(ColorT),
             dict(str, ColorT),
         ),
-        /** Color to use when a) `colors` is a dictionary (or a color dictionary name) and given key is not present, or b) `colors` is a list (or a color list name) and there are more actual annotation values than listed colors and `repeat_color_list` is not true. */
-        missing_color: nullable(ColorT),
         /** Repeat color list once all colors are depleted (only applies if `colors` is a list or a color list name). */
         repeat_color_list: bool,
         /** Sort actual annotation values before assigning colors from a list (none = take values in order of their first occurrence). */
         sort: literal('none', 'lexical', 'numeric'),
         /** Sort direction. */
         sort_direction: literal('ascending', 'descending'),
+        /** Treat annotation values as case-insensitive strings. */
+        case_insensitive: bool,
+        /** Color to use when a) `colors` is a dictionary (or a color dictionary name) and given key is not present, or b) `colors` is a list (or a color list name) and there are more actual annotation values than listed colors and `repeat_color_list` is not true. */
+        missing_color: nullable(ColorT),
     }
 );
 export type CategoricalPalette = ValueFor<typeof CategoricalPalette>;
@@ -156,10 +158,11 @@ export type CategoricalPalette = ValueFor<typeof CategoricalPalette>;
 export const CategoricalPaletteDefaults: Required<CategoricalPalette> = {
     kind: 'categorical',
     colors: 'Category10', // this is also default for categorical in Matplotlib
-    missing_color: null,
     repeat_color_list: false,
     sort: 'none',
     sort_direction: 'ascending',
+    case_insensitive: false,
+    missing_color: null,
 };
 
 

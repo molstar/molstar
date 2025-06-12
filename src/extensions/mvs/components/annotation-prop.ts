@@ -263,12 +263,13 @@ export class MVSAnnotation {
         return this.rows ??= this._getRows();
     }
 
-    /** Return list of all distinct values appearing in field `fieldName`, in order of first occurrence. Ignores special values `.` and `?`. */
-    getDistinctValuesInField(fieldName: string): string[] {
+    /** Return list of all distinct values appearing in field `fieldName`, in order of first occurrence. Ignores special values `.` and `?`. If `caseInsensitive`, make all values uppercase. */
+    getDistinctValuesInField(fieldName: string, caseInsensitive: boolean): string[] {
         const seen = new Set<string | undefined>();
         const out = [];
         for (let i = 0; i < this.nRows; i++) {
-            const value = this.getValueForRow(i, fieldName);
+            let value = this.getValueForRow(i, fieldName);
+            if (caseInsensitive) value = value?.toUpperCase();
             if (value !== undefined && !seen.has(value)) {
                 seen.add(value);
                 out.push(value);

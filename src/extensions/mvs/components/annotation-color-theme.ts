@@ -29,6 +29,7 @@ export const MVSCategoricalPaletteParams = {
     repeatColorList: PD.Boolean(false, { hideIf: g => g.colors.name !== 'list', description: 'Repeat color list once all colors are depleted (only applies if `colors` is a list).' }),
     sort: PD.Select('none', [['none', 'None'], ['lexical', 'Lexical'], ['numeric', 'Numeric']] as const, { hideIf: g => g.colors.name !== 'list', description: 'Sort actual annotation values before assigning colors from a list (none = take values in order of their first occurrence).' }),
     sortDirection: PD.Select('ascending', [['ascending', 'Ascending'], ['descending', 'Descending']] as const, { hideIf: g => g.colors.name !== 'list', description: 'Sort direction.' }),
+    caseInsensitive: PD.Boolean(false, { description: 'Treat annotation values as case-insensitive strings.' }),
     setMissingColor: PD.Boolean(false, { description: 'Allow setting a color for missing values.' }),
     missingColor: PD.Color(ColorNames.white, { hideIf: g => !g.setMissingColor, description: 'Color to use when (a) `colors` is a dictionary and given key is not present, or (b) `color` is a list and there are more actual annotation values than listed colors and `repeat_color_list` is not true.' }),
 };
@@ -148,10 +149,11 @@ function makePaletteFunctionCategorical(props: MVSCategoricalPaletteProps, annot
     const colorMap: { [value: string]: Color } = {};
     if (props.colors.name === 'dictionary') {
         for (const { value, color } of props.colors.params) {
-            colorMap[value] = color;
+            const key = props.caseInsensitive ? value.toUpperCase() : value;
+            colorMap[key] = color;
         }
     } else if (props.colors.name === 'list') {
-        const values = annotation.getDistinctValuesInField(fieldName);
+        const values = annotation.getDistinctValuesInField(fieldName, props.caseInsensitive);
         if (props.sort === 'lexical') values.sort();
         else if (props.sort === 'numeric') values.sort((a, b) => Number.parseFloat(a) - Number.parseFloat(b));
         if (props.sortDirection === 'descending') values.reverse();
@@ -164,7 +166,11 @@ function makePaletteFunctionCategorical(props: MVSCategoricalPaletteProps, annot
         }
     }
     const missingColor = props.setMissingColor ? props.missingColor : undefined;
-    return (value: string) => colorMap[value] ?? missingColor;
+    if (props.caseInsensitive) {
+        return (value: string) => colorMap[value.toUpperCase()] ?? missingColor;
+    } else {
+        return (value: string) => colorMap[value] ?? missingColor;
+    }
 }
 
 function makePaletteFunctionDiscrete(props: MVSDiscretePaletteProps, annotation: MVSAnnotation, fieldName: string): (value: string) => Color | undefined {
@@ -215,7 +221,7 @@ function makeNumericPaletteScale(props: MVSContinuousPaletteProps | MVSDiscreteP
         let xMin = props.xMin;
         let xMax = props.xMax;
         if (xMin === null || xMax === null) {
-            const values = annotation.getDistinctValuesInField(fieldName).map(parseFloat).filter(x => !isNaN(x));
+            const values = annotation.getDistinctValuesInField(fieldName, false).map(parseFloat).filter(x => !isNaN(x));
             if (values.length > 0) {
                 xMin ??= values.reduce((a, b) => a < b ? a : b); // xMin ??= min(values)
                 xMax ??= values.reduce((a, b) => a > b ? a : b); // xMax ??= max(values)

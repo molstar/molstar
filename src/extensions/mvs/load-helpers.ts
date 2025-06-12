@@ -417,6 +417,7 @@ function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri' | 'col
                 repeatColorList: fullParams.repeat_color_list,
                 sort: fullParams.sort,
                 sortDirection: fullParams.sort_direction,
+                caseInsensitive: fullParams.case_insensitive,
                 setMissingColor: !!fullParams.missing_color,
                 missingColor: decodeColor(fullParams.missing_color) ?? FALLBACK_COLOR,
             } satisfies MVSCategoricalPaletteProps,
