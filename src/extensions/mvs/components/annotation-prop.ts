@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { Column, Table } from '../../../mol-data/db';
+import { Column } from '../../../mol-data/db';
 import { CIF, CifBlock, CifCategory, CifFile } from '../../../mol-io/reader/cif';
 import { toTable } from '../../../mol-io/reader/cif/schema';
 import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
@@ -14,10 +14,9 @@ import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
 import { Model } from '../../../mol-model/structure';
 import { Structure, StructureElement } from '../../../mol-model/structure/structure';
 import { UUID } from '../../../mol-util';
-import { arrayExtend } from '../../../mol-util/array';
 import { Asset } from '../../../mol-util/assets';
 import { Jsonable, canonicalJsonString } from '../../../mol-util/json';
-import { pickObjectKeys, promiseAllObj } from '../../../mol-util/object';
+import { objectOfArraysToArrayOfObjects, pickObjectKeysWithRemapping, promiseAllObj } from '../../../mol-util/object';
 import { Choice } from '../../../mol-util/param-choice';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { AtomRanges } from '../helpers/atom-ranges';
@@ -50,7 +49,11 @@ export const MVSAnnotationsParams = {
                 index: PD.Group({ index: PD.Numeric(0, { min: 0, step: 1 }, { description: '0-based index of the block' }) }),
                 header: PD.Group({ header: PD.Text(undefined, { description: 'Block header' }) }),
             }, { description: 'Specify which CIF block contains annotation data (only relevant when format=cif or format=bcif)' }),
-            cifCategory: MaybeStringParamDefinition(undefined, { description: 'Specify which CIF category contains annotation data (only relevant when format=cif or format=bcif)' }),
+            cifCategory: MaybeStringParamDefinition({ placeholder: 'Take first category', description: 'Specify which CIF category contains annotation data (only relevant when format=cif or format=bcif)' }),
+            fieldRemapping: PD.ObjectList({
+                standardName: PD.Text('', { placeholder: ' ', description: 'Standard name of the selector field (e.g. label_asym_id)' }),
+                actualName: MaybeStringParamDefinition({ placeholder: 'Ignore field', description: 'Actual name of the field in the annotation data (e.g. spam_chain_id), null to ignore the field with standard name' }),
+            }, e => `"${e.standardName}": ${e.actualName === null ? 'null' : `"${e.actualName}"`}`, { description: 'Optional remapping of annotation field names { standardName1: actualName1, ... }. Use { "label_asym_id": "X" } to load actual field "X" as "label_asym_id". Use { "label_asym_id": null } to ignore actual field "label_asym_id". Fields not mentioned here are mapped implicitely (i.e. actual name = standard name).' }),
             id: PD.Text('', { description: 'Arbitrary identifier that can be referenced by MVSAnnotationColorTheme' }),
         },
         obj => obj.id
@@ -137,16 +140,22 @@ export function getMVSAnnotationForStructure(structure: Structure, annotationId:
     return { annotation: undefined, model: undefined };
 }
 
+type FieldRemapping = Record<string, string | null>;
+
 /** Main class for processing MVS annotation */
 export class MVSAnnotation {
     /** Store mapping `ElementIndex` -> annotation row index for each `Model`, -1 means no row applies */
     private indexedModels = new Map<UUID, number[]>();
     private rows: MVSAnnotationRow[] | undefined = undefined;
+    public nRows: number;
 
     constructor(
         public data: MVSAnnotationData,
         public schema: MVSAnnotationSchema,
-    ) { }
+        public fieldRemapping: FieldRemapping,
+    ) {
+        this.nRows = getRowCount(data);
+    }
 
     /** Create a new `MVSAnnotation` based on specification `spec`. Use `file` if provided, otherwise download the file.
      * Throw error if download fails or problem with data. */
@@ -165,7 +174,7 @@ export class MVSAnnotation {
                 switch (blockSpec.name) {
                     case 'header':
                         const foundBlock = file.data.blocks.find(b => b.header === blockSpec.params.header);
-                        if (!foundBlock) throw new Error(`CIF block with header ${blockSpec.params.header} not found`);
+                        if (!foundBlock) throw new Error(`CIF block with header "${blockSpec.params.header}" not found`);
                         block = foundBlock;
                         break;
                     case 'index':
@@ -176,15 +185,15 @@ export class MVSAnnotation {
                 const categoryName = spec.cifCategory ?? Object.keys(block.categories)[0];
                 if (!categoryName) throw new Error('There are no categories in CIF block');
                 const category = block.categories[categoryName];
-                if (!category) throw new Error(`CIF category ${categoryName} not found`);
+                if (!category) throw new Error(`CIF category "${categoryName}" not found`);
                 data = { format: 'cif', data: category };
                 break;
         }
-        return new MVSAnnotation(data, spec.schema);
+        return new MVSAnnotation(data, spec.schema, Object.fromEntries(spec.fieldRemapping.map(e => [e.standardName, e.actualName])));
     }
 
     static createEmpty(schema: MVSAnnotationSchema): MVSAnnotation {
-        return new MVSAnnotation({ format: 'json', data: [] }, schema);
+        return new MVSAnnotation({ format: 'json', data: [] }, schema, {});
     }
 
     /** Reference implementation of `getAnnotationForLocation`, just for checking, DO NOT USE DIRECTLY */
@@ -244,14 +253,29 @@ export class MVSAnnotation {
     private _getRows(): MVSAnnotationRow[] {
         switch (this.data.format) {
             case 'json':
-                return getRowsFromJson(this.data.data, this.schema);
+                return getRowsFromJson(this.data.data, this.schema, this.fieldRemapping);
             case 'cif':
-                return getRowsFromCif(this.data.data, this.schema);
+                return getRowsFromCif(this.data.data, this.schema, this.fieldRemapping);
         }
     }
     /** Parse and return all annotation rows in this annotation, or return cached result if available */
     getRows(): readonly MVSAnnotationRow[] {
         return this.rows ??= this._getRows();
+    }
+
+    /** Return list of all distinct values appearing in field `fieldName`, in order of first occurrence. Ignores special values `.` and `?`. If `caseInsensitive`, make all values uppercase. */
+    getDistinctValuesInField(fieldName: string, caseInsensitive: boolean): string[] {
+        const seen = new Set<string | undefined>();
+        const out = [];
+        for (let i = 0; i < this.nRows; i++) {
+            let value = this.getValueForRow(i, fieldName);
+            if (caseInsensitive) value = value?.toUpperCase();
+            if (value !== undefined && !seen.has(value)) {
+                seen.add(value);
+                out.push(value);
+            }
+        }
+        return out;
     }
 }
 
@@ -272,55 +296,80 @@ function getValueFromCif(rowIndex: number, fieldName: string, data: CifCategory)
     return column.str(rowIndex);
 }
 
-function getRowsFromJson(data: Jsonable, schema: MVSAnnotationSchema): MVSAnnotationRow[] {
+/** Return number of rows in this annotation (without parsing all the data) */
+function getRowCount(data: MVSAnnotationData): number {
+    switch (data.format) {
+        case 'json':
+            return getRowCountFromJson(data.data);
+        case 'cif':
+            return getRowCountFromCif(data.data);
+    }
+}
+function getRowCountFromJson(data: Jsonable): number {
     const js = data as any;
-    const cifSchema = getCifAnnotationSchema(schema);
     if (Array.isArray(js)) {
         // array of objects
-        return js.map(row => pickObjectKeys(row, Object.keys(cifSchema)));
+        return js.length;
     } else {
         // object of arrays
-        const rows: MVSAnnotationRow[] = [];
-        const keys = Object.keys(js).filter(key => Object.hasOwn(cifSchema, key as any));
+        const keys = Object.keys(js);
         if (keys.length > 0) {
-            const n = js[keys[0]].length;
-            if (keys.some(key => js[key].length !== n)) throw new Error('FormatError: arrays must have the same length.');
-            for (let i = 0; i < n; i++) {
-                const item: { [key: string]: any } = {};
-                for (const key of keys) {
-                    item[key] = js[key][i];
-                }
-                rows.push(item);
-            }
+            return js[keys[0]].length;
+        } else {
+            return 0;
         }
-        return rows;
     }
 }
+function getRowCountFromCif(data: CifCategory): number {
+    return data.rowCount;
+}
 
-function getRowsFromCif(data: CifCategory, schema: MVSAnnotationSchema): MVSAnnotationRow[] {
-    const rows: MVSAnnotationRow[] = [];
+function getRowsFromJson(data: Jsonable, schema: MVSAnnotationSchema, fieldRemapping: FieldRemapping): MVSAnnotationRow[] {
+    const js = data as any;
     const cifSchema = getCifAnnotationSchema(schema);
-    const table = toTable(cifSchema, data);
-    arrayExtend(rows, getRowsFromTable(table)); // Avoiding Table.getRows(table) as it replaces . and ? fields by 0 or ''
-    return rows;
+    const cifSchemaKeys = Object.keys(cifSchema);
+    if (Array.isArray(js)) {
+        // array of objects
+        return js.map(row => pickObjectKeysWithRemapping(row, cifSchemaKeys, fieldRemapping));
+    } else {
+        // object of arrays
+        const selectedFields: Record<string, any[]> = pickObjectKeysWithRemapping(js, cifSchemaKeys, fieldRemapping);
+        return objectOfArraysToArrayOfObjects(selectedFields);
+    }
 }
 
-/** Same as `Table.getRows` but omits `.` and `?` fields (instead of using type defaults) */
-function getRowsFromTable<S extends Table.Schema>(table: Table<S>): Partial<Table.Row<S>>[] {
-    const rows: Partial<Table.Row<S>>[] = [];
-    const columns = table._columns;
-    const nRows = table._rowCount;
-    const Present = Column.ValueKind.Present;
-    for (let iRow = 0; iRow < nRows; iRow++) {
-        const row: Partial<Table.Row<S>> = {};
-        for (const col of columns) {
-            if (table[col].valueKind(iRow) === Present) {
-                row[col as keyof S] = table[col].value(iRow);
-            }
-        }
-        rows[iRow] = row;
+function getRowsFromCif(data: CifCategory, schema: MVSAnnotationSchema, fieldRemapping: FieldRemapping): MVSAnnotationRow[] {
+    const cifSchema = getCifAnnotationSchema(schema);
+    const cifSchemaKeys = Object.keys(cifSchema) as (keyof typeof cifSchema)[];
+    const columns: Partial<Record<keyof typeof cifSchema, any[]>> = {};
+    for (const key of cifSchemaKeys) {
+        let srcKey = fieldRemapping[key];
+        if (srcKey === null) continue; // Ignore key
+        if (srcKey === undefined) srcKey = key; // Implicit key mapping
+        const columnArray = getArrayFromCifCategory(data, srcKey, cifSchema[key]); // Avoiding `column.toArray` as it replaces . and ? fields by 0 or ''
+        if (columnArray) columns[key] = columnArray;
     }
-    return rows;
+    return objectOfArraysToArrayOfObjects(columns);
+}
+
+/** Load data from a specific column in a CIF category into an array. Load `.` and `?` as undefined. */
+function getArrayFromCifCategory<T>(data: CifCategory, columnName: string, columnSchema: Column.Schema): (T | undefined)[] | undefined {
+    if (data.getField(columnName) === undefined) return undefined;
+
+    const table = toTable({ [columnName]: columnSchema }, data); // a bit dumb, I don't know how to make column directly
+    const column = table[columnName];
+    return getArrayFromCifColumn(column); // Avoiding `column.toArray` as it replaces . and ? fields by 0 or ''
+}
+
+/** Same as `column.toArray` but reads `.` and `?` as undefined (instead of using type defaults) */
+function getArrayFromCifColumn<T>(column: Column<T>): (T | undefined)[] {
+    const nRows = column.rowCount;
+    const Present = Column.ValueKind.Present;
+    const out: (T | undefined)[] = new Array(nRows);
+    for (let iRow = 0; iRow < nRows; iRow++) {
+        out[iRow] = column.valueKind(iRow) === Present ? column.value(iRow) : undefined;
+    }
+    return out;
 }
 
 async function getFileFromSource(ctx: CustomProperty.Context, source: MVSAnnotationSource, model?: Model): Promise<MVSAnnotationFile> {
