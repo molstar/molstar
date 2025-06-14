@@ -9,7 +9,7 @@ class VersionFilePlugin {
     apply() {
         fs.writeFileSync(
             path.resolve(__dirname, 'lib/mol-plugin/version.js'),
-            `export var PLUGIN_VERSION = '${VERSION}';\nexport var PLUGIN_VERSION_DATE = new Date(typeof __MOLSTAR_DEBUG_TIMESTAMP__ !== 'undefined' ? __MOLSTAR_DEBUG_TIMESTAMP__ : ${new Date().valueOf()});`);
+            `export var PLUGIN_VERSION = '${VERSION}';\nexport var PLUGIN_VERSION_DATE = new Date(typeof __MOLSTAR_BUILD_TIMESTAMP__ !== 'undefined' ? __MOLSTAR_BUILD_TIMESTAMP__ : ${new Date().valueOf()});`);
     }
 }
 
@@ -47,7 +47,7 @@ function sharedConfig(options) {
             }),
             new webpack.DefinePlugin({
                 'process.env.DEBUG': JSON.stringify(process.env.DEBUG),
-                '__MOLSTAR_DEBUG_TIMESTAMP__': webpack.DefinePlugin.runtimeValue(() => `${new Date().valueOf()}`, true)
+                '__MOLSTAR_BUILD_TIMESTAMP__': webpack.DefinePlugin.runtimeValue(() => `${new Date().valueOf()}`, true)
             }),
             new MiniCssExtractPlugin({ filename: (options && options.cssFilename) || 'molstar.css' }),
             new VersionFilePlugin(),

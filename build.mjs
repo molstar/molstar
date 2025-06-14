@@ -10,6 +10,7 @@ import * as path from 'path';
 import * as argparse from 'argparse';
 import { sassPlugin } from 'esbuild-sass-plugin';
 import * as os from 'os';
+import { execSync } from 'child_process';
 
 const Apps = [
     // Apps
@@ -97,7 +98,7 @@ function examplesCssRenamePlugin({ root }) {
     };
 }
 
-async function watch(app) {
+async function createBundle(app) {
     const { name, kind } = app;
 
     const prefix = kind === 'app'
@@ -118,6 +119,9 @@ async function watch(app) {
         entryPoints: [entry],
         tsconfig: './tsconfig.json',
         bundle: true,
+        minify: isProduction,
+        minifyIdentifiers: false,
+        sourcemap: includeSourceMap,
         globalName: app.globalName || 'molstar',
         outfile: kind === 'app'
             ? `./build/${name}/${filename}`
@@ -139,15 +143,31 @@ async function watch(app) {
         },
         color: true,
         logLevel: 'info',
+        define: {
+            'process.env.DEBUG': JSON.stringify(process.env.DEBUG || false),
+            __MOLSTAR_PLUGIN_VERSION__: JSON.stringify(VERSION),
+            __MOLSTAR_BUILD_TIMESTAMP__: `${TIMESTAMP}`,
+        },
     });
 
     await ctx.rebuild();
-    await ctx.watch();
+
+    if (!isProduction) await ctx.watch();
 }
 
 const argParser = new argparse.ArgumentParser({
     add_help: true,
-    description: 'Mol* development build'
+    description: 'Mol* Build'
+});
+argParser.add_argument('--prd', {
+    help: 'Create a production build.',
+    required: false,
+    action: 'store_true',
+});
+argParser.add_argument('--src-map', {
+    help: 'Include source map.',
+    required: false,
+    action: 'store_true',
 });
 argParser.add_argument('--apps', '-a', {
     help: 'Apps to build.',
@@ -174,6 +194,13 @@ argParser.add_argument('--host', {
 
 const args = argParser.parse_args();
 
+
+const isProduction = !!args.prd;
+const includeSourceMap = !!args.src_map;
+
+const VERSION = isProduction ? JSON.parse(fs.readFileSync('./package.json', 'utf8')).version : '(dev build)';
+const TIMESTAMP = Date.now();
+
 const apps = (!args.apps ? [] : (args.apps.length ? args.apps.map(a => findApp(a, 'app')).filter(a => a) : Apps.filter(a => a.kind === 'app')));
 const examples = (!args.examples ? [] : (args.examples.length ? args.examples.map(e => findApp(e, 'example')).filter(a => a) : Apps.filter(a => a.kind === 'example')));
 
@@ -196,15 +223,40 @@ function getLocalIPs() {
     return ips;
 }
 
+function writeVersionFiles() {
+    const file = `export var PLUGIN_VERSION = '${VERSION}';\nexport var PLUGIN_VERSION_DATE = new Date(${TIMESTAMP})`;
+    const files = ['./lib/mol-plugin/version.js', './lib/commonjs/mol-plugin/version.js'];
+    for (const f of files) {
+        if (!fs.existsSync(f)) continue;
+        fs.writeFileSync(f, file);
+    }
+}
+
 async function main() {
     const promises = [];
-    for (const app of apps) promises.push(watch(app));
-    for (const example of examples) promises.push(watch(example));
+    console.log(isProduction ? 'Building apps...' : 'Initial build...');
 
-    console.log('Initial build...');
+    for (const app of apps) promises.push(createBundle(app));
+    for (const example of examples) promises.push(createBundle(example));
 
     await Promise.all(promises);
-    console.log('Done.');
+
+    if (isProduction) {
+        console.log('Building library...');
+        try {
+            execSync('npm run build:lib', { stdio: 'inherit' });
+            writeVersionFiles();
+        } catch (error) {
+            console.error('Failed to build library:');
+            console.error(error);
+            process.exit(1);
+        }
+
+        console.log('Done.');
+        process.exit(0);
+    }
+
+    console.log('Initial build complete.');
 
     const ctx = await esbuild.context({});
     ctx.serve({
@@ -226,4 +278,7 @@ async function main() {
     console.log('Press Ctrl+C to stop.');
 }
 
-main().catch(console.error);
+main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+});

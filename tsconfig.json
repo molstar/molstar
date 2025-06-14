@@ -17,10 +17,10 @@
         "noEmitHelpers": true,
         "allowSyntheticDefaultImports": true,
         "jsx": "react-jsx",
-        "lib": [ "es2018", "dom", "ES2022.Object" ],
+        "lib": [ "ES2018", "dom", "ES2022.Object" ],
         "rootDir": "src",
         "outDir": "lib"
     },
     "include": [ "src/**/*" ],
-    // "exclude": [ "src/servers/**/*", "src/perf-tests/*", "src/cli/**/*" ]
+    "exclude": [ "src/**/_spec/*" ],
 }
