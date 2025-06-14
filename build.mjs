@@ -98,22 +98,42 @@ function examplesCssRenamePlugin({ root }) {
     };
 }
 
+function resolveEntryPath(path) {
+    if (!fs.existsSync(path)) {
+        return path + 'x'; // fallback to .tsx
+    }
+    return path;
+}
+
+function getPaths(app) {
+    if (app.kind === 'app') {
+        return {
+            prefix: `./build/${app.name}`,
+            entry: resolveEntryPath(`./src/apps/${app.name}/index.ts`),
+            outfile: `./build/${app.name}/${app.filename || 'molstar.js'}`,
+        };
+    }
+    if (app.kind === 'example') {
+        return {
+            prefix: `./build/examples/${app.name}`,
+            entry: resolveEntryPath(`./src/examples/${app.name}/index.ts`),
+            outfile: `./build/examples/${app.name}/${app.filename || 'index.js'}`,
+        };
+    }
+    if (app.kind === 'browser-test') {
+        return {
+            prefix: `./build/tests/browser`,
+            entry: resolveEntryPath(`./src/tests/browser/${app.name}.ts`),
+            outfile: `./build/tests/browser/${app.name}.js`,
+        };
+    }
+    throw new Error(`Unknown app kind: ${app.kind}`);
+}
+
 async function createBundle(app) {
     const { name, kind } = app;
 
-    const prefix = kind === 'app'
-        ? `./build/${name}`
-        : `./build/examples/${name}`;
-
-    let entry = `./src/${kind}s/${name}/index.ts`;
-    if (!fs.existsSync(entry)) {
-        entry = `./src/${kind}s/${name}/index.tsx`;
-    }
-
-    let filename = app.filename;
-    if (!filename) {
-        filename = kind === 'app' ? 'molstar.js' : 'index.js';
-    }
+    const { prefix, entry, outfile } = getPaths(app);
 
     const ctx = await esbuild.context({
         entryPoints: [entry],
@@ -123,9 +143,7 @@ async function createBundle(app) {
         minifyIdentifiers: false,
         sourcemap: includeSourceMap,
         globalName: app.globalName || 'molstar',
-        outfile: kind === 'app'
-            ? `./build/${name}/${filename}`
-            : `./build/examples/${name}/${filename}`,
+        outfile,
         plugins: [
             fileLoaderPlugin({ out: prefix }),
             sassPlugin({
@@ -155,6 +173,24 @@ async function createBundle(app) {
     if (!isProduction) await ctx.watch();
 }
 
+function writeVersionFiles() {
+    const file = `export var PLUGIN_VERSION = '${VERSION}';\nexport var PLUGIN_VERSION_DATE = new Date(${TIMESTAMP})`;
+    const files = ['./lib/mol-plugin/version.js', './lib/commonjs/mol-plugin/version.js'];
+    for (const f of files) {
+        if (!fs.existsSync(f)) continue;
+        fs.writeFileSync(f, file);
+    }
+}
+
+function findBrowserTests(names) {
+    const dir = path.resolve('./src', 'tests', 'browser');
+    let files = fs.readdirSync(dir).filter(file => file.endsWith('.ts')).map(file => file.replace('.ts', ''));
+    if (names.length) {
+        files = files.filter(file => names.includes(file));
+    }
+    return files.map(name => ({ kind: 'browser-test', name }));
+}
+
 const argParser = new argparse.ArgumentParser({
     add_help: true,
     description: 'Mol* Build'
@@ -176,6 +212,11 @@ argParser.add_argument('--apps', '-a', {
 });
 argParser.add_argument('--examples', '-e', {
     help: 'Examples to build.',
+    required: false,
+    nargs: '*',
+});
+argParser.add_argument('--browser-tests', '-bt', {
+    help: 'Browser Tests to build.',
     required: false,
     nargs: '*',
 });
@@ -203,9 +244,11 @@ const TIMESTAMP = Date.now();
 
 const apps = (!args.apps ? [] : (args.apps.length ? args.apps.map(a => findApp(a, 'app')).filter(a => a) : Apps.filter(a => a.kind === 'app')));
 const examples = (!args.examples ? [] : (args.examples.length ? args.examples.map(e => findApp(e, 'example')).filter(a => a) : Apps.filter(a => a.kind === 'example')));
+const browserTests = (!args.browser_tests ? [] : findBrowserTests(args.browser_tests));
 
 console.log('Apps:', apps.map(a => a.name));
 console.log('Examples:', examples.map(e => e.name));
+console.log('Browser Tests', browserTests.map(e => e.name));
 console.log('');
 
 function getLocalIPs() {
@@ -223,21 +266,13 @@ function getLocalIPs() {
     return ips;
 }
 
-function writeVersionFiles() {
-    const file = `export var PLUGIN_VERSION = '${VERSION}';\nexport var PLUGIN_VERSION_DATE = new Date(${TIMESTAMP})`;
-    const files = ['./lib/mol-plugin/version.js', './lib/commonjs/mol-plugin/version.js'];
-    for (const f of files) {
-        if (!fs.existsSync(f)) continue;
-        fs.writeFileSync(f, file);
-    }
-}
-
 async function main() {
     const promises = [];
     console.log(isProduction ? 'Building apps...' : 'Initial build...');
 
     for (const app of apps) promises.push(createBundle(app));
     for (const example of examples) promises.push(createBundle(example));
+    for (const browserTest of browserTests) promises.push(createBundle(browserTest));
 
     await Promise.all(promises);
 

@@ -41,10 +41,11 @@
     "watch-webpack-viewer-debug": "webpack -w --mode development --stats minimal --config ./webpack.config.viewer.debug.js",
   
     "dev": "node build.mjs",
-    "dev:all": "node build.mjs -a -e",
+    "dev:all": "node build.mjs -a -e -bt",
     "dev:viewer": "node build.mjs -a viewer",
     "dev:apps": "node build.mjs -a",
     "dev:examples": "node build.mjs -e",
+    "dev:browser-tests": "node build.mjs -bt",
     "serve": "http-server -p 1338 -g",
     "model-server": "node lib/commonjs/servers/model/server.js",
     "model-server-watch": "nodemon --watch lib lib/commonjs/servers/model/server.js",
