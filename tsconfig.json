@@ -23,4 +23,8 @@
     },
     "include": [ "src/**/*" ],
     "exclude": [ "src/**/_spec/*" ],
+    "tsc-alias": {
+        "resolveFullPaths": true,
+        "verbose": true
+    }
 }

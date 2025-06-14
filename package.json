@@ -21,9 +21,8 @@
     "clean": "node ./scripts/clean.js",
     "build": "node build.mjs -a -e --prd",
     "build:lib": "concurrently \"tsc --incremental\" \"tsc --build tsconfig.commonjs.json --incremental\" && npm run build:lib-extra",
-    "build:lib-extra": "cpx \"src/**/*.{scss,html,ico,jpg}\" lib/ && cpx \"src/**/*.{scss,html,ico,jpg}\" lib/commonjs/",
+    "build:lib-extra": "cpx \"src/**/*.{scss,html,ico,jpg}\" lib/ && cpx \"src/**/*.{scss,html,ico,jpg}\" lib/commonjs/ && tsc-alias -p tsconfig.json",
     "rebuild": "npm run clean && npm run build",
-
     "build-old": "npm run build-tsc && npm run build-extra && npm run build-webpack",
     "build-viewer": "npm run build-tsc && npm run build-extra && npm run build-webpack-viewer",
     "build-tsc": "concurrently \"tsc --incremental\" \"tsc --build tsconfig.commonjs.json --incremental\"",
@@ -39,7 +38,6 @@
     "watch-webpack": "webpack -w --mode development --stats minimal",
     "watch-webpack-viewer": "webpack -w --mode development --stats minimal --config ./webpack.config.viewer.js",
     "watch-webpack-viewer-debug": "webpack -w --mode development --stats minimal --config ./webpack.config.viewer.debug.js",
-  
     "dev": "node build.mjs",
     "dev:all": "node build.mjs -a -e -bt",
     "dev:viewer": "node build.mjs -a viewer",
@@ -133,7 +131,8 @@
     "Ventura Rivera <venturaxrivera@gmail.com>",
     "Andy Turner <agdturner@gmail.com>",
     "Lukáš Polák <admin@lukaspolak.cz>",
-    "Chetan Mishra <chetan.s115@gmail.com>"
+    "Chetan Mishra <chetan.s115@gmail.com>",
+    "Zach Charlop-Powers <zach.charlop.powers@gmail.com>"
   ],
   "license": "MIT",
   "devDependencies": {
@@ -170,6 +169,7 @@
     "stream-browserify": "^3.0.0",
     "style-loader": "^4.0.0",
     "ts-jest": "^29.3.4",
+    "tsc-alias": "^1.8.16",
     "typescript": "^5.8.3",
     "webpack": "^5.99.9",
     "webpack-cli": "^6.0.1"
