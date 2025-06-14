@@ -35,7 +35,7 @@ function useBehaviorReact18<T>(s: Behavior<T> | undefined) {
     return (React as any).useSyncExternalStore(
         React.useCallback(
             (callback: () => void) => {
-                const sub = (s as any)?.pipe!(skip(1)).subscribe(callback)!;
+                const sub = (s as any)?.pipe(skip(1)).subscribe(callback);
                 return () => sub?.unsubscribe();
             },
             [s]
@@ -49,9 +49,7 @@ const _useBehavior = !!(React as any).useSyncExternalStore
     : useBehaviorLegacy;
 
 export function useBehavior<T>(s: Behavior<T>): T;
-// eslint-disable-next-line
 export function useBehavior<T>(s: Behavior<T> | undefined): T | undefined;
-// eslint-disable-next-line
 export function useBehavior<T>(s: Behavior<T> | undefined): T | undefined {
     return _useBehavior(s);
 }

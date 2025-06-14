@@ -266,6 +266,7 @@ function makeShapeGetter() {
         let newMesh = false;
         let newColor = false;
 
+        // eslint-disable-next-line no-self-compare
         if (!_plyData || _plyData !== _plyData) {
             newMesh = true;
         }

@@ -1,3 +1,5 @@
+/* eslint-disable no-extend-native */
+
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -152,7 +154,7 @@ if (!String.prototype.startsWith) {
                 const object = {};
                 const $defineProperty = Object.defineProperty;
                 result = $defineProperty(object, object as any, object) && $defineProperty;
-            } catch (error) {} // eslint-disable-line no-empty
+            } catch (error) {}
             return result;
         }());
         const toString = {}.toString;
@@ -193,14 +195,12 @@ if (!String.prototype.startsWith) {
                 'writable': true
             });
         } else {
-        // eslint-disable-next-line no-extend-native
             String.prototype.startsWith = startsWith;
         }
     }());
 }
 
 if (!String.prototype.endsWith) {
-    // eslint-disable-next-line no-extend-native
     String.prototype.endsWith = function (searchString, position) {
         const subjectString = this.toString();
         if (typeof position !== 'number' || !isFinite(position) || Math.floor(position) !== position || position > subjectString.length) {
@@ -213,7 +213,6 @@ if (!String.prototype.endsWith) {
 }
 
 if (!String.prototype.repeat) {
-    // eslint-disable-next-line no-extend-native
     String.prototype.repeat = function (count) {
         'use strict';
         if (this === null) {
@@ -258,7 +257,6 @@ if (!String.prototype.repeat) {
 }
 
 if (!String.prototype.includes) {
-    // eslint-disable-next-line no-extend-native
     String.prototype.includes = function (search, start) {
         'use strict';
         if (typeof start !== 'number') {
@@ -274,7 +272,6 @@ if (!String.prototype.includes) {
 }
 
 if (!Array.prototype.includes) {
-    // eslint-disable-next-line no-extend-native
     Array.prototype.includes = function (searchElement /* , fromIndex */) {
         'use strict';
         if (this == null) {
@@ -438,13 +435,10 @@ if (Function.prototype.name === undefined && Object.defineProperty !== undefined
     // Missing in IE9-11.
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/name
 
-    // eslint-disable-next-line no-extend-native
     Object.defineProperty(Function.prototype, 'name', {
-
         get: function () {
             return this.toString().match(/^\s*function\s*(\S*)\s*\(/)[1];
         }
-
     });
 }
 
