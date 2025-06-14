@@ -62,7 +62,6 @@ export interface CubeGrid {
 
 export type CubeGridFormat = ModelFormat<CubeGrid>;
 
-// eslint-disable-next-line
 export function CubeGridFormat(grid: CubeGrid): CubeGridFormat {
     return { name: 'custom grid', kind: 'cube-grid', data: grid };
 }
