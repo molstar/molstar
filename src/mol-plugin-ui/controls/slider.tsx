@@ -674,14 +674,12 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
         if (val >= max) {
             val = max;
         }
-        /* eslint-disable eqeqeq */
         if (!allowCross && handle != null && handle > 0 && val <= bounds[handle - 1]) {
             val = bounds[handle - 1];
         }
         if (!allowCross && handle != null && handle < bounds.length - 1 && val >= bounds[handle + 1]) {
             val = bounds[handle + 1];
         }
-        /* eslint-enable eqeqeq */
 
         const points = Object.keys(marks).map(parseFloat);
         if (step !== null) {
