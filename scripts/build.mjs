@@ -10,7 +10,6 @@ import * as path from 'path';
 import * as argparse from 'argparse';
 import { sassPlugin } from 'esbuild-sass-plugin';
 import * as os from 'os';
-import { execSync } from 'child_process';
 
 const Apps = [
     // Apps
@@ -173,15 +172,6 @@ async function createBundle(app) {
     if (!isProduction) await ctx.watch();
 }
 
-function writeVersionFiles() {
-    const file = `export var PLUGIN_VERSION = '${VERSION}';\nexport var PLUGIN_VERSION_DATE = new Date(${TIMESTAMP})`;
-    const files = ['./lib/mol-plugin/version.js', './lib/commonjs/mol-plugin/version.js'];
-    for (const f of files) {
-        if (!fs.existsSync(f)) continue;
-        fs.writeFileSync(f, file);
-    }
-}
-
 function findBrowserTests(names) {
     const dir = path.resolve('./src', 'tests', 'browser');
     let files = fs.readdirSync(dir).filter(file => file.endsWith('.ts')).map(file => file.replace('.ts', ''));
@@ -277,16 +267,6 @@ async function main() {
     await Promise.all(promises);
 
     if (isProduction) {
-        console.log('Building library...');
-        try {
-            execSync('npm run build:lib', { stdio: 'inherit' });
-            writeVersionFiles();
-        } catch (error) {
-            console.error('Failed to build library:');
-            console.error(error);
-            process.exit(1);
-        }
-
         console.log('Done.');
         process.exit(0);
     }
