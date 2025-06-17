@@ -97,31 +97,52 @@ function examplesCssRenamePlugin({ root }) {
     };
 }
 
-async function watch(app) {
+function resolveEntryPath(path) {
+    if (!fs.existsSync(path)) {
+        return path + 'x'; // fallback to .tsx
+    }
+    return path;
+}
+
+function getPaths(app) {
+    if (app.kind === 'app') {
+        return {
+            prefix: `./build/${app.name}`,
+            entry: resolveEntryPath(`./src/apps/${app.name}/index.ts`),
+            outfile: `./build/${app.name}/${app.filename || 'molstar.js'}`,
+        };
+    }
+    if (app.kind === 'example') {
+        return {
+            prefix: `./build/examples/${app.name}`,
+            entry: resolveEntryPath(`./src/examples/${app.name}/index.ts`),
+            outfile: `./build/examples/${app.name}/${app.filename || 'index.js'}`,
+        };
+    }
+    if (app.kind === 'browser-test') {
+        return {
+            prefix: `./build/tests/browser`,
+            entry: resolveEntryPath(`./src/tests/browser/${app.name}.ts`),
+            outfile: `./build/tests/browser/${app.name}.js`,
+        };
+    }
+    throw new Error(`Unknown app kind: ${app.kind}`);
+}
+
+async function createBundle(app) {
     const { name, kind } = app;
 
-    const prefix = kind === 'app'
-        ? `./build/${name}`
-        : `./build/examples/${name}`;
-
-    let entry = `./src/${kind}s/${name}/index.ts`;
-    if (!fs.existsSync(entry)) {
-        entry = `./src/${kind}s/${name}/index.tsx`;
-    }
-
-    let filename = app.filename;
-    if (!filename) {
-        filename = kind === 'app' ? 'molstar.js' : 'index.js';
-    }
+    const { prefix, entry, outfile } = getPaths(app);
 
     const ctx = await esbuild.context({
         entryPoints: [entry],
         tsconfig: './tsconfig.json',
         bundle: true,
+        minify: isProduction,
+        minifyIdentifiers: false,
+        sourcemap: includeSourceMap,
         globalName: app.globalName || 'molstar',
-        outfile: kind === 'app'
-            ? `./build/${name}/${filename}`
-            : `./build/examples/${name}/${filename}`,
+        outfile,
         plugins: [
             fileLoaderPlugin({ out: prefix }),
             sassPlugin({
@@ -139,15 +160,40 @@ async function watch(app) {
         },
         color: true,
         logLevel: 'info',
+        define: {
+            'process.env.DEBUG': JSON.stringify(process.env.DEBUG || false),
+            __MOLSTAR_PLUGIN_VERSION__: JSON.stringify(VERSION),
+            __MOLSTAR_BUILD_TIMESTAMP__: `${TIMESTAMP}`,
+        },
     });
 
     await ctx.rebuild();
-    await ctx.watch();
+
+    if (!isProduction) await ctx.watch();
+}
+
+function findBrowserTests(names) {
+    const dir = path.resolve('./src', 'tests', 'browser');
+    let files = fs.readdirSync(dir).filter(file => file.endsWith('.ts')).map(file => file.replace('.ts', ''));
+    if (names.length) {
+        files = files.filter(file => names.includes(file));
+    }
+    return files.map(name => ({ kind: 'browser-test', name }));
 }
 
 const argParser = new argparse.ArgumentParser({
     add_help: true,
-    description: 'Mol* development build'
+    description: 'Mol* Build'
+});
+argParser.add_argument('--prd', {
+    help: 'Create a production build.',
+    required: false,
+    action: 'store_true',
+});
+argParser.add_argument('--no-src-map', {
+    help: 'Do not include source map.',
+    required: false,
+    action: 'store_true',
 });
 argParser.add_argument('--apps', '-a', {
     help: 'Apps to build.',
@@ -156,6 +202,11 @@ argParser.add_argument('--apps', '-a', {
 });
 argParser.add_argument('--examples', '-e', {
     help: 'Examples to build.',
+    required: false,
+    nargs: '*',
+});
+argParser.add_argument('--browser-tests', '-bt', {
+    help: 'Browser Tests to build.',
     required: false,
     nargs: '*',
 });
@@ -174,11 +225,20 @@ argParser.add_argument('--host', {
 
 const args = argParser.parse_args();
 
+
+const isProduction = !!args.prd;
+const includeSourceMap = !args.no_src_map;
+
+const VERSION = isProduction ? JSON.parse(fs.readFileSync('./package.json', 'utf8')).version : '(dev build)';
+const TIMESTAMP = Date.now();
+
 const apps = (!args.apps ? [] : (args.apps.length ? args.apps.map(a => findApp(a, 'app')).filter(a => a) : Apps.filter(a => a.kind === 'app')));
 const examples = (!args.examples ? [] : (args.examples.length ? args.examples.map(e => findApp(e, 'example')).filter(a => a) : Apps.filter(a => a.kind === 'example')));
+const browserTests = (!args.browser_tests ? [] : findBrowserTests(args.browser_tests));
 
 console.log('Apps:', apps.map(a => a.name));
 console.log('Examples:', examples.map(e => e.name));
+console.log('Browser Tests', browserTests.map(e => e.name));
 console.log('');
 
 function getLocalIPs() {
@@ -198,13 +258,20 @@ function getLocalIPs() {
 
 async function main() {
     const promises = [];
-    for (const app of apps) promises.push(watch(app));
-    for (const example of examples) promises.push(watch(example));
+    console.log(isProduction ? 'Building apps...' : 'Initial build...');
 
-    console.log('Initial build...');
+    for (const app of apps) promises.push(createBundle(app));
+    for (const example of examples) promises.push(createBundle(example));
+    for (const browserTest of browserTests) promises.push(createBundle(browserTest));
 
     await Promise.all(promises);
-    console.log('Done.');
+
+    if (isProduction) {
+        console.log('Done.');
+        process.exit(0);
+    }
+
+    console.log('Initial build complete.');
 
     const ctx = await esbuild.context({});
     ctx.serve({
@@ -226,4 +293,7 @@ async function main() {
     console.log('Press Ctrl+C to stop.');
 }
 
-main().catch(console.error);
+main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+});
