@@ -190,8 +190,8 @@ argParser.add_argument('--prd', {
     required: false,
     action: 'store_true',
 });
-argParser.add_argument('--src-map', {
-    help: 'Include source map.',
+argParser.add_argument('--no-src-map', {
+    help: 'Do not include source map.',
     required: false,
     action: 'store_true',
 });
@@ -227,7 +227,7 @@ const args = argParser.parse_args();
 
 
 const isProduction = !!args.prd;
-const includeSourceMap = !!args.src_map;
+const includeSourceMap = !args.no_src_map;
 
 const VERSION = isProduction ? JSON.parse(fs.readFileSync('./package.json', 'utf8')).version : '(dev build)';
 const TIMESTAMP = Date.now();
