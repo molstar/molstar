@@ -7,6 +7,9 @@
 
 import { Camera } from '../../mol-canvas3d/camera';
 import { Canvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';
+import { OutlineParams } from '../../mol-canvas3d/passes/outline';
+import { ShadowParams } from '../../mol-canvas3d/passes/shadow';
+import { SsaoParams } from '../../mol-canvas3d/passes/ssao';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { getFocusSnapshot, getPluginBoundingSphere } from '../../mol-plugin-state/manager/focus-camera/focus-object';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -15,10 +18,11 @@ import { PluginState } from '../../mol-plugin/state';
 import { StateObjectSelector } from '../../mol-state';
 import { fovAdjustedPosition } from '../../mol-util/camera';
 import { ColorNames } from '../../mol-util/color/names';
+import { ParamDefinition } from '../../mol-util/param-definition';
 import { decodeColor } from './helpers/utils';
 import { MolstarLoadingContext } from './load';
 import { SnapshotMetadata } from './mvs-data';
-import { MolstarNodeParams } from './tree/molstar/molstar-tree';
+import { MolstarNode, MolstarNodeParams } from './tree/molstar/molstar-tree';
 import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 
@@ -115,16 +119,34 @@ export function createPluginStateSnapshotCamera(plugin: PluginContext, context: 
     return camera;
 }
 
-/** Set canvas properties based on a canvas node params. */
-export function setCanvas(plugin: PluginContext, params: MolstarNodeParams<'canvas'> | undefined) {
-    plugin.canvas3d?.setProps(old => modifyCanvasProps(old, params));
+/** Set canvas properties based on a canvas node. */
+export function setCanvas(plugin: PluginContext, node: MolstarNode<'canvas'> | undefined) {
+    plugin.canvas3d?.setProps(old => modifyCanvasProps(old, node));
 }
 
 /** Create a deep copy of `oldCanvasProps` with values modified according to a canvas node params. */
-export function modifyCanvasProps(oldCanvasProps: Canvas3DProps, params: MolstarNodeParams<'canvas'> | undefined): Canvas3DProps {
+export function modifyCanvasProps(oldCanvasProps: Canvas3DProps, canvasNode: MolstarNode<'canvas'> | undefined, custom?: Record<string, any>): Canvas3DProps {
+    const params = canvasNode?.params;
     const backgroundColor = decodeColor(params?.background_color) ?? DefaultCanvasBackgroundColor;
+
+    const outline = !!canvasNode?.custom?.molstar_enable_outline;
+    const shadow = !!canvasNode?.custom?.molstar_enable_shadow;
+    const occlusion = !!canvasNode?.custom?.molstar_enable_ssao;
+
     return {
         ...oldCanvasProps,
+        postprocessing: {
+            ...oldCanvasProps.postprocessing,
+            outline: outline
+                ? { name: 'on', params: ParamDefinition.getDefaultValues(OutlineParams) }
+                : oldCanvasProps.postprocessing.outline,
+            shadow: shadow
+                ? { name: 'on', params: ParamDefinition.getDefaultValues(ShadowParams) }
+                : oldCanvasProps.postprocessing.shadow,
+            occlusion: occlusion
+                ? { name: 'on', params: ParamDefinition.getDefaultValues(SsaoParams) }
+                : oldCanvasProps.postprocessing.occlusion,
+        },
         renderer: {
             ...oldCanvasProps.renderer,
             backgroundColor: backgroundColor,
