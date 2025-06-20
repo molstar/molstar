@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -61,6 +61,11 @@ export namespace Color {
 
     export function fromNormalizedArray(array: NumberArray, offset: number): Color {
         return fromNormalizedRgb(array[offset], array[offset + 1], array[offset + 2]);
+    }
+
+    export function fromColorListEntry(entry: ColorListEntry): Color {
+        if (typeof entry === 'number') return entry;
+        else return entry[0];
     }
 
     /** Copies hex color to rgb array */
