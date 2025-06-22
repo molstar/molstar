@@ -151,15 +151,6 @@ export function readPixels(gl: GLRenderingContext, x: number, y: number, width: 
     if (isDebugMode) checkError(gl);
 }
 
-function getDrawingBufferPixelData(gl: GLRenderingContext, state: WebGLState) {
-    const w = gl.drawingBufferWidth;
-    const h = gl.drawingBufferHeight;
-    const buffer = new Uint8Array(w * h * 4);
-    unbindFramebuffer(gl);
-    state.viewport(0, 0, w, h);
-    readPixels(gl, 0, 0, w, h, buffer);
-    return PixelData.flipY(PixelData.create(buffer, w, h));
-}
 
 function getShaderPrecisionFormat(gl: GLRenderingContext, shader: 'vertex' | 'fragment', precision: 'low' | 'medium' | 'high', type: 'float' | 'int') {
     const glShader = shader === 'vertex' ? gl.VERTEX_SHADER : gl.FRAGMENT_SHADER;
@@ -433,7 +424,6 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         deleteSync: (sync: WebGLSync) => {
             if (isWebGL2(gl)) gl.deleteSync(sync);
         },
-        getDrawingBufferPixelData: () => getDrawingBufferPixelData(gl, state),
         clear: (red: number, green: number, blue: number, alpha: number) => {
             unbindFramebuffer(gl);
             state.enable(gl.SCISSOR_TEST);
