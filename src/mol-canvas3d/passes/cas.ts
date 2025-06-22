@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -79,7 +79,7 @@ export class CasPass {
         if (target) {
             target.bind();
         } else {
-            this.webgl.unbindFramebuffer();
+            this.webgl.bindDrawingBuffer();
         }
         this.updateState(viewport);
         this.renderable.render();

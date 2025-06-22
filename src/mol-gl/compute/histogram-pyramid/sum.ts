@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -94,7 +94,7 @@ export function getHistopyramidSum(ctx: WebGLContext, pyramidTopTexture: Texture
     gl.finish();
 
     ctx.readPixels(0, 0, 1, 1, isWebGL2(gl) ? sumInts : sumBytes);
-    ctx.unbindFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     if (isTimingMode) ctx.timer.markEnd('getHistopyramidSum');
 
     return isWebGL2(gl)

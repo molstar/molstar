@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -120,7 +120,7 @@ export class MultiSamplePass {
 
     private bindOutputTarget(toDrawingBuffer: boolean) {
         if (toDrawingBuffer) {
-            this.webgl.unbindFramebuffer();
+            this.webgl.bindDrawingBuffer();
         } else {
             this.colorTarget.bind();
         }

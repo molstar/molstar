@@ -5,17 +5,16 @@
  */
 
 import { GLRenderingContext, isWebGL2 } from './compat';
-import { checkFramebufferStatus, Framebuffer } from './framebuffer';
+import { checkFramebufferStatus, createNullFramebuffer, Framebuffer } from './framebuffer';
 import { Scheduler } from '../../mol-task';
 import { isDebugMode } from '../../mol-util/debug';
 import { createExtensions, resetExtensions, WebGLExtensions } from './extensions';
 import { WebGLState, createState } from './state';
-import { PixelData } from '../../mol-util/image';
 import { WebGLResources, createResources } from './resources';
 import { RenderTarget, createRenderTarget } from './render-target';
 import { Subject } from 'rxjs';
 import { now } from '../../mol-util/now';
-import { Texture, TextureFilter } from './texture';
+import { createNullTexture, Texture, TextureFilter } from './texture';
 import { ComputeRenderable } from '../renderable';
 import { createTimer, WebGLTimer } from './timer';
 
@@ -87,10 +86,6 @@ function unbindResources(gl: GLRenderingContext) {
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
     gl.bindRenderbuffer(gl.RENDERBUFFER, null);
-    unbindFramebuffer(gl);
-}
-
-function unbindFramebuffer(gl: GLRenderingContext) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 }
 
@@ -151,6 +146,15 @@ export function readPixels(gl: GLRenderingContext, x: number, y: number, width: 
     if (isDebugMode) checkError(gl);
 }
 
+function bindDrawingBuffer(gl: GLRenderingContext) {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+}
+
+function getDrawingBufferSize(gl: GLRenderingContext) {
+    const width = gl.drawingBufferWidth;
+    const height = gl.drawingBufferHeight;
+    return { width, height };
+}
 
 function getShaderPrecisionFormat(gl: GLRenderingContext, shader: 'vertex' | 'fragment', precision: 'low' | 'medium' | 'high', type: 'float' | 'int') {
     const glShader = shader === 'vertex' ? gl.VERTEX_SHADER : gl.FRAGMENT_SHADER;
@@ -245,7 +249,9 @@ export interface WebGLContext {
     readonly namedTextures: { [name: string]: Texture }
 
     createRenderTarget: (width: number, height: number, depth?: boolean, type?: 'uint8' | 'float32' | 'fp16', filter?: TextureFilter, format?: 'rgba' | 'alpha') => RenderTarget
-    unbindFramebuffer: () => void
+    createDrawTarget: () => RenderTarget
+    bindDrawingBuffer: () => void
+    getDrawingBufferSize: () => { width: number, height: number }
     readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array | Int32Array) => void
     readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>
     waitForGpuCommandsComplete: () => Promise<void>
@@ -401,7 +407,25 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
                 }
             };
         },
-        unbindFramebuffer: () => unbindFramebuffer(gl),
+        createDrawTarget: () => {
+            return {
+                id: -1,
+                texture: createNullTexture(gl),
+                framebuffer: createNullFramebuffer(),
+                depthRenderbuffer: null,
+
+                getWidth: () => getDrawingBufferSize(gl).width,
+                getHeight: () => getDrawingBufferSize(gl).height,
+                bind: () => {
+                    bindDrawingBuffer(gl);
+                },
+                setSize: () => {},
+                reset: () => {},
+                destroy: () => {}
+            };
+        },
+        bindDrawingBuffer: () => bindDrawingBuffer(gl),
+        getDrawingBufferSize: () => getDrawingBufferSize(gl),
         readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array | Int32Array) => {
             readPixels(gl, x, y, width, height, buffer);
         },
@@ -425,13 +449,14 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
             if (isWebGL2(gl)) gl.deleteSync(sync);
         },
         clear: (red: number, green: number, blue: number, alpha: number) => {
-            unbindFramebuffer(gl);
+            const drs = getDrawingBufferSize(gl);
+            bindDrawingBuffer(gl);
             state.enable(gl.SCISSOR_TEST);
             state.depthMask(true);
             state.colorMask(true, true, true, true);
             state.clearColor(red, green, blue, alpha);
-            state.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-            state.scissor(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+            state.viewport(0, 0, drs.width, drs.height);
+            state.scissor(0, 0, drs.width, drs.height);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         },
 
