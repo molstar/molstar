@@ -45,10 +45,10 @@ export function getErrorDescription(gl: GLRenderingContext, error: number) {
     return 'unknown error';
 }
 
-export function checkError(gl: GLRenderingContext) {
+export function checkError(gl: GLRenderingContext, message?: string) {
     const error = gl.getError();
     if (error !== gl.NO_ERROR) {
-        throw new Error(`WebGL error: '${getErrorDescription(gl, error)}'`);
+        throw new Error(`WebGL error: '${getErrorDescription(gl, error)}'${message ? ` (${message})` : ''}`);
     }
 }
 
@@ -262,8 +262,9 @@ export interface WebGLContext {
     getFenceSync: () => WebGLSync | null
     checkSyncStatus: (sync: WebGLSync) => boolean
     deleteSync: (sync: WebGLSync) => void
-    getDrawingBufferPixelData: () => PixelData
     clear: (red: number, green: number, blue: number, alpha: number) => void
+    checkError: (message?: string) => void
+    checkFramebufferStatus: (message?: string) => void
     destroy: (options?: Partial<{ doNotForceWebGLContextLoss: boolean }>) => void
 }
 
@@ -442,6 +443,13 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
             state.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
             state.scissor(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        },
+
+        checkError: (message?: string) => {
+            checkError(gl, message);
+        },
+        checkFramebufferStatus: (message?: string) => {
+            checkFramebufferStatus(gl, message);
         },
 
         destroy: (options?: Partial<{ doNotForceWebGLContextLoss: boolean }>) => {
