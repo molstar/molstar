@@ -249,19 +249,9 @@ void main() {
     #ifdef dBlendTransparency
         if (blendTransparency) {
             if (transparentColor.a != 0.0) {
-                if (isBackground(opaqueDepth)) {
-                    if (uTransparentBackground) {
-                        color = transparentColor;
-                        alpha = transparentColor.a;
-                    } else {
-                        color.rgb = transparentColor.rgb + uFogColor * (1.0 - transparentColor.a);
-                        alpha = 1.0;
-                    }
-                } else {
-                    // blending
-                    color = transparentColor + color * (1.0 - transparentColor.a);
-                    alpha = transparentColor.a + alpha * (1.0 - transparentColor.a);
-                }
+                // blending
+                color = transparentColor + color * (1.0 - transparentColor.a);
+                alpha = transparentColor.a + alpha * (1.0 - transparentColor.a);
             }
         }
     #endif

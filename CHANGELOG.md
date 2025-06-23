@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 - Update production build to use `esbuils`
 - Emit explicit paths in `import`s in `lib/`
+- Fix outlines on opaque elements using illumination mode 
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:
