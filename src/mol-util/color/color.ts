@@ -202,9 +202,9 @@ export interface ColorList {
     label: string
     description: string
     list: ColorListEntry[]
-    type: 'sequential' | 'diverging' | 'qualitative'
+    type: 'sequential' | 'diverging' | 'cyclical' | 'qualitative'
 }
-export function ColorList(label: string, type: 'sequential' | 'diverging' | 'qualitative', description: string, list: (number | [number, number])[]): ColorList {
+export function ColorList(label: string, type: ColorList['type'], description: string, list: (number | [number, number])[]): ColorList {
     return { label, description, list: list as ColorListEntry[], type };
 }
 
