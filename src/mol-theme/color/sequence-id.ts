@@ -17,7 +17,7 @@ const DefaultColor = Color(0xCCCCCC);
 const Description = 'Gives every polymer residue a color based on its `seq_id` value.';
 
 export const SequenceIdColorThemeParams = {
-    list: PD.ColorList('turbo', { presetKind: 'scale' }), // TODO sync with 'turbo' being renamed to 'turbo-no-black' in v5
+    list: PD.ColorList('turbo-no-black', { presetKind: 'scale' }),
 };
 export type SequenceIdColorThemeParams = typeof SequenceIdColorThemeParams
 export function getSequenceIdColorThemeParams(ctx: ThemeDataContext) {

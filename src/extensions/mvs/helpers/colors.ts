@@ -101,18 +101,18 @@ export const MvsNamedColorLists: Record<ColorListNameT, ColorList> = {
     YlGn: ColorLists['yellow-green'],
     YlGnBu: ColorLists['yellow-green-blue'],
 
-    Magma: ColorLists['magma-full'],
-    Inferno: ColorLists['inferno-full'],
+    Magma: ColorLists['magma'],
+    Inferno: ColorLists['inferno'],
     Plasma: ColorLists['plasma'],
     Viridis: ColorLists['viridis'],
     Cividis: ColorLists['cividis'],
-    Turbo: ColorLists['turbo-full'],
+    Turbo: ColorLists['turbo'],
     Warm: ColorLists['warm'],
     Cool: ColorLists['cool'],
     CubehelixDefault: ColorLists['cubehelix-default'],
 
     // Cyclical
-    Rainbow: ColorLists['rainbow-d3'],
+    Rainbow: ColorLists['rainbow'],
     Sinebow: ColorLists['sinebow'],
 
     // Diverging
@@ -141,5 +141,5 @@ export const MvsNamedColorLists: Record<ColorListNameT, ColorList> = {
     Accent: ColorLists['accent'],
 
     // Additional lists, not standard for visualization in general, but commonly used for structures
-    Chainbow: ColorLists['turbo'],
+    Chainbow: ColorLists['turbo-no-black'],
 };
