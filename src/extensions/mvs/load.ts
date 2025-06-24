@@ -118,7 +118,7 @@ function molstarTreeToEntry(
         snapshot.camera = createPluginStateSnapshotCamera(plugin, context, metadata);
     }
     snapshot.durationInMs = metadata.linger_duration_ms + (metadata.previousTransitionDurationMs ?? 0);
-    
+
     const entryParams: PluginStateSnapshotManager.EntryParams = {
         key: metadata.key,
         name: metadata.title,
