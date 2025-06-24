@@ -294,7 +294,7 @@ export function componentFromXProps(node: MolstarNode<'component_from_uri' | 'co
 }
 
 /** Create props for `StructureRepresentation3D` transformer from a representation node. */
-export function representationProps(node: MolstarSubtree<'representation'>): Partial<StateTransformer.Params<StructureRepresentation3D>> {
+function representationPropsBase(node: MolstarSubtree<'representation'>): Partial<StateTransformer.Params<StructureRepresentation3D>> {
     const alpha = alphaForNode(node);
     const params = node.params;
     switch (params.type) {
@@ -324,6 +324,14 @@ export function representationProps(node: MolstarSubtree<'representation'>): Par
         default:
             throw new Error('NotImplementedError');
     }
+}
+
+export function representationProps(node: MolstarSubtree<'representation'>): Partial<StateTransformer.Params<StructureRepresentation3D>> {
+    const base = representationPropsBase(node);
+    if (node.custom?.molstar_reprepresentation_params) {
+        base.type!.params = { ...base.type!.params, ...node.custom.molstar_reprepresentation_params };
+    }
+    return base;
 }
 
 /** Create value for `type.params.alpha` prop for `StructureRepresentation3D` transformer from a representation node based on 'opacity' nodes in its subtree. */
