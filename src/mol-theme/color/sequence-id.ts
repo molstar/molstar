@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -17,7 +17,7 @@ const DefaultColor = Color(0xCCCCCC);
 const Description = 'Gives every polymer residue a color based on its `seq_id` value.';
 
 export const SequenceIdColorThemeParams = {
-    list: PD.ColorList('turbo', { presetKind: 'scale' }),
+    list: PD.ColorList('turbo-no-black', { presetKind: 'scale' }),
 };
 export type SequenceIdColorThemeParams = typeof SequenceIdColorThemeParams
 export function getSequenceIdColorThemeParams(ctx: ThemeDataContext) {

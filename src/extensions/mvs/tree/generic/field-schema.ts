@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -26,33 +26,73 @@ export const bool = iots.boolean;
 export const tuple = iots.tuple;
 /** Type definition for a list/array, e.g. `list(str)`  */
 export const list = iots.array;
-/** Type definition for union types, e.g. `union([str, int])` means string or integer  */
-export const union = iots.union;
-/** Type definition used to create objects */
-export const obj = iots.type;
-/** Type definition used to create partial objects */
-export const partial = iots.partial;
+/** Type definition for a dictionary/mapping/record, e.g. `dict(str, float)` means type `{ [K in string]: number }` */
+export const dict = iots.record;
+
+/** Type definition used to create objects, e.g. `object({ name: str, age: float }, { address: str })` means type `{ name: string, age: number, address?: string }` */
+export function object<P extends iots.Props, Q extends iots.Props>(props: P, optionalProps: undefined, name?: string): iots.TypeC<P>;
+export function object<P extends iots.Props, Q extends iots.Props>(props: P, optionalProps: Q, name?: string): iots.IntersectionC<[iots.TypeC<P>, iots.PartialC<Q>]>;
+export function object<P extends iots.Props, Q extends iots.Props>(props: P, optionalProps?: Q, name?: string) {
+    if (!optionalProps) {
+        return iots.type(props, name);
+    }
+
+    if (name === undefined) {
+        const nameChunks = [];
+        for (const key in props) {
+            nameChunks.push(`${key}: ${props[key].name}`);
+        }
+        for (const key in optionalProps) {
+            nameChunks.push(`${key}?: ${optionalProps[key].name}`);
+        }
+        name = `{ ${nameChunks.join(', ')} }`;
+    }
+    return iots.intersection([iots.type(props), iots.partial(optionalProps)], name);
+}
+
+/** Type definition used to create partial objects, e.g. `partial({ name: str, age: float })` means type `{ name?: string, age?: number }` */
+export function partial<P extends iots.Props>(props: P, name?: string) {
+    if (name === undefined) {
+        const nameChunks = [];
+        for (const key in props) {
+            nameChunks.push(`${key}?: ${props[key].name}`);
+        }
+        name = `{ ${nameChunks.join(', ')} }`;
+    }
+    return iots.partial(props, name);
+}
+
+/** Type definition for union types, e.g. `union(str, int)` means string or integer */
+export function union<T1 extends iots.Mixed, T2 extends iots.Mixed, TOthers extends iots.Mixed[]>(first: T1, second: T2, ...others: TOthers): iots.UnionC<[T1, T2, ...TOthers]> {
+    const baseTypes: iots.Mixed[] = [];
+    for (const type of [first, second, ...others]) {
+        if (type instanceof iots.UnionType) {
+            baseTypes.push(...type.types);
+        } else {
+            baseTypes.push(type);
+        }
+    }
+    return iots.union(baseTypes as any);
+}
 
 /** Type definition for nullable types, e.g. `nullable(str)` means string or `null`  */
-export function nullable<T extends iots.Type<any>>(type: T) {
-    return union([type, iots.null]);
+export function nullable<V>(type: iots.Type<V>): iots.Type<V | null> {
+    return union(type, iots.null);
 }
+
 /** Type definition for literal types, e.g. `literal('red', 'green', 'blue')` means 'red' or 'green' or 'blue'  */
 export function literal<V extends string | number | boolean>(...values: V[]) {
     if (values.length === 0) {
         throw new Error(`literal type must have at least one value`);
     }
-    const typeName = `(${values.map(v => onelinerJsonString(v)).join(' | ')})`;
+    const typeName = values.length === 1 ? onelinerJsonString(values[0]) : `(${values.map(v => onelinerJsonString(v)).join(' | ')})`;
+    const valueSet = new Set(values);
     return new iots.Type<V>(
         typeName,
-        ((value: any) => values.includes(value)) as any,
-        (value, ctx) => values.includes(value as any) ? { _tag: 'Right', right: value as any } : { _tag: 'Left', left: [{ value: value, context: ctx, message: `"${value}" is not a valid value for literal type ${typeName}` }] },
+        ((value: any) => valueSet.has(value)) as any,
+        (value, ctx) => valueSet.has(value as any) ? { _tag: 'Right', right: value as any } : { _tag: 'Left', left: [{ value: value, context: ctx, message: `"${value}" is not a valid value for literal type ${typeName}` }] },
         value => value
     );
-}
-/** Type definition for mapping between two types, e.g. `mapping(str, float)` means type `{ [key in string]: number }` */
-export function mapping<A extends iots.Type<any>, B extends iots.Type<any>>(from: A, to: B) {
-    return iots.record(from, to);
 }
 
 
