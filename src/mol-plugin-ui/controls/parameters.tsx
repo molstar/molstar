@@ -745,16 +745,16 @@ function colorGradient(colors: ColorListEntry[], banded: boolean) {
 
 function createColorListHelpers() {
 
-    const addOn = (l: [ColorListName, any, any]) => {
+    const addOn = (l: PD.SelectOption<ColorListName>) => {
         const preset = getColorListFromName(l[0]);
         return <div style={colorStripStyle({ kind: preset.type !== 'qualitative' ? 'interpolate' : 'set', colors: preset.list })} />;
     };
 
     return {
         ColorPresets: {
-            all: ActionMenu.createItemsFromSelectOptions(ColorListOptions, { addOn }),
-            scale: ActionMenu.createItemsFromSelectOptions(ColorListOptionsScale, { addOn }),
-            set: ActionMenu.createItemsFromSelectOptions(ColorListOptionsSet, { addOn })
+            all: ActionMenu.createItemsFromSelectOptions(ColorListOptions, { addOn, description: o => o[3] }),
+            scale: ActionMenu.createItemsFromSelectOptions(ColorListOptionsScale, { addOn, description: o => o[3] }),
+            set: ActionMenu.createItemsFromSelectOptions(ColorListOptionsSet, { addOn, description: o => o[3] })
         },
         ColorsParam: PD.ObjectList({ color: PD.Color(0x0 as Color) }, ({ color }) => Color.toHexString(color).toUpperCase()),
         OffsetColorsParam: PD.ObjectList(

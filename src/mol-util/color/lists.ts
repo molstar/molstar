@@ -5,8 +5,9 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { ColorList } from './color';
+import { type ParamDefinition as PD } from '../param-definition';
 import { capitalize } from '../string';
+import { ColorList } from './color';
 
 export const ColorLists = {
     // Brewer Color Lists
@@ -208,7 +209,7 @@ export const ColorLists = {
         'Turbo color scheme from D3.js, improved (smooth) rainbow colormap for visualization, with black region removed',
         [0x4a41b5, 0x4a58dd, 0x426ff2, 0x3987f9, 0x2f9df5, 0x28b2e9, 0x25c6d8, 0x27d7c4, 0x2ee5ae, 0x3bf098, 0x4df884, 0x62fd70, 0x7bfe5f, 0x95fb51, 0xaff444, 0xc8ea3a, 0xdedd32, 0xf0cc2c, 0xfeb927, 0xffa423, 0xff8e1f, 0xff761c, 0xf65f18, 0xe54813, 0xd0330e, 0xba2208, 0xa51403, 0x960d00]
     ),
-    
+
     // Other colormaps from D3.js (https://observablehq.com/@d3/color-schemes)
 
     'warm': ColorList('Warm', 'sequential',
@@ -268,11 +269,11 @@ export const ColorLists = {
 };
 
 export type ColorListName = keyof typeof ColorLists
-export const ColorListNames = Object.keys(ColorLists);
-export const ColorListOptions = ColorListNames.map(n => [n, ColorLists[n as ColorListName].label, capitalize(ColorLists[n as ColorListName].type)] as [ColorListName, string, string]);
+export const ColorListNames = Object.keys(ColorLists) as ColorListName[];
+export const ColorListOptions: PD.SelectOption<ColorListName>[] = ColorListNames.map(name => [name, ColorLists[name].label, capitalize(ColorLists[name].type), ColorLists[name].description]);
 
-export const ColorListOptionsScale = ColorListOptions.filter(v => ColorLists[v[0]].type === 'sequential' || ColorLists[v[0]].type === 'diverging' || ColorLists[v[0]].type === 'cyclical');
-export const ColorListOptionsSet = ColorListOptions.filter(v => ColorLists[v[0]].type === 'qualitative');
+export const ColorListOptionsScale: PD.SelectOption<ColorListName>[] = ColorListOptions.filter(v => ColorLists[v[0]].type === 'sequential' || ColorLists[v[0]].type === 'diverging' || ColorLists[v[0]].type === 'cyclical');
+export const ColorListOptionsSet: PD.SelectOption<ColorListName>[] = ColorListOptions.filter(v => ColorLists[v[0]].type === 'qualitative');
 
 export function getColorListFromName(name: ColorListName) {
     if (name in ColorLists) return ColorLists[name as ColorListName];
