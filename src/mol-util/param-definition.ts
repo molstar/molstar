@@ -74,13 +74,13 @@ export namespace ParamDefinition {
     }
 
     export type SelectOption<T> = readonly [
-        /* Value of the option */
+        /** Value of the option */
         value: T,
-        /* Human-readable label for UI */
+        /** Human-readable label for UI */
         label: string,
-        /* Category, to group options in UI */
+        /** Category, to group options in UI */
         category?: string,
-        /* More detailed description, tooltip in UI */
+        /** More detailed description, tooltip in UI */
         description?: string,
     ];
 
