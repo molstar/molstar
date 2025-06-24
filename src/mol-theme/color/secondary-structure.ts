@@ -21,7 +21,7 @@ import { hash2 } from '../../mol-data/util';
 import { ColorThemeCategory } from './categories';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (shapely)
-const SecondaryStructureColors = ColorMap({
+export const SecondaryStructureColors = ColorMap({
     'alphaHelix': 0xFF0080,
     'threeTenHelix': 0xA00080,
     'piHelix': 0x600080,

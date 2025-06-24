@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../mol-util/param-definition';
@@ -251,17 +252,31 @@ namespace Representation {
     export const StateBuilder: StateBuilder<State> = { create: createState, update: updateState };
 
     export type Any<P extends PD.Params = PD.Params, S extends State = State> = Representation<any, P, S>
-    export const Empty: Any = {
-        label: '', groupCount: 0, renderObjects: [], geometryVersion: -1, props: {}, params: {}, updated: new Subject(), state: createState(), theme: Theme.createEmpty(),
-        createOrUpdate: () => Task.constant('', undefined),
-        setState: () => {},
-        setTheme: () => {},
-        getLoci: () => EmptyLoci,
-        getAllLoci: () => [],
-        eachLocation: () => {},
-        mark: () => false,
-        destroy: () => {}
-    };
+
+
+    export declare const Empty: Any
+
+    export function createEmpty(): Any {
+        return {
+            label: '',
+            groupCount: 0,
+            renderObjects: [],
+            geometryVersion: -1,
+            props: {},
+            params: {},
+            updated: new Subject(),
+            state: createState(),
+            theme: Theme.createEmpty(),
+            createOrUpdate: () => Task.constant('', undefined),
+            setState: () => {},
+            setTheme: () => {},
+            getLoci: () => EmptyLoci,
+            getAllLoci: () => [],
+            eachLocation: () => {},
+            mark: () => false,
+            destroy: () => {}
+        };
+    }
 
     export type Def<D, P extends PD.Params = PD.Params, S extends State = State> = { [k: string]: RepresentationFactory<D, P, S> }
 
@@ -490,3 +505,10 @@ namespace Representation {
         };
     }
 }
+
+let _EmptyRepresentation: Representation.Any | undefined = undefined;
+Object.defineProperty(Representation, "Empty", {
+    get: () => {
+        return _EmptyRepresentation ??= Representation.createEmpty();
+    }
+});

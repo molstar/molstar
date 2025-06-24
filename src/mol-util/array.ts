@@ -195,7 +195,7 @@ export function sortIfNeeded<T>(array: T[], compareFn: (a: T, b: T) => number): 
 }
 
 /** Decide whether `array` is sorted. */
-export function arrayIsSorted<T>(array: T[], compareFn: (a: T, b: T) => number): boolean {
+export function arrayIsSorted<T>(array: ArrayLike<T>, compareFn: (a: T, b: T) => number): boolean {
     for (let i = 1, n = array.length; i < n; i++) {
         if (compareFn(array[i - 1], array[i]) > 0) {
             return false;
