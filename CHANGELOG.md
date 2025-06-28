@@ -17,6 +17,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Snapshot Markdown improvements
   - Support custom markdown commands to control the plugin via the `[link](!command)` pattern
   - Support rendering custom elements via the `![alt](!parameters)` pattern
+  - Support tables
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:

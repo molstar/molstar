@@ -5,8 +5,9 @@
  */
 
 import { useContext } from 'react';
-import { PluginReactContext } from '../base';
 import ReactMarkdown, { Components } from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { PluginReactContext } from '../base';
 import { PluginUIContext } from '../context';
 import { PluginContext } from '../../mol-plugin/context';
 import { MarkdownRenderer, parseMarkdownCommandArgs } from '../../mol-plugin/util/markdown-commands';
@@ -14,9 +15,15 @@ import { ColorLists } from '../../mol-util/color/lists';
 import { getColorGradient } from '../../mol-util/color/utils';
 
 export function Markdown({ children, components }: { children?: string, components?: Components }) {
-    return <ReactMarkdown skipHtml components={{ a: MarkdownAnchor, img: MarkdownImg, ...components }}>
-        {children}
-    </ReactMarkdown>;
+    return <div className='msp-markdown'>
+        <ReactMarkdown
+            skipHtml
+            components={{ a: MarkdownAnchor, img: MarkdownImg, ...components }}
+            remarkPlugins={[remarkGfm]}
+        >
+            {children}
+        </ReactMarkdown>
+    </div>;
 }
 
 export function MarkdownImg({ src, children, element }: { src?: string, children?: any, element?: any }) {
@@ -47,7 +54,7 @@ export const DefaultRenderers: MarkdownRenderer[] = [
         name: 'color-palette',
         reactRenderFn: (args) => {
             const name = args['color-palette'];
-            const minWidth = args['color-palette-width'] ?? '200px';
+            const minWidth = args['color-palette-width'] ?? '150px';
             const height = args['color-palette-height'] ?? '0.5em';
             if (!name) return null;
 

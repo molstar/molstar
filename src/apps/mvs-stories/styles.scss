@@ -1,3 +1,5 @@
+@use '../../mol-plugin-ui/skin/base/components/markdown.scss';
+
 .mvs-stories-markdown-explanation {
     // Adapted from skeleton.css, The MIT License (MIT), Copyright (c) 2011-2014 Dave Gamache 
     line-height: 1.4;
@@ -160,6 +162,20 @@
         margin-bottom: 1rem;
         border-width: 0;
         border-top: 1px solid #E1E1E1;
+    }
+
+    table {
+        border: 1px solid $border-color;
+        border-collapse: collapse;
+    }
+
+    th {
+        text-align: left;
+    }
+
+    th, td {
+        border: 1px solid $border-color;
+        padding: 4px 8px;
     }
 }
 
