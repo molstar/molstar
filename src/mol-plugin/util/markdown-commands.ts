@@ -15,6 +15,11 @@ export interface MarkdownCommand {
     execute: (args: Record<string, string>, manager: MarkdownCommandManager) => void;
 }
 
+export interface MarkdownRenderer {
+    name: string;
+    reactRenderFn: (args: Record<string, string>, manager: MarkdownCommandManager) => any;
+}
+
 export const DefaultMarkdownCommands: MarkdownCommand[] = [
     {
         name: 'center-camera',
@@ -82,6 +87,7 @@ export const DefaultMarkdownCommands: MarkdownCommand[] = [
 
 export class MarkdownCommandManager {
     commands: MarkdownCommand[] = [];
+    renderers: MarkdownRenderer[] = [];
 
     refResolvers: Record<string, (plugin: PluginContext, refs: string[]) => StateObjectCell[]> = {
         default: (plugin: PluginContext, refs: string[]) => refs
@@ -103,6 +109,38 @@ export class MarkdownCommandManager {
         if (idx >= 0) {
             this.commands.splice(idx, 1);
         }
+    }
+
+    registerRenderer(renderer: MarkdownRenderer) {
+        const existing = this.renderers.findIndex(r => r.name === renderer.name);
+        if (existing >= 0) {
+            this.renderers[existing] = renderer;
+        } else {
+            this.renderers.push(renderer);
+        }
+    }
+
+    removeRenderer(name: string) {
+        const idx = this.renderers.findIndex(r => r.name === name);
+        if (idx >= 0) {
+            this.renderers.splice(idx, 1);
+        }
+    }
+
+    render(args: Record<string, string>, defaultRenderers: MarkdownRenderer[]): any {
+        for (const renderer of this.renderers) {
+            const ret = renderer.reactRenderFn(args, this);
+            if (ret) {
+                return ret;
+            }
+        }
+        for (const renderer of defaultRenderers) {
+            const ret = renderer.reactRenderFn(args, this);
+            if (ret) {
+                return ret;
+            }
+        }
+        return null;
     }
 
     execute(event: MarkdownCommand['event'], args: Record<string, string>) {

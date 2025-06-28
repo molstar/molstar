@@ -9,7 +9,9 @@ import { PluginReactContext } from '../base';
 import ReactMarkdown, { Components } from 'react-markdown';
 import { PluginUIContext } from '../context';
 import { PluginContext } from '../../mol-plugin/context';
-import { parseMarkdownCommandArgs } from '../../mol-plugin/util/markdown-commands';
+import { MarkdownRenderer, parseMarkdownCommandArgs } from '../../mol-plugin/util/markdown-commands';
+import { ColorLists } from '../../mol-util/color/lists';
+import { getColorGradient } from '../../mol-util/color/utils';
 
 export function Markdown({ children, components }: { children?: string, components?: Components }) {
     return <ReactMarkdown skipHtml components={{ a: MarkdownAnchor, img: MarkdownImg, ...components }}>
@@ -18,18 +20,53 @@ export function Markdown({ children, components }: { children?: string, componen
 }
 
 export function MarkdownImg({ src, children, element }: { src?: string, children?: any, element?: any }) {
-    // const plugin: PluginUIContext | undefined = useContext(PluginReactContext);
+    const plugin: PluginUIContext | undefined = useContext(PluginReactContext);
 
     if (!src) return element;
 
     if (src[0] === '!') {
-        // TODO
-        return children;
+        warnMissingPlugin(plugin);
+        const args = parseMarkdownCommandArgs(src.substring(1));
+        const result = plugin?.managers.markdownCommands.render(args, DefaultRenderers);
+        return result ?? element;
     }
 
     return children;
 }
 
+export const DefaultRenderers: MarkdownRenderer[] = [
+    {
+        name: 'color-swatch',
+        reactRenderFn: (args) => {
+            const color = args['color-swatch'];
+            if (!color) return null;
+            return <span style={{ display: 'inline-block', width: '0.75em', height: '0.75em', backgroundColor: color, borderRadius: '25%' }}/>;
+        }
+    },
+     {
+        name: 'color-palette',
+        reactRenderFn: (args) => {
+            const name = args['color-palette'];
+            const minWidth = args['color-palette-width'] ?? '200px';
+            const height = args['color-palette-height'] ?? '0.5em';
+            if (!name) return null;
+
+            const list = ColorLists[name.toLowerCase() as keyof typeof ColorLists];
+            if (!list) {
+                console.warn(`Color palette '${name}' not found.`);
+                return null;
+            }
+
+            return <span style={{
+                display: 'inline-block',
+                minWidth,
+                height,
+                background: getColorGradient(list.list),
+                borderRadius: '2px'
+            }} />;
+        }
+    }
+];
 export function MarkdownAnchor({ href, children, element }: { href?: string, children?: any, element?: any }) {
     const plugin: PluginUIContext | undefined = useContext(PluginReactContext);
 
@@ -63,5 +100,6 @@ export function MarkdownAnchor({ href, children, element }: { href?: string, chi
 }
 
 function warnMissingPlugin(plugin: PluginContext | undefined) {
+    if (plugin) return;
     console.warn('Markdown component requires a PluginReactContext to be set.');
 }

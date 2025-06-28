@@ -14,8 +14,9 @@ Note that since we don't clearly distinguish between a public and private interf
   - Canvas node: support custom properties `molstar_enable_outline`, `molstar_enable_shadow`, `molstar_enable_ssao`
 - Renamed some color schemes ('inferno' -> 'inferno-no-black', 'magma' -> 'magma-no-black', 'turbo' -> 'turbo-no-black', 'rainbow' -> 'simple-rainbow')
 - Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
-- Markdown Commands support
-  - Adds the ability to use custom markdown commands to control the plugin   
+- Snapshot Markdown improvements
+  - Support custom markdown commands to control the plugin via the `[link](!command)` pattern
+  - Support rendering custom elements via the `![alt](!parameters)` pattern
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:
