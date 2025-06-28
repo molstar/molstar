@@ -12,7 +12,7 @@ import { LociLabelProvider } from '../../mol-plugin-state/manager/loci-label';
 import { PluginBehavior } from '../../mol-plugin/behavior/behavior';
 import { PluginContext } from '../../mol-plugin/context';
 import { StructureRepresentationProvider } from '../../mol-repr/structure/representation';
-import { StateAction } from '../../mol-state';
+import { StateAction, StateObjectCell, StateTree } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { ColorTheme } from '../../mol-theme/color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -109,6 +109,22 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
             for (const action of this.registrables.actions ?? []) {
                 this.ctx.state.data.actions.add(action);
             }
+
+            this.ctx.managers.markdownCommands.refResolvers.mvs = (plugin, refs) => {
+                const mvsRefs = new Set(refs.map(ref => `mvs-ref:${ref}`));
+                return StateTree.doPreOrder(
+                    plugin.state.data.tree,
+                    plugin.state.data.tree.root,
+                    { mvsRefs, plugin, cells: [] as StateObjectCell[] },
+                    (n, _, s) => {
+                    if (!n.tags) return;
+                    for (const tag of n.tags) {
+                        if (!s.mvsRefs.has(tag)) continue;
+                        const cell = s.plugin.state.data.cells.get(n.ref);
+                        if (cell) s.cells.push(cell);
+                    }
+                }).cells;
+            };
         }
         update(p: { autoAttach: boolean }) {
             const updated = this.params.autoAttach !== p.autoAttach;
@@ -146,6 +162,7 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
             for (const action of this.registrables.actions ?? []) {
                 this.ctx.state.data.actions.remove(action);
             }
+            delete this.ctx.managers.markdownCommands.refResolvers.mvs;
         }
     },
     params: () => ({
