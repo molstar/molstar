@@ -6,6 +6,14 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 - Update production build to use `esbuils`
 - Emit explicit paths in `import`s in `lib/`
+- Change `Representation.Empty` to a lazy property to avoid issue with some bundlers
+- MolViewSpec extension:
+  - Generic color schemes (`palette` parameter for color_from_* nodes)
+  - Annotation field remapping (`field_remapping` parameter for color_from_* nodes)
+  - Representation node: support custom property `molstar_reprepresentation_params`, 
+  - Canvas node: support custom properties `molstar_enable_outline`, `molstar_enable_shadow`, `molstar_enable_ssao`
+- Renamed some color schemes ('inferno' -> 'inferno-no-black', 'magma' -> 'magma-no-black', 'turbo' -> 'turbo-no-black', 'rainbow' -> 'simple-rainbow')
+- Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:

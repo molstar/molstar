@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -21,7 +21,7 @@ const DefaultColor = Color(0xFAFAFA);
 const Description = 'Assigns a color based on the relative accessible surface area of a residue.';
 
 export const AccessibleSurfaceAreaColorThemeParams = {
-    list: PD.ColorList('rainbow', { presetKind: 'scale' })
+    list: PD.ColorList('yellow-green-blue', { presetKind: 'scale' })
 };
 export type AccessibleSurfaceAreaColorThemeParams = typeof AccessibleSurfaceAreaColorThemeParams
 export function getAccessibleSurfaceAreaColorThemeParams(ctx: ThemeDataContext) {
