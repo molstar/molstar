@@ -29,7 +29,7 @@ let SphereImpostorWarningShown = false;
 export function checkSphereImpostorSupport(webgl?: WebGLContext) {
     if (!webgl) {
         if (isDebugMode && !SphereImpostorWarningShown) {
-            console.log('WebGL required for "sphere impostors". Falling back to "sphere mesh".');
+            console.warn('WebGL required for "sphere impostors". Falling back to "sphere mesh".');
             SphereImpostorWarningShown = true;
         }
     } else if (!webgl.extensions.fragDepth || !webgl.extensions.textureFloat) {
