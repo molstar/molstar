@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -23,6 +23,7 @@ import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { SortedArray } from '../../../mol-data/int/sorted-array';
 import { SizeTheme } from '../../../mol-theme/size';
 import { EmptyLocationIterator } from '../../../mol-geo/util/location-iterator';
+import { checkCylinderImpostorSupport } from './util/common';
 
 const tmpRefPosBondIt = new Bond.ElementBondIterator();
 function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
@@ -209,7 +210,7 @@ export const InterUnitBondCylinderParams = {
 export type InterUnitBondCylinderParams = typeof InterUnitBondCylinderParams
 
 export function InterUnitBondCylinderVisual(materialId: number, structure: Structure, props: PD.Values<InterUnitBondCylinderParams>, webgl?: WebGLContext) {
-    return props.tryUseImpostor && webgl && webgl.extensions.fragDepth
+    return props.tryUseImpostor && checkCylinderImpostorSupport(webgl)
         ? InterUnitBondCylinderImpostorVisual(materialId)
         : InterUnitBondCylinderMeshVisual(materialId);
 }

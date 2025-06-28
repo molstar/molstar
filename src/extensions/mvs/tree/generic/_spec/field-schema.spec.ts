@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -48,7 +48,7 @@ describe('fieldValidationIssues', () => {
         expect(fieldValidationIssues(numberParam, undefined)).toBeTruthy();
     });
     it('fieldValidationIssues union', async () => {
-        const stringOrNumberParam = RequiredField(union([str, float]), 'Testing required field stringOrNumberParam');
+        const stringOrNumberParam = RequiredField(union(str, float), 'Testing required field stringOrNumberParam');
         expect(fieldValidationIssues(stringOrNumberParam, 1)).toBeUndefined();
         expect(fieldValidationIssues(stringOrNumberParam, 2)).toBeUndefined();
         expect(fieldValidationIssues(stringOrNumberParam, 'hello')).toBeUndefined();

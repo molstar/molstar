@@ -7,7 +7,7 @@
  */
 
 import { WebGLContext } from '../../mol-gl/webgl/context';
-import { createNullRenderTarget, RenderTarget } from '../../mol-gl/webgl/render-target';
+import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { Renderer } from '../../mol-gl/renderer';
 import { Scene } from '../../mol-gl/scene';
 import { Texture } from '../../mol-gl/webgl/texture';
@@ -90,7 +90,7 @@ export class DrawPass {
 
     constructor(private webgl: WebGLContext, assetManager: AssetManager, width: number, height: number, transparency: 'wboit' | 'dpoit' | 'blended') {
         const { extensions, resources, isWebGL2 } = webgl;
-        this.drawTarget = createNullRenderTarget(webgl.gl);
+        this.drawTarget = webgl.createDrawTarget();
         this.colorTarget = webgl.createRenderTarget(width, height, true, 'uint8', 'linear');
         this.transparentColorTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
 

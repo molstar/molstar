@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -18,8 +18,8 @@ export class Passes {
     readonly illumination: IlluminationPass;
 
     constructor(private webgl: WebGLContext, assetManager: AssetManager, attribs: Partial<{ pickScale: number, transparency: 'wboit' | 'dpoit' | 'blended' }> = {}) {
-        const { gl } = webgl;
-        this.draw = new DrawPass(webgl, assetManager, gl.drawingBufferWidth, gl.drawingBufferHeight, attribs.transparency || 'blended');
+        const drs = this.webgl.getDrawingBufferSize();
+        this.draw = new DrawPass(webgl, assetManager, drs.width, drs.height, attribs.transparency || 'blended');
         this.pick = new PickPass(webgl, this.draw, attribs.pickScale || 0.25);
         this.multiSample = new MultiSamplePass(webgl, this.draw);
         this.illumination = new IlluminationPass(webgl, this.draw);
@@ -34,10 +34,10 @@ export class Passes {
     }
 
     updateSize() {
-        const { gl } = this.webgl;
+        const drs = this.webgl.getDrawingBufferSize();
         // Avoid setting dimensions to 0x0 because it causes "empty textures are not allowed" error.
-        const width = Math.max(gl.drawingBufferWidth, 2);
-        const height = Math.max(gl.drawingBufferHeight, 2);
+        const width = Math.max(drs.width, 2);
+        const height = Math.max(drs.height, 2);
         this.draw.setSize(width, height);
         this.pick.syncSize();
         this.multiSample.syncSize();

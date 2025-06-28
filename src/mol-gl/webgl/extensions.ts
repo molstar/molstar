@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers, getShaderTextureLod, COMPAT_shader_texture_lod, getDepthTexture, COMPAT_depth_texture, COMPAT_sRGB, getSRGB, getTextureHalfFloat, getTextureHalfFloatLinear, COMPAT_texture_half_float, COMPAT_texture_half_float_linear, COMPAT_color_buffer_half_float, getColorBufferHalfFloat, getVertexArrayObject, getDisjointTimerQuery, COMPAT_disjoint_timer_query, getNoNonInstancedActiveAttribs, COMPAT_multi_draw, getMultiDraw, getDrawInstancedBaseVertexBaseInstance, getMultiDrawInstancedBaseVertexBaseInstance, COMPAT_draw_instanced_base_vertex_base_instance, COMPAT_multi_draw_instanced_base_vertex_base_instance, getDrawBuffersIndexed, COMPAT_draw_buffers_indexed, getParallelShaderCompile, COMPAT_parallel_shader_compile, getFboRenderMipmap, COMPAT_fboRenderMipmap, COMPAT_provoking_vertex, getProvokingVertex, COMPAT_clip_cull_distance, getClipCullDistance, COMPAT_conservative_depth, getConservativeDepth, COMPAT_stencil_texturing, getStencilTexturing, COMPAT_clip_control, getClipControl, getRenderSnorm, COMPAT_render_snorm, getRenderSharedExponent, COMPAT_render_shared_exponent, getTextureNorm16, COMPAT_texture_norm16, getDepthClamp, COMPAT_depth_clamp } from './compat';
+import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers, getShaderTextureLod, COMPAT_shader_texture_lod, getDepthTexture, COMPAT_depth_texture, COMPAT_sRGB, getSRGB, getTextureHalfFloat, getTextureHalfFloatLinear, COMPAT_texture_half_float, COMPAT_texture_half_float_linear, COMPAT_color_buffer_half_float, getColorBufferHalfFloat, getVertexArrayObject, getDisjointTimerQuery, COMPAT_disjoint_timer_query, getNoNonInstancedActiveAttribs, COMPAT_multi_draw, getMultiDraw, getDrawInstancedBaseVertexBaseInstance, getMultiDrawInstancedBaseVertexBaseInstance, COMPAT_draw_instanced_base_vertex_base_instance, COMPAT_multi_draw_instanced_base_vertex_base_instance, getDrawBuffersIndexed, COMPAT_draw_buffers_indexed, getParallelShaderCompile, COMPAT_parallel_shader_compile, getFboRenderMipmap, COMPAT_fboRenderMipmap, COMPAT_provoking_vertex, getProvokingVertex, COMPAT_clip_cull_distance, getClipCullDistance, COMPAT_conservative_depth, getConservativeDepth, COMPAT_stencil_texturing, getStencilTexturing, COMPAT_clip_control, getClipControl, getRenderSnorm, COMPAT_render_snorm, getRenderSharedExponent, COMPAT_render_shared_exponent, getTextureNorm16, COMPAT_texture_norm16, getDepthClamp, COMPAT_depth_clamp, COMPAT_multiview2, getMultiview2 } from './compat';
 import { isDebugMode } from '../../mol-util/debug';
 import { objectForEach } from '../../mol-util/object';
 
@@ -42,6 +42,7 @@ export type WebGLExtensions = {
     renderSharedExponent: COMPAT_render_shared_exponent | null
     textureNorm16: COMPAT_texture_norm16 | null
     depthClamp: COMPAT_depth_clamp | null
+    multiview2: COMPAT_multiview2 | null
 
     noNonInstancedActiveAttribs: boolean
 }
@@ -182,6 +183,10 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     if (isDebugMode && depthClamp === null) {
         console.log('Could not find support for "depth_clamp"');
     }
+    const multiview2 = getMultiview2(gl);
+    if (isDebugMode && multiview2 === null) {
+        console.log('Could not find support for "multiview2"');
+    }
 
     const noNonInstancedActiveAttribs = getNoNonInstancedActiveAttribs(gl);
 
@@ -219,6 +224,7 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
         renderSharedExponent,
         textureNorm16,
         depthClamp,
+        multiview2,
 
         noNonInstancedActiveAttribs,
     };

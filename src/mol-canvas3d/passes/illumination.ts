@@ -372,7 +372,7 @@ export class IlluminationPass {
 
         const _toDrawingBuffer = toDrawingBuffer && !AntialiasingPass.isEnabled(props.postprocessing) && props.postprocessing.dof.name === 'off';
         if (_toDrawingBuffer) {
-            this.webgl.unbindFramebuffer();
+            this.webgl.bindDrawingBuffer();
         } else {
             this.tracing.composeTarget.bind();
         }
@@ -530,7 +530,7 @@ export class IlluminationPass {
         this.prevSampleIndex = sampleIndex;
 
         if (toDrawingBuffer) {
-            this.webgl.unbindFramebuffer();
+            this.webgl.bindDrawingBuffer();
         } else {
             this.multiSampleAccumulateTarget.bind();
         }

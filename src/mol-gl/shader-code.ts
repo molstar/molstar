@@ -26,6 +26,8 @@ export interface ShaderExtensions {
     readonly multiDraw?: ShaderExtensionsValue
     readonly clipCullDistance?: ShaderExtensionsValue
     readonly conservativeDepth?: ShaderExtensionsValue
+    /** Needed to enable the `gl_ViewID_OVR` built-in */
+    readonly multiview2?: ShaderExtensionsValue
 }
 
 type FragOutTypes = { [k in number]: 'vec4' | 'ivec4' }
@@ -358,6 +360,14 @@ function getGlsl300VertPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
             prefix.push('#define enabledConservativeDepth');
         } else if (shaderExtensions.conservativeDepth === 'required') {
             throw new Error(`required 'GL_EXT_conservative_depth' extension not available`);
+        }
+    }
+    if (shaderExtensions.multiview2) {
+        if (extensions.multiview2) {
+            prefix.push('#extension GL_OVR_multiview2 : require');
+            prefix.push('#define enabledMultiview2');
+        } else if (shaderExtensions.multiview2 === 'required') {
+            throw new Error(`required 'GL_OVR_multiview2' extension not available`);
         }
     }
     if (extensions.noNonInstancedActiveAttribs) {

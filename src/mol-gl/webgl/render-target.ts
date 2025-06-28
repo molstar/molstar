@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { idFactory } from '../../mol-util/id-factory';
-import { createNullTexture, Texture, TextureFilter } from './texture';
-import { createNullFramebuffer, Framebuffer } from './framebuffer';
+import { Texture, TextureFilter } from './texture';
+import { Framebuffer } from './framebuffer';
 import { WebGLResources } from './resources';
 import { GLRenderingContext, isWebGL2 } from './compat';
 import { Renderbuffer } from './renderbuffer';
@@ -87,25 +87,5 @@ export function createRenderTarget(gl: GLRenderingContext, resources: WebGLResou
             if (depthRenderbuffer) depthRenderbuffer.destroy();
             destroyed = true;
         }
-    };
-}
-
-//
-
-export function createNullRenderTarget(gl: GLRenderingContext): RenderTarget {
-    return {
-        id: getNextRenderTargetId(),
-        texture: createNullTexture(gl),
-        framebuffer: createNullFramebuffer(),
-        depthRenderbuffer: null,
-
-        getWidth: () => 0,
-        getHeight: () => 0,
-        bind: () => {
-            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        },
-        setSize: () => {},
-        reset: () => {},
-        destroy: () => {}
     };
 }

@@ -273,19 +273,27 @@ async function main() {
 
     console.log('Initial build complete.');
 
+    const certfile = './dev.pem';
+    const keyfile = './dev-key.pem';
+
+    const sslEnabled = fs.existsSync(certfile) && fs.existsSync(keyfile);
+    const protocol = sslEnabled ? 'https' : 'http';
+
     const ctx = await esbuild.context({});
     ctx.serve({
         servedir: './',
         port: args.port,
         host: '0.0.0.0', // Always listen on all interfaces
+        certfile: sslEnabled ? certfile : undefined,
+        keyfile: sslEnabled ? keyfile : undefined,
     });
 
     console.log('');
-    console.log(`Server URL: http://localhost:${args.port}`);
+    console.log(`Server URL: ${protocol}://localhost:${args.port}`);
     if (args.host) {
         console.log('Available host addresses:');
         const ips = getLocalIPs();
-        ips.forEach(ip => console.log(`  http://${ip}:${args.port}`));
+        ips.forEach(ip => console.log(`  ${protocol}://${ip}:${args.port}`));
     }
     console.log('');
     console.log('Watching for changes...');

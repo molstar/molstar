@@ -13,3 +13,6 @@ tsconfig.commonjs.tsbuildinfo
 
 .DS_Store
 tmp/
+
+dev.pem
+dev-key.pem

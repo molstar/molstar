@@ -32,7 +32,7 @@ import { MVSData, MVSData_States, SnapshotMetadata } from './mvs-data';
 import { validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
 import { MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree, MolstarTreeSchema } from './tree/molstar/molstar-tree';
-import { MVSTreeSchema } from './tree/mvs/mvs-tree';
+import { type MVSTree, MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 
 export interface MVSLoadOptions {
@@ -65,7 +65,13 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: MVS
             if (options.sanityChecks) mvsSanityCheck(snapshot.root);
             const molstarTree = convertMvsToMolstar(snapshot.root, options.sourceUrl);
             validateTree(MolstarTreeSchema, molstarTree, 'Converted Molstar');
-            const entry = molstarTreeToEntry(plugin, molstarTree, { ...snapshot.metadata, previousTransitionDurationMs: previousSnapshot.metadata.transition_duration_ms }, options);
+            const entry = molstarTreeToEntry(
+                plugin,
+                molstarTree,
+                snapshot.root,
+                { ...snapshot.metadata, previousTransitionDurationMs: previousSnapshot.metadata.transition_duration_ms },
+                options
+            );
             entries.push(entry);
         }
         if (!options.appendSnapshots) {
@@ -96,11 +102,17 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: MVS
 }
 
 
-function molstarTreeToEntry(plugin: PluginContext, tree: MolstarTree, metadata: SnapshotMetadata & { previousTransitionDurationMs?: number }, options?: { keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
+function molstarTreeToEntry(
+    plugin: PluginContext,
+    tree: MolstarTree,
+    mvsTree: MVSTree,
+    metadata: SnapshotMetadata & { previousTransitionDurationMs?: number },
+    options: { keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[] }
+) {
     const context = MolstarLoadingContext.create();
     const snapshot = loadTreeVirtual(plugin, tree, MolstarLoadingActions, context, { replaceExisting: true, extensions: options?.extensions ?? BuiltinLoadingExtensions });
     snapshot.canvas3d = {
-        props: plugin.canvas3d ? modifyCanvasProps(plugin.canvas3d.props, context.canvas) : undefined,
+        props: plugin.canvas3d ? modifyCanvasProps(plugin.canvas3d.props, context.canvas, mvsTree.custom) : undefined,
     };
     if (!options?.keepCamera) {
         snapshot.camera = createPluginStateSnapshotCamera(plugin, context, metadata);
@@ -127,7 +139,7 @@ export interface MolstarLoadingContext {
         cameraParams?: MolstarNodeParams<'camera'>,
         focuses: { target: StateObjectSelector, params: MolstarNodeParams<'focus'> }[],
     },
-    canvas?: MolstarNodeParams<'canvas'>,
+    canvas?: MolstarNode<'canvas'>,
 }
 export const MolstarLoadingContext = {
     create(): MolstarLoadingContext {
@@ -296,7 +308,7 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         return updateParent;
     },
     canvas(updateParent: UpdateTarget, node: MolstarNode<'canvas'>, context: MolstarLoadingContext): UpdateTarget {
-        context.canvas = node.params;
+        context.canvas = node;
         return updateParent;
     },
     primitives(updateParent: UpdateTarget, tree: MolstarSubtree<'primitives'>, context: MolstarLoadingContext): UpdateTarget {

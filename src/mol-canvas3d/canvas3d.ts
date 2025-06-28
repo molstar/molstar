@@ -388,7 +388,7 @@ namespace Canvas3D {
         const commited = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp);
         const commitQueueSize = new BehaviorSubject<number>(0);
 
-        const { gl, contextRestored } = webgl;
+        const { contextRestored } = webgl;
 
         let x = 0;
         let y = 0;
@@ -510,8 +510,9 @@ namespace Canvas3D {
                 resized = true;
             }
 
-            if (x > gl.drawingBufferWidth || x + width < 0 ||
-                y > gl.drawingBufferHeight || y + height < 0
+            const drs = webgl.getDrawingBufferSize();
+            if (x > drs.width || x + width < 0 ||
+                y > drs.height || y + height < 0
             ) return false;
 
             if (fenceSync !== null) {
@@ -1180,22 +1181,23 @@ namespace Canvas3D {
 
         function updateViewport() {
             const oldX = x, oldY = y, oldWidth = width, oldHeight = height;
+            const drs = webgl.getDrawingBufferSize();
 
             if (p.viewport.name === 'canvas') {
                 x = 0;
                 y = 0;
-                width = gl.drawingBufferWidth;
-                height = gl.drawingBufferHeight;
+                width = drs.width;
+                height = drs.height;
             } else if (p.viewport.name === 'static-frame') {
                 x = p.viewport.params.x * webgl.pixelRatio;
                 height = p.viewport.params.height * webgl.pixelRatio;
-                y = gl.drawingBufferHeight - height - p.viewport.params.y * webgl.pixelRatio;
+                y = drs.height - height - p.viewport.params.y * webgl.pixelRatio;
                 width = p.viewport.params.width * webgl.pixelRatio;
             } else if (p.viewport.name === 'relative-frame') {
-                x = Math.round(p.viewport.params.x * gl.drawingBufferWidth);
-                height = Math.round(p.viewport.params.height * gl.drawingBufferHeight);
-                y = Math.round(gl.drawingBufferHeight - height - p.viewport.params.y * gl.drawingBufferHeight);
-                width = Math.round(p.viewport.params.width * gl.drawingBufferWidth);
+                x = Math.round(p.viewport.params.x * drs.width);
+                height = Math.round(p.viewport.params.height * drs.height);
+                y = Math.round(drs.height - height - p.viewport.params.y * drs.height);
+                width = Math.round(p.viewport.params.width * drs.width);
             }
 
             if (oldX !== x || oldY !== y || oldWidth !== width || oldHeight !== height) {
