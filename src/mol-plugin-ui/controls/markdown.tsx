@@ -99,7 +99,7 @@ export function MarkdownAnchor({ href, children, element }: { href?: string, chi
             {children}
         </a>;
     } else if (href) {
-        return <a href={href} target='_blank' rel='noopener noreferrer'>{children}</a>;
+        return <a href={href} target='_blank' rel='noopener noreferrer'>{children}⤴</a>;
     }
 
 
