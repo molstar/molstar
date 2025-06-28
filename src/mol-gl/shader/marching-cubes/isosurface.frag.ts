@@ -317,6 +317,6 @@ void main(void) {
     }
 
     // apply normal matrix
-    gl_FragData[2].xyz *= adjoint(uGridTransform);
+    gl_FragData[2].xyz = adjoint(uGridTransform) * gl_FragData[2].xyz;
 }
 `;
