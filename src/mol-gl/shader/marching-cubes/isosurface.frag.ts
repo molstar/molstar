@@ -23,6 +23,7 @@ uniform bool uInvert;
 uniform vec3 uGridDim;
 uniform vec3 uGridTexDim;
 uniform mat4 uGridTransform;
+uniform mat3 uGridTransformAdjoint;
 
 // scale to volume data coord
 uniform vec2 uScale;
@@ -317,6 +318,6 @@ void main(void) {
     }
 
     // apply normal matrix
-    gl_FragData[2].xyz = adjoint(uGridTransform) * gl_FragData[2].xyz;
+    gl_FragData[2].xyz = uGridTransformAdjoint * gl_FragData[2].xyz;
 }
 `;

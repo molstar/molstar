@@ -11,7 +11,7 @@ import { Values, TextureSpec, UniformSpec, DefineSpec } from '../../renderable/s
 import { Texture } from '../../../mol-gl/webgl/texture';
 import { ShaderCode } from '../../../mol-gl/shader-code';
 import { ValueCell } from '../../../mol-util';
-import { Vec3, Vec2, Mat4 } from '../../../mol-math/linear-algebra';
+import { Vec3, Vec2, Mat4, Mat3 } from '../../../mol-math/linear-algebra';
 import { QuadSchema, QuadValues } from '../util';
 import { createHistogramPyramid, HistogramPyramid } from '../histogram-pyramid/reduction';
 import { getTriIndices } from './tables';
@@ -39,6 +39,7 @@ const IsosurfaceSchema = {
     uGridDim: UniformSpec('v3'),
     uGridTexDim: UniformSpec('v3'),
     uGridTransform: UniformSpec('m4'),
+    uGridTransformAdjoint: UniformSpec('m3'),
     uScale: UniformSpec('v2'),
 
     dPackedGroup: DefineSpec('boolean'),
@@ -71,6 +72,7 @@ function getIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture
         ValueCell.update(v.uGridDim, gridDim);
         ValueCell.update(v.uGridTexDim, gridTexDim);
         ValueCell.update(v.uGridTransform, transform);
+        ValueCell.update(v.uGridTransformAdjoint, Mat3.adjointFromMat4(Mat3(), transform));
         ValueCell.update(v.uScale, scale);
 
         ValueCell.updateIfChanged(v.dPackedGroup, packedGroup);
@@ -104,6 +106,7 @@ function createIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Text
         uGridDim: ValueCell.create(gridDim),
         uGridTexDim: ValueCell.create(gridTexDim),
         uGridTransform: ValueCell.create(transform),
+        uGridTransformAdjoint: ValueCell.create(Mat3.adjointFromMat4(Mat3(), transform)),
         uScale: ValueCell.create(scale),
 
         dPackedGroup: ValueCell.create(packedGroup),
