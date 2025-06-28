@@ -37,7 +37,7 @@ export function checkSphereImpostorSupport(webgl?: WebGLContext) {
             const missing: string[] = [];
             if (!webgl.extensions.fragDepth) missing.push('fragDepth');
             if (!webgl.extensions.textureFloat) missing.push('textureFloat');
-            console.log(`Missing "${missing.join('", "')}" extensions required for "sphere impostors". Falling back to "sphere mesh".`);
+            console.warn(`Missing "${missing.join('", "')}" extensions required for "sphere impostors". Falling back to "sphere mesh".`);
             SphereImpostorWarningShown = true;
         }
     } else {
@@ -51,14 +51,14 @@ let CylinderImpostorWarningShown = false;
 export function checkCylinderImpostorSupport(webgl?: WebGLContext) {
     if (!webgl) {
         if (isDebugMode && !CylinderImpostorWarningShown) {
-            console.log('WebGL required for "cylinder impostors". Falling back to "cylinder mesh".');
+            console.warn('WebGL required for "cylinder impostors". Falling back to "cylinder mesh".');
             CylinderImpostorWarningShown = true;
         }
     } else if (!webgl.extensions.fragDepth) {
         if (isDebugMode && !CylinderImpostorWarningShown) {
             const missing: string[] = [];
             if (!webgl.extensions.fragDepth) missing.push('fragDepth');
-            console.log(`Missing "${missing.join('", "')}" extensions required for "cylinder impostors". Falling back to "cylinder mesh".`);
+            console.warn(`Missing "${missing.join('", "')}" extensions required for "cylinder impostors". Falling back to "cylinder mesh".`);
             CylinderImpostorWarningShown = true;
         }
     } else {
