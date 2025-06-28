@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 - Update production build to use `esbuils`
 - Emit explicit paths in `import`s in `lib/`
+- Fix outlines on opaque elements using illumination mode
 - Change `Representation.Empty` to a lazy property to avoid issue with some bundlers
 - MolViewSpec extension:
   - Generic color schemes (`palette` parameter for color_from_* nodes)
