@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -26,11 +26,11 @@ function getFramebufferStatusDescription(gl: GLRenderingContext, status: number)
     return 'unknown error';
 }
 
-export function checkFramebufferStatus(gl: GLRenderingContext) {
+export function checkFramebufferStatus(gl: GLRenderingContext, message?: string) {
     const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
     if (status !== gl.FRAMEBUFFER_COMPLETE) {
         const description = getFramebufferStatusDescription(gl, status);
-        throw new Error(`Framebuffer status: ${description}`);
+        throw new Error(`Framebuffer status: ${description}${message ? ` (${message})` : ''}`);
     }
 }
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -75,6 +75,7 @@ function checkActiveAttributes(gl: GLRenderingContext, program: WebGLProgram, sc
             if (name === 'gl_InstanceID') continue; // WebGL2 built-in
             if (name === 'gl_VertexID') continue; // WebGL2 built-in
             if (name === 'gl_DrawID') continue; // WEBGL_multi_draw built-in
+            if (name === 'gl_ViewID_OVR') continue; // OVR_multiview2 built-in
             const spec = schema[name];
             if (spec === undefined) {
                 throw new Error(`missing 'uniform' or 'texture' with name '${name}' in schema`);
@@ -103,6 +104,7 @@ function checkActiveUniforms(gl: GLRenderingContext, program: WebGLProgram, sche
             if (name === 'gl_InstanceID') continue; // WebGL2 built-in
             if (name === 'gl_VertexID') continue; // WebGL2 built-in
             if (name === 'gl_DrawID') continue; // WEBGL_multi_draw built-in
+            if (name === 'gl_ViewID_OVR') continue; // OVR_multiview2 built-in
             const baseName = name.replace(/[[0-9]+\]$/, ''); // 'array' uniforms
             const spec = schema[baseName];
             if (spec === undefined) {

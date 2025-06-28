@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -22,7 +22,7 @@ import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { Spheres } from '../../../mol-geo/geometry/spheres/spheres';
 import { SpheresBuilder } from '../../../mol-geo/geometry/spheres/spheres-builder';
 import { eachPolymerBackboneElement } from './util/polymer/backbone';
-import { StructureGroup } from './util/common';
+import { checkSphereImpostorSupport, StructureGroup } from './util/common';
 
 export const PolymerBackboneSphereParams = {
     ...UnitsMeshParams,
@@ -34,7 +34,7 @@ export const PolymerBackboneSphereParams = {
 export type PolymerBackboneSphereParams = typeof PolymerBackboneSphereParams
 
 export function PolymerBackboneSphereVisual(materialId: number, structure: Structure, props: PD.Values<PolymerBackboneSphereParams>, webgl?: WebGLContext) {
-    return props.tryUseImpostor && webgl && webgl.extensions.fragDepth && webgl.extensions.textureFloat
+    return props.tryUseImpostor && checkSphereImpostorSupport(webgl)
         ? PolymerBackboneSphereImpostorVisual(materialId)
         : PolymerBackboneSphereMeshVisual(materialId);
 }
