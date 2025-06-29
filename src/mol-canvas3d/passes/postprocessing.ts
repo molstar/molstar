@@ -338,7 +338,7 @@ export class PostprocessingPass {
         }
 
         if (toDrawingBuffer) {
-            this.webgl.unbindFramebuffer();
+            this.webgl.bindDrawingBuffer();
         } else {
             this.target.bind();
         }

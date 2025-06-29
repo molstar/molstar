@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -23,7 +23,7 @@ import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { Cylinders } from '../../../mol-geo/geometry/cylinders/cylinders';
 import { CylindersBuilder } from '../../../mol-geo/geometry/cylinders/cylinders-builder';
 import { eachPolymerBackboneLink } from './util/polymer/backbone';
-import { StructureGroup } from './util/common';
+import { checkCylinderImpostorSupport, StructureGroup } from './util/common';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3scale = Vec3.scale;
@@ -40,7 +40,7 @@ export const PolymerBackboneCylinderParams = {
 export type PolymerBackboneCylinderParams = typeof PolymerBackboneCylinderParams
 
 export function PolymerBackboneCylinderVisual(materialId: number, structure: Structure, props: PD.Values<PolymerBackboneCylinderParams>, webgl?: WebGLContext) {
-    return props.tryUseImpostor && webgl && webgl.extensions.fragDepth
+    return props.tryUseImpostor && checkCylinderImpostorSupport(webgl)
         ? PolymerBackboneCylinderImpostorVisual(materialId)
         : PolymerBackboneCylinderMeshVisual(materialId);
 }

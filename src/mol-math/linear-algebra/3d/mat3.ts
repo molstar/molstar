@@ -482,6 +482,30 @@ namespace Mat3 {
             + a[3] * b[3] + a[4] * b[4] + a[5] * b[5]
             + a[6] * b[6] + a[7] * b[7] + a[8] * b[8];
     }
+
+    /**
+     * Computes the adjugate (classical adjoint) of the upper-left 3×3 portion of a 4×4 matrix. */
+    export function adjointFromMat4(out: Mat3, m: Mat4): Mat3 {
+        const ax = m[0];
+        const ay = m[1];
+        const az = m[2];
+        const bx = m[4];
+        const by = m[5];
+        const bz = m[6];
+        const cx = m[8];
+        const cy = m[9];
+        const cz = m[10];
+        out[0] = by * cz - bz * cy;
+        out[1] = bz * cx - bx * cz;
+        out[2] = bx * cy - by * cx;
+        out[3] = cy * az - cz * ay;
+        out[4] = cz * ax - cx * az;
+        out[5] = cx * ay - cy * ax;
+        out[6] = ay * bz - az * by;
+        out[7] = az * bx - ax * bz;
+        out[8] = ax * by - ay * bx;
+        return out;
+    }
 }
 
 export { Mat3 };

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -121,17 +121,13 @@ export class MarkingPass {
         ValueCell.updateIfChanged(overlayValues.uSelectEdgeStrength, selectEdgeStrength);
     }
 
-    render(viewport: Viewport, target: RenderTarget | undefined) {
+    render(viewport: Viewport, target: RenderTarget) {
         if (isTimingMode) this.webgl.timer.mark('MarkingPass.render');
         this.edgesTarget.bind();
         this.setEdgeState(viewport);
         this.edge.render();
 
-        if (target) {
-            target.bind();
-        } else {
-            this.webgl.unbindFramebuffer();
-        }
+        target.bind();
         this.setOverlayState(viewport);
         this.overlay.render();
         if (isTimingMode) this.webgl.timer.markEnd('MarkingPass.render');

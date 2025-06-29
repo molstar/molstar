@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -868,6 +868,45 @@ export function getDepthClamp(gl: GLRenderingContext): COMPAT_depth_clamp | null
         return {
             DEPTH_CLAMP: ext.DEPTH_CLAMP_EXT
         };
+    }
+    return null;
+}
+
+/**
+ * See https://registry.khronos.org/webgl/extensions/OVR_multiview2/
+ */
+export interface COMPAT_multiview2 {
+    readonly FRAMEBUFFER_ATTACHMENT_TEXTURE_NUM_VIEWS: number;
+    readonly FRAMEBUFFER_ATTACHMENT_TEXTURE_BASE_VIEW_INDEX: number;
+    readonly MAX_VIEWS: number;
+    readonly FRAMEBUFFER_INCOMPLETE_VIEW_TARGETS: number;
+
+    /**
+     * Binds a texture to a framebuffer attachment point for multiview rendering.
+     *
+     * @param target must be FRAMEBUFFER.
+     * @param attachment must be FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER_OVR.
+     * @param texture is the texture to bind.
+     * @param level is the mipmap level of the texture to bind.
+     * @param baseViewIndex is the index of the first view in the multiview texture.
+     * @param numViews is the number of views in the multiview texture.
+     */
+    framebufferTextureMultiview(target: number, attachment: number, texture: number, level: number, baseViewIndex: number, numViews: number): void;
+}
+
+export function getMultiview2(gl: GLRenderingContext): COMPAT_multiview2 | null {
+    if (isWebGL2(gl)) {
+        const ext = gl.getExtension('OVR_multiview2');
+        if (ext) {
+            return {
+                FRAMEBUFFER_ATTACHMENT_TEXTURE_NUM_VIEWS: ext.FRAMEBUFFER_ATTACHMENT_TEXTURE_NUM_VIEWS_OVR,
+                FRAMEBUFFER_ATTACHMENT_TEXTURE_BASE_VIEW_INDEX: ext.FRAMEBUFFER_ATTACHMENT_TEXTURE_BASE_VIEW_INDEX_OVR,
+                MAX_VIEWS: ext.MAX_VIEWS_OVR,
+                FRAMEBUFFER_INCOMPLETE_VIEW_TARGETS: ext.FRAMEBUFFER_INCOMPLETE_VIEW_TARGETS_OVR,
+
+                framebufferTextureMultiview: ext.framebufferTextureMultiviewOVR.bind(ext)
+            };
+        }
     }
     return null;
 }

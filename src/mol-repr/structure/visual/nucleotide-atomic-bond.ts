@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Gianluca Tomasello <giagitom@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -26,7 +26,7 @@ import { WebGLContext } from '../../../mol-gl/webgl/context';
 
 import { Cylinders } from '../../../mol-geo/geometry/cylinders/cylinders';
 import { CylindersBuilder } from '../../../mol-geo/geometry/cylinders/cylinders-builder';
-import { StructureGroup } from './util/common';
+import { checkCylinderImpostorSupport, StructureGroup } from './util/common';
 
 const pTrace = Vec3();
 
@@ -59,7 +59,7 @@ interface NucleotideAtomicBondImpostorProps {
 }
 
 export function NucleotideAtomicBondVisual(materialId: number, structure: Structure, props: PD.Values<NucleotideAtomicBondParams>, webgl?: WebGLContext) {
-    return props.tryUseImpostor && webgl && webgl.extensions.fragDepth
+    return props.tryUseImpostor && checkCylinderImpostorSupport(webgl)
         ? NucleotideAtomicBondImpostorVisual(materialId)
         : NucleotideAtomicBondMeshVisual(materialId);
 }
