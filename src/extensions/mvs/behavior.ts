@@ -134,12 +134,12 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
                     return undefined;
                 }
                 try {
-                    return fileToDataUri(asset.file)
+                    return fileToDataUri(asset.file);
                 } catch (e) {
                     console.error(`MVS: Failed to convert asset file to data URI for '${uri}'`, e);
                     return undefined;
                 }
-            })
+            });
         }
         update(p: { autoAttach: boolean }) {
             const updated = this.params.autoAttach !== p.autoAttach;

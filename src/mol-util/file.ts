@@ -21,7 +21,7 @@ export async function fileToDataUri(file: File): Promise<string> {
                 break;
         }
     }
-    
+
     const bytes = await file.arrayBuffer();
     const reader = new FileReader();
     reader.readAsDataURL(new Blob([bytes], { type }));

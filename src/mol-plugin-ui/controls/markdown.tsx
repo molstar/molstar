@@ -55,13 +55,13 @@ function LazyStaticImg({ alt, data }: { alt?: string, data: Promise<string> }) {
         data.then(d => {
             if (mounted) setSrc(d);
         }).catch(e => {
-            console.error('Failed to load static image', e);   
+            console.error('Failed to load static image', e);
             if (mounted) setSrc(undefined);
         });
         return () => { mounted = false; };
     }, [data]);
     if (!src) return null;
-    return <img src={src} alt={alt} />
+    return <img src={src} alt={alt} />;
 }
 
 export const DefaultRenderers: MarkdownExtension[] = [
