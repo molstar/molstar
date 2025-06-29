@@ -94,7 +94,7 @@ The extension uses several transformations to process and visualize tunnel data:
 To help users understand how to use these transformations in practice, include detailed examples:
 
 ### Visualizing Multiple Tunnels
-This example ([runVisualizeTunnels](../../../src/extensions/sb-ncbr/tunnels/examples.ts#L19)) demonstrates how to visualize multiple tunnels from a fetched dataset.
+This example (see `src/extensions/sb-ncbr/tunnels/examples.ts#L19`) demonstrates how to visualize multiple tunnels from a fetched dataset.
 ```typescript
 update.toRoot()
         .apply(TunnelsFromRawData, { data: tunnels })
@@ -104,7 +104,7 @@ update.toRoot()
 ```
 
 ### Visualizing a Single Tunnel
-This example ([runVisualizeTunnel](../../../src/extensions/sb-ncbr/tunnels/examples.ts#L46)) shows how to visualize a single tunnel.
+This example (see `src/extensions/sb-ncbr/tunnels/examples.ts#L46`) shows how to visualize a single tunnel.
 ```typescript
 update.toRoot()
         .apply(TunnelFromRawData, {

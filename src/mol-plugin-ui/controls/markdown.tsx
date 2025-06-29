@@ -12,7 +12,7 @@ import { PluginUIContext } from '../context';
 import { PluginContext } from '../../mol-plugin/context';
 import { MarkdownExtension, parseMarkdownCommandArgs } from '../../mol-plugin/util/markdown-extensions';
 import { ColorLists } from '../../mol-util/color/lists';
-import { getColorGradient } from '../../mol-util/color/utils';
+import { getColorGradient, getColorGradientBanded } from '../../mol-util/color/utils';
 
 export function Markdown({ children, components }: { children?: string, components?: Components }) {
     return <div className='msp-markdown'>
@@ -79,6 +79,7 @@ export const DefaultRenderers: MarkdownExtension[] = [
             const name = args['color-palette'];
             const minWidth = args['color-palette-width'] ?? '150px';
             const height = args['color-palette-height'] ?? '0.5em';
+            const discrete = 'color-palette-discrete' in args;
             if (!name) return null;
 
             const list = ColorLists[name.toLowerCase() as keyof typeof ColorLists];
@@ -91,7 +92,7 @@ export const DefaultRenderers: MarkdownExtension[] = [
                 display: 'inline-block',
                 minWidth,
                 height,
-                background: getColorGradient(list.list),
+                background: (discrete ? getColorGradientBanded : getColorGradient)(list.list),
                 borderRadius: '2px'
             }} />;
         }
