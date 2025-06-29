@@ -1,0 +1,25 @@
+@use '../vars' as *;
+@use '../common' as *;
+
+@mixin markdown {
+    .msp-markdown {
+        table {
+            border: 1px solid $border-color;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+        }
+
+        th, td {
+            border: 1px solid $border-color;
+            padding: 4px 8px;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+    }
+}

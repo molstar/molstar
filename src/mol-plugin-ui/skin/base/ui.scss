@@ -5,6 +5,7 @@
 @use './components/line-graph' as *;
 @use './components/log' as *;
 @use './components/slider' as *;
+@use './components/markdown' as *;
 @use './components/misc' as *;
 @use './components/tasks' as *;
 @use './components/viewport' as *;
@@ -38,6 +39,7 @@
     @include line-graph;
     @include log;
     @include slider;
+    @include markdown;
     @include misc;
     @include tasks;
     @include viewport;
