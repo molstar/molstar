@@ -223,29 +223,25 @@ export class PluginContext {
      */
     readonly customState: unknown = Object.create(null);
 
-    /* ****************************************** */
-    // Async init functions as preparation for WebGPU support
-    // TODO: In Mol* 5.0, make this the default and remove non-async version
-
     async initViewerAsync(canvas: HTMLCanvasElement, container: HTMLDivElement, canvas3dContext?: Canvas3DContext) {
-        return this.initViewer(canvas, container, canvas3dContext);
+        return this._initViewer(canvas, container, canvas3dContext);
     }
 
     async initContainerAsync(options?: { canvas3dContext?: Canvas3DContext, checkeredCanvasBackground?: boolean }) {
-        return this.initContainer(options);
+        return this._initContainer(options);
     }
 
     async mountAsync(target: HTMLElement, initOptions?: { canvas3dContext?: Canvas3DContext, checkeredCanvasBackground?: boolean }) {
-        return this.mount(target, initOptions);
+        return this._mount(target, initOptions);
     }
 
-    initContainer(options?: { canvas3dContext?: Canvas3DContext, checkeredCanvasBackground?: boolean }) {
+    private _initContainer(options?: { canvas3dContext?: Canvas3DContext, checkeredCanvasBackground?: boolean }) {
         if (this.container) return true;
         const container = new PluginContainer({
             checkeredCanvasBackground: options?.checkeredCanvasBackground,
             canvas: options?.canvas3dContext?.canvas
         });
-        if (!this.initViewer(container.canvas, container.parent, options?.canvas3dContext)) {
+        if (!this._initViewer(container.canvas, container.parent, options?.canvas3dContext)) {
             return false;
         }
         this.container = container;
@@ -256,10 +252,10 @@ export class PluginContext {
      * Mount the plugin into the target element (assumes the target has "relative"-like positioninig).
      * If initContainer wasn't called separately before, initOptions will be passed to it.
      */
-    mount(target: HTMLElement, initOptions?: { canvas3dContext?: Canvas3DContext, checkeredCanvasBackground?: boolean }) {
+    private _mount(target: HTMLElement, initOptions?: { canvas3dContext?: Canvas3DContext, checkeredCanvasBackground?: boolean }) {
         if (this.disposed) throw new Error('Cannot mount a disposed context');
 
-        if (!this.initContainer(initOptions)) return false;
+        if (!this._initContainer(initOptions)) return false;
         this.container?.mount(target);
         this.handleResize();
         return true;
@@ -269,7 +265,7 @@ export class PluginContext {
         this.container?.unmount();
     }
 
-    initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement, canvas3dContext?: Canvas3DContext) {
+    private _initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement, canvas3dContext?: Canvas3DContext) {
         try {
             this.layout.setRoot(container);
             if (this.spec.layout && this.spec.layout.initial) this.layout.setProps(this.spec.layout.initial);
