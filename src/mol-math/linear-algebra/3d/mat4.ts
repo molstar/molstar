@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -698,6 +698,30 @@ namespace Mat4 {
         out[12] = 0;
         out[13] = 0;
         out[14] = 0;
+        out[15] = 1;
+        return out;
+    }
+
+    const _v3pa = [0, 0, 0] as unknown as Vec3;
+    const _v3pb = [0, 0, 0] as unknown as Vec3;
+    /**
+     * Creates a matrix from a plane defined by a normal vector and a point.
+     */
+    export function fromPlane(out: Mat4, normal: Vec3, point: Vec3) {
+        const tangent0 = Vec3.cross(_v3pa, normal, Vec3.unitX);
+        if (Vec3.dot(tangent0, tangent0) < EPSILON) {
+            Vec3.cross(tangent0, normal, Vec3.unitY);
+        }
+        Vec3.normalize(tangent0, tangent0);
+
+        const tangent1 = Vec3.cross(_v3pb, normal, tangent0);
+        Vec3.normalize(tangent1, tangent1);
+
+        setAxes(out, normal, tangent0, tangent1);
+
+        out[12] = point[0];
+        out[13] = point[1];
+        out[14] = point[2];
         out[15] = 1;
         return out;
     }

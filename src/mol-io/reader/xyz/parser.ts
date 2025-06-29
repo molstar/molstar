@@ -6,8 +6,10 @@
 
 import { Column } from '../../../mol-data/db';
 import { Task } from '../../../mol-task';
+import { StringLike } from '../../common/string-like';
 import { Tokenizer } from '../common/text/tokenizer';
 import { ReaderResult as Result } from '../result';
+
 
 export interface XyzFile {
     readonly molecules: {
@@ -50,7 +52,7 @@ function handleMolecule(tokenizer: Tokenizer): XyzFile['molecules'][number] {
     };
 }
 
-function parseInternal(data: string): Result<XyzFile> {
+function parseInternal(data: StringLike): Result<XyzFile> {
     const tokenizer = Tokenizer(data);
 
     const molecules: XyzFile['molecules'] = [];
@@ -64,7 +66,7 @@ function parseInternal(data: string): Result<XyzFile> {
     return Result.success(result);
 }
 
-export function parseXyz(data: string) {
+export function parseXyz(data: StringLike) {
     return Task.create<Result<XyzFile>>('Parse Mol', async () => {
         return parseInternal(data);
     });

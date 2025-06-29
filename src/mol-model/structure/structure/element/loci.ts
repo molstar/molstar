@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -24,6 +24,10 @@ import { StructureProperties } from '../properties';
 import { BoundaryHelper } from '../../../../mol-math/geometry/boundary-helper';
 import { Boundary } from '../../../../mol-math/geometry/boundary';
 import { IntTuple } from '../../../../mol-data/int/tuple';
+import { Box3D, Sphere3D } from '../../../../mol-math/geometry';
+import { compile } from '../../../../mol-script/runtime/query/base';
+import { QueryContext, QueryFn, StructureSelection } from '../../query';
+import { Schema } from './schema';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const itDiff = IntTuple.diff;
@@ -102,6 +106,26 @@ export namespace Loci {
         return Loci(structure, []);
     }
 
+    export function fromExpression(structure: Structure, expression: Expression | ((builder: typeof MS) => Expression), queryContext?: QueryContext): Loci {
+        let expr;
+        if (typeof expression === 'function') {
+            expr = expression(MS);
+        } else {
+            expr = expression;
+        }
+        const selection = compile(expr)(queryContext ?? new QueryContext(structure));
+        return StructureSelection.toLociWithSourceUnits(selection);
+    }
+
+    export function fromQuery(structure: Structure, query: QueryFn, queryContext?: QueryContext): Loci {
+        const selection = query(queryContext ?? new QueryContext(structure));
+        return StructureSelection.toLociWithSourceUnits(selection);
+    }
+
+    export function fromSchema(structure: Structure, schema: Schema, queryContext?: QueryContext): Loci {
+        return Schema.toLoci(structure, schema, queryContext);
+    }
+
     export function getFirstLocation(loci: Loci, e?: Location): Location | undefined {
         if (isEmpty(loci)) return void 0;
         const unit = loci.elements[0].unit;
@@ -149,17 +173,18 @@ export namespace Loci {
      * The loc argument of the callback is mutable, use Location.clone() if you intend to keep
      * the value around.
      */
-    export function forEachLocation(loci: Loci, f: (loc: Location) => void) {
+    export function forEachLocation(loci: Loci, f: (loc: Location) => void, location?: Location) {
         if (Loci.isEmpty(loci)) return;
 
-        const location = Location.create(loci.structure);
+        const loc = location ? location : Location.create(loci.structure);
+        loc.structure = loci.structure;
         for (const e of loci.elements) {
             const { unit, indices } = e;
-            location.unit = unit;
+            loc.unit = unit;
             const { elements } = e.unit;
             for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
-                location.element = elements[OrderedSet.getAt(indices, i)];
-                f(location);
+                loc.element = elements[OrderedSet.getAt(indices, i)];
+                f(loc);
             }
         }
     }
@@ -551,7 +576,7 @@ export namespace Loci {
 
     const boundaryHelper = new BoundaryHelper('98');
     const tempPosBoundary = Vec3();
-    export function getBoundary(loci: Loci, transform?: Mat4): Boundary {
+    export function getBoundary(loci: Loci, transform?: Mat4, result?: { box?: Box3D, sphere?: Sphere3D }): Boundary {
         boundaryHelper.reset();
 
         for (const e of loci.elements) {
@@ -574,6 +599,12 @@ export namespace Loci {
                 if (transform) Vec3.transformMat4(tempPosBoundary, tempPosBoundary, transform);
                 boundaryHelper.radiusPositionRadius(tempPosBoundary, conformation.r(eI));
             }
+        }
+
+        if (result) {
+            if (result.box) boundaryHelper.getBox(result.box);
+            if (result.sphere) boundaryHelper.getSphere(result.sphere);
+            return result as any;
         }
 
         return { box: boundaryHelper.getBox(), sphere: boundaryHelper.getSphere() };

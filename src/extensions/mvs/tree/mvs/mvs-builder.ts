@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { deepClone, pickObjectKeys } from '../../../../mol-util/object';
@@ -151,6 +152,10 @@ export class Parse extends _Base<'parse'> {
             ref: params.ref,
         }));
     }
+    /** Add a 'volume' node representing raw volume data */
+    volume(params: MVSNodeParams<'volume'> & CustomAndRef = {}): Volume {
+        return new Volume(this._root, this.addChild('volume', params));
+    }
 }
 
 
@@ -248,10 +253,37 @@ export class Representation extends _Base<'representation'> {
 }
 
 
+/** MVS builder pointing to a 'component' or 'component_from_uri' or 'component_from_source' node */
+export class Volume extends _Base<'volume'> implements FocusMixin {
+    /** Add a 'representation' node and return builder pointing to it. 'representation' node instructs to create a visual representation of a component. */
+    representation(params: Partial<MVSNodeParams<'volume_representation'>> & CustomAndRef = {}): VolumeRepresentation {
+        const fullParams: MVSNodeParams<'volume_representation'> = { ...params, type: params.type ?? 'isosurface' };
+        return new VolumeRepresentation(this._root, this.addChild('volume_representation', fullParams));
+    }
+    focus = bindMethod(this, FocusMixinImpl, 'focus');
+}
+
+
+/** MVS builder pointing to a 'volume_representation' node */
+export class VolumeRepresentation extends _Base<'volume_representation'> implements FocusMixin {
+    /** Add a 'color' node and return builder pointing back to the representation node. 'color' node instructs to apply color to a visual representation. */
+    color(params: MVSNodeParams<'color'> & CustomAndRef): VolumeRepresentation {
+        this.addChild('color', params);
+        return this;
+    }
+    /** Add an 'opacity' node and return builder pointing back to the representation node. 'opacity' node instructs to customize opacity/transparency of a visual representation. */
+    opacity(params: MVSNodeParams<'opacity'> & CustomAndRef): VolumeRepresentation {
+        this.addChild('opacity', params);
+        return this;
+    }
+    focus = bindMethod(this, FocusMixinImpl, 'focus');
+}
+
+
 type MVSPrimitiveSubparams<TKind extends MVSNodeParams<'primitive'>['kind']> = Omit<Extract<MVSNodeParams<'primitive'>, { kind: TKind }>, 'kind'>;
 
 /** MVS builder pointing to a 'primitives' node */
-class Primitives extends _Base<'primitives'> implements FocusMixin {
+export class Primitives extends _Base<'primitives'> implements FocusMixin {
     /** Construct custom meshes/shapes in a low-level fashion by providing vertices and indices. */
     mesh(params: MVSPrimitiveSubparams<'mesh'> & CustomAndRef): Primitives {
         this.addChild('primitive', { kind: 'mesh', ...params });
@@ -267,6 +299,11 @@ class Primitives extends _Base<'primitives'> implements FocusMixin {
         this.addChild('primitive', { kind: 'tube', ...params });
         return this;
     }
+    /** Defines an arrow. */
+    arrow(params: MVSPrimitiveSubparams<'arrow'> & CustomAndRef): Primitives {
+        this.addChild('primitive', { kind: 'arrow', ...params });
+        return this;
+    }
     /** Defines a tube, connecting a start and an end point, with label containing distance between start and end. */
     distance(params: MVSPrimitiveSubparams<'distance_measurement'> & CustomAndRef): Primitives {
         this.addChild('primitive', { kind: 'distance_measurement', ...params });
@@ -275,6 +312,21 @@ class Primitives extends _Base<'primitives'> implements FocusMixin {
     /** Defines a label. */
     label(params: MVSPrimitiveSubparams<'label'> & CustomAndRef): Primitives {
         this.addChild('primitive', { kind: 'label', ...params });
+        return this;
+    }
+    /** Defines an ellipse. */
+    ellipse(params: MVSPrimitiveSubparams<'ellipse'> & CustomAndRef): Primitives {
+        this.addChild('primitive', { kind: 'ellipse', ...params });
+        return this;
+    }
+    /** Defines an ellipsoid */
+    ellipsoid(params: MVSPrimitiveSubparams<'ellipsoid'> & CustomAndRef): Primitives {
+        this.addChild('primitive', { kind: 'ellipsoid', ...params });
+        return this;
+    }
+    /** Defines a box. */
+    box(params: MVSPrimitiveSubparams<'box'> & CustomAndRef): Primitives {
+        this.addChild('primitive', { kind: 'box', ...params });
         return this;
     }
     focus = bindMethod(this, FocusMixinImpl, 'focus');

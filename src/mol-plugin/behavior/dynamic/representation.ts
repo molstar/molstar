@@ -1,9 +1,10 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Jason Pattle <jpattle.exscientia.co.uk>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { MarkerAction } from '../../../mol-util/marker-action';
@@ -95,9 +96,9 @@ export const HighlightLoci = PluginBehavior.create({
 
 export const DefaultSelectLociBindings = {
     clickSelect: Binding.Empty,
-    clickToggleExtend: Binding([Trigger(B.Flag.Primary, M.create({ shift: true }))], 'Toggle extended selection', 'Click on element using ${triggers} to extend selection along polymer'),
     clickSelectOnly: Binding.Empty,
     clickToggle: Binding([Trigger(B.Flag.Primary, M.create())], 'Toggle selection', 'Click on element using ${triggers}'),
+    clickToggleExtend: Binding([Trigger(B.Flag.Primary, M.create({ shift: true }))], 'Toggle extended selection', 'Click on element using ${triggers} to extend selection along polymer'),
     clickDeselect: Binding.Empty,
     clickDeselectAllOnEmpty: Binding([Trigger(B.Flag.Primary, M.create())], 'Deselect all', 'Click on nothing using ${triggers}'),
 };
@@ -242,14 +243,21 @@ export const DefaultFocusLociBindings = {
         Trigger(B.Flag.Primary, M.create()),
     ], 'Representation Focus', 'Click element using ${triggers}'),
     clickFocusAdd: Binding([
-        Trigger(B.Flag.Primary, M.create({ shift: true })),
+        Trigger(B.Flag.Primary, M.create({ control: true })),
+        Trigger(B.Flag.Primary, M.create({ meta: true })),
     ], 'Representation Focus Add', 'Click element using ${triggers}'),
+    clickFocusExtend: Binding([
+        Trigger(B.Flag.Primary, M.create({ shift: true })),
+    ], 'Representation Focus Extend', 'Click on element using ${triggers}'),
     clickFocusSelectMode: Binding([
         // default is empty
-    ], 'Representation Focus', 'Click element using ${triggers}'),
+    ], 'Representation Focus (Selection Mode)', 'Click element using ${triggers}'),
     clickFocusAddSelectMode: Binding([
         // default is empty
-    ], 'Representation Focus Add', 'Click element using ${triggers}'),
+    ], 'Representation Focus Add (Selection Mode)', 'Click element using ${triggers}'),
+    clickFocusExtendSelectMode: Binding([
+        // default is empty
+    ], 'Representation Focus Extend (Selection Mode)', 'Click on element using ${triggers}'),
 };
 const FocusLociParams = {
     bindings: PD.Value(DefaultFocusLociBindings, { isHidden: true }),
@@ -262,10 +270,18 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
     ctor: class extends PluginBehavior.Handler<FocusLociProps> {
         register(): void {
             this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, button, modifiers }) => {
-                const { clickFocus, clickFocusAdd, clickFocusSelectMode, clickFocusAddSelectMode } = this.params.bindings;
+                const { clickFocus, clickFocusAdd, clickFocusExtend, clickFocusSelectMode, clickFocusAddSelectMode, clickFocusExtendSelectMode } = this.params.bindings;
 
                 const binding = this.ctx.selectionMode ? clickFocusSelectMode : clickFocus;
                 const matched = Binding.match(binding, button, modifiers);
+
+                const bindingAdd = this.ctx.selectionMode ? clickFocusAddSelectMode : clickFocusAdd;
+                const matchedAdd = Binding.match(bindingAdd, button, modifiers);
+
+                const bindingExtend = this.ctx.selectionMode ? clickFocusExtendSelectMode : clickFocusExtend;
+                const matchedExtend = Binding.match(bindingExtend, button, modifiers);
+
+                if (!matched && !matchedAdd && !matchedExtend) return;
 
                 // Support snapshot key property, in which case ignore the focus functionality
                 const snapshotKey = current.repr?.props?.snapshotKey?.trim() ?? '';
@@ -278,10 +294,6 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
                 const { granularity } = this.ctx.managers.interactivity.props;
                 if (granularity !== 'residue' && granularity !== 'element') return;
 
-                const bindingAdd = this.ctx.selectionMode ? clickFocusAddSelectMode : clickFocusAdd;
-                const matchedAdd = Binding.match(bindingAdd, button, modifiers);
-                if (!matched && !matchedAdd) return;
-
                 const loci = Loci.normalize(current.loci, 'residue');
                 const entry = this.ctx.managers.structure.focus.current;
                 if (entry && Loci.areEqual(entry.loci, loci)) {
@@ -290,9 +302,13 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
                     if (matched) {
                         this.ctx.managers.structure.focus.setFromLoci(loci);
                     } else {
-                        this.ctx.managers.structure.focus.addFromLoci(loci);
+                        if (matchedExtend) {
+                            this.ctx.managers.structure.focus.extendFromLoci(loci);
+                        } else { // matchedAdd
+                            this.ctx.managers.structure.focus.toggleFromLoci(loci);
+                        }
 
-                        // focus-add is not handled in camera behavior, doing it here
+                        // focus-add and focus-extend is not handled in camera behavior, doing it here
                         const current = this.ctx.managers.structure.focus.current?.loci;
                         if (current) this.ctx.managers.camera.focusLoci(current);
                     }

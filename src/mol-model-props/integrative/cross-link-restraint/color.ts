@@ -11,6 +11,7 @@ import { ThemeDataContext } from '../../../mol-theme/theme';
 import { ColorTheme, LocationColor } from '../../../mol-theme/color';
 import { CustomProperty } from '../../common/custom-property';
 import { CrossLinkRestraintProvider, CrossLinkRestraint } from './property';
+import { ColorThemeCategory } from '../../../mol-theme/color/categories';
 
 const DefaultColor = Color(0xCCCCCC);
 const Description = 'Colors cross-links by the deviation of the observed distance versus the modeled distance (e.g. modeled / `ihm_cross_link_restraint.distance_threshold`).';
@@ -63,7 +64,7 @@ export function CrossLinkColorTheme(ctx: ThemeDataContext, props: PD.Values<Cros
 export const CrossLinkColorThemeProvider: ColorTheme.Provider<CrossLinkColorThemeParams, 'cross-link'> = {
     name: 'cross-link',
     label: 'Cross Link',
-    category: ColorTheme.Category.Misc,
+    category: ColorThemeCategory.Misc,
     factory: CrossLinkColorTheme,
     getParams: getCrossLinkColorThemeParams,
     defaultValues: PD.getDefaultValues(CrossLinkColorThemeParams),

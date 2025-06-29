@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { PresetProvider } from '../preset-provider';
@@ -121,7 +122,7 @@ const auto = StructureRepresentationPresetProvider({
     params: () => CommonParams,
     apply(ref, params, plugin) {
         const structure = StateObjectRef.resolveAndCheck(plugin.state.data, ref)?.obj?.data;
-        if (!structure) return { };
+        if (!structure) return {};
 
         const thresholds = plugin.config.get(PluginConfig.Structure.SizeThresholds) || Structure.DefaultSizeThresholds;
         const size = Structure.getSize(structure, thresholds);
@@ -151,7 +152,7 @@ const empty = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-empty',
     display: { name: 'Empty', description: 'Removes all existing representations.' },
     async apply(ref, params, plugin) {
-        return { };
+        return {};
     }
 });
 
@@ -396,12 +397,9 @@ const illustrative = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-illustrative',
     display: {
         name: 'Illustrative', group: 'Miscellaneous',
-        description: '...'
+        description: 'Show everything in spacefill representation with illustrative colors and ignore light.'
     },
-    params: () => ({
-        ...CommonParams,
-        showCarbohydrateSymbol: PD.Boolean(false)
-    }),
+    params: () => CommonParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
         if (!structureCell) return {};
@@ -416,7 +414,47 @@ const illustrative = StructureRepresentationPresetProvider({
         const { update, builder, typeParams, color } = reprBuilder(plugin, params, structure);
 
         const representations = {
-            all: builder.buildRepresentation(update, components.all, { type: 'spacefill', typeParams: { ...typeParams, ignoreLight: true }, color: 'illustrative' }, { tag: 'all' }),
+            all: builder.buildRepresentation(update, components.all, {
+                type: 'spacefill',
+                typeParams: { ...typeParams, ignoreLight: true },
+                color: 'illustrative',
+                colorParams: { style: { name: 'entity-id', params: { overrideWater: true } } },
+            }, { tag: 'all' }),
+        };
+        await update.commit({ revertOnError: true });
+        await updateFocusRepr(plugin, structure, params.theme?.focus?.name ?? color, params.theme?.focus?.params);
+
+        return { components, representations };
+    }
+});
+
+const molecularSurface = StructureRepresentationPresetProvider({
+    id: 'preset-structure-representation-molecular-surface',
+    display: {
+        name: 'Molecular Surface', group: 'Miscellaneous',
+        description: 'Show everything in molecular surface representation with illustrative colors.'
+    },
+    params: () => CommonParams,
+    async apply(ref, params, plugin) {
+        const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
+        if (!structureCell) return {};
+
+        const components = {
+            all: await presetStaticComponent(plugin, structureCell, 'all'),
+            branched: undefined
+        };
+
+        const structure = structureCell.obj!.data;
+
+        const { update, builder, typeParams, color } = reprBuilder(plugin, params, structure);
+
+        const representations = {
+            all: builder.buildRepresentation(update, components.all, {
+                type: 'molecular-surface',
+                typeParams,
+                color: 'entity-id',
+                colorParams: { overrideWater: true },
+            }, { tag: 'all' }),
         };
         await update.commit({ revertOnError: true });
         await updateFocusRepr(plugin, structure, params.theme?.focus?.name ?? color, params.theme?.focus?.params);
@@ -474,6 +512,7 @@ export const PresetStructureRepresentations = {
     'protein-and-nucleic': proteinAndNucleic,
     'coarse-surface': coarseSurface,
     illustrative,
+    'molecular-surface': molecularSurface,
     'auto-lod': autoLod,
 };
 export type PresetStructureRepresentations = typeof PresetStructureRepresentations;

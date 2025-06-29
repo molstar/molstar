@@ -11,7 +11,7 @@ import { MAPairwiseScorePlot } from '../../extensions/model-archive/quality-asse
 import { QualityAssessment } from '../../extensions/model-archive/quality-assessment/prop';
 import { Model, ResidueIndex } from '../../mol-model/structure';
 import './index.html';
-require('mol-plugin-ui/skin/light.scss');
+import '../../mol-plugin-ui/skin/light.scss';
 
 export class AlphaFoldPAEExample {
     viewer: Viewer;
@@ -46,7 +46,7 @@ export class AlphaFoldPAEExample {
             const model = this.viewer.plugin.managers.structure.hierarchy.current.models[0]?.cell.obj?.data!;
             const metric = pairwiseMetricFromAlphaFoldDbJson(model, json)!;
 
-            createRoot(document.getElementById(this.plotContainerId)!).render(
+            plotRoot.render(
                 <div className='msp-plugin' style={{ background: 'white' }}>
                     <MAPairwiseScorePlot plugin={this.viewer.plugin} pairwiseMetric={metric} model={model} />
                 </div>

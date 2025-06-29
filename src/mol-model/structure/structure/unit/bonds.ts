@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Paul Pillot <paul.pillot@tandemai.com>
  */
 
 import { Unit, StructureElement } from '../../structure';
@@ -224,7 +225,7 @@ namespace Bond {
                 this.current.order = this.unit.bonds.edgeProps.order[this.intraBondIndex];
                 this.intraBondIndex += 1;
             } else if (this.interBondIndex < this.interBondCount) {
-                const b = this.structure.interUnitBonds.edges[this.interBondIndex];
+                const b = this.structure.interUnitBonds.edges[this.interBondIndices[this.interBondIndex]];
                 this.current.otherUnit = this.structure.unitMap.get(b.unitA !== this.unit.id ? b.unitA : b.unitB) as Unit.Atomic;
                 this.current.otherIndex = b.indexA !== this.index ? b.indexA : b.indexB;
                 this.current.type = b.props.flag;

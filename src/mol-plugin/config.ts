@@ -58,6 +58,7 @@ export const PluginConfig = {
         ShowSelectionMode: item('viewer.show-selection-model-button', true),
         ShowAnimation: item('viewer.show-animation-button', true),
         ShowTrajectoryControls: item('viewer.show-trajectory-controls', true),
+        ShowScreenshotControls: item('viewer.show-screenshot-controls', true),
     },
     Download: {
         DefaultPdbProvider: item<PdbDownloadProvider>('download.default-pdb-provider', 'pdbe'),

@@ -12,6 +12,8 @@ import { ReaderResult as Result } from '../../result';
 import { TokenColumnProvider as TokenColumn } from '../../common/text/column/token';
 import { Column } from '../../../../mol-data/db';
 import { LammpsDataFile } from '../schema';
+import { StringLike } from '../../../common/string-like';
+
 
 const { readLine, skipWhitespace, eatValue, eatLine, markStart } = Tokenizer;
 
@@ -122,7 +124,7 @@ async function handleBonds(state: State, count: number): Promise<LammpsDataFile[
 const AtomStyles = ['full', 'atomic', 'bond'] as const;
 type AtomStyle = typeof AtomStyles[number];
 
-async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<LammpsDataFile>> {
+async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Result<LammpsDataFile>> {
     const tokenizer = Tokenizer(data);
     const state = State(tokenizer, ctx);
 
@@ -179,7 +181,7 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
     return Result.success(result);
 }
 
-export function parseLammpsData(data: string) {
+export function parseLammpsData(data: StringLike) {
     return Task.create<Result<LammpsDataFile>>('Parse LammpsData', async ctx => {
         return await parseInternal(data, ctx);
     });

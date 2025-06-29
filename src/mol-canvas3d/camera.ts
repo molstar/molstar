@@ -12,7 +12,7 @@ import { BehaviorSubject } from 'rxjs';
 import { Scene } from '../mol-gl/scene';
 import { assertUnreachable } from '../mol-util/type-helpers';
 
-export { ICamera, Camera };
+export type { ICamera };
 
 interface ICamera {
     readonly viewport: Viewport,
@@ -30,7 +30,7 @@ interface ICamera {
 
 const tmpClip = Vec4();
 
-class Camera implements ICamera {
+export class Camera implements ICamera {
     readonly view: Mat4 = Mat4.identity();
     readonly projection: Mat4 = Mat4.identity();
     readonly projectionView: Mat4 = Mat4.identity();
@@ -197,7 +197,7 @@ class Camera implements ICamera {
     }
 }
 
-namespace Camera {
+export namespace Camera {
     export type Mode = 'perspective' | 'orthographic'
 
     export type SnapshotProvider = Partial<Snapshot> | ((scene: Scene, camera: Camera) => Partial<Snapshot>)

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -37,4 +37,13 @@ const tmpDepthRGBA = Vec4();
 export function unpackRGBAToDepth(r: number, g: number, b: number, a: number) {
     Vec4.set(tmpDepthRGBA, r / 255, g / 255, b / 255, a / 255);
     return Vec4.dot(tmpDepthRGBA, UnpackFactors);
+}
+
+export function arrayMaxPackedIntToRGB(array: NumberArray, stride: number) {
+    let max = -Infinity;
+    for (let i = 0, il = array.length; i < il; i += stride) {
+        const v = unpackRGBToInt(array[i], array[i + 1], array[i + 2]);
+        if (v > max) max = v;
+    }
+    return max;
 }

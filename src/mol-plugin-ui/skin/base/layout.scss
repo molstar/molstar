@@ -1,41 +1,56 @@
-﻿
-@import 'layout/common';
+﻿@use 'layout/common' as *;
+@use 'layout/controls-landscape.scss' as *;
+@use 'layout/controls-outside.scss' as *;
+@use 'layout/controls-portrait.scss' as *;
 
-.msp-layout-standard-outside {
-    position: absolute;
-    @import 'layout/controls-outside';
-}
+@mixin layout {
+    @include layout-common;
 
-.msp-layout-standard-landscape {
-    position: absolute;
-    @import 'layout/controls-landscape';
-}
+    .msp-layout-standard-outside {
+        position: absolute;
+        @include layout-outside;
+    }
 
-.msp-layout-standard-portrait {
-    position: absolute;
-    @import 'layout/controls-portrait';
-}
+    .msp-layout-standard-landscape {
+        position: absolute;
+        @include layout-landscape;
+    }
 
-.msp-layout-standard-reactive {
-    position: absolute;
+    .msp-layout-standard-portrait {
+        position: absolute;
+        @include layout-portrait;
+    }
 
-    @media (orientation:landscape), (min-width: 1000px) {
-        @import 'layout/controls-landscape';
-    };
+    .msp-layout-standard-reactive {
+        position: absolute;
 
-    @media (orientation:portrait) and (max-width: 1000px) {
-        @import 'layout/controls-portrait';
-    };
-}
+        @media (orientation:landscape),
+        (min-width: 1000px) {
+            @include layout-landscape;
+        }
 
-.msp-layout-expanded {
-    position: fixed;
+        ;
 
-    @media (orientation:landscape) {
-        @import 'layout/controls-landscape';
-    };
+        @media (orientation:portrait) and (max-width: 1000px) {
+            @include layout-portrait;
+        }
 
-    @media (orientation:portrait) {
-        @import 'layout/controls-portrait';
-    };
+        ;
+    }
+
+    .msp-layout-expanded {
+        position: fixed;
+
+        @media (orientation:landscape) {
+            @include layout-landscape;
+        }
+
+        ;
+
+        @media (orientation:portrait) {
+            @include layout-portrait;
+        }
+
+        ;
+    }
 }

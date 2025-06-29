@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -270,7 +270,10 @@ namespace Renderer {
                 return;
             }
 
-            // TODO: check what happens if sphere surrounds frustum fully
+            if (!r.values.drawCount.ref.value) {
+                return;
+            }
+
             if (!Frustum3D.intersectsSphere3D(frustum, r.values.boundingSphere.ref.value)) {
                 return;
             }
@@ -283,8 +286,13 @@ namespace Renderer {
                 if (d - radius > maxDistance) return;
             }
 
-            const hasInstanceGrid = r.values.instanceGrid.ref.value.cellSize > 1;
-            if (hasInstanceGrid || (hasInstanceGrid && r.values.lodLevels)) {
+            if (isOccluded !== null && isOccluded(r.values.boundingSphere.ref.value)) {
+                return;
+            }
+
+            const hasInstanceGrid = r.values.instanceGrid.ref.value.cellSize > 0;
+            const hasMultipleInstances = r.values.uInstanceCount.ref.value > 1;
+            if (hasInstanceGrid && (hasMultipleInstances || r.values.lodLevels)) {
                 r.cull(cameraPlane, frustum, isOccluded, ctx.stats);
             } else {
                 r.uncull();

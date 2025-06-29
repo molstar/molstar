@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.399, IHM 1.27, MA 1.4.6.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.404, IHM 1.28, MA 1.4.7.
  *
  * @author molstar/ciftools package
  */
@@ -705,7 +705,7 @@ export const mmCIF_Schema = {
         /**
          * An abbreviation that identifies the database.
          */
-        database_id: Aliased<'alphafolddb' | 'cas' | 'csd' | 'emdb' | 'icsd' | 'modelarchive' | 'mdf' | 'modbase' | 'ndb' | 'nbs' | 'pdb' | 'pdf' | 'rcsb' | 'swiss-model_repository' | 'ebi' | 'pdbe' | 'bmrb' | 'wwpdb' | 'pdb_acc'>(lstr),
+        database_id: Aliased<'alphafolddb' | 'cas' | 'csd' | 'emdb' | 'icsd' | 'modelarchive' | 'mdf' | 'modbase' | 'ndb' | 'nbs' | 'pdb' | 'pdb-dev' | 'pdf' | 'rcsb' | 'swiss-model_repository' | 'ebi' | 'pdbe' | 'bmrb' | 'wwpdb' | 'pdb_acc'>(lstr),
         /**
          * The code assigned by the database identified in
          * _database_2.database_id.
@@ -884,7 +884,7 @@ export const mmCIF_Schema = {
          * (DT) for Thymidine-5'-monophosphate
          * (MSE) for Selenomethionine
          * (SEP) for Phosphoserine
-         * (PTO) for Phosphothreonine
+         * (TPO) for Phosphothreonine
          * (PTR) for Phosphotyrosine
          * (PCA) for Pyroglutamic acid
          * (UNK) for Unknown amino acid
@@ -2098,7 +2098,7 @@ export const mmCIF_Schema = {
         /**
          * The name of the database containing the related entry.
          */
-        db_name: str,
+        db_name: Aliased<'BIOISIS' | 'BMCD' | 'BMRB' | 'EMDB' | 'NDB' | 'PDB' | 'PDB-Dev' | 'SASBDB' | 'TargetDB' | 'TargetTrack'>(str),
         /**
          * A description of the related entry.
          */
@@ -4939,25 +4939,19 @@ export const mmCIF_Schema = {
      */
     ma_model_list: {
         /**
-         * A unique identifier for the model / model group combination.
+         * A unique identifier for the structural model being deposited.
          */
         ordinal_id: int,
         /**
          * A unique identifier for the structural model being deposited.
+         * This data item was practically a duplicate of _ma_model_list.ordinal_id
+         * and has been deprecated with dictionary version 1.4.7.
          */
         model_id: int,
         /**
          * An identifier to group structural models into collections or sets.
-         * A cluster of models and its representative can either be grouped together
-         * or can be separate groups in the ma_model_list table. The choice between
-         * the two options should be decided based on how the modeling was carried out
-         * and how the representative was chosen. If the representative is a member of
-         * the ensemble (i.e., best scoring model), then it is recommended that the
-         * representative and the ensemble belong to the same model group. If the
-         * representative is calculated from the ensemble (i.e., centroid), then it is
-         * recommended that the representative be separated into a different group.
-         * If the models do not need to be grouped into collections, then the
-         * _ma_model_list.model_group_id is the same as _ma_model_list.model_id.
+         * This data item has been deprecated with dictionary version 1.4.7.
+         * See ma_model_group category.
          */
         model_group_id: int,
         /**
@@ -4966,6 +4960,8 @@ export const mmCIF_Schema = {
         model_name: str,
         /**
          * A decsriptive name for the model group.
+         * This data item has been deprecated with dictionary version 1.4.7.
+         * See ma_model_group category.
          */
         model_group_name: str,
         /**
@@ -5131,11 +5127,11 @@ export const mmCIF_Schema = {
         /**
          * The type of QA metric.
          */
-        type: Aliased<'zscore' | 'energy' | 'distance' | 'normalized score' | 'pLDDT' | 'pLDDT in [0,1]' | 'pLDDT all-atom' | 'pLDDT all-atom in [0,1]' | 'PAE' | 'pTM' | 'ipTM' | 'contact probability' | 'other'>(str),
+        type: Aliased<'zscore' | 'energy' | 'distance' | 'normalized score' | 'pLDDT' | 'pLDDT in [0,1]' | 'pLDDT all-atom' | 'pLDDT all-atom in [0,1]' | 'pLDDT to polymer' | 'PAE' | 'pTM' | 'ipTM' | 'contact probability' | 'boolean' | 'other'>(str),
         /**
          * The mode of calculation of the QA metric.
          */
-        mode: Aliased<'local' | 'global' | 'local-pairwise'>(str),
+        mode: Aliased<'local' | 'global' | 'local-pairwise' | 'per-feature' | 'per-feature-pair'>(str),
         /**
          * Identifier to the set of software used to calculate the QA metric.
          * This data item is a pointer to the _ma_software_group.group_id in the
@@ -5154,7 +5150,7 @@ export const mmCIF_Schema = {
         ordinal_id: int,
         /**
          * The identifier for the structural model, for which global QA metric is provided.
-         * This data item is a pointer to _ma_model_list.model_id
+         * This data item is a pointer to _ma_model_list.ordinal_id
          * in the MA_MODEL_LIST category.
          */
         model_id: int,
@@ -5172,6 +5168,10 @@ export const mmCIF_Schema = {
     /**
      * Data items in the MA_QA_METRIC_LOCAL category captures the
      * details of the local QA metrics, calculated at the residue-level.
+     * Data in this category can be extracted into a separate file which
+     * is linked to the main file using the categories
+     * ma_associated_archive_file_details or ma_entry_associated_files
+     * with file_content set to "QA metrics".
      */
     ma_qa_metric_local: {
         /**
@@ -5180,7 +5180,7 @@ export const mmCIF_Schema = {
         ordinal_id: int,
         /**
          * The identifier for the structural model, for which local QA metric is provided.
-         * This data item is a pointer to _ma_model_list.model_id
+         * This data item is a pointer to _ma_model_list.ordinal_id
          * in the MA_MODEL_LIST category.
          */
         model_id: int,
@@ -5219,6 +5219,15 @@ export const mmCIF_Schema = {
     /**
      * Data items in the MA_QA_METRIC_LOCAL_PAIRWISE category captures the
      * details of the local QA metrics, calculated at the pairwise residue level.
+     * In cases where the metric is symmetric, it is enough to store just one value per pair.
+     * For asymmetric metrics, the order of residues is expected to be meaningful
+     * (e.g. PAE where PAE_ij is defined by aligning residue i (label_*_1) and measuring
+     * the error on residue j (label_*_2)).
+     * In all cases, it is perfectly valid to only provide values for a subset of residue pairs.
+     * Data in this category is expected to be very large and can be extracted into a
+     * separate file which is linked to the main file using the categories
+     * ma_associated_archive_file_details or ma_entry_associated_files with file_content
+     * set to "QA metrics".
      */
     ma_qa_metric_local_pairwise: {
         /**
@@ -5227,7 +5236,7 @@ export const mmCIF_Schema = {
         ordinal_id: int,
         /**
          * The identifier for the structural model, for which local QA metric is provided.
-         * This data item is a pointer to _ma_model_list.model_id
+         * This data item is a pointer to _ma_model_list.ordinal_id
          * in the MA_MODEL_LIST category.
          */
         model_id: int,

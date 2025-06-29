@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -12,6 +12,9 @@ import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
 import { packIntToRGBArray } from '../../mol-util/number-packing';
 import { SetUtils } from '../../mol-util/set';
 import { Box3D } from '../../mol-math/geometry';
+import { toHalfFloat } from '../../mol-util/number-conversion';
+import { clamp } from '../../mol-math/interpolate';
+import { LocationIterator } from '../../mol-geo/util/location-iterator';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3set = Vec3.set;
@@ -75,6 +78,18 @@ export function eachVolumeLoci(loci: Loci, volume: Volume, props: { isoValue?: V
     return changed;
 }
 
+export function createVolumeCellLocationIterator(volume: Volume): LocationIterator {
+    const [xn, yn, zn] = volume.grid.cells.space.dimensions;
+    const groupCount = xn * yn * zn;
+    const instanceCount = 1;
+    const location = Volume.Cell.Location(volume);
+    const getLocation = (groupIndex: number, _instanceIndex: number) => {
+        location.cell = groupIndex as Volume.CellIndex;
+        return location;
+    };
+    return LocationIterator(groupCount, instanceCount, 1, getLocation);
+}
+
 //
 
 export function getVolumeTexture2dLayout(dim: Vec3, padding = 0) {
@@ -97,14 +112,18 @@ export function getVolumeTexture2dLayout(dim: Vec3, padding = 0) {
     return { width, height, columns, rows, powerOfTwoSize: height < powerOfTwoSize ? powerOfTwoSize : powerOfTwoSize * 2 };
 }
 
-export function createVolumeTexture2d(volume: Volume, variant: 'normals' | 'groups' | 'data', padding = 0) {
+export function createVolumeTexture2d(volume: Volume, variant: 'normals' | 'groups' | 'data', padding = 0, type: 'byte' | 'float' | 'halfFloat' = 'byte') {
     const { cells: { space, data }, stats: { max, min } } = volume.grid;
     const dim = space.dimensions as Vec3;
     const { dataOffset: o } = space;
     const { width, height } = getVolumeTexture2dLayout(dim, padding);
 
     const itemSize = variant === 'data' ? 1 : 4;
-    const array = new Uint8Array(width * height * itemSize);
+    const array = type === 'byte'
+        ? new Uint8Array(width * height * itemSize)
+        : type === 'halfFloat'
+            ? new Uint16Array(width * height * itemSize)
+            : new Float32Array(width * height * itemSize);
     const textureImage = { array, width, height };
 
     const diff = max - min;
@@ -128,11 +147,29 @@ export function createVolumeTexture2d(volume: Volume, variant: 'normals' | 'grou
                 const index = itemSize * ((row * ynp * width) + (y * width) + px);
                 const offset = o(x, y, z);
 
+                let value: number;
+                if (type === 'byte') {
+                    value = Math.round(((data[offset] - min) / diff) * 255);
+                } else if (type === 'halfFloat') {
+                    value = toHalfFloat((data[offset] - min) / diff);
+                } else {
+                    value = (data[offset] - min) / diff;
+                }
+
                 if (variant === 'data') {
-                    array[index] = Math.round(((data[offset] - min) / diff) * 255);
+                    array[index] = value;
                 } else {
                     if (variant === 'groups') {
-                        packIntToRGBArray(offset, array, index);
+                        if (type === 'halfFloat') {
+                            let group = clamp(Math.round(offset), 0, 16777216 - 1) + 1;
+                            array[index + 2] = toHalfFloat(group % 256);
+                            group = Math.floor(group / 256);
+                            array[index + 1] = toHalfFloat(group % 256);
+                            group = Math.floor(group / 256);
+                            array[index] = toHalfFloat(group % 256);
+                        } else {
+                            packIntToRGBArray(offset, array, index);
+                        }
                     } else {
                         v3set(n0,
                             data[o(Math.max(0, x - 1), y, z)],
@@ -146,10 +183,19 @@ export function createVolumeTexture2d(volume: Volume, variant: 'normals' | 'grou
                         );
                         v3normalize(n0, v3sub(n0, n0, n1));
                         v3addScalar(n0, v3scale(n0, n0, 0.5), 0.5);
-                        v3toArray(v3scale(n0, n0, 255), array, index);
+
+                        if (type === 'byte') {
+                            v3toArray(v3scale(n0, n0, 255), array, index);
+                        } else if (type === 'halfFloat') {
+                            array[index] = toHalfFloat(n0[0]);
+                            array[index + 1] = toHalfFloat(n0[1]);
+                            array[index + 2] = toHalfFloat(n0[2]);
+                        } else {
+                            v3toArray(n0, array, index);
+                        }
                     }
 
-                    array[index + 3] = Math.round(((data[offset] - min) / diff) * 255);
+                    array[index + 3] = value;
                 }
             }
         }
@@ -158,12 +204,16 @@ export function createVolumeTexture2d(volume: Volume, variant: 'normals' | 'grou
     return textureImage;
 }
 
-export function createVolumeTexture3d(volume: Volume) {
+export function createVolumeTexture3d(volume: Volume, type: 'byte' | 'float' | 'halfFloat' = 'byte') {
     const { cells: { space, data }, stats: { max, min } } = volume.grid;
     const [width, height, depth] = space.dimensions as Vec3;
     const { dataOffset: o } = space;
 
-    const array = new Uint8Array(width * height * depth * 4);
+    const array = type === 'byte'
+        ? new Uint8Array(width * height * depth * 4)
+        : type === 'halfFloat'
+            ? new Uint16Array(width * height * depth * 4)
+            : new Float32Array(width * height * depth * 4);
     const textureVolume = { array, width, height, depth };
     const diff = max - min;
 
@@ -192,9 +242,19 @@ export function createVolumeTexture3d(volume: Volume) {
                 );
                 v3normalize(n0, v3sub(n0, n0, n1));
                 v3addScalar(n0, v3scale(n0, n0, 0.5), 0.5);
-                v3toArray(v3scale(n0, n0, 255), array, i);
 
-                array[i + 3] = Math.round(((data[offset] - min) / diff) * 255);
+                if (type === 'byte') {
+                    v3toArray(v3scale(n0, n0, 255), array, i);
+                    array[i + 3] = Math.round(((data[offset] - min) / diff) * 255);
+                } else if (type === 'halfFloat') {
+                    array[i] = toHalfFloat(n0[0]);
+                    array[i + 1] = toHalfFloat(n0[1]);
+                    array[i + 2] = toHalfFloat(n0[2]);
+                    array[i + 3] = toHalfFloat((data[offset] - min) / diff);
+                } else {
+                    v3toArray(n0, array, i);
+                    array[i + 3] = (data[offset] - min) / diff;
+                }
                 i += 4;
             }
         }

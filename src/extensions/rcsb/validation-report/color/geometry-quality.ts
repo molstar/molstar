@@ -15,6 +15,7 @@ import { ValidationReportProvider, ValidationReport } from '../prop';
 import { TableLegend } from '../../../../mol-util/legend';
 import { PolymerType } from '../../../../mol-model/structure/model/types';
 import { SetUtils } from '../../../../mol-util/set';
+import { ColorThemeCategory } from '../../../../mol-theme/color/categories';
 
 const DefaultColor = Color(0x909090);
 
@@ -108,7 +109,7 @@ export function GeometryQualityColorTheme(ctx: ThemeDataContext, props: PD.Value
 export const GeometryQualityColorThemeProvider: ColorTheme.Provider<GeometricQualityColorThemeParams, ValidationReport.Tag.GeometryQuality> = {
     name: ValidationReport.Tag.GeometryQuality,
     label: 'Geometry Quality',
-    category: ColorTheme.Category.Validation,
+    category: ColorThemeCategory.Validation,
     factory: GeometryQualityColorTheme,
     getParams: getGeometricQualityColorThemeParams,
     defaultValues: PD.getDefaultValues(getGeometricQualityColorThemeParams({})),

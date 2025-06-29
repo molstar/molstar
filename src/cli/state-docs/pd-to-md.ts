@@ -43,7 +43,7 @@ function paramInfo(param: PD.Any, offset: number): string {
     }
 }
 
-function oToS(options: readonly (readonly [string, string] | readonly [string, string, string | undefined])[]) {
+function oToS(options: readonly PD.SelectOption<any>[]) {
     return options.map(o => `'${o[0]}'`).join(', ');
 }
 

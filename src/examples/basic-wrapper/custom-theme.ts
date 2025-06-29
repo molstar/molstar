@@ -1,6 +1,7 @@
 import { isPositionLocation } from '../../mol-geo/util/location-iterator';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { ColorTheme } from '../../mol-theme/color';
+import { ColorThemeCategory } from '../../mol-theme/color/categories';
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { Color } from '../../mol-util/color';
 import { ColorNames } from '../../mol-util/color/names';
@@ -43,7 +44,7 @@ export function CustomColorTheme(
 export const CustomColorThemeProvider: ColorTheme.Provider<{}, 'basic-wrapper-custom-color-theme'> = {
     name: 'basic-wrapper-custom-color-theme',
     label: 'Custom Color Theme',
-    category: ColorTheme.Category.Misc,
+    category: ColorThemeCategory.Misc,
     factory: CustomColorTheme,
     getParams: () => ({}),
     defaultValues: { },

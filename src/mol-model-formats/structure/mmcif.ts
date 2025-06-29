@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -23,8 +23,12 @@ import { GlobalModelTransformInfo } from '../../mol-model/structure/model/proper
 import { BasicSchema, createBasic } from './basic/schema';
 import { CCD_Database } from '../../mol-io/reader/cif/schema/ccd';
 import { EntityBuilder } from './common/entity';
-import { MoleculeType } from '../../mol-model/structure/model/types';
+import { BondType, MoleculeType } from '../../mol-model/structure/model/types';
 import { ComponentBuilder } from './common/component';
+import { sortedCantorPairing } from '../../mol-data/util';
+import { IndexPairBonds } from './property/bonds/index-pair';
+import { toDatabase } from '../../mol-io/reader/cif/schema';
+import { MolstarBondSiteSchema } from '../../mol-model/structure/export/categories/molstar_bond_site';
 
 function modelSymmetryFromMmcif(model: Model) {
     if (!MmcifFormat.is(model.sourceData)) return;
@@ -68,13 +72,90 @@ function structConnFromMmcif(model: Model) {
     const { struct_conn } = model.sourceData.data.db;
     if (struct_conn._rowCount === 0) return;
     const entries = StructConn.getEntriesFromStructConn(struct_conn, model);
+
+    const residueCantorPairs = new Set<number>();
+    for (const e of entries) {
+        if (e.partnerA.residueIndex !== e.partnerB.residueIndex) {
+            residueCantorPairs.add(sortedCantorPairing(e.partnerA.residueIndex, e.partnerB.residueIndex));
+        }
+    }
+
     return {
         data: struct_conn,
         byAtomIndex: StructConn.getAtomIndexFromEntries(entries),
+        residueCantorPairs,
         entries,
     };
 }
 StructConn.Provider.formatRegistry.add('mmCIF', structConnFromMmcif);
+
+function indexPairBondsFromMolstarBondSite(model: Model) {
+    if (!MmcifFormat.is(model.sourceData)) return;
+
+    const { molstar_bond_site: entries } = toDatabase(MolstarBondSiteSchema, model.sourceData.data.frame);
+
+    if (entries._rowCount === 0) return;
+
+    const idToIndex = new Map<number, number>();
+
+    const { atomId } = model.atomicConformation;
+    for (let i = 0; i < atomId.rowCount; i++) {
+        idToIndex.set(atomId.value(i), i);
+    }
+
+    const indexA: number[] = [];
+    const indexB: number[] = [];
+    const orders: number[] = [];
+    const flags: BondType.Flag[] = [];
+
+    const { atom_id_1, atom_id_2, value_order, type_id } = entries;
+    for (let i = 0; i < entries._rowCount; i++) {
+        indexA.push(idToIndex.get(atom_id_1.value(i))!);
+        indexB.push(idToIndex.get(atom_id_2.value(i))!);
+
+        let flag = BondType.Flag.None;
+        let order = 1;
+
+        switch (value_order.value(i)) {
+            case 'sing': order = 1; break;
+            case 'doub': order = 2; break;
+            case 'trip': order = 3; break;
+            case 'quad': order = 4; break;
+            case 'arom': order = 1; flag = BondType.Flag.Aromatic; break;
+            default: break;
+        }
+
+        switch (type_id.value(i)) {
+            case 'covale':
+                flag |= BondType.Flag.Covalent;
+                break;
+            case 'disulf': flag |= BondType.Flag.Covalent | BondType.Flag.Disulfide; break;
+            case 'hydrog':
+                flag |= BondType.Flag.HydrogenBond;
+                break;
+            case 'metalc': flag |= BondType.Flag.MetallicCoordination; break;
+        }
+
+        orders.push(order);
+        flags.push(flag);
+    }
+
+    const pairBonds = IndexPairBonds.fromData(
+        {
+            pairs: {
+                indexA: Column.ofIntArray(indexA),
+                indexB: Column.ofIntArray(indexB),
+                order: Column.ofIntArray(orders),
+                flag: Column.ofArray({ array: flags, schema: Column.Schema.int }),
+            },
+            count: model.atomicHierarchy.atoms._rowCount,
+        },
+        { maxDistance: Infinity }
+    );
+    return pairBonds;
+}
+
+IndexPairBonds.Provider.formatRegistry.add('mmCIF', indexPairBondsFromMolstarBondSite);
 
 GlobalModelTransformInfo.Provider.formatRegistry.add('mmCIF', GlobalModelTransformInfo.fromMmCif, GlobalModelTransformInfo.hasData);
 

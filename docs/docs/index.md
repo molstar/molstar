@@ -25,7 +25,7 @@ import { PluginContext } from 'molstar/lib/mol-plugin/context';
 git clone https://github.com/molstar/molstar.git
 cd molstar
 npm install
-npm build
+npm run build
 ```
 
 --------------------

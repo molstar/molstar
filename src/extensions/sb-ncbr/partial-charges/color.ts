@@ -6,6 +6,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Location } from '../../../mol-model/location';
 import { SbNcbrPartialChargesPropertyProvider } from './property';
 import { CustomProperty } from '../../../mol-model-props/common/custom-property';
+import { ColorThemeCategory } from '../../../mol-theme/color/categories';
 
 const Colors = {
     Bond: Color(0xffffff),
@@ -133,7 +134,7 @@ PartialChargesThemeParams,
 > = {
     label: 'SB NCBR Partial Charges',
     name: 'sb-ncbr-partial-charges',
-    category: ColorTheme.Category.Atom,
+    category: ColorThemeCategory.Atom,
     factory: PartialChargesColorTheme,
     getParams: getPartialChargesThemeParams,
     defaultValues: PD.getDefaultValues(PartialChargesThemeParams),

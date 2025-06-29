@@ -6,5 +6,5 @@
 
 import './favicon.ico';
 import './index.html';
-require('./style.scss');
+import './style.scss';
 export * from './app';

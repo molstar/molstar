@@ -12,6 +12,7 @@ import { StructureElement, Model, ElementIndex, Bond } from '../../../../mol-mod
 import { Location } from '../../../../mol-model/location';
 import { CustomProperty } from '../../../../mol-model-props/common/custom-property';
 import { ValidationReportProvider, ValidationReport } from '../prop';
+import { ColorThemeCategory } from '../../../../mol-theme/color/categories';
 
 const DefaultColor = Color(0xCCCCCC);
 
@@ -70,7 +71,7 @@ export function DensityFitColorTheme(ctx: ThemeDataContext, props: {}): ColorThe
 export const DensityFitColorThemeProvider: ColorTheme.Provider<{}, ValidationReport.Tag.DensityFit> = {
     name: ValidationReport.Tag.DensityFit,
     label: 'Density Fit',
-    category: ColorTheme.Category.Validation,
+    category: ColorThemeCategory.Validation,
     factory: DensityFitColorTheme,
     getParams: () => ({}),
     defaultValues: PD.getDefaultValues({}),

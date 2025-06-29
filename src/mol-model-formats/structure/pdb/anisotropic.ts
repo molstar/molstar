@@ -9,9 +9,11 @@ import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { TokenBuilder, Tokenizer } from '../../../mol-io/reader/common/text/tokenizer';
 import { guessElementSymbolTokens } from '../util';
 import { parseIntSkipLeadingWhitespace as fastParseInt } from '../../../mol-io/reader/common/text/number-parser';
+import { StringLike } from '../../../mol-io/common/string-like';
+
 
 type AnisotropicTemplate = typeof getAnisotropicTemplate extends (...args: any) => infer T ? T : never
-export function getAnisotropicTemplate(data: string, count: number) {
+export function getAnisotropicTemplate(data: StringLike, count: number) {
     const str = () => [] as string[];
     const float = () => new Float32Array(count);
     const ts = () => TokenBuilder.create(data, 2 * count);

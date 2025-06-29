@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <link rel="icon" href="./favicon.ico" type="image/x-icon">
+    <title>Molecular Stories</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        #viewer {
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 34%;
+            bottom: 0;
+        }
+
+        #controls {
+            position: absolute;
+            left: 66%;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            padding: 16px;
+            padding-bottom: 20px;
+            border: 1px solid #ccc;
+            border-left: none;
+            background: #F6F5F3;
+            z-index: -2;
+            display: flex; 
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        @media (orientation:portrait) {
+            #viewer {
+                position: absolute;
+                left: 0;
+                top: 0;
+                right: 0;
+                bottom: 40%;
+            }
+
+            #controls {
+                position: absolute;
+                left: 0;
+                top: 60%;
+                right: 0;
+                bottom: 0;  
+                border-top: none;  
+            }
+
+            .msp-viewport-controls-buttons {
+                display: none;
+            }
+        }
+    </style>
+    <link rel="stylesheet" type="text/css" href="mvs-stories.css" />
+    <script type="text/javascript" src="mvs-stories.js"></script>
+</head>
+
+<body>
+    <!-- the context-name parameter is optional and useful when embedding multiple stories in a single page -->
+    <div id="viewer">
+        <mvs-stories-viewer context-name="story1" />
+    </div>
+    <div id="controls">
+        <mvs-stories-snapshot-markdown context-name="story1" style="flex-grow: 1;" />
+    </div>
+
+    <script>
+        var urlParams = new URLSearchParams(window.location.search);
+        var storyUrl = urlParams.get('story-url');
+        var format = urlParams.get('data-format');
+
+        // For testing purposes:
+        // if (!storyUrl) {
+        //     storyUrl = 'https://raw.githubusercontent.com/molstar/molstar/master/examples/mvs/kinase-story.mvsj';
+        // }
+
+        mvsStories.loadFromURL(
+            storyUrl,
+            { format: format || 'mvsj', contextName: 'story1' },
+        );
+    </script>
+</body>
+
+</html>

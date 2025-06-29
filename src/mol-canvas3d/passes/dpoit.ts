@@ -267,7 +267,7 @@ export class DpoitPass {
                 resources.texture('image-float32', 'rgba', 'float', 'nearest')
             ];
         } else {
-            // in webgl1 drawbuffers must be in the same format for some reason
+            // webgl1 requires consistent bit plane counts
 
             this.depthTextures = [
                 resources.texture('image-float32', 'rgba', 'float', 'nearest'),

@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Lukáš Polák <admin@lukaspolak.cz>
  */
 
 import * as React from 'react';
@@ -418,53 +419,38 @@ function TextCtrl({ props, placeholder, update }: { props: ParamProps<PD.Text>, 
     const [value, setValue] = React.useState(props.value);
     React.useEffect(() => setValue(props.value), [props.value]);
 
+    const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        if (props.param.disableInteractiveUpdates) setValue(e.target.value);
+        else update(e.target.value);
+    };
+    const onBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        if (props.param.disableInteractiveUpdates) update(e.target.value);
+    };
+    const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        if (e.key !== 'Enter') return;
+        if (props.onEnter && !props.param.multiline) {
+            e.stopPropagation();
+            props.onEnter();
+        } else if (e.shiftKey || e.ctrlKey || e.metaKey) {
+            e.currentTarget.blur();
+        } else if (props.param.disableInteractiveUpdates && !props.param.multiline) {
+            update(value);
+        }
+    };
+
     if (props.param.multiline) {
         return <div className='msp-control-text-area-wrapper'>
             <textarea
-                value={props.param.disableInteractiveUpdates ? (value || '') : props.value}
-                placeholder={placeholder}
-                onChange={e => {
-                    if (props.param.disableInteractiveUpdates) setValue(e.target.value);
-                    else update(e.target.value);
-                }}
-                onBlur={e => {
-                    if (props.param.disableInteractiveUpdates) update(e.target.value);
-                }}
-                onKeyDown={e => {
-                    if (e.key === 'Enter' && (e.shiftKey || e.ctrlKey || e.metaKey)) {
-                        e.currentTarget.blur();
-                    }
-                }}
-                disabled={props.isDisabled}
+                value={value ?? ''} placeholder={placeholder} disabled={props.isDisabled}
+                onChange={onChange} onBlur={onBlur} onKeyDown={onKeyDown}
             />
         </div>;
+    } else {
+        return <input type='text'
+            value={value ?? ''} placeholder={placeholder} disabled={props.isDisabled}
+            onChange={onChange} onBlur={onBlur} onKeyDown={onKeyDown}
+        />;
     }
-
-    return <input
-        type='text'
-        value={props.param.disableInteractiveUpdates ? (value || '') : props.value}
-        placeholder={placeholder}
-        onChange={e => {
-            if (props.param.disableInteractiveUpdates) setValue(e.target.value);
-            else update(e.target.value);
-        }}
-        onBlur={e => {
-            if (props.param.disableInteractiveUpdates) update(e.target.value);
-        }}
-        disabled={props.isDisabled}
-        onKeyDown={e => {
-            if (e.key !== 'Enter') return;
-
-            if (props.onEnter) {
-                e.stopPropagation();
-                props.onEnter();
-            } else if (e.key === 'Enter' && (e.shiftKey || e.ctrlKey || e.metaKey)) {
-                e.currentTarget.blur();
-            } else if (props.param.disableInteractiveUpdates) {
-                update(value);
-            }
-        }}
-    />;
 }
 
 export class PureSelectControl extends React.PureComponent<ParamProps<PD.Select<string | number>> & { title?: string }> {
@@ -689,21 +675,56 @@ function colorEntryToStyle(e: ColorListEntry, includeOffset = false) {
 }
 
 const colorGradientInterpolated = memoize1((colors: ColorListEntry[]) => {
-    const styles = colors.map(c => colorEntryToStyle(c, true));
+    if (colors.length === 0) return 'linear-gradient(to right, #000 0%, #000 100%)';
+
+    const hasOffsets = colors.every(c => Array.isArray(c));
+    let styles;
+
+    if (hasOffsets) {
+        const off = [...colors] as [Color, number][];
+        off.sort((a, b) => a[1] - b[1]);
+        styles = off.map(c => colorEntryToStyle(c, true));
+    } else {
+        styles = colors.map(c => colorEntryToStyle(c));
+    }
+
     return `linear-gradient(to right, ${styles.join(', ')})`;
 });
 
 const colorGradientBanded = memoize1((colors: ColorListEntry[]) => {
     const n = colors.length;
-    const styles: string[] = [`${colorEntryToStyle(colors[0])} ${100 * (1 / n)}%`];
-    // TODO: does this need to support offsets?
-    for (let i = 1, il = n - 1; i < il; ++i) {
-        styles.push(
-            `${colorEntryToStyle(colors[i])} ${100 * (i / n)}%`,
-            `${colorEntryToStyle(colors[i])} ${100 * ((i + 1) / n)}%`
-        );
+    const styles: string[] = [];
+
+    const hasOffsets = colors.every(c => Array.isArray(c));
+    if (hasOffsets) {
+        const off = [...colors] as [Color, number][];
+        // 0 colors present
+        if (!off[0]) {
+            return 'linear-gradient(to right, #000 0%, #000 100%)';
+        }
+        off.sort((a, b) => a[1] - b[1]);
+        styles.push(`${Color.toStyle(off[0][0])} ${(100 * off[0][1]).toFixed(2)}%`);
+        for (let i = 0, il = off.length - 1; i < il; ++i) {
+            const [c0, o0] = off[i];
+            const [c1, o1] = off[i + 1];
+            const o = o0 + (o1 - o0) / 2;
+            styles.push(
+                `${Color.toStyle(c0)} ${(100 * o).toFixed(2)}%`,
+                `${Color.toStyle(c1)} ${(100 * o).toFixed(2)}%`
+            );
+        }
+        styles.push(`${Color.toStyle(off[off.length - 1][0])} ${(100 * off[off.length - 1][1]).toFixed(2)}%`);
+    } else {
+        styles.push(`${colorEntryToStyle(colors[0])} ${100 * (1 / n)}%`);
+        for (let i = 1, il = n - 1; i < il; ++i) {
+            styles.push(
+                `${colorEntryToStyle(colors[i])} ${100 * (i / n)}%`,
+                `${colorEntryToStyle(colors[i])} ${100 * ((i + 1) / n)}%`
+            );
+        }
+        styles.push(`${colorEntryToStyle(colors[n - 1])} ${100 * ((n - 1) / n)}%`);
     }
-    styles.push(`${colorEntryToStyle(colors[n - 1])} ${100 * ((n - 1) / n)}%`);
+
     return `linear-gradient(to right, ${styles.join(', ')})`;
 });
 
@@ -724,16 +745,16 @@ function colorGradient(colors: ColorListEntry[], banded: boolean) {
 
 function createColorListHelpers() {
 
-    const addOn = (l: [ColorListName, any, any]) => {
+    const addOn = (l: PD.SelectOption<ColorListName>) => {
         const preset = getColorListFromName(l[0]);
         return <div style={colorStripStyle({ kind: preset.type !== 'qualitative' ? 'interpolate' : 'set', colors: preset.list })} />;
     };
 
     return {
         ColorPresets: {
-            all: ActionMenu.createItemsFromSelectOptions(ColorListOptions, { addOn }),
-            scale: ActionMenu.createItemsFromSelectOptions(ColorListOptionsScale, { addOn }),
-            set: ActionMenu.createItemsFromSelectOptions(ColorListOptionsSet, { addOn })
+            all: ActionMenu.createItemsFromSelectOptions(ColorListOptions, { addOn, description: o => o[3] }),
+            scale: ActionMenu.createItemsFromSelectOptions(ColorListOptionsScale, { addOn, description: o => o[3] }),
+            set: ActionMenu.createItemsFromSelectOptions(ColorListOptionsSet, { addOn, description: o => o[3] })
         },
         ColorsParam: PD.ObjectList({ color: PD.Color(0x0 as Color) }, ({ color }) => Color.toHexString(color).toUpperCase()),
         OffsetColorsParam: PD.ObjectList(
@@ -799,7 +820,11 @@ export class ColorListControl extends React.PureComponent<ParamProps<PD.ColorLis
         const preset = ColorPresets[this.props.param.presetKind];
         if (this.state.show === 'presets') return <ActionMenu items={preset} onSelect={this.selectPreset} />;
 
-        const values = this.props.value.colors.map(color => ({ color }));
+        // It might happen that the colors are either in the form of [Color, number] or just Color, show them as just Color
+        const values = this.props.value.colors.map(color => ({
+            color: Array.isArray(color) ? color[0] : color
+        }));
+
         return <div className='msp-control-offset'>
             <ObjectListControl name='colors' param={ColorsParam} value={values} onChange={this.colorsChanged} isDisabled={this.props.isDisabled} onEnter={this.props.onEnter} />
             <BoolControl name='isInterpolated' param={IsInterpolatedParam} value={this.props.value.kind === 'interpolate'} onChange={this.isInterpolatedChanged} isDisabled={this.props.isDisabled} onEnter={this.props.onEnter} />

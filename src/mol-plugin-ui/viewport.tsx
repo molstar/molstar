@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Chetan Mishra <chetan.s115@gmail.com>
  */
 
 import * as React from 'react';
@@ -119,10 +120,10 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                     </div>
                     <div className='msp-hover-box-spacer'></div>
                 </div>
-                <div>
+                {this.plugin.config.get(PluginConfig.Viewport.ShowScreenshotControls) && <div>
                     <div className='msp-semi-transparent-background' />
                     {this.icon(CameraOutlinedSvg, this.toggleScreenshotExpanded, 'Screenshot / State Snapshot', this.state.isScreenshotExpanded)}
-                </div>
+                </div>}
                 <div>
                     <div className='msp-semi-transparent-background' />
                     {this.plugin.config.get(PluginConfig.Viewport.ShowControls) && this.icon(BuildOutlinedSvg, this.toggleControls, 'Toggle Controls Panel', this.plugin.layout.state.showControls)}

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2024 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -21,6 +21,8 @@ import { FormatPropertyProvider } from '../../common/property';
 export interface StructConn {
     readonly data: Table<mmCIF_Schema['struct_conn']>
     readonly byAtomIndex: Map<ElementIndex, ReadonlyArray<StructConn.Entry>>
+    /** Cantor pairs of residue indices that have a struct-conn record */
+    readonly residueCantorPairs: Set<number>
     readonly entries: ReadonlyArray<StructConn.Entry>
 }
 

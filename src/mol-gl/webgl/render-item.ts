@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -7,19 +7,22 @@
 
 import { createAttributeBuffers, ElementsBuffer, AttributeKind, AttributeBuffers } from './buffer';
 import { createTextures, Texture } from './texture';
-import { WebGLContext, checkError } from './context';
+import { WebGLContext } from './context';
 import { ShaderCode, DefineValues } from '../shader-code';
 import { Program, Programs } from './program';
 import { RenderableSchema, RenderableValues, AttributeSpec, getValueVersions, splitValues, DefineSpec } from '../renderable/schema';
 import { idFactory } from '../../mol-util/id-factory';
 import { ValueCell } from '../../mol-util';
 import { TextureImage, TextureVolume } from '../../mol-gl/renderable/util';
-import { checkFramebufferStatus } from './framebuffer';
 import { isDebugMode, isTimingMode } from '../../mol-util/debug';
 import { VertexArray } from './vertex-array';
 import { fillSerial } from '../../mol-util/array';
 import { deepClone } from '../../mol-util/object';
 import { cloneUniformValues, UniformsList } from './uniform';
+
+// Handle Firefox's preference [webgl.max-vert-ids-per-draw] which defaults to 30_000_000
+// since FF119, see https://bugzilla.mozilla.org/show_bug.cgi?id=1849433
+const MaxDrawCount = 30_000_000;
 
 const getNextRenderItemId = idFactory();
 
@@ -244,11 +247,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                 state.currentRenderItemId = id;
             }
             if (isDebugMode) {
-                try {
-                    checkFramebufferStatus(ctx.gl);
-                } catch (e) {
-                    throw new Error(`Framebuffer error rendering item id ${id}: '${e}'`);
-                }
+                ctx.checkFramebufferStatus(`Framebuffer error rendering item id ${id}`);
             }
             if (mdbDataList) {
                 for (const mdbData of mdbDataList) {
@@ -311,10 +310,16 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                     }
                 }
             } else {
-                if (elementsBuffer) {
-                    instancedArrays.drawElementsInstanced(glDrawMode, drawCount, elementsBuffer._dataType, 0, instanceCount);
-                } else {
-                    instancedArrays.drawArraysInstanced(glDrawMode, 0, drawCount, instanceCount);
+                let offset = 0;
+                while (true) {
+                    const count = Math.min(drawCount - offset, MaxDrawCount);
+                    if (elementsBuffer) {
+                        instancedArrays.drawElementsInstanced(glDrawMode, count, elementsBuffer._dataType, offset * elementsBuffer._bpe, instanceCount);
+                    } else {
+                        instancedArrays.drawArraysInstanced(glDrawMode, offset, count, instanceCount);
+                    }
+                    offset += count;
+                    if (offset >= drawCount) break;
                 }
                 if (isTimingMode) {
                     stats.calls.drawInstanced += 1;
@@ -322,11 +327,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                 }
             }
             if (isDebugMode) {
-                try {
-                    checkError(ctx.gl);
-                } catch (e) {
-                    throw new Error(`Draw error rendering item id ${id}: '${e}'`);
-                }
+                ctx.checkError(`Draw error rendering item id ${id}`);
             }
         },
         update: () => {

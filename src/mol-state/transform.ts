@@ -41,11 +41,6 @@ namespace Transform {
         isCollapsed?: boolean
     }
 
-    export function areStatesEqual(a: State, b: State) {
-        return !!a.isHidden !== !!b.isHidden || !!a.isCollapsed !== !!b.isCollapsed
-            || !!a.isGhost !== !!b.isGhost || !!a.isLocked !== !!b.isLocked;
-    }
-
     export function isStateChange(a: State, b?: Partial<State>) {
         if (!b) return false;
         if (typeof b.isCollapsed !== 'undefined' && a.isCollapsed !== b.isCollapsed) return true;

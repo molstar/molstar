@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2024 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -20,6 +20,7 @@ import { Vec3 } from '../../../../../mol-math/linear-algebra';
 import { ElementIndex } from '../../../model/indexing';
 import { equalEps } from '../../../../../mol-math/linear-algebra/3d/common';
 import { Model } from '../../../model/model';
+import { sortedCantorPairing } from '../../../../../mol-data/util';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3distance = Vec3.distance;
@@ -159,6 +160,7 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
     let isWatery = true, isDictionaryBased = true, isSequenced = true;
 
     const structConnAdded = __structConnAdded;
+    const hasStructConnEntries = !!structConn?.residueCantorPairs.size;
 
     for (let _aI = 0 as StructureElement.UnitIndex; _aI < atomCount; _aI++) {
         const aI = atoms[_aI];
@@ -229,6 +231,12 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
 
             const altB = label_alt_id.value(bI);
             if (altA && altB && altA !== altB) continue;
+
+            // Do not add bonds for residues that have a structConn entry
+            if (hasStructConnEntries) {
+                const residuePair = sortedCantorPairing(residueIndex[aI], residueIndex[bI]);
+                if (structConn.residueCantorPairs.has(residuePair)) continue;
+            }
 
             const beI = getElementIdx(type_symbol.value(bI)!);
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -179,6 +179,32 @@ export class PickPass {
         }
     }
 
+    reset() {
+        const { drawBuffers } = this.webgl.extensions;
+
+        if (drawBuffers) {
+            this.framebuffer.bind();
+            drawBuffers!.drawBuffers([
+                drawBuffers!.COLOR_ATTACHMENT0,
+                drawBuffers!.COLOR_ATTACHMENT1,
+                drawBuffers!.COLOR_ATTACHMENT2,
+                drawBuffers!.COLOR_ATTACHMENT3,
+            ]);
+
+            this.objectPickTexture.attachFramebuffer(this.framebuffer, 'color0');
+            this.instancePickTexture.attachFramebuffer(this.framebuffer, 'color1');
+            this.groupPickTexture.attachFramebuffer(this.framebuffer, 'color2');
+            this.depthPickTexture.attachFramebuffer(this.framebuffer, 'color3');
+
+            this.depthRenderbuffer.attachFramebuffer(this.framebuffer);
+
+            this.objectPickTexture.attachFramebuffer(this.objectPickFramebuffer, 'color0');
+            this.instancePickTexture.attachFramebuffer(this.instancePickFramebuffer, 'color0');
+            this.groupPickTexture.attachFramebuffer(this.groupPickFramebuffer, 'color0');
+            this.depthPickTexture.attachFramebuffer(this.depthPickFramebuffer, 'color0');
+        }
+    }
+
     private renderVariant(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, variant: 'pick' | 'depth', pickType: number) {
         renderer.clear(false);
         renderer.update(camera, scene);
@@ -247,6 +273,18 @@ export class PickHelper {
 
     setViewport(x: number, y: number, width: number, height: number) {
         Viewport.set(this.viewport, x, y, width, height);
+        this.update();
+    }
+
+    setPickPadding(pickPadding: number) {
+        if (this.pickPadding !== pickPadding) {
+            this.pickPadding = pickPadding;
+            this.update();
+        }
+    }
+
+    private update() {
+        const { x, y, width, height } = this.viewport;
 
         this.pickRatio = this.pickPass.pickRatio;
         this.pickX = Math.ceil(x * this.pickRatio);
@@ -263,7 +301,8 @@ export class PickHelper {
             this.setupBuffers();
         }
 
-        this.spiral = spiral2d(Math.round(this.pickRatio * this.pickPadding));
+        this.spiral = spiral2d(Math.ceil(this.pickRatio * this.pickPadding));
+        this.dirty = true;
     }
 
     private syncBuffers() {
@@ -324,6 +363,10 @@ export class PickHelper {
     }
 
     private identifyInternal(x: number, y: number, camera: Camera | StereoCamera): PickData | undefined {
+        if (this.pickRatio !== this.pickPass.pickRatio) {
+            this.update();
+        }
+
         const { webgl, pickRatio } = this;
         if (webgl.isContextLost) return;
 
@@ -392,7 +435,7 @@ export class PickHelper {
         }
     }
 
-    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private helper: Helper, private pickPass: PickPass, viewport: Viewport, readonly pickPadding = 1) {
+    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private helper: Helper, private pickPass: PickPass, viewport: Viewport, private pickPadding = 1) {
         this.setViewport(viewport.x, viewport.y, viewport.width, viewport.height);
     }
 }

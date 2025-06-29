@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Christian Dominguez <christian.99dominguez@gmail.com>
+ * @author Ventura Rivera <venturaxrivera@gmail.com>
  */
 
 import { List } from 'immutable';
@@ -268,6 +269,7 @@ export class ControlsWrapper extends PluginUIComponent {
 export class DefaultViewport extends PluginUIComponent {
     render() {
         const VPControls = this.plugin.spec.components?.viewport?.controls || ViewportControls;
+        const SVPControls = this.plugin.spec.components?.selectionTools?.controls || SelectionViewportControls;
         const SnapshotDescription = this.plugin.spec.components?.viewport?.snapshotDescription || ViewportSnapshotDescription;
 
         return <>
@@ -278,7 +280,7 @@ export class DefaultViewport extends PluginUIComponent {
                 <StateSnapshotViewportControls />
                 <SnapshotDescription />
             </div>
-            <SelectionViewportControls />
+            <SVPControls />
             <VPControls />
             <BackgroundTaskProgress />
             <div className='msp-highlight-toast-wrapper'>

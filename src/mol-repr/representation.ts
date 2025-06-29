@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../mol-util/param-definition';
@@ -27,6 +28,7 @@ import { SetUtils } from '../mol-util/set';
 import { cantorPairing } from '../mol-data/util';
 import { Substance } from '../mol-theme/substance';
 import { Emissive } from '../mol-theme/emissive';
+import { Location } from '../mol-model/location';
 
 export type RepresentationProps = { [k: string]: any }
 
@@ -57,12 +59,13 @@ export interface RepresentationProvider<D = any, P extends PD.Params = any, S ex
     }
     readonly getData?: (data: D, props: PD.Values<P>) => D
     readonly mustRecreate?: (oldProps: PD.Values<P>, newProps: PD.Values<P>) => boolean
+    readonly locationKinds?: ReadonlyArray<Location['kind']>
 }
 
 export namespace RepresentationProvider {
     export type ParamValues<R extends RepresentationProvider<any, any, any>> = R extends RepresentationProvider<any, infer P, any> ? PD.Values<P> : never;
 
-    export function getDetaultParams<R extends RepresentationProvider<D, any, any>, D>(r: R, ctx: ThemeRegistryContext, data: D) {
+    export function getDefaultParams<R extends RepresentationProvider<D, any, any>, D>(r: R, ctx: ThemeRegistryContext, data: D) {
         return PD.getDefaultValues(r.getParams(ctx, data));
     }
 }
@@ -76,8 +79,8 @@ export const EmptyRepresentationProvider: RepresentationProvider = {
     factory: () => Representation.Empty,
     getParams: () => ({}),
     defaultValues: {},
-    defaultColorTheme: ColorTheme.EmptyProvider,
-    defaultSizeTheme: SizeTheme.EmptyProvider,
+    defaultColorTheme: { name: '' },
+    defaultSizeTheme: { name: '' },
     isApplicable: () => true
 };
 
@@ -249,17 +252,31 @@ namespace Representation {
     export const StateBuilder: StateBuilder<State> = { create: createState, update: updateState };
 
     export type Any<P extends PD.Params = PD.Params, S extends State = State> = Representation<any, P, S>
-    export const Empty: Any = {
-        label: '', groupCount: 0, renderObjects: [], geometryVersion: -1, props: {}, params: {}, updated: new Subject(), state: createState(), theme: Theme.createEmpty(),
-        createOrUpdate: () => Task.constant('', undefined),
-        setState: () => {},
-        setTheme: () => {},
-        getLoci: () => EmptyLoci,
-        getAllLoci: () => [],
-        eachLocation: () => {},
-        mark: () => false,
-        destroy: () => {}
-    };
+
+
+    export declare const Empty: Any;
+
+    export function createEmpty(): Any {
+        return {
+            label: '',
+            groupCount: 0,
+            renderObjects: [],
+            geometryVersion: -1,
+            props: {},
+            params: {},
+            updated: new Subject(),
+            state: createState(),
+            theme: Theme.createEmpty(),
+            createOrUpdate: () => Task.constant('', undefined),
+            setState: () => {},
+            setTheme: () => {},
+            getLoci: () => EmptyLoci,
+            getAllLoci: () => [],
+            eachLocation: () => {},
+            mark: () => false,
+            destroy: () => {}
+        };
+    }
 
     export type Def<D, P extends PD.Params = PD.Params, S extends State = State> = { [k: string]: RepresentationFactory<D, P, S> }
 
@@ -488,3 +505,10 @@ namespace Representation {
         };
     }
 }
+
+let _EmptyRepresentation: Representation.Any | undefined = undefined;
+Object.defineProperty(Representation, "Empty", {
+    get: () => {
+        return _EmptyRepresentation ??= Representation.createEmpty();
+    }
+});

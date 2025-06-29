@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -49,18 +49,24 @@ export interface DirectVolume {
     readonly cartnToUnit: ValueCell<Mat4>
     readonly packedGroup: ValueCell<boolean>
     readonly axisOrder: ValueCell<Vec3>
+    readonly dataType: ValueCell<'byte' | 'float' | 'halfFloat'>
 
     /** Bounding sphere of the volume */
     readonly boundingSphere: Sphere3D
 
     setBoundingSphere(boundingSphere: Sphere3D): void
+
+    readonly meta: {
+        /** Called to restore when a webgl context is lost */
+        reset?: () => void
+    }
 }
 
 export namespace DirectVolume {
-    export function create(bbox: Box3D, gridDimension: Vec3, transform: Mat4, unitToCartn: Mat4, cellDim: Vec3, texture: Texture, stats: Grid['stats'], packedGroup: boolean, axisOrder: Vec3, directVolume?: DirectVolume): DirectVolume {
+    export function create(bbox: Box3D, gridDimension: Vec3, transform: Mat4, unitToCartn: Mat4, cellDim: Vec3, texture: Texture, stats: Grid['stats'], packedGroup: boolean, axisOrder: Vec3, dataType: 'byte' | 'float' | 'halfFloat', directVolume?: DirectVolume): DirectVolume {
         return directVolume ?
-            update(bbox, gridDimension, transform, unitToCartn, cellDim, texture, stats, packedGroup, axisOrder, directVolume) :
-            fromData(bbox, gridDimension, transform, unitToCartn, cellDim, texture, stats, packedGroup, axisOrder);
+            update(bbox, gridDimension, transform, unitToCartn, cellDim, texture, stats, packedGroup, axisOrder, dataType, directVolume) :
+            fromData(bbox, gridDimension, transform, unitToCartn, cellDim, texture, stats, packedGroup, axisOrder, dataType);
     }
 
     function hashCode(directVolume: DirectVolume) {
@@ -71,7 +77,7 @@ export namespace DirectVolume {
         ]);
     }
 
-    function fromData(bbox: Box3D, gridDimension: Vec3, transform: Mat4, unitToCartn: Mat4, cellDim: Vec3, texture: Texture, stats: Grid['stats'], packedGroup: boolean, axisOrder: Vec3): DirectVolume {
+    function fromData(bbox: Box3D, gridDimension: Vec3, transform: Mat4, unitToCartn: Mat4, cellDim: Vec3, texture: Texture, stats: Grid['stats'], packedGroup: boolean, axisOrder: Vec3, dataType: 'byte' | 'float' | 'halfFloat'): DirectVolume {
         const boundingSphere = Sphere3D();
         let currentHash = -1;
 
@@ -103,15 +109,17 @@ export namespace DirectVolume {
             },
             packedGroup: ValueCell.create(packedGroup),
             axisOrder: ValueCell.create(axisOrder),
+            dataType: ValueCell.create(dataType),
             setBoundingSphere(sphere: Sphere3D) {
                 Sphere3D.copy(boundingSphere, sphere);
                 currentHash = hashCode(directVolume);
-            }
+            },
+            meta: {}
         };
         return directVolume;
     }
 
-    function update(bbox: Box3D, gridDimension: Vec3, transform: Mat4, unitToCartn: Mat4, cellDim: Vec3, texture: Texture, stats: Grid['stats'], packedGroup: boolean, axisOrder: Vec3, directVolume: DirectVolume): DirectVolume {
+    function update(bbox: Box3D, gridDimension: Vec3, transform: Mat4, unitToCartn: Mat4, cellDim: Vec3, texture: Texture, stats: Grid['stats'], packedGroup: boolean, axisOrder: Vec3, dataType: 'byte' | 'float' | 'halfFloat', directVolume: DirectVolume): DirectVolume {
         const width = texture.getWidth();
         const height = texture.getHeight();
         const depth = texture.getDepth();
@@ -129,6 +137,7 @@ export namespace DirectVolume {
         ValueCell.update(directVolume.cartnToUnit, Mat4.invert(Mat4(), unitToCartn));
         ValueCell.updateIfChanged(directVolume.packedGroup, packedGroup);
         ValueCell.updateIfChanged(directVolume.axisOrder, Vec3.fromArray(directVolume.axisOrder.ref.value, axisOrder, 0));
+        ValueCell.updateIfChanged(directVolume.dataType, dataType);
         return directVolume;
     }
 
@@ -142,7 +151,8 @@ export namespace DirectVolume {
         const stats = Grid.One.stats;
         const packedGroup = false;
         const axisOrder = Vec3.create(0, 1, 2);
-        return create(bbox, gridDimension, transform, unitToCartn, cellDim, texture, stats, packedGroup, axisOrder, directVolume);
+        const dataType = 'byte';
+        return create(bbox, gridDimension, transform, unitToCartn, cellDim, texture, stats, packedGroup, axisOrder, dataType, directVolume);
     }
 
     export const Params = {
@@ -210,7 +220,7 @@ export namespace DirectVolume {
         const { bboxSize, bboxMin, bboxMax, gridDimension, transform: gridTransform } = directVolume;
 
         const { instanceCount, groupCount } = locationIt;
-        const positionIt = Utils.createPositionIterator(directVolume, transform);
+        const positionIt = createPositionIterator(directVolume, transform);
 
         const color = createColors(locationIt, positionIt, theme.color);
         const marker = props.instanceGranularity
@@ -275,6 +285,8 @@ export namespace DirectVolume {
             dIgnoreLight: ValueCell.create(props.ignoreLight),
             dCelShaded: ValueCell.create(props.celShaded),
             dXrayShaded: ValueCell.create(props.xrayShaded === 'inverted' ? 'inverted' : props.xrayShaded === true ? 'on' : 'off'),
+
+            meta: ValueCell.create(directVolume.meta),
         };
     }
 

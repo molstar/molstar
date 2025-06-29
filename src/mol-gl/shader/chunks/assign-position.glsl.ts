@@ -2,7 +2,7 @@ export const assign_position = `
 mat4 model = uModel * aTransform;
 mat4 modelView = uView * model;
 #ifdef dGeometryType_textureMesh
-    vec3 position = readFromTexture(tPosition, VertexID, uGeoTexDim).xyz;
+    vec3 position = readFromTexture(tPosition, vertexId, uGeoTexDim).xyz;
 #else
     vec3 position = aPosition;
 #endif

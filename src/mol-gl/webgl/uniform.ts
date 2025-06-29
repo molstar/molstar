@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Mat3, Mat4, Vec2, Vec3, Vec4 } from '../../mol-math/linear-algebra';
+import { Mat3, Mat4, Quat, Vec2, Vec3, Vec4 } from '../../mol-math/linear-algebra';
 import { ValueCell } from '../../mol-util';
 import { GLRenderingContext } from './compat';
 import { RenderableSchema } from '../../mol-gl/renderable/schema';
@@ -18,6 +18,7 @@ export type UniformKindValue = {
     'v2': Vec2; 'v2[]': number[]
     'v3': Vec3; 'v3[]': number[]
     'v4': Vec4; 'v4[]': number[]
+    'q': Quat; 'q[]': number[]
     'iv2': Vec2; 'iv2[]': number[]
     'iv3': Vec3; 'iv3[]': number[]
     'iv4': Vec4; 'iv4[]': number[]
@@ -39,6 +40,7 @@ export function getUniformType(gl: GLRenderingContext, kind: UniformKind) {
         case 'v2': case 'v2[]': return gl.FLOAT_VEC2;
         case 'v3': case 'v3[]': return gl.FLOAT_VEC3;
         case 'v4': case 'v4[]': return gl.FLOAT_VEC4;
+        case 'q': case 'q[]': return gl.FLOAT_VEC4;
         case 'iv2': case 'iv2[]': return gl.INT_VEC2;
         case 'iv3': case 'iv3[]': return gl.INT_VEC3;
         case 'iv4': case 'iv4[]': return gl.INT_VEC4;
@@ -77,6 +79,7 @@ function getUniformSetter(kind: UniformKind): UniformSetter {
         case 'v2': case 'v2[]': return uniform2fv;
         case 'v3': case 'v3[]': return uniform3fv;
         case 'v4': case 'v4[]': return uniform4fv;
+        case 'q': case 'q[]': return uniform4fv;
         case 'iv2': case 'iv2[]': return uniform2iv;
         case 'iv3': case 'iv3[]': return uniform3iv;
         case 'iv4': case 'iv4[]': return uniform4iv;
@@ -107,6 +110,7 @@ export function getUniformGlslType(kind: UniformKind): string {
         case 'v2': return 'vec2';
         case 'v3': return 'vec3';
         case 'v4': return 'vec4';
+        case 'q': return 'vec4';
         case 'm3': return 'mat3';
         case 'm4': return 'mat4';
     }

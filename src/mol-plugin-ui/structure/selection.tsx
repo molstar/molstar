@@ -5,6 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Jason Pattle <jpattle.exscientia.co.uk>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author Ventura Rivera <venturaxrivera@gmail.com>
  */
 
 import * as React from 'react';
@@ -61,6 +62,8 @@ interface StructureSelectionActionsControlsState {
 
     action?: StructureSelectionModifier | 'theme' | 'add-component' | 'help',
     helper?: SelectionHelperType,
+
+    structureSelectionParams?: typeof StructureSelectionParams,
 }
 
 const ActionHeader = new Map<StructureSelectionModifier, string>([
@@ -78,6 +81,8 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
         isEmpty: true,
         isBusy: false,
         canUndo: false,
+
+        structureSelectionParams: StructureSelectionParams,
     };
 
     componentDidMount() {
@@ -102,6 +107,20 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
         this.subscribe(this.plugin.state.data.events.historyUpdated, ({ state }) => {
             this.setState({ canUndo: state.canUndo });
         });
+
+        // Update structureSelectionParams state if there are custom-defined granularityOptions
+        const granularityOptions = this.plugin.spec.components?.selectionTools?.granularityOptions;
+        if (granularityOptions) {
+            const granularitySet = new Set((granularityOptions));
+            const structureSelectionParams = {
+                ...StructureSelectionParams,
+                granularity: {
+                    ...StructureSelectionParams.granularity,
+                    options: StructureSelectionParams.granularity.options.filter(([firstItem]) => granularitySet.has(firstItem)),
+                },
+            };
+            this.setState({ structureSelectionParams: structureSelectionParams });
+        }
     }
 
     get isDisabled() {
@@ -218,6 +237,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
 
     render() {
         const granularity = this.plugin.managers.interactivity.props.granularity;
+        const hide = this.plugin.spec.components?.selectionTools?.hide;
         const undoTitle = this.state.canUndo
             ? `Undo ${this.plugin.state.data.latestUndoLabel}`
             : 'Some mistakes of the past can be undone.';
@@ -263,19 +283,19 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
 
         return <>
             <div className='msp-flex-row' style={{ background: 'none' }}>
-                <PureSelectControl title={`Picking Level for selecting and highlighting`} param={StructureSelectionParams.granularity} name='granularity' value={granularity} onChange={this.setGranuality} isDisabled={this.isDisabled} />
-                <ToggleButton icon={UnionSvg} title={`${ActionHeader.get('add')}. Hold shift key to keep menu open.`} toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />
-                <ToggleButton icon={SubtractSvg} title={`${ActionHeader.get('remove')}. Hold shift key to keep menu open.`} toggle={this.toggleRemove} isSelected={this.state.action === 'remove'} disabled={this.isDisabled} />
-                <ToggleButton icon={IntersectSvg} title={`${ActionHeader.get('intersect')}. Hold shift key to keep menu open.`} toggle={this.toggleIntersect} isSelected={this.state.action === 'intersect'} disabled={this.isDisabled} />
-                <ToggleButton icon={SetSvg} title={`${ActionHeader.get('set')}. Hold shift key to keep menu open.`} toggle={this.toggleSet} isSelected={this.state.action === 'set'} disabled={this.isDisabled} />
+                {(!hide?.granularity) && <PureSelectControl title={`Picking Level for selecting and highlighting`} param={this.state.structureSelectionParams.granularity} name='granularity' value={granularity} onChange={this.setGranuality} isDisabled={this.isDisabled} />}
+                {(!hide?.union) && <ToggleButton icon={UnionSvg} title={`${ActionHeader.get('add')}. Hold shift key to keep menu open.`} toggle={this.toggleAdd} isSelected={this.state.action === 'add'} disabled={this.isDisabled} />}
+                {(!hide?.subtract) && <ToggleButton icon={SubtractSvg} title={`${ActionHeader.get('remove')}. Hold shift key to keep menu open.`} toggle={this.toggleRemove} isSelected={this.state.action === 'remove'} disabled={this.isDisabled} />}
+                {(!hide?.intersect) && <ToggleButton icon={IntersectSvg} title={`${ActionHeader.get('intersect')}. Hold shift key to keep menu open.`} toggle={this.toggleIntersect} isSelected={this.state.action === 'intersect'} disabled={this.isDisabled} />}
+                {(!hide?.set) && <ToggleButton icon={SetSvg} title={`${ActionHeader.get('set')}. Hold shift key to keep menu open.`} toggle={this.toggleSet} isSelected={this.state.action === 'set'} disabled={this.isDisabled} />}
 
-                <ToggleButton icon={BrushSvg} title='Apply Theme to Selection' toggle={this.toggleTheme} isSelected={this.state.action === 'theme'} disabled={this.isDisabled} style={{ marginLeft: '10px' }} />
-                <ToggleButton icon={CubeOutlineSvg} title='Create Component of Selection with Representation' toggle={this.toggleAddComponent} isSelected={this.state.action === 'add-component'} disabled={this.isDisabled} />
-                <IconButton svg={RemoveSvg} title='Remove/subtract Selection from all Components' onClick={this.subtract} disabled={this.isDisabled} />
-                <IconButton svg={RestoreSvg} onClick={this.undo} disabled={!this.state.canUndo || this.isDisabled} title={undoTitle} />
+                {(!hide?.theme) && <ToggleButton icon={BrushSvg} title='Apply Theme to Selection' toggle={this.toggleTheme} isSelected={this.state.action === 'theme'} disabled={this.isDisabled} style={{ marginLeft: '10px' }} />}
+                {(!hide?.componentAdd) && <ToggleButton icon={CubeOutlineSvg} title='Create Component of Selection with Representation' toggle={this.toggleAddComponent} isSelected={this.state.action === 'add-component'} disabled={this.isDisabled} />}
+                {(!hide?.componentRemove) && <IconButton svg={RemoveSvg} title='Remove/subtract Selection from all Components' onClick={this.subtract} disabled={this.isDisabled} />}
+                {(!hide?.undo) && <IconButton svg={RestoreSvg} onClick={this.undo} disabled={!this.state.canUndo || this.isDisabled} title={undoTitle} />}
 
-                <ToggleButton icon={HelpOutlineSvg} title='Show/hide help' toggle={this.toggleHelp} style={{ marginLeft: '10px' }} isSelected={this.state.action === 'help'} />
-                {this.plugin.config.get(PluginConfig.Viewport.ShowSelectionMode) && (<IconButton svg={CancelOutlinedSvg} title='Turn selection mode off' onClick={this.turnOff} />)}
+                {(!hide?.help) && <ToggleButton icon={HelpOutlineSvg} title='Show/hide help' toggle={this.toggleHelp} style={{ marginLeft: '10px' }} isSelected={this.state.action === 'help'} />}
+                {((!hide?.cancel) && this.plugin.config.get(PluginConfig.Viewport.ShowSelectionMode)) && (<IconButton svg={CancelOutlinedSvg} title='Turn selection mode off' onClick={this.turnOff} />)}
             </div>
             {children}
         </>;

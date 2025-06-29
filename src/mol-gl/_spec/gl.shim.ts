@@ -785,5 +785,6 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
         stencilMaskSeparate: function () { },
         stencilOp: function () { },
         stencilOpSeparate: function () { },
+        unpackColorSpace: 'srgb',
     };
 }

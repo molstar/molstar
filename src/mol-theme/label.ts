@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -262,6 +262,7 @@ function _atomicElementLabel(location: StructureElement.Location<Unit.Atomic>, g
     const atom_id = Props.atom.label_atom_id(location);
     const alt_id = Props.atom.label_alt_id(location);
     const occupancy = Props.atom.occupancy(location);
+    const sourceIndex = Props.atom.sourceIndex(location);
 
     const microHetCompIds = Props.residue.microheterogeneityCompIds(location);
     const compId = granularity === 'residue' && microHetCompIds.length > 1 ?
@@ -270,8 +271,11 @@ function _atomicElementLabel(location: StructureElement.Location<Unit.Atomic>, g
     const label: string[] = [];
 
     switch (granularity) {
-        case 'element':
-            label.push(`<b>${atom_id}</b>${alt_id ? `%${alt_id}` : ''}`);
+        case 'element': {
+            const base = `<b>${atom_id}</b>${alt_id ? `%${alt_id}` : ''}`;
+            const idx = `<small style='margin-left: 4px'>[idx <b>${sourceIndex + 1}</b>]</small>`;
+            label.push(`${base}${idx}`);
+        }
         case 'conformation':
             if (granularity === 'conformation' && alt_id) {
                 label.push(`<small>Conformation</small> <b>${alt_id}</b>`);

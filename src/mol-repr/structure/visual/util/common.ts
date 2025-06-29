@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -18,9 +18,56 @@ import { getBoundary } from '../../../../mol-math/geometry/boundary';
 import { Box3D, Sphere3D } from '../../../../mol-math/geometry';
 import { SizeTheme } from '../../../../mol-theme/size';
 import { hasPolarNeighbour } from '../../../../mol-model-props/computed/chemistry/functional-group';
+import { isDebugMode } from '../../../../mol-util/debug';
+import { WebGLContext } from '../../../../mol-gl/webgl/context';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const m4toArray = Mat4.toArray;
+
+let SphereImpostorWarningShown = false;
+
+export function checkSphereImpostorSupport(webgl?: WebGLContext) {
+    if (!webgl) {
+        if (isDebugMode && !SphereImpostorWarningShown) {
+            console.warn('WebGL required for "sphere impostors". Falling back to "sphere mesh".');
+            SphereImpostorWarningShown = true;
+        }
+    } else if (!webgl.extensions.fragDepth || !webgl.extensions.textureFloat) {
+        if (isDebugMode && !SphereImpostorWarningShown) {
+            const missing: string[] = [];
+            if (!webgl.extensions.fragDepth) missing.push('fragDepth');
+            if (!webgl.extensions.textureFloat) missing.push('textureFloat');
+            console.warn(`Missing "${missing.join('", "')}" extensions required for "sphere impostors". Falling back to "sphere mesh".`);
+            SphereImpostorWarningShown = true;
+        }
+    } else {
+        return true;
+    }
+    return false;
+}
+
+let CylinderImpostorWarningShown = false;
+
+export function checkCylinderImpostorSupport(webgl?: WebGLContext) {
+    if (!webgl) {
+        if (isDebugMode && !CylinderImpostorWarningShown) {
+            console.warn('WebGL required for "cylinder impostors". Falling back to "cylinder mesh".');
+            CylinderImpostorWarningShown = true;
+        }
+    } else if (!webgl.extensions.fragDepth) {
+        if (isDebugMode && !CylinderImpostorWarningShown) {
+            const missing: string[] = [];
+            if (!webgl.extensions.fragDepth) missing.push('fragDepth');
+            console.warn(`Missing "${missing.join('", "')}" extensions required for "cylinder impostors". Falling back to "cylinder mesh".`);
+            CylinderImpostorWarningShown = true;
+        }
+    } else {
+        return true;
+    }
+    return false;
+}
+
+//
 
 /** Return a Loci for the elements of a whole residue the elementIndex belongs to. */
 export function getResidueLoci(structure: Structure, unit: Unit.Atomic, elementIndex: ElementIndex): Loci {

@@ -7,6 +7,7 @@
 import { Location } from '../../../mol-model/location';
 import { Bond, Structure, StructureElement } from '../../../mol-model/structure';
 import { ColorTheme, LocationColor } from '../../../mol-theme/color';
+import { ColorThemeCategory } from '../../../mol-theme/color/categories';
 import { ThemeDataContext } from '../../../mol-theme/theme';
 import { Color } from '../../../mol-util/color';
 import { ColorNames } from '../../../mol-util/color/names';
@@ -139,7 +140,7 @@ export function makeMultilayerColorThemeProvider(colorThemeRegistry: ColorTheme.
     return {
         name: MultilayerColorThemeName,
         label: 'MVS Multi-layer',
-        category: ColorTheme.Category.Misc,
+        category: ColorThemeCategory.Misc,
         factory: (ctx, props) => makeMultilayerColorTheme(ctx, props, colorThemeRegistry),
         getParams: (ctx: ThemeDataContext) => makeMultilayerColorThemeParams(colorThemeRegistry, ctx),
         defaultValues: DefaultMultilayerColorThemeProps,

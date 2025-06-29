@@ -1,10 +1,12 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { hashFnv32a } from '../../../mol-data/util';
+import { StringLike } from '../../../mol-io/common/string-like';
 import { DataFormatProvider } from '../../../mol-plugin-state/formats/provider';
 import { PluginStateObject as SO } from '../../../mol-plugin-state/objects';
 import { Download } from '../../../mol-plugin-state/transforms/data';
@@ -14,7 +16,7 @@ import { RuntimeContext, Task } from '../../../mol-task';
 import { Asset, AssetManager } from '../../../mol-util/assets';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { unzip } from '../../../mol-util/zip/zip';
-import { loadMVS } from '../load';
+import { loadMVS, MVSLoadOptions } from '../load';
 import { MVSData } from '../mvs-data';
 import { MVSTransform } from './annotation-structure-component';
 
@@ -30,7 +32,7 @@ export const ParseMVSJ = MVSTransform({
     to: Mvs,
 })({
     apply({ a }, plugin: PluginContext) {
-        const mvsData = MVSData.fromMVSJ(a.data);
+        const mvsData = MVSData.fromMVSJ(StringLike.toString(a.data));
         const sourceUrl = tryGetDownloadUrl(a, plugin);
         return new Mvs({ mvsData, sourceUrl });
     },
@@ -57,7 +59,7 @@ export const ParseMVSX = MVSTransform({
 
 /** Params for the `LoadMvsData` action */
 export const LoadMvsDataParams = {
-    replaceExisting: PD.Boolean(false, { description: 'If true, the loaded MVS view will replace the current state; if false, the MVS view will be added to the current state.' }),
+    appendSnapshots: PD.Boolean(false, { description: 'If true, add snapshots from MVS into current snapshot list; if false, replace the snapshot list.' }),
     keepCamera: PD.Boolean(false, { description: 'If true, any camera positioning from the MVS state will be ignored and the current camera position will be kept.' }),
     applyExtensions: PD.Boolean(true, { description: 'If true, apply builtin MVS-loading extensions (not a part of standard MVS specification).' }),
 };
@@ -69,7 +71,7 @@ export const LoadMvsData = StateAction.build({
     params: LoadMvsDataParams,
 })(({ a, params }, plugin: PluginContext) => Task.create('Load MVS Data', async () => {
     const { mvsData, sourceUrl } = a.data;
-    await loadMVS(plugin, mvsData, { replaceExisting: params.replaceExisting, keepCamera: params.keepCamera, sourceUrl: sourceUrl, extensions: params.applyExtensions ? undefined : [] });
+    await loadMVS(plugin, mvsData, { appendSnapshots: params.appendSnapshots, keepCamera: params.keepCamera, sourceUrl: sourceUrl, extensions: params.applyExtensions ? undefined : [] });
 }));
 
 
@@ -111,6 +113,11 @@ export const MVSXFormatProvider: DataFormatProvider<{}, StateObjectRef<Mvs>, any
  * and parse the main file in the archive as MVSJ.
  * Return parsed MVS data and `sourceUrl` for resolution of relative URIs.  */
 export async function loadMVSX(plugin: PluginContext, runtimeCtx: RuntimeContext, data: Uint8Array, mainFilePath: string = 'index.mvsj'): Promise<{ mvsData: MVSData, sourceUrl: string }> {
+    // Ensure at most one generation of MVSX file assets exists in the asset manager.
+    // Hopefully, this is a reasonable compromise to ensure MVSX files work in multi-snapshot
+    // states.
+    clearMVSXFileAssets(plugin);
+
     const archiveId = `ni,fnv1a;${hashFnv32a(data)}`;
     let files: { [path: string]: Uint8Array };
     try {
@@ -121,13 +128,48 @@ export async function loadMVSX(plugin: PluginContext, runtimeCtx: RuntimeContext
     }
     for (const path in files) {
         const url = arcpUri(archiveId, path);
-        ensureUrlAsset(plugin.managers.asset, url, files[path]);
+        // Need to use static assets so they persist accross snapsho
+        ensureUrlAsset(plugin.managers.asset, url, files[path], { isFile: true });
     }
     const mainFile = files[mainFilePath];
     if (!mainFile) throw new Error(`File ${mainFilePath} not found in the MVSX archive`);
     const mvsData = MVSData.fromMVSJ(decodeUtf8(mainFile));
     const sourceUrl = arcpUri(archiveId, mainFilePath);
     return { mvsData, sourceUrl };
+}
+
+export async function loadMVSData(plugin: PluginContext, data: MVSData | StringLike | Uint8Array, format: 'mvsj' | 'mvsx', options?: MVSLoadOptions) {
+    if (typeof data === 'string' && data.startsWith('base64')) {
+        data = Uint8Array.from(atob(data.substring(7)), c => c.charCodeAt(0)); // Decode base64 string to Uint8Array
+    }
+
+    if (format === 'mvsj') {
+        if ((data as Uint8Array).BYTES_PER_ELEMENT && (data as Uint8Array).buffer) {
+            data = new TextDecoder().decode(data as Uint8Array); // Decode Uint8Array to string using UTF8
+        }
+
+        let mvsData: MVSData;
+        if (typeof data === 'string') {
+            mvsData = MVSData.fromMVSJ(data);
+        } else {
+            mvsData = data as MVSData;
+        }
+        await loadMVS(plugin, mvsData, { sanityChecks: true, sourceUrl: undefined, ...options });
+    } else if (format === 'mvsx') {
+        if (typeof data === 'string') {
+            throw new Error("loadMvsData: if `format` is 'mvsx', then `data` must be a Uint8Array or a base64-encoded string prefixed with 'base64,'.");
+        }
+        await plugin.runTask(Task.create('Load MVSX file', async ctx => {
+            const parsed = await loadMVSX(plugin, ctx, data as Uint8Array);
+            await loadMVS(plugin, parsed.mvsData, { sanityChecks: true, ...options, sourceUrl: parsed.sourceUrl });
+        }));
+    } else {
+        throw new Error(`Unknown MolViewSpec format: ${format}`);
+    }
+}
+
+function clearMVSXFileAssets(plugin: PluginContext) {
+    plugin.managers.asset.clearTag('mvsx-file');
 }
 
 /** If the PluginStateObject `pso` comes from a Download transform, try to get its `url` parameter. */
@@ -146,11 +188,13 @@ function arcpUri(archiveId: string, path: string): string {
 
 /** Add a URL asset to asset manager.
  * Skip if an asset with the same URL already exists. */
-function ensureUrlAsset(manager: AssetManager, url: string, data: Uint8Array) {
+function ensureUrlAsset(manager: AssetManager, url: string, data: Uint8Array, options?: { isFile?: boolean }) {
     const asset = Asset.getUrlAsset(manager, url);
     if (!manager.has(asset)) {
         const filename = url.split('/').pop() ?? 'file';
-        manager.set(asset, new File([data], filename));
+        // We need to mark files as static resources to prevent deleting them
+        // when changing state snapshots.
+        manager.set(asset, new File([data], filename), options?.isFile ? { isStatic: true, tag: 'mvsx-file' } : undefined);
     }
 }
 

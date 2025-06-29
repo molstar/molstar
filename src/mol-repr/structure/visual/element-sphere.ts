@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -12,7 +12,7 @@ import { createElementSphereImpostor, ElementIterator, getElementLoci, eachEleme
 import { VisualUpdateState } from '../../util';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
 import { Structure } from '../../../mol-model/structure';
-import { StructureGroup } from './util/common';
+import { checkSphereImpostorSupport, StructureGroup } from './util/common';
 import { ComplexMeshParams, ComplexMeshVisual, ComplexSpheresParams, ComplexSpheresVisual, ComplexVisual } from '../complex-visual';
 
 export const CommonElementSphereParams = {
@@ -35,7 +35,7 @@ export const ElementSphereParams = {
 export type ElementSphereParams = typeof ElementSphereParams
 
 export function ElementSphereVisual(materialId: number, structure: Structure, props: PD.Values<ElementSphereParams>, webgl?: WebGLContext) {
-    return props.tryUseImpostor && webgl && webgl.extensions.fragDepth && webgl.extensions.textureFloat
+    return props.tryUseImpostor && checkSphereImpostorSupport(webgl)
         ? ElementSphereImpostorVisual(materialId)
         : ElementSphereMeshVisual(materialId);
 }

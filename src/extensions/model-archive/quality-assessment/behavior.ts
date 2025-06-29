@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021-24 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-25 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -38,10 +38,7 @@ export const MAQualityAssessment = PluginBehavior.create<{ autoAttach: boolean, 
         private labelProvider = {
             label: (loci: Loci): string | undefined => {
                 if (!this.params.showTooltip) return;
-                return [
-                    plddtLabel(loci),
-                    qmeanLabel(loci),
-                ].filter(l => !!l).join('</br>');
+                return metricLabels(loci)?.join('</br>');
             }
         };
 
@@ -106,59 +103,77 @@ function plddtCategory(score: number) {
     return 'Very low';
 }
 
-function plddtLabel(loci: Loci): string | undefined {
-    return metricLabel(loci, 'pLDDT', (scoreAvg: number, countInfo: string) => `pLDDT Score ${countInfo}: ${scoreAvg.toFixed(2)} <small>(${plddtCategory(scoreAvg)})</small>`);
+function buildLabel(metric: QualityAssessment.Local, scoreAvg: number, countInfo: string) {
+    let label = metric.name;
+    if (metric.type !== metric.name) label += ` (${metric.type})`;
+    if (countInfo) label += countInfo;
+    label += `: ${scoreAvg.toFixed(2)}`;
+    if (metric.kind === 'pLDDT') label += ` <small>(${plddtCategory(scoreAvg)})</small>`;
+    return label;
 }
 
-function qmeanLabel(loci: Loci): string | undefined {
-    return metricLabel(loci, 'qmean', (scoreAvg: number, countInfo: string) => `QMEAN Score ${countInfo}: ${scoreAvg.toFixed(2)}`);
+interface MetricAggregate {
+    metric: QualityAssessment.Local,
+    scoreSum: number,
+    seenResidues: Set<number>,
 }
 
-function metricLabel(loci: Loci, name: 'qmean' | 'pLDDT', label: (scoreAvg: number, countInfo: string) => string): string | undefined {
-    if (loci.kind === 'element-loci') {
-        if (loci.elements.length === 0) return;
+function metricLabels(loci: Loci): string[] | undefined {
+    if (loci.kind !== 'element-loci') return;
+    if (loci.elements.length === 0) return;
 
-        const seen = new Set<number>();
-        const scoreSeen = new Set<number>();
-        let scoreSum = 0;
+    const seenMetrics: MetricAggregate[] = [];
+    const aggregates = new Map<string, MetricAggregate>();
 
-        for (const { indices, unit } of loci.elements) {
-            const metric = QualityAssessmentProvider.get(unit.model).value?.[name];
-            if (!metric) continue;
+    for (const { indices, unit } of loci.elements) {
+        const metrics = QualityAssessmentProvider.get(unit.model).value?.local;
+        if (!metrics) continue;
 
-            const residueIndex = unit.model.atomicHierarchy.residueAtomSegments.index;
-            const { elements } = unit;
+        const residueIndex = unit.model.atomicHierarchy.residueAtomSegments.index;
+        const { elements } = unit;
+
+        for (const metric of metrics) {
+            const key = `${metric.name}-${metric.type}`;
+            let aggregate = aggregates.get(key);
+            if (!aggregate) {
+                aggregate = { metric, scoreSum: 0, seenResidues: new Set() };
+                aggregates.set(key, aggregate);
+                seenMetrics.push(aggregate);
+            }
+
+            const values = metric.values;
+            const { seenResidues } = aggregate;
 
             OrderedSet.forEach(indices, idx => {
                 const eI = elements[idx];
                 const rI = residueIndex[eI];
 
                 const residueKey = cantorPairing(rI, unit.id);
-                if (!seen.has(residueKey)) {
-                    const score = metric.get(residueIndex[eI]) ?? -1;
-                    if (score !== -1) {
-                        scoreSum += score;
-                        scoreSeen.add(residueKey);
-                    }
-                    seen.add(residueKey);
-                }
+                if (seenResidues.has(residueKey)) return;
+
+                const score = values.get(residueIndex[eI]);
+                if (typeof score === 'undefined') return;
+
+                aggregate!.scoreSum += score;
+                aggregate!.seenResidues.add(residueKey);
             });
         }
-
-        if (seen.size === 0) return;
-
-        const summary: string[] = [];
-
-        if (scoreSeen.size) {
-            const countInfo = `<small>(${scoreSeen.size} ${scoreSeen.size > 1 ? 'Residues avg.' : 'Residue'})</small>`;
-            const scoreAvg = scoreSum / scoreSeen.size;
-            summary.push(label(scoreAvg, countInfo));
-        }
-
-        if (summary.length) {
-            return summary.join('</br>');
-        }
     }
+
+    if (seenMetrics.length === 0) return;
+
+    const labels: string[] = [];
+    for (const { metric, scoreSum, seenResidues } of seenMetrics) {
+        let countInfo = '';
+        if (seenResidues.size > 1) {
+            countInfo = ` <small>(${seenResidues.size} Residues avg.)</small>`;
+        }
+        const scoreAvg = scoreSum / seenResidues.size;
+        const label = buildLabel(metric, scoreAvg, countInfo);
+        labels.push(label);
+    }
+
+    return labels;
 }
 
 //

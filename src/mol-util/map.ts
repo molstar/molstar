@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 export interface DefaultMap<K, V> extends Map<K, V> {
@@ -35,3 +36,12 @@ export function DefaultMap<K, V>(valueCtor: () => V) {
 //         return value
 //     }
 // }
+
+export function arrayMapAdd<K, V>(map: Map<K, V[]>, key: K, value: V) {
+    const a = map.get(key);
+    if (a) {
+        a.push(value);
+    } else {
+        map.set(key, [value]);
+    }
+}

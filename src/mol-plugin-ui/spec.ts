@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Ventura Rivera <venturaxrivera@gmail.com>
  */
 
 
@@ -11,10 +12,10 @@ import { CreateVolumeStreamingBehavior } from '../mol-plugin/behavior/dynamic/vo
 import { DefaultPluginSpec, PluginSpec } from '../mol-plugin/spec';
 import { StateAction, StateTransformer } from '../mol-state';
 import { VolumeStreamingCustomControls } from './custom/volume';
+import { Loci } from '../mol-model/loci';
+import { SequenceViewMode } from './sequence';
 
-export { PluginUISpec };
-
-interface PluginUISpec extends PluginSpec {
+export interface PluginUISpec extends PluginSpec {
     customParamEditors?: [StateAction | StateTransformer, StateTransformParameters.Class][],
     components?: {
         controls?: PluginUISpec.LayoutControls
@@ -27,13 +28,32 @@ interface PluginUISpec extends PluginSpec {
         },
         sequenceViewer?: {
             view?: React.ComponentClass | React.FC
+            modeOptions?: SequenceViewMode[],
+            defaultMode?: SequenceViewMode,
         }
         hideTaskOverlay?: boolean,
         disableDragOverlay?: boolean,
+        selectionTools?: {
+            controls?: React.ComponentClass | React.FC,
+            granularityOptions?: Loci.Granularity[],
+            hide?: {
+                granularity?: boolean,
+                union?: boolean,
+                subtract?: boolean,
+                intersect?: boolean,
+                set?: boolean,
+                theme?: boolean,
+                componentAdd?: boolean,
+                componentRemove?: boolean,
+                undo?: boolean,
+                help?: boolean,
+                cancel?: boolean,
+            },
+        },
     },
 }
 
-namespace PluginUISpec {
+export namespace PluginUISpec {
     export interface LayoutControls {
         top?: React.ComponentClass | React.FC | 'none',
         left?: React.ComponentClass | React.FC | 'none',

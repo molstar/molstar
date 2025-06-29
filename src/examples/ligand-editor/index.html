@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <title>Mol* Ligand Editor Example</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                font-family: sans-serif;
+            }
+            #app {
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                right: 0;
+            }
+            .editor-controls button {
+                padding: 0 8px;
+                background-color: transparent;
+                color: black;
+                border: 1px solid rgb(206, 200, 186);
+                border-radius: 0;
+                cursor: pointer;
+                height: 24px;
+            }
+            .editor-controls input[type="text"] {
+                padding: 0 8px;
+                border: 1px solid rgb(206, 200, 186);
+                border-radius: 0;
+                height: 24px;
+            }
+            .editor-controls textarea {
+                padding: 4px 8px;
+                border: 1px solid rgb(206, 200, 186);
+                border-radius: 0;
+            }
+            .editor-controls button:hover, .editor-controls input:hover, .editor-controls textarea:hover {
+                background-color: rgba(206, 200, 186, 0.1);
+            }
+            .msp-selection-viewport-controls {
+                display: none;
+            }
+        </style>
+        <link rel="stylesheet" type="text/css" href="molstar.css" />
+    </head>
+    <body>
+        <div id="app"></div>
+        </div>
+        <script type="text/javascript" src="./index.js"></script>
+        <script>
+            initLigandEditorExample('app');
+        </script>
+    </body>
+</html>

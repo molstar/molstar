@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -884,6 +884,14 @@ namespace Structure {
             const chainGroupId = this.inChainGroup ? this.chainGroupId : ++this.chainGroupId;
             const unit = Unit.create(this.units.length, invariantId, chainGroupId, traits, kind, model, operator, elements);
             return this.add(unit);
+        }
+
+        copyUnit(unit: Unit, options?: Unit.GetCopyOptions & { invariantId?: number }): Unit {
+            let invariantId = options?.invariantId;
+            if (invariantId === undefined) invariantId = this.invariantId();
+            const chainGroupId = this.inChainGroup ? this.chainGroupId : ++this.chainGroupId;
+            const newUnit = unit.getCopy(this.units.length, invariantId, chainGroupId, options);
+            return this.add(newUnit);
         }
 
         private add(unit: Unit) {

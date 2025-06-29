@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -8,6 +8,7 @@
 import { SpacegroupCell, Box3D, Sphere3D } from '../../mol-math/geometry';
 import { Tensor, Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { Histogram, calculateHistogram } from '../../mol-math/histogram';
+import { lerp } from '../../mol-math/interpolate';
 
 /** The basic unit cell that contains the grid data. */
 interface Grid {
@@ -75,6 +76,59 @@ namespace Grid {
             histograms[binCount] = calculateHistogram(grid.cells.data, binCount, { min: grid.stats.min, max: grid.stats.max });
         }
         return histograms[binCount];
+    }
+
+    export function makeGetTrilinearlyInterpolated(grid: Grid, transform: 'none' | 'relative') {
+        const cartnToGrid = Grid.getGridToCartesianTransform(grid);
+        Mat4.invert(cartnToGrid, cartnToGrid);
+        const gridCoords = Vec3();
+
+        const { stats } = grid;
+        const { dimensions, get } = grid.cells.space;
+        const data = grid.cells.data;
+
+        const [mi, mj, mk] = dimensions;
+
+        return function getTrilinearlyInterpolated(position: Vec3): number {
+            Vec3.copy(gridCoords, position);
+            Vec3.transformMat4(gridCoords, gridCoords, cartnToGrid);
+
+            const i = Math.trunc(gridCoords[0]);
+            const j = Math.trunc(gridCoords[1]);
+            const k = Math.trunc(gridCoords[2]);
+
+            if (i < 0 || i >= mi || j < 0 || j >= mj || k < 0 || k >= mk) {
+                return Number.NaN;
+            }
+
+            const u = gridCoords[0] - i;
+            const v = gridCoords[1] - j;
+            const w = gridCoords[2] - k;
+
+            // Tri-linear interpolation for the value
+            const ii = Math.min(i + 1, mi - 1);
+            const jj = Math.min(j + 1, mj - 1);
+            const kk = Math.min(k + 1, mk - 1);
+
+            let a = get(data, i, j, k);
+            let b = get(data, ii, j, k);
+            let c = get(data, i, jj, k);
+            let d = get(data, ii, jj, k);
+            const x = lerp(lerp(a, b, u), lerp(c, d, u), v);
+
+            a = get(data, i, j, kk);
+            b = get(data, ii, j, kk);
+            c = get(data, i, jj, kk);
+            d = get(data, ii, jj, kk);
+            const y = lerp(lerp(a, b, u), lerp(c, d, u), v);
+
+            const value = lerp(x, y, w);
+            if (transform === 'relative') {
+                return (value - stats.mean) / stats.sigma;
+            } else {
+                return value;
+            }
+        };
     }
 }
 

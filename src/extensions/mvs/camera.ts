@@ -7,17 +7,22 @@
 
 import { Camera } from '../../mol-canvas3d/camera';
 import { Canvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';
+import { OutlineParams } from '../../mol-canvas3d/passes/outline';
+import { ShadowParams } from '../../mol-canvas3d/passes/shadow';
+import { SsaoParams } from '../../mol-canvas3d/passes/ssao';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { getFocusSnapshot, getPluginBoundingSphere } from '../../mol-plugin-state/manager/focus-camera/focus-object';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginState } from '../../mol-plugin/state';
 import { StateObjectSelector } from '../../mol-state';
+import { fovAdjustedPosition } from '../../mol-util/camera';
 import { ColorNames } from '../../mol-util/color/names';
+import { ParamDefinition } from '../../mol-util/param-definition';
 import { decodeColor } from './helpers/utils';
 import { MolstarLoadingContext } from './load';
 import { SnapshotMetadata } from './mvs-data';
-import { MolstarNodeParams } from './tree/molstar/molstar-tree';
+import { MolstarNode, MolstarNodeParams } from './tree/molstar/molstar-tree';
 import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 
@@ -98,24 +103,6 @@ function resetSceneRadiusFactor(plugin: PluginContext) {
     plugin.canvas3d?.setProps({ sceneRadiusFactor });
 }
 
-/** Return the distance adjustment ratio for conversion from the "reference camera"
- * to a camera with an arbitrary field of view `fov`. */
-function distanceAdjustment(mode: Camera.Mode, fov: number) {
-    if (mode === 'orthographic') return 1 / (2 * Math.tan(fov / 2));
-    else return 1 / (2 * Math.sin(fov / 2));
-}
-
-/** Return the position for a camera with an arbitrary field of view `fov`
- * necessary to just fit into view the same sphere (with center at `target`)
- * as the "reference camera" placed at `refPosition` would fit, while keeping the camera orientation.
- * The "reference camera" is a camera which can just fit into view a sphere of radius R with center at distance 2R
- * (this corresponds to FOV = 2 * asin(1/2) in perspective mode or FOV = 2 * atan(1/2) in orthographic mode). */
-function fovAdjustedPosition(target: Vec3, refPosition: Vec3, mode: Camera.Mode, fov: number) {
-    const delta = Vec3.sub(Vec3(), refPosition, target);
-    const adjustment = distanceAdjustment(mode, fov);
-    return Vec3.scaleAndAdd(delta, target, delta, adjustment); // return target + delta * adjustment
-}
-
 /** Create object for PluginState.Snapshot.camera based on tree loading context and MVS snapshot metadata */
 export function createPluginStateSnapshotCamera(plugin: PluginContext, context: MolstarLoadingContext, metadata: SnapshotMetadata & { previousTransitionDurationMs?: number }): PluginState.Snapshot['camera'] {
     const camera: PluginState.Snapshot['camera'] = {
@@ -132,16 +119,34 @@ export function createPluginStateSnapshotCamera(plugin: PluginContext, context: 
     return camera;
 }
 
-/** Set canvas properties based on a canvas node params. */
-export function setCanvas(plugin: PluginContext, params: MolstarNodeParams<'canvas'> | undefined) {
-    plugin.canvas3d?.setProps(old => modifyCanvasProps(old, params));
+/** Set canvas properties based on a canvas node. */
+export function setCanvas(plugin: PluginContext, node: MolstarNode<'canvas'> | undefined) {
+    plugin.canvas3d?.setProps(old => modifyCanvasProps(old, node));
 }
 
 /** Create a deep copy of `oldCanvasProps` with values modified according to a canvas node params. */
-export function modifyCanvasProps(oldCanvasProps: Canvas3DProps, params: MolstarNodeParams<'canvas'> | undefined): Canvas3DProps {
+export function modifyCanvasProps(oldCanvasProps: Canvas3DProps, canvasNode: MolstarNode<'canvas'> | undefined, custom?: Record<string, any>): Canvas3DProps {
+    const params = canvasNode?.params;
     const backgroundColor = decodeColor(params?.background_color) ?? DefaultCanvasBackgroundColor;
+
+    const outline = !!canvasNode?.custom?.molstar_enable_outline;
+    const shadow = !!canvasNode?.custom?.molstar_enable_shadow;
+    const occlusion = !!canvasNode?.custom?.molstar_enable_ssao;
+
     return {
         ...oldCanvasProps,
+        postprocessing: {
+            ...oldCanvasProps.postprocessing,
+            outline: outline
+                ? { name: 'on', params: ParamDefinition.getDefaultValues(OutlineParams) }
+                : oldCanvasProps.postprocessing.outline,
+            shadow: shadow
+                ? { name: 'on', params: ParamDefinition.getDefaultValues(ShadowParams) }
+                : oldCanvasProps.postprocessing.shadow,
+            occlusion: occlusion
+                ? { name: 'on', params: ParamDefinition.getDefaultValues(SsaoParams) }
+                : oldCanvasProps.postprocessing.occlusion,
+        },
         renderer: {
             ...oldCanvasProps.renderer,
             backgroundColor: backgroundColor,

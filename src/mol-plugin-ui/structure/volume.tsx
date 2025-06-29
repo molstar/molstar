@@ -372,7 +372,7 @@ class VolumeRepresentationControls extends PurePluginUIComponent<{ volume: Volum
         return repr.transform.params?.type.name === 'isosurface';
     }
 
-    isoValueParams = memoizeLatest((_: any) => {
+    isoValueParams = memoizeLatest((ref: any, type: string | undefined) => {
         const repr = this.props.representation.cell;
         const params = repr.transform.params;
         if (params?.type.name !== 'isosurface') return undefined;
@@ -383,7 +383,7 @@ class VolumeRepresentationControls extends PurePluginUIComponent<{ volume: Volum
         const repr = this.props.representation.cell;
         const params = repr.transform.params;
         const color = this.color;
-        const isoParams = this.isoValueParams(repr.transform.ref);
+        const isoParams = this.isoValueParams(repr.transform.ref, params?.type.name);
 
         return <>
             <div className='msp-flex-row'>

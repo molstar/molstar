@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -38,6 +38,8 @@ varying vec2 vTexCoord;
 #include matrix_scale
 
 void main(void){
+    int vertexId = VertexID;
+
     #include assign_group
     #include assign_color_varying
     #include assign_marker_varying

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -17,14 +17,13 @@ import { QualityAssessment } from '../../extensions/model-archive/quality-assess
 import { ModelExport } from '../../extensions/model-export';
 import { Mp4Export } from '../../extensions/mp4-export';
 import { MolViewSpec } from '../../extensions/mvs/behavior';
-import { loadMVSX } from '../../extensions/mvs/components/formats';
+import { loadMVSData, loadMVSX } from '../../extensions/mvs/components/formats';
 import { loadMVS, MolstarLoadingExtension } from '../../extensions/mvs/load';
 import { MVSData } from '../../extensions/mvs/mvs-data';
 import { PDBeStructureQualityReport } from '../../extensions/pdbe';
 import { RCSBValidationReport } from '../../extensions/rcsb';
 import { AssemblySymmetry, AssemblySymmetryConfig } from '../../extensions/assembly-symmetry';
 import { SbNcbrPartialCharges, SbNcbrPartialChargesPreset, SbNcbrPartialChargesPropertyProvider, SbNcbrTunnels } from '../../extensions/sb-ncbr';
-import { Volseg, VolsegVolumeServerConfig } from '../../extensions/volumes-and-segmentations';
 import { wwPDBChemicalComponentDictionary } from '../../extensions/wwpdb/ccd/behavior';
 import { wwPDBStructConnExtensionFunctions } from '../../extensions/wwpdb/struct-conn';
 import { ZenodoImport } from '../../extensions/zenodo';
@@ -58,16 +57,17 @@ import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
+import { OpenFiles } from '../../mol-plugin-state/actions/file';
+import { StringLike } from '../../mol-io/common/string-like';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
-export { consoleStats, setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
+export { consoleStats, setDebugMode, setProductionMode, setTimingMode, isProductionMode, isDebugMode, isTimingMode } from '../../mol-util/debug';
 
 const CustomFormats = [
     ['g3d', G3dProvider] as const
 ];
 
 export const ExtensionMap = {
-    'volseg': PluginSpec.Behavior(Volseg),
     'backgrounds': PluginSpec.Behavior(Backgrounds),
     'dnatco-ntcs': PluginSpec.Behavior(DnatcoNtCs),
     'pdbe-structure-quality-report': PluginSpec.Behavior(PDBeStructureQualityReport),
@@ -121,7 +121,6 @@ const DefaultViewerOptions = {
     pdbProvider: PluginConfig.Download.DefaultPdbProvider.defaultValue,
     emdbProvider: PluginConfig.Download.DefaultEmdbProvider.defaultValue,
     saccharideCompIdMapType: 'default' as SaccharideCompIdMapType,
-    volumesAndSegmentationsDefaultServer: VolsegVolumeServerConfig.DefaultServer.defaultValue,
     rcsbAssemblySymmetryDefaultServerType: AssemblySymmetryConfig.DefaultServerType.defaultValue,
     rcsbAssemblySymmetryDefaultServerUrl: AssemblySymmetryConfig.DefaultServerUrl.defaultValue,
     rcsbAssemblySymmetryApplyColors: AssemblySymmetryConfig.ApplyColors.defaultValue,
@@ -202,7 +201,6 @@ export class Viewer {
                 [PluginConfig.Download.DefaultEmdbProvider, o.emdbProvider],
                 [PluginConfig.Structure.DefaultRepresentationPreset, ViewerAutoPreset.id],
                 [PluginConfig.Structure.SaccharideCompIdMapType, o.saccharideCompIdMapType],
-                [VolsegVolumeServerConfig.DefaultServer, o.volumesAndSegmentationsDefaultServer],
                 [AssemblySymmetryConfig.DefaultServerType, o.rcsbAssemblySymmetryDefaultServerType],
                 [AssemblySymmetryConfig.DefaultServerUrl, o.rcsbAssemblySymmetryDefaultServerUrl],
                 [AssemblySymmetryConfig.ApplyColors, o.rcsbAssemblySymmetryApplyColors],
@@ -288,14 +286,21 @@ export class Viewer {
         }));
     }
 
+    /**
+     * @deprecated Scheduled for removal in v5. Use {@link loadPdbIhm | loadPdbIhm(pdbIhm: string)} instead.
+     */
     loadPdbDev(pdbDev: string) {
+        return this.loadPdbIhm(pdbDev);
+    }
+
+    loadPdbIhm(pdbIhm: string) {
         const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
         return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
             source: {
-                name: 'pdb-dev' as const,
+                name: 'pdb-ihm' as const,
                 params: {
                     provider: {
-                        id: pdbDev,
+                        id: pdbIhm,
                         encoding: 'bcif',
                     },
                     options: params.source.params.options,
@@ -489,7 +494,8 @@ export class Viewer {
                 : await plugin.builders.data.download({ url: params.model.url, isBinary: params.model.isBinary, label: params.modelLabel });
 
             const provider = plugin.dataFormats.get(params.model.format);
-            model = await provider!.parse(plugin, data);
+            const parsed = await provider!.parse(plugin, data);
+            model = parsed.topology;
         }
 
         const data = params.coordinates.kind === 'coordinates-data'
@@ -511,10 +517,10 @@ export class Viewer {
         return { model, coords, preset };
     }
 
-    async loadMvsFromUrl(url: string, format: 'mvsj' | 'mvsx', options?: { replaceExisting?: boolean, keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
+    async loadMvsFromUrl(url: string, format: 'mvsj' | 'mvsx', options?: { appendSnapshots?: boolean, keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
         if (format === 'mvsj') {
             const data = await this.plugin.runTask(this.plugin.fetch({ url, type: 'string' }));
-            const mvsData = MVSData.fromMVSJ(data);
+            const mvsData = MVSData.fromMVSJ(StringLike.toString(data));
             await loadMVS(this.plugin, mvsData, { sanityChecks: true, sourceUrl: url, ...options });
         } else if (format === 'mvsx') {
             const data = await this.plugin.runTask(this.plugin.fetch({ url, type: 'binary' }));
@@ -530,26 +536,24 @@ export class Viewer {
     /** Load MolViewSpec from `data`.
      * If `format` is 'mvsj', `data` must be a string or a Uint8Array containing a UTF8-encoded string.
      * If `format` is 'mvsx', `data` must be a Uint8Array or a string containing base64-encoded binary data prefixed with 'base64,'. */
-    async loadMvsData(data: string | Uint8Array, format: 'mvsj' | 'mvsx', options?: { replaceExisting?: boolean, keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
-        if (typeof data === 'string' && data.startsWith('base64')) {
-            data = Uint8Array.from(atob(data.substring(7)), c => c.charCodeAt(0)); // Decode base64 string to Uint8Array
-        }
-        if (format === 'mvsj') {
-            if (typeof data !== 'string') {
-                data = new TextDecoder().decode(data); // Decode Uint8Array to string using UTF8
-            }
-            const mvsData = MVSData.fromMVSJ(data);
-            await loadMVS(this.plugin, mvsData, { sanityChecks: true, sourceUrl: undefined, ...options });
-        } else if (format === 'mvsx') {
-            if (typeof data === 'string') {
-                throw new Error("loadMvsData: if `format` is 'mvsx', then `data` must be a Uint8Array or a base64-encoded string prefixed with 'base64,'.");
-            }
-            await this.plugin.runTask(Task.create('Load MVSX file', async ctx => {
-                const parsed = await loadMVSX(this.plugin, ctx, data as Uint8Array);
-                await loadMVS(this.plugin, parsed.mvsData, { sanityChecks: true, sourceUrl: parsed.sourceUrl, ...options });
-            }));
+    loadMvsData(data: string | Uint8Array, format: 'mvsj' | 'mvsx', options?: { appendSnapshots?: boolean, keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[] }) {
+        return loadMVSData(this.plugin, data, format, options);
+    }
+
+    loadFiles(files: File[]) {
+        const sessions = files.filter(f => {
+            const fn = f.name.toLowerCase();
+            return fn.endsWith('.molx') || fn.endsWith('.molj');
+        });
+
+        if (sessions.length > 0) {
+            return PluginCommands.State.Snapshots.OpenFile(this.plugin, { file: sessions[0] });
         } else {
-            throw new Error(`Unknown MolViewSpec format: ${format}`);
+            return this.plugin.runTask(this.plugin.state.data.applyAction(OpenFiles, {
+                files: files.map(f => Asset.File(f)),
+                format: { name: 'auto', params: {} },
+                visuals: true
+            }));
         }
     }
 
@@ -618,7 +622,7 @@ export const ViewerAutoPreset = StructureRepresentationPresetProvider({
 
 export const PluginExtensions = {
     wwPDBStructConn: wwPDBStructConnExtensionFunctions,
-    mvs: { MVSData, loadMVS },
+    mvs: { MVSData, loadMVS, loadMVSData },
     modelArchive: {
         qualityAssessment: {
             config: MAQualityAssessmentConfig

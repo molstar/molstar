@@ -8,5 +8,6 @@
 export * from './location';
 export * from './loci';
 export * from './bundle';
+export * from './schema';
 export * from './stats';
 export * from './util';

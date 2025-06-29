@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
@@ -18,6 +18,7 @@ precision highp int;
     uniform vec3 uClipObjectPosition[dClipObjectCount];
     uniform vec4 uClipObjectRotation[dClipObjectCount];
     uniform vec3 uClipObjectScale[dClipObjectCount];
+    uniform mat4 uClipObjectTransform[dClipObjectCount];
 #endif
 #include common_clip
 
@@ -122,6 +123,7 @@ uniform mat4 uCartnToUnit;
 #endif
 
 #ifdef dUsePalette
+    uniform vec2 uPaletteDomain;
     uniform sampler2D tPalette;
 #endif
 
@@ -240,7 +242,7 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
 
         #if defined(dClipVariant_pixel) && dClipObjectCount != 0
             vec3 vModelPosition = v3m4(unitPos * uGridDim, modelTransform);
-            if (clipTest(vec4(vModelPosition, 0.0))) {
+            if (clipTest(modelPosition)) {
                 prevValue = value;
                 pos += step;
                 continue;
@@ -271,7 +273,8 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
         #endif
 
         #if defined(dColorType_direct) && defined(dUsePalette)
-            material.rgb = texture2D(tPalette, vec2(value, 0.0)).rgb;
+            float paletteValue = (value - uPaletteDomain[0]) / (uPaletteDomain[1] - uPaletteDomain[0]);
+            material.rgb = texture2D(tPalette, vec2(clamp(paletteValue, 0.0, 1.0), 0.0)).rgb;
         #elif defined(dColorType_uniform)
             material.rgb = uColor;
         #elif defined(dColorType_instance)

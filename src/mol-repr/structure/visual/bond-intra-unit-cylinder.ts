@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -25,7 +25,7 @@ import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { Cylinders } from '../../../mol-geo/geometry/cylinders/cylinders';
 import { SortedArray } from '../../../mol-data/int';
 import { arrayIntersectionSize } from '../../../mol-util/array';
-import { StructureGroup } from './util/common';
+import { checkCylinderImpostorSupport, StructureGroup } from './util/common';
 import { SizeTheme } from '../../../mol-theme/size';
 import { ComplexCylindersParams, ComplexMeshParams, ComplexCylindersVisual, ComplexMeshVisual, ComplexVisual } from '../complex-visual';
 import { EmptyLocationIterator } from '../../../mol-geo/util/location-iterator';
@@ -228,7 +228,7 @@ export const IntraUnitBondCylinderParams = {
 export type IntraUnitBondCylinderParams = typeof IntraUnitBondCylinderParams
 
 export function IntraUnitBondCylinderVisual(materialId: number, structure: Structure, props: PD.Values<IntraUnitBondCylinderParams>, webgl?: WebGLContext) {
-    return props.tryUseImpostor && webgl && webgl.extensions.fragDepth
+    return props.tryUseImpostor && checkCylinderImpostorSupport(webgl)
         ? IntraUnitBondCylinderImpostorVisual(materialId)
         : IntraUnitBondCylinderMeshVisual(materialId);
 }

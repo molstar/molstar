@@ -9,7 +9,8 @@ import { PositionData } from './common';
 import { Vec3 } from '../linear-algebra';
 import { OrderedSet } from '../../mol-data/int';
 import { BoundaryHelper } from './boundary-helper';
-import { Box3D, Sphere3D } from '../geometry';
+import { Box3D } from '../geometry/primitives/box3d';
+import { Sphere3D } from '../geometry/primitives/sphere3d';
 
 export type Boundary = { readonly box: Box3D, readonly sphere: Sphere3D }
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -35,7 +35,7 @@ import { OperatorHklColorThemeProvider } from './color/operator-hkl';
 import { PartialChargeColorThemeProvider } from './color/partial-charge';
 import { AtomIdColorThemeProvider } from './color/atom-id';
 import { EntityIdColorThemeProvider } from './color/entity-id';
-import { Texture, TextureFilter } from '../mol-gl/webgl/texture';
+import type { Texture, TextureFilter } from '../mol-gl/webgl/texture';
 import { VolumeValueColorThemeProvider } from './color/volume-value';
 import { Vec3, Vec4 } from '../mol-math/linear-algebra';
 import { ModelIndexColorThemeProvider } from './color/model-index';
@@ -45,6 +45,11 @@ import { ExternalVolumeColorThemeProvider } from './color/external-volume';
 import { ColorThemeCategory } from './color/categories';
 import { CartoonColorThemeProvider } from './color/cartoon';
 import { FormalChargeColorThemeProvider } from './color/formal-charge';
+import { ExternalStructureColorThemeProvider } from './color/external-structure';
+import { ColorListEntry } from '../mol-util/color/color';
+import { getPrecision } from '../mol-util/number';
+import { SortedArray } from '../mol-data/int/sorted-array';
+import { normalize } from '../mol-math/interpolate';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -93,11 +98,60 @@ namespace ColorTheme {
     export const Category = ColorThemeCategory;
 
     export interface Palette {
+        colors: Color[],
         filter?: TextureFilter,
-        colors: Color[]
+        domain?: [number, number],
+        defaultColor?: Color,
     }
 
-    export const PaletteScale = (1 << 24) - 1;
+    export function Palette(list: ColorListEntry[], kind: 'set' | 'interpolate', domain?: [number, number], defaultColor?: Color): Palette {
+        const colors: Color[] = [];
+
+        const hasOffsets = list.every(c => Array.isArray(c));
+        if (hasOffsets) {
+            let maxPrecision = 0;
+            for (const e of list) {
+                if (Array.isArray(e)) {
+                    const p = getPrecision(e[1]);
+                    if (p > maxPrecision) maxPrecision = p;
+                }
+            }
+            const count = Math.pow(10, maxPrecision);
+
+            const sorted = [...list] as [Color, number][];
+            sorted.sort((a, b) => a[1] - b[1]);
+
+            const src = sorted.map(c => c[0]);
+            const values = SortedArray.ofSortedArray(sorted.map(c => c[1]));
+
+            const _off: number[] = [];
+            for (let i = 0, il = values.length - 1; i < il; ++i) {
+                _off.push(values[i] + (values[i + 1] - values[i]) / 2);
+            }
+            _off.push(values[values.length - 1]);
+            const off = SortedArray.ofSortedArray(_off);
+
+            for (let i = 0, il = Math.max(count, list.length); i < il; ++i) {
+                const t = normalize(i, 0, count - 1);
+                const j = SortedArray.findPredecessorIndex(off, t);
+                colors[i] = src[j];
+            }
+        } else {
+            for (const e of list) {
+                if (Array.isArray(e)) colors.push(e[0]);
+                else colors.push(e);
+            }
+        }
+
+        return {
+            colors,
+            filter: kind === 'set' ? 'nearest' : 'linear',
+            domain,
+            defaultColor,
+        };
+    }
+
+    export const PaletteScale = (1 << 24) - 2; // reserve (1 << 24) - 1 for undefiend values
 
     export type Props = { [k: string]: any }
     export type Factory<P extends PD.Params, G extends ColorType> = (ctx: ThemeDataContext, props: PD.Values<P>) => ColorTheme<P, G>
@@ -131,6 +185,8 @@ namespace ColorTheme {
         'element-symbol': ElementSymbolColorThemeProvider,
         'entity-id': EntityIdColorThemeProvider,
         'entity-source': EntitySourceColorThemeProvider,
+        'external-structure': ExternalStructureColorThemeProvider,
+        'external-volume': ExternalVolumeColorThemeProvider,
         'formal-charge': FormalChargeColorThemeProvider,
         'hydrophobicity': HydrophobicityColorThemeProvider,
         'illustrative': IllustrativeColorThemeProvider,
@@ -153,7 +209,6 @@ namespace ColorTheme {
         'uniform': UniformColorThemeProvider,
         'volume-segment': VolumeSegmentColorThemeProvider,
         'volume-value': VolumeValueColorThemeProvider,
-        'external-volume': ExternalVolumeColorThemeProvider,
     };
     type _BuiltIn = typeof BuiltIn
     export type BuiltIn = keyof _BuiltIn

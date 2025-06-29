@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
@@ -40,6 +40,7 @@ void trimSegment(const in vec4 start, inout vec4 end) {
 
 void main(){
     float aspect = uViewport.z / uViewport.w;
+    int vertexId = VertexID;
 
     #include assign_group
     #include assign_color_varying

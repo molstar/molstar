@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -70,7 +70,9 @@ void main(void){
         mapping = vec2(1.0, -1.0);
     }
 
-    vec4 positionGroup = readFromTexture(tPositionGroup, VertexID / 6, uTexDim);
+    int vertexId = VertexID / 6;
+
+    vec4 positionGroup = readFromTexture(tPositionGroup, vertexId, uTexDim);
     vec3 position = positionGroup.rgb;
     float group = positionGroup.a;
 
@@ -128,7 +130,7 @@ void main(void){
     }
 
     #if defined(dClipPrimitive) && !defined(dClipVariant_instance) && dClipObjectCount != 0
-        if (clipTest(vec4(vModelPosition.xyz, 0.0))) {
+        if (clipTest(vModelPosition)) {
             // move out of [ -w, +w ] to 'discard' in vert shader
             gl_Position.z = 2.0 * gl_Position.w;
         }

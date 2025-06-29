@@ -12,6 +12,7 @@ import { StructureElement, Model, ElementIndex, Bond } from '../../../../mol-mod
 import { Location } from '../../../../mol-model/location';
 import { CustomProperty } from '../../../../mol-model-props/common/custom-property';
 import { ValidationReportProvider, ValidationReport } from '../prop';
+import { ColorThemeCategory } from '../../../../mol-theme/color/categories';
 
 const DefaultColor = Color(0xCCCCCC);
 
@@ -61,7 +62,7 @@ export function RandomCoilIndexColorTheme(ctx: ThemeDataContext, props: {}): Col
 export const RandomCoilIndexColorThemeProvider: ColorTheme.Provider<{}, ValidationReport.Tag.RandomCoilIndex> = {
     name: ValidationReport.Tag.RandomCoilIndex,
     label: 'Random Coil Index',
-    category: ColorTheme.Category.Validation,
+    category: ColorThemeCategory.Validation,
     factory: RandomCoilIndexColorTheme,
     getParams: () => ({}),
     defaultValues: PD.getDefaultValues({}),

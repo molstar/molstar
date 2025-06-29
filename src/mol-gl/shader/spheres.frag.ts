@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -52,7 +52,7 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
     bool objectClipped = false;
 
     #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
-        if (clipTest(vec4(modelPos, 0.0))) {
+        if (clipTest(modelPos)) {
             objectClipped = true;
             fragmentDepth = -1.0;
         }

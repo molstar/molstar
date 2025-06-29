@@ -1,18 +1,22 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Mat3, Mat4, Vec3 } from '../../mol-math/linear-algebra';
+import { Volume } from '../../mol-model/volume';
 import { StructureComponentParams } from '../../mol-plugin-state/helpers/structure-component';
 import { StructureFromModel, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
-import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
+import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { StateTransformer } from '../../mol-state';
 import { arrayDistinct } from '../../mol-util/array';
+import { Color } from '../../mol-util/color';
+import { ColorListEntry } from '../../mol-util/color/color';
 import { canonicalJsonString } from '../../mol-util/json';
 import { stringToWords } from '../../mol-util/string';
-import { MVSAnnotationColorThemeProps, MVSAnnotationColorThemeProvider } from './components/annotation-color-theme';
+import { MVSAnnotationColorThemeProps, MVSAnnotationColorThemeProvider, MVSCategoricalPaletteProps, MVSContinuousPaletteProps, MVSDiscretePaletteProps } from './components/annotation-color-theme';
 import { MVSAnnotationLabelRepresentationProvider } from './components/annotation-label/representation';
 import { MVSAnnotationSpec } from './components/annotation-prop';
 import { MVSAnnotationStructureComponentProps } from './components/annotation-structure-component';
@@ -21,12 +25,15 @@ import { CustomLabelTextProps } from './components/custom-label/visual';
 import { CustomTooltipsProps } from './components/custom-tooltips-prop';
 import { MultilayerColorThemeName, MultilayerColorThemeProps, NoColor } from './components/multilayer-color-theme';
 import { SelectorAll } from './components/selector';
+import { MvsNamedColorDicts, MvsNamedColorLists } from './helpers/colors';
 import { rowToExpression, rowsToExpression } from './helpers/selections';
 import { ElementOfSet, decodeColor, isDefined, stringHash } from './helpers/utils';
 import { MolstarLoadingContext } from './load';
 import { Subtree, getChildren } from './tree/generic/tree-schema';
 import { dfs, formatObject } from './tree/generic/tree-utils';
 import { MolstarKind, MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree } from './tree/molstar/molstar-tree';
+import { DefaultColor } from './tree/mvs/mvs-tree';
+import { CategoricalPalette, CategoricalPaletteDefaults, ColorDictNameT, ColorListNameT, ContinuousPalette, ContinuousPaletteDefaults, DiscretePalette, DiscretePaletteDefaults } from './tree/mvs/param-types';
 
 
 export const AnnotationFromUriKinds = new Set(['color_from_uri', 'component_from_uri', 'label_from_uri', 'tooltip_from_uri'] satisfies MolstarKind[]);
@@ -34,10 +41,6 @@ export type AnnotationFromUriKind = ElementOfSet<typeof AnnotationFromUriKinds>
 
 export const AnnotationFromSourceKinds = new Set(['color_from_source', 'component_from_source', 'label_from_source', 'tooltip_from_source'] satisfies MolstarKind[]);
 export type AnnotationFromSourceKind = ElementOfSet<typeof AnnotationFromSourceKinds>
-
-/** Color to be used e.g. for representations without 'color' node */
-export const DefaultColor = 'white';
-
 
 /** Return a 4x4 matrix representing a rotation followed by a translation */
 export function transformFromRotationTranslation(rotation: number[] | null | undefined, translation: number[] | null | undefined): Mat4 {
@@ -91,10 +94,18 @@ export function collectAnnotationReferences(tree: Subtree<MolstarTree>, context:
         let spec: Omit<MVSAnnotationSpec, 'id'> | undefined = undefined;
         if (AnnotationFromUriKinds.has(node.kind as any)) {
             const p = (node as MolstarNode<AnnotationFromUriKind>).params;
-            spec = { source: { name: 'url', params: { url: p.uri, format: p.format } }, schema: p.schema, cifBlock: blockSpec(p.block_header, p.block_index), cifCategory: p.category_name ?? undefined };
+            spec = {
+                source: { name: 'url', params: { url: p.uri, format: p.format } }, schema: p.schema,
+                cifBlock: blockSpec(p.block_header, p.block_index), cifCategory: p.category_name,
+                fieldRemapping: Object.entries(p.field_remapping).map(([key, value]) => ({ standardName: key, actualName: value })),
+            };
         } else if (AnnotationFromSourceKinds.has(node.kind as any)) {
             const p = (node as MolstarNode<AnnotationFromSourceKind>).params;
-            spec = { source: { name: 'source-cif', params: {} }, schema: p.schema, cifBlock: blockSpec(p.block_header, p.block_index), cifCategory: p.category_name ?? undefined };
+            spec = {
+                source: { name: 'source-cif', params: {} }, schema: p.schema,
+                cifBlock: blockSpec(p.block_header, p.block_index), cifCategory: p.category_name,
+                fieldRemapping: Object.entries(p.field_remapping).map(([key, value]) => ({ standardName: key, actualName: value })),
+            };
         }
         if (spec) {
             const key = canonicalJsonString(spec as any);
@@ -283,29 +294,48 @@ export function componentFromXProps(node: MolstarNode<'component_from_uri' | 'co
 }
 
 /** Create props for `StructureRepresentation3D` transformer from a representation node. */
-export function representationProps(node: MolstarSubtree<'representation'>): Partial<StateTransformer.Params<StructureRepresentation3D>> {
+function representationPropsBase(node: MolstarSubtree<'representation'>): Partial<StateTransformer.Params<StructureRepresentation3D>> {
     const alpha = alphaForNode(node);
-    switch (node.params.type) {
+    const params = node.params;
+    switch (params.type) {
         case 'cartoon':
             return {
-                type: { name: 'cartoon', params: { alpha } },
+                type: { name: 'cartoon', params: { alpha, tubularHelices: params.tubular_helices } },
+                sizeTheme: { name: 'uniform', params: { value: params.size_factor } },
             };
         case 'ball_and_stick':
             return {
-                type: { name: 'ball-and-stick', params: { sizeFactor: 0.5, sizeAspectRatio: 0.5, alpha } },
+                type: { name: 'ball-and-stick', params: { sizeFactor: (params.size_factor ?? 1) * 0.5, sizeAspectRatio: 0.5, alpha, ignoreHydrogens: params.ignore_hydrogens } },
+            };
+        case 'spacefill':
+            return {
+                type: { name: 'spacefill', params: { alpha, ignoreHydrogens: params.ignore_hydrogens } },
+                sizeTheme: { name: 'physical', params: { scale: params.size_factor } },
+            };
+        case 'carbohydrate':
+            return {
+                type: { name: 'carbohydrate', params: { alpha, sizeFactor: params.size_factor ?? 1 } },
             };
         case 'surface':
             return {
-                type: { name: 'molecular-surface', params: { alpha } },
-                sizeTheme: { name: 'physical', params: { scale: 1 } },
+                type: { name: 'molecular-surface', params: { alpha, ignoreHydrogens: params.ignore_hydrogens } },
+                sizeTheme: { name: 'physical', params: { scale: params.size_factor } },
             };
         default:
             throw new Error('NotImplementedError');
     }
 }
 
+export function representationProps(node: MolstarSubtree<'representation'>): Partial<StateTransformer.Params<StructureRepresentation3D>> {
+    const base = representationPropsBase(node);
+    if (node.custom?.molstar_reprepresentation_params) {
+        base.type!.params = { ...base.type!.params, ...node.custom.molstar_reprepresentation_params };
+    }
+    return base;
+}
+
 /** Create value for `type.params.alpha` prop for `StructureRepresentation3D` transformer from a representation node based on 'opacity' nodes in its subtree. */
-export function alphaForNode(node: MolstarSubtree<'representation'>): number {
+export function alphaForNode(node: MolstarSubtree<'representation' | 'volume_representation'>): number {
     const children = getChildren(node).filter(c => c.kind === 'opacity');
     if (children.length > 0) {
         return children[children.length - 1].params.opacity;
@@ -313,8 +343,14 @@ export function alphaForNode(node: MolstarSubtree<'representation'>): number {
         return 1;
     }
 }
+
+function hasMolStarUseDefaultColoring(node: MolstarNode): boolean {
+    if (!node.custom) return false;
+    return 'molstar_use_default_coloring' in node.custom || 'molstar_color_theme_name' in node.custom;
+}
+
 /** Create value for `colorTheme` prop for `StructureRepresentation3D` transformer from a representation node based on color* nodes in its subtree. */
-export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri' | 'color_from_source' | 'representation'> | undefined, context: MolstarLoadingContext): StateTransformer.Params<StructureRepresentation3D>['colorTheme'] {
+export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri' | 'color_from_source' | 'representation'> | undefined, context: MolstarLoadingContext): StateTransformer.Params<StructureRepresentation3D>['colorTheme'] | undefined {
     if (node?.kind === 'representation') {
         const children = getChildren(node).filter(c => c.kind === 'color' || c.kind === 'color_from_uri' || c.kind === 'color_from_source') as MolstarNode<'color' | 'color_from_uri' | 'color_from_source'>[];
         if (children.length === 0) {
@@ -322,49 +358,203 @@ export function colorThemeForNode(node: MolstarSubtree<'color' | 'color_from_uri
                 name: 'uniform',
                 params: { value: decodeColor(DefaultColor) },
             };
+        } else if (children.length === 1 && hasMolStarUseDefaultColoring(children[0])) {
+            if (children[0].custom?.molstar_use_default_coloring) return undefined;
+            const custom = children[0].custom;
+            return {
+                name: custom?.molstar_color_theme_name ?? undefined,
+                params: custom?.molstar_color_theme_params ?? {},
+            };
         } else if (children.length === 1 && appliesColorToWholeRepr(children[0])) {
             return colorThemeForNode(children[0], context);
         } else {
             const layers: MultilayerColorThemeProps['layers'] = children.map(
-                c => ({ theme: colorThemeForNode(c, context), selection: componentPropsFromSelector(c.kind === 'color' ? c.params.selector : undefined) })
-            );
+                c => {
+                    const theme = colorThemeForNode(c, context);
+                    if (!theme) return undefined;
+                    return { theme, selection: componentPropsFromSelector(c.kind === 'color' ? c.params.selector : undefined) };
+                }
+            ).filter(t => !!t);
             return {
                 name: MultilayerColorThemeName,
                 params: { layers },
             };
         }
     }
-    let annotationId: string | undefined = undefined;
-    let fieldName: string | undefined = undefined;
-    let color: string | undefined = undefined;
-    switch (node?.kind) {
-        case 'color_from_uri':
-        case 'color_from_source':
-            annotationId = context.annotationMap.get(node);
-            fieldName = node.params.field_name;
-            break;
-        case 'color':
-            color = node.params.color;
-            break;
-    }
-    if (annotationId) {
-        return {
-            name: MVSAnnotationColorThemeProvider.name,
-            params: { annotationId, fieldName, background: NoColor } satisfies Partial<MVSAnnotationColorThemeProps>,
-        };
-    } else {
+    if (node?.kind === 'color') {
         return {
             name: 'uniform',
-            params: { value: decodeColor(color) },
+            params: { value: decodeColor(node.params.color) },
+        };
+    }
+    if (node?.kind === 'color_from_uri' || node?.kind === 'color_from_source') {
+        const annotationId = context.annotationMap.get(node);
+        if (annotationId === undefined) return {
+            name: 'uniform',
+            params: {},
+        };
+
+        const fieldName = node.params.field_name;
+        return {
+            name: MVSAnnotationColorThemeProvider.name,
+            params: { annotationId, fieldName, background: NoColor, palette: palettePropsFromMVSPalette(node.params.palette) } satisfies Partial<MVSAnnotationColorThemeProps>,
         };
     }
 }
+
 function appliesColorToWholeRepr(node: MolstarNode<'color' | 'color_from_uri' | 'color_from_source'>): boolean {
     if (node.kind === 'color') {
         return !isDefined(node.params.selector) || node.params.selector === 'all';
     } else {
         return true;
     }
+}
+
+const FALLBACK_COLOR = decodeColor(DefaultColor)!;
+
+function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri' | 'color_from_source'>['params']['palette']): MVSAnnotationColorThemeProps['palette'] {
+    if (!palette) {
+        return { name: 'direct', params: {} };
+    }
+    if (palette.kind === 'categorical') {
+        const fullParams: Required<CategoricalPalette> = objMerge(CategoricalPaletteDefaults, palette);
+        return {
+            name: 'categorical',
+            params: {
+                colors: categoricalPalettePropsFromMVSColors(fullParams.colors),
+                repeatColorList: fullParams.repeat_color_list,
+                sort: fullParams.sort,
+                sortDirection: fullParams.sort_direction,
+                caseInsensitive: fullParams.case_insensitive,
+                setMissingColor: !!fullParams.missing_color,
+                missingColor: decodeColor(fullParams.missing_color) ?? FALLBACK_COLOR,
+            } satisfies MVSCategoricalPaletteProps,
+        };
+    }
+    if (palette.kind === 'discrete') {
+        const fullParams: Required<DiscretePalette> = objMerge(DiscretePaletteDefaults, palette);
+        return {
+            name: 'discrete',
+            params: {
+                colors: discretePalettePropsFromMVSColors(fullParams.colors, fullParams.reverse),
+                mode: fullParams.mode,
+                xMin: fullParams.value_domain[0],
+                xMax: fullParams.value_domain[1],
+            } satisfies MVSDiscretePaletteProps,
+        };
+    }
+    if (palette.kind === 'continuous') {
+        const fullParams: Required<ContinuousPalette> = objMerge(ContinuousPaletteDefaults, palette);
+        const colors = continuousPalettePropsFromMVSColors(fullParams.colors, fullParams.reverse);
+        return {
+            name: 'continuous',
+            params: {
+                colors: colors,
+                mode: fullParams.mode,
+                xMin: fullParams.value_domain[0],
+                xMax: fullParams.value_domain[1],
+                setUnderflowColor: !!fullParams.underflow_color,
+                underflowColor: (fullParams.underflow_color === 'auto' ? minColor(colors.colors) : decodeColor(fullParams.underflow_color)) ?? FALLBACK_COLOR,
+                setOverflowColor: !!fullParams.overflow_color,
+                overflowColor: (fullParams.overflow_color === 'auto' ? maxColor(colors.colors) : decodeColor(fullParams.overflow_color)) ?? FALLBACK_COLOR,
+            } satisfies MVSContinuousPaletteProps,
+        };
+    }
+    throw new Error(`NotImplementedError: palettePropsFromMVSPalette is not implemented for palette kind "${(palette as any).kind}"`);
+}
+
+/** Merge properties of two object into a new object. Property values from `second` override those from `first`, but `undefined` is treated as if property missing while `null` as a regular value. */
+function objMerge<T extends object, U extends object>(first: T, second: U): T & U {
+    const out: Partial<T & U> = { ...first };
+    for (const key in second) {
+        const value = second[key];
+        if (value !== undefined) out[key] = value as any;
+    }
+    return out as T & U;
+}
+
+function categoricalPalettePropsFromMVSColors(colors: Required<CategoricalPalette>['colors']): MVSCategoricalPaletteProps['colors'] {
+    if (typeof colors === 'string') {
+        if (colors in MvsNamedColorLists) {
+            const colorList = MvsNamedColorLists[colors as ColorListNameT];
+            return { name: 'list', params: { kind: 'set', colors: colorList.list } };
+        }
+        if (colors in MvsNamedColorDicts) {
+            const colorDict = MvsNamedColorDicts[colors as ColorDictNameT];
+            return { name: 'dictionary', params: Object.entries(colorDict).map(([value, color]) => ({ value, color })) };
+        }
+        console.warn(`Could not find named color palette "${colors}"`);
+    }
+    if (Array.isArray(colors)) {
+        return { name: 'list', params: { kind: 'set', colors: colors.map(c => decodeColor(c) ?? FALLBACK_COLOR) } };
+    }
+    if (typeof colors === 'object') {
+        return { name: 'dictionary', params: Object.entries(colors).map(([value, color]) => ({ value, color: decodeColor(color) ?? FALLBACK_COLOR })) };
+    }
+    return { name: 'list', params: { kind: 'set', colors: [] } };
+}
+
+function discretePalettePropsFromMVSColors(colors: Required<DiscretePalette>['colors'], reverse: boolean): MVSDiscretePaletteProps['colors'] {
+    if (typeof colors === 'string') {
+        if (colors in MvsNamedColorLists) {
+            const colorList = MvsNamedColorLists[colors];
+            const list = reverse ? colorList.list.slice().reverse() : colorList.list;
+            const sectionLength = 1 / list.length;
+            return list.map((e, i) => ({ color: Color.fromColorListEntry(e), fromValue: i * sectionLength, toValue: (i + 1) * sectionLength }));
+        }
+        console.warn(`Could not find named color palette "${colors}"`);
+    }
+    if (Array.isArray(colors) && colors.every(t => typeof t === 'string')) {
+        const list = reverse ? colors.slice().reverse() : colors;
+        const sectionLength = 1 / colors.length;
+        return list.map((c, i) => ({ color: decodeColor(c) ?? NoColor, fromValue: i * sectionLength, toValue: (i + 1) * sectionLength }));
+    }
+    if (Array.isArray(colors) && colors.every(t => Array.isArray(t) && t.length === 2)) {
+        return colors.map((t, i) => ({ color: decodeColor(t[0]) ?? NoColor, fromValue: t[1], toValue: colors[i + 1]?.[1] ?? Infinity }));
+    }
+    if (Array.isArray(colors) && colors.every(t => Array.isArray(t) && t.length === 3)) {
+        return colors.map(t => ({ color: decodeColor(t[0]) ?? NoColor, fromValue: t[1] ?? -Infinity, toValue: t[2] ?? Infinity }));
+    }
+    return [];
+}
+
+function continuousPalettePropsFromMVSColors(colors: Required<ContinuousPalette>['colors'], reverse: boolean): MVSContinuousPaletteProps['colors'] {
+    if (typeof colors === 'string') {
+        // Named color list
+        if (colors in MvsNamedColorLists) {
+            const colorList = MvsNamedColorLists[colors];
+            const list = reverse ? colorList.list.slice().reverse() : colorList.list;
+            const n = list.length - 1;
+            return { kind: 'interpolate', colors: list.map((col, i) => [Color.fromColorListEntry(col), i / n]) };
+        }
+        console.warn(`Could not find named color palette "${colors}"`);
+    }
+    if (Array.isArray(colors)) {
+        if (colors.every(t => Array.isArray(t))) {
+            // Color list with checkpoints
+            // Not applying `reverse` here, as it would have no effect
+            return { kind: 'interpolate', colors: colors.map(t => [decodeColor(t[0]) ?? FALLBACK_COLOR, t[1]]) };
+        } else {
+            // Color list without checkpoints
+            const list = reverse ? colors.slice().reverse() : colors;
+            const n = list.length - 1;
+            return { kind: 'interpolate', colors: list.map((col, i) => [decodeColor(col) ?? FALLBACK_COLOR, i / n]) };
+        }
+    }
+    return { kind: 'interpolate', colors: [] };
+}
+
+/** Return the color with the lowest checkpoint, or the first color if checkpoints not available. */
+function minColor(colors: ColorListEntry[]): Color | undefined {
+    if (colors.length === 0) return undefined;
+    if (colors.every(t => Array.isArray(t))) return Color.fromColorListEntry(colors.reduce((a, b) => a[1] < b[1] ? a : b));
+    return Color.fromColorListEntry(colors[0]);
+}
+/** Return the color with the highest checkpoint, or the last color if checkpoints not available. */
+function maxColor(colors: ColorListEntry[]): Color | undefined {
+    if (colors.length === 0) return undefined;
+    if (colors.every(t => Array.isArray(t))) return Color.fromColorListEntry(colors.reduce((a, b) => a[1] > b[1] ? a : b));
+    return Color.fromColorListEntry(colors[colors.length - 1]);
 }
 
 /** Create a mapping of nearest representation nodes for each node in the tree
@@ -388,4 +578,37 @@ export function makeNearestReprMap(root: MolstarTree) {
         }
     });
     return map;
+}
+
+/** Create props for `VolumeRepresentation3D` transformer from a representation node. */
+export function volumeRepresentationProps(node: MolstarSubtree<'volume_representation'>): Partial<StateTransformer.Params<VolumeRepresentation3D>> {
+    const alpha = alphaForNode(node);
+    const params = node.params;
+    switch (params.type) {
+        case 'isosurface':
+            const isoValue = typeof params.absolute_isovalue === 'number' ? Volume.IsoValue.absolute(params.absolute_isovalue) : Volume.IsoValue.relative(params.relative_isovalue ?? 0);
+            const visuals: ('wireframe' | 'solid')[] = [];
+            if (params.show_wireframe) visuals.push('wireframe');
+            if (params.show_faces) visuals.push('solid');
+            return {
+                type: { name: 'isosurface', params: { alpha, isoValue, visuals } },
+            };
+        default:
+            throw new Error('NotImplementedError');
+    }
+}
+
+/** Create value for `colorTheme` prop for `StructureRepresentation3D` transformer from a representation node based on color* nodes in its subtree. */
+export function volumeColorThemeForNode(node: MolstarSubtree<'volume_representation'> | undefined, context: MolstarLoadingContext): StateTransformer.Params<VolumeRepresentation3D>['colorTheme'] | undefined {
+    if (node?.kind !== 'volume_representation') return undefined;
+
+    const children = getChildren(node).filter(c => c.kind === 'color') as MolstarNode<'color'>[];
+    if (children.length === 0) {
+        return {
+            name: 'uniform',
+            params: { value: decodeColor(DefaultColor) },
+        };
+    } if (children.length === 1) {
+        return colorThemeForNode(children[0], context);
+    }
 }

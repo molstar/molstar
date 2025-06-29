@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -34,21 +34,6 @@ export interface LoadingExtension<TTree extends Tree, TContext, TExtensionContex
     disposeExtensionContext?: (extensionContext: TExtensionContext, tree: TTree, context: TContext) => void,
     /** Runs on every node of the tree */
     action: (updateTarget: UpdateTarget, node: Subtree<TTree>, context: TContext, extensionContext: TExtensionContext) => void,
-}
-
-
-/** Load a tree into Mol*, by applying loading actions in DFS order and then commiting at once.
- * If `options.replaceExisting`, remove all objects in the current Mol* state; otherwise add to the current state. */
-export async function loadTree<TTree extends Tree, TContext>(
-    plugin: PluginContext,
-    tree: TTree,
-    loadingActions: LoadingActions<TTree, TContext>,
-    context: TContext,
-    options?: { replaceExisting?: boolean, extensions?: LoadingExtension<TTree, TContext, any>[] }
-) {
-    const updateRoot: UpdateTarget = UpdateTarget.create(plugin, options?.replaceExisting ?? false);
-    loadTreeInUpdate(updateRoot, tree, loadingActions, context, options);
-    await UpdateTarget.commit(updateRoot);
 }
 
 
@@ -125,13 +110,16 @@ export interface UpdateTarget {
     readonly selector: StateObjectSelector,
     readonly targetManager: TargetManager,
     readonly mvsDependencyRefs: Set<string>,
+
+    readonly transformer?: StateTransformer,
+    readonly transformParams?: any,
 }
 export const UpdateTarget = {
     /** Create a new update, with `selector` pointing to the root. */
     create(plugin: PluginContext, replaceExisting: boolean): UpdateTarget {
         const update = plugin.build();
-        const msTarget = update.toRoot().selector;
-        return { update, selector: msTarget, targetManager: new TargetManager(plugin, replaceExisting), mvsDependencyRefs: new Set() };
+        const msTarget = update.toRoot();
+        return { update, selector: msTarget.selector, targetManager: new TargetManager(plugin, replaceExisting), mvsDependencyRefs: new Set() };
     },
     /** Add a child node to `target.selector`, return a new `UpdateTarget` pointing to the new child. */
     apply<A extends StateObject, B extends StateObject, P extends {}>(target: UpdateTarget, transformer: StateTransformer<A, B, P>, params?: Partial<P>, options?: Partial<StateTransform.Options>): UpdateTarget {
@@ -141,8 +129,8 @@ export const UpdateTarget = {
             refSuffix += `:${reprType}`;
         }
         const ref = target.targetManager.getChildRef(target.selector, refSuffix);
-        const msResult = target.update.to(target.selector).apply(transformer, params, { ...options, ref }).selector;
-        const result: UpdateTarget = { ...target, selector: msResult, mvsDependencyRefs: new Set() };
+        const apply = target.update.to(target.selector).apply(transformer, params, { ...options, ref });
+        const result: UpdateTarget = { ...target, selector: apply.selector, mvsDependencyRefs: new Set(), transformer, transformParams: params };
         target.targetManager.allTargets.push(result);
         return result;
     },

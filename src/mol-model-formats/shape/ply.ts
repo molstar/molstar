@@ -266,7 +266,7 @@ function makeShapeGetter() {
         let newMesh = false;
         let newColor = false;
 
-        if (!_plyData || _plyData !== _plyData) {
+        if (!_plyData || _plyData !== plyData) {
             newMesh = true;
         }
 

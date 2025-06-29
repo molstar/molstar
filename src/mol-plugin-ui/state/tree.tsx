@@ -207,7 +207,8 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
     setCurrentRoot = (e?: React.MouseEvent<HTMLElement>) => {
         e?.preventDefault();
         e?.currentTarget.blur();
-        PluginCommands.State.SetCurrentObject(this.plugin, { state: this.props.cell.parent!, ref: StateTransform.RootRef });
+        if (!this.props.cell.parent) return;
+        PluginCommands.State.SetCurrentObject(this.plugin, { state: this.props.cell.parent, ref: StateTransform.RootRef });
     };
 
     remove = (e?: React.MouseEvent<HTMLElement>) => {

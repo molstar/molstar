@@ -73,13 +73,24 @@ export namespace ParamDefinition {
         return setInfo<Value<T>>({ type: 'value', defaultValue }, info);
     }
 
+    export type SelectOption<T> = readonly [
+        /** Value of the option */
+        value: T,
+        /** Human-readable label for UI */
+        label: string,
+        /** Category, to group options in UI */
+        category?: string,
+        /** More detailed description, tooltip in UI */
+        description?: string,
+    ];
+
     export interface Select<T> extends Base<T> {
         type: 'select'
-        /** array of (value, label) tuples */
-        options: readonly (readonly [T, string] | readonly [T, string, string | undefined])[]
+        /** array of (value, label, category?, description?) tuples */
+        options: readonly SelectOption<T>[]
         cycle?: boolean
     }
-    export function Select<T>(defaultValue: T, options: readonly (readonly [T, string] | readonly [T, string, string | undefined])[], info?: Info & { cycle?: boolean }): Select<T> {
+    export function Select<T>(defaultValue: T, options: readonly SelectOption<T>[], info?: Info & { cycle?: boolean }): Select<T> {
         return setInfo<Select<T>>({ type: 'select', defaultValue: checkDefaultKey(defaultValue, options), options, cycle: info?.cycle }, info);
     }
 
@@ -680,7 +691,7 @@ export namespace ParamDefinition {
         return '';
     }
 
-    function checkDefaultKey<T>(k: T, options: readonly (readonly [T, string] | readonly [T, string, string | undefined])[]) {
+    function checkDefaultKey<T>(k: T, options: readonly SelectOption<T>[]) {
         for (const o of options) {
             if (o[0] === k) return k;
         }

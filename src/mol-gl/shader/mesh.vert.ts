@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -32,6 +32,8 @@ attribute float aInstance;
 varying vec3 vNormal;
 
 void main(){
+    int vertexId = VertexID;
+
     #include assign_group
     #include assign_marker_varying
     #include assign_clipping_varying
@@ -40,7 +42,7 @@ void main(){
     #include clip_instance
 
     #ifdef dGeometryType_textureMesh
-        vec3 normal = readFromTexture(tNormal, VertexID, uGeoTexDim).xyz;
+        vec3 normal = readFromTexture(tNormal, vertexId, uGeoTexDim).xyz;
     #else
         vec3 normal = aNormal;
     #endif

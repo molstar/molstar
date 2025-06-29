@@ -1,334 +1,374 @@
+@use '../vars' as *;
+@use '../common' as *;
 
-
-.msp-form-control {
-    display: block;
-    width: 100%;
-    background: $msp-form-control-background;
-    // color: $font-color;
-    border: none; // !important;
-    padding: 0 $control-spacing;
-    line-height: $row-height - 2px;
-    height: $row-height;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    -webkit-box-shadow: none; // iOS <4.3 & Android <4.1
-    box-shadow: none;
-    // box-shadow: none !important;
-    background-image: none;
-
-    // Firefox
-    &::-moz-placeholder {
-        color: color-lower-contrast($font-color, 33%);
-        opacity: 1; // Override Firefox's unusual default opacity; see https://github.com/twbs/bootstrap/pull/11526
-    }
-    &:-ms-input-placeholder { color: color-lower-contrast($font-color, 33%); } // Internet Explorer 10+
-    &::-webkit-input-placeholder  { color: color-lower-contrast($font-color, 33%); } // Safari and Chrome
-
-    &:hover {
-        color: $hover-font-color;
-        background-color: color-increase-contrast($msp-form-control-background, 5%);
-        border: none;
-        outline-offset: -1px !important;
-        outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;
-    }
-
-    &:active, &:focus {
-        color: $font-color;
-        background-color: $msp-form-control-background;
-        border: none;
-        outline-offset: 0;
-        outline: none;
-    }
-
-    // Disabled and read-only inputs
-    //
-    // HTML5 says that controls under a fieldset > legend:first-child won't be
-    // disabled if the fieldset is disabled. Due to implementation difficulty, we
-    // don't honor that edge case; we style them as disabled anyway.
-    &[disabled],
-    &[readonly],
-    fieldset[disabled] & {
-        background: $default-background;
-        opacity: 0.35;
-    }
-}
-
-.msp-btn {
-    @extend .msp-form-control;
-
-    display: inline-block;
-    margin-bottom: 0; // For input.msp-btn
-    text-align: center;
-    touch-action: manipulation;
-    cursor: pointer;
-    background-image: none; // Reset unusual Firefox-on-Android default style; see https://github.com/necolas/normalize.css/issues/214
-    white-space: nowrap;
-    @include user-select(none);
-
-
-    padding: 0 $control-spacing;
-    line-height: $row-height;
-    border: none;
-    -moz-box-sizing: border-box;
-    box-sizing: border-box;
-
-    &[disabled] {
-        background: $default-background;
-        opacity: 0.35;
-    }
-}
-
-.msp-btn-block {
-    display: block;
-    width: 100%;
-}
-
-.msp-btn, .msp-btn:active, .msp-btn-link:focus, .msp-btn:hover {
-    outline: none;
-}
-
-.msp-material-icon {
-    svg {
-        display: inline-flex;
-        vertical-align: middle;
-        font-size: 1.2em;
-        margin-bottom: 3px;
-
-        fill: currentColor;
-        width: 1em;
-        height: 1em;
-        flex-shrink: 0;
-        user-select: none;
-    }
-}
-
-.msp-btn-block {
-    > .msp-material-icon {
-        margin-left: 0;
-        margin-right: .4em;
-    }
-}
-
-.msp-btn-childless {
-    > .msp-material-icon {
-        margin-left: 0;
-        margin-right: 0;
-    }
-}
-
-.msp-btn-icon {
-    border: none;
-    height: $row-height;
-    width: $row-height;
-    line-height: $row-height;
-    padding: 0;
-    text-align: center;
-
-    &:hover {
-        color: $hover-font-color;
-        background-color: color-increase-contrast($msp-form-control-background, 5%);
-        border: none;
-        outline-offset: -1px !important;
-        outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;
-    }
-
-    &[disabled], &[disabled]:hover, &[disabled]:active {
-        color: $msp-btn-link-toggle-off-font-color;
-    }
-}
-
-.msp-btn-icon-small {
-    border: none;
-    height: $row-height;
-    width: 20px;
-    // font-size: 85%;
-    line-height: $row-height;
-    padding: 0;
-    text-align: center;
-
-    &:hover {
-        color: $hover-font-color;
-        background-color: color-increase-contrast($msp-form-control-background, 5%);
-        border: none;
-        outline-offset: -1px !important;
-        outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;
-    }
-
-    &[disabled], &[disabled]:hover, &[disabled]:active {
-        color: $msp-btn-link-toggle-off-font-color;
-    }
-}
-
-.msp-btn-link {
-    font-weight: normal;
-    border-radius: 0;
-
-    &,
-    &:active,
-    &.active,
-    &[disabled],
-    fieldset[disabled] & {
-        background-color: transparent;
-        -webkit-box-shadow: none; // iOS <4.3 & Android <4.1
-        box-shadow: none;
-    }
-    &,
-    &:hover,
-    &:focus,
-    &:active {
-        border-color: transparent;
-    }
-    &:hover,
-    &:focus {
-        text-decoration: none;
-        background-color: transparent;
-    }
-    &[disabled],
-    fieldset[disabled] & {
-        &:hover,
-        &:focus {
-        text-decoration: none;
-        }
-    }
-
-    .msp-icon {
-        font-size: 100%;
-    }
-}
-
-.msp-btn-link, .msp-btn-link:active, .msp-btn-link:focus {
-    color: $msp-btn-link-font-color;
-    text-decoration: none;
-}
-
-.msp-btn-link:hover {
-    color: $hover-font-color;
-    text-decoration: none;
-}
-
-.msp-btn-link-toggle-on {
-    color: $msp-btn-link-toggle-on-font-color;
-}
-
-.msp-btn-link-toggle-off, .msp-btn-link-toggle-off:active, .msp-btn-link-toggle-off:focus {
-    color: $msp-btn-link-toggle-off-font-color !important;
-}
-
-.msp-btn-link-toggle-off:hover,  .msp-btn-link-toggle-on:hover {
-    color: $hover-font-color !important;
-}
 
 @mixin msp-btn($name, $font, $bg) {
-    .msp-btn-#{$name}, .msp-btn-#{$name}:active, .msp-btn-#{$name}:focus {
+
+    .msp-btn-#{$name},
+    .msp-btn-#{$name}:active,
+    .msp-btn-#{$name}:focus {
         color: $font;
         background: $bg;
     }
+
     .msp-btn-#{$name}:hover {
         color: $hover-font-color;
         background: color-lower-contrast($bg, 2.5%);
     }
 
-    .msp-btn-#{$name}[disabled], .msp-btn-#{$name}[disabled]:hover,
-    .msp-btn-#{$name}[disabled]:active, .msp-btn-#{$name}[disabled]:focus {
+    .msp-btn-#{$name}[disabled],
+    .msp-btn-#{$name}[disabled]:hover,
+    .msp-btn-#{$name}[disabled]:active,
+    .msp-btn-#{$name}[disabled]:focus {
         color: color-lower-contrast($font, 1%);
     }
 }
 
-// @include msp-btn('remove', $msp-btn-remove-font-color, $msp-btn-remove-background);
-@include msp-btn('action', $font-color, $msp-btn-action-background);
-@include msp-btn('commit-on', $msp-btn-commit-on-font-color, $msp-btn-commit-on-background);
-@include msp-btn('commit-off', $msp-btn-commit-off-font-color, $msp-btn-commit-off-background);
+@mixin controls-base {
+    .msp-form-control {
+        display: block;
+        width: 100%;
+        background: $msp-form-control-background;
+        // color: $font-color;
+        border: none; // !important;
+        padding: 0 $control-spacing;
+        line-height: $row-height - 2px;
+        height: $row-height;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        -webkit-box-shadow: none; // iOS <4.3 & Android <4.1
+        box-shadow: none;
+        // box-shadow: none !important;
+        background-image: none;
 
-.msp-btn-remove:hover {
-    color: $msp-btn-remove-hover-font-color;
-}
-.msp-btn-commit-on:hover {
-	color: $msp-btn-commit-on-hover-font-color;
-}
+        // Firefox
+        &::-moz-placeholder {
+            color: color-lower-contrast($font-color, 33%);
+            opacity: 1; // Override Firefox's unusual default opacity; see https://github.com/twbs/bootstrap/pull/11526
+        }
 
-.msp-btn-action {
-    height: $row-height;
-    line-height: $row-height;
-}
+        &:-ms-input-placeholder {
+            color: color-lower-contrast($font-color, 33%);
+        }
 
-input[type="file"] {
-    display: block;
-}
+        // Internet Explorer 10+
+        &::-webkit-input-placeholder {
+            color: color-lower-contrast($font-color, 33%);
+        }
 
-// Make range inputs behave like textual form controls
-input[type="range"] {
-    display: block;
-    width: 100%;
-}
+        // Safari and Chrome
 
-// Make multiple select elements height not fixed
-select[multiple],
-select[size] {
-    height: auto;
-}
+        &:hover {
+            color: $hover-font-color;
+            background-color: color-increase-contrast($msp-form-control-background, 5%);
+            border: none;
+            outline-offset: -1px !important;
+            outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;
+        }
 
-// Reset height for `textarea`s
-textarea.msp-form-control {
-    height: auto;
-}
+        &:active,
+        &:focus {
+            color: $font-color;
+            background-color: $msp-form-control-background;
+            border: none;
+            outline-offset: 0;
+            outline: none;
+        }
 
-.msp-control-top-offset {
-    margin-top: 1px;
-}
+        // Disabled and read-only inputs
+        //
+        // HTML5 says that controls under a fieldset > legend:first-child won't be
+        // disabled if the fieldset is disabled. Due to implementation difficulty, we
+        // don't honor that edge case; we style them as disabled anyway.
+        &[disabled],
+        &[readonly],
+        fieldset[disabled] & {
+            background: $default-background;
+            opacity: 0.35;
+        }
+    }
 
-.msp-btn-commit {
-    text-align: right;
-    padding-top: 0;
-    padding-bottom: 0;
-    padding-right: $control-spacing;
-    padding-left: 0;
-    line-height: $row-height;
-    border: none;
-    overflow: hidden;
-    font-weight: bold;
+    .msp-btn {
+        @extend .msp-form-control;
 
-    .msp-icon {
-        display: block-inline;
-        line-height: $row-height;
-        width: $row-height;
+        display: inline-block;
+        margin-bottom: 0; // For input.msp-btn
         text-align: center;
-    }
-}
+        touch-action: manipulation;
+        cursor: pointer;
+        background-image: none; // Reset unusual Firefox-on-Android default style; see https://github.com/necolas/normalize.css/issues/214
+        white-space: nowrap;
+        @include user-select(none);
 
-select.msp-form-control {
-    background: none;
-    background-color: $msp-form-control-background;
-    background-size: 8px 12px;
-    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAUCAMAAACzvE1FAAAADFBMVEUzMzMzMzMzMzMzMzMKAG/3AAAAA3RSTlMAf4C/aSLHAAAAPElEQVR42q3NMQ4AIAgEQTn//2cLdRKppSGzBYwzVXvznNWs8C58CiussPJj8h6NwgorrKRdTvuV9v16Afn0AYFOB7aYAAAAAElFTkSuQmCC);
-    background-repeat: no-repeat;
-    background-position: right $control-spacing center;
-    padding-right: ($row-height - 8px);
-}
 
-select.msp-form-control:-moz-focusring {
-    color: transparent;
-    text-shadow: 0 0 0 $font-color;
-}
-
-.msp-default-bg {
-    background: $default-background;
-}
-
-.msp-transparent-bg {
-    background: transparent;
-}
-
-.msp-no-hover-outline {
-    &:hover {
-        color: $hover-font-color;
-        background-color: inherit;
+        padding: 0 $control-spacing;
+        line-height: $row-height;
         border: none;
-        outline-offset: 0 !important;
-        outline: none !important;
-    }
-}
+        -moz-box-sizing: border-box;
+        box-sizing: border-box;
 
-.msp-icon-inline {
-    margin-right: 8px;
+        &[disabled] {
+            background: $default-background;
+            opacity: 0.35;
+        }
+    }
+
+    .msp-btn-block {
+        display: block;
+        width: 100%;
+    }
+
+    .msp-btn,
+    .msp-btn:active,
+    .msp-btn-link:focus,
+    .msp-btn:hover {
+        outline: none;
+    }
+
+    .msp-material-icon {
+        svg {
+            display: inline-flex;
+            vertical-align: middle;
+            font-size: 1.2em;
+            margin-bottom: 3px;
+
+            fill: currentColor;
+            width: 1em;
+            height: 1em;
+            flex-shrink: 0;
+            user-select: none;
+        }
+    }
+
+    .msp-btn-block {
+        >.msp-material-icon {
+            margin-left: 0;
+            margin-right: .4em;
+        }
+    }
+
+    .msp-btn-childless {
+        >.msp-material-icon {
+            margin-left: 0;
+            margin-right: 0;
+        }
+    }
+
+    .msp-btn-icon {
+        border: none;
+        height: $row-height;
+        width: $row-height;
+        line-height: $row-height;
+        padding: 0;
+        text-align: center;
+
+        &:hover {
+            color: $hover-font-color;
+            background-color: color-increase-contrast($msp-form-control-background, 5%);
+            border: none;
+            outline-offset: -1px !important;
+            outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;
+        }
+
+        &[disabled],
+        &[disabled]:hover,
+        &[disabled]:active {
+            color: $msp-btn-link-toggle-off-font-color;
+        }
+    }
+
+    .msp-btn-icon-small {
+        border: none;
+        height: $row-height;
+        width: 20px;
+        // font-size: 85%;
+        line-height: $row-height;
+        padding: 0;
+        text-align: center;
+
+        &:hover {
+            color: $hover-font-color;
+            background-color: color-increase-contrast($msp-form-control-background, 5%);
+            border: none;
+            outline-offset: -1px !important;
+            outline: 1px solid color-increase-contrast($msp-form-control-background, 20%) !important;
+        }
+
+        &[disabled],
+        &[disabled]:hover,
+        &[disabled]:active {
+            color: $msp-btn-link-toggle-off-font-color;
+        }
+    }
+
+    .msp-btn-link {
+        font-weight: normal;
+        border-radius: 0;
+
+        &,
+        &:active,
+        &.active,
+        &[disabled],
+        fieldset[disabled] & {
+            background-color: transparent;
+            -webkit-box-shadow: none; // iOS <4.3 & Android <4.1
+            box-shadow: none;
+        }
+
+        &,
+        &:hover,
+        &:focus,
+        &:active {
+            border-color: transparent;
+        }
+
+        &:hover,
+        &:focus {
+            text-decoration: none;
+            background-color: transparent;
+        }
+
+        &[disabled],
+        fieldset[disabled] & {
+
+            &:hover,
+            &:focus {
+                text-decoration: none;
+            }
+        }
+
+        .msp-icon {
+            font-size: 100%;
+        }
+    }
+
+    .msp-btn-link,
+    .msp-btn-link:active,
+    .msp-btn-link:focus {
+        color: $msp-btn-link-font-color;
+        text-decoration: none;
+    }
+
+    .msp-btn-link:hover {
+        color: $hover-font-color;
+        text-decoration: none;
+    }
+
+    .msp-btn-link-toggle-on {
+        color: $msp-btn-link-toggle-on-font-color;
+    }
+
+    .msp-btn-link-toggle-off,
+    .msp-btn-link-toggle-off:active,
+    .msp-btn-link-toggle-off:focus {
+        color: $msp-btn-link-toggle-off-font-color !important;
+    }
+
+    .msp-btn-link-toggle-on:hover {
+        color: $msp-btn-link-toggle-on-hover-font-color !important;
+    }
+
+    .msp-btn-link-toggle-off:hover {
+        color: $msp-btn-link-toggle-off-hover-font-color !important;
+    }
+
+    // @include msp-btn('remove', $msp-btn-remove-font-color, $msp-btn-remove-background);
+    @include msp-btn('action', $font-color, $msp-btn-action-background);
+    @include msp-btn('commit-on', $msp-btn-commit-on-font-color, $msp-btn-commit-on-background);
+    @include msp-btn('commit-off', $msp-btn-commit-off-font-color, $msp-btn-commit-off-background);
+
+    .msp-btn-remove:hover {
+        color: $msp-btn-remove-hover-font-color;
+    }
+
+    .msp-btn-commit-on:hover {
+        color: $msp-btn-commit-on-hover-font-color;
+    }
+
+    .msp-btn-action {
+        height: $row-height;
+        line-height: $row-height;
+    }
+
+    input[type="file"] {
+        display: block;
+    }
+
+    // Make range inputs behave like textual form controls
+    input[type="range"] {
+        display: block;
+        width: 100%;
+    }
+
+    // Make multiple select elements height not fixed
+    select[multiple],
+    select[size] {
+        height: auto;
+    }
+
+    // Reset height for `textarea`s
+    textarea.msp-form-control {
+        height: auto;
+    }
+
+    .msp-control-top-offset {
+        margin-top: 1px;
+    }
+
+    .msp-btn-commit {
+        text-align: right;
+        padding-top: 0;
+        padding-bottom: 0;
+        padding-right: $control-spacing;
+        padding-left: 0;
+        line-height: $row-height;
+        border: none;
+        overflow: hidden;
+        font-weight: bold;
+
+        .msp-icon {
+            display: block-inline;
+            line-height: $row-height;
+            width: $row-height;
+            text-align: center;
+        }
+    }
+
+    select.msp-form-control {
+        background: none;
+        background-color: $msp-form-control-background;
+        background-size: 8px 12px;
+        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAUCAMAAACzvE1FAAAADFBMVEUzMzMzMzMzMzMzMzMKAG/3AAAAA3RSTlMAf4C/aSLHAAAAPElEQVR42q3NMQ4AIAgEQTn//2cLdRKppSGzBYwzVXvznNWs8C58CiussPJj8h6NwgorrKRdTvuV9v16Afn0AYFOB7aYAAAAAElFTkSuQmCC);
+        background-repeat: no-repeat;
+        background-position: right $control-spacing center;
+        padding-right: ($row-height - 8px);
+    }
+
+    select.msp-form-control:-moz-focusring {
+        color: transparent;
+        text-shadow: 0 0 0 $font-color;
+    }
+
+    .msp-default-bg {
+        background: $default-background;
+    }
+
+    .msp-transparent-bg {
+        background: transparent;
+    }
+
+    .msp-no-hover-outline {
+        &:hover {
+            color: $hover-font-color;
+            background-color: inherit;
+            border: none;
+            outline-offset: 0 !important;
+            outline: none !important;
+        }
+    }
+
+    .msp-icon-inline {
+        margin-right: 8px;
+    }
 }

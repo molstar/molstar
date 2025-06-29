@@ -35,6 +35,7 @@
             }
         </style>
         <link rel="stylesheet" type="text/css" href="molstar.css" />
+        <!-- __MOLSTAR_MANIFEST__ -->
     </head>
     <body>
         <div id="app"></div>
@@ -111,8 +112,11 @@
                 var pdb = getParam('pdb', '[^&]+').trim();
                 if (pdb) viewer.loadPdb(pdb);
 
+                var pdbIhm = getParam('pdb-ihm', '[^&]+').trim();
+                if (pdbIhm) viewer.loadPdbIhm(pdbIhm);
+                // support for deprecated pdb-dev param
                 var pdbDev = getParam('pdb-dev', '[^&]+').trim();
-                if (pdbDev) viewer.loadPdbDev(pdbDev);
+                if (pdbDev) viewer.loadPdbIhm(pdbDev);
 
                 var emdb = getParam('emdb', '[^&]+').trim();
                 if (emdb) viewer.loadEmdb(emdb);
@@ -127,8 +131,12 @@
                     // to aid GC
                     viewer.dispose();
                 });
+
+                const event = new CustomEvent("molstarViewerCreated", { detail: { viewer } });
+                window.dispatchEvent(event);
             });
         </script>
+        <!-- __MOLSTAR_PWA__ -->
         <!-- __MOLSTAR_ANALYTICS__ -->
     </body>
 </html>

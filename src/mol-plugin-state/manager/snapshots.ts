@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -18,6 +18,7 @@ import { objectForEach } from '../../mol-util/object';
 import { PLUGIN_VERSION } from '../../mol-plugin/version';
 import { canvasToBlob } from '../../mol-canvas3d/util';
 import { Task } from '../../mol-task';
+import { StringLike } from '../../mol-io/common/string-like';
 
 export { PluginStateSnapshotManager };
 
@@ -36,6 +37,11 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         changed: this.ev(),
         opened: this.ev(),
     };
+
+    get current() {
+        const id = this.state.current;
+        return this.state.entries.find(e => e.snapshot.id === id);
+    }
 
     getIndex(e: PluginStateSnapshotManager.Entry) {
         return this.state.entries.indexOf(e);
@@ -168,6 +174,14 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         return this.state.entries.get(idx)!.snapshot.id;
     }
 
+    applyNext(dir: -1 | 1) {
+        const next = this.getNextId(this.state.current, dir);
+        if (next) {
+            const snapshot = this.setCurrent(next);
+            if (snapshot) return this.plugin.state.setSnapshot(snapshot);
+        }
+    }
+
     async setStateSnapshot(snapshot: PluginStateSnapshotManager.StateSnapshot): Promise<PluginState.Snapshot | undefined> {
         if (snapshot.version !== PLUGIN_VERSION) {
             // TODO
@@ -276,7 +290,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
             const fn = file.name.toLowerCase();
             if (fn.endsWith('json') || fn.endsWith('molj')) {
                 const data = await this.plugin.runTask(readFromFile(file, 'string'));
-                const snapshot = JSON.parse(data);
+                const snapshot = JSON.parse(StringLike.toString(data));
 
                 if (PluginStateSnapshotManager.isStateSnapshot(snapshot)) {
                     await this.setStateSnapshot(snapshot);
@@ -295,18 +309,17 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
                     assetData[name] = v;
                 });
                 const stateFile = new File([data['state.json']], 'state.json');
-                const stateData = await this.plugin.runTask(readFromFile(stateFile, 'string'));
+                const snapshot = await this.plugin.runTask(readFromFile(stateFile, 'json'));
 
                 if (data['assets.json']) {
                     const file = new File([data['assets.json']], 'assets.json');
-                    const json = JSON.parse(await this.plugin.runTask(readFromFile(file, 'string')));
+                    const json = await this.plugin.runTask(readFromFile(file, 'json'));
 
                     for (const [id, asset] of json) {
                         this.plugin.managers.asset.set(asset, new File([assetData[id]], asset.name));
                     }
                 }
 
-                const snapshot = JSON.parse(stateData);
                 await this.setStateSnapshot(snapshot);
             }
             this.events.opened.next(void 0);

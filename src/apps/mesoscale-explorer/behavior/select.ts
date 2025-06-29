@@ -73,7 +73,7 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
                         this.ctx.managers.interactivity.lociSelects.deselectAll();
                         return;
                     }
-                    const loci = Loci.normalize(current.loci, modifiers.control ? 'entity' : 'chain');
+                    const loci = Loci.normalize(current.loci, modifiers.control ? 'entity' : this.ctx.managers.interactivity.props.granularity);
                     this.ctx.managers.interactivity.lociSelects.toggle({ loci }, false);
                     if (StructureElement.Loci.is(current.loci)) {
                         const cell = this.ctx.helpers.substructureParent.get(current.loci.structure);
@@ -116,7 +116,7 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
                         if (modifiers.control) {
                             this.ctx.managers.interactivity.lociHighlights.highlightOnly({ repr: current.repr, loci: EveryLoci }, false);
                         } else {
-                            const loci = Loci.normalize(current.loci, 'chain');
+                            const loci = Loci.normalize(current.loci, this.ctx.managers.interactivity.props.granularity);
                             this.ctx.managers.interactivity.lociHighlights.highlightOnly({ repr: current.repr, loci }, false);
                         }
                     }

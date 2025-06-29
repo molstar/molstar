@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -27,6 +27,7 @@ import { Vec3 } from './vec3';
 import { EPSILON } from './common';
 import { assertUnreachable, NumberArray } from '../../../mol-util/type-helpers';
 import { Euler } from './euler';
+import { Mat4 } from './mat4';
 
 interface Quat extends Array<number> { [d: number]: number, '@type': 'quat', length: 4 }
 interface ReadonlyQuat extends Array<number> { readonly [d: number]: number, '@type': 'quat', length: 4 }
@@ -282,6 +283,12 @@ namespace Quat {
         return out;
     }
 
+    const m3tmp = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] as unknown as Mat3;
+    export function fromMat4(out: Quat, m: Mat4) {
+        Mat3.fromMat4(m3tmp, m);
+        return fromMat3(out, m3tmp);
+    }
+
     export function fromEuler(out: Quat, euler: Euler, order: Euler.Order) {
         const [x, y, z] = euler;
 
@@ -365,6 +372,12 @@ namespace Quat {
         out[3] = r;
         normalize(out, out);
         return out;
+    }
+
+    const m4tmp = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] as unknown as Mat4;
+    export function fromBasis(out: Quat, x: Vec3, y: Vec3, z: Vec3) {
+        Mat4.fromBasis(m4tmp, x, y, z);
+        return fromMat4(out, m4tmp);
     }
 
     export function clone(a: Quat) {

@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Quat, Vec3 } from '../mol-math/linear-algebra';
+import { EPSILON, Mat4, Quat, Vec3 } from '../mol-math/linear-algebra';
 import { degToRad } from '../mol-math/misc';
 import { ParamDefinition as PD } from './param-definition';
 import { stringToWords } from './string';
@@ -38,6 +38,8 @@ export namespace Clip {
         position: number[]
         rotation: number[]
         scale: number[]
+        /** Transform point by this before testing */
+        transform: number[]
     }
 
     export const Params = {
@@ -51,6 +53,7 @@ export namespace Clip {
                 angle: PD.Numeric(0, { min: -180, max: 180, step: 1 }, { description: 'Angle in Degrees' }),
             }, { isExpanded: true }),
             scale: PD.Vec3(Vec3.create(1, 1, 1)),
+            transform: PD.Mat4(Mat4.identity()),
         }, o => stringToWords(o.type))
     };
     export type Params = typeof Params
@@ -64,6 +67,7 @@ export namespace Clip {
             position: (new Array(count * 3)).fill(0),
             rotation: (new Array(count * 4)).fill(0),
             scale: (new Array(count * 3)).fill(1),
+            transform: (new Array(count * 16)).fill(0),
         };
     }
 
@@ -71,10 +75,12 @@ export namespace Clip {
     const qB = Quat();
     const vA = Vec3();
     const vB = Vec3();
+    const mA = Mat4();
+    const mB = Mat4();
 
     export function getClip(props: Props, clip?: Clip): Clip {
         const count = props.objects.length;
-        const { type, invert, position, rotation, scale } = clip?.objects || createClipObjects(count);
+        const { type, invert, position, rotation, scale, transform } = clip?.objects || createClipObjects(count);
         for (let i = 0; i < count; ++i) {
             const p = props.objects[i];
             type[i] = Type[p.type];
@@ -82,10 +88,11 @@ export namespace Clip {
             Vec3.toArray(p.position, position, i * 3);
             Quat.toArray(Quat.setAxisAngle(qA, p.rotation.axis, degToRad(p.rotation.angle)), rotation, i * 4);
             Vec3.toArray(p.scale, scale, i * 3);
+            Mat4.toArray(p.transform, transform, i * 16);
         }
         return {
             variant: props.variant,
-            objects: { count, type, invert, position, rotation, scale }
+            objects: { count, type, invert, position, rotation, scale, transform }
         };
     }
 
@@ -109,6 +116,10 @@ export namespace Clip {
             Quat.fromArray(qA, oA.rotation, i * 4);
             Quat.fromArray(qB, oB.rotation, i * 4);
             if (!Quat.equals(qA, qB)) return false;
+
+            Mat4.fromArray(mA, oA.transform, i * 16);
+            Mat4.fromArray(mB, oB.transform, i * 16);
+            if (!Mat4.areEqual(mA, mB, EPSILON)) return false;
         }
         return true;
     }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -17,7 +17,6 @@ import { StatefulPluginComponent } from '../../component';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { MeasurementRepresentationCommonTextParams, LociLabelTextParams } from '../../../mol-repr/shape/loci/common';
 import { LineParams } from '../../../mol-repr/structure/representation/line';
-import { Expression } from '../../../mol-script/language/expression';
 import { Color } from '../../../mol-util/color';
 
 export { StructureMeasurementManager };
@@ -50,6 +49,10 @@ type StructureMeasurementManagerAddOptions = {
     reprTags?: string | string[],
     lineParams?: Partial<PD.Values<LineParams>>,
     labelParams?: Partial<PD.Values<LociLabelTextParams>>
+}
+
+function serializeLoci(loci: StructureElement.Loci) {
+    return { bundle: StructureElement.Bundle.fromLoci(loci) };
 }
 
 class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasurementManagerState> {
@@ -107,10 +110,10 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
 
         const update = this.getGroup();
         const selection = update
-            .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
+            .apply(StateTransforms.Model.MultiStructureSelectionFromBundle, {
                 selections: [
-                    { key: 'a', groupId: 'a', ref: cellA.transform.ref, expression: StructureElement.Loci.toExpression(a) },
-                    { key: 'b', groupId: 'b', ref: cellB.transform.ref, expression: StructureElement.Loci.toExpression(b) }
+                    { key: 'a', groupId: 'a', ref: cellA.transform.ref, ...serializeLoci(a) },
+                    { key: 'b', groupId: 'b', ref: cellB.transform.ref, ...serializeLoci(b) }
                 ],
                 isTransitive: true,
                 label: 'Distance'
@@ -144,11 +147,11 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
 
         const update = this.getGroup();
         const selection = update
-            .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
+            .apply(StateTransforms.Model.MultiStructureSelectionFromBundle, {
                 selections: [
-                    { key: 'a', ref: cellA.transform.ref, expression: StructureElement.Loci.toExpression(a) },
-                    { key: 'b', ref: cellB.transform.ref, expression: StructureElement.Loci.toExpression(b) },
-                    { key: 'c', ref: cellC.transform.ref, expression: StructureElement.Loci.toExpression(c) }
+                    { key: 'a', ref: cellA.transform.ref, ...serializeLoci(a) },
+                    { key: 'b', ref: cellB.transform.ref, ...serializeLoci(b) },
+                    { key: 'c', ref: cellC.transform.ref, ...serializeLoci(c) }
                 ],
                 isTransitive: true,
                 label: 'Angle'
@@ -183,12 +186,12 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
 
         const update = this.getGroup();
         const selection = update
-            .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
+            .apply(StateTransforms.Model.MultiStructureSelectionFromBundle, {
                 selections: [
-                    { key: 'a', ref: cellA.transform.ref, expression: StructureElement.Loci.toExpression(a) },
-                    { key: 'b', ref: cellB.transform.ref, expression: StructureElement.Loci.toExpression(b) },
-                    { key: 'c', ref: cellC.transform.ref, expression: StructureElement.Loci.toExpression(c) },
-                    { key: 'd', ref: cellD.transform.ref, expression: StructureElement.Loci.toExpression(d) }
+                    { key: 'a', ref: cellA.transform.ref, ...serializeLoci(a) },
+                    { key: 'b', ref: cellB.transform.ref, ...serializeLoci(b) },
+                    { key: 'c', ref: cellC.transform.ref, ...serializeLoci(c) },
+                    { key: 'd', ref: cellD.transform.ref, ...serializeLoci(d) }
                 ],
                 isTransitive: true,
                 label: 'Dihedral'
@@ -216,9 +219,9 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
 
         const update = this.getGroup();
         const selection = update
-            .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
+            .apply(StateTransforms.Model.MultiStructureSelectionFromBundle, {
                 selections: [
-                    { key: 'a', ref: cellA.transform.ref, expression: StructureElement.Loci.toExpression(a) },
+                    { key: 'a', ref: cellA.transform.ref, ...serializeLoci(a) },
                 ],
                 isTransitive: true,
                 label: 'Label'
@@ -235,7 +238,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
     }
 
     async addOrientation(locis: StructureElement.Loci[]) {
-        const selections: { key: string, ref: string, groupId?: string, expression: Expression }[] = [];
+        const selections: { key: string, ref: string, groupId?: string, bundle: StructureElement.Bundle }[] = [];
         const dependsOn: string[] = [];
 
         for (let i = 0, il = locis.length; i < il; ++i) {
@@ -244,14 +247,14 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
             if (!cell) continue;
 
             arraySetAdd(dependsOn, cell.transform.ref);
-            selections.push({ key: `l${i}`, ref: cell.transform.ref, expression: StructureElement.Loci.toExpression(l) });
+            selections.push({ key: `l${i}`, ref: cell.transform.ref, ...serializeLoci(l) });
         }
 
         if (selections.length === 0) return;
 
         const update = this.getGroup();
         const selection = update
-            .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
+            .apply(StateTransforms.Model.MultiStructureSelectionFromBundle, {
                 selections,
                 isTransitive: true,
                 label: 'Orientation'
@@ -265,7 +268,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
     }
 
     async addPlane(locis: StructureElement.Loci[]) {
-        const selections: { key: string, ref: string, groupId?: string, expression: Expression }[] = [];
+        const selections: { key: string, ref: string, groupId?: string, bundle: StructureElement.Bundle }[] = [];
         const dependsOn: string[] = [];
 
         for (let i = 0, il = locis.length; i < il; ++i) {
@@ -274,14 +277,14 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
             if (!cell) continue;
 
             arraySetAdd(dependsOn, cell.transform.ref);
-            selections.push({ key: `l${i}`, ref: cell.transform.ref, expression: StructureElement.Loci.toExpression(l) });
+            selections.push({ key: `l${i}`, ref: cell.transform.ref, ...serializeLoci(l) });
         }
 
         if (selections.length === 0) return;
 
         const update = this.getGroup();
         const selection = update
-            .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
+            .apply(StateTransforms.Model.MultiStructureSelectionFromBundle, {
                 selections,
                 isTransitive: true,
                 label: 'Plane'
@@ -310,9 +313,9 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
             const dependsOn = [cell.transform.ref];
 
             update
-                .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
+                .apply(StateTransforms.Model.MultiStructureSelectionFromBundle, {
                     selections: [
-                        { key: 'a', ref: cell.transform.ref, expression: StructureElement.Loci.toExpression(loci) },
+                        { key: 'a', ref: cell.transform.ref, ...serializeLoci(loci) },
                     ],
                     isTransitive: true,
                     label: 'Order'

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -215,6 +215,10 @@ export class PostprocessingPass {
         this.background.setSize(width, height);
     }
 
+    reset() {
+        this.ssao.reset();
+    }
+
     updateState(camera: ICamera, scene: Scene, transparentBackground: boolean, backgroundColor: Color, props: PostprocessingProps, light: Light, ambientColor: Vec3) {
         let needsUpdateMain = false;
 
@@ -334,7 +338,7 @@ export class PostprocessingPass {
         }
 
         if (toDrawingBuffer) {
-            this.webgl.unbindFramebuffer();
+            this.webgl.bindDrawingBuffer();
         } else {
             this.target.bind();
         }

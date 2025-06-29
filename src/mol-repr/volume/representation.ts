@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -35,6 +35,7 @@ import { isPromiseLike } from '../../mol-util/type-helpers';
 import { Substance } from '../../mol-theme/substance';
 import { createMarkers } from '../../mol-geo/geometry/marker-data';
 import { Emissive } from '../../mol-theme/emissive';
+import { SizeTheme } from '../../mol-theme/size';
 
 export type VolumeKey = { volume: Volume, key: number }
 export interface VolumeVisual<P extends VolumeParams> extends Visual<VolumeKey, P> { }
@@ -109,14 +110,25 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
 
         setUpdateState(updateState, volume, newProps, currentProps, newTheme, currentTheme);
 
-        if (!ColorTheme.areEqual(theme.color, currentTheme.color)) updateState.updateColor = true;
-
-        if (updateState.createGeometry) {
+        if (!ColorTheme.areEqual(theme.color, currentTheme.color)) {
             updateState.updateColor = true;
+        }
+
+        if (!SizeTheme.areEqual(theme.size, currentTheme.size)) {
+            updateState.updateSize = true;
         }
 
         if (newProps.instanceGranularity !== currentProps.instanceGranularity) {
             updateState.updateTransform = true;
+        }
+
+        if (updateState.updateSize && !('uSize' in renderObject!.values)) {
+            updateState.createGeometry = true;
+        }
+
+        if (updateState.createGeometry) {
+            updateState.updateColor = true;
+            updateState.updateSize = true;
         }
     }
 

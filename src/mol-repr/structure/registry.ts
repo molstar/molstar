@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -22,6 +22,7 @@ import { SpacefillRepresentationProvider } from './representation/spacefill';
 import { LineRepresentationProvider } from './representation/line';
 import { GaussianVolumeRepresentationProvider } from './representation/gaussian-volume';
 import { BackboneRepresentationProvider } from './representation/backbone';
+import { PlaneRepresentationProvider } from './representation/plane';
 
 export class StructureRepresentationRegistry extends RepresentationRegistry<Structure, StructureRepresentationState> {
     constructor() {
@@ -46,6 +47,7 @@ export namespace StructureRepresentationRegistry {
         'line': LineRepresentationProvider,
         'molecular-surface': MolecularSurfaceRepresentationProvider,
         'orientation': OrientationRepresentationProvider,
+        'plane': PlaneRepresentationProvider,
         'point': PointRepresentationProvider,
         'putty': PuttyRepresentationProvider,
         'spacefill': SpacefillRepresentationProvider,

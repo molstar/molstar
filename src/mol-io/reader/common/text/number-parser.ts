@@ -7,6 +7,9 @@
  * based in part on https://github.com/dsehnal/CIFTools.js
  */
 
+import { StringLike } from '../../../common/string-like';
+
+
 /**
  * Efficient integer and float parsers.
  *
@@ -14,12 +17,12 @@
  * up to 4 times faster than JS parseInt/parseFloat.
  */
 
-export function parseIntSkipLeadingWhitespace(str: string, start: number, end: number) {
+export function parseIntSkipLeadingWhitespace(str: StringLike, start: number, end: number) {
     while (start < end && str.charCodeAt(start) === 32) start++;
     return parseInt(str, start, end);
 }
 
-export function parseInt(str: string, start: number, end: number) {
+export function parseInt(str: StringLike, start: number, end: number) {
     let _start = start, ret = 0, neg = 1;
 
     if (str.charCodeAt(_start) === 45 /* - */) {
@@ -37,18 +40,18 @@ export function parseInt(str: string, start: number, end: number) {
     return neg * ret;
 }
 
-function parseScientific(main: number, str: string, start: number, end: number) {
+function parseScientific(main: number, str: StringLike, start: number, end: number) {
     // handle + in '1e+1' separately.
     if (str.charCodeAt(start) === 43 /* + */) start++;
     return main * Math.pow(10.0, parseInt(str, start, end));
 }
 
-export function parseFloatSkipLeadingWhitespace(str: string, start: number, end: number) {
+export function parseFloatSkipLeadingWhitespace(str: StringLike, start: number, end: number) {
     while (start < end && str.charCodeAt(start) === 32) start++;
     return parseFloat(str, start, end);
 }
 
-export function parseFloat(str: string, start: number, end: number) {
+export function parseFloat(str: StringLike, start: number, end: number) {
     let _start = start, neg = 1.0, ret = 0.0, point = 0.0, div = 1.0;
 
     if (str.charCodeAt(_start) === 45 /* - */) {

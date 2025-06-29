@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -7,7 +7,7 @@
  */
 
 import { WebGLContext } from '../../mol-gl/webgl/context';
-import { createNullRenderTarget, RenderTarget } from '../../mol-gl/webgl/render-target';
+import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { Renderer } from '../../mol-gl/renderer';
 import { Scene } from '../../mol-gl/scene';
 import { Texture } from '../../mol-gl/webgl/texture';
@@ -90,7 +90,7 @@ export class DrawPass {
 
     constructor(private webgl: WebGLContext, assetManager: AssetManager, width: number, height: number, transparency: 'wboit' | 'dpoit' | 'blended') {
         const { extensions, resources, isWebGL2 } = webgl;
-        this.drawTarget = createNullRenderTarget(webgl.gl);
+        this.drawTarget = webgl.createDrawTarget();
         this.colorTarget = webgl.createRenderTarget(width, height, true, 'uint8', 'linear');
         this.transparentColorTarget = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
 
@@ -123,6 +123,7 @@ export class DrawPass {
     reset() {
         this.wboit.reset();
         this.dpoit.reset();
+        this.postprocessing.reset();
     }
 
     setSize(width: number, height: number) {
@@ -314,7 +315,7 @@ export class DrawPass {
                     if (!this.packedDepth) {
                         this.depthTextureOpaque.attachFramebuffer(this.transparentColorTarget.framebuffer, 'depth');
                     } else {
-                        this.colorTarget.depthRenderbuffer?.detachFramebuffer(this.transparentColorTarget.framebuffer);
+                        this.colorTarget.depthRenderbuffer?.attachFramebuffer(this.transparentColorTarget.framebuffer);
                     }
                 }
 

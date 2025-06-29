@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -37,7 +37,8 @@ export function createElementPoint(ctx: VisualContext, unit: Unit, structure: St
     // TODO sizeFactor
 
     const { child } = structure;
-    if (child && !child.unitMap.get(unit.id)) return Points.createEmpty(points);
+    const childUnit = child?.unitMap.get(unit.id);
+    if (child && !childUnit) return Points.createEmpty(points);
 
     const { stride } = props;
 
@@ -79,7 +80,7 @@ export function createElementPoint(ctx: VisualContext, unit: Unit, structure: St
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         boundingSphere = oldBoundingSphere;
     } else {
-        boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor);
+        boundingSphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, 1 * props.sizeFactor);
     }
     pt.setBoundingSphere(boundingSphere);
 

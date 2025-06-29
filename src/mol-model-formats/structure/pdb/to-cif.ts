@@ -35,7 +35,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
     let anisotropicCount = 0;
     for (let i = 0, _i = lines.count; i < _i; i++) {
         const s = indices[2 * i], e = indices[2 * i + 1];
-        switch (data[s]) {
+        switch (data.charAt(s)) {
             case 'A':
                 if (substringStartsWith(data, s, e, 'ATOM  ')) atomCount++;
                 else if (substringStartsWith(data, s, e, 'ANISOU')) anisotropicCount++;
@@ -59,7 +59,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
 
     for (let i = 0, _i = lines.count; i < _i; i++) {
         let s = indices[2 * i], e = indices[2 * i + 1];
-        switch (data[s]) {
+        switch (data.charAt(s)) {
             case 'A':
                 if (substringStartsWith(data, s, e, 'ATOM  ')) {
                     if (!modelNum) { modelNum++; modelStr = '' + modelNum; }

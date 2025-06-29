@@ -1,0 +1,94 @@
+@use "sass:color";
+@use "colors" as *;
+@forward "colors"; 
+
+// measures
+
+$control-label-width:   110px;
+$control-label-short-width:   70px;
+$row-height:            32px;
+$control-spacing:       10px;
+$entity-subtree-offset: 8px;
+$info-vertical-padding: 3px;
+$slider-border-radius-base: 6px;
+
+// layout
+$expanded-top-height:    100px;
+$expanded-bottom-height: 70px; // 3 * $row-height + 2;
+$expanded-right-width:   300px;
+$expanded-left-width:    330px;
+
+$collapsed-left-width:   $row-height;
+
+$expanded-portrait-bottom-height: 10 * ($row-height + 1) + 3 * $control-spacing + 1;
+$expanded-portrait-top-height:    3 * $row-height + 1;
+
+$standard-bottom-height: 8 * ($row-height + 1) + 3 * $control-spacing + 1;
+$standard-top-height:    3 * $row-height + 1;
+
+
+$color-accent-cyan:      color-lower-contrast(#95a5a6, 15%);
+$color-accent-red:       color-lower-contrast(#e74c3c, 15%);
+$color-accent-gray:      color-lower-contrast(#34495e, 10%);
+$color-accent-green:     color-lower-contrast(#2ecc71, 10%);
+$color-accent-purple:    color-lower-contrast(#9b59b6, 10%);
+$color-accent-blue:      color-lower-contrast(#3498db, 5%);
+$color-accent-orange:    color-lower-contrast(#e67e22, 5%);
+
+// TypeClass = 'Root' | 'Group' | 'Data' | 'Object' | 'Representation3D' | 'Behavior'
+
+$type-class-Root:             $default-background;
+$type-class-Data:             color-lower-contrast(#95a5a6, 15%);
+$type-class-Object:           color-lower-contrast(#2ecc71, 10%);
+$type-class-Behavior:         color-lower-contrast(#9b59b6, 10%);
+$type-class-Representation3D: color-lower-contrast(#3498db, 5%);
+$type-class-Group:            color-lower-contrast(#e67e22, 5%);
+
+//////////////////////////////////////////////////
+// COLORS and COMPUTED COLORS
+
+$slider-disabledColor: #ccc;
+
+$control-background: color-increase-contrast($default-background, 6.5%);
+$border-color: color-increase-contrast($default-background, 15%);
+$msp-form-control-background: color-lower-contrast($default-background, 2.5%);
+
+// buttons
+$msp-btn-link-font-color: $font-color;
+$msp-btn-link-toggle-on-font-color: $font-color;
+$msp-btn-link-toggle-off-font-color: color-lower-contrast($font-color, 33%);
+$msp-btn-link-toggle-on-hover-font-color: $hover-font-color;
+$msp-btn-link-toggle-off-hover-font-color: color.adjust(color-lower-contrast($hover-font-color, 25%), $saturation: -30%, $space: hsl);
+
+// used for "actions" -- i.e. + in selection
+$msp-btn-remove-font-color: $font-color;
+
+$msp-btn-action-background: $msp-form-control-background;
+
+// update selection etc
+//!! $msp-btn-commit-on-font-color: $entity-current-font-color;
+$msp-btn-commit-on-hover-font-color: color-lower-contrast($msp-btn-commit-on-font-color, 20%); //!!Change
+$msp-btn-commit-on-background: color-lower-contrast($default-background, 2%);
+$msp-btn-commit-off-background:  color-lower-contrast($default-background, 4%); //$control-background;
+$msp-btn-commit-off-font-color: $font-color;
+
+// log
+$log-font-color: color-lower-contrast($font-color, 5%);
+$log-timestamp-font-color: color-lower-contrast($font-color, 20%);
+
+// highlight
+$highlight-info-font-color: $hover-font-color;
+$highlight-info-additional-font-color: color-lower-contrast($hover-font-color, 20%);
+
+// entity state
+$entity-color-fully-visible: $font-color;
+$entity-color-not-visible: color-lower-contrast($font-color, 66%);
+$entity-color-partialy-visible: color-lower-contrast($font-color, 33%);
+$entity-tag-color: color-lower-contrast($font-color, 20%);
+
+// sequence
+$sequence-background: $default-background;
+$sequence-number-color: $hover-font-color;
+
+// state
+$state-image-height: 96px;

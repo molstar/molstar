@@ -1,128 +1,139 @@
-.msp-sequence {
-    position: absolute;
-    right: 0;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    background: $sequence-background;
-}
+@use '../vars' as *;
+@use '../common' as *;
 
-$sequence-select-height: 24px;
-.msp-sequence-select {
-    position: relative;
-    height: $sequence-select-height;
-    width: 100%;
-    margin-bottom: 1px;
-    background: $control-background;
-    text-align: left;
-
-    > span {
-        display: inline-block;
-        line-height: $sequence-select-height;
-        padding: 0 $control-spacing;
-        font-size: 85%;
-        font-weight: bold;
-        cursor: default;
+@mixin sequence {
+    .msp-sequence {
+        position: absolute;
+        right: 0;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        background: $sequence-background;
     }
 
-    > select {
-        display: inline-block;
-        max-width: 120px;
-        width: auto;
-        text-overflow: ellipsis;
-        font-size: 85%;
+    $sequence-select-height: 24px;
+
+    .msp-sequence-select {
+        position: relative;
         height: $sequence-select-height;
-        line-height: $sequence-select-height;
-        background-size: 6px 8px;
-        background-color: $control-background;
-    }
-}
+        width: 100%;
+        margin-bottom: 1px;
+        background: $control-background;
+        text-align: left;
 
-.msp-sequence-wrapper {
-    word-break: break-word;
-    // use $control-spacing for top to have space for sequence numebrs
-    padding: $control-spacing $control-spacing $info-vertical-padding $control-spacing;
-    user-select: none;
-}
+        >span {
+            display: inline-block;
+            line-height: $sequence-select-height;
+            padding: 0 $control-spacing;
+            font-size: 85%;
+            font-weight: bold;
+            cursor: default;
+        }
 
-.msp-sequence-wrapper-non-empty {
-    font-size: 85%;
-    line-height: 180%;
-    font-family: "Courier New", monospace;
-    background: $msp-form-control-background;
-
-    width: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-    position: absolute;
-    top: $sequence-select-height + 1px;
-    left: 0;
-    bottom: 0;
-    right: 0;
-}
-
-.msp-sequence-chain-label {
-    margin-left: $control-spacing;
-    margin-top: $control-spacing;
-    user-select: none;
-    color: $sequence-number-color;
-    font-size: 90%;
-    line-height: 90%;
-    padding-left: 0.2em;
-}
-
-.msp-sequence-wrapper {
-    span {
-        cursor: pointer;
+        >select {
+            display: inline-block;
+            max-width: 120px;
+            width: auto;
+            text-overflow: ellipsis;
+            font-size: 85%;
+            height: $sequence-select-height;
+            line-height: $sequence-select-height;
+            background-size: 6px 8px;
+            background-color: $control-background;
+        }
     }
 
-    .msp-sequence-residue-long {
-        margin: 0em 0.2em 0em 0.2em;
+    .msp-sequence-wrapper {
+        word-break: break-word;
+        // use $control-spacing for top to have space for sequence numebrs
+        padding: $control-spacing $control-spacing $info-vertical-padding $control-spacing;
+        user-select: none;
     }
 
-    .msp-sequence-residue-long-begin {
-        margin: 0em 0.2em 0em 0em;
+    .msp-sequence-wrapper-non-empty {
+        font-size: 85%;
+        line-height: 180%;
+        font-family: "Courier New", monospace;
+        background: $msp-form-control-background;
+
+        width: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        position: absolute;
+        top: $sequence-select-height + 1px;
+        left: 0;
+        bottom: 0;
+        right: 0;
     }
 
-    .msp-sequence-label {
+    .msp-sequence-chain-label {
+        margin-left: $control-spacing;
+        margin-top: $control-spacing;
+        user-select: none;
         color: $sequence-number-color;
         font-size: 90%;
         line-height: 90%;
-        padding-bottom: 1em;
         padding-left: 0.2em;
     }
-    
-    .msp-sequence-number {
-        color: $sequence-number-color;
-        word-break: keep-all;
-        cursor: default;
-        position: relative;
-        top: -1.1em;
-        left: 3.1em;
-        padding: 0px;
-        margin-left: -3em;
-        font-size: 80%;
-        pointer-events: none;
-    }
 
-    .msp-sequence-number-long {
-        left: 3.3em;
-    }
+    .msp-sequence-wrapper {
+        span {
+            cursor: pointer;
+        }
 
-    .msp-sequence-number-long-negative {
-        left: 2.7em;
-    }
+        .msp-sequence-residue-long {
+            margin: 0em 0.2em 0em 0.2em;
+        }
 
-    .msp-sequence-number-negative {
-        left: 2.5em;
-    }
+        .msp-sequence-residue-long-begin {
+            margin: 0em 0.2em 0em 0em;
+        }
 
-    .msp-sequence-present {
-        color: $font-color;
-    }
+        .msp-sequence-residue-focused {
+            font-weight: bold;
+            text-decoration: underline;
+        }
 
-    .msp-sequence-missing {
-        color: color-lower-contrast($font-color, 45%);
-        cursor: default;
+        .msp-sequence-label {
+            color: $sequence-number-color;
+            font-size: 90%;
+            line-height: 90%;
+            padding-bottom: 1em;
+            padding-left: 0.2em;
+        }
+
+        .msp-sequence-number {
+            color: $sequence-number-color;
+            word-break: keep-all;
+            cursor: default;
+            position: relative;
+            top: -1.1em;
+            left: 3.1em;
+            padding: 0px;
+            margin-left: -3em;
+            font-size: 80%;
+            pointer-events: none;
+        }
+
+        .msp-sequence-number-long {
+            left: 3.3em;
+        }
+
+        .msp-sequence-number-long-negative {
+            left: 2.7em;
+        }
+
+        .msp-sequence-number-negative {
+            left: 2.5em;
+        }
+
+        .msp-sequence-present {
+            color: $font-color;
+        }
+
+        .msp-sequence-missing {
+            color: color-lower-contrast($font-color, 45%);
+            cursor: default;
+        }
     }
 }

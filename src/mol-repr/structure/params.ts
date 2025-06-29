@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -13,6 +13,7 @@ import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
 import { Cylinders } from '../../mol-geo/geometry/cylinders/cylinders';
 import { Text } from '../../mol-geo/geometry/text/text';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
+import { Image } from '../../mol-geo/geometry/image/image';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { UnitKind, UnitKindOptions } from './visual/util/common';
 
@@ -49,3 +50,6 @@ export type StructureDirectVolumeParams = typeof StructureDirectVolumeParams
 
 export const StructureTextureMeshParams = { ...TextureMesh.Params };
 export type StructureTextureMeshParams = typeof StructureTextureMeshParams
+
+export const StructureImageParams = { ...Image.Params };
+export type StructureImageParams = typeof StructureImageParams

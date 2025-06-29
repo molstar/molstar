@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -15,6 +15,11 @@ import { ParameterControls } from '../controls/parameters';
 import { ScreenshotPreview } from '../controls/screenshot';
 import { useBehavior } from '../hooks/use-behavior';
 import { LocalStateSnapshotParams, StateExportImportControls } from '../state/snapshots';
+import { useEffect, useState } from 'react';
+import { round } from '../../mol-util';
+import { Vec3 } from '../../mol-math/linear-algebra';
+import { Camera } from '../../mol-canvas3d/camera';
+import { fovNormalizedCameraPosition } from '../../mol-util/camera';
 
 interface ImageControlsState {
     showPreview: boolean,
@@ -91,8 +96,80 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
                     <LocalStateSnapshotParams />
                 </ExpandGroup>
             </ExpandGroup>
+            <ExpandGroup header='Camera'>
+                <CameraInfo plugin={this.plugin} />
+            </ExpandGroup>
         </div>;
     }
+}
+
+function renderVector(v: number[] | undefined) {
+    return `${v?.map(v => round(v, 2)).join(', ')}`;
+}
+
+function CameraInfoSection({ title, children }: { title: string, children: any }): JSX.Element {
+    return <div className='msp-control-row'>
+        <span className='msp-control-row-label'>{title}</span>
+        <div className='msp-control-row-text' style={{ fontSize: '0.85rem', overflow: 'hidden', whiteSpace: 'nowrap' }}>{children}</div>
+    </div>;
+}
+
+function normalizedCameraPosition(camera?: Camera.Snapshot) {
+    if (!camera) return;
+
+    return fovNormalizedCameraPosition(
+        camera.target,
+        camera.position,
+        camera.mode,
+        camera.fov,
+    );
+}
+
+function CameraInfo({ plugin }: { plugin: PluginContext }) {
+    const [, setUpdate] = useState({});
+    useEffect(() => {
+        const sub = plugin.canvas3d?.didDraw.subscribe(() => setUpdate({}));
+        return () => sub?.unsubscribe();
+    }, [plugin]);
+
+    const state = plugin.canvas3d?.camera.state;
+    const fovNormalized = normalizedCameraPosition(state);
+
+    const direction = Vec3.sub(Vec3(), state?.target ?? Vec3.origin, state?.position ?? Vec3.origin);
+    Vec3.normalize(direction, direction);
+
+    return <div>
+        <CameraInfoSection title='Position'>
+            {renderVector(state?.position)}
+        </CameraInfoSection>
+        <CameraInfoSection title='FoV Norm. Pos.'>
+            {renderVector(fovNormalized)}
+        </CameraInfoSection>
+        <CameraInfoSection title='Target'>
+            {renderVector(state?.target)}
+        </CameraInfoSection>
+        <CameraInfoSection title='Direction'>
+            {renderVector(direction)}
+        </CameraInfoSection>
+        <CameraInfoSection title='Up'>
+            {renderVector(state?.up)}
+        </CameraInfoSection>
+        <CameraInfoSection title='Distance'>
+            {round(Vec3.distance(state?.position ?? Vec3.origin, state?.target ?? Vec3.origin), 2)}
+        </CameraInfoSection>
+        <CameraInfoSection title='Radius'>
+            {round(state?.radius ?? 0, 2)}
+        </CameraInfoSection>
+        <Button onClick={() => {
+            if (!navigator.clipboard) return;
+            const ret = `{
+    position: [${fovNormalized?.map(v => round(v, 2)).join(', ')}],
+    target: [${state?.target.map(v => round(v, 2)).join(', ')}],
+    up: [${state?.up.map(v => round(v, 2)).join(', ')}],
+}`;
+            navigator.clipboard.writeText(ret);
+        }} style={{ marginTop: 1 }} title='Copy JSON usable in MolViewSpec, uses FoV Normalized Position'>Copy MVS JSON</Button>
+    </div>;
 }
 
 function ScreenshotParams({ plugin, isDisabled }: { plugin: PluginContext, isDisabled: boolean }) {

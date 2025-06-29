@@ -17,7 +17,7 @@ const Matrix = Schema.Matrix;
 
 export const CifCore_Schema = {
     /**
-     * The CATEGORY of data items used to describe the parameters of
+     * The category of data items used to describe the parameters of
      * the crystal unit cell.
      */
     cell: {
@@ -57,7 +57,7 @@ export const CifCore_Schema = {
         volume: float,
     },
     /**
-     * The CATEGORY of data items which describe the composition and
+     * The category of data items which describe the composition and
      * chemical properties of the compound under study. The formula data
      * items must be consistent with the density, unit-cell and Z values.
      */
@@ -76,7 +76,7 @@ export const CifCore_Schema = {
         name_systematic: str,
     },
     /**
-     * The CATEGORY of data items which specify the composition and chemical
+     * The category of data items which specify the composition and chemical
      * properties of the compound. The formula data items must agree
      * with those that specify the density, unit-cell and Z values.
      *
@@ -132,7 +132,7 @@ export const CifCore_Schema = {
          * 3. Parentheses are not used within moieties but may surround
          * a moiety. Parentheses may not be nested.
          * 4. Charges should be placed at the end of the moiety. The
-         * Singlege '+' or '-' may be preceded by a numerical multiplier
+         * charge '+' or '-' may be preceded by a numerical multiplier
          * and should be separated from the last (element symbol +
          * count) by a space. Pre- or post-multipliers may be used for
          * individual moieties.
@@ -141,7 +141,7 @@ export const CifCore_Schema = {
         /**
          * Chemical formulae in which all discrete bonded residues and ions are
          * summed over the constituent elements, following the ordering given
-         * in rule 5 of the CATEGORY description. Parentheses normally not used.
+         * in rule 5 of the category description. Parentheses normally not used.
          */
         sum: str,
         /**
@@ -152,7 +152,7 @@ export const CifCore_Schema = {
         weight: float,
     },
     /**
-     * The CATEGORY of data items used to specify space group
+     * The category of data items used to specify space group
      * information about the crystal used in the diffraction measurements.
      *
      * Space-group types are identified by their number as listed in
@@ -223,7 +223,7 @@ export const CifCore_Schema = {
         'name_h-m_full': str,
     },
     /**
-     * The CATEGORY of data items used to describe symmetry equivalent sites
+     * The category of data items used to describe symmetry equivalent sites
      * in the crystal unit cell.
      */
     space_group_symop: {
@@ -235,10 +235,10 @@ export const CifCore_Schema = {
          * translations defined by fractions, an equivalent position
          * X' is generated from a given position X by the equation
          *
-         * X' = WX + w
+         * X' = WX + w.
          *
          * (Note: X is used to represent bold_italics_x in International
-         * Tables for Crystallography Vol. A, Part 5)
+         * Tables for Crystallography Vol. A, Part 5.)
          *
          * When a list of symmetry operations is given, it must contain
          * a complete set of coordinate representatives which generates
@@ -257,7 +257,7 @@ export const CifCore_Schema = {
         operation_xyz: str,
     },
     /**
-     * The CATEGORY of data items used to specify the geometry bonds in the
+     * The category of data items used to specify the geometry bonds in the
      * structural model as derived from the atomic sites.
      */
     geom_bond: {
@@ -283,7 +283,8 @@ export const CifCore_Schema = {
         publ_flag: str,
         /**
          * Data item specifying the symmetry operation codes applied to the atom
-         * sites involved in a specific geometric configuration.
+         * sites involved in a specific geometric configuration or other correlated
+         * behaviour.
          *
          * The symmetry code of each atom site as the symmetry-equivalent position
          * number 'n' and the cell translation number 'pqr'. These numbers are
@@ -298,8 +299,8 @@ export const CifCore_Schema = {
          *
          * p, q and r refer to the translations that are subsequently
          * applied to the symmetry transformed coordinates to generate
-         * the atom used in calculating the angle. These translations
-         * (x,y,z) are related to (p,q,r) by the relations
+         * the related atom position. These translations (x,y,z) are related
+         * to (p,q,r) by the relations
          * p = 5 + x
          * q = 5 + y
          * r = 5 + z
@@ -307,7 +308,8 @@ export const CifCore_Schema = {
         site_symmetry_1: str,
         /**
          * Data item specifying the symmetry operation codes applied to the atom
-         * sites involved in a specific geometric configuration.
+         * sites involved in a specific geometric configuration or other correlated
+         * behaviour.
          *
          * The symmetry code of each atom site as the symmetry-equivalent position
          * number 'n' and the cell translation number 'pqr'. These numbers are
@@ -322,8 +324,8 @@ export const CifCore_Schema = {
          *
          * p, q and r refer to the translations that are subsequently
          * applied to the symmetry transformed coordinates to generate
-         * the atom used in calculating the angle. These translations
-         * (x,y,z) are related to (p,q,r) by the relations
+         * the related atom position. These translations (x,y,z) are related
+         * to (p,q,r) by the relations
          * p = 5 + x
          * q = 5 + y
          * r = 5 + z
@@ -335,7 +337,7 @@ export const CifCore_Schema = {
         valence: float,
     },
     /**
-     * The CATEGORY of data items used to record details about the
+     * The category of data items used to record details about the
      * creation and subsequent updating of the data block.
      */
     audit: {
@@ -362,7 +364,7 @@ export const CifCore_Schema = {
         block_doi: str,
     },
     /**
-     * The CATEGORY of data items recording database deposition. These data items
+     * The category of data items recording database deposition. These data items
      * are assigned by database managers and should only appear in a CIF if they
      * originate from that source.
      */
@@ -401,7 +403,7 @@ export const CifCore_Schema = {
         nbs: str,
     },
     /**
-     * The CATEGORY of data items used to describe atom site information
+     * The category of data items used to describe atom site information
      * used in crystallographic structure studies.
      */
     atom_site: {
@@ -522,7 +524,7 @@ export const CifCore_Schema = {
         u_iso_or_equiv: float,
     },
     /**
-     * The CATEGORY of data items used to describe the anisotropic atomic
+     * The category of data items used to describe the anisotropic atomic
      * displacement parameters of the atomic sites in a crystal structure.
      */
     atom_site_aniso: {
@@ -534,8 +536,8 @@ export const CifCore_Schema = {
          */
         label: str,
         /**
-         * These are the standard anisotropic atomic displacement components, in
-         * angstroms squared, which appear in the structure factor term:
+         * These are the standard anisotropic atomic displacement components in
+         * angstroms squared which appear in the structure-factor term
          *
          * T = exp{ -2π^2^ sum~i~ [ sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
          *
@@ -545,16 +547,16 @@ export const CifCore_Schema = {
          * The unique elements of the real symmetric matrix are entered by row.
          *
          * The IUCr Commission on Nomenclature recommends the use of U for reporting
-         * atomic displacement parameters .
+         * atomic displacement parameters.
          *
-         * Note that U^ij^ = β^ij^/(2 π^2^ a*~i~ a*~j~) = B^ij^/(8 π^2^) [1].
+         * Note that U^ij^ = β^ij^/(2 π^2^ a*~i~ a*~j~) = B^ij^/(8 π^2^).
          *
-         * [1] Trueblood, K. N. et al. (1996). Acta Crystallogr. A52(5), 770-781.
+         * Ref: Trueblood, K. N. et al. (1996). Acta Cryst. A52, 770-781.
          */
         u_11: float,
         /**
-         * These are the standard anisotropic atomic displacement components, in
-         * angstroms squared, which appear in the structure factor term:
+         * These are the standard anisotropic atomic displacement components in
+         * angstroms squared which appear in the structure-factor term
          *
          * T = exp{ -2π^2^ sum~i~ [ sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
          *
@@ -564,16 +566,16 @@ export const CifCore_Schema = {
          * The unique elements of the real symmetric matrix are entered by row.
          *
          * The IUCr Commission on Nomenclature recommends the use of U for reporting
-         * atomic displacement parameters .
+         * atomic displacement parameters.
          *
-         * Note that U^ij^ = β^ij^/(2 π^2^ a*~i~ a*~j~) = B^ij^/(8 π^2^) [1].
+         * Note that U^ij^ = β^ij^/(2 π^2^ a*~i~ a*~j~) = B^ij^/(8 π^2^).
          *
-         * [1] Trueblood, K. N. et al. (1996). Acta Crystallogr. A52(5), 770-781.
+         * Ref: Trueblood, K. N. et al. (1996). Acta Cryst. A52, 770-781.
          */
         u: Matrix(3, 3),
         /**
-         * These are the standard anisotropic atomic displacement components, in
-         * angstroms squared, which appear in the structure factor term:
+         * These are the standard anisotropic atomic displacement components in
+         * angstroms squared which appear in the structure-factor term
          *
          * T = exp{ -2π^2^ sum~i~ [ sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
          *
@@ -583,16 +585,16 @@ export const CifCore_Schema = {
          * The unique elements of the real symmetric matrix are entered by row.
          *
          * The IUCr Commission on Nomenclature recommends the use of U for reporting
-         * atomic displacement parameters .
+         * atomic displacement parameters.
          *
-         * Note that U^ij^ = β^ij^/(2 π^2^ a*~i~ a*~j~) = B^ij^/(8 π^2^) [1].
+         * Note that U^ij^ = β^ij^/(2 π^2^ a*~i~ a*~j~) = B^ij^/(8 π^2^).
          *
-         * [1] Trueblood, K. N. et al. (1996). Acta Crystallogr. A52(5), 770-781.
+         * Ref: Trueblood, K. N. et al. (1996). Acta Cryst. A52, 770-781.
          */
         u_12: float,
         /**
-         * These are the standard anisotropic atomic displacement components, in
-         * angstroms squared, which appear in the structure factor term:
+         * These are the standard anisotropic atomic displacement components in
+         * angstroms squared which appear in the structure-factor term
          *
          * T = exp{ -2π^2^ sum~i~ [ sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
          *
@@ -602,16 +604,16 @@ export const CifCore_Schema = {
          * The unique elements of the real symmetric matrix are entered by row.
          *
          * The IUCr Commission on Nomenclature recommends the use of U for reporting
-         * atomic displacement parameters .
+         * atomic displacement parameters.
          *
-         * Note that U^ij^ = β^ij^/(2 π^2^ a*~i~ a*~j~) = B^ij^/(8 π^2^) [1].
+         * Note that U^ij^ = β^ij^/(2 π^2^ a*~i~ a*~j~) = B^ij^/(8 π^2^).
          *
-         * [1] Trueblood, K. N. et al. (1996). Acta Crystallogr. A52(5), 770-781.
+         * Ref: Trueblood, K. N. et al. (1996). Acta Cryst. A52, 770-781.
          */
         u_13: float,
         /**
-         * These are the standard anisotropic atomic displacement components, in
-         * angstroms squared, which appear in the structure factor term:
+         * These are the standard anisotropic atomic displacement components in
+         * angstroms squared which appear in the structure-factor term
          *
          * T = exp{ -2π^2^ sum~i~ [ sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
          *
@@ -621,16 +623,16 @@ export const CifCore_Schema = {
          * The unique elements of the real symmetric matrix are entered by row.
          *
          * The IUCr Commission on Nomenclature recommends the use of U for reporting
-         * atomic displacement parameters .
+         * atomic displacement parameters.
          *
-         * Note that U^ij^ = β^ij^/(2 π^2^ a*~i~ a*~j~) = B^ij^/(8 π^2^) [1].
+         * Note that U^ij^ = β^ij^/(2 π^2^ a*~i~ a*~j~) = B^ij^/(8 π^2^).
          *
-         * [1] Trueblood, K. N. et al. (1996). Acta Crystallogr. A52(5), 770-781.
+         * Ref: Trueblood, K. N. et al. (1996). Acta Cryst. A52, 770-781.
          */
         u_22: float,
         /**
-         * These are the standard anisotropic atomic displacement components, in
-         * angstroms squared, which appear in the structure factor term:
+         * These are the standard anisotropic atomic displacement components in
+         * angstroms squared which appear in the structure-factor term
          *
          * T = exp{ -2π^2^ sum~i~ [ sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
          *
@@ -640,16 +642,16 @@ export const CifCore_Schema = {
          * The unique elements of the real symmetric matrix are entered by row.
          *
          * The IUCr Commission on Nomenclature recommends the use of U for reporting
-         * atomic displacement parameters .
+         * atomic displacement parameters.
          *
-         * Note that U^ij^ = β^ij^/(2 π^2^ a*~i~ a*~j~) = B^ij^/(8 π^2^) [1].
+         * Note that U^ij^ = β^ij^/(2 π^2^ a*~i~ a*~j~) = B^ij^/(8 π^2^).
          *
-         * [1] Trueblood, K. N. et al. (1996). Acta Crystallogr. A52(5), 770-781.
+         * Ref: Trueblood, K. N. et al. (1996). Acta Cryst. A52, 770-781.
          */
         u_23: float,
         /**
-         * These are the standard anisotropic atomic displacement components, in
-         * angstroms squared, which appear in the structure factor term:
+         * These are the standard anisotropic atomic displacement components in
+         * angstroms squared which appear in the structure-factor term
          *
          * T = exp{ -2π^2^ sum~i~ [ sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
          *
@@ -659,16 +661,16 @@ export const CifCore_Schema = {
          * The unique elements of the real symmetric matrix are entered by row.
          *
          * The IUCr Commission on Nomenclature recommends the use of U for reporting
-         * atomic displacement parameters .
+         * atomic displacement parameters.
          *
-         * Note that U^ij^ = β^ij^/(2 π^2^ a*~i~ a*~j~) = B^ij^/(8 π^2^) [1].
+         * Note that U^ij^ = β^ij^/(2 π^2^ a*~i~ a*~j~) = B^ij^/(8 π^2^).
          *
-         * [1] Trueblood, K. N. et al. (1996). Acta Crystallogr. A52(5), 770-781.
+         * Ref: Trueblood, K. N. et al. (1996). Acta Cryst. A52, 770-781.
          */
         u_33: float,
     },
     /**
-     * The CATEGORY of data items used to describe atomic type information
+     * The category of data items used to describe atomic type information
      * used in crystallographic structure studies.
      */
     atom_type: {
@@ -689,7 +691,7 @@ export const CifCore_Schema = {
         symbol: str,
     },
     /**
-     * The CATEGORY of data items used to describe atomic scattering
+     * The category of data items used to describe atomic scattering
      * information used in crystallographic structure studies.
      */
     atom_type_scat: {

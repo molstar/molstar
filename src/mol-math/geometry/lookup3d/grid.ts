@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -14,6 +14,7 @@ import { Vec3 } from '../../linear-algebra';
 import { OrderedSet } from '../../../mol-data/int';
 import { Boundary } from '../boundary';
 import { FibonacciHeap } from '../../../mol-util/fibonacci-heap';
+import { memoize1 } from '../../../mol-util/memoize';
 
 interface GridLookup3D<T = number> extends Lookup3D<T> {
     readonly buckets: { readonly offset: ArrayLike<number>, readonly count: ArrayLike<number>, readonly array: ArrayLike<number> }
@@ -60,6 +61,17 @@ class GridLookup3DImpl<T extends number = number> implements GridLookup3D<T> {
         this.ctx.radius = radius;
         this.ctx.isCheck = true;
         return query(this.ctx, this.result);
+    }
+
+    approxNearest(x: number, y: number, z: number, radius: number, result?: Result<T>): Result<T> {
+        this.ctx.x = x;
+        this.ctx.y = y;
+        this.ctx.z = z;
+        this.ctx.radius = radius;
+        this.ctx.isCheck = false;
+        const ret = result ?? this.result;
+        approxQueryNearest(this.ctx, ret);
+        return ret;
     }
 
     constructor(data: PositionData, boundary: Boundary, cellSizeOrCount?: Vec3 | number) {
@@ -180,6 +192,8 @@ function _build(state: BuildState): Grid3D {
     };
 }
 
+const MaxVolume = 2 ** 24;
+
 function build(data: PositionData, boundary: Boundary, cellSizeOrCount?: Vec3 | number) {
     // need to expand the grid bounds to avoid rounding errors
     const expandedBox = Box3D.expand(Box3D(), boundary.box, Vec3.create(0.5, 0.5, 0.5));
@@ -206,6 +220,14 @@ function build(data: PositionData, boundary: Boundary, cellSizeOrCount?: Vec3 | 
     } else {
         delta = S;
         size = [1, 1, 1];
+    }
+
+    // guard against overly large grids
+    const volume = size[0] * size[1] * size[2];
+    if (volume > MaxVolume) {
+        const f = Math.cbrt(volume / MaxVolume);
+        size = [Math.ceil(size[0] / f), Math.ceil(size[1] / f), Math.ceil(size[2] / f)];
+        delta = [S[0] / size[0], S[1] / size[1], S[2] / size[2]];
     }
 
     const inputData: InputData = {
@@ -291,6 +313,84 @@ function query<T extends number = number>(ctx: QueryContext, result: Result<T>):
             }
         }
     }
+    return result.count > 0;
+}
+
+function _insideOut(r: number) {
+    const cells: Vec3[] = [];
+    const n = r * 2 + 1;
+
+    for (let x = 0; x < n; ++x) {
+        for (let y = 0; y < n; ++y) {
+            for (let z = 0; z < n; ++z) {
+                cells.push(Vec3.create(x - r, y - r, z - r));
+            }
+        }
+    }
+
+    cells.sort((a, b) => Vec3.squaredMagnitude(a) - Vec3.squaredMagnitude(b));
+    return cells.flat();
+}
+const insideOut = memoize1(_insideOut);
+
+/**
+ * The maximum error is on the order of cell size + max radius (if the grid has radii).
+ */
+function approxQueryNearest<T extends number = number>(ctx: QueryContext, result: Result<T>): boolean {
+    const { min, size: [sX, sY, sZ], bucketOffset, bucketCounts, bucketArray, grid, data: { x: px, y: py, z: pz, indices }, delta } = ctx.grid;
+    const { radius, x, y, z } = ctx;
+
+    const rSq = radius * radius;
+
+    Result.reset(result);
+
+    const loX = Math.max(0, Math.floor((x - radius - min[0]) / delta[0]));
+    const loY = Math.max(0, Math.floor((y - radius - min[1]) / delta[1]));
+    const loZ = Math.max(0, Math.floor((z - radius - min[2]) / delta[2]));
+
+    const hiX = Math.min(sX - 1, Math.floor((x + radius - min[0]) / delta[0]));
+    const hiY = Math.min(sY - 1, Math.floor((y + radius - min[1]) / delta[1]));
+    const hiZ = Math.min(sZ - 1, Math.floor((z + radius - min[2]) / delta[2]));
+
+    if (loX > hiX || loY > hiY || loZ > hiZ) return false;
+
+    const miX = Math.floor((x - min[0]) / delta[0]);
+    const miY = Math.floor((y - min[1]) / delta[1]);
+    const miZ = Math.floor((z - min[2]) / delta[2]);
+
+    const cells = insideOut(Math.max(hiX - loX, hiY - loY, hiZ - loZ) + 1);
+
+    for (let i = 0, _i = cells.length; i < _i; i += 3) {
+        const ix = miX + cells[i];
+        const iy = miY + cells[i + 1];
+        const iz = miZ + cells[i + 2];
+        if (ix < loX || ix > hiX || iy < loY || iy > hiY || iz < loZ || iz > hiZ) continue;
+
+        const bucketIdx = grid[(((ix * sY) + iy) * sZ) + iz];
+        if (bucketIdx === 0) continue;
+
+        const k = bucketIdx - 1;
+        const offset = bucketOffset[k];
+        const count = bucketCounts[k];
+        const end = offset + count;
+
+        let minDistSq = Number.MAX_VALUE;
+        for (let i = offset; i < end; i++) {
+            const idx = OrderedSet.getAt(indices, bucketArray[i]);
+
+            const dx = px[idx] - x;
+            const dy = py[idx] - y;
+            const dz = pz[idx] - z;
+            const distSq = dx * dx + dy * dy + dz * dz;
+
+            if (distSq <= rSq && distSq < minDistSq) {
+                Result.add(result, bucketArray[i], distSq);
+                minDistSq = distSq;
+            }
+        }
+        if (minDistSq !== Number.MAX_VALUE) return true;
+    }
+
     return result.count > 0;
 }
 

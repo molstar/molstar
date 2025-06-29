@@ -1015,7 +1015,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
             const provider = plugin.representation.volume.registry.get(params.type.name);
             if (provider.ensureCustomProperties) await provider.ensureCustomProperties.attach(propertyCtx, a.data);
             const repr = provider.factory({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.volume.themes }, provider.getParams);
-            repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: a.data }, params));
+            repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: a.data, locationKinds: provider.locationKinds }, params));
 
             const props = params.type.params || {};
             await repr.createOrUpdate(props, a.data).runInContext(ctx);
@@ -1024,13 +1024,13 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
     },
     update({ a, b, oldParams, newParams }, plugin: PluginContext) {
         return Task.create('Volume Representation', async ctx => {
+            const oldProvider = plugin.representation.volume.registry.get(oldParams.type.name);
             if (newParams.type.name !== oldParams.type.name) {
-                const oldProvider = plugin.representation.volume.registry.get(oldParams.type.name);
                 oldProvider.ensureCustomProperties?.detach(a.data);
                 return StateTransformer.UpdateResult.Recreate;
             }
             const props = { ...b.data.repr.props, ...newParams.type.params };
-            b.data.repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: a.data }, newParams));
+            b.data.repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: a.data, locationKinds: oldProvider.locationKinds }, newParams));
             await b.data.repr.createOrUpdate(props, a.data).runInContext(ctx);
             b.data.sourceData = a.data;
             b.description = VolumeRepresentation3DHelpers.getDescription(props);

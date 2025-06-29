@@ -464,6 +464,7 @@ export namespace Model {
 
     export function probablyHasDensityMap(model: Model): boolean {
         if (!MmcifFormat.is(model.sourceData)) return false;
+        if (Model.isIntegrative(model)) return false;
         const { db } = model.sourceData.data;
         return hasDensityMap(model) || (
             // check if from pdb archive but missing relevant meta data

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -262,6 +262,11 @@ export class SsaoPass {
             this.depthHalfRenderableTransparent.update();
             this.renderable.update();
         }
+    }
+
+    reset() {
+        this.ssaoDepthTexture.attachFramebuffer(this.framebuffer, 'color0');
+        this.depthBlurProxyTexture.attachFramebuffer(this.blurFirstPassFramebuffer, 'color0');
     }
 
     update(camera: ICamera, scene: Scene, props: SsaoProps, illuminationMode = false) {

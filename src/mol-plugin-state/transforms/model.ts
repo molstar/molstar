@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -84,6 +84,7 @@ export { StructureFromModel };
 export { TransformStructureConformation };
 export { StructureSelectionFromExpression };
 export { MultiStructureSelectionFromExpression };
+export { MultiStructureSelectionFromBundle };
 export { StructureSelectionFromScript };
 export { StructureSelectionFromBundle };
 export { StructureComplexElement };
@@ -808,7 +809,7 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
             const { selection, entry } = StructureQueryHelper.createAndRun(dependencies![sel.ref].data as Structure, sel.expression);
             entries.set(sel.key, entry);
             const loci = Sel.toLociWithSourceUnits(selection);
-            selections.push({ key: sel.key, loci, groupId: sel.groupId });
+            selections.push({ key: sel.key, structureRef: sel.ref, loci, groupId: sel.groupId });
             totalSize += StructureElement.Loci.size(loci);
         }
 
@@ -861,7 +862,7 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
                             entry.currentStructure = structure;
                             entries.set(sel.key, entry);
                             const loci = StructureElement.Loci.remap(Sel.toLociWithSourceUnits(selection), structure);
-                            selections.push({ key: sel.key, loci, groupId: sel.groupId });
+                            selections.push({ key: sel.key, structureRef: sel.ref, loci, groupId: sel.groupId });
                             totalSize += StructureElement.Loci.size(loci);
                             changed = true;
                         } else {
@@ -876,7 +877,7 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
                         const selection = StructureQueryHelper.updateStructure(entry, structure);
                         entries.set(sel.key, entry);
                         const loci = Sel.toLociWithSourceUnits(selection);
-                        selections.push({ key: sel.key, loci, groupId: sel.groupId });
+                        selections.push({ key: sel.key, structureRef: sel.ref, loci, groupId: sel.groupId });
                         totalSize += StructureElement.Loci.size(loci);
                     }
                 }
@@ -891,8 +892,108 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
                 const { selection, entry } = StructureQueryHelper.createAndRun(structure, sel.expression);
                 entries.set(sel.key, entry);
                 const loci = Sel.toLociWithSourceUnits(selection);
-                selections.push({ key: sel.key, loci });
+                selections.push({ key: sel.key, structureRef: sel.ref, loci, groupId: sel.groupId });
                 totalSize += StructureElement.Loci.size(loci);
+            }
+        }
+
+        if (!changed) return StateTransformer.UpdateResult.Unchanged;
+
+        (cache as object as any).entries = entries;
+        b.data = selections;
+        b.label = `${newParams.label || 'Multi-selection'}`;
+        b.description = `${selections.length} source(s), ${totalSize} element(s) total`;
+
+        return StateTransformer.UpdateResult.Updated;
+    }
+});
+
+type MultiStructureSelectionFromBundle = typeof MultiStructureSelectionFromBundle
+const MultiStructureSelectionFromBundle = PluginStateTransform.BuiltIn({
+    name: 'structure-multi-selection-from-bundle',
+    display: { name: 'Multi-structure Measurement Selection', description: 'Create selection object from multiple structures.' },
+    from: SO.Root,
+    to: SO.Molecule.Structure.Selections,
+    params: () => ({
+        selections: PD.ObjectList({
+            key: PD.Text(void 0, { description: 'A unique key.' }),
+            ref: PD.Text(),
+            groupId: PD.Optional(PD.Text()),
+            bundle: PD.Value<StructureElement.Bundle>(StructureElement.Bundle.Empty),
+        }, e => e.ref, { isHidden: true }),
+        isTransitive: PD.Optional(PD.Boolean(false, { isHidden: true, description: 'Remap the selections from the original structure if structurally equivalent.' })),
+        label: PD.Optional(PD.Text('', { isHidden: true }))
+    })
+})({
+    apply({ params, cache, dependencies }) {
+        const entries = new Map<string, { source: Structure }>();
+
+        const selections: SO.Molecule.Structure.SelectionEntry[] = [];
+        let totalSize = 0;
+
+        for (const sel of params.selections) {
+            const source = dependencies![sel.ref].data as Structure;
+            const loci = StructureElement.Bundle.toLoci(sel.bundle, source);
+            selections.push({ key: sel.key, structureRef: sel.ref, loci, groupId: sel.groupId });
+            totalSize += StructureElement.Loci.size(loci);
+            entries.set(sel.key, { source });
+        }
+
+        (cache as object as any).entries = entries;
+
+        const props = { label: `${params.label || 'Multi-selection'}`, description: `${params.selections.length} source(s), ${totalSize} element(s) total` };
+        return new SO.Molecule.Structure.Selections(selections, props);
+    },
+    update: ({ b, oldParams, newParams, cache, dependencies }) => {
+        if (!!oldParams.isTransitive !== !!newParams.isTransitive) return StateTransformer.UpdateResult.Recreate;
+
+        const cacheEntries = (cache as any).entries as Map<string, { source: Structure }>;
+        const entries = new Map<string, { source: Structure }>();
+
+        const prevBundles = new Map<string, StructureElement.Bundle>();
+        for (const sel of oldParams.selections) {
+            prevBundles.set(sel.key, sel.bundle);
+        }
+
+        const current = new Map<string, SO.Molecule.Structure.SelectionEntry>();
+        for (const e of b.data) current.set(e.key, e);
+
+        let changed = false;
+        let totalSize = 0;
+
+        const selections: SO.Molecule.Structure.SelectionEntry[] = [];
+        for (const sel of newParams.selections) {
+            let recreate = false;
+
+            if (cacheEntries.has(sel.key)) {
+                const source = dependencies![sel.ref].data as Structure;
+                const entry = cacheEntries.get(sel.key)!;
+                const prev = prevBundles.get(sel.key);
+                if (prev && source === entry.source && sel.bundle.hash === entry.source.hashCode && StructureElement.Bundle.areEqual(sel.bundle, prev)) {
+                    const loci = current.get(sel.key)!;
+                    if (loci.groupId !== sel.groupId) {
+                        loci.groupId = sel.groupId;
+                        changed = true;
+                    }
+                    entries.set(sel.key, entry);
+                    selections.push(loci);
+                    totalSize += StructureElement.Loci.size(loci.loci);
+                    continue;
+                }
+                recreate = true;
+            } else {
+                recreate = true;
+            }
+
+            if (recreate) {
+                changed = true;
+
+                // create new selection
+                const source = dependencies![sel.ref].data as Structure;
+                const loci = StructureElement.Bundle.toLoci(sel.bundle, source);
+                selections.push({ key: sel.key, structureRef: sel.ref, loci, groupId: sel.groupId });
+                totalSize += StructureElement.Loci.size(loci);
+                entries.set(sel.key, { source });
             }
         }
 

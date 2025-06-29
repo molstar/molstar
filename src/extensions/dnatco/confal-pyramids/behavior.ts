@@ -47,11 +47,12 @@ export const ConfalPyramidsPreset = StructureRepresentationPresetProvider({
     }
 });
 
+const RemoveNewline = /\r?\n/g;
 export function confalPyramidLabel(step: DnatcoTypes.Step) {
     return `
         <b>${step.auth_asym_id_1}</b> |
         <b>${step.label_comp_id_1} ${step.auth_seq_id_1}${step.PDB_ins_code_1}${step.label_alt_id_1.length > 0 ? ` (alt ${step.label_alt_id_1})` : ''}
            ${step.label_comp_id_2} ${step.auth_seq_id_2}${step.PDB_ins_code_2}${step.label_alt_id_2.length > 0 ? ` (alt ${step.label_alt_id_2})` : ''} </b><br />
         <i>NtC:</i> ${step.NtC} | <i>Confal score:</i> ${step.confal_score} | <i>RMSD:</i> ${step.rmsd.toFixed(2)}
-    `;
+    `.replace(RemoveNewline, '');
 }

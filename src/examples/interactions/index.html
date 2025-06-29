@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <title>Mol* Interactions Example</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                font-family: sans-serif;
+            }
+            #viewer {
+                position: absolute;
+                left: 20px;
+                top: 20px;
+                width: 640px;
+                height: 480px;
+            }
+            #controls {
+                position: absolute;
+                left: 40%;
+                bottom: 8px;
+                font-family: sans-serif;
+                padding: 8px;
+                border: 1px dotted #aaa;
+                background: rgba(255, 255, 255, 0.5);
+            }
+            #controls select {
+                margin-left: 4px;
+                padding: 4px 8px;
+            }
+        </style>
+        <link rel="stylesheet" type="text/css" href="molstar.css" />
+    </head>
+    <body>
+        <div id="viewer"></div>
+        <div id="controls">
+        </div>
+        <script type="text/javascript" src="./index.js"></script>
+        <script>
+            initInteractionsExample('viewer', 'controls');
+        </script>
+    </body>
+</html>

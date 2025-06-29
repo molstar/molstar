@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -12,6 +12,7 @@ import { PhysicalSizeThemeProvider } from './size/physical';
 import { deepEqual } from '../mol-util';
 import { ShapeGroupSizeThemeProvider } from './size/shape-group';
 import { UncertaintySizeThemeProvider } from './size/uncertainty';
+import { VolumeValueSizeThemeProvider } from './size/volume-value';
 
 export { SizeTheme };
 interface SizeTheme<P extends PD.Params> {
@@ -44,7 +45,8 @@ namespace SizeTheme {
         'physical': PhysicalSizeThemeProvider,
         'shape-group': ShapeGroupSizeThemeProvider,
         'uncertainty': UncertaintySizeThemeProvider,
-        'uniform': UniformSizeThemeProvider
+        'uniform': UniformSizeThemeProvider,
+        'volume-value': VolumeValueSizeThemeProvider,
     };
     type _BuiltIn = typeof BuiltIn
     export type BuiltIn = keyof _BuiltIn

@@ -16,9 +16,11 @@ import { dic_Schema, dic_Database } from './cif/schema/dic';
 import { DensityServer_Data_Schema, DensityServer_Data_Database } from './cif/schema/density-server';
 import { CifCore_Database, CifCore_Schema, CifCore_Aliases } from './cif/schema/cif-core';
 import { Segmentation_Data_Database, Segmentation_Data_Schema } from './cif/schema/segmentation';
+import { StringLike } from '../common/string-like';
+
 
 export const CIF = {
-    parse: (data: string | Uint8Array) => typeof data === 'string' ? parseCifText(data) : parseCifBinary(data),
+    parse: (data: StringLike | Uint8Array) => StringLike.is(data) ? parseCifText(data) : parseCifBinary(data),
     parseText: parseCifText,
     parseBinary: parseCifBinary,
     toDatabaseCollection,

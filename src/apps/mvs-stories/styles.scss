@@ -1,0 +1,174 @@
+.mvs-stories-markdown-explanation {
+    // Adapted from skeleton.css, The MIT License (MIT), Copyright (c) 2011-2014 Dave Gamache 
+    line-height: 1.4;
+    font-weight: 400;
+    font-family: "Raleway", "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: #222;
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        margin-top: 0;
+        margin-bottom: 1rem;
+        font-weight: 300;
+    }
+
+    h1 {
+        font-size: 3rem;
+        line-height: 1.2;
+        letter-spacing: -.1rem;
+    }
+
+    h2 {
+        font-size: 2.6rem;
+        line-height: 1.25;
+        letter-spacing: -.1rem;
+    }
+
+    h3 {
+        font-size: 2rem;
+        line-height: 1.3;
+        letter-spacing: -.1rem;
+    }
+
+    h4 {
+        font-size: 1.7rem;
+        line-height: 1.35;
+        letter-spacing: -.08rem;
+    }
+
+    h5 {
+        font-size: 1.4rem;
+        line-height: 1.5;
+        letter-spacing: -.05rem;
+    }
+
+    h6 {
+        font-size: 1.1rem;
+        line-height: 1.6;
+        letter-spacing: 0;
+    }
+
+    button {
+        display: inline-block;
+        height: 38px;
+        padding: 0 24px;
+        color: #555;
+        text-align: center;
+        font-size: 11px;
+        font-weight: 600;
+        line-height: 38px;
+        letter-spacing: .1rem;
+        text-transform: uppercase;
+        text-decoration: none;
+        white-space: nowrap;
+        background-color: transparent;
+        border-radius: 4px;
+        border: 1px solid #bbb;
+        cursor: pointer;
+        box-sizing: border-box;
+    }
+
+    ul {
+        list-style: circle inside;
+    }
+
+    ol {
+        list-style: decimal inside;
+    }
+
+    ol,
+    ul {
+        padding-left: 0;
+        margin-top: 0;
+    }
+
+    ul ul,
+    ul ol,
+    ol ol,
+    ol ul {
+        margin: 1.5rem 0 1.5rem 3rem;
+        font-size: 90%;
+    }
+
+    li {
+        margin-bottom: 0.2rem;
+    }
+
+    code {
+        padding: .2rem .5rem;
+        margin: 0 .2rem;
+        font-size: 90%;
+        white-space: nowrap;
+        background: #F1F1F1;
+        border: 1px solid #E1E1E1;
+        border-radius: 4px;
+    }
+
+    pre>code {
+        display: block;
+        padding: 1rem 1.5rem;
+        white-space: pre;
+    }
+
+    th,
+    td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #E1E1E1;
+    }
+
+    th:first-child,
+    td:first-child {
+        padding-left: 0;
+    }
+
+    th:last-child,
+    td:last-child {
+        padding-right: 0;
+    }
+
+    button,
+    .button {
+        margin-bottom: 1rem;
+    }
+
+    input,
+    textarea,
+    select,
+    fieldset {
+        margin-bottom: 1.5rem;
+    }
+
+    pre,
+    blockquote,
+    dl,
+    figure,
+    table,
+    p,
+    ul,
+    ol,
+    form {
+        margin-bottom: 1rem;
+    }
+
+    hr {
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+        border-width: 0;
+        border-top: 1px solid #E1E1E1;
+    }
+}
+
+@media (orientation:portrait) {
+    .mvs-stories-markdown-explanation {
+        font-size: 0.9rem;    
+    }
+
+    .mvs-stories-markdown-explanation h3 {
+        font-size: 1.5rem;
+    }
+}

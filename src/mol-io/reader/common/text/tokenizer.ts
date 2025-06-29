@@ -7,11 +7,12 @@
  */
 
 import { chunkedSubtask, RuntimeContext } from '../../../../mol-task';
+import { StringLike } from '../../../common/string-like';
 
 export { Tokenizer };
 
 interface Tokenizer {
-    data: string,
+    data: StringLike,
 
     position: number,
     length: number,
@@ -22,12 +23,12 @@ interface Tokenizer {
 }
 
 export interface Tokens {
-    data: string,
+    data: StringLike,
     count: number,
     indices: ArrayLike<number>
 }
 
-function Tokenizer(data: string): Tokenizer {
+function Tokenizer(data: StringLike): Tokenizer {
     return {
         data,
         position: 0,
@@ -166,7 +167,7 @@ namespace Tokenizer {
         return read;
     }
 
-    export async function readAllLinesAsync(data: string, ctx: RuntimeContext, chunkSize = 100000) {
+    export async function readAllLinesAsync(data: StringLike, ctx: RuntimeContext, chunkSize = 100000) {
         const state = Tokenizer(data);
         const tokens = TokenBuilder.create(state.data, Math.max(data.length / 80, 2));
 
@@ -267,7 +268,7 @@ namespace Tokenizer {
     }
 }
 
-export function trimStr(data: string, start: number, end: number) {
+export function trimStr(data: StringLike, start: number, end: number) {
     let s = start, e = end - 1;
     let c = data.charCodeAt(s);
     while ((c === 9 || c === 32) && s <= e) c = data.charCodeAt(++s);
@@ -311,7 +312,7 @@ export namespace TokenBuilder {
         tokens.count++;
     }
 
-    export function create(data: string, size: number): Tokens {
+    export function create(data: StringLike, size: number): Tokens {
         size = Math.max(10, size);
         return <Builder>{
             data,

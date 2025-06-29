@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -75,7 +75,7 @@ export function isDefined<T>(value: T | undefined | null): value is T {
 }
 /** Return `true` if at least one of `values` is not `undefined` or `null`. */
 export function isAnyDefined(...values: any[]): boolean {
-    return values.some(v => isDefined(v));
+    return values.some(isDefined);
 }
 /** Return filtered array containing all original elements except `undefined` or `null`. */
 export function filterDefined<T>(elements: (T | undefined | null)[]): T[] {

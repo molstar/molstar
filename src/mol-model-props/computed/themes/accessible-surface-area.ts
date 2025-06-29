@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -15,12 +15,13 @@ import { AccessibleSurfaceArea } from '../accessible-surface-area/shrake-rupley'
 import { CustomProperty } from '../../common/custom-property';
 import { Location } from '../../../mol-model/location';
 import { hash2 } from '../../../mol-data/util';
+import { ColorThemeCategory } from '../../../mol-theme/color/categories';
 
 const DefaultColor = Color(0xFAFAFA);
 const Description = 'Assigns a color based on the relative accessible surface area of a residue.';
 
 export const AccessibleSurfaceAreaColorThemeParams = {
-    list: PD.ColorList('rainbow', { presetKind: 'scale' })
+    list: PD.ColorList('yellow-green-blue', { presetKind: 'scale' })
 };
 export type AccessibleSurfaceAreaColorThemeParams = typeof AccessibleSurfaceAreaColorThemeParams
 export function getAccessibleSurfaceAreaColorThemeParams(ctx: ThemeDataContext) {
@@ -76,7 +77,7 @@ export function AccessibleSurfaceAreaColorTheme(ctx: ThemeDataContext, props: PD
 export const AccessibleSurfaceAreaColorThemeProvider: ColorTheme.Provider<AccessibleSurfaceAreaColorThemeParams, 'accessible-surface-area'> = {
     name: 'accessible-surface-area',
     label: 'Accessible Surface Area',
-    category: ColorTheme.Category.Residue,
+    category: ColorThemeCategory.Residue,
     factory: AccessibleSurfaceAreaColorTheme,
     getParams: getAccessibleSurfaceAreaColorThemeParams,
     defaultValues: PD.getDefaultValues(AccessibleSurfaceAreaColorThemeParams),

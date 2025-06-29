@@ -1,0 +1,433 @@
+/**
+ * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import { BehaviorSubject, Subscription, throttleTime } from 'rxjs';
+import { JSONCifLigandGraph, JSONCifLigandGraphBondProps } from '../../extensions/json-cif/ligand-graph';
+import { JSONCifDataBlock, JSONCifFile } from '../../extensions/json-cif/model';
+import { ParseJSONCifFileData } from '../../extensions/json-cif/transformers';
+import { MolViewSpec } from '../../extensions/mvs/behavior';
+import { StructureElement, StructureProperties } from '../../mol-model/structure';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
+import { ModelFromTrajectory, StructureFromModel, TrajectoryFromMmCif } from '../../mol-plugin-state/transforms/model';
+import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
+import { PluginUIContext } from '../../mol-plugin-ui/context';
+import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
+import { Plugin } from '../../mol-plugin-ui/plugin';
+import '../../mol-plugin-ui/skin/light.scss';
+import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
+import { PluginCommands } from '../../mol-plugin/commands';
+import { PluginConfig } from '../../mol-plugin/config';
+import { PluginSpec } from '../../mol-plugin/spec';
+import { StateObjectSelector } from '../../mol-state';
+import { download } from '../../mol-util/download';
+import { GeometryEditFn, GeometryEdits, TopologyEdits } from './edits';
+import { ExampleMol } from './example-data';
+import './index.html';
+import { jsonCifToMolfile } from './molfile';
+import { RGroupName } from './r-groups';
+import { SingleTaskQueue } from './utils';
+import { molfileToJSONCif } from '../../extensions/json-cif/utils';
+
+async function init(target: HTMLElement | string, molfile: string = ExampleMol) {
+    const root = typeof target === 'string' ? document.getElementById(target)! : target;
+    const plugin = await createViewer(root);
+    const model = new EditorModel(plugin);
+    createRoot(root).render(<AppUI model={model} />);
+    loadMolfile(model, molfile);
+    return model;
+}
+
+(window as any).initLigandEditorExample = init;
+
+async function createViewer(root: HTMLElement) {
+    const spec = DefaultPluginUISpec();
+    const plugin = new PluginUIContext({
+        ...spec,
+        layout: {
+            initial: {
+                isExpanded: false,
+                showControls: false
+            }
+        },
+        components: {
+            remoteState: 'none',
+        },
+        behaviors: [
+            ...spec.behaviors,
+            PluginSpec.Behavior(MolViewSpec)
+        ],
+        config: [
+            [PluginConfig.Viewport.ShowAnimation, false],
+            [PluginConfig.Viewport.ShowSelectionMode, false],
+            [PluginConfig.Viewport.ShowExpand, false],
+            [PluginConfig.Viewport.ShowControls, false],
+        ]
+    });
+    await plugin.init();
+    plugin.managers.interactivity.setProps({ granularity: 'element' });
+    plugin.selectionMode = true;
+
+    return plugin;
+}
+
+async function loadMolfile(model: EditorModel, molfile: string) {
+    const { plugin } = model;
+
+    await plugin.clear();
+
+    const file = await molfileToJSONCif(molfile);
+    const update = plugin.build();
+    const data = update.toRoot()
+        .apply(ParseJSONCifFileData, { data: file.jsoncif });
+
+    data
+        .apply(TrajectoryFromMmCif)
+        .apply(ModelFromTrajectory)
+        .apply(StructureFromModel, { type: { name: 'model', params: {} } })
+        .apply(StructureRepresentation3D, {
+            type: { name: 'ball-and-stick', params: {} },
+            colorTheme: {
+                name: 'element-symbol',
+                params: { carbonColor: { name: 'element-symbol', params: {} } }
+            }
+        });
+
+    await update.commit();
+    model.setDataSelector(data.selector);
+}
+
+class EditorModel {
+    private dataSelector: StateObjectSelector | undefined = undefined;
+
+    state = {
+        element: new BehaviorSubject<string>('C'),
+        history: new BehaviorSubject<JSONCifFile[]>([]),
+        molfile: new BehaviorSubject<string>(''),
+    };
+
+    get data() {
+        return this.dataSelector?.cell?.transform?.params?.data as JSONCifFile | undefined;
+    }
+
+    get history() {
+        return this.state.history.value;
+    }
+
+    createGraph() {
+        return new JSONCifLigandGraph(this.data?.dataBlocks[0]!);
+    }
+
+    setDataSelector(selector: StateObjectSelector) {
+        this.dataSelector = selector;
+        this.updateMolFile();
+    }
+
+    updateMolFile() {
+        if (!this.data) return this.state.molfile.next('');
+
+        try {
+            const molfile = jsonCifToMolfile(this.data?.dataBlocks[0], {
+                comment: 'Generated by Mol* Ligand Editor'
+            });
+            this.state.molfile.next(molfile);
+        } catch (e) {
+            console.error('Failed to convert to molfile');
+            console.error(e);
+            this.state.molfile.next(`Error: ${e}`);
+        }
+    }
+
+    async update(data: JSONCifDataBlock, pushHistory = true, historyData?: JSONCifFile) {
+        if (!this.data) return;
+
+        const updated: JSONCifFile = {
+            ...this.data!,
+            dataBlocks: [data],
+        };
+
+        if (pushHistory) {
+            this.state.history.next([...this.history, historyData ?? this.data!]);
+        }
+        const update = this.plugin.build();
+        update.to(this.dataSelector!).update({ data: updated });
+        await update.commit();
+
+        this.updateMolFile();
+    }
+
+    undo = async () => {
+        if (!this.dataSelector) return;
+        if (this.history.length === 0) return;
+
+        const data = this.history[this.history.length - 1];
+        this.state.history.next(this.history.slice(0, this.history.length - 1));
+
+        const update = this.plugin.build();
+        update.to(this.dataSelector).update({ data });
+        await update.commit();
+
+        this.updateMolFile();
+    };
+
+    private getEditableStructures() {
+        if (!this.dataSelector?.isOk) return new Set();
+
+        const structures = this.plugin.state.data.selectQ(q => q
+            .byRef(this.dataSelector?.ref!)
+            .subtree()
+            .filter(c => PluginStateObject.Molecule.Structure.is(c.obj))
+        );
+        return new Set(structures.map(s => s.obj?.data));
+    }
+
+    private getSelectedAtomIds() {
+        if (!this.data) return [];
+
+        const structures = this.getEditableStructures();
+        if (structures.size === 0) return [];
+
+        const { selection } = this.plugin.managers.structure;
+        const ids: number[] = [];
+
+        selection.entries.forEach(e => {
+            if (!structures.has(e.selection.structure)) return;
+            StructureElement.Loci.forEachLocation(e.selection, (l) => {
+                ids.push(StructureProperties.atom.id(l));
+            });
+        });
+        return ids;
+    }
+
+    async editGraphTopology<Args extends any[], T>(fn: (graph: JSONCifLigandGraph, ...args: Args) => Promise<T>, ...args: Args) {
+        try {
+            const graph = this.createGraph();
+            const result = await fn(graph, ...args);
+            const data = graph.getData().block;
+            await this.update(data);
+            this.plugin.managers.interactivity.lociSelects.deselectAll();
+            return result;
+        } catch (e) {
+            console.error('Failed to edit graph');
+            console.error(e);
+            this.notify(`${e}`, 5000);
+        }
+    }
+
+    private notify(message: string, timeoutMs = 2500) {
+        PluginCommands.Toast.Show(this.plugin, { key: '<edit>', title: 'Edit', message, timeoutMs });
+    }
+
+    setElement = async () => {
+        const symbol = this.state.element.value.trim();
+        if (!symbol) return this.notify('No element symbol provided');
+
+        const ids = this.getSelectedAtomIds();
+        if (!ids.length) return this.notify('No atoms selected');
+
+        await this.editGraphTopology(TopologyEdits.setElement, ids, symbol);
+    };
+
+    addElement = async () => {
+        const symbol = this.state.element.value.trim();
+        if (!symbol) return this.notify('No element symbol provided');
+
+        const ids = this.getSelectedAtomIds();
+        if (ids.length !== 1) return this.notify('Select a single atom to add a new atom to');
+
+        await this.editGraphTopology(TopologyEdits.addElement, ids[0], symbol);
+    };
+
+    removeAtoms = async () => {
+        const ids = this.getSelectedAtomIds();
+        if (!ids.length) return this.notify('No atoms selected');
+
+        await this.editGraphTopology(TopologyEdits.removeAtoms, ids);
+    };
+
+    removeBonds = async () => {
+        const ids = this.getSelectedAtomIds();
+        if (!ids.length) return this.notify('No atoms selected');
+
+        await this.editGraphTopology(TopologyEdits.removeBonds, ids);
+    };
+
+    updateBonds = async (props: JSONCifLigandGraphBondProps) => {
+        const ids = this.getSelectedAtomIds();
+        if (!ids.length) return this.notify('No atoms selected');
+
+        await this.editGraphTopology(TopologyEdits.updateBonds, ids, props);
+    };
+
+    attachRgroup = async (name: RGroupName) => {
+        const ids = this.getSelectedAtomIds();
+        if (ids.length !== 1) return this.notify('Select a single hydrogen atom to attach an R-group to');
+
+        await this.editGraphTopology(TopologyEdits.attachRgroup, ids[0], name);
+    };
+
+    private geometryEditInitialData: JSONCifFile | undefined = undefined;
+    private geometryEditValues = new BehaviorSubject<[value: number, finish: boolean]>([0, false]);
+    private currentGeometryEdit: GeometryEditFn | undefined = undefined;
+    private currentGeomeryEditSub: Subscription | undefined = undefined;
+    private geometryEditQueue = new SingleTaskQueue();
+
+    private applyGeometryEdit = ([param, finish]: [param: number, finish: boolean]) => {
+        if (!this.currentGeometryEdit) return;
+        const graph = this.currentGeometryEdit(param);
+        const data = graph.getData().block;
+        const initialData = this.geometryEditInitialData;
+        if (finish) {
+            this.currentGeometryEdit = undefined;
+            this.currentGeomeryEditSub?.unsubscribe();
+            this.currentGeomeryEditSub = undefined;
+            this.geometryEditInitialData = undefined;
+        }
+        this.geometryEditQueue.run(() => this.update(data, finish, initialData));
+    };
+
+    beginGeometryEdit<Args extends any[], T>(fn: (graph: JSONCifLigandGraph, ...args: Args) => GeometryEditFn, initial: number, ...args: Args) {
+        try {
+            this.geometryEditValues.next([initial, false]);
+            const graph = this.createGraph();
+            this.geometryEditInitialData = this.data!;
+            this.currentGeometryEdit = fn(graph, ...args);
+            this.currentGeomeryEditSub = this.geometryEditValues
+                .pipe(throttleTime(1000 / 60, undefined, { leading: true, trailing: true }))
+                .subscribe(this.applyGeometryEdit);
+        } catch (e) {
+            console.error('Failed to edit graph');
+            console.error(e);
+            this.notify(`${e}`, 5000);
+        }
+    }
+
+    setGeometryEditValue(param: number, finish = false) {
+        this.geometryEditValues.next([param, finish]);
+    }
+
+    twist = () => {
+        this.beginGeometryEdit(GeometryEdits.twist, 0, this.getSelectedAtomIds());
+    };
+
+    stretch = () => {
+        this.beginGeometryEdit(GeometryEdits.stretch, 0, this.getSelectedAtomIds());
+    };
+
+    constructor(public plugin: PluginUIContext) { }
+}
+
+function AppUI({ model }: { model: EditorModel }) {
+    return <div style={{ display: 'flex', flexDirection: 'row', height: '100%', width: '100%' }}>
+        <div style={{ flexGrow: 1, display: 'block', position: 'relative' }}>
+            <Plugin plugin={model.plugin} />
+        </div>
+        <div style={{ flexShrink: 0, minWidth: 500, width: 400, display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            <ControlsUI model={model} />
+        </div>
+    </div>;
+}
+
+function ControlsUI({ model }: { model: EditorModel }) {
+    return <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: 8, overflow: 'hidden', overflowY: 'auto' }} className='editor-controls'>
+        <div>
+            <UndoButton model={model} />
+        </div>
+        <b>Atoms</b>
+        <div style={{ display: 'flex', gap: '5px' }}>
+            <button onClick={model.removeAtoms}>Remove</button>
+            <div>
+                <ElementEditUI model={model} />
+                <button onClick={model.setElement} style={{ borderLeft: 'none' }}>Set Element</button>
+                <button onClick={model.addElement} style={{ borderLeft: 'none' }}>Add Element</button>
+            </div>
+        </div>
+        <b>Bonds</b>
+        <div style={{ display: 'flex', gap: '5px' }}>
+            <button onClick={model.removeBonds}>Remove</button>
+            <button onClick={() => model.updateBonds({ value_order: 'sing', type_id: 'covale' })}>-</button>
+            <button onClick={() => model.updateBonds({ value_order: 'doub', type_id: 'covale' })}>=</button>
+            <button onClick={() => model.updateBonds({ value_order: 'trip', type_id: 'covale' })}>≡</button>
+        </div>
+        <b>R-groups</b>
+        <div style={{ display: 'flex', gap: '5px' }}>
+            <button onClick={() => model.attachRgroup('CH3')}>-CH<sub>3</sub></button>
+        </div>
+        <b>Geometry</b>
+        <TwistUI model={model} />
+        <StretchUI model={model} />
+        <b>Molfile</b>
+        <MolFileUI model={model} />
+    </div>;
+}
+
+function MolFileUI({ model }: { model: EditorModel }) {
+    const molfile = useBehavior(model.state.molfile);
+    return <>
+        <textarea value={molfile} readOnly style={{ width: '100%', height: 200, fontFamily: 'monospace', fontSize: '10px' }} />
+        <div style={{ display: 'flex', gap: '5px' }}>
+            <button onClick={() => navigator.clipboard.writeText(molfile)}>Copy</button>
+            <button onClick={() => download(new Blob([molfile], { type: 'text/plain' }), `edited-molecule-${Date.now()}.mol`)}>Save</button>
+        </div>
+    </>;
+}
+
+function UndoButton({ model }: { model: EditorModel }) {
+    const history = useBehavior(model.state.history);
+    return <button onClick={model.undo} disabled={history.length === 0}>Undo [{history.length}]</button>;
+}
+
+function ElementEditUI({ model }: { model: EditorModel }) {
+    const element = useBehavior(model.state.element);
+    return <input type="text" value={element} style={{ width: 50 }} onChange={e => model.state.element.next(e.target.value)} />;
+}
+
+const GeometryLabelWidth = 60;
+
+function TwistUI({ model }: { model: EditorModel }) {
+    const [value, setValue] = useState(0);
+
+    return <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} >
+        <i style={{ width: GeometryLabelWidth }}>Twist</i> <input
+            type='range' min={-60} max={60} step={1} value={value}
+            onMouseDown={model.twist}
+            onMouseUp={(e) => {
+                requestAnimationFrame(() => {
+                    model.setGeometryEditValue(Math.PI * value / 60, true);
+                    setValue(0);
+                });
+            }}
+            onChange={e => {
+                const value = +e.target.value;
+                setValue(value);
+                model.setGeometryEditValue(Math.PI * value / 60);
+            }}
+        />
+    </div>;
+}
+
+function StretchUI({ model }: { model: EditorModel }) {
+    const [value, setValue] = useState(0);
+
+    return <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} >
+        <i style={{ width: GeometryLabelWidth }}>Stretch</i> <input
+            type='range' min={-60} max={60} step={1} value={value}
+            onMouseDown={model.stretch}
+            onMouseUp={(e) => {
+                requestAnimationFrame(() => {
+                    model.setGeometryEditValue(0.5 * value / 60, true);
+                    setValue(0);
+                });
+            }}
+            onChange={e => {
+                const value = +e.target.value;
+                setValue(value);
+                model.setGeometryEditValue(0.5 * value / 60);
+            }}
+        />
+    </div>;
+}

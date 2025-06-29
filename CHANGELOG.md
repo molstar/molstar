@@ -4,16 +4,198 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- Update production build to use `esbuils`
+- Emit explicit paths in `import`s in `lib/`
+- Fix outlines on opaque elements using illumination mode
+- Change `Representation.Empty` to a lazy property to avoid issue with some bundlers
+- MolViewSpec extension:
+  - Generic color schemes (`palette` parameter for color_from_* nodes)
+  - Annotation field remapping (`field_remapping` parameter for color_from_* nodes)
+  - Representation node: support custom property `molstar_reprepresentation_params`, 
+  - Canvas node: support custom properties `molstar_enable_outline`, `molstar_enable_shadow`, `molstar_enable_ssao`
+- Renamed some color schemes ('inferno' -> 'inferno-no-black', 'magma' -> 'magma-no-black', 'turbo' -> 'turbo-no-black', 'rainbow' -> 'simple-rainbow')
+- Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
+- Fix isosurface compute shader normals when transformation matrix is applied to volume 
+- Add async canvas context initialization in preparation for WebGPU support.
 
-- Volume UI improvements 
-  - Render all volume entries instead of selecting them one-by-one
-  - Toggle visibility of all volumes
-  - More accessible iso value control
+## [v4.18.0] - 2025-06-08
+- MolViewSpec extension:
+  - Support for label_comp_id and auth_comp_id in annotations
+  - Geometric primitives - do not render if position refers to empty substructure
+  - Primitive arrow - nicer default cap size (relative to tube_radius)
+  - Primitive angle_measurement - added vector_radius param
+  - Fix MVSX file assets being disposed in multi-snapshot states
+- Add `mol-utils/camera.ts` with `fovAdjustedPosition` and `fovNormalizedCameraPosition`
+- Show FOV normalized position in `CameraInfo` UI and use it in "Copy MVS State"
+- Support static resources in `AssetManager`
+- General:
+  - Use `isolatedModules` tsconfig flag
+  - Fix TurboPack build when using ES6 modules
+- Support `pickingAlphaThreshold` when `xrayShaded` is enabled
+- Support sampling from arbitrary planes for structure plane and volume slice representations
+- Refactor SCSS to not use `@import` (fixes deprecation warnings)
+
+## [v4.17.0] - 2025-05-22
+- Remove `xhr2` dependency for NodeJS, use `fetch`
+- Add `mvs-stories` app included in the `molstar` NPM package
+  - Use the app in the corresponding example
+- Interactions extension: remove `salt-bridge` interaction kind (since `ionic` is supported too)
+
+## [v4.16.0] - 2025-05-20
+- Load potentially big text files as `StringLike` to bypass string size limit
+- MolViewSpec extension:
+  - Load single-state MVS as if it were multi-state with one state
+  - Merged `loadMVS` options `keepCamera` and `keepSnapshotCamera` -> `keepCamera`
+  - Removed `loadMVS` option `replaceExisting` (is now default)
+  - Added `loadMVS` option `appendSnapshots`
+- Fix camera not being interpolated in MP4 export due to updates in WebGL ContextLost handling
+
+## [v4.15.0] - 2025-05-19
+- IHM improvements:
+  - Disable volume streaming
+  - Disable validation report visualization
+  - Enable assembly symmetry for integrative models
+- Fix transparency rendering with occlusion in NodeJS
+- mmCIF Support
+  - Add custom `molstar_bond_site` category that enables serializing explicit bonds by referencing `atom_site.id`
+  - Add `includeCategoryNames`, `keepAtomSiteId`, `exportExplicitBonds`, `encoder` properties to `to_mmCIF` exporter
+- Add support for attachment points property (`M APO`) to the MOL V2000 parser
+- Add `json-cif` extension that should pave way towards structure editing capabilities in Mol\*
+  - JSON-based encoding of the CIF data format
+  - `JSONCifLigandGraph` that enables editing of small molecules via modifying `atom_site` and `molstar_bond_site` categories
+- Add `ligand-editor` example that showcases possible use-cases of the `json-cif` extension
+- Breaking (minor): Changed `atom_site.id` indexing to 1-based in `mol-model-formats/structure/mol.ts::getMolModels`.
+- WebGL ContextLost handling
+    - Fix missing framebuffer & drawbuffer re-attachments
+    - Fix missing cube texture re-initialization
+    - Fix missing extensions reset
+    - Fix timer clearing edge case
+    - Add reset support for geometry generated on the GPU
+
+## [v4.14.1] - 2025-05-09
+- Do not raise error when creating duplicate state transformers and print console warning instead
+
+## [v4.14.0] - 2025-05-07
+- Fix `Viewer.loadTrajectory` when loading a topology file
+- Fix `StructConn.residueCantorPairs` to not include identity pairs
+- Add format selection option to image export UI (PNG, WebP, JPEG)
+- Add `StateBuilder.To.updateState`
+- MVS:
+  - Support updating transform states
+  - Add support for `is_hidden` custom state as an extension
+  - Add `queryMVSRef` and `createMVSRefMap` utility functions
+- Adjust max resolution of surfaces for auto quality (#1501)
+- Fix switching representation type in Volume UI
+- VolumeServer: Avoid grid expansion when requiring unit cell (avoids including an extra layer of cells outside the unit cell query box)
+
+## [v4.13.0] - 2025-04-14
+- Support `--host` option for build-dev.mjs script
+- Add `Viewer.loadFiles` to open supported files
+- Support installing the viewer as a Progressive Web App (PWA)
+- `ihm-restraints` example: show entity labels
+- Fix `element-point` visual not using child unit
+- Ignore `renderables` with empty draw count
+- Add experimental support for `esbuild` for development
+  - Use `npm run dev` for faster development builds
+- Use `StructureElement.Bundle` instead of expressions to serialize measurement elements
+  - Fixes measurements not being supported for coarse models
+- Implementation of `ColorScale.createDiscrete` (#1458)
+- Add `ColorScale.createDiscrete` to the `uncertainty` color theme
+- Fix color palette shown in the UI (for non-gradient palettes)
+- Fix colors description in the UI (when using custom thresholds)
+- Fix an edge case in the UI when the user deletes all colors from the color list
+- Add `interactions` extension and a corresponding example that utilizes it
+- Add element source index to default atomic granularity hover labels
+- Add `StructureElement.Schema` based on corresponding MolViewSpec implementation that allows data-driven selection of structural elements
+- Add `StructureElement.Loci/Bundle.fromExpression/Query/Schema` helper functions
+- Add `addLinkCylinderMesh` (from `createLinkCylinderMesh`)
+- Add `Unit.transientCache` and `Unit.getCopy`
+- Fix `ElementBondIterator` indices mapping logic for inter-unit bonds
+- Fix `pickPadding` and `pickScale` not updating `PickHelper`
+- MolViewSpec extension: support loading extensions when loading multistate files
+- Do not add bonds for pairs of residues that have a `struct_conn` entry
+- Improved `ma_qa_metric` support
+  - Parse all local metrics
+  - Ability to select alternate metrics in the pLDDT/qmean themes
+  - Do not assume PAE plot is symmetric
+- Added `PluginConfig.Viewport.ShowScreenshotControls` to control visibility of screenshot controls
+- Fix MolViewSpec builder for volumes.
+- Generalize `mvs-kinase-story` example to `mvs-stories`
+  - Add TATA-binding protein story
+  - Improve the Kinase story
+- Fix alpha orbitals example
+
+## [v4.12.0] - 2025-02-28
+
+- Fix PDBj structure data URL
+- Improve logic when to cull in renderer
+- Add `atom.ihm.has-seq-id` and `atom.ihm.overlaps-seq-id-range` symbol to the query language
+- MolViewSpec extension:
+  - Add box, arrow, ellipse, ellipsoid, angle primitives
+  - Add basic support for volumetric data (map, Volume Server)
+  - Add support for `molstar_color_theme_name` custom extension
+  - Better IH/M support:
+    - Support `coarse` components
+    - Support `spacefill` representation
+    - Support `carbohydrate` representation
+    - Support for `custom.molstar_use_default_coloring` property on Color node.
+    - Use `atom.ihm.has-seq-id` and `atom.ihm.overlaps-seq-id-range` for matching `label_seq_id` locations to support querying coarse elements.
+    - Add ihm-restraints example
+- Add `mvs-kinase-story` example
+- Remove static uses of `ColorTheme` and `SizeTheme` fields. Should resolvent "undefined" errors in certain builds
+- Add `transform` property to clip objects
+- Add support for trimming `image` geometry to a box
+- Improve/fix iso-level support of `slice` representation
+- Add support for rotating `slice` representation around an axis
+- Add default color support for palette based themes
+- Add `plane` structure representation
+    - Can be colored with any structure theme
+    - Can be colored with the `external-volume` theme
+    - Can show atoms as a cutout
+    - Supports principal axes and bounding box as a reference frame
+- Add `Camera` section to "Screenshot / State" controls
+- Add `CoarseIndex` for fast lookup of coarse elements
+
+## [v4.11.0] - 2025-01-26
+
+- Fix for tubular helices issue (Fixes #1422)
+- Volume UI improvements
+    - Render all volume entries instead of selecting them one-by-one
+    - Toggle visibility of all volumes
+    - More accessible iso value control
 - Support wheel event on sliders
 - MolViewSpec extension:
   - Add validation for discriminated union params
   - Primitives: remove triangle_colors, line_colors, have implicit grouping instead; rename many parameters
-- Add async canvas context initialization in preparation for WebGPU support.
+    - Add validation for discriminated union params
+    - Primitives: remove triangle_colors, line_colors, have implicit grouping instead; rename many parameters
+- UI configuration options
+    - Support removal of independent selection controls in the viewport
+    - Support custom selection controls
+    - Support for custom granularity dropdown options
+    - Support for custom Sequence Viewer mode options
+- Add `external-structure` theme that colors any geometry by structure properties
+- Support float and half-float data type for direct-volume rendering and GPU isosurface extraction
+- Minor documentation updates
+- Add support for position-location to `volume-value` color theme
+- Add support for color themes to `slice` representation
+- Improve/fix palette support in volume color themes
+- Fix `Plane3D.projectPoint`
+- Fix marking related `image` rendering issues
+    - Handle pixels without a group
+    - Take fog into account
+- MolViewSpec extension: Initial support for customizable representation parameters
+- Quick Styles section reorganized
+- UI color improvements (scrollbar contrast, toggle button hover color)
+- Add `overrideWater` param for entity-id color theme
+- Renames PDB-Dev to PDB-IHM and adjusts data source
+- Fix vertex based themes for spheres shader
+- Add volume dot representation
+- Add volume-value size theme
+- Sequence panel: Mark focused loci (bold+underline)
+- Change modifier key behavior in Normal Mode (default = select only, Ctrl/Cmd = add to selection, Shift = extend last selected range)
+- Handle Firefox's limit on vertex ids per draw (#1116)
+- Fix behavior of `Vec3.makeRotation(out, a, b)` when `a ≈ -b`
 
 ## [v4.10.0] - 2024-12-15
 
@@ -81,7 +263,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix `findPredecessorIndex` bug when repeating values
 - MolViewSpec: Support for transparency and custom properties
 - MolViewSpec: MVP Support for geometrical primitives (mesh, lines, line, label, distance measurement)
-- Mesoscale Explorer: Add support for 4-character PDB IDs (e.g., 8ZZC) in PDB-Dev loader
+- Mesoscale Explorer: Add support for 4-character PDB IDs (e.g., 8ZZC) in PDB-IHM/PDB-Dev loader
 - Fix Sequence View in Safari 18
 - Improve performance of `IndexPairBonds` assignment when operator keys are available
 - ModelArchive QualityAssessment extension:
@@ -134,7 +316,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Improve entity-id coloring for structures with multiple models from the same source (#1221)
 - Wrap screenshot & image generation in a `Task`
 - AlphaFold DB: Add BinaryCIF support when fetching data
-- PDB-Dev: Add support for 4-character PDB IDs (e.g., 8ZZC)
+- PDB-IHM/PDB-Dev: Add support for 4-character PDB IDs (e.g., 8ZZC)
 - Fix polymer-gap visual coloring with cartoon theme
 - Add formal-charge color theme (#328)
 - Add more coloring options to cartoon theme

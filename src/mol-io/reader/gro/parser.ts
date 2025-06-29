@@ -11,6 +11,8 @@ import { FixedColumnProvider as FixedColumn } from '../common/text/column/fixed'
 import * as Schema from './schema';
 import { ReaderResult as Result } from '../result';
 import { Task, RuntimeContext } from '../../../mol-task';
+import { StringLike } from '../../common/string-like';
+
 
 interface State {
     tokenizer: Tokenizer,
@@ -137,7 +139,7 @@ function handleBoxVectors(state: State) {
     state.header.box = [+values[0], +values[1], +values[2]];
 }
 
-async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<Schema.GroFile>> {
+async function parseInternal(data: StringLike, ctx: RuntimeContext): Promise<Result<Schema.GroFile>> {
     const tokenizer = Tokenizer(data);
 
     await ctx.update({ message: 'Parsing...', current: 0, max: data.length });
@@ -155,7 +157,7 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
     return Result.success(result);
 }
 
-export function parseGRO(data: string) {
+export function parseGRO(data: StringLike) {
     return Task.create<Result<Schema.GroFile>>('Parse GRO', async ctx => {
         return await parseInternal(data, ctx);
     });

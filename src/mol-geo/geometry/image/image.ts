@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,7 +9,7 @@ import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { RenderableState } from '../../../mol-gl/renderable';
 import { calculateTransformBoundingSphere, createTextureImage, TextureImage } from '../../../mol-gl/renderable/util';
 import { Sphere3D } from '../../../mol-math/geometry';
-import { Vec2, Vec4, Vec3 } from '../../../mol-math/linear-algebra';
+import { Vec2, Vec4, Vec3, Quat, Mat4 } from '../../../mol-math/linear-algebra';
 import { Theme } from '../../../mol-theme/theme';
 import { ValueCell } from '../../../mol-util';
 import { Color } from '../../../mol-util/color';
@@ -59,16 +59,39 @@ interface Image {
     readonly imageTextureDim: ValueCell<Vec2>,
     readonly cornerBuffer: ValueCell<Float32Array>,
     readonly groupTexture: ValueCell<TextureImage<Uint8Array>>,
+    readonly valueTexture: ValueCell<TextureImage<Float32Array>>,
+
+    readonly trimType: ValueCell<number>,
+    readonly trimCenter: ValueCell<Vec3>,
+    readonly trimRotation: ValueCell<Quat>,
+    readonly trimScale: ValueCell<Vec3>,
+    readonly trimTransform: ValueCell<Mat4>,
+
+    readonly isoLevel: ValueCell<number>,
 
     /** Bounding sphere of the image */
-    boundingSphere: Sphere3D
+    readonly boundingSphere: Sphere3D
+
+    setBoundingSphere(boundingSphere: Sphere3D): void
 }
 
 namespace Image {
-    export function create(imageTexture: TextureImage<Uint8Array>, corners: Float32Array, groupTexture: TextureImage<Uint8Array>, image?: Image): Image {
+    export type Trim = {
+        type: 0 | 1 | 2 | 3 | 4 | 5,
+        center: Vec3,
+        rotation: Quat,
+        scale: Vec3,
+        transform: Mat4,
+    }
+
+    export function createEmptyTrim(): Trim {
+        return { type: 0, center: Vec3(), rotation: Quat(), scale: Vec3(), transform: Mat4() };
+    }
+
+    export function create(imageTexture: TextureImage<Uint8Array>, corners: Float32Array, groupTexture: TextureImage<Uint8Array>, valueTexture: TextureImage<Float32Array>, trim: Trim, isoLevel: number, image?: Image): Image {
         return image ?
-            update(imageTexture, corners, groupTexture, image) :
-            fromData(imageTexture, corners, groupTexture);
+            update(imageTexture, corners, groupTexture, valueTexture, trim, isoLevel, image) :
+            fromData(imageTexture, corners, groupTexture, valueTexture, trim, isoLevel);
     }
 
     function hashCode(image: Image) {
@@ -77,7 +100,7 @@ namespace Image {
         ]);
     }
 
-    function fromData(imageTexture: TextureImage<Uint8Array>, corners: Float32Array, groupTexture: TextureImage<Uint8Array>): Image {
+    function fromData(imageTexture: TextureImage<Uint8Array>, corners: Float32Array, groupTexture: TextureImage<Uint8Array>, valueTexture: TextureImage<Float32Array>, trim: Trim, isoLevel: number): Image {
         const boundingSphere = Sphere3D();
         let currentHash = -1;
 
@@ -90,6 +113,13 @@ namespace Image {
             imageTextureDim: ValueCell.create(Vec2.create(width, height)),
             cornerBuffer: ValueCell.create(corners),
             groupTexture: ValueCell.create(groupTexture),
+            valueTexture: ValueCell.create(valueTexture),
+            trimType: ValueCell.create(trim.type),
+            trimCenter: ValueCell.create(trim.center),
+            trimRotation: ValueCell.create(trim.rotation),
+            trimScale: ValueCell.create(trim.scale),
+            trimTransform: ValueCell.create(trim.transform),
+            isoLevel: ValueCell.create(isoLevel),
             get boundingSphere() {
                 const newHash = hashCode(image);
                 if (newHash !== currentHash) {
@@ -99,11 +129,15 @@ namespace Image {
                 }
                 return boundingSphere;
             },
+            setBoundingSphere(sphere: Sphere3D) {
+                Sphere3D.copy(boundingSphere, sphere);
+                currentHash = hashCode(image);
+            },
         };
         return image;
     }
 
-    function update(imageTexture: TextureImage<Uint8Array>, corners: Float32Array, groupTexture: TextureImage<Uint8Array>, image: Image): Image {
+    function update(imageTexture: TextureImage<Uint8Array>, corners: Float32Array, groupTexture: TextureImage<Uint8Array>, valueTexture: TextureImage<Float32Array>, trim: Trim, isoLevel: number, image: Image): Image {
         const width = imageTexture.width;
         const height = imageTexture.height;
 
@@ -111,6 +145,15 @@ namespace Image {
         ValueCell.update(image.imageTextureDim, Vec2.set(image.imageTextureDim.ref.value, width, height));
         ValueCell.update(image.cornerBuffer, corners);
         ValueCell.update(image.groupTexture, groupTexture);
+        ValueCell.update(image.valueTexture, valueTexture);
+
+        ValueCell.updateIfChanged(image.trimType, trim.type);
+        ValueCell.update(image.trimCenter, Vec3.copy(image.trimCenter.ref.value, trim.center));
+        ValueCell.update(image.trimRotation, Quat.copy(image.trimRotation.ref.value, trim.rotation));
+        ValueCell.update(image.trimScale, Vec3.copy(image.trimScale.ref.value, trim.scale));
+        ValueCell.update(image.trimTransform, Mat4.copy(image.trimTransform.ref.value, trim.transform));
+
+        ValueCell.updateIfChanged(image.isoLevel, isoLevel);
         return image;
     }
 
@@ -118,7 +161,9 @@ namespace Image {
         const imageTexture = createTextureImage(0, 4, Uint8Array);
         const corners = image ? image.cornerBuffer.ref.value : new Float32Array(8 * 3);
         const groupTexture = createTextureImage(0, 4, Uint8Array);
-        return create(imageTexture, corners, groupTexture, image);
+        const valueTexture = createTextureImage(0, 1, Float32Array);
+        const trim = createEmptyTrim();
+        return create(imageTexture, corners, groupTexture, valueTexture, trim, -1, image);
     }
 
     export const Params = {
@@ -136,12 +181,16 @@ namespace Image {
         updateBoundingSphere,
         createRenderableState,
         updateRenderableState,
-        createPositionIterator: () => LocationIterator(1, 1, 1, () => NullLocation)
+        createPositionIterator
     };
+
+    function createPositionIterator(_image: Image, _transform: TransformData): LocationIterator {
+        return LocationIterator(1, 1, 1, () => NullLocation);
+    }
 
     function createValues(image: Image, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): ImageValues {
         const { instanceCount, groupCount } = locationIt;
-        const positionIt = Utils.createPositionIterator(image, transform);
+        const positionIt = createPositionIterator(image, transform);
 
         const color = createColors(locationIt, positionIt, theme.color);
         const marker = props.instanceGranularity
@@ -186,6 +235,15 @@ namespace Image {
             uImageTexDim: image.imageTextureDim,
             tImageTex: image.imageTexture,
             tGroupTex: image.groupTexture,
+            tValueTex: image.valueTexture,
+
+            uTrimType: image.trimType,
+            uTrimCenter: image.trimCenter,
+            uTrimRotation: image.trimRotation,
+            uTrimScale: image.trimScale,
+            uTrimTransform: image.trimTransform,
+
+            uIsoLevel: image.isoLevel,
         };
     }
 

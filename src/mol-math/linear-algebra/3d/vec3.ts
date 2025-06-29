@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -26,16 +26,14 @@ import { EPSILON } from './common';
 
 const _isFinite = isFinite;
 
-export { ReadonlyVec3 };
+export interface Vec3 extends Array<number> { [d: number]: number, '@type': 'vec3', length: 3 }
+export interface ReadonlyVec3 extends Array<number> { readonly [d: number]: number, '@type': 'vec3', length: 3 }
 
-interface Vec3 extends Array<number> { [d: number]: number, '@type': 'vec3', length: 3 }
-interface ReadonlyVec3 extends Array<number> { readonly [d: number]: number, '@type': 'vec3', length: 3 }
-
-function Vec3() {
+export function Vec3() {
     return Vec3.zero();
 }
 
-namespace Vec3 {
+export namespace Vec3 {
     export function zero(): Vec3 {
         const out = [0.1, 0.0, 0.0]; // ensure backing array of type double
         out[0] = 0;
@@ -584,8 +582,8 @@ namespace Vec3 {
         const by = angle(a, b);
         if (Math.abs(by) < 0.0001) return Mat4.setIdentity(mat);
         if (Math.abs(by - Math.PI) < EPSILON) {
-            // here, axis can be [0,0,0] but the rotation is a simple flip
-            return Mat4.fromScaling(mat, negUnit);
+            // choose arbitrary orthogonal axis
+            return Mat4.fromRotation(mat, Math.PI, Math.abs(a[0]) < 0.9 ? Vec3.unitX : Vec3.unitZ);
         }
         const axis = cross(rotTemp, a, b);
         return Mat4.fromRotation(mat, by, axis);
@@ -645,6 +643,11 @@ namespace Vec3 {
         return normalize(out, cross(out, triangleNormalTmpAB, triangleNormalTmpAC));
     }
 
+    const centerTmpV = zero();
+    export function center(out: Vec3, a: Vec3, b: Vec3): Vec3 {
+        return Vec3.scaleAndAdd(out, a, Vec3.sub(centerTmpV, b, a), 0.5);
+    }
+
     export function toString(a: Vec3, precision?: number) {
         return `[${a[0].toPrecision(precision)} ${a[1].toPrecision(precision)} ${a[2].toPrecision(precision)}]`;
     }
@@ -661,5 +664,3 @@ namespace Vec3 {
     export const negUnitY: ReadonlyVec3 = create(0, -1, 0);
     export const negUnitZ: ReadonlyVec3 = create(0, 0, -1);
 }
-
-export { Vec3 };

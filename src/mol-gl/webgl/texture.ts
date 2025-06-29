@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -59,14 +59,14 @@ export function getTarget(gl: GLRenderingContext, kind: TextureKind): number {
 export function getFormat(gl: GLRenderingContext, format: TextureFormat, type: TextureType): number {
     switch (format) {
         case 'alpha':
-            if (isWebGL2(gl) && type === 'float') return gl.RED;
+            if (isWebGL2(gl) && (type === 'float' || type === 'fp16')) return gl.RED;
             else if (isWebGL2(gl) && type === 'int') return gl.RED_INTEGER;
             else return gl.ALPHA;
         case 'rgb':
             if (isWebGL2(gl) && type === 'int') return gl.RGB_INTEGER;
             return gl.RGB;
         case 'rg':
-            if (isWebGL2(gl) && type === 'float') return gl.RG;
+            if (isWebGL2(gl) && (type === 'float' || type === 'fp16')) return gl.RG;
             else if (isWebGL2(gl) && type === 'int') return gl.RG_INTEGER;
             else throw new Error('texture format "rg" requires webgl2 and type "float" or int"');
         case 'rgba':
@@ -484,8 +484,37 @@ export function createCubeTexture(gl: GLRenderingContext, faces: CubeFaces, mipm
 
     let size = 0;
 
-    const texture = gl.createTexture();
+    let texture = gl.createTexture();
     gl.bindTexture(target, texture);
+
+    function load(cubeTarget: number, level: number, image: HTMLImageElement, isReset: boolean) {
+        if (size === 0) size = image.width;
+
+        gl.bindTexture(target, texture);
+        gl.texImage2D(cubeTarget, level, internalFormat, size, size, 0, format, type, null);
+        gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+        gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+        gl.bindTexture(target, texture);
+        gl.texImage2D(cubeTarget, level, internalFormat, format, type, image);
+
+        loadedCount += 1;
+        if (loadedCount === 6) {
+            if (!destroyed) {
+                if (mipmaps) {
+                    gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+                    gl.generateMipmap(target);
+                } else {
+                    gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, filter);
+                }
+                gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, filter);
+            }
+            if (!isReset) onload?.(destroyed);
+        }
+    }
+
+    const facesData: { cubeTarget: number, level: number, image: HTMLImageElement }[] = [];
 
     let loadedCount = 0;
     objectForEach(faces, (source, side) => {
@@ -504,30 +533,11 @@ export function createCubeTexture(gl: GLRenderingContext, faces: CubeFaces, mipm
         } else {
             image.src = source;
         }
+
+        facesData.push({ cubeTarget, level, image });
+
         image.addEventListener('load', () => {
-            if (size === 0) size = image.width;
-
-            gl.texImage2D(cubeTarget, level, internalFormat, size, size, 0, format, type, null);
-            gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
-            gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
-            gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
-            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-            gl.bindTexture(target, texture);
-            gl.texImage2D(cubeTarget, level, internalFormat, format, type, image);
-
-            loadedCount += 1;
-            if (loadedCount === 6) {
-                if (!destroyed) {
-                    if (mipmaps) {
-                        gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-                        gl.generateMipmap(target);
-                    } else {
-                        gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, filter);
-                    }
-                    gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, filter);
-                }
-                onload?.(destroyed);
-            }
+            load(cubeTarget, level, image, false);
         });
         image.addEventListener('error', () => {
             onload?.(true);
@@ -565,7 +575,15 @@ export function createCubeTexture(gl: GLRenderingContext, faces: CubeFaces, mipm
         attachFramebuffer: () => {},
         detachFramebuffer: () => {},
 
-        reset: () => {},
+        reset: () => {
+            texture = getTexture(gl);
+            gl.bindTexture(target, texture);
+
+            loadedCount = 0;
+            for (const { cubeTarget, level, image } of facesData) {
+                load(cubeTarget, level, image, true);
+            }
+        },
         destroy: () => {
             if (destroyed) return;
             gl.deleteTexture(texture);

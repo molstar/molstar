@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -12,18 +12,65 @@ precision highp int;
 #include common_frag_params
 #include common_clip
 
+uniform float uEmissive;
+
 // Density value to estimate object thickness
 uniform float uDensity;
+
+#if defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
+    #ifdef dOverpaint
+        #if defined(dOverpaintType_instance) || defined(dOverpaintType_groupInstance)
+            varying vec4 vOverpaint;
+            uniform vec2 uOverpaintTexDim;
+            uniform sampler2D tOverpaint;
+        #endif
+        uniform float uOverpaintStrength;
+    #endif
+#endif
+
+#if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_emissive)
+    #ifdef dEmissive
+        #if defined(dEmissiveType_instance) || defined(dEmissiveType_groupInstance)
+            varying float vEmissive;
+            uniform vec2 uEmissiveTexDim;
+            uniform sampler2D tEmissive;
+        #endif
+        uniform float uEmissiveStrength;
+    #endif
+#endif
+
+#ifdef dTransparency
+    #if defined(dTransparencyType_instance) || defined(dTransparencyType_groupInstance)
+        varying float vTransparency;
+        uniform vec2 uTransparencyTexDim;
+        uniform sampler2D tTransparency;
+    #endif
+    uniform float uTransparencyStrength;
+#endif
 
 uniform vec2 uImageTexDim;
 uniform sampler2D tImageTex;
 uniform sampler2D tGroupTex;
+uniform sampler2D tValueTex;
 
 uniform vec2 uMarkerTexDim;
 uniform sampler2D tMarker;
 
 varying vec2 vUv;
 varying float vInstance;
+
+#ifdef dUsePalette
+    uniform sampler2D tPalette;
+    uniform vec3 uPaletteDefault;
+#endif
+
+uniform int uTrimType;
+uniform vec3 uTrimCenter;
+uniform vec4 uTrimRotation;
+uniform vec3 uTrimScale;
+uniform mat4 uTrimTransform;
+
+uniform float uIsoLevel;
 
 #if defined(dInterpolation_catmulrom) || defined(dInterpolation_mitchell) || defined(dInterpolation_bspline)
     #define dInterpolation_cubic
@@ -91,36 +138,102 @@ varying float vInstance;
 #endif
 
 void main() {
+    if (uTrimType != 0 && getSignedDistance(vModelPosition, uTrimType, uTrimCenter, uTrimRotation, uTrimScale, uTrimTransform) > 0.0) discard;
+
     #include fade_lod
     #include clip_pixel
 
     #if defined(dInterpolation_cubic)
-        vec4 imageData = biCubic(tImageTex, vUv);
+        #ifdef dUsePalette
+            vec4 material = texture2D(tImageTex, vUv);
+            if (material.rgb != vec3(1.0)) {
+                material = biCubic(tImageTex, vUv);
+            }
+        #else
+            vec4 material = biCubic(tImageTex, vUv);
+        #endif
     #else
-        vec4 imageData = texture2D(tImageTex, vUv);
+        vec4 material = texture2D(tImageTex, vUv);
     #endif
-    imageData.a = clamp(imageData.a, 0.0, 1.0);
-    if (imageData.a > 0.9) imageData.a = 1.0;
 
-    imageData.a *= uAlpha;
-    if (imageData.a < 0.05)
-        discard;
+    if (uIsoLevel >= 0.0) {
+        if (texture2D(tValueTex, vUv).r < uIsoLevel) discard;
+
+        material.a = uAlpha;
+    } else {
+        if (material.a == 0.0) discard;
+
+        material.a *= uAlpha;
+    }
 
     float fragmentDepth = gl_FragCoord.z;
 
-    if ((uRenderMask == MaskOpaque && imageData.a < 1.0) ||
-        (uRenderMask == MaskTransparent && imageData.a == 1.0)
+    vec3 packedGroup = texture2D(tGroupTex, vUv).rgb;
+    float group = packedGroup == vec3(0.0) ? -1.0 : unpackRGBToInt(packedGroup);
+
+    // apply per-group transparency
+    #if defined(dTransparency) && (defined(dRenderVariant_pick) || defined(dRenderVariant_color) || defined(dRenderVariant_emissive) || defined(dRenderVariant_tracing))
+        float transparency = 0.0;
+        #if defined(dTransparencyType_instance)
+            transparency = readFromTexture(tTransparency, vInstance, uTransparencyTexDim).a;
+        #elif defined(dTransparencyType_groupInstance)
+            transparency = readFromTexture(tTransparency, vInstance * float(uGroupCount) + group, uTransparencyTexDim).a;
+        #endif
+        transparency *= uTransparencyStrength;
+
+        float ta = 1.0 - transparency;
+        if (transparency < 0.09) ta = 1.0; // hard cutoff looks better
+
+        #if defined(dRenderVariant_pick)
+            if (ta * uAlpha < uPickingAlphaThreshold)
+                discard; // ignore so the element below can be picked
+        #elif defined(dRenderVariant_emissive)
+            if (ta < 1.0)
+                discard; // emissive not supported with transparency
+        #elif defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
+            material.a *= ta;
+        #endif
+    #endif
+
+    if ((uRenderMask == MaskOpaque && material.a < 1.0) ||
+        (uRenderMask == MaskTransparent && material.a == 1.0)
     ) {
         discard;
     }
 
+    #if defined(dNeedsMarker)
+        float marker = uMarker;
+        if (group == -1.0) {
+            marker = 0.0;
+        } else if (uMarker == -1.0) {
+            marker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
+            marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
+        }
+    #endif
+
+    #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || defined(dRenderVariant_emissive)
+        float emissive = uEmissive;
+        if (group == -1.0) {
+            emissive = 0.0;
+        } else {
+            #ifdef dEmissive
+                #if defined(dEmissiveType_instance)
+                    emissive += readFromTexture(tEmissive, vInstance, uEmissiveTexDim).a * uEmissiveStrength;
+                #elif defined(dEmissiveType_groupInstance)
+                    emissive += readFromTexture(tEmissive, vInstance * float(uGroupCount) + group, uEmissiveTexDim).a * uEmissiveStrength;
+                #endif
+            #endif
+        }
+    #endif
+
     #if defined(dRenderVariant_pick)
-        if (imageData.a < 0.3)
-            discard;
+        if (group == -1.0) discard;
+
+        #include check_picking_alpha
         #ifdef requiredDrawBuffers
             gl_FragColor = vec4(packIntToRGB(float(uObjectId)), 1.0);
             gl_FragData[1] = vec4(packIntToRGB(vInstance), 1.0);
-            gl_FragData[2] = vec4(texture2D(tGroupTex, vUv).rgb, 1.0);
+            gl_FragData[2] = vec4(packIntToRGB(group), 1.0);
             gl_FragData[3] = packDepthToRGBA(fragmentDepth);
         #else
             gl_FragColor = vColor;
@@ -129,50 +242,61 @@ void main() {
             } else if (uPickType == 2) {
                 gl_FragColor = vec4(packIntToRGB(vInstance), 1.0);
             } else {
-                gl_FragColor = vec4(texture2D(tGroupTex, vUv).rgb, 1.0);
+                gl_FragColor = vec4(packIntToRGB(group), 1.0);
             }
         #endif
     #elif defined(dRenderVariant_depth)
-        if (imageData.a < 0.05)
-            discard;
         if (uRenderMask == MaskOpaque) {
             gl_FragColor = packDepthToRGBA(fragmentDepth);
         } else if (uRenderMask == MaskTransparent) {
-            gl_FragColor = packDepthWithAlphaToRGBA(fragmentDepth, imageData.a);
+            gl_FragColor = packDepthWithAlphaToRGBA(fragmentDepth, material.a);
         }
     #elif defined(dRenderVariant_marking)
-        float marker = uMarker;
-        if (uMarker == -1.0) {
-            float group = unpackRGBToInt(texture2D(tGroupTex, vUv).rgb);
-            marker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
-            marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
-        }
         if (uMarkingType == 1) {
-            if (marker > 0.0 || imageData.a < 0.05)
+            if (marker > 0.0)
                 discard;
             gl_FragColor = packDepthToRGBA(fragmentDepth);
         } else {
-            if (marker == 0.0 || imageData.a < 0.05)
+            if (marker == 0.0)
                 discard;
             float depthTest = 1.0;
             if (uMarkingDepthTest) {
                 depthTest = (fragmentDepth >= getDepthPacked(gl_FragCoord.xy / uDrawingBufferSize)) ? 1.0 : 0.0;
             }
             bool isHighlight = intMod(marker, 2.0) > 0.1;
-            gl_FragColor = vec4(0.0, depthTest, isHighlight ? 1.0 : 0.0, 1.0);
+            float viewZ = depthToViewZ(uIsOrtho, fragmentDepth, uNear, uFar);
+            float fogFactor = smoothstep(uFogNear, uFogFar, abs(viewZ));
+            if (fogFactor == 1.0)
+                discard;
+            gl_FragColor = vec4(0.0, depthTest, isHighlight ? 1.0 : 0.0, 1.0 - fogFactor);
         }
     #elif defined(dRenderVariant_emissive)
-        gl_FragColor = vec4(0.0);
+        gl_FragColor = vec4(emissive);
     #elif defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
-        gl_FragColor = imageData;
+        #ifdef dUsePalette
+            if (material.rgb == vec3(1.0)) {
+                material.rgb = uPaletteDefault;
+            } else {
+                float v = ((material.r * 256.0 * 256.0 * 255.0 + material.g * 256.0 * 255.0 + material.b * 255.0) - 1.0) / PALETTE_SCALE;
+                material.rgb = texture2D(tPalette, vec2(v, 0.0)).rgb;
+            }
+        #endif
 
-        float marker = uMarker;
-        if (uMarker == -1.0) {
-            float group = unpackRGBToInt(texture2D(tGroupTex, vUv).rgb);
-            marker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
-            marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
-        }
+        // mix material with overpaint
+        #if defined(dOverpaint)
+            vec4 overpaint = vec4(0.0);
+            if (group != -1.0) {
+                #if defined(dOverpaintType_instance)
+                    overpaint = readFromTexture(tOverpaint, vInstance, uOverpaintTexDim);
+                #elif defined(dOverpaintType_groupInstance)
+                    overpaint = readFromTexture(tOverpaint, vInstance * float(uGroupCount) + group, uOverpaintTexDim);
+                #endif
+                overpaint *= uOverpaintStrength;
+            }
+            material.rgb = mix(material.rgb, overpaint.rgb, overpaint.a);
+        #endif
 
+        gl_FragColor = material;
         #include apply_marker_color
 
         #if defined(dRenderVariant_color)
@@ -180,8 +304,8 @@ void main() {
             #include wboit_write
             #include dpoit_write
         #elif defined(dRenderVariant_tracing)
-            gl_FragData[1] = vec4(normalize(vViewPosition), 0.0);
-            gl_FragData[2] = vec4(imageData.rgb, uDensity);
+            gl_FragData[1] = vec4(normalize(vViewPosition), emissive);
+            gl_FragData[2] = vec4(material.rgb, uDensity);
         #endif
     #endif
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -120,8 +120,8 @@ interface Canvas3DContext {
     readonly passes: Passes
     readonly attribs: Readonly<Canvas3DContext.Attribs>
     readonly props: Readonly<Canvas3DContext.Props>
-    readonly contextLost?: BehaviorSubject<now.Timestamp>
-    readonly contextRestored?: BehaviorSubject<now.Timestamp>
+    readonly contextLost?: Subject<now.Timestamp>
+    readonly contextRestored?: Subject<now.Timestamp>
     readonly assetManager: AssetManager
     readonly changed?: BehaviorSubject<undefined>
     readonly pixelScale: number
@@ -213,7 +213,7 @@ namespace Canvas3DContext {
 
         // https://www.khronos.org/webgl/wiki/HandlingContextLost
 
-        const contextLost = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp);
+        const contextLost = new Subject<now.Timestamp>();
 
         const handleWebglContextLost = (e: Event) => {
             webgl.setContextLost();
@@ -226,6 +226,8 @@ namespace Canvas3DContext {
             if (!webgl.isContextLost) return;
             webgl.handleContextRestored(() => {
                 passes.draw.reset();
+                passes.pick.reset();
+                passes.illumination.reset();
             });
             if (isDebugMode) console.log('context restored');
         };
@@ -373,7 +375,7 @@ namespace Canvas3D {
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, page?: Vec2, position?: Vec3 }
 
     export function create(ctx: Canvas3DContext, props: Partial<Canvas3DProps> = {}): Canvas3D {
-        const { webgl, input, passes, assetManager, canvas } = ctx;
+        const { webgl, input, passes, assetManager, canvas, contextLost } = ctx;
         const p: Canvas3DProps = { ...deepClone(DefaultCanvas3DParams), ...deepClone(props) };
 
         const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>();
@@ -386,7 +388,7 @@ namespace Canvas3D {
         const commited = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp);
         const commitQueueSize = new BehaviorSubject<number>(0);
 
-        const { gl, contextRestored } = webgl;
+        const { contextRestored } = webgl;
 
         let x = 0;
         let y = 0;
@@ -508,8 +510,9 @@ namespace Canvas3D {
                 resized = true;
             }
 
-            if (x > gl.drawingBufferWidth || x + width < 0 ||
-                y > gl.drawingBufferHeight || y + height < 0
+            const drs = webgl.getDrawingBufferSize();
+            if (x > drs.width || x + width < 0 ||
+                y > drs.height || y + height < 0
             ) return false;
 
             if (fenceSync !== null) {
@@ -532,7 +535,7 @@ namespace Canvas3D {
             if (passes.illumination.supported && p.illumination.enabled) {
                 if (shouldRender || markingUpdated) {
                     renderer.setOcclusionTest(null);
-                    passes.illumination.reset();
+                    passes.illumination.restart();
                 }
 
                 if (passes.illumination.shouldRender(p)
@@ -585,9 +588,10 @@ namespace Canvas3D {
 
         let forceDrawAfterAllCommited = false;
         let drawPaused = false;
+        let isContextLost = false;
 
         function draw(options?: { force?: boolean }) {
-            if (drawPaused) return;
+            if (drawPaused || isContextLost) return;
             if (render(!!options?.force) && notifyDidDraw) {
                 didDraw.next(now() - startTime as now.Timestamp);
             }
@@ -600,6 +604,8 @@ namespace Canvas3D {
         let animationFrameHandle = 0;
 
         function tick(t: now.Timestamp, options?: { isSynchronous?: boolean, manualDraw?: boolean, updateControls?: boolean }) {
+            if (isContextLost) return;
+
             currentTime = t;
             commit(options?.isSynchronous);
 
@@ -862,8 +868,22 @@ namespace Canvas3D {
             };
         }
 
-        const contextRestoredSub = contextRestored.subscribe(() => {
+        const contextLostSub = contextLost?.subscribe(() => {
+            isContextLost = true;
+            fenceSync = null;
             pickHelper.dirty = true;
+        });
+
+        const contextRestoredSub = contextRestored.subscribe(() => {
+            scene.forEach(r => {
+                if (r.values.meta?.ref.value.reset) {
+                    r.values.meta.ref.value.reset();
+                    r.update();
+                }
+            });
+
+            isContextLost = false;
+
             draw({ force: true });
             // Unclear why, but in Chrome with wboit enabled the first `draw` only clears
             // the drawingBuffer. Note that in Firefox the drawingBuffer is preserved after
@@ -1070,7 +1090,10 @@ namespace Canvas3D {
                 if (props.cameraResetDurationMs !== undefined) p.cameraResetDurationMs = props.cameraResetDurationMs;
                 if (props.transparentBackground !== undefined) p.transparentBackground = props.transparentBackground;
                 if (props.dpoitIterations !== undefined) p.dpoitIterations = props.dpoitIterations;
-                if (props.pickPadding !== undefined) p.pickPadding = props.pickPadding;
+                if (props.pickPadding !== undefined) {
+                    p.pickPadding = props.pickPadding;
+                    pickHelper.setPickPadding(p.pickPadding);
+                }
                 if (props.userInteractionReleaseMs !== undefined) p.userInteractionReleaseMs = props.userInteractionReleaseMs;
                 if (props.viewport !== undefined) {
                     const doNotUpdate = p.viewport === props.viewport ||
@@ -1130,6 +1153,7 @@ namespace Canvas3D {
                 return interactionHelper.events;
             },
             dispose: () => {
+                contextLostSub?.unsubscribe();
                 contextRestoredSub.unsubscribe();
                 ctxChangedSub?.unsubscribe();
 
@@ -1157,22 +1181,23 @@ namespace Canvas3D {
 
         function updateViewport() {
             const oldX = x, oldY = y, oldWidth = width, oldHeight = height;
+            const drs = webgl.getDrawingBufferSize();
 
             if (p.viewport.name === 'canvas') {
                 x = 0;
                 y = 0;
-                width = gl.drawingBufferWidth;
-                height = gl.drawingBufferHeight;
+                width = drs.width;
+                height = drs.height;
             } else if (p.viewport.name === 'static-frame') {
                 x = p.viewport.params.x * webgl.pixelRatio;
                 height = p.viewport.params.height * webgl.pixelRatio;
-                y = gl.drawingBufferHeight - height - p.viewport.params.y * webgl.pixelRatio;
+                y = drs.height - height - p.viewport.params.y * webgl.pixelRatio;
                 width = p.viewport.params.width * webgl.pixelRatio;
             } else if (p.viewport.name === 'relative-frame') {
-                x = Math.round(p.viewport.params.x * gl.drawingBufferWidth);
-                height = Math.round(p.viewport.params.height * gl.drawingBufferHeight);
-                y = Math.round(gl.drawingBufferHeight - height - p.viewport.params.y * gl.drawingBufferHeight);
-                width = Math.round(p.viewport.params.width * gl.drawingBufferWidth);
+                x = Math.round(p.viewport.params.x * drs.width);
+                height = Math.round(p.viewport.params.height * drs.height);
+                y = Math.round(drs.height - height - p.viewport.params.y * drs.height);
+                width = Math.round(p.viewport.params.width * drs.width);
             }
 
             if (oldX !== x || oldY !== y || oldWidth !== width || oldHeight !== height) {

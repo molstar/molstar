@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -219,6 +219,18 @@ export namespace Volume {
         export function isLoci(x: any): x is Loci { return !!x && x.kind === 'cell-loci'; }
         export function areLociEqual(a: Loci, b: Loci) { return a.volume === b.volume && OrderedSet.areEqual(a.indices, b.indices); }
         export function isLociEmpty(loci: Loci) { return OrderedSet.size(loci.indices) === 0; }
+
+        export interface Location {
+            readonly kind: 'cell-location',
+            volume: Volume
+            cell: CellIndex
+        }
+        export function Location(volume?: Volume, cell?: CellIndex): Location {
+            return { kind: 'cell-location', volume: volume as any, cell: cell as any };
+        }
+        export function isLocation(x: any): x is Location {
+            return !!x && x.kind === 'cell-location';
+        }
 
         const boundaryHelper = new BoundaryHelper('98');
         const tmpBoundaryPos = Vec3();

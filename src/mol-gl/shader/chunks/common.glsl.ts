@@ -25,7 +25,7 @@ export const common = `
     #define dXrayShaded
 #endif
 
-#if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || (defined(dRenderVariant_depth) && defined(dXrayShaded))
+#if defined(dRenderVariant_color) || defined(dRenderVariant_tracing) || ((defined(dRenderVariant_depth) || defined(dRenderVariant_pick)) && defined(dXrayShaded))
     #define dNeedsNormal
 #endif
 
@@ -41,6 +41,8 @@ export const common = `
 #define ONE_MINUS_EPSILON 1.0 - EPSILON
 #define TWO_PI 6.2831853
 #define HALF_PI 1.570796325
+
+#define PALETTE_SCALE 16777214.0 // (1 << 24) - 2
 
 #define saturate(a) clamp(a, 0.0, 1.0)
 

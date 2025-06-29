@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -129,6 +129,12 @@ namespace Box3D {
         return out;
     }
 
+    export function expandUniformly(out: Box3D, box: Box3D, delta: number): Box3D {
+        Vec3.subScalar(out.min, box.min, delta);
+        Vec3.addScalar(out.max, box.max, delta);
+        return out;
+    }
+
     export function scale(out: Box3D, box: Box3D, scale: number) {
         Vec3.scale(out.min, box.min, scale);
         Vec3.scale(out.max, box.max, scale);
@@ -217,6 +223,18 @@ namespace Box3D {
             tmax = tzmax;
         Vec3.scale(out, dir, tmin);
         return Vec3.set(out, out[0] + x, out[1] + y, out[2] + z);
+    }
+
+    export function center(out: Vec3, box: Box3D): Vec3 {
+        return Vec3.center(out, box.max, box.min);
+    }
+
+    export function exactEquals(a: Box3D, b: Box3D) {
+        return Vec3.exactEquals(a.min, b.min) && Vec3.exactEquals(a.max, b.max);
+    }
+
+    export function equals(a: Box3D, b: Box3D) {
+        return Vec3.equals(a.min, b.min) && Vec3.equals(a.max, b.max);
     }
 }
 

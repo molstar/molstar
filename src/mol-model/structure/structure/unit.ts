@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -147,8 +147,10 @@ namespace Unit {
         readonly model: Model,
         readonly conformation: SymmetryOperator.ArrayMapping<ElementIndex>,
         readonly props: BaseProperties,
+        readonly transientCache: Map<any, any>,
 
         getChild(elements: StructureElement.Set): Unit,
+        getCopy(id: number, invariantId: number, chainGroupId: number, options?: GetCopyOptions): Unit,
         applyOperator(id: number, operator: SymmetryOperator, dontCompose?: boolean /* = false */): Unit,
         remapModel(model: Model, dynamicBonds: boolean): Unit,
 
@@ -160,6 +162,10 @@ namespace Unit {
          * From mmCIF/IHM schema: `_ihm_model_representation_details.model_object_primitive`.
          */
         readonly objectPrimitive: mmCIF_Schema['ihm_model_representation_details']['model_object_primitive']['T']
+    }
+
+    export interface GetCopyOptions {
+        propagateTransientCache?: boolean;
     }
 
     interface BaseProperties {
@@ -214,9 +220,23 @@ namespace Unit {
 
         readonly props: AtomicProperties;
 
+        private _transientCache: Map<any, any> | undefined = undefined;
+        get transientCache() {
+            if (this._transientCache === void 0) this._transientCache = new Map<any, any>();
+            return this._transientCache;
+        }
+
         getChild(elements: StructureElement.Set): Unit {
             if (elements.length === this.elements.length) return this;
             return new Atomic(this.id, this.invariantId, this.chainGroupId, this.traits, this.model, elements, this.conformation, AtomicProperties());
+        }
+
+        getCopy(id: number, invariantId: number, chainGroupId: number, options?: GetCopyOptions): Unit {
+            const unit = new Atomic(id, invariantId, chainGroupId, this.traits, this.model, this.elements, this.conformation, this.props);
+            if (options?.propagateTransientCache) {
+                unit._transientCache = this._transientCache;
+            }
+            return unit;
         }
 
         applyOperator(id: number, operator: SymmetryOperator, dontCompose = false): Unit {
@@ -390,9 +410,23 @@ namespace Unit {
 
         readonly props: CoarseProperties;
 
+        private _transientCache: Map<any, any> | undefined = undefined;
+        get transientCache() {
+            if (this._transientCache === void 0) this._transientCache = new Map<any, any>();
+            return this._transientCache;
+        }
+
         getChild(elements: StructureElement.Set): Unit {
             if (elements.length === this.elements.length) return this as any as Unit; // lets call this an ugly temporary hack
             return createCoarse(this.id, this.invariantId, this.chainGroupId, this.traits, this.model, this.kind, elements, this.conformation, CoarseProperties());
+        }
+
+        getCopy(id: number, invariantId: number, chainGroupId: number, options?: GetCopyOptions): Unit {
+            const unit = createCoarse(id, invariantId, chainGroupId, this.traits, this.model, this.kind, this.elements, this.conformation, this.props);
+            if (options?.propagateTransientCache) {
+                unit._transientCache = this._transientCache;
+            }
+            return unit;
         }
 
         applyOperator(id: number, operator: SymmetryOperator, dontCompose = false): Unit {

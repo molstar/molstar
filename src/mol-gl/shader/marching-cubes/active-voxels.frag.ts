@@ -38,9 +38,14 @@ vec4 texture3dFrom2dNearest(sampler2D tex, vec3 pos, vec3 gridDim, vec2 texDim) 
     return texture2D(tex, coord);
 }
 
-vec4 voxel(vec3 pos) {
+float voxelValue(vec3 pos) {
     pos = min(max(vec3(0.0), pos), uGridDim - vec3(1.0));
-    return texture3dFrom2dNearest(tVolumeData, pos / uGridDim, uGridDim, uGridTexDim.xy);
+    vec4 v = texture3dFrom2dNearest(tVolumeData, pos / uGridDim, uGridDim, uGridTexDim.xy);
+    #ifdef dValueChannel_red
+        return v.r;
+    #else
+        return v.a;
+    #endif
 }
 
 void main(void) {
@@ -48,14 +53,14 @@ void main(void) {
     vec3 posXYZ = index3dFrom2d(uv);
 
     // get MC case as the sum of corners that are below the given iso level
-    float c = step(voxel(posXYZ).a, uIsoValue)
-        + 2. * step(voxel(posXYZ + c1).a, uIsoValue)
-        + 4. * step(voxel(posXYZ + c2).a, uIsoValue)
-        + 8. * step(voxel(posXYZ + c3).a, uIsoValue)
-        + 16. * step(voxel(posXYZ + c4).a, uIsoValue)
-        + 32. * step(voxel(posXYZ + c5).a, uIsoValue)
-        + 64. * step(voxel(posXYZ + c6).a, uIsoValue)
-        + 128. * step(voxel(posXYZ + c7).a, uIsoValue);
+    float c = step(voxelValue(posXYZ), uIsoValue)
+        + 2. * step(voxelValue(posXYZ + c1), uIsoValue)
+        + 4. * step(voxelValue(posXYZ + c2), uIsoValue)
+        + 8. * step(voxelValue(posXYZ + c3), uIsoValue)
+        + 16. * step(voxelValue(posXYZ + c4), uIsoValue)
+        + 32. * step(voxelValue(posXYZ + c5), uIsoValue)
+        + 64. * step(voxelValue(posXYZ + c6), uIsoValue)
+        + 128. * step(voxelValue(posXYZ + c7), uIsoValue);
     c *= step(c, 254.);
 
     // handle out of bounds positions

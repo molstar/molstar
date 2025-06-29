@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2024 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -20,7 +20,7 @@ import { InterUnitGraph } from '../../../../../mol-math/graph/inter-unit-graph';
 import { StructConn } from '../../../../../mol-model-formats/structure/property/bonds/struct_conn';
 import { equalEps } from '../../../../../mol-math/linear-algebra/3d/common';
 import { Model } from '../../../model';
-import { cantorPairing, invertCantorPairing } from '../../../../../mol-data/util';
+import { cantorPairing, invertCantorPairing, sortedCantorPairing } from '../../../../../mol-data/util';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3distance = Vec3.distance;
@@ -179,6 +179,12 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
                 if (auth_seq_idA.value(residueIndexA[aI]) === auth_seq_idB.value(residueIndexB[bI])) {
                     continue;
                 }
+            }
+
+            if (structConn && unitA.model === unitB.model) {
+                const residuePair = sortedCantorPairing(residueIndexA[aI], residueIndexB[bI]);
+                // Do not add bonds for residue pairs that have a structConn entry
+                if (structConn.residueCantorPairs.has(residuePair)) continue;
             }
 
             const beI = getElementIdx(type_symbolB.value(bI)!);

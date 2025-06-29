@@ -1,20 +1,21 @@
 /**
- * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Cai Huiyu <szmun.caihy@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Color, ColorScale } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
-import type { ColorTheme } from '../color';
+import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { Grid, Volume } from '../../mol-model/volume';
 import { type PluginContext } from '../../mol-plugin/context';
 import { isPositionLocation } from '../../mol-geo/util/location-iterator';
-import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
-import { lerp } from '../../mol-math/interpolate';
+import { Vec3 } from '../../mol-math/linear-algebra';
+import { clamp } from '../../mol-math/interpolate';
 import { ColorThemeCategory } from './categories';
 
 const Description = `Assigns a color based on volume value at a given vertex.`;
@@ -30,7 +31,7 @@ export const ExternalVolumeColorThemeParams = {
     coloring: PD.MappedStatic('absolute-value', {
         'absolute-value': PD.Group({
             domain: PD.MappedStatic('auto', {
-                custom: PD.Interval([-1, 1]),
+                custom: PD.Interval([-1, 1], { step: 0.001 }),
                 auto: PD.Group({
                     symmetric: PD.Boolean(false, { description: 'If true the automatic range is determined as [-|max|, |max|].' })
                 })
@@ -39,7 +40,7 @@ export const ExternalVolumeColorThemeParams = {
         }),
         'relative-value': PD.Group({
             domain: PD.MappedStatic('auto', {
-                custom: PD.Interval([-1, 1]),
+                custom: PD.Interval([-1, 1], { step: 0.001 }),
                 auto: PD.Group({
                     symmetric: PD.Boolean(false, { description: 'If true the automatic range is determined as [-|max|, |max|].' })
                 })
@@ -49,6 +50,7 @@ export const ExternalVolumeColorThemeParams = {
     }),
     defaultColor: PD.Color(Color(0xcccccc)),
     normalOffset: PD.Numeric(0., { min: 0, max: 20, step: 0.1 }, { description: 'Offset vertex position along its normal by given amount.' }),
+    usePalette: PD.Boolean(false, { description: 'Use a palette to color at the pixel level.' }),
 };
 export type ExternalVolumeColorThemeParams = typeof ExternalVolumeColorThemeParams
 
@@ -63,7 +65,11 @@ export function ExternalVolumeColorTheme(ctx: ThemeDataContext, props: PD.Values
     // NOTE: this will currently be slow for with GPU/texture meshes due to slow iteration
     // TODO: create texture to be able to do the sampling on the GPU
 
-    let color;
+    let color: LocationColor;
+    let palette: ColorTheme.Palette | undefined;
+
+    const { normalOffset, defaultColor, usePalette } = props;
+
     if (volume) {
         const coloring = props.coloring.params;
         const { stats } = volume.grid;
@@ -75,7 +81,7 @@ export function ExternalVolumeColorTheme(ctx: ThemeDataContext, props: PD.Values
             domain[1] = (domain[1] - stats.mean) / stats.sigma;
         }
 
-        if (props.coloring.params.domain.name === 'auto' && props.coloring.params.domain.params.symmetric) {
+        if (coloring.domain.name === 'auto' && coloring.domain.params.symmetric) {
             const max = Math.max(Math.abs(domain[0]), Math.abs(domain[1]));
             domain[0] = -max;
             domain[1] = max;
@@ -83,67 +89,37 @@ export function ExternalVolumeColorTheme(ctx: ThemeDataContext, props: PD.Values
 
         const scale = ColorScale.create({ domain, listOrName: coloring.list.colors });
 
-        const cartnToGrid = Grid.getGridToCartesianTransform(volume.grid);
-        Mat4.invert(cartnToGrid, cartnToGrid);
-        const gridCoords = Vec3();
-
-        const { dimensions, get } = volume.grid.cells.space;
-        const data = volume.grid.cells.data;
-
-        const [mi, mj, mk] = dimensions;
+        const position = Vec3();
+        const getTrilinearlyInterpolated = Grid.makeGetTrilinearlyInterpolated(volume.grid, isRelative ? 'relative' : 'none');
 
         color = (location: Location): Color => {
             if (!isPositionLocation(location)) {
-                return props.defaultColor;
+                return defaultColor;
             }
 
             // Offset the vertex position along its normal
-            Vec3.copy(gridCoords, location.position);
-
-            if (props.normalOffset > 0) {
-                Vec3.scaleAndAdd(gridCoords, gridCoords, location.normal, props.normalOffset);
+            if (normalOffset > 0) {
+                Vec3.scaleAndAdd(position, location.position, location.normal, normalOffset);
+            } else {
+                Vec3.copy(position, location.position);
             }
 
-            Vec3.transformMat4(gridCoords, gridCoords, cartnToGrid);
+            const value = getTrilinearlyInterpolated(position);
+            if (isNaN(value)) return defaultColor;
 
-            const i = Math.floor(gridCoords[0]);
-            const j = Math.floor(gridCoords[1]);
-            const k = Math.floor(gridCoords[2]);
-
-            if (i < 0 || i >= mi || j < 0 || j >= mj || k < 0 || k >= mk) {
-                return props.defaultColor;
+            if (usePalette) {
+                return (clamp((value - domain[0]) / (domain[1] - domain[0]), 0, 1) * ColorTheme.PaletteScale) as Color;
+            } else {
+                return scale.color(value);
             }
-
-            const u = gridCoords[0] - i;
-            const v = gridCoords[1] - j;
-            const w = gridCoords[2] - k;
-
-            // Tri-linear interpolation for the value
-            const ii = Math.min(i + 1, mi - 1);
-            const jj = Math.min(j + 1, mj - 1);
-            const kk = Math.min(k + 1, mk - 1);
-
-            let a = get(data, i, j, k);
-            let b = get(data, ii, j, k);
-            let c = get(data, i, jj, k);
-            let d = get(data, ii, jj, k);
-            const x = lerp(lerp(a, b, u), lerp(c, d, u), v);
-
-            a = get(data, i, j, kk);
-            b = get(data, ii, j, kk);
-            c = get(data, i, jj, kk);
-            d = get(data, ii, jj, kk);
-            const y = lerp(lerp(a, b, u), lerp(c, d, u), v);
-
-            let value = lerp(x, y, w);
-            if (isRelative) {
-                value = (value - stats.mean) / stats.sigma;
-            }
-
-            return scale.color(value);
         };
+
+        palette = usePalette ? {
+            colors: coloring.list.colors.map(e => Array.isArray(e) ? e[0] : e),
+            filter: (coloring.list.kind === 'set' ? 'nearest' : 'linear') as 'nearest' | 'linear'
+        } : undefined;
     } else {
-        color = () => props.defaultColor;
+        color = () => defaultColor;
     }
 
     return {
@@ -151,6 +127,7 @@ export function ExternalVolumeColorTheme(ctx: ThemeDataContext, props: PD.Values
         granularity: 'vertex',
         preferSmoothing: true,
         color,
+        palette,
         props,
         description: Description,
         // TODO: figure out how to do legend for this

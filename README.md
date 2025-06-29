@@ -84,7 +84,16 @@ Wipes the `build` and `lib` directories and `.tsbuildinfo` files.
 
 Runs the cleanup script prior to building the project, forcing a full rebuild of the project.
 
-Use these commands to resolve occassional build failures which may arise after some dependency updates. Once done, `npm run build` should work again. Note that full rebuilds take more time to complete.
+Use these commands to resolve occasional build failures which may arise after some dependency updates. Once done, `npm run build` should work again. Note that full rebuilds take more time to complete.
+
+### Develop with `esbuild`
+
+Experimental support for faster builds with `esbuild`
+- `npm run dev:all` - watch mode for all apps and examples
+- `npm run dev:viewer` - watch mode for viewer
+- `npm run dev:apps` - watch mode for all apps
+- `npm run dev:examples` - watch mode for all examples
+- `npm run dev -- -a <app name 1> <app name 2> -e <example name 1> ...` - watch mode for specified apps/examples. `-a`/`-e` with without any names will build everything.
 
 ### Build for production:
     NODE_ENV=production npm run build
@@ -102,7 +111,6 @@ From the root of the project:
     http-server -p PORT-NUMBER
 
 and navigate to `build/viewer`
-
 
 ### Code generation
 **CIF schemas**

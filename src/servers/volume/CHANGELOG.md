@@ -1,3 +1,6 @@
+# 0.9.7
+* Avoid grid expansion when requiring unit cell.
+
 # 0.9.6
 * Add `health-check` endpoint + `healthCheckPath` config prop to report service health.
 

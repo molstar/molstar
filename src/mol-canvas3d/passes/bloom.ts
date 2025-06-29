@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2024-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
@@ -207,7 +207,7 @@ export class BloomPass {
         if (target) {
             target.bind();
         } else {
-            this.webgl.unbindFramebuffer();
+            this.webgl.bindDrawingBuffer();
         }
         state.enable(gl.BLEND);
         state.blendFunc(gl.ONE, gl.ONE);

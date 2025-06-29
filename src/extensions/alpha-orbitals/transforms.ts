@@ -15,11 +15,11 @@ import { PluginContext } from '../../mol-plugin/context';
 import { ColorNames } from '../../mol-util/color/names';
 import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
 import { StateTransformer } from '../../mol-state';
-import { Theme } from '../../mol-theme/theme';
 import { VolumeRepresentation3DHelpers } from '../../mol-plugin-state/transforms/representation';
 import { AlphaOrbital, Basis, CubeGrid, CubeGridFormat, isCubeGridData } from './data-model';
 import { createSphericalCollocationDensityGrid } from './density';
 import { Tensor } from '../../mol-math/linear-algebra';
+import { Theme } from '../../mol-theme/theme';
 
 export class BasisAndOrbitals extends PluginStateObject.Create<{ basis: Basis, order: SphericalBasisOrder, orbitals: AlphaOrbital[] }>({ name: 'Basis', typeClass: 'Object' }) { }
 

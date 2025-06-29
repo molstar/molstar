@@ -59,16 +59,14 @@ async function getModels(cube: CubeFile, ctx: RuntimeContext) {
         atom_site
     });
 
-    return await createModels(basic, MolFormat.create(cube), ctx);
+    return await createModels(basic, CubeFormat.create(cube), ctx);
 }
 
 //
 
-export { CubeFormat };
+export type CubeFormat = ModelFormat<CubeFile>
 
-type CubeFormat = ModelFormat<CubeFile>
-
-namespace MolFormat {
+export namespace CubeFormat {
     export function is(x?: ModelFormat): x is CubeFormat {
         return x?.kind === 'cube';
     }

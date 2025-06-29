@@ -13,6 +13,7 @@ import { Color } from '../../../mol-util/color';
 import { TableLegend } from '../../../mol-util/legend';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { CustomProperty } from '../../../mol-model-props/common/custom-property';
+import { ColorThemeCategory } from '../../../mol-theme/color/categories';
 
 const ValidationColors = [
     Color.fromRgb(170, 170, 170), // not applicable
@@ -90,7 +91,7 @@ export function StructureQualityReportColorTheme(ctx: ThemeDataContext, props: P
 export const StructureQualityReportColorThemeProvider: ColorTheme.Provider<Params, 'pdbe-structure-quality-report'> = {
     name: 'pdbe-structure-quality-report',
     label: 'Structure Quality Report',
-    category: ColorTheme.Category.Validation,
+    category: ColorThemeCategory.Validation,
     factory: StructureQualityReportColorTheme,
     getParams: ctx => {
         const issueTypes = StructureQualityReport.getIssueTypes(ctx.structure);

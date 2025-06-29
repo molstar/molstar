@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <link rel="icon" href="./favicon.ico" type="image/x-icon">
+    <title>Molecular Stories</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        #viewer {
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 34%;
+            bottom: 0;
+        }
+
+        #controls {
+            position: absolute;
+            left: 66%;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            padding: 16px;
+            padding-bottom: 20px;
+            border: 1px solid #ccc;
+            border-left: none;
+            background: #F6F5F3;
+            z-index: -2;
+            display: flex; 
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        #links {
+            position: absolute;
+            bottom: 4px;
+            right: 8px;
+            font-family: "Raleway", "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 0.6rem;
+            z-index: -1;
+            color: #666;
+        }
+
+        #links a {
+            color: #666;
+            text-decoration: none;
+        }
+
+        @media (orientation:portrait) {
+            #viewer {
+                position: absolute;
+                left: 0;
+                top: 0;
+                right: 0;
+                bottom: 40%;
+            }
+
+            #controls {
+                position: absolute;
+                left: 0;
+                top: 60%;
+                right: 0;
+                bottom: 0;  
+                border-top: none;  
+            }
+
+            .msp-viewport-controls-buttons {
+                display: none;
+            }
+        }
+
+        .select-story select {
+            width: 100%;
+            display: inline-block;
+            height: 38px;
+            padding: 0 8px;
+            color: #555;
+            line-height: 38px;
+            text-decoration: none;
+            white-space: nowrap;
+            background-color: transparent;
+            border-radius: 4px;
+            border: 1px solid #bbb;
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+    </style>
+    <link rel="stylesheet" type="text/css" href="molstar.css" />
+    <script type="text/javascript" src="index.js"></script>
+</head>
+
+<body>
+    <div id="viewer">
+        <mvs-stories-viewer />
+    </div>
+    <div id="controls">
+        <div id="select-story" class="select-story"></div>
+        <mvs-stories-snapshot-markdown style="flex-grow: 1;" />
+    </div>
+    <div id="links">
+        <a href="#" id="mvs-data" filename="kinase-story.mvsj">Download MVS State</a> | <a href="https://github.com/molstar/molstar/tree/master/src/examples/mvs-stories" id="mvs-data" target="_blank" rel="noopener noreferrer">Source Code</a>
+    </div>
+
+    <script>
+        document.getElementById('mvs-data').addEventListener('click', (e) => {
+            e.preventDefault();
+            window.downloadStory();
+        });
+
+        setTimeout(() => {
+            window.initStories();
+        }, 0);
+    </script>
+</body>
+
+</html>

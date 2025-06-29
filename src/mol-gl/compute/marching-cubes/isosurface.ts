@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,7 +11,7 @@ import { Values, TextureSpec, UniformSpec, DefineSpec } from '../../renderable/s
 import { Texture } from '../../../mol-gl/webgl/texture';
 import { ShaderCode } from '../../../mol-gl/shader-code';
 import { ValueCell } from '../../../mol-util';
-import { Vec3, Vec2, Mat4 } from '../../../mol-math/linear-algebra';
+import { Vec3, Vec2, Mat4, Mat3 } from '../../../mol-math/linear-algebra';
 import { QuadSchema, QuadValues } from '../util';
 import { createHistogramPyramid, HistogramPyramid } from '../histogram-pyramid/reduction';
 import { getTriIndices } from './tables';
@@ -28,6 +28,7 @@ const IsosurfaceSchema = {
     tActiveVoxelsPyramid: TextureSpec('texture', 'rgba', 'float', 'nearest'),
     tActiveVoxelsBase: TextureSpec('texture', 'rgba', 'float', 'nearest'),
     tVolumeData: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    dValueChannel: DefineSpec('string', ['red', 'alpha']),
     uIsoValue: UniformSpec('f'),
 
     uSize: UniformSpec('f'),
@@ -38,6 +39,7 @@ const IsosurfaceSchema = {
     uGridDim: UniformSpec('v3'),
     uGridTexDim: UniformSpec('v3'),
     uGridTransform: UniformSpec('m4'),
+    uGridTransformAdjoint: UniformSpec('m3'),
     uScale: UniformSpec('v2'),
 
     dPackedGroup: DefineSpec('boolean'),
@@ -48,6 +50,10 @@ type IsosurfaceValues = Values<typeof IsosurfaceSchema>
 
 const IsosurfaceName = 'isosurface';
 
+function valueChannel(ctx: WebGLContext, volumeData: Texture) {
+    return isWebGL2(ctx.gl) && volumeData.format === ctx.gl.RED ? 'red' : 'alpha';
+}
+
 function getIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture, activeVoxelsBase: Texture, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, transform: Mat4, isoValue: number, levels: number, scale: Vec2, count: number, invert: boolean, packedGroup: boolean, axisOrder: Vec3, constantGroup: boolean): ComputeRenderable<IsosurfaceValues> {
     if (ctx.namedComputeRenderables[IsosurfaceName]) {
         const v = ctx.namedComputeRenderables[IsosurfaceName].values as IsosurfaceValues;
@@ -55,6 +61,7 @@ function getIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture
         ValueCell.update(v.tActiveVoxelsPyramid, activeVoxelsPyramid);
         ValueCell.update(v.tActiveVoxelsBase, activeVoxelsBase);
         ValueCell.update(v.tVolumeData, volumeData);
+        ValueCell.update(v.dValueChannel, valueChannel(ctx, volumeData));
 
         ValueCell.updateIfChanged(v.uIsoValue, isoValue);
         ValueCell.updateIfChanged(v.uSize, Math.pow(2, levels));
@@ -65,6 +72,7 @@ function getIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture
         ValueCell.update(v.uGridDim, gridDim);
         ValueCell.update(v.uGridTexDim, gridTexDim);
         ValueCell.update(v.uGridTransform, transform);
+        ValueCell.update(v.uGridTransformAdjoint, Mat3.adjointFromMat4(Mat3(), transform));
         ValueCell.update(v.uScale, scale);
 
         ValueCell.updateIfChanged(v.dPackedGroup, packedGroup);
@@ -87,6 +95,7 @@ function createIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Text
         tActiveVoxelsPyramid: ValueCell.create(activeVoxelsPyramid),
         tActiveVoxelsBase: ValueCell.create(activeVoxelsBase),
         tVolumeData: ValueCell.create(volumeData),
+        dValueChannel: ValueCell.create(valueChannel(ctx, volumeData)),
 
         uIsoValue: ValueCell.create(isoValue),
         uSize: ValueCell.create(Math.pow(2, levels)),
@@ -97,6 +106,7 @@ function createIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Text
         uGridDim: ValueCell.create(gridDim),
         uGridTexDim: ValueCell.create(gridTexDim),
         uGridTransform: ValueCell.create(transform),
+        uGridTransformAdjoint: ValueCell.create(Mat3.adjointFromMat4(Mat3(), transform)),
         uScale: ValueCell.create(scale),
 
         dPackedGroup: ValueCell.create(packedGroup),
@@ -155,7 +165,7 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
                 : resources.texture('image-float32', 'rgba', 'float', 'nearest');
         }
     } else {
-        // in webgl1 drawbuffers must be in the same format for some reason
+        // webgl1 requires consistent bit plane counts
         // this is quite wasteful but good enough for medium size meshes
 
         if (!vertexTexture) {
