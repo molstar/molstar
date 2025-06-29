@@ -16,7 +16,7 @@ Extends Markdown Hyperlink syntax to support expressions of the form `[title](!c
 
 ### Built-in Commands
 
-- `center-camera` - Centers the camere
+- `center-camera` - Centers the camera
 - `apply-snapshot=key` - Loads snapshots with the provided key
 - `focus-refs=ref1,ref2,...` - On click, focuses nodes with the provided refs
 - `highlight-refs=ref1,ref2,...` - On mouse over, highlights the provided refs
