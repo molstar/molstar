@@ -86,14 +86,30 @@ export const BuiltInMarkdownExtension: MarkdownExtension[] = [
 
 export class MarkdownExtensionManager {
     private extension: MarkdownExtension[] = [];
-
-    refResolvers: Record<string, (plugin: PluginContext, refs: string[]) => StateObjectCell[]> = {
+    private refResolvers: Record<string, (plugin: PluginContext, refs: string[]) => StateObjectCell[]> = {
         default: (plugin: PluginContext, refs: string[]) => refs
             .map(ref => plugin.state.data.cells.get(ref))
             .filter(c => !!c),
     };
+    private uriResolvers: Record<string, (plugin: PluginContext, uri: string) => Promise<string> | string | undefined> = {};
 
-    register(command: MarkdownExtension) {
+    registerRefResolver(name: string, resolver: (plugin: PluginContext, refs: string[]) => StateObjectCell[]) {
+        this.refResolvers[name] = resolver;
+    }
+
+    removeRefResolver(name: string) {
+        delete this.refResolvers[name];
+    }
+
+    registerUriResolver(name: string, resolver: (plugin: PluginContext, uri: string) => Promise<string> | string | undefined) {
+        this.uriResolvers[name] = resolver;
+    }
+
+    removeUriResolver(name: string) {
+        delete this.uriResolvers[name];
+    }
+
+    registerExtension(command: MarkdownExtension) {
         const existing = this.extension.findIndex(c => c.name === command.name);
         if (existing >= 0) {
             this.extension[existing] = command;
@@ -102,14 +118,14 @@ export class MarkdownExtensionManager {
         }
     }
 
-    remove(name: string) {
+    removeExtension(name: string) {
         const idx = this.extension.findIndex(c => c.name === name);
         if (idx >= 0) {
             this.extension.splice(idx, 1);
         }
     }
 
-    private tryRender(ext: MarkdownExtension, options: { args: Record<string, string>, manager: MarkdownExtensionManager }) {
+    private _tryRender(ext: MarkdownExtension, options: { args: Record<string, string>, manager: MarkdownExtensionManager }) {
         try {
             return ext.reactRenderFn?.(options);
         } catch (e) {
@@ -123,16 +139,16 @@ export class MarkdownExtensionManager {
      * Default renderers are defined separately because we
      * don't want to include `react` outside of mol-plugin-ui.
      */
-    render(args: Record<string, string>, defaultRenderers: MarkdownExtension[]): any {
+    tryRender(args: Record<string, string>, defaultRenderers: MarkdownExtension[]): any {
         const options = { args, manager: this };
         for (const ext of this.extension) {
-            const ret = this.tryRender(ext, options);
+            const ret = this._tryRender(ext, options);
             if (ret) {
                 return ret;
             }
         }
         for (const ext of defaultRenderers) {
-            const ret = this.tryRender(ext, options);
+            const ret = this._tryRender(ext, options);
             if (ret) {
                 return ret;
             }
@@ -140,13 +156,22 @@ export class MarkdownExtensionManager {
         return null;
     }
 
-    execute(event: MarkdownExtensionEvent, args: Record<string, string>) {
+    tryExecute(event: MarkdownExtensionEvent, args: Record<string, string>) {
         const options = { event, args, manager: this };
         for (const ext of this.extension) {
             try {
                 ext.execute?.(options);
             } catch (e) {
                 console.error(`Failed to execute markdown extension '${ext.name}'`, e);
+            }
+        }
+    }
+
+    tryResolveUri(uri: string): Promise<string> | string | undefined {
+        for (const resolver of Object.values(this.uriResolvers)) {
+            const resolved = resolver(this.plugin, uri);
+            if (resolved) {
+                return resolved;
             }
         }
     }
@@ -167,7 +192,7 @@ export class MarkdownExtensionManager {
 
     constructor(public plugin: PluginContext) {
         for (const command of BuiltInMarkdownExtension) {
-            this.register(command);
+            this.registerExtension(command);
         }
     }
 }

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { useContext } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { PluginReactContext } from '../base';
@@ -26,7 +26,7 @@ export function Markdown({ children, components }: { children?: string, componen
     </div>;
 }
 
-export function MarkdownImg({ src, children, element }: { src?: string, children?: any, element?: any }) {
+export function MarkdownImg({ src, element, alt }: { src?: string, element?: any, alt?: string }) {
     const plugin: PluginUIContext | undefined = useContext(PluginReactContext);
 
     if (!src) return element;
@@ -34,11 +34,34 @@ export function MarkdownImg({ src, children, element }: { src?: string, children
     if (src[0] === '!') {
         warnMissingPlugin(plugin);
         const args = parseMarkdownCommandArgs(src.substring(1));
-        const result = plugin?.managers.markdownExtensions.render(args, DefaultRenderers);
+        const result = plugin?.managers.markdownExtensions.tryRender(args, DefaultRenderers);
         return result ?? element;
+    } else {
+        const data = plugin?.managers.markdownExtensions.tryResolveUri(src);
+        if (typeof (data as Promise<string>)?.then === 'function') {
+            return <LazyStaticImg alt={alt} data={data as Promise<string>} />;
+        } else if (typeof data === 'string' && data) {
+            return <img src={data} alt={alt} />;
+        }
     }
 
-    return children;
+    return <img src={src} alt={alt} />;
+}
+
+function LazyStaticImg({ alt, data }: { alt?: string, data: Promise<string> }) {
+    const [src, setSrc] = useState<string | undefined>(undefined);
+    useEffect(() => {
+        let mounted = true;
+        data.then(d => {
+            if (mounted) setSrc(d);
+        }).catch(e => {
+            console.error('Failed to load static image', e);   
+            if (mounted) setSrc(undefined);
+        });
+        return () => { mounted = false; };
+    }, [data]);
+    if (!src) return null;
+    return <img src={src} alt={alt} />
 }
 
 export const DefaultRenderers: MarkdownExtension[] = [
@@ -92,17 +115,16 @@ export function MarkdownAnchor({ href, children, element }: { href?: string, chi
         return <a href='#'
             onClick={(e) => {
                 e.preventDefault();
-                plugin?.managers.markdownExtensions.execute('click', args);
+                plugin?.managers.markdownExtensions.tryExecute('click', args);
             }}
-            onMouseEnter={() => plugin?.managers.markdownExtensions.execute('mouse-enter', args)}
-            onMouseLeave={() => plugin?.managers.markdownExtensions.execute('mouse-leave', args)}
+            onMouseEnter={() => plugin?.managers.markdownExtensions.tryExecute('mouse-enter', args)}
+            onMouseLeave={() => plugin?.managers.markdownExtensions.tryExecute('mouse-leave', args)}
         >
             {children}
         </a>;
     } else if (href) {
         return <a href={href} target='_blank' rel='noopener noreferrer'>{children}⤴</a>;
     }
-
 
     return children;
 }

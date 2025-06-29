@@ -19,6 +19,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Support custom markdown commands to control the plugin via the `[link](!command)` pattern
   - Support rendering custom elements via the `![alt](!parameters)` pattern
   - Support tables
+  - Support loading images from MVSX files
   - Indicate external links with ⤴
 
 ## [v4.18.0] - 2025-06-08

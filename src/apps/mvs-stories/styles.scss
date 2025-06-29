@@ -177,6 +177,11 @@
         border: 1px solid #E1E1E1;
         padding: 4px 8px;
     }
+
+    img {
+        max-width: 100%;
+        height: auto;
+    }
 }
 
 @media (orientation:portrait) {

@@ -15,6 +15,7 @@ import { StructureRepresentationProvider } from '../../mol-repr/structure/repres
 import { StateAction, StateObjectCell, StateTree } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { ColorTheme } from '../../mol-theme/color';
+import { fileToDataUri } from '../../mol-util/file';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { MVSAnnotationColorThemeProvider } from './components/annotation-color-theme';
 import { MVSAnnotationLabelRepresentationProvider } from './components/annotation-label/representation';
@@ -110,7 +111,7 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
                 this.ctx.state.data.actions.add(action);
             }
 
-            this.ctx.managers.markdownExtensions.refResolvers.mvs = (plugin, refs) => {
+            this.ctx.managers.markdownExtensions.registerRefResolver('mvs', (plugin, refs) => {
                 const mvsRefs = new Set(refs.map(ref => `mvs-ref:${ref}`));
                 return StateTree.doPreOrder(
                     plugin.state.data.tree,
@@ -124,7 +125,21 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
                         if (cell) s.cells.push(cell);
                     }
                 }).cells;
-            };
+            });
+
+            this.ctx.managers.markdownExtensions.registerUriResolver('mvs', (plugin, uri) => {
+                const { assets } = plugin.managers.asset;
+                const asset = assets.find(a => a.file.name === uri);
+                if (!asset) {
+                    return undefined;
+                }
+                try {
+                    return fileToDataUri(asset.file)
+                } catch (e) {
+                    console.error(`MVS: Failed to convert asset file to data URI for '${uri}'`, e);
+                    return undefined;
+                }
+            })
         }
         update(p: { autoAttach: boolean }) {
             const updated = this.params.autoAttach !== p.autoAttach;
@@ -162,7 +177,7 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
             for (const action of this.registrables.actions ?? []) {
                 this.ctx.state.data.actions.remove(action);
             }
-            delete this.ctx.managers.markdownExtensions.refResolvers.mvs;
+            this.ctx.managers.markdownExtensions.removeRefResolver('mvs');
         }
     },
     params: () => ({
