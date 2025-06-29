@@ -10,7 +10,7 @@ import remarkGfm from 'remark-gfm';
 import { PluginReactContext } from '../base';
 import { PluginUIContext } from '../context';
 import { PluginContext } from '../../mol-plugin/context';
-import { MarkdownRenderer, parseMarkdownCommandArgs } from '../../mol-plugin/util/markdown-commands';
+import { MarkdownExtension, parseMarkdownCommandArgs } from '../../mol-plugin/util/markdown-extensions';
 import { ColorLists } from '../../mol-util/color/lists';
 import { getColorGradient } from '../../mol-util/color/utils';
 
@@ -34,17 +34,17 @@ export function MarkdownImg({ src, children, element }: { src?: string, children
     if (src[0] === '!') {
         warnMissingPlugin(plugin);
         const args = parseMarkdownCommandArgs(src.substring(1));
-        const result = plugin?.managers.markdownCommands.render(args, DefaultRenderers);
+        const result = plugin?.managers.markdownExtensions.render(args, DefaultRenderers);
         return result ?? element;
     }
 
     return children;
 }
 
-export const DefaultRenderers: MarkdownRenderer[] = [
+export const DefaultRenderers: MarkdownExtension[] = [
     {
         name: 'color-swatch',
-        reactRenderFn: (args) => {
+        reactRenderFn: ({ args }) => {
             const color = args['color-swatch'];
             if (!color) return null;
             return <span style={{ display: 'inline-block', width: '0.75em', height: '0.75em', backgroundColor: color, borderRadius: '25%' }}/>;
@@ -52,7 +52,7 @@ export const DefaultRenderers: MarkdownRenderer[] = [
     },
      {
         name: 'color-palette',
-        reactRenderFn: (args) => {
+        reactRenderFn: ({ args }) => {
             const name = args['color-palette'];
             const minWidth = args['color-palette-width'] ?? '150px';
             const height = args['color-palette-height'] ?? '0.5em';
@@ -74,6 +74,7 @@ export const DefaultRenderers: MarkdownRenderer[] = [
         }
     }
 ];
+
 export function MarkdownAnchor({ href, children, element }: { href?: string, children?: any, element?: any }) {
     const plugin: PluginUIContext | undefined = useContext(PluginReactContext);
 
@@ -88,13 +89,13 @@ export function MarkdownAnchor({ href, children, element }: { href?: string, chi
     } else if (href[0] === '!') {
         const args = parseMarkdownCommandArgs(href.substring(1));
         warnMissingPlugin(plugin);
-        return <a href='!command'
+        return <a href='#'
             onClick={(e) => {
                 e.preventDefault();
-                plugin?.managers.markdownCommands.execute('click', args);
+                plugin?.managers.markdownExtensions.execute('click', args);
             }}
-            onMouseEnter={() => plugin?.managers.markdownCommands.execute('mouse-enter', args)}
-            onMouseLeave={() => plugin?.managers.markdownCommands.execute('mouse-leave', args)}
+            onMouseEnter={() => plugin?.managers.markdownExtensions.execute('mouse-enter', args)}
+            onMouseLeave={() => plugin?.managers.markdownExtensions.execute('mouse-leave', args)}
         >
             {children}
         </a>;

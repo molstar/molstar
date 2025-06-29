@@ -9,22 +9,26 @@ import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateObjectCell } from '../../mol-state';
 import { PluginContext } from '../context';
 
-export interface MarkdownCommand {
+export type MarkdownExtensionEvent = 'click' | 'mouse-enter' | 'mouse-leave';
+
+export interface MarkdownExtension {
     name: string;
-    event: 'click' | 'mouse-enter' | 'mouse-leave';
-    execute: (args: Record<string, string>, manager: MarkdownCommandManager) => void;
+    execute?: (options: {
+        event: MarkdownExtensionEvent,
+        args: Record<string, string>,
+        manager: MarkdownExtensionManager
+    }) => void;
+    reactRenderFn?: (options: {
+        args: Record<string, string>,
+        manager: MarkdownExtensionManager
+    }) => any;
 }
 
-export interface MarkdownRenderer {
-    name: string;
-    reactRenderFn: (args: Record<string, string>, manager: MarkdownCommandManager) => any;
-}
-
-export const DefaultMarkdownCommands: MarkdownCommand[] = [
+export const BuiltInMarkdownExtension: MarkdownExtension[] = [
     {
         name: 'center-camera',
-        event: 'click',
-        execute: (args, manager) => {
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click') return;
             if ('center-camera' in args) {
                 manager.plugin.managers.camera.reset();
             }
@@ -32,8 +36,8 @@ export const DefaultMarkdownCommands: MarkdownCommand[] = [
     },
     {
         name: 'apply-snapshot',
-        event: 'click',
-        execute: (args, manager) => {
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click') return;
             const key = args['apply-snapshot'];
             if (!key) return;
             manager.plugin.managers.snapshot.applyKey(key);
@@ -41,8 +45,8 @@ export const DefaultMarkdownCommands: MarkdownCommand[] = [
     },
     {
         name: 'focus-refs',
-        event: 'click',
-        execute: (args, manager) => {
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click') return;
             const refs = parseArray(args['focus-refs']);
             if (!refs?.length) return;
 
@@ -59,35 +63,29 @@ export const DefaultMarkdownCommands: MarkdownCommand[] = [
     },
     {
         name: 'highlight-refs',
-        event: 'mouse-enter',
-        execute: (args, manager) => {
+        execute: ({ event, args, manager }) => {
             const refs = parseArray(args['highlight-refs']);
             if (!refs?.length) return;
 
-            const cells = manager.findCells(refs);
-            for (const cell of findRepresentations(manager.plugin, cells)) {
-                if (!cell.obj?.data) continue;
-                const { repr } = cell.obj.data;
-                for (const loci of repr.getAllLoci()) {
-                    manager.plugin.managers.interactivity.lociHighlights.highlight({ loci, repr }, false);
+            if (event === 'mouse-leave' && refs.length) {
+                manager.plugin.managers.interactivity.lociHighlights.clearHighlights();
+                return;
+            } else if (event === 'mouse-enter') {
+                const cells = manager.findCells(refs);
+                for (const cell of findRepresentations(manager.plugin, cells)) {
+                    if (!cell.obj?.data) continue;
+                    const { repr } = cell.obj.data;
+                    for (const loci of repr.getAllLoci()) {
+                        manager.plugin.managers.interactivity.lociHighlights.highlight({ loci, repr }, false);
+                    }
                 }
             }
         }
     },
-    {
-        name: 'highlight-refs',
-        event: 'mouse-leave',
-        execute: (args, manager) => {
-            if ('highlight-refs' in args) {
-                manager.plugin.managers.interactivity.lociHighlights.clearHighlights();
-            }
-        }
-    }
 ];
 
-export class MarkdownCommandManager {
-    commands: MarkdownCommand[] = [];
-    renderers: MarkdownRenderer[] = [];
+export class MarkdownExtensionManager {
+    private extension: MarkdownExtension[] = [];
 
     refResolvers: Record<string, (plugin: PluginContext, refs: string[]) => StateObjectCell[]> = {
         default: (plugin: PluginContext, refs: string[]) => refs
@@ -95,47 +93,46 @@ export class MarkdownCommandManager {
             .filter(c => !!c),
     };
 
-    registerCommand(command: MarkdownCommand) {
-        const existing = this.commands.findIndex(c => c.name === command.name && c.event === command.event);
+    register(command: MarkdownExtension) {
+        const existing = this.extension.findIndex(c => c.name === command.name);
         if (existing >= 0) {
-            this.commands[existing] = command;
+            this.extension[existing] = command;
         } else {
-            this.commands.push(command);
+            this.extension.push(command);
         }
     }
 
-    removeCommand(name: string, event: MarkdownCommand['event']) {
-        const idx = this.commands.findIndex(c => c.name === name && c.event === event);
+    remove(name: string) {
+        const idx = this.extension.findIndex(c => c.name === name);
         if (idx >= 0) {
-            this.commands.splice(idx, 1);
+            this.extension.splice(idx, 1);
         }
     }
 
-    registerRenderer(renderer: MarkdownRenderer) {
-        const existing = this.renderers.findIndex(r => r.name === renderer.name);
-        if (existing >= 0) {
-            this.renderers[existing] = renderer;
-        } else {
-            this.renderers.push(renderer);
+    private tryRender(ext: MarkdownExtension, options: { args: Record<string, string>, manager: MarkdownExtensionManager }) {
+        try {
+            return ext.reactRenderFn?.(options);
+        } catch (e) {
+            console.error(`Failed to render markdown extension '${ext.name}'`, e);
+            return null;
         }
     }
 
-    removeRenderer(name: string) {
-        const idx = this.renderers.findIndex(r => r.name === name);
-        if (idx >= 0) {
-            this.renderers.splice(idx, 1);
-        }
-    }
-
-    render(args: Record<string, string>, defaultRenderers: MarkdownRenderer[]): any {
-        for (const renderer of this.renderers) {
-            const ret = renderer.reactRenderFn(args, this);
+    /**
+     * Render a markdown extension with the given arguments.
+     * Default renderers are defined separately because we
+     * don't want to include `react` outside of mol-plugin-ui.
+     */
+    render(args: Record<string, string>, defaultRenderers: MarkdownExtension[]): any {
+        const options = { args, manager: this };
+        for (const ext of this.extension) {
+            const ret = this.tryRender(ext, options);
             if (ret) {
                 return ret;
             }
         }
-        for (const renderer of defaultRenderers) {
-            const ret = renderer.reactRenderFn(args, this);
+        for (const ext of defaultRenderers) {
+            const ret = this.tryRender(ext, options);
             if (ret) {
                 return ret;
             }
@@ -143,10 +140,13 @@ export class MarkdownCommandManager {
         return null;
     }
 
-    execute(event: MarkdownCommand['event'], args: Record<string, string>) {
-        for (const command of this.commands) {
-            if (command.event === event) {
-                command.execute(args, this);
+    execute(event: MarkdownExtensionEvent, args: Record<string, string>) {
+        const options = { event, args, manager: this };
+        for (const ext of this.extension) {
+            try {
+                ext.execute?.(options);
+            } catch (e) {
+                console.error(`Failed to execute markdown extension '${ext.name}'`, e);
             }
         }
     }
@@ -166,8 +166,8 @@ export class MarkdownCommandManager {
     }
 
     constructor(public plugin: PluginContext) {
-        for (const command of DefaultMarkdownCommands) {
-            this.registerCommand(command);
+        for (const command of BuiltInMarkdownExtension) {
+            this.register(command);
         }
     }
 }

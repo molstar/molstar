@@ -63,7 +63,7 @@ import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { setSaccharideCompIdMapType } from '../mol-model/structure/structure/carbohydrates/constants';
 import { DragAndDropManager } from '../mol-plugin-state/manager/drag-and-drop';
 import { ErrorContext } from '../mol-util/error-context';
-import { MarkdownCommandManager } from './util/markdown-commands';
+import { MarkdownExtensionManager } from './util/markdown-extensions';
 
 export type PluginInitializedState =
     | { kind: 'no' }
@@ -190,7 +190,7 @@ export class PluginContext {
         toast: new PluginToastManager(this),
         asset: new AssetManager(),
         task: new TaskManager(),
-        markdownCommands: new MarkdownCommandManager(this),
+        markdownExtensions: new MarkdownExtensionManager(this),
         dragAndDrop: new DragAndDropManager(this),
     } as const;
 

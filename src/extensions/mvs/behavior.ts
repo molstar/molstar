@@ -110,7 +110,7 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
                 this.ctx.state.data.actions.add(action);
             }
 
-            this.ctx.managers.markdownCommands.refResolvers.mvs = (plugin, refs) => {
+            this.ctx.managers.markdownExtensions.refResolvers.mvs = (plugin, refs) => {
                 const mvsRefs = new Set(refs.map(ref => `mvs-ref:${ref}`));
                 return StateTree.doPreOrder(
                     plugin.state.data.tree,
@@ -162,7 +162,7 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
             for (const action of this.registrables.actions ?? []) {
                 this.ctx.state.data.actions.remove(action);
             }
-            delete this.ctx.managers.markdownCommands.refResolvers.mvs;
+            delete this.ctx.managers.markdownExtensions.refResolvers.mvs;
         }
     },
     params: () => ({
