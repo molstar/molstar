@@ -12,7 +12,7 @@ import { PluginUIContext } from '../context';
 import { PluginContext } from '../../mol-plugin/context';
 import { MarkdownExtension, parseMarkdownCommandArgs } from '../../mol-plugin/util/markdown-extensions';
 import { ColorLists } from '../../mol-util/color/lists';
-import { getColorGradient, getColorGradientBanded } from '../../mol-util/color/utils';
+import { getColorGradient, getColorGradientBanded, parseColorList } from '../../mol-util/color/utils';
 
 export function Markdown({ children, components }: { children?: string, components?: Components }) {
     return <div className='msp-markdown'>
@@ -76,15 +76,19 @@ export const DefaultRenderers: MarkdownExtension[] = [
      {
         name: 'color-palette',
         reactRenderFn: ({ args }) => {
-            const name = args['color-palette'];
+            const name = args['color-palette-name'];
+            const colors = args['color-palette-colors'];
             const minWidth = args['color-palette-width'] ?? '150px';
             const height = args['color-palette-height'] ?? '0.5em';
             const discrete = 'color-palette-discrete' in args;
-            if (!name) return null;
+            if (!name && !colors) return null;
 
-            const list = ColorLists[name.toLowerCase() as keyof typeof ColorLists];
-            if (!list) {
-                console.warn(`Color palette '${name}' not found.`);
+            const list = colors
+                ? parseColorList(colors)
+                : ColorLists[name.toLowerCase() as keyof typeof ColorLists]?.list;
+
+            if (!list?.length) {
+                console.warn(`Color palette could not be resolved.`, args);
                 return null;
             }
 
@@ -92,7 +96,7 @@ export const DefaultRenderers: MarkdownExtension[] = [
                 display: 'inline-block',
                 minWidth,
                 height,
-                background: (discrete ? getColorGradientBanded : getColorGradient)(list.list),
+                background: (discrete ? getColorGradientBanded : getColorGradient)(list),
                 borderRadius: '2px'
             }} />;
         }

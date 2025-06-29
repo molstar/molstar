@@ -26,9 +26,10 @@ Extends Markdown Hyperlink syntax to support expressions of the form `[title](!c
 Extends Markdown Image syntax to support expressions of the form `![alt](!c1=v1&c2=v2&...)` to render custom elements instead.
 
 ### Built-in Custom Content
-
 - `color-swatch=color` - Renders a box with the provided color
-- `color-palette=name` - Renders a gradient with the provivided named color palette (see `mol-util/color/lists.ts` for supported color schemes)
+-  Color palettes:
+  - `color-palette-name=name` - Renders a gradient with the provivided named color palette (see `mol-util/color/lists.ts` for supported color schemes)
+  - `color-palette-colors=color1,color2` - Renders a gradient with the provided colors
   - `color-palette-width=CCS-value` - Specifies the width of the element, defaults to `150px`
   - `color-palette-height=CCS-value` - Specified the height of the element, defaults to `0.5em`
   - `color-palette-discrete` - Renders discrete color list instead of interpolating
@@ -42,11 +43,12 @@ Extends Markdown Image syntax to support expressions of the form `![alt](!c1=v1&
 - ![blue](!color-swatch=red) [ligand](!highlight-refs=ligand&focus-refs=ligand)
 - [both](!highlight-refs=polymer,ligand&focus-refs=polymer,ligand)
 
-### Table
+### Color Palettes
 |name|visual|
 |---:|---|
-|viridis|![viridis](!color-palette=viridis)|
-|rainbow (discrete)|![simple-rainbow](!color-palette=simple-rainbow&color-palette-discrete)|
+|viridis|![viridis](!color-palette-name=viridis)|
+|rainbow (discrete)|![simple-rainbow](!color-palette-name=simple-rainbow&color-palette-discrete)|
+|custom|![custom](!color-palette-colors=red,#00ff00,rgb(0,0,255))|
 
 ### Camera controls
 - [center](!center-camera)
