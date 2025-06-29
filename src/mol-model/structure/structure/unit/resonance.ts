@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -25,7 +25,18 @@ export type UnitResonance = {
     }
 }
 
+const EmptyUnitResonance: UnitResonance = {
+    delocalizedTriplets: {
+        getThirdElement: () => undefined,
+        getTripletIndices: () => undefined,
+        triplets: []
+    }
+};
+
 export function getResonance(unit: Unit.Atomic): UnitResonance {
+    if (Unit.Traits.is(unit.traits, Unit.Trait.Water) || Unit.Traits.is(unit.traits, Unit.Trait.CoarseGrained)) {
+        return EmptyUnitResonance;
+    }
     return {
         delocalizedTriplets: getDelocalizedTriplets(unit)
     };
