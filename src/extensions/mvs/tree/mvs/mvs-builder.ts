@@ -250,6 +250,11 @@ export class Representation extends _Base<'representation'> {
         this.addChild('opacity', params);
         return this;
     }
+    /** Add a 'clip' node and return builder pointing back to the representation node. 'clip' node instructs to apply clipping to a visual representation. */
+    clip(params: MVSNodeParams<'clip'> & CustomAndRef): Representation {
+        this.addChild('clip', params);
+        return this;
+    }
 }
 
 
@@ -277,6 +282,11 @@ export class VolumeRepresentation extends _Base<'volume_representation'> impleme
         return this;
     }
     focus = bindMethod(this, FocusMixinImpl, 'focus');
+    /** Add a 'clip' node and return builder pointing back to the representation node. 'clip' node instructs to apply clipping to a visual representation. */
+    clip(params: MVSNodeParams<'clip'> & CustomAndRef): VolumeRepresentation {
+        this.addChild('clip', params);
+        return this;
+    }
 }
 
 

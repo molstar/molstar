@@ -12,6 +12,7 @@ import { StructureFromModel, TransformStructureConformation } from '../../mol-pl
 import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { StateTransformer } from '../../mol-state';
 import { arrayDistinct } from '../../mol-util/array';
+import { Clip } from '../../mol-util/clip';
 import { Color } from '../../mol-util/color';
 import { ColorListEntry } from '../../mol-util/color/color';
 import { canonicalJsonString } from '../../mol-util/json';
@@ -328,6 +329,10 @@ function representationPropsBase(node: MolstarSubtree<'representation'>): Partia
 
 export function representationProps(node: MolstarSubtree<'representation'>): Partial<StateTransformer.Params<StructureRepresentation3D>> {
     const base = representationPropsBase(node);
+    const clip = clippingForNode(node);
+    if (clip) {
+        base.type!.params = { ...base.type?.params, clip };
+    }
     if (node.custom?.molstar_reprepresentation_params) {
         base.type!.params = { ...base.type!.params, ...node.custom.molstar_reprepresentation_params };
     }
@@ -342,6 +347,34 @@ export function alphaForNode(node: MolstarSubtree<'representation' | 'volume_rep
     } else {
         return 1;
     }
+}
+
+function getClippingType(node: MolstarNode<'clip'>): Clip.Props['objects'][number]['type'] {
+    switch (node.params.type) {
+        case 'infinite-cone': return 'infiniteCone' as const;
+        default:
+            return node.params.type;
+    }
+}
+
+export function clippingForNode(node: MolstarSubtree<'representation' | 'volume_representation'>): Clip.Props | undefined {
+    const children = getChildren(node).filter(c => c.kind === 'clip');
+    if (!children.length) return;
+
+    const variant = children[0].params.variant === 'object' ? 'instance' : 'pixel';
+    const objects: Clip.Props['objects'] = children.map(c => ({
+        type: getClippingType(c),
+        invert: c.params.invert,
+        position: Vec3.ofArray(c.params.position),
+        rotation: {
+            axis: Vec3.ofArray(c.params.rotation_axis),
+            angle: c.params.rotation_angle,
+        },
+        scale: Vec3.ofArray(c.params.scale),
+        transform: c.params.transform ? Mat4.fromArray(Mat4(), c.params.transform, 0) : Mat4.identity(),
+    }))
+
+    return { variant, objects } satisfies Clip.Props;
 }
 
 function hasMolStarUseDefaultColoring(node: MolstarNode): boolean {
@@ -583,6 +616,7 @@ export function makeNearestReprMap(root: MolstarTree) {
 /** Create props for `VolumeRepresentation3D` transformer from a representation node. */
 export function volumeRepresentationProps(node: MolstarSubtree<'volume_representation'>): Partial<StateTransformer.Params<VolumeRepresentation3D>> {
     const alpha = alphaForNode(node);
+    const clip = clippingForNode(node);
     const params = node.params;
     switch (params.type) {
         case 'isosurface':
@@ -591,7 +625,7 @@ export function volumeRepresentationProps(node: MolstarSubtree<'volume_represent
             if (params.show_wireframe) visuals.push('wireframe');
             if (params.show_faces) visuals.push('solid');
             return {
-                type: { name: 'isosurface', params: { alpha, isoValue, visuals } },
+                type: { name: 'isosurface', params: { alpha, isoValue, visuals, clip } },
             };
         default:
             throw new Error('NotImplementedError');
