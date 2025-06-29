@@ -165,8 +165,6 @@ Note that since we don't clearly distinguish between a public and private interf
     - More accessible iso value control
 - Support wheel event on sliders
 - MolViewSpec extension:
-  - Add validation for discriminated union params
-  - Primitives: remove triangle_colors, line_colors, have implicit grouping instead; rename many parameters
     - Add validation for discriminated union params
     - Primitives: remove triangle_colors, line_colors, have implicit grouping instead; rename many parameters
 - UI configuration options
