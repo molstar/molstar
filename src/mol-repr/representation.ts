@@ -254,7 +254,7 @@ namespace Representation {
     export type Any<P extends PD.Params = PD.Params, S extends State = State> = Representation<any, P, S>
 
 
-    export declare const Empty: Any
+    export declare const Empty: Any;
 
     export function createEmpty(): Any {
         return {
