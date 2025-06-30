@@ -163,7 +163,7 @@ export function DirectVolumeVisual(materialId: number): VolumeVisual<DirectVolum
     return VolumeVisual<DirectVolume, DirectVolumeParams>({
         defaultProps: PD.getDefaultValues(DirectVolumeParams),
         createGeometry: createDirectVolume,
-        createLocationIterator: (volume: Volume) => LocationIterator(volume.grid.cells.data.length, 1, 1, () => NullLocation),
+        createLocationIterator: (volume: Volume) => LocationIterator(volume.grid.cells.data.length, volume.transformList ? volume.transformList.length : 1, 1, () => NullLocation),
         getLoci: getDirectVolumeLoci,
         eachLocation: eachDirectVolume,
         setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<DirectVolumeParams>, currentProps: PD.Values<DirectVolumeParams>) => {

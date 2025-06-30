@@ -34,6 +34,8 @@ export interface Volume {
 
     // TODO add as customProperty?
     readonly colorVolume?: Volume
+
+    readonly transformList?: ReadonlyArray<Mat4>,
 }
 
 export namespace Volume {

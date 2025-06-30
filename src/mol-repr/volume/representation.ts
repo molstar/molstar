@@ -10,7 +10,7 @@ import { Volume } from '../../mol-model/volume';
 import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { Theme } from '../../mol-theme/theme';
-import { createIdentityTransform } from '../../mol-geo/geometry/transform-data';
+import { createTransform } from '../../mol-geo/geometry/transform-data';
 import { createRenderObject, getNextMaterialId, GraphicsRenderObject } from '../../mol-gl/render-object';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci, isEmptyLoci } from '../../mol-model/loci';
@@ -42,7 +42,10 @@ export interface VolumeVisual<P extends VolumeParams> extends Visual<VolumeKey, 
 
 function createVolumeRenderObject<G extends Geometry>(volume: Volume, geometry: G, locationIt: LocationIterator, theme: Theme, props: PD.Values<Geometry.Params<G>>, materialId: number) {
     const { createValues, createRenderableState } = Geometry.getUtils(geometry);
-    const transform = createIdentityTransform();
+    const instanceCount = volume.transformList ? volume.transformList.length : 1;
+    const transformArray = new Float32Array(volume.transformList ? volume.transformList.flat() : Mat4.identity());
+    console.log({ instanceCount, transformArray })
+    const transform = createTransform(transformArray, instanceCount, geometry.boundingSphere, props.cellSize, props.batchSize);
     const values = createValues(geometry, transform, locationIt, theme, props);
     const state = createRenderableState(props);
     return createRenderObject(geometry.kind, values, state, materialId);

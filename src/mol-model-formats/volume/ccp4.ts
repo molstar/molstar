@@ -7,7 +7,7 @@
 import { Volume } from '../../mol-model/volume';
 import { Task } from '../../mol-task';
 import { SpacegroupCell, Box3D } from '../../mol-math/geometry';
-import { Tensor, Vec3 } from '../../mol-math/linear-algebra';
+import { Mat4, Tensor, Vec3 } from '../../mol-math/linear-algebra';
 import { Ccp4File, Ccp4Header } from '../../mol-io/reader/ccp4/schema';
 import { degToRad } from '../../mol-math/misc';
 import { getCcp4ValueType } from '../../mol-io/reader/ccp4/parser';
@@ -87,6 +87,7 @@ export function volumeFromCcp4(source: Ccp4File, params?: { voxelSize?: Vec3, of
             sourceData: Ccp4Format.create(source),
             customProperties: new CustomProperties(),
             _propertyData: Object.create(null),
+            transformList: [Mat4.identity(), Mat4.fromTranslation(Mat4(), Vec3.create(100, 0, 0))],
         };
     });
 }
