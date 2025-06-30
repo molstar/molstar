@@ -93,6 +93,8 @@ export class MarkdownExtensionManager {
     };
     private uriResolvers: Record<string, (plugin: PluginContext, uri: string) => Promise<string> | string | undefined> = {};
 
+    parseArgs = defaultParseMarkdownCommandArgs;
+
     registerRefResolver(name: string, resolver: (plugin: PluginContext, refs: string[]) => StateObjectCell[]) {
         this.refResolvers[name] = resolver;
     }
@@ -208,7 +210,7 @@ function findRepresentations(plugin: PluginContext, cells: StateObjectCell[]): S
     );
 }
 
-export function parseMarkdownCommandArgs(input: string): Record<string, string> {
+export function defaultParseMarkdownCommandArgs(input: string): Record<string, string> {
     return Object.fromEntries(decodeURIComponent(input)
         .split('&')
         .map(p => p.trim())

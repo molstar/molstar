@@ -10,7 +10,7 @@ import remarkGfm from 'remark-gfm';
 import { PluginReactContext } from '../base';
 import { PluginUIContext } from '../context';
 import { PluginContext } from '../../mol-plugin/context';
-import { MarkdownExtension, parseMarkdownCommandArgs } from '../../mol-plugin-state/manager/markdown-extensions';
+import { MarkdownExtension } from '../../mol-plugin-state/manager/markdown-extensions';
 import { ColorLists } from '../../mol-util/color/lists';
 import { getColorGradient, getColorGradientBanded, parseColorList } from '../../mol-util/color/utils';
 
@@ -33,7 +33,7 @@ export function MarkdownImg({ src, element, alt }: { src?: string, element?: any
 
     if (src[0] === '!') {
         warnMissingPlugin(plugin);
-        const args = parseMarkdownCommandArgs(src.substring(1));
+        const args = plugin?.managers.markdownExtensions.parseArgs(src.substring(1));
         const result = plugin?.managers.markdownExtensions.tryRender(args, DefaultRenderers);
         return result ?? element;
     } else {
@@ -115,7 +115,7 @@ export function MarkdownAnchor({ href, children, element }: { href?: string, chi
             plugin?.managers.snapshot.applyKey(href.substring(1));
         }}>{children}</a>;
     } else if (href[0] === '!') {
-        const args = parseMarkdownCommandArgs(href.substring(1));
+        const args = plugin?.managers.markdownExtensions.parseArgs(href.substring(1));
         warnMissingPlugin(plugin);
         return <a href='#'
             onClick={(e) => {
