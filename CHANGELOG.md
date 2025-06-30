@@ -16,6 +16,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Renamed some color schemes ('inferno' -> 'inferno-no-black', 'magma' -> 'magma-no-black', 'turbo' -> 'turbo-no-black', 'rainbow' -> 'simple-rainbow')
 - Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
 - Avoid calculating rings for coarse-grained structures
+- Fix isosurface compute shader normals when transformation matrix is applied to volume 
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:
