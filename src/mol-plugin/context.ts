@@ -30,6 +30,7 @@ import { StructureHierarchyRef } from '../mol-plugin-state/manager/structure/hie
 import { StructureMeasurementManager } from '../mol-plugin-state/manager/structure/measurement';
 import { StructureSelectionManager } from '../mol-plugin-state/manager/structure/selection';
 import { VolumeHierarchyManager } from '../mol-plugin-state/manager/volume/hierarchy';
+import { MarkdownExtensionManager } from '../mol-plugin-state/manager/markdown-extensions';
 import { LeftPanelTabName, PluginLayout } from './layout';
 import { Representation } from '../mol-repr/representation';
 import { StructureRepresentationRegistry } from '../mol-repr/structure/registry';
@@ -63,7 +64,6 @@ import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { setSaccharideCompIdMapType } from '../mol-model/structure/structure/carbohydrates/constants';
 import { DragAndDropManager } from '../mol-plugin-state/manager/drag-and-drop';
 import { ErrorContext } from '../mol-util/error-context';
-import { MarkdownExtensionManager } from './util/markdown-extensions';
 
 export type PluginInitializedState =
     | { kind: 'no' }

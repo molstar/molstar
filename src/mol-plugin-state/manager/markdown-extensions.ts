@@ -7,7 +7,7 @@
 import { getCellBoundingSphere } from '../../mol-plugin-state/manager/focus-camera/focus-object';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateObjectCell } from '../../mol-state';
-import { PluginContext } from '../context';
+import { PluginContext } from '../../mol-plugin/context';
 
 export type MarkdownExtensionEvent = 'click' | 'mouse-enter' | 'mouse-leave';
 

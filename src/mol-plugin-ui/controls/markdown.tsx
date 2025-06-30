@@ -10,7 +10,7 @@ import remarkGfm from 'remark-gfm';
 import { PluginReactContext } from '../base';
 import { PluginUIContext } from '../context';
 import { PluginContext } from '../../mol-plugin/context';
-import { MarkdownExtension, parseMarkdownCommandArgs } from '../../mol-plugin/util/markdown-extensions';
+import { MarkdownExtension, parseMarkdownCommandArgs } from '../../mol-plugin-state/manager/markdown-extensions';
 import { ColorLists } from '../../mol-util/color/lists';
 import { getColorGradient, getColorGradientBanded, parseColorList } from '../../mol-util/color/utils';
 
