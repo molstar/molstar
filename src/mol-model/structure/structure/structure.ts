@@ -814,6 +814,7 @@ namespace Structure {
             let traits = Unit.Trait.None;
             if (isMultiChain) traits |= Unit.Trait.MultiChain;
             if (isWater) traits |= Unit.Trait.Water;
+            if (Model.isCoarseGrained(model)) traits |= Unit.Trait.CoarseGrained;
 
             builder.addUnit(Unit.Kind.Atomic, model, operator, elements, traits);
         }

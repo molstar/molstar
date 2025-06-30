@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -151,6 +151,9 @@ namespace UnitRings {
     export type ComponentIndex = { readonly '@type': 'unit-ring-component-index' } & number
 
     export function create(unit: Unit.Atomic): UnitRings {
+        if (Unit.Traits.is(unit.traits, Unit.Trait.Water) || Unit.Traits.is(unit.traits, Unit.Trait.CoarseGrained)) {
+            return new UnitRings([], unit);
+        }
         const rings = computeRings(unit);
         return new UnitRings(rings, unit);
     }
