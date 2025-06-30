@@ -236,7 +236,7 @@ export function IsosurfaceTextureMeshVisual(materialId: number): VolumeVisual<Is
     return VolumeVisual<TextureMesh, IsosurfaceMeshParams>({
         defaultProps: PD.getDefaultValues(IsosurfaceMeshParams),
         createGeometry: createVolumeIsosurfaceTextureMesh,
-        createLocationIterator: (volume: Volume) => LocationIterator(volume.grid.cells.data.length, 1, 1, () => NullLocation),
+        createLocationIterator: (volume: Volume) => LocationIterator(volume.grid.cells.data.length, volume.transformList ? volume.transformList.length : 1, 1, () => NullLocation),
         getLoci: getIsosurfaceLoci,
         eachLocation: eachIsosurface,
         setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<IsosurfaceMeshParams>, currentProps: PD.Values<IsosurfaceMeshParams>) => {

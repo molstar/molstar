@@ -81,7 +81,7 @@ export function eachVolumeLoci(loci: Loci, volume: Volume, props: { isoValue?: V
 export function createVolumeCellLocationIterator(volume: Volume): LocationIterator {
     const [xn, yn, zn] = volume.grid.cells.space.dimensions;
     const groupCount = xn * yn * zn;
-    const instanceCount = 1;
+    const instanceCount = volume.transformList ? volume.transformList.length : 1;
     const location = Volume.Cell.Location(volume);
     const getLocation = (groupIndex: number, _instanceIndex: number) => {
         location.cell = groupIndex as Volume.CellIndex;
