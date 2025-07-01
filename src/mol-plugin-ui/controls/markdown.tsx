@@ -31,10 +31,10 @@ export function MarkdownImg({ src, element, alt }: { src?: string, element?: any
 
     if (!src) return element;
 
-    if (src[0] === '!') {
-        warnMissingPlugin(plugin);
-        const args = plugin?.managers.markdownExtensions.parseArgs(src.substring(1));
-        const result = plugin?.managers.markdownExtensions.tryRender(args, DefaultRenderers);
+    warnMissingPlugin(plugin);
+    const args = plugin?.managers.markdownExtensions.parseArgs(src);
+    if (args) {
+        const result = plugin?.managers.markdownExtensions.tryRender(args, DefaultMarkdownExtensionRenderers);
         return result ?? element;
     } else {
         const data = plugin?.managers.markdownExtensions.tryResolveUri(src);
@@ -64,7 +64,7 @@ function LazyStaticImg({ alt, data }: { alt?: string, data: Promise<string> }) {
     return <img src={src} alt={alt} />;
 }
 
-export const DefaultRenderers: MarkdownExtension[] = [
+export const DefaultMarkdownExtensionRenderers: MarkdownExtension[] = [
     {
         name: 'color-swatch',
         reactRenderFn: ({ args }) => {
@@ -108,15 +108,10 @@ export function MarkdownAnchor({ href, children, element }: { href?: string, chi
 
     if (!href) return element;
 
-    if (href[0] === '#') {
-        warnMissingPlugin(plugin);
-        return <a href='#' onClick={(e) => {
-            e.preventDefault();
-            plugin?.managers.snapshot.applyKey(href.substring(1));
-        }}>{children}</a>;
-    } else if (href[0] === '!') {
-        const args = plugin?.managers.markdownExtensions.parseArgs(href.substring(1));
-        warnMissingPlugin(plugin);
+    warnMissingPlugin(plugin);
+    const args = plugin?.managers.markdownExtensions.parseArgs(href);
+
+    if (args) {
         return <a href='#'
             onClick={(e) => {
                 e.preventDefault();
@@ -127,6 +122,12 @@ export function MarkdownAnchor({ href, children, element }: { href?: string, chi
         >
             {children}
         </a>;
+    } else if (href[0] === '#') {
+        warnMissingPlugin(plugin);
+        return <a href='#' onClick={(e) => {
+            e.preventDefault();
+            plugin?.managers.snapshot.applyKey(href.substring(1));
+        }}>{children}</a>;
     } else if (href) {
         return <a href={href} target='_blank' rel='noopener noreferrer'>{children}⤴</a>;
     }

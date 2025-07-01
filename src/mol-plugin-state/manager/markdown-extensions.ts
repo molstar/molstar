@@ -92,8 +92,34 @@ export class MarkdownExtensionManager {
             .filter(c => !!c),
     };
     private uriResolvers: Record<string, (plugin: PluginContext, uri: string) => Promise<string> | string | undefined> = {};
+    private argsParsers: [name: string, priority: number, parser: (input: string | undefined) => Record<string, string> | undefined][] = [
+        ['default', 100, defaultParseMarkdownCommandArgs],
+    ];
 
-    parseArgs = defaultParseMarkdownCommandArgs;
+    /**
+     * Default parser has priority 100, parsers with higher priority
+     * will be called first.
+     */
+    registerArgsParser(name: string, priority: number, parser: (input: string | undefined) => Record<string, string> | undefined) {
+        this.removeArgsParser(name);
+        this.argsParsers.push([name, priority, parser]);
+        this.argsParsers.sort((a, b) => b[1] - a[1]); // Sort by priority, higher first
+    }
+
+    removeArgsParser(name: string) {
+        const idx = this.argsParsers.findIndex(p => p[0] === name);
+        if (idx >= 0) {
+            this.argsParsers.splice(idx, 1);
+        }
+    }
+
+    parseArgs(input: string | undefined): Record<string, string> | undefined {
+        for (const [,, parser] of this.argsParsers) {
+            const ret = parser(input);
+            if (ret) return ret;
+        }
+        return undefined;
+    }
 
     registerRefResolver(name: string, resolver: (plugin: PluginContext, refs: string[]) => StateObjectCell[]) {
         this.refResolvers[name] = resolver;
@@ -210,10 +236,13 @@ function findRepresentations(plugin: PluginContext, cells: StateObjectCell[]): S
     );
 }
 
-export function defaultParseMarkdownCommandArgs(input: string): Record<string, string> {
-    return Object.fromEntries(decodeURIComponent(input)
+export function defaultParseMarkdownCommandArgs(input: string | undefined): Record<string, string> | undefined {
+    if (!input?.startsWith('!')) return undefined;
+    const entries = decodeURIComponent(input.substring(1))
         .split('&')
         .map(p => p.trim())
         .filter(p => p.length > 0)
-        .map(p => p.split('=', 2).map(s => s.trim())));
+        .map(p => p.split('=', 2).map(s => s.trim()));
+    if (entries.length === 0) return undefined;
+    return Object.fromEntries(entries);
 }

@@ -122,7 +122,10 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
                     for (const tag of n.tags) {
                         if (!s.mvsRefs.has(tag)) continue;
                         const cell = s.plugin.state.data.cells.get(n.ref);
-                        if (cell) s.cells.push(cell);
+                        if (cell) {
+                            s.cells.push(cell);
+                            break;
+                        }
                     }
                 }).cells;
             });
