@@ -131,6 +131,7 @@ namespace Unit {
         Partitioned = 0x2,
         FastBoundary = 0x4,
         Water = 0x8,
+        CoarseGrained = 0x10,
     }
     export namespace Traits {
         export const is: (t: Traits, f: Trait) => boolean = BitFlags.has;

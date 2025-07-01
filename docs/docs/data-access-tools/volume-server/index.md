@@ -24,7 +24,7 @@ npm install
 Afterwards, build the project source:
 
 ```
-npm run build-tsc
+npm run build:lib
 ```
 
 and run the server by 
