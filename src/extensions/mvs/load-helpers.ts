@@ -371,8 +371,8 @@ export function clippingForNode(node: MolstarSubtree<'representation' | 'volume_
             angle: c.params.rotation_angle,
         },
         scale: Vec3.ofArray(c.params.scale),
-        transform: c.params.transform ? Mat4.fromArray(Mat4(), c.params.transform, 0) : Mat4.identity(),
-    }))
+        transform: c.params.point_transform ? Mat4.fromArray(Mat4(), c.params.point_transform, 0) : Mat4.identity(),
+    }));
 
     return { variant, objects } satisfies Clip.Props;
 }

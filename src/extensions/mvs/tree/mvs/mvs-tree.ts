@@ -216,8 +216,8 @@ export const MVSTreeSchema = TreeSchema({
                 rotation_angle: OptionalField(float, 0.0, 'Rotation angle of the clipping region in radians. Default is 0.'),
                 /** Scale of the clipping region. Default is (1, 1, 1). */
                 scale: OptionalField(Vector3, [1, 1, 1], 'Scale of the clipping region. Default is (1, 1, 1).'),
-                /** Transformation matrix to apply to the clipping region. */
-                transform: OptionalField(nullable(Matrix), null, 'Transformation matrix to apply to the clipping region'),
+                /** Transformation matrix to applied to each point before clipping. For example, can be used to clip volumes in the grid/fractional space. Default is null. */
+                point_transform: OptionalField(nullable(Matrix), null, 'Transformation matrix to applied to each point before clipping. For example, can be used to clip volumes in the grid/fractional space. Default is null.'),
                 /** Inverts the clipping region. Default is false. */
                 invert: OptionalField(bool, false, 'Inverts the clipping region. Default is false'),
                 /** Variant of the clip node, either "object" or "pixel". */
