@@ -18,6 +18,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Avoid calculating rings for coarse-grained structures
 - Fix isosurface compute shader normals when transformation matrix is applied to volume 
 - Breaking: `PluginContext.initViewer/initContainer/mount` are now async and have been renamed to include `Async` postfix
+- Change symmetry operator naming for assemblies (ASM_1, ASM_2 -> 1, X0-1)
+- Symmetry operator naming for spacegroup symmetry - parenthesize multi-character indices (1_111-1 -> 1_(11)1(-1))
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:
