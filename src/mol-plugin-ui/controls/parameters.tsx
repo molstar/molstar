@@ -947,7 +947,9 @@ export class Vec3Control extends React.PureComponent<ParamProps<PD.Vec3>, { isEx
         const p = getPrecision(this.props.param.step || 0.01);
         const value = `[${v[0].toFixed(p)}, ${v[1].toFixed(p)}, ${v[2].toFixed(p)}]`;
         return <>
-            <ControlRow label={label} control={<button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>{value}</button>} />
+            <ControlRow label={label} control={<button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>
+                <div title={value} className='msp-no-overflow' style={{ display: 'block' }}>{value}</div>
+            </button>} />
             {this.state.isExpanded && <div className='msp-control-offset'>
                 <ParameterControls params={this.components} values={v} onChange={this.componentChange} onEnter={this.props.onEnter} />
             </div>}
@@ -1009,7 +1011,9 @@ export class Mat4Control extends React.PureComponent<ParamProps<PD.Mat4>, { isEx
         };
         const label = this.props.param.label || camelCaseToWords(this.props.name);
         return <>
-            <ControlRow label={label} control={<button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>{'4\u00D74 Matrix'}</button>} />
+            <ControlRow label={label} control={<button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>
+                <div className='msp-no-overflow' style={{ display: 'block' }}>{'4\u00D74 Matrix'}</div>
+            </button>} />
             {this.state.isExpanded && <div className='msp-control-offset'>
                 {this.grid}
                 <ParameterControls params={this.components} values={v} onChange={this.componentChange} onEnter={this.props.onEnter} />
