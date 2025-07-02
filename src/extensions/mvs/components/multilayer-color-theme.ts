@@ -123,7 +123,7 @@ function makeMultilayerColorTheme(ctx: ThemeDataContext, props: MultilayerColorT
 
     return {
         factory: (ctx_, props_) => makeMultilayerColorTheme(ctx_, props_, colorThemeRegistry),
-        granularity: 'group',
+        granularity: 'groupInstance',
         preferSmoothing: true,
         color: color,
         props: props,
