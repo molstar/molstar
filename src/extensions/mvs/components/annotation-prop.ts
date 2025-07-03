@@ -13,7 +13,6 @@ import { CustomProperty } from '../../../mol-model-props/common/custom-property'
 import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
 import { Model } from '../../../mol-model/structure';
 import { Structure, StructureElement } from '../../../mol-model/structure/structure';
-import { UUID } from '../../../mol-util';
 import { Asset } from '../../../mol-util/assets';
 import { Jsonable, canonicalJsonString } from '../../../mol-util/json';
 import { objectOfArraysToArrayOfObjects, pickObjectKeysWithRemapping, promiseAllObj } from '../../../mol-util/object';
@@ -23,8 +22,8 @@ import { AtomRanges } from '../helpers/atom-ranges';
 import { IndicesAndSortings } from '../helpers/indexing';
 import { MaybeStringParamDefinition } from '../helpers/param-definition';
 import { MVSAnnotationRow, MVSAnnotationSchema, getCifAnnotationSchema } from '../helpers/schemas';
-import { atomQualifies, getAtomRangesForRow } from '../helpers/selections';
-import { Maybe, safePromise } from '../helpers/utils';
+import { getAtomRangesForRow } from '../helpers/selections';
+import { Maybe, isDefined, safePromise } from '../helpers/utils';
 
 
 /** Allowed values for the annotation format parameter */
@@ -142,11 +141,15 @@ export function getMVSAnnotationForStructure(structure: Structure, annotationId:
 
 type FieldRemapping = Record<string, string | null>;
 
+/** Mapping `ElementIndex` -> annotation row index for all elements in a `Model`.
+ * `-1` means no row applies to the element.
+ * `null` means no row applies to any element. */
+type IndexedModel = number[] | null;
+
 /** Main class for processing MVS annotation */
 export class MVSAnnotation {
-    /** Store mapping `ElementIndex` -> annotation row index for each `Model`, -1 means no row applies */
-    private indexedModels = new Map<UUID, number[]>();
-    private rows: MVSAnnotationRow[] | undefined = undefined;
+
+    /** Number of annotation rows. */
     public nRows: number;
 
     constructor(
@@ -196,21 +199,10 @@ export class MVSAnnotation {
         return new MVSAnnotation({ format: 'json', data: [] }, schema, {});
     }
 
-    /** Reference implementation of `getAnnotationForLocation`, just for checking, DO NOT USE DIRECTLY */
-    getAnnotationForLocation_Reference(loc: StructureElement.Location): MVSAnnotationRow | undefined {
-        const model = loc.unit.model;
-        const iAtom = loc.element;
-        let result: MVSAnnotationRow | undefined = undefined;
-        for (const row of this.getRows()) {
-            if (atomQualifies(model, iAtom, row)) result = row;
-        }
-        return result;
-    }
-
     /** Return value of field `fieldName` assigned to location `loc`, if any */
     getValueForLocation(loc: StructureElement.Location, fieldName: string): string | undefined {
-        const indexedModel = this.getIndexedModel(loc.unit.model);
-        const iRow = indexedModel[loc.element];
+        const indexedModel = this.getIndexedModel(loc.unit.model, loc.unit.conformation.operator.name);
+        const iRow = (indexedModel !== null) ? indexedModel[loc.element] : -1;
         return this.getValueForRow(iRow, fieldName);
     }
     /** Return value of field `fieldName` assigned to `i`-th annotation row, if any */
@@ -227,28 +219,40 @@ export class MVSAnnotation {
     }
 
     /** Return cached `ElementIndex` -> `MVSAnnotationRow` mapping for `Model` (or create it if not cached yet) */
-    private getIndexedModel(model: Model): number[] {
-        const key = model.id;
-        if (!this.indexedModels.has(key)) {
-            const result = this.getRowForEachAtom(model);
-            this.indexedModels.set(key, result);
+    private getIndexedModel(model: Model, operatorName: string): IndexedModel {
+        const key = this.hasOperators() ? `${model.id}:${operatorName}` : model.id;
+        if (!this._indexedModels.has(key)) {
+            const result = this.getRowForEachAtom(model, operatorName);
+            this._indexedModels.set(key, result);
         }
-        return this.indexedModels.get(key)!;
+        return this._indexedModels.get(key)!;
     }
+    /** Cached `IndexedModel` per `Model.id` (if annotation contains no operator names)
+     * or per `Model.id:operatorName` combination (if at least one row contains operator name). */
+    private _indexedModels = new Map<string, IndexedModel>();
 
     /** Create `ElementIndex` -> `MVSAnnotationRow` mapping for `Model` */
-    private getRowForEachAtom(model: Model): number[] {
+    private getRowForEachAtom(model: Model, operatorName: string): IndexedModel {
         const indices = IndicesAndSortings.get(model);
         const nAtoms = model.atomicHierarchy.atoms._rowCount;
-        const result: number[] = Array(nAtoms).fill(-1);
+        let result: IndexedModel = null;
         const rows = this.getRows();
         for (let i = 0, nRows = rows.length; i < nRows; i++) {
-            const atomRanges = getAtomRangesForRow(model, rows[i], indices);
-            AtomRanges.foreach(atomRanges, (from, to) => result.fill(i, from, to));
+            const row = rows[i];
+            const atomRanges = getAtomRangesForRow(row, model, operatorName, indices);
+            if (AtomRanges.count(atomRanges) === 0) continue;
+            result ??= Array(nAtoms).fill(-1);
+            AtomRanges.foreach(atomRanges, (from, to) => result!.fill(i, from, to));
         }
         return result;
     }
 
+    /** Parse and return all annotation rows in this annotation, or return cached result if available */
+    getRows(): readonly MVSAnnotationRow[] {
+        return this._rows ??= this._getRows();
+    }
+    /** Cached annotation rows. Do not use directly, use `getRows` instead. */
+    private _rows: MVSAnnotationRow[] | undefined = undefined;
     /** Parse and return all annotation rows in this annotation */
     private _getRows(): MVSAnnotationRow[] {
         switch (this.data.format) {
@@ -258,10 +262,12 @@ export class MVSAnnotation {
                 return getRowsFromCif(this.data.data, this.schema, this.fieldRemapping);
         }
     }
-    /** Parse and return all annotation rows in this annotation, or return cached result if available */
-    getRows(): readonly MVSAnnotationRow[] {
-        return this.rows ??= this._getRows();
+
+    /** Return `true` if some rows in the annotation contain `operator_name` field. */
+    private hasOperators(): boolean {
+        return this._hasOperators ??= this.getRows().some(row => isDefined(row.operator_name));
     }
+    private _hasOperators?: boolean = undefined;
 
     /** Return list of all distinct values appearing in field `fieldName`, in order of first occurrence. Ignores special values `.` and `?`. If `caseInsensitive`, make all values uppercase. */
     getDistinctValuesInField(fieldName: string, caseInsensitive: boolean): string[] {

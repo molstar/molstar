@@ -77,6 +77,8 @@ const AllAtomicCifAnnotationSchema = {
     atom_id: int,
     /** 0-based index of the atom in the source data */
     atom_index: int,
+    /** Symmetry operator name like 'X0-1' for assemblies or '1_555' for crystals */
+    operator_name: str,
 } satisfies Table.Schema;
 
 /** Allowed fields (i.e. CIF columns or JSON keys) for each annotation schema
