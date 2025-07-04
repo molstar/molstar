@@ -363,8 +363,8 @@ function getClipObject(node: MolstarNode<'clip'>): Clip.Props['objects'][number]
                 type: 'sphere',
                 position: Vec3.ofArray(node.params.center),
                 scale: typeof node.params.radius === 'number'
-                    ? Vec3.create(node.params.radius, node.params.radius, node.params.radius)
-                    : Vec3.create(1, 1, 1),
+                    ? Vec3.create(2 * node.params.radius, 2 * node.params.radius, 2 * node.params.radius)
+                    : Vec3.create(2, 2, 2),
                 rotation: { axis: Vec3.create(1, 0, 0), angle: 0 },
                 ...getCommonClipParams(node),
             };
