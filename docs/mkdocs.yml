@@ -38,6 +38,8 @@ nav:
     - Data State: 'plugin/data-state.md'
     - File Formats: 'plugin/file-formats.md'
     - CIF Schemas: 'plugin/cif-schemas.md'
+    - Managers:
+      - Markdown Extensions: 'plugin/managers/markdown-extensions.md'
     - State Transforms:
       - Custom Trajectory: 'plugin/transforms/custom-trajectory.md'
       - Custom Conformation: 'plugin/transforms/custom-conformation.md'
@@ -59,5 +61,5 @@ nav:
     - Interactions: 'extensions/interactions.md'
   - Misc:
     - Interesting PDB entries: misc/interesting-pdb-entries.md
-    - Exporting component data: exporting-components.md
+    - Exporting component data: misc/exporting-components.md
 repo_url: https://github.com/molstar/docs

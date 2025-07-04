@@ -9,6 +9,7 @@ import { hashString } from '../../../mol-data/util';
 import { StateObject } from '../../../mol-state';
 import { Color } from '../../../mol-util/color';
 import { ColorNames } from '../../../mol-util/color/names';
+import { decodeColor as _decodeColor } from '../../../mol-util/color/utils';
 
 
 /** Represents either the result or the reason of failure of an operation that might have failed */
@@ -100,19 +101,7 @@ export type ElementOfSet<S> = S extends Set<infer T> ? T : never
 /** Convert `colorString` (either X11 color name like 'magenta' or hex code like '#ff00ff') to Color.
  * Return `undefined` if `colorString` cannot be converted. */
 export function decodeColor(colorString: string | undefined | null): Color | undefined {
-    if (colorString === undefined || colorString === null) return undefined;
-    let result: Color | undefined;
-    if (HexColor.is(colorString)) {
-        if (colorString.length === 4) {
-            // convert short form to full form (#f0f -> #ff00ff)
-            colorString = `#${colorString[1]}${colorString[1]}${colorString[2]}${colorString[2]}${colorString[3]}${colorString[3]}`;
-        }
-        result = Color.fromHexStyle(colorString);
-        if (result !== undefined && !isNaN(result)) return result;
-    }
-    result = ColorNames[colorString.toLowerCase() as keyof typeof ColorNames];
-    if (result !== undefined) return result;
-    return undefined;
+    return _decodeColor(colorString);
 }
 
 /** Regular expression matching a hexadecimal color string, e.g. '#FF1100' or '#f10' */
