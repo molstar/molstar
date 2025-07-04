@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -7,13 +7,13 @@
 import { Sphere3D } from '../../../mol-math/geometry';
 import { BoundaryHelper } from '../../../mol-math/geometry/boundary-helper';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { ElementIndex, Model, Structure, StructureElement, StructureProperties } from '../../../mol-model/structure';
-import { UUID } from '../../../mol-util';
+import { ElementIndex, Model, Structure, StructureElement, StructureProperties, Unit } from '../../../mol-model/structure';
 import { arrayExtend } from '../../../mol-util/array';
 import { AtomRanges } from './atom-ranges';
 import { IndicesAndSortings } from './indexing';
 import { MVSAnnotationRow } from './schemas';
 import { getAtomRangesForRows } from './selections';
+import { isDefined } from './utils';
 
 
 /** Properties describing position, size, etc. of a text in 3D */
@@ -34,9 +34,25 @@ const boundaryHelper = new BoundaryHelper('98');
 const outAtoms: ElementIndex[] = [];
 const outFirstAtomIndex: { value?: number } = {};
 
+/** Helper for caching atom ranges qualifying to a group of annotation rows, per `Unit`. */
+class AtomRangesCache {
+    private readonly cache: { [key: string]: AtomRanges } = {};
+    private readonly hasOperators: boolean;
+
+    constructor(private readonly rows: MVSAnnotationRow[]) {
+        this.hasOperators = rows.some(row => isDefined(row.operator_name));
+    }
+
+    get(unit: Unit): AtomRanges {
+        const operatorName = unit.conformation.operator.name;
+        const key = this.hasOperators ? `${unit.model.id}:${operatorName}` : unit.model.id;
+        return this.cache[key] ??= getAtomRangesForRows(this.rows, unit.model, operatorName, IndicesAndSortings.get(unit.model));
+    }
+}
+
 /** Return `TextProps` (position, size, etc.) for a text that is to be bound to a substructure of `structure` defined by union of `rows`.
  * Derives `center` and `depth` from the boundary sphere of the substructure, `scale` from the number of heavy atoms in the substructure. */
-export function textPropsForSelection(structure: Structure, sizeFunction: (location: StructureElement.Location) => number, rows: MVSAnnotationRow | MVSAnnotationRow[], onlyInModel?: Model): TextProps | undefined {
+export function textPropsForSelection(structure: Structure, sizeFunction: (location: StructureElement.Location) => number, rows: MVSAnnotationRow[], onlyInModel?: Model): TextProps | undefined {
     const loc = StructureElement.Location.create(structure);
     const { units } = structure;
     const { type_symbol } = StructureProperties.atom;
@@ -45,11 +61,11 @@ export function textPropsForSelection(structure: Structure, sizeFunction: (locat
     let includedHeavyAtoms = 0;
     let group: number | undefined = undefined;
     let atomSize: number | undefined = undefined;
-    const rangesByModel: { [modelId: UUID]: AtomRanges } = {};
+    const atomRangesCache = new AtomRangesCache(rows);
     for (let iUnit = 0, nUnits = units.length; iUnit < nUnits; iUnit++) {
         const unit = units[iUnit];
         if (onlyInModel && unit.model.id !== onlyInModel.id) continue;
-        const ranges = rangesByModel[unit.model.id] ??= getAtomRangesForRows(unit.model, rows, IndicesAndSortings.get(unit.model));
+        const ranges = atomRangesCache.get(unit);
         loc.unit = unit;
         AtomRanges.selectAtomsInRanges(unit.elements, ranges, outAtoms, outFirstAtomIndex);
         for (const atom of outAtoms) {

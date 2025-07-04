@@ -55,7 +55,7 @@ namespace SymmetryOperator {
 
     export type CreateInfo = { assembly?: SymmetryOperator['assembly'], ncsId?: number, hkl?: Vec3, spgrOp?: number, key?: number }
     export function create(name: string, matrix: Mat4, info?: CreateInfo | SymmetryOperator): SymmetryOperator {
-        let { assembly, ncsId, hkl, spgrOp, key } = info || { };
+        let { assembly, ncsId, hkl, spgrOp, key } = info || {};
         const _hkl = hkl ? Vec3.clone(hkl) : Vec3();
         spgrOp = spgrOp ?? -1;
         key = key ?? -1;
@@ -73,6 +73,12 @@ namespace SymmetryOperator {
         return !!x && !!x.matrix && !!x.inverse && typeof x.name === 'string';
     }
 
+    /** Create spacegroup symmetry operator name, e.g. getSymmetryOperatorName(0, 0, 0, 0) -> '1_555' */
+    export function getSymmetryOperatorName(spgrOp: number, i: number, j: number, k: number): string {
+        const fmt = (n: number) => n >= 0 && n <= 9 ? `${n}` : `(${n})`;
+        return `${spgrOp + 1}_${fmt(i + 5)}${fmt(j + 5)}${fmt(k + 5)}`;
+    }
+
     function getSuffix(info?: CreateInfo | SymmetryOperator, isIdentity?: boolean) {
         if (!info) return '';
 
@@ -83,7 +89,7 @@ namespace SymmetryOperator {
 
         if (typeof info.spgrOp !== 'undefined' && typeof info.hkl !== 'undefined' && info.spgrOp !== -1) {
             const [i, j, k] = info.hkl;
-            return `-${info.spgrOp + 1}_${5 + i}${5 + j}${5 + k}`;
+            return `-${getSymmetryOperatorName(info.spgrOp, i, j, k)}`;
         }
 
         if (info.ncsId !== -1) {

@@ -13,6 +13,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Annotation field remapping (`field_remapping` parameter for color_from_* nodes)
   - Representation node: support custom property `molstar_reprepresentation_params`,
   - Canvas node: support custom properties `molstar_enable_outline`, `molstar_enable_shadow`, `molstar_enable_ssao`
+  - Inline selectors and MVS annotations support `operator_name`
 - Renamed some color schemes ('inferno' -> 'inferno-no-black', 'magma' -> 'magma-no-black', 'turbo' -> 'turbo-no-black', 'rainbow' -> 'simple-rainbow')
 - Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
 - Snapshot Markdown improvements
@@ -25,6 +26,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Avoid calculating rings for coarse-grained structures
 - Fix isosurface compute shader normals when transformation matrix is applied to volume 
 - Breaking: `PluginContext.initViewer/initContainer/mount` are now async and have been renamed to include `Async` postfix
+- Change symmetry operator naming for assemblies (ASM_1, ASM_2 -> 1, X0-1)
+- Symmetry operator naming for spacegroup symmetry - parenthesize multi-character indices (1_111-1 -> 1_(11)1(-1))
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:

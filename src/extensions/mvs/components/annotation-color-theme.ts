@@ -116,7 +116,7 @@ export function MVSAnnotationColorTheme(ctx: ThemeDataContext, props: MVSAnnotat
 
     return {
         factory: MVSAnnotationColorTheme,
-        granularity: 'group',
+        granularity: 'groupInstance',
         preferSmoothing: true,
         color: color,
         props: props,

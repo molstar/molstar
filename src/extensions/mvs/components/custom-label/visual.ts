@@ -75,7 +75,7 @@ function createLabelText(ctx: VisualContext, structure: Structure, theme: Theme,
                 break;
             case 'selection':
                 const substructure = substructureFromSelector(structure, item.position.params.selector);
-                const p = textPropsForSelection(substructure, theme.size.size, {});
+                const p = textPropsForSelection(substructure, theme.size.size, [{}]);
                 const group = serialIndexOfSubstructure(structure, substructure) ?? 0;
                 if (p) builder.add(item.text, p.center[0], p.center[1], p.center[2], p.depth, p.scale, group);
                 break;
