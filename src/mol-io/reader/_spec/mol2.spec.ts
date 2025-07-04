@@ -575,7 +575,8 @@ USER_CHARGES
     66   39   62 1
     67   39   63 1
 @<TRIPOS>SUBSTRUCTURE
-     1 UNK         1 GROUP             0       ****    0 ROOT
+     1 UNK         1 GROUP             0   ****    ****    0 ROOT
+     1 LIG         1 TEMP              0 ****  ****    0 ROOT
 `;
 
 describe('mol2 reader', () => {
@@ -784,6 +785,20 @@ describe('mol2 reader', () => {
                 spaceGroup: 29,
                 setting: 5
             });
+
+            // required substructure fields
+            expect(data.substructures!.count).toBe(2);
+            expect(data.substructures!.subst_id.value(0)).toBe(1);
+            expect(data.substructures!.subst_name.value(0)).toBe('RES1');
+            expect(data.substructures!.root_atom.value(0)).toBe(1);
+
+            // optional substructure fields
+            expect(data.substructures!.subst_type.value(0)).toBe('GROUP');
+            expect(data.substructures!.dict_type.value(0)).toBe('0');
+            expect(data.substructures!.chain.value(0)).toBe('****');
+            expect(data.substructures!.sub_type.value(0)).toBe('****');
+            expect(data.substructures!.inter_bonds.value(0)).toBe(0);
+            expect(data.substructures!.status_bits.value(0)).toBe('');
         }
     });
 });
