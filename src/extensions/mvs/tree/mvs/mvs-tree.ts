@@ -8,7 +8,7 @@
 import { bool, dict, float, int, list, literal, nullable, OptionalField, RequiredField, str, tuple, union } from '../generic/field-schema';
 import { SimpleParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
-import { MVSRepresentationParams, MVSVolumeRepresentationParams } from './mvs-tree-representations';
+import { MVSClipParams, MVSRepresentationParams, MVSVolumeRepresentationParams } from './mvs-tree-representations';
 import { MVSPrimitiveParams } from './mvs-tree-primitives';
 import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, Palette, ParseFormatT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
 
@@ -205,24 +205,7 @@ export const MVSTreeSchema = TreeSchema({
         clip: {
             description: 'This node instructs to apply clipping to a visual representation.',
             parent: ['representation', 'volume_representation'],
-            params: SimpleParamsSchema({
-                /** Kind of clipping region, i.e. cube, sphere, cylinder, plane, or infinite cone. */
-                type: RequiredField(literal('cube', 'sphere', 'cylinder', 'plane', 'infinite-cone'), 'Kind of clipping region, i.e. box, sphere, cylinder, plane, or infinite cone.'),
-                /** Position of the clipping region. */
-                position: OptionalField(Vector3, [0, 0, 0], 'Position of the clipping region.'),
-                /** Axis of rotation of the clipping region. Default is (1, 0, 0). */
-                rotation_axis: OptionalField(Vector3, [1, 0, 0], 'Axis of rotation of the clipping region. Default is (1, 0, 0).'),
-                /** Rotation angle of the clipping region in radians. Default is 0. */
-                rotation_angle: OptionalField(float, 0.0, 'Rotation angle of the clipping region in radians. Default is 0.'),
-                /** Scale of the clipping region. Default is (1, 1, 1). */
-                scale: OptionalField(Vector3, [1, 1, 1], 'Scale of the clipping region. Default is (1, 1, 1).'),
-                /** Transformation matrix to applied to each point before clipping. For example, can be used to clip volumes in the grid/fractional space. Default is null. */
-                point_transform: OptionalField(nullable(Matrix), null, 'Transformation matrix to applied to each point before clipping. For example, can be used to clip volumes in the grid/fractional space. Default is null.'),
-                /** Inverts the clipping region. Default is false. */
-                invert: OptionalField(bool, false, 'Inverts the clipping region. Default is false'),
-                /** Variant of the clip node, either "object" or "pixel". */
-                variant: OptionalField(literal('object', 'pixel'), 'pixel', 'Variant of the clip node, either "object" or "pixel"'),
-            }),
+            params: MVSClipParams,
         },
         /** This node instructs to apply opacity/transparency to a visual representation. */
         opacity: {

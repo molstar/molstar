@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Mat3, Mat4, Vec3 } from '../../mol-math/linear-algebra';
+import { Mat3, Mat4, Quat, Vec3 } from '../../mol-math/linear-algebra';
 import { Volume } from '../../mol-model/volume';
 import { StructureComponentParams } from '../../mol-plugin-state/helpers/structure-component';
 import { StructureFromModel, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
@@ -349,11 +349,54 @@ export function alphaForNode(node: MolstarSubtree<'representation' | 'volume_rep
     }
 }
 
-function getClippingType(node: MolstarNode<'clip'>): Clip.Props['objects'][number]['type'] {
+function getCommonClipParams(node: MolstarNode<'clip'>): Pick<Clip.Props['objects'][number], 'invert' | 'transform'> {
+    return {
+        invert: !!node.params.invert,
+        transform: node.params.check_transform ? Mat4.fromArray(Mat4(), node.params.check_transform, 0) : Mat4.identity(),
+    };
+}
+
+function getClipObject(node: MolstarNode<'clip'>): Clip.Props['objects'][number] | undefined {
     switch (node.params.type) {
-        case 'infinite-cone': return 'infiniteCone' as const;
+        case 'sphere':
+            return {
+                type: 'sphere',
+                position: Vec3.ofArray(node.params.center),
+                scale: typeof node.params.radius === 'number'
+                    ? Vec3.create(node.params.radius, node.params.radius, node.params.radius)
+                    : Vec3.create(1, 1, 1),
+                rotation: { axis: Vec3.create(1, 0, 0), angle: 0 },
+                ...getCommonClipParams(node),
+            };
+        case 'plane': {
+            const up = Vec3.create(0, 1, 0);
+            const n = Vec3.normalize(Vec3(), Vec3.ofArray(node.params.normal));
+            const axis = Vec3.cross(Vec3(), up, n);
+            const isSingular = Vec3.magnitude(axis) < 1e-6;
+            return {
+                type: 'plane',
+                position: Vec3.ofArray(node.params.point),
+                scale: Vec3.create(1, 1, 1),
+                rotation: {
+                    axis: isSingular ? Vec3.unitX : axis,
+                    angle: isSingular ? 0 : Vec3.angle(up, n) * 180 / Math.PI,
+                },
+                ...getCommonClipParams(node),
+            };
+        }
+        case 'box':
+            const q = Quat.fromMat3(Quat(), Mat3.fromArray(Mat3(), node.params.rotation, 0));
+            const axis = Vec3();
+            const angle = Quat.getAxisAngle(axis, q) * 180 / Math.PI;
+            return {
+                type: 'cube',
+                position: Vec3.ofArray(node.params.center),
+                scale: Vec3.ofArray(node.params.size),
+                rotation: { axis, angle },
+                ...getCommonClipParams(node),
+            };
         default:
-            return node.params.type;
+            console.warn(`Mol* MVS: Unsupported clip type "${(node as MolstarNode<'clip'>).params.type}" in node ${node.ref}.`);
     }
 }
 
@@ -362,17 +405,7 @@ export function clippingForNode(node: MolstarSubtree<'representation' | 'volume_
     if (!children.length) return;
 
     const variant = children[0].params.variant === 'object' ? 'instance' : 'pixel';
-    const objects: Clip.Props['objects'] = children.map(c => ({
-        type: getClippingType(c),
-        invert: c.params.invert,
-        position: Vec3.ofArray(c.params.position),
-        rotation: {
-            axis: Vec3.ofArray(c.params.rotation_axis),
-            angle: c.params.rotation_angle,
-        },
-        scale: Vec3.ofArray(c.params.scale),
-        transform: c.params.point_transform ? Mat4.fromArray(Mat4(), c.params.point_transform, 0) : Mat4.identity(),
-    }));
+    const objects: Clip.Props['objects'] = children.map(getClipObject).filter(o => !!o);
 
     return { variant, objects } satisfies Clip.Props;
 }
