@@ -26,6 +26,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Avoid calculating rings for coarse-grained structures
 - Fix isosurface compute shader normals when transformation matrix is applied to volume
 - Breaking: `PluginContext.initViewer/initContainer/mount` are now async and have been renamed to include `Async` postfix
+- Mol2 Reader
+    - Fix column count parsing
+    - Add support for substructure
 - Fix shader error when clipping flags are set without clip objects present
 
 ## [v4.18.0] - 2025-06-08
