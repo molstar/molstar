@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -49,7 +49,10 @@ export namespace Shape {
             sourceData,
             geometry,
             transforms: transforms || [Mat4.identity()],
-            get groupCount() { return Geometry.getGroupCount(geometry); },
+            get groupCount() {
+                // TODO: consider adding an way provide the group count explicitely
+                return Geometry.getGroupCount(geometry);
+            },
             getColor,
             getSize,
             getLabel
