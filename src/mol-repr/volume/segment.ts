@@ -185,7 +185,7 @@ export function SegmentMeshVisual(materialId: number): VolumeVisual<SegmentMeshP
         createGeometry: createVolumeSegmentMesh,
         createLocationIterator: (volume: Volume, key: number) => {
             const l = Volume.Segment.Location(volume, key);
-            return LocationIterator(volume.grid.cells.data.length, 1, 1, () => l);
+            return LocationIterator(volume.grid.cells.data.length, volume.transformList ? volume.transformList.length : 1, 1, () => l);
         },
         getLoci: getSegmentLoci,
         eachLocation: eachSegment,
@@ -269,7 +269,7 @@ export function SegmentTextureMeshVisual(materialId: number): VolumeVisual<Segme
         createGeometry: createVolumeSegmentTextureMesh,
         createLocationIterator: (volume: Volume, segment: number) => {
             const l = Volume.Segment.Location(volume, segment);
-            return LocationIterator(volume.grid.cells.data.length, 1, 1, () => l);
+            return LocationIterator(volume.grid.cells.data.length, volume.transformList ? volume.transformList.length : 1, 1, () => l);
         },
         getLoci: getSegmentLoci,
         eachLocation: eachSegment,
