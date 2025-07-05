@@ -8,7 +8,7 @@
 import { dict, float, int, list, literal, nullable, OptionalField, RequiredField, str, tuple, union } from '../generic/field-schema';
 import { SimpleParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
-import { MVSRepresentationParams, MVSVolumeRepresentationParams } from './mvs-tree-representations';
+import { MVSClipParams, MVSRepresentationParams, MVSVolumeRepresentationParams } from './mvs-tree-representations';
 import { MVSPrimitiveParams } from './mvs-tree-primitives';
 import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, Palette, ParseFormatT, SchemaFormatT, SchemaT, StrList, StructureTypeT, Vector3 } from './param-types';
 
@@ -200,6 +200,12 @@ export const MVSTreeSchema = TreeSchema({
                 /** Customize mapping of annotation values to colors. */
                 palette: OptionalField(nullable(Palette), null, 'Customize mapping of annotation values to colors.'),
             }),
+        },
+        /** This node instructs to apply clipping to a visual representation. */
+        clip: {
+            description: 'This node instructs to apply clipping to a visual representation.',
+            parent: ['representation', 'volume_representation'],
+            params: MVSClipParams,
         },
         /** This node instructs to apply opacity/transparency to a visual representation. */
         opacity: {

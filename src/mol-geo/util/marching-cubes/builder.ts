@@ -13,7 +13,7 @@ import { AllowedContours } from './tables';
 import { LinesBuilder } from '../../geometry/lines/lines-builder';
 import { Lines } from '../../geometry/lines/lines';
 
-export interface MarchinCubesBuilder<T> {
+export interface MarchingCubesBuilder<T> {
     addVertex(x: number, y: number, z: number): number
     addNormal(x: number, y: number, z: number): void
     addGroup(group: number): void
@@ -21,7 +21,7 @@ export interface MarchinCubesBuilder<T> {
     get(): T
 }
 
-export function MarchinCubesMeshBuilder(vertexChunkSize: number, mesh?: Mesh): MarchinCubesBuilder<Mesh> {
+export function MarchingCubesMeshBuilder(vertexChunkSize: number, mesh?: Mesh): MarchingCubesBuilder<Mesh> {
     const triangleChunkSize = Math.min(1 << 16, vertexChunkSize * 4);
 
     const vertices = ChunkedArray.create(Float32Array, 3, vertexChunkSize, mesh && mesh.vertexBuffer.ref.value);
@@ -62,7 +62,7 @@ export function MarchinCubesMeshBuilder(vertexChunkSize: number, mesh?: Mesh): M
     };
 }
 
-export function MarchinCubesLinesBuilder(vertexChunkSize: number, lines?: Lines): MarchinCubesBuilder<Lines> {
+export function MarchingCubesLinesBuilder(vertexChunkSize: number, lines?: Lines): MarchingCubesBuilder<Lines> {
     const vertices = ChunkedArray.create(Float32Array, 3, vertexChunkSize);
     const groups = ChunkedArray.create(Float32Array, 1, vertexChunkSize);
     const indices = ChunkedArray.create(Float32Array, 2, vertexChunkSize);

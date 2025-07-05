@@ -5,13 +5,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Mat3, Mat4, Vec3 } from '../../mol-math/linear-algebra';
+import { Mat3, Mat4, Quat, Vec3 } from '../../mol-math/linear-algebra';
 import { Volume } from '../../mol-model/volume';
 import { StructureComponentParams } from '../../mol-plugin-state/helpers/structure-component';
 import { StructureFromModel, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { StateTransformer } from '../../mol-state';
 import { arrayDistinct } from '../../mol-util/array';
+import { Clip } from '../../mol-util/clip';
 import { Color } from '../../mol-util/color';
 import { ColorListEntry } from '../../mol-util/color/color';
 import { canonicalJsonString } from '../../mol-util/json';
@@ -328,6 +329,10 @@ function representationPropsBase(node: MolstarSubtree<'representation'>): Partia
 
 export function representationProps(node: MolstarSubtree<'representation'>): Partial<StateTransformer.Params<StructureRepresentation3D>> {
     const base = representationPropsBase(node);
+    const clip = clippingForNode(node);
+    if (clip) {
+        base.type!.params = { ...base.type?.params, clip };
+    }
     if (node.custom?.molstar_reprepresentation_params) {
         base.type!.params = { ...base.type!.params, ...node.custom.molstar_reprepresentation_params };
     }
@@ -342,6 +347,67 @@ export function alphaForNode(node: MolstarSubtree<'representation' | 'volume_rep
     } else {
         return 1;
     }
+}
+
+function getCommonClipParams(node: MolstarNode<'clip'>): Pick<Clip.Props['objects'][number], 'invert' | 'transform'> {
+    return {
+        invert: !!node.params.invert,
+        transform: node.params.check_transform ? Mat4.fromArray(Mat4(), node.params.check_transform, 0) : Mat4.identity(),
+    };
+}
+
+function getClipObject(node: MolstarNode<'clip'>): Clip.Props['objects'][number] | undefined {
+    switch (node.params.type) {
+        case 'sphere':
+            return {
+                type: 'sphere',
+                position: Vec3.ofArray(node.params.center),
+                scale: typeof node.params.radius === 'number'
+                    ? Vec3.create(2 * node.params.radius, 2 * node.params.radius, 2 * node.params.radius)
+                    : Vec3.create(2, 2, 2),
+                rotation: { axis: Vec3.create(1, 0, 0), angle: 0 },
+                ...getCommonClipParams(node),
+            };
+        case 'plane': {
+            const up = Vec3.create(0, 1, 0);
+            const n = Vec3.normalize(Vec3(), Vec3.ofArray(node.params.normal));
+            const axis = Vec3.cross(Vec3(), up, n);
+            const isSingular = Vec3.magnitude(axis) < 1e-6;
+            return {
+                type: 'plane',
+                position: Vec3.ofArray(node.params.point),
+                scale: Vec3.create(1, 1, 1),
+                rotation: {
+                    axis: isSingular ? Vec3.unitX : axis,
+                    angle: isSingular ? 0 : Vec3.angle(up, n) * 180 / Math.PI,
+                },
+                ...getCommonClipParams(node),
+            };
+        }
+        case 'box':
+            const q = Quat.fromMat3(Quat(), Mat3.fromArray(Mat3(), node.params.rotation, 0));
+            const axis = Vec3();
+            const angle = Quat.getAxisAngle(axis, q) * 180 / Math.PI;
+            return {
+                type: 'cube',
+                position: Vec3.ofArray(node.params.center),
+                scale: Vec3.ofArray(node.params.size),
+                rotation: { axis, angle },
+                ...getCommonClipParams(node),
+            };
+        default:
+            console.warn(`Mol* MVS: Unsupported clip type "${(node as MolstarNode<'clip'>).params.type}" in node ${node.ref}.`);
+    }
+}
+
+export function clippingForNode(node: MolstarSubtree<'representation' | 'volume_representation'>): Clip.Props | undefined {
+    const children = getChildren(node).filter(c => c.kind === 'clip');
+    if (!children.length) return;
+
+    const variant = children[0].params.variant === 'object' ? 'instance' : 'pixel';
+    const objects: Clip.Props['objects'] = children.map(getClipObject).filter(o => !!o);
+
+    return { variant, objects } satisfies Clip.Props;
 }
 
 function hasMolStarUseDefaultColoring(node: MolstarNode): boolean {
@@ -583,6 +649,7 @@ export function makeNearestReprMap(root: MolstarTree) {
 /** Create props for `VolumeRepresentation3D` transformer from a representation node. */
 export function volumeRepresentationProps(node: MolstarSubtree<'volume_representation'>): Partial<StateTransformer.Params<VolumeRepresentation3D>> {
     const alpha = alphaForNode(node);
+    const clip = clippingForNode(node);
     const params = node.params;
     switch (params.type) {
         case 'isosurface':
@@ -591,7 +658,7 @@ export function volumeRepresentationProps(node: MolstarSubtree<'volume_represent
             if (params.show_wireframe) visuals.push('wireframe');
             if (params.show_faces) visuals.push('solid');
             return {
-                type: { name: 'isosurface', params: { alpha, isoValue, visuals } },
+                type: { name: 'isosurface', params: { alpha, isoValue, visuals, clip } },
             };
         default:
             throw new Error('NotImplementedError');

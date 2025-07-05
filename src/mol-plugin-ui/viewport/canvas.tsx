@@ -27,6 +27,7 @@ export interface ViewportCanvasParams {
 
 export class ViewportCanvas extends PluginUIComponent<ViewportCanvasParams, ViewportCanvasState> {
     private container = React.createRef<HTMLDivElement>();
+    private mounted = false;
 
     state: ViewportCanvasState = {
         noWebGl: false,
@@ -37,16 +38,34 @@ export class ViewportCanvas extends PluginUIComponent<ViewportCanvasParams, View
         this.setState({ showLogo: !this.plugin.canvas3d?.reprCount.value });
     };
 
+    private async applyMount() {
+        try {
+            const success = await this.plugin.mountAsync(this.container.current!, { checkeredCanvasBackground: true });
+            if (!this.mounted) return;
+            if (!success) this.setState({ noWebGl: true });
+
+            this.handleLogo();
+            this.subscribe(this.plugin.canvas3d!.reprCount, this.handleLogo);
+        } catch (err) {
+            console.error(err);
+            this.setState({ noWebGl: true });
+        }
+    }
+
     componentDidMount() {
-        if (!this.container.current || !this.plugin.mount(this.container.current!, { checkeredCanvasBackground: true })) {
+        this.mounted = true;
+
+        if (!this.container.current) {
             this.setState({ noWebGl: true });
             return;
         }
-        this.handleLogo();
-        this.subscribe(this.plugin.canvas3d!.reprCount, this.handleLogo);
+
+        this.applyMount();
     }
 
     componentWillUnmount() {
+        this.mounted = false;
+
         super.componentWillUnmount();
         this.plugin.unmount();
     }

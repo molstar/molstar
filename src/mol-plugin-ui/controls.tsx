@@ -6,7 +6,7 @@
  */
 
 import * as React from 'react';
-import Markdown from 'react-markdown';
+import ReactMarkdown from 'react-markdown';
 import { UpdateTrajectory } from '../mol-plugin-state/actions/structure';
 import { LociLabel } from '../mol-plugin-state/manager/loci-label';
 import { PluginStateObject } from '../mol-plugin-state/objects';
@@ -26,6 +26,7 @@ import { VolumeStreamingControls, VolumeSourceControls } from './structure/volum
 import { PluginConfig } from '../mol-plugin/config';
 import { StructureSuperpositionControls } from './structure/superposition';
 import { StructureQuickStylesControls } from './structure/quick-styles';
+import { Markdown } from './controls/markdown';
 
 export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: boolean, label: string }> {
     state = { show: false, label: '' };
@@ -210,28 +211,9 @@ export function ViewportSnapshotDescription() {
     return <div id='snapinfo' className='msp-snapshot-description-wrapper'>
         {e.descriptionFormat === 'plaintext'
             && e.description
-            || <Markdown skipHtml components={{ a: MarkdownAnchor }}>{e.description}</Markdown>
+            || <Markdown>{e.description}</Markdown>
         }
     </div>;
-}
-
-export function MarkdownAnchor({ href, children, element }: { href?: string, children?: any, element?: any }) {
-    const plugin = React.useContext(PluginReactContext);
-
-    if (!href) return element;
-
-    if (href[0] === '#') {
-        return <a href='#' onClick={(e) => {
-            e.preventDefault();
-            plugin.managers.snapshot.applyKey(href.substring(1));
-        }}>{children}</a>;
-    } else if (href) {
-        return <a href={href} target='_blank' rel='noopener noreferrer'>{children}</a>;
-    }
-
-    // TODO: consider adding more "commands", for example !reset-camera
-
-    return children;
 }
 
 export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: boolean, isExpanded: boolean, isBusy: boolean, isAnimating: boolean, isPlaying: boolean }> {
@@ -306,7 +288,7 @@ export class LociLabels extends PluginUIComponent<{}, { labels: ReadonlyArray<Lo
             {this.state.labels.map((e, i) => {
                 if (e.indexOf('\n') >= 0) {
                     return <div className='msp-highlight-markdown-row' key={'' + i}>
-                        <Markdown skipHtml>{e}</Markdown>
+                        <ReactMarkdown skipHtml>{e}</ReactMarkdown>
                     </div>;
                 }
 

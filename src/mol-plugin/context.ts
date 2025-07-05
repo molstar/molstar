@@ -30,6 +30,7 @@ import { StructureHierarchyRef } from '../mol-plugin-state/manager/structure/hie
 import { StructureMeasurementManager } from '../mol-plugin-state/manager/structure/measurement';
 import { StructureSelectionManager } from '../mol-plugin-state/manager/structure/selection';
 import { VolumeHierarchyManager } from '../mol-plugin-state/manager/volume/hierarchy';
+import { MarkdownExtensionManager } from '../mol-plugin-state/manager/markdown-extensions';
 import { LeftPanelTabName, PluginLayout } from './layout';
 import { Representation } from '../mol-repr/representation';
 import { StructureRepresentationRegistry } from '../mol-repr/structure/registry';
@@ -63,6 +64,7 @@ import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { setSaccharideCompIdMapType } from '../mol-model/structure/structure/carbohydrates/constants';
 import { DragAndDropManager } from '../mol-plugin-state/manager/drag-and-drop';
 import { ErrorContext } from '../mol-util/error-context';
+import { PluginContainer } from './container';
 
 export type PluginInitializedState =
     | { kind: 'no' }
@@ -83,7 +85,7 @@ export class PluginContext {
     private initializedPromiseCallbacks: [res: () => void, rej: (err: any) => void] = [() => {}, () => {}];
 
     private disposed = false;
-    private canvasContainer: HTMLDivElement | undefined = void 0;
+    private container: PluginContainer | undefined = void 0;
     private ev = RxEventHelper.create();
 
     readonly config = new PluginConfigManager(this.spec.config); // needed to init state
@@ -189,6 +191,7 @@ export class PluginContext {
         toast: new PluginToastManager(this),
         asset: new AssetManager(),
         task: new TaskManager(),
+        markdownExtensions: new MarkdownExtensionManager(this),
         dragAndDrop: new DragAndDropManager(this),
     } as const;
 
@@ -222,38 +225,28 @@ export class PluginContext {
      */
     readonly customState: unknown = Object.create(null);
 
-    initContainer(options?: { canvas3dContext?: Canvas3DContext, checkeredCanvasBackground?: boolean }) {
-        if (this.canvasContainer) return true;
+    async initViewerAsync(canvas: HTMLCanvasElement, container: HTMLDivElement, canvas3dContext?: Canvas3DContext) {
+        return this._initViewer(canvas, container, canvas3dContext);
+    }
 
-        const container = document.createElement('div');
-        Object.assign(container.style, {
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            right: 0,
-            bottom: 0,
-            '-webkit-user-select': 'none',
-            'user-select': 'none',
-            '-webkit-tap-highlight-color': 'rgba(0,0,0,0)',
-            '-webkit-touch-callout': 'none',
-            'touch-action': 'manipulation',
+    async initContainerAsync(options?: { canvas3dContext?: Canvas3DContext, checkeredCanvasBackground?: boolean }) {
+        return this._initContainer(options);
+    }
+
+    async mountAsync(target: HTMLElement, initOptions?: { canvas3dContext?: Canvas3DContext, checkeredCanvasBackground?: boolean }) {
+        return this._mount(target, initOptions);
+    }
+
+    private _initContainer(options?: { canvas3dContext?: Canvas3DContext, checkeredCanvasBackground?: boolean }) {
+        if (this.container) return true;
+        const container = new PluginContainer({
+            checkeredCanvasBackground: options?.checkeredCanvasBackground,
+            canvas: options?.canvas3dContext?.canvas
         });
-        let canvas = options?.canvas3dContext?.canvas;
-        if (!canvas) {
-            canvas = document.createElement('canvas');
-            if (options?.checkeredCanvasBackground) {
-                Object.assign(canvas.style, {
-                    'background-image': 'linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey), linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey)',
-                    'background-size': '60px 60px',
-                    'background-position': '0 0, 30px 30px'
-                });
-            }
-            container.appendChild(canvas);
-        }
-        if (!this.initViewer(canvas, container, options?.canvas3dContext)) {
+        if (!this._initViewer(container.canvas, container.parent, options?.canvas3dContext)) {
             return false;
         }
-        this.canvasContainer = container;
+        this.container = container;
         return true;
     }
 
@@ -261,25 +254,20 @@ export class PluginContext {
      * Mount the plugin into the target element (assumes the target has "relative"-like positioninig).
      * If initContainer wasn't called separately before, initOptions will be passed to it.
      */
-    mount(target: HTMLElement, initOptions?: { canvas3dContext?: Canvas3DContext, checkeredCanvasBackground?: boolean }) {
+    private _mount(target: HTMLElement, initOptions?: { canvas3dContext?: Canvas3DContext, checkeredCanvasBackground?: boolean }) {
         if (this.disposed) throw new Error('Cannot mount a disposed context');
 
-        if (!this.initContainer(initOptions)) return false;
-
-        if (this.canvasContainer!.parentElement !== target) {
-            this.canvasContainer!.parentElement?.removeChild(this.canvasContainer!);
-        }
-
-        target.appendChild(this.canvasContainer!);
+        if (!this._initContainer(initOptions)) return false;
+        this.container?.mount(target);
         this.handleResize();
         return true;
     }
 
     unmount() {
-        this.canvasContainer?.parentElement?.removeChild(this.canvasContainer);
+        this.container?.unmount();
     }
 
-    initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement, canvas3dContext?: Canvas3DContext) {
+    private _initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement, canvas3dContext?: Canvas3DContext) {
         try {
             this.layout.setRoot(container);
             if (this.spec.layout && this.spec.layout.initial) this.layout.setProps(this.spec.layout.initial);
@@ -409,7 +397,7 @@ export class PluginContext {
         objectForEach(this.managers.volume, m => (m as any)?.dispose?.());
 
         this.unmount();
-        this.canvasContainer = undefined;
+        this.container = undefined;
         (this.customState as any) = {};
 
         this.disposed = true;
