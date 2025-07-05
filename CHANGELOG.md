@@ -28,6 +28,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Breaking: `PluginContext.initViewer/initContainer/mount` are now async and have been renamed to include `Async` postfix
 - Fix shader error when clipping flags are set without clip objects present
 - Fix wrong group count calculation on geometry update (#1562)
+- Fix wrong instance index in `calcMeshColorSmoothing`
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:
