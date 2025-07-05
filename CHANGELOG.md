@@ -24,8 +24,9 @@ Note that since we don't clearly distinguish between a public and private interf
   - Support loading images from MVSX files
   - Indicate external links with ⤴
 - Avoid calculating rings for coarse-grained structures
-- Fix isosurface compute shader normals when transformation matrix is applied to volume 
+- Fix isosurface compute shader normals when transformation matrix is applied to volume
 - Breaking: `PluginContext.initViewer/initContainer/mount` are now async and have been renamed to include `Async` postfix
+- Fix shader error when clipping flags are set without clip objects present
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:
