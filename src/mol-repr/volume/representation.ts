@@ -163,7 +163,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
                 if (newGeometry) {
                     ValueCell.updateIfChanged(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry));
                     ValueCell.updateIfChanged(renderObject.values.uVertexCount, Geometry.getVertexCount(newGeometry));
-                    ValueCell.updateIfChanged(renderObject.values.uGroupCount, Geometry.getGroupCount(newGeometry));
+                    ValueCell.updateIfChanged(renderObject.values.uGroupCount, Geometry.getGroupCount(newGeometry)); // TODO: use locationIt.groupCount instead when updated for volume visuals
                 } else {
                     throw new Error('expected geometry to be given');
                 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -30,7 +30,7 @@ interface ColorSmoothingInput {
 }
 
 export function calcMeshColorSmoothing(input: ColorSmoothingInput, resolution: number, stride: number, webgl?: WebGLContext, texture?: Texture) {
-    const { colorType, vertexCount, groupCount, positionBuffer, transformBuffer, groupBuffer, itemSize } = input;
+    const { colorType, vertexCount, groupCount, positionBuffer, instanceBuffer, transformBuffer, groupBuffer, itemSize } = input;
 
     const isInstanceType = colorType.endsWith('Instance');
     const box = Box3D.fromSphere3D(Box3D(), isInstanceType ? input.boundingSphere : input.invariantBoundingSphere);
@@ -46,7 +46,6 @@ export function calcMeshColorSmoothing(input: ColorSmoothingInput, resolution: n
 
     const [xn, yn] = gridDim;
     const { width, height } = getVolumeTexture2dLayout(gridDim);
-    // console.log({ width, height, dim });
 
     const data = new Float32Array(width * height * itemSize);
     const count = new Float32Array(width * height);
@@ -69,6 +68,9 @@ export function calcMeshColorSmoothing(input: ColorSmoothingInput, resolution: n
     const v = Vec3();
 
     for (let i = 0; i < instanceCount; ++i) {
+        // - use reordered index for access from GPU
+        // - use serial index for access from CPU
+        const instanceIndex = webgl ? instanceBuffer[i] : i;
         for (let j = 0; j < vertexCount; j += stride) {
             Vec3.fromArray(v, positionBuffer, j * 3);
             if (isInstanceType) Vec3.transformMat4Offset(v, v, transformBuffer, 0, 0, i * 16);
@@ -82,7 +84,7 @@ export function calcMeshColorSmoothing(input: ColorSmoothingInput, resolution: n
             const z = Math.floor(vz);
 
             // group colors
-            const ci = (i * groupCount + groupBuffer[j]) * itemSize;
+            const ci = (instanceIndex * groupCount + groupBuffer[j]) * itemSize;
 
             // Extents of grid to consider for this atom
             const begX = Math.max(0, x - p);
