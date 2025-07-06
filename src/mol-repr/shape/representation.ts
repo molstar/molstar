@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -149,7 +149,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
                     // console.log('update geometry')
                     ValueCell.updateIfChanged(_renderObject.values.drawCount, Geometry.getDrawCount(_shape.geometry));
                     ValueCell.updateIfChanged(_renderObject.values.uVertexCount, Geometry.getVertexCount(_shape.geometry));
-                    ValueCell.updateIfChanged(_renderObject.values.uGroupCount, Geometry.getGroupCount(_shape.geometry));
+                    ValueCell.updateIfChanged(_renderObject.values.uGroupCount, locationIt.groupCount);
                 }
 
                 if (updateState.updateTransform || updateState.createGeometry) {
