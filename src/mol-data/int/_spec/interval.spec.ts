@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Interval } from '../interval';
@@ -79,4 +80,6 @@ describe('interval', () => {
     test('intersectionSize3', Interval.intersectionSize(Interval.ofRange(1, 2), Interval.ofRange(0, 5)), 2);
     test('intersectionSize4', Interval.intersectionSize(Interval.ofRange(0, 5), Interval.ofRange(3, 8)), 3);
     test('intersectionSize5', Interval.intersectionSize(Interval.ofRange(0, 5), Interval.ofRange(6, 8)), 0);
+
+    test('offset', Interval.offset(Interval.ofRange(0, 5), 2), Interval.ofRange(2, 7));
 });

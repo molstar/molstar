@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as Base from './impl/ordered-set';
@@ -23,6 +24,7 @@ namespace OrderedSet {
     export const indexOf: <T extends number = number>(set: OrderedSet<T>, x: T) => number = Base.indexOf as any;
     /** Returns the value in `set` at index `i`. */
     export const getAt: <T extends number = number>(set: OrderedSet<T>, i: number) => T = Base.getAt as any;
+    export const isEmpty: <T extends number = number>(set: OrderedSet<T>) => boolean = Base.isEmpty as any;
 
     export const min: <T extends number = number>(set: OrderedSet<T>) => T = Base.min as any;
     export const max: <T extends number = number>(set: OrderedSet<T>) => T = Base.max as any;
