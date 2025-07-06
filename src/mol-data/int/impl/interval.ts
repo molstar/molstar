@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { IntTuple as Tuple } from '../tuple';
@@ -65,4 +66,8 @@ export function intersect(a: Tuple, b: Tuple) {
 
 export function intersectionSize(a: Tuple, b: Tuple) {
     return size(findRange(a, min(b), max(b)));
+}
+
+export function offset(int: Tuple, offset: number) {
+    return Tuple.create(start(int) + offset, end(int) + offset);
 }

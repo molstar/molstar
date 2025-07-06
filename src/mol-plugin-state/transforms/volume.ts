@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -231,6 +231,44 @@ const AssignColorVolume = PluginStateTransform.BuiltIn({
     }
 });
 
+function getTransform(src:
+    | { name: 'matrix', params: { data: Mat4, transpose?: boolean } }
+    | { name: 'components', params: { translation: Vec3, rotationAxis: Vec3, rotationAngle: number } }
+) {
+    if (src.name === 'matrix') {
+        const transform = Mat4();
+        Mat4.copy(transform, src.params.data);
+        if (src.params.transpose) Mat4.transpose(transform, transform);
+        return transform;
+    } else {
+        const transform = Mat4.fromRotation(Mat4(), src.params.rotationAngle * Math.PI / 180, src.params.rotationAxis);
+        Mat4.setTranslation(transform, src.params.translation);
+        return transform;
+    }
+}
+
+const TransformParam = PD.MappedStatic(
+    'matrix',
+    {
+        matrix: PD.Group(
+            {
+                data: PD.Mat4(Mat4.identity()),
+                transpose: PD.Boolean(false),
+            },
+            { isFlat: true }
+        ),
+        components: PD.Group(
+            {
+                translation: PD.Vec3(Vec3.create(0, 0, 0)),
+                rotationAxis: PD.Vec3(Vec3.create(1, 0, 0)),
+                rotationAngle: PD.Numeric(0, { min: -360, max: 360, step: 1 }, { description: 'Angle in Degrees' }),
+            },
+            { isFlat: true }
+        ),
+    },
+    { label: 'Kind' },
+);
+
 export type VolumeTransform = typeof VolumeTransform;
 export const VolumeTransform = PluginStateTransform.BuiltIn({
     name: 'volume-transform',
@@ -239,49 +277,57 @@ export const VolumeTransform = PluginStateTransform.BuiltIn({
     from: SO.Volume.Data,
     to: SO.Volume.Data,
     params: {
-        transform: PD.MappedStatic(
-            'matrix',
-            // TODO: support "components" based rotation
-            {
-                matrix: PD.Group(
-                    {
-                        data: PD.Mat4(Mat4.identity()),
-                        transpose: PD.Boolean(false),
-                    },
-                    { isFlat: true }
-                ),
-            },
-            { label: 'Kind' }
-        ),
+        transform: TransformParam,
     },
 })({
-    canAutoUpdate({ newParams }) {
-        return newParams.transform.name !== 'matrix';
+    canAutoUpdate() {
+        return false;
     },
     apply({ a, params }) {
         // similar to StateTransforms.Model.TransformStructureConformation;
-        const transform = Mat4();
-        let gridTransform = { ...a.data.grid.transform };
-        Mat4.copy(transform, params.transform.params.data);
-        if (params.transform.params.transpose) Mat4.transpose(transform, transform);
-        const origMat =
-        a.data.grid.transform.kind === 'matrix'
-            ? a.data.grid.transform.matrix
-            : Grid.getGridToCartesianTransform(a.data.grid);
-        gridTransform = {
-            kind: 'matrix',
-            matrix: Mat4.mul(Mat4(), transform, origMat),
+        const transform = getTransform(params.transform);
+        const gridTransform = {
+            kind: 'matrix' as const,
+            matrix: Mat4.mul(Mat4(), transform, Grid.getGridToCartesianTransform(a.data.grid)),
         };
-        const v = {
+        return new SO.Volume.Data({
             ...a.data,
             grid: {
                 ...a.data.grid,
                 transform: gridTransform,
             },
-        };
-        return new SO.Volume.Data(v, {
+        }, {
             label: a.label,
             description: `${a.description} [Transformed]`,
+        });
+    },
+});
+
+export type VolumeInstances = typeof VolumeInstances;
+export const VolumeInstances = PluginStateTransform.BuiltIn({
+    name: 'volume-instances',
+    display: { name: 'Volume Instances' },
+    isDecorator: true,
+    from: SO.Volume.Data,
+    to: SO.Volume.Data,
+    params: {
+        transforms: PD.ObjectList({ transform: TransformParam }, () => 'Transform')
+    },
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }) {
+        const instances = params.transforms.map(t => ({ transform: getTransform(t.transform) }));
+        if (!instances.length) {
+            return a;
+        }
+        return new SO.Volume.Data({
+            ...a.data,
+            instances: params.transforms.map(t => ({ transform: getTransform(t.transform) })),
+        }, {
+            label: a.label,
+            description: `${a.description} [Instanced]`,
         });
     },
 });

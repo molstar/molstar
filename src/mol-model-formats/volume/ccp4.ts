@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,7 +7,7 @@
 import { Volume } from '../../mol-model/volume';
 import { Task } from '../../mol-task';
 import { SpacegroupCell, Box3D } from '../../mol-math/geometry';
-import { Tensor, Vec3 } from '../../mol-math/linear-algebra';
+import { Mat4, Tensor, Vec3 } from '../../mol-math/linear-algebra';
 import { Ccp4File, Ccp4Header } from '../../mol-io/reader/ccp4/schema';
 import { degToRad } from '../../mol-math/misc';
 import { getCcp4ValueType } from '../../mol-io/reader/ccp4/parser';
@@ -84,6 +84,7 @@ export function volumeFromCcp4(source: Ccp4File, params?: { voxelSize?: Vec3, of
                     sigma: (isNaN(header.ARMS) || header.ARMS === 0) ? arrayRms(values) : header.ARMS
                 },
             },
+            instances: [{ transform: Mat4.identity() }],
             sourceData: Ccp4Format.create(source),
             customProperties: new CustomProperties(),
             _propertyData: Object.create(null),

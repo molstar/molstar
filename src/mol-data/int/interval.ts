@@ -55,6 +55,9 @@ namespace Interval {
 
     /** Get a new interval that is the intersection of the two intervals */
     export const intersect: <T extends number = number>(a: Interval<T>, b: Interval<T>) => Interval<T> = Impl.intersect as any;
+
+    /** Get new interval that is shifted by the given offset */
+    export const offset: <T extends number = number>(int: Interval<T>, offset: number) => Interval<T> = Impl.offset as any;
 }
 
 /** Interval describing a range [min, max] of values */

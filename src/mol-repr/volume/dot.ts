@@ -14,7 +14,7 @@ import { VisualUpdateState } from '../util';
 import { RepresentationContext, RepresentationParamsGetter, Representation } from '../representation';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../mol-model/loci';
-import { Interval } from '../../mol-data/int';
+import { Interval, OrderedSet } from '../../mol-data/int';
 import { createVolumeCellLocationIterator, eachVolumeLoci } from './util';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { BaseGeometry } from '../../mol-geo/geometry/base';
@@ -213,20 +213,23 @@ export function createVolumePoint(ctx: VisualContext, volume: Volume, key: numbe
 //
 
 function getLoci(volume: Volume, props: VolumeDotProps) {
-    return Volume.Isosurface.Loci(volume, props.isoValue);
+    const instances = Interval.ofLength(volume.instances.length as Volume.InstanceIndex);
+    return Volume.Isosurface.Loci(volume, props.isoValue, instances);
 }
 
 function getDotLoci(pickingId: PickingId, volume: Volume, key: number, props: VolumeDotProps, id: number) {
-    const { objectId, groupId } = pickingId;
+    const { objectId, groupId, instanceId } = pickingId;
 
     if (id === objectId) {
         const granularity = Volume.PickingGranularity.get(volume);
+        const instances = OrderedSet.ofSingleton(instanceId as Volume.InstanceIndex);
         if (granularity === 'volume') {
-            return Volume.Loci(volume);
+            return Volume.Loci(volume, instances);
         } else if (granularity === 'object') {
-            return Volume.Isosurface.Loci(volume, props.isoValue);
+            return Volume.Isosurface.Loci(volume, props.isoValue, instances);
         } else {
-            return Volume.Cell.Loci(volume, Interval.ofSingleton(groupId as Volume.CellIndex));
+            const indices = Interval.ofSingleton(groupId as Volume.CellIndex);
+            return Volume.Cell.Loci(volume, [{ indices, instances }]);
         }
     }
     return EmptyLoci;

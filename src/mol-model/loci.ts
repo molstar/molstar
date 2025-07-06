@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -17,6 +17,7 @@ import { FiniteArray } from '../mol-util/type-helpers';
 import { BoundaryHelper } from '../mol-math/geometry/boundary-helper';
 import { stringToWords } from '../mol-util/string';
 import { Volume } from './volume/volume';
+import { Interval } from '../mol-data/int';
 
 /** A Loci that includes every loci */
 export const EveryLoci = { kind: 'every-loci' as 'every-loci' };
@@ -170,9 +171,9 @@ namespace Loci {
         } else if (loci.kind === 'isosurface-loci') {
             return Volume.Isosurface.getBoundingSphere(loci.volume, loci.isoValue, boundingSphere);
         } else if (loci.kind === 'cell-loci') {
-            return Volume.Cell.getBoundingSphere(loci.volume, loci.indices, boundingSphere);
+            return Volume.Cell.getBoundingSphere(loci.volume, loci.elements, boundingSphere);
         } else if (loci.kind === 'segment-loci') {
-            return Volume.Segment.getBoundingSphere(loci.volume, loci.segments, boundingSphere);
+            return Volume.Segment.getBoundingSphere(loci.volume, loci.elements, boundingSphere);
         }
     }
 
@@ -251,8 +252,10 @@ namespace Loci {
                 : ShapeGroup.isLoci(loci)
                     ? Shape.Loci(loci.shape)
                     : Volume.Cell.isLoci(loci)
-                        ? Volume.Loci(loci.volume)
-                        : loci;
+                        ? Volume.Loci(loci.volume, Interval.ofLength(loci.volume.instances.length))
+                        : Volume.Isosurface.isLoci(loci)
+                            ? Volume.Loci(loci.volume, Interval.ofLength(loci.volume.instances.length))
+                            : loci;
         },
         'elementInstances': (loci: Loci) => {
             return StructureElement.Loci.is(loci)

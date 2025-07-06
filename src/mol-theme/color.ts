@@ -50,6 +50,7 @@ import { ColorListEntry } from '../mol-util/color/color';
 import { getPrecision } from '../mol-util/number';
 import { SortedArray } from '../mol-data/int/sorted-array';
 import { normalize } from '../mol-math/interpolate';
+import { VolumeInstanceColorThemeProvider } from './color/volume-instance';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -207,6 +208,7 @@ namespace ColorTheme {
         'uncertainty': UncertaintyColorThemeProvider,
         'unit-index': UnitIndexColorThemeProvider,
         'uniform': UniformColorThemeProvider,
+        'volume-instance': VolumeInstanceColorThemeProvider,
         'volume-segment': VolumeSegmentColorThemeProvider,
         'volume-value': VolumeValueColorThemeProvider,
     };
