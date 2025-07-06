@@ -231,7 +231,7 @@ const AssignColorVolume = PluginStateTransform.BuiltIn({
     }
 });
 
-function getTransform(src: 
+function getTransform(src:
     | { name: 'matrix', params: { data: Mat4, transpose?: boolean } }
     | { name: 'components', params: { translation: Vec3, rotationAxis: Vec3, rotationAngle: number } }
 ) {
