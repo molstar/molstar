@@ -14,7 +14,7 @@ import { createTransform } from '../../mol-geo/geometry/transform-data';
 import { createRenderObject, getNextMaterialId, GraphicsRenderObject } from '../../mol-gl/render-object';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci, isEmptyLoci } from '../../mol-model/loci';
-import { Interval, SortedArray } from '../../mol-data/int';
+import { Interval, OrderedSet } from '../../mol-data/int';
 import { getQualityProps, LocationCallback, VisualUpdateState } from '../util';
 import { ColorTheme } from '../../mol-theme/color';
 import { ValueCell } from '../../mol-util';
@@ -42,9 +42,11 @@ export interface VolumeVisual<P extends VolumeParams> extends Visual<VolumeKey, 
 
 function createVolumeRenderObject<G extends Geometry>(volume: Volume, geometry: G, locationIt: LocationIterator, theme: Theme, props: PD.Values<Geometry.Params<G>>, materialId: number) {
     const { createValues, createRenderableState } = Geometry.getUtils(geometry);
-    const instanceCount = volume.transformList ? volume.transformList.length : 1;
-    const transformArray = new Float32Array(volume.transformList ? volume.transformList.flat() : Mat4.identity());
-    console.log({ instanceCount, transformArray })
+    const instanceCount = volume.instances.length;
+    const transformArray = new Float32Array(instanceCount * 16);
+    for (let i = 0; i < instanceCount; ++i) {
+        Mat4.toArray(volume.instances[i].transform, transformArray, i * 16);
+    }
     const transform = createTransform(transformArray, instanceCount, geometry.boundingSphere, props.cellSize, props.batchSize);
     const values = createValues(geometry, transform, locationIt, theme, props);
     const state = createRenderableState(props);
@@ -207,12 +209,39 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         if (Volume.Cell.isLoci(loci)) {
             if (Volume.Cell.isLociEmpty(loci)) return false;
             if (!Volume.areEquivalent(loci.volume, volume)) return false;
-            if (apply(Interval.ofSingleton(0))) changed = true;
+            for (const { instances } of loci.elements) {
+                OrderedSet.forEach(instances, j => {
+                    if (apply(Interval.ofSingleton(j))) changed = true;
+                });
+            }
         } else if (Volume.Segment.isLoci(loci)) {
             if (Volume.Segment.isLociEmpty(loci)) return false;
             if (!Volume.areEquivalent(loci.volume, volume)) return false;
-            if (!SortedArray.has(loci.segments, key)) return false;
-            if (apply(Interval.ofSingleton(0))) changed = true;
+            for (const { segments, instances } of loci.elements) {
+                if (OrderedSet.has(segments, key)) {
+                    OrderedSet.forEach(instances, j => {
+                        if (apply(Interval.ofSingleton(j))) changed = true;
+                    });
+                }
+            }
+        } else if (Volume.Isosurface.isLoci(loci)) {
+            if (Volume.Isosurface.isLociEmpty(loci)) return false;
+            if (Interval.is(loci.instances)) {
+                if (apply(loci.instances)) changed = true;
+            } else {
+                for (let i = 0, il = loci.instances.length; i < il; ++i) {
+                    if (apply(Interval.ofSingleton(i))) changed = true;
+                }
+            }
+        } else if (Volume.isLoci(loci)) {
+            if (Volume.isLociEmpty(loci)) return false;
+            if (Interval.is(loci.instances)) {
+                if (apply(loci.instances)) changed = true;
+            } else {
+                for (let i = 0, il = loci.instances.length; i < il; ++i) {
+                    if (apply(Interval.ofSingleton(i))) changed = true;
+                }
+            }
         }
         return changed;
     }

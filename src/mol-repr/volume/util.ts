@@ -26,50 +26,93 @@ const v3toArray = Vec3.toArray;
 
 export function eachVolumeLoci(loci: Loci, volume: Volume, props: { isoValue?: Volume.IsoValue, segments?: SortedArray } | undefined, apply: (interval: Interval) => boolean) {
     let changed = false;
+    const cellCount = volume.grid.cells.data.length;
+
     if (Volume.isLoci(loci)) {
         if (!Volume.areEquivalent(loci.volume, volume)) return false;
-        if (apply(Interval.ofLength(volume.grid.cells.data.length))) changed = true;
+        if (Interval.is(loci.instances)) {
+            const start = Interval.start(loci.instances) * cellCount;
+            const end = Interval.end(loci.instances) * cellCount;
+            if (apply(Interval.ofBounds(start, end))) changed = true;
+        } else {
+            for (let i = 0, il = loci.instances.length; i < il; ++i) {
+                const offset = loci.instances[i] * cellCount;
+                if (apply(Interval.ofBounds(offset, offset + cellCount))) changed = true;
+            }
+        }
     } else if (Volume.Isosurface.isLoci(loci)) {
         if (!Volume.areEquivalent(loci.volume, volume)) return false;
         if (props?.isoValue) {
             if (!Volume.IsoValue.areSame(loci.isoValue, props.isoValue, volume.grid.stats)) return false;
-            if (apply(Interval.ofLength(volume.grid.cells.data.length))) changed = true;
+            if (Interval.is(loci.instances)) {
+                const start = Interval.start(loci.instances) * cellCount;
+                const end = Interval.end(loci.instances) * cellCount;
+                if (apply(Interval.ofBounds(start, end))) changed = true;
+            } else {
+                for (let i = 0, il = loci.instances.length; i < il; ++i) {
+                    const offset = loci.instances[i] * cellCount;
+                    if (apply(Interval.ofBounds(offset, offset + cellCount))) changed = true;
+                }
+            }
         } else {
             const { stats, cells: { data } } = volume.grid;
             const eps = stats.sigma;
             const v = Volume.IsoValue.toAbsolute(loci.isoValue, stats).absoluteValue;
             for (let i = 0, il = data.length; i < il; ++i) {
                 if (equalEps(v, data[i], eps)) {
-                    if (apply(Interval.ofSingleton(i))) changed = true;
+                    OrderedSet.forEach(loci.instances, j => {
+                        const offset = j * cellCount;
+                        if (apply(Interval.ofSingleton(offset + i))) changed = true;
+                    });
                 }
             }
         }
     } else if (Volume.Cell.isLoci(loci)) {
         if (!Volume.areEquivalent(loci.volume, volume)) return false;
-        if (Interval.is(loci.indices)) {
-            if (apply(loci.indices)) changed = true;
-        } else {
-            OrderedSet.forEach(loci.indices, v => {
-                if (apply(Interval.ofSingleton(v))) changed = true;
-            });
+        for (const { indices, instances } of loci.elements) {
+            if (Interval.is(indices)) {
+                OrderedSet.forEach(instances, j => {
+                    const offset = j * cellCount;
+                    if (apply(Interval.offset(indices, offset))) changed = true;
+                });
+            } else {
+                OrderedSet.forEach(indices, v => {
+                    OrderedSet.forEach(instances, j => {
+                        const offset = j * cellCount;
+                        if (apply(Interval.ofSingleton(offset + v))) changed = true;
+                    });
+                });
+            }
         }
     } else if (Volume.Segment.isLoci(loci)) {
         if (!Volume.areEquivalent(loci.volume, volume)) return false;
         if (props?.segments) {
-            if (!SortedArray.areIntersecting(loci.segments, props.segments)) return false;
-            if (apply(Interval.ofLength(volume.grid.cells.data.length))) changed = true;
+            for (const { segments, instances } of loci.elements) {
+                if (OrderedSet.areIntersecting(segments, props.segments)) {
+                    OrderedSet.forEach(instances, j => {
+                        const offset = j * cellCount;
+                        if (apply(Interval.ofBounds(offset, offset + cellCount))) changed = true;
+                    });
+                }
+            }
         } else {
             const segmentation = Volume.Segmentation.get(volume);
             if (segmentation) {
                 const set = new Set<number>();
-                for (let i = 0, il = loci.segments.length; i < il; ++i) {
-                    SetUtils.add(set, segmentation.segments.get(loci.segments[i])!);
-                }
-                const s = Array.from(set.values());
-                const d = volume.grid.cells.data;
-                for (let i = 0, il = d.length; i < il; ++i) {
-                    if (s.includes(d[i])) {
-                        if (apply(Interval.ofSingleton(i))) changed = true;
+                for (const { segments, instances } of loci.elements) {
+                    for (let i = 0, _i = OrderedSet.size(segments); i < _i; i++) {
+                        const o = OrderedSet.getAt(segments, i);
+                        SetUtils.add(set, segmentation.segments.get(o)!);
+                    }
+                    const s = Array.from(set.values());
+                    const d = volume.grid.cells.data;
+                    for (let i = 0, il = d.length; i < il; ++i) {
+                        if (s.includes(d[i])) {
+                            for (let j = 0, _j = OrderedSet.size(instances); j < _j; j++) {
+                                const offset = j * cellCount;
+                                if (apply(Interval.ofSingleton(i + offset))) changed = true;
+                            }
+                        }
                     }
                 }
             }
@@ -81,10 +124,11 @@ export function eachVolumeLoci(loci: Loci, volume: Volume, props: { isoValue?: V
 export function createVolumeCellLocationIterator(volume: Volume): LocationIterator {
     const [xn, yn, zn] = volume.grid.cells.space.dimensions;
     const groupCount = xn * yn * zn;
-    const instanceCount = volume.transformList ? volume.transformList.length : 1;
+    const instanceCount = volume.instances.length;
     const location = Volume.Cell.Location(volume);
-    const getLocation = (groupIndex: number, _instanceIndex: number) => {
+    const getLocation = (groupIndex: number, instanceIndex: number) => {
         location.cell = groupIndex as Volume.CellIndex;
+        location.instance = instanceIndex as Volume.InstanceIndex;
         return location;
     };
     return LocationIterator(groupCount, instanceCount, 1, getLocation);

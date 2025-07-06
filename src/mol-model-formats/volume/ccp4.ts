@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -84,10 +84,10 @@ export function volumeFromCcp4(source: Ccp4File, params?: { voxelSize?: Vec3, of
                     sigma: (isNaN(header.ARMS) || header.ARMS === 0) ? arrayRms(values) : header.ARMS
                 },
             },
+            instances: [{ transform: Mat4.identity() }],
             sourceData: Ccp4Format.create(source),
             customProperties: new CustomProperties(),
             _propertyData: Object.create(null),
-            transformList: [Mat4.identity(), Mat4.fromTranslation(Mat4(), Vec3.create(100, 0, 0))],
         };
     });
 }

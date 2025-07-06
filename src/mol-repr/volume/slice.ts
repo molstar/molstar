@@ -9,19 +9,18 @@ import { Image } from '../../mol-geo/geometry/image/image';
 import { ThemeRegistryContext, Theme } from '../../mol-theme/theme';
 import { Grid, Volume } from '../../mol-model/volume';
 import { VolumeVisual, VolumeRepresentation, VolumeRepresentationProvider } from './representation';
-import { LocationIterator, PositionLocation } from '../../mol-geo/util/location-iterator';
+import { PositionLocation } from '../../mol-geo/util/location-iterator';
 import { VisualUpdateState } from '../util';
-import { NullLocation } from '../../mol-model/location';
 import { RepresentationContext, RepresentationParamsGetter } from '../representation';
 import { VisualContext } from '../visual';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../mol-model/loci';
-import { Interval, SortedArray } from '../../mol-data/int';
+import { Interval, OrderedSet, SortedArray } from '../../mol-data/int';
 import { transformPositionArray } from '../../mol-geo/util';
 import { Color } from '../../mol-util/color';
 import { ColorTheme } from '../../mol-theme/color';
 import { packIntToRGBArray } from '../../mol-util/number-packing';
-import { eachVolumeLoci } from './util';
+import { createVolumeCellLocationIterator, eachVolumeLoci } from './util';
 import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
 import { Quat } from '../../mol-math/linear-algebra/3d/quat';
 import { degToRad } from '../../mol-math/misc';
@@ -444,27 +443,35 @@ function getGroupArray(grid: Grid, props: SliceProps) {
     return groupArray;
 }
 
-function getLoci(volume: Volume, props: SliceProps) {
+function getObjectLoci(volume: Volume, instances: OrderedSet<Volume.InstanceIndex>, props: SliceProps) {
     // TODO: cache somehow?
     if (props.mode === 'grid') {
         const groupArray = getGroupArray(volume.grid, props);
-        return Volume.Cell.Loci(volume, SortedArray.ofUnsortedArray(groupArray));
+        const indices = SortedArray.ofUnsortedArray<Volume.CellIndex>(groupArray);
+        return Volume.Cell.Loci(volume, [{ indices, instances }]);
     } else {
         // TODO: get exact groups
-        return Volume.Loci(volume);
+        return Volume.Loci(volume, instances);
     }
 }
 
+function getLoci(volume: Volume, props: SliceProps) {
+    const instances = Interval.ofLength(volume.instances.length as Volume.InstanceIndex);
+    return getObjectLoci(volume, instances, props);
+}
+
 function getSliceLoci(pickingId: PickingId, volume: Volume, key: number, props: SliceProps, id: number) {
-    const { objectId, groupId } = pickingId;
+    const { objectId, groupId, instanceId } = pickingId;
     if (id === objectId) {
         const granularity = Volume.PickingGranularity.get(volume);
+        const instances = OrderedSet.ofSingleton(instanceId as Volume.InstanceIndex);
         if (granularity === 'volume') {
-            return Volume.Loci(volume);
+            return Volume.Loci(volume, instances);
         } if (granularity === 'object') {
-            return getLoci(volume, props);
+            return getObjectLoci(volume, instances, props);
         } else {
-            return Volume.Cell.Loci(volume, Interval.ofSingleton(groupId as Volume.CellIndex));
+            const indices = Interval.ofSingleton(groupId as Volume.CellIndex);
+            return Volume.Cell.Loci(volume, [{ indices, instances }]);
         }
     }
     return EmptyLoci;
@@ -480,7 +487,7 @@ export function SliceVisual(materialId: number): VolumeVisual<SliceParams> {
     return VolumeVisual<Image, SliceParams>({
         defaultProps: PD.getDefaultValues(SliceParams),
         createGeometry: createImage,
-        createLocationIterator: (volume: Volume) => LocationIterator(volume.grid.cells.data.length, volume.transformList ? volume.transformList.length : 1, 1, () => NullLocation),
+        createLocationIterator: createVolumeCellLocationIterator,
         getLoci: getSliceLoci,
         eachLocation: eachSlice,
         setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: SliceProps, currentProps: SliceProps, newTheme: Theme, currentTheme: Theme) => {

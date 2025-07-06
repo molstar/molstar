@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -8,7 +8,7 @@
 import { Volume } from '../../mol-model/volume';
 import { Task } from '../../mol-task';
 import { SpacegroupCell, Box3D } from '../../mol-math/geometry';
-import { Tensor, Vec3 } from '../../mol-math/linear-algebra';
+import { Mat4, Tensor, Vec3 } from '../../mol-math/linear-algebra';
 import { ModelFormat } from '../format';
 import { CustomProperties } from '../../mol-model/custom-property';
 import { Segmentation_Data_Database } from '../../mol-io/reader/cif/schema/segmentation';
@@ -51,6 +51,7 @@ export function volumeFromSegmentationData(source: Segmentation_Data_Database, p
                     min: 0, max: 1, mean: 0, sigma: 1
                 },
             },
+            instances: [{ transform: Mat4.identity() }],
             sourceData: SegcifFormat.create(source),
             customProperties: new CustomProperties(),
             _propertyData: { ownerId: params?.ownerId },
@@ -58,11 +59,11 @@ export function volumeFromSegmentationData(source: Segmentation_Data_Database, p
 
         Volume.PickingGranularity.set(v, 'object');
 
-        const segments = new Map<number, Set<number>>();
-        const sets = new Map<number, Set<number>>();
+        const segments = new Map<Volume.SegmentIndex, Set<number>>();
+        const sets = new Map<number, Set<Volume.SegmentIndex>>();
         const { segment_id, set_id } = source.segmentation_data_table;
         for (let i = 0, il = segment_id.rowCount; i < il; ++i) {
-            const segment = segment_id.value(i);
+            const segment = segment_id.value(i) as Volume.SegmentIndex;
             const set = set_id.value(i);
             if (set === 0 || segment === 0) continue;
 
@@ -103,7 +104,7 @@ export function volumeFromSegmentationData(source: Segmentation_Data_Database, p
             if (c[2] > b[5]) b[5] = c[2];
         }
 
-        const bounds: { [k: number]: Box3D } = {};
+        const bounds: { [k: Volume.SegmentIndex]: Box3D } = {};
         segments.forEach((v, k) => {
             bounds[k] = Box3D.create(Vec3.create(xn1, yn1, zn1), Vec3.create(-1, -1, -1));
         });

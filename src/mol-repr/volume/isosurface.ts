@@ -12,17 +12,15 @@ import { Theme, ThemeRegistryContext } from '../../mol-theme/theme';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { computeMarchingCubesMesh, computeMarchingCubesLines } from '../../mol-geo/util/marching-cubes/algorithm';
 import { VolumeVisual, VolumeRepresentation, VolumeRepresentationProvider, VolumeKey } from './representation';
-import { LocationIterator } from '../../mol-geo/util/location-iterator';
-import { NullLocation } from '../../mol-model/location';
 import { VisualUpdateState } from '../util';
 import { Lines } from '../../mol-geo/geometry/lines/lines';
 import { RepresentationContext, RepresentationParamsGetter, Representation } from '../representation';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../mol-model/loci';
-import { Interval } from '../../mol-data/int';
+import { Interval, OrderedSet } from '../../mol-data/int';
 import { Tensor, Vec2, Vec3 } from '../../mol-math/linear-algebra';
 import { fillSerial } from '../../mol-util/array';
-import { createVolumeTexture2d, eachVolumeLoci, getVolumeTexture2dLayout } from './util';
+import { createVolumeCellLocationIterator, createVolumeTexture2d, eachVolumeLoci, getVolumeTexture2dLayout } from './util';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
 import { extractIsosurface } from '../../mol-gl/compute/marching-cubes/isosurface';
 import { WebGLContext } from '../../mol-gl/webgl/context';
@@ -69,20 +67,22 @@ export function IsosurfaceVisual(materialId: number, volume: Volume, key: number
 }
 
 function getLoci(volume: Volume, props: VolumeIsosurfaceProps) {
-    return Volume.Isosurface.Loci(volume, props.isoValue);
+    const instances = Interval.ofLength(volume.instances.length as Volume.InstanceIndex);
+    return Volume.Isosurface.Loci(volume, props.isoValue, instances);
 }
 
 function getIsosurfaceLoci(pickingId: PickingId, volume: Volume, key: number, props: VolumeIsosurfaceProps, id: number) {
-    const { objectId, groupId } = pickingId;
-
+    const { objectId, groupId, instanceId } = pickingId;
     if (id === objectId) {
         const granularity = Volume.PickingGranularity.get(volume);
+        const instances = OrderedSet.ofSingleton(instanceId as Volume.InstanceIndex);
         if (granularity === 'volume') {
-            return Volume.Loci(volume);
+            return Volume.Loci(volume, instances);
         } else if (granularity === 'object') {
-            return Volume.Isosurface.Loci(volume, props.isoValue);
+            return Volume.Isosurface.Loci(volume, props.isoValue, instances);
         } else {
-            return Volume.Cell.Loci(volume, Interval.ofSingleton(groupId as Volume.CellIndex));
+            const indices = Interval.ofSingleton(groupId as Volume.CellIndex);
+            return Volume.Cell.Loci(volume, [{ indices, instances }]);
         }
     }
     return EmptyLoci;
@@ -134,7 +134,7 @@ export function IsosurfaceMeshVisual(materialId: number): VolumeVisual<Isosurfac
     return VolumeVisual<Mesh, IsosurfaceMeshParams>({
         defaultProps: PD.getDefaultValues(IsosurfaceMeshParams),
         createGeometry: createVolumeIsosurfaceMesh,
-        createLocationIterator: (volume: Volume) => LocationIterator(volume.grid.cells.data.length, 1, 1, () => NullLocation),
+        createLocationIterator: createVolumeCellLocationIterator,
         getLoci: getIsosurfaceLoci,
         eachLocation: eachIsosurface,
         setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<IsosurfaceMeshParams>, currentProps: PD.Values<IsosurfaceMeshParams>) => {
@@ -236,7 +236,7 @@ export function IsosurfaceTextureMeshVisual(materialId: number): VolumeVisual<Is
     return VolumeVisual<TextureMesh, IsosurfaceMeshParams>({
         defaultProps: PD.getDefaultValues(IsosurfaceMeshParams),
         createGeometry: createVolumeIsosurfaceTextureMesh,
-        createLocationIterator: (volume: Volume) => LocationIterator(volume.grid.cells.data.length, volume.transformList ? volume.transformList.length : 1, 1, () => NullLocation),
+        createLocationIterator: createVolumeCellLocationIterator,
         getLoci: getIsosurfaceLoci,
         eachLocation: eachIsosurface,
         setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<IsosurfaceMeshParams>, currentProps: PD.Values<IsosurfaceMeshParams>) => {
@@ -289,7 +289,7 @@ export function IsosurfaceWireframeVisual(materialId: number): VolumeVisual<Isos
     return VolumeVisual<Lines, IsosurfaceWireframeParams>({
         defaultProps: PD.getDefaultValues(IsosurfaceWireframeParams),
         createGeometry: createVolumeIsosurfaceWireframe,
-        createLocationIterator: (volume: Volume) => LocationIterator(volume.grid.cells.data.length, 1, 1, () => NullLocation),
+        createLocationIterator: createVolumeCellLocationIterator,
         getLoci: getIsosurfaceLoci,
         eachLocation: eachIsosurface,
         setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<IsosurfaceWireframeParams>, currentProps: PD.Values<IsosurfaceWireframeParams>) => {

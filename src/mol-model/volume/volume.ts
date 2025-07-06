@@ -5,7 +5,7 @@
  */
 
 import { Grid } from './grid';
-import { OrderedSet, SortedArray } from '../../mol-data/int';
+import { OrderedSet } from '../../mol-data/int';
 import { Box3D, Sphere3D } from '../../mol-math/geometry';
 import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
@@ -19,8 +19,11 @@ import { DscifFormat } from '../../mol-model-formats/volume/density-server';
 
 export interface Volume {
     readonly label?: string
-    readonly entryId?: string,
+    readonly entryId?: string
     readonly grid: Grid
+    readonly instances: ReadonlyArray<{
+        transform: Mat4
+    }>
     readonly sourceData: ModelFormat
 
     // TODO use...
@@ -34,8 +37,6 @@ export interface Volume {
 
     // TODO add as customProperty?
     readonly colorVolume?: Volume
-
-    readonly transformList?: ReadonlyArray<Mat4>,
 }
 
 export namespace Volume {
@@ -50,6 +51,8 @@ export namespace Volume {
     }
 
     export type CellIndex = { readonly '@type': 'cell-index' } & number
+    export type InstanceIndex = { readonly '@type': 'instance-index' } & number
+    export type SegmentIndex = { readonly '@type': 'segment-index' } & number
 
     export type IsoValue = IsoValue.Absolute | IsoValue.Relative
 
@@ -148,6 +151,7 @@ export namespace Volume {
     export const One: Volume = {
         label: '',
         grid: Grid.One,
+        instances: [],
         sourceData: { kind: '', name: '', data: {} },
         customProperties: new CustomProperties(),
         _propertyData: Object.create(null),
@@ -158,7 +162,7 @@ export namespace Volume {
     }
 
     export function isEmpty(vol: Volume) {
-        return Grid.isEmpty(vol.grid);
+        return Grid.isEmpty(vol.grid) || vol.instances.length === 0;
     }
 
     export function isOrbitals(volume: Volume) {
@@ -166,22 +170,22 @@ export namespace Volume {
         return volume.sourceData.data.header.orbitals;
     }
 
-    export interface Loci { readonly kind: 'volume-loci', readonly volume: Volume }
-    export function Loci(volume: Volume): Loci { return { kind: 'volume-loci', volume }; }
+    export interface Loci { readonly kind: 'volume-loci', readonly volume: Volume, readonly instances: OrderedSet<InstanceIndex> }
+    export function Loci(volume: Volume, instances: OrderedSet<InstanceIndex>): Loci { return { kind: 'volume-loci', volume, instances }; }
     export function isLoci(x: any): x is Loci { return !!x && x.kind === 'volume-loci'; }
-    export function areLociEqual(a: Loci, b: Loci) { return a.volume === b.volume; }
-    export function isLociEmpty(loci: Loci) { return Grid.isEmpty(loci.volume.grid); }
+    export function areLociEqual(a: Loci, b: Loci) { return a.volume === b.volume && OrderedSet.areEqual(a.instances, b.instances); }
+    export function isLociEmpty(loci: Loci) { return isEmpty(loci.volume) || OrderedSet.isEmpty(loci.instances); }
 
     export function getBoundingSphere(volume: Volume, boundingSphere?: Sphere3D) {
         return Grid.getBoundingSphere(volume.grid, boundingSphere);
     }
 
     export namespace Isosurface {
-        export interface Loci { readonly kind: 'isosurface-loci', readonly volume: Volume, readonly isoValue: Volume.IsoValue }
-        export function Loci(volume: Volume, isoValue: Volume.IsoValue): Loci { return { kind: 'isosurface-loci', volume, isoValue }; }
+        export interface Loci { readonly kind: 'isosurface-loci', readonly volume: Volume, readonly isoValue: Volume.IsoValue, readonly instances: OrderedSet<InstanceIndex> }
+        export function Loci(volume: Volume, isoValue: Volume.IsoValue, instances: OrderedSet<InstanceIndex>): Loci { return { kind: 'isosurface-loci', volume, isoValue, instances }; }
         export function isLoci(x: any): x is Loci { return !!x && x.kind === 'isosurface-loci'; }
-        export function areLociEqual(a: Loci, b: Loci) { return a.volume === b.volume && Volume.IsoValue.areSame(a.isoValue, b.isoValue, a.volume.grid.stats); }
-        export function isLociEmpty(loci: Loci) { return loci.volume.grid.cells.data.length === 0; }
+        export function areLociEqual(a: Loci, b: Loci) { return a.volume === b.volume && Volume.IsoValue.areSame(a.isoValue, b.isoValue, a.volume.grid.stats) && OrderedSet.areEqual(a.instances, b.instances); }
+        export function isLociEmpty(loci: Loci) { return isEmpty(loci.volume) || OrderedSet.isEmpty(loci.instances); }
 
         const bbox = Box3D();
         export function getBoundingSphere(volume: Volume, isoValue: Volume.IsoValue, boundingSphere?: Sphere3D) {
@@ -216,19 +220,59 @@ export namespace Volume {
     }
 
     export namespace Cell {
-        export interface Loci { readonly kind: 'cell-loci', readonly volume: Volume, readonly indices: OrderedSet<CellIndex> }
-        export function Loci(volume: Volume, indices: OrderedSet<CellIndex>): Loci { return { kind: 'cell-loci', volume, indices }; }
-        export function isLoci(x: any): x is Loci { return !!x && x.kind === 'cell-loci'; }
-        export function areLociEqual(a: Loci, b: Loci) { return a.volume === b.volume && OrderedSet.areEqual(a.indices, b.indices); }
-        export function isLociEmpty(loci: Loci) { return OrderedSet.size(loci.indices) === 0; }
+        export interface Loci {
+            readonly kind: 'cell-loci',
+            readonly volume: Volume,
+            readonly elements: ReadonlyArray<{
+                readonly indices: OrderedSet<CellIndex>,
+                readonly instances: OrderedSet<InstanceIndex>
+            }>
+        }
+        export function Loci(volume: Volume, elements: Loci['elements']): Loci {
+            return { kind: 'cell-loci', volume, elements };
+        }
+        export function isLoci(x: any): x is Loci {
+            return !!x && x.kind === 'cell-loci';
+        }
+        export function areLociEqual(a: Loci, b: Loci) {
+            if (a.volume !== b.volume || a.elements.length !== b.elements.length) return false;
+
+            for (let i = 0, il = a.elements.length; i < il; ++i) {
+                const ae = a.elements[i];
+                const be = b.elements[i];
+                if (!OrderedSet.areEqual(ae.instances, be.instances) ||
+                    !OrderedSet.areEqual(ae.indices, be.indices)
+                ) return false;
+            }
+            return true;
+        }
+        export function isLociEmpty(loci: Loci) {
+            for (const { indices, instances } of loci.elements) {
+                if (!OrderedSet.isEmpty(instances) || !OrderedSet.isEmpty(indices)) return false;
+            }
+            return true;
+        }
+        export function getLociSize(loci: Loci) {
+            let size = 0;
+            for (const { indices, instances } of loci.elements) {
+                size += OrderedSet.size(indices) * OrderedSet.size(instances);
+            }
+            return size;
+        }
 
         export interface Location {
             readonly kind: 'cell-location',
             volume: Volume
             cell: CellIndex
+            instance: InstanceIndex
         }
-        export function Location(volume?: Volume, cell?: CellIndex): Location {
-            return { kind: 'cell-location', volume: volume as any, cell: cell as any };
+        export function Location(volume?: Volume, cell?: CellIndex, instance?: InstanceIndex): Location {
+            return {
+                kind: 'cell-location',
+                volume: volume as any,
+                cell: cell as any,
+                instance: instance as any
+            };
         }
         export function isLocation(x: any): x is Location {
             return !!x && x.kind === 'cell-location';
@@ -236,23 +280,36 @@ export namespace Volume {
 
         const boundaryHelper = new BoundaryHelper('98');
         const tmpBoundaryPos = Vec3();
-        export function getBoundingSphere(volume: Volume, indices: OrderedSet<CellIndex>, boundingSphere?: Sphere3D) {
+        const tmpBoundaryPos2 = Vec3();
+        export function getBoundingSphere(volume: Volume, elements: Loci['elements'], boundingSphere?: Sphere3D) {
             boundaryHelper.reset();
             const transform = Grid.getGridToCartesianTransform(volume.grid);
             const { getCoords } = volume.grid.cells.space;
 
-            for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
-                const o = OrderedSet.getAt(indices, i);
-                getCoords(o, tmpBoundaryPos);
-                Vec3.transformMat4(tmpBoundaryPos, tmpBoundaryPos, transform);
-                boundaryHelper.includePosition(tmpBoundaryPos);
+            for (const { indices, instances } of elements) {
+                for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
+                    const o = OrderedSet.getAt(indices, i);
+                    getCoords(o, tmpBoundaryPos);
+                    Vec3.transformMat4(tmpBoundaryPos, tmpBoundaryPos, transform);
+                    for (let j = 0, _j = OrderedSet.size(instances); j < _j; j++) {
+                        const instance = volume.instances[OrderedSet.getAt(instances, j)];
+                        Vec3.transformMat4(tmpBoundaryPos2, tmpBoundaryPos, instance.transform);
+                        boundaryHelper.includePosition(tmpBoundaryPos2);
+                    }
+                }
             }
             boundaryHelper.finishedIncludeStep();
-            for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
-                const o = OrderedSet.getAt(indices, i);
-                getCoords(o, tmpBoundaryPos);
-                Vec3.transformMat4(tmpBoundaryPos, tmpBoundaryPos, transform);
-                boundaryHelper.radiusPosition(tmpBoundaryPos);
+            for (const { indices, instances } of elements) {
+                for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
+                    const o = OrderedSet.getAt(indices, i);
+                    getCoords(o, tmpBoundaryPos);
+                    Vec3.transformMat4(tmpBoundaryPos, tmpBoundaryPos, transform);
+                    for (let j = 0, _j = OrderedSet.size(instances); j < _j; j++) {
+                        const instance = volume.instances[OrderedSet.getAt(instances, j)];
+                        Vec3.transformMat4(tmpBoundaryPos2, tmpBoundaryPos, instance.transform);
+                        boundaryHelper.radiusPosition(tmpBoundaryPos2);
+                    }
+                }
             }
 
             const bs = boundaryHelper.getSphere(boundingSphere);
@@ -261,24 +318,69 @@ export namespace Volume {
     }
 
     export namespace Segment {
-        export interface Loci { readonly kind: 'segment-loci', readonly volume: Volume, readonly segments: SortedArray }
-        export function Loci(volume: Volume, segments: ArrayLike<number>): Loci { return { kind: 'segment-loci', volume, segments: SortedArray.ofUnsortedArray(segments) }; }
-        export function isLoci(x: any): x is Loci { return !!x && x.kind === 'segment-loci'; }
-        export function areLociEqual(a: Loci, b: Loci) { return a.volume === b.volume && SortedArray.areEqual(a.segments, b.segments); }
-        export function isLociEmpty(loci: Loci) { return loci.volume.grid.cells.data.length === 0 || loci.segments.length === 0; }
+        export interface Loci {
+            readonly kind: 'segment-loci',
+            readonly volume: Volume,
+            readonly elements: ReadonlyArray<{
+                readonly segments: OrderedSet<SegmentIndex>,
+                readonly instances: OrderedSet<InstanceIndex>
+            }>
+        }
+        export function Loci(volume: Volume, elements: Loci['elements']): Loci {
+            return { kind: 'segment-loci', volume, elements };
+        }
+        export function isLoci(x: any): x is Loci {
+            return !!x && x.kind === 'segment-loci';
+        }
+        export function areLociEqual(a: Loci, b: Loci) {
+            if (a.volume !== b.volume || a.elements.length !== b.elements.length) return false;
+
+            for (let i = 0, il = a.elements.length; i < il; ++i) {
+                const ae = a.elements[i];
+                const be = b.elements[i];
+                if (!OrderedSet.areEqual(ae.instances, be.instances) ||
+                    !OrderedSet.areEqual(ae.segments, be.segments)
+                ) return false;
+            }
+            return true;
+        }
+        export function isLociEmpty(loci: Loci) {
+            for (const { segments, instances } of loci.elements) {
+                if (!OrderedSet.isEmpty(instances) || !OrderedSet.isEmpty(segments)) return false;
+            }
+            return true;
+        }
+        export function getLociSize(loci: Loci) {
+            let size = 0;
+            for (const { segments, instances } of loci.elements) {
+                size += OrderedSet.size(segments) * OrderedSet.size(instances);
+            }
+            return size;
+        }
 
         const bbox = Box3D();
-        export function getBoundingSphere(volume: Volume, segments: ArrayLike<number>, boundingSphere?: Sphere3D) {
+        const bbox2 = Box3D();
+        const bbox3 = Box3D();
+        export function getBoundingSphere(volume: Volume, elements: Loci['elements'], boundingSphere?: Sphere3D) {
             const segmentation = Volume.Segmentation.get(volume);
             if (segmentation) {
                 Box3D.setEmpty(bbox);
-                for (let i = 0, il = segments.length; i < il; ++i) {
-                    const b = segmentation.bounds[segments[i]];
-                    Box3D.add(bbox, b.min);
-                    Box3D.add(bbox, b.max);
-                }
                 const transform = Grid.getGridToCartesianTransform(volume.grid);
-                Box3D.transform(bbox, bbox, transform);
+                for (const { segments, instances } of elements) {
+                    Box3D.setEmpty(bbox2);
+                    for (let i = 0, _i = OrderedSet.size(segments); i < _i; i++) {
+                        const o = OrderedSet.getAt(segments, i);
+                        const b = segmentation.bounds[o];
+                        Box3D.add(bbox2, b.min);
+                        Box3D.add(bbox2, b.max);
+                    }
+                    Box3D.transform(bbox2, bbox2, transform);
+                    for (let j = 0, _j = OrderedSet.size(instances); j < _j; j++) {
+                        const instance = volume.instances[OrderedSet.getAt(instances, j)];
+                        Box3D.transform(bbox3, bbox2, instance.transform);
+                        Box3D.addBox3D(bbox, bbox3);
+                    }
+                }
                 return Sphere3D.fromBox3D(boundingSphere || Sphere3D(), bbox);
             } else {
                 return Volume.getBoundingSphere(volume, boundingSphere);
@@ -288,10 +390,16 @@ export namespace Volume {
         export interface Location {
             readonly kind: 'segment-location',
             volume: Volume
-            segment: number
+            segment: SegmentIndex
+            instance: InstanceIndex
         }
-        export function Location(volume?: Volume, segment?: number): Location {
-            return { kind: 'segment-location', volume: volume as any, segment: segment as any };
+        export function Location(volume?: Volume, segment?: number, instance?: InstanceIndex): Location {
+            return {
+                kind: 'segment-location',
+                volume: volume as any,
+                segment: segment as any,
+                instance: instance as any
+            };
         }
         export function isLocation(x: any): x is Location {
             return !!x && x.kind === 'segment-location';
@@ -309,10 +417,10 @@ export namespace Volume {
     };
 
     export type Segmentation = {
-        segments: Map<number, Set<number>>
-        sets: Map<number, Set<number>>
-        bounds: { [k: number]: Box3D }
-        labels: { [k: number]: string }
+        segments: Map<Volume.SegmentIndex, Set<number>>
+        sets: Map<number, Set<Volume.SegmentIndex>>
+        bounds: { [k: Volume.SegmentIndex]: Box3D }
+        labels: { [k: Volume.SegmentIndex]: string }
     };
     export const Segmentation = {
         set(volume: Volume, segmentation: Segmentation) {

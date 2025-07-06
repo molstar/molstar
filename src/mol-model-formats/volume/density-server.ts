@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -8,7 +8,7 @@ import { DensityServer_Data_Database } from '../../mol-io/reader/cif/schema/dens
 import { Volume } from '../../mol-model/volume';
 import { Task } from '../../mol-task';
 import { SpacegroupCell, Box3D } from '../../mol-math/geometry';
-import { Tensor, Vec3 } from '../../mol-math/linear-algebra';
+import { Mat4, Tensor, Vec3 } from '../../mol-math/linear-algebra';
 import { ModelFormat } from '../format';
 import { CustomProperties } from '../../mol-model/custom-property';
 
@@ -48,6 +48,7 @@ export function volumeFromDensityServerData(source: DensityServer_Data_Database,
                     sigma: info.sigma_sampled.value(0)
                 },
             },
+            instances: [{ transform: Mat4.identity() }],
             sourceData: DscifFormat.create(source),
             customProperties: new CustomProperties(),
             _propertyData: Object.create(null),
