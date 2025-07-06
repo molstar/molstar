@@ -6,9 +6,4 @@
         "*.vert.ts": "glsl",
         "*.gql.ts": "graphql"
     },
-    "eslint.options": {
-        "overrideConfig": {
-            "ignorePatterns": ["webpack.config.js", "scripts/*"],
-        },
-    }
 }
