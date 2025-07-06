@@ -11,13 +11,12 @@ import { Box3D, Sphere3D } from '../../mol-math/geometry';
 import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 import { CubeFormat } from '../../mol-model-formats/volume/cube';
-import { equalEps } from '../../mol-math/linear-algebra/3d/common';
+import { EPSILON, equalEps } from '../../mol-math/linear-algebra/3d/common';
 import { ModelFormat } from '../../mol-model-formats/format';
 import { CustomProperties } from '../custom-property';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { toPrecision } from '../../mol-util/number';
 import { DscifFormat } from '../../mol-model-formats/volume/density-server';
-import { deepEqual } from '../../mol-util';
 
 export interface Volume {
     readonly label?: string
@@ -160,7 +159,15 @@ export namespace Volume {
     };
 
     export function areEquivalent(volA: Volume, volB: Volume) {
-        return Grid.areEquivalent(volA.grid, volB.grid) && deepEqual(volA.instances, volB.instances);
+        return Grid.areEquivalent(volA.grid, volB.grid) && areInstanceTransformsEqual(volA, volB);
+    }
+
+    export function areInstanceTransformsEqual(volA: Volume, volB: Volume) {
+        if (volA.instances.length !== volB.instances.length) return false;
+        for (let i = 0, il = volA.instances.length; i < il; ++i) {
+            if (!Mat4.areEqual(volA.instances[i].transform, volB.instances[i].transform, EPSILON)) return false;
+        }
+        return true;
     }
 
     export function isEmpty(vol: Volume) {
