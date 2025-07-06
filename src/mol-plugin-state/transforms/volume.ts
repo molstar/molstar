@@ -261,7 +261,7 @@ const TransformParam = PD.MappedStatic(
             {
                 translation: PD.Vec3(Vec3.create(0, 0, 0)),
                 rotationAxis: PD.Vec3(Vec3.create(1, 0, 0)),
-                rotationAngle: PD.Numeric(0, { min: -180, max: 180, step: 1 }, { description: 'Angle in Degrees' }),
+                rotationAngle: PD.Numeric(0, { min: -360, max: 360, step: 1 }, { description: 'Angle in Degrees' }),
             },
             { isFlat: true }
         ),
