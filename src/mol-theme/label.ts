@@ -63,7 +63,7 @@ export function lociLabel(loci: Loci, options: Partial<LabelOptions> = {}): stri
                 `${size === 1 ? `Cell #${start}` : `${size} Cells`}`
             ];
             if (size === 1) {
-                label.push(`Instance #${OrderedSet.start(loci.elements[0].instances)}`)
+                label.push(`Instance #${OrderedSet.start(loci.elements[0].instances)}`);
                 label.push(`${Volume.IsoValue.toString(absVal)} (${Volume.IsoValue.toString(relVal)})`);
             }
             return label.join(' | ');

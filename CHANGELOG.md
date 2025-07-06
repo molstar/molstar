@@ -30,6 +30,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Fix column count parsing
     - Add support for substructure
 - Fix shader error when clipping flags are set without clip objects present
+- Add `Volume.instances` support and a `VolumeInstances` transform to dynamically assign it
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:

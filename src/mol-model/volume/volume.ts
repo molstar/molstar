@@ -2,6 +2,7 @@
  * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Grid } from './grid';
@@ -16,6 +17,7 @@ import { CustomProperties } from '../custom-property';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { toPrecision } from '../../mol-util/number';
 import { DscifFormat } from '../../mol-model-formats/volume/density-server';
+import { deepEqual } from '../../mol-util';
 
 export interface Volume {
     readonly label?: string
@@ -158,7 +160,7 @@ export namespace Volume {
     };
 
     export function areEquivalent(volA: Volume, volB: Volume) {
-        return Grid.areEquivalent(volA.grid, volB.grid);
+        return Grid.areEquivalent(volA.grid, volB.grid) && deepEqual(volA.instances, volB.instances);
     }
 
     export function isEmpty(vol: Volume) {
