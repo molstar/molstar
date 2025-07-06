@@ -72,6 +72,12 @@ namespace Box3D {
         return out;
     }
 
+    export function addBox3D(out: Box3D, box: Box3D): Box3D {
+        add(out, box.min);
+        add(out, box.max);
+        return out;
+    }
+
     export function intersectsSphere3D(box: Box3D, sphere: Sphere3D) {
         // Find the point on the AABB closest to the sphere center.
         Vec3.clamp(tmpV, sphere.center, box.min, box.max);
