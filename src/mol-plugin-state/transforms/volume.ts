@@ -315,7 +315,7 @@ export const VolumeInstances = PluginStateTransform.BuiltIn({
     },
 })({
     canAutoUpdate() {
-        return false;
+        return true;
     },
     apply({ a, params }) {
         const instances = params.transforms.map(t => ({ transform: getTransform(t.transform) }));
