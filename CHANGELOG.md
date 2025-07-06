@@ -34,6 +34,9 @@ Note that since we don't clearly distinguish between a public and private interf
   - This change is breaking because all volume objects require the `instances` field now.
 - Fix wrong group count calculation on geometry update (#1562)
 - Fix wrong instance index in `calcMeshColorSmoothing`
+- Add Ray3D object and helpers
+- [Breaking] Box3D.nearestIntersectionWithRay -> nearestIntersectionWithRay3D (use Ray3D)
+- [Breaking] Plane3D.distanceToSpher3D -> distanceToSphere3D (fix spelling)
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:

@@ -15,6 +15,7 @@ import { OrderedSet } from '../../../mol-data/int';
 import { Boundary } from '../boundary';
 import { FibonacciHeap } from '../../../mol-util/fibonacci-heap';
 import { memoize1 } from '../../../mol-util/memoize';
+import { Ray3D } from '../primitives/ray3d';
 
 interface GridLookup3D<T = number> extends Lookup3D<T> {
     readonly buckets: { readonly offset: ArrayLike<number>, readonly count: ArrayLike<number>, readonly array: ArrayLike<number> }
@@ -394,8 +395,7 @@ function approxQueryNearest<T extends number = number>(ctx: QueryContext, result
     return result.count > 0;
 }
 
-const tmpDirVec = Vec3();
-const tmpVec = Vec3();
+const tmpRay = Ray3D();
 const tmpSetG = new Set<number>();
 const tmpSetG2 = new Set<number>();
 const tmpArrG1 = [0.1];
@@ -414,13 +414,14 @@ function queryNearest<T extends number = number>(ctx: QueryContext, result: Resu
     expandedArrG.length = 0;
     tmpSetG.clear();
     tmpHeapG.clear();
-    Vec3.set(tmpVec, x, y, z);
-    if (!Box3D.containsVec3(box, tmpVec)) {
+    Vec3.set(tmpRay.origin, x, y, z);
+    if (!Box3D.containsVec3(box, tmpRay.origin)) {
         // intersect ray pointing to box center
-        Box3D.nearestIntersectionWithRay(tmpVec, box, tmpVec, Vec3.normalize(tmpDirVec, Vec3.sub(tmpDirVec, center, tmpVec)));
-        gX = Math.max(0, Math.min(sX - 1, Math.floor((tmpVec[0] - min[0]) / delta[0])));
-        gY = Math.max(0, Math.min(sY - 1, Math.floor((tmpVec[1] - min[1]) / delta[1])));
-        gZ = Math.max(0, Math.min(sZ - 1, Math.floor((tmpVec[2] - min[2]) / delta[2])));
+        Ray3D.targetTo(tmpRay, tmpRay, center);
+        Box3D.nearestIntersectionWithRay3D(tmpRay.origin, box, tmpRay);
+        gX = Math.max(0, Math.min(sX - 1, Math.floor((tmpRay.origin[0] - min[0]) / delta[0])));
+        gY = Math.max(0, Math.min(sY - 1, Math.floor((tmpRay.origin[1] - min[1]) / delta[1])));
+        gZ = Math.max(0, Math.min(sZ - 1, Math.floor((tmpRay.origin[2] - min[2]) / delta[2])));
     } else {
         gX = Math.floor((x - min[0]) / delta[0]);
         gY = Math.floor((y - min[1]) / delta[1]);

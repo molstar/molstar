@@ -10,6 +10,7 @@ import { OrderedSet } from '../../../mol-data/int';
 import { Sphere3D } from './sphere3d';
 import { Vec3 } from '../../linear-algebra/3d/vec3';
 import { Mat4 } from '../../linear-algebra/3d/mat4';
+import { Ray3D } from './ray3d';
 
 interface Box3D { min: Vec3, max: Vec3 }
 
@@ -190,13 +191,14 @@ namespace Box3D {
         ) ? false : true;
     }
 
-    export function nearestIntersectionWithRay(out: Vec3, box: Box3D, origin: Vec3, dir: Vec3): Vec3 {
+    export function nearestIntersectionWithRay3D(out: Vec3, box: Box3D, ray: Ray3D): Vec3 {
+        const { origin, direction } = ray;
         const [minX, minY, minZ] = box.min;
         const [maxX, maxY, maxZ] = box.max;
         const [x, y, z] = origin;
-        const invDirX = 1.0 / dir[0];
-        const invDirY = 1.0 / dir[1];
-        const invDirZ = 1.0 / dir[2];
+        const invDirX = 1.0 / direction[0];
+        const invDirY = 1.0 / direction[1];
+        const invDirZ = 1.0 / direction[2];
         let tmin, tmax, tymin, tymax, tzmin, tzmax;
         if (invDirX >= 0) {
             tmin = (minX - x) * invDirX;
@@ -227,7 +229,7 @@ namespace Box3D {
             tmin = tzmin;
         if (tzmax < tmax)
             tmax = tzmax;
-        Vec3.scale(out, dir, tmin);
+        Vec3.scale(out, direction, tmin);
         return Vec3.set(out, out[0] + x, out[1] + y, out[2] + z);
     }
 
