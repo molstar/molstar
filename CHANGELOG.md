@@ -38,6 +38,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - [Breaking] `Box3D.nearestIntersectionWithRay` -> `nearestIntersectionWithRay3D` (use `Ray3D`)
 - [Breaking] `Plane3D.distanceToSpher3D` -> `distanceToSphere3D` (fix spelling)
 - [Breaking] fix typo `MarchinCubes` -> `MarchingCubes`
+- Add tests for Box3D -> nearestIntersectionWithRay3D
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:
