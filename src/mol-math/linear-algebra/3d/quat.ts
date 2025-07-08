@@ -28,6 +28,7 @@ import { EPSILON } from './common';
 import { assertUnreachable, NumberArray } from '../../../mol-util/type-helpers';
 import { Euler } from './euler';
 import { Mat4 } from './mat4';
+import { clamp } from '../../interpolate';
 
 interface Quat extends Array<number> { [d: number]: number, '@type': 'quat', length: 4 }
 interface ReadonlyQuat extends Array<number> { readonly [d: number]: number, '@type': 'quat', length: 4 }
@@ -389,6 +390,14 @@ namespace Quat {
         return out;
     }
 
+    export function fromObj(a: { x: number, y: number, z: number, w: number }): Quat {
+        return create(a.x, a.y, a.z, a.w);
+    }
+
+    export function toObj(a: Quat) {
+        return { x: a[0], y: a[1], z: a[2], w: a[3] };
+    }
+
     export function toArray<T extends NumberArray>(a: Quat, out: T, offset: number) {
         out[offset + 0] = a[0];
         out[offset + 1] = a[1];
@@ -446,6 +455,20 @@ namespace Quat {
         out[2] = a[2] + b[2];
         out[3] = a[3] + b[3];
         return out;
+    }
+
+    export function magnitude(a: Quat): number {
+        const x = a[0], y = a[1], z = a[2], w = a[3];
+        return Math.sqrt(x * x + y * y + z * z + w * w);
+    }
+
+    export function squaredMagnitude(a: Quat): number {
+        const x = a[0], y = a[1], z = a[2], w = a[3];
+        return x * x + y * y + z * z + w * w;
+    }
+
+    export function angle(a: Quat, b: Quat): number {
+        return 2 * Math.acos(Math.abs(clamp(dot(a, b), -1, 1)));
     }
 
     export function normalize(out: Quat, a: Quat) {

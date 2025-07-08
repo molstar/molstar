@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
-- Update production build to use `esbuils`
+- Update production build to use `esbuild`
 - Emit explicit paths in `import`s in `lib/`
 - Fix outlines on opaque elements using illumination mode
 - Change `Representation.Empty` to a lazy property to avoid issue with some bundlers
@@ -13,14 +13,34 @@ Note that since we don't clearly distinguish between a public and private interf
   - Annotation field remapping (`field_remapping` parameter for color_from_* nodes)
   - Representation node: support custom property `molstar_reprepresentation_params`,
   - Canvas node: support custom properties `molstar_enable_outline`, `molstar_enable_shadow`, `molstar_enable_ssao`
+  - `clip` node support for structure and volume representations
   - Inline selectors and MVS annotations support `operator_name`
-- Renamed some color schemes ('inferno' -> 'inferno-no-black', 'magma' -> 'magma-no-black', 'turbo' -> 'turbo-no-black', 'rainbow' -> 'simple-rainbow')
+- [Breaking] Renamed some color schemes ('inferno' -> 'inferno-no-black', 'magma' -> 'magma-no-black', 'turbo' -> 'turbo-no-black', 'rainbow' -> 'simple-rainbow')
 - Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
+- Snapshot Markdown improvements
+  - Add `MarkdownExtensionManager` (`PluginContext.managers.markdownExtensions`)
+  - Support custom markdown commands to control the plugin via the `[link](!command)` pattern
+  - Support rendering custom elements via the `![alt](!parameters)` pattern
+  - Support tables
+  - Support loading images from MVSX files
+  - Indicate external links with ⤴
 - Avoid calculating rings for coarse-grained structures
-- Fix isosurface compute shader normals when transformation matrix is applied to volume 
-- Breaking: `PluginContext.initViewer/initContainer/mount` are now async and have been renamed to include `Async` postfix
-- Change symmetry operator naming for assemblies (ASM_1, ASM_2 -> 1, X0-1)
+- Fix isosurface compute shader normals when transformation matrix is applied to volume
+- Change symmetry operator naming for assemblies (ASM_1, ASM_2 -> 1, X0-1) - TODO update
 - Symmetry operator naming for spacegroup symmetry - parenthesize multi-character indices (1_111-1 -> 1_(11)1(-1))
+- [Breaking] `PluginContext.initViewer/initContainer/mount` are now async and have been renamed to include `Async` postfix
+- Mol2 Reader
+    - Fix column count parsing
+    - Add support for substructure
+- Fix shader error when clipping flags are set without clip objects present
+- [Breaking] Add `Volume.instances` support and a `VolumeInstances` transform to dynamically assign it
+  - This change is breaking because all volume objects require the `instances` field now.
+- Fix wrong group count calculation on geometry update (#1562)
+- Fix wrong instance index in `calcMeshColorSmoothing`
+- Add `Ray3D` object and helpers
+- [Breaking] `Box3D.nearestIntersectionWithRay` -> `nearestIntersectionWithRay3D` (use `Ray3D`)
+- [Breaking] `Plane3D.distanceToSpher3D` -> `distanceToSphere3D` (fix spelling)
+- [Breaking] fix typo `MarchinCubes` -> `MarchingCubes`
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:

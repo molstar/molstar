@@ -30,6 +30,7 @@ import { StructureHierarchyRef } from '../mol-plugin-state/manager/structure/hie
 import { StructureMeasurementManager } from '../mol-plugin-state/manager/structure/measurement';
 import { StructureSelectionManager } from '../mol-plugin-state/manager/structure/selection';
 import { VolumeHierarchyManager } from '../mol-plugin-state/manager/volume/hierarchy';
+import { MarkdownExtensionManager } from '../mol-plugin-state/manager/markdown-extensions';
 import { LeftPanelTabName, PluginLayout } from './layout';
 import { Representation } from '../mol-repr/representation';
 import { StructureRepresentationRegistry } from '../mol-repr/structure/registry';
@@ -190,6 +191,7 @@ export class PluginContext {
         toast: new PluginToastManager(this),
         asset: new AssetManager(),
         task: new TaskManager(),
+        markdownExtensions: new MarkdownExtensionManager(this),
         dragAndDrop: new DragAndDropManager(this),
     } as const;
 

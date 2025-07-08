@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -18,7 +18,7 @@ import { StateTransformer } from '../../mol-state';
 import { VolumeRepresentation3DHelpers } from '../../mol-plugin-state/transforms/representation';
 import { AlphaOrbital, Basis, CubeGrid, CubeGridFormat, isCubeGridData } from './data-model';
 import { createSphericalCollocationDensityGrid } from './density';
-import { Tensor } from '../../mol-math/linear-algebra';
+import { Mat4, Tensor } from '../../mol-math/linear-algebra';
 import { Theme } from '../../mol-theme/theme';
 
 export class BasisAndOrbitals extends PluginStateObject.Create<{ basis: Basis, order: SphericalBasisOrder, orbitals: AlphaOrbital[] }>({ name: 'Basis', typeClass: 'Object' }) { }
@@ -114,6 +114,7 @@ export const CreateOrbitalVolume = PluginStateTransform.BuiltIn({
             }, a.data.orbitals[params.index], plugin.canvas3d?.webgl).runInContext(ctx);
             const volume: Volume = {
                 grid: data.grid,
+                instances: [{ transform: Mat4.identity() }],
                 sourceData: CubeGridFormat(data),
                 customProperties: new CustomProperties(),
                 _propertyData: Object.create(null),
@@ -146,6 +147,7 @@ export const CreateOrbitalDensityVolume = PluginStateTransform.BuiltIn({
             }, a.data.orbitals, plugin.canvas3d?.webgl).runInContext(ctx);
             const volume: Volume = {
                 grid: data.grid,
+                instances: [{ transform: Mat4.identity() }],
                 sourceData: CubeGridFormat(data),
                 customProperties: new CustomProperties(),
                 _propertyData: Object.create(null),

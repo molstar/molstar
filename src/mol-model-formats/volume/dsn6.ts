@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,7 +7,7 @@
 import { Volume } from '../../mol-model/volume';
 import { Task } from '../../mol-task';
 import { SpacegroupCell, Box3D } from '../../mol-math/geometry';
-import { Tensor, Vec3 } from '../../mol-math/linear-algebra';
+import { Mat4, Tensor, Vec3 } from '../../mol-math/linear-algebra';
 import { degToRad } from '../../mol-math/misc';
 import { Dsn6File } from '../../mol-io/reader/dsn6/schema';
 import { arrayMin, arrayMax, arrayMean, arrayRms } from '../../mol-util/array';
@@ -46,6 +46,7 @@ export function volumeFromDsn6(source: Dsn6File, params?: { voxelSize?: Vec3, la
                     sigma: header.sigma !== undefined ? header.sigma : arrayRms(values)
                 },
             },
+            instances: [{ transform: Mat4.identity() }],
             sourceData: Dsn6Format.create(source),
             customProperties: new CustomProperties(),
             _propertyData: Object.create(null),

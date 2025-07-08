@@ -54,8 +54,8 @@ export function lociLabel(loci: Loci, options: Partial<LabelOptions> = {}): stri
                 `Isosurface at ${Volume.IsoValue.toString(loci.isoValue)}`
             ].join(' | ');
         case 'cell-loci':
-            const size = OrderedSet.size(loci.indices);
-            const start = OrderedSet.start(loci.indices);
+            const size = Volume.Cell.getLociSize(loci);
+            const start = OrderedSet.start(loci.elements[0].indices);
             const absVal = Volume.IsoValue.absolute(loci.volume.grid.cells.data[start]);
             const relVal = Volume.IsoValue.toRelative(absVal, loci.volume.grid.stats);
             const label = [
@@ -63,18 +63,23 @@ export function lociLabel(loci: Loci, options: Partial<LabelOptions> = {}): stri
                 `${size === 1 ? `Cell #${start}` : `${size} Cells`}`
             ];
             if (size === 1) {
+                if (loci.volume.instances.length > 1) {
+                    label.push(`Instance #${OrderedSet.start(loci.elements[0].instances) + 1}`);
+                }
                 label.push(`${Volume.IsoValue.toString(absVal)} (${Volume.IsoValue.toString(relVal)})`);
             }
             return label.join(' | ');
         case 'segment-loci':
+            const segmentCount = Volume.Segment.getLociSize(loci);
             const segmentLabels = Volume.Segmentation.get(loci.volume)?.labels;
-            if (segmentLabels && loci.segments.length === 1) {
-                const label = segmentLabels[loci.segments[0]];
+            const firstSegment = OrderedSet.start(loci.elements[0].segments);
+            if (segmentLabels && segmentCount === 1) {
+                const label = segmentLabels[firstSegment];
                 if (label) return label;
             }
             return [
                 `${loci.volume.label || 'Volume'}`,
-                `${loci.segments.length === 1 ? `Segment ${loci.segments[0]}` : `${loci.segments.length} Segments`}`
+                `${segmentCount === 1 ? `Segment ${firstSegment}` : `${segmentCount} Segments`}`
             ].join(' | ');
     }
 }

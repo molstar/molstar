@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -14,14 +14,12 @@ import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume
 import { VisualContext } from '../visual';
 import { Theme, ThemeRegistryContext } from '../../mol-theme/theme';
 import { VolumeVisual, VolumeRepresentation, VolumeRepresentationProvider } from './representation';
-import { LocationIterator } from '../../mol-geo/util/location-iterator';
-import { NullLocation } from '../../mol-model/location';
 import { VisualUpdateState } from '../util';
 import { RepresentationContext, RepresentationParamsGetter } from '../representation';
-import { Interval } from '../../mol-data/int';
+import { Interval, OrderedSet } from '../../mol-data/int';
 import { Loci, EmptyLoci } from '../../mol-model/loci';
 import { PickingId } from '../../mol-geo/geometry/picking';
-import { createVolumeTexture2d, createVolumeTexture3d, eachVolumeLoci, getVolumeTexture2dLayout } from './util';
+import { createVolumeCellLocationIterator, createVolumeTexture2d, createVolumeTexture3d, eachVolumeLoci, getVolumeTexture2dLayout } from './util';
 import { Texture } from '../../mol-gl/webgl/texture';
 
 function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
@@ -129,13 +127,16 @@ export async function createDirectVolume(ctx: VisualContext, volume: Volume, key
 }
 
 function getLoci(volume: Volume, props: PD.Values<DirectVolumeParams>) {
-    return Volume.Loci(volume);
+    const instances = Interval.ofLength(volume.instances.length as Volume.InstanceIndex);
+    return Volume.Loci(volume, instances);
 }
 
 export function getDirectVolumeLoci(pickingId: PickingId, volume: Volume, key: number, props: DirectVolumeProps, id: number) {
-    const { objectId, groupId } = pickingId;
+    const { objectId, groupId, instanceId } = pickingId;
     if (id === objectId) {
-        return Volume.Cell.Loci(volume, Interval.ofSingleton(groupId as Volume.CellIndex));
+        const instances = OrderedSet.ofSingleton(instanceId as Volume.InstanceIndex);
+        const indices = Interval.ofSingleton(groupId as Volume.CellIndex);
+        return Volume.Cell.Loci(volume, [{ indices, instances }]);
     }
     return EmptyLoci;
 }
@@ -163,7 +164,7 @@ export function DirectVolumeVisual(materialId: number): VolumeVisual<DirectVolum
     return VolumeVisual<DirectVolume, DirectVolumeParams>({
         defaultProps: PD.getDefaultValues(DirectVolumeParams),
         createGeometry: createDirectVolume,
-        createLocationIterator: (volume: Volume) => LocationIterator(volume.grid.cells.data.length, 1, 1, () => NullLocation),
+        createLocationIterator: createVolumeCellLocationIterator,
         getLoci: getDirectVolumeLoci,
         eachLocation: eachDirectVolume,
         setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<DirectVolumeParams>, currentProps: PD.Values<DirectVolumeParams>) => {

@@ -4,8 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { bool, float, nullable, OptionalField } from '../generic/field-schema';
+import { bool, float, literal, nullable, OptionalField, RequiredField } from '../generic/field-schema';
 import { SimpleParamsSchema, UnionParamsSchema } from '../generic/params-schema';
+import { Matrix, Vector3 } from './param-types';
 
 const Cartoon = {
     /** Scales the corresponding visuals */
@@ -68,5 +69,44 @@ export const MVSVolumeRepresentationParams = UnionParamsSchema(
     'Representation type',
     {
         'isosurface': SimpleParamsSchema(VolumeIsoSurface),
+    },
+);
+
+const ClipParamsBase = {
+    /** Transformation matrix to applied to each point before clipping. For example, can be used to clip volumes in the grid/fractional space. Default is null. */
+    check_transform: OptionalField(nullable(Matrix), null, 'Transformation matrix to applied to each point before clipping. For example, can be used to clip volumes in the grid/fractional space. Default is null.'),
+    /** Inverts the clipping region. Default is false. */
+    invert: OptionalField(bool, false, 'Inverts the clipping region. Default is false'),
+    /** Variant of the clip node, either "object" or "pixel". */
+    variant: OptionalField(literal('object', 'pixel'), 'pixel', 'Variant of the clip node, either "object" or "pixel"'),
+};
+
+export const MVSClipParams = UnionParamsSchema(
+    'type',
+    'Clip type',
+    {
+        plane: SimpleParamsSchema({
+            ...ClipParamsBase,
+            /** Normal vector of the clipping plane. */
+            normal: RequiredField(Vector3, 'Normal vector of the clipping plane.'),
+            /** Point on the clipping plane. */
+            point: RequiredField(Vector3, 'Point on the clipping plane.'),
+        }),
+        sphere: SimpleParamsSchema({
+            ...ClipParamsBase,
+            /** Center of the clipping sphere. */
+            center: RequiredField(Vector3, 'Center of the clipping sphere.'),
+            /** Radius of the clipping sphere. */
+            radius: OptionalField(float, 1, 'Radius of the clipping sphere.'),
+        }),
+        box: SimpleParamsSchema({
+            ...ClipParamsBase,
+            /** Center of the clipping box. */
+            center: RequiredField(Vector3, 'Center of the clipping box.'),
+            /** Size of the clipping box. */
+            size: OptionalField(Vector3, [1, 1, 1], 'Size of the clipping box.'),
+            /** Rotation matrix (3x3 matrix flattened in column major format (j*3+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. The default value is the identity matrix (corresponds to no rotation). */
+            rotation: OptionalField(Matrix, [1, 0, 0, 0, 1, 0, 0, 0, 1], 'Rotation matrix (3x3 matrix flattened in column major format (j*3+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. The default value is the identity matrix (corresponds to no rotation).'),
+        }),
     },
 );

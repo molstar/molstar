@@ -634,6 +634,34 @@ export namespace Vec3 {
         return out;
     }
 
+    /**
+     * Get a normalized vector that is orthogonal to `dir`
+     */
+    export function orthogonalDirection(out: Vec3, dir: Vec3) {
+        if (isZero(dir)) {
+            return copy(out, Vec3.unitX);
+        } else {
+            const tmp = zero();
+            if (Math.abs(dir[0]) < Math.abs(dir[1]) && Math.abs(dir[0]) < Math.abs(dir[2])) {
+                // dir[0] is the smallest component
+                tmp[0] = 0;
+                tmp[1] = dir[2];
+                tmp[2] = -dir[1];
+            } else if (Math.abs(dir[1]) < Math.abs(dir[2])) {
+                // dir[1] is the smallest component
+                tmp[0] = -dir[2];
+                tmp[1] = 0;
+                tmp[2] = dir[0];
+            } else {
+                // dir[2] is the smallest component
+                tmp[0] = dir[1];
+                tmp[1] = -dir[0];
+                tmp[2] = 0;
+            }
+            return normalize(out, tmp);
+        }
+    }
+
     const triangleNormalTmpAB = zero();
     const triangleNormalTmpAC = zero();
     /** Calculate normal for the triangle defined by `a`, `b` and `c` */

@@ -9,6 +9,7 @@
 
 import { NumberArray } from '../../../mol-util/type-helpers';
 import { Vec3 } from '../../linear-algebra/3d/vec3';
+import { Ray3D } from './ray3d';
 import { Sphere3D } from './sphere3d';
 
 interface Plane3D { normal: Vec3, constant: number }
@@ -81,12 +82,21 @@ namespace Plane3D {
         return Vec3.dot(plane.normal, point) + plane.constant;
     }
 
-    export function distanceToSpher3D(plane: Plane3D, sphere: Sphere3D) {
+    export function distanceToSphere3D(plane: Plane3D, sphere: Sphere3D) {
         return distanceToPoint(plane, sphere.center) - sphere.radius;
     }
 
     export function projectPoint(out: Vec3, plane: Plane3D, point: Vec3) {
         return Vec3.scaleAndAdd(out, point, plane.normal, -distanceToPoint(plane, point));
+    }
+
+    export function intersectRay3D(out: Vec3, plane: Plane3D, ray: Ray3D): boolean {
+        const denominator = Vec3.dot(plane.normal, ray.direction);
+        if (denominator === 0) return false; // parallel
+        const t = -(Vec3.dot(plane.normal, ray.origin) + plane.constant) / denominator;
+        if (t < 0) return false; // behind the ray
+        Vec3.scaleAndAdd(out, ray.origin, ray.direction, t);
+        return true;
     }
 }
 

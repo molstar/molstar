@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -34,6 +34,7 @@ export function volumeFromDx(source: DxFile, params?: { label?: string, entryId?
                     sigma: arrayRms(values)
                 },
             },
+            instances: [{ transform: Mat4.identity() }],
             sourceData: DxFormat.create(source),
             customProperties: new CustomProperties(),
             _propertyData: Object.create(null),

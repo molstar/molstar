@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -34,6 +34,7 @@ import { VolsegGlobalStateData } from './global-state';
 import { applyEllipsis, isDefined, lazyGetter, splitEntryId } from './helpers';
 import { type VolsegStateFromEntry } from './transformers';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { OrderedSet } from '../../mol-data/int';
 
 
 export const MAX_VOXELS = 10 ** 7;
@@ -346,8 +347,8 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
 
     private getSegmentIdFromLoci(loci: Loci): number | undefined {
         if (Volume.Segment.isLoci(loci) && loci.volume._propertyData.ownerId === this.ref) {
-            if (loci.segments.length === 1) {
-                return loci.segments[0];
+            if (loci.elements.length === 1 && OrderedSet.size(loci.elements[0].segments) === 1) {
+                return OrderedSet.start(loci.elements[0].segments);
             }
         }
         if (ShapeGroup.isLoci(loci)) {

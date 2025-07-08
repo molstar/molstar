@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
@@ -17,6 +17,8 @@ import { Segment } from './volseg-api/data';
 import { BOX, VolsegEntryData, MAX_VOXELS } from './entry-root';
 import { VolumeVisualParams } from './entry-volume';
 import { VolsegGlobalStateData } from './global-state';
+import { Interval } from '../../mol-data/int/interval';
+import { SortedArray } from '../../mol-data/int';
 
 
 const GROUP_TAG = 'lattice-segmentation-group';
@@ -89,7 +91,11 @@ export class VolsegLatticeSegmentationData {
         const repr = vis.obj?.data.repr;
         const wholeLoci = repr.getAllLoci()[0];
         if (!wholeLoci || !Volume.Segment.isLoci(wholeLoci)) return undefined;
-        return { loci: Volume.Segment.Loci(wholeLoci.volume, segments), repr: repr };
+        const elements = [{
+            segments: SortedArray.ofUnsortedArray<Volume.SegmentIndex>(segments),
+            instances: Interval.ofLength(wholeLoci.volume.instances.length as Volume.InstanceIndex)
+        }];
+        return { loci: Volume.Segment.Loci(wholeLoci.volume, elements), repr: repr };
     }
     async highlightSegment(segment: Segment) {
         const segmentLoci = this.makeLoci([segment.id]);

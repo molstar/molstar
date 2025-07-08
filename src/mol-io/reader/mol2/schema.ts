@@ -1,16 +1,17 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Column } from '../../../mol-data/db';
 
-// Full format http://chemyang.ccnu.edu.cn/ccb/server/AIMMS/mol2.pdf
+// Full format https://zhanggroup.org/DockRMSD/mol2.pdf
 // there are many records but for now ignore (pass over) all but the following
 // @<TRIPOS>MOLECULE
 // @<TRIPOS>ATOM
 // @<TRIPOS>BOND
+// @<TRIPOS>SUBSTRUCTURE
 // @<TRIPOS>CRYSIN
 //
 // note that the format is not a fixed column format but white space separated
@@ -42,7 +43,7 @@ export interface Mol2Atoms {
     subst_id: Column<number>,
     subst_name: Column<string>,
     charge: Column<number>,
-    status_bit: Column<string>
+    status_bits: Column<string>
 }
 
 export interface Mol2Bonds {
@@ -54,6 +55,22 @@ export interface Mol2Bonds {
     bond_type: Column<string>,
 
     // optional in the format, assign UndefinedColumn if not available
+    status_bits: Column<string>
+}
+
+export interface Mol2Substructure {
+    count: number,
+
+    subst_id: Column<number>,
+    subst_name: Column<string>,
+    root_atom: Column<number>,
+
+    // optional in the format, assign UndefinedColumn if not available
+    subst_type: Column<string>,
+    dict_type: Column<string>,
+    chain: Column<string>,
+    sub_type: Column<string>,
+    inter_bonds: Column<number>,
     status_bits: Column<string>
 }
 
@@ -71,7 +88,8 @@ export interface Mol2Crysin {
 export interface Mol2Structure {
     molecule: Readonly<Mol2Molecule>,
     atoms: Readonly<Mol2Atoms>,
-    bonds: Readonly<Mol2Bonds>
+    bonds: Readonly<Mol2Bonds>,
+    substructures?: Readonly<Mol2Substructure>,
     crysin?: Readonly<Mol2Crysin>
 }
 

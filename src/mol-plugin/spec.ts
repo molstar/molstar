@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -112,6 +112,8 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         PluginSpec.Action(StateTransforms.Volume.VolumeFromCube),
         PluginSpec.Action(StateTransforms.Volume.VolumeFromDx),
         PluginSpec.Action(StateTransforms.Representation.VolumeRepresentation3D),
+        PluginSpec.Action(StateTransforms.Volume.VolumeTransform),
+        PluginSpec.Action(StateTransforms.Volume.VolumeInstances),
     ],
     behaviors: [
         PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci),

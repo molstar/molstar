@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -16,7 +16,7 @@ import { VisualUpdateState } from '../util';
 import { RepresentationContext, RepresentationParamsGetter, Representation } from '../representation';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../mol-model/loci';
-import { Interval, SortedArray } from '../../mol-data/int';
+import { Interval, OrderedSet, SortedArray } from '../../mol-data/int';
 import { Mat4, Tensor, Vec2, Vec3 } from '../../mol-math/linear-algebra';
 import { fillSerial } from '../../mol-util/array';
 import { createSegmentTexture2d, eachVolumeLoci, getVolumeTexture2dLayout } from './util';
@@ -70,20 +70,25 @@ export function SegmentVisual(materialId: number, volume: Volume, key: number, p
 }
 
 function getLoci(volume: Volume, props: VolumeSegmentProps) {
-    return Volume.Segment.Loci(volume, props.segments);
+    const segments = SortedArray.ofUnsortedArray<Volume.SegmentIndex>(props.segments);
+    const instances = Interval.ofLength(volume.instances.length as Volume.InstanceIndex);
+    return Volume.Segment.Loci(volume, [{ segments, instances }]);
 }
 
 function getSegmentLoci(pickingId: PickingId, volume: Volume, key: number, props: VolumeSegmentProps, id: number) {
-    const { objectId, groupId } = pickingId;
+    const { objectId, groupId, instanceId } = pickingId;
 
     if (id === objectId) {
         const granularity = Volume.PickingGranularity.get(volume);
+        const instances = OrderedSet.ofSingleton(instanceId as Volume.InstanceIndex);
         if (granularity === 'volume') {
-            return Volume.Loci(volume);
+            return Volume.Loci(volume, instances);
         } else if (granularity === 'object') {
-            return Volume.Segment.Loci(volume, [key]);
+            const segments = OrderedSet.ofSingleton(key as Volume.SegmentIndex);
+            return Volume.Segment.Loci(volume, [{ segments, instances }]);
         } else {
-            return Volume.Cell.Loci(volume, Interval.ofSingleton(groupId as Volume.CellIndex));
+            const indices = Interval.ofSingleton(groupId as Volume.CellIndex);
+            return Volume.Cell.Loci(volume, [{ indices, instances }]);
         }
     }
     return EmptyLoci;
@@ -135,7 +140,7 @@ function getSegmentCells(set: number[], bbox: Box3D, cells: Tensor): Tensor {
     return segmentCells;
 }
 
-export async function createVolumeSegmentMesh(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: VolumeSegmentProps, mesh?: Mesh) {
+export async function createVolumeSegmentMesh(ctx: VisualContext, volume: Volume, key: Volume.SegmentIndex, theme: Theme, props: VolumeSegmentProps, mesh?: Mesh) {
     const segmentation = Volume.Segmentation.get(volume);
     if (!segmentation) throw new Error('missing volume segmentation');
 
@@ -165,7 +170,9 @@ export async function createVolumeSegmentMesh(ctx: VisualContext, volume: Volume
         ValueCell.updateIfChanged(surface.varyingGroup, true);
     }
 
-    surface.setBoundingSphere(Volume.Segment.getBoundingSphere(volume, [key]));
+    const instances = Interval.ofLength(volume.instances.length as Volume.InstanceIndex);
+    const segments = OrderedSet.ofSingleton(key as Volume.SegmentIndex);
+    surface.setBoundingSphere(Volume.Segment.getBoundingSphere(volume, [{ segments, instances }]));
 
     return surface;
 }
@@ -185,7 +192,7 @@ export function SegmentMeshVisual(materialId: number): VolumeVisual<SegmentMeshP
         createGeometry: createVolumeSegmentMesh,
         createLocationIterator: (volume: Volume, key: number) => {
             const l = Volume.Segment.Location(volume, key);
-            return LocationIterator(volume.grid.cells.data.length, 1, 1, () => l);
+            return LocationIterator(volume.grid.cells.data.length, volume.instances ? volume.instances.length : 1, 1, () => l);
         },
         getLoci: getSegmentLoci,
         eachLocation: eachSegment,
@@ -202,7 +209,7 @@ export function SegmentMeshVisual(materialId: number): VolumeVisual<SegmentMeshP
 
 const SegmentTextureName = 'segment-texture';
 
-function getSegmentTexture(volume: Volume, segment: number, webgl: WebGLContext) {
+function getSegmentTexture(volume: Volume, segment: Volume.SegmentIndex, webgl: WebGLContext) {
     const segmentation = Volume.Segmentation.get(volume);
     if (!segmentation) throw new Error('missing volume segmentation');
 
@@ -244,7 +251,7 @@ function getSegmentTexture(volume: Volume, segment: number, webgl: WebGLContext)
     };
 }
 
-async function createVolumeSegmentTextureMesh(ctx: VisualContext, volume: Volume, segment: number, theme: Theme, props: VolumeSegmentProps, textureMesh?: TextureMesh) {
+async function createVolumeSegmentTextureMesh(ctx: VisualContext, volume: Volume, segment: Volume.SegmentIndex, theme: Theme, props: VolumeSegmentProps, textureMesh?: TextureMesh) {
     if (!ctx.webgl) throw new Error('webgl context required to create volume segment texture-mesh');
 
     if (volume.grid.cells.data.length <= 1) {
@@ -258,7 +265,10 @@ async function createVolumeSegmentTextureMesh(ctx: VisualContext, volume: Volume
     const gv = extractIsosurface(ctx.webgl, texture, gridDimension, gridTexDim, gridTexScale, transform, 0.5, false, false, axisOrder, true, buffer?.vertex, buffer?.group, buffer?.normal);
 
     const groupCount = volume.grid.cells.data.length;
-    const surface = TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, Volume.Segment.getBoundingSphere(volume, [segment]), textureMesh);
+    const instances = Interval.ofLength(volume.instances.length as Volume.InstanceIndex);
+    const segments = OrderedSet.ofSingleton(segment as Volume.SegmentIndex);
+    const boundingSphere = Volume.Segment.getBoundingSphere(volume, [{ segments, instances }]);
+    const surface = TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
 
     return surface;
 }
@@ -269,7 +279,7 @@ export function SegmentTextureMeshVisual(materialId: number): VolumeVisual<Segme
         createGeometry: createVolumeSegmentTextureMesh,
         createLocationIterator: (volume: Volume, segment: number) => {
             const l = Volume.Segment.Location(volume, segment);
-            return LocationIterator(volume.grid.cells.data.length, 1, 1, () => l);
+            return LocationIterator(volume.grid.cells.data.length, volume.instances ? volume.instances.length : 1, 1, () => l);
         },
         getLoci: getSegmentLoci,
         eachLocation: eachSegment,

@@ -818,6 +818,14 @@ namespace Mat4 {
         return m;
     }
 
+    export function getDecomposition(m: Mat4): { position: Vec3, quaternion: Quat, scale: Vec3 } {
+        const position = Vec3();
+        const quaternion = Quat();
+        const scale = Vec3();
+        decompose(m, position, quaternion, scale);
+        return { position, quaternion, scale };
+    }
+
     export function makeTable(m: Mat4) {
         let ret = '';
         for (let i = 0; i < 4; i++) {

@@ -6,15 +6,15 @@
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Visual, VisualContext } from '../visual';
-import { Volume } from '../../mol-model/volume';
+import { Grid, Volume } from '../../mol-model/volume';
 import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { Theme } from '../../mol-theme/theme';
-import { createIdentityTransform } from '../../mol-geo/geometry/transform-data';
+import { createTransform, TransformData } from '../../mol-geo/geometry/transform-data';
 import { createRenderObject, getNextMaterialId, GraphicsRenderObject } from '../../mol-gl/render-object';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci, isEmptyLoci } from '../../mol-model/loci';
-import { Interval, SortedArray } from '../../mol-data/int';
+import { Interval, OrderedSet } from '../../mol-data/int';
 import { getQualityProps, LocationCallback, VisualUpdateState } from '../util';
 import { ColorTheme } from '../../mol-theme/color';
 import { ValueCell } from '../../mol-util';
@@ -36,13 +36,23 @@ import { Substance } from '../../mol-theme/substance';
 import { createMarkers } from '../../mol-geo/geometry/marker-data';
 import { Emissive } from '../../mol-theme/emissive';
 import { SizeTheme } from '../../mol-theme/size';
+import { Sphere3D } from '../../mol-math/geometry/primitives/sphere3d';
 
 export type VolumeKey = { volume: Volume, key: number }
 export interface VolumeVisual<P extends VolumeParams> extends Visual<VolumeKey, P> { }
 
+function createVolumeInstancesTransform(volume: Volume, invariantBoundingSphere: Sphere3D, cellSize: number, batchSize: number, transformData?: TransformData) {
+    const instanceCount = volume.instances.length;
+    const transformArray = new Float32Array(instanceCount * 16);
+    for (let i = 0; i < instanceCount; ++i) {
+        Mat4.toArray(volume.instances[i].transform, transformArray, i * 16);
+    }
+    return createTransform(transformArray, instanceCount, invariantBoundingSphere, cellSize, batchSize, transformData);
+}
+
 function createVolumeRenderObject<G extends Geometry>(volume: Volume, geometry: G, locationIt: LocationIterator, theme: Theme, props: PD.Values<Geometry.Params<G>>, materialId: number) {
     const { createValues, createRenderableState } = Geometry.getUtils(geometry);
-    const transform = createIdentityTransform();
+    const transform = createVolumeInstancesTransform(volume, geometry.boundingSphere, props.cellSize, props.batchSize);
     const values = createValues(geometry, transform, locationIt, theme, props);
     const state = createRenderableState(props);
     return createRenderObject(geometry.kind, values, state, materialId);
@@ -99,6 +109,8 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
 
         if (!renderObject) {
             updateState.createNew = true;
+        } else if (Grid.areEquivalent(newVolume.grid, currentVolume.grid) && !Volume.areInstanceTransformsEqual(newVolume, currentVolume)) {
+            updateState.updateTransform = true;
         } else if (!Volume.areEquivalent(newVolume, currentVolume) || newKey !== currentKey) {
             updateState.createNew = true;
         }
@@ -118,8 +130,12 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
             updateState.updateSize = true;
         }
 
-        if (newProps.instanceGranularity !== currentProps.instanceGranularity) {
+        if (newProps.instanceGranularity !== currentProps.instanceGranularity || newProps.cellSize !== currentProps.cellSize || newProps.batchSize !== currentProps.batchSize) {
             updateState.updateTransform = true;
+        }
+
+        if (updateState.updateTransform) {
+            updateState.updateMatrix = true;
         }
 
         if (updateState.updateSize && !('uSize' in renderObject!.values)) {
@@ -146,24 +162,31 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
                 throw new Error('expected renderObject to be available');
             }
 
+            if (updateState.updateColor || updateState.updateSize || updateState.updateTransform) {
+                // console.log('update locationIterator');
+                locationIt = createLocationIterator(newVolume, newKey);
+            }
+
             if (updateState.updateTransform) {
                 // console.log('update transform');
-                locationIt = createLocationIterator(newVolume, newKey);
                 const { instanceCount, groupCount } = locationIt;
                 if (newProps.instanceGranularity) {
                     createMarkers(instanceCount, 'instance', renderObject.values);
                 } else {
                     createMarkers(instanceCount * groupCount, 'groupInstance', renderObject.values);
                 }
-            } else {
-                locationIt.reset();
+            }
+
+            if (updateState.updateMatrix) {
+                // console.log('update matrix');
+                createVolumeInstancesTransform(newVolume, geometry.boundingSphere, newProps.cellSize, newProps.batchSize, renderObject.values);
             }
 
             if (updateState.createGeometry) {
                 if (newGeometry) {
                     ValueCell.updateIfChanged(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry));
                     ValueCell.updateIfChanged(renderObject.values.uVertexCount, Geometry.getVertexCount(newGeometry));
-                    ValueCell.updateIfChanged(renderObject.values.uGroupCount, Geometry.getGroupCount(newGeometry));
+                    ValueCell.updateIfChanged(renderObject.values.uGroupCount, locationIt.groupCount);
                 } else {
                     throw new Error('expected geometry to be given');
                 }
@@ -177,11 +200,13 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
             if (updateState.updateSize) {
                 // not all geometries have size data, so check here
                 if ('uSize' in renderObject.values) {
+                    // console.log('update size');
                     createSizes(locationIt, newTheme.size, renderObject.values as SizeValues);
                 }
             }
 
             if (updateState.updateColor) {
+                // console.log('update color');
                 createColors(locationIt, positionIt, newTheme.color, renderObject.values);
             }
 
@@ -204,12 +229,39 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         if (Volume.Cell.isLoci(loci)) {
             if (Volume.Cell.isLociEmpty(loci)) return false;
             if (!Volume.areEquivalent(loci.volume, volume)) return false;
-            if (apply(Interval.ofSingleton(0))) changed = true;
+            for (const { instances } of loci.elements) {
+                OrderedSet.forEach(instances, j => {
+                    if (apply(Interval.ofSingleton(j))) changed = true;
+                });
+            }
         } else if (Volume.Segment.isLoci(loci)) {
             if (Volume.Segment.isLociEmpty(loci)) return false;
             if (!Volume.areEquivalent(loci.volume, volume)) return false;
-            if (!SortedArray.has(loci.segments, key)) return false;
-            if (apply(Interval.ofSingleton(0))) changed = true;
+            for (const { segments, instances } of loci.elements) {
+                if (OrderedSet.has(segments, key)) {
+                    OrderedSet.forEach(instances, j => {
+                        if (apply(Interval.ofSingleton(j))) changed = true;
+                    });
+                }
+            }
+        } else if (Volume.Isosurface.isLoci(loci)) {
+            if (Volume.Isosurface.isLociEmpty(loci)) return false;
+            if (Interval.is(loci.instances)) {
+                if (apply(loci.instances)) changed = true;
+            } else {
+                for (let i = 0, il = loci.instances.length; i < il; ++i) {
+                    if (apply(Interval.ofSingleton(i))) changed = true;
+                }
+            }
+        } else if (Volume.isLoci(loci)) {
+            if (Volume.isLociEmpty(loci)) return false;
+            if (Interval.is(loci.instances)) {
+                if (apply(loci.instances)) changed = true;
+            } else {
+                for (let i = 0, il = loci.instances.length; i < il; ++i) {
+                    if (apply(Interval.ofSingleton(i))) changed = true;
+                }
+            }
         }
         return changed;
     }

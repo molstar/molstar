@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { OrderedSet } from '../ordered-set';
@@ -10,7 +11,7 @@ import { SortedArray } from '../sorted-array';
 
 describe('ordered set', () => {
     function ordSetToArray(set: OrderedSet) {
-        const ret = [];
+        const ret: number[] = [];
         for (let i = 0, _i = OrderedSet.size(set); i < _i; i++) ret.push(OrderedSet.getAt(set, i));
         return ret;
     }
@@ -34,6 +35,12 @@ describe('ordered set', () => {
     testEq('singleton', singleton10, [10]);
     testEq('range', range1_4, [1, 2, 3, 4]);
     testEq('sorted array', arr136, [1, 3, 6]);
+
+    it('isEmpty', () => {
+        expect(OrderedSet.isEmpty(empty)).toBe(true);
+        expect(OrderedSet.isEmpty(singleton10)).toBe(false);
+        expect(OrderedSet.isEmpty(range1_4)).toBe(false);
+    });
 
     it('equality', () => {
         expect(OrderedSet.areEqual(empty, singleton10)).toBe(false);

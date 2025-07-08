@@ -8,13 +8,12 @@ import { BehaviorSubject, distinctUntilChanged, map } from 'rxjs';
 import { PluginComponent } from '../../../mol-plugin-state/component';
 import { getMVSStoriesContext, MVSStoriesContext } from '../context';
 import { MVSStoriesViewerModel } from './viewer';
-import Markdown from 'react-markdown';
 import { useBehavior } from '../../../mol-plugin-ui/hooks/use-behavior';
 import { createRoot } from 'react-dom/client';
 import { PluginStateSnapshotManager } from '../../../mol-plugin-state/manager/snapshots';
-import { MarkdownAnchor } from '../../../mol-plugin-ui/controls';
 import { PluginReactContext } from '../../../mol-plugin-ui/base';
 import { CSSProperties } from 'react';
+import { Markdown } from '../../../mol-plugin-ui/controls/markdown';
 
 export class MVSStoriesSnapshotMarkdownModel extends PluginComponent {
     readonly context: MVSStoriesContext;
@@ -99,7 +98,7 @@ export function MVSStoriesSnapshotMarkdownUI({ model }: { model: MVSStoriesSnaps
         <div style={{ flexGrow: 1, overflow: 'hidden', overflowY: 'auto', position: 'relative' }}>
             <div style={{ position: 'absolute', inset: 0 }}>
                 <PluginReactContext.Provider value={model.viewer?.model.plugin as any}>
-                    <Markdown skipHtml components={{ a: MarkdownAnchor }}>{state.entry?.description ?? 'Description not available'}</Markdown>
+                    <Markdown>{state.entry?.description ?? 'Description not available'}</Markdown>
                 </PluginReactContext.Provider>
             </div>
         </div>

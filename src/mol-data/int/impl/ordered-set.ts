@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { SortedArray as S } from '../sorted-array';
@@ -32,6 +33,7 @@ export function min(set: OrderedSetImpl) { return I.is(set) ? I.min(set) : S.min
 export function max(set: OrderedSetImpl) { return I.is(set) ? I.max(set) : S.max(set); }
 export function start(set: OrderedSetImpl) { return I.is(set) ? I.start(set) : S.start(set); }
 export function end(set: OrderedSetImpl) { return I.is(set) ? I.end(set) : S.end(set); }
+export function isEmpty(set: OrderedSetImpl) { return size(set) === 0; }
 
 export function hashCode(set: OrderedSetImpl) { return I.is(set) ? I.hashCode(set) : S.hashCode(set); }
 // TODO: possibly add more hash functions to allow for multilevel hashing.

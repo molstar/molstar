@@ -1,35 +1,28 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Zepei Xu <xuzepei19950617@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Eric E <etongfu@@outlook.com>
  */
 
-//               NOTES
-// When want to created undefined string column, must use
-// undefStr = UndefinedColumn(molecule.num_atoms, ColumnType.str)
-// but not
-// const undefPooledStr = UndefinedColumn(molecule.num_atoms, ColumnType.pooledStr);
-// because latter actuall return a column of zeros
 import { Column } from '../../../mol-data/db';
 import { TokenBuilder, Tokenizer, Tokens } from '../common/text/tokenizer';
 import { TokenColumnProvider as TokenColumn } from '../common/text/column/token';
-import * as Schema from './schema';
 import { ReaderResult as Result } from '../result';
 import { Task, RuntimeContext, chunkedSubtask } from '../../../mol-task';
 import { StringLike } from '../../common/string-like';
-
+import { Mol2Atoms, Mol2Bonds, Mol2File, Mol2Molecule, Mol2Structure, Mol2Substructure } from './schema';
 
 const { skipWhitespace, eatValue, markLine, getTokenString, skipStrictWhitespace } = Tokenizer;
 
 interface State {
     tokenizer: Tokenizer,
-    molecule: Schema.Mol2Molecule,
+    molecule: Mol2Molecule,
     runtimeCtx: RuntimeContext
 }
 
-function createEmptyMolecule(): Schema.Mol2Molecule {
+function createEmptyMolecule(): Mol2Molecule {
     return {
         mol_name: '',
         num_atoms: 0,
@@ -126,7 +119,7 @@ function _readColumnsAndGetMaxCount(linesToRead: number, tokenIndexColums: Token
     return maxColumnCount + 1;
 }
 
-async function handleAtoms(state: State): Promise<Schema.Mol2Atoms> {
+async function handleAtoms(state: State): Promise<Mol2Atoms> {
     const { tokenizer, molecule } = state;
 
     // skip empty lines and '@<TRIPOS>ATOM'
@@ -147,7 +140,7 @@ async function handleAtoms(state: State): Promise<Schema.Mol2Atoms> {
     const subst_idTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
     const subst_nameTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
     const chargeTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
-    const status_bitTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
+    const status_bitsTokens = TokenBuilder.create(tokenizer.data, molecule.num_atoms * 2);
 
     const undefFloat = Column.Undefined(molecule.num_atoms, Column.Schema.float);
     const undefInt = Column.Undefined(molecule.num_atoms, Column.Schema.int);
@@ -167,7 +160,7 @@ async function handleAtoms(state: State): Promise<Schema.Mol2Atoms> {
         subst_idTokens,
         subst_nameTokens,
         chargeTokens,
-        status_bitTokens
+        status_bitsTokens
     ];
 
     const { length } = tokenizer;
@@ -175,7 +168,7 @@ async function handleAtoms(state: State): Promise<Schema.Mol2Atoms> {
 
     await chunkedSubtask(state.runtimeCtx, 100000, void 0, chunkSize => {
         const linesToRead = Math.min(molecule.num_atoms - linesAlreadyRead, chunkSize);
-        maxColumnCount = _readColumnsAndGetMaxCount(linesToRead, tokenIndexToColumn, tokenizer);
+        maxColumnCount = Math.max(maxColumnCount, _readColumnsAndGetMaxCount(linesToRead, tokenIndexToColumn, tokenizer));
         linesAlreadyRead += linesToRead;
         return linesToRead;
     }, ctx => ctx.update({ message: 'Parsing...', current: tokenizer.position, max: length }));
@@ -193,12 +186,12 @@ async function handleAtoms(state: State): Promise<Schema.Mol2Atoms> {
         subst_id: maxColumnCount > 6 ? TokenColumn(subst_idTokens)(Column.Schema.int) : undefInt,
         subst_name: maxColumnCount > 7 ? TokenColumn(subst_nameTokens)(Column.Schema.str) : undefStr,
         charge: maxColumnCount > 8 ? TokenColumn(chargeTokens)(Column.Schema.float) : undefFloat,
-        status_bit: maxColumnCount > 9 ? TokenColumn(status_bitTokens)(Column.Schema.str) : undefStr,
+        status_bits: maxColumnCount > 9 ? TokenColumn(status_bitsTokens)(Column.Schema.str) : undefStr,
     };
     return ret;
 }
 
-async function handleBonds(state: State): Promise<Schema.Mol2Bonds> {
+async function handleBonds(state: State): Promise<Mol2Bonds> {
     const { tokenizer, molecule } = state;
 
     while (getTokenString(tokenizer) !== '@<TRIPOS>BOND' && tokenizer.position < tokenizer.data.length) {
@@ -213,11 +206,12 @@ async function handleBonds(state: State): Promise<Schema.Mol2Bonds> {
     const origin_bond_idTokens = TokenBuilder.create(tokenizer.data, molecule.num_bonds * 2);
     const target_bond_idTokens = TokenBuilder.create(tokenizer.data, molecule.num_bonds * 2);
     const bondTypeTokens = TokenBuilder.create(tokenizer.data, molecule.num_bonds * 2);
-    const status_bitTokens = TokenBuilder.create(tokenizer.data, molecule.num_bonds * 2);
+    const status_bitsTokens = TokenBuilder.create(tokenizer.data, molecule.num_bonds * 2);
+
+    const undefStr = Column.Undefined(molecule.num_bonds, Column.Schema.str);
 
     tokenizer.position = initialTokenizerPosition;
     tokenizer.lineNumber = initialTokenizerLineNumber;
-
 
     let maxColumnCount = 0;
     const tokenIndexToColumn = [
@@ -225,7 +219,7 @@ async function handleBonds(state: State): Promise<Schema.Mol2Bonds> {
         origin_bond_idTokens,
         target_bond_idTokens,
         bondTypeTokens,
-        status_bitTokens
+        status_bitsTokens
     ];
 
     const { length } = tokenizer;
@@ -233,7 +227,7 @@ async function handleBonds(state: State): Promise<Schema.Mol2Bonds> {
 
     await chunkedSubtask(state.runtimeCtx, 100000, void 0, chunkSize => {
         const linesToRead = Math.min(molecule.num_bonds - linesAlreadyRead, chunkSize);
-        maxColumnCount = _readColumnsAndGetMaxCount(linesToRead, tokenIndexToColumn, tokenizer);
+        maxColumnCount = Math.max(maxColumnCount, _readColumnsAndGetMaxCount(linesToRead, tokenIndexToColumn, tokenizer));
         linesAlreadyRead += linesToRead;
         return linesToRead;
     }, ctx => ctx.update({ message: 'Parsing...', current: tokenizer.position, max: length }));
@@ -246,9 +240,76 @@ async function handleBonds(state: State): Promise<Schema.Mol2Bonds> {
         target_atom_id: TokenColumn(target_bond_idTokens)(Column.Schema.int),
         bond_type: TokenColumn(bondTypeTokens)(Column.Schema.str),
 
-        status_bits: maxColumnCount > 4
-            ? TokenColumn(status_bitTokens)(Column.Schema.str)
-            : Column.Undefined(molecule.num_bonds, Column.Schema.str),
+        status_bits: maxColumnCount > 4 ? TokenColumn(status_bitsTokens)(Column.Schema.str) : undefStr,
+    };
+
+    return ret;
+}
+
+async function handleSubstructures(state: State): Promise<Mol2Substructure | undefined> {
+    const { tokenizer, molecule } = state;
+    if (molecule.num_subst === 0) return;
+
+    while (getTokenString(tokenizer) !== '@<TRIPOS>SUBSTRUCTURE' && tokenizer.position < tokenizer.data.length) {
+        markLine(tokenizer);
+    }
+
+    const initialTokenizerPosition = tokenizer.position;
+    const initialTokenizerLineNumber = tokenizer.lineNumber;
+
+    // columns
+    const subst_idTokens = TokenBuilder.create(tokenizer.data, molecule.num_subst * 2);
+    const subst_nameTokens = TokenBuilder.create(tokenizer.data, molecule.num_subst * 2);
+    const root_atomTokens = TokenBuilder.create(tokenizer.data, molecule.num_subst * 2);
+    const subst_typeTokens = TokenBuilder.create(tokenizer.data, molecule.num_subst * 2);
+    const dict_typeTokens = TokenBuilder.create(tokenizer.data, molecule.num_subst * 2);
+    const chainTokens = TokenBuilder.create(tokenizer.data, molecule.num_subst * 2);
+    const sub_typeTokens = TokenBuilder.create(tokenizer.data, molecule.num_subst * 2);
+    const inter_bondsTokens = TokenBuilder.create(tokenizer.data, molecule.num_subst * 2);
+    const status_bitsTokens = TokenBuilder.create(tokenizer.data, molecule.num_subst * 2);
+
+    const undefInt = Column.Undefined(molecule.num_subst, Column.Schema.int);
+    const undefStr = Column.Undefined(molecule.num_subst, Column.Schema.str);
+
+    tokenizer.position = initialTokenizerPosition;
+    tokenizer.lineNumber = initialTokenizerLineNumber;
+
+    let maxColumnCount = 0;
+    const tokenIndexToColumn = [
+        subst_idTokens,
+        subst_nameTokens,
+        root_atomTokens,
+        subst_typeTokens,
+        dict_typeTokens,
+        chainTokens,
+        sub_typeTokens,
+        inter_bondsTokens,
+        status_bitsTokens
+    ];
+
+    const { length } = tokenizer;
+    let linesAlreadyRead = 0;
+
+    await chunkedSubtask(state.runtimeCtx, 100000, void 0, chunkSize => {
+        const linesToRead = Math.min(molecule.num_subst - linesAlreadyRead, chunkSize);
+        maxColumnCount = Math.max(maxColumnCount, _readColumnsAndGetMaxCount(linesToRead, tokenIndexToColumn, tokenizer));
+        linesAlreadyRead += linesToRead;
+        return linesToRead;
+    }, ctx => ctx.update({ message: 'Parsing...', current: tokenizer.position, max: length }));
+
+    const ret = {
+        count: molecule.num_subst,
+
+        subst_id: TokenColumn(subst_idTokens)(Column.Schema.int),
+        subst_name: TokenColumn(subst_nameTokens)(Column.Schema.str),
+        root_atom: TokenColumn(root_atomTokens)(Column.Schema.int),
+
+        subst_type: maxColumnCount > 3 ? TokenColumn(subst_typeTokens)(Column.Schema.str) : undefStr,
+        dict_type: maxColumnCount > 4 ? TokenColumn(dict_typeTokens)(Column.Schema.str) : undefStr,
+        chain: maxColumnCount > 5 ? TokenColumn(chainTokens)(Column.Schema.str) : undefStr,
+        sub_type: maxColumnCount > 6 ? TokenColumn(sub_typeTokens)(Column.Schema.str) : undefStr,
+        inter_bonds: maxColumnCount > 7 ? TokenColumn(inter_bondsTokens)(Column.Schema.int) : undefInt,
+        status_bits: maxColumnCount > 8 ? TokenColumn(status_bitsTokens)(Column.Schema.str) : undefStr,
     };
 
     return ret;
@@ -284,30 +345,31 @@ function handleCrysin(state: State) {
     };
 }
 
-async function parseInternal(ctx: RuntimeContext, data: StringLike, name: string): Promise<Result<Schema.Mol2File>> {
+async function parseInternal(ctx: RuntimeContext, data: StringLike, name: string): Promise<Result<Mol2File>> {
     const tokenizer = Tokenizer(data);
 
     ctx.update({ message: 'Parsing...', current: 0, max: data.length });
-    const structures: Schema.Mol2Structure[] = [];
+    const structures: Mol2Structure[] = [];
     while (tokenizer.position < data.length) {
         const state = State(tokenizer, ctx);
         handleMolecule(state);
         const atoms = await handleAtoms(state);
         const bonds = await handleBonds(state);
+        const substructures = await handleSubstructures(state);
         const crysin = handleCrysin(state);
-        structures.push({ molecule: state.molecule, atoms, bonds, crysin });
+        structures.push({ molecule: state.molecule, atoms, bonds, substructures, crysin });
         skipWhitespace(tokenizer);
         while (getTokenString(tokenizer) !== '@<TRIPOS>MOLECULE' && tokenizer.position < tokenizer.data.length) {
             markLine(tokenizer);
         }
     }
 
-    const result: Schema.Mol2File = { name, structures };
+    const result: Mol2File = { name, structures };
     return Result.success(result);
 }
 
 export function parseMol2(data: StringLike, name: string) {
-    return Task.create<Result<Schema.Mol2File>>('Parse MOL2', async ctx => {
+    return Task.create<Result<Mol2File>>('Parse MOL2', async ctx => {
         return await parseInternal(ctx, data, name);
     });
 }
