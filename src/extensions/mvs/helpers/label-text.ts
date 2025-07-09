@@ -40,13 +40,13 @@ class AtomRangesCache {
     private readonly hasOperators: boolean;
 
     constructor(private readonly rows: MVSAnnotationRow[]) {
-        this.hasOperators = rows.some(row => isDefined(row.operator_name));
+        this.hasOperators = rows.some(row => isDefined(row.instance_id));
     }
 
     get(unit: Unit): AtomRanges {
-        const operatorName = unit.conformation.operator.name;
-        const key = this.hasOperators ? `${unit.model.id}:${operatorName}` : unit.model.id;
-        return this.cache[key] ??= getAtomRangesForRows(this.rows, unit.model, operatorName, IndicesAndSortings.get(unit.model));
+        const instanceId = unit.conformation.operator.canonicalName;
+        const key = this.hasOperators ? `${unit.model.id}:${instanceId}` : unit.model.id;
+        return this.cache[key] ??= getAtomRangesForRows(this.rows, unit.model, instanceId, IndicesAndSortings.get(unit.model));
     }
 }
 

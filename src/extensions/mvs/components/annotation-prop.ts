@@ -201,7 +201,7 @@ export class MVSAnnotation {
 
     /** Return value of field `fieldName` assigned to location `loc`, if any */
     getValueForLocation(loc: StructureElement.Location, fieldName: string): string | undefined {
-        const indexedModel = this.getIndexedModel(loc.unit.model, loc.unit.conformation.operator.name);
+        const indexedModel = this.getIndexedModel(loc.unit.model, loc.unit.conformation.operator.canonicalName);
         const iRow = (indexedModel !== null) ? indexedModel[loc.element] : -1;
         return this.getValueForRow(iRow, fieldName);
     }
@@ -219,27 +219,27 @@ export class MVSAnnotation {
     }
 
     /** Return cached `ElementIndex` -> `MVSAnnotationRow` mapping for `Model` (or create it if not cached yet) */
-    private getIndexedModel(model: Model, operatorName: string): IndexedModel {
-        const key = this.hasOperators() ? `${model.id}:${operatorName}` : model.id;
+    private getIndexedModel(model: Model, instanceId: string): IndexedModel {
+        const key = this.hasInstanceIds() ? `${model.id}:${instanceId}` : model.id;
         if (!this._indexedModels.has(key)) {
-            const result = this.getRowForEachAtom(model, operatorName);
+            const result = this.getRowForEachAtom(model, instanceId);
             this._indexedModels.set(key, result);
         }
         return this._indexedModels.get(key)!;
     }
-    /** Cached `IndexedModel` per `Model.id` (if annotation contains no operator names)
-     * or per `Model.id:operatorName` combination (if at least one row contains operator name). */
+    /** Cached `IndexedModel` per `Model.id` (if annotation contains no instanceIds)
+     * or per `Model.id:instanceId` combination (if at least one row contains instanceId). */
     private _indexedModels = new Map<string, IndexedModel>();
 
     /** Create `ElementIndex` -> `MVSAnnotationRow` mapping for `Model` */
-    private getRowForEachAtom(model: Model, operatorName: string): IndexedModel {
+    private getRowForEachAtom(model: Model, instanceId: string): IndexedModel {
         const indices = IndicesAndSortings.get(model);
         const nAtoms = model.atomicHierarchy.atoms._rowCount;
         let result: IndexedModel = null;
         const rows = this.getRows();
         for (let i = 0, nRows = rows.length; i < nRows; i++) {
             const row = rows[i];
-            const atomRanges = getAtomRangesForRow(row, model, operatorName, indices);
+            const atomRanges = getAtomRangesForRow(row, model, instanceId, indices);
             if (AtomRanges.count(atomRanges) === 0) continue;
             result ??= Array(nAtoms).fill(-1);
             AtomRanges.foreach(atomRanges, (from, to) => result!.fill(i, from, to));
@@ -263,11 +263,11 @@ export class MVSAnnotation {
         }
     }
 
-    /** Return `true` if some rows in the annotation contain `operator_name` field. */
-    private hasOperators(): boolean {
-        return this._hasOperators ??= this.getRows().some(row => isDefined(row.operator_name));
+    /** Return `true` if some rows in the annotation contain `instance_id` field. */
+    private hasInstanceIds(): boolean {
+        return this._hasInstanceIds ??= this.getRows().some(row => isDefined(row.instance_id));
     }
-    private _hasOperators?: boolean = undefined;
+    private _hasInstanceIds?: boolean = undefined;
 
     /** Return list of all distinct values appearing in field `fieldName`, in order of first occurrence. Ignores special values `.` and `?`. If `caseInsensitive`, make all values uppercase. */
     getDistinctValuesInField(fieldName: string, caseInsensitive: boolean): string[] {

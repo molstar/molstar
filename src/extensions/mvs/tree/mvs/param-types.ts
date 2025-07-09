@@ -44,8 +44,9 @@ export const ComponentExpressionT = partial({
     type_symbol: str,
     atom_id: int,
     atom_index: int,
-    /** Symmetry operator name like 'X0-1' for assemblies or '1_555' for crystals */
-    operator_name: str,
+    /** Instance identifier to distinguish instances of the same chain created by applying different symmetry operators,
+     * like 'ASM-X0-1' for assemblies or '1_555' for crystals */
+    instance_id: str,
 });
 export type ComponentExpressionT = ValueFor<typeof ComponentExpressionT>
 
