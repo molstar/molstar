@@ -14,7 +14,7 @@ import { Vec3 } from '../linear-algebra/3d/vec3';
 interface SymmetryOperator {
     /** Operator name, e.g. 1_555, ASM_1 */
     readonly name: string,
-    /** Canonical operator name, must follow symmetry instance naming rules (TODO link MVS docs).
+    /** Canonical operator name, must follow symmetry instance naming rules (https://molstar.org/mol-view-spec-docs/selectors/#instance_id).
      * E.g. 1_555, ASM-X0-5 */
     readonly canonicalName: string,
 
