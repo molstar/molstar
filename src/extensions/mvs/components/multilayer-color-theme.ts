@@ -66,6 +66,49 @@ export type MultilayerColorThemeProps = PD.Values<MultilayerColorThemeParams>
 export const DefaultMultilayerColorThemeProps: MultilayerColorThemeProps = { layers: [], background: DefaultBackgroundColor };
 
 
+/** Return color theme that assigns colors based on a list of nested color themes (layers).
+ * The last layer in the list whose selection covers the given location
+ * and which provides a valid (non-negative) color value will be used.
+ * If a nested theme provider has `ensureCustomProperties` methods, these will not be called automatically
+ * (the caller must ensure that any required custom properties be attached). */
+function makeMultilayerColorTheme(ctx: ThemeDataContext, props: MultilayerColorThemeProps, colorThemeRegistry: ColorTheme.Registry): ColorTheme<MultilayerColorThemeParams> {
+    const { colorLayers, granularity } = makeLayers(ctx, props, colorThemeRegistry);
+
+    function structureElementColor(loc: StructureElement.Location, isSecondary: boolean): Color {
+        for (const layer of colorLayers) {
+            const matches = !layer.elementSet || ElementSet.has(layer.elementSet, loc);
+            if (!matches) continue;
+            const color = layer.color(loc, isSecondary);
+            if (!isValidColor(color)) continue;
+            return color;
+        }
+        return props.background;
+    }
+    const auxLocation = StructureElement.Location.create(ctx.structure);
+
+    const color: LocationColor = (location: Location, isSecondary: boolean) => {
+        if (StructureElement.Location.is(location)) {
+            return structureElementColor(location, isSecondary);
+        } else if (Bond.isLocation(location)) {
+            // this will be applied for each bond twice, to get color of each half (a* refers to the adjacent atom, b* to the opposite atom)
+            auxLocation.unit = location.aUnit;
+            auxLocation.element = location.aUnit.elements[location.aIndex];
+            return structureElementColor(auxLocation, isSecondary);
+        }
+        return props.background;
+    };
+
+    return {
+        factory: (ctx_, props_) => makeMultilayerColorTheme(ctx_, props_, colorThemeRegistry),
+        granularity,
+        preferSmoothing: true,
+        color: color,
+        props: props,
+        description: 'Combines colors from multiple color themes.',
+    };
+}
+
+
 const GRAN_INSTANCE = 1, GRAN_GROUP = 2, GRAN_VERTEX = 4;
 
 const granularityFlagsFromName = {
@@ -83,15 +126,17 @@ function granularityNameFromFlags(flags: number): ColorTypeLocation {
     return flags & GRAN_INSTANCE ? 'instance' : 'uniform';
 }
 
-/** Return color theme that assigns colors based on a list of nested color themes (layers).
- * The last layer in the list whose selection covers the given location
- * and which provides a valid (non-negative) color value will be used.
- * If a nested theme provider has `ensureCustomProperties` methods, these will not be called automatically
- * (the caller must ensure that any required custom properties be attached). */
-function makeMultilayerColorTheme(ctx: ThemeDataContext, props: MultilayerColorThemeProps, colorThemeRegistry: ColorTheme.Registry): ColorTheme<MultilayerColorThemeParams> {
+interface ColorLayer {
+    /** Substructure to which the layer is applied, undefined means 'all' */
+    elementSet: ElementSet | undefined,
+    /** Color theme for the layer */
+    color: LocationColor,
+}
+
+function makeLayers(ctx: ThemeDataContext, props: MultilayerColorThemeProps, colorThemeRegistry: ColorTheme.Registry) {
+    const colorLayers: ColorLayer[] = [];
     let granularityFlags = 0;
-    const colorLayers: { color: LocationColor, elementSet: ElementSet | undefined }[] = []; // undefined elementSet means 'all'
-    for (let i = props.layers.length - 1; i >= 0; i--) { // iterate from end to get top layer first, bottom layer last
+    for (let i = props.layers.length - 1; i >= 0; i--) { // iterate from the end to get top layer first, bottom layer last
         const layer = props.layers[i];
         const themeProvider = colorThemeRegistry.get(layer.theme.name);
         if (!themeProvider) {
@@ -123,7 +168,7 @@ function makeMultilayerColorTheme(ctx: ThemeDataContext, props: MultilayerColorT
                     elementSet = ElementSet.fromStructure(substructure);
                     selectionGranularity = getSubstructureGranularity(ctx.structure, substructure);
                 }
-                colorLayers.push({ color: theme.color, elementSet });
+                colorLayers.push({ elementSet, color: theme.color });
                 granularityFlags |= granularityFlagsFromName[selectionGranularity];
                 granularityFlags |= granularityFlagsFromName[theme.granularity];
                 break;
@@ -131,39 +176,7 @@ function makeMultilayerColorTheme(ctx: ThemeDataContext, props: MultilayerColorT
                 console.warn(`Skipping color theme '${layer.theme.name}', cannot process granularity '${theme.granularity}'`);
         }
     }
-
-    function structureElementColor(loc: StructureElement.Location, isSecondary: boolean): Color {
-        for (const layer of colorLayers) {
-            const matches = !layer.elementSet || ElementSet.has(layer.elementSet, loc);
-            if (!matches) continue;
-            const color = layer.color(loc, isSecondary);
-            if (!isValidColor(color)) continue;
-            return color;
-        }
-        return props.background;
-    }
-    const auxLocation = StructureElement.Location.create(ctx.structure);
-
-    const color: LocationColor = (location: Location, isSecondary: boolean) => {
-        if (StructureElement.Location.is(location)) {
-            return structureElementColor(location, isSecondary);
-        } else if (Bond.isLocation(location)) {
-            // this will be applied for each bond twice, to get color of each half (a* refers to the adjacent atom, b* to the opposite atom)
-            auxLocation.unit = location.aUnit;
-            auxLocation.element = location.aUnit.elements[location.aIndex];
-            return structureElementColor(auxLocation, isSecondary);
-        }
-        return props.background;
-    };
-
-    return {
-        factory: (ctx_, props_) => makeMultilayerColorTheme(ctx_, props_, colorThemeRegistry),
-        granularity: granularityNameFromFlags(granularityFlags),
-        preferSmoothing: true,
-        color: color,
-        props: props,
-        description: 'Combines colors from multiple color themes.',
-    };
+    return { colorLayers, granularity: granularityNameFromFlags(granularityFlags) };
 }
 
 
