@@ -48,15 +48,20 @@ export function isSelectorAll(props: Selector): props is typeof SelectorAll {
 export type ElementSet = { [unitId: number]: SortedArray<ElementIndex> }
 
 export const ElementSet = {
+    /** Create an `ElementSet` from a structure */
+    fromStructure(structure: Structure | undefined): ElementSet {
+        if (!structure) return {};
+        const out: ElementSet = {};
+        for (const unit of structure.units) {
+            out[unit.id] = unit.elements;
+        }
+        return out;
+    },
     /** Create an `ElementSet` from the substructure of `structure` defined by `selector` */
     fromSelector(structure: Structure | undefined, selector: Selector): ElementSet {
         if (!structure) return {};
         const selection = substructureFromSelector(structure, selector); // using `getAtomRangesForRow` might (might not) be faster here
-        const out: ElementSet = {};
-        for (const unit of selection.units) {
-            out[unit.id] = unit.elements;
-        }
-        return out;
+        return this.fromStructure(selection);
     },
     /** Decide if the element set `set` contains structure element location `location` */
     has(set: ElementSet, location: StructureElement.Location): boolean {
