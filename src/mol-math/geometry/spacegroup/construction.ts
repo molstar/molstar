@@ -106,7 +106,7 @@ namespace Spacegroup {
 
     export function getSymmetryOperator(spacegroup: Spacegroup, spgrOp: number, i: number, j: number, k: number): SymmetryOperator {
         const operator = setOperatorMatrix(spacegroup, spgrOp, i, j, k, Mat4.zero());
-        return SymmetryOperator.create(`${spgrOp + 1}_${5 + i}${5 + j}${5 + k}`, operator, { hkl: Vec3.create(i, j, k), spgrOp });
+        return SymmetryOperator.create(SymmetryOperator.getSymmetryOperatorName(spgrOp, i, j, k), operator, { hkl: Vec3.create(i, j, k), spgrOp });
     }
 
     const _translationRef = Vec3();
@@ -145,7 +145,7 @@ namespace Spacegroup {
         const _k = k - _translationRefOffset[2];
 
         // const operator = setOperatorMatrixRef(spacegroup, spgrOp, i, j, k, ref, Mat4.zero());
-        return SymmetryOperator.create(`${spgrOp + 1}_${5 + _i}${5 + _j}${5 + _k}`, operator, { hkl: Vec3.create(_i, _j, _k), spgrOp });
+        return SymmetryOperator.create(SymmetryOperator.getSymmetryOperatorName(spgrOp, _i, _j, _k), operator, { hkl: Vec3.create(_i, _j, _k), spgrOp });
     }
 
     function getOperatorMatrix(ids: number[]) {
