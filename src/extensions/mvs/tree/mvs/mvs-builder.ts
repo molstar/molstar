@@ -261,9 +261,11 @@ export class Representation extends _Base<'representation'> {
 /** MVS builder pointing to a 'component' or 'component_from_uri' or 'component_from_source' node */
 export class Volume extends _Base<'volume'> implements FocusMixin {
     /** Add a 'representation' node and return builder pointing to it. 'representation' node instructs to create a visual representation of a component. */
-    representation(params: Partial<MVSNodeParams<'volume_representation'>> & CustomAndRef = {}): VolumeRepresentation {
-        const fullParams: MVSNodeParams<'volume_representation'> = { ...params, type: params.type ?? 'isosurface' };
-        return new VolumeRepresentation(this._root, this.addChild('volume_representation', fullParams));
+    representation(params?: MVSNodeParams<'volume_representation'> & CustomAndRef): VolumeRepresentation {
+        if (!params) {
+            params = { type: 'isosurface' };
+        }
+        return new VolumeRepresentation(this._root, this.addChild('volume_representation', params));
     }
     focus = bindMethod(this, FocusMixinImpl, 'focus');
 }
