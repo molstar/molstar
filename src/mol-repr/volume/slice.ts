@@ -35,6 +35,9 @@ export const SliceParams = {
         x: PD.Numeric(0, { min: 0, max: 0, step: 1 }, { immediateUpdate: true }),
         y: PD.Numeric(0, { min: 0, max: 0, step: 1 }, { immediateUpdate: true }),
         z: PD.Numeric(0, { min: 0, max: 0, step: 1 }, { immediateUpdate: true }),
+        relativeX: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }, { immediateUpdate: true }),
+        relativeY: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }, { immediateUpdate: true }),
+        relativeZ: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }, { immediateUpdate: true }),
     }, { isEssential: true, hideIf: p => p.mode !== 'grid', description: 'Slice position in grid coordinates.' }),
     isoValue: Volume.IsoValueParam,
     mode: PD.Select('grid', PD.arrayToOptions(['grid', 'frame', 'plane'] as const), { description: 'Grid: slice through the volume along the grid axes in integer steps. Frame: slice through the volume along arbitrary axes in any step size. Plane: an arbitrary plane defined by point and normal.' }),
@@ -59,6 +62,9 @@ export function getSliceParams(ctx: ThemeRegistryContext, volume: Volume) {
         x: PD.Numeric(0, { min: 0, max: dim[0] - 1, step: 1 }, { immediateUpdate: true }),
         y: PD.Numeric(0, { min: 0, max: dim[1] - 1, step: 1 }, { immediateUpdate: true }),
         z: PD.Numeric(0, { min: 0, max: dim[2] - 1, step: 1 }, { immediateUpdate: true }),
+        relativeX: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }, { immediateUpdate: true }),
+        relativeY: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }, { immediateUpdate: true }),
+        relativeZ: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }, { immediateUpdate: true }),
     }, { isEssential: true, hideIf: p => p.mode !== 'grid' });
     p.isoValue = Volume.createIsoValueParam(Volume.IsoValue.absolute(volume.grid.stats.min), volume.grid.stats);
     return p;
@@ -329,8 +335,8 @@ async function createGridImage(ctx: VisualContext, volume: Volume, key: number, 
     } = getSliceInfo(volume.grid, props);
 
     const corners = new Float32Array(
-        dim === 'x' ? [x, 0, 0, x, y, 0, x, 0, z, x, y, z] :
-            dim === 'y' ? [0, y, 0, x, y, 0, 0, y, z, x, y, z] :
+        dim === 'x' || dim === 'relativeX' ? [x, 0, 0, x, y, 0, x, 0, z, x, y, z] :
+            dim === 'y' || dim === 'relativeY' ? [0, y, 0, x, y, 0, 0, y, z, x, y, z] :
                 [0, 0, z, 0, y, z, x, 0, z, x, y, z]
     );
 
@@ -396,9 +402,24 @@ function getSliceInfo(grid: Grid, props: SliceProps) {
         x = nx - 1, y = index, z = nz - 1;
         width = nz, height = nx;
         y0 = y, ny = y0 + 1;
-    } else {
+    } else if (dim === 'z') {
         x = nx - 1, y = ny - 1, z = index;
         width = nx, height = ny;
+        z0 = z, nz = z0 + 1;
+    } else if (dim === 'relativeX') {
+        x = Math.floor(space.dimensions[0] * index);
+        y = space.dimensions[1] - 1, z = space.dimensions[2] - 1;
+        width = space.dimensions[2], height = space.dimensions[1];
+        x0 = x, nx = x0 + 1;
+    } else if (dim === 'relativeY') {
+        x = space.dimensions[0] - 1, y = Math.floor(space.dimensions[1] * index);
+        z = space.dimensions[2] - 1;
+        width = space.dimensions[2], height = space.dimensions[0];
+        y0 = y, ny = y0 + 1;
+    } else /* if (dim === 'relativeZ') */ {
+        x = space.dimensions[0] - 1, y = space.dimensions[1] - 1;
+        z = Math.floor(space.dimensions[2] * index);
+        width = space.dimensions[0], height = space.dimensions[1];
         z0 = z, nz = z0 + 1;
     }
     return {

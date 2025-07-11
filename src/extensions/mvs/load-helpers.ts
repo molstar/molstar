@@ -651,14 +651,24 @@ export function volumeRepresentationProps(node: MolstarSubtree<'volume_represent
     const alpha = alphaForNode(node);
     const clip = clippingForNode(node);
     const params = node.params;
+
+    const isoValue = typeof params.absolute_isovalue === 'number' ? Volume.IsoValue.absolute(params.absolute_isovalue) : Volume.IsoValue.relative(params.relative_isovalue ?? 0);
     switch (params.type) {
         case 'isosurface':
-            const isoValue = typeof params.absolute_isovalue === 'number' ? Volume.IsoValue.absolute(params.absolute_isovalue) : Volume.IsoValue.relative(params.relative_isovalue ?? 0);
             const visuals: ('wireframe' | 'solid')[] = [];
             if (params.show_wireframe) visuals.push('wireframe');
             if (params.show_faces) visuals.push('solid');
             return {
                 type: { name: 'isosurface', params: { alpha, isoValue, visuals, clip } },
+            };
+        case 'grid-slice':
+            const isRelative = params.relative_index !== undefined;
+            const dimension = {
+                name: isRelative ? `relative${params.dimension.toUpperCase()}` : params.dimension,
+                params: params.relative_index ?? params.relative_index
+            };
+            return {
+                type: { name: 'slice', params: { alpha, dimension, isoValue, clip } },
             };
         default:
             throw new Error('NotImplementedError');

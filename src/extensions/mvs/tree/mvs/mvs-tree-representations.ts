@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { bool, float, literal, nullable, OptionalField, RequiredField } from '../generic/field-schema';
+import { bool, float, int, literal, nullable, OptionalField, RequiredField } from '../generic/field-schema';
 import { SimpleParamsSchema, UnionParamsSchema } from '../generic/params-schema';
 import { Matrix, Vector3 } from './param-types';
 
@@ -64,11 +64,25 @@ const VolumeIsoSurface = {
     show_faces: OptionalField(bool, true, 'Show mesh faces. Defaults to true.'),
 };
 
+const VolumeGridSlice = {
+    /** Dimension of the grid slice, i.e. 'x', 'y', or 'z'. */
+    dimension: RequiredField(literal('x', 'y', 'z'), 'Dimension of the grid slice, i.e. \'x\', \'y\', or \'z\'.'),
+    /** Index of the grid slice in the specified dimension. 0-based index, i.e. 0 is the first slice. */
+    absolute_index: OptionalField(nullable(int), null, 'Index of the grid slice in the specified dimension. 0-based index, i.e. 0 is the first slice.'),
+    /** Relative index of the grid slice in the specified dimension. 0.0 is the first slice, 1.0 is the last slice. Overrides `absolute_index`. */
+    relative_index: OptionalField(nullable(float), null, 'Relative index of the grid slice in the specified dimension. 0.0 is the first slice, 1.0 is the last slice. Overrides `absolute_index`.'),
+    /** Relative isovalue. */
+    relative_isovalue: OptionalField(nullable(float), null, 'Relative isovalue.'),
+    /** Absolute isovalue. Overrides `relative_isovalue`. */
+    absolute_isovalue: OptionalField(nullable(float), null, 'Absolute isovalue. Overrides `relative_isovalue`.'),
+};
+
 export const MVSVolumeRepresentationParams = UnionParamsSchema(
     'type',
     'Representation type',
     {
         'isosurface': SimpleParamsSchema(VolumeIsoSurface),
+        'grid-slice': SimpleParamsSchema(VolumeGridSlice),
     },
 );
 
