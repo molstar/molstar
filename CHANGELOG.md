@@ -16,6 +16,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - `clip` node support for structure and volume representations
   - `grid-slice` representation support for volumes
   - Support tethers and background for primitive labels
+  - Support `snapshot_key` parameter on primitives that enables transition between states via clicking on 3D objects
 - [Breaking] Renamed some color schemes ('inferno' -> 'inferno-no-black', 'magma' -> 'magma-no-black', 'turbo' -> 'turbo-no-black', 'rainbow' -> 'simple-rainbow')
 - Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
 - Snapshot Markdown improvements

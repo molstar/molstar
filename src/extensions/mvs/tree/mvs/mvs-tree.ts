@@ -337,6 +337,8 @@ export const MVSTreeSchema = TreeSchema({
                 label_attachment: OptionalField(LabelAttachments, 'middle-center', 'How to attach the label to the target. Defaults to "middle-center".'),
                 /** Background color of the label. Defaults to none/transparent. */
                 label_background_color: OptionalField(nullable(ColorT), null, 'Background color of the label. Defaults to none/transparent.'),
+                /** Load snapshot with the provided key when interacting with this primitives group. */
+                snapshot_key: OptionalField(nullable(str), null, 'Load snapshot with the provided key when interacting with this primitives group.'),
                 /** Instances of this primitive group defined as 4x4 column major (j * 4 + i indexing) transformation matrices. */
                 instances: OptionalField(nullable(list(Matrix)), null, 'Instances of this primitive group defined as 4x4 column major (j * 4 + i indexing) transformation matrices.'),
             }),

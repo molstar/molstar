@@ -1060,6 +1060,13 @@ const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
             const props = { ...PD.getDefaultValues(a.data.params), ...params };
             const repr = ShapeRepresentation(a.data.getShape, a.data.geometryUtils);
             await repr.createOrUpdate(props, a.data.data).runInContext(ctx);
+
+            // This is to support MolViewSpec snapshotKeys
+            const pickable = !!(params as any).snapshotKey?.trim();
+            if (pickable) {
+                repr.setState({ pickable, markerActions: MarkerActions.Highlighting });
+            }
+
             return new SO.Shape.Representation3D({ repr, sourceData: a.data }, { label: a.data.label });
         });
     },
@@ -1068,6 +1075,12 @@ const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
             const props = { ...b.data.repr.props, ...newParams };
             await b.data.repr.createOrUpdate(props, a.data.data).runInContext(ctx);
             b.data.sourceData = a.data;
+
+            // This is to support MolViewSpec snapshotKeys
+            const pickable = !!(newParams as any).snapshotKey?.trim();
+            if (pickable) {
+                b.data.repr.setState({ pickable, markerActions: MarkerActions.Highlighting });
+            }
             return StateTransformer.UpdateResult.Updated;
         });
     }

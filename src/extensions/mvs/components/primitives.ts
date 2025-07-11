@@ -131,6 +131,8 @@ export const MVSBuildPrimitiveShape = MVSTransform({
         const structureRefs = dependencies ? collectMVSReferences([SO.Molecule.Structure], dependencies) : {};
         const context: PrimitiveBuilderContext = { ...a.data, structureRefs };
 
+        const snapshotKey = { snapshotKey: { ...SnapshotKey, defaultValue: a.data.options?.snapshot_key ?? '' } };
+
         const label = capitalize(params.kind);
         if (params.kind === 'mesh') {
             if (!hasPrimitiveKind(a.data, 'mesh')) return StateObject.Null;
@@ -138,7 +140,10 @@ export const MVSBuildPrimitiveShape = MVSTransform({
             return new SO.Shape.Provider({
                 label,
                 data: context,
-                params: PD.withDefaults(Mesh.Params, { alpha: a.data.options?.opacity ?? 1 }),
+                params: {
+                    ...PD.withDefaults(Mesh.Params, { alpha: a.data.options?.opacity ?? 1 }),
+                    ...snapshotKey,
+                },
                 getShape: (_, data, __, prev: any) => buildPrimitiveMesh(data, prev?.geometry),
                 geometryUtils: Mesh.Utils,
             }, { label });
@@ -150,14 +155,17 @@ export const MVSBuildPrimitiveShape = MVSTransform({
             return new SO.Shape.Provider({
                 label,
                 data: context,
-                params: PD.withDefaults(DefaultLabelParams, {
-                    alpha: a.data.options?.label_opacity ?? 1,
-                    attachment: options?.label_attachment ?? 'middle-center',
-                    tether: options?.label_show_tether ?? false,
-                    tetherLength: options?.label_tether_length ?? 1,
-                    background: isDefined(bgColor),
-                    backgroundColor: isDefined(bgColor) ? decodeColor(bgColor) : undefined,
-                }),
+                params: {
+                    ...PD.withDefaults(DefaultLabelParams, {
+                        alpha: a.data.options?.label_opacity ?? 1,
+                        attachment: options?.label_attachment ?? 'middle-center',
+                        tether: options?.label_show_tether ?? false,
+                        tetherLength: options?.label_tether_length ?? 1,
+                        background: isDefined(bgColor),
+                        backgroundColor: isDefined(bgColor) ? decodeColor(bgColor) : undefined,
+                    }),
+                    ...snapshotKey,
+                },
                 getShape: (_, data, props, prev: any) => buildPrimitiveLabels(data, prev?.geometry, props),
                 geometryUtils: Text.Utils,
             }, { label });
@@ -167,7 +175,10 @@ export const MVSBuildPrimitiveShape = MVSTransform({
             return new SO.Shape.Provider({
                 label,
                 data: context,
-                params: PD.withDefaults(Lines.Params, { alpha: a.data.options?.opacity ?? 1 }),
+                params: {
+                    ...PD.withDefaults(Lines.Params, { alpha: a.data.options?.opacity ?? 1 }),
+                    ...snapshotKey,
+                },
                 getShape: (_, data, __, prev: any) => buildPrimitiveLines(data, prev?.geometry),
                 geometryUtils: Lines.Utils,
             }, { label });
@@ -176,6 +187,8 @@ export const MVSBuildPrimitiveShape = MVSTransform({
         return StateObject.Null;
     }
 });
+
+const SnapshotKey = PD.Text('', { isEssential: true, disableInteractiveUpdates: true, description: 'Activate the snapshot with the provided key when clicking on the label' });
 
 /* **************************************************** */
 
