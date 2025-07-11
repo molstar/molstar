@@ -385,6 +385,10 @@ async function createGridImage(ctx: VisualContext, volume: Volume, key: number, 
 
 //
 
+function getRelativeIndex(dim: number, index: number) {
+    return clamp(Math.round((dim - 1) * index), 0, dim - 1);
+}
+
 function getSliceInfo(grid: Grid, props: SliceProps) {
     const { dimension: { name: dim, params: index } } = props;
     const { space } = grid.cells;
@@ -407,19 +411,22 @@ function getSliceInfo(grid: Grid, props: SliceProps) {
         width = nx, height = ny;
         z0 = z, nz = z0 + 1;
     } else if (dim === 'relativeX') {
-        x = Math.floor(space.dimensions[0] * index);
-        y = space.dimensions[1] - 1, z = space.dimensions[2] - 1;
-        width = space.dimensions[2], height = space.dimensions[1];
+        x = getRelativeIndex(nx, index);
+        y = ny - 1;
+        z = nz - 1;
+        width = nz, height = ny;
         x0 = x, nx = x0 + 1;
     } else if (dim === 'relativeY') {
-        x = space.dimensions[0] - 1, y = Math.floor(space.dimensions[1] * index);
-        z = space.dimensions[2] - 1;
-        width = space.dimensions[2], height = space.dimensions[0];
+        x = nx - 1;
+        y = getRelativeIndex(ny, index);
+        z = nz - 1;
+        width = nz, height = nx;
         y0 = y, ny = y0 + 1;
     } else /* if (dim === 'relativeZ') */ {
-        x = space.dimensions[0] - 1, y = space.dimensions[1] - 1;
-        z = Math.floor(space.dimensions[2] * index);
-        width = space.dimensions[0], height = space.dimensions[1];
+        x = nx - 1;
+        y = ny - 1;
+        z = getRelativeIndex(nz, index);
+        width = nx, height = ny;
         z0 = z, nz = z0 + 1;
     }
     return {
