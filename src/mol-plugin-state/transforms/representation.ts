@@ -1055,7 +1055,7 @@ const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
     canAutoUpdate() {
         return true;
     },
-    apply({ a, params }, plugin: PluginContext) {
+    apply({ a, params }) {
         return Task.create('Shape Representation', async ctx => {
             const props = { ...PD.getDefaultValues(a.data.params), ...params };
             const repr = ShapeRepresentation(a.data.getShape, a.data.geometryUtils);
@@ -1063,7 +1063,7 @@ const ShapeRepresentation3D = PluginStateTransform.BuiltIn({
             return new SO.Shape.Representation3D({ repr, sourceData: a.data }, { label: a.data.label });
         });
     },
-    update({ a, b, oldParams, newParams }, plugin: PluginContext) {
+    update({ a, b, newParams }) {
         return Task.create('Shape Representation', async ctx => {
             const props = { ...b.data.repr.props, ...newParams };
             await b.data.repr.createOrUpdate(props, a.data.data).runInContext(ctx);
