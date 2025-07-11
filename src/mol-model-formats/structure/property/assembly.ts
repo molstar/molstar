@@ -122,7 +122,7 @@ function getAssemblyOperators(matrices: Matrices, operatorNames: string[][], sta
         index++;
         const opName = `ASM_${index}`; // Kept mostly for compatibility reasons
         const canonicalOpName = SymmetryOperator.getAssemblyOperatorName(op);
-        operators[operators.length] = SymmetryOperator.create(opName, m, { canonicalName: canonicalOpName, assembly: { id: assemblyId, operId: index, operList: op } });
+        operators[operators.length] = SymmetryOperator.create(opName, m, { instanceId: canonicalOpName, assembly: { id: assemblyId, operId: index, operList: op } });
     }
 
     return operators;

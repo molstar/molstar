@@ -305,7 +305,7 @@ const symbols = [
     D(MolScript.structureQuery.atomProperty.core.z, atomProp(StructureProperties.atom.z)),
     D(MolScript.structureQuery.atomProperty.core.sourceIndex, atomProp(StructureProperties.atom.sourceIndex)),
     D(MolScript.structureQuery.atomProperty.core.operatorName, atomProp(StructureProperties.unit.operator_name)),
-    D(MolScript.structureQuery.atomProperty.core.canonicalOperatorName, atomProp(StructureProperties.unit.canonical_operator_name)),
+    D(MolScript.structureQuery.atomProperty.core.instanceId, atomProp(StructureProperties.unit.instance_id)),
     D(MolScript.structureQuery.atomProperty.core.operatorKey, atomProp(StructureProperties.unit.operator_key)),
     D(MolScript.structureQuery.atomProperty.core.modelIndex, atomProp(StructureProperties.unit.model_index)),
     D(MolScript.structureQuery.atomProperty.core.modelLabel, atomProp(StructureProperties.unit.model_label)),

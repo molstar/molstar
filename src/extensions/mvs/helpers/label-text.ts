@@ -44,7 +44,7 @@ class AtomRangesCache {
     }
 
     get(unit: Unit): AtomRanges {
-        const instanceId = unit.conformation.operator.canonicalName;
+        const instanceId = unit.conformation.operator.instanceId;
         const key = this.hasOperators ? `${unit.model.id}:${instanceId}` : unit.model.id;
         return this.cache[key] ??= getAtomRangesForRows(this.rows, unit.model, instanceId, IndicesAndSortings.get(unit.model));
     }

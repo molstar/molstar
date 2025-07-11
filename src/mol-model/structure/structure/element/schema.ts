@@ -15,7 +15,7 @@ import { Loci } from './loci';
 export interface SchemaItem {
     /** Corresponds to SymmetryOperator.name, e.g. 1_555, ASM_5 */
     operator_name?: string,
-    /** Corresponds to SymmetryOperator.canonicalName, e.g. 1_555, ASM-X0-5 */
+    /** Corresponds to SymmetryOperator.instanceId, e.g. 1_555, ASM-X0-5 */
     instance_id?: string,
     label_entity_id?: string,
     label_asym_id?: string,
@@ -72,7 +72,7 @@ function schemaItemToExpression(item: SchemaItem): Expression {
 
     const chainTests: Expression[] = [];
     if (isDefined(item.operator_name)) chainTests.push(eq([core.operatorName(), item.operator_name]));
-    if (isDefined(item.instance_id)) chainTests.push(eq([core.canonicalOperatorName(), item.instance_id]));
+    if (isDefined(item.instance_id)) chainTests.push(eq([core.instanceId(), item.instance_id]));
     if (isDefined(item.label_asym_id)) chainTests.push(eq([macromolecular.label_asym_id(), item.label_asym_id]));
     if (isDefined(item.auth_asym_id)) chainTests.push(eq([macromolecular.auth_asym_id(), item.auth_asym_id]));
 
