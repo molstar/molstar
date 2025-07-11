@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { dict, float, int, list, literal, nullable, OptionalField, RequiredField, str, tuple, union } from '../generic/field-schema';
+import { bool, dict, float, int, list, literal, nullable, OptionalField, RequiredField, str, tuple, union } from '../generic/field-schema';
 import { SimpleParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
 import { MVSClipParams, MVSRepresentationParams, MVSVolumeRepresentationParams } from './mvs-tree-representations';
@@ -49,6 +49,8 @@ const _DataFromSourceParams = {
 
 /** Color to be used e.g. for representations without 'color' node */
 export const DefaultColor = 'white';
+
+const LabelAttachments = literal('bottom-left', 'bottom-center', 'bottom-right', 'middle-left', 'middle-center', 'middle-right', 'top-left', 'top-center', 'top-right');
 
 /** Schema for `MVSTree` (MolViewSpec tree) */
 export const MVSTreeSchema = TreeSchema({
@@ -327,6 +329,14 @@ export const MVSTreeSchema = TreeSchema({
                 opacity: OptionalField(float, 1, 'Opacity of primitive geometry in this group.'),
                 /** Opacity of primitive labels in this group. */
                 label_opacity: OptionalField(float, 1, 'Opacity of primitive labels in this group.'),
+                /** Whether to show a tether line between the label and the target. Defaults to false. */
+                label_show_tether: OptionalField(bool, false, 'Whether to show a tether line between the label and the target. Defaults to false.'),
+                /** Length of the tether line between the label and the target. Defaults to 1 (Angstrom). */
+                label_tether_length: OptionalField(float, 1, 'Length of the tether line between the label and the target. Defaults to 1 (Angstrom).'),
+                /** How to attach the label to the target. Defaults to "middle-center". */
+                label_attachment: OptionalField(LabelAttachments, 'middle-center', 'How to attach the label to the target. Defaults to "middle-center".'),
+                /** Background color of the label. Defaults to none/transparent. */
+                label_background_color: OptionalField(nullable(ColorT), null, 'Background color of the label. Defaults to none/transparent.'),
                 /** Instances of this primitive group defined as 4x4 column major (j * 4 + i indexing) transformation matrices. */
                 instances: OptionalField(nullable(list(Matrix)), null, 'Instances of this primitive group defined as 4x4 column major (j * 4 + i indexing) transformation matrices.'),
             }),

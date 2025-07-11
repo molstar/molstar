@@ -35,7 +35,7 @@ import { Color } from '../../../mol-util/color';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { capitalize } from '../../../mol-util/string';
 import { rowsToExpression, rowToExpression } from '../helpers/selections';
-import { collectMVSReferences, decodeColor } from '../helpers/utils';
+import { collectMVSReferences, decodeColor, isDefined } from '../helpers/utils';
 import { MolstarNode, MolstarSubtree } from '../tree/molstar/molstar-tree';
 import { MVSNode } from '../tree/mvs/mvs-tree';
 import { isComponentExpression, isPrimitiveComponentExpressions, isVector3, PrimitivePositionT } from '../tree/mvs/param-types';
@@ -145,11 +145,20 @@ export const MVSBuildPrimitiveShape = MVSTransform({
         } else if (params.kind === 'labels') {
             if (!hasPrimitiveKind(a.data, 'label')) return StateObject.Null;
 
+            const options = a.data.options;
+            const bgColor = options?.label_background_color;
             return new SO.Shape.Provider({
                 label,
                 data: context,
-                params: PD.withDefaults(DefaultLabelParams, { alpha: a.data.options?.label_opacity ?? 1 }),
-                getShape: (_, data, __, prev: any) => buildPrimitiveLabels(data, prev?.geometry),
+                params: PD.withDefaults(DefaultLabelParams, {
+                    alpha: a.data.options?.label_opacity ?? 1,
+                    attachment: options?.label_attachment ?? 'middle-center',
+                    tether: options?.label_show_tether ?? false,
+                    tetherLength: options?.label_tether_length ?? 1,
+                    background: isDefined(bgColor),
+                    backgroundColor: isDefined(bgColor) ? decodeColor(bgColor) : undefined,
+                }),
+                getShape: (_, data, props, prev: any) => buildPrimitiveLabels(data, prev?.geometry, props),
                 geometryUtils: Text.Utils,
             }, { label });
         } else if (params.kind === 'lines') {
@@ -533,8 +542,11 @@ function buildPrimitiveLines(context: PrimitiveBuilderContext, prev?: Lines): Sh
     );
 }
 
-function buildPrimitiveLabels(context: PrimitiveBuilderContext, prev?: Text): Shape<Text> {
-    const labelsBuilder = TextBuilder.create(BaseLabelProps, 1024, 1024, prev);
+function buildPrimitiveLabels(context: PrimitiveBuilderContext, prev: Text | undefined, props: PD.Values<Text.Params>): Shape<Text> {
+    const labelsBuilder = TextBuilder.create({
+        ...BaseLabelProps,
+        ...props,
+    }, 1024, 1024, prev);
     const state: LabelBuilderState = { groups: new GroupManager(), labels: labelsBuilder };
 
     for (const c of context.primitives) {
