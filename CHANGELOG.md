@@ -17,6 +17,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - `grid-slice` representation support for volumes
   - Support tethers and background for primitive labels
   - Support `snapshot_key` parameter on primitives that enables transition between states via clicking on 3D objects
+  - Inline selectors and MVS annotations support `instance_id`
 - [Breaking] Renamed some color schemes ('inferno' -> 'inferno-no-black', 'magma' -> 'magma-no-black', 'turbo' -> 'turbo-no-black', 'rainbow' -> 'simple-rainbow')
 - Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
 - Snapshot Markdown improvements
@@ -28,6 +29,8 @@ Note that since we don't clearly distinguish between a public and private interf
   - Indicate external links with ⤴
 - Avoid calculating rings for coarse-grained structures
 - Fix isosurface compute shader normals when transformation matrix is applied to volume
+- Symmetry operator naming for spacegroup symmetry - parenthesize multi-character indices (1_111-1 -> 1_(11)1(-1))
+- Add canonical operator name (e.g. ASM-1, ASM-X0-1 for assemblies, 1_555, 1_(11)1(-1) for crystals)
 - [Breaking] `PluginContext.initViewer/initContainer/mount` are now async and have been renamed to include `Async` postfix
 - Mol2 Reader
     - Fix column count parsing

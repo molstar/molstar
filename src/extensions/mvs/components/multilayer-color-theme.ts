@@ -4,17 +4,19 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { ColorTypeLocation } from '../../../mol-geo/geometry/color-data';
 import { Location } from '../../../mol-model/location';
 import { Bond, Structure, StructureElement } from '../../../mol-model/structure';
 import { ColorTheme, LocationColor } from '../../../mol-theme/color';
 import { ColorThemeCategory } from '../../../mol-theme/color/categories';
 import { ThemeDataContext } from '../../../mol-theme/theme';
+import { deepEqual } from '../../../mol-util';
 import { Color } from '../../../mol-util/color';
 import { ColorNames } from '../../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { stringToWords } from '../../../mol-util/string';
 import { isMVSStructure } from './is-mvs-model-prop';
-import { ElementSet, SelectorParams, isSelectorAll } from './selector';
+import { ElementSet, SelectorParams, isSelectorAll, substructureFromSelector } from './selector';
 
 
 /** Special value that can be used as color with null-like semantic (i.e. "no color provided").
@@ -70,32 +72,7 @@ export const DefaultMultilayerColorThemeProps: MultilayerColorThemeProps = { lay
  * If a nested theme provider has `ensureCustomProperties` methods, these will not be called automatically
  * (the caller must ensure that any required custom properties be attached). */
 function makeMultilayerColorTheme(ctx: ThemeDataContext, props: MultilayerColorThemeProps, colorThemeRegistry: ColorTheme.Registry): ColorTheme<MultilayerColorThemeParams> {
-    const colorLayers: { color: LocationColor, elementSet: ElementSet | undefined }[] = []; // undefined elementSet means 'all'
-    for (let i = props.layers.length - 1; i >= 0; i--) { // iterate from end to get top layer first, bottom layer last
-        const layer = props.layers[i];
-        const themeProvider = colorThemeRegistry.get(layer.theme.name);
-        if (!themeProvider) {
-            console.warn(`Skipping color theme '${layer.theme.name}', cannot find it in registry.`);
-            continue;
-        }
-        if (themeProvider.ensureCustomProperties?.attach) {
-            console.warn(`Multilayer color theme: layer "${themeProvider.name}" has ensureCustomProperties.attach method, but Multilayer color theme does not call it. If the layer does not work, make sure you call ensureCustomProperties.attach somewhere.`);
-        }
-        const theme = themeProvider.factory(ctx, layer.theme.params);
-        switch (theme.granularity) {
-            case 'uniform':
-            case 'instance':
-            case 'group':
-            case 'groupInstance':
-            case 'vertex':
-            case 'vertexInstance':
-                const elementSet = isSelectorAll(layer.selection) ? undefined : ElementSet.fromSelector(ctx.structure, layer.selection); // treating 'all' specially for performance reasons (it's expected to be used most often)
-                colorLayers.push({ color: theme.color, elementSet });
-                break;
-            default:
-                console.warn(`Skipping color theme '${layer.theme.name}', cannot process granularity '${theme.granularity}'`);
-        }
-    };
+    const { colorLayers, granularity } = makeLayers(ctx, props, colorThemeRegistry);
 
     function structureElementColor(loc: StructureElement.Location, isSecondary: boolean): Color {
         for (const layer of colorLayers) {
@@ -123,12 +100,123 @@ function makeMultilayerColorTheme(ctx: ThemeDataContext, props: MultilayerColorT
 
     return {
         factory: (ctx_, props_) => makeMultilayerColorTheme(ctx_, props_, colorThemeRegistry),
-        granularity: 'group',
+        granularity,
         preferSmoothing: true,
         color: color,
         props: props,
         description: 'Combines colors from multiple color themes.',
     };
+}
+
+
+const GRAN_INSTANCE = 1, GRAN_GROUP = 2, GRAN_VERTEX = 4;
+
+const granularityFlagsFromName = {
+    'uniform': 0,
+    'instance': GRAN_INSTANCE,
+    'group': GRAN_GROUP,
+    'groupInstance': GRAN_GROUP | GRAN_INSTANCE,
+    'vertex': GRAN_VERTEX,
+    'vertexInstance': GRAN_VERTEX | GRAN_INSTANCE,
+} satisfies { [name in ColorTypeLocation]: number };
+
+function granularityNameFromFlags(flags: number): ColorTypeLocation {
+    if (flags & GRAN_VERTEX) return flags & GRAN_INSTANCE ? 'vertexInstance' : 'vertex';
+    if (flags & GRAN_GROUP) return flags & GRAN_INSTANCE ? 'groupInstance' : 'group';
+    return flags & GRAN_INSTANCE ? 'instance' : 'uniform';
+}
+
+interface ColorLayer {
+    /** Substructure to which the layer is applied, undefined means 'all' */
+    elementSet: ElementSet | undefined,
+    /** Color theme for the layer */
+    color: LocationColor,
+}
+
+function makeLayers(ctx: ThemeDataContext, props: MultilayerColorThemeProps, colorThemeRegistry: ColorTheme.Registry) {
+    const colorLayers: ColorLayer[] = [];
+    let granularityFlags = 0;
+    for (let i = props.layers.length - 1; i >= 0; i--) { // iterate from the end to get top layer first, bottom layer last
+        const layer = props.layers[i];
+        const themeProvider = colorThemeRegistry.get(layer.theme.name);
+        if (!themeProvider) {
+            console.warn(`Skipping color theme '${layer.theme.name}', cannot find it in registry.`);
+            continue;
+        }
+        if (themeProvider.ensureCustomProperties?.attach) {
+            console.warn(`Multilayer color theme: layer "${themeProvider.name}" has ensureCustomProperties.attach method, but Multilayer color theme does not call it. If the layer does not work, make sure you call ensureCustomProperties.attach somewhere.`);
+        }
+        const theme = themeProvider.factory(ctx, layer.theme.params);
+        switch (theme.granularity) {
+            case 'uniform':
+            case 'instance':
+            case 'group':
+            case 'groupInstance':
+            case 'vertex':
+            case 'vertexInstance':
+                let elementSet: ElementSet | undefined;
+                let selectionGranularity: 'uniform' | 'instance' | 'group' | 'groupInstance';
+                if (!ctx.structure) {
+                    elementSet = {};
+                    selectionGranularity = 'uniform';
+                } else if (isSelectorAll(layer.selection)) {
+                    // Treating 'all' specially for performance reasons (it's expected to be used most often)
+                    elementSet = undefined;
+                    selectionGranularity = 'uniform';
+                } else {
+                    const substructure = substructureFromSelector(ctx.structure, layer.selection);
+                    elementSet = ElementSet.fromStructure(substructure);
+                    selectionGranularity = getSubstructureGranularity(ctx.structure, substructure);
+                }
+                colorLayers.push({ elementSet, color: theme.color });
+                granularityFlags |= granularityFlagsFromName[selectionGranularity];
+                granularityFlags |= granularityFlagsFromName[theme.granularity];
+                break;
+            default:
+                console.warn(`Skipping color theme '${layer.theme.name}', cannot process granularity '${theme.granularity}'`);
+        }
+    }
+    return { colorLayers, granularity: granularityNameFromFlags(granularityFlags) };
+}
+
+
+function getSubstructureGranularity(parent: Structure, substructure: Structure) {
+    const parentCounts: { [instance: string]: number } = {};
+    for (const unit of parent.units) {
+        const instance = unit.conformation.operator.canonicalName;
+        parentCounts[instance] ??= 0;
+        parentCounts[instance] += unit.elements.length;
+    }
+
+    const childCounts: { [instance: string]: number } = {};
+    const elementsPerInstance: { [instance: string]: { [invariantId: number]: StructureElement.Set } } = {};
+    for (const unit of substructure.units) {
+        const instance = unit.conformation.operator.canonicalName;
+        childCounts[instance] ??= 0;
+        childCounts[instance] += unit.elements.length;
+        (elementsPerInstance[instance] ??= {})[unit.invariantId] = unit.elements;
+    }
+
+    const parentInstances = Object.keys(parentCounts);
+    const childInstances = Object.keys(childCounts);
+    const groupGranularity = !childInstances.every(inst => childCounts[inst] === parentCounts[inst]);
+    let instanceGranularity: boolean;
+
+    if (childInstances.length === 0) {
+        instanceGranularity = false;
+    } else if (childInstances.length < parentInstances.length) {
+        instanceGranularity = true;
+    } else {
+        instanceGranularity = false;
+        for (let i = 1; i < childInstances.length; i++) {
+            if (!deepEqual(elementsPerInstance[childInstances[0]], elementsPerInstance[childInstances[i]])) {
+                instanceGranularity = true;
+                break;
+            }
+        }
+    }
+    if (groupGranularity) return instanceGranularity ? 'groupInstance' : 'group';
+    else return instanceGranularity ? 'instance' : 'uniform';
 }
 
 

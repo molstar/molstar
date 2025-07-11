@@ -10,8 +10,6 @@ import { StaticStructureComponentTypes, createStructureComponent } from '../../.
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
 import { Expression } from '../../../mol-script/language/expression';
-import { UUID } from '../../../mol-util';
-import { arrayExtend, sortIfNeeded } from '../../../mol-util/array';
 import { mapArrayToObject, pickObjectKeys } from '../../../mol-util/object';
 import { Choice } from '../../../mol-util/param-choice';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -47,28 +45,27 @@ export function isSelectorAll(props: Selector): props is typeof SelectorAll {
 
 
 /** Data structure for fast lookup of a structure element location in a substructure */
-export type ElementSet = { [modelId: UUID]: SortedArray<ElementIndex> }
+export type ElementSet = { [unitId: number]: SortedArray<ElementIndex> }
 
 export const ElementSet = {
+    /** Create an `ElementSet` from a structure */
+    fromStructure(structure: Structure | undefined): ElementSet {
+        if (!structure) return {};
+        const out: ElementSet = {};
+        for (const unit of structure.units) {
+            out[unit.id] = unit.elements;
+        }
+        return out;
+    },
     /** Create an `ElementSet` from the substructure of `structure` defined by `selector` */
     fromSelector(structure: Structure | undefined, selector: Selector): ElementSet {
         if (!structure) return {};
-        const arrays: { [modelId: UUID]: ElementIndex[] } = {};
         const selection = substructureFromSelector(structure, selector); // using `getAtomRangesForRow` might (might not) be faster here
-        for (const unit of selection.units) {
-            arrayExtend(arrays[unit.model.id] ??= [], unit.elements);
-        }
-        const result: { [modelId: UUID]: SortedArray<ElementIndex> } = {};
-        for (const modelId in arrays) {
-            const array = arrays[modelId as UUID];
-            sortIfNeeded(array, (a, b) => a - b);
-            result[modelId as UUID] = SortedArray.ofSortedArray(array);
-        }
-        return result;
+        return this.fromStructure(selection);
     },
     /** Decide if the element set `set` contains structure element location `location` */
     has(set: ElementSet, location: StructureElement.Location): boolean {
-        const array = set[location.unit.model.id];
+        const array = set[location.unit.id];
         return array ? SortedArray.has(array, location.element) : false;
     },
 };
