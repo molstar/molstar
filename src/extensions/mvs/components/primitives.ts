@@ -5,6 +5,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { BaseGeometry } from '../../../mol-geo/geometry/base';
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 import { LinesBuilder } from '../../../mol-geo/geometry/lines/lines-builder';
 import { addFixedCountDashedCylinder, addSimpleCylinder, BasicCylinderProps } from '../../../mol-geo/geometry/mesh/builder/cylinder';
@@ -25,13 +26,15 @@ import { Structure, StructureElement, StructureSelection } from '../../../mol-mo
 import { StructureQueryHelper } from '../../../mol-plugin-state/helpers/structure-query';
 import { PluginStateObject as SO } from '../../../mol-plugin-state/objects';
 import { PluginContext } from '../../../mol-plugin/context';
+import { ShapeRepresentation } from '../../../mol-repr/shape/representation';
 import { Expression } from '../../../mol-script/language/expression';
-import { StateObject } from '../../../mol-state';
+import { StateObject, StateTransformer } from '../../../mol-state';
 import { Task } from '../../../mol-task';
 import { round } from '../../../mol-util';
 import { range } from '../../../mol-util/array';
 import { Asset } from '../../../mol-util/assets';
 import { Color } from '../../../mol-util/color';
+import { MarkerActions } from '../../../mol-util/marker-action';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { capitalize } from '../../../mol-util/string';
 import { rowsToExpression, rowToExpression } from '../helpers/selections';
@@ -185,6 +188,48 @@ export const MVSBuildPrimitiveShape = MVSTransform({
         }
 
         return StateObject.Null;
+    }
+});
+
+export const MVSShapeRepresentation3D = MVSTransform({
+    name: 'shape-representation-3d',
+    display: '3D Representation',
+    from: SO.Shape.Provider,
+    to: SO.Shape.Representation3D,
+    params: (a, ctx: PluginContext) => {
+        return a ? a.data.params : BaseGeometry.Params;
+    }
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }) {
+        return Task.create('Shape Representation', async ctx => {
+            const props = { ...PD.getDefaultValues(a.data.params), ...params };
+            const repr = ShapeRepresentation(a.data.getShape, a.data.geometryUtils);
+            await repr.createOrUpdate(props, a.data.data).runInContext(ctx);
+
+            const pickable = !!(params as any).snapshotKey?.trim();
+            if (pickable) {
+                repr.setState({ pickable, markerActions: MarkerActions.Highlighting });
+            }
+
+            return new SO.Shape.Representation3D({ repr, sourceData: a.data }, { label: a.data.label });
+        });
+    },
+    update({ a, b, newParams }) {
+        return Task.create('Shape Representation', async ctx => {
+            const props = { ...b.data.repr.props, ...newParams };
+            await b.data.repr.createOrUpdate(props, a.data.data).runInContext(ctx);
+            b.data.sourceData = a.data;
+
+            const pickable = !!(newParams as any).snapshotKey?.trim();
+            if (pickable) {
+                b.data.repr.setState({ pickable, markerActions: MarkerActions.Highlighting });
+            }
+
+            return StateTransformer.UpdateResult.Updated;
+        });
     }
 });
 

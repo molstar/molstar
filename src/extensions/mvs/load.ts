@@ -10,7 +10,7 @@ import { PluginStateSnapshotManager } from '../../mol-plugin-state/manager/snaps
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { Download, ParseCcp4, ParseCif } from '../../mol-plugin-state/transforms/data';
 import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromMmCif, TrajectoryFromPDB, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
-import { ShapeRepresentation3D, StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
+import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { VolumeFromCcp4, VolumeFromDensityServerCif } from '../../mol-plugin-state/transforms/volume';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
@@ -23,7 +23,7 @@ import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-
 import { CustomLabelProps, CustomLabelRepresentationProvider } from './components/custom-label/representation';
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
 import { IsMVSModelProps, IsMVSModelProvider } from './components/is-mvs-model-prop';
-import { getPrimitiveStructureRefs, MVSBuildPrimitiveShape, MVSDownloadPrimitiveData, MVSInlinePrimitiveData } from './components/primitives';
+import { getPrimitiveStructureRefs, MVSBuildPrimitiveShape, MVSDownloadPrimitiveData, MVSInlinePrimitiveData, MVSShapeRepresentation3D } from './components/primitives';
 import { IsHiddenCustomStateExtension } from './load-extensions/is-hidden-custom-state';
 import { NonCovalentInteractionsExtension } from './load-extensions/non-covalent-interactions';
 import { LoadingActions, LoadingExtension, loadTreeVirtual, UpdateTarget } from './load-generic';
@@ -324,11 +324,11 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
 
 function applyPrimitiveVisuals(data: UpdateTarget, refs: Set<string>) {
     const mesh = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'mesh' }, { state: { isGhost: true } }), refs);
-    UpdateTarget.apply(mesh, ShapeRepresentation3D);
+    UpdateTarget.apply(mesh, MVSShapeRepresentation3D);
     const labels = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'labels' }, { state: { isGhost: true } }), refs);
-    UpdateTarget.apply(labels, ShapeRepresentation3D);
+    UpdateTarget.apply(labels, MVSShapeRepresentation3D);
     const lines = UpdateTarget.setMvsDependencies(UpdateTarget.apply(data, MVSBuildPrimitiveShape, { kind: 'lines' }, { state: { isGhost: true } }), refs);
-    UpdateTarget.apply(lines, ShapeRepresentation3D);
+    UpdateTarget.apply(lines, MVSShapeRepresentation3D);
     return data;
 }
 
