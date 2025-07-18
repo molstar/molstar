@@ -8,8 +8,9 @@
 import { Mat3, Mat4, Quat, Vec3 } from '../../mol-math/linear-algebra';
 import { Volume } from '../../mol-model/volume';
 import { StructureComponentParams } from '../../mol-plugin-state/helpers/structure-component';
-import { StructureFromModel, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
+import { StructureFromModel, StructureInstances, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
+import { VolumeInstances, VolumeTransform } from '../../mol-plugin-state/transforms/volume';
 import { StateTransformer } from '../../mol-state';
 import { arrayDistinct } from '../../mol-util/array';
 import { Clip } from '../../mol-util/clip';
@@ -30,6 +31,7 @@ import { MvsNamedColorDicts, MvsNamedColorLists } from './helpers/colors';
 import { rowToExpression, rowsToExpression } from './helpers/selections';
 import { ElementOfSet, decodeColor, isDefined, stringHash } from './helpers/utils';
 import { MolstarLoadingContext } from './load';
+import { mvsRefTags, UpdateTarget } from './load-generic';
 import { Subtree, getChildren } from './tree/generic/tree-schema';
 import { dfs, formatObject } from './tree/generic/tree-utils';
 import { MolstarKind, MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree } from './tree/molstar/molstar-tree';
@@ -76,14 +78,43 @@ const _tmpVecX = Vec3();
 const _tmpVecY = Vec3();
 const _tmpVecZ = Vec3();
 
+export function transformAndInstantiateStructure(
+    target: UpdateTarget,
+    node: MolstarSubtree<'structure' | 'component' | 'component_from_source' | 'component_from_uri'>,
+) {
+    return applyTransformAndInstances(target, node, TransformStructureConformation, StructureInstances);
+}
+
+export function transformAndInstantiateVolume(target: UpdateTarget, node: MolstarSubtree<'volume'>) {
+    return applyTransformAndInstances(target, node, VolumeTransform, VolumeInstances);
+}
+
+function applyTransformAndInstances(target: UpdateTarget, node: MolstarSubtree, transform: StateTransformer, instantiate: StateTransformer) {
+    let modified = target;
+    for (const { params, ref } of transformProps(node, 'transform')) {
+        modified = UpdateTarget.apply(modified, transform, params);
+        UpdateTarget.tag(modified, mvsRefTags(ref));
+    }
+
+    const instances = transformProps(node, 'instance');
+    if (instances.length > 0) {
+        modified = UpdateTarget.apply(modified, instantiate, { transforms: instances.map(i => i.params) });
+    }
+
+    return modified;
+}
+
 /** Create an array of props for `TransformStructureConformation` transformers from all 'transform' nodes applied to a 'structure' node. */
-export function transformProps(node: MolstarSubtree<'structure'>): StateTransformer.Params<TransformStructureConformation>[] {
-    const result = [] as StateTransformer.Params<TransformStructureConformation>[];
-    const transforms = getChildren(node).filter(c => c.kind === 'transform') as MolstarNode<'transform'>[];
+function transformProps(node: MolstarSubtree, kind: 'transform' | 'instance') {
+    const result = [] as { params: StateTransformer.Params<TransformStructureConformation>, ref?: string }[];
+    const transforms = getChildren(node).filter(c => c.kind === kind) as MolstarNode<'transform'>[];
     for (const transform of transforms) {
-        const { rotation, translation } = transform.params;
-        const matrix = transformFromRotationTranslation(rotation, translation);
-        result.push({ transform: { name: 'matrix', params: { data: matrix, transpose: false } } });
+        let matrix: Mat4 | undefined = transform.params.matrix as Mat4 | undefined;
+        if (!matrix) {
+            const { rotation, translation } = transform.params;
+            matrix = transformFromRotationTranslation(rotation, translation);
+        }
+        result.push({ params: { transform: { name: 'matrix', params: { data: matrix, transpose: false } } }, ref: transform.ref });
     }
     return result;
 }

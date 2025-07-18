@@ -20,6 +20,7 @@ import { Grid, Volume } from '../../mol-model/volume';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateSelection } from '../../mol-state';
 import { volumeFromSegmentationData } from '../../mol-model-formats/volume/segmentation';
+import { getTransformFromParams, TransformParam } from './helpers';
 
 export { VolumeFromCcp4 };
 export { VolumeFromDsn6 };
@@ -231,44 +232,6 @@ const AssignColorVolume = PluginStateTransform.BuiltIn({
     }
 });
 
-function getTransform(src:
-    | { name: 'matrix', params: { data: Mat4, transpose?: boolean } }
-    | { name: 'components', params: { translation: Vec3, rotationAxis: Vec3, rotationAngle: number } }
-) {
-    if (src.name === 'matrix') {
-        const transform = Mat4();
-        Mat4.copy(transform, src.params.data);
-        if (src.params.transpose) Mat4.transpose(transform, transform);
-        return transform;
-    } else {
-        const transform = Mat4.fromRotation(Mat4(), src.params.rotationAngle * Math.PI / 180, src.params.rotationAxis);
-        Mat4.setTranslation(transform, src.params.translation);
-        return transform;
-    }
-}
-
-const TransformParam = PD.MappedStatic(
-    'matrix',
-    {
-        matrix: PD.Group(
-            {
-                data: PD.Mat4(Mat4.identity()),
-                transpose: PD.Boolean(false),
-            },
-            { isFlat: true }
-        ),
-        components: PD.Group(
-            {
-                translation: PD.Vec3(Vec3.create(0, 0, 0)),
-                rotationAxis: PD.Vec3(Vec3.create(1, 0, 0)),
-                rotationAngle: PD.Numeric(0, { min: -360, max: 360, step: 1 }, { description: 'Angle in Degrees' }),
-            },
-            { isFlat: true }
-        ),
-    },
-    { label: 'Kind' },
-);
-
 export type VolumeTransform = typeof VolumeTransform;
 export const VolumeTransform = PluginStateTransform.BuiltIn({
     name: 'volume-transform',
@@ -285,7 +248,7 @@ export const VolumeTransform = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }) {
         // similar to StateTransforms.Model.TransformStructureConformation;
-        const transform = getTransform(params.transform);
+        const transform = getTransformFromParams(params.transform);
         const gridTransform = {
             kind: 'matrix' as const,
             matrix: Mat4.mul(Mat4(), transform, Grid.getGridToCartesianTransform(a.data.grid)),
@@ -318,13 +281,13 @@ export const VolumeInstances = PluginStateTransform.BuiltIn({
         return true;
     },
     apply({ a, params }) {
-        const instances = params.transforms.map(t => ({ transform: getTransform(t.transform) }));
+        const instances = params.transforms.map(t => ({ transform: getTransformFromParams(t.transform) }));
         if (!instances.length) {
             return a;
         }
         return new SO.Volume.Data({
             ...a.data,
-            instances: params.transforms.map(t => ({ transform: getTransform(t.transform) })),
+            instances: params.transforms.map(t => ({ transform: getTransformFromParams(t.transform) })),
         }, {
             label: a.label,
             description: `${a.description} [Instanced]`,

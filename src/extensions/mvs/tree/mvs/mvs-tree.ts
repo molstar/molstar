@@ -52,6 +52,15 @@ export const DefaultColor = 'white';
 
 const LabelAttachments = literal('bottom-left', 'bottom-center', 'bottom-right', 'middle-left', 'middle-center', 'middle-right', 'top-left', 'top-center', 'top-right');
 
+const TransformParams = SimpleParamsSchema({
+    /** Rotation matrix (3x3 matrix flattened in column major format (j*3+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. The default value is the identity matrix (corresponds to no rotation). */
+    rotation: OptionalField(Matrix, [1, 0, 0, 0, 1, 0, 0, 0, 1], 'Rotation matrix (3x3 matrix flattened in column major format (j*3+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. The default value is the identity matrix (corresponds to no rotation).'),
+    /** Translation vector, applied to the structure coordinates after rotation. The default value is the zero vector (corresponds to no translation). */
+    translation: OptionalField(Vector3, [0, 0, 0], 'Translation vector, applied to the structure coordinates after rotation. The default value is the zero vector (corresponds to no translation).'),
+    /** Transform matrix (4x4 matrix flattened in column major format (j*4+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. Takes precedence over `rotation` and `translation`. */
+    matrix: OptionalField(nullable(Matrix), null, 'Transform matrix (4x4 matrix flattened in column major format (j*4+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. Takes precedence over `rotation` and `translation`.'),
+});
+
 /** Schema for `MVSTree` (MolViewSpec tree) */
 export const MVSTreeSchema = TreeSchema({
     rootKind: 'root',
@@ -106,14 +115,15 @@ export const MVSTreeSchema = TreeSchema({
         },
         /** This node instructs to rotate and/or translate structure coordinates. */
         transform: {
-            description: 'This node instructs to rotate and/or translate structure coordinates.',
-            parent: ['structure'],
-            params: SimpleParamsSchema({
-                /** Rotation matrix (3x3 matrix flattened in column major format (j*3+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. The default value is the identity matrix (corresponds to no rotation). */
-                rotation: OptionalField(Matrix, [1, 0, 0, 0, 1, 0, 0, 0, 1], 'Rotation matrix (3x3 matrix flattened in column major format (j*3+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. The default value is the identity matrix (corresponds to no rotation).'),
-                /** Translation vector, applied to the structure coordinates after rotation. The default value is the zero vector (corresponds to no translation). */
-                translation: OptionalField(Vector3, [0, 0, 0], 'Translation vector, applied to the structure coordinates after rotation. The default value is the zero vector (corresponds to no translation).'),
-            }),
+            description: 'This node instructs to rotate and/or translate coordinates OR provide a transformation matrix.',
+            parent: ['structure', 'component', 'volume'],
+            params: TransformParams,
+        },
+        /** This node allows instantiation using the provided transformation parameters. */
+        instance: {
+            description: 'This node allows instantiation using the provided transformation parameters.',
+            parent: ['structure', 'component', 'volume'],
+            params: TransformParams,
         },
         /** This node instructs to create a component (i.e. a subset of the parent structure). */
         component: {

@@ -9,7 +9,7 @@
 import { PluginStateSnapshotManager } from '../../mol-plugin-state/manager/snapshots';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { Download, ParseCcp4, ParseCif } from '../../mol-plugin-state/transforms/data';
-import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromMmCif, TrajectoryFromPDB, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
+import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromMmCif, TrajectoryFromPDB } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { VolumeFromCcp4, VolumeFromDensityServerCif } from '../../mol-plugin-state/transforms/volume';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -27,7 +27,7 @@ import { getPrimitiveStructureRefs, MVSBuildPrimitiveShape, MVSDownloadPrimitive
 import { IsHiddenCustomStateExtension } from './load-extensions/is-hidden-custom-state';
 import { NonCovalentInteractionsExtension } from './load-extensions/non-covalent-interactions';
 import { LoadingActions, LoadingExtension, loadTreeVirtual, UpdateTarget } from './load-generic';
-import { AnnotationFromSourceKind, AnnotationFromUriKind, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps, volumeColorThemeForNode, volumeRepresentationProps } from './load-helpers';
+import { AnnotationFromSourceKind, AnnotationFromUriKind, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformAndInstantiateStructure, transformAndInstantiateVolume, volumeColorThemeForNode, volumeRepresentationProps } from './load-helpers';
 import { MVSData, MVSData_States, SnapshotMetadata } from './mvs-data';
 import { validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
@@ -210,10 +210,7 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     structure(updateParent: UpdateTarget, node: MolstarSubtree<'structure'>, context: MolstarLoadingContext): UpdateTarget {
         const props = structureProps(node);
         const struct = UpdateTarget.apply(updateParent, StructureFromModel, props);
-        let transformed = struct;
-        for (const t of transformProps(node)) {
-            transformed = UpdateTarget.apply(transformed, TransformStructureConformation, t); // applying to the result of previous transform, to get the correct transform order
-        }
+        const transformed = transformAndInstantiateStructure(struct, node);
         const annotationTooltips = collectAnnotationTooltips(node, context);
         const inlineTooltips = collectInlineTooltips(node, context);
         if (annotationTooltips.length + inlineTooltips.length > 0) {
@@ -239,7 +236,7 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
                 colorTheme: colorThemeForNode(nearestReprNode, context),
             });
         }
-        return struct;
+        return transformed;
     },
     tooltip: undefined, // No action needed, already loaded in `structure`
     tooltip_from_uri: undefined, // No action needed, already loaded in `structure`
@@ -249,21 +246,21 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
             return updateParent;
         }
         const selector = node.params.selector;
-        return UpdateTarget.apply(updateParent, StructureComponent, {
+        return transformAndInstantiateStructure(UpdateTarget.apply(updateParent, StructureComponent, {
             type: componentPropsFromSelector(selector),
             label: prettyNameFromSelector(selector),
             nullIfEmpty: false,
-        });
+        }), node);
     },
     component_from_uri(updateParent: UpdateTarget, node: MolstarSubtree<'component_from_uri'>, context: MolstarLoadingContext): UpdateTarget | undefined {
         if (isPhantomComponent(node)) return undefined;
         const props = componentFromXProps(node, context);
-        return UpdateTarget.apply(updateParent, MVSAnnotationStructureComponent, props);
+        return transformAndInstantiateStructure(UpdateTarget.apply(updateParent, MVSAnnotationStructureComponent, props), node);
     },
     component_from_source(updateParent: UpdateTarget, node: MolstarSubtree<'component_from_source'>, context: MolstarLoadingContext): UpdateTarget | undefined {
         if (isPhantomComponent(node)) return undefined;
         const props = componentFromXProps(node, context);
-        return UpdateTarget.apply(updateParent, MVSAnnotationStructureComponent, props);
+        return transformAndInstantiateStructure(UpdateTarget.apply(updateParent, MVSAnnotationStructureComponent, props), node);
     },
     representation(updateParent: UpdateTarget, node: MolstarNode<'representation'>, context: MolstarLoadingContext): UpdateTarget {
         return UpdateTarget.apply(updateParent, StructureRepresentation3D, {
@@ -272,14 +269,16 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         });
     },
     volume(updateParent: UpdateTarget, node: MolstarNode<'volume'>): UpdateTarget | undefined {
+        let volume: UpdateTarget;
         if (updateParent.transformer?.definition.to.includes(PluginStateObject.Format.Ccp4)) {
-            return UpdateTarget.apply(updateParent, VolumeFromCcp4, {});
+            volume = UpdateTarget.apply(updateParent, VolumeFromCcp4, {});
         } else if (updateParent.transformer?.definition.to.includes(PluginStateObject.Format.Cif)) {
-            return UpdateTarget.apply(updateParent, VolumeFromDensityServerCif, { blockHeader: node.params.channel_id || undefined });
+            volume = UpdateTarget.apply(updateParent, VolumeFromDensityServerCif, { blockHeader: node.params.channel_id || undefined });
         } else {
             console.error(`Unsupported volume format`);
             return undefined;
         }
+        return transformAndInstantiateVolume(volume, node);
     },
     volume_representation(updateParent: UpdateTarget, node: MolstarNode<'volume_representation'>, context: MolstarLoadingContext): UpdateTarget {
         return UpdateTarget.apply(updateParent, VolumeRepresentation3D, {

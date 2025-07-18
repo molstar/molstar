@@ -55,6 +55,7 @@ import { parseNctraj } from '../../mol-io/reader/nctraj/parser';
 import { coordinatesFromNctraj } from '../../mol-model-formats/structure/nctraj';
 import { topologyFromPrmtop } from '../../mol-model-formats/structure/prmtop';
 import { topologyFromTop } from '../../mol-model-formats/structure/top';
+import { getTransformFromParams, TransformParam } from './helpers';
 
 export { CoordinatesFromDcd };
 export { CoordinatesFromXtc };
@@ -82,6 +83,7 @@ export { ModelWithCoordinates };
 export { StructureFromTrajectory };
 export { StructureFromModel };
 export { TransformStructureConformation };
+export { StructureInstances };
 export { StructureSelectionFromExpression };
 export { MultiStructureSelectionFromExpression };
 export { MultiStructureSelectionFromBundle };
@@ -652,17 +654,7 @@ const TransformStructureConformation = PluginStateTransform.BuiltIn({
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
     params: {
-        transform: PD.MappedStatic('components', {
-            components: PD.Group({
-                axis: PD.Vec3(Vec3.create(1, 0, 0)),
-                angle: PD.Numeric(0, { min: -180, max: 180, step: 0.1 }),
-                translation: PD.Vec3(Vec3.create(0, 0, 0)),
-            }, { isFlat: true }),
-            matrix: PD.Group({
-                data: PD.Mat4(Mat4.identity()),
-                transpose: PD.Boolean(false)
-            }, { isFlat: true })
-        }, { label: 'Kind' })
+        transform: TransformParam
     }
 })({
     canAutoUpdate({ newParams }) {
@@ -705,6 +697,35 @@ const TransformStructureConformation = PluginStateTransform.BuiltIn({
     //     const translation = Mat4.getTranslation(Vec3(), m);
     //     return { axis, angle, translation };
     // }
+});
+
+
+type StructureInstances = typeof StructureInstances
+const StructureInstances = PluginStateTransform.BuiltIn({
+    name: 'structure-instances',
+    display: { name: 'Structure Instances' },
+    isDecorator: true,
+    from: SO.Molecule.Structure,
+    to: SO.Molecule.Structure,
+    params: {
+        transforms: PD.ObjectList({ transform: TransformParam }, () => 'Transform')
+    },
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }) {
+        const instances = params.transforms.map(t => getTransformFromParams(t.transform));
+        if (!instances.length) {
+            return a;
+        }
+
+        const s = Structure.instances(a.data, instances);
+        return new SO.Molecule.Structure(s, { label: a.label, description: `${a.description} [Instanced]` });
+    },
+    dispose({ b }) {
+        b?.data.customPropertyDescriptors.dispose();
+    }
 });
 
 type ModelWithCoordinates = typeof ModelWithCoordinates

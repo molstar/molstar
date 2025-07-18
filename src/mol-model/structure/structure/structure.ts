@@ -861,6 +861,31 @@ namespace Structure {
         return create(units, { parent: s, coordinateSystem: newCS });
     }
 
+     export function instances(s: Structure, transforms: Mat4[]) {
+        for (const t of transforms) {
+            if (!Mat4.isRotationAndTranslation(t, SymmetryOperator.RotationTranslationEpsilon)) {
+                throw new Error('Only rotation/translation combination can be applied.');
+            }
+        }
+
+        const units: Unit[] = [];
+        let id = 0;
+        for (const u of s.units) {
+            const old = u.conformation.operator;
+            for (const transform of transforms) {
+                if (Mat4.isIdentity(transform)) {
+                    units.push(u);
+                    continue;
+                }
+                const op = SymmetryOperator.create(old.name, transform, old);
+                units.push(u.applyOperator(id++, op));
+            }
+        }
+
+        return create(units, { parent: s });
+    }
+
+
     export class StructureBuilder {
         private units: Unit[] = [];
         private invariantId = idFactory();
