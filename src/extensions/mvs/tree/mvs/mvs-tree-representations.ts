@@ -82,7 +82,7 @@ export const MVSVolumeRepresentationParams = UnionParamsSchema(
     'Representation type',
     {
         'isosurface': SimpleParamsSchema(VolumeIsoSurface),
-        'grid-slice': SimpleParamsSchema(VolumeGridSlice),
+        'grid_slice': SimpleParamsSchema(VolumeGridSlice),
     },
 );
 

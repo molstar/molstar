@@ -661,7 +661,7 @@ export function volumeRepresentationProps(node: MolstarSubtree<'volume_represent
             return {
                 type: { name: 'isosurface', params: { alpha, isoValue, visuals, clip } },
             };
-        case 'grid-slice':
+        case 'grid_slice':
             const isRelative = params.relative_index !== undefined;
             const dimension = {
                 name: isRelative ? `relative${params.dimension.toUpperCase()}` : params.dimension,

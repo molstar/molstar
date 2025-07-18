@@ -14,7 +14,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Representation node: support custom property `molstar_reprepresentation_params`,
   - Canvas node: support custom properties `molstar_enable_outline`, `molstar_enable_shadow`, `molstar_enable_ssao`
   - `clip` node support for structure and volume representations
-  - `grid-slice` representation support for volumes
+  - `grid_slice` representation support for volumes
   - Support tethers and background for primitive labels
   - Support `snapshot_key` parameter on primitives that enables transition between states via clicking on 3D objects
   - Inline selectors and MVS annotations support `instance_id`
