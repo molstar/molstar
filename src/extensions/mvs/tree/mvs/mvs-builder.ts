@@ -397,31 +397,30 @@ interface TransformMixin {
     instance(params: MVSNodeParams<'instance'> & CustomAndRef): this
 };
 class TransformMixinImpl extends _Base<MVSKind> implements TransformMixin {
-    private _validateTransformParams(params: MVSNodeParams<'transform' | 'instance'> & CustomAndRef) {
-        if (params.rotation && params.rotation.length !== 9) {
-            throw new Error('ValueError: `rotation` parameter must be an array of 9 numbers');
-        }
-        if (params.matrix && params.matrix.length !== 16) {
-            throw new Error('ValueError: `matrix` parameter must be an array of 16 numbers');
-        }
-        if (params.matrix && (params.translation || params.rotation)) {
-            throw new Error('ValueError: `matrix` parameter cannot be used together with `translation` or `rotation` parameters');
-        }
-    }
-
     transform(params: MVSNodeParams<'transform'> & CustomAndRef = {}): any {
-        this._validateTransformParams(params);
+        validateTransformParams(params);
         this.addChild('transform', params);
         return this;
     }
 
     instance(params: MVSNodeParams<'instance'> & CustomAndRef = {}): any {
-        this._validateTransformParams(params);
+        validateTransformParams(params);
         this.addChild('instance', params);
         return this;
     }
 };
 
+function validateTransformParams(params: MVSNodeParams<'transform' | 'instance'> & CustomAndRef) {
+    if (params.rotation && params.rotation.length !== 9) {
+        throw new Error('ValueError: `rotation` parameter must be an array of 9 numbers');
+    }
+    if (params.matrix && params.matrix.length !== 16) {
+        throw new Error('ValueError: `matrix` parameter must be an array of 16 numbers');
+    }
+    if (params.matrix && (params.translation || params.rotation)) {
+        throw new Error('ValueError: `matrix` parameter cannot be used together with `translation` or `rotation` parameters');
+    }
+}
 
 /** Demonstration of usage of MVS builder */
 export function builderDemo() {
