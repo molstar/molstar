@@ -49,6 +49,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - [Breaking] fix typo `MarchinCubes` -> `MarchingCubes`
 - Volume slice representation: add `relativeX/Y/Z` options for dimension
 - Add `StructureInstances` transform
+- Add `story-id` URL arg support to `mvs-stories` app
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:

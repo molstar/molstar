@@ -190,9 +190,14 @@ To get syntax highlighting for shader files add the following to Visual Code's s
     npm publish
 
 ## Deploy
+To prepare apps and demos for https://molstar.org deploy, run:
+
     npm run test
-    npm run build
-    node ./scripts/deploy.js # currently updates the viewer on molstar.org/viewer
+    npm run deploy:local
+
+To commit these changes remotely to the `molstar/molstar.github.io` repo:
+
+    npm run deploy:remote
 
 ## Contributing
 Just open an issue or make a pull request. All contributions are welcome.

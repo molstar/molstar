@@ -6,6 +6,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const argparse = require('argparse');
 
 function removeDir(dirPath) {
     for (const ent of fs.readdirSync(dirPath)) {
@@ -24,11 +25,29 @@ function remove(entryPath) {
         fs.unlinkSync(entryPath);
 }
 
-const toClean = [
-    path.resolve(__dirname, '../build'),
-    path.resolve(__dirname, '../lib'),
-    path.resolve(__dirname, '../tsconfig.tsbuildinfo'),
-];
+const argParser = new argparse.ArgumentParser({
+    add_help: true,
+    description: 'Clean Script'
+});
+argParser.add_argument('--build', { required: false, action: 'store_true' });
+argParser.add_argument('--lib', { required: false, action: 'store_true' });
+argParser.add_argument('--all', { required: false, action: 'store_true' });
+const args = argParser.parse_args();
+
+const toClean = [];
+
+if (args.build || args.all) {
+    toClean.push(path.resolve(__dirname, '../build'));
+    toClean.push(path.resolve(__dirname, '../deploy/data'));
+}
+if (args.lib || args.all) {
+    toClean.push(
+        path.resolve(__dirname, '../lib'),
+        path.resolve(__dirname, '../tsconfig.tsbuildinfo'),
+    );
+}
+
+console.log('\n###', 'cleaning', toClean.join(', '));
 
 toClean.forEach(ph => {
     if (fs.existsSync(ph)) {
