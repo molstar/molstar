@@ -37,4 +37,15 @@ export function loadFromData(data: MVSData | string | Uint8Array, options?: { fo
     }, 0);
 }
 
+function getStoryUrlFromId(id: string, format: 'mvsx' | 'mvsj' = 'mvsj') {
+    return `https://stories.molstar.org/api/story/${id}/data`;
+}
+
+export function loadFromID(id: string, options?: { format?: 'mvsx' | 'mvsj', contextName?: string }) {
+    loadFromURL(
+        getStoryUrlFromId(id, options?.format),
+        { format: options?.format ?? 'mvsj', contextName: options?.contextName },
+    );
+}
+
 export { MVSData };

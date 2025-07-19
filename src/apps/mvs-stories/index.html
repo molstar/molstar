@@ -76,6 +76,7 @@
 
     <script>
         var urlParams = new URLSearchParams(window.location.search);
+        var storyId = urlParams.get('story-id');
         var storyUrl = urlParams.get('story-url');
         var format = urlParams.get('data-format');
 
@@ -84,11 +85,13 @@
         //     storyUrl = 'https://raw.githubusercontent.com/molstar/molstar/master/examples/mvs/kinase-story.mvsj';
         // }
 
-        mvsStories.loadFromURL(
-            storyUrl,
-            { format: format || 'mvsj', contextName: 'story1' },
-        );
+        if (storyId) {
+            mvsStories.loadFromID(storyId, { contextName: 'story1' });
+        } else if (storyUrl) {
+            mvsStories.loadFromURL(storyUrl, { format: format || 'mvsj', contextName: 'story1' });
+        }
     </script>
+    <!-- __MOLSTAR_ANALYTICS__ -->
 </body>
 
 </html>
