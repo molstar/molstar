@@ -83,7 +83,7 @@ void main(void){
     #include assign_clipping_varying
     #include assign_size
 
-    vRadius = size * matrixScale(uModelView);
+    vRadius = size * matrixScale(uModel);
 
     vec4 position4 = vec4(position, 1.0);
     vModelPosition = (uModel * aTransform * position4).xyz; // for clipping in frag shader
