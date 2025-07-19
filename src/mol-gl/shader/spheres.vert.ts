@@ -18,6 +18,8 @@ precision highp int;
 uniform mat4 uModelView;
 uniform mat4 uInvProjection;
 uniform float uIsOrtho;
+uniform bool uHasHeadRotation;
+uniform mat4 uInvHeadRotation;
 
 uniform vec2 uTexDim;
 uniform sampler2D tPositionGroup;
@@ -81,7 +83,7 @@ void main(void){
     #include assign_clipping_varying
     #include assign_size
 
-    vRadius = size * matrixScale(uModelView);
+    vRadius = size * matrixScale(uModel);
 
     vec4 position4 = vec4(position, 1.0);
     vModelPosition = (uModel * aTransform * position4).xyz; // for clipping in frag shader
@@ -106,6 +108,10 @@ void main(void){
         if (uIsOrtho == 1.0) {
             vec4 mvCorner = vec4(mvPosition.xyz, 1.0);
             mvCorner.xy += mapping * vRadius;
+            gl_Position = uProjection * mvCorner;
+        } else if (uHasHeadRotation) {
+            vec4 mvCorner = vec4(mvPosition.xyz, 1.0);
+            mvCorner.xy += mapping * vRadius * 1.4;
             gl_Position = uProjection * mvCorner;
         } else {
             gl_Position = uProjection * vec4(mvPosition.xyz, 1.0);

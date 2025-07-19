@@ -84,6 +84,11 @@ namespace Mat4 {
         return mat;
     }
 
+    export function isZero(mat: Mat4): boolean {
+        for (let i = 0; i < 16; i++) if (mat[i] !== 0) return false;
+        return true;
+    }
+
     export function setZero(mat: Mat4): Mat4 {
         for (let i = 0; i < 16; i++) mat[i] = 0;
         return mat;

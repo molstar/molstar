@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -172,10 +172,14 @@ export class BackgroundPass {
         }
 
         const m = this.renderable.values.uViewDirectionProjectionInverse.ref.value;
-        Vec3.sub(this.dir, cam.state.position, cam.state.target);
-        Vec3.setMagnitude(this.dir, this.dir, 0.1);
-        Vec3.copy(this.position, this.dir);
-        Mat4.lookAt(m, this.position, this.target, cam.state.up);
+        if (Mat4.isZero(camera.headRotation)) {
+            Vec3.sub(this.dir, cam.state.position, cam.state.target);
+            Vec3.setMagnitude(this.dir, this.dir, 0.1);
+            Vec3.copy(this.position, this.dir);
+            Mat4.lookAt(m, this.position, this.target, cam.state.up);
+        } else {
+            Mat4.invert(m, camera.headRotation);
+        }
         Mat4.mul(m, cam.projection, m);
         Mat4.invert(m, m);
         ValueCell.update(this.renderable.values.uViewDirectionProjectionInverse, m);
