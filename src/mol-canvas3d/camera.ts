@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -11,6 +11,7 @@ import { CameraTransitionManager } from './camera/transition';
 import { BehaviorSubject } from 'rxjs';
 import { Scene } from '../mol-gl/scene';
 import { assertUnreachable } from '../mol-util/type-helpers';
+import { Ray3D } from '../mol-math/geometry/primitives/ray3d';
 
 export type { ICamera };
 
@@ -189,6 +190,21 @@ export class Camera implements ICamera {
         const rx = this.viewport.width;
         const P00 = this.projection[0];
         return (2 / w) / (rx * Math.abs(P00));
+    }
+
+    getRay(out: Ray3D, x: number, y: number) {
+        if (this.state.mode === 'orthographic') {
+            Vec3.set(out.origin, x, y, 0);
+            this.unproject(out.origin, out.origin);
+            Vec3.normalize(out.direction, Vec3.sub(out.direction, this.target, this.position));
+            Vec3.scaleAndAdd(out.origin, out.origin, out.direction, -this.near);
+        } else {
+            Vec3.copy(out.origin, this.state.position);
+            Vec3.set(out.direction, x, y, 0.5);
+            this.unproject(out.direction, out.direction);
+            Vec3.normalize(out.direction, Vec3.sub(out.direction, out.direction, out.origin));
+        }
+        return out;
     }
 
     constructor(state?: Partial<Camera.Snapshot>, viewport = Viewport.create(0, 0, 128, 128)) {

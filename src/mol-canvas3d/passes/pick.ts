@@ -7,6 +7,7 @@
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { PickType, Renderer } from '../../mol-gl/renderer';
 import { Scene } from '../../mol-gl/scene';
+import { getBuffer } from '../../mol-gl/webgl/buffer';
 import { isWebGL2 } from '../../mol-gl/webgl/compat';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Framebuffer } from '../../mol-gl/webgl/framebuffer';
@@ -14,19 +15,28 @@ import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { Renderbuffer } from '../../mol-gl/webgl/renderbuffer';
 import { Texture } from '../../mol-gl/webgl/texture';
 import { Vec3 } from '../../mol-math/linear-algebra';
-import { spiral2d } from '../../mol-math/misc';
-import { isTimingMode } from '../../mol-util/debug';
-import { unpackRGBToInt, unpackRGBAToDepth } from '../../mol-util/number-packing';
-import { Camera, ICamera } from '../camera';
-import { StereoCamera } from '../camera/stereo';
-import { cameraUnproject } from '../camera/util';
+import { isDebugMode, isTimingMode } from '../../mol-util/debug';
+import { unpackRGBAToDepth, unpackRGBToInt } from '../../mol-util/number-packing';
+import { ICamera } from '../camera';
 import { Viewport } from '../camera/util';
 import { Helper } from '../helper/helper';
-import { DrawPass } from './draw';
 
 const NullId = Math.pow(2, 24) - 2;
 
 export type PickData = { id: PickingId, position: Vec3 }
+
+export type AsyncPickData = {
+    check: () => boolean,
+    get: () => PickData | undefined,
+}
+
+export const DefaultPickOptions = {
+    pickPadding: 1,
+    maxAsyncReadLag: 5,
+};
+export type PickOptions = typeof DefaultPickOptions
+
+//
 
 export class PickPass {
     private readonly objectPickTarget: RenderTarget;
@@ -51,10 +61,10 @@ export class PickPass {
     private pickWidth: number;
     private pickHeight: number;
 
-    constructor(private webgl: WebGLContext, private drawPass: DrawPass, private pickScale: number) {
+    constructor(private webgl: WebGLContext, private width: number, private height: number, private pickScale: number) {
         const pickRatio = pickScale / webgl.pixelRatio;
-        this.pickWidth = Math.ceil(drawPass.colorTarget.getWidth() * pickRatio);
-        this.pickHeight = Math.ceil(drawPass.colorTarget.getHeight() * pickRatio);
+        this.pickWidth = Math.ceil(width * pickRatio);
+        this.pickHeight = Math.ceil(height * pickRatio);
 
         const { resources, extensions: { drawBuffers }, gl } = webgl;
 
@@ -115,7 +125,7 @@ export class PickPass {
 
     setPickScale(pickScale: number) {
         this.pickScale = pickScale;
-        this.syncSize();
+        this.setSize(this.width, this.height);
     }
 
     bindObject() {
@@ -151,13 +161,16 @@ export class PickPass {
     }
 
     get drawingBufferHeight() {
-        return this.drawPass.colorTarget.getHeight();
+        return this.height;
     }
 
-    syncSize() {
+    setSize(width: number, height: number) {
+        this.width = width;
+        this.height = height;
+
         const pickRatio = this.pickScale / this.webgl.pixelRatio;
-        const pickWidth = Math.ceil(this.drawPass.colorTarget.getWidth() * pickRatio);
-        const pickHeight = Math.ceil(this.drawPass.colorTarget.getHeight() * pickRatio);
+        const pickWidth = Math.ceil(this.width * pickRatio);
+        const pickHeight = Math.ceil(this.height * pickRatio);
 
         if (pickWidth !== this.pickWidth || pickHeight !== this.pickHeight) {
             this.pickWidth = pickWidth;
@@ -225,6 +238,7 @@ export class PickPass {
         if (this.webgl.extensions.drawBuffers) {
             this.framebuffer.bind();
             this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.None);
+            // printTextureImage(readTexture(this.webgl, this.groupPickTexture, new Uint8Array(this.pickWidth * this.pickHeight * 4)), { scale: 16, id: 'group', pixelated: true, useCanvas: true, flipY: true });
         } else {
             this.objectPickTarget.bind();
             this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Object);
@@ -234,7 +248,7 @@ export class PickPass {
 
             this.groupPickTarget.bind();
             this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Group);
-            // printTexture(this.webgl, this.groupPickTarget.texture, { id: 'group' })
+            // printTextureImage(readTexture(this.webgl, this.groupPickTarget.texture, new Uint8Array(this.pickWidth * this.pickHeight * 4)), { scale: 16, id: 'group', pixelated: true, useCanvas: true, flipY: true });
 
             this.depthPickTarget.bind();
             this.renderVariant(renderer, camera, scene, helper, 'depth', PickType.None);
@@ -242,200 +256,211 @@ export class PickPass {
     }
 }
 
-export class PickHelper {
-    dirty = true;
+let AsyncPickingWarningShown = false;
 
-    private objectBuffer: Uint8Array;
-    private instanceBuffer: Uint8Array;
-    private groupBuffer: Uint8Array;
-    private depthBuffer: Uint8Array;
+export function checkAsyncPickingSupport(webgl: WebGLContext): boolean {
+    if (webgl.isWebGL2) return true;
 
-    private viewport = Viewport();
+    if (isDebugMode && !AsyncPickingWarningShown) {
+        console.log('WebGL2 required for async picking. Falling back to synchronous picking.');
+        AsyncPickingWarningShown = true;
+    }
+    return false;
+}
 
-    private pickRatio: number;
-    private pickX: number;
-    private pickY: number;
-    private pickWidth: number;
-    private pickHeight: number;
-    private halfPickWidth: number;
+export class PickBuffers {
+    private object: Uint8Array;
+    private instance: Uint8Array;
+    private group: Uint8Array;
+    private depth: Uint8Array;
 
-    private spiral: [number, number][];
+    private readonly objectBuffer: WebGLBuffer;
+    private readonly instanceBuffer: WebGLBuffer;
+    private readonly groupBuffer: WebGLBuffer;
+    private readonly depthBuffer: WebGLBuffer;
 
-    private setupBuffers() {
-        const bufferSize = this.pickWidth * this.pickHeight * 4;
-        if (!this.objectBuffer || this.objectBuffer.length !== bufferSize) {
-            this.objectBuffer = new Uint8Array(bufferSize);
-            this.instanceBuffer = new Uint8Array(bufferSize);
-            this.groupBuffer = new Uint8Array(bufferSize);
-            this.depthBuffer = new Uint8Array(bufferSize);
+    private viewport = Viewport.create(0, 0, 0, 0);
+
+    private setup() {
+        const size = this.viewport.width * this.viewport.height * 4;
+        if (!this.object || this.object.length !== size) {
+            this.object = new Uint8Array(size);
+            this.instance = new Uint8Array(size);
+            this.group = new Uint8Array(size);
+            this.depth = new Uint8Array(size);
         }
     }
 
     setViewport(x: number, y: number, width: number, height: number) {
         Viewport.set(this.viewport, x, y, width, height);
-        this.update();
+        this.setup();
     }
 
-    setPickPadding(pickPadding: number) {
-        if (this.pickPadding !== pickPadding) {
-            this.pickPadding = pickPadding;
-            this.update();
-        }
-    }
-
-    private update() {
+    read() {
+        if (isTimingMode) this.webgl.timer.mark('PickBuffers.read');
         const { x, y, width, height } = this.viewport;
 
-        this.pickRatio = this.pickPass.pickRatio;
-        this.pickX = Math.ceil(x * this.pickRatio);
-        this.pickY = Math.ceil(y * this.pickRatio);
-
-        const pickWidth = Math.floor(width * this.pickRatio);
-        const pickHeight = Math.floor(height * this.pickRatio);
-
-        if (pickWidth !== this.pickWidth || pickHeight !== this.pickHeight) {
-            this.pickWidth = pickWidth;
-            this.pickHeight = pickHeight;
-            this.halfPickWidth = Math.floor(this.pickWidth / 2);
-
-            this.setupBuffers();
-        }
-
-        this.spiral = spiral2d(Math.ceil(this.pickRatio * this.pickPadding));
-        this.dirty = true;
-    }
-
-    private syncBuffers() {
-        if (isTimingMode) this.webgl.timer.mark('PickHelper.syncBuffers');
-        const { pickX, pickY, pickWidth, pickHeight } = this;
-
         this.pickPass.bindObject();
-        this.webgl.readPixels(pickX, pickY, pickWidth, pickHeight, this.objectBuffer);
+        this.webgl.readPixels(x, y, width, height, this.object);
 
         this.pickPass.bindInstance();
-        this.webgl.readPixels(pickX, pickY, pickWidth, pickHeight, this.instanceBuffer);
+        this.webgl.readPixels(x, y, width, height, this.instance);
 
         this.pickPass.bindGroup();
-        this.webgl.readPixels(pickX, pickY, pickWidth, pickHeight, this.groupBuffer);
+        this.webgl.readPixels(x, y, width, height, this.group);
 
         this.pickPass.bindDepth();
-        this.webgl.readPixels(pickX, pickY, pickWidth, pickHeight, this.depthBuffer);
-        if (isTimingMode) this.webgl.timer.markEnd('PickHelper.syncBuffers');
+        this.webgl.readPixels(x, y, width, height, this.depth);
+
+        this.ready = true;
+        if (isTimingMode) this.webgl.timer.markEnd('PickBuffers.read');
     }
 
-    private getBufferIdx(x: number, y: number): number {
-        return (y * this.pickWidth + x) * 4;
+    private fenceSync: WebGLSync | null = null;
+
+    get pending() {
+        return this.fenceSync !== null;
     }
 
-    private getDepth(x: number, y: number): number {
-        const idx = this.getBufferIdx(x, y);
-        const b = this.depthBuffer;
+    private ready = false;
+    private lag = 0;
+
+    asyncRead() {
+        const { gl } = this.webgl;
+        if (!isWebGL2(gl)) return;
+
+        if (isTimingMode) this.webgl.timer.mark('PickBuffers.asyncRead');
+        if (this.fenceSync !== null) {
+            gl.deleteSync(this.fenceSync);
+        }
+        const { x, y, width, height } = this.viewport;
+
+        this.pickPass.bindObject();
+        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.objectBuffer);
+        gl.bufferData(gl.PIXEL_PACK_BUFFER, this.object.byteLength, gl.STREAM_READ);
+        gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+
+        this.pickPass.bindInstance();
+        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.instanceBuffer);
+        gl.bufferData(gl.PIXEL_PACK_BUFFER, this.instance.byteLength, gl.STREAM_READ);
+        gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+
+        this.pickPass.bindGroup();
+        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.groupBuffer);
+        gl.bufferData(gl.PIXEL_PACK_BUFFER, this.group.byteLength, gl.STREAM_READ);
+        gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+
+        this.pickPass.bindDepth();
+        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.depthBuffer);
+        gl.bufferData(gl.PIXEL_PACK_BUFFER, this.depth.byteLength, gl.STREAM_READ);
+        gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+
+        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+
+        this.fenceSync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+        // gl.flush();
+
+        this.ready = false;
+        if (isTimingMode) this.webgl.timer.markEnd('PickBuffers.asyncRead');
+    }
+
+    check(): boolean {
+        if (this.ready) return true;
+        if (this.fenceSync === null) return false;
+
+        const { gl } = this.webgl;
+        if (!isWebGL2(gl)) return true;
+
+        const res = gl.clientWaitSync(this.fenceSync, 0, 0);
+        if (res === gl.WAIT_FAILED || this.lag >= this.maxAsyncReadLag) {
+            // console.log(`failed to get buffer data after ${this.lag + 1} checks`);
+            gl.deleteSync(this.fenceSync);
+            this.fenceSync = null;
+            this.lag = 0;
+            this.ready = false;
+            return true;
+        } else if (res === gl.TIMEOUT_EXPIRED) {
+            this.lag += 1;
+            // console.log(`waiting for buffer data for ${this.lag} checks`);
+            return false;
+        } else {
+            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.objectBuffer);
+            gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, this.object);
+
+            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.instanceBuffer);
+            gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, this.instance);
+
+            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.groupBuffer);
+            gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, this.group);
+
+            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.depthBuffer);
+            gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, this.depth);
+
+            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+            // console.log(`got buffer data after ${this.lag + 1} checks`);
+            gl.deleteSync(this.fenceSync);
+            this.fenceSync = null;
+            this.lag = 0;
+            this.ready = true;
+
+            return true;
+        }
+    }
+
+    private getIdx(x: number, y: number): number {
+        return (y * this.viewport.width + x) * 4;
+    }
+
+    getDepth(x: number, y: number): number {
+        if (!this.ready) return -1;
+
+        const idx = this.getIdx(x, y);
+        const b = this.depth;
         return unpackRGBAToDepth(b[idx], b[idx + 1], b[idx + 2], b[idx + 3]);
     }
 
     private getId(x: number, y: number, buffer: Uint8Array) {
-        const idx = this.getBufferIdx(x, y);
+        if (!this.ready) return -1;
+
+        const idx = this.getIdx(x, y);
         return unpackRGBToInt(buffer[idx], buffer[idx + 1], buffer[idx + 2]);
     }
 
-    private render(camera: Camera | StereoCamera) {
-        if (isTimingMode) this.webgl.timer.mark('PickHelper.render', { captureStats: true });
-        const { pickX, pickY, pickWidth, pickHeight, halfPickWidth } = this;
-        const { renderer, scene, helper } = this;
-
-        renderer.setTransparentBackground(false);
-        renderer.setDrawingBufferSize(pickWidth, pickHeight);
-        renderer.setPixelRatio(this.pickRatio);
-
-        if (StereoCamera.is(camera)) {
-            renderer.setViewport(pickX, pickY, halfPickWidth, pickHeight);
-            this.pickPass.render(renderer, camera.left, scene, helper);
-
-            renderer.setViewport(pickX + halfPickWidth, pickY, pickWidth - halfPickWidth, pickHeight);
-            this.pickPass.render(renderer, camera.right, scene, helper);
-        } else {
-            renderer.setViewport(pickX, pickY, pickWidth, pickHeight);
-            this.pickPass.render(renderer, camera, scene, helper);
-        }
-
-        this.dirty = false;
-        if (isTimingMode) this.webgl.timer.markEnd('PickHelper.render');
+    getObjectId(x: number, y: number) {
+        return this.getId(x, y, this.object);
     }
 
-    private identifyInternal(x: number, y: number, camera: Camera | StereoCamera): PickData | undefined {
-        if (this.pickRatio !== this.pickPass.pickRatio) {
-            this.update();
-        }
+    getInstanceId(x: number, y: number) {
+        return this.getId(x, y, this.instance);
+    }
 
-        const { webgl, pickRatio } = this;
-        if (webgl.isContextLost) return;
+    getGroupId(x: number, y: number) {
+        return this.getId(x, y, this.group);
+    }
 
-        x *= webgl.pixelRatio;
-        y *= webgl.pixelRatio;
-        y = this.pickPass.drawingBufferHeight - y; // flip y
-
-        const { viewport } = this;
-
-        // check if within viewport
-        if (x < viewport.x ||
-            y < viewport.y ||
-            x > viewport.x + viewport.width ||
-            y > viewport.y + viewport.height
-        ) return;
-
-        if (this.dirty) {
-            if (isTimingMode) this.webgl.timer.mark('PickHelper.identify');
-            this.render(camera);
-            this.syncBuffers();
-            if (isTimingMode) this.webgl.timer.markEnd('PickHelper.identify');
-        }
-
-        const xv = x - viewport.x;
-        const yv = y - viewport.y;
-
-        const xp = Math.floor(xv * pickRatio);
-        const yp = Math.floor(yv * pickRatio);
-
-        const objectId = this.getId(xp, yp, this.objectBuffer);
+    getPickingId(x: number, y: number): PickingId | undefined {
+        const objectId = this.getObjectId(x, y);
         // console.log('objectId', objectId);
         if (objectId === -1 || objectId === NullId) return;
 
-        const instanceId = this.getId(xp, yp, this.instanceBuffer);
+        const instanceId = this.getInstanceId(x, y);
         // console.log('instanceId', instanceId);
         if (instanceId === -1 || instanceId === NullId) return;
 
-        const groupId = this.getId(xp, yp, this.groupBuffer);
+        const groupId = this.getGroupId(x, y);
         // console.log('groupId', groupId);
         if (groupId === -1 || groupId === NullId) return;
 
-        const z = this.getDepth(xp, yp);
-        // console.log('z', z);
-        const position = Vec3.create(x, y, z);
-        if (StereoCamera.is(camera)) {
-            const halfWidth = Math.floor(viewport.width / 2);
-            if (x > viewport.x + halfWidth) {
-                position[0] = viewport.x + (xv - halfWidth) * 2;
-                cameraUnproject(position, position, viewport, camera.right.inverseProjectionView);
-            } else {
-                position[0] = viewport.x + xv * 2;
-                cameraUnproject(position, position, viewport, camera.left.inverseProjectionView);
-            }
-        } else {
-            cameraUnproject(position, position, viewport, camera.inverseProjectionView);
-        }
-
-        // console.log({ id: { objectId, instanceId, groupId }, position });
-        return { id: { objectId, instanceId, groupId }, position };
+        return { objectId, instanceId, groupId };
     }
 
-    identify(x: number, y: number, camera: Camera | StereoCamera): PickData | undefined {
-        for (const d of this.spiral) {
-            const pickData = this.identifyInternal(x + d[0], y + d[1], camera);
-            if (pickData) return pickData;
-        }
-    }
+    constructor(private webgl: WebGLContext, private pickPass: PickPass, public maxAsyncReadLag = 5) {
+        const { gl } = webgl;
+        this.objectBuffer = getBuffer(gl);
+        this.instanceBuffer = getBuffer(gl);
+        this.groupBuffer = getBuffer(gl);
+        this.depthBuffer = getBuffer(gl);
 
-    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private helper: Helper, private pickPass: PickPass, viewport: Viewport, private pickPadding = 1) {
-        this.setViewport(viewport.x, viewport.y, viewport.width, viewport.height);
+        this.setup();
     }
 }

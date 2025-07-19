@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -50,6 +50,7 @@ const DefaultPrintImageOptions = {
     id: 'molstar.debug.image',
     normalize: false,
     useCanvas: false,
+    flipY: false,
 };
 export type PrintImageOptions = typeof DefaultPrintImageOptions
 
@@ -101,6 +102,7 @@ export function printImageData(imageData: ImageData, options: Partial<PrintImage
         tmpContainer.style.right = '0px';
         tmpContainer.style.border = 'solid orange';
         tmpContainer.style.pointerEvents = 'none';
+        if (options.flipY) tmpContainer.style.transform = 'scaleY(-1)';
         document.body.appendChild(tmpContainer);
     }
 

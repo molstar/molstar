@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -9,10 +9,9 @@
 
 import { Subject, Observable } from 'rxjs';
 import { Viewport } from '../../mol-canvas3d/camera/util';
-
 import { Vec2, EPSILON } from '../../mol-math/linear-algebra';
-
 import { BitFlags, noop } from '../../mol-util';
+import { Ray3D } from '../../mol-math/geometry/primitives/ray3d';
 
 export function getButtons(event: MouseEvent | Touch) {
     if (typeof event === 'object') {
@@ -145,6 +144,7 @@ export type DragInput = {
     pageX: number,
     pageY: number,
     isStart: boolean
+    useDelta?: boolean
 } & BaseInput
 
 export type WheelInput = {
@@ -164,6 +164,7 @@ export type ClickInput = {
     y: number,
     pageX: number,
     pageY: number,
+    ray?: Ray3D,
 } & BaseInput
 
 export type MoveInput = {
@@ -171,6 +172,7 @@ export type MoveInput = {
     y: number,
     pageX: number,
     pageY: number,
+    ray?: Ray3D,
     movementX?: number,
     movementY?: number,
     inside: boolean,

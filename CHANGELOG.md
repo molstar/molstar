@@ -11,6 +11,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - [Breaking] `PluginContext.initViewer/initContainer/mount` are now async and have been renamed to include `Async` postfix
 - [Breaking] Add `Volume.instances` support and a `VolumeInstances` transform to dynamically assign it
   - This change is breaking because all volume objects require the `instances` field now.
+- [Breaking] `Canvas3D.identify` now expects `Vec2` or `Ray3D`
 - Update production build to use `esbuild`
 - Emit explicit paths in `import`s in `lib/`
 - Fix outlines on opaque elements using illumination mode
@@ -50,6 +51,14 @@ Note that since we don't clearly distinguish between a public and private interf
 - Volume slice representation: add `relativeX/Y/Z` options for dimension
 - Add `StructureInstances` transform
 - Add `story-id` URL arg support to `mvs-stories` app
+- Add ray-based picking
+    - Render narrow view of scene scene from ray origin & direction to a few pixel sized viewport
+    - Cast ray on every input as opposed to the standard "whole screen" picking
+    - Can be enabled with new `Canvas3dInteractionHelperParams.convertCoordsToRay` param
+    - Allows to have input methods that are 3D pointers in the scene
+    - Add `ray: Ray3D` property to `DragInput`, `ClickInput`, and `MoveInput`
+- Add async, non-blocking picking (only WebGL2)
+    - Refactor `Canvas3dInteractionHelper` internals to use async picking for move events
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:
