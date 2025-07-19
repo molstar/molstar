@@ -160,7 +160,7 @@ export class Parse extends _Base<'parse'> {
 
 
 /** MVS builder pointing to a 'structure' node */
-export class Structure extends _Base<'structure'> implements PrimitivesMixin {
+export class Structure extends _Base<'structure'> implements PrimitivesMixin, TransformMixin {
     /** Add a 'component' node and return builder pointing to it. 'component' node instructs to create a component (i.e. a subset of the parent structure). */
     component(params: Partial<MVSNodeParams<'component'>> & CustomAndRef = {}): Component {
         const fullParams = { ...params, selector: params.selector ?? 'all' };
@@ -194,21 +194,15 @@ export class Structure extends _Base<'structure'> implements PrimitivesMixin {
         this.addChild('tooltip_from_source', params);
         return this;
     }
-    /** Add a 'transform' node and return builder pointing back to the structure node. 'transform' node instructs to rotate and/or translate structure coordinates. */
-    transform(params: MVSNodeParams<'transform'> & CustomAndRef = {}): Structure {
-        if (params.rotation && params.rotation.length !== 9) {
-            throw new Error('ValueError: `rotation` parameter must be an array of 9 numbers');
-        }
-        this.addChild('transform', params);
-        return this;
-    }
+    transform = bindMethod(this, TransformMixinImpl, 'transform');
+    instance = bindMethod(this, TransformMixinImpl, 'instance');
     primitives = bindMethod(this, PrimitivesMixinImpl, 'primitives');
     primitives_from_uri = bindMethod(this, PrimitivesMixinImpl, 'primitives_from_uri');
 }
 
 
 /** MVS builder pointing to a 'component' or 'component_from_uri' or 'component_from_source' node */
-export class Component extends _Base<'component' | 'component_from_uri' | 'component_from_source'> implements FocusMixin {
+export class Component extends _Base<'component' | 'component_from_uri' | 'component_from_source'> implements FocusMixin, TransformMixin {
     /** Add a 'representation' node and return builder pointing to it. 'representation' node instructs to create a visual representation of a component. */
     representation(params: Partial<MVSNodeParams<'representation'>> & CustomAndRef = {}): Representation {
         const fullParams: MVSNodeParams<'representation'> = { ...params, type: params.type ?? 'cartoon' };
@@ -225,6 +219,8 @@ export class Component extends _Base<'component' | 'component_from_uri' | 'compo
         return this;
     }
     focus = bindMethod(this, FocusMixinImpl, 'focus');
+    transform = bindMethod(this, TransformMixinImpl, 'transform');
+    instance = bindMethod(this, TransformMixinImpl, 'instance');
 }
 
 
@@ -259,13 +255,17 @@ export class Representation extends _Base<'representation'> {
 
 
 /** MVS builder pointing to a 'component' or 'component_from_uri' or 'component_from_source' node */
-export class Volume extends _Base<'volume'> implements FocusMixin {
+export class Volume extends _Base<'volume'> implements FocusMixin, TransformMixin {
     /** Add a 'representation' node and return builder pointing to it. 'representation' node instructs to create a visual representation of a component. */
-    representation(params: Partial<MVSNodeParams<'volume_representation'>> & CustomAndRef = {}): VolumeRepresentation {
-        const fullParams: MVSNodeParams<'volume_representation'> = { ...params, type: params.type ?? 'isosurface' };
-        return new VolumeRepresentation(this._root, this.addChild('volume_representation', fullParams));
+    representation(params?: MVSNodeParams<'volume_representation'> & CustomAndRef): VolumeRepresentation {
+        if (!params) {
+            params = { type: 'isosurface' };
+        }
+        return new VolumeRepresentation(this._root, this.addChild('volume_representation', params));
     }
     focus = bindMethod(this, FocusMixinImpl, 'focus');
+    transform = bindMethod(this, TransformMixinImpl, 'transform');
+    instance = bindMethod(this, TransformMixinImpl, 'instance');
 }
 
 
@@ -390,6 +390,37 @@ class PrimitivesMixinImpl extends _Base<MVSKind> implements PrimitivesMixin {
     }
 };
 
+interface TransformMixin {
+    /** Add a 'transform' node and return builder pointing back to this node. 'transform' node instructs to rotate and/or translate coordinates. */
+    transform(params: MVSNodeParams<'transform'> & CustomAndRef): this
+    /** Add an 'instance' node and return builder pointing back to this node. 'instance' node instructs to create a new instance of the object. */
+    instance(params: MVSNodeParams<'instance'> & CustomAndRef): this
+};
+class TransformMixinImpl extends _Base<MVSKind> implements TransformMixin {
+    transform(params: MVSNodeParams<'transform'> & CustomAndRef = {}): any {
+        validateTransformParams(params);
+        this.addChild('transform', params);
+        return this;
+    }
+
+    instance(params: MVSNodeParams<'instance'> & CustomAndRef = {}): any {
+        validateTransformParams(params);
+        this.addChild('instance', params);
+        return this;
+    }
+};
+
+function validateTransformParams(params: MVSNodeParams<'transform' | 'instance'> & CustomAndRef) {
+    if (params.rotation && params.rotation.length !== 9) {
+        throw new Error('ValueError: `rotation` parameter must be an array of 9 numbers');
+    }
+    if (params.matrix && params.matrix.length !== 16) {
+        throw new Error('ValueError: `matrix` parameter must be an array of 16 numbers');
+    }
+    if (params.matrix && (params.translation || params.rotation)) {
+        throw new Error('ValueError: `matrix` parameter cannot be used together with `translation` or `rotation` parameters');
+    }
+}
 
 /** Demonstration of usage of MVS builder */
 export function builderDemo() {

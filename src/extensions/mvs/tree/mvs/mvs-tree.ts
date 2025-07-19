@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { dict, float, int, list, literal, nullable, OptionalField, RequiredField, str, tuple, union } from '../generic/field-schema';
+import { bool, dict, float, int, list, literal, nullable, OptionalField, RequiredField, str, tuple, union } from '../generic/field-schema';
 import { SimpleParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
 import { MVSClipParams, MVSRepresentationParams, MVSVolumeRepresentationParams } from './mvs-tree-representations';
@@ -49,6 +49,17 @@ const _DataFromSourceParams = {
 
 /** Color to be used e.g. for representations without 'color' node */
 export const DefaultColor = 'white';
+
+const LabelAttachments = literal('bottom-left', 'bottom-center', 'bottom-right', 'middle-left', 'middle-center', 'middle-right', 'top-left', 'top-center', 'top-right');
+
+const TransformParams = SimpleParamsSchema({
+    /** Rotation matrix (3x3 matrix flattened in column major format (j*3+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. The default value is the identity matrix (corresponds to no rotation). */
+    rotation: OptionalField(Matrix, [1, 0, 0, 0, 1, 0, 0, 0, 1], 'Rotation matrix (3x3 matrix flattened in column major format (j*3+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. The default value is the identity matrix (corresponds to no rotation).'),
+    /** Translation vector, applied to the structure coordinates after rotation. The default value is the zero vector (corresponds to no translation). */
+    translation: OptionalField(Vector3, [0, 0, 0], 'Translation vector, applied to the structure coordinates after rotation. The default value is the zero vector (corresponds to no translation).'),
+    /** Transform matrix (4x4 matrix flattened in column major format (j*4+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. Takes precedence over `rotation` and `translation`. */
+    matrix: OptionalField(nullable(Matrix), null, 'Transform matrix (4x4 matrix flattened in column major format (j*4+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. Takes precedence over `rotation` and `translation`.'),
+});
 
 /** Schema for `MVSTree` (MolViewSpec tree) */
 export const MVSTreeSchema = TreeSchema({
@@ -104,14 +115,15 @@ export const MVSTreeSchema = TreeSchema({
         },
         /** This node instructs to rotate and/or translate structure coordinates. */
         transform: {
-            description: 'This node instructs to rotate and/or translate structure coordinates.',
-            parent: ['structure'],
-            params: SimpleParamsSchema({
-                /** Rotation matrix (3x3 matrix flattened in column major format (j*3+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. The default value is the identity matrix (corresponds to no rotation). */
-                rotation: OptionalField(Matrix, [1, 0, 0, 0, 1, 0, 0, 0, 1], 'Rotation matrix (3x3 matrix flattened in column major format (j*3+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. The default value is the identity matrix (corresponds to no rotation).'),
-                /** Translation vector, applied to the structure coordinates after rotation. The default value is the zero vector (corresponds to no translation). */
-                translation: OptionalField(Vector3, [0, 0, 0], 'Translation vector, applied to the structure coordinates after rotation. The default value is the zero vector (corresponds to no translation).'),
-            }),
+            description: 'This node instructs to rotate and/or translate coordinates OR provide a transformation matrix.',
+            parent: ['structure', 'component', 'volume'],
+            params: TransformParams,
+        },
+        /** This node allows instantiation using the provided transformation parameters. */
+        instance: {
+            description: 'This node allows instantiation using the provided transformation parameters.',
+            parent: ['structure', 'component', 'volume'],
+            params: TransformParams,
         },
         /** This node instructs to create a component (i.e. a subset of the parent structure). */
         component: {
@@ -327,6 +339,16 @@ export const MVSTreeSchema = TreeSchema({
                 opacity: OptionalField(float, 1, 'Opacity of primitive geometry in this group.'),
                 /** Opacity of primitive labels in this group. */
                 label_opacity: OptionalField(float, 1, 'Opacity of primitive labels in this group.'),
+                /** Whether to show a tether line between the label and the target. Defaults to false. */
+                label_show_tether: OptionalField(bool, false, 'Whether to show a tether line between the label and the target. Defaults to false.'),
+                /** Length of the tether line between the label and the target. Defaults to 1 (Angstrom). */
+                label_tether_length: OptionalField(float, 1, 'Length of the tether line between the label and the target. Defaults to 1 (Angstrom).'),
+                /** How to attach the label to the target. Defaults to "middle-center". */
+                label_attachment: OptionalField(LabelAttachments, 'middle-center', 'How to attach the label to the target. Defaults to "middle-center".'),
+                /** Background color of the label. Defaults to none/transparent. */
+                label_background_color: OptionalField(nullable(ColorT), null, 'Background color of the label. Defaults to none/transparent.'),
+                /** Load snapshot with the provided key when interacting with this primitives group. */
+                snapshot_key: OptionalField(nullable(str), null, 'Load snapshot with the provided key when interacting with this primitives group.'),
                 /** Instances of this primitive group defined as 4x4 column major (j * 4 + i indexing) transformation matrices. */
                 instances: OptionalField(nullable(list(Matrix)), null, 'Instances of this primitive group defined as 4x4 column major (j * 4 + i indexing) transformation matrices.'),
             }),

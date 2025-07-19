@@ -14,7 +14,13 @@ Note that since we don't clearly distinguish between a public and private interf
   - Representation node: support custom property `molstar_reprepresentation_params`,
   - Canvas node: support custom properties `molstar_enable_outline`, `molstar_enable_shadow`, `molstar_enable_ssao`
   - `clip` node support for structure and volume representations
+  - `grid_slice` representation support for volumes
+  - Support tethers and background for primitive labels
+  - Support `snapshot_key` parameter on primitives that enables transition between states via clicking on 3D objects
   - Inline selectors and MVS annotations support `instance_id`
+  - Support `matrix` on transform params
+  - Add `instance` node type
+  - Support transforming and instancing of structures, components, and volumes
 - [Breaking] Renamed some color schemes ('inferno' -> 'inferno-no-black', 'magma' -> 'magma-no-black', 'turbo' -> 'turbo-no-black', 'rainbow' -> 'simple-rainbow')
 - Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
 - Snapshot Markdown improvements
@@ -41,6 +47,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - [Breaking] `Box3D.nearestIntersectionWithRay` -> `nearestIntersectionWithRay3D` (use `Ray3D`)
 - [Breaking] `Plane3D.distanceToSpher3D` -> `distanceToSphere3D` (fix spelling)
 - [Breaking] fix typo `MarchinCubes` -> `MarchingCubes`
+- Volume slice representation: add `relativeX/Y/Z` options for dimension
+- Add `StructureInstances` transform
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:
