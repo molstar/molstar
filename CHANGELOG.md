@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- [Breaking] Renamed some color schemes ('inferno' -> 'inferno-no-black', 'magma' -> 'magma-no-black', 'turbo' -> 'turbo-no-black', 'rainbow' -> 'simple-rainbow')
+- [Breaking] `Box3D.nearestIntersectionWithRay` -> `nearestIntersectionWithRay3D` (use `Ray3D`)
+- [Breaking] `Plane3D.distanceToSpher3D` -> `distanceToSphere3D` (fix spelling)
+- [Breaking] fix typo `MarchinCubes` -> `MarchingCubes`
+- [Breaking] `PluginContext.initViewer/initContainer/mount` are now async and have been renamed to include `Async` postfix
+- [Breaking] Add `Volume.instances` support and a `VolumeInstances` transform to dynamically assign it
+  - This change is breaking because all volume objects require the `instances` field now.
 - Update production build to use `esbuild`
 - Emit explicit paths in `import`s in `lib/`
 - Fix outlines on opaque elements using illumination mode
@@ -21,7 +28,6 @@ Note that since we don't clearly distinguish between a public and private interf
   - Support `matrix` on transform params
   - Add `instance` node type
   - Support transforming and instancing of structures, components, and volumes
-- [Breaking] Renamed some color schemes ('inferno' -> 'inferno-no-black', 'magma' -> 'magma-no-black', 'turbo' -> 'turbo-no-black', 'rainbow' -> 'simple-rainbow')
 - Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
 - Snapshot Markdown improvements
   - Add `MarkdownExtensionManager` (`PluginContext.managers.markdownExtensions`)
@@ -34,19 +40,13 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix isosurface compute shader normals when transformation matrix is applied to volume
 - Symmetry operator naming for spacegroup symmetry - parenthesize multi-character indices (1_111-1 -> 1_(11)1(-1))
 - Add `SymmetryOperator.instanceId` that corresponds to a canonical operator name (e.g. ASM-1, ASM-X0-1 for assemblies, 1_555, 1_(11)1(-1) for crystals)
-- [Breaking] `PluginContext.initViewer/initContainer/mount` are now async and have been renamed to include `Async` postfix
 - Mol2 Reader
     - Fix column count parsing
     - Add support for substructure
 - Fix shader error when clipping flags are set without clip objects present
-- [Breaking] Add `Volume.instances` support and a `VolumeInstances` transform to dynamically assign it
-  - This change is breaking because all volume objects require the `instances` field now.
 - Fix wrong group count calculation on geometry update (#1562)
 - Fix wrong instance index in `calcMeshColorSmoothing`
 - Add `Ray3D` object and helpers
-- [Breaking] `Box3D.nearestIntersectionWithRay` -> `nearestIntersectionWithRay3D` (use `Ray3D`)
-- [Breaking] `Plane3D.distanceToSpher3D` -> `distanceToSphere3D` (fix spelling)
-- [Breaking] fix typo `MarchinCubes` -> `MarchingCubes`
 - Volume slice representation: add `relativeX/Y/Z` options for dimension
 - Add `StructureInstances` transform
 - Add `story-id` URL arg support to `mvs-stories` app
