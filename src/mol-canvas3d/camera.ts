@@ -27,6 +27,7 @@ interface ICamera {
     readonly near: number,
     readonly fogFar: number,
     readonly fogNear: number,
+    readonly headRotation: Mat4,
 }
 
 const tmpClip = Vec4();
@@ -36,6 +37,7 @@ export class Camera implements ICamera {
     readonly projection: Mat4 = Mat4.identity();
     readonly projectionView: Mat4 = Mat4.identity();
     readonly inverseProjectionView: Mat4 = Mat4.identity();
+    readonly headRotation: Mat4 = Mat4.zero();
 
     readonly viewport: Viewport;
     readonly state: Readonly<Camera.Snapshot> = Camera.createDefaultSnapshot();
