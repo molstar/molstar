@@ -93,10 +93,6 @@ export class PickHelper {
     private identifyInternal(x: number, y: number, camera: Camera | StereoCamera): PickData | undefined {
         if (this.webgl.isContextLost) return;
 
-        // if (this.pickRatio !== this.pickPass.pickRatio) {
-        //     this.update();
-        // }
-
         const { webgl, pickRatio } = this;
         if (webgl.isContextLost) return;
 
@@ -113,13 +109,6 @@ export class PickHelper {
             y > viewport.y + viewport.height
         ) return;
 
-        // if (this.dirty) {
-        //     if (isTimingMode) this.webgl.timer.mark('PickHelper.identify');
-        //     this.render(camera);
-        //     this.syncBuffers();
-        //     if (isTimingMode) this.webgl.timer.markEnd('PickHelper.identify');
-        // }
-
         const xv = x - viewport.x;
         const yv = y - viewport.y;
 
@@ -130,7 +119,6 @@ export class PickHelper {
         if (pickingId === undefined) return;
 
         const z = this.buffers.getDepth(xp, yp);
-        // console.log('z', z);
         const position = Vec3.create(x, y, z);
         if (StereoCamera.is(camera)) {
             const halfWidth = Math.floor(viewport.width / 2);
@@ -145,7 +133,6 @@ export class PickHelper {
             cameraUnproject(position, position, viewport, camera.inverseProjectionView);
         }
 
-        // console.log({ id: pickingId, position });
         return { id: pickingId, position };
     }
 
@@ -186,8 +173,7 @@ export class PickHelper {
         }
 
         return {
-            check: () => this.buffers.check(),
-            get: () => this.getPickData(x, y, camera)
+            tryGet: () => this.buffers.check() ? this.getPickData(x, y, camera) : 'pending'
         };
     }
 
@@ -197,8 +183,7 @@ export class PickHelper {
 
         if (!checkAsyncPickingSupport(webgl)) {
             this.asyncIdentify = (x, y, camera) => ({
-                check: () => true,
-                get: () => this.identify(x, y, camera)
+                tryGet: () => this.identify(x, y, camera)
             });
         }
     }

@@ -26,8 +26,7 @@ const NullId = Math.pow(2, 24) - 2;
 export type PickData = { id: PickingId, position: Vec3 }
 
 export type AsyncPickData = {
-    check: () => boolean,
-    get: () => PickData | undefined,
+    tryGet: () => 'pending' | PickData | undefined,
 }
 
 export const DefaultPickOptions = {

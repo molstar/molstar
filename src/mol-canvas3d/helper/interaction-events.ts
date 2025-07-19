@@ -111,8 +111,8 @@ export class Canvas3dInteractionHelper {
 
     tick(t: number) {
         if (this.pickData) {
-            if (this.pickData.check()) {
-                const pickData = this.pickData.get();
+            const pickData = this.pickData.tryGet();
+            if (pickData !== 'pending') {
                 this.position = pickData?.position;
                 if (this.inside) {
                     const loci = this.getLoci(pickData?.id, pickData?.position);

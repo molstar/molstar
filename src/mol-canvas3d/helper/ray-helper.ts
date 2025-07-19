@@ -68,11 +68,9 @@ export class RayHelper {
         if (pickingId === undefined) return;
 
         const z = this.buffers.getDepth(x, y);
-        // console.log('z', z);
         const position = Vec3.create(x, y, z);
         cameraUnproject(position, position, viewport, this.camera.inverseProjectionView);
 
-        // console.log({ id: pickingId, position });
         return { id: pickingId, position };
     }
 
@@ -125,8 +123,7 @@ export class RayHelper {
         if (isTimingMode) this.webgl.timer.markEnd('RayHelper.asyncIdentify');
 
         return {
-            check: () => this.buffers.check(),
-            get: () => this.getPickData()
+            tryGet: () => this.buffers.check() ? this.getPickData() : 'pending'
         };
     }
 
@@ -142,8 +139,7 @@ export class RayHelper {
 
         if (!checkAsyncPickingSupport(webgl)) {
             this.asyncIdentify = (ray, cam) => ({
-                check: () => true,
-                get: () => this.identify(ray, cam)
+                tryGet: () => this.identify(ray, cam)
             });
         }
     }
