@@ -33,7 +33,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Avoid calculating rings for coarse-grained structures
 - Fix isosurface compute shader normals when transformation matrix is applied to volume
 - Symmetry operator naming for spacegroup symmetry - parenthesize multi-character indices (1_111-1 -> 1_(11)1(-1))
-- Add canonical operator name (e.g. ASM-1, ASM-X0-1 for assemblies, 1_555, 1_(11)1(-1) for crystals)
+- Add `SymmetryOperator.instanceId` that corresponds to a canonical operator name (e.g. ASM-1, ASM-X0-1 for assemblies, 1_555, 1_(11)1(-1) for crystals)
 - [Breaking] `PluginContext.initViewer/initContainer/mount` are now async and have been renamed to include `Async` postfix
 - Mol2 Reader
     - Fix column count parsing

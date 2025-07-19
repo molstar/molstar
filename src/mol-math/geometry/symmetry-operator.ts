@@ -16,7 +16,7 @@ interface SymmetryOperator {
     readonly name: string,
     /** Canonical operator name, must follow symmetry instance naming rules (https://molstar.org/mol-view-spec-docs/selectors/#instance_id).
      * E.g. 1_555, ASM-X0-5 */
-    readonly canonicalName: string,
+    readonly instanceId: string,
 
     readonly assembly?: {
         /** pointer to `pdbx_struct_assembly.id` or empty string */
@@ -57,7 +57,7 @@ namespace SymmetryOperator {
 
     export const RotationTranslationEpsilon = 0.005;
 
-    export type CreateInfo = { assembly?: SymmetryOperator['assembly'], ncsId?: number, hkl?: Vec3, spgrOp?: number, key?: number, canonicalName?: string }
+    export type CreateInfo = { assembly?: SymmetryOperator['assembly'], ncsId?: number, hkl?: Vec3, spgrOp?: number, key?: number, instanceId?: string }
     export function create(name: string, matrix: Mat4, info?: CreateInfo | SymmetryOperator): SymmetryOperator {
         let { assembly, ncsId, hkl, spgrOp, key } = info || {};
         const _hkl = hkl ? Vec3.clone(hkl) : Vec3();
@@ -66,12 +66,12 @@ namespace SymmetryOperator {
         ncsId = ncsId || -1;
         const isIdentity = Mat4.isIdentity(matrix);
         const suffix = getSuffix(info, isIdentity);
-        const canonicalName = info?.canonicalName ?? name;
-        if (isIdentity) return { name, canonicalName, assembly, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl, spgrOp, ncsId, suffix, key };
+        const instanceId = info?.instanceId ?? name;
+        if (isIdentity) return { name, instanceId, assembly, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl, spgrOp, ncsId, suffix, key };
         if (!Mat4.isRotationAndTranslation(matrix, RotationTranslationEpsilon)) {
             console.warn(`Symmetry operator (${name}) should be a composition of rotation and translation.`);
         }
-        return { name, canonicalName, assembly, matrix, inverse: Mat4.invert(Mat4(), matrix), isIdentity: false, hkl: _hkl, spgrOp, key, ncsId, suffix };
+        return { name, instanceId, assembly, matrix, inverse: Mat4.invert(Mat4(), matrix), isIdentity: false, hkl: _hkl, spgrOp, key, ncsId, suffix };
     }
 
     function isSymmetryOperator(x: any): x is SymmetryOperator {

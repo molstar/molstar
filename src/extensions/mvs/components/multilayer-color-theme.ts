@@ -183,7 +183,7 @@ function makeLayers(ctx: ThemeDataContext, props: MultilayerColorThemeProps, col
 function getSubstructureGranularity(parent: Structure, substructure: Structure) {
     const parentCounts: { [instance: string]: number } = {};
     for (const unit of parent.units) {
-        const instance = unit.conformation.operator.canonicalName;
+        const instance = unit.conformation.operator.instanceId;
         parentCounts[instance] ??= 0;
         parentCounts[instance] += unit.elements.length;
     }
@@ -191,7 +191,7 @@ function getSubstructureGranularity(parent: Structure, substructure: Structure) 
     const childCounts: { [instance: string]: number } = {};
     const elementsPerInstance: { [instance: string]: { [invariantId: number]: StructureElement.Set } } = {};
     for (const unit of substructure.units) {
-        const instance = unit.conformation.operator.canonicalName;
+        const instance = unit.conformation.operator.instanceId;
         childCounts[instance] ??= 0;
         childCounts[instance] += unit.elements.length;
         (elementsPerInstance[instance] ??= {})[unit.invariantId] = unit.elements;

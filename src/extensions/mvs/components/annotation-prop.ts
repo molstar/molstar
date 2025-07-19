@@ -201,7 +201,7 @@ export class MVSAnnotation {
 
     /** Return value of field `fieldName` assigned to location `loc`, if any */
     getValueForLocation(loc: StructureElement.Location, fieldName: string): string | undefined {
-        const indexedModel = this.getIndexedModel(loc.unit.model, loc.unit.conformation.operator.canonicalName);
+        const indexedModel = this.getIndexedModel(loc.unit.model, loc.unit.conformation.operator.instanceId);
         const iRow = (indexedModel !== null) ? indexedModel[loc.element] : -1;
         return this.getValueForRow(iRow, fieldName);
     }
