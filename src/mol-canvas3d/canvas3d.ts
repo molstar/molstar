@@ -28,8 +28,8 @@ import { SetUtils } from '../mol-util/set';
 import { Canvas3dInteractionHelper, Canvas3dInteractionHelperParams } from './helper/interaction-events';
 import { PostprocessingParams } from './passes/postprocessing';
 import { MultiSampleHelper, MultiSampleParams, MultiSamplePass } from './passes/multi-sample';
-import { PickData } from './passes/pick';
-import { PickHelper } from './passes/pick';
+import { AsyncPickData, DefaultPickOptions, PickData } from './passes/pick';
+import { PickHelper } from './helper/pick-helper';
 import { ImagePass, ImageProps } from './passes/image';
 import { Sphere3D } from '../mol-math/geometry';
 import { addConsoleStatsProvider, isDebugMode, isTimingMode, removeConsoleStatsProvider } from '../mol-util/debug';
@@ -47,6 +47,8 @@ import { deepClone } from '../mol-util/object';
 import { HiZParams, HiZPass } from './passes/hi-z';
 import { IlluminationParams } from './passes/illumination';
 import { isMobileBrowser } from '../mol-util/browser';
+import { Ray3D } from '../mol-math/geometry/primitives/ray3d';
+import { RayHelper } from './helper/ray-helper';
 
 export const Canvas3DParams = {
     camera: PD.Group({
@@ -330,7 +332,8 @@ interface Canvas3D {
     pause(noDraw?: boolean): void
     /** Sets drawPaused = false without starting the built in animation loop */
     resume(): void
-    identify(x: number, y: number): PickData | undefined
+    identify(target: Vec2 | Ray3D): PickData | undefined
+    asyncIdentify(target: Vec2 | Ray3D): AsyncPickData | undefined
     mark(loci: Representation.Loci, action: MarkerAction): void
     getLoci(pickingId: PickingId | undefined): Representation.Loci
 
@@ -422,8 +425,13 @@ namespace Canvas3D {
         const renderer = Renderer.create(webgl, p.renderer);
         renderer.setOcclusionTest(hiZ.isOccluded);
 
-        const pickHelper = new PickHelper(webgl, renderer, scene, helper, passes.pick, { x, y, width, height }, p.pickPadding);
-        const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input, camera, controls, p.interaction);
+        const pickOptions = {
+            pickPadding: p.pickPadding,
+            maxAsyncReadLag: DefaultPickOptions.maxAsyncReadLag,
+        };
+        const pickHelper = new PickHelper(webgl, renderer, scene, helper, passes.pick, { x, y, width, height }, pickOptions);
+        const rayHelper = new RayHelper(webgl, renderer, scene, helper, pickOptions);
+        const interactionHelper = new Canvas3dInteractionHelper(identify, asyncIdentify, getLoci, input, camera, controls, p.interaction);
         const multiSampleHelper = new MultiSampleHelper(passes.multiSample);
 
         passes.draw.postprocessing.background.update(camera, p.postprocessing.background, changed => {
@@ -649,9 +657,26 @@ namespace Canvas3D {
             animationFrameHandle = 0;
         }
 
-        function identify(x: number, y: number): PickData | undefined {
-            const cam = p.camera.stereo.name === 'on' ? stereoCamera : camera;
-            return webgl.isContextLost ? undefined : pickHelper.identify(x, y, cam);
+        function identify(target: Vec2 | Ray3D): PickData | undefined {
+            if (webgl.isContextLost) return undefined;
+
+            if ('origin' in target) {
+                return rayHelper.identify(target, camera);
+            } else {
+                const cam = (p.camera.stereo.name === 'on') ? stereoCamera : camera;
+                return pickHelper.identify(target[0], target[1], cam);
+            }
+        }
+
+        function asyncIdentify(target: Vec2 | Ray3D): AsyncPickData | undefined {
+            if (webgl.isContextLost) return undefined;
+
+            if ('origin' in target) {
+                return rayHelper.asyncIdentify(target, camera);
+            } else {
+                const cam = (p.camera.stereo.name === 'on') ? stereoCamera : camera;
+                return pickHelper.asyncIdentify(target[0], target[1], cam);
+            }
         }
 
         function commit(isSynchronous: boolean = false) {
@@ -952,7 +977,7 @@ namespace Canvas3D {
             input.click.subscribe(e => {
                 if (!e.modifiers.control || e.button !== 2) return;
 
-                const p = identify(e.x, e.y);
+                const p = identify(Vec2.create(e.x, e.y));
                 if (!p) {
                     occlusionLoci = undefined;
                     printOcclusion(occlusionLoci);
@@ -1020,6 +1045,7 @@ namespace Canvas3D {
             pause,
             resume: () => { drawPaused = false; },
             identify,
+            asyncIdentify,
             mark,
             getLoci,
 
