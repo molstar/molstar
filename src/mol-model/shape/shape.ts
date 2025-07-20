@@ -42,7 +42,7 @@ export interface Shape<G extends Geometry = Geometry> {
 }
 
 export namespace Shape {
-    export function create<G extends Geometry>(name: string, sourceData: unknown, geometry: G, getColor: Shape['getColor'], getSize: Shape['getSize'], getLabel: Shape['getLabel'], transforms?: Mat4[]): Shape<G> {
+    export function create<G extends Geometry>(name: string, sourceData: unknown, geometry: G, getColor: Shape['getColor'], getSize: Shape['getSize'], getLabel: Shape['getLabel'], transforms?: Mat4[], groupCount?: number): Shape<G> {
         return {
             id: UUID.create22(),
             name,
@@ -50,8 +50,7 @@ export namespace Shape {
             geometry,
             transforms: transforms || [Mat4.identity()],
             get groupCount() {
-                // TODO: consider adding an way provide the group count explicitely
-                return Geometry.getGroupCount(geometry);
+                return groupCount ?? Geometry.getGroupCount(geometry);
             },
             getColor,
             getSize,
