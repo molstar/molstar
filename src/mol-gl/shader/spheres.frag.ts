@@ -92,7 +92,7 @@ void main(void){
         vec3 vViewPosition = -vPointViewPosition;
         fragmentDepth = gl_FragCoord.z;
         #if !defined(dIgnoreLight) || defined(dXrayShaded) || defined(dRenderVariant_tracing)
-            pointDir.z -= cos(length(pointDir));
+            pointDir.z -= cos(length(pointDir)) * vRadius * 0.5;
             cameraNormal = -normalize(pointDir);
         #endif
         interior = false;

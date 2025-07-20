@@ -130,6 +130,8 @@ export const GlobalUniformSchema = {
     uInvProjection: UniformSpec('m4'),
     uModelViewProjection: UniformSpec('m4'),
     uInvModelViewProjection: UniformSpec('m4'),
+    uHasHeadRotation: UniformSpec('b'),
+    uInvHeadRotation: UniformSpec('m4'),
 
     uIsOrtho: UniformSpec('f'),
     uPixelRatio: UniformSpec('f'),

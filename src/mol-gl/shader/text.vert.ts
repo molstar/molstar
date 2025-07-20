@@ -32,6 +32,7 @@ uniform float uOffsetZ;
 uniform float uIsOrtho;
 uniform float uPixelRatio;
 uniform vec4 uViewport;
+uniform mat4 uInvHeadRotation;
 
 varying vec2 vTexCoord;
 
@@ -75,9 +76,12 @@ void main(void){
         offsetZ -= 0.001 * distance(uCameraPosition, (uProjection * mvCorner).xyz);
     }
 
-    mvCorner.xy += aMapping * size * scale;
-    mvCorner.x += offsetX;
-    mvCorner.y += offsetY;
+    vec3 cornerOffset = vec3(0.0);
+    cornerOffset.xy += aMapping * size * scale;
+    cornerOffset.x += offsetX;
+    cornerOffset.y += offsetY;
+
+    mvCorner.xyz += (uInvHeadRotation * vec4(cornerOffset, 1.0)).xyz;
 
     if (uIsOrtho == 1.0) {
         mvCorner.z += offsetZ;
