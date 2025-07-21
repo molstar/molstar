@@ -152,6 +152,16 @@ function getLight(props: RendererProps['light'], light?: Light): Light {
     return { count, direction, color };
 }
 
+export function getTransformedLightDirection(light: Light, t: Mat4): Light['direction'] {
+    const tld = new Array(light.count * 3);
+    for (let i = 0, il = light.count; i < il; ++i) {
+        Vec3.fromArray(tmpDir, light.direction, i * 3);
+        Vec3.transformDirection(tmpDir, tmpDir, t);
+        Vec3.toArray(tmpDir, tld, i * 3);
+    }
+    return tld;
+}
+
 namespace Renderer {
     const enum Flag {
         None = 0,
@@ -408,19 +418,10 @@ namespace Renderer {
             if (hasHeadRotation) {
                 ValueCell.updateIfChanged(globalUniforms.uHasHeadRotation, hasHeadRotation);
                 ValueCell.update(globalUniforms.uInvHeadRotation, Mat4.invert(invHeadRotation, camera.headRotation));
-
-                if (globalUniforms.uHasHeadRotation.ref.value) {
-                    const ld = [...light.direction];
-                    for (let i = 0, il = light.count; i < il; ++i) {
-                        Vec3.fromArray(tmpDir, ld, i * 3);
-                        Vec3.transformDirection(tmpDir, tmpDir, globalUniforms.uInvHeadRotation.ref.value);
-                        Vec3.toArray(tmpDir, ld, i * 3);
-                    }
-                    ValueCell.update(globalUniforms.uLightDirection, ld);
-                }
+                ValueCell.update(globalUniforms.uLightDirection, getTransformedLightDirection(light, invHeadRotation));
             } else if (globalUniforms.uHasHeadRotation.ref.value) {
                 ValueCell.update(globalUniforms.uHasHeadRotation, false);
-                ValueCell.update(globalUniforms.uInvHeadRotation, Mat4.identity());
+                ValueCell.update(globalUniforms.uInvHeadRotation, Mat4.id);
                 ValueCell.update(globalUniforms.uLightDirection, light.direction);
             }
         };
