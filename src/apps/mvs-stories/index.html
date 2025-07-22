@@ -86,7 +86,7 @@
         // }
 
         if (storyId) {
-            mvsStories.loadFromID(storyId, { contextName: 'story1' });
+            mvsStories.loadFromID(storyId, { format: format || 'mvsj', contextName: 'story1' });
         } else if (storyUrl) {
             mvsStories.loadFromURL(storyUrl, { format: format || 'mvsj', contextName: 'story1' });
         }
