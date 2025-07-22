@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 ## [Unreleased]
+- [Breaking] Renamed some color schemes ('inferno' -> 'inferno-no-black', 'magma' -> 'magma-no-black', 'turbo' -> 'turbo-no-black', 'rainbow' -> 'simple-rainbow')
+- [Breaking] `Box3D.nearestIntersectionWithRay` -> `nearestIntersectionWithRay3D` (use `Ray3D`)
+- [Breaking] `Plane3D.distanceToSpher3D` -> `distanceToSphere3D` (fix spelling)
+- [Breaking] fix typo `MarchinCubes` -> `MarchingCubes`
+- [Breaking] `PluginContext.initViewer/initContainer/mount` are now async and have been renamed to include `Async` postfix
+- [Breaking] Add `Volume.instances` support and a `VolumeInstances` transform to dynamically assign it
+  - This change is breaking because all volume objects require the `instances` field now.
+- [Breaking] `Canvas3D.identify` now expects `Vec2` or `Ray3D`
 - Update production build to use `esbuild`
 - Emit explicit paths in `import`s in `lib/`
 - Fix outlines on opaque elements using illumination mode
@@ -14,7 +22,13 @@ Note that since we don't clearly distinguish between a public and private interf
   - Representation node: support custom property `molstar_reprepresentation_params`,
   - Canvas node: support custom properties `molstar_enable_outline`, `molstar_enable_shadow`, `molstar_enable_ssao`
   - `clip` node support for structure and volume representations
-- [Breaking] Renamed some color schemes ('inferno' -> 'inferno-no-black', 'magma' -> 'magma-no-black', 'turbo' -> 'turbo-no-black', 'rainbow' -> 'simple-rainbow')
+  - `grid_slice` representation support for volumes
+  - Support tethers and background for primitive labels
+  - Support `snapshot_key` parameter on primitives that enables transition between states via clicking on 3D objects
+  - Inline selectors and MVS annotations support `instance_id`
+  - Support `matrix` on transform params
+  - Add `instance` node type
+  - Support transforming and instancing of structures, components, and volumes
 - Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
 - Snapshot Markdown improvements
   - Add `MarkdownExtensionManager` (`PluginContext.managers.markdownExtensions`)
@@ -25,19 +39,26 @@ Note that since we don't clearly distinguish between a public and private interf
   - Indicate external links with ⤴
 - Avoid calculating rings for coarse-grained structures
 - Fix isosurface compute shader normals when transformation matrix is applied to volume
-- [Breaking] `PluginContext.initViewer/initContainer/mount` are now async and have been renamed to include `Async` postfix
+- Symmetry operator naming for spacegroup symmetry - parenthesize multi-character indices (1_111-1 -> 1_(11)1(-1))
+- Add `SymmetryOperator.instanceId` that corresponds to a canonical operator name (e.g. ASM-1, ASM-X0-1 for assemblies, 1_555, 1_(11)1(-1) for crystals)
 - Mol2 Reader
     - Fix column count parsing
     - Add support for substructure
 - Fix shader error when clipping flags are set without clip objects present
-- [Breaking] Add `Volume.instances` support and a `VolumeInstances` transform to dynamically assign it
-  - This change is breaking because all volume objects require the `instances` field now.
 - Fix wrong group count calculation on geometry update (#1562)
 - Fix wrong instance index in `calcMeshColorSmoothing`
 - Add `Ray3D` object and helpers
-- [Breaking] `Box3D.nearestIntersectionWithRay` -> `nearestIntersectionWithRay3D` (use `Ray3D`)
-- [Breaking] `Plane3D.distanceToSpher3D` -> `distanceToSphere3D` (fix spelling)
-- [Breaking] fix typo `MarchinCubes` -> `MarchingCubes`
+- Volume slice representation: add `relativeX/Y/Z` options for dimension
+- Add `StructureInstances` transform
+- Add `story-id` URL arg support to `mvs-stories` app
+- Add ray-based picking
+    - Render narrow view of scene scene from ray origin & direction to a few pixel sized viewport
+    - Cast ray on every input as opposed to the standard "whole screen" picking
+    - Can be enabled with new `Canvas3dInteractionHelperParams.convertCoordsToRay` param
+    - Allows to have input methods that are 3D pointers in the scene
+    - Add `ray: Ray3D` property to `DragInput`, `ClickInput`, and `MoveInput`
+- Add async, non-blocking picking (only WebGL2)
+    - Refactor `Canvas3dInteractionHelper` internals to use async picking for move events
 - Add tests for Box3D -> nearestIntersectionWithRay3D
 
 ## [v4.18.0] - 2025-06-08

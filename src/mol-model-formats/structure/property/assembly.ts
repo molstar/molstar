@@ -59,10 +59,12 @@ export function operatorGroupsProvider(generators: Generator[], matrices: Matric
             const operatorList = parseOperatorList(gen.expression);
             const operatorNames = expandOperators(operatorList);
             const operators = getAssemblyOperators(matrices, operatorNames, operatorOffset, gen.assemblyId);
-            const selector = Q.generators.atoms({ chainTest: Q.pred.and(
-                Q.pred.eq(ctx => StructureProperties.unit.operator_name(ctx.element), SymmetryOperator.DefaultName),
-                Q.pred.inSet(ctx => StructureProperties.chain.label_asym_id(ctx.element), gen.asymIds)
-            ) });
+            const selector = Q.generators.atoms({
+                chainTest: Q.pred.and(
+                    Q.pred.eq(ctx => StructureProperties.unit.operator_name(ctx.element), SymmetryOperator.DefaultName),
+                    Q.pred.inSet(ctx => StructureProperties.chain.label_asym_id(ctx.element), gen.asymIds)
+                )
+            });
             groups[groups.length] = { selector, operators, asymIds: gen.asymIds };
             operatorOffset += operators.length;
         }
@@ -118,7 +120,9 @@ function getAssemblyOperators(matrices: Matrices, operatorNames: string[][], sta
             Mat4.mul(m, m, matrices.get(op[i])!);
         }
         index++;
-        operators[operators.length] = SymmetryOperator.create(`ASM_${index}`, m, { assembly: { id: assemblyId, operId: index, operList: op } });
+        const opName = `ASM_${index}`; // Kept mostly for compatibility reasons
+        const canonicalOpName = SymmetryOperator.getAssemblyOperatorName(op);
+        operators[operators.length] = SymmetryOperator.create(opName, m, { instanceId: canonicalOpName, assembly: { id: assemblyId, operId: index, operList: op } });
     }
 
     return operators;

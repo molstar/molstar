@@ -239,7 +239,7 @@ function _elementLabel(location: StructureElement.Location, granularity: LabelGr
         label.push(`<small>${entry}</small>`); // entry
         if (granularity !== 'structure') {
             label.push(`<small>Model ${location.unit.model.modelNum}</small>`); // model
-            label.push(`<small>Instance ${location.unit.conformation.operator.name}</small>`); // instance
+            label.push(`<small>Instance ${location.unit.conformation.operator.instanceId}</small>`); // instance
         }
     }
 

@@ -12,7 +12,11 @@ import { Quat } from '../linear-algebra/3d/quat';
 import { Vec3 } from '../linear-algebra/3d/vec3';
 
 interface SymmetryOperator {
+    /** Operator name, e.g. 1_555, ASM_1 */
     readonly name: string,
+    /** Canonical operator name, must follow symmetry instance naming rules (https://molstar.org/mol-view-spec-docs/selectors/#instance_id).
+     * E.g. 1_555, ASM-X0-5 */
+    readonly instanceId: string,
 
     readonly assembly?: {
         /** pointer to `pdbx_struct_assembly.id` or empty string */
@@ -53,24 +57,36 @@ namespace SymmetryOperator {
 
     export const RotationTranslationEpsilon = 0.005;
 
-    export type CreateInfo = { assembly?: SymmetryOperator['assembly'], ncsId?: number, hkl?: Vec3, spgrOp?: number, key?: number }
+    export type CreateInfo = { assembly?: SymmetryOperator['assembly'], ncsId?: number, hkl?: Vec3, spgrOp?: number, key?: number, instanceId?: string }
     export function create(name: string, matrix: Mat4, info?: CreateInfo | SymmetryOperator): SymmetryOperator {
-        let { assembly, ncsId, hkl, spgrOp, key } = info || { };
+        let { assembly, ncsId, hkl, spgrOp, key } = info || {};
         const _hkl = hkl ? Vec3.clone(hkl) : Vec3();
         spgrOp = spgrOp ?? -1;
         key = key ?? -1;
         ncsId = ncsId || -1;
         const isIdentity = Mat4.isIdentity(matrix);
         const suffix = getSuffix(info, isIdentity);
-        if (isIdentity) return { name, assembly, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl, spgrOp, ncsId, suffix, key };
+        const instanceId = info?.instanceId ?? name;
+        if (isIdentity) return { name, instanceId, assembly, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl, spgrOp, ncsId, suffix, key };
         if (!Mat4.isRotationAndTranslation(matrix, RotationTranslationEpsilon)) {
             console.warn(`Symmetry operator (${name}) should be a composition of rotation and translation.`);
         }
-        return { name, assembly, matrix, inverse: Mat4.invert(Mat4(), matrix), isIdentity: false, hkl: _hkl, spgrOp, key, ncsId, suffix };
+        return { name, instanceId, assembly, matrix, inverse: Mat4.invert(Mat4(), matrix), isIdentity: false, hkl: _hkl, spgrOp, key, ncsId, suffix };
     }
 
     function isSymmetryOperator(x: any): x is SymmetryOperator {
         return !!x && !!x.matrix && !!x.inverse && typeof x.name === 'string';
+    }
+
+    /** Create spacegroup symmetry operator name, e.g. getSymmetryOperatorName(0, 0, 0, 0) -> '1_555' */
+    export function getSymmetryOperatorName(spgrOp: number, i: number, j: number, k: number): string {
+        const fmt = (n: number) => n >= 0 && n <= 9 ? `${n}` : `(${n})`;
+        return `${spgrOp + 1}_${fmt(i + 5)}${fmt(j + 5)}${fmt(k + 5)}`;
+    }
+
+    /** Create assembly symmetry operator name, e.g. getAssemblyOperatorName(['X0', '5']) -> 'X0-5' */
+    export function getAssemblyOperatorName(operatorIds: string[]): string {
+        return 'ASM-' + operatorIds.join('-');
     }
 
     function getSuffix(info?: CreateInfo | SymmetryOperator, isIdentity?: boolean) {
@@ -83,7 +99,7 @@ namespace SymmetryOperator {
 
         if (typeof info.spgrOp !== 'undefined' && typeof info.hkl !== 'undefined' && info.spgrOp !== -1) {
             const [i, j, k] = info.hkl;
-            return `-${info.spgrOp + 1}_${5 + i}${5 + j}${5 + k}`;
+            return `-${getSymmetryOperatorName(info.spgrOp, i, j, k)}`;
         }
 
         if (info.ncsId !== -1) {

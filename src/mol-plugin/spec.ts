@@ -85,6 +85,7 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         PluginSpec.Action(StateTransforms.Model.TrajectoryFromCifCore),
         PluginSpec.Action(StateTransforms.Model.TrajectoryFromPDB),
         PluginSpec.Action(StateTransforms.Model.TransformStructureConformation),
+        PluginSpec.Action(StateTransforms.Model.StructureInstances),
         PluginSpec.Action(StateTransforms.Model.StructureFromModel),
         PluginSpec.Action(StateTransforms.Model.StructureFromTrajectory),
         PluginSpec.Action(StateTransforms.Model.ModelFromTrajectory),

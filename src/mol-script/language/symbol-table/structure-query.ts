@@ -273,6 +273,7 @@ const atomProperty = {
 
         sourceIndex: atomProp(Type.Num, 'Index of the atom/element in the input file.'),
         operatorName: atomProp(Type.Str, 'Name of the symmetry operator applied to this element.'),
+        instanceId: atomProp(Type.Str, 'Canonical name of the symmetry operator applied to this element.'),
         operatorKey: atomProp(Type.Num, 'Key of the symmetry operator applied to this element.'),
         modelIndex: atomProp(Type.Num, 'Index of the model in the input file.'),
         modelLabel: atomProp(Type.Str, 'Label/header of the model in the input file.')

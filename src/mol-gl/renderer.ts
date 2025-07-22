@@ -152,6 +152,16 @@ function getLight(props: RendererProps['light'], light?: Light): Light {
     return { count, direction, color };
 }
 
+export function getTransformedLightDirection(light: Light, t: Mat4): Light['direction'] {
+    const tld = new Array(light.count * 3);
+    for (let i = 0, il = light.count; i < il; ++i) {
+        Vec3.fromArray(tmpDir, light.direction, i * 3);
+        Vec3.transformDirection(tmpDir, tmpDir, t);
+        Vec3.toArray(tmpDir, tld, i * 3);
+    }
+    return tld;
+}
+
 namespace Renderer {
     const enum Flag {
         None = 0,
@@ -191,6 +201,7 @@ namespace Renderer {
         const invProjection = Mat4();
         const modelViewProjection = Mat4();
         const invModelViewProjection = Mat4();
+        const invHeadRotation = Mat4();
 
         const cameraDir = Vec3();
         const cameraPosition = Vec3();
@@ -213,6 +224,8 @@ namespace Renderer {
             uProjection: ValueCell.create(Mat4()),
             uModelViewProjection: ValueCell.create(modelViewProjection),
             uInvModelViewProjection: ValueCell.create(invModelViewProjection),
+            uHasHeadRotation: ValueCell.create(false),
+            uInvHeadRotation: ValueCell.create(invHeadRotation),
 
             uIsOrtho: ValueCell.create(1),
             uViewOffset: ValueCell.create(viewOffset),
@@ -400,6 +413,17 @@ namespace Renderer {
             ValueCell.update(globalUniforms.uCameraPlane, Plane3D.toArray(cameraPlane, globalUniforms.uCameraPlane.ref.value, 0));
 
             ValueCell.updateIfChanged(globalUniforms.uMarkerAverage, scene.markerAverage);
+
+            const hasHeadRotation = !Mat4.isZero(camera.headRotation);
+            if (hasHeadRotation) {
+                ValueCell.updateIfChanged(globalUniforms.uHasHeadRotation, hasHeadRotation);
+                ValueCell.update(globalUniforms.uInvHeadRotation, Mat4.invert(invHeadRotation, camera.headRotation));
+                ValueCell.update(globalUniforms.uLightDirection, getTransformedLightDirection(light, invHeadRotation));
+            } else if (globalUniforms.uHasHeadRotation.ref.value) {
+                ValueCell.update(globalUniforms.uHasHeadRotation, false);
+                ValueCell.update(globalUniforms.uInvHeadRotation, Mat4.id);
+                ValueCell.update(globalUniforms.uLightDirection, light.direction);
+            }
         };
 
         const updateInternal = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null, renderMask: Mask, markingDepthTest: boolean) => {

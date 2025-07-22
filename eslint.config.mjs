@@ -7,6 +7,7 @@ export default defineConfig([{
     ignores: [
         "node_modules/*",
         "build/*",
+        "deploy/*",
         "docs/site/*",
         "lib/*",
         "eslint.config.mjs",

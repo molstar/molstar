@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -28,6 +28,7 @@ import { SyncRuntimeContext } from '../../mol-task/execution/synchronous';
 import { AssetManager } from '../../mol-util/assets';
 import { MembraneOrientationProvider } from '../../extensions/anvil/prop';
 import { MembraneOrientationRepresentationProvider } from '../../extensions/anvil/representation';
+import { Vec2 } from '../../mol-math/linear-algebra/3d/vec2';
 
 const parent = document.getElementById('app')!;
 parent.style.width = '100%';
@@ -56,7 +57,7 @@ parent.appendChild(info);
 
 let prevReprLoci = Representation.Loci.Empty;
 canvas3d.input.move.pipe(throttleTime(100)).subscribe(({ x, y }) => {
-    const pickingId = canvas3d.identify(x, y)?.id;
+    const pickingId = canvas3d.identify(Vec2.create(x, y))?.id;
     let label = '';
     if (pickingId) {
         const reprLoci = canvas3d.getLoci(pickingId);

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -12,6 +12,7 @@ import { Cylinder, CylinderProps, DefaultCylinderProps } from '../../../primitiv
 import { Prism } from '../../../primitive/prism';
 import { polygon } from '../../../primitive/polygon';
 import { hashFnv32a } from '../../../../mol-data/util';
+import { Ray3D } from '../../../../mol-math/geometry/primitives/ray3d';
 
 const cylinderMap = new Map<number, Primitive>();
 const up = Vec3.create(0, 1, 0);
@@ -74,6 +75,11 @@ export function addSimpleCylinder(state: MeshBuilder.State, start: Vec3, end: Ve
     const d = Vec3.distance(start, end);
     Vec3.sub(tmpCylinderDir, end, start);
     setCylinderMat(tmpCylinderMat, start, tmpCylinderDir, d, false);
+    MeshBuilder.addPrimitive(state, tmpCylinderMat, getCylinder(props));
+}
+
+export function addCylinderFromRay3D(state: MeshBuilder.State, ray: Ray3D, length: number, props: BasicCylinderProps) {
+    setCylinderMat(tmpCylinderMat, ray.origin, ray.direction, length, false);
     MeshBuilder.addPrimitive(state, tmpCylinderMat, getCylinder(props));
 }
 

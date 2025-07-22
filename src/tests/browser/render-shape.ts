@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -14,7 +14,7 @@ import { EveryLoci } from '../../mol-model/loci';
 import { RuntimeContext, Progress } from '../../mol-task';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
-import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
+import { Mat4, Vec2, Vec3 } from '../../mol-math/linear-algebra';
 import { Sphere } from '../../mol-geo/primitive/sphere';
 import { ColorNames } from '../../mol-util/color/names';
 import { Shape } from '../../mol-model/shape';
@@ -52,7 +52,7 @@ parent.appendChild(info);
 
 let prevReprLoci = Representation.Loci.Empty;
 canvas3d.input.move.subscribe(({ x, y }) => {
-    const pickingId = canvas3d.identify(x, y)?.id;
+    const pickingId = canvas3d.identify(Vec2.create(x, y))?.id;
     let label = '';
     if (pickingId) {
         const reprLoci = canvas3d.getLoci(pickingId);

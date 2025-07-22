@@ -1,6 +1,6 @@
 {
   "name": "molstar",
-  "version": "4.18.0",
+  "version": "5.0.0-dev.0",
   "description": "A comprehensive macromolecular library.",
   "homepage": "https://github.com/molstar/molstar#readme",
   "repository": {
@@ -18,7 +18,8 @@
     "lint-fix": "eslint . --fix",
     "test": "npm install --no-save \"gl@^6.0.2\" && npm run lint && jest",
     "jest": "jest",
-    "clean": "node ./scripts/clean.js",
+    "clean": "node ./scripts/clean.js --all",
+    "clean:build": "node ./scripts/clean.js --build",
     "build": "npm run build:apps && npm run build:lib",
     "build:apps": "node ./scripts/build.mjs -a -e --prd",
     "build:lib": "concurrently \"tsc --incremental\" \"tsc --build tsconfig.commonjs.json --incremental\" && npm run build:lib-extra",
@@ -31,6 +32,8 @@
     "dev:examples": "node ./scripts/build.mjs -e",
     "dev:browser-tests": "node ./scripts/build.mjs -bt",
     "serve": "http-server -p 1338 -g",
+    "deploy:local": "npm run clean:build && npm run build:apps && node ./scripts/deploy.js --local",
+    "deploy:remote": "npm run clean:build && npm run build:apps && node ./scripts/deploy.js",
     "model-server": "node lib/commonjs/servers/model/server.js",
     "model-server-watch": "nodemon --watch lib lib/commonjs/servers/model/server.js",
     "volume-server-test": "node lib/commonjs/servers/volume/server.js --idMap em 'test/${id}.mdb' --defaultPort 1336",

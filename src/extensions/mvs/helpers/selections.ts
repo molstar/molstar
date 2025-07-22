@@ -19,7 +19,9 @@ const EmptyArray: readonly any[] = [];
 
 
 /** Return atom ranges in `model` which satisfy criteria given by `row` */
-export function getAtomRangesForRow(model: Model, row: MVSAnnotationRow, indices: IndicesAndSortings): AtomRanges {
+export function getAtomRangesForRow(row: MVSAnnotationRow, model: Model, instanceId: string, indices: IndicesAndSortings): AtomRanges {
+    if (isDefined(row.instance_id) && row.instance_id !== instanceId) return AtomRanges.empty();
+
     const h = model.atomicHierarchy;
     const nAtoms = h.atoms._rowCount;
 
@@ -70,12 +72,8 @@ export function getAtomRangesForRow(model: Model, row: MVSAnnotationRow, indices
 }
 
 /** Return atom ranges in `model` which satisfy criteria given by any of `rows` (atoms that satisfy more rows are still included only once) */
-export function getAtomRangesForRows(model: Model, rows: MVSAnnotationRow | MVSAnnotationRow[], indices: IndicesAndSortings): AtomRanges {
-    if (Array.isArray(rows)) {
-        return AtomRanges.union(rows.map(row => getAtomRangesForRow(model, row, indices)));
-    } else {
-        return getAtomRangesForRow(model, rows, indices);
-    }
+export function getAtomRangesForRows(rows: MVSAnnotationRow[], model: Model, instanceId: string, indices: IndicesAndSortings): AtomRanges {
+    return AtomRanges.union(rows.map(row => getAtomRangesForRow(row, model, instanceId, indices)));
 }
 
 
