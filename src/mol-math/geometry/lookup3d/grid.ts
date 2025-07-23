@@ -418,7 +418,7 @@ function queryNearest<T extends number = number>(ctx: QueryContext, result: Resu
     if (!Box3D.containsVec3(box, tmpRay.origin)) {
         // intersect ray pointing to box center
         Ray3D.targetTo(tmpRay, tmpRay, center);
-        Box3D.nearestIntersectionWithRay3D(tmpRay.origin, box, tmpRay);
+        Box3D.intersectWithRay3D(tmpRay.origin, box, tmpRay);
         gX = Math.max(0, Math.min(sX - 1, Math.floor((tmpRay.origin[0] - min[0]) / delta[0])));
         gY = Math.max(0, Math.min(sY - 1, Math.floor((tmpRay.origin[1] - min[1]) / delta[1])));
         gZ = Math.max(0, Math.min(sZ - 1, Math.floor((tmpRay.origin[2] - min[2]) / delta[2])));
