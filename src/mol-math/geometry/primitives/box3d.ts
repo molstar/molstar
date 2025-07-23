@@ -191,7 +191,7 @@ namespace Box3D {
         ) ? false : true;
     }
 
-    export function nearestIntersectionWithRay3D(out: Vec3, box: Box3D, ray: Ray3D): Vec3 {
+    function _intersectRay3D(box: Box3D, ray: Ray3D): number {
         const { origin, direction } = ray;
         const [minX, minY, minZ] = box.min;
         const [maxX, maxY, maxZ] = box.max;
@@ -214,6 +214,9 @@ namespace Box3D {
             tymin = (maxY - y) * invDirY;
             tymax = (minY - y) * invDirY;
         }
+        if ((tmin > tymax) || (tymin > tmax)) return -1;
+        if (tymin > tmin) tmin = tymin;
+        if (tymax < tmax) tmax = tymax;
         if (invDirZ >= 0) {
             tzmin = (minZ - z) * invDirZ;
             tzmax = (maxZ - z) * invDirZ;
@@ -221,16 +224,22 @@ namespace Box3D {
             tzmin = (maxZ - z) * invDirZ;
             tzmax = (minZ - z) * invDirZ;
         }
-        if (tymin > tmin)
-            tmin = tymin;
-        if (tymax < tmax)
-            tmax = tymax;
-        if (tzmin > tmin)
-            tmin = tzmin;
-        if (tzmax < tmax)
-            tmax = tzmax;
-        Vec3.scale(out, direction, tmin);
-        return Vec3.set(out, out[0] + x, out[1] + y, out[2] + z);
+        if ((tmin > tzmax) || (tzmin > tmax)) return -1;
+        if (tzmin > tmin) tmin = tzmin;
+        if (tzmax < tmax) tmax = tzmax;
+        return tmin >= 0 ? tmin : -1;
+    }
+
+    export function intersectWithRay3D(out: Vec3, box: Box3D, ray: Ray3D): boolean {
+        const t = _intersectRay3D(box, ray);
+        if (t < 0) return false;
+
+        Vec3.scaleAndAdd(out, ray.origin, ray.direction, t);
+        return true;
+    }
+
+    export function isIntersectingWithRay3D(box: Box3D, ray: Ray3D): boolean {
+        return _intersectRay3D(box, ray) >= 0;
     }
 
     export function center(out: Vec3, box: Box3D): Vec3 {
