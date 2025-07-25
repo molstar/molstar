@@ -82,10 +82,8 @@ export class Canvas3dInteractionHelper {
 
     private handleMove() {
         const xyChanged = this.startX !== this.endX || this.startY !== this.endY || (this.input.pointerLock && !this.controls.isMoving);
-
         if (xyChanged) {
-            const pickData = this.canvasAsyncIdentify(this.getTarget());
-            this.pickData = pickData;
+            this.pickData = this.canvasAsyncIdentify(this.getTarget());
             this.startX = this.endX;
             this.startY = this.endY;
         }
@@ -119,17 +117,16 @@ export class Canvas3dInteractionHelper {
                     this.events.hover.next({ current: loci, buttons: this.buttons, button: this.button, modifiers: this.modifiers, page: Vec2.create(this.endX, this.endY), position: pickData?.position });
                     this.prevLoci = loci;
                 }
-
                 this.pickData = undefined;
             }
-        } else {
-            if (this.inside && t - this.prevT > 1000 / this.props.maxFps) {
-                this.prevT = t;
-                if (this.isInteracting) {
-                    this.handleDrag();
-                } else {
-                    this.handleMove();
-                }
+        }
+
+        if (this.inside && t - this.prevT > 1000 / this.props.maxFps) {
+            this.prevT = t;
+            if (this.isInteracting) {
+                this.handleDrag();
+            } else {
+                this.handleMove();
             }
         }
     }
