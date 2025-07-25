@@ -50,7 +50,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `Ray3D` object and helpers
 - Volume slice representation: add `relativeX/Y/Z` options for dimension
 - Add `StructureInstances` transform
-- Add `story-id` URL arg support to `mvs-stories` app
+- `mvs-stories` app
+  - Add `story-id` URL arg support
+  - Add "Download MVS State" link
 - Add ray-based picking
     - Render narrow view of scene scene from ray origin & direction to a few pixel sized viewport
     - Cast ray on every input as opposed to the standard "whole screen" picking

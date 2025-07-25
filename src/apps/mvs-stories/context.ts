@@ -16,6 +16,7 @@ export class MVSStoriesContext {
     commands = new BehaviorSubject<MVSStoriesCommand | undefined>(undefined);
     state = {
         viewers: new BehaviorSubject<{ name?: string, model: MVSStoriesViewerModel }[]>([]),
+        currentStoryData: new BehaviorSubject<string | Uint8Array | undefined>(undefined),
         isLoading: new BehaviorSubject(false),
     };
 
@@ -27,7 +28,7 @@ export class MVSStoriesContext {
     }
 }
 
-export function getMVSStoriesContext(options?: { name?: string, container?: object }) {
+export function getMVSStoriesContext(options?: { name?: string, container?: object }): MVSStoriesContext {
     const container: any = options?.container ?? window;
     container.componentContexts ??= {};
     const name = options?.name ?? '<default>';

@@ -166,6 +166,8 @@ export async function loadMVSData(plugin: PluginContext, data: MVSData | StringL
     } else {
         throw new Error(`Unknown MolViewSpec format: ${format}`);
     }
+
+    return data;
 }
 
 function clearMVSXFileAssets(plugin: PluginContext) {

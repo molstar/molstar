@@ -38,6 +38,21 @@
             gap: 16px;
         }
 
+        #links {
+            position: absolute;
+            bottom: 4px;
+            right: 8px;
+            font-family: "Raleway", "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 0.6rem;
+            z-index: -1;
+            color: #666;
+        }
+
+        #links a {
+            color: #666;
+            text-decoration: none;
+        }
+
         @media (orientation:portrait) {
             #viewer {
                 position: absolute;
@@ -74,6 +89,10 @@
         <mvs-stories-snapshot-markdown context-name="story1" style="flex-grow: 1;" ></mvs-stories-snapshot-markdown>
     </div>
 
+    <div id="links">
+        <a href="#" id="mvs-data">Download MVS State</a> | <a href="https://github.com/molstar/molstar/tree/master/src/apps/mvs-stories" id="mvs-data" target="_blank" rel="noopener noreferrer">Source Code</a>
+    </div>
+
     <script>
         var urlParams = new URLSearchParams(window.location.search);
         var storyId = urlParams.get('story-id');
@@ -90,6 +109,11 @@
         } else if (storyUrl) {
             mvsStories.loadFromURL(storyUrl, { format: format || 'mvsj', contextName: 'story1' });
         }
+
+        document.getElementById('mvs-data').addEventListener('click', (e) => {
+            e.preventDefault();
+            mvsStories.downloadCurrentStory({ contextName: 'story1' });
+        });
     </script>
     <!-- __MOLSTAR_ANALYTICS__ -->
 </body>

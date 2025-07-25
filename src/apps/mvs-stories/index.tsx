@@ -7,6 +7,7 @@
 import { getMVSStoriesContext } from './context';
 import './elements';
 import { MVSData } from '../../extensions/mvs/mvs-data';
+import { download } from '../../mol-util/download';
 
 import './favicon.ico';
 import '../../mol-plugin-ui/skin/light.scss';
@@ -47,5 +48,17 @@ export function loadFromID(id: string, options?: { format?: 'mvsx' | 'mvsj', con
         { format: options?.format ?? 'mvsj', contextName: options?.contextName },
     );
 }
+
+export function downloadCurrentStory(options?: { contextName?: string, filename?: string }) {
+    const story = getContext(options?.contextName).state.currentStoryData.value;
+    if (!story) return;
+
+    const isMVSJ = typeof story === 'string';
+    const filename = `${options?.filename ?? 'story'}.${isMVSJ ? 'mvsj' : 'mvsx'}`;
+    download(
+        new Blob([typeof story === 'string' ? story : story.buffer], { type: isMVSJ ? 'application/json' : 'application/octet-stream' }),
+        filename
+    );
+};
 
 export { MVSData };
