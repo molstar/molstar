@@ -419,7 +419,7 @@ namespace Renderer {
                 ValueCell.updateIfChanged(globalUniforms.uHasHeadRotation, hasHeadRotation);
                 ValueCell.update(globalUniforms.uInvHeadRotation, Mat4.invert(invHeadRotation, camera.headRotation));
                 ValueCell.update(globalUniforms.uLightDirection, getTransformedLightDirection(light, invHeadRotation));
-            } else if (globalUniforms.uHasHeadRotation.ref.value) {
+            } else {
                 ValueCell.update(globalUniforms.uHasHeadRotation, false);
                 ValueCell.update(globalUniforms.uInvHeadRotation, Mat4.id);
                 ValueCell.update(globalUniforms.uLightDirection, light.direction);
