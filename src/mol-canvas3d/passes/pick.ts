@@ -2,6 +2,7 @@
  * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { PickingId } from '../../mol-geo/geometry/picking';
@@ -16,6 +17,7 @@ import { Renderbuffer } from '../../mol-gl/webgl/renderbuffer';
 import { Texture } from '../../mol-gl/webgl/texture';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { isDebugMode, isTimingMode } from '../../mol-util/debug';
+import { now } from '../../mol-util/now';
 import { unpackRGBAToDepth, unpackRGBToInt } from '../../mol-util/number-packing';
 import { ICamera } from '../camera';
 import { Viewport } from '../camera/util';
@@ -26,7 +28,7 @@ const NullId = Math.pow(2, 24) - 2;
 export type PickData = { id: PickingId, position: Vec3 }
 
 export type AsyncPickData = {
-    tryGet: () => 'pending' | PickData | undefined,
+    tryGet: () => 'pending' | 'expired' | PickData | undefined,
 }
 
 export const DefaultPickOptions = {
@@ -316,6 +318,7 @@ export class PickBuffers {
     }
 
     private fenceSync: WebGLSync | null = null;
+    private fenceTimestamp: number = 0;
 
     get pending() {
         return this.fenceSync !== null;
@@ -323,11 +326,14 @@ export class PickBuffers {
 
     private ready = false;
     private lag = 0;
+    asyncReadExpired = false;
 
     asyncRead() {
         const { gl } = this.webgl;
         if (!isWebGL2(gl)) return;
 
+        this.asyncReadExpired = false;
+        this.lag = 0;
         if (isTimingMode) this.webgl.timer.mark('PickBuffers.asyncRead');
         if (this.fenceSync !== null) {
             gl.deleteSync(this.fenceSync);
@@ -356,6 +362,8 @@ export class PickBuffers {
 
         gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
 
+        this.lag = 0;
+        this.fenceTimestamp = now();
         this.fenceSync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
         // gl.flush();
 
@@ -373,11 +381,17 @@ export class PickBuffers {
         const res = gl.clientWaitSync(this.fenceSync, 0, 0);
         if (res === gl.WAIT_FAILED || this.lag >= this.maxAsyncReadLag) {
             // console.log(`failed to get buffer data after ${this.lag + 1} checks`);
+            const timestamp = now();
+            if (timestamp - this.fenceTimestamp < 1000 / 30) {
+                this.lag += 1;
+                return false;
+            }
             gl.deleteSync(this.fenceSync);
             this.fenceSync = null;
             this.lag = 0;
             this.ready = false;
-            return true;
+            this.asyncReadExpired = true;
+            return false;
         } else if (res === gl.TIMEOUT_EXPIRED) {
             this.lag += 1;
             // console.log(`waiting for buffer data for ${this.lag} checks`);

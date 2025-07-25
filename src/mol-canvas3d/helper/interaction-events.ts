@@ -108,9 +108,13 @@ export class Canvas3dInteractionHelper {
     }
 
     tick(t: number) {
+        if (!(this.inside && t - this.prevT > 1000 / this.props.maxFps)) return;
+
         if (this.pickData) {
             const pickData = this.pickData.tryGet();
-            if (pickData !== 'pending') {
+            if (pickData === 'expired') {
+                this.pickData = undefined;
+            } else if (pickData !== 'pending') {
                 this.position = pickData?.position;
                 if (this.inside) {
                     const loci = this.getLoci(pickData?.id, pickData?.position);
@@ -121,13 +125,11 @@ export class Canvas3dInteractionHelper {
             }
         }
 
-        if (this.inside && t - this.prevT > 1000 / this.props.maxFps) {
-            this.prevT = t;
-            if (this.isInteracting) {
-                this.handleDrag();
-            } else {
-                this.handleMove();
-            }
+        this.prevT = t;
+        if (this.isInteracting) {
+            this.handleDrag();
+        } else {
+            this.handleMove();
         }
     }
 
