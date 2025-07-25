@@ -6,6 +6,8 @@
 
 import { MolViewSpec } from '../../../extensions/mvs/behavior';
 import { loadMVSData } from '../../../extensions/mvs/components/formats';
+import { MVSData } from '../../../extensions/mvs/mvs-data';
+import { StringLike } from '../../../mol-io/common/string-like';
 import { PluginComponent } from '../../../mol-plugin-state/component';
 import { createPluginUI } from '../../../mol-plugin-ui';
 import { renderReact18 } from '../../../mol-plugin-ui/react18';
@@ -56,11 +58,17 @@ export class MVSStoriesViewerModel extends PluginComponent {
             try {
                 this.context.state.isLoading.next(true);
                 if (cmd.kind === 'load-mvs') {
+                    let loadedData: MVSData | StringLike | Uint8Array | undefined;
                     if (cmd.url) {
                         const data = await this.plugin.runTask(this.plugin.fetch({ url: cmd.url, type: cmd.format === 'mvsx' ? 'binary' : 'string' }));
-                        await loadMVSData(this.plugin, data, cmd.format ?? 'mvsj', { sourceUrl: cmd.url });
+                        loadedData = await loadMVSData(this.plugin, data, cmd.format ?? 'mvsj', { sourceUrl: cmd.url });
                     } else if (cmd.data) {
-                        await loadMVSData(this.plugin, cmd.data, cmd.format ?? 'mvsj');
+                        loadedData = await loadMVSData(this.plugin, cmd.data, cmd.format ?? 'mvsj');
+                    }
+                    if (StringLike.is(loadedData) || loadedData instanceof Uint8Array) {
+                        this.context.state.currentStoryData.next(loadedData as string | Uint8Array);
+                    } else if (loadedData) {
+                        this.context.state.currentStoryData.next(JSON.stringify(loadedData));
                     }
                 }
             } catch (e) {
