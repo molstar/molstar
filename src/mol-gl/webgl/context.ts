@@ -182,6 +182,7 @@ function createStats() {
         resourceCounts: {
             attribute: 0,
             elements: 0,
+            pixelPack: 0,
             framebuffer: 0,
             program: 0,
             renderbuffer: 0,
@@ -253,7 +254,6 @@ export interface WebGLContext {
     bindDrawingBuffer: () => void
     getDrawingBufferSize: () => { width: number, height: number }
     readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array | Int32Array) => void
-    readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>
     waitForGpuCommandsComplete: () => Promise<void>
     waitForGpuCommandsCompleteSync: () => void
     getFenceSync: () => WebGLSync | null
@@ -303,43 +303,6 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
     const contextRestored = new Subject<now.Timestamp>();
 
     let pixelScale = props.pixelScale || 1;
-
-    let readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>;
-    if (isWebGL2(gl)) {
-        const pbo = gl.createBuffer();
-        let _buffer: Uint8Array | undefined = void 0;
-        let _resolve: (() => void) | undefined = void 0;
-        let _reading = false;
-
-        const bindPBO = () => {
-            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pbo);
-            gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, _buffer!);
-            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
-            _reading = false;
-            _resolve!();
-            _resolve = void 0;
-            _buffer = void 0;
-        };
-        readPixelsAsync = (x: number, y: number, width: number, height: number, buffer: Uint8Array): Promise<void> => new Promise<void>((resolve, reject) => {
-            if (_reading) {
-                reject('Can not call multiple readPixelsAsync at the same time');
-                return;
-            }
-            _reading = true;
-            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pbo);
-            gl.bufferData(gl.PIXEL_PACK_BUFFER, width * height * 4, gl.STREAM_READ);
-            gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, 0);
-            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
-            // need to unbind/bind PBO before/after async awaiting the fence
-            _resolve = resolve;
-            _buffer = buffer;
-            fence(gl, bindPBO);
-        });
-    } else {
-        readPixelsAsync = async (x: number, y: number, width: number, height: number, buffer: Uint8Array) => {
-            readPixels(gl, x, y, width, height, buffer);
-        };
-    }
 
     const renderTargets = new Set<RenderTarget>();
 
@@ -429,7 +392,6 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array | Int32Array) => {
             readPixels(gl, x, y, width, height, buffer);
         },
-        readPixelsAsync,
         waitForGpuCommandsComplete: () => waitForGpuCommandsComplete(gl),
         waitForGpuCommandsCompleteSync: () => waitForGpuCommandsCompleteSync(gl),
         getFenceSync: () => {

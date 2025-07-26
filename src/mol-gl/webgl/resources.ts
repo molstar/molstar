@@ -6,11 +6,11 @@
 
 import { ProgramProps, createProgram, Program } from './program';
 import { ShaderType, createShader, Shader, ShaderProps } from './shader';
-import { GLRenderingContext } from './compat';
+import { GLRenderingContext, isWebGL2 } from './compat';
 import { Framebuffer, createFramebuffer } from './framebuffer';
 import { WebGLExtensions } from './extensions';
 import { WebGLState } from './state';
-import { AttributeBuffer, UsageHint, ArrayType, AttributeItemSize, createAttributeBuffer, ElementsBuffer, createElementsBuffer, ElementsType, AttributeBuffers } from './buffer';
+import { AttributeBuffer, UsageHint, ArrayType, AttributeItemSize, createAttributeBuffer, ElementsBuffer, createElementsBuffer, ElementsType, AttributeBuffers, PixelPackBuffer, createPixelPackBuffer } from './buffer';
 import { createReferenceCache, ReferenceItem } from '../../mol-util/reference-cache';
 import { WebGLStats } from './context';
 import { hashString, hashFnv32a } from '../../mol-data/util';
@@ -54,6 +54,7 @@ type ByteCounts = {
 export interface WebGLResources {
     attribute: (array: ArrayType, itemSize: AttributeItemSize, divisor: number, usageHint?: UsageHint) => AttributeBuffer
     elements: (array: ElementsType, usageHint?: UsageHint) => ElementsBuffer
+    pixelPack: (format: TextureFormat, type: TextureType) => PixelPackBuffer
     framebuffer: () => Framebuffer
     program: (defineValues: DefineValues, shaderCode: ShaderCode, schema: RenderableSchema) => Program
     renderbuffer: (format: RenderbufferFormat, attachment: RenderbufferAttachment, width: number, height: number) => Renderbuffer
@@ -72,6 +73,7 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
     const sets: { [k in ResourceName]: Set<Resource> } = {
         attribute: new Set<Resource>(),
         elements: new Set<Resource>(),
+        pixelPack: new Set<Resource>(),
         framebuffer: new Set<Resource>(),
         program: new Set<Resource>(),
         renderbuffer: new Set<Resource>(),
@@ -126,6 +128,12 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
         elements: (array: ElementsType, usageHint?: UsageHint) => {
             return wrap('elements', createElementsBuffer(gl, array, usageHint));
         },
+        pixelPack: (format: TextureFormat, type: TextureType) => {
+            if (!isWebGL2(gl)) {
+                throw new Error('WebGL2 is required for pixel-pack buffers');
+            }
+            return wrap('pixelPack', createPixelPackBuffer(gl, extensions, format, type));
+        },
         framebuffer: () => {
             return wrap('framebuffer', createFramebuffer(gl));
         },
@@ -171,6 +179,7 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
         reset: () => {
             sets.attribute.forEach(r => r.reset());
             sets.elements.forEach(r => r.reset());
+            sets.pixelPack.forEach(r => r.reset());
             sets.framebuffer.forEach(r => r.reset());
             sets.renderbuffer.forEach(r => r.reset());
             sets.shader.forEach(r => r.reset());
@@ -182,6 +191,7 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
         destroy: () => {
             sets.attribute.forEach(r => r.destroy());
             sets.elements.forEach(r => r.destroy());
+            sets.pixelPack.forEach(r => r.destroy());
             sets.framebuffer.forEach(r => r.destroy());
             sets.renderbuffer.forEach(r => r.destroy());
             sets.shader.forEach(r => r.destroy());

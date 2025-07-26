@@ -118,8 +118,11 @@ export function getInternalFormat(gl: GLRenderingContext, format: TextureFormat,
 }
 
 function getByteCount(format: TextureFormat, type: TextureType, width: number, height: number, depth: number): number {
-    const bpe = getFormatSize(format) * getTypeSize(type);
-    return bpe * width * height * (depth || 1);
+    return getBytesPerElement(format, type) * width * height * (depth || 1);
+}
+
+export function getBytesPerElement(format: TextureFormat, type: TextureType): number {
+    return getFormatSize(format) * getTypeSize(type);
 }
 
 function getFormatSize(format: TextureFormat) {

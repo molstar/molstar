@@ -14,7 +14,7 @@ import { Camera } from '../camera';
 import { StereoCamera } from '../camera/stereo';
 import { cameraUnproject, Viewport } from '../camera/util';
 import { Helper } from '../helper/helper';
-import { AsyncPickData, checkAsyncPickingSupport, PickBuffers, PickData, PickOptions, PickPass } from '../passes/pick';
+import { AsyncPickData, AsyncPickStatus, checkAsyncPickingSupport, PickBuffers, PickData, PickOptions, PickPass } from '../passes/pick';
 
 export class PickHelper {
     dirty = true;
@@ -173,8 +173,26 @@ export class PickHelper {
         }
 
         return {
-            tryGet: () => this.buffers.check() ? this.getPickData(x, y, camera) : 'pending'
+            tryGet: () => {
+                const status = this.buffers.check();
+                if (status === AsyncPickStatus.Resolved) {
+                    return this.getPickData(x, y, camera);
+                } else if (status === AsyncPickStatus.Pending) {
+                    return 'pending';
+                } else if (status === AsyncPickStatus.Failed) {
+                    this.dirty = true;
+                }
+            }
         };
+    }
+
+    reset() {
+        this.buffers.reset();
+        this.dirty = true;
+    }
+
+    dispose() {
+        this.buffers.dispose();
     }
 
     constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private helper: Helper, private pickPass: PickPass, viewport: Viewport, options: PickOptions) {
