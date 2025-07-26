@@ -377,6 +377,7 @@ export class DrawPass {
         const antialiasingEnabled = AntialiasingPass.isEnabled(props.postprocessing);
         const markingEnabled = MarkingPass.isEnabled(props.marking);
         const dofEnabled = DofPass.isEnabled(props.postprocessing);
+        const bloomEnabled = BloomPass.isEnabled(props.postprocessing);
 
         const { x, y, width, height } = camera.viewport;
         renderer.setViewport(x, y, width, height);
@@ -446,7 +447,7 @@ export class DrawPass {
             needsTargetCopy = true;
         }
 
-        if (props.postprocessing.dof.name === 'on') {
+        if (dofEnabled && props.postprocessing.dof.name === 'on') {
             const input = AntialiasingPass.isEnabled(props.postprocessing)
                 ? this.antialiasing.target.texture
                 : PostprocessingPass.isEnabled(props.postprocessing)
@@ -469,7 +470,7 @@ export class DrawPass {
             }
         }
 
-        if (props.postprocessing.bloom.name === 'on') {
+        if (bloomEnabled && props.postprocessing.bloom.name === 'on') {
             const emissiveBloom = props.postprocessing.bloom.params.mode === 'emissive';
 
             if (emissiveBloom && scene.emissiveAverage > 0) {
@@ -493,7 +494,7 @@ export class DrawPass {
         const { renderer, camera, scene, helper } = ctx;
 
         this.postprocessing.setTransparentBackground(props.transparentBackground);
-        const transparentBackground = props.transparentBackground || this.postprocessing.background.isEnabled(props.postprocessing.background);
+        const transparentBackground = props.transparentBackground || this.postprocessing.background.isEnabled(props.postprocessing);
 
         renderer.setTransparentBackground(transparentBackground);
         renderer.setDrawingBufferSize(this.colorTarget.getWidth(), this.colorTarget.getHeight());

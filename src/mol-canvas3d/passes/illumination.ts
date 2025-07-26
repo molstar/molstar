@@ -33,6 +33,8 @@ import { JitterVectors, MultiSampleProps } from './multi-sample';
 import { compose_frag as multiSample_compose_frag } from '../../mol-gl/shader/compose.frag';
 import { clamp, lerp } from '../../mol-math/interpolate';
 import { SsaoProps } from './ssao';
+import { OutlinePass } from './outline';
+import { BloomPass } from './bloom';
 
 type Props = {
     transparentBackground: boolean;
@@ -313,8 +315,11 @@ export class IlluminationPass {
 
         const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
 
-        const outlinesEnabled = props.postprocessing.outline.name === 'on' && !props.illumination.ignoreOutline;
+        const antialiasingEnabled = AntialiasingPass.isEnabled(props.postprocessing);
+        const outlinesEnabled = OutlinePass.isEnabled(props.postprocessing) && !props.illumination.ignoreOutline;
         const occlusionEnabled = PostprocessingPass.isTransparentSsaoEnabled(scene, props.postprocessing);
+        const bloomEnabled = BloomPass.isEnabled(props.postprocessing);
+        const dofEnabled = DofPass.isEnabled(props.postprocessing);
 
         const markingEnabled = MarkingPass.isEnabled(props.marking);
         const hasTransparent = scene.opacityAverage < 1;
@@ -327,7 +332,7 @@ export class IlluminationPass {
             ValueCell.update(this.composeRenderable.values.dOutlineEnable, outlinesEnabled);
         }
 
-        if (props.postprocessing.outline.name === 'on') {
+        if (outlinesEnabled && props.postprocessing.outline.name === 'on') {
             const { transparentOutline, outlineScale } = this.drawPass.postprocessing.outline.update(camera, props.postprocessing.outline.params, this.drawPass.depthTargetTransparent.texture, this.drawPass.depthTextureOpaque);
             this.drawPass.postprocessing.outline.render();
 
@@ -348,7 +353,7 @@ export class IlluminationPass {
             ValueCell.update(this.composeRenderable.values.dOcclusionEnable, occlusionEnabled);
         }
 
-        if (props.postprocessing.occlusion.name === 'on') {
+        if (occlusionEnabled && props.postprocessing.occlusion.name === 'on') {
             ValueCell.update(this.composeRenderable.values.uOcclusionColor, Color.toVec3Normalized(this.composeRenderable.values.uOcclusionColor.ref.value, props.postprocessing.occlusion.params.color));
         }
 
@@ -370,7 +375,7 @@ export class IlluminationPass {
 
         // background
 
-        const _toDrawingBuffer = toDrawingBuffer && !AntialiasingPass.isEnabled(props.postprocessing) && props.postprocessing.dof.name === 'off';
+        const _toDrawingBuffer = toDrawingBuffer && !antialiasingEnabled && !dofEnabled;
         if (_toDrawingBuffer) {
             this.webgl.bindDrawingBuffer();
         } else {
@@ -384,7 +389,7 @@ export class IlluminationPass {
 
         // compose
 
-        ValueCell.updateIfChanged(this.composeRenderable.values.uTransparentBackground, props.transparentBackground || this.drawPass.postprocessing.background.isEnabled(props.postprocessing.background));
+        ValueCell.updateIfChanged(this.composeRenderable.values.uTransparentBackground, props.transparentBackground || this.drawPass.postprocessing.background.isEnabled(props.postprocessing));
         if (this.composeRenderable.values.dDenoise.ref.value !== props.illumination.denoise) {
             ValueCell.update(this.composeRenderable.values.dDenoise, props.illumination.denoise);
             needsUpdateCompose = true;
@@ -421,8 +426,8 @@ export class IlluminationPass {
         let targetIsDrawingbuffer = false;
         let swapTarget = this.outputTarget;
 
-        if (AntialiasingPass.isEnabled(props.postprocessing)) {
-            const _toDrawingBuffer = toDrawingBuffer && props.postprocessing.dof.name === 'off';
+        if (antialiasingEnabled) {
+            const _toDrawingBuffer = toDrawingBuffer && !dofEnabled;
             this.drawPass.antialiasing.render(camera, this.tracing.composeTarget.texture, _toDrawingBuffer ? true : this.outputTarget, props.postprocessing);
 
             if (_toDrawingBuffer) {
@@ -433,13 +438,13 @@ export class IlluminationPass {
             }
         }
 
-        if (props.postprocessing.bloom.name === 'on') {
-            const _toDrawingBuffer = (toDrawingBuffer && props.postprocessing.dof.name === 'off') || targetIsDrawingbuffer;
+        if (bloomEnabled && props.postprocessing.bloom.name === 'on') {
+            const _toDrawingBuffer = (toDrawingBuffer && !dofEnabled) || targetIsDrawingbuffer;
             this.drawPass.bloom.update(this.tracing.colorTextureOpaque, this.tracing.normalTextureOpaque, this.drawPass.depthTextureOpaque, props.postprocessing.bloom.params);
             this.drawPass.bloom.render(camera.viewport, _toDrawingBuffer ? undefined : this._colorTarget);
         }
 
-        if (props.postprocessing.dof.name === 'on') {
+        if (dofEnabled && props.postprocessing.dof.name === 'on') {
             const _toDrawingBuffer = toDrawingBuffer || targetIsDrawingbuffer;
             this.drawPass.dof.update(camera, this._colorTarget.texture, this.drawPass.depthTextureOpaque, this.drawPass.depthTargetTransparent.texture, props.postprocessing.dof.params, scene.boundingSphereVisible);
             this.drawPass.dof.render(camera.viewport, _toDrawingBuffer ? undefined : swapTarget);
