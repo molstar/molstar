@@ -467,6 +467,7 @@ export class PickBuffers {
         this.fenceSync = null;
         this.ready = false;
         this.lag = 0;
+        this.fenceTimestamp = 0;
     }
 
     dispose() {
