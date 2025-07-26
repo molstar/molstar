@@ -33,10 +33,9 @@ uniform float uIsOrtho;
 uniform float uPixelRatio;
 uniform vec4 uViewport;
 uniform mat4 uInvHeadRotation;
+uniform bool uHasHeadRotation;
 
 varying vec2 vTexCoord;
-
-#include matrix_scale
 
 void main(void){
     int vertexId = VertexID;
@@ -49,7 +48,7 @@ void main(void){
 
     vTexCoord = aTexCoord;
 
-    float scale = matrixScale(uModelView);
+    float scale = uModelScale;
 
     float offsetX = uOffsetX * scale;
     float offsetY = uOffsetY * scale;
@@ -81,7 +80,11 @@ void main(void){
     cornerOffset.x += offsetX;
     cornerOffset.y += offsetY;
 
-    mvCorner.xyz += (uInvHeadRotation * vec4(cornerOffset, 1.0)).xyz;
+    if (uHasHeadRotation) {
+        mvCorner.xyz += (uInvHeadRotation * vec4(cornerOffset, 1.0)).xyz;
+    } else {
+        mvCorner.xyz += cornerOffset;
+    }
 
     if (uIsOrtho == 1.0) {
         mvCorner.z += offsetZ;
