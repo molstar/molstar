@@ -2,7 +2,6 @@
  * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
- * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Renderer } from '../../mol-gl/renderer';
@@ -170,18 +169,11 @@ export class PickHelper {
             if (isTimingMode) this.webgl.timer.mark('PickHelper.asyncIdentify');
             this.render(camera);
             this.buffers.asyncRead();
-        } else if (this.buffers.asyncReadExpired) {
-            this.buffers.asyncRead();
+            if (isTimingMode) this.webgl.timer.markEnd('PickHelper.asyncIdentify');
         }
 
         return {
-            tryGet: () => {
-                if (this.buffers.check()) {
-                    return this.getPickData(x, y, camera);
-                }
-
-                return this.buffers.asyncReadExpired ? 'expired' : 'pending';
-            }
+            tryGet: () => this.buffers.check() ? this.getPickData(x, y, camera) : 'pending'
         };
     }
 
