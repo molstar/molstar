@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -12,12 +12,13 @@ import { assertUnreachable, ValueOf } from '../../mol-util/type-helpers';
 import { GLRenderingContext, isWebGL2 } from './compat';
 import { WebGLExtensions } from './extensions';
 import { WebGLState } from './state';
+import { getBytesPerElement, getFormat, getType, TextureFormat, TextureType } from './texture';
 
 const getNextBufferId = idFactory();
 
 export type UsageHint = 'static' | 'dynamic' | 'stream'
 export type DataType = 'uint8' | 'int8' | 'uint16' | 'int16' | 'uint32' | 'int32' | 'float32'
-export type BufferType = 'attribute' | 'elements' | 'uniform'
+export type BufferType = 'attribute' | 'elements' | 'uniform' | 'pixel-pack'
 
 export type DataTypeArrayType = {
     'uint8': Uint8Array
@@ -36,6 +37,7 @@ export function getUsageHint(gl: GLRenderingContext, usageHint: UsageHint) {
         case 'static': return gl.STATIC_DRAW;
         case 'dynamic': return gl.DYNAMIC_DRAW;
         case 'stream': return gl.STREAM_DRAW;
+        default: assertUnreachable(usageHint);
     }
 }
 
@@ -80,6 +82,12 @@ export function getBufferType(gl: GLRenderingContext, bufferType: BufferType) {
                 return gl.UNIFORM_BUFFER;
             } else {
                 throw new Error('WebGL2 is required for uniform buffers');
+            }
+        case 'pixel-pack':
+            if (isWebGL2(gl)) {
+                return gl.PIXEL_PACK_BUFFER;
+            } else {
+                throw new Error('WebGL2 is required for pixel-pack buffers');
             }
     }
 }
@@ -256,6 +264,65 @@ export function createElementsBuffer(gl: GLRenderingContext, array: ElementsType
         ...buffer,
         bind: () => {
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer.getBuffer());
+        }
+    };
+}
+
+//
+
+export interface PixelPackBuffer {
+    readonly id: number
+
+    readonly _type: number
+    readonly _format: number
+    readonly _bpe: number
+
+    read: (x: number, y: number, width: number, height: number) => void
+    getSubData: (array: ArrayType) => void
+
+    reset: () => void
+    destroy: () => void
+}
+
+export function createPixelPackBuffer(gl: WebGL2RenderingContext, extensions: WebGLExtensions, format: TextureFormat, type: TextureType): PixelPackBuffer {
+    let _buffer = getBuffer(gl);
+
+    const _type = getType(gl, extensions, type);
+    const _format = getFormat(gl, format, type);
+    const _bpe = getBytesPerElement(format, type);
+
+    function read(x: number, y: number, width: number, height: number) {
+        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, _buffer);
+        gl.bufferData(gl.PIXEL_PACK_BUFFER, width * height * _bpe, gl.STREAM_READ);
+        gl.readPixels(x, y, width, height, _format, _type, 0);
+        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+    }
+
+    function getSubData(array: ArrayType) {
+        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, _buffer);
+        gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, array);
+        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+    }
+
+    let destroyed = false;
+
+    return {
+        id: getNextBufferId(),
+
+        _type,
+        _format,
+        _bpe,
+
+        read,
+        getSubData,
+
+        reset: () => {
+            _buffer = getBuffer(gl);
+        },
+        destroy: () => {
+            if (destroyed) return;
+            gl.deleteBuffer(_buffer);
+            destroyed = true;
         }
     };
 }

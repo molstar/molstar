@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -20,7 +20,7 @@ import { Camera } from '../camera';
 import { Viewport } from '../camera/util';
 import { DrawPass } from './draw';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { getBuffer } from '../../mol-gl/webgl/buffer';
+import { PixelPackBuffer } from '../../mol-gl/webgl/buffer';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3transformMat4 = Vec3.transformMat4;
@@ -128,7 +128,7 @@ export class HiZPass {
 
     private readonly levelData: LevelData = [];
     private readonly fb: Framebuffer;
-    private readonly buf: WebGLBuffer;
+    private readonly buf: PixelPackBuffer;
     private readonly tex: Texture;
     private readonly renderable: HiZRenderable;
     private readonly supported: boolean;
@@ -221,10 +221,7 @@ export class HiZPass {
         const hw = this.tex.getWidth();
         const hh = this.tex.getHeight();
 
-        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.buf);
-        gl.bufferData(gl.PIXEL_PACK_BUFFER, this.buffer.byteLength, gl.STREAM_READ);
-        gl.readPixels(0, 0, hw, hh, gl.RED, gl.FLOAT, 0);
-        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+        this.buf.read(0, 0, hw, hh);
 
         this.sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
         gl.flush();
@@ -249,9 +246,7 @@ export class HiZPass {
             this.frameLag += 1;
             // console.log(`waiting for buffer data for ${this.frameLag} frames`);
         } else {
-            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.buf);
-            gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, this.buffer);
-            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+            this.buf.getSubData(this.buffer);
             // console.log(`got buffer data after ${this.frameLag + 1} frames`);
             gl.deleteSync(this.sync);
             this.sync = null;
@@ -510,6 +505,16 @@ export class HiZPass {
 
     //
 
+    reset() {
+        this.sync = null;
+        this.ready = false;
+        this.frameLag = 0;
+        this.levelData.length = 0;
+
+        const { x, y, width, height } = this.viewport;
+        this.setViewport(x, y, width, height);
+    }
+
     dispose() {
         if (!this.supported) return;
 
@@ -517,7 +522,7 @@ export class HiZPass {
 
         this.fb.destroy();
         this.tex.destroy();
-        this.webgl.gl.deleteBuffer(this.buf);
+        this.buf.destroy();
         this.renderable.dispose();
 
         for (const td of this.levelData) {
@@ -527,6 +532,8 @@ export class HiZPass {
     }
 
     constructor(private webgl: WebGLContext, private drawPass: DrawPass, canvas: HTMLCanvasElement | undefined, props: Partial<HiZProps>) {
+        this.props = { ...PD.getDefaultValues(HiZParams), ...props };
+
         const { gl, extensions } = webgl;
         if (!isWebGL2(gl) || !extensions.colorBufferFloat) {
             if (isDebugMode) {
@@ -552,8 +559,7 @@ export class HiZPass {
         }
 
         this.supported = true;
-        this.props = { ...PD.getDefaultValues(HiZParams), ...props };
-        this.buf = getBuffer(gl);
+        this.buf = webgl.resources.pixelPack('alpha', 'float');
         this.renderable = createHiZRenderable(webgl, this.drawPass.depthTextureOpaque);
 
         if (isDebugMode && canvas) {

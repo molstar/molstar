@@ -7,7 +7,7 @@
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { PickType, Renderer } from '../../mol-gl/renderer';
 import { Scene } from '../../mol-gl/scene';
-import { getBuffer } from '../../mol-gl/webgl/buffer';
+import { PixelPackBuffer } from '../../mol-gl/webgl/buffer';
 import { isWebGL2 } from '../../mol-gl/webgl/compat';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Framebuffer } from '../../mol-gl/webgl/framebuffer';
@@ -115,6 +115,29 @@ export class PickPass {
             this.instancePickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight);
             this.groupPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight);
             this.depthPickTarget = webgl.createRenderTarget(this.pickWidth, this.pickHeight);
+        }
+    }
+
+    dispose() {
+        if (this.webgl.extensions.drawBuffers) {
+            this.framebuffer.destroy();
+
+            this.objectPickTexture.destroy();
+            this.instancePickTexture.destroy();
+            this.groupPickTexture.destroy();
+            this.depthPickTexture.destroy();
+
+            this.objectPickFramebuffer.destroy();
+            this.instancePickFramebuffer.destroy();
+            this.groupPickFramebuffer.destroy();
+            this.depthPickFramebuffer.destroy();
+
+            this.depthRenderbuffer.destroy();
+        } else {
+            this.objectPickTarget.destroy();
+            this.instancePickTarget.destroy();
+            this.groupPickTarget.destroy();
+            this.depthPickTarget.destroy();
         }
     }
 
@@ -267,16 +290,18 @@ export function checkAsyncPickingSupport(webgl: WebGLContext): boolean {
     return false;
 }
 
+export enum AsyncPickStatus { Pending, Resolved, Failed };
+
 export class PickBuffers {
     private object: Uint8Array;
     private instance: Uint8Array;
     private group: Uint8Array;
     private depth: Uint8Array;
 
-    private readonly objectBuffer: WebGLBuffer;
-    private readonly instanceBuffer: WebGLBuffer;
-    private readonly groupBuffer: WebGLBuffer;
-    private readonly depthBuffer: WebGLBuffer;
+    private objectBuffer: PixelPackBuffer;
+    private instanceBuffer: PixelPackBuffer;
+    private groupBuffer: PixelPackBuffer;
+    private depthBuffer: PixelPackBuffer;
 
     private viewport = Viewport.create(0, 0, 0, 0);
 
@@ -317,10 +342,6 @@ export class PickBuffers {
 
     private fenceSync: WebGLSync | null = null;
 
-    get pending() {
-        return this.fenceSync !== null;
-    }
-
     private ready = false;
     private lag = 0;
 
@@ -335,26 +356,16 @@ export class PickBuffers {
         const { x, y, width, height } = this.viewport;
 
         this.pickPass.bindObject();
-        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.objectBuffer);
-        gl.bufferData(gl.PIXEL_PACK_BUFFER, this.object.byteLength, gl.STREAM_READ);
-        gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+        this.objectBuffer.read(x, y, width, height);
 
         this.pickPass.bindInstance();
-        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.instanceBuffer);
-        gl.bufferData(gl.PIXEL_PACK_BUFFER, this.instance.byteLength, gl.STREAM_READ);
-        gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+        this.instanceBuffer.read(x, y, width, height);
 
         this.pickPass.bindGroup();
-        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.groupBuffer);
-        gl.bufferData(gl.PIXEL_PACK_BUFFER, this.group.byteLength, gl.STREAM_READ);
-        gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+        this.groupBuffer.read(x, y, width, height);
 
         this.pickPass.bindDepth();
-        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.depthBuffer);
-        gl.bufferData(gl.PIXEL_PACK_BUFFER, this.depth.byteLength, gl.STREAM_READ);
-        gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, 0);
-
-        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+        this.depthBuffer.read(x, y, width, height);
 
         this.fenceSync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
         // gl.flush();
@@ -363,12 +374,12 @@ export class PickBuffers {
         if (isTimingMode) this.webgl.timer.markEnd('PickBuffers.asyncRead');
     }
 
-    check(): boolean {
-        if (this.ready) return true;
-        if (this.fenceSync === null) return false;
+    check(): AsyncPickStatus {
+        if (this.ready) return AsyncPickStatus.Resolved;
+        if (this.fenceSync === null) return AsyncPickStatus.Failed;
 
         const { gl } = this.webgl;
-        if (!isWebGL2(gl)) return true;
+        if (!isWebGL2(gl)) return AsyncPickStatus.Failed;
 
         const res = gl.clientWaitSync(this.fenceSync, 0, 0);
         if (res === gl.WAIT_FAILED || this.lag >= this.maxAsyncReadLag) {
@@ -377,32 +388,24 @@ export class PickBuffers {
             this.fenceSync = null;
             this.lag = 0;
             this.ready = false;
-            return true;
+            return AsyncPickStatus.Failed;
         } else if (res === gl.TIMEOUT_EXPIRED) {
             this.lag += 1;
             // console.log(`waiting for buffer data for ${this.lag} checks`);
-            return false;
+            return AsyncPickStatus.Pending;
         } else {
-            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.objectBuffer);
-            gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, this.object);
+            this.objectBuffer.getSubData(this.object);
+            this.instanceBuffer.getSubData(this.instance);
+            this.groupBuffer.getSubData(this.group);
+            this.depthBuffer.getSubData(this.depth);
 
-            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.instanceBuffer);
-            gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, this.instance);
-
-            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.groupBuffer);
-            gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, this.group);
-
-            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.depthBuffer);
-            gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, this.depth);
-
-            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
             // console.log(`got buffer data after ${this.lag + 1} checks`);
             gl.deleteSync(this.fenceSync);
             this.fenceSync = null;
             this.lag = 0;
             this.ready = true;
 
-            return true;
+            return AsyncPickStatus.Resolved;
         }
     }
 
@@ -453,12 +456,34 @@ export class PickBuffers {
         return { objectId, instanceId, groupId };
     }
 
+    reset() {
+        this.fenceSync = null;
+        this.ready = false;
+        this.lag = 0;
+    }
+
+    dispose() {
+        const { gl } = this.webgl;
+        if (!isWebGL2(gl)) return;
+
+        this.objectBuffer.destroy();
+        this.instanceBuffer.destroy();
+        this.groupBuffer.destroy();
+        this.depthBuffer.destroy();
+
+        if (this.fenceSync !== null) {
+            gl.deleteSync(this.fenceSync);
+            this.fenceSync = null;
+        }
+    }
+
     constructor(private webgl: WebGLContext, private pickPass: PickPass, public maxAsyncReadLag = 5) {
-        const { gl } = webgl;
-        this.objectBuffer = getBuffer(gl);
-        this.instanceBuffer = getBuffer(gl);
-        this.groupBuffer = getBuffer(gl);
-        this.depthBuffer = getBuffer(gl);
+        if (webgl.isWebGL2) {
+            this.objectBuffer = webgl.resources.pixelPack('rgba', 'ubyte');
+            this.instanceBuffer = webgl.resources.pixelPack('rgba', 'ubyte');
+            this.groupBuffer = webgl.resources.pixelPack('rgba', 'ubyte');
+            this.depthBuffer = webgl.resources.pixelPack('rgba', 'ubyte');
+        }
 
         this.setup();
     }

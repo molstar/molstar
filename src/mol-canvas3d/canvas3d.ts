@@ -900,6 +900,10 @@ namespace Canvas3D {
         });
 
         const contextRestoredSub = contextRestored.subscribe(() => {
+            pickHelper.reset();
+            rayHelper.reset();
+            hiZ.reset();
+
             scene.forEach(r => {
                 if (r.values.meta?.ref.value.reset) {
                     r.values.meta.ref.value.reset();
@@ -1196,6 +1200,9 @@ namespace Canvas3D {
                 renderer.dispose();
                 interactionHelper.dispose();
                 hiZ.dispose();
+                pickHelper.dispose();
+                rayHelper.dispose();
+
                 if (fenceSync !== null) {
                     webgl.deleteSync(fenceSync);
                     fenceSync = null;

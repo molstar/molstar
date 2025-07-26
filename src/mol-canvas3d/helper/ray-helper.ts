@@ -15,7 +15,7 @@ import { Camera } from '../camera';
 import { cameraUnproject } from '../camera/util';
 import { Viewport } from '../camera/util';
 import { Helper } from './helper';
-import { AsyncPickData, PickBuffers, PickData, PickPass, PickOptions, checkAsyncPickingSupport } from '../passes/pick';
+import { AsyncPickData, PickBuffers, PickData, PickPass, PickOptions, checkAsyncPickingSupport, AsyncPickStatus } from '../passes/pick';
 
 export class RayHelper {
     private viewport = Viewport();
@@ -123,8 +123,25 @@ export class RayHelper {
         if (isTimingMode) this.webgl.timer.markEnd('RayHelper.asyncIdentify');
 
         return {
-            tryGet: () => this.buffers.check() ? this.getPickData() : 'pending'
+            tryGet: () => {
+                const status = this.buffers.check();
+                if (status === AsyncPickStatus.Resolved) {
+                    return this.getPickData();
+                } else if (status === AsyncPickStatus.Pending) {
+                    return 'pending';
+                }
+            }
         };
+    }
+
+    reset() {
+        this.buffers.reset();
+        this.pickPass.reset();
+    }
+
+    dispose() {
+        this.buffers.dispose();
+        this.pickPass.dispose();
     }
 
     constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private helper: Helper, options: PickOptions) {
