@@ -10,7 +10,6 @@ import { OrderedSet } from '../../../mol-data/int';
 import { Sphere3D } from './sphere3d';
 import { Vec3 } from '../../linear-algebra/3d/vec3';
 import { Mat4 } from '../../linear-algebra/3d/mat4';
-import { Ray3D } from './ray3d';
 
 interface Box3D { min: Vec3, max: Vec3 }
 
@@ -189,57 +188,6 @@ namespace Box3D {
             c[1] - r < box.min[1] || c[1] + r > box.max[1] ||
             c[2] - r < box.min[2] || c[2] + r > box.max[2]
         ) ? false : true;
-    }
-
-    function _intersectRay3D(box: Box3D, ray: Ray3D): number {
-        const { origin, direction } = ray;
-        const [minX, minY, minZ] = box.min;
-        const [maxX, maxY, maxZ] = box.max;
-        const [x, y, z] = origin;
-        const invDirX = 1.0 / direction[0];
-        const invDirY = 1.0 / direction[1];
-        const invDirZ = 1.0 / direction[2];
-        let tmin, tmax, tymin, tymax, tzmin, tzmax;
-        if (invDirX >= 0) {
-            tmin = (minX - x) * invDirX;
-            tmax = (maxX - x) * invDirX;
-        } else {
-            tmin = (maxX - x) * invDirX;
-            tmax = (minX - x) * invDirX;
-        }
-        if (invDirY >= 0) {
-            tymin = (minY - y) * invDirY;
-            tymax = (maxY - y) * invDirY;
-        } else {
-            tymin = (maxY - y) * invDirY;
-            tymax = (minY - y) * invDirY;
-        }
-        if ((tmin > tymax) || (tymin > tmax)) return -1;
-        if (tymin > tmin) tmin = tymin;
-        if (tymax < tmax) tmax = tymax;
-        if (invDirZ >= 0) {
-            tzmin = (minZ - z) * invDirZ;
-            tzmax = (maxZ - z) * invDirZ;
-        } else {
-            tzmin = (maxZ - z) * invDirZ;
-            tzmax = (minZ - z) * invDirZ;
-        }
-        if ((tmin > tzmax) || (tzmin > tmax)) return -1;
-        if (tzmin > tmin) tmin = tzmin;
-        if (tzmax < tmax) tmax = tzmax;
-        return tmin >= 0 ? tmin : -1;
-    }
-
-    export function intersectWithRay3D(out: Vec3, box: Box3D, ray: Ray3D): boolean {
-        const t = _intersectRay3D(box, ray);
-        if (t < 0) return false;
-
-        Vec3.scaleAndAdd(out, ray.origin, ray.direction, t);
-        return true;
-    }
-
-    export function isIntersectingWithRay3D(box: Box3D, ray: Ray3D): boolean {
-        return _intersectRay3D(box, ray) >= 0;
     }
 
     export function center(out: Vec3, box: Box3D): Vec3 {
