@@ -16,6 +16,7 @@ import { Renderbuffer } from '../../mol-gl/webgl/renderbuffer';
 import { Texture } from '../../mol-gl/webgl/texture';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { isDebugMode, isTimingMode } from '../../mol-util/debug';
+import { now } from '../../mol-util/now';
 import { unpackRGBAToDepth, unpackRGBToInt } from '../../mol-util/number-packing';
 import { ICamera } from '../camera';
 import { Viewport } from '../camera/util';
@@ -341,6 +342,7 @@ export class PickBuffers {
     }
 
     private fenceSync: WebGLSync | null = null;
+    private fenceTimestamp: number = 0;
 
     private ready = false;
     private lag = 0;
@@ -367,6 +369,7 @@ export class PickBuffers {
         this.pickPass.bindDepth();
         this.depthBuffer.read(x, y, width, height);
 
+        this.fenceTimestamp = now();
         this.fenceSync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
         // gl.flush();
 
@@ -384,6 +387,10 @@ export class PickBuffers {
         const res = gl.clientWaitSync(this.fenceSync, 0, 0);
         if (res === gl.WAIT_FAILED || this.lag >= this.maxAsyncReadLag) {
             // console.log(`failed to get buffer data after ${this.lag + 1} checks`);
+            if (res !== gl.WAIT_FAILED && now() - this.fenceTimestamp < 1000 / 60) {
+                this.lag += 1;
+                return AsyncPickStatus.Pending;
+            }
             gl.deleteSync(this.fenceSync);
             this.fenceSync = null;
             this.lag = 0;
