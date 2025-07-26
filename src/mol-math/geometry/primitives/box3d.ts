@@ -10,7 +10,6 @@ import { OrderedSet } from '../../../mol-data/int';
 import { Sphere3D } from './sphere3d';
 import { Vec3 } from '../../linear-algebra/3d/vec3';
 import { Mat4 } from '../../linear-algebra/3d/mat4';
-import { Ray3D } from './ray3d';
 
 interface Box3D { min: Vec3, max: Vec3 }
 
@@ -189,48 +188,6 @@ namespace Box3D {
             c[1] - r < box.min[1] || c[1] + r > box.max[1] ||
             c[2] - r < box.min[2] || c[2] + r > box.max[2]
         ) ? false : true;
-    }
-
-    export function nearestIntersectionWithRay3D(out: Vec3, box: Box3D, ray: Ray3D): Vec3 {
-        const { origin, direction } = ray;
-        const [minX, minY, minZ] = box.min;
-        const [maxX, maxY, maxZ] = box.max;
-        const [x, y, z] = origin;
-        const invDirX = 1.0 / direction[0];
-        const invDirY = 1.0 / direction[1];
-        const invDirZ = 1.0 / direction[2];
-        let tmin, tmax, tymin, tymax, tzmin, tzmax;
-        if (invDirX >= 0) {
-            tmin = (minX - x) * invDirX;
-            tmax = (maxX - x) * invDirX;
-        } else {
-            tmin = (maxX - x) * invDirX;
-            tmax = (minX - x) * invDirX;
-        }
-        if (invDirY >= 0) {
-            tymin = (minY - y) * invDirY;
-            tymax = (maxY - y) * invDirY;
-        } else {
-            tymin = (maxY - y) * invDirY;
-            tymax = (minY - y) * invDirY;
-        }
-        if (invDirZ >= 0) {
-            tzmin = (minZ - z) * invDirZ;
-            tzmax = (maxZ - z) * invDirZ;
-        } else {
-            tzmin = (maxZ - z) * invDirZ;
-            tzmax = (minZ - z) * invDirZ;
-        }
-        if (tymin > tmin)
-            tmin = tymin;
-        if (tymax < tmax)
-            tmax = tymax;
-        if (tzmin > tmin)
-            tmin = tzmin;
-        if (tzmax < tmax)
-            tmax = tzmax;
-        Vec3.scale(out, direction, tmin);
-        return Vec3.set(out, out[0] + x, out[1] + y, out[2] + z);
     }
 
     export function center(out: Vec3, box: Box3D): Vec3 {
