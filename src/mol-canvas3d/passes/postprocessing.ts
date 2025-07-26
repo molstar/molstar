@@ -120,59 +120,60 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, t
 }
 
 export const PostprocessingParams = {
+    enabled: PD.Boolean(true),
     occlusion: PD.MappedStatic('on', {
         on: PD.Group(SsaoParams),
         off: PD.Group({})
-    }, { cycle: true, description: 'Darken occluded crevices with the ambient occlusion effect' }),
+    }, { cycle: true, description: 'Darken occluded crevices with the ambient occlusion effect', hideIf: p => !p.enabled }),
     shadow: PD.MappedStatic('off', {
         on: PD.Group(ShadowParams),
         off: PD.Group({})
-    }, { cycle: true, description: 'Simplistic shadows' }),
+    }, { cycle: true, description: 'Simplistic shadows', hideIf: p => !p.enabled }),
     outline: PD.MappedStatic('off', {
         on: PD.Group(OutlineParams),
         off: PD.Group({})
-    }, { cycle: true, description: 'Draw outline around 3D objects' }),
+    }, { cycle: true, description: 'Draw outline around 3D objects', hideIf: p => !p.enabled }),
     dof: PD.MappedStatic('off', {
         on: PD.Group(DofParams),
         off: PD.Group({})
-    }, { cycle: true, description: 'DOF' }),
+    }, { cycle: true, description: 'DOF', hideIf: p => !p.enabled }),
     antialiasing: PD.MappedStatic('smaa', {
         fxaa: PD.Group(FxaaParams),
         smaa: PD.Group(SmaaParams),
         off: PD.Group({})
-    }, { options: [['fxaa', 'FXAA'], ['smaa', 'SMAA'], ['off', 'Off']], description: 'Smooth pixel edges' }),
+    }, { options: [['fxaa', 'FXAA'], ['smaa', 'SMAA'], ['off', 'Off']], description: 'Smooth pixel edges', hideIf: p => !p.enabled }),
     sharpening: PD.MappedStatic('off', {
         on: PD.Group(CasParams),
         off: PD.Group({})
-    }, { cycle: true, description: 'Contrast Adaptive Sharpening' }),
-    background: PD.Group(BackgroundParams, { isFlat: true }),
+    }, { cycle: true, description: 'Contrast Adaptive Sharpening', hideIf: p => !p.enabled }),
+    background: PD.Group(BackgroundParams, { isFlat: true, hideIf: p => !p.enabled }),
     bloom: PD.MappedStatic('on', {
         on: PD.Group(BloomParams),
         off: PD.Group({})
-    }, { cycle: true, description: 'Bloom' }),
+    }, { cycle: true, description: 'Bloom', hideIf: p => !p.enabled }),
 };
 
 export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
 
 export class PostprocessingPass {
     static isEnabled(props: PostprocessingProps) {
-        return SsaoPass.isEnabled(props) || ShadowPass.isEnabled(props) || OutlinePass.isEnabled(props) || props.background.variant.name !== 'off';
+        return props.enabled && (SsaoPass.isEnabled(props) || ShadowPass.isEnabled(props) || OutlinePass.isEnabled(props) || props.background.variant.name !== 'off');
     }
 
     static isTransparentDepthRequired(scene: Scene, props: PostprocessingProps) {
-        return DofPass.isEnabled(props) || OutlinePass.isEnabled(props) && PostprocessingPass.isTransparentOutlineEnabled(props) || SsaoPass.isEnabled(props) && PostprocessingPass.isTransparentSsaoEnabled(scene, props);
+        return props.enabled && (DofPass.isEnabled(props) || OutlinePass.isEnabled(props) && PostprocessingPass.isTransparentOutlineEnabled(props) || SsaoPass.isEnabled(props) && PostprocessingPass.isTransparentSsaoEnabled(scene, props));
     }
 
     static isTransparentOutlineEnabled(props: PostprocessingProps) {
-        return OutlinePass.isEnabled(props) && ((props.outline.params as OutlineProps).includeTransparent ?? true);
+        return props.enabled && OutlinePass.isEnabled(props) && ((props.outline.params as OutlineProps).includeTransparent ?? true);
     }
 
     static isTransparentSsaoEnabled(scene: Scene, props: PostprocessingProps) {
-        return SsaoPass.isEnabled(props) && SsaoPass.isTransparentEnabled(scene, props.occlusion.params as SsaoProps);
+        return props.enabled && SsaoPass.isEnabled(props) && SsaoPass.isTransparentEnabled(scene, props.occlusion.params as SsaoProps);
     }
 
     static isSsaoEnabled(props: PostprocessingProps) {
-        return SsaoPass.isEnabled(props);
+        return props.enabled && SsaoPass.isEnabled(props);
     }
 
     readonly target: RenderTarget;
@@ -354,7 +355,7 @@ export class PostprocessingPass {
 
 export class AntialiasingPass {
     static isEnabled(props: PostprocessingProps) {
-        return props.antialiasing.name !== 'off';
+        return props.enabled && (props.antialiasing.name !== 'off' || props.sharpening.name !== 'off');
     }
 
     readonly target: RenderTarget;

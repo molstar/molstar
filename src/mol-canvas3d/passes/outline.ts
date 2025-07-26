@@ -36,7 +36,7 @@ export type OutlineProps = PD.Values<typeof OutlineParams>
 
 export class OutlinePass {
     static isEnabled(props: PostprocessingProps) {
-        return props.outline.name !== 'off';
+        return props.enabled && props.outline.name !== 'off';
     }
 
     readonly target: RenderTarget;

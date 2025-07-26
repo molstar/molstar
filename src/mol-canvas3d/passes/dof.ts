@@ -37,7 +37,7 @@ export type DofProps = PD.Values<typeof DofParams>
 
 export class DofPass {
     static isEnabled(props: PostprocessingProps) {
-        return props.dof.name !== 'off';
+        return props.enabled && props.dof.name !== 'off';
     }
 
     readonly target: RenderTarget;
@@ -119,6 +119,7 @@ export class DofPass {
             needsUpdate = true;
         }
 
+        // TODO: camara.state.scale
         const wolrdCenter = (props.center === 'scene-center' ? sphere.center : camera.state.target);
         const distance = Vec3.distance(camera.state.position, wolrdCenter);
         const inFocus = distance + props.inFocus;

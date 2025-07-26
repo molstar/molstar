@@ -38,7 +38,7 @@ export type BloomProps = PD.Values<typeof BloomParams>
 
 export class BloomPass {
     static isEnabled(props: PostprocessingProps) {
-        return props.bloom.name === 'on';
+        return props.enabled && props.bloom.name === 'on';
     }
 
     readonly emissiveTarget: RenderTarget;

@@ -26,6 +26,7 @@ import { Vec4 } from '../../mol-math/linear-algebra/3d/vec4';
 import { degToRad, isPowerOfTwo } from '../../mol-math/misc';
 import { Mat3 } from '../../mol-math/linear-algebra/3d/mat3';
 import { Euler } from '../../mol-math/linear-algebra/3d/euler';
+import { PostprocessingProps } from './postprocessing';
 
 const SharedParams = {
     opacity: PD.Numeric(1, { min: 0.0, max: 1.0, step: 0.01 }),
@@ -296,13 +297,17 @@ export class BackgroundPass {
         ValueCell.update(this.renderable.values.uViewport, Vec4.set(this.renderable.values.uViewport.ref.value, x, y, width, height));
     }
 
-    isEnabled(props: BackgroundProps) {
+    private _isEnabled(props: BackgroundProps) {
         return !!(
             (this.skybox && this.skybox.loaded) ||
             (this.image && this.image.loaded) ||
             props.variant.name === 'horizontalGradient' ||
             props.variant.name === 'radialGradient'
         );
+    }
+
+    isEnabled(props: PostprocessingProps) {
+        return props.enabled && this._isEnabled(props.background);
     }
 
     private isReady() {
@@ -319,7 +324,7 @@ export class BackgroundPass {
     clear(props: BackgroundProps, transparentBackground: boolean, backgroundColor: Color) {
         const { gl, state } = this.webgl;
 
-        if (this.isEnabled(props)) {
+        if (this._isEnabled(props)) {
             if (transparentBackground) {
                 state.clearColor(0, 0, 0, 0);
             } else {
@@ -336,7 +341,7 @@ export class BackgroundPass {
     }
 
     render(props: BackgroundProps) {
-        if (!this.isEnabled(props) || !this.isReady()) return;
+        if (!this._isEnabled(props) || !this.isReady()) return;
 
         if (this.renderable.values.dVariant.ref.value === 'image') {
             this.updateImageScaling();
