@@ -37,8 +37,6 @@ varying float vCap;
 uniform float uIsOrtho;
 uniform vec3 uCameraDir;
 
-#include matrix_scale
-
 void main() {
     int vertexId = VertexID;
 
@@ -53,7 +51,7 @@ void main() {
     vTransform = modelTransform;
     vStart = (modelTransform * vec4(aStart, 1.0)).xyz;
     vEnd = (modelTransform * vec4(aEnd, 1.0)).xyz;
-    vSize = size * aScale * matrixScale(uModel);
+    vSize = size * aScale * uModelScale;
     vCap = aCap;
 
     vModelPosition = (vStart + vEnd) * 0.5;

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -106,6 +106,23 @@ namespace Sphere3D {
         if (hasExtrema(sphere)) {
             setExtrema(out, sphere.extrema.map(e => Vec3.add(Vec3(), e, v)));
         }
+        return out;
+    }
+
+    /** Scale sphere by a number */
+    export function scale(out: Sphere3D, sphere: Sphere3D, s: number) {
+        Vec3.scale(out.center, sphere.center, s);
+        out.radius = sphere.radius * s;
+        if (hasExtrema(sphere)) {
+            setExtrema(out, sphere.extrema.map(e => Vec3.scale(Vec3(), e, s)));
+        }
+        return out;
+    }
+
+    /** Scale sphere by a number but without extrema */
+    export function scaleNX(out: Sphere3D, sphere: Sphere3D, s: number) {
+        Vec3.scale(out.center, sphere.center, s);
+        out.radius = sphere.radius * s;
         return out;
     }
 

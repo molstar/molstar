@@ -312,7 +312,6 @@ namespace Scene {
                 }
             },
             update(objects, keepBoundingSphere) {
-                Object3D.update(object3d);
                 if (objects) {
                     for (let i = 0, il = objects.length; i < il; ++i) {
                         renderableMap.get(objects[i])?.update();

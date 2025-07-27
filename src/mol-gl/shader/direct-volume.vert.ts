@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
@@ -12,11 +12,13 @@ attribute vec3 aPosition;
 attribute mat4 aTransform;
 attribute float aInstance;
 
+uniform mat4 uModel;
 uniform mat4 uModelView;
 uniform mat4 uProjection;
 uniform vec4 uInvariantBoundingSphere;
+uniform float uModelScale;
 
-varying vec3 vOrigPos;
+varying vec3 vModelPosition;
 varying float vInstance;
 varying vec4 vBoundingSphere;
 varying mat4 vTransform;
@@ -33,11 +35,11 @@ void main() {
     vec4 unitCoord = vec4(aPosition + vec3(0.5), 1.0);
     vec4 mvPosition = uModelView * aTransform * uUnitToCartn * unitCoord;
 
-    vOrigPos = (aTransform * uUnitToCartn * unitCoord).xyz;
+    vModelPosition = (uModel * aTransform * uUnitToCartn * unitCoord).xyz;
     vInstance = aInstance;
     vBoundingSphere = vec4(
-        (aTransform * vec4(uInvariantBoundingSphere.xyz, 1.0)).xyz,
-        uInvariantBoundingSphere.w
+        (uModel * aTransform * vec4(uInvariantBoundingSphere.xyz, 1.0)).xyz,
+        uModelScale * uInvariantBoundingSphere.w
     );
     vTransform = aTransform;
 
