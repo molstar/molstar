@@ -59,6 +59,7 @@ export const Canvas3DParams = {
             off: PD.Group({})
         }, { cycle: true, hideIf: p => p?.mode !== 'perspective' }),
         fov: PD.Numeric(45, { min: 10, max: 130, step: 1 }, { label: 'Field of View' }),
+        scale: PD.Numeric(1, { min: 0.001, max: 1, step: 0.001 }, { label: 'Scene scale' }),
         manualReset: PD.Boolean(false, { isHidden: true }),
     }, { pivot: 'mode' }),
     cameraFog: PD.MappedStatic('on', {
@@ -415,6 +416,7 @@ namespace Canvas3D {
             clipFar: p.cameraClipping.far,
             minNear: p.cameraClipping.minNear,
             fov: degToRad(p.camera.fov),
+            scale: p.camera.scale,
         }, { x, y, width, height });
         const stereoCamera = new StereoCamera(camera, p.camera.stereo.params);
 
@@ -866,6 +868,7 @@ namespace Canvas3D {
                     helper: { ...helper.camera.props },
                     stereo: { ...p.camera.stereo },
                     fov: Math.round(radToDeg(camera.state.fov)),
+                    scale: camera.state.scale,
                     manualReset: !!p.camera.manualReset
                 },
                 cameraFog: camera.state.fog > 0
@@ -1089,6 +1092,9 @@ namespace Canvas3D {
                 const oldFov = Math.round(radToDeg(camera.state.fov));
                 if (props.camera && props.camera.fov !== undefined && props.camera.fov !== oldFov) {
                     cameraState.fov = degToRad(props.camera.fov);
+                }
+                if (props.camera && props.camera.scale !== undefined && props.camera.scale !== cameraState.scale) {
+                    cameraState.scale = props.camera.scale;
                 }
                 if (props.cameraFog !== undefined && props.cameraFog.params) {
                     const newFog = props.cameraFog.name === 'on' ? props.cameraFog.params.intensity : 0;

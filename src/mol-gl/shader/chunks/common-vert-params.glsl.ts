@@ -46,6 +46,8 @@ uniform int uPickType;
 varying vec3 vModelPosition;
 varying vec3 vViewPosition;
 
+uniform float uModelScale;
+
 #if defined(noNonInstancedActiveAttribs)
     // int() is needed for some Safari versions
     // see https://bugs.webkit.org/show_bug.cgi?id=244152

@@ -72,7 +72,7 @@ export class Camera implements ICamera {
             return false;
         }
 
-        const height = 2 * Math.tan(snapshot.fov / 2) * Vec3.distance(snapshot.position, snapshot.target);
+        const height = 2 * Math.tan(snapshot.fov / 2) * Vec3.distance(snapshot.position, snapshot.target) * this.state.scale;
         this.zoom = this.viewport.height / height;
 
         updateClip(this);
@@ -202,6 +202,7 @@ export class Camera implements ICamera {
             Vec3.scaleAndAdd(out.origin, out.origin, out.direction, -this.near);
         } else {
             Vec3.copy(out.origin, this.state.position);
+            Vec3.scale(out.origin, out.origin, this.state.scale);
             Vec3.set(out.direction, x, y, 0.5);
             this.unproject(out.direction, out.direction);
             Vec3.normalize(out.direction, Vec3.sub(out.direction, out.direction, out.origin));
@@ -288,6 +289,8 @@ export namespace Camera {
             clipFar: true,
             minNear: 5,
             minFar: 0,
+
+            scale: 1,
         };
     }
 
@@ -305,6 +308,8 @@ export namespace Camera {
         clipFar: boolean
         minNear: number
         minFar: number
+
+        scale: number
     }
 
     export function copySnapshot(out: Snapshot, source?: Partial<Snapshot>) {
@@ -324,6 +329,8 @@ export namespace Camera {
         if (typeof source.minNear !== 'undefined') out.minNear = source.minNear;
         if (typeof source.minFar !== 'undefined') out.minFar = source.minFar;
 
+        if (typeof source.scale !== 'undefined') out.scale = source.scale;
+
         return out;
     }
 
@@ -336,9 +343,23 @@ export namespace Camera {
             && a.clipFar === b.clipFar
             && a.minNear === b.minNear
             && a.minFar === b.minFar
+            && a.scale === b.scale
             && Vec3.exactEquals(a.position, b.position)
             && Vec3.exactEquals(a.up, b.up)
             && Vec3.exactEquals(a.target, b.target);
+    }
+}
+
+const tmpPosition = Vec3();
+const tmpTarget = Vec3();
+
+function updateView(camera: Camera) {
+    if (camera.state.scale === 1) {
+        Mat4.lookAt(camera.view, camera.state.position, camera.state.target, camera.state.up);
+    } else {
+        Vec3.scale(tmpPosition, camera.state.position, camera.state.scale);
+        Vec3.scale(tmpTarget, camera.state.target, camera.state.scale);
+        Mat4.lookAt(camera.view, tmpPosition, tmpTarget, camera.state.up);
     }
 }
 
@@ -375,7 +396,7 @@ function updateOrtho(camera: Camera) {
     Mat4.ortho(camera.projection, left, right, top, bottom, near, far);
 
     // build view matrix
-    Mat4.lookAt(camera.view, camera.position, camera.target, camera.up);
+    updateView(camera);
 }
 
 function updatePers(camera: Camera) {
@@ -399,15 +420,23 @@ function updatePers(camera: Camera) {
     Mat4.perspective(camera.projection, left, left + width, top, top - height, near, far);
 
     // build view matrix
-    Mat4.lookAt(camera.view, camera.position, camera.target, camera.up);
+    updateView(camera);
 }
 
 function updateClip(camera: Camera) {
-    let { radius, radiusMax, mode, fog, clipFar, minNear, minFar } = camera.state;
-    if (radius < 0.01) radius = 0.01;
+    let { radius, radiusMax, mode, fog, clipFar, minNear, minFar, scale } = camera.state;
+    radiusMax *= scale;
+    minFar *= scale;
+    minNear *= scale;
+    radius *= scale;
+
+    const minRadius = 0.01 * scale;
+    if (radius < minRadius) radius = minRadius;
 
     const normalizedFar = Math.max(clipFar ? radius : radiusMax, minFar);
-    const cameraDistance = Vec3.distance(camera.position, camera.target);
+    Vec3.scale(tmpTarget, camera.state.target, scale);
+    Vec3.scale(tmpPosition, camera.state.position, scale);
+    const cameraDistance = Vec3.distance(tmpPosition, tmpTarget);
     let near = cameraDistance - radius;
     let far = cameraDistance + normalizedFar;
 
@@ -423,7 +452,7 @@ function updateClip(camera: Camera) {
 
     if (near === far) {
         // make sure near and far are not identical to avoid Infinity in the projection matrix
-        far = near + 0.01;
+        far = near + 0.01 * scale;
     }
 
     const fogNearFactor = -(50 - fog) / 50;

@@ -194,6 +194,7 @@ namespace Renderer {
             ['tDepth', emptyDepthTexture]
         ];
 
+        const model = Mat4();
         const view = Mat4();
         const invView = Mat4();
         const modelView = Mat4();
@@ -208,6 +209,9 @@ namespace Renderer {
         const cameraPlane = Plane3D();
         const viewOffset = Vec2();
         const frustum = Frustum3D();
+
+        let modelScale = 1;
+        const boundingSphere = Sphere3D();
 
         const ambientColor = Vec3();
         Vec3.scale(ambientColor, Color.toArrayNormalized(p.ambientColor, ambientColor, 0), p.ambientIntensity);
@@ -229,6 +233,7 @@ namespace Renderer {
 
             uIsOrtho: ValueCell.create(1),
             uViewOffset: ValueCell.create(viewOffset),
+            uModelScale: ValueCell.create(1),
 
             uPixelRatio: ValueCell.create(ctx.pixelRatio),
             uViewport: ValueCell.create(Viewport.toVec4(Vec4(), viewport)),
@@ -287,28 +292,33 @@ namespace Renderer {
                 return;
             }
 
-            if (!Frustum3D.intersectsSphere3D(frustum, r.values.boundingSphere.ref.value)) {
+            Sphere3D.scaleNX(boundingSphere, r.values.boundingSphere.ref.value, modelScale);
+
+            if (!Frustum3D.intersectsSphere3D(frustum, boundingSphere)) {
                 return;
             }
 
             const [minDistance, maxDistance] = r.values.uLod.ref.value;
             if (minDistance !== 0 || maxDistance !== 0) {
-                const { center, radius } = r.values.boundingSphere.ref.value;
+                const { center, radius } = boundingSphere;
                 const d = Plane3D.distanceToPoint(cameraPlane, center);
-                if (d + radius < minDistance) return;
-                if (d - radius > maxDistance) return;
+                if (d + radius < minDistance * modelScale) return;
+                if (d - radius > maxDistance * modelScale) return;
             }
 
-            if (isOccluded !== null && isOccluded(r.values.boundingSphere.ref.value)) {
-                return;
-            }
+            const unscaled = modelScale === 1;
+            if (unscaled) {
+                if (isOccluded !== null && isOccluded(boundingSphere)) {
+                    return;
+                }
 
-            const hasInstanceGrid = r.values.instanceGrid.ref.value.cellSize > 0;
-            const hasMultipleInstances = r.values.uInstanceCount.ref.value > 1;
-            if (hasInstanceGrid && (hasMultipleInstances || r.values.lodLevels)) {
-                r.cull(cameraPlane, frustum, isOccluded, ctx.stats);
-            } else {
-                r.uncull();
+                const hasInstanceGrid = r.values.instanceGrid.ref.value.cellSize > 0;
+                const hasMultipleInstances = r.values.uInstanceCount.ref.value > 1;
+                if (hasInstanceGrid && (hasMultipleInstances || r.values.lodLevels)) {
+                    r.cull(cameraPlane, frustum, isOccluded, ctx.stats);
+                } else {
+                    r.uncull();
+                }
             }
 
             let needUpdate = false;
@@ -395,9 +405,12 @@ namespace Renderer {
 
             ValueCell.updateIfChanged(globalUniforms.uIsOrtho, camera.state.mode === 'orthographic' ? 1 : 0);
             ValueCell.update(globalUniforms.uViewOffset, camera.viewOffset.enabled ? Vec2.set(viewOffset, camera.viewOffset.offsetX * 16, camera.viewOffset.offsetY * 16) : Vec2.set(viewOffset, 0, 0));
+            ValueCell.updateIfChanged(globalUniforms.uModelScale, camera.state.scale);
 
-            ValueCell.update(globalUniforms.uCameraPosition, Vec3.copy(cameraPosition, camera.state.position));
-            ValueCell.update(globalUniforms.uCameraDir, Vec3.normalize(cameraDir, Vec3.sub(cameraDir, camera.state.target, camera.state.position)));
+            ValueCell.update(globalUniforms.uCameraPosition, Mat4.getTranslation(cameraPosition, invView));
+            const cameraTarget = Vec3.scale(Vec3(), camera.state.target, camera.state.scale);
+            Vec3.normalize(cameraDir, Vec3.sub(cameraDir, cameraTarget, cameraPosition));
+            ValueCell.update(globalUniforms.uCameraDir, cameraDir);
 
             ValueCell.updateIfChanged(globalUniforms.uFar, camera.far);
             ValueCell.updateIfChanged(globalUniforms.uNear, camera.near);
@@ -429,8 +442,10 @@ namespace Renderer {
         const updateInternal = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null, renderMask: Mask, markingDepthTest: boolean) => {
             arrayMapUpsert(sharedTexturesList, 'tDepth', depthTexture || emptyDepthTexture);
 
-            ValueCell.update(globalUniforms.uModel, group.view);
-            ValueCell.update(globalUniforms.uModelView, Mat4.mul(modelView, camera.view, group.view));
+            modelScale = camera.state.scale;
+
+            ValueCell.update(globalUniforms.uModel, Mat4.scaleUniformly(model, group.view, camera.state.scale));
+            ValueCell.update(globalUniforms.uModelView, Mat4.mul(modelView, camera.view, model));
             ValueCell.update(globalUniforms.uInvModelView, Mat4.invert(invModelView, modelView));
             ValueCell.update(globalUniforms.uModelViewProjection, Mat4.mul(modelViewProjection, modelView, camera.projection));
             ValueCell.update(globalUniforms.uInvModelViewProjection, Mat4.invert(invModelViewProjection, modelViewProjection));

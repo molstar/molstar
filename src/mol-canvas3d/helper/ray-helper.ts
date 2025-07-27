@@ -16,6 +16,7 @@ import { cameraUnproject } from '../camera/util';
 import { Viewport } from '../camera/util';
 import { Helper } from './helper';
 import { AsyncPickData, PickBuffers, PickData, PickPass, PickOptions, checkAsyncPickingSupport, AsyncPickStatus } from '../passes/pick';
+import { Sphere3D } from '../../mol-math/geometry/primitives/sphere3d';
 
 export class RayHelper {
     private viewport = Viewport();
@@ -95,12 +96,15 @@ export class RayHelper {
         }
     }
 
-    private intersectsScene(ray: Ray3D): boolean {
-        return Ray3D.isInsideSphere3D(ray, this.scene.boundingSphereVisible) || Ray3D.isIntersectingSphere3D(ray, this.scene.boundingSphereVisible);
+    sphere = Sphere3D();
+
+    private intersectsScene(ray: Ray3D, scale: number): boolean {
+        Sphere3D.scaleNX(this.sphere, this.scene.boundingSphereVisible, scale);
+        return Ray3D.isInsideSphere3D(ray, this.sphere) || Ray3D.isIntersectingSphere3D(ray, this.sphere);
     }
 
     identify(ray: Ray3D, cam: Camera): PickData | undefined {
-        if (!this.intersectsScene(ray)) return;
+        if (!this.intersectsScene(ray, cam.state.scale)) return;
 
         this.prepare(ray, cam);
 
@@ -113,7 +117,7 @@ export class RayHelper {
     }
 
     asyncIdentify(ray: Ray3D, cam: Camera): AsyncPickData | undefined {
-        if (!this.intersectsScene(ray)) return;
+        if (!this.intersectsScene(ray, cam.state.scale)) return;
 
         this.prepare(ray, cam);
 
@@ -167,7 +171,7 @@ export class RayHelper {
 function updateOrthoRayCamera(camera: Camera, ray: Ray3D) {
     const { near, far, viewport } = camera;
 
-    const height = 2 * Math.tan(degToRad(0.1) / 2) * Vec3.distance(camera.position, camera.target);
+    const height = 2 * Math.tan(degToRad(0.1) / 2) * Vec3.distance(camera.position, camera.target) * camera.state.scale;
     const zoom = viewport.height / height;
 
     const fullLeft = -viewport.width / 2;

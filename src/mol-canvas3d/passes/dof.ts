@@ -119,19 +119,18 @@ export class DofPass {
             needsUpdate = true;
         }
 
-        // TODO: camara.state.scale
-        const wolrdCenter = (props.center === 'scene-center' ? sphere.center : camera.state.target);
-        const distance = Vec3.distance(camera.state.position, wolrdCenter);
+        const worldCenter = (props.center === 'scene-center' ? sphere.center : camera.state.target);
+        const distance = Vec3.distance(camera.state.position, worldCenter);
         const inFocus = distance + props.inFocus;
-        ValueCell.updateIfChanged(this.renderable.values.uInFocus, inFocus);
+        ValueCell.updateIfChanged(this.renderable.values.uInFocus, inFocus * camera.state.scale);
 
         // transform center in view space
         const center = this.renderable.values.uCenter.ref.value;
-        Vec3.transformMat4(center, wolrdCenter, camera.view);
+        Vec3.transformMat4(center, worldCenter, camera.view);
         ValueCell.update(this.renderable.values.uCenter, center);
 
         ValueCell.updateIfChanged(this.renderable.values.uBlurSpread, props.blurSpread);
-        ValueCell.updateIfChanged(this.renderable.values.uPPM, props.PPM);
+        ValueCell.updateIfChanged(this.renderable.values.uPPM, props.PPM * camera.state.scale);
 
         if (needsUpdate) {
             this.renderable.update();

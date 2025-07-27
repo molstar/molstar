@@ -31,8 +31,6 @@ varying float vRadius;
 varying vec3 vPoint;
 varying vec3 vPointViewPosition;
 
-#include matrix_scale
-
 /**
  * Bounding rectangle of a clipped, perspective-projected 3D Sphere.
  * Michael Mara, Morgan McGuire. 2013
@@ -83,7 +81,7 @@ void main(void){
     #include assign_clipping_varying
     #include assign_size
 
-    vRadius = size * matrixScale(uModel);
+    vRadius = size * uModelScale;
 
     vec4 position4 = vec4(position, 1.0);
     vModelPosition = (uModel * aTransform * position4).xyz; // for clipping in frag shader

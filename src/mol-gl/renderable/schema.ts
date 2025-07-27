@@ -137,6 +137,7 @@ export const GlobalUniformSchema = {
     uPixelRatio: UniformSpec('f'),
     uViewport: UniformSpec('v4'),
     uViewOffset: UniformSpec('v2'),
+    uModelScale: UniformSpec('f'),
     uDrawingBufferSize: UniformSpec('v2'),
 
     uCameraPosition: UniformSpec('v3'),
