@@ -124,33 +124,33 @@ export const PostprocessingParams = {
     occlusion: PD.MappedStatic('on', {
         on: PD.Group(SsaoParams),
         off: PD.Group({})
-    }, { cycle: true, description: 'Darken occluded crevices with the ambient occlusion effect', hideIf: p => !p.enabled }),
+    }, { cycle: true, description: 'Darken occluded crevices with the ambient occlusion effect', hideIf: p => p.enabled === false }),
     shadow: PD.MappedStatic('off', {
         on: PD.Group(ShadowParams),
         off: PD.Group({})
-    }, { cycle: true, description: 'Simplistic shadows', hideIf: p => !p.enabled }),
+    }, { cycle: true, description: 'Simplistic shadows', hideIf: p => p.enabled === false }),
     outline: PD.MappedStatic('off', {
         on: PD.Group(OutlineParams),
         off: PD.Group({})
-    }, { cycle: true, description: 'Draw outline around 3D objects', hideIf: p => !p.enabled }),
+    }, { cycle: true, description: 'Draw outline around 3D objects', hideIf: p => p.enabled === false }),
     dof: PD.MappedStatic('off', {
         on: PD.Group(DofParams),
         off: PD.Group({})
-    }, { cycle: true, description: 'DOF', hideIf: p => !p.enabled }),
+    }, { cycle: true, description: 'DOF', hideIf: p => p.enabled === false }),
     antialiasing: PD.MappedStatic('smaa', {
         fxaa: PD.Group(FxaaParams),
         smaa: PD.Group(SmaaParams),
         off: PD.Group({})
-    }, { options: [['fxaa', 'FXAA'], ['smaa', 'SMAA'], ['off', 'Off']], description: 'Smooth pixel edges', hideIf: p => !p.enabled }),
+    }, { options: [['fxaa', 'FXAA'], ['smaa', 'SMAA'], ['off', 'Off']], description: 'Smooth pixel edges', hideIf: p => p.enabled === false }),
     sharpening: PD.MappedStatic('off', {
         on: PD.Group(CasParams),
         off: PD.Group({})
-    }, { cycle: true, description: 'Contrast Adaptive Sharpening', hideIf: p => !p.enabled }),
-    background: PD.Group(BackgroundParams, { isFlat: true, hideIf: p => !p.enabled }),
+    }, { cycle: true, description: 'Contrast Adaptive Sharpening', hideIf: p => p.enabled === false }),
+    background: PD.Group(BackgroundParams, { isFlat: true, hideIf: p => p.enabled === false }),
     bloom: PD.MappedStatic('on', {
         on: PD.Group(BloomParams),
         off: PD.Group({})
-    }, { cycle: true, description: 'Bloom', hideIf: p => !p.enabled }),
+    }, { cycle: true, description: 'Bloom', hideIf: p => p.enabled === false }),
 };
 
 export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
