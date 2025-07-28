@@ -68,7 +68,6 @@ import { common } from './shader/chunks/common.glsl';
 import { fade_lod } from './shader/chunks/fade-lod.glsl';
 import { float_to_rgba } from './shader/chunks/float-to-rgba.glsl';
 import { light_frag_params } from './shader/chunks/light-frag-params.glsl';
-import { matrix_scale } from './shader/chunks/matrix-scale.glsl';
 import { normal_frag_params } from './shader/chunks/normal-frag-params.glsl';
 import { read_from_texture } from './shader/chunks/read-from-texture.glsl';
 import { rgba_to_float } from './shader/chunks/rgba-to-float.glsl';
@@ -104,7 +103,6 @@ const ShaderChunks: { [k: string]: string } = {
     fade_lod,
     float_to_rgba,
     light_frag_params,
-    matrix_scale,
     normal_frag_params,
     read_from_texture,
     rgba_to_float,

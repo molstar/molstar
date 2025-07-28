@@ -29,11 +29,12 @@ precision highp int;
 
 uniform mat4 uProjection, uTransform, uModelView, uModel, uView;
 uniform vec3 uCameraDir;
+uniform float uModelScale;
 
 uniform sampler2D tDepth;
 uniform vec2 uDrawingBufferSize;
 
-varying vec3 vOrigPos;
+varying vec3 vModelPosition;
 varying float vInstance;
 varying vec4 vBoundingSphere;
 varying mat4 vTransform;
@@ -212,7 +213,7 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
         vec3 distVec = startLoc - pos;
         if (dot(distVec, distVec) > maxDistSq) break;
 
-        unitPos = v3m4(pos, cartnToUnit);
+        unitPos = v3m4(pos / uModelScale, cartnToUnit);
 
         // continue when outside of grid
         if (unitPos.x > posMax.x || unitPos.y > posMax.y || unitPos.z > posMax.z ||
@@ -228,7 +229,7 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
 
         if (uJumpLength > 0.0 && value < 0.01) {
             nextPos = pos + rayDir * uJumpLength;
-            nextValue = textureVal(v3m4(nextPos, cartnToUnit)).a;
+            nextValue = textureVal(v3m4(nextPos / uModelScale, cartnToUnit)).a;
             if (nextValue < 0.01) {
                 prevValue = nextValue;
                 pos = nextPos;
@@ -361,15 +362,15 @@ void main() {
         if (gl_FrontFacing)
             discard;
 
-        vec3 rayDir = mix(normalize(vOrigPos - uCameraPosition), uCameraDir, uIsOrtho);
-        vec3 step = rayDir * uStepScale;
+        vec3 rayDir = mix(normalize(vModelPosition - uCameraPosition), uCameraDir, uIsOrtho);
+        vec3 step = rayDir * uStepScale * uModelScale;
 
         float boundingSphereNear = distance(vBoundingSphere.xyz, uCameraPosition) - vBoundingSphere.w;
-        float d = max(uNear, boundingSphereNear) - mix(0.0, distance(vOrigPos, uCameraPosition), uIsOrtho);
-        vec3 start = mix(uCameraPosition, vOrigPos, uIsOrtho) + (d * rayDir);
+        float d = max(uNear, boundingSphereNear) - mix(0.0, distance(vModelPosition, uCameraPosition), uIsOrtho);
+        vec3 start = mix(uCameraPosition, vModelPosition, uIsOrtho) + (d * rayDir);
         gl_FragColor = raymarch(start, step, rayDir);
 
-        float fragmentDepth = calcDepth((uModelView * vec4(start, 1.0)).xyz);
+        float fragmentDepth = calcDepth((uView * vec4(start, 1.0)).xyz);
         float preFogAlpha = clamp(preFogAlphaBlended, 0.0, 1.0);
         #include wboit_write
     #endif

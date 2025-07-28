@@ -37,8 +37,6 @@ uniform bool uHasHeadRotation;
 
 varying vec2 vTexCoord;
 
-#include matrix_scale
-
 void main(void){
     int vertexId = VertexID;
 
@@ -50,7 +48,7 @@ void main(void){
 
     vTexCoord = aTexCoord;
 
-    float scale = matrixScale(uModelView);
+    float scale = uModelScale;
 
     float offsetX = uOffsetX * scale;
     float offsetY = uOffsetY * scale;

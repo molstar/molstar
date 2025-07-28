@@ -56,6 +56,7 @@ varying vec3 vModelPosition;
 varying vec3 vViewPosition;
 
 uniform vec2 uViewOffset;
+uniform float uModelScale;
 
 uniform float uNear;
 uniform float uFar;
