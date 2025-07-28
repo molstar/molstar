@@ -47,6 +47,8 @@ import { deepClone } from '../mol-util/object';
 import { HiZParams, HiZPass } from './passes/hi-z';
 import { IlluminationParams } from './passes/illumination';
 import { isMobileBrowser } from '../mol-util/browser';
+import { PointerHelperParams } from './helper/pointer-helper';
+import { getXRButton, XRManager, XRManagerParams } from './helper/xr-manager';
 import { Ray3D } from '../mol-math/geometry/primitives/ray3d';
 import { RayHelper } from './helper/ray-helper';
 
@@ -72,6 +74,7 @@ export const Canvas3DParams = {
         radius: PD.Numeric(100, { min: 0, max: 99, step: 1 }, { label: 'Clipping', description: 'How much of the scene to show.' }),
         far: PD.Boolean(true, { description: 'Hide scene in the distance' }),
         minNear: PD.Numeric(5, { min: 0.1, max: 100, step: 0.1 }, { description: 'Note, may cause performance issues rendering impostors when set too small and cause issues with outline rendering when too close to 0.' }),
+        forceFull: PD.Boolean(false, { description: 'Force showing full scene.' }),
     }, { pivot: 'radius' }),
     viewport: PD.MappedStatic('canvas', {
         canvas: PD.Group({}),
@@ -106,6 +109,8 @@ export const Canvas3DParams = {
     interaction: PD.Group(Canvas3dInteractionHelperParams),
     debug: PD.Group(DebugHelperParams),
     handle: PD.Group(HandleHelperParams),
+    pointer: PD.Group(PointerHelperParams),
+    xr: PD.Group(XRManagerParams, { label: 'XR' }),
 };
 export const DefaultCanvas3DParams = PD.getDefaultValues(Canvas3DParams);
 export type Canvas3DProps = PD.Values<typeof Canvas3DParams>
@@ -415,6 +420,7 @@ namespace Canvas3D {
             fog: p.cameraFog.name === 'on' ? p.cameraFog.params.intensity : 0,
             clipFar: p.cameraClipping.far,
             minNear: p.cameraClipping.minNear,
+            forceFull: p.cameraClipping.forceFull,
             fov: degToRad(p.camera.fov),
             scale: p.camera.scale,
         }, { x, y, width, height });
@@ -444,6 +450,63 @@ namespace Canvas3D {
         let nextCameraResetDuration: number | undefined = void 0;
         let nextCameraResetSnapshot: Camera.SnapshotProvider | undefined = void 0;
         let resizeRequested = false;
+
+        //
+
+        function getNonXRProps() {
+            return {
+                transparency: ctx.props.transparency,
+                transparentBackground: p.transparentBackground,
+                hiZ: hiZ.props.enabled,
+                postprocessing: p.postprocessing.enabled,
+                axes: deepClone(helper.camera.props.axes),
+            };
+        }
+        const nonXRProps = getNonXRProps();
+
+        function saveNonXRProps() {
+            Object.assign(nonXRProps, getNonXRProps());
+        }
+
+        function loadNonXRProps() {
+            p.postprocessing.enabled = nonXRProps.postprocessing;
+            p.transparentBackground = nonXRProps.transparentBackground;
+            ctx.setProps({ transparency: nonXRProps.transparency });
+            hiZ.setProps({ enabled: nonXRProps.hiZ });
+            helper.camera.setProps({ axes: nonXRProps.axes });
+        }
+
+        function setXRProps() {
+            p.postprocessing.enabled = !xrManager.props.disablePostprocessing;
+            ctx.setProps({ transparency: 'blended' });
+            hiZ.setProps({ enabled: false });
+            helper.camera.setProps({ axes: { name: 'off', params: {} } });
+        }
+
+        const xrManager = new XRManager(webgl, input, scene, camera, stereoCamera, helper.pointer, interactionHelper);
+        xrManager.togglePassthrough.subscribe(() => {
+            if (xrManager.session?.environmentBlendMode === 'alpha-blend') {
+                p.transparentBackground = !p.transparentBackground;
+            }
+        });
+
+        xrManager.sessionChanged.subscribe(() => {
+            fenceSync = null;
+            resizeRequested = true;
+            pause(true);
+            if (xrManager.session) {
+                saveNonXRProps();
+                setXRProps();
+            } else {
+                loadNonXRProps();
+            }
+            animate();
+        });
+
+        const xrButton = getXRButton(xrManager);
+        if (xrButton) canvas?.parentElement?.appendChild(xrButton);
+
+        //
 
         let notifyDidDraw = true;
 
@@ -510,8 +573,9 @@ namespace Canvas3D {
 
         let fenceSync: WebGLSync | null = null;
 
-        function render(force: boolean) {
+        function render(force: boolean, xrFrame?: XRFrame) {
             if (webgl.isContextLost) return false;
+            if (webgl.xrSession && !xrFrame) return false;
 
             let resized = false;
             if (resizeRequested) {
@@ -525,7 +589,7 @@ namespace Canvas3D {
                 y > drs.height || y + height < 0
             ) return false;
 
-            if (fenceSync !== null) {
+            if (fenceSync !== null && !xrFrame) {
                 if (webgl.checkSyncStatus(fenceSync)) {
                     fenceSync = null;
                 } else {
@@ -538,11 +602,13 @@ namespace Canvas3D {
             let didRender = false;
             controls.update(currentTime);
             const cameraChanged = camera.update();
+            const xrChanged = xrManager.update(xrFrame);
+            if (!xrChanged && xrFrame) return false;
 
-            const shouldRender = force || cameraChanged || resized || forceNextRender;
+            const shouldRender = force || cameraChanged || resized || forceNextRender || xrChanged;
             forceNextRender = false;
 
-            if (passes.illumination.supported && p.illumination.enabled) {
+            if (passes.illumination.supported && p.illumination.enabled && !xrFrame) {
                 if (shouldRender || markingUpdated) {
                     renderer.setOcclusionTest(null);
                     passes.illumination.restart();
@@ -561,20 +627,20 @@ namespace Canvas3D {
                     didRender = true;
                 }
             } else {
-                const multiSampleChanged = multiSampleHelper.update(markingUpdated || shouldRender, p.multiSample);
+                const multiSampleChanged = multiSampleHelper.update(markingUpdated || shouldRender, p.multiSample) && !xrFrame;
 
                 if (shouldRender || multiSampleChanged || markingUpdated) {
                     renderer.setOcclusionTest(hiZ.isOccluded);
 
                     let cam: Camera | StereoCamera = camera;
-                    if (p.camera.stereo.name === 'on') {
-                        stereoCamera.update();
+                    if (p.camera.stereo.name === 'on' || xrChanged) {
+                        if (!xrChanged) stereoCamera.update();
                         cam = stereoCamera;
                     }
 
                     if (isTimingMode) webgl.timer.mark('Canvas3D.render', { captureStats: true });
                     const ctx = { renderer, camera: cam, scene, helper };
-                    if (MultiSamplePass.isEnabled(p.multiSample)) {
+                    if (MultiSamplePass.isEnabled(p.multiSample) && !xrFrame) {
                         const forceOn = p.multiSample.reduceFlicker && !cameraChanged && markingUpdated && !controls.isAnimating;
                         multiSampleHelper.render(ctx, p, true, forceOn);
                     } else {
@@ -589,7 +655,7 @@ namespace Canvas3D {
                 }
             }
 
-            if (didRender) {
+            if (didRender && !xrFrame) {
                 fenceSync = webgl.getFenceSync();
             }
 
@@ -600,9 +666,9 @@ namespace Canvas3D {
         let drawPaused = false;
         let isContextLost = false;
 
-        function draw(options?: { force?: boolean }) {
+        function draw(options?: { force?: boolean, xrFrame?: XRFrame }) {
             if (drawPaused || isContextLost) return;
-            if (render(!!options?.force) && notifyDidDraw) {
+            if (render(!!options?.force, options?.xrFrame) && notifyDidDraw) {
                 didDraw.next(now() - startTime as now.Timestamp);
             }
         }
@@ -613,8 +679,9 @@ namespace Canvas3D {
 
         let animationFrameHandle = 0;
 
-        function tick(t: now.Timestamp, options?: { isSynchronous?: boolean, manualDraw?: boolean, updateControls?: boolean }) {
+        function tick(t: now.Timestamp, options?: { isSynchronous?: boolean, manualDraw?: boolean, updateControls?: boolean, xrFrame?: XRFrame }) {
             if (isContextLost) return;
+            if (webgl.xrSession && !options?.xrFrame) return;
 
             currentTime = t;
             commit(options?.isSynchronous);
@@ -631,15 +698,17 @@ namespace Canvas3D {
                 return;
             }
 
-            draw();
+            draw({ xrFrame: options?.xrFrame });
             if (!camera.transition.inTransition && !webgl.isContextLost) {
                 interactionHelper.tick(currentTime);
             }
         }
 
-        function _animate() {
-            tick(now());
-            animationFrameHandle = requestAnimationFrame(_animate);
+        function _animate(timestamp: number, xrFrame?: XRFrame) {
+            tick(now(), { xrFrame });
+            animationFrameHandle = webgl.xrSession
+                ? webgl.xrSession.requestAnimationFrame(_animate)
+                : requestAnimationFrame(_animate);
         }
 
         function resetTime(t: now.Timestamp) {
@@ -650,13 +719,17 @@ namespace Canvas3D {
         function animate() {
             drawPaused = false;
             controls.start(now());
-            if (animationFrameHandle === 0) _animate();
+            if (animationFrameHandle === 0) _animate(0);
         }
 
         function pause(noDraw = false) {
             drawPaused = noDraw;
-            cancelAnimationFrame(animationFrameHandle);
-            animationFrameHandle = 0;
+            if (animationFrameHandle !== 0) {
+                webgl.xrSession
+                    ? webgl.xrSession.cancelAnimationFrame(animationFrameHandle)
+                    : cancelAnimationFrame(animationFrameHandle);
+                animationFrameHandle = 0;
+            }
         }
 
         function identify(target: Vec2 | Ray3D): PickData | undefined {
@@ -874,7 +947,12 @@ namespace Canvas3D {
                 cameraFog: camera.state.fog > 0
                     ? { name: 'on' as const, params: { intensity: camera.state.fog } }
                     : { name: 'off' as const, params: {} },
-                cameraClipping: { far: camera.state.clipFar, radius, minNear: camera.state.minNear },
+                cameraClipping: {
+                    far: camera.state.clipFar,
+                    radius,
+                    minNear: camera.state.minNear,
+                    forceFull: camera.state.forceFull,
+                },
                 cameraResetDurationMs: p.cameraResetDurationMs,
                 sceneRadiusFactor: p.sceneRadiusFactor,
                 transparentBackground: p.transparentBackground,
@@ -893,6 +971,8 @@ namespace Canvas3D {
                 interaction: { ...interactionHelper.props },
                 debug: { ...helper.debug.props },
                 handle: { ...helper.handle.props },
+                pointer: { ...helper.pointer.props },
+                xr: { ...xrManager.props },
             };
         }
 
@@ -1114,6 +1194,9 @@ namespace Canvas3D {
                             cameraState.radius = Math.max(radius, 0.01);
                         }
                     }
+                    if (props.cameraClipping.forceFull !== undefined && props.cameraClipping.forceFull !== camera.state.forceFull) {
+                        cameraState.forceFull = props.cameraClipping.forceFull;
+                    }
                 }
                 if (Object.keys(cameraState).length > 0) camera.setState(cameraState);
 
@@ -1158,6 +1241,8 @@ namespace Canvas3D {
                 if (props.interaction) interactionHelper.setProps(props.interaction);
                 if (props.debug) helper.debug.setProps(props.debug);
                 if (props.handle) helper.handle.setProps(props.handle);
+                if (props.pointer) helper.pointer.setProps(props.pointer);
+                if (props.xr) xrManager.setProps(props.xr);
 
                 if (cameraState.mode === 'orthographic') {
                     p.camera.stereo.name = 'off';
@@ -1208,6 +1293,7 @@ namespace Canvas3D {
                 hiZ.dispose();
                 pickHelper.dispose();
                 rayHelper.dispose();
+                xrManager.dispose();
 
                 if (fenceSync !== null) {
                     webgl.deleteSync(fenceSync);

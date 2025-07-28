@@ -47,7 +47,8 @@ export function getErrorDescription(gl: GLRenderingContext, error: number) {
 export function checkError(gl: GLRenderingContext, message?: string) {
     const error = gl.getError();
     if (error !== gl.NO_ERROR) {
-        throw new Error(`WebGL error: '${getErrorDescription(gl, error)}'${message ? ` (${message})` : ''}`);
+        console.log(`WebGL error: '${getErrorDescription(gl, error)}'${message ? ` (${message})` : ''}`);
+        // throw new Error(`WebGL error: '${getErrorDescription(gl, error)}'${message ? ` (${message})` : ''}`);
     }
 }
 
@@ -87,6 +88,10 @@ function unbindResources(gl: GLRenderingContext) {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
     gl.bindRenderbuffer(gl.RENDERBUFFER, null);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    if (isWebGL2(gl)) {
+        gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+    }
 }
 
 const tmpPixel = new Uint8Array(1 * 4);
@@ -146,13 +151,17 @@ export function readPixels(gl: GLRenderingContext, x: number, y: number, width: 
     if (isDebugMode) checkError(gl);
 }
 
-function bindDrawingBuffer(gl: GLRenderingContext) {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+function bindDrawingBuffer(gl: GLRenderingContext, xrLayer?: XRWebGLLayer) {
+    if (xrLayer) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, xrLayer.framebuffer);
+    } else {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
 }
 
-function getDrawingBufferSize(gl: GLRenderingContext) {
-    const width = gl.drawingBufferWidth;
-    const height = gl.drawingBufferHeight;
+function getDrawingBufferSize(gl: GLRenderingContext, xrLayer?: XRWebGLLayer) {
+    const width = xrLayer?.framebufferWidth ?? gl.drawingBufferWidth;
+    const height = xrLayer?.framebufferHeight ?? gl.drawingBufferHeight;
     return { width, height };
 }
 
@@ -240,6 +249,11 @@ export interface WebGLContext {
     setContextLost: () => void
     handleContextRestored: (extraResets?: () => void) => void
 
+    readonly xrSession?: XRSession
+    readonly xrSessionChanged: Subject<void>
+    setXRSession: (xrSession: XRSession | undefined, options?: { resolutionScale?: number }) => Promise<void>
+    endXRSession: () => Promise<void>
+
     setPixelScale: (value: number) => void
 
     /** Cache for compute renderables, managed by consumers */
@@ -304,6 +318,10 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
 
     let pixelScale = props.pixelScale || 1;
 
+    let xrSession: XRSession | undefined;
+    let xrLayer: XRWebGLLayer | undefined;
+    const xrSessionChanged = new Subject<void>();
+
     const renderTargets = new Set<RenderTarget>();
 
     return {
@@ -355,6 +373,78 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
             contextRestored.next(now());
         },
 
+        get xrSession() {
+            return xrSession;
+        },
+        xrSessionChanged,
+        setXRSession: async (value: XRSession | undefined, options?: { resolutionScale?: number }) => {
+            if (xrSession === value) return;
+
+            const _xrSession = xrSession;
+
+            xrLayer = undefined;
+            xrSession = undefined;
+            await _xrSession?.end();
+
+            if (value === undefined) {
+                xrSessionChanged.next();
+                return;
+            }
+
+            try {
+                console.log('trying to make xr compatible');
+                isContextLost = true;
+                await gl.makeXRCompatible();
+                const baseLayer = new XRWebGLLayer(value, gl, {
+                    antialias: true, // gl.getContextAttributes()?.antialias,
+                    alpha: true,
+                    depth: true,
+                    framebufferScaleFactor: options?.resolutionScale ?? 1,
+                });
+                await value.updateRenderState({ baseLayer });
+
+                console.log('fixed foveation', baseLayer.fixedFoveation);
+                baseLayer.fixedFoveation = 1;
+
+                console.log('supportedFrameRates', value.supportedFrameRates);
+                console.log('frameRate', value.frameRate);
+
+                value.updateTargetFrameRate?.(value.supportedFrameRates?.[0] ?? 90);
+
+                xrLayer = baseLayer;
+                xrSession = value;
+                isContextLost = false;
+                console.log('xrLayer', xrLayer.framebufferWidth, xrLayer.framebufferHeight);
+
+                xrSession.addEventListener('end', () => {
+                    console.log('xrSession ended');
+                    xrLayer = undefined;
+                    xrSession = undefined;
+                    xrSessionChanged.next();
+                });
+
+                xrSessionChanged.next();
+            } catch (err) {
+                console.error('Failed to make WebGL context XR compatible', err);
+                xrLayer = undefined;
+                xrSession = undefined;
+                await value.end();
+                isContextLost = false;
+            }
+        },
+        endXRSession: async () => {
+            if (!xrSession) return;
+
+            console.log('ending xrSession');
+            isContextLost = true;
+            await xrSession.end();
+            xrSession = undefined;
+            xrLayer = undefined;
+            isContextLost = false;
+            console.log('ended xrSession');
+            xrSessionChanged.next();
+        },
+
         setPixelScale: (value: number) => {
             pixelScale = value;
         },
@@ -377,18 +467,18 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
                 framebuffer: createNullFramebuffer(),
                 depthRenderbuffer: null,
 
-                getWidth: () => getDrawingBufferSize(gl).width,
-                getHeight: () => getDrawingBufferSize(gl).height,
+                getWidth: () => getDrawingBufferSize(gl, xrLayer).width,
+                getHeight: () => getDrawingBufferSize(gl, xrLayer).height,
                 bind: () => {
-                    bindDrawingBuffer(gl);
+                    bindDrawingBuffer(gl, xrLayer);
                 },
                 setSize: () => {},
                 reset: () => {},
                 destroy: () => {}
             };
         },
-        bindDrawingBuffer: () => bindDrawingBuffer(gl),
-        getDrawingBufferSize: () => getDrawingBufferSize(gl),
+        bindDrawingBuffer: () => bindDrawingBuffer(gl, xrLayer),
+        getDrawingBufferSize: () => getDrawingBufferSize(gl, xrLayer),
         readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array | Int32Array) => {
             readPixels(gl, x, y, width, height, buffer);
         },
@@ -411,8 +501,8 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
             if (isWebGL2(gl)) gl.deleteSync(sync);
         },
         clear: (red: number, green: number, blue: number, alpha: number) => {
-            const drs = getDrawingBufferSize(gl);
-            bindDrawingBuffer(gl);
+            const drs = getDrawingBufferSize(gl, xrLayer);
+            bindDrawingBuffer(gl, xrLayer);
             state.enable(gl.SCISSOR_TEST);
             state.depthMask(true);
             state.colorMask(true, true, true, true);
