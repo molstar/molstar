@@ -2,6 +2,7 @@
  * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -103,14 +104,34 @@ export function createVolumeSphereImpostor(ctx: VisualContext, volume: Volume, k
     const count = Math.ceil((xn * yn * zn) / 10);
     const builder = SpheresBuilder.create(count, Math.ceil(count / 2), spheres);
 
+    const origin = Vec3.transformMat4(Vec3(), Vec3.create(0, 0, 0), gridToCartn);
+    const cs = count >= 4 ? Vec3.create( // Getting volume cell size. Any better way of doing this?
+        Vec3.distance(origin, Vec3.transformMat4(p, Vec3.set(p, 1, 0, 0), gridToCartn)),
+        Vec3.distance(origin, Vec3.transformMat4(p, Vec3.set(p, 0, 1, 0), gridToCartn)),
+        Vec3.distance(origin, Vec3.transformMat4(p, Vec3.set(p, 0, 0, 1), gridToCartn))
+    ) : Vec3.create(0, 0, 0);
+    const [csx, csy, csz] = cs;
+    const l = Volume.Cell.Location(volume);
+    const themeSize = theme.size.size;
+    const invert = isoVal < 0;
+
     for (let z = 0; z < zn; ++z) {
         for (let y = 0; y < yn; ++y) {
             for (let x = 0; x < xn; ++x) {
-                if (space.get(data, x, y, z) < isoVal) continue;
+                const value = space.get(data, x, y, z);
+                if (!invert && value < isoVal || invert && value > isoVal) continue;
 
-                Vec3.set(p, x, y, z);
+                const cellIdx = space.dataOffset(x, y, z);
+                l.cell = cellIdx as Volume.CellIndex;
+                const size = themeSize(l);
+                Vec3.set(
+                    p,
+                    csx > size ? x + (csx - size) * (Math.random() - 0.5) : x,
+                    csy > size ? y + (csy - size) * (Math.random() - 0.5) : y,
+                    csz > size ? z + (csz - size) * (Math.random() - 0.5) : z
+                );
                 Vec3.transformMat4(p, p, gridToCartn);
-                builder.add(p[0], p[1], p[2], space.dataOffset(x, y, z));
+                builder.add(p[0], p[1], p[2], cellIdx);
             }
         }
     }
@@ -134,19 +155,34 @@ export function createVolumeSphereMesh(ctx: VisualContext, volume: Volume, key: 
     const vertexCount = count * sphereVertexCount(detail);
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 2, mesh);
 
+    const origin = Vec3.transformMat4(Vec3(), Vec3.create(0, 0, 0), gridToCartn);
+    const cs = count >= 4 ? Vec3.create( // Getting volume cell size. Any better way of doing this?
+        Vec3.distance(origin, Vec3.transformMat4(p, Vec3.set(p, 1, 0, 0), gridToCartn)),
+        Vec3.distance(origin, Vec3.transformMat4(p, Vec3.set(p, 0, 1, 0), gridToCartn)),
+        Vec3.distance(origin, Vec3.transformMat4(p, Vec3.set(p, 0, 0, 1), gridToCartn))
+    ) : Vec3.create(0, 0, 0);
+    const [csx, csy, csz] = cs;
     const l = Volume.Cell.Location(volume);
     const themeSize = theme.size.size;
+    const invert = isoVal < 0;
 
     for (let z = 0; z < zn; ++z) {
         for (let y = 0; y < yn; ++y) {
             for (let x = 0; x < xn; ++x) {
-                if (space.get(data, x, y, z) < isoVal) continue;
+                const value = space.get(data, x, y, z);
+                if (!invert && value < isoVal || invert && value > isoVal) continue;
 
-                Vec3.set(p, x, y, z);
-                Vec3.transformMat4(p, p, gridToCartn);
-                builderState.currentGroup = space.dataOffset(x, y, z);
-                l.cell = builderState.currentGroup as Volume.CellIndex;
+                const cellIdx = space.dataOffset(x, y, z);
+                l.cell = cellIdx as Volume.CellIndex;
                 const size = themeSize(l);
+                Vec3.set(
+                    p,
+                    csx > size ? x + (csx - size) * (Math.random() - 0.5) : x,
+                    csy > size ? y + (csy - size) * (Math.random() - 0.5) : y,
+                    csz > size ? z + (csz - size) * (Math.random() - 0.5) : z
+                );
+                Vec3.transformMat4(p, p, gridToCartn);
+                builderState.currentGroup = cellIdx;
                 addSphere(builderState, p, size * sizeFactor, detail);
             }
         }
@@ -193,14 +229,34 @@ export function createVolumePoint(ctx: VisualContext, volume: Volume, key: numbe
     const count = Math.ceil((xn * yn * zn) / 10);
     const builder = PointsBuilder.create(count, Math.ceil(count / 2), points);
 
+    const origin = Vec3.transformMat4(Vec3(), Vec3.create(0, 0, 0), gridToCartn);
+    const cs = count >= 4 ? Vec3.create( // Getting volume cell size. Any better way of doing this?
+        Vec3.distance(origin, Vec3.transformMat4(p, Vec3.set(p, 1, 0, 0), gridToCartn)),
+        Vec3.distance(origin, Vec3.transformMat4(p, Vec3.set(p, 0, 1, 0), gridToCartn)),
+        Vec3.distance(origin, Vec3.transformMat4(p, Vec3.set(p, 0, 0, 1), gridToCartn))
+    ) : Vec3.create(0, 0, 0);
+    const [csx, csy, csz] = cs;
+    const l = Volume.Cell.Location(volume);
+    const themeSize = theme.size.size;
+    const invert = isoVal < 0;
+
     for (let z = 0; z < zn; ++z) {
         for (let y = 0; y < yn; ++y) {
             for (let x = 0; x < xn; ++x) {
-                if (space.get(data, x, y, z) < isoVal) continue;
+                const value = space.get(data, x, y, z);
+                if (!invert && value < isoVal || invert && value > isoVal) continue;
 
-                Vec3.set(p, x, y, z);
+                const cellIdx = space.dataOffset(x, y, z);
+                l.cell = cellIdx as Volume.CellIndex;
+                const size = themeSize(l);
+                Vec3.set(
+                    p,
+                    csx > size ? x + (csx - size) * (Math.random() - 0.5) : x,
+                    csy > size ? y + (csy - size) * (Math.random() - 0.5) : y,
+                    csz > size ? z + (csz - size) * (Math.random() - 0.5) : z
+                );
                 Vec3.transformMat4(p, p, gridToCartn);
-                builder.add(p[0], p[1], p[2], space.dataOffset(x, y, z));
+                builder.add(p[0], p[1], p[2], cellIdx);
             }
         }
     }
