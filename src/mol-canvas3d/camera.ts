@@ -111,7 +111,7 @@ export class Camera implements ICamera {
     }
 
     getTargetDistance(radius: number) {
-        return Camera.targetDistance(radius, this.state.mode, this.state.fov, this.viewport.width, this.viewport.height);
+        return Math.max(this.state.minTargetDistance / this.state.scale, Camera.targetDistance(radius, this.state.mode, this.state.fov, this.viewport.width, this.viewport.height));
     }
 
     getFocus(target: Vec3, radius: number, up?: Vec3, dir?: Vec3, snapshot?: Partial<Camera.Snapshot>): Partial<Camera.Snapshot> {
@@ -290,7 +290,9 @@ export namespace Camera {
             minNear: 5,
             minFar: 0,
 
+            forceFull: false,
             scale: 1,
+            minTargetDistance: 0.3,
         };
     }
 
@@ -309,7 +311,9 @@ export namespace Camera {
         minNear: number
         minFar: number
 
+        forceFull: boolean
         scale: number
+        minTargetDistance: number
     }
 
     export function copySnapshot(out: Snapshot, source?: Partial<Snapshot>) {
@@ -329,7 +333,9 @@ export namespace Camera {
         if (typeof source.minNear !== 'undefined') out.minNear = source.minNear;
         if (typeof source.minFar !== 'undefined') out.minFar = source.minFar;
 
+        if (typeof source.forceFull !== 'undefined') out.forceFull = source.forceFull;
         if (typeof source.scale !== 'undefined') out.scale = source.scale;
+        if (typeof source.minTargetDistance !== 'undefined') out.minTargetDistance = source.minTargetDistance;
 
         return out;
     }
@@ -343,7 +349,9 @@ export namespace Camera {
             && a.clipFar === b.clipFar
             && a.minNear === b.minNear
             && a.minFar === b.minFar
+            && a.forceFull === b.forceFull
             && a.scale === b.scale
+            && a.minTargetDistance === b.minTargetDistance
             && Vec3.exactEquals(a.position, b.position)
             && Vec3.exactEquals(a.up, b.up)
             && Vec3.exactEquals(a.target, b.target);
@@ -424,11 +432,12 @@ function updatePers(camera: Camera) {
 }
 
 function updateClip(camera: Camera) {
-    let { radius, radiusMax, mode, fog, clipFar, minNear, minFar, scale } = camera.state;
+    let { radius, radiusMax, mode, fog, clipFar, minNear, minFar, forceFull, scale } = camera.state;
     radiusMax *= scale;
     minFar *= scale;
     minNear *= scale;
     radius *= scale;
+    if (forceFull) radius = radiusMax;
 
     const minRadius = 0.01 * scale;
     if (radius < minRadius) radius = minRadius;
@@ -437,8 +446,9 @@ function updateClip(camera: Camera) {
     Vec3.scale(tmpTarget, camera.state.target, scale);
     Vec3.scale(tmpPosition, camera.state.position, scale);
     const cameraDistance = Vec3.distance(tmpPosition, tmpTarget);
-    let near = cameraDistance - radius;
+    let near = forceFull ? 0.01 : cameraDistance - radius;
     let far = cameraDistance + normalizedFar;
+    if (forceFull) minNear = near;
 
     if (mode === 'perspective') {
         // set at least to 5 to avoid slow sphere impostor rendering

@@ -43,9 +43,13 @@ class StereoCamera {
         Object.assign(this.props, props);
     }
 
-    update() {
+    update(xr?: { pose: XRViewerPose, layer: XRWebGLLayer }) {
         this.parent.update();
-        update(this.parent, this.props, this.left as EyeCamera, this.right as EyeCamera);
+        if (xr) {
+            xrUpdate(this.parent, this.left as EyeCamera, this.right as EyeCamera, xr);
+        } else {
+            update(this.parent, this.props, this.left as EyeCamera, this.right as EyeCamera);
+        }
     }
 }
 
@@ -138,4 +142,21 @@ function update(camera: Camera, props: StereoCameraProps, left: EyeCamera, right
     Mat4.mul(right.view, right.view, tmpEyeRight);
     Mat4.mul(right.projectionView, right.projection, right.view);
     Mat4.invert(right.inverseProjectionView, right.projectionView);
+}
+
+//
+
+function xrUpdate(camera: Camera, left: EyeCamera, right: EyeCamera, xr: { pose: XRViewerPose, layer: XRWebGLLayer }) {
+    _xrUpdate(camera, left, xr.pose.views[0], xr.layer);
+    _xrUpdate(camera, right, xr.pose.views[1], xr.layer);
+}
+
+function _xrUpdate(camera: Camera, eye: EyeCamera, view: XRView, layer: XRWebGLLayer) {
+    copyStates(camera, eye);
+    const lvp = layer.getViewport(view)!;
+    Viewport.set(eye.viewport, lvp.x, lvp.y, lvp.width, lvp.height);
+    Mat4.fromArray(eye.projection, view.projectionMatrix, 0);
+    Mat4.fromArray(eye.view, view.transform.inverse.matrix, 0);
+    Mat4.mul(eye.projectionView, eye.projection, eye.view);
+    Mat4.invert(eye.inverseProjectionView, eye.projectionView);
 }

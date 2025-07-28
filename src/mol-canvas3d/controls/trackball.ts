@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -538,8 +538,8 @@ namespace TrackballControls {
 
         // listeners
 
-        function onDrag({ x, y, pageX, pageY, buttons, modifiers, isStart }: DragInput) {
-            const isOutside = outsideViewport(x, y);
+        function onDrag({ x, y, dx, dy, pageX, pageY, buttons, modifiers, isStart, useDelta }: DragInput) {
+            const isOutside = !useDelta && outsideViewport(x, y);
 
             if (isStart && isOutside) return;
             if (!isStart && !_isInteracting) return;
@@ -553,6 +553,10 @@ namespace TrackballControls {
             const dragZoom = Binding.match(b.dragZoom, buttons, modifiers);
             const dragFocus = Binding.match(b.dragFocus, buttons, modifiers);
             const dragFocusZoom = Binding.match(b.dragFocusZoom, buttons, modifiers);
+
+            if (useDelta) {
+                Vec2.copy(_rotPrev, getMouseOnCircle(pageX - dx, pageY - dy));
+            }
 
             getMouseOnCircle(pageX, pageY);
             getMouseOnScreen(pageX, pageY);
