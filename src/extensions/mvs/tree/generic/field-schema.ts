@@ -6,7 +6,7 @@
  */
 
 import * as iots from 'io-ts';
-import { PathReporter } from "io-ts/lib/PathReporter.js";
+import { PathReporter } from "io-ts/es6/PathReporter.js";
 import { onelinerJsonString } from '../../../../mol-util/json';
 
 
