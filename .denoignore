@@ -1,0 +1,66 @@
+# Build directories
+build/
+deploy/
+lib/
+docs/site/
+
+# Dependencies
+node_modules/
+
+# Logs
+debug.log
+npm-debug.log
+
+# TypeScript build info
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+tsconfig.commonjs.tsbuildinfo
+
+# IDE files
+*.sublime-workspace
+.idea/
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+
+# Test files
+tests/
+perf-tests/
+_spec/
+**/*.spec.ts
+**/*_spec.ts
+
+# Source maps
+*.js.map
+
+# SSL certificates
+dev.pem
+dev-key.pem
+
+# NPM specific files
+package-lock.json
+.npmignore
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation builds
+docs/build/
+
+# Example builds
+examples/build/
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# Linting cache
+.eslintcache
