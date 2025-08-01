@@ -6,9 +6,7 @@
  */
 
 import * as iots from 'io-ts';
-import { PathReporter } from "io-ts/es6/PathReporter.js";
 import { onelinerJsonString } from '../../../../mol-util/json';
-
 
 /** All types that can be used in tree node params.
  * Can be extended, this is just to list them all in one place and possibly catch some typing errors */
@@ -142,6 +140,41 @@ export function fieldValidationIssues<F extends Field>(field: F, value: any): st
     if (validation._tag === 'Right') {
         return undefined;
     } else {
-        return PathReporter.report(validation);
+        return reportErrors(validation.left);
     }
+}
+
+// Inlining `reportErrors` instead of `import { PathReporter } from 'io-ts/PathReporter'`;
+// because it breaks Deno usage.
+
+function reportErrors(errors: iots.Errors): string[] | undefined {
+    if (errors.length === 0) return undefined;
+    return errors.map(getMessage);
+}
+
+function getMessage(e: iots.ValidationError) {
+    return e.message !== undefined
+        ? e.message
+        : `Invalid value ${stringifyError(e.value)} supplied to ${getContextPath(e.context)}`;
+}
+
+function getContextPath(context: iots.ValidationError['context']) {
+    return context.map(a => `${a.key}: ${a.type.name}`).join('/');
+}
+
+function getFunctionName(f: Function & { displayName?: string }) {
+    return f.displayName || f.name || `<function ${f.length}>`;
+}
+
+function stringifyError(v: any) {
+    if (typeof v === 'function') {
+        return getFunctionName(v);
+    }
+    if (typeof v === 'number' && !isFinite(v)) {
+        if (isNaN(v)) {
+            return 'NaN';
+        }
+        return v > 0 ? 'Infinity' : '-Infinity';
+    }
+    return JSON.stringify(v);
 }
