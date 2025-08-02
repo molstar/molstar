@@ -321,7 +321,7 @@ interface Canvas3D {
      * Function for external "animation" control
      * Calls commit.
      */
-    tick(t: now.Timestamp, options?: { isSynchronous?: boolean, manualDraw?: boolean, updateControls?: boolean }): void
+    tick(t: now.Timestamp, options?: { isSynchronous?: boolean, manualDraw?: boolean, updateControls?: boolean, xrFrame?: XRFrame }): void
     update(repr?: Representation.Any, keepBoundingSphere?: boolean): void
     clear(): void
     syncVisibility(): void
@@ -338,6 +338,10 @@ interface Canvas3D {
     pause(noDraw?: boolean): void
     /** Sets drawPaused = false without starting the built in animation loop */
     resume(): void
+
+    requestAnimationFrame(callback: FrameRequestCallback | XRFrameRequestCallback): number
+    cancelAnimationFrame(handle: number): void
+
     identify(target: Vec2 | Ray3D): PickData | undefined
     asyncIdentify(target: Vec2 | Ray3D): AsyncPickData | undefined
     mark(loci: Representation.Loci, action: MarkerAction): void
@@ -484,6 +488,7 @@ namespace Canvas3D {
         }
 
         const xrManager = new XRManager(webgl, input, scene, camera, stereoCamera, helper.pointer, interactionHelper);
+
         xrManager.togglePassthrough.subscribe(() => {
             if (xrManager.session?.environmentBlendMode === 'alpha-blend') {
                 p.transparentBackground = !p.transparentBackground;
@@ -493,14 +498,14 @@ namespace Canvas3D {
         xrManager.sessionChanged.subscribe(() => {
             fenceSync = null;
             resizeRequested = true;
-            pause(true);
+            // pause(true);
             if (xrManager.session) {
                 saveNonXRProps();
                 setXRProps();
             } else {
                 loadNonXRProps();
             }
-            animate();
+            resume();
         });
 
         const xrButton = getXRButton(xrManager);
@@ -704,11 +709,25 @@ namespace Canvas3D {
             }
         }
 
-        function _animate(timestamp: number, xrFrame?: XRFrame) {
+        let animationFrameCB: FrameRequestCallback | XRFrameRequestCallback | undefined = undefined;
+
+        function _requestAnimationFrame(callback: FrameRequestCallback | XRFrameRequestCallback): number {
+            animationFrameCB = callback;
+            return webgl.xrSession
+                ? webgl.xrSession.requestAnimationFrame(callback)
+                : requestAnimationFrame(callback as FrameRequestCallback);
+        }
+
+        function _cancelAnimationFrame(handle: number): void {
+            animationFrameCB = undefined;
+            webgl.xrSession
+                ? webgl.xrSession.cancelAnimationFrame(handle)
+                : cancelAnimationFrame(handle);
+        }
+
+        function _animate(_timestamp: number, xrFrame?: XRFrame) {
             tick(now(), { xrFrame });
-            animationFrameHandle = webgl.xrSession
-                ? webgl.xrSession.requestAnimationFrame(_animate)
-                : requestAnimationFrame(_animate);
+            animationFrameHandle = _requestAnimationFrame(_animate);
         }
 
         function resetTime(t: now.Timestamp) {
@@ -725,11 +744,14 @@ namespace Canvas3D {
         function pause(noDraw = false) {
             drawPaused = noDraw;
             if (animationFrameHandle !== 0) {
-                webgl.xrSession
-                    ? webgl.xrSession.cancelAnimationFrame(animationFrameHandle)
-                    : cancelAnimationFrame(animationFrameHandle);
+                _cancelAnimationFrame(animationFrameHandle);
                 animationFrameHandle = 0;
             }
+        }
+
+        function resume() {
+            drawPaused = false;
+            if (animationFrameCB) _requestAnimationFrame(animationFrameCB);
         }
 
         function identify(target: Vec2 | Ray3D): PickData | undefined {
@@ -1130,7 +1152,11 @@ namespace Canvas3D {
             animate,
             resetTime,
             pause,
-            resume: () => { drawPaused = false; },
+            resume,
+
+            requestAnimationFrame: _requestAnimationFrame,
+            cancelAnimationFrame: _cancelAnimationFrame,
+
             identify,
             asyncIdentify,
             mark,
