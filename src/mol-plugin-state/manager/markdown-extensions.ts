@@ -8,6 +8,8 @@ import { getCellBoundingSphere } from '../../mol-plugin-state/manager/focus-came
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateObjectCell } from '../../mol-state';
 import { PluginContext } from '../../mol-plugin/context';
+import { Script } from '../../mol-script/script';
+import { QueryContext, QueryFn, StructureElement, StructureSelection } from '../../mol-model/structure';
 
 export type MarkdownExtensionEvent = 'click' | 'mouse-enter' | 'mouse-leave';
 
@@ -81,6 +83,72 @@ export const BuiltInMarkdownExtension: MarkdownExtension[] = [
                 }
             }
         }
+    },
+    {
+        name: 'query',
+        execute: ({ event, args, manager }) => {
+            const expression = args['query'];
+            if (!expression?.length) return;
+
+            // supported languages: mol-script, pymol, vmd, jmol
+            const language = args['lang'] || 'mol-script';
+            // supported actions: highlight, focus
+            const action = parseArray(args['action'] || 'highlight');
+            const focusRadius = parseFloat(args['focus-radius'] || '3');
+
+            if (event === 'mouse-leave') {
+                if (action.includes('highlight')) {
+                    manager.plugin.managers.interactivity.lociHighlights.clearHighlights();
+                }
+                return;
+            }
+
+            let query: QueryFn<StructureSelection>;
+            try {
+                query = Script.toQuery({
+                    language: language as Script.Language,
+                    expression
+                });
+            } catch (e) {
+                console.warn(`Failed to parse query '${expression}' (${language})`, e);
+                return;
+            }
+
+            const structures = manager.plugin.state.data.selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Structure));
+
+            if (event === 'mouse-enter') {
+                if (!action.includes('focus')) {
+                    return;
+                }
+                manager.plugin.managers.interactivity.lociHighlights.clearHighlights();
+                for (const structure of structures) {
+                    if (!structure.obj?.data) continue;
+                    const selection = query(new QueryContext(structure.obj.data));
+                    const loci = StructureSelection.toLociWithSourceUnits(selection);
+                    manager.plugin.managers.interactivity.lociHighlights.highlight({
+                        loci,
+                    }, false);
+                }
+            }
+
+            if (event === 'click') {
+                if (!action.includes('focus')) {
+                    return;
+                }
+                const spheres = structures.map(s => {
+                    if (!s.obj?.data) return undefined;
+                    const selection = query(new QueryContext(s.obj.data));
+                    if (StructureSelection.isEmpty(selection)) return;
+
+                    const loci = StructureSelection.toLociWithSourceUnits(selection);
+                    return StructureElement.Loci.getBoundary(loci).sphere;
+                }).filter(s => !!s);
+
+                if (spheres.length) {
+                    manager.plugin.managers.camera.focusSpheres(spheres, s => s, { extraRadius: focusRadius });
+                }
+            }
+        },
     },
 ];
 
