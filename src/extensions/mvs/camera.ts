@@ -130,21 +130,26 @@ export function modifyCanvasProps(oldCanvasProps: Canvas3DProps, canvasNode: Mol
     const backgroundColor = decodeColor(params?.background_color) ?? DefaultCanvasBackgroundColor;
 
     const outline = !!canvasNode?.custom?.molstar_enable_outline;
+    const outlineParams = canvasNode?.custom?.molstar_outline_params;
+
     const shadow = !!canvasNode?.custom?.molstar_enable_shadow;
+    const shadowParams = canvasNode?.custom?.molstar_shadow_params;
+
     const occlusion = !!canvasNode?.custom?.molstar_enable_ssao;
+    const ssaoParams = canvasNode?.custom?.molstar_ssao_params;
 
     return {
         ...oldCanvasProps,
         postprocessing: {
             ...oldCanvasProps.postprocessing,
             outline: outline
-                ? { name: 'on', params: ParamDefinition.getDefaultValues(OutlineParams) }
+                ? { name: 'on', params: { ...ParamDefinition.getDefaultValues(OutlineParams), ...outlineParams } }
                 : oldCanvasProps.postprocessing.outline,
             shadow: shadow
-                ? { name: 'on', params: ParamDefinition.getDefaultValues(ShadowParams) }
+                ? { name: 'on', params: { ...ParamDefinition.getDefaultValues(ShadowParams), ...shadowParams } }
                 : oldCanvasProps.postprocessing.shadow,
             occlusion: occlusion
-                ? { name: 'on', params: ParamDefinition.getDefaultValues(SsaoParams) }
+                ? { name: 'on', params: { ...ParamDefinition.getDefaultValues(SsaoParams), ...ssaoParams } }
                 : oldCanvasProps.postprocessing.occlusion,
         },
         renderer: {

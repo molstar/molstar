@@ -140,11 +140,13 @@ export const MVSBuildPrimitiveShape = MVSTransform({
         if (params.kind === 'mesh') {
             if (!hasPrimitiveKind(a.data, 'mesh')) return StateObject.Null;
 
+            const customMeshParams = a.data.node.custom?.molstar_mesh_params;
             return new SO.Shape.Provider({
                 label,
                 data: context,
                 params: {
                     ...PD.withDefaults(Mesh.Params, { alpha: a.data.options?.opacity ?? 1 }),
+                    ...customMeshParams,
                     ...snapshotKey,
                 },
                 getShape: (_, data, __, prev: any) => buildPrimitiveMesh(data, prev?.geometry),
@@ -155,6 +157,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
 
             const options = a.data.options;
             const bgColor = options?.label_background_color;
+            const customLabelParams = a.data.node.custom?.molstar_label_params;
             return new SO.Shape.Provider({
                 label,
                 data: context,
@@ -167,6 +170,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
                         background: isDefined(bgColor),
                         backgroundColor: isDefined(bgColor) ? decodeColor(bgColor) : undefined,
                     }),
+                    ...customLabelParams,
                     ...snapshotKey,
                 },
                 getShape: (_, data, props, prev: any) => buildPrimitiveLabels(data, prev?.geometry, props),
@@ -175,11 +179,13 @@ export const MVSBuildPrimitiveShape = MVSTransform({
         } else if (params.kind === 'lines') {
             if (!hasPrimitiveKind(a.data, 'line')) return StateObject.Null;
 
+            const customLineParams = a.data.node.custom?.molstar_line_params;
             return new SO.Shape.Provider({
                 label,
                 data: context,
                 params: {
                     ...PD.withDefaults(Lines.Params, { alpha: a.data.options?.opacity ?? 1 }),
+                    ...customLineParams,
                     ...snapshotKey,
                 },
                 getShape: (_, data, __, prev: any) => buildPrimitiveLines(data, prev?.geometry),
