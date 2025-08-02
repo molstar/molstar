@@ -39,8 +39,9 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { capitalize } from '../../../mol-util/string';
 import { rowsToExpression, rowToExpression } from '../helpers/selections';
 import { collectMVSReferences, decodeColor, isDefined } from '../helpers/utils';
-import { MolstarNode, MolstarSubtree } from '../tree/molstar/molstar-tree';
-import { MVSNode } from '../tree/mvs/mvs-tree';
+import { addParamDefaults } from '../tree/generic/params-schema';
+import { MolstarNode, MolstarNodeParams, MolstarSubtree } from '../tree/molstar/molstar-tree';
+import { MVSNode, MVSTreeSchema } from '../tree/mvs/mvs-tree';
 import { isComponentExpression, isPrimitiveComponentExpressions, isVector3, PrimitivePositionT } from '../tree/mvs/param-types';
 import { MVSTransform } from './annotation-structure-component';
 
@@ -97,6 +98,16 @@ export const MVSDownloadPrimitiveData = MVSTransform({
     },
 });
 
+/* Cannot use MolstarSubtree<'primitives'>> because information about type of children would be lost and cause TypeScript errors in dependent code */
+interface PrimitivesSubtree {
+    kind: 'primitives',
+    params: MolstarNodeParams<'primitives'>,
+    children?: {
+        kind: 'primitive',
+        params: MolstarNodeParams<'primitive'>,
+    }[],
+}
+
 export type MVSInlinePrimitiveData = typeof MVSInlinePrimitiveData
 export const MVSInlinePrimitiveData = MVSTransform({
     name: 'mvs-inline-primitive-data',
@@ -104,7 +115,10 @@ export const MVSInlinePrimitiveData = MVSTransform({
     from: [SO.Root, SO.Molecule.Structure],
     to: MVSPrimitivesData,
     params: {
-        node: PD.Value<MolstarSubtree<'primitives'>>(undefined as any, { isHidden: true }),
+        node: PD.Value<PrimitivesSubtree>({
+            kind: 'primitives',
+            params: addParamDefaults(MVSTreeSchema.nodes.primitives.params, {}),
+        }, { isHidden: true }),
     },
 })({
     apply({ a, params }) {
