@@ -2,6 +2,7 @@
  * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -26,9 +27,11 @@ import { addSphere } from '../../mol-geo/geometry/mesh/builder/sphere';
 import { sphereVertexCount } from '../../mol-geo/primitive/sphere';
 import { Points } from '../../mol-geo/geometry/points/points';
 import { PointsBuilder } from '../../mol-geo/geometry/points/points-builder';
+import { SizeTheme } from '../../mol-theme/size';
 
 export const VolumeDotParams = {
     isoValue: Volume.IsoValueParam,
+    perturbatePositions: PD.Boolean(false)
 };
 export type VolumeDotParams = typeof VolumeDotParams
 export type VolumeDotProps = PD.Values<VolumeDotParams>
@@ -58,9 +61,11 @@ export function VolumeSphereImpostorVisual(materialId: number): VolumeVisual<Vol
         createLocationIterator: createVolumeCellLocationIterator,
         getLoci: getDotLoci,
         eachLocation: eachDot,
-        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<VolumeSphereParams>, currentProps: PD.Values<VolumeSphereParams>) => {
+        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<VolumeSphereParams>, currentProps: PD.Values<VolumeSphereParams>, newTheme: Theme, currentTheme: Theme) => {
             state.createGeometry = (
-                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats)
+                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats) ||
+                newProps.perturbatePositions !== currentProps.perturbatePositions ||
+                currentProps.perturbatePositions && (newProps.sizeFactor !== currentProps.sizeFactor || !SizeTheme.areEqual(newTheme.size, currentTheme.size))
             );
         },
         geometryUtils: Spheres.Utils,
@@ -77,9 +82,10 @@ export function VolumeSphereMeshVisual(materialId: number): VolumeVisual<VolumeS
         createLocationIterator: createVolumeCellLocationIterator,
         getLoci: getDotLoci,
         eachLocation: eachDot,
-        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<VolumeSphereParams>, currentProps: PD.Values<VolumeSphereParams>) => {
+        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<VolumeSphereParams>, currentProps: PD.Values<VolumeSphereParams>, newTheme: Theme, currentTheme: Theme) => {
             state.createGeometry = (
                 !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats) ||
+                newProps.perturbatePositions !== currentProps.perturbatePositions ||
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.detail !== currentProps.detail
             );
@@ -93,6 +99,7 @@ export function VolumeSphereMeshVisual(materialId: number): VolumeVisual<VolumeS
 
 
 export function createVolumeSphereImpostor(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: VolumeSphereProps, spheres?: Spheres): Spheres {
+    const { sizeFactor } = props;
     const { cells: { space, data }, stats } = volume.grid;
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
     const isoVal = Volume.IsoValue.toAbsolute(props.isoValue, stats).absoluteValue;
@@ -103,14 +110,42 @@ export function createVolumeSphereImpostor(ctx: VisualContext, volume: Volume, k
     const count = Math.ceil((xn * yn * zn) / 10);
     const builder = SpheresBuilder.create(count, Math.ceil(count / 2), spheres);
 
+    const origin = Vec3.transformMat4(Vec3(), Vec3.create(0, 0, 0), gridToCartn);
+    const cs = count >= 4 ? Vec3.create( // Getting volume cell size. Any better way of doing this?
+        Vec3.distance(origin, Vec3.transformMat4(p, Vec3.set(p, 1, 0, 0), gridToCartn)),
+        Vec3.distance(origin, Vec3.transformMat4(p, Vec3.set(p, 0, 1, 0), gridToCartn)),
+        Vec3.distance(origin, Vec3.transformMat4(p, Vec3.set(p, 0, 0, 1), gridToCartn))
+    ) : Vec3.create(0, 0, 0);
+    const [csx, csy, csz] = cs;
+
+    const l = Volume.Cell.Location(volume);
+    const themeSize = theme.size.size;
+
+    const invert = isoVal < 0;
+    const perturbateGeometry = props.perturbatePositions;
+    const rand = Math.random;
+
     for (let z = 0; z < zn; ++z) {
         for (let y = 0; y < yn; ++y) {
             for (let x = 0; x < xn; ++x) {
-                if (space.get(data, x, y, z) < isoVal) continue;
+                const value = space.get(data, x, y, z);
+                if (!invert && value < isoVal || invert && value > isoVal) continue;
 
-                Vec3.set(p, x, y, z);
+                const cellIdx = space.dataOffset(x, y, z);
+                if (perturbateGeometry) {
+                    l.cell = cellIdx as Volume.CellIndex;
+                    const size = themeSize(l) * sizeFactor * 2;
+                    Vec3.set(
+                        p,
+                        csx > size ? x + (csx - size) * (rand() - 0.5) : x,
+                        csy > size ? y + (csy - size) * (rand() - 0.5) : y,
+                        csz > size ? z + (csz - size) * (rand() - 0.5) : z
+                    );
+                } else {
+                    Vec3.set(p, x, y, z);
+                }
                 Vec3.transformMat4(p, p, gridToCartn);
-                builder.add(p[0], p[1], p[2], space.dataOffset(x, y, z));
+                builder.add(p[0], p[1], p[2], cellIdx);
             }
         }
     }
@@ -130,24 +165,48 @@ export function createVolumeSphereMesh(ctx: VisualContext, volume: Volume, key: 
     const p = Vec3();
     const [xn, yn, zn] = space.dimensions;
 
-    const count = (xn * yn * zn) / 10;
+    const count = Math.ceil((xn * yn * zn) / 10);
     const vertexCount = count * sphereVertexCount(detail);
-    const builderState = MeshBuilder.createState(vertexCount, vertexCount / 2, mesh);
+    const builderState = MeshBuilder.createState(vertexCount, Math.ceil(vertexCount / 2), mesh);
+
+    const origin = Vec3.transformMat4(Vec3(), Vec3.create(0, 0, 0), gridToCartn);
+    const cs = count >= 4 ? Vec3.create( // Getting volume cell size. Any better way of doing this?
+        Vec3.distance(origin, Vec3.transformMat4(p, Vec3.set(p, 1, 0, 0), gridToCartn)),
+        Vec3.distance(origin, Vec3.transformMat4(p, Vec3.set(p, 0, 1, 0), gridToCartn)),
+        Vec3.distance(origin, Vec3.transformMat4(p, Vec3.set(p, 0, 0, 1), gridToCartn))
+    ) : Vec3.create(0, 0, 0);
+    const [csx, csy, csz] = cs;
 
     const l = Volume.Cell.Location(volume);
     const themeSize = theme.size.size;
 
+    const invert = isoVal < 0;
+    const perturbateGeometry = props.perturbatePositions;
+    const rand = Math.random;
+
     for (let z = 0; z < zn; ++z) {
         for (let y = 0; y < yn; ++y) {
             for (let x = 0; x < xn; ++x) {
-                if (space.get(data, x, y, z) < isoVal) continue;
+                const value = space.get(data, x, y, z);
+                if (!invert && value < isoVal || invert && value > isoVal) continue;
 
-                Vec3.set(p, x, y, z);
+                const cellIdx = space.dataOffset(x, y, z);
+                l.cell = cellIdx as Volume.CellIndex;
+                const _size = themeSize(l) * sizeFactor;
+                if (perturbateGeometry) {
+                    const size = _size * 2;
+                    Vec3.set(
+                        p,
+                        csx > size ? x + (csx - size) * (rand() - 0.5) : x,
+                        csy > size ? y + (csy - size) * (rand() - 0.5) : y,
+                        csz > size ? z + (csz - size) * (rand() - 0.5) : z
+                    );
+                } else {
+                    Vec3.set(p, x, y, z);
+                }
                 Vec3.transformMat4(p, p, gridToCartn);
-                builderState.currentGroup = space.dataOffset(x, y, z);
-                l.cell = builderState.currentGroup as Volume.CellIndex;
-                const size = themeSize(l);
-                addSphere(builderState, p, size * sizeFactor, detail);
+                builderState.currentGroup = cellIdx;
+                addSphere(builderState, p, _size, detail);
             }
         }
     }
@@ -173,9 +232,11 @@ export function VolumePointVisual(materialId: number): VolumeVisual<VolumePointP
         createLocationIterator: createVolumeCellLocationIterator,
         getLoci: getDotLoci,
         eachLocation: eachDot,
-        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<VolumePointParams>, currentProps: PD.Values<VolumePointParams>) => {
+        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<VolumePointParams>, currentProps: PD.Values<VolumePointParams>, newTheme: Theme, currentTheme: Theme) => {
             state.createGeometry = (
-                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats)
+                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats) ||
+                newProps.perturbatePositions !== currentProps.perturbatePositions ||
+                currentProps.perturbatePositions && (newProps.sizeFactor !== currentProps.sizeFactor || !SizeTheme.areEqual(newTheme.size, currentTheme.size))
             );
         },
         geometryUtils: Points.Utils,
@@ -183,6 +244,7 @@ export function VolumePointVisual(materialId: number): VolumeVisual<VolumePointP
 }
 
 export function createVolumePoint(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: VolumePointProps, points?: Points): Points {
+    const { sizeFactor } = props;
     const { cells: { space, data }, stats } = volume.grid;
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
     const isoVal = Volume.IsoValue.toAbsolute(props.isoValue, stats).absoluteValue;
@@ -193,14 +255,42 @@ export function createVolumePoint(ctx: VisualContext, volume: Volume, key: numbe
     const count = Math.ceil((xn * yn * zn) / 10);
     const builder = PointsBuilder.create(count, Math.ceil(count / 2), points);
 
+    const origin = Vec3.transformMat4(Vec3(), Vec3.create(0, 0, 0), gridToCartn);
+    const cs = count >= 4 ? Vec3.create( // Getting volume cell size. Any better way of doing this?
+        Vec3.distance(origin, Vec3.transformMat4(p, Vec3.set(p, 1, 0, 0), gridToCartn)),
+        Vec3.distance(origin, Vec3.transformMat4(p, Vec3.set(p, 0, 1, 0), gridToCartn)),
+        Vec3.distance(origin, Vec3.transformMat4(p, Vec3.set(p, 0, 0, 1), gridToCartn))
+    ) : Vec3.create(0, 0, 0);
+    const [csx, csy, csz] = cs;
+
+    const l = Volume.Cell.Location(volume);
+    const themeSize = theme.size.size;
+
+    const invert = isoVal < 0;
+    const perturbateGeometry = props.perturbatePositions;
+    const rand = Math.random;
+
     for (let z = 0; z < zn; ++z) {
         for (let y = 0; y < yn; ++y) {
             for (let x = 0; x < xn; ++x) {
-                if (space.get(data, x, y, z) < isoVal) continue;
+                const value = space.get(data, x, y, z);
+                if (!invert && value < isoVal || invert && value > isoVal) continue;
 
-                Vec3.set(p, x, y, z);
+                const cellIdx = space.dataOffset(x, y, z);
+                if (perturbateGeometry) {
+                    l.cell = cellIdx as Volume.CellIndex;
+                    const size = themeSize(l) * sizeFactor * 2;
+                    Vec3.set(
+                        p,
+                        csx > size ? x + (csx - size) * (rand() - 0.5) : x,
+                        csy > size ? y + (csy - size) * (rand() - 0.5) : y,
+                        csz > size ? z + (csz - size) * (rand() - 0.5) : z
+                    );
+                } else {
+                    Vec3.set(p, x, y, z);
+                }
                 Vec3.transformMat4(p, p, gridToCartn);
-                builder.add(p[0], p[1], p[2], space.dataOffset(x, y, z));
+                builder.add(p[0], p[1], p[2], cellIdx);
             }
         }
     }
