@@ -36,7 +36,7 @@ Extends Markdown Image syntax to support expressions of the form `![alt](!c1=v1&
 ### Built-in Custom Content
 - `color-swatch=color` - Renders a box with the provided color
 -  Color palettes:
-  - `color-palette-name=name` - Renders a gradient with the provivided named color palette (see `mol-util/color/lists.ts` for supported color schemes)
+  - `color-palette-name=name` - Renders a gradient with the provided named color palette (see `mol-util/color/lists.ts` for supported color schemes)
   - `color-palette-colors=color1,color2` - Renders a gradient with the provided colors
   - `color-palette-width=CCS-value` - Specifies the width of the element, defaults to `150px`
   - `color-palette-height=CCS-value` - Specified the height of the element, defaults to `0.5em`
