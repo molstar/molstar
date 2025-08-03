@@ -48,7 +48,7 @@ import { HiZParams, HiZPass } from './passes/hi-z';
 import { IlluminationParams } from './passes/illumination';
 import { isMobileBrowser } from '../mol-util/browser';
 import { PointerHelperParams } from './helper/pointer-helper';
-import { getXRButton, XRManager, XRManagerParams } from './helper/xr-manager';
+import { XRManager, XRManagerParams } from './helper/xr-manager';
 import { Ray3D } from '../mol-math/geometry/primitives/ray3d';
 import { RayHelper } from './helper/ray-helper';
 
@@ -301,6 +301,9 @@ namespace Canvas3DContext {
                 canvas.removeEventListener('webglcontextlost', handleWebglContextLost, false);
                 canvas.removeEventListener('webglcontextrestored', handlewWebglContextRestored, false);
                 webgl.destroy(options);
+
+                contextLost.complete();
+                changed.complete();
             }
         };
     }
@@ -371,6 +374,14 @@ interface Canvas3D {
     readonly input: InputObserver
     readonly stats: RendererStats
     readonly interaction: Canvas3dInteractionHelper['events']
+
+    readonly xr: {
+        request(): Promise<void>
+        end(): Promise<void>
+        readonly isSupported: BehaviorSubject<boolean>
+        readonly isPresenting: BehaviorSubject<boolean>
+        readonly hasRequestFailed: BehaviorSubject<boolean>
+    }
 
     dispose(): void
 }
@@ -489,6 +500,18 @@ namespace Canvas3D {
 
         const xrManager = new XRManager(webgl, input, scene, camera, stereoCamera, helper.pointer, interactionHelper);
 
+        const xr = {
+            request: () => xrManager.request(),
+            end: () => xrManager.end(),
+            isSupported: new BehaviorSubject(false),
+            isPresenting: new BehaviorSubject(false),
+            hasRequestFailed: new BehaviorSubject(false),
+        };
+
+        xrManager.isSupported().then(supported => {
+            xr.isSupported.next(supported);
+        });
+
         xrManager.togglePassthrough.subscribe(() => {
             if (xrManager.session?.environmentBlendMode === 'alpha-blend') {
                 p.transparentBackground = !p.transparentBackground;
@@ -498,7 +521,6 @@ namespace Canvas3D {
         xrManager.sessionChanged.subscribe(() => {
             fenceSync = null;
             resizeRequested = true;
-            // pause(true);
             if (xrManager.session) {
                 saveNonXRProps();
                 setXRProps();
@@ -506,10 +528,8 @@ namespace Canvas3D {
                 loadNonXRProps();
             }
             resume();
+            xr.isPresenting.next(!!xrManager.session);
         });
-
-        const xrButton = getXRButton(xrManager);
-        if (xrButton) canvas?.parentElement?.appendChild(xrButton);
 
         //
 
@@ -580,7 +600,7 @@ namespace Canvas3D {
 
         function render(force: boolean, xrFrame?: XRFrame) {
             if (webgl.isContextLost) return false;
-            if (webgl.xrSession && !xrFrame) return false;
+            if (webgl.xr.session && !xrFrame) return false;
 
             let resized = false;
             if (resizeRequested) {
@@ -686,7 +706,7 @@ namespace Canvas3D {
 
         function tick(t: now.Timestamp, options?: { isSynchronous?: boolean, manualDraw?: boolean, updateControls?: boolean, xrFrame?: XRFrame }) {
             if (isContextLost) return;
-            if (webgl.xrSession && !options?.xrFrame) return;
+            if (webgl.xr.session && !options?.xrFrame) return;
 
             currentTime = t;
             commit(options?.isSynchronous);
@@ -713,15 +733,15 @@ namespace Canvas3D {
 
         function _requestAnimationFrame(callback: FrameRequestCallback | XRFrameRequestCallback): number {
             animationFrameCB = callback;
-            return webgl.xrSession
-                ? webgl.xrSession.requestAnimationFrame(callback)
+            return webgl.xr.session
+                ? webgl.xr.session.requestAnimationFrame(callback)
                 : requestAnimationFrame(callback as FrameRequestCallback);
         }
 
         function _cancelAnimationFrame(handle: number): void {
             animationFrameCB = undefined;
-            webgl.xrSession
-                ? webgl.xrSession.cancelAnimationFrame(handle)
+            webgl.xr.session
+                ? webgl.xr.session.cancelAnimationFrame(handle)
                 : cancelAnimationFrame(handle);
         }
 
@@ -1299,6 +1319,7 @@ namespace Canvas3D {
             get interaction() {
                 return interactionHelper.events;
             },
+            xr,
             dispose: () => {
                 contextLostSub?.unsubscribe();
                 contextRestoredSub.unsubscribe();
@@ -1325,6 +1346,16 @@ namespace Canvas3D {
                     webgl.deleteSync(fenceSync);
                     fenceSync = null;
                 }
+
+                reprCount.complete();
+                interactionEvent.complete();
+                didDraw.complete();
+                resized.complete();
+                commited.complete();
+                commitQueueSize.complete();
+                xr.isPresenting.complete();
+                xr.isSupported.complete();
+                xr.hasRequestFailed.complete();
 
                 removeConsoleStatsProvider(consoleStats);
             }

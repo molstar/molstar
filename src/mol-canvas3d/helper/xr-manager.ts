@@ -39,58 +39,6 @@ function getRayFromPose(pose: XRPose, view?: Mat4): Ray3D {
     return ray;
 }
 
-export function getXRButton(manager: XRManager): HTMLElement | undefined {
-    if (typeof document === 'undefined') return;
-    if (!navigator.xr) return;
-
-    const button = document.createElement('button');
-    Object.assign(button.style, {
-        bottom: '30px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        background: 'black',
-        zIndex: 1000,
-        position: 'absolute',
-        mixBlendMode: 'difference',
-        color: 'white',
-        border: 'white 2px solid',
-        padding: '6px',
-        display: 'none',
-    });
-    button.textContent = 'Enter XR';
-
-    Promise.all([
-        navigator.xr.isSessionSupported('immersive-ar'),
-        navigator.xr.isSessionSupported('immersive-vr'),
-    ]).then(([arSupported, vrSupported]) => {
-        if (arSupported || vrSupported) {
-            button.style.display = 'block';
-        }
-    });
-
-    button.onclick = async () => {
-        if (!navigator.xr) return;
-
-        if (manager.session) {
-            await manager.endSession();
-        } else {
-            const xrSession = await navigator.xr.isSessionSupported('immersive-ar')
-                ? await navigator.xr.requestSession('immersive-ar')
-                : await navigator.xr.requestSession('immersive-vr');
-            console.log('WebXR session started', xrSession);
-            xrSession.addEventListener('end', () => {
-                button.textContent = 'Enter XR';
-            });
-            await manager.setSession(xrSession);
-            if (manager.session) {
-                button.textContent = 'Exit XR';
-            }
-        }
-    };
-
-    return button;
-}
-
 type InputInfo = {
     targetRayPose: XRPose,
     primaryButtonPressed: boolean,
@@ -146,10 +94,10 @@ export class XRManager {
         }
     }
 
-    scaleFactor = 1;
+    private scaleFactor = 1;
 
     update(xrFrame?: XRFrame): boolean {
-        const { xrSession: xrSession, xrRefSpace, input, camera, stereoCamera, pointerHelper } = this;
+        const { xrSession, xrRefSpace, input, camera, stereoCamera, pointerHelper } = this;
         if (!xrFrame || !xrSession || !xrRefSpace) return false;
 
         camera.setState({ scale: camera.state.scale * this.scaleFactor });
@@ -169,14 +117,17 @@ export class XRManager {
             Mat4.fromQuat(camera.headRotation, hq);
         }
 
-        xrSession.updateRenderState({
-            depthNear: camera.near,
-            depthFar: camera.far,
-        });
-        const xrLayer = xrSession.renderState.baseLayer;
-        if (!xrLayer) return false;
+        const { depthFar, depthNear, baseLayer } = xrSession.renderState;
+        if (!baseLayer) return false;
 
-        stereoCamera.update({ pose: xrPose, layer: xrLayer });
+        if (depthFar !== camera.far || depthNear !== camera.near) {
+            xrSession.updateRenderState({
+                depthNear: camera.near,
+                depthFar: camera.far,
+            });
+        }
+
+        stereoCamera.update({ pose: xrPose, layer: baseLayer });
         const camLeft = stereoCamera.left;
 
         const cameraTarget = Vec3.scale(Vec3(), camLeft.state.target, camLeft.state.scale);
@@ -188,123 +139,126 @@ export class XRManager {
 
         const pointers: Ray3D[] = [];
         const points: Vec3[] = [];
-        for (const inputSource of xrSession.inputSources) {
-            if (inputSource.targetRayMode !== 'tracked-pointer') continue;
 
-            const targetRayPose = xrFrame.getPose(inputSource.targetRaySpace!, xrRefSpace);
-            if (!targetRayPose) continue;
+        if (xrSession.inputSources) {
+            for (const inputSource of xrSession.inputSources) {
+                if (inputSource.targetRayMode !== 'tracked-pointer') continue;
 
-            const ray = getRayFromPose(targetRayPose, camera.view);
-            pointers.push(ray);
-            if (pointers.length > 1) continue;
+                const targetRayPose = xrFrame.getPose(inputSource.targetRaySpace!, xrRefSpace);
+                if (!targetRayPose) continue;
 
-            const sceneBoundingSphere = Sphere3D.scaleNX(Sphere3D(), this.scene.boundingSphereVisible, camLeft.state.scale);
+                const ray = getRayFromPose(targetRayPose, camera.view);
+                pointers.push(ray);
+                if (pointers.length > 1) continue;
 
-            const si = Vec3();
-            if (Ray3D.intersectSphere3D(si, ray, sceneBoundingSphere)) {
-                points.push(si);
-            }
+                const sceneBoundingSphere = Sphere3D.scaleNX(Sphere3D(), this.scene.boundingSphereVisible, camLeft.state.scale);
 
-            // if (inputSource.gamepad?.buttons[2].pressed) console.log(2);
-            // if (inputSource.gamepad?.buttons[3].pressed) console.log(3);
-
-            const primaryButton = inputSource.gamepad?.buttons[0];
-            const secondaryButton = inputSource.gamepad?.buttons[1];
-            const axesButton = inputSource.gamepad?.buttons[3];
-            const aButton = inputSource.gamepad?.buttons[4];
-            const bButton = inputSource.gamepad?.buttons[5];
-
-            const inputInfo: InputInfo = {
-                targetRayPose,
-                primaryButtonPressed: !!primaryButton?.pressed,
-                secondaryButtonPressed: !!secondaryButton?.pressed,
-                aButtonPressed: !!aButton?.pressed,
-                bButtonPressed: !!bButton?.pressed,
-            };
-
-            const intersection = this.intersect(camLeft, camera.view, cameraPlane, inputInfo);
-            const prevIntersection = this.prevInput.right ? this.intersect(camLeft, camera.view, cameraPlane, this.prevInput.right) : undefined;
-
-            if (primaryButton && intersection) {
-                const [x, y] = intersection.screen;
-                const [pageX, pageY] = intersection.screen;
-                const modifiers = { alt: false, control: false, meta: false, shift: false };
-                const button = primaryButton.pressed ? 1 : 0;
-                const buttons = primaryButton.pressed ? 1 : 0;
-
-                if (!!this.prevInput.right?.primaryButtonPressed && !primaryButton.pressed) {
-                    Vec2.set(this.pointerEnd, x, y);
-                    if (Vec2.distance(this.pointerEnd, this.pointerDown) < 10) {
-                        input.click.next({ x, y, pageX, pageY, buttons: 1, button: 1, modifiers, ray });
-                    }
-                    input.interactionEnd.next(undefined);
+                const si = Vec3();
+                if (Ray3D.intersectSphere3D(si, ray, sceneBoundingSphere)) {
+                    points.push(si);
                 }
 
-                if (this.props.enableHover || secondaryButton?.pressed) {
-                    input.move.next({ x, y, pageX, pageY, buttons, button, modifiers, inside: true, onElement: true, ray });
-                } else if (!secondaryButton?.pressed && this.prevInput.right?.secondaryButtonPressed) {
-                    input.leave.next(undefined);
-                }
+                // if (inputSource.gamepad?.buttons[2].pressed) console.log(2);
+                // if (inputSource.gamepad?.buttons[3].pressed) console.log(3);
 
-                if (primaryButton.pressed) {
-                    const isStart = !this.prevInput.right?.primaryButtonPressed;
-                    const [prevX, prevY] = prevIntersection?.screen ?? [x, y];
+                const primaryButton = inputSource.gamepad?.buttons[0];
+                const secondaryButton = inputSource.gamepad?.buttons[1];
+                const axesButton = inputSource.gamepad?.buttons[3];
+                const aButton = inputSource.gamepad?.buttons[4];
+                const bButton = inputSource.gamepad?.buttons[5];
 
-                    const dd = Vec2.set(Vec2(), x - prevX, y - prevY);
-                    // Vec2.scale(dd, dd, 1 / (camera.state.scale * 100));
-                    const dm = Vec2.magnitude(dd);
-                    Vec2.setMagnitude(dd, dd, Math.min(100, dm));
-                    Vec2.round(dd, dd);
-                    const [dx, dy] = dd;
+                const inputInfo: InputInfo = {
+                    targetRayPose,
+                    primaryButtonPressed: !!primaryButton?.pressed,
+                    secondaryButtonPressed: !!secondaryButton?.pressed,
+                    aButtonPressed: !!aButton?.pressed,
+                    bButtonPressed: !!bButton?.pressed,
+                };
 
-                    input.drag.next({ x, y, dx, dy, pageX, pageY, buttons, button, modifiers, isStart, useDelta: true });
-                    // console.log('xr input', { x, y, dx, dy, pageX, pageY, buttons, button, modifiers });
-                    if (isStart) {
-                        Vec2.set(this.pointerDown, x, y);
+                const intersection = this.intersect(camLeft, camera.view, cameraPlane, inputInfo);
+                const prevIntersection = this.prevInput.right ? this.intersect(camLeft, camera.view, cameraPlane, this.prevInput.right) : undefined;
+
+                if (primaryButton && intersection) {
+                    const [x, y] = intersection.screen;
+                    const [pageX, pageY] = intersection.screen;
+                    const modifiers = { alt: false, control: false, meta: false, shift: false };
+                    const button = primaryButton.pressed ? 1 : 0;
+                    const buttons = primaryButton.pressed ? 1 : 0;
+
+                    if (!!this.prevInput.right?.primaryButtonPressed && !primaryButton.pressed) {
+                        Vec2.set(this.pointerEnd, x, y);
+                        if (Vec2.distance(this.pointerEnd, this.pointerDown) < 10) {
+                            input.click.next({ x, y, pageX, pageY, buttons: 1, button: 1, modifiers, ray });
+                        }
+                        input.interactionEnd.next(undefined);
+                    }
+
+                    if (this.props.enableHover || secondaryButton?.pressed) {
+                        input.move.next({ x, y, pageX, pageY, buttons, button, modifiers, inside: true, onElement: true, ray });
+                    } else if (!secondaryButton?.pressed && this.prevInput.right?.secondaryButtonPressed) {
+                        input.leave.next(undefined);
+                    }
+
+                    if (primaryButton.pressed) {
+                        const isStart = !this.prevInput.right?.primaryButtonPressed;
+                        const [prevX, prevY] = prevIntersection?.screen ?? [x, y];
+
+                        const dd = Vec2.set(Vec2(), x - prevX, y - prevY);
+                        // Vec2.scale(dd, dd, 1 / (camera.state.scale * 100));
+                        const dm = Vec2.magnitude(dd);
+                        Vec2.setMagnitude(dd, dd, Math.min(100, dm));
+                        Vec2.round(dd, dd);
+                        const [dx, dy] = dd;
+
+                        input.drag.next({ x, y, dx, dy, pageX, pageY, buttons, button, modifiers, isStart, useDelta: true });
+                        // console.log('xr input', { x, y, dx, dy, pageX, pageY, buttons, button, modifiers });
+                        if (isStart) {
+                            Vec2.set(this.pointerDown, x, y);
+                        }
                     }
                 }
-            }
 
-            if (intersection) points.push(intersection.point);
-            if (prevIntersection) points.push(prevIntersection.point);
+                if (intersection) points.push(intersection.point);
+                if (prevIntersection) points.push(prevIntersection.point);
 
-            if (this.prevInput.right?.aButtonPressed && !aButton?.pressed) {
-                this.togglePassthrough.next();
-            }
+                if (this.prevInput.right?.aButtonPressed && !aButton?.pressed) {
+                    this.togglePassthrough.next();
+                }
 
-            if (this.prevInput.right?.bButtonPressed && !bButton?.pressed) {
-                this.endSession();
-                return false;
-            }
+                if (this.prevInput.right?.bButtonPressed && !bButton?.pressed) {
+                    this.end();
+                    return false;
+                }
 
-            if (inputSource.gamepad?.axes) {
-                const x = 0, y = 0, pageX = 0, pageY = 0;
-                const preventDefault = () => {};
-                const modifiers = { alt: false, control: false, meta: false, shift: false };
-                const keyValue = { x, y, pageX, pageY, modifiers, preventDefault };
-                const { axes } = inputSource.gamepad;
+                if (inputSource.gamepad?.axes) {
+                    const x = 0, y = 0, pageX = 0, pageY = 0;
+                    const preventDefault = () => {};
+                    const modifiers = { alt: false, control: false, meta: false, shift: false };
+                    const keyValue = { x, y, pageX, pageY, modifiers, preventDefault };
+                    const { axes } = inputSource.gamepad;
 
-                if (axesButton?.pressed) {
-                    if (axes[3] < 0) {
-                        this.scaleFactor = 1.01;
-                    } else if (axes[3] > 0) {
-                        this.scaleFactor = 0.99;
-                    }
-                } else {
-                    if (axes[3] < 0) {
-                        input.keyDown.next({ ...keyValue, code: 'KeyW', key: 'w' });
-                        input.keyUp.next({ ...keyValue, code: 'KeyS', key: 's' });
-                    } else if (axes[3] > 0) {
-                        input.keyDown.next({ ...keyValue, code: 'KeyS', key: 's' });
-                        input.keyUp.next({ ...keyValue, code: 'KeyW', key: 'w' });
+                    if (axesButton?.pressed) {
+                        if (axes[3] < 0) {
+                            this.scaleFactor = 1.01;
+                        } else if (axes[3] > 0) {
+                            this.scaleFactor = 0.99;
+                        }
                     } else {
-                        input.keyUp.next({ ...keyValue, code: 'KeyW', key: 'w' });
-                        input.keyUp.next({ ...keyValue, code: 'KeyS', key: 's' });
+                        if (axes[3] < 0) {
+                            input.keyDown.next({ ...keyValue, code: 'KeyW', key: 'w' });
+                            input.keyUp.next({ ...keyValue, code: 'KeyS', key: 's' });
+                        } else if (axes[3] > 0) {
+                            input.keyDown.next({ ...keyValue, code: 'KeyS', key: 's' });
+                            input.keyUp.next({ ...keyValue, code: 'KeyW', key: 'w' });
+                        } else {
+                            input.keyUp.next({ ...keyValue, code: 'KeyW', key: 'w' });
+                            input.keyUp.next({ ...keyValue, code: 'KeyS', key: 's' });
+                        }
                     }
                 }
-            }
 
-            this.prevInput.right = inputInfo;
+                this.prevInput.right = inputInfo;
+            }
         }
 
         const plane = { point: cameraTarget, normal: cameraPlane.normal };
@@ -315,14 +269,14 @@ export class XRManager {
         return true;
     }
 
-    prevScale = 0;
+    private prevScale = 0;
 
-    async setSession(xrSession: XRSession | undefined) {
+    private async setSession(xrSession: XRSession | undefined) {
         if (this.xrSession === xrSession) return;
 
-        await this.webgl.setXRSession(xrSession, { resolutionScale: this.props.resolutionScale });
+        await this.webgl.xr.set(xrSession, { resolutionScale: this.props.resolutionScale });
 
-        this.xrSession = this.webgl.xrSession;
+        this.xrSession = this.webgl.xr.session;
         this.prevInput = {};
         this.hit = undefined;
 
@@ -353,8 +307,23 @@ export class XRManager {
         }
     }
 
-    async endSession() {
-        await this.webgl.endXRSession();
+    async end() {
+        await this.webgl.xr.end();
+    }
+
+    async isSupported() {
+        return this.webgl.xr.isSupported();
+    }
+
+    async request() {
+        if (typeof document === 'undefined') return;
+        if (!navigator.xr) return;
+
+        const session = await navigator.xr.isSessionSupported('immersive-ar')
+            ? await navigator.xr.requestSession('immersive-ar')
+            : await navigator.xr.requestSession('immersive-vr');
+
+        await this.setSession(session);
     }
 
     dispose() {
@@ -372,8 +341,8 @@ export class XRManager {
             this.hit = position;
         });
 
-        this.sessionChangedSub = webgl.xrSessionChanged.subscribe(async () => {
-            await this.setSession(webgl.xrSession);
+        this.sessionChangedSub = webgl.xr.changed.subscribe(async () => {
+            await this.setSession(webgl.xr.session);
             this.sessionChanged.next();
         });
     }
