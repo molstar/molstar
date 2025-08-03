@@ -21,7 +21,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Annotation field remapping (`field_remapping` parameter for color_from_* nodes)
   - Representation node: support custom property `molstar_reprepresentation_params`
   - Primitives node: support custom property `molstar_mesh/label/line_params`
-  - Canvas node: support custom properties `molstar_enable_outline/shadow/ssao`, `molstar_outline/shadow/ssao_params`
+  - Canvas node: support custom property `molstar_postprocessing` with the ability to customize outline, depth of field, bloom, shadow, occlusion (SSAO), and fog
   - `clip` node support for structure and volume representations
   - `grid_slice` representation support for volumes
   - Support tethers and background for primitive labels

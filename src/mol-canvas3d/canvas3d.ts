@@ -50,6 +50,9 @@ import { isMobileBrowser } from '../mol-util/browser';
 import { Ray3D } from '../mol-math/geometry/primitives/ray3d';
 import { RayHelper } from './helper/ray-helper';
 
+export const CameraFogParams = {
+    intensity: PD.Numeric(15, { min: 1, max: 100, step: 1 }),
+};
 export const Canvas3DParams = {
     camera: PD.Group({
         mode: PD.Select('perspective', PD.arrayToOptions(['perspective', 'orthographic'] as const), { label: 'Camera' }),
@@ -63,9 +66,7 @@ export const Canvas3DParams = {
         manualReset: PD.Boolean(false, { isHidden: true }),
     }, { pivot: 'mode' }),
     cameraFog: PD.MappedStatic('on', {
-        on: PD.Group({
-            intensity: PD.Numeric(15, { min: 1, max: 100, step: 1 }),
-        }),
+        on: PD.Group(CameraFogParams),
         off: PD.Group({})
     }, { cycle: true, description: 'Show fog in the distance' }),
     cameraClipping: PD.Group({
