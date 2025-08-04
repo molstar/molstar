@@ -119,6 +119,7 @@
       "lib/",
       "src/perf-tests/",
       "src/tests/browser/",
+      "src/servers/membrane-orientation/",
       "src/servers/model/",
       "src/servers/plugin-state/",
       "src/servers/volume/",
