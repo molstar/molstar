@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Subject, Subscription } from 'rxjs';
+import { BehaviorSubject, Subject, Subscription } from 'rxjs';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
 import { Quat } from '../../mol-math/linear-algebra/3d/quat';
@@ -62,6 +62,7 @@ export class XRManager {
 
     readonly togglePassthrough = new Subject<void>();
     readonly sessionChanged = new Subject<void>();
+    readonly isSupported = new BehaviorSubject(false);
 
     private xrSession: XRSession | undefined = undefined;
     get session() {
@@ -302,15 +303,15 @@ export class XRManager {
         await this.webgl.xr.end();
     }
 
-    async isSupported() {
+    private checkSupported = async () => {
         if (!navigator.xr) return false;
 
         const [arSupported, vrSupported] = await Promise.all([
             navigator.xr.isSessionSupported('immersive-ar'),
             navigator.xr.isSessionSupported('immersive-vr'),
         ]);
-        return arSupported || vrSupported;
-    }
+        this.isSupported.next(arSupported || vrSupported);
+    };
 
     async request() {
         if (!navigator.xr) return;
@@ -328,6 +329,9 @@ export class XRManager {
 
         this.togglePassthrough.complete();
         this.sessionChanged.complete();
+        this.isSupported.complete();
+
+        navigator.xr?.removeEventListener('devicechange', this.checkSupported);
     }
 
     constructor(private webgl: WebGLContext, private input: InputObserver, private scene: Scene, private camera: Camera, private stereoCamera: StereoCamera, private pointerHelper: PointerHelper, private interactionHelper: Canvas3dInteractionHelper, props: Partial<XRManagerProps> = {}) {
@@ -341,5 +345,8 @@ export class XRManager {
             await this.setSession(webgl.xr.session);
             this.sessionChanged.next();
         });
+
+        this.checkSupported();
+        navigator.xr?.addEventListener('devicechange', this.checkSupported);
     }
 }

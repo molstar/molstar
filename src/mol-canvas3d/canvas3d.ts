@@ -515,28 +515,26 @@ namespace Canvas3D {
             requestFailed: new Subject<string>(),
         };
 
-        xrManager.isSupported().then(supported => {
-            xr.isSupported.next(supported);
-        });
-
-        xrManager.togglePassthrough.subscribe(() => {
-            if (xrManager.session?.environmentBlendMode === 'alpha-blend') {
-                p.transparentBackground = !p.transparentBackground;
-            }
-        });
-
-        xrManager.sessionChanged.subscribe(() => {
-            fenceSync = null;
-            resizeRequested = true;
-            if (xrManager.session) {
-                saveNonXRProps();
-                setXRProps();
-            } else {
-                loadNonXRProps();
-            }
-            resume();
-            xr.isPresenting.next(!!xrManager.session);
-        });
+        const xrSubs = [
+            xrManager.isSupported.subscribe(e => xr.isSupported.next(e)),
+            xrManager.togglePassthrough.subscribe(() => {
+                if (xrManager.session?.environmentBlendMode === 'alpha-blend') {
+                    p.transparentBackground = !p.transparentBackground;
+                }
+            }),
+            xrManager.sessionChanged.subscribe(() => {
+                fenceSync = null;
+                resizeRequested = true;
+                if (xrManager.session) {
+                    saveNonXRProps();
+                    setXRProps();
+                } else {
+                    loadNonXRProps();
+                }
+                resume();
+                xr.isPresenting.next(!!xrManager.session);
+            }),
+        ];
 
         //
 
@@ -1072,7 +1070,7 @@ namespace Canvas3D {
         // Monitor user interactions
         let isDragging = false;
         let isActivelyInteracting = false;
-        let interactionSubs = [
+        const interactionSubs = [
             input.drag.subscribe(() => {
                 isDragging = true;
             }),
@@ -1332,10 +1330,14 @@ namespace Canvas3D {
                 contextRestoredSub.unsubscribe();
                 ctxChangedSub?.unsubscribe();
 
+                for (const s of xrSubs) s.unsubscribe();
+                xrSubs.length = 0;
+
                 for (const s of interactionSubs) s.unsubscribe();
-                interactionSubs = [];
+                interactionSubs.length = 0;
 
                 cancelAnimationFrame(animationFrameHandle);
+                animationFrameCB = undefined;
 
                 markBuffer = [];
 
