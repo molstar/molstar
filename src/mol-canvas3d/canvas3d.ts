@@ -380,7 +380,7 @@ interface Canvas3D {
         end(): Promise<void>
         readonly isSupported: BehaviorSubject<boolean>
         readonly isPresenting: BehaviorSubject<boolean>
-        readonly hasRequestFailed: BehaviorSubject<boolean>
+        readonly requestFailed: Subject<string>
     }
 
     dispose(): void
@@ -501,11 +501,18 @@ namespace Canvas3D {
         const xrManager = new XRManager(webgl, input, scene, camera, stereoCamera, helper.pointer, interactionHelper);
 
         const xr = {
-            request: () => xrManager.request(),
+            request: async () => {
+                try {
+                    await xrManager.request();
+                } catch (e) {
+                    console.error(e);
+                    xr.requestFailed.next(e);
+                }
+            },
             end: () => xrManager.end(),
             isSupported: new BehaviorSubject(false),
             isPresenting: new BehaviorSubject(false),
-            hasRequestFailed: new BehaviorSubject(false),
+            requestFailed: new Subject<string>(),
         };
 
         xrManager.isSupported().then(supported => {
@@ -1355,7 +1362,7 @@ namespace Canvas3D {
                 commitQueueSize.complete();
                 xr.isPresenting.complete();
                 xr.isSupported.complete();
-                xr.hasRequestFailed.complete();
+                xr.requestFailed.complete();
 
                 removeConsoleStatsProvider(consoleStats);
             }

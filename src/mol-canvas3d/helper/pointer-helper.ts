@@ -17,7 +17,6 @@ import { Geometry } from '../../mol-geo/geometry/geometry';
 import { addCylinderFromRay3D } from '../../mol-geo/geometry/mesh/builder/cylinder';
 import { addSphere } from '../../mol-geo/geometry/mesh/builder/sphere';
 import { Camera, ICamera } from '../camera';
-// import { addPlane } from '../../mol-geo/geometry/mesh/builder/plane';
 import { Ray3D } from '../../mol-math/geometry/primitives/ray3d';
 import { Viewport } from '../camera/util';
 import { Shape } from '../../mol-model/shape/shape';
@@ -43,11 +42,10 @@ export class PointerHelper {
     private pointers: Ray3D[] = [];
     private points: Vec3[] = [];
     private hit: Vec3 | undefined = undefined;
-    private plane: { point: Vec3, normal: Vec3 } | undefined = undefined;
 
     setProps(props: Partial<PointerHelperProps>) {
         Object.assign(this.props, props);
-        if (this.isEnabled) this.update(this.pointers, this.points, this.hit, this.plane);
+        if (this.isEnabled) this.update(this.pointers, this.points, this.hit);
     }
 
     get isEnabled() {
@@ -68,11 +66,10 @@ export class PointerHelper {
         (this.camera.state.scale as any) = 1;
     }
 
-    update(pointers: Ray3D[], points: Vec3[], hit: Vec3 | undefined, plane: { point: Vec3, normal: Vec3 } | undefined) {
+    update(pointers: Ray3D[], points: Vec3[], hit: Vec3 | undefined) {
         this.pointers = pointers;
         this.points = points;
         this.hit = hit;
-        this.plane = plane;
 
         const p = this.props;
         if (p.enabled !== 'on') {
@@ -100,13 +97,11 @@ export class PointerHelper {
             pointers: this.pointers,
             points: this.points,
             hit: this.hit,
-            plane: this.plane,
         };
     }
 
     constructor(webgl: WebGLContext, props: Partial<PointerHelperProps> = {}) {
         this.scene = Scene.create(webgl, 'blended');
-        // Mat4.scaleUniformly(this.scene.view, this.scene.view, 10);
         this.props = { ...PD.getDefaultValues(PointerHelperParams), ...props };
 
         this.camera = new Camera();
@@ -121,7 +116,6 @@ type PointerData = {
     pointers: Ray3D[]
     points: Vec3[]
     hit?: Vec3
-    plane?: { point: Vec3, normal: Vec3 }
 }
 
 export enum PointerHelperGroup {
@@ -143,11 +137,6 @@ function createPointerMesh(data: PointerData, mesh?: Mesh) {
     for (const point of data.points) {
         addSphere(state, point, 0.0025 * scale, 1);
     }
-    // if (data.plane) {
-    //     const dirMinor = Vec3.orthogonalDirection(Vec3(), data.plane.normal);
-    //     const dirMajor = Vec3.cross(Vec3(), data.plane.normal, dirMinor);
-    //     addPlane(state, data.plane.point, dirMajor, dirMinor, Vec3.create(0.5, 0.5, 0.5), 1, 1);
-    // }
 
     if (data.hit) {
         state.currentGroup = PointerHelperGroup.Hit;

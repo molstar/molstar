@@ -250,7 +250,6 @@ export interface WebGLContext {
     handleContextRestored: (extraResets?: () => void) => void
 
     readonly xr: {
-        isSupported: () => Promise<boolean>
         readonly session?: XRSession
         readonly changed: Subject<void>
         set: (session: XRSession | undefined, options?: { resolutionScale?: number }) => Promise<void>
@@ -384,16 +383,6 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         },
 
         xr: {
-            isSupported: async () => {
-                if (typeof document === 'undefined') return false;
-                if (!navigator.xr) return false;
-
-                const [arSupported, vrSupported] = await Promise.all([
-                    navigator.xr.isSessionSupported('immersive-ar'),
-                    navigator.xr.isSessionSupported('immersive-vr'),
-                ]);
-                return arSupported || vrSupported;
-            },
             get session() {
                 return xr.session;
             },
@@ -418,13 +407,13 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
                     xr.session.addEventListener('end', xr.clear);
                     xr.changed.next();
                 } catch (err) {
-                    console.error('Failed to make WebGL context XR compatible', err);
                     if (session) {
                         await session.end();
                     } else {
                         xr.layer = undefined;
                         xr.session = undefined;
                     }
+                    throw err;
                 }
             },
             end: async () => {

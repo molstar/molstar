@@ -158,9 +158,6 @@ export class XRManager {
                     points.push(si);
                 }
 
-                // if (inputSource.gamepad?.buttons[2].pressed) console.log(2);
-                // if (inputSource.gamepad?.buttons[3].pressed) console.log(3);
-
                 const primaryButton = inputSource.gamepad?.buttons[0];
                 const secondaryButton = inputSource.gamepad?.buttons[1];
                 const axesButton = inputSource.gamepad?.buttons[3];
@@ -204,14 +201,12 @@ export class XRManager {
                         const [prevX, prevY] = prevIntersection?.screen ?? [x, y];
 
                         const dd = Vec2.set(Vec2(), x - prevX, y - prevY);
-                        // Vec2.scale(dd, dd, 1 / (camera.state.scale * 100));
                         const dm = Vec2.magnitude(dd);
                         Vec2.setMagnitude(dd, dd, Math.min(100, dm));
                         Vec2.round(dd, dd);
                         const [dx, dy] = dd;
 
                         input.drag.next({ x, y, dx, dy, pageX, pageY, buttons, button, modifiers, isStart, useDelta: true });
-                        // console.log('xr input', { x, y, dx, dy, pageX, pageY, buttons, button, modifiers });
                         if (isStart) {
                             Vec2.set(this.pointerDown, x, y);
                         }
@@ -261,10 +256,7 @@ export class XRManager {
             }
         }
 
-        const plane = { point: cameraTarget, normal: cameraPlane.normal };
-
-        // console.log('pointers', pointers, points);
-        pointerHelper.update(pointers, points, this.hit, plane);
+        pointerHelper.update(pointers, points, this.hit);
 
         return true;
     }
@@ -282,7 +274,6 @@ export class XRManager {
 
         if (this.xrSession) {
             this.xrRefSpace = await this.xrSession.requestReferenceSpace('local');
-            // console.log('xrRefSpace', this.xrRefSpace);
             this.pointerHelper.setProps({ enabled: 'on' });
             let scale = this.prevScale;
             if (scale === 0) {
@@ -312,11 +303,16 @@ export class XRManager {
     }
 
     async isSupported() {
-        return this.webgl.xr.isSupported();
+        if (!navigator.xr) return false;
+
+        const [arSupported, vrSupported] = await Promise.all([
+            navigator.xr.isSessionSupported('immersive-ar'),
+            navigator.xr.isSessionSupported('immersive-vr'),
+        ]);
+        return arSupported || vrSupported;
     }
 
     async request() {
-        if (typeof document === 'undefined') return;
         if (!navigator.xr) return;
 
         const session = await navigator.xr.isSessionSupported('immersive-ar')
