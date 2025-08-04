@@ -120,6 +120,7 @@
       "src/perf-tests/",
       "src/tests/browser/",
       "src/servers/model/",
+      "src/servers/plugin-state/",
       "src/servers/volume/",
       "docs/site/",
       "node_modules/",
