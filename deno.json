@@ -117,7 +117,10 @@
       "build/",
       "deploy/",
       "lib/",
+      "src/perf-tests/",
       "src/tests/browser/",
+      "src/servers/model/",
+      "src/servers/volume/",
       "docs/site/",
       "node_modules/",
       "tmp/"
