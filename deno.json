@@ -1,6 +1,6 @@
 {
   "name": "@molstar/molstar",
-  "version": "5.0.0-dev.2",
+  "version": "5.0.0-dev.3",
   "description": "A comprehensive macromolecular library.",
   "exports": {
     ".": "./src/mol-plugin-ui/index.ts",
@@ -117,6 +117,7 @@
       "build/",
       "deploy/",
       "lib/",
+      "src/tests/browser/",
       "docs/site/",
       "node_modules/",
       "tmp/"
