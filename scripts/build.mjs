@@ -166,7 +166,15 @@ async function createBundle(app) {
         ? [examplesCssRenamePlugin({ root: prefix })]
         : []),
     ],
-    external: ["crypto", "fs", "path", "stream", "node:timers"],
+    external: [
+      "crypto",
+      "fs",
+      "path",
+      "stream",
+      "node:timers",
+      "node:process",
+      "node:buffer",
+    ],
     loader: {},
     color: true,
     logLevel: "info",
