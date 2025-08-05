@@ -63,6 +63,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add async, non-blocking picking (only WebGL2)
     - Refactor `Canvas3dInteractionHelper` internals to use async picking for move events
 - Add `enable` param for post-processing effects. If false, no effects are applied.
+- Add `is4LetterResidueName` parsing option for .pdb file. Default value is false.
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:
