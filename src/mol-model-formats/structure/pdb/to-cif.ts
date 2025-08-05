@@ -29,6 +29,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
     const { data, indices } = lines;
     const tokenizer = Tokenizer(data);
     const isPdbqt = !!pdb.isPdbqt;
+    const is4LetterResidueName = !!pdb.is4LetterResidueName;
 
     // Count the atoms
     let atomCount = 0;
@@ -63,9 +64,9 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
             case 'A':
                 if (substringStartsWith(data, s, e, 'ATOM  ')) {
                     if (!modelNum) { modelNum++; modelStr = '' + modelNum; }
-                    addAtom(atomSite, modelStr, tokenizer, s, e, isPdbqt);
+                    addAtom(atomSite, modelStr, tokenizer, s, e, isPdbqt, is4LetterResidueName);
                 } else if (substringStartsWith(data, s, e, 'ANISOU')) {
-                    addAnisotropic(anisotropic, modelStr, tokenizer, s, e);
+                    addAnisotropic(anisotropic, modelStr, tokenizer, s, e, is4LetterResidueName);
                 }
                 break;
             case 'C':
@@ -102,7 +103,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                     addHeader(data, s, e, header);
                 } else if (substringStartsWith(data, s, e, 'HETATM')) {
                     if (!modelNum) { modelNum++; modelStr = '' + modelNum; }
-                    addAtom(atomSite, modelStr, tokenizer, s, e, isPdbqt);
+                    addAtom(atomSite, modelStr, tokenizer, s, e, isPdbqt, is4LetterResidueName);
                 } else if (substringStartsWith(data, s, e, 'HELIX')) {
                     let j = i + 1;
                     while (true) {
@@ -110,7 +111,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                         if (!substringStartsWith(data, s, e, 'HELIX')) break;
                         j++;
                     }
-                    helperCategories.push(parseHelix(lines, i, j));
+                    helperCategories.push(parseHelix(lines, i, j, is4LetterResidueName));
                     i = j - 1;
                 } else if (substringStartsWith(data, s, e, 'HETNAM')) {
                     let j = i + 1;
@@ -164,7 +165,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                         if (!substringStartsWith(data, s, e, 'SHEET')) break;
                         j++;
                     }
-                    helperCategories.push(parseSheet(lines, i, j));
+                    helperCategories.push(parseSheet(lines, i, j, is4LetterResidueName));
                     i = j - 1;
                 }
                 // TODO: SCALE record => cif.atom_sites.fract_transf_matrix, cif.atom_sites.fract_transf_vector

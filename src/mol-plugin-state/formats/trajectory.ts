@@ -100,7 +100,7 @@ export const PdbqtProvider: TrajectoryFormatProvider = {
     description: 'PDBQT',
     category: TrajectoryFormatCategory,
     stringExtensions: ['pdbqt'],
-    parse: directTrajectory(StateTransforms.Model.TrajectoryFromPDB, { isPdbqt: true }),
+    parse: directTrajectory(StateTransforms.Model.TrajectoryFromPDB, { isPdbqt: true, is4LetterResidueName: false }),
     visuals: defaultVisuals
 };
 

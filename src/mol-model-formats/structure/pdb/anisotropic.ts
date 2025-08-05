@@ -73,7 +73,7 @@ export function getAnisotropic(sites: AnisotropicTemplate): { [K in keyof mmCIF_
     return fields;
 }
 
-export function addAnisotropic(sites: AnisotropicTemplate, model: string, data: Tokenizer, s: number, e: number) {
+export function addAnisotropic(sites: AnisotropicTemplate, model: string, data: Tokenizer, s: number, e: number, is4LetterResidueName: boolean) {
     const { data: str } = data;
     const length = e - s;
 
@@ -94,8 +94,13 @@ export function addAnisotropic(sites: AnisotropicTemplate, model: string, data: 
         TokenBuilder.add(sites.pdbx_label_alt_id, s + 16, s + 17);
     }
 
-    // 18 - 20       Residue name  resName        Residue name.
-    TokenBuilder.addToken(sites.pdbx_auth_comp_id, Tokenizer.trim(data, s + 17, s + 20));
+    if (is4LetterResidueName) {
+        // 18 - 21       Residue name  resName        Residue name.
+        TokenBuilder.addToken(sites.pdbx_auth_comp_id, Tokenizer.trim(data, s + 17, s + 21));
+    } else {
+        // 18 - 20       Residue name  resName        Residue name.
+        TokenBuilder.addToken(sites.pdbx_auth_comp_id, Tokenizer.trim(data, s + 17, s + 20));
+    }
 
     // 22            Character     chainID        Chain identifier.
     TokenBuilder.add(sites.pdbx_auth_asym_id, s + 21, s + 22);

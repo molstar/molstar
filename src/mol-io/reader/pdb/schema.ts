@@ -11,4 +11,5 @@ export interface PdbFile {
     lines: Tokens
     id?: string,
     isPdbqt?: boolean,
+    is4LetterResidueName?: boolean
 }
