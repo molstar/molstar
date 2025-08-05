@@ -142,6 +142,8 @@ export class XRManager {
         const points: Vec3[] = [];
 
         if (xrSession.inputSources) {
+            let zoom = 0;
+
             for (const inputSource of xrSession.inputSources) {
                 if (inputSource.targetRayMode !== 'tracked-pointer') continue;
 
@@ -150,7 +152,6 @@ export class XRManager {
 
                 const ray = getRayFromPose(targetRayPose, camera.view);
                 pointers.push(ray);
-                if (pointers.length > 1) continue;
 
                 const sceneBoundingSphere = Sphere3D.scaleNX(Sphere3D(), this.scene.boundingSphereVisible, camLeft.state.scale);
 
@@ -173,8 +174,10 @@ export class XRManager {
                     bButtonPressed: !!bButton?.pressed,
                 };
 
+                const prevInput = inputSource.handedness === 'left' ? this.prevInput.left : this.prevInput.right;
+
                 const intersection = this.intersect(camLeft, camera.view, cameraPlane, inputInfo);
-                const prevIntersection = this.prevInput.right ? this.intersect(camLeft, camera.view, cameraPlane, this.prevInput.right) : undefined;
+                const prevIntersection = prevInput ? this.intersect(camLeft, camera.view, cameraPlane, prevInput) : undefined;
 
                 if (primaryButton && intersection) {
                     const [x, y] = intersection.screen;
@@ -183,7 +186,7 @@ export class XRManager {
                     const button = primaryButton.pressed ? 1 : 0;
                     const buttons = primaryButton.pressed ? 1 : 0;
 
-                    if (!!this.prevInput.right?.primaryButtonPressed && !primaryButton.pressed) {
+                    if (!!prevInput?.primaryButtonPressed && !primaryButton.pressed) {
                         Vec2.set(this.pointerEnd, x, y);
                         if (Vec2.distance(this.pointerEnd, this.pointerDown) < 10) {
                             input.click.next({ x, y, pageX, pageY, buttons: 1, button: 1, modifiers, ray });
@@ -193,12 +196,12 @@ export class XRManager {
 
                     if (this.props.enableHover || secondaryButton?.pressed) {
                         input.move.next({ x, y, pageX, pageY, buttons, button, modifiers, inside: true, onElement: true, ray });
-                    } else if (!secondaryButton?.pressed && this.prevInput.right?.secondaryButtonPressed) {
+                    } else if (!secondaryButton?.pressed && prevInput?.secondaryButtonPressed) {
                         input.leave.next(undefined);
                     }
 
                     if (primaryButton.pressed) {
-                        const isStart = !this.prevInput.right?.primaryButtonPressed;
+                        const isStart = !prevInput?.primaryButtonPressed;
                         const [prevX, prevY] = prevIntersection?.screen ?? [x, y];
 
                         const dd = Vec2.set(Vec2(), x - prevX, y - prevY);
@@ -217,20 +220,16 @@ export class XRManager {
                 if (intersection) points.push(intersection.point);
                 if (prevIntersection) points.push(prevIntersection.point);
 
-                if (this.prevInput.right?.aButtonPressed && !aButton?.pressed) {
+                if (prevInput?.aButtonPressed && !aButton?.pressed) {
                     this.togglePassthrough.next();
                 }
 
-                if (this.prevInput.right?.bButtonPressed && !bButton?.pressed) {
+                if (prevInput?.bButtonPressed && !bButton?.pressed) {
                     this.end();
                     return false;
                 }
 
                 if (inputSource.gamepad?.axes) {
-                    const x = 0, y = 0, pageX = 0, pageY = 0;
-                    const preventDefault = () => {};
-                    const modifiers = { alt: false, control: false, meta: false, shift: false };
-                    const keyValue = { x, y, pageX, pageY, modifiers, preventDefault };
                     const { axes } = inputSource.gamepad;
 
                     if (axesButton?.pressed) {
@@ -241,19 +240,31 @@ export class XRManager {
                         }
                     } else {
                         if (axes[3] < 0) {
-                            input.keyDown.next({ ...keyValue, code: 'KeyW', key: 'w' });
-                            input.keyUp.next({ ...keyValue, code: 'KeyS', key: 's' });
+                            zoom = -1;
                         } else if (axes[3] > 0) {
-                            input.keyDown.next({ ...keyValue, code: 'KeyS', key: 's' });
-                            input.keyUp.next({ ...keyValue, code: 'KeyW', key: 'w' });
-                        } else {
-                            input.keyUp.next({ ...keyValue, code: 'KeyW', key: 'w' });
-                            input.keyUp.next({ ...keyValue, code: 'KeyS', key: 's' });
+                            zoom = 1;
                         }
                     }
                 }
 
-                this.prevInput.right = inputInfo;
+                if (inputSource.handedness === 'left') {
+                    this.prevInput.left = inputInfo;
+                } else {
+                    this.prevInput.right = inputInfo;
+                }
+            }
+
+            const modifiers = { alt: false, control: false, meta: false, shift: false };
+            const keyValue = { x: 0, y: 0, pageX: 0, pageY: 0, modifiers, preventDefault: () => {} };
+            if (zoom < 0) {
+                input.keyDown.next({ ...keyValue, code: 'KeyW', key: 'w' });
+                input.keyUp.next({ ...keyValue, code: 'KeyS', key: 's' });
+            } else if (zoom > 0) {
+                input.keyDown.next({ ...keyValue, code: 'KeyS', key: 's' });
+                input.keyUp.next({ ...keyValue, code: 'KeyW', key: 'w' });
+            } else {
+                input.keyUp.next({ ...keyValue, code: 'KeyW', key: 'w' });
+                input.keyUp.next({ ...keyValue, code: 'KeyS', key: 's' });
             }
         }
 
