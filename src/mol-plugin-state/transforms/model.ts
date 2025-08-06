@@ -5,7 +5,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
- * @author Kim Juho <juho_kim@outlook.com>
  */
 
 import { parseDcd } from '../../mol-io/reader/dcd/parser';
@@ -357,12 +356,11 @@ const TrajectoryFromPDB = PluginStateTransform.BuiltIn({
     to: SO.Molecule.Trajectory,
     params: {
         isPdbqt: PD.Boolean(false),
-        is4LetterResidueName: PD.Boolean(false)
     }
 })({
     apply({ a, params }) {
         return Task.create('Parse PDB', async ctx => {
-            const parsed = await parsePDB(a.data, a.label, params.isPdbqt, params.is4LetterResidueName).runInContext(ctx);
+            const parsed = await parsePDB(a.data, a.label, params.isPdbqt).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             const models = await trajectoryFromPDB(parsed.result).runInContext(ctx);
             const props = trajectoryProps(models);

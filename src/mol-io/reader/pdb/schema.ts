@@ -3,7 +3,6 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
- * @author Kim Juho <juho_kim@outlook.com>
  */
 
 import { Tokens } from '../common/text/tokenizer';
@@ -11,6 +10,5 @@ import { Tokens } from '../common/text/tokenizer';
 export interface PdbFile {
     lines: Tokens
     id?: string,
-    isPdbqt?: boolean,
-    is4LetterResidueName?: boolean
+    isPdbqt?: boolean
 }

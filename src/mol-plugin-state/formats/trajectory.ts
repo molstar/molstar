@@ -4,7 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
- * @author Kim Juho <juho_kim@outlook.com>
  */
 
 import { StateTransforms } from '../transforms';
@@ -101,7 +100,7 @@ export const PdbqtProvider: TrajectoryFormatProvider = {
     description: 'PDBQT',
     category: TrajectoryFormatCategory,
     stringExtensions: ['pdbqt'],
-    parse: directTrajectory(StateTransforms.Model.TrajectoryFromPDB, { isPdbqt: true, is4LetterResidueName: false }),
+    parse: directTrajectory(StateTransforms.Model.TrajectoryFromPDB, { isPdbqt: true }),
     visuals: defaultVisuals
 };
 

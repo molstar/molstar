@@ -3,7 +3,6 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
- * @author Kim Juho <juho_kim@outlook.com>
  */
 
 import { PdbFile } from './schema';
@@ -12,12 +11,10 @@ import { ReaderResult } from '../result';
 import { Tokenizer } from '../common/text/tokenizer';
 import { StringLike } from '../../common/string-like';
 
-
-export function parsePDB(data: StringLike, id?: string, isPdbqt = false, is4LetterResidueName = false): Task<ReaderResult<PdbFile>> {
+export function parsePDB(data: StringLike, id?: string, isPdbqt = false): Task<ReaderResult<PdbFile>> {
     return Task.create('Parse PDB', async ctx => ReaderResult.success({
         lines: await Tokenizer.readAllLinesAsync(data, ctx),
         id,
         isPdbqt,
-        is4LetterResidueName
     }));
 }

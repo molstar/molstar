@@ -212,7 +212,7 @@ export function getAtomSite(sites: AtomSiteTemplate, labelAsymIdHelper: LabelAsy
     };
 }
 
-export function addAtom(sites: AtomSiteTemplate, model: string, data: Tokenizer, s: number, e: number, isPdbqt: boolean, is4LetterResidueName: boolean) {
+export function addAtom(sites: AtomSiteTemplate, model: string, data: Tokenizer, s: number, e: number, isPdbqt: boolean) {
     const { data: str } = data;
     const length = e - s;
 
@@ -238,13 +238,10 @@ export function addAtom(sites: AtomSiteTemplate, model: string, data: Tokenizer,
         TokenBuilder.add(sites.label_alt_id, s + 16, s + 17);
     }
 
-    if (is4LetterResidueName) {
-        // 18 - 21        Residue name    Residue name.
-        TokenBuilder.addToken(sites.auth_comp_id, Tokenizer.trim(data, s + 17, s + 21));
-    } else {
-        // 18 - 20        Residue name    Residue name.
-        TokenBuilder.addToken(sites.auth_comp_id, Tokenizer.trim(data, s + 17, s + 20));
-    }
+    // 18 - 21        Residue name    Residue name.
+    //                                PDB spec defines 3-letter
+    //                                but 4-letter are commonly used
+    TokenBuilder.addToken(sites.auth_comp_id, Tokenizer.trim(data, s + 17, s + 21));
 
     // 22             Character       Chain identifier.
     TokenBuilder.add(sites.auth_asym_id, s + 21, s + 22);
