@@ -28,6 +28,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Support `snapshot_key` parameter on primitives that enables transition between states via clicking on 3D objects
   - Inline selectors and MVS annotations support `instance_id`
   - Support `matrix` on transform params
+  - Support `surface_type` (`molecular` / `gaussian`) on for `surface` representation nodes
   - Add `instance` node type
   - Support transforming and instancing of structures, components, and volumes
 - Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
