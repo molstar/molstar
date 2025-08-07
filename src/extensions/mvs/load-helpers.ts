@@ -348,11 +348,15 @@ function representationPropsBase(node: MolstarSubtree<'representation'>): Partia
             return {
                 type: { name: 'carbohydrate', params: { alpha, sizeFactor: params.size_factor ?? 1 } },
             };
-        case 'surface':
+        case 'surface': {
             return {
-                type: { name: 'molecular-surface', params: { alpha, ignoreHydrogens: params.ignore_hydrogens } },
+                type: {
+                    name: params.surface_type === 'gaussian' ? 'gaussian-surface' : 'molecular-surface',
+                    params: { alpha, ignoreHydrogens: params.ignore_hydrogens }
+                },
                 sizeTheme: { name: 'physical', params: { scale: params.size_factor } },
             };
+        }
         default:
             throw new Error('NotImplementedError');
     }
