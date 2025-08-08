@@ -6,7 +6,6 @@
 
 import { StateTransformer } from './transformer';
 import { UUID } from '../mol-util';
-import { hashString } from '../mol-data/util';
 
 export { Transform as StateTransform };
 
@@ -125,7 +124,9 @@ namespace Transform {
     }
 
     function hashParams(params: any): string {
-        return String(hashString(JSON.stringify(params ?? {})));
+        return UUID.create22();
+        // return hashObjectFnv256(params);
+         // String(hashString(JSON.stringify(params ?? {})));
     }
 
     export function withParams(t: Transform, params: any): Transform {

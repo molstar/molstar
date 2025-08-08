@@ -12,6 +12,7 @@ import { StateTransform } from '../transform';
 import { StateTransformer } from '../transformer';
 import { State } from '../state';
 import { produce } from 'immer';
+import { hashObjectFnv256 } from '../../mol-data/util';
 
 export { StateBuilder };
 
@@ -41,8 +42,27 @@ namespace StateBuilder {
         | { kind: 'delete', ref: string }
         | { kind: 'insert', ref: string, transform: StateTransform }
 
-    function buildTree(state: BuildState) {
+    function buildTree(state: BuildState, useHashVersion = false) {
         if (!state.state || state.state.tree === state.editInfo.sourceTree) {
+            if (useHashVersion) {
+                for (const a of state.actions) {
+                    switch (a.kind) {
+                        case 'add': (a.transform as any).version = hashObjectFnv256(a.transform.params); break;
+                        case 'update':
+                        case 'delete':
+                            (state.tree.transforms.get(a.ref)! as any).version = hashObjectFnv256(state.tree.transforms.get(a.ref)!.params);
+                            break;
+                        case 'insert': {
+                            (state.tree.transforms.get(a.ref)! as any).version = hashObjectFnv256(state.tree.transforms.get(a.ref)!.params);
+                            const children = state.tree.children.get(a.ref).toArray();
+                            for (const c of children) {
+                                const child = state.tree.transforms.get(c)!;
+                                (child as any).version = hashObjectFnv256(child.params);
+                            }
+                        }
+                    }
+                }
+            }
             return state.tree.asImmutable();
         }
 
@@ -60,6 +80,27 @@ namespace StateBuilder {
                         tree.changeParent(c, a.transform.ref);
                     }
                     break;
+                }
+            }
+        }
+        //  TODO: merge with previous loop
+        if (useHashVersion) {
+            for (const a of state.actions) {
+                switch (a.kind) {
+                    case 'add': (a.transform as any).version = hashObjectFnv256(a.transform.params); break;
+                    case 'update':
+                    case 'delete':
+                        (tree.transforms.get(a.ref)! as any).version = hashObjectFnv256(tree.transforms.get(a.ref)!.params);
+                        break;
+                    case 'insert': {
+                        (tree.transforms.get(a.ref)! as any).version = hashObjectFnv256(tree.transforms.get(a.ref)!.params);
+                        const children = tree.children.get(a.ref).toArray();
+                        for (const c of children) {
+                            const child = tree.transforms.get(c)!;
+                            (child as any).version = hashObjectFnv256(child.params);
+                        }
+                        break;
+                    }
                 }
             }
         }
@@ -103,7 +144,7 @@ namespace StateBuilder {
             this.state.actions.push({ kind: 'delete', ref });
             return this;
         }
-        getTree(): StateTree { return buildTree(this.state); }
+        getTree(options?: { useHashVersion?: boolean }): StateTree { return buildTree(this.state, options?.useHashVersion); }
 
         commit(options?: Partial<State.UpdateOptions>) {
             if (!this.state.state) throw new Error('Cannot commit template tree');
@@ -287,7 +328,7 @@ namespace StateBuilder {
         toRoot<A extends StateObject>() { return this.root.toRoot<A>(); }
         delete(ref: StateObjectRef) { return this.root.delete(ref); }
 
-        getTree(): StateTree { return buildTree(this.state); }
+        getTree(options?: { useHashVersion?: boolean }): StateTree { return buildTree(this.state, options?.useHashVersion); }
 
         /** Returns selector to this node. */
         commit(options?: Partial<State.UpdateOptions>): Promise<StateObjectSelector<A>> {
