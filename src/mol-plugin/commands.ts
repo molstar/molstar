@@ -33,7 +33,7 @@ export const PluginCommands = {
             Replace: PluginCommand<{ id: string, params?: PluginState.SnapshotParams }>(),
             Move: PluginCommand<{ id: string, dir: -1 | 1 }>(),
             Remove: PluginCommand<{ id: string }>(),
-            Apply: PluginCommand<{ id: string }>(),
+            Apply: PluginCommand<{ id: string, transitionIndex?: number }>(),
             Clear: PluginCommand<{}>(),
 
             Upload: PluginCommand<{ name?: string, description?: string, playOnLoad?: boolean, serverUrl: string, params?: PluginState.SnapshotParams }>(),

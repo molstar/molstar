@@ -27,6 +27,7 @@ import { PluginConfig } from '../mol-plugin/config';
 import { StructureSuperpositionControls } from './structure/superposition';
 import { StructureQuickStylesControls } from './structure/quick-styles';
 import { Markdown } from './controls/markdown';
+import { Slider } from './controls/slider';
 
 export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: boolean, label: string }> {
     state = { show: false, label: '' };
@@ -172,12 +173,14 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
         const snapshots = this.plugin.managers.snapshot;
         const count = snapshots.state.entries.size;
 
-        if (count < 2 || !this.state.show) {
-            return null;
-        }
+        // if (count < 2 || !this.state.show) {
+        //     return null;
+        // }
 
         const current = snapshots.state.current;
         const isPlaying = snapshots.state.isPlaying;
+
+        const e = snapshots.getEntry(current);
 
         return <div className='msp-state-snapshot-viewport-controls'>
             <select className='msp-form-control' value={current || 'none'} onChange={this.change} disabled={this.state.isBusy || isPlaying}>
@@ -190,6 +193,17 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
                 <IconButton svg={NavigateBeforeSvg} title='Previous State' onClick={this.prev} disabled={this.state.isBusy || isPlaying} />
                 <IconButton svg={NavigateNextSvg} title='Next State' onClick={this.next} disabled={this.state.isBusy || isPlaying} />
             </>}
+            <div style={{ top: 40, position: 'absolute', width: 300 }}>
+            <Slider
+                value={snapshots.state.transitionIndex ?? 0}
+                min={0}
+                step={1}
+                max={e?.snapshot.transition?.frames.length ?? 0}
+                onChange={v => {
+                    PluginCommands.State.Snapshots.Apply(this.plugin, { id: current! as string, transitionIndex: v });
+                }}
+            />
+            </div>
         </div>;
     }
 }

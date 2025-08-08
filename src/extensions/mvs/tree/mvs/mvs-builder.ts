@@ -89,6 +89,11 @@ export class Root extends _Base<'root'> implements FocusMixin, PrimitivesMixin {
     focus = bindMethod(this, FocusMixinImpl, 'focus');
     primitives = bindMethod(this, PrimitivesMixinImpl, 'primitives');
     primitives_from_uri = bindMethod(this, PrimitivesMixinImpl, 'primitives_from_uri');
+
+    transition(params: MVSNodeParams<'transition'> & CustomAndRef): Root {
+        this.addChild('transition', params);
+        return this;
+    }
 }
 
 

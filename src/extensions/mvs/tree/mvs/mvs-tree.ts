@@ -370,6 +370,21 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['primitives'],
             params: MVSPrimitiveParams,
         },
+        transition: {
+            description: 'This node enables transitions between different states',
+            parent: ['root'],
+            params: SimpleParamsSchema({
+                target_ref: RequiredField(str, 'Reference to the node.'),
+                property: RequiredField(list(union(str, int)), 'Accessor for the transition.'),
+                // property_type: OptionalField(literal('scalar', 'vec3', 'rotation_matrix'), 'scalar', 'Type of the property being transitioned.'),
+                // target_value: RequiredField(union(float, Vector3, Matrix), 'Target value for the transition.'),
+                target_value: RequiredField(float, 'Target value for the transition.'),
+                /** Duration of the transition in milliseconds. */
+                duration_ms: RequiredField(float, 'Duration of the transition in milliseconds.'),
+                /** Easing function to use for the transition. */
+                // easing: OptionalField(literal('linear', 'ease-in', 'ease-out', 'ease-in-out'), 'linear', 'Easing function to use for the transition.'),
+            }),
+        }
     }
 });
 

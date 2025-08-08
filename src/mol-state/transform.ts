@@ -6,6 +6,7 @@
 
 import { StateTransformer } from './transformer';
 import { UUID } from '../mol-util';
+import { hashString } from '../mol-data/util';
 
 export { Transform as StateTransform };
 
@@ -106,6 +107,10 @@ namespace Transform {
             if (tags.length === 0) tags = void 0;
             else tags.sort();
         }
+
+        // TODO: crypho hash and make optional
+        // const version = String(hashString(JSON.stringify(params ?? {})));
+
         return {
             parent,
             transformer,
@@ -114,12 +119,18 @@ namespace Transform {
             ref,
             dependsOn: options && options.dependsOn,
             params,
-            version: UUID.create22()
+            version: hashParams(params),
+            // : UUID.create22()
         };
     }
 
+    function hashParams(params: any): string {
+        return String(hashString(JSON.stringify(params ?? {})));
+    }
+
     export function withParams(t: Transform, params: any): Transform {
-        return { ...t, params, version: UUID.create22() };
+        const version = hashParams(params);
+        return { ...t, params, version }; // UUID.create22() };
     }
 
     export function withState(t: Transform, state?: Partial<State>): Transform {
@@ -134,7 +145,8 @@ namespace Transform {
             if (tags.length === 0) tags = void 0;
             else tags.sort();
         }
-        return { ...t, tags, version: UUID.create22() };
+        const version = hashParams({ ...t.params, tags });
+        return { ...t, tags, version }; // : UUID.create22() };
     }
 
     export function withDependsOn(t: Transform, newDependsOn?: string | string[]): Transform {
