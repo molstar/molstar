@@ -36,7 +36,7 @@ export const assign_color_varying = `
         vec3 cgridPos = (uColorGridTransform.w * (position - uColorGridTransform.xyz)) / uColorGridDim;
         vColor.rgb = texture3dFrom2dLinear(tColorGrid, cgridPos, uColorGridDim, uColorTexDim).rgb;
     #elif defined(dColorType_volumeInstance)
-        vec3 cgridPos = (uColorGridTransform.w * (vModelPosition - uColorGridTransform.xyz)) / uColorGridDim;
+        vec3 cgridPos = (uColorGridTransform.w * (vModelPosition / uModelScale - uColorGridTransform.xyz)) / uColorGridDim;
         vColor.rgb = texture3dFrom2dLinear(tColorGrid, cgridPos, uColorGridDim, uColorTexDim).rgb;
     #endif
 
@@ -52,7 +52,7 @@ export const assign_color_varying = `
         #elif defined(dOverpaintType_vertexInstance)
             vOverpaint = readFromTexture(tOverpaint, int(aInstance) * uVertexCount + vertexId, uOverpaintTexDim);
         #elif defined(dOverpaintType_volumeInstance)
-            vec3 ogridPos = (uOverpaintGridTransform.w * (vModelPosition - uOverpaintGridTransform.xyz)) / uOverpaintGridDim;
+            vec3 ogridPos = (uOverpaintGridTransform.w * (vModelPosition / uModelScale - uOverpaintGridTransform.xyz)) / uOverpaintGridDim;
             vOverpaint = texture3dFrom2dLinear(tOverpaintGrid, ogridPos, uOverpaintGridDim, uOverpaintTexDim);
         #endif
 
@@ -73,7 +73,7 @@ export const assign_color_varying = `
         #elif defined(dEmissiveType_vertexInstance)
             vEmissive = readFromTexture(tEmissive, int(aInstance) * uVertexCount + vertexId, uEmissiveTexDim).a;
         #elif defined(dEmissiveType_volumeInstance)
-            vec3 egridPos = (uEmissiveGridTransform.w * (vModelPosition - uEmissiveGridTransform.xyz)) / uEmissiveGridDim;
+            vec3 egridPos = (uEmissiveGridTransform.w * (vModelPosition / uModelScale - uEmissiveGridTransform.xyz)) / uEmissiveGridDim;
             vEmissive = texture3dFrom2dLinear(tEmissiveGrid, egridPos, uEmissiveGridDim, uEmissiveTexDim).a;
         #endif
         vEmissive *= uEmissiveStrength;
@@ -87,7 +87,7 @@ export const assign_color_varying = `
         #elif defined(dSubstanceType_vertexInstance)
             vSubstance = readFromTexture(tSubstance, int(aInstance) * uVertexCount + vertexId, uSubstanceTexDim);
         #elif defined(dSubstanceType_volumeInstance)
-            vec3 sgridPos = (uSubstanceGridTransform.w * (vModelPosition - uSubstanceGridTransform.xyz)) / uSubstanceGridDim;
+            vec3 sgridPos = (uSubstanceGridTransform.w * (vModelPosition / uModelScale - uSubstanceGridTransform.xyz)) / uSubstanceGridDim;
             vSubstance = texture3dFrom2dLinear(tSubstanceGrid, sgridPos, uSubstanceGridDim, uSubstanceTexDim);
         #endif
 
@@ -104,7 +104,7 @@ export const assign_color_varying = `
         #elif defined(dEmissiveType_vertexInstance)
             vEmissive = readFromTexture(tEmissive, int(aInstance) * uVertexCount + vertexId, uEmissiveTexDim).a;
         #elif defined(dEmissiveType_volumeInstance)
-            vec3 egridPos = (uEmissiveGridTransform.w * (vModelPosition - uEmissiveGridTransform.xyz)) / uEmissiveGridDim;
+            vec3 egridPos = (uEmissiveGridTransform.w * (vModelPosition / uModelScale - uEmissiveGridTransform.xyz)) / uEmissiveGridDim;
             vEmissive = texture3dFrom2dLinear(tEmissiveGrid, egridPos, uEmissiveGridDim, uEmissiveTexDim).a;
         #endif
         vEmissive *= uEmissiveStrength;
@@ -133,7 +133,7 @@ export const assign_color_varying = `
     #elif defined(dTransparencyType_vertexInstance)
         vTransparency = readFromTexture(tTransparency, int(aInstance) * uVertexCount + vertexId, uTransparencyTexDim).a;
     #elif defined(dTransparencyType_volumeInstance)
-        vec3 tgridPos = (uTransparencyGridTransform.w * (vModelPosition - uTransparencyGridTransform.xyz)) / uTransparencyGridDim;
+        vec3 tgridPos = (uTransparencyGridTransform.w * (vModelPosition / uModelScale - uTransparencyGridTransform.xyz)) / uTransparencyGridDim;
         vTransparency = texture3dFrom2dLinear(tTransparencyGrid, tgridPos, uTransparencyGridDim, uTransparencyTexDim).a;
     #endif
     vTransparency *= uTransparencyStrength;

@@ -50,6 +50,9 @@ import { isMobileBrowser } from '../mol-util/browser';
 import { Ray3D } from '../mol-math/geometry/primitives/ray3d';
 import { RayHelper } from './helper/ray-helper';
 
+export const CameraFogParams = {
+    intensity: PD.Numeric(15, { min: 1, max: 100, step: 1 }),
+};
 export const Canvas3DParams = {
     camera: PD.Group({
         mode: PD.Select('perspective', PD.arrayToOptions(['perspective', 'orthographic'] as const), { label: 'Camera' }),
@@ -59,12 +62,11 @@ export const Canvas3DParams = {
             off: PD.Group({})
         }, { cycle: true, hideIf: p => p?.mode !== 'perspective' }),
         fov: PD.Numeric(45, { min: 10, max: 130, step: 1 }, { label: 'Field of View' }),
+        scale: PD.Numeric(1, { min: 0.001, max: 1, step: 0.001 }, { label: 'Scene scale' }),
         manualReset: PD.Boolean(false, { isHidden: true }),
     }, { pivot: 'mode' }),
     cameraFog: PD.MappedStatic('on', {
-        on: PD.Group({
-            intensity: PD.Numeric(15, { min: 1, max: 100, step: 1 }),
-        }),
+        on: PD.Group(CameraFogParams),
         off: PD.Group({})
     }, { cycle: true, description: 'Show fog in the distance' }),
     cameraClipping: PD.Group({
@@ -415,6 +417,7 @@ namespace Canvas3D {
             clipFar: p.cameraClipping.far,
             minNear: p.cameraClipping.minNear,
             fov: degToRad(p.camera.fov),
+            scale: p.camera.scale,
         }, { x, y, width, height });
         const stereoCamera = new StereoCamera(camera, p.camera.stereo.params);
 
@@ -866,6 +869,7 @@ namespace Canvas3D {
                     helper: { ...helper.camera.props },
                     stereo: { ...p.camera.stereo },
                     fov: Math.round(radToDeg(camera.state.fov)),
+                    scale: camera.state.scale,
                     manualReset: !!p.camera.manualReset
                 },
                 cameraFog: camera.state.fog > 0
@@ -1089,6 +1093,9 @@ namespace Canvas3D {
                 const oldFov = Math.round(radToDeg(camera.state.fov));
                 if (props.camera && props.camera.fov !== undefined && props.camera.fov !== oldFov) {
                     cameraState.fov = degToRad(props.camera.fov);
+                }
+                if (props.camera && props.camera.scale !== undefined && props.camera.scale !== cameraState.scale) {
+                    cameraState.scale = props.camera.scale;
                 }
                 if (props.cameraFog !== undefined && props.cameraFog.params) {
                     const newFog = props.cameraFog.name === 'on' ? props.cameraFog.params.intensity : 0;

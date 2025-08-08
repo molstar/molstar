@@ -312,7 +312,7 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     },
     primitives(updateParent: UpdateTarget, tree: MolstarSubtree<'primitives'>, context: MolstarLoadingContext): UpdateTarget {
         const refs = getPrimitiveStructureRefs(tree);
-        const data = UpdateTarget.apply(updateParent, MVSInlinePrimitiveData, { node: tree });
+        const data = UpdateTarget.apply(updateParent, MVSInlinePrimitiveData, { node: tree as any });
         return applyPrimitiveVisuals(data, refs);
     },
     primitives_from_uri(updateParent: UpdateTarget, tree: MolstarNode<'primitives_from_uri'>, context: MolstarLoadingContext): UpdateTarget {
