@@ -120,12 +120,20 @@ const Steps = [
 
             poly.representation({
                 type: 'surface',
-                surface_type: 'gaussian',
+                surface_type: 'gaussian'
             }).opacity({ ref: 'opacity', opacity: 1 });
 
             _1cbs.component({ selector: 'ligand' })
                 .transform({ ref: 'xform', translation: [0, 0, 0] })
-                .representation({ type: 'ball_and_stick' })
+                .representation({
+                    ref: 'repr',
+                    type: 'ball_and_stick',
+                    custom: {
+                        molstar_reprepresentation_params: {
+                            emissive: 0.5,
+                        }
+                    }
+                })
                 .color({ color: 'red' });
 
 
@@ -141,6 +149,20 @@ const Steps = [
                 duration_ms: 1000,
                 property: ['opacity'],
                 target_value: 0.33,
+            });
+
+            builder.transition({
+                target_ref: 'opacity',
+                duration_ms: 1000,
+                property: ['opacity'],
+                target_value: 0.33,
+            });
+
+            builder.transition({
+                target_ref: 'repr',
+                duration_ms: 1000,
+                property: ['custom', 'molstar_reprepresentation_params', 'emissive'],
+                target_value: 0,
             });
 
             return builder;

@@ -26,33 +26,35 @@ function createSnapshot(tree: Tree, transitions: MVSNode<'transition'>[], time: 
     return produce(tree, (draft) => {
         for (const transition of transitions) {
             const node = findNode(draft, transition.params.target_ref);
-            const value = select(node?.params, transition.params.property);
+            const target = transition.params.property[0] === 'custom' ? node?.custom : node?.params;
+            const offset = transition.params.property[0] === 'custom' ? 1 : 0;
+            const value = select(target, transition.params.property, offset);
             const t = clamp(time / transition.params.duration_ms, 0, 1);
             const next = lerp(value, transition.params.target_value, t);
-            assign(node?.params, transition.params.property, next);
+            assign(target, transition.params.property, next, offset);
         }
     });
 }
 
-function select(params: any, path: (string | number)[]) {
+function select(params: any, path: (string | number)[], offset: number) {
     if (!params) return;
-    let f = params[path[0]];
-    for (let i = 1; i < path.length; i++) {
+    let f = params[path[offset]];
+    for (let i = offset + 1; i < path.length; i++) {
         if (!f) break;
         f = f[path[i]];
     }
     return f;
 }
 
-function assign(params: any, path: (string | number)[], value: any) {
+function assign(params: any, path: (string | number)[], value: any, offset: number) {
     if (!params) return;
-    if (path.length === 1) {
-        params[path[0]] = value;
+    if (path.length === offset + 1) {
+        params[path[offset]] = value;
         return;
     }
 
-    let f = params[path[0]];
-    for (let i = 1; i < path.length; i++) {
+    let f = params[path[offset]];
+    for (let i = offset + 1; i < path.length; i++) {
         if (!f) break;
         if (i === path.length - 1) {
             f[path[i]] = value;
