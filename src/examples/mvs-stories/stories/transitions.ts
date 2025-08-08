@@ -67,12 +67,7 @@ const Steps = [
             const surface = poly.representation({
                 type: 'surface',
                 surface_type: 'gaussian',
-            }) // .opacity({ opacity: 0.33 });
-
-            // ligand(_1cbs, {
-            //     selector: { label_comp_id: 'REA' },
-            //     uniform_color: 'red',
-            // });
+            })
 
             _1cbs.component({ selector: 'ligand' })
                 .transform({ ref: 'xform', translation: [0, 20, 0] })
@@ -115,17 +110,18 @@ const Steps = [
         header: 'Transition Test',
         key: 'transition_test2',
         description: ``,
-        transition_duration_ms: 1,
+        linger_duration_ms: 2000,
+        transition_duration_ms: 0,
         state: (): Root => {
             const builder = createMVSBuilder();
 
             const _1cbs = structure(builder, '1cbs');
             const [poly,] = polymer(_1cbs, { color: Colors['1opl'] });
 
-            const surface = poly.representation({
+            poly.representation({
                 type: 'surface',
                 surface_type: 'gaussian',
-            }) // .opacity({ opacity: 0.33 });
+            }).opacity({ ref: 'opacity', opacity: 1 });
 
             _1cbs.component({ selector: 'ligand' })
                 .transform({ ref: 'xform', translation: [0, 0, 0] })
@@ -133,20 +129,19 @@ const Steps = [
                 .color({ color: 'red' });
 
 
-            surface.clip({
-                ref: 'clip',
-                type: 'plane',
-                point: [22.0, 25, 55],
-                normal: [0, 0, 1],
-            });
-
-            // builder.transition({
-            //     ref: 'clip-transition',
-            //     target_ref: 'clip',
-            //     duration_ms: 1000,
-            //     property: ['point', 1],
-            //     target_value: 30,
+            // surface.clip({
+            //     ref: 'clip',
+            //     type: 'plane',
+            //     point: [22.0, 25, 55],
+            //     normal: [0, 0, 1],
             // });
+
+            builder.transition({
+                target_ref: 'opacity',
+                duration_ms: 1000,
+                property: ['opacity'],
+                target_value: 0.33,
+            });
 
             return builder;
         },

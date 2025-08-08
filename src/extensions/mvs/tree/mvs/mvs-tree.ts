@@ -370,6 +370,11 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['primitives'],
             params: MVSPrimitiveParams,
         },
+        // transitions: {
+        //     params: SimpleParamsSchema({
+        //         // loop: bool
+        //     })
+        // },
         transition: {
             description: 'This node enables transitions between different states',
             parent: ['root'],

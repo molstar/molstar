@@ -46,6 +46,11 @@ function select(params: any, path: (string | number)[]) {
 
 function assign(params: any, path: (string | number)[], value: any) {
     if (!params) return;
+    if (path.length === 1) {
+        params[path[0]] = value;
+        return;
+    }
+
     let f = params[path[0]];
     for (let i = 1; i < path.length; i++) {
         if (!f) break;

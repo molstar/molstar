@@ -198,8 +198,9 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
                 value={snapshots.state.transitionIndex ?? 0}
                 min={0}
                 step={1}
-                max={e?.snapshot.transition?.frames.length ?? 0}
-                onChange={v => {
+                max={(e?.snapshot.transition?.frames.length ?? 1) - 1}
+                onChange={() => {}}
+                onChangeImmediate={v => {
                     PluginCommands.State.Snapshots.Apply(this.plugin, { id: current! as string, transitionIndex: v });
                 }}
             />
