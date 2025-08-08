@@ -130,19 +130,6 @@ namespace Grid {
             }
         };
     }
-
-    const tmpVec = Vec3();
-    export function getCellDimension(grid: Grid): Vec3 {
-        const { cells: { space } } = grid;
-        const [xn, yn, zn] = space.dimensions;
-        const transform = getGridToCartesianTransform(grid);
-        const origin = Vec3.transformMat4(Vec3(), Vec3.set(tmpVec, 0, 0, 0), transform);
-        return xn * yn * zn >= 4 ? Vec3.create(
-            Vec3.distance(origin, Vec3.transformMat4(tmpVec, Vec3.set(tmpVec, 1, 0, 0), transform)),
-            Vec3.distance(origin, Vec3.transformMat4(tmpVec, Vec3.set(tmpVec, 0, 1, 0), transform)),
-            Vec3.distance(origin, Vec3.transformMat4(tmpVec, Vec3.set(tmpVec, 0, 0, 1), transform))
-        ) : Vec3.create(0, 0, 0);
-    }
 }
 
 export { Grid };

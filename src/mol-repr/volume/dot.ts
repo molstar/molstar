@@ -97,15 +97,21 @@ export function VolumeSphereMeshVisual(materialId: number): VolumeVisual<VolumeS
     }, materialId);
 }
 
-const _90DegToRad = 90. * Math.PI / 180.;
-function getMaxSafeDisplacement (grid: Grid): Vec3 {
-    const dim = Grid.getCellDimension(grid);
-    const anglesInRadians = grid.transform.kind === 'spacegroup' ? grid.transform.cell.anglesInRadians : Vec3.create(_90DegToRad, _90DegToRad, _90DegToRad);
-    return Vec3.create(
-        dim[0] * Math.sin(anglesInRadians[0]),
-        dim[1] * Math.sin(anglesInRadians[1]),
-        dim[2] * Math.sin(anglesInRadians[2])
-    )
+const rand = Math.random;
+const offset = Vec3();
+function getRandomOffsetFromBasis(a: Vec3, b: Vec3, c: Vec3, cellMax: number, dotSize: number): Vec3 {
+    const scaleFactor = Math.max(0, (cellMax - dotSize) / cellMax);
+    if (scaleFactor <= 0) return Vec3.set(offset, 0, 0, 0);
+
+    const rx = (rand() - 0.5) * scaleFactor;
+    const ry = (rand() - 0.5) * scaleFactor;
+    const rz = (rand() - 0.5) * scaleFactor;
+
+    Vec3.scale(offset, a, rx);
+    Vec3.add(offset, offset, Vec3.scale(Vec3(), b, ry));
+    Vec3.add(offset, offset, Vec3.scale(Vec3(), c, rz));
+
+    return offset;
 }
 
 export function createVolumeSphereImpostor(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: VolumeSphereProps, spheres?: Spheres): Spheres {
@@ -119,13 +125,19 @@ export function createVolumeSphereImpostor(ctx: VisualContext, volume: Volume, k
     const count = Math.ceil((xn * yn * zn) / 10);
     const builder = SpheresBuilder.create(count, Math.ceil(count / 2), spheres);
 
-    const [csx, csy, csz] = getMaxSafeDisplacement(volume.grid);
+    const perturbateGeometry = props.perturbPositions;
     const l = Volume.Cell.Location(volume);
     const themeSize = theme.size.size;
-
     const invert = isoVal < 0;
-    const perturbateGeometry = props.perturbPositions;
-    const rand = Math.random;
+
+    // Precompute basis vectors and largest cell axis length
+    let a: Vec3, b: Vec3, c: Vec3, cellMax: number
+    if (perturbateGeometry) {
+        a = Vec3.create(gridToCartn[0], gridToCartn[1], gridToCartn[2]);
+        b = Vec3.create(gridToCartn[4], gridToCartn[5], gridToCartn[6]);
+        c = Vec3.create(gridToCartn[8], gridToCartn[9], gridToCartn[10]);
+        cellMax = Math.max(Vec3.magnitude(a), Vec3.magnitude(b), Vec3.magnitude(c));
+    }
 
     for (let z = 0; z < zn; ++z) {
         for (let y = 0; y < yn; ++y) {
@@ -136,17 +148,16 @@ export function createVolumeSphereImpostor(ctx: VisualContext, volume: Volume, k
                 const cellIdx = space.dataOffset(x, y, z);
                 if (perturbateGeometry) {
                     l.cell = cellIdx as Volume.CellIndex;
-                    const size = themeSize(l) * sizeFactor * 2;
-                    Vec3.set(
-                        p,
-                        csx > size ? x + (csx - size) * (rand() - 0.5) : x,
-                        csy > size ? y + (csy - size) * (rand() - 0.5) : y,
-                        csz > size ? z + (csz - size) * (rand() - 0.5) : z
-                    );
+                    const dotSize = themeSize(l) * sizeFactor * 2; // diameter
+
+                    Vec3.set(p, x, y, z);
+                    Vec3.transformMat4(p, p, gridToCartn);
+                    const offset = getRandomOffsetFromBasis(a!, b!, c!, cellMax!, dotSize);
+                    Vec3.add(p, p, offset);
                 } else {
                     Vec3.set(p, x, y, z);
+                    Vec3.transformMat4(p, p, gridToCartn);
                 }
-                Vec3.transformMat4(p, p, gridToCartn);
                 builder.add(p[0], p[1], p[2], cellIdx);
             }
         }
@@ -171,14 +182,19 @@ export function createVolumeSphereMesh(ctx: VisualContext, volume: Volume, key: 
     const vertexCount = count * sphereVertexCount(detail);
     const builderState = MeshBuilder.createState(vertexCount, Math.ceil(vertexCount / 2), mesh);
 
-    const [csx, csy, csz] = getMaxSafeDisplacement(volume.grid);
-
+    const perturbateGeometry = props.perturbPositions;
     const l = Volume.Cell.Location(volume);
     const themeSize = theme.size.size;
-
     const invert = isoVal < 0;
-    const perturbateGeometry = props.perturbPositions;
-    const rand = Math.random;
+
+    // Precompute basis vectors and largest cell axis length
+    let a: Vec3, b: Vec3, c: Vec3, cellMax: number
+    if (perturbateGeometry) {
+        a = Vec3.create(gridToCartn[0], gridToCartn[1], gridToCartn[2]);
+        b = Vec3.create(gridToCartn[4], gridToCartn[5], gridToCartn[6]);
+        c = Vec3.create(gridToCartn[8], gridToCartn[9], gridToCartn[10]);
+        cellMax = Math.max(Vec3.magnitude(a), Vec3.magnitude(b), Vec3.magnitude(c));
+    }
 
     for (let z = 0; z < zn; ++z) {
         for (let y = 0; y < yn; ++y) {
@@ -188,21 +204,20 @@ export function createVolumeSphereMesh(ctx: VisualContext, volume: Volume, key: 
 
                 const cellIdx = space.dataOffset(x, y, z);
                 l.cell = cellIdx as Volume.CellIndex;
-                const _size = themeSize(l) * sizeFactor;
+                const size = themeSize(l) * sizeFactor;
                 if (perturbateGeometry) {
-                    const size = _size * 2;
-                    Vec3.set(
-                        p,
-                        csx > size ? x + (csx - size) * (rand() - 0.5) : x,
-                        csy > size ? y + (csy - size) * (rand() - 0.5) : y,
-                        csz > size ? z + (csz - size) * (rand() - 0.5) : z
-                    );
+                    const dotSize = size * 2; // diameter
+
+                    Vec3.set(p, x, y, z);
+                    Vec3.transformMat4(p, p, gridToCartn);
+                    const offset = getRandomOffsetFromBasis(a!, b!, c!, cellMax!, dotSize);
+                    Vec3.add(p, p, offset);
                 } else {
                     Vec3.set(p, x, y, z);
+                    Vec3.transformMat4(p, p, gridToCartn);
                 }
-                Vec3.transformMat4(p, p, gridToCartn);
                 builderState.currentGroup = cellIdx;
-                addSphere(builderState, p, _size, detail);
+                addSphere(builderState, p, size, detail);
             }
         }
     }
@@ -251,14 +266,19 @@ export function createVolumePoint(ctx: VisualContext, volume: Volume, key: numbe
     const count = Math.ceil((xn * yn * zn) / 10);
     const builder = PointsBuilder.create(count, Math.ceil(count / 2), points);
 
-        const [csx, csy, csz] = getMaxSafeDisplacement(volume.grid);
-
+    const perturbateGeometry = props.perturbPositions;
     const l = Volume.Cell.Location(volume);
     const themeSize = theme.size.size;
-
     const invert = isoVal < 0;
-    const perturbateGeometry = props.perturbPositions;
-    const rand = Math.random;
+
+    // Precompute basis vectors and largest cell axis length
+    let a: Vec3, b: Vec3, c: Vec3, cellMax: number
+    if (perturbateGeometry) {
+        a = Vec3.create(gridToCartn[0], gridToCartn[1], gridToCartn[2]);
+        b = Vec3.create(gridToCartn[4], gridToCartn[5], gridToCartn[6]);
+        c = Vec3.create(gridToCartn[8], gridToCartn[9], gridToCartn[10]);
+        cellMax = Math.max(Vec3.magnitude(a), Vec3.magnitude(b), Vec3.magnitude(c));
+    }
 
     for (let z = 0; z < zn; ++z) {
         for (let y = 0; y < yn; ++y) {
@@ -269,17 +289,16 @@ export function createVolumePoint(ctx: VisualContext, volume: Volume, key: numbe
                 const cellIdx = space.dataOffset(x, y, z);
                 if (perturbateGeometry) {
                     l.cell = cellIdx as Volume.CellIndex;
-                    const size = themeSize(l) * sizeFactor * 2;
-                    Vec3.set(
-                        p,
-                        csx > size ? x + (csx - size) * (rand() - 0.5) : x,
-                        csy > size ? y + (csy - size) * (rand() - 0.5) : y,
-                        csz > size ? z + (csz - size) * (rand() - 0.5) : z
-                    );
+                    const dotSize = themeSize(l) * sizeFactor * 2; // diameter
+
+                    Vec3.set(p, x, y, z);
+                    Vec3.transformMat4(p, p, gridToCartn);
+                    const offset = getRandomOffsetFromBasis(a!, b!, c!, cellMax!, dotSize);
+                    Vec3.add(p, p, offset);
                 } else {
                     Vec3.set(p, x, y, z);
+                    Vec3.transformMat4(p, p, gridToCartn);
                 }
-                Vec3.transformMat4(p, p, gridToCartn);
                 builder.add(p[0], p[1], p[2], cellIdx);
             }
         }
