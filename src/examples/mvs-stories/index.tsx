@@ -55,6 +55,7 @@ function init() {
         } else if (story.kind === 'built-in') {
             history.replaceState({}, '', story ? `?story=${story.id}` : '');
             const s = Stories.find(s => s.id === story.id);
+            console.log(s);
             if (s) {
                 getContext().dispatch({
                     kind: 'load-mvs',

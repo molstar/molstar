@@ -54,6 +54,7 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
                 visual = visualCtor(materialId, _structure, _props, webgl);
                 newVisual = true;
             } else if (visual.mustRecreate?.(_structure, _props, webgl)) {
+                console.log('destroying');
                 visual.destroy();
                 visual = visualCtor(materialId, _structure, _props, webgl);
                 newVisual = true;

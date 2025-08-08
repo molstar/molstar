@@ -122,7 +122,9 @@ class State {
     }
 
     setSnapshot(snapshot: State.Snapshot) {
+        console.time('decode')
         const tree = StateTree.fromJSON(snapshot.tree);
+        console.timeEnd('decode')
         return this.updateTree(tree);
     }
 
@@ -313,7 +315,9 @@ class State {
         let updated = false;
         const ctx = this.updateTreeAndCreateCtx(params.tree, taskCtx, params.options);
         try {
+            console.time('inner update')
             updated = await update(ctx);
+            console.timeEnd('inner update')
             if (StateBuilder.isTo(params.tree)) {
                 const cell = this.select(params.tree.ref)[0];
                 return { ctx, cell };
@@ -472,6 +476,7 @@ async function update(ctx: UpdateContext) {
     const fastTrack = !!(ctx.editInfo && ctx.editInfo.count === 1 && ctx.editInfo.lastUpdate && ctx.editInfo.sourceTree === ctx.oldTree);
     let deletes: StateTransform.Ref[], deletedObjects: (StateObject | undefined)[] = [], roots: StateTransform.Ref[];
 
+    console.time('pre-update')
     if (fastTrack) {
         deletes = [];
         roots = [ctx.editInfo!.lastUpdate!];
@@ -515,6 +520,9 @@ async function update(ctx: UpdateContext) {
         // Find roots where transform version changed or where nodes will be added.
         roots = findUpdateRoots(ctx.cells, ctx.tree);
     }
+    console.timeEnd('pre-update')
+
+    console.time('phase 2')
 
     // Init empty cells where not present
     // this is done in "pre order", meaning that "parents" will be created 1st.
@@ -543,10 +551,17 @@ async function update(ctx: UpdateContext) {
     // Set status of cells that will be updated to 'pending'.
     initCellStatus(ctx, roots);
 
+    console.timeEnd('phase 2')
+
+    console.time('updateSubtree')
+    console.log(roots);
+
     // Sequentially update all the subtrees.
     for (const root of roots) {
         await updateSubtree(ctx, root);
     }
+
+    console.timeEnd('updateSubtree')
 
     // Sync cell states
     if (!ctx.editInfo) {
@@ -867,6 +882,8 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
     const { oldTree, tree } = ctx;
     const current = ctx.cells.get(currentRef)!;
     const transform = current.transform;
+
+    console.log(current);
 
     // Special case for Root
     if (current.transform.ref === StateTransform.RootRef) {

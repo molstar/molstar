@@ -24,6 +24,7 @@ export { PluginStateSnapshotManager };
 
 class PluginStateSnapshotManager extends StatefulPluginComponent<{
     current?: UUID | undefined,
+    transitionIndex?: number | undefined,
     entries: List<PluginStateSnapshotManager.Entry>,
     isPlaying: boolean,
     nextSnapshotDelayInMs: number
@@ -146,10 +147,10 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         this.plugin.state.setSnapshot(e.snapshot);
     }
 
-    setCurrent(id: string) {
+    setCurrent(id: string, options?: { transitionIndex?: number }) {
         const e = this.getEntry(id);
         if (e) {
-            this.updateState({ current: id as UUID });
+            this.updateState({ current: id as UUID, transitionIndex: options?.transitionIndex });
             this.events.changed.next(void 0);
         }
         return e && e.snapshot;

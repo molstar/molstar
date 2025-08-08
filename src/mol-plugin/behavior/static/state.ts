@@ -168,10 +168,10 @@ export function Snapshots(ctx: PluginContext) {
         ctx.managers.snapshot.move(id, dir);
     });
 
-    PluginCommands.State.Snapshots.Apply.subscribe(ctx, ({ id }) => {
-        const snapshot = ctx.managers.snapshot.setCurrent(id);
+    PluginCommands.State.Snapshots.Apply.subscribe(ctx, ({ id, transitionIndex }) => {
+        const snapshot = ctx.managers.snapshot.setCurrent(id, { transitionIndex });
         if (!snapshot) return;
-        return ctx.state.setSnapshot(snapshot);
+        return ctx.state.setSnapshot(snapshot, { transitionIndex });
     });
 
     PluginCommands.State.Snapshots.Upload.subscribe(ctx, async ({ name, description, playOnLoad, serverUrl, params }) => {

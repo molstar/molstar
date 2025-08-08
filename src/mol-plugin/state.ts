@@ -78,47 +78,52 @@ class PluginState extends PluginComponent {
         };
     }
 
-    async setSnapshot(snapshot: PluginState.Snapshot) {
+    async setSnapshot(snapshot: PluginState.Snapshot, options?: { transitionIndex?: number }) {
         await this.animation.stop();
 
         // this needs to go 1st since these changes are already baked into the behavior and data state
         if (snapshot.structureComponentManager?.options) this.plugin.managers.structure.component._setSnapshotState(snapshot.structureComponentManager?.options);
-        if (snapshot.behaviour) await this.plugin.runTask(this.behaviors.setSnapshot(snapshot.behaviour));
-        if (snapshot.data) await this.plugin.runTask(this.data.setSnapshot(snapshot.data));
-        if (snapshot.canvas3d?.props) {
-            const settings = PD.normalizeParams(Canvas3DParams, snapshot.canvas3d.props, 'children');
-            await PluginCommands.Canvas3D.SetSettings(this.plugin, { settings });
-        }
-        if (snapshot.canvas3dContext?.props) {
-            const props = PD.normalizeParams(Canvas3DContext.Params, snapshot.canvas3dContext.props, 'children');
-            this.plugin.canvas3dContext?.setProps(props);
-        }
-        if (snapshot.interactivity) {
-            if (snapshot.interactivity.props) this.plugin.managers.interactivity.setProps(snapshot.interactivity.props);
-        }
-        if (snapshot.structureFocus) {
-            this.plugin.managers.structure.focus.setSnapshot(snapshot.structureFocus);
-        }
-        if (snapshot.structureSelection) {
-            this.plugin.managers.structure.selection.setSnapshot(snapshot.structureSelection);
-        }
-        if (snapshot.animation) {
-            this.animation.setSnapshot(snapshot.animation);
-        }
-        if (snapshot.camera?.current) {
-            PluginCommands.Camera.Reset(this.plugin, {
-                snapshot: snapshot.camera.current,
-                durationMs: snapshot.camera.transitionStyle === 'animate' ? snapshot.camera.transitionDurationInMs : undefined,
-            });
-        } else if (snapshot.camera?.focus) {
-            PluginCommands.Camera.FocusObject(this.plugin, {
-                ...snapshot.camera.focus,
-                durationMs: snapshot.camera.transitionStyle === 'animate' ? snapshot.camera.transitionDurationInMs : undefined,
-            });
-        }
-        if (snapshot.startAnimation) {
-            this.animation.start();
-        }
+        // if (snapshot.behaviour) await this.plugin.runTask(this.behaviors.setSnapshot(snapshot.behaviour));
+
+        const data = options?.transitionIndex ? snapshot.transition?.frames[options.transitionIndex]?.data ?? snapshot.data : snapshot.data;
+        console.log(options);
+        
+        console.log(data, data === snapshot.data);
+        if (data) await this.plugin.runTask(this.data.setSnapshot(data));
+        // if (snapshot.canvas3d?.props) {
+        //     const settings = PD.normalizeParams(Canvas3DParams, snapshot.canvas3d.props, 'children');
+        //     await PluginCommands.Canvas3D.SetSettings(this.plugin, { settings });
+        // }
+        // if (snapshot.canvas3dContext?.props) {
+        //     const props = PD.normalizeParams(Canvas3DContext.Params, snapshot.canvas3dContext.props, 'children');
+        //     this.plugin.canvas3dContext?.setProps(props);
+        // }
+        // if (snapshot.interactivity) {
+        //     if (snapshot.interactivity.props) this.plugin.managers.interactivity.setProps(snapshot.interactivity.props);
+        // }
+        // if (snapshot.structureFocus) {
+        //     this.plugin.managers.structure.focus.setSnapshot(snapshot.structureFocus);
+        // }
+        // if (snapshot.structureSelection) {
+        //     this.plugin.managers.structure.selection.setSnapshot(snapshot.structureSelection);
+        // }
+        // if (snapshot.animation) {
+        //     this.animation.setSnapshot(snapshot.animation);
+        // }
+        // if (snapshot.camera?.current) {
+        //     PluginCommands.Camera.Reset(this.plugin, {
+        //         snapshot: snapshot.camera.current,
+        //         durationMs: snapshot.camera.transitionStyle === 'animate' ? snapshot.camera.transitionDurationInMs : undefined,
+        //     });
+        // } else if (snapshot.camera?.focus) {
+        //     PluginCommands.Camera.FocusObject(this.plugin, {
+        //         ...snapshot.camera.focus,
+        //         durationMs: snapshot.camera.transitionStyle === 'animate' ? snapshot.camera.transitionDurationInMs : undefined,
+        //     });
+        // }
+        // if (snapshot.startAnimation) {
+        //     this.animation.start();
+        // }
     }
 
     updateTransform(state: State, a: StateTransform.Ref, params: any, canUndo?: string | boolean) {
@@ -211,7 +216,17 @@ namespace PluginState {
         structureComponentManager?: {
             options?: StructureComponentManager.Options
         },
-        durationInMs?: number
+        durationInMs?: number,
+        transition?: SnapshotTransition,
+    }
+
+    export interface SnapshotTransition {
+        durationInMs: number
+        frames: {
+            data: State.Snapshot,
+            camera?: Snapshot['camera'],
+            canvas3d?: { props?: Canvas3DProps },
+        }[]
     }
 
     export type SnapshotType = 'json' | 'molj' | 'zip' | 'molx'

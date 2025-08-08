@@ -47,7 +47,7 @@ export class MVSStoriesViewerModel extends PluginComponent {
                     PluginSpec.Behavior(MolViewSpec)
                 ],
                 config: [
-                    [PluginConfig.Viewport.ShowAnimation, false],
+                    // [PluginConfig.Viewport.ShowAnimation, false],
                 ]
             }
         });
