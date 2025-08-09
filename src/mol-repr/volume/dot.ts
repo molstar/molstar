@@ -131,7 +131,7 @@ export function createVolumeSphereImpostor(ctx: VisualContext, volume: Volume, k
     const invert = isoVal < 0;
 
     // Precompute basis vectors and largest cell axis length
-    let a: Vec3, b: Vec3, c: Vec3, cellMax: number
+    let a: Vec3, b: Vec3, c: Vec3, cellMax: number;
     if (perturbateGeometry) {
         a = Vec3.create(gridToCartn[0], gridToCartn[1], gridToCartn[2]);
         b = Vec3.create(gridToCartn[4], gridToCartn[5], gridToCartn[6]);
@@ -188,7 +188,7 @@ export function createVolumeSphereMesh(ctx: VisualContext, volume: Volume, key: 
     const invert = isoVal < 0;
 
     // Precompute basis vectors and largest cell axis length
-    let a: Vec3, b: Vec3, c: Vec3, cellMax: number
+    let a: Vec3, b: Vec3, c: Vec3, cellMax: number;
     if (perturbateGeometry) {
         a = Vec3.create(gridToCartn[0], gridToCartn[1], gridToCartn[2]);
         b = Vec3.create(gridToCartn[4], gridToCartn[5], gridToCartn[6]);
@@ -272,7 +272,7 @@ export function createVolumePoint(ctx: VisualContext, volume: Volume, key: numbe
     const invert = isoVal < 0;
 
     // Precompute basis vectors and largest cell axis length
-    let a: Vec3, b: Vec3, c: Vec3, cellMax: number
+    let a: Vec3, b: Vec3, c: Vec3, cellMax: number;
     if (perturbateGeometry) {
         a = Vec3.create(gridToCartn[0], gridToCartn[1], gridToCartn[2]);
         b = Vec3.create(gridToCartn[4], gridToCartn[5], gridToCartn[6]);
