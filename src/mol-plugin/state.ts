@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -121,6 +121,24 @@ class PluginState extends PluginComponent {
         }
     }
 
+    async setTransitionSnapshot(snapshot: PluginState.Snapshot, frameIndex: number) {
+        const { stateAnimation: transition } = snapshot;
+        if (!transition) return;
+        const finalIndex = Math.min(frameIndex, transition.frames.length - 1);
+        const frame = transition.frames[finalIndex] ?? snapshot.data;
+        if (frame.data) await this.plugin.runTask(this.data.setSnapshot(frame.data));
+        if (frame.canvas3d?.props) {
+            const settings = PD.normalizeParams(Canvas3DParams, frame.canvas3d.props, 'children');
+            this.plugin.canvas3d?.setProps(settings);
+        }
+        if (frame.camera?.current) {
+            PluginCommands.Camera.Reset(this.plugin, {
+                snapshot: frame.camera.current,
+                durationMs: frame.camera.transitionStyle === 'animate' ? frame.camera.transitionDurationInMs : undefined,
+            });
+        }
+    }
+
     updateTransform(state: State, a: StateTransform.Ref, params: any, canUndo?: string | boolean) {
         const tree = state.build().to(a).update(params);
         return PluginCommands.State.Update(this.plugin, { state, tree, options: { canUndo } });
@@ -211,7 +229,31 @@ namespace PluginState {
         structureComponentManager?: {
             options?: StructureComponentManager.Options
         },
-        durationInMs?: number
+        durationInMs?: number,
+        stateAnimation?: StateAnimation,
+    }
+
+    export interface StateAnimation {
+        autoplay?: boolean,
+        frames: {
+            durationInMs: number,
+            data: State.Snapshot,
+            camera?: Snapshot['camera'],
+            canvas3d?: { props?: Canvas3DProps },
+        }[],
+    }
+
+    export function getStateAnimationFrameIndex(snapshot: Snapshot, timestamp: number): number | undefined {
+        const { stateAnimation: transition } = snapshot;
+        if (!transition) return undefined;
+
+        let totalDuration = 0;
+        for (let i = 0; i < transition.frames.length; i++) {
+            if (totalDuration >= timestamp) return i;
+            const frame = transition.frames[i];
+            totalDuration += frame.durationInMs;
+        }
+        return transition.frames.length - 1;
     }
 
     export type SnapshotType = 'json' | 'molj' | 'zip' | 'molx'

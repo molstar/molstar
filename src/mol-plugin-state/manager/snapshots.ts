@@ -23,7 +23,7 @@ import { StringLike } from '../../mol-io/common/string-like';
 export { PluginStateSnapshotManager };
 
 class PluginStateSnapshotManager extends StatefulPluginComponent<{
-    current?: UUID | undefined,
+    current?: UUID,
     entries: List<PluginStateSnapshotManager.Entry>,
     isPlaying: boolean,
     nextSnapshotDelayInMs: number
@@ -183,11 +183,6 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
     }
 
     async setStateSnapshot(snapshot: PluginStateSnapshotManager.StateSnapshot): Promise<PluginState.Snapshot | undefined> {
-        if (snapshot.version !== PLUGIN_VERSION) {
-            // TODO
-            // console.warn('state snapshot version mismatch');
-        }
-
         this.clear();
         const entries = List<PluginStateSnapshotManager.Entry>().asMutable();
         for (const e of snapshot.entries) {
