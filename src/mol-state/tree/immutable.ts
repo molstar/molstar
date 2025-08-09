@@ -229,4 +229,13 @@ namespace StateTree {
         if (child?.transformer.definition.isDecorator) return getDecoratorRoot(tree, child.ref);
         return ref;
     }
+
+    export function setParamHashVersion(tree: StateTree, refs: StateTransform.Ref[]) {
+        for (const ref of refs) {
+            const transform = tree.transforms.get(ref);
+            if (transform) {
+                StateTransform.setParamsHashVersion(transform);
+            }
+        }
+    }
 }
