@@ -2,6 +2,7 @@
  * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import type { SizeTheme } from '../size';
@@ -26,9 +27,10 @@ export function VolumeValueSizeTheme(ctx: ThemeDataContext, props: PD.Values<Vol
         const { data } = ctx.volume.grid.cells;
 
         const isLocation = Volume.Cell.isLocation;
+        const abs = Math.abs;
         const size: LocationSize = (location: Location): number => {
             if (isLocation(location)) {
-                return data[location.cell] * props.scale;
+                return abs(data[location.cell]) * props.scale;
             } else {
                 return 0;
             }
