@@ -99,6 +99,7 @@ export function VolumeSphereMeshVisual(materialId: number): VolumeVisual<VolumeS
 
 const rand = Math.random;
 const offset = Vec3();
+const tmpVec = Vec3();
 function getRandomOffsetFromBasis(a: Vec3, b: Vec3, c: Vec3, cellMax: number, dotSize: number): Vec3 {
     const scaleFactor = Math.max(0, (cellMax - dotSize) / cellMax);
     if (scaleFactor <= 0) return Vec3.set(offset, 0, 0, 0);
@@ -108,8 +109,8 @@ function getRandomOffsetFromBasis(a: Vec3, b: Vec3, c: Vec3, cellMax: number, do
     const rz = (rand() - 0.5) * scaleFactor;
 
     Vec3.scale(offset, a, rx);
-    Vec3.add(offset, offset, Vec3.scale(Vec3(), b, ry));
-    Vec3.add(offset, offset, Vec3.scale(Vec3(), c, rz));
+    Vec3.add(offset, offset, Vec3.scale(tmpVec, b, ry));
+    Vec3.add(offset, offset, Vec3.scale(tmpVec, c, rz));
 
     return offset;
 }
