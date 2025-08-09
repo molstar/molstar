@@ -4,10 +4,21 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { bool, float, int, list, OptionalField, RequiredField, str, union, nullable } from '../generic/field-schema';
+import { bool, float, int, list, OptionalField, RequiredField, str, union, nullable, literal, ValueFor } from '../generic/field-schema';
 import { SimpleParamsSchema, UnionParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema } from '../generic/tree-schema';
 
+const Easing = literal(
+    'linear',
+    'bounce-in', 'bounce-out', 'bounce-in-out',
+    'circle-in', 'circle-out', 'circle-in-out',
+    'cubic-in', 'cubic-out', 'cubic-in-out',
+    'exp-in', 'exp-out', 'exp-in-out',
+    'quad-in', 'quad-out', 'quad-in-out',
+    'sin-in', 'sin-out', 'sin-in-out',
+);
+
+export type MVSAnimationEasing = ValueFor<typeof Easing>;
 
 const ScalarTransition = {
     target_ref: RequiredField(str, 'Reference to the node.'),
@@ -16,7 +27,7 @@ const ScalarTransition = {
     end_value: RequiredField(float, 'End value for the transition.'),
     start_ms: OptionalField(float, 0, 'Start time of the transition in milliseconds.'),
     end_ms: RequiredField(float, 'End time of the transition in milliseconds.'),
-    // easing: OptionalField(literal('linear', 'ease-in', 'ease-out', 'ease-in-out'), 'linear', 'Easing function to use for the transition.'),
+    easing: OptionalField(Easing, 'linear', 'Easing function to use for the transition.'),
 };
 
 export const MVSAnimationSchema = TreeSchema({
@@ -26,8 +37,11 @@ export const MVSAnimationSchema = TreeSchema({
             description: 'Animation root node',
             parent: [],
             params: SimpleParamsSchema({
+                frame_time_ms: OptionalField(float, 1000 / 60, 'Frame time in milliseconds'),
                 autoplay: OptionalField(bool, true, 'Determines whether the animation should autoplay when a snapshot is loaded'),
                 loop: OptionalField(bool, false, 'Determines whether the animation should loop when it reaches the end'),
+                include_camera: OptionalField(bool, false, 'Determines whether the camera state should be included in the animation'),
+                include_canvas: OptionalField(bool, false, 'Determines whether the canvas state should be included in the animation'),
             }),
         },
         transition: {

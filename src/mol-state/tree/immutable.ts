@@ -240,19 +240,14 @@ namespace StateTree {
     }
 
     /** Re-use parameters of transforms with the same ref, transformer, and version */
-    export function reuseTransformParams(destination: StateTree, source: StateTree) {
-        const refs = (destination.transforms as ImmutableMap<StateTransform.Ref, StateTransform>).keySeq().toArray();
-        for (const ref of refs) {
-            const src = source.transforms.get(ref);
-            if (!src) continue;
-            const dst = destination.transforms.get(ref);
-            if (!dst) continue;
+    export function reuseTransformParams(destination: StateTree.Serialized, source: StateTree.Serialized) {
+        const srcMap = new Map<StateTransform.Ref, StateTransform.Serialized>(source.transforms.map(t => [t.ref, t]));
 
-            if (src.transformer.namespace === dst.transformer.namespace
-                && src.transformer.id === dst.transformer.id
-                && src.version === dst.version) {
-                StateTransform.setParams(dst, src.params);
-            }
+        for (const dest of destination.transforms) {
+            const src = srcMap.get(dest.ref);
+            if (!src) continue;
+            if (dest.transformer !== src.transformer || dest.version !== src.version) continue;
+            dest.params = src.params;
         }
     }
 }

@@ -95,7 +95,7 @@ export class Root extends _Base<'root'> implements FocusMixin, PrimitivesMixin {
     primitives_from_uri = bindMethod(this, PrimitivesMixinImpl, 'primitives_from_uri');
 
     animation(params: MVSAnimationNodeParams<'animation'> & CustomAndRef = {}): Animation {
-        this._animation = new Animation(params);
+        this._animation ??= new Animation(params);
         return this._animation;
     }
 }

@@ -14,7 +14,8 @@ import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plu
 import { VolumeFromCcp4, VolumeFromDensityServerCif } from '../../mol-plugin-state/transforms/volume';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
-import { StateObjectSelector } from '../../mol-state';
+import { PluginState } from '../../mol-plugin/state';
+import { StateObjectSelector, StateTree } from '../../mol-state';
 import { MolViewSpec } from './behavior';
 import { createPluginStateSnapshotCamera, modifyCanvasProps } from './camera';
 import { MVSAnnotationsProvider } from './components/annotation-prop';
@@ -24,11 +25,12 @@ import { CustomLabelProps, CustomLabelRepresentationProvider } from './component
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
 import { IsMVSModelProps, IsMVSModelProvider } from './components/is-mvs-model-prop';
 import { getPrimitiveStructureRefs, MVSBuildPrimitiveShape, MVSDownloadPrimitiveData, MVSInlinePrimitiveData, MVSShapeRepresentation3D } from './components/primitives';
+import { generateStateAnimation } from './helpers/animation';
 import { IsHiddenCustomStateExtension } from './load-extensions/is-hidden-custom-state';
 import { NonCovalentInteractionsExtension } from './load-extensions/non-covalent-interactions';
 import { LoadingActions, LoadingExtension, loadTreeVirtual, UpdateTarget } from './load-generic';
 import { AnnotationFromSourceKind, AnnotationFromUriKind, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformAndInstantiateStructure, transformAndInstantiateVolume, volumeColorThemeForNode, volumeRepresentationProps } from './load-helpers';
-import { MVSData, MVSData_States, SnapshotMetadata } from './mvs-data';
+import { MVSData, MVSData_States, Snapshot, SnapshotMetadata } from './mvs-data';
 import { validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
 import { MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree, MolstarTreeSchema } from './tree/molstar/molstar-tree';
@@ -72,6 +74,7 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: MVS
                 { ...snapshot.metadata, previousTransitionDurationMs: previousSnapshot.metadata.transition_duration_ms },
                 options
             );
+            assignStateAnimation(plugin, entry, snapshot, options);
             entries.push(entry);
         }
         if (!options.appendSnapshots) {
@@ -101,6 +104,38 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: MVS
     }
 }
 
+function assignStateAnimation(plugin: PluginContext, parentEntry: PluginStateSnapshotManager.Entry, parent: Snapshot, options: MVSLoadOptions = {}) {
+    const transitions = generateStateAnimation(parent);
+    if (!transitions?.frames.length) return;
+
+    const animation: PluginState.StateAnimation = {
+        autoplay: !!transitions.tree.params?.autoplay,
+        loop: !!transitions.tree.params?.loop,
+        frames: [],
+    };
+
+    for (const frame of transitions.frames) {
+        const molstarTree = convertMvsToMolstar(frame, options.sourceUrl);
+        const entry = molstarTreeToEntry(
+            plugin,
+            molstarTree,
+            frame,
+            { ...parent.metadata, previousTransitionDurationMs: transitions.frametimeMs },
+            options
+        );
+
+        StateTree.reuseTransformParams(entry.snapshot.data!.tree, parentEntry.snapshot.data!.tree);
+
+        animation.frames.push({
+            durationInMs: transitions.frametimeMs,
+            data: entry.snapshot.data!,
+            camera: transitions.tree.params?.include_camera ? entry.snapshot.camera : undefined,
+            canvas3d: transitions.tree.params?.include_canvas ? entry.snapshot.canvas3d : undefined,
+        });
+    }
+
+    parentEntry.snapshot.stateAnimation = animation;
+}
 
 function molstarTreeToEntry(
     plugin: PluginContext,
