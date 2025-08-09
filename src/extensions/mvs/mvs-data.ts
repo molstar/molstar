@@ -6,6 +6,7 @@
 
 import { treeValidationIssues } from './tree/generic/tree-schema';
 import { treeToString } from './tree/generic/tree-utils';
+import { MVSAnimationSchema, MVSAnimationTree } from './tree/mvs/mvs-animation';
 import { Root, createMVSBuilder } from './tree/mvs/mvs-builder';
 import { MVSTree, MVSTreeSchema } from './tree/mvs/mvs-tree';
 
@@ -53,6 +54,8 @@ export interface Snapshot {
     root: MVSTree,
     /** Associated metadata */
     metadata: SnapshotMetadata,
+    /** Optional animation */
+    animation?: MVSAnimationTree,
 }
 
 /** MVSData with a single state */
@@ -189,7 +192,14 @@ function majorVersion(semanticVersion: string | number): number | undefined {
 
 function snapshotValidationIssues(snapshot: MVSData_State | Snapshot, options: { noExtra?: boolean } = {}): string[] | undefined {
     if (snapshot.root === undefined) return [`"root" missing in snapshot`];
-    return treeValidationIssues(MVSTreeSchema, snapshot.root, options);
+    const state = treeValidationIssues(MVSTreeSchema, snapshot.root, options);
+    const animation = 'animation' in snapshot && snapshot.animation !== undefined
+        ? treeValidationIssues(MVSAnimationSchema, snapshot.animation, options)
+        : undefined;
+    if (state && animation) return [...state, ...animation];
+    if (state) return state;
+    if (animation) return animation;
+    return undefined;
 }
 
 /** Return the current universal time, in ISO format, e.g. '2023-11-24T10:45:49.873Z' */

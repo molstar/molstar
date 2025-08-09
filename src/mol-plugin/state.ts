@@ -235,6 +235,7 @@ namespace PluginState {
 
     export interface StateAnimation {
         autoplay?: boolean,
+        loop?: boolean,
         frames: {
             durationInMs: number,
             data: State.Snapshot,

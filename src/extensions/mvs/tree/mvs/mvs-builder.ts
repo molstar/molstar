@@ -8,6 +8,7 @@
 import { deepClone, pickObjectKeys } from '../../../../mol-util/object';
 import { GlobalMetadata, MVSData_State, Snapshot, SnapshotMetadata } from '../../mvs-data';
 import { CustomProps } from '../generic/tree-schema';
+import { MVSAnimationNodeParams, MVSAnimationSubtree } from './mvs-animation';
 import { MVSKind, MVSNode, MVSNodeParams, MVSSubtree } from './mvs-tree';
 
 
@@ -50,6 +51,8 @@ class _Base<TKind extends MVSKind> {
 
 /** MVS builder pointing to the 'root' node */
 export class Root extends _Base<'root'> implements FocusMixin, PrimitivesMixin {
+    protected _animation: Animation | undefined = undefined;
+
     constructor(params_: CustomAndRef) {
         const { custom, ref } = params_;
         const node: MVSNode<'root'> = { kind: 'root', custom, ref };
@@ -69,6 +72,7 @@ export class Root extends _Base<'root'> implements FocusMixin, PrimitivesMixin {
         return {
             root: deepClone(this._node),
             metadata: { ...metadata },
+            animation: this?._animation ? deepClone(this._animation.node) : undefined,
         };
     }
 
@@ -89,6 +93,37 @@ export class Root extends _Base<'root'> implements FocusMixin, PrimitivesMixin {
     focus = bindMethod(this, FocusMixinImpl, 'focus');
     primitives = bindMethod(this, PrimitivesMixinImpl, 'primitives');
     primitives_from_uri = bindMethod(this, PrimitivesMixinImpl, 'primitives_from_uri');
+
+    animation(params: MVSAnimationNodeParams<'animation'> & CustomAndRef = {}): Animation {
+        this._animation = new Animation(params);
+        return this._animation;
+    }
+}
+
+export class Animation {
+    private _node: MVSAnimationSubtree<'animation'>;
+    constructor(
+        parameters: MVSAnimationNodeParams<'animation'> & CustomAndRef
+    ) {
+        this._node = {
+            kind: 'animation',
+            children: [],
+            ...splitParams<MVSAnimationNodeParams<'animation'>>(parameters),
+        };
+    }
+
+    get node(): MVSAnimationSubtree<'animation'> {
+        return this._node;
+    }
+
+    transition(params: MVSAnimationNodeParams<'transition'> & CustomAndRef): Animation {
+        const node = {
+            kind: 'transition',
+            ...splitParams<MVSAnimationNodeParams<'transition'>>(params)
+        } as MVSAnimationSubtree<'transition'>;
+        this._node.children!.push(node);
+        return this;
+    }
 }
 
 
