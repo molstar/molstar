@@ -185,6 +185,10 @@ namespace Transform {
         (t as { version: string }).version = version;
     }
 
+    export function setParams(t: Transform, params: StateTransformer.Params<any>) {
+        (t as { params: any }).params = params;
+    }
+
     export interface Serialized {
         parent: string,
         transformer: string,

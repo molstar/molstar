@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -235,6 +235,23 @@ namespace StateTree {
             const transform = tree.transforms.get(ref);
             if (transform) {
                 StateTransform.setParamsHashVersion(transform);
+            }
+        }
+    }
+
+    /** Re-use parameters of transforms with the same ref, transformer, and version */
+    export function reuseTransformParams(destination: StateTree, source: StateTree) {
+        const refs = (destination.transforms as ImmutableMap<StateTransform.Ref, StateTransform>).keySeq().toArray();
+        for (const ref of refs) {
+            const src = source.transforms.get(ref);
+            if (!src) continue;
+            const dst = destination.transforms.get(ref);
+            if (!dst) continue;
+
+            if (src.transformer.namespace === dst.transformer.namespace
+                && src.transformer.id === dst.transformer.id
+                && src.version === dst.version) {
+                StateTransform.setParams(dst, src.params);
             }
         }
     }
