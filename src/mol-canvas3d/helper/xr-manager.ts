@@ -74,8 +74,9 @@ export class XRManager {
     private pointerDown = Vec2();
     private pointerEnd = Vec2();
 
+    private scaleFactor = 1;
+    private prevScale = 0;
     private prevInput: { left?: InputInfo, right?: InputInfo } = {};
-
     private hit: Vec3 | undefined = undefined;
 
     readonly props: XRManagerProps;
@@ -95,7 +96,10 @@ export class XRManager {
         }
     }
 
-    private scaleFactor = 1;
+    resetScale() {
+        this.scaleFactor = 1;
+        this.prevScale = 0;
+    }
 
     update(xrFrame?: XRFrame): boolean {
         const { xrSession, xrRefSpace, input, camera, stereoCamera, pointerHelper } = this;
@@ -272,8 +276,6 @@ export class XRManager {
 
         return true;
     }
-
-    private prevScale = 0;
 
     private async setSession(xrSession: XRSession | undefined) {
         if (this.xrSession === xrSession) return;

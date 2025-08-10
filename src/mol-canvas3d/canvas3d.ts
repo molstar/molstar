@@ -818,6 +818,10 @@ namespace Canvas3D {
         function resolveCameraReset() {
             if (!cameraResetRequested) return;
 
+            if (!xr.isPresenting.value) {
+                xrManager.resetScale();
+            }
+
             const boundingSphere = scene.boundingSphereVisible;
             const { center, radius } = boundingSphere;
 
