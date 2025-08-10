@@ -6,7 +6,7 @@
 
 import { buildStory as kinase } from './kinase';
 import { buildStory as tbp } from './tbp';
-import { buildStory as animation } from './animation'
+import { buildStory as animation } from './animation';
 
 export const Stories = [
     { id: 'kinase', name: 'BCR-ABL: A Kinase Out of Control', buildStory: kinase },

@@ -8,6 +8,7 @@ import { MVSData_States } from '../../../extensions/mvs/mvs-data';
 import { createMVSBuilder, Structure as MVSStructure, Root } from '../../../extensions/mvs/tree/mvs/mvs-builder';
 import { MVSNodeParams } from '../../../extensions/mvs/tree/mvs/mvs-tree';
 import { ColorT } from '../../../extensions/mvs/tree/mvs/param-types';
+import { Mat4 } from '../../../mol-math/linear-algebra';
 
 const Colors = {
     '1cbs': '#4577B2' as ColorT,
@@ -136,7 +137,7 @@ const Steps = [
     },
     {
         header: 'Highlight & Opacity',
-        description: `Animate emissive and opacity properties`,
+        description: `Animate emissive, opacity and transform properties`,
         linger_duration_ms: 2000,
         transition_duration_ms: 0,
         state: (): Root => {
@@ -163,6 +164,20 @@ const Steps = [
                 })
                 .color({ color: Colors['ligand-docked'] });
 
+            const primitives = builder.primitives({
+                ref: 'primitives',
+                instances: [
+                    Mat4.identity()
+                ],
+                opacity: 0,
+            });
+
+            primitives.ellipsoid({
+                center: [0, 0, 0],
+                radius: 2,
+                color: 'red'
+            });
+
             const anim = builder.animation();
 
             anim.interpolate({
@@ -178,7 +193,25 @@ const Steps = [
                 target_ref: 'opacity',
                 duration_ms: 1000,
                 property: 'opacity',
-                to: 0.33,
+                to: 0,
+            });
+
+            anim.interpolate({
+                kind: 'vec3',
+                target_ref: 'primitives',
+                property: ['instances', 0],
+                transform_matrix_target: 'translation',
+                from: [20.24, 29.64, 14.85],
+                to: [21.84, 21.71, 27.04],
+                duration_ms: 1000,
+            });
+
+            anim.interpolate({
+                kind: 'scalar',
+                target_ref: 'primitives',
+                duration_ms: 1000,
+                property: 'opacity',
+                to: 1,
             });
 
             return builder;

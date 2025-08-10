@@ -46,6 +46,7 @@ const Vec3Transition = {
     from: OptionalField(nullable(Vector3), null, 'Start value. If unset, source value is used.'),
     to: RequiredField(Vector3, 'End value for the transition.'),
     spherical: OptionalField(bool, false, 'Whether to use spherical interpolation.'),
+    transform_matrix_target: OptionalField(nullable(literal('translation')), null, 'Apply the interpolation to a 4x4 matrix component.'),
     ..._Noise,
 };
 
@@ -53,6 +54,7 @@ const RotationMatrixTransition = {
     ..._Common,
     from: OptionalField(nullable(Matrix), null, 'Start value. If unset, source value is used.'),
     to: RequiredField(Matrix, 'End value for the transition.'),
+    transform_matrix_target: OptionalField(nullable(literal('rotation')), null, 'Apply the interpolation to a 4x4 matrix component.'),
     ..._Noise,
 };
 

@@ -93,23 +93,27 @@ function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolat
 
             const paletteFn = cache.get(transition)?.paletteFn;
 
+            const transformTarget = transition.params.kind === 'rotation_matrix' || transition.params.kind === 'vec3'
+                ? transition.params.transform_matrix_target
+                : undefined;
+
             const offset = transition.params.property[0] === 'custom' ? 1 : 0;
             const startTime = transition.params.start_ms ?? 0;
             const startValue: any = transition.params.kind === 'color'
                 ? Color.toHexStyle(paletteFn!(0))
-                : transition.params.from ?? select(target, transition.params.property, offset);
+                : transition.params.from ?? select(target, transition.params.property, offset, transformTarget);
             const endTime = startTime + transition.params.duration_ms;
             const endValue: any = transition.params.kind === 'color'
                 ? Color.toHexStyle(paletteFn!(1))
                 : transition.params.to;
 
             if (time <= startTime) {
-                assign(target, transition.params.property, startValue, offset);
+                assign(target, transition.params.property, startValue, offset, transformTarget);
                 continue;
             }
 
             if (time >= endTime - EPSILON) {
-                assign(target, transition.params.property, endValue, offset);
+                assign(target, transition.params.property, endValue, offset, transformTarget);
                 continue;
             }
 
@@ -129,7 +133,7 @@ function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolat
                 next = Color.toHexStyle(color);
             }
 
-            assign(target, transition.params.property, next, offset);
+            assign(target, transition.params.property, next, offset, transformTarget);
         }
     });
 }
@@ -176,9 +180,24 @@ function interpolateRotation(start: Mat3, end: Mat3, t: number, noise: number) {
     return Mat3.fromMat4(Mat3(), RotationState.temp);
 }
 
-function select(params: any, path: string | (string | number)[], offset: number) {
+type TransformTarget = 'rotation' | 'translation' | null | undefined
+
+function getTransformTarget(value: any, target: TransformTarget) {
+    if (!value || !target) return value;
+
+    switch (target) {
+        case 'rotation':
+            return Mat3.fromMat4(Mat3(), value);
+        case 'translation':
+            return Mat4.getTranslation(Vec3(), value);
+        default:
+            return value;
+    }
+}
+
+function select(params: any, path: string | (string | number)[], offset: number, transformTarget: TransformTarget) {
     if (typeof path === 'string') {
-        return params?.[path];
+        return getTransformTarget(params?.[path], transformTarget);
     }
 
     let f = params;
@@ -186,14 +205,27 @@ function select(params: any, path: string | (string | number)[], offset: number)
         if (!f) break;
         f = f[path[i]];
     }
-    return f;
+
+    return getTransformTarget(f, transformTarget);
 }
 
-function assign(params: any, path: string | (string | number)[], value: any, offset: number) {
+function assignTransformTarget(target: any, xform: TransformTarget, value: any) {
+    if (!xform) return;
+
+    switch (xform) {
+        case 'rotation':
+            Mat4.fromMat3(target, value);
+        case 'translation':
+            Mat4.setTranslation(target, value);
+    }
+}
+
+function assign(params: any, path: string | (string | number)[], value: any, offset: number, transformTarget: TransformTarget) {
     if (!params) return;
 
     if (typeof path === 'string') {
-        params[path] = value;
+        if (transformTarget) assignTransformTarget(params[path], transformTarget, value);
+        else params[path] = value;
         return;
     }
 
@@ -201,7 +233,8 @@ function assign(params: any, path: string | (string | number)[], value: any, off
     for (let i = offset; i < path.length; i++) {
         if (!f) break;
         if (i === path.length - 1) {
-            f[path[i]] = value;
+            if (transformTarget) assignTransformTarget(f[path[i]], transformTarget, value);
+            else f[path[i]] = value;
         } else {
             f = f[path[i]];
         }
