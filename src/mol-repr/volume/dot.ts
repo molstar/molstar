@@ -128,12 +128,10 @@ export function createVolumeSphereImpostor(ctx: VisualContext, volume: Volume, k
     const count = Math.ceil((xn * yn * zn) / 10);
     const builder = SpheresBuilder.create(count, Math.ceil(count / 2), spheres);
 
-    const { perturbPositions } = props;
-    const l = Volume.Cell.Location(volume);
     const invert = isoVal < 0;
 
     // Precompute basis vectors and largest cell axis length
-    const basis = perturbPositions ? getBasis(gridToCartn) : undefined;
+    const basis = props.perturbPositions ? getBasis(gridToCartn) : undefined;
 
     for (let z = 0; z < zn; ++z) {
         for (let y = 0; y < yn; ++y) {
@@ -142,12 +140,10 @@ export function createVolumeSphereImpostor(ctx: VisualContext, volume: Volume, k
                 if (!invert && value < isoVal || invert && value > isoVal) continue;
 
                 const cellIdx = space.dataOffset(x, y, z);
-                if (perturbPositions) {
-                    l.cell = cellIdx as Volume.CellIndex;
-
+                if (basis) {
                     Vec3.set(p, x, y, z);
                     Vec3.transformMat4(p, p, gridToCartn);
-                    const offset = getRandomOffsetFromBasis(basis!);
+                    const offset = getRandomOffsetFromBasis(basis);
                     Vec3.add(p, p, offset);
                 } else {
                     Vec3.set(p, x, y, z);
@@ -177,13 +173,12 @@ export function createVolumeSphereMesh(ctx: VisualContext, volume: Volume, key: 
     const vertexCount = count * sphereVertexCount(detail);
     const builderState = MeshBuilder.createState(vertexCount, Math.ceil(vertexCount / 2), mesh);
 
-    const { perturbPositions } = props;
     const l = Volume.Cell.Location(volume);
     const themeSize = theme.size.size;
     const invert = isoVal < 0;
 
     // Precompute basis vectors and largest cell axis length
-    const basis = perturbPositions ? getBasis(gridToCartn) : undefined;
+    const basis = props.perturbPositions ? getBasis(gridToCartn) : undefined;
 
     for (let z = 0; z < zn; ++z) {
         for (let y = 0; y < yn; ++y) {
@@ -194,10 +189,10 @@ export function createVolumeSphereMesh(ctx: VisualContext, volume: Volume, key: 
                 const cellIdx = space.dataOffset(x, y, z);
                 l.cell = cellIdx as Volume.CellIndex;
                 const size = themeSize(l) * sizeFactor;
-                if (perturbPositions) {
+                if (basis) {
                     Vec3.set(p, x, y, z);
                     Vec3.transformMat4(p, p, gridToCartn);
-                    const offset = getRandomOffsetFromBasis(basis!);
+                    const offset = getRandomOffsetFromBasis(basis);
                     Vec3.add(p, p, offset);
                 } else {
                     Vec3.set(p, x, y, z);
@@ -251,12 +246,10 @@ export function createVolumePoint(ctx: VisualContext, volume: Volume, key: numbe
     const count = Math.ceil((xn * yn * zn) / 10);
     const builder = PointsBuilder.create(count, Math.ceil(count / 2), points);
 
-    const { perturbPositions } = props;
-    const l = Volume.Cell.Location(volume);
     const invert = isoVal < 0;
 
     // Precompute basis vectors and largest cell axis length
-    const basis = perturbPositions ? getBasis(gridToCartn) : undefined;
+    const basis = props.perturbPositions ? getBasis(gridToCartn) : undefined;
 
     for (let z = 0; z < zn; ++z) {
         for (let y = 0; y < yn; ++y) {
@@ -265,12 +258,10 @@ export function createVolumePoint(ctx: VisualContext, volume: Volume, key: numbe
                 if (!invert && value < isoVal || invert && value > isoVal) continue;
 
                 const cellIdx = space.dataOffset(x, y, z);
-                if (perturbPositions) {
-                    l.cell = cellIdx as Volume.CellIndex;
-
+                if (basis) {
                     Vec3.set(p, x, y, z);
                     Vec3.transformMat4(p, p, gridToCartn);
-                    const offset = getRandomOffsetFromBasis(basis!);
+                    const offset = getRandomOffsetFromBasis(basis);
                     Vec3.add(p, p, offset);
                 } else {
                     Vec3.set(p, x, y, z);
