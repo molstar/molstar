@@ -22,7 +22,7 @@ export async function generateStateAnimation(ctx: RuntimeContext, snapshot: Snap
     const transitions = tree.children?.filter(child => child.kind === 'transition');
     if (!transitions?.length) return undefined;
 
-    const duration = Math.min(snapshot.metadata.linger_duration_ms, Math.max(...transitions.map(t => t.params.end_ms)));
+    const duration = Math.max(...transitions.map(t => t.params.end_ms));
 
     const frames: MVSTree[] = [];
     const dt = tree.params?.frame_time_ms ?? (1000 / 60);
@@ -31,7 +31,6 @@ export async function generateStateAnimation(ctx: RuntimeContext, snapshot: Snap
     for (let i = 0; i <= N; i++) {
         const t = i * dt;
         const root = createSnapshot(snapshot.root, transitions, t);
-        if (!root) break;
         frames.push(root);
 
         if (ctx.shouldUpdate) {

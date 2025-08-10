@@ -52,8 +52,13 @@ export interface MVSLoadOptions {
     doNotReportErrors?: boolean
 }
 
+export function loadMVS(plugin: PluginContext, data: MVSData, options: MVSLoadOptions = {}) {
+    const task = Task.create('Load MVS', ctx => _loadMVS(ctx, plugin, data, options));
+    return plugin.runTask(task);
+}
+
 /** Load a MolViewSpec (MVS) state(s) into the Mol* plugin as plugin state snapshots. */
-export async function loadMVS(plugin: PluginContext, data: MVSData, options: MVSLoadOptions = {}) {
+async function _loadMVS(ctx: RuntimeContext, plugin: PluginContext, data: MVSData, options: MVSLoadOptions = {}) {
     plugin.errorContext.clear('mvs');
     try {
         const mvsExtensionLoaded = plugin.state.hasBehavior(MolViewSpec);
@@ -75,8 +80,12 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: MVS
                 { ...snapshot.metadata, previousTransitionDurationMs: previousSnapshot.metadata.transition_duration_ms },
                 options
             );
-            await plugin.runTask(assignStateAnimation(plugin, entry, snapshot, options));
+            await assignStateAnimation(ctx, plugin, entry, snapshot, options);
             entries.push(entry);
+
+            if (ctx.shouldUpdate) {
+                await ctx.update({ message: 'Loading MVS...', current: i, max: multiData.snapshots.length });
+            }
         }
         if (!options.appendSnapshots) {
             plugin.managers.snapshot.clear();
@@ -105,11 +114,7 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: MVS
     }
 }
 
-function assignStateAnimation(plugin: PluginContext, parentEntry: PluginStateSnapshotManager.Entry, parent: Snapshot, options: MVSLoadOptions = {}) {
-    return Task.create('Assign MVS state animation', ctx => _assignStateAnimation(ctx, plugin, parentEntry, parent, options));
-}
-
-async function _assignStateAnimation(ctx: RuntimeContext, plugin: PluginContext, parentEntry: PluginStateSnapshotManager.Entry, parent: Snapshot, options: MVSLoadOptions = {}) {
+async function assignStateAnimation(ctx: RuntimeContext, plugin: PluginContext, parentEntry: PluginStateSnapshotManager.Entry, parent: Snapshot, options: MVSLoadOptions = {}) {
     const transitions = await generateStateAnimation(ctx, parent);
     if (!transitions?.frames.length) return;
 
