@@ -26,7 +26,7 @@ import { CustomLabelProps, CustomLabelRepresentationProvider } from './component
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
 import { IsMVSModelProps, IsMVSModelProvider } from './components/is-mvs-model-prop';
 import { getPrimitiveStructureRefs, MVSBuildPrimitiveShape, MVSDownloadPrimitiveData, MVSInlinePrimitiveData, MVSShapeRepresentation3D } from './components/primitives';
-import { generateStateAnimation } from './helpers/animation';
+import { generateStateTransition } from './helpers/animation';
 import { IsHiddenCustomStateExtension } from './load-extensions/is-hidden-custom-state';
 import { NonCovalentInteractionsExtension } from './load-extensions/non-covalent-interactions';
 import { LoadingActions, LoadingExtension, loadTreeVirtual, UpdateTarget } from './load-generic';
@@ -80,7 +80,7 @@ async function _loadMVS(ctx: RuntimeContext, plugin: PluginContext, data: MVSDat
                 { ...snapshot.metadata, previousTransitionDurationMs: previousSnapshot.metadata.transition_duration_ms },
                 options
             );
-            await assignStateAnimation(ctx, plugin, entry, snapshot, options);
+            await assignStateTransition(ctx, plugin, entry, snapshot, options);
             entries.push(entry);
 
             if (ctx.shouldUpdate) {
@@ -114,11 +114,11 @@ async function _loadMVS(ctx: RuntimeContext, plugin: PluginContext, data: MVSDat
     }
 }
 
-async function assignStateAnimation(ctx: RuntimeContext, plugin: PluginContext, parentEntry: PluginStateSnapshotManager.Entry, parent: Snapshot, options: MVSLoadOptions = {}) {
-    const transitions = await generateStateAnimation(ctx, parent);
+async function assignStateTransition(ctx: RuntimeContext, plugin: PluginContext, parentEntry: PluginStateSnapshotManager.Entry, parent: Snapshot, options: MVSLoadOptions = {}) {
+    const transitions = await generateStateTransition(ctx, parent);
     if (!transitions?.frames.length) return;
 
-    const animation: PluginState.StateAnimation = {
+    const animation: PluginState.StateTransition = {
         autoplay: !!transitions.tree.params?.autoplay,
         loop: !!transitions.tree.params?.loop,
         frames: [],
@@ -144,11 +144,11 @@ async function assignStateAnimation(ctx: RuntimeContext, plugin: PluginContext, 
         });
 
         if (ctx.shouldUpdate) {
-            await ctx.update({ message: 'Generating animation...' });
+            await ctx.update({ message: 'Generating transition...' });
         }
     }
 
-    parentEntry.snapshot.stateAnimation = animation;
+    parentEntry.snapshot.transition = animation;
 }
 
 function molstarTreeToEntry(

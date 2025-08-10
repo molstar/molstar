@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -38,7 +38,7 @@ type State = {
     totalDuration: number,
     snapshots: PluginStateSnapshotManager.Entry[],
     currentIndex: number,
-    currentAnimationFrame: number
+    currentTransitionFrame: number
 };
 
 export const AnimateStateSnapshots = PluginStateAnimation.create({
@@ -73,7 +73,7 @@ export const AnimateStateSnapshots = PluginStateAnimation.create({
             totalDuration: snapshots.reduce((a, b) => a + (b.snapshot.durationInMs ?? 0), 0),
             snapshots,
             currentIndex: 0,
-            currentAnimationFrame: 0,
+            currentTransitionFrame: 0,
         } as State;
     },
     async apply(animState: State, t, ctx) {
@@ -94,14 +94,14 @@ export const AnimateStateSnapshots = PluginStateAnimation.create({
 
         if (i >= animState.snapshots.length) return { kind: 'finished' };
 
-        const { stateAnimation } = animState.snapshots[i].snapshot;
-        const frameIndex = PluginState.getStateAnimationFrameIndex(animState.snapshots[i].snapshot, ftime);
-        if (stateAnimation && frameIndex !== undefined) {
-            if (i === animState.currentIndex && frameIndex === animState.currentAnimationFrame) {
+        const { transition } = animState.snapshots[i].snapshot;
+        const frameIndex = PluginState.getStateTransitionFrameIndex(animState.snapshots[i].snapshot, ftime);
+        if (transition && frameIndex !== undefined) {
+            if (i === animState.currentIndex && frameIndex === animState.currentTransitionFrame) {
                 return { kind: 'skip' };
             }
 
-            await setPartialSnapshot(ctx.plugin, stateAnimation.frames[frameIndex]);
+            await setPartialSnapshot(ctx.plugin, transition.frames[frameIndex]);
             return { kind: 'next', state: { ...animState, currentAnimationFrame: frameIndex } };
         }
 
@@ -111,5 +111,73 @@ export const AnimateStateSnapshots = PluginStateAnimation.create({
 
         await setPartialSnapshot(ctx.plugin, animState.snapshots[i].snapshot);
         return { kind: 'next', state: { ...animState, currentIndex: i, currentAnimationFrame: 0 } };
+    }
+});
+
+export const AnimateStateSnapshotTransition = PluginStateAnimation.create({
+    name: 'built-in.animate-state-snapshot-transition',
+    display: { name: 'State Snapshot Transition' },
+    isExportable: true,
+    params: () => ({}),
+    canApply(plugin) {
+        const { snapshot } = plugin.managers;
+        const { current } = snapshot;
+
+        if (!current?.snapshot.transition) {
+            return { canApply: false, reason: 'No transition found' };
+        }
+
+        return { canApply: true };
+    },
+    setup(_, __, plugin) {
+        const { current } = plugin.managers.snapshot;
+        if (!current) return;
+        setPartialSnapshot(plugin, current.snapshot.transition?.frames[0] ?? current.snapshot, true);
+    },
+    getDuration: (_, plugin) => {
+        const { current } = plugin.managers.snapshot;
+        if (!current?.snapshot.transition) return { kind: 'fixed', durationMs: 0 };
+
+        if (current.snapshot.transition?.loop) {
+            return { kind: 'infinite' };
+        }
+
+        return {
+            kind: 'fixed',
+            durationMs: PluginState.getStateTransitionDuration(current.snapshot) ?? 0
+        };
+    },
+    initialState: (_, plugin) => {
+        const { current } = plugin.managers.snapshot;
+        if (!current) return;
+
+        return {
+            totalDuration: current.snapshot.transition?.loop ? Number.MAX_VALUE : (PluginState.getStateTransitionDuration(current.snapshot) ?? 0),
+            snapshots: [current],
+            currentIndex: 0,
+            currentTransitionFrame: 0,
+        } as State;
+    },
+    async apply(animState: State, t, ctx) {
+        if (t.current >= animState.totalDuration) {
+            return { kind: 'finished' };
+        }
+
+        const snapshot = animState.snapshots[0]?.snapshot;
+        if (!snapshot) return { kind: 'finished' };
+
+        const { transition } = snapshot;
+        const frameIndex = PluginState.getStateTransitionFrameIndex(snapshot, t.current);
+        if (!transition || frameIndex === undefined) {
+            return { kind: 'finished' };
+        }
+
+        if (frameIndex === animState.currentTransitionFrame) {
+            return { kind: 'skip' };
+        }
+
+        ctx.plugin.managers.snapshot.setSnapshotAnimationFrame(frameIndex, false);
+        await setPartialSnapshot(ctx.plugin, transition.frames[frameIndex]);
+        return { kind: 'next', state: { ...animState, currentAnimationFrame: frameIndex } };
     }
 });

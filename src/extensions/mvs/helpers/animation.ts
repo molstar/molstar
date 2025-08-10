@@ -15,7 +15,7 @@ import { addDefaults } from '../tree/generic/tree-utils';
 import { RuntimeContext } from '../../../mol-task';
 
 
-export async function generateStateAnimation(ctx: RuntimeContext, snapshot: Snapshot) {
+export async function generateStateTransition(ctx: RuntimeContext, snapshot: Snapshot) {
     if (!snapshot.animation) return undefined;
 
     const tree = addDefaults(snapshot.animation, MVSAnimationSchema);
@@ -34,7 +34,7 @@ export async function generateStateAnimation(ctx: RuntimeContext, snapshot: Snap
         frames.push(root);
 
         if (ctx.shouldUpdate) {
-            await ctx.update({ message: 'Generating animation...' });
+            await ctx.update({ message: 'Generating transition...' });
         }
     }
 

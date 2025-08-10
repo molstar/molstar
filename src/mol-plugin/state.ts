@@ -122,10 +122,10 @@ class PluginState extends PluginComponent {
     }
 
     async setAnimationSnapshot(snapshot: PluginState.Snapshot, frameIndex: number) {
-        const { stateAnimation } = snapshot;
-        if (!stateAnimation) return;
-        const finalIndex = Math.min(frameIndex, stateAnimation.frames.length - 1);
-        const frame = stateAnimation.frames[finalIndex] ?? snapshot.data;
+        const { transition } = snapshot;
+        if (!transition) return;
+        const finalIndex = Math.min(frameIndex, transition.frames.length - 1);
+        const frame = transition.frames[finalIndex] ?? snapshot.data;
         if (frame.data) await this.plugin.runTask(this.data.setSnapshot(frame.data));
         if (frame.canvas3d?.props) {
             const settings = PD.normalizeParams(Canvas3DParams, frame.canvas3d.props, 'children');
@@ -230,10 +230,10 @@ namespace PluginState {
             options?: StructureComponentManager.Options
         },
         durationInMs?: number,
-        stateAnimation?: StateAnimation,
+        transition?: StateTransition,
     }
 
-    export interface StateAnimation {
+    export interface StateTransition {
         autoplay?: boolean,
         loop?: boolean,
         frames: {
@@ -244,28 +244,33 @@ namespace PluginState {
         }[],
     }
 
-    export function getStateAnimationFrameIndex(snapshot: Snapshot, timestamp: number): number | undefined {
-        const { stateAnimation } = snapshot;
-        if (!stateAnimation) return undefined;
-
+    export function getStateTransitionDuration(snapshot: Snapshot): number | undefined {
+        const { transition } = snapshot;
+        if (!transition) return undefined;
         let totalDuration = 0;
-        for (let i = 0; i < stateAnimation.frames.length; i++) {
-            const frame = stateAnimation.frames[i];
+        for (let i = 0; i < transition.frames.length; i++) {
+            const frame = transition.frames[i];
             totalDuration += frame.durationInMs;
         }
+        return totalDuration;
+    }
+
+    export function getStateTransitionFrameIndex(snapshot: Snapshot, timestamp: number): number | undefined {
+        const { transition } = snapshot;
+        if (!transition) return undefined;
 
         let t = timestamp;
-        if (stateAnimation.loop) {
-            t %= totalDuration;
+        if (transition.loop) {
+            t %= getStateTransitionDuration(snapshot) ?? 1;
         }
 
         let currentDuration = 0;
-        for (let i = 0; i < stateAnimation.frames.length; i++) {
+        for (let i = 0; i < transition.frames.length; i++) {
             if (currentDuration >= t) return i;
-            const frame = stateAnimation.frames[i];
+            const frame = transition.frames[i];
             currentDuration += frame.durationInMs;
         }
-        return stateAnimation.frames.length - 1;
+        return transition.frames.length - 1;
     }
 
     export type SnapshotType = 'json' | 'molj' | 'zip' | 'molx'

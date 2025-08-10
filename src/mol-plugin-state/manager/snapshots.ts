@@ -169,7 +169,10 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
 
     private animationFrameQueue = new SingleTaskQueue();
     setSnapshotAnimationFrame(frame: number, load = false) {
-        this.updateState({ currentAnimationFrame: frame });
+        if (this.updateState({ currentAnimationFrame: frame })) {
+            this.events.changed.next(void 0);
+        }
+
         if (load) {
             this.animationFrameQueue.run(() => {
                 const entry = this.getEntry(this.state.current);

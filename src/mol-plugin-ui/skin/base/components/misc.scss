@@ -455,11 +455,14 @@
         }
 
         .msp-state-snapshot-animation-slider {
-            margin-left: $control-spacing;
             position: relative;
             display: inline-block;
             width: 120px;
             line-height: $row-height;
+        }
+
+        .msp-state-snapshot-animation-button {
+            margin-left: $control-spacing;
         }
 
         .msp-animation-viewport-controls {
