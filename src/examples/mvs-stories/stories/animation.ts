@@ -32,19 +32,24 @@ const Steps = [
 
             poly.label({ text: 'Animation Demo' });
 
-            // Hidden surface to compile the shaders
-            const surface = poly.representation({
-                type: 'surface',
-                surface_type: 'gaussian',
-            }).opacity({ opacity: 0 });
+            // Uncomment this to make 2nd frame render much faster
+            // It will cause shader compilation to happen during the 1st snapshot
 
-            // Init a clip plane
-            surface.clip({
-                ref: 'clip',
-                type: 'plane',
-                point: [22.0, 15, 0],
-                normal: [0, 0, 1],
-            });
+            // const surface = poly.representation({
+            //     type: 'surface',
+            //     surface_type: 'gaussian',
+            // }).opacity({ opacity: 0 });
+
+            // _1cbs.component({ selector: 'ligand' })
+            //     .representation({ type: 'ball_and_stick' })
+            //     .opacity({ opacity: 0 });
+
+            // surface.clip({
+            //     ref: 'clip',
+            //     type: 'plane',
+            //     point: [22.0, 15, 0],
+            //     normal: [0, 0, 1],
+            // });
 
             return builder;
         },
