@@ -245,16 +245,27 @@ namespace PluginState {
     }
 
     export function getStateAnimationFrameIndex(snapshot: Snapshot, timestamp: number): number | undefined {
-        const { stateAnimation: transition } = snapshot;
-        if (!transition) return undefined;
+        const { stateAnimation } = snapshot;
+        if (!stateAnimation) return undefined;
 
         let totalDuration = 0;
-        for (let i = 0; i < transition.frames.length; i++) {
-            if (totalDuration >= timestamp) return i;
-            const frame = transition.frames[i];
+        for (let i = 0; i < stateAnimation.frames.length; i++) {
+            const frame = stateAnimation.frames[i];
             totalDuration += frame.durationInMs;
         }
-        return transition.frames.length - 1;
+
+        let t = timestamp;
+        if (stateAnimation.loop) {
+            t %= totalDuration;
+        }
+
+        let currentDuration = 0;
+        for (let i = 0; i < stateAnimation.frames.length; i++) {
+            if (currentDuration >= t) return i;
+            const frame = stateAnimation.frames[i];
+            currentDuration += frame.durationInMs;
+        }
+        return stateAnimation.frames.length - 1;
     }
 
     export type SnapshotType = 'json' | 'molj' | 'zip' | 'molx'

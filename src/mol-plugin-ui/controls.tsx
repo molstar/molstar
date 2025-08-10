@@ -210,6 +210,7 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
                             snapshots.setSnapshotAnimationFrame(v - 1, true);
                         }}
                         hideInput
+                        disabled={this.state.isBusy}
                     />
                     &nbsp;
                 </div>
