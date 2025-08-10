@@ -385,7 +385,6 @@ namespace TrackballControls {
             Vec3.setMagnitude(moveEye, moveEye, minDistance);
 
             const moveSpeed = deltaT * (60 / 1000) * p.moveSpeed * (keyState.boostMove === 1 ? p.boostMoveFactor : 1);
-            // console.log(moveSpeed)
 
             if (keyState.moveForward === 1) {
                 const cameraDistance = Vec3.distance(camera.position, scene.boundingSphereVisible.center);
