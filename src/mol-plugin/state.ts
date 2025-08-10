@@ -25,6 +25,8 @@ import { PluginBehavior } from './behavior';
 import { PluginCommands } from './commands';
 import { PluginConfig } from './config';
 import { PluginContext } from './context';
+import { AnimateStateSnapshotTransition } from '../mol-plugin-state/animation/built-in/state-snapshots';
+import { Scheduler } from '../mol-task';
 
 export { PluginState };
 
@@ -118,10 +120,18 @@ class PluginState extends PluginComponent {
         }
         if (snapshot.startAnimation) {
             this.animation.start();
+            return;
+        }
+
+        if (snapshot.transition?.autoplay) {
+            await Scheduler.immediatePromise();
+            this.animation.play(AnimateStateSnapshotTransition, {});
         }
     }
 
     async setAnimationSnapshot(snapshot: PluginState.Snapshot, frameIndex: number) {
+        await this.animation.stopStateTransitionAnimation();
+
         const { transition } = snapshot;
         if (!transition) return;
         const finalIndex = Math.min(frameIndex, transition.frames.length - 1);

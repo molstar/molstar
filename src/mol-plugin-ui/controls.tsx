@@ -182,8 +182,7 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
     };
 
     get isStateTransitionPlaying() {
-        const mng = this.plugin.managers.animation;
-        return mng.current.anim === AnimateStateSnapshotTransition;
+        return this.plugin.managers.animation.isAnimatingStateTransition;
     }
 
     render() {
