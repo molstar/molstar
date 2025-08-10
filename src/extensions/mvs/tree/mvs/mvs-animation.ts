@@ -26,8 +26,9 @@ const _Common = {
     property: RequiredField(union(str, list(union(str, int))), 'Value accessor.'),
     start_ms: OptionalField(float, 0, 'Start time of the transition in milliseconds.'),
     duration_ms: RequiredField(float, 'End time of the transition in milliseconds.'),
-    noise_magnitude: OptionalField(float, 0, 'Magnitude of the noise to apply to the transition.'),
     easing: OptionalField(Easing, 'linear', 'Easing function to use for the transition.'),
+    // TODO: support cummulative noise?
+    noise_magnitude: OptionalField(float, 0, 'Magnitude of the noise to apply to the transition.'),
 };
 
 const ScalarTransition = {

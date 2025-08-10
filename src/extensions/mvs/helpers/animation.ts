@@ -142,7 +142,7 @@ function interpolateRotation(start: Mat3, end: Mat3, t: number, noise: number) {
     Quat.slerp(RotationState.v, RotationState.start, RotationState.end, t);
     if (noise) {
         Vec3.random(RotationState.axis, 1);
-        Quat.setAxisAngle(RotationState.noise, RotationState.axis, 2 * Math.PI * noise);
+        Quat.setAxisAngle(RotationState.noise, RotationState.axis, 2 * Math.PI * noise * (Math.random() - 0.5));
         Quat.multiply(RotationState.v, RotationState.noise, RotationState.v);
     }
     Mat4.fromQuat(RotationState.temp, RotationState.v);

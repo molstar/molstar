@@ -73,7 +73,7 @@ const Steps = [
                 .transform({
                     ref: 'xform',
                     translation: [5, 20, -20],
-                    rotation: [1, 0, 0, 0, 1, 0, 0, 0, 1],
+                    local_rotation: [1, 0, 0, 0, 1, 0, 0, 0, 1],
                 })
                 .representation({ type: 'ball_and_stick' })
                 .color({ color: 'red' });
@@ -94,6 +94,7 @@ const Steps = [
                 duration_ms: 2000,
                 property: ['point', 2],
                 to: 55,
+                easing: 'sin-in',
             });
 
             anim.interpolate({
@@ -109,9 +110,9 @@ const Steps = [
                 type: 'rotation_matrix',
                 target_ref: 'xform',
                 duration_ms: 2000,
-                property: 'rotation',
+                property: 'local_rotation',
                 to: [1, 0, 0, 0, 1, 0, 0, 0, 1],
-                noise_magnitude: 0.1,
+                noise_magnitude: 0.2,
             });
 
             return builder;

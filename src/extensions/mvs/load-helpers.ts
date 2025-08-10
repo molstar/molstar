@@ -62,6 +62,19 @@ export function transformFromRotationTranslation(rotation: number[] | null | und
     return T;
 }
 
+export function decomposeRotationMatrix(rotation: number[] | null | undefined) {
+    if (rotation && rotation.length !== 9) throw new Error(`'rotation' param for 'transform' node must be array of 9 elements, found ${rotation}`);
+    if (rotation) {
+        const rotMatrix = Mat3.fromArray(Mat3(), rotation, 0);
+        ensureRotationMatrix(rotMatrix, rotMatrix);
+        const quat = Quat.fromMat3(Quat(), rotMatrix);
+        const axis = Vec3();
+        const angle = Quat.getAxisAngle(axis, quat) * 180 / Math.PI;
+        return { axis, angle };
+    }
+    return { axis: Vec3.create(1, 0, 0), angle: 0 };
+}
+
 /** Adjust values in a close-to-rotation matrix `a` to ensure it is a proper rotation matrix
  * (i.e. its columns and rows are orthonormal and determinant equal to 1, within available precission). */
 function ensureRotationMatrix(out: Mat3, a: Mat3) {
@@ -111,11 +124,32 @@ function transformProps(node: MolstarSubtree, kind: 'transform' | 'instance') {
     for (const transform of transforms) {
         let matrix: Mat4 | undefined = transform.params.matrix as Mat4 | undefined;
         if (!matrix) {
-            const { rotation, translation } = transform.params;
+            const { rotation, translation, local_rotation } = transform.params;
+            if (local_rotation) {
+                const localRot = decomposeRotationMatrix(local_rotation);
+                const globalRot = decomposeRotationMatrix(rotation);
+                result.push({
+                    params: {
+                        transform: {
+                            name: 'components',
+                            params: {
+                                translation: translation ? Vec3.fromArray(Vec3(), translation, 0) : Vec3.create(0, 0, 0),
+                                angle: globalRot.angle,
+                                axis: globalRot.axis,
+                                localAxis: localRot.axis,
+                                localAngle: localRot.angle,
+                            }
+                        }
+                    },
+                    ref: transform.ref
+                });
+                continue;
+            }
             matrix = transformFromRotationTranslation(rotation, translation);
         }
         result.push({ params: { transform: { name: 'matrix', params: { data: matrix, transpose: false } } }, ref: transform.ref });
     }
+
     return result;
 }
 
