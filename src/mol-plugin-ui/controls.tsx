@@ -177,7 +177,7 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
         const snapshots = this.plugin.managers.snapshot;
         const count = snapshots.state.entries.size;
 
-        if (count < 2 || !this.state.show) {
+        if (!count || !this.state.show) {
             return null;
         }
 
@@ -194,8 +194,8 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
             <IconButton svg={isPlaying ? StopSvg : PlayArrowSvg} title={isPlaying ? 'Pause' : 'Cycle States'} onClick={this.togglePlay}
                 disabled={isPlaying ? false : this.state.isBusy} />
             {!isPlaying && <>
-                <IconButton svg={NavigateBeforeSvg} title='Previous State' onClick={this.prev} disabled={this.state.isBusy || isPlaying} />
-                <IconButton svg={NavigateNextSvg} title='Next State' onClick={this.next} disabled={this.state.isBusy || isPlaying} />
+                {count > 1 && <IconButton svg={NavigateBeforeSvg} title='Previous State' onClick={this.prev} disabled={this.state.isBusy || isPlaying} />}
+                {count > 1 && <IconButton svg={NavigateNextSvg} title='Next State' onClick={this.next} disabled={this.state.isBusy || isPlaying} />}
                 {hasAnimation && <IconButton svg={AnimationSvg} title='Animation' onClick={this.toggleShowAnimation} disabled={!hasAnimation} toggleState={this.state.showAnimation} />}
             </>}
             {hasAnimation && this.state.showAnimation &&
