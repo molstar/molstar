@@ -7,7 +7,7 @@
 import { bool, float, int, list, OptionalField, RequiredField, str, union, nullable, literal, ValueFor } from '../generic/field-schema';
 import { SimpleParamsSchema, UnionParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema } from '../generic/tree-schema';
-import { Matrix, Vector3 } from './param-types';
+import { ContinuousPalette, DiscretePalette, Matrix, Vector3 } from './param-types';
 
 const Easing = literal(
     'linear',
@@ -21,20 +21,24 @@ const Easing = literal(
 
 export type MVSAnimationEasing = ValueFor<typeof Easing>;
 
+const _Noise = {
+    noise_magnitude: OptionalField(float, 0, 'Magnitude of the noise to apply to the transition.')
+    // TODO: support cummulative noise?
+};
+
 const _Common = {
     target_ref: RequiredField(str, 'Reference to the node.'),
     property: RequiredField(union(str, list(union(str, int))), 'Value accessor.'),
     start_ms: OptionalField(float, 0, 'Start time of the transition in milliseconds.'),
     duration_ms: RequiredField(float, 'End time of the transition in milliseconds.'),
     easing: OptionalField(Easing, 'linear', 'Easing function to use for the transition.'),
-    // TODO: support cummulative noise?
-    noise_magnitude: OptionalField(float, 0, 'Magnitude of the noise to apply to the transition.'),
 };
 
 const ScalarTransition = {
     ..._Common,
     from: OptionalField(nullable(float), null, 'Start value. If unset, source value is used.'),
     to: RequiredField(float, 'End value for the transition.'),
+    ..._Noise,
 };
 
 const Vec3Transition = {
@@ -42,12 +46,19 @@ const Vec3Transition = {
     from: OptionalField(nullable(Vector3), null, 'Start value. If unset, source value is used.'),
     to: RequiredField(Vector3, 'End value for the transition.'),
     spherical: OptionalField(bool, false, 'Whether to use spherical interpolation.'),
+    ..._Noise,
 };
 
 const RotationMatrixTransition = {
     ..._Common,
     from: OptionalField(nullable(Matrix), null, 'Start value. If unset, source value is used.'),
     to: RequiredField(Matrix, 'End value for the transition.'),
+    ..._Noise,
+};
+
+const ColorTransition = {
+    ..._Common,
+    palette: RequiredField(union(DiscretePalette, ContinuousPalette), 'Palette to sample colors from.'),
 };
 
 export const MVSAnimationSchema = TreeSchema({
@@ -74,6 +85,7 @@ export const MVSAnimationSchema = TreeSchema({
                     scalar: SimpleParamsSchema(ScalarTransition),
                     vec3: SimpleParamsSchema(Vec3Transition),
                     rotation_matrix: SimpleParamsSchema(RotationMatrixTransition),
+                    color: SimpleParamsSchema(ColorTransition),
                 },
             )
         }

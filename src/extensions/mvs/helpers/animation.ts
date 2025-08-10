@@ -14,6 +14,10 @@ import * as EasingFns from '../../../mol-math/easing';
 import { addDefaults } from '../tree/generic/tree-utils';
 import { RuntimeContext } from '../../../mol-task';
 import { EPSILON, Mat3, Mat4, Quat, Vec3 } from '../../../mol-math/linear-algebra';
+import { Color } from '../../../mol-util/color';
+import { makeContinuousPaletteCheckpoints, MVSContinuousPaletteProps, MVSDiscretePaletteProps } from '../components/annotation-color-theme';
+import { palettePropsFromMVSPalette } from '../load-helpers';
+import { SortedArray } from '../../../mol-data/int';
 
 
 export async function generateStateTransition(ctx: RuntimeContext, snapshot: Snapshot) {
@@ -29,9 +33,11 @@ export async function generateStateTransition(ctx: RuntimeContext, snapshot: Sna
     const dt = tree.params?.frame_time_ms ?? (1000 / 60);
     const N = Math.ceil(duration / dt);
 
+    const cache = new Map<any, TransitionCacheEntry>();
+
     for (let i = 0; i <= N; i++) {
         const t = i * dt;
-        const root = createSnapshot(snapshot.root, transitions, t);
+        const root = createSnapshot(snapshot.root, transitions, t, cache);
         frames.push(root);
 
         if (ctx.shouldUpdate) {
@@ -64,7 +70,11 @@ const EasingFnMap: Record<MVSAnimationEasing, (t: number) => number> = {
     'sin-in-out': EasingFns.sinInOut,
 };
 
-function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolate'>[], time: number) {
+interface TransitionCacheEntry {
+    paletteFn?: (value: number) => Color
+}
+
+function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolate'>[], time: number, cache: Map<any, TransitionCacheEntry>) {
     return produce(tree, (draft) => {
         for (const transition of transitions) {
             const node = findNode(draft, transition.params.target_ref);
@@ -73,11 +83,25 @@ function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolat
             const target = transition.params.property[0] === 'custom' ? node?.custom : node?.params;
             if (!target) continue;
 
+            if (transition.params.type === 'color') {
+                if (!cache.has(transition)) {
+                    cache.set(transition, {
+                        paletteFn: makePaletteFunction(transition)
+                    });
+                }
+            }
+
+            const paletteFn = cache.get(transition)?.paletteFn;
+
             const offset = transition.params.property[0] === 'custom' ? 1 : 0;
             const startTime = transition.params.start_ms ?? 0;
-            const startValue: any = transition.params.from ?? select(target, transition.params.property, offset);
+            const startValue: any = transition.params.type === 'color'
+                ? Color.toHexStyle(paletteFn!(0))
+                : transition.params.from ?? select(target, transition.params.property, offset);
             const endTime = startTime + transition.params.duration_ms;
-            const endValue: any = transition.params.to;
+            const endValue: any = transition.params.type === 'color'
+                ? Color.toHexStyle(paletteFn!(1))
+                : transition.params.to;
 
             if (time <= startTime) {
                 assign(target, transition.params.property, startValue, offset);
@@ -100,6 +124,9 @@ function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolat
                 next = interpolateVec3(startValue, endValue, t, transition.params.noise_magnitude ?? 0, !!transition.params.spherical);
             } else if (transition.params.type === 'rotation_matrix') {
                 next = interpolateRotation(startValue, endValue, t, transition.params.noise_magnitude ?? 0);
+            } else if (transition.params.type === 'color') {
+                const color = paletteFn!(t);
+                next = Color.toHexStyle(color);
             }
 
             assign(target, transition.params.property, next, offset);
@@ -189,4 +216,51 @@ function findNode(tree: Tree, ref: string): Tree | undefined {
         if (result) return result;
     }
     return undefined;
+}
+
+function makePaletteFunction(props: MVSAnimationNode<'interpolate'>): ((value: number) => Color) | undefined {
+    if (props.params.type !== 'color') return undefined;
+
+    const params = palettePropsFromMVSPalette(props.params.palette);
+    if (params.name === 'discrete') return makePaletteFunctionDiscrete(params.params);
+    if (params.name === 'continuous') return makePaletteFunctionContinuous(params.params);
+    throw new Error(`NotImplementedError: makePaletteFunction for ${(props as any).name}`);
+}
+
+
+function makePaletteFunctionDiscrete(props: MVSDiscretePaletteProps): (value: number) => Color {
+    const defaultColor = Color(0x0);
+    if (props.colors.length === 0) return () => defaultColor;
+
+    return (value: number) => {
+        const x = clamp(value, 0, 1);
+        for (let i = props.colors.length - 1; i >= 0; i--) {
+            const { color, fromValue, toValue } = props.colors[i];
+            if (fromValue <= x && x <= toValue) return color;
+        }
+        return defaultColor;
+    };
+}
+
+function makePaletteFunctionContinuous(props: MVSContinuousPaletteProps): (value: number) => Color {
+    const defaultColor = Color(0x0);
+    const { colors, checkpoints } = makeContinuousPaletteCheckpoints(props);
+    if (colors.length === 0) return () => defaultColor;
+
+    const underflowColor = props.setUnderflowColor ? props.underflowColor : defaultColor;
+    const overflowColor = props.setOverflowColor ? props.overflowColor : defaultColor;
+
+    return (value: number) => {
+        const x = clamp(value, 0, 1);
+        const gteIdx = SortedArray.findPredecessorIndex(checkpoints, x); // Index of the first greater or equal checkpoint
+        if (gteIdx === 0) {
+            if (x === checkpoints[0]) return colors[0];
+            else return underflowColor;
+        }
+        if (gteIdx === checkpoints.length) {
+            return overflowColor;
+        }
+        const q = (x - checkpoints[gteIdx - 1]) / (checkpoints[gteIdx] - checkpoints[gteIdx - 1]);
+        return Color.interpolate(colors[gteIdx - 1], colors[gteIdx], q);
+    };
 }

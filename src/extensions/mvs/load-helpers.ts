@@ -547,7 +547,7 @@ function appliesColorToWholeRepr(node: MolstarNode<'color' | 'color_from_uri' | 
 
 const FALLBACK_COLOR = decodeColor(DefaultColor)!;
 
-function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri' | 'color_from_source'>['params']['palette']): MVSAnnotationColorThemeProps['palette'] {
+export function palettePropsFromMVSPalette(palette: MolstarNode<'color_from_uri' | 'color_from_source'>['params']['palette']): MVSAnnotationColorThemeProps['palette'] {
     if (!palette) {
         return { name: 'direct', params: {} };
     }
