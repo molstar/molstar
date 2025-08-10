@@ -70,7 +70,11 @@ const Steps = [
             })
 
             _1cbs.component({ selector: 'ligand' })
-                .transform({ ref: 'xform', translation: [0, 20, 0] })
+                .transform({
+                    ref: 'xform',
+                    translation: [5, 20, -20],
+                    rotation: [1, 0, 0, 0, 1, 0, 0, 0, 1],
+                })
                 .representation({ type: 'ball_and_stick' })
                 .color({ color: 'red' });
 
@@ -83,21 +87,31 @@ const Steps = [
 
             const anim = builder.animation();
 
-            anim.transition({
+            anim.interpolate({
                 type: 'scalar',
                 ref: 'clip-transition',
                 target_ref: 'clip',
-                end_ms: 2000,
+                duration_ms: 2000,
                 property: ['point', 2],
-                end_value: 55,
+                to: 55,
             });
 
-            anim.transition({
-                type: 'scalar',
+            anim.interpolate({
+                type: 'vec3',
                 target_ref: 'xform',
-                end_ms: 2000,
-                property: ['translation', 1],
-                end_value: 0,
+                duration_ms: 2000,
+                property: 'translation',
+                to: [0, 0, 0],
+                noise_magnitude: 1,
+            });
+
+            anim.interpolate({
+                type: 'rotation_matrix',
+                target_ref: 'xform',
+                duration_ms: 2000,
+                property: 'rotation',
+                to: [1, 0, 0, 0, 1, 0, 0, 0, 1],
+                noise_magnitude: 0.1,
             });
 
             return builder;

@@ -7,6 +7,7 @@
 import { bool, float, int, list, OptionalField, RequiredField, str, union, nullable, literal, ValueFor } from '../generic/field-schema';
 import { SimpleParamsSchema, UnionParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema } from '../generic/tree-schema';
+import { Matrix, Vector3 } from './param-types';
 
 const Easing = literal(
     'linear',
@@ -20,14 +21,32 @@ const Easing = literal(
 
 export type MVSAnimationEasing = ValueFor<typeof Easing>;
 
-const ScalarTransition = {
+const _Common = {
     target_ref: RequiredField(str, 'Reference to the node.'),
-    property: RequiredField(union(str, list(union(str, int))), 'Scalar value accessor.'),
-    start_value: OptionalField(nullable(float), null, 'Start value. If unset, source value is used.'),
-    end_value: RequiredField(float, 'End value for the transition.'),
+    property: RequiredField(union(str, list(union(str, int))), 'Value accessor.'),
     start_ms: OptionalField(float, 0, 'Start time of the transition in milliseconds.'),
-    end_ms: RequiredField(float, 'End time of the transition in milliseconds.'),
+    duration_ms: RequiredField(float, 'End time of the transition in milliseconds.'),
+    noise_magnitude: OptionalField(float, 0, 'Magnitude of the noise to apply to the transition.'),
     easing: OptionalField(Easing, 'linear', 'Easing function to use for the transition.'),
+};
+
+const ScalarTransition = {
+    ..._Common,
+    from: OptionalField(nullable(float), null, 'Start value. If unset, source value is used.'),
+    to: RequiredField(float, 'End value for the transition.'),
+};
+
+const Vec3Transition = {
+    ..._Common,
+    from: OptionalField(nullable(Vector3), null, 'Start value. If unset, source value is used.'),
+    to: RequiredField(Vector3, 'End value for the transition.'),
+    spherical: OptionalField(bool, false, 'Whether to use spherical interpolation.'),
+};
+
+const RotationMatrixTransition = {
+    ..._Common,
+    from: OptionalField(nullable(Matrix), null, 'Start value. If unset, source value is used.'),
+    to: RequiredField(Matrix, 'End value for the transition.'),
 };
 
 export const MVSAnimationSchema = TreeSchema({
@@ -44,7 +63,7 @@ export const MVSAnimationSchema = TreeSchema({
                 include_canvas: OptionalField(bool, false, 'Determines whether the canvas state should be included in the animation'),
             }),
         },
-        transition: {
+        interpolate: {
             description: 'This node enables transitions between different states',
             parent: ['animation'],
             params: UnionParamsSchema(
@@ -52,6 +71,8 @@ export const MVSAnimationSchema = TreeSchema({
                 'Transition type',
                 {
                     scalar: SimpleParamsSchema(ScalarTransition),
+                    vec3: SimpleParamsSchema(Vec3Transition),
+                    rotation_matrix: SimpleParamsSchema(RotationMatrixTransition),
                 },
             )
         }

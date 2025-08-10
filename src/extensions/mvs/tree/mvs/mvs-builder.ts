@@ -116,11 +116,11 @@ export class Animation {
         return this._node;
     }
 
-    transition(params: MVSAnimationNodeParams<'transition'> & CustomAndRef): Animation {
+    interpolate(params: MVSAnimationNodeParams<'interpolate'> & CustomAndRef): Animation {
         const node = {
-            kind: 'transition',
-            ...splitParams<MVSAnimationNodeParams<'transition'>>(params)
-        } as MVSAnimationSubtree<'transition'>;
+            kind: 'interpolate',
+            ...splitParams<MVSAnimationNodeParams<'interpolate'>>(params)
+        } as MVSAnimationSubtree<'interpolate'>;
         this._node.children!.push(node);
         return this;
     }
