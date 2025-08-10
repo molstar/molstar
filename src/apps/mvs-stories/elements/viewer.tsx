@@ -13,6 +13,7 @@ import { createPluginUI } from '../../../mol-plugin-ui';
 import { renderReact18 } from '../../../mol-plugin-ui/react18';
 import { DefaultPluginUISpec } from '../../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../../mol-plugin/commands';
+import { PluginConfig } from '../../../mol-plugin/config';
 import { PluginContext } from '../../../mol-plugin/context';
 import { PluginSpec } from '../../../mol-plugin/spec';
 import { getMVSStoriesContext, MVSStoriesContext } from '../context';
@@ -46,7 +47,7 @@ export class MVSStoriesViewerModel extends PluginComponent {
                     PluginSpec.Behavior(MolViewSpec)
                 ],
                 config: [
-                    // [PluginConfig.Viewport.ShowAnimation, false],
+                    [PluginConfig.Viewport.ShowAnimation, false],
                 ]
             }
         });
