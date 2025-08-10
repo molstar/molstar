@@ -16,6 +16,7 @@ import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginState } from '../../mol-plugin/state';
 import { StateObjectSelector, StateTree } from '../../mol-state';
+import { RuntimeContext, Task } from '../../mol-task';
 import { MolViewSpec } from './behavior';
 import { createPluginStateSnapshotCamera, modifyCanvasProps } from './camera';
 import { MVSAnnotationsProvider } from './components/annotation-prop';
@@ -74,7 +75,7 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: MVS
                 { ...snapshot.metadata, previousTransitionDurationMs: previousSnapshot.metadata.transition_duration_ms },
                 options
             );
-            assignStateAnimation(plugin, entry, snapshot, options);
+            await plugin.runTask(assignStateAnimation(plugin, entry, snapshot, options));
             entries.push(entry);
         }
         if (!options.appendSnapshots) {
@@ -105,7 +106,11 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: MVS
 }
 
 function assignStateAnimation(plugin: PluginContext, parentEntry: PluginStateSnapshotManager.Entry, parent: Snapshot, options: MVSLoadOptions = {}) {
-    const transitions = generateStateAnimation(parent);
+    return Task.create('Assign MVS state animation', ctx => _assignStateAnimation(ctx, plugin, parentEntry, parent, options));
+}
+
+async function _assignStateAnimation(ctx: RuntimeContext, plugin: PluginContext, parentEntry: PluginStateSnapshotManager.Entry, parent: Snapshot, options: MVSLoadOptions = {}) {
+    const transitions = await generateStateAnimation(ctx, parent);
     if (!transitions?.frames.length) return;
 
     const animation: PluginState.StateAnimation = {
@@ -132,6 +137,10 @@ function assignStateAnimation(plugin: PluginContext, parentEntry: PluginStateSna
             camera: transitions.tree.params?.include_camera ? entry.snapshot.camera : undefined,
             canvas3d: transitions.tree.params?.include_canvas ? entry.snapshot.canvas3d : undefined,
         });
+
+        if (ctx.shouldUpdate) {
+            await ctx.update({ message: 'Generating animation...' });
+        }
     }
 
     parentEntry.snapshot.stateAnimation = animation;

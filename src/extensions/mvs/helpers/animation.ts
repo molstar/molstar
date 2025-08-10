@@ -12,9 +12,10 @@ import { MVSAnimationEasing, MVSAnimationNode, MVSAnimationSchema } from '../tre
 import { MVSTree } from '../tree/mvs/mvs-tree';
 import * as EasingFns from '../../../mol-math/easing';
 import { addDefaults } from '../tree/generic/tree-utils';
+import { RuntimeContext } from '../../../mol-task';
 
 
-export function generateStateAnimation(snapshot: Snapshot) {
+export async function generateStateAnimation(ctx: RuntimeContext, snapshot: Snapshot) {
     if (!snapshot.animation) return undefined;
 
     const tree = addDefaults(snapshot.animation, MVSAnimationSchema);
@@ -32,6 +33,10 @@ export function generateStateAnimation(snapshot: Snapshot) {
         const root = createSnapshot(snapshot.root, transitions, t);
         if (!root) break;
         frames.push(root);
+
+        if (ctx.shouldUpdate) {
+            await ctx.update({ message: 'Generating animation...' });
+        }
     }
 
     return { tree, frametimeMs: dt, frames };
