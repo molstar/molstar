@@ -198,7 +198,7 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
                 {count > 1 && <IconButton svg={NavigateNextSvg} title='Next State' onClick={this.next} disabled={this.state.isBusy || isPlaying} />}
                 {hasAnimation && <IconButton svg={AnimationSvg} title='Animation' onClick={this.toggleShowAnimation} disabled={!hasAnimation} toggleState={this.state.showAnimation} />}
             </>}
-            {hasAnimation && this.state.showAnimation &&
+            {hasAnimation && this.state.showAnimation && !isPlaying &&
                 <div className='msp-state-snapshot-animation-slider msp-form-control'>
                     <Slider
                         value={snapshots.state.currentAnimationFrame ?? 0}
