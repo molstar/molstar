@@ -76,11 +76,11 @@ export const MVSAnimationSchema = TreeSchema({
             }),
         },
         interpolate: {
-            description: 'This node enables transitions between different states',
+            description: 'This node enables interpolating between values',
             parent: ['animation'],
             params: UnionParamsSchema(
-                'type',
-                'Transition type',
+                'kind',
+                'Interpolation kind',
                 {
                     scalar: SimpleParamsSchema(ScalarTransition),
                     vec3: SimpleParamsSchema(Vec3Transition),

@@ -88,7 +88,7 @@ const Steps = [
             const anim = builder.animation();
 
             anim.interpolate({
-                type: 'scalar',
+                kind: 'scalar',
                 ref: 'clip-transition',
                 target_ref: 'clip',
                 duration_ms: 2000,
@@ -98,7 +98,7 @@ const Steps = [
             });
 
             anim.interpolate({
-                type: 'vec3',
+                kind: 'vec3',
                 target_ref: 'xform',
                 duration_ms: 2000,
                 property: 'translation',
@@ -107,7 +107,7 @@ const Steps = [
             });
 
             anim.interpolate({
-                type: 'rotation_matrix',
+                kind: 'rotation_matrix',
                 target_ref: 'xform',
                 duration_ms: 2000,
                 property: 'local_rotation',
@@ -116,7 +116,7 @@ const Steps = [
             });
 
             anim.interpolate({
-                type: 'color',
+                kind: 'color',
                 target_ref: 'ligand-color',
                 duration_ms: 2000,
                 property: 'color',
@@ -166,7 +166,7 @@ const Steps = [
             const anim = builder.animation();
 
             anim.interpolate({
-                type: 'scalar',
+                kind: 'scalar',
                 target_ref: 'repr',
                 duration_ms: 1000,
                 property: ['custom', 'molstar_reprepresentation_params', 'emissive'],
@@ -174,7 +174,7 @@ const Steps = [
             });
 
             anim.interpolate({
-                type: 'scalar',
+                kind: 'scalar',
                 target_ref: 'opacity',
                 duration_ms: 1000,
                 property: 'opacity',

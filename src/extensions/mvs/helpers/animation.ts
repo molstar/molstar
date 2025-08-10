@@ -83,7 +83,7 @@ function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolat
             const target = transition.params.property[0] === 'custom' ? node?.custom : node?.params;
             if (!target) continue;
 
-            if (transition.params.type === 'color') {
+            if (transition.params.kind === 'color') {
                 if (!cache.has(transition)) {
                     cache.set(transition, {
                         paletteFn: makePaletteFunction(transition)
@@ -95,11 +95,11 @@ function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolat
 
             const offset = transition.params.property[0] === 'custom' ? 1 : 0;
             const startTime = transition.params.start_ms ?? 0;
-            const startValue: any = transition.params.type === 'color'
+            const startValue: any = transition.params.kind === 'color'
                 ? Color.toHexStyle(paletteFn!(0))
                 : transition.params.from ?? select(target, transition.params.property, offset);
             const endTime = startTime + transition.params.duration_ms;
-            const endValue: any = transition.params.type === 'color'
+            const endValue: any = transition.params.kind === 'color'
                 ? Color.toHexStyle(paletteFn!(1))
                 : transition.params.to;
 
@@ -118,13 +118,13 @@ function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolat
             const t = easing(clamp((time - startTime) / deltaT, 0, 1));
 
             let next: any;
-            if (transition.params.type === 'scalar') {
+            if (transition.params.kind === 'scalar') {
                 next = interpolateScalar(startValue, endValue, t, transition.params.noise_magnitude ?? 0);
-            } else if (transition.params.type === 'vec3') {
+            } else if (transition.params.kind === 'vec3') {
                 next = interpolateVec3(startValue, endValue, t, transition.params.noise_magnitude ?? 0, !!transition.params.spherical);
-            } else if (transition.params.type === 'rotation_matrix') {
+            } else if (transition.params.kind === 'rotation_matrix') {
                 next = interpolateRotation(startValue, endValue, t, transition.params.noise_magnitude ?? 0);
-            } else if (transition.params.type === 'color') {
+            } else if (transition.params.kind === 'color') {
                 const color = paletteFn!(t);
                 next = Color.toHexStyle(color);
             }
@@ -219,7 +219,7 @@ function findNode(tree: Tree, ref: string): Tree | undefined {
 }
 
 function makePaletteFunction(props: MVSAnimationNode<'interpolate'>): ((value: number) => Color) | undefined {
-    if (props.params.type !== 'color') return undefined;
+    if (props.params.kind !== 'color') return undefined;
 
     const params = palettePropsFromMVSPalette(props.params.palette);
     if (params.name === 'discrete') return makePaletteFunctionDiscrete(params.params);
