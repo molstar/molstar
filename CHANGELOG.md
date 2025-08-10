@@ -30,8 +30,10 @@ Note that since we don't clearly distinguish between a public and private interf
   - Support `matrix` on transform params
   - Support `surface_type` (`molecular` / `gaussian`) on for `surface` representation nodes
   - Add `instance` node type
+  - Add `local_rotation` to `transform` node that enables rotating an object around its centroid
   - Support transforming and instancing of structures, components, and volumes
   - Use params hash for node version for more performant tree diffs
+  - Add `Snapshot.animation` support that enables animating almost every property in a given tree
 - Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
 - Snapshot Markdown improvements
   - Add `MarkdownExtensionManager` (`PluginContext.managers.markdownExtensions`)
@@ -67,6 +69,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `enable` param for post-processing effects. If false, no effects are applied.
 - Change the parsing of residue names in PDB files from 3-letter to 4-letter.
 - Support versioning transform using a hash function in `mol-state`
+- Support for "state snapshot transitions"
+    - Add `PluginState.Snapshot.transition` that enables associating a state snapshot with a list states that can be animated
+    - Add `AnimateStateSnapshotTransition` animation
+    - Update the snapshots UI to support this feature
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:
