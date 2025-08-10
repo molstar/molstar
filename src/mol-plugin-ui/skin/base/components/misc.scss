@@ -486,6 +486,7 @@
                 left: 0;
                 margin-top: $control-spacing;
                 background: $control-background;
+                z-index: 10001;
 
                 .msp-control-row:first-child {
                     margin-top: 0;

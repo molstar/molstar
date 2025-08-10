@@ -102,7 +102,7 @@ export const AnimateStateSnapshots = PluginStateAnimation.create({
                 return { kind: 'skip' };
             }
 
-            if (i === 0) {
+            if (frameIndex === 0 || i !== animState.currentIndex) {
                 await setPartialSnapshot(ctx.plugin, {
                     ...transition.frames[frameIndex],
                     camera,
@@ -112,7 +112,7 @@ export const AnimateStateSnapshots = PluginStateAnimation.create({
                 await setPartialSnapshot(ctx.plugin, transition.frames[frameIndex]);
             }
 
-            return { kind: 'next', state: { ...animState, currentAnimationFrame: frameIndex } };
+            return { kind: 'next', state: { ...animState, currentIndex: i, currentAnimationFrame: frameIndex } };
         }
 
         if (i === animState.currentIndex) {

@@ -27,7 +27,23 @@ const Steps = [
             const builder = createMVSBuilder();
 
             const _1cbs = structure(builder, '1cbs');
-            polymer(_1cbs, { color: Colors['1cbs'] });
+            const [poly,] = polymer(_1cbs, { color: Colors['1cbs'] });
+
+            poly.label({ text: 'Animation Demo' });
+
+            // Hidden surface to compile the shaders
+            const surface = poly.representation({
+                type: 'surface',
+                surface_type: 'gaussian',
+            }).opacity({ opacity: 0 });
+
+            // Init a clip plane
+            surface.clip({
+                ref: 'clip',
+                type: 'plane',
+                point: [22.0, 15, 0],
+                normal: [0, 0, 1],
+            });
 
             return builder;
         },
