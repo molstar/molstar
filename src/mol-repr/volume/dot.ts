@@ -104,7 +104,7 @@ function getRandomOffsetFromBasis(a: Vec3, b: Vec3, c: Vec3, cellMax: number): V
     const rx = (rand() - 0.5) * cellMax;
     const ry = (rand() - 0.5) * cellMax;
     const rz = (rand() - 0.5) * cellMax;
-    
+
     Vec3.scale(offset, a, rx);
     Vec3.scaleAndAdd(offset, offset, b, ry);
     Vec3.scaleAndAdd(offset, offset, c, rz);
@@ -129,7 +129,7 @@ export function createVolumeSphereImpostor(ctx: VisualContext, volume: Volume, k
     // Precompute basis vectors and largest cell axis length
     let a: Vec3, b: Vec3, c: Vec3, cellMax: number;
     if (perturbateGeometry) {
-        ({a, b, c, maxScale: cellMax} = Mat4.extractBasis(gridToCartn));
+        ({ a, b, c, maxScale: cellMax } = Mat4.extractBasis(gridToCartn));
     }
 
     for (let z = 0; z < zn; ++z) {
