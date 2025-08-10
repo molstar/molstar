@@ -88,12 +88,16 @@ void main(void){
 
     float d;
     if (uLod.w != 0.0 && (uLod.x != 0.0 || uLod.y != 0.0)) {
-        d = dot(uCameraPlane.xyz, vModelPosition) + uCameraPlane.w;
-        float f = min(
-            smoothstep(uLod.x, uLod.x + uLod.z, d),
-            1.0 - smoothstep(uLod.y - uLod.z, uLod.y, d)
-        ) * uLod.w;
-        vRadius *= f;
+        if (uHasHeadRotation) {
+            vRadius *= uLod.w;
+        } else {
+            d = (dot(uCameraPlane.xyz, vModelPosition) + uCameraPlane.w) / uModelScale;
+            float f = min(
+                smoothstep(uLod.x, uLod.x + uLod.z, d),
+                1.0 - smoothstep(uLod.y - uLod.z, uLod.y, d)
+            ) * uLod.w;
+            vRadius *= f;
+        }
     }
 
     vec4 mvPosition = uModelView * aTransform * position4;
@@ -126,15 +130,17 @@ void main(void){
         gl_Position.z = (uProjection * vec4(mvPosition.xyz, 1.0)).z;
     }
 
-    if (uLod.w != 0.0 && (uLod.x != 0.0 || uLod.y != 0.0)) {
-        if (d < uLod.x || d > uLod.y) {
-            // move out of [ -w, +w ] to 'discard' in vert shader
-            gl_Position.z = 2.0 * gl_Position.w;
+    if (!uHasHeadRotation) {
+        if (uLod.w != 0.0 && (uLod.x != 0.0 || uLod.y != 0.0)) {
+            if (d < uLod.x || d > uLod.y) {
+                // move out of [ -w, +w ] to 'discard' in vert shader
+                gl_Position.z = 2.0 * gl_Position.w;
+            }
         }
     }
 
     #if defined(dClipPrimitive) && !defined(dClipVariant_instance) && dClipObjectCount != 0
-        if (clipTest(vModelPosition)) {
+        if (clipTest(vModelPosition / uModelScale)) {
             // move out of [ -w, +w ] to 'discard' in vert shader
             gl_Position.z = 2.0 * gl_Position.w;
         }
