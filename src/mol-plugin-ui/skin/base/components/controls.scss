@@ -133,6 +133,16 @@
             bottom: 0;
         }
 
+        &-no-input {
+            > div:first-child {
+                right: 18px;
+            }
+            > div:last-child {
+                visibility: hidden;
+                width: 0;
+            }
+        }
+
         input[type=text] {
             padding-right: 6px;
             padding-left: 4px;

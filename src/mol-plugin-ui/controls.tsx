@@ -16,7 +16,7 @@ import { PluginCommands } from '../mol-plugin/commands';
 import { StateTransformer } from '../mol-state';
 import { PluginReactContext, PluginUIComponent } from './base';
 import { IconButton } from './controls/common';
-import { Icon, NavigateBeforeSvg, NavigateNextSvg, SkipPreviousSvg, StopSvg, PlayArrowSvg, SubscriptionsOutlinedSvg, BuildSvg } from './controls/icons';
+import { Icon, NavigateBeforeSvg, NavigateNextSvg, SkipPreviousSvg, StopSvg, PlayArrowSvg, SubscriptionsOutlinedSvg, BuildSvg, AnimationSvg } from './controls/icons';
 import { AnimationControls } from './state/animation';
 import { StructureComponentControls } from './structure/components';
 import { StructureMeasurementsControls } from './structure/measurements';
@@ -27,6 +27,7 @@ import { PluginConfig } from '../mol-plugin/config';
 import { StructureSuperpositionControls } from './structure/superposition';
 import { StructureQuickStylesControls } from './structure/quick-styles';
 import { Markdown } from './controls/markdown';
+import { Slider } from './controls/slider';
 
 export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: boolean, label: string }> {
     state = { show: false, label: '' };
@@ -102,8 +103,8 @@ export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: bo
     }
 }
 
-export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBusy: boolean, show: boolean }> {
-    state = { isBusy: false, show: true };
+export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBusy: boolean, show: boolean, showAnimation: boolean }> {
+    state = { isBusy: false, show: true, showAnimation: false };
 
     componentDidMount() {
         // TODO: this needs to be diabled when the state is updating!
@@ -168,6 +169,10 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
         this.plugin.managers.snapshot.togglePlay();
     };
 
+    toggleShowAnimation = () => {
+        this.setState({ showAnimation: !this.state.showAnimation });
+    };
+
     render() {
         const snapshots = this.plugin.managers.snapshot;
         const count = snapshots.state.entries.size;
@@ -178,6 +183,8 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
 
         const current = snapshots.state.current;
         const isPlaying = snapshots.state.isPlaying;
+        const entry = snapshots.getEntry(current);
+        const hasAnimation = !!entry?.snapshot.stateAnimation;
 
         return <div className='msp-state-snapshot-viewport-controls'>
             <select className='msp-form-control' value={current || 'none'} onChange={this.change} disabled={this.state.isBusy || isPlaying}>
@@ -189,7 +196,24 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
             {!isPlaying && <>
                 <IconButton svg={NavigateBeforeSvg} title='Previous State' onClick={this.prev} disabled={this.state.isBusy || isPlaying} />
                 <IconButton svg={NavigateNextSvg} title='Next State' onClick={this.next} disabled={this.state.isBusy || isPlaying} />
+                {hasAnimation && <IconButton svg={AnimationSvg} title='Animation' onClick={this.toggleShowAnimation} disabled={!hasAnimation} toggleState={this.state.showAnimation} />}
             </>}
+            {hasAnimation && this.state.showAnimation &&
+                <div className='msp-state-snapshot-animation-slider msp-form-control'>
+                    <Slider
+                        value={snapshots.state.currentAnimationFrame ?? 0}
+                        min={1}
+                        step={1}
+                        max={(entry?.snapshot.stateAnimation?.frames.length ?? 1)}
+                        onChange={() => { }}
+                        onChangeImmediate={v => {
+                            snapshots.setSnapshotAnimationFrame(v - 1, true);
+                        }}
+                        hideInput
+                    />
+                    &nbsp;
+                </div>
+            }
         </div>;
     }
 }

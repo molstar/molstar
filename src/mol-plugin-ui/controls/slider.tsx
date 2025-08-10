@@ -18,7 +18,8 @@ export class Slider extends React.Component<{
     onChange: (v: number) => void,
     onChangeImmediate?: (v: number) => void,
     disabled?: boolean,
-    onEnter?: () => void
+    onEnter?: () => void,
+    hideInput?: boolean
 }, { isChanging: boolean, current: number }> {
 
     state = { isChanging: false, current: 0 };
@@ -69,7 +70,7 @@ export class Slider extends React.Component<{
     render() {
         let step = this.props.step;
         if (step === void 0) step = 1;
-        return <div className='msp-slider'>
+        return <div className={!this.props.hideInput ? 'msp-slider' : 'msp-slider msp-slider-no-input'}>
             <div>
                 <SliderBase min={this.props.min} max={this.props.max} step={step} value={this.state.current} disabled={this.props.disabled}
                     onBeforeChange={this.begin}

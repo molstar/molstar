@@ -121,11 +121,11 @@ class PluginState extends PluginComponent {
         }
     }
 
-    async setTransitionSnapshot(snapshot: PluginState.Snapshot, frameIndex: number) {
-        const { stateAnimation: transition } = snapshot;
-        if (!transition) return;
-        const finalIndex = Math.min(frameIndex, transition.frames.length - 1);
-        const frame = transition.frames[finalIndex] ?? snapshot.data;
+    async setAnimationSnapshot(snapshot: PluginState.Snapshot, frameIndex: number) {
+        const { stateAnimation } = snapshot;
+        if (!stateAnimation) return;
+        const finalIndex = Math.min(frameIndex, stateAnimation.frames.length - 1);
+        const frame = stateAnimation.frames[finalIndex] ?? snapshot.data;
         if (frame.data) await this.plugin.runTask(this.data.setSnapshot(frame.data));
         if (frame.canvas3d?.props) {
             const settings = PD.normalizeParams(Canvas3DParams, frame.canvas3d.props, 'children');

@@ -71,12 +71,13 @@ function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'transition
             const offset = transition.params.property[0] === 'custom' ? 1 : 0;
             const startTime = transition.params.start_ms ?? 0;
             const startValue = transition.params.start_value ?? select(target, transition.params.property, offset);
-            if (startTime <= time) {
+            const endTime = transition.params.end_ms;
+
+            if (time <= startTime) {
                 assign(target, transition.params.property, startValue, offset);
                 continue;
             }
 
-            const endTime = transition.params.end_ms;
             const endValue = transition.params.end_value;
             if (time >= endTime) {
                 assign(target, transition.params.property, endValue, offset);
