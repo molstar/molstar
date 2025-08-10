@@ -385,18 +385,33 @@ namespace TrackballControls {
             Vec3.setMagnitude(moveEye, moveEye, minDistance);
 
             const moveSpeed = deltaT * (60 / 1000) * p.moveSpeed * (keyState.boostMove === 1 ? p.boostMoveFactor : 1);
+            // console.log(moveSpeed)
 
             if (keyState.moveForward === 1) {
-                Vec3.normalize(moveDir, moveEye);
-                Vec3.scaleAndSub(camera.position, camera.position, moveDir, moveSpeed);
+                const cameraDistance = Vec3.distance(camera.position, scene.boundingSphereVisible.center);
+                if (cameraDistance < scene.boundingSphereVisible.radius) {
+                    Vec3.normalize(moveDir, moveEye);
+                    Vec3.scaleAndSub(camera.position, camera.position, moveDir, moveSpeed);
+                } else {
+                    Vec3.sub(moveDir, camera.position, camera.target);
+                    Vec3.scale(moveDir, moveDir, 1 - moveSpeed / 100);
+                    Vec3.add(camera.position, camera.target, moveDir);
+                }
                 if (p.flyMode || input.pointerLock) {
                     Vec3.sub(camera.target, camera.position, moveEye);
                 }
             }
 
             if (keyState.moveBack === 1) {
-                Vec3.normalize(moveDir, moveEye);
-                Vec3.scaleAndAdd(camera.position, camera.position, moveDir, moveSpeed);
+                const cameraDistance = Vec3.distance(camera.position, scene.boundingSphereVisible.center);
+                if (cameraDistance < scene.boundingSphereVisible.radius) {
+                    Vec3.normalize(moveDir, moveEye);
+                    Vec3.scaleAndAdd(camera.position, camera.position, moveDir, moveSpeed);
+                } else {
+                    Vec3.sub(moveDir, camera.position, camera.target);
+                    Vec3.scale(moveDir, moveDir, 1 + moveSpeed / 100);
+                    Vec3.add(camera.position, camera.target, moveDir);
+                }
                 if (p.flyMode || input.pointerLock) {
                     Vec3.sub(camera.target, camera.position, moveEye);
                 }
