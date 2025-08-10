@@ -39,8 +39,9 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { capitalize } from '../../../mol-util/string';
 import { rowsToExpression, rowToExpression } from '../helpers/selections';
 import { collectMVSReferences, decodeColor, isDefined } from '../helpers/utils';
-import { MolstarNode, MolstarSubtree } from '../tree/molstar/molstar-tree';
-import { MVSNode } from '../tree/mvs/mvs-tree';
+import { addParamDefaults } from '../tree/generic/params-schema';
+import { MolstarNode, MolstarNodeParams, MolstarSubtree } from '../tree/molstar/molstar-tree';
+import { MVSNode, MVSTreeSchema } from '../tree/mvs/mvs-tree';
 import { isComponentExpression, isPrimitiveComponentExpressions, isVector3, PrimitivePositionT } from '../tree/mvs/param-types';
 import { MVSTransform } from './annotation-structure-component';
 
@@ -97,6 +98,16 @@ export const MVSDownloadPrimitiveData = MVSTransform({
     },
 });
 
+/* Cannot use MolstarSubtree<'primitives'>> because information about type of children would be lost and cause TypeScript errors in dependent code */
+interface PrimitivesSubtree {
+    kind: 'primitives',
+    params: MolstarNodeParams<'primitives'>,
+    children?: {
+        kind: 'primitive',
+        params: MolstarNodeParams<'primitive'>,
+    }[],
+}
+
 export type MVSInlinePrimitiveData = typeof MVSInlinePrimitiveData
 export const MVSInlinePrimitiveData = MVSTransform({
     name: 'mvs-inline-primitive-data',
@@ -104,7 +115,10 @@ export const MVSInlinePrimitiveData = MVSTransform({
     from: [SO.Root, SO.Molecule.Structure],
     to: MVSPrimitivesData,
     params: {
-        node: PD.Value<MolstarSubtree<'primitives'>>(undefined as any, { isHidden: true }),
+        node: PD.Value<PrimitivesSubtree>({
+            kind: 'primitives',
+            params: addParamDefaults(MVSTreeSchema.nodes.primitives.params, {}),
+        }, { isHidden: true }),
     },
 })({
     apply({ a, params }) {
@@ -140,11 +154,12 @@ export const MVSBuildPrimitiveShape = MVSTransform({
         if (params.kind === 'mesh') {
             if (!hasPrimitiveKind(a.data, 'mesh')) return StateObject.Null;
 
+            const customMeshParams = a.data.node.custom?.molstar_mesh_params;
             return new SO.Shape.Provider({
                 label,
                 data: context,
                 params: {
-                    ...PD.withDefaults(Mesh.Params, { alpha: a.data.options?.opacity ?? 1 }),
+                    ...PD.withDefaults(Mesh.Params, { alpha: a.data.options?.opacity ?? 1, ...customMeshParams }),
                     ...snapshotKey,
                 },
                 getShape: (_, data, __, prev: any) => buildPrimitiveMesh(data, prev?.geometry),
@@ -155,6 +170,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
 
             const options = a.data.options;
             const bgColor = options?.label_background_color;
+            const customLabelParams = a.data.node.custom?.molstar_label_params;
             return new SO.Shape.Provider({
                 label,
                 data: context,
@@ -166,6 +182,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
                         tetherLength: options?.label_tether_length ?? 1,
                         background: isDefined(bgColor),
                         backgroundColor: isDefined(bgColor) ? decodeColor(bgColor) : undefined,
+                        ...customLabelParams,
                     }),
                     ...snapshotKey,
                 },
@@ -175,11 +192,12 @@ export const MVSBuildPrimitiveShape = MVSTransform({
         } else if (params.kind === 'lines') {
             if (!hasPrimitiveKind(a.data, 'line')) return StateObject.Null;
 
+            const customLineParams = a.data.node.custom?.molstar_line_params;
             return new SO.Shape.Provider({
                 label,
                 data: context,
                 params: {
-                    ...PD.withDefaults(Lines.Params, { alpha: a.data.options?.opacity ?? 1 }),
+                    ...PD.withDefaults(Lines.Params, { alpha: a.data.options?.opacity ?? 1, ...customLineParams }),
                     ...snapshotKey,
                 },
                 getShape: (_, data, __, prev: any) => buildPrimitiveLines(data, prev?.geometry),

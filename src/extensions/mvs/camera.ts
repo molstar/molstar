@@ -6,7 +6,9 @@
  */
 
 import { Camera } from '../../mol-canvas3d/camera';
-import { Canvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';
+import { CameraFogParams, Canvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';
+import { BloomParams } from '../../mol-canvas3d/passes/bloom';
+import { DofParams } from '../../mol-canvas3d/passes/dof';
 import { OutlineParams } from '../../mol-canvas3d/passes/outline';
 import { ShadowParams } from '../../mol-canvas3d/passes/shadow';
 import { SsaoParams } from '../../mol-canvas3d/passes/ssao';
@@ -129,24 +131,49 @@ export function modifyCanvasProps(oldCanvasProps: Canvas3DProps, canvasNode: Mol
     const params = canvasNode?.params;
     const backgroundColor = decodeColor(params?.background_color) ?? DefaultCanvasBackgroundColor;
 
-    const outline = !!canvasNode?.custom?.molstar_enable_outline;
-    const shadow = !!canvasNode?.custom?.molstar_enable_shadow;
-    const occlusion = !!canvasNode?.custom?.molstar_enable_ssao;
+    const molstar_postprocessing = canvasNode?.custom?.molstar_postprocessing;
+
+    const outline = !!molstar_postprocessing?.enable_outline;
+    const outlineParams = molstar_postprocessing?.outline_params;
+
+    const shadow = !!molstar_postprocessing?.enable_shadow;
+    const shadowParams = molstar_postprocessing?.shadow_params;
+
+    const occlusion = !!molstar_postprocessing?.enable_ssao;
+    const occlusionParams = molstar_postprocessing?.ssao_params;
+
+    const fog = !!molstar_postprocessing?.enable_fog;
+    const fogParams = molstar_postprocessing?.fog_params;
+
+    const dof = !!molstar_postprocessing?.enable_depth_of_field;
+    const dofParams = molstar_postprocessing?.depth_of_field_params;
+
+    const bloom = !!molstar_postprocessing?.enable_bloom;
+    const bloomParams = molstar_postprocessing?.bloom_params;
 
     return {
         ...oldCanvasProps,
         postprocessing: {
             ...oldCanvasProps.postprocessing,
             outline: outline
-                ? { name: 'on', params: ParamDefinition.getDefaultValues(OutlineParams) }
+                ? { name: 'on', params: { ...ParamDefinition.getDefaultValues(OutlineParams), ...outlineParams } }
                 : oldCanvasProps.postprocessing.outline,
             shadow: shadow
-                ? { name: 'on', params: ParamDefinition.getDefaultValues(ShadowParams) }
+                ? { name: 'on', params: { ...ParamDefinition.getDefaultValues(ShadowParams), ...shadowParams } }
                 : oldCanvasProps.postprocessing.shadow,
             occlusion: occlusion
-                ? { name: 'on', params: ParamDefinition.getDefaultValues(SsaoParams) }
+                ? { name: 'on', params: { ...ParamDefinition.getDefaultValues(SsaoParams), ...occlusionParams } }
                 : oldCanvasProps.postprocessing.occlusion,
+            dof: dof
+                ? { name: 'on', params: { ...ParamDefinition.getDefaultValues(DofParams), ...dofParams } }
+                : oldCanvasProps.postprocessing.dof,
+            bloom: bloom
+                ? { name: 'on', params: { ...ParamDefinition.getDefaultValues(BloomParams), ...bloomParams } }
+                : oldCanvasProps.postprocessing.bloom,
         },
+        cameraFog: fog
+            ? { name: 'on', params: { ...ParamDefinition.getDefaultValues(CameraFogParams), ...fogParams } }
+            : oldCanvasProps.cameraFog,
         renderer: {
             ...oldCanvasProps.renderer,
             backgroundColor: backgroundColor,

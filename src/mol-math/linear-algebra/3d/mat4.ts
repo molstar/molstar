@@ -1270,6 +1270,14 @@ namespace Mat4 {
         return Math.sqrt(Math.max(scaleXSq, scaleYSq, scaleZSq));
     }
 
+    export function extractBasis(m: Mat4) {
+        return {
+            x: Vec3.create(m[0], m[1], m[2]),
+            y: Vec3.create(m[4], m[5], m[6]),
+            z: Vec3.create(m[8], m[9], m[10])
+        };
+    }
+
     const xAxis = [1, 0, 0] as unknown as Vec3;
     const yAxis = [0, 1, 0] as unknown as Vec3;
     const zAxis = [0, 0, 1] as unknown as Vec3;

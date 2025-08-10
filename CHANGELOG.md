@@ -19,14 +19,16 @@ Note that since we don't clearly distinguish between a public and private interf
 - MolViewSpec extension:
   - Generic color schemes (`palette` parameter for color_from_* nodes)
   - Annotation field remapping (`field_remapping` parameter for color_from_* nodes)
-  - Representation node: support custom property `molstar_reprepresentation_params`,
-  - Canvas node: support custom properties `molstar_enable_outline`, `molstar_enable_shadow`, `molstar_enable_ssao`
+  - Representation node: support custom property `molstar_reprepresentation_params`
+  - Primitives node: support custom property `molstar_mesh/label/line_params`
+  - Canvas node: support custom property `molstar_postprocessing` with the ability to customize outline, depth of field, bloom, shadow, occlusion (SSAO), and fog
   - `clip` node support for structure and volume representations
   - `grid_slice` representation support for volumes
   - Support tethers and background for primitive labels
   - Support `snapshot_key` parameter on primitives that enables transition between states via clicking on 3D objects
   - Inline selectors and MVS annotations support `instance_id`
   - Support `matrix` on transform params
+  - Support `surface_type` (`molecular` / `gaussian`) on for `surface` representation nodes
   - Add `instance` node type
   - Support transforming and instancing of structures, components, and volumes
 - Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
@@ -62,6 +64,11 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add async, non-blocking picking (only WebGL2)
     - Refactor `Canvas3dInteractionHelper` internals to use async picking for move events
 - Add `enable` param for post-processing effects. If false, no effects are applied.
+- Dot volume representation improvements
+    - Add positional perturbation to avoid camera artifacts
+    - Fix handling of negative isoValues by considering only volume cells with values lower than isoValue (#1559)
+    - Fix volume-value size theme
+- Change the parsing of residue names in PDB files from 3-letter to 4-letter.
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:

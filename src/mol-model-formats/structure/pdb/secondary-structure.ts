@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Kim Juho <juho_kim@outlook.com>
  */
 
 import { CifCategory, CifField } from '../../../mol-io/reader/cif';
@@ -62,18 +63,22 @@ export function parseHelix(lines: Tokens, lineStart: number, lineEnd: number): C
         const line = getLine(i);
         // COLUMNS        DATA  TYPE     FIELD         DEFINITION
         // -----------------------------------------------------------------------------------
-        // 1 -  6        Record name    "HELIX "
-        // 8 - 10        Integer        serNum        Serial number of the helix. This starts
+        //  1 -  6        Record name    "HELIX "
+        //  8 - 10        Integer        serNum        Serial number of the helix. This starts
         //                                             at 1  and increases incrementally.
         // 12 - 14        LString(3)     helixID       Helix  identifier. In addition to a serial
         //                                             number, each helix is given an
         //                                             alphanumeric character helix identifier.
-        // 16 - 18        Residue name   initResName   Name of the initial residue.
+        // 16 - 19        Residue name   initResName   Name of the initial residue.
+        //                                             PDB spec defines 3-letter for residue name,
+        //                                             but 4-letter are commonly used
         // 20             Character      initChainID   Chain identifier for the chain containing
         //                                             this  helix.
         // 22 - 25        Integer        initSeqNum    Sequence number of the initial residue.
         // 26             AChar          initICode     Insertion code of the initial residue.
-        // 28 - 30        Residue  name  endResName    Name of the terminal residue of the helix.
+        // 28 - 31        Residue name   endResName    Name of the terminal residue of the helix.
+        //                                             PDB spec defines 3-letter for residue name,
+        //                                             but 4-letter are commonly used
         // 32             Character      endChainID    Chain identifier for the chain containing
         //                                             this  helix.
         // 34 - 37        Integer        endSeqNum     Sequence number of the terminal residue.
@@ -82,19 +87,19 @@ export function parseHelix(lines: Tokens, lineStart: number, lineEnd: number): C
         // 41 - 70        String         comment       Comment about this helix.
         // 72 - 76        Integer        length        Length of this helix.
         helices.push({
-            serNum: line.substr(7, 3).trim(),
-            helixID: line.substr(11, 3).trim(),
-            initResName: line.substr(15, 3).trim(),
-            initChainID: line.substr(19, 1).trim(),
-            initSeqNum: line.substr(21, 4).trim(),
-            initICode: line.substr(25, 1).trim(),
-            endResName: line.substr(27, 3).trim(),
-            endChainID: line.substr(31, 3).trim(),
-            endSeqNum: line.substr(33, 4).trim(),
-            endICode: line.substr(37, 1).trim(),
-            helixClass: line.substr(38, 2).trim(),
-            comment: line.substr(40, 30).trim(),
-            length: line.substr(71, 5).trim()
+            serNum: line.substring(7, 10).trim(),
+            helixID: line.substring(11, 14).trim(),
+            initResName: line.substring(15, 19).trim(),
+            initChainID: line.substring(19, 20).trim(),
+            initSeqNum: line.substring(21, 25).trim(),
+            initICode: line.substring(25, 26).trim(),
+            endResName: line.substring(27, 31).trim(),
+            endChainID: line.substring(31, 34).trim(),
+            endSeqNum: line.substring(33, 37).trim(),
+            endICode: line.substring(37, 38).trim(),
+            helixClass: line.substring(38, 40).trim(),
+            comment: line.substring(40, 70).trim(),
+            length: line.substring(71, 76).trim()
         });
     }
 
@@ -167,19 +172,23 @@ export function parseSheet(lines: Tokens, lineStart: number, lineEnd: number): C
         const line = getLine(i);
         // COLUMNS       DATA  TYPE     FIELD          DEFINITION
         // -------------------------------------------------------------------------------------
-        // 1 -  6        Record name   "SHEET "
-        // 8 - 10        Integer       strand         Strand  number which starts at 1 for each
+        //  1 -  6        Record name   "SHEET "
+        //  8 - 10        Integer       strand         Strand  number which starts at 1 for each
         //                                             strand within a sheet and increases by one.
         // 12 - 14        LString(3)    sheetID        Sheet  identifier.
         // 15 - 16        Integer       numStrands     Number  of strands in sheet.
-        // 18 - 20        Residue name  initResName    Residue  name of initial residue.
+        // 18 - 21        Residue name  initResName    Residue  name of initial residue.
+        //                                             PDB spec defines 3-letter for residue name,
+        //                                             but 4-letter are commonly used
         // 22             Character     initChainID    Chain identifier of initial residue
         //                                             in strand.
         // 23 - 26        Integer       initSeqNum     Sequence number of initial residue
         //                                             in strand.
         // 27             AChar         initICode      Insertion code of initial residue
         //                                             in  strand.
-        // 29 - 31        Residue name  endResName     Residue name of terminal residue.
+        // 29 - 32        Residue name  endResName     Residue name of terminal residue.
+        //                                             PDB spec defines 3-letter for residue name,
+        //                                             but 4-letter are commonly used
         // 33             Character     endChainID     Chain identifier of terminal residue.
         // 34 - 37        Integer       endSeqNum      Sequence number of terminal residue.
         // 38             AChar         endICode       Insertion code of terminal residue.
@@ -187,7 +196,9 @@ export function parseSheet(lines: Tokens, lineStart: number, lineEnd: number): C
         //                                             strand in the sheet. 0 if first strand,
         //                                             1 if  parallel,and -1 if anti-parallel.
         // 42 - 45        Atom          curAtom        Registration.  Atom name in current strand.
-        // 46 - 48        Residue name  curResName     Registration.  Residue name in current strand
+        // 46 - 49        Residue name  curResName     Registration.  Residue name in current strand
+        //                                             PDB spec defines 3-letter for residue name,
+        //                                             but 4-letter are commonly used
         // 50             Character     curChainId     Registration. Chain identifier in
         //                                             current strand.
         // 51 - 54        Integer       curResSeq      Registration.  Residue sequence number
@@ -195,8 +206,10 @@ export function parseSheet(lines: Tokens, lineStart: number, lineEnd: number): C
         // 55             AChar         curICode       Registration. Insertion code in
         //                                             current strand.
         // 57 - 60        Atom          prevAtom       Registration.  Atom name in previous strand.
-        // 61 - 63        Residue name  prevResName    Registration.  Residue name in
+        // 61 - 64        Residue name  prevResName    Registration.  Residue name in
         //                                             previous strand.
+        //                                             PDB spec defines 3-letter for residue name,
+        //                                             but 4-letter are commonly used
         // 65             Character     prevChainId    Registration.  Chain identifier in
         //                                             previous  strand.
         // 66 - 69        Integer       prevResSeq     Registration. Residue sequence number
@@ -204,28 +217,28 @@ export function parseSheet(lines: Tokens, lineStart: number, lineEnd: number): C
         // 70             AChar         prevICode      Registration.  Insertion code in
         //                                             previous strand.
         sheets.push({
-            strand: line.substr(7, 3).trim(),
-            sheetID: line.substr(11, 3).trim(),
-            numStrands: line.substr(14, 2).trim(),
-            initResName: line.substr(17, 3).trim(),
-            initChainID: line.substr(21, 1).trim(),
-            initSeqNum: line.substr(22, 4).trim(),
-            initICode: line.substr(26, 1).trim(),
-            endResName: line.substr(28, 3).trim(),
-            endChainID: line.substr(32, 1).trim(),
-            endSeqNum: line.substr(33, 4).trim(),
-            endICode: line.substr(37, 1).trim(),
-            sense: line.substr(38, 2).trim(),
-            curAtom: line.substr(41, 4).trim(),
-            curResName: line.substr(45, 3).trim(),
-            curChainId: line.substr(49, 1).trim(),
-            curResSeq: line.substr(50, 4).trim(),
-            curICode: line.substr(54, 1).trim(),
-            prevAtom: line.substr(56, 4).trim(),
-            prevResName: line.substr(60, 3).trim(),
-            prevChainId: line.substr(64, 1).trim(),
-            prevResSeq: line.substr(65, 4).trim(),
-            prevICode: line.substr(69, 1).trim(),
+            strand: line.substring(7, 10).trim(),
+            sheetID: line.substring(11, 14).trim(),
+            numStrands: line.substring(14, 16).trim(),
+            initResName: line.substring(17, 21).trim(),
+            initChainID: line.substring(21, 22).trim(),
+            initSeqNum: line.substring(22, 26).trim(),
+            initICode: line.substring(26, 27).trim(),
+            endResName: line.substring(28, 32).trim(),
+            endChainID: line.substring(32, 33).trim(),
+            endSeqNum: line.substring(33, 37).trim(),
+            endICode: line.substring(37, 38).trim(),
+            sense: line.substring(38, 40).trim(),
+            curAtom: line.substring(41, 45).trim(),
+            curResName: line.substring(45, 49).trim(),
+            curChainId: line.substring(49, 50).trim(),
+            curResSeq: line.substring(50, 54).trim(),
+            curICode: line.substring(54, 55).trim(),
+            prevAtom: line.substring(56, 60).trim(),
+            prevResName: line.substring(60, 64).trim(),
+            prevChainId: line.substring(64, 65).trim(),
+            prevResSeq: line.substring(65, 69).trim(),
+            prevICode: line.substring(69, 70).trim(),
         });
     }
 

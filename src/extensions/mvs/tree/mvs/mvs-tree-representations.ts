@@ -35,6 +35,8 @@ const Carbohydrate = {
 };
 
 const Surface = {
+    /** Type of surface representation. (Default is 'molecular') */
+    surface_type: OptionalField(literal('molecular', 'gaussian'), 'molecular', `Type of surface representation. (Default is 'molecular')`),
     /** Scales the corresponding visuals */
     size_factor: OptionalField(float, 1, 'Scales the corresponding visuals.'),
     /** Controls whether hydrogen atoms are drawn. */

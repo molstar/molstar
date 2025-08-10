@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Kim Juho <juho_kim@outlook.com>
  */
 
 import { CifField } from '../../../mol-io/reader/cif';
@@ -94,8 +95,10 @@ export function addAnisotropic(sites: AnisotropicTemplate, model: string, data: 
         TokenBuilder.add(sites.pdbx_label_alt_id, s + 16, s + 17);
     }
 
-    // 18 - 20       Residue name  resName        Residue name.
-    TokenBuilder.addToken(sites.pdbx_auth_comp_id, Tokenizer.trim(data, s + 17, s + 20));
+    // 18 - 21       Residue name  resName        Residue name.
+    //                                            PDB spec defines 3-letter
+    //                                            but 4-letter are commonly used
+    TokenBuilder.addToken(sites.pdbx_auth_comp_id, Tokenizer.trim(data, s + 17, s + 21));
 
     // 22            Character     chainID        Chain identifier.
     TokenBuilder.add(sites.pdbx_auth_asym_id, s + 21, s + 22);

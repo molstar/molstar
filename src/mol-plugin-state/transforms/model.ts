@@ -355,7 +355,7 @@ const TrajectoryFromPDB = PluginStateTransform.BuiltIn({
     from: [SO.Data.String],
     to: SO.Molecule.Trajectory,
     params: {
-        isPdbqt: PD.Boolean(false)
+        isPdbqt: PD.Boolean(false),
     }
 })({
     apply({ a, params }) {
