@@ -400,7 +400,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
                         antialias: true,
                         alpha: true,
                         depth: true,
-                        framebufferScaleFactor: options?.resolutionScale ?? 1,
+                        framebufferScaleFactor: pixelScale * (options?.resolutionScale ?? 1),
                     });
                     await xr.session.updateRenderState({ baseLayer: xr.layer });
 
