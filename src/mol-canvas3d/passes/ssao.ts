@@ -133,6 +133,7 @@ export class SsaoPass {
         return Math.min(1, 1 / this.webgl.pixelRatio) * resolutionScale;
     }
 
+    private levelsCameraScale = -1;
     private levels: { radius: number, bias: number }[];
 
     private getDepthTexture() {
@@ -345,9 +346,10 @@ export class SsaoPass {
 
         if (props.multiScale.name === 'on') {
             const mp = props.multiScale.params;
-            if (!deepEqual(this.levels, mp.levels)) {
+            if (this.levelsCameraScale !== camera.state.scale || !deepEqual(this.levels, mp.levels)) {
                 needsUpdateSsao = true;
 
+                this.levelsCameraScale = camera.state.scale;
                 this.levels = mp.levels;
                 const levels = getLevels(mp.levels, camera.state.scale);
                 ValueCell.updateIfChanged(this.renderable.values.dLevels, levels.count);
