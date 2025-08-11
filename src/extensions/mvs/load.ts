@@ -18,7 +18,7 @@ import { PluginState } from '../../mol-plugin/state';
 import { StateObjectSelector, StateTree } from '../../mol-state';
 import { RuntimeContext, Task } from '../../mol-task';
 import { MolViewSpec } from './behavior';
-import { createPluginStateSnapshotCamera, modifyCanvasProps } from './camera';
+import { createPluginStateSnapshotCamera, modifyCanvasProps, resetCanvasProps } from './camera';
 import { MVSAnnotationsProvider } from './components/annotation-prop';
 import { MVSAnnotationStructureComponent } from './components/annotation-structure-component';
 import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-prop';
@@ -63,6 +63,10 @@ async function _loadMVS(ctx: RuntimeContext, plugin: PluginContext, data: MVSDat
     try {
         const mvsExtensionLoaded = plugin.state.hasBehavior(MolViewSpec);
         if (!mvsExtensionLoaded) throw new Error('MolViewSpec extension is not loaded.');
+
+        // Reset canvas props to default so that modifyCanvasProps works as expected
+        resetCanvasProps(plugin);
+
         // console.log(`MVS tree:\n${MVSData.toPrettyString(data)}`)
         const multiData: MVSData_States = data.kind === 'multiple' ? data : MVSData.stateToStates(data);
         const entries: PluginStateSnapshotManager.Entry[] = [];
@@ -93,6 +97,7 @@ async function _loadMVS(ctx: RuntimeContext, plugin: PluginContext, data: MVSDat
         for (const entry of entries) {
             plugin.managers.snapshot.add(entry);
         }
+
         if (entries.length > 0) {
             await PluginCommands.State.Snapshots.Apply(plugin, { id: entries[0].snapshot.id });
         }

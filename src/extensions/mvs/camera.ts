@@ -6,7 +6,7 @@
  */
 
 import { Camera } from '../../mol-canvas3d/camera';
-import { CameraFogParams, Canvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';
+import { CameraFogParams, Canvas3DParams, Canvas3DProps, DefaultCanvas3DParams } from '../../mol-canvas3d/canvas3d';
 import { BloomParams } from '../../mol-canvas3d/passes/bloom';
 import { DofParams } from '../../mol-canvas3d/passes/dof';
 import { OutlineParams } from '../../mol-canvas3d/passes/outline';
@@ -176,4 +176,20 @@ export function modifyCanvasProps(oldCanvasProps: Canvas3DProps, canvasNode: Mol
             backgroundColor: backgroundColor,
         },
     };
+}
+
+export function resetCanvasProps(plugin: PluginContext) {
+    const old = plugin.canvas3d?.props;
+    plugin.canvas3d?.setProps({
+        ...old,
+        postprocessing: {
+            ...old,
+            outline: DefaultCanvas3DParams.postprocessing.outline,
+            shadow: DefaultCanvas3DParams.postprocessing.shadow,
+            occlusion: DefaultCanvas3DParams.postprocessing.occlusion,
+            dof: DefaultCanvas3DParams.postprocessing.dof,
+            bloom: DefaultCanvas3DParams.postprocessing.bloom,
+        },
+        cameraFog: DefaultCanvas3DParams.cameraFog,
+    });
 }
