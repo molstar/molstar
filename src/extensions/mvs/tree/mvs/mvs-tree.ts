@@ -324,7 +324,7 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['root'],
             params: SimpleParamsSchema({
                 /** Color of the canvas background. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`). */
-                background_color: RequiredField(ColorT, 'Color of the canvas background. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
+                background_color: OptionalField(nullable(ColorT), null, 'Color of the canvas background. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
             }),
         },
         primitives: {

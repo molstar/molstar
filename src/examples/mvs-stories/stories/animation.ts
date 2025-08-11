@@ -267,6 +267,16 @@ export function buildStory(): MVSData_States {
         const builder = s.state();
         if (s.camera) builder.camera(s.camera);
 
+        builder.canvas({
+            custom: {
+                molstar_postprocessing: {
+                    enable_outline: true,
+                    enable_ssao: true,
+                    enable_shadow: true,
+                }
+            }
+        });
+
         const description = i > 0 ? `${s.description}\n\n[Go to start](#intro)` : s.description;
 
         return builder.getSnapshot({
