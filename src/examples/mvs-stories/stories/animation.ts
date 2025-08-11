@@ -272,7 +272,6 @@ export function buildStory(): MVSData_States {
                 molstar_postprocessing: {
                     enable_outline: true,
                     enable_ssao: true,
-                    enable_shadow: true,
                 }
             }
         });
