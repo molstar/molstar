@@ -351,6 +351,6 @@ function makePaletteFunctionContinuous(props: MVSContinuousPaletteProps): (value
             return overflowColor;
         }
         const q = (x - checkpoints[gteIdx - 1]) / (checkpoints[gteIdx] - checkpoints[gteIdx - 1]);
-        return Color.interpolate(colors[gteIdx - 1], colors[gteIdx], q);
+        return Color.interpolateHcl(colors[gteIdx - 1], colors[gteIdx], q);
     };
 }

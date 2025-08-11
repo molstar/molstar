@@ -116,6 +116,19 @@ export namespace Color {
         return ((r << 16) | (g << 8) | b) as Color;
     }
 
+    const interpolateHcl1 = Hcl.zero();
+    const interpolateHcl2 = Hcl.zero();
+
+    /** Linear interpolation between two colors in HCL space */
+    export function interpolateHcl(c1: Color, c2: Color, t: number): Color {
+        const hcl1 = Hcl.fromColor(interpolateHcl1, c1);
+        const hcl2 = Hcl.fromColor(interpolateHcl2, c2);
+        const h = hcl1[0] + (hcl2[0] - hcl1[0]) * t;
+        const c = hcl1[1] + (hcl2[1] - hcl1[1]) * t;
+        const l = hcl1[2] + (hcl2[2] - hcl1[2]) * t;
+        return Hcl.toColor(Hcl.set(interpolateHcl1, h, c, l));
+    }
+
     export function hasHue(c: Color): boolean {
         const r = c >> 16 & 255;
         const g = c >> 8 & 255;
