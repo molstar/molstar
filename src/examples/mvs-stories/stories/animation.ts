@@ -28,9 +28,23 @@ const Steps = [
             const builder = createMVSBuilder();
 
             const _1cbs = structure(builder, '1cbs');
-            const [poly,] = polymer(_1cbs, { color: Colors['1cbs'] });
+            polymer(_1cbs, { color: Colors['1cbs'] });
 
-            poly.label({ text: 'Animation Demo' });
+            const prims = _1cbs.primitives({
+                ref: 'prims',
+                label_opacity: 0,
+            });
+
+            prims.label({ text: 'Animation Demo', position: { label_asym_id: 'A' }, label_size: 10 });
+
+            builder.animation().interpolate({
+                kind: 'scalar',
+                ref: 'prims-opacity',
+                target_ref: 'prims',
+                duration_ms: 1000,
+                property: 'label_opacity',
+                to: 1,
+            });
 
             // Uncomment this to make 2nd frame render much faster
             // It will cause shader compilation to happen during the 1st snapshot
