@@ -167,7 +167,6 @@ function processTransformMatrix(transition: MVSAnimationNode<'interpolate'>, tar
 
     let easing = EasingFnMap[transition.params.rotation_easing ?? 'linear'] ?? EasingFnMap['linear'];
     const rotation = interpolateRotation(startRotation as Mat3, endRotation as Mat3, easing(t), transition.params.rotation_noise_magnitude ?? 0);
-
     easing = EasingFnMap[transition.params.translation_easing ?? 'linear'] ?? EasingFnMap['linear'];
     const translation = interpolateVec3(startTranslation as Vec3, endTranslation as Vec3, easing(t), transition.params.translation_noise_magnitude ?? 0, false);
     easing = EasingFnMap[transition.params.scale_easing ?? 'linear'] ?? EasingFnMap['linear'];
