@@ -43,8 +43,8 @@ const ScalarInterpolation = {
 
 const Vec3Interpolation = {
     ..._Common,
-    from: OptionalField(nullable(Vector3), null, 'Start value. If unset, source value is used.'),
-    to: RequiredField(Vector3, 'End value.'),
+    from: OptionalField(nullable(list(float)), null, 'Start value. If unset, source value is used. Must be array of length 3N.'),
+    to: RequiredField(list(float), 'End value. Must be array of length 3N.'),
     spherical: OptionalField(bool, false, 'Whether to use spherical interpolation.'),
     ..._Noise,
 };

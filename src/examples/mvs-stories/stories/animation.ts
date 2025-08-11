@@ -35,10 +35,10 @@ A story showcasing MolViewSpec animation capabilities.`,
                 ref: 'prims',
                 label_opacity: 0,
             });
-
             prims.label({ text: 'Animation Demo', position: { label_asym_id: 'A' }, label_size: 10 });
 
-            builder.animation().interpolate({
+            const anim = builder.animation();
+            anim.interpolate({
                 kind: 'scalar',
                 ref: 'prims-opacity',
                 target_ref: 'prims',
@@ -46,6 +46,7 @@ A story showcasing MolViewSpec animation capabilities.`,
                 property: 'label_opacity',
                 to: 1,
             });
+
 
             // Uncomment this to make 2nd frame render much faster
             // It will cause shader compilation to happen during the 1st snapshot

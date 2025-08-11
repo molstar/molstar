@@ -129,7 +129,7 @@ function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolat
             if (transition.params.kind === 'scalar') {
                 next = interpolateScalar(startValue, endValue, t, transition.params.noise_magnitude ?? 0);
             } else if (transition.params.kind === 'vec3') {
-                next = interpolateVec3(startValue, endValue, t, transition.params.noise_magnitude ?? 0, !!transition.params.spherical);
+                next = interpolateVectors(startValue, endValue, t, transition.params.noise_magnitude ?? 0, !!transition.params.spherical);
             } else if (transition.params.kind === 'rotation_matrix') {
                 next = interpolateRotation(startValue, endValue, t, transition.params.noise_magnitude ?? 0);
             } else if (transition.params.kind === 'color') {
@@ -196,6 +196,35 @@ function interpolateScalar(start: number, end: number, t: number, noise: number)
         v += (Math.random() - 0.5) * noise;
     }
     return v;
+}
+
+const InterpolateVectorsState = {
+    start: Vec3(),
+    end: Vec3(),
+    v: Vec3(),
+};
+function interpolateVectors(start: number[], end: number[], t: number, noise: number, isSpherical: boolean) {
+    if (start === end && !noise) return start;
+
+    const ret: number[] = Array.from<number>({ length: start.length }).fill(0.1);
+
+    for (let i = 0; i < start.length; i += 3) {
+        const s = Vec3.fromArray(InterpolateVectorsState.start, start, i);
+        const e = Vec3.fromArray(InterpolateVectorsState.end, end, i);
+
+        const v = isSpherical
+            ? Vec3.slerp(InterpolateVectorsState.v, s, e, t)
+            : Vec3.lerp(InterpolateVectorsState.v, s, e, t);
+
+        if (noise) {
+            Vec3.random(Vec3Noise, noise);
+            Vec3.add(v, v, Vec3Noise);
+        }
+
+        Vec3.toArray(v, ret, i);
+    }
+
+    return ret;
 }
 
 const Vec3Noise = Vec3();
