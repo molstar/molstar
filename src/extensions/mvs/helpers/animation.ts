@@ -83,6 +83,17 @@ function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolat
             const target = transition.params.property[0] === 'custom' ? node?.custom : node?.params;
             if (!target) continue;
 
+            const startTime = transition.params.start_ms ?? 0;
+            const endTime = startTime + transition.params.duration_ms;
+
+            const deltaT = endTime - startTime;
+            let t = clamp((time - startTime) / deltaT, 0, 1);
+
+            if (transition.params.kind === 'transform_matrix') {
+                processTransformMatrix(transition, target, t);
+                continue;
+            }
+
             if (transition.params.kind === 'color') {
                 if (!cache.has(transition)) {
                     cache.set(transition, {
@@ -93,33 +104,26 @@ function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolat
 
             const paletteFn = cache.get(transition)?.paletteFn;
 
-            const transformTarget = transition.params.kind === 'rotation_matrix' || transition.params.kind === 'vec3'
-                ? transition.params.transform_matrix_target
-                : undefined;
-
             const offset = transition.params.property[0] === 'custom' ? 1 : 0;
-            const startTime = transition.params.start_ms ?? 0;
             const startValue: any = transition.params.kind === 'color'
                 ? Color.toHexStyle(paletteFn!(0))
-                : transition.params.from ?? select(target, transition.params.property, offset, transformTarget);
-            const endTime = startTime + transition.params.duration_ms;
+                : transition.params.from ?? select(target, transition.params.property, offset);
             const endValue: any = transition.params.kind === 'color'
                 ? Color.toHexStyle(paletteFn!(1))
                 : transition.params.to;
 
             if (time <= startTime) {
-                assign(target, transition.params.property, startValue, offset, transformTarget);
+                assign(target, transition.params.property, startValue, offset);
                 continue;
             }
 
             if (time >= endTime - EPSILON) {
-                assign(target, transition.params.property, endValue, offset, transformTarget);
+                assign(target, transition.params.property, endValue, offset);
                 continue;
             }
 
-            const deltaT = endTime - startTime;
             const easing = EasingFnMap[transition.params.easing ?? 'linear'] ?? EasingFnMap['linear'];
-            const t = easing(clamp((time - startTime) / deltaT, 0, 1));
+            t = easing(t);
 
             let next: any;
             if (transition.params.kind === 'scalar') {
@@ -133,9 +137,58 @@ function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolat
                 next = Color.toHexStyle(color);
             }
 
-            assign(target, transition.params.property, next, offset, transformTarget);
+            assign(target, transition.params.property, next, offset);
         }
     });
+}
+
+const TransformState = {
+    pivotTranslation: Mat4(),
+    pivotTranslationInv: Mat4(),
+    rotation: Mat4(),
+    scale: Mat4(),
+    translation: Mat4(),
+    pivotNeg: Vec3(),
+    temp: Mat4(),
+};
+function processTransformMatrix(transition: MVSAnimationNode<'interpolate'>, target: any, t: number) {
+    if (transition.params.kind !== 'transform_matrix') return;
+
+    const offset = transition.params.property[0] === 'custom' ? 1 : 0;
+    const transform = select(target, transition.params.property, offset) ?? Mat4.identity();
+
+    const startRotation = transition.params.rotation_from ?? Mat3.fromMat4(Mat3(), transform);
+    const startTranslation = transition.params.translation_from ?? Mat4.getTranslation(Vec3(), transform);
+    const startScale = transition.params.scale_from ?? Mat4.getScaling(Vec3(), transform);
+
+    const endRotation = transition.params.rotation_to ?? startRotation;
+    const endTranslation = transition.params.translation_to ?? startTranslation;
+    const endScale = transition.params.scale_to ?? startScale;
+
+    let easing = EasingFnMap[transition.params.rotation_easing ?? 'linear'] ?? EasingFnMap['linear'];
+    const rotation = interpolateRotation(startRotation as Mat3, endRotation as Mat3, easing(t), transition.params.rotation_noise_magnitude ?? 0);
+
+    easing = EasingFnMap[transition.params.translation_easing ?? 'linear'] ?? EasingFnMap['linear'];
+    const translation = interpolateVec3(startTranslation as Vec3, endTranslation as Vec3, easing(t), transition.params.translation_noise_magnitude ?? 0, false);
+    easing = EasingFnMap[transition.params.scale_easing ?? 'linear'] ?? EasingFnMap['linear'];
+    const scale = interpolateVec3(startScale as Vec3, endScale as Vec3, easing(t), transition.params.scale_noise_magnitude ?? 0, false);
+
+    const pivot = transition.params.pivot ?? Vec3.zero();
+
+    Mat4.fromTranslation(TransformState.translation, translation);
+    Mat4.fromScaling(TransformState.scale, scale);
+    Mat4.setIdentity(TransformState.rotation);
+    Mat4.fromMat3(TransformState.rotation, rotation);
+    Mat4.fromTranslation(TransformState.pivotTranslation, pivot as Vec3);
+    Mat4.fromTranslation(TransformState.pivotTranslationInv, Vec3.negate(TransformState.pivotNeg, pivot as Vec3));
+
+    // translation . pivot . scale . rotation . pivotInv
+    const result = Mat4();
+    Mat4.mul(result, TransformState.rotation, TransformState.pivotTranslationInv);
+    Mat4.mul(result, TransformState.scale, result);
+    Mat4.mul(result, TransformState.translation, result);
+
+    assign(target, transition.params.property, result, offset);
 }
 
 function interpolateScalar(start: number, end: number, t: number, noise: number) {
@@ -148,6 +201,8 @@ function interpolateScalar(start: number, end: number, t: number, noise: number)
 
 const Vec3Noise = Vec3();
 function interpolateVec3(start: Vec3, end: Vec3, t: number, noise: number, isSpherical: boolean) {
+    if (start === end && !noise) return start;
+
     const v = isSpherical
         ? Vec3.slerp(Vec3(), start, end, t)
         : Vec3.lerp(Vec3(), start, end, t);
@@ -168,6 +223,8 @@ const RotationState = {
     temp: Mat4(),
 };
 function interpolateRotation(start: Mat3, end: Mat3, t: number, noise: number) {
+    if (start === end && !noise) return start;
+
     Quat.fromMat3(RotationState.start, start);
     Quat.fromMat3(RotationState.end, end);
     Quat.slerp(RotationState.v, RotationState.start, RotationState.end, t);
@@ -180,24 +237,9 @@ function interpolateRotation(start: Mat3, end: Mat3, t: number, noise: number) {
     return Mat3.fromMat4(Mat3(), RotationState.temp);
 }
 
-type TransformTarget = 'rotation' | 'translation' | null | undefined
-
-function getTransformTarget(value: any, target: TransformTarget) {
-    if (!value || !target) return value;
-
-    switch (target) {
-        case 'rotation':
-            return Mat3.fromMat4(Mat3(), value);
-        case 'translation':
-            return Mat4.getTranslation(Vec3(), value);
-        default:
-            return value;
-    }
-}
-
-function select(params: any, path: string | (string | number)[], offset: number, transformTarget: TransformTarget) {
+function select(params: any, path: string | (string | number)[], offset: number) {
     if (typeof path === 'string') {
-        return getTransformTarget(params?.[path], transformTarget);
+        return params?.[path];
     }
 
     let f = params;
@@ -206,26 +248,14 @@ function select(params: any, path: string | (string | number)[], offset: number,
         f = f[path[i]];
     }
 
-    return getTransformTarget(f, transformTarget);
+    return f;
 }
 
-function assignTransformTarget(target: any, xform: TransformTarget, value: any) {
-    if (!xform) return;
-
-    switch (xform) {
-        case 'rotation':
-            Mat4.fromMat3(target, value);
-        case 'translation':
-            Mat4.setTranslation(target, value);
-    }
-}
-
-function assign(params: any, path: string | (string | number)[], value: any, offset: number, transformTarget: TransformTarget) {
+function assign(params: any, path: string | (string | number)[], value: any, offset: number) {
     if (!params) return;
 
     if (typeof path === 'string') {
-        if (transformTarget) assignTransformTarget(params[path], transformTarget, value);
-        else params[path] = value;
+        params[path] = value;
         return;
     }
 
@@ -233,8 +263,7 @@ function assign(params: any, path: string | (string | number)[], value: any, off
     for (let i = offset; i < path.length; i++) {
         if (!f) break;
         if (i === path.length - 1) {
-            if (transformTarget) assignTransformTarget(f[path[i]], transformTarget, value);
-            else f[path[i]] = value;
+            f[path[i]] = value;
         } else {
             f = f[path[i]];
         }

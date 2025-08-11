@@ -22,7 +22,7 @@ const Easing = literal(
 export type MVSAnimationEasing = ValueFor<typeof Easing>;
 
 const _Noise = {
-    noise_magnitude: OptionalField(float, 0, 'Magnitude of the noise to apply to the transition.')
+    noise_magnitude: OptionalField(float, 0, 'Magnitude of the noise to apply to the interpolated value.')
     // TODO: support cummulative noise?
 };
 
@@ -34,31 +34,49 @@ const _Common = {
     easing: OptionalField(Easing, 'linear', 'Easing function to use for the transition.'),
 };
 
-const ScalarTransition = {
+const ScalarInterpolation = {
     ..._Common,
     from: OptionalField(nullable(float), null, 'Start value. If unset, source value is used.'),
-    to: RequiredField(float, 'End value for the transition.'),
+    to: RequiredField(float, 'End value.'),
     ..._Noise,
 };
 
-const Vec3Transition = {
+const Vec3Interpolation = {
     ..._Common,
     from: OptionalField(nullable(Vector3), null, 'Start value. If unset, source value is used.'),
-    to: RequiredField(Vector3, 'End value for the transition.'),
+    to: RequiredField(Vector3, 'End value.'),
     spherical: OptionalField(bool, false, 'Whether to use spherical interpolation.'),
-    transform_matrix_target: OptionalField(nullable(literal('translation')), null, 'Apply the interpolation to a 4x4 matrix component.'),
     ..._Noise,
 };
 
-const RotationMatrixTransition = {
+const RotationMatrixInterpolation = {
     ..._Common,
     from: OptionalField(nullable(Matrix), null, 'Start value. If unset, source value is used.'),
-    to: RequiredField(Matrix, 'End value for the transition.'),
-    transform_matrix_target: OptionalField(nullable(literal('rotation')), null, 'Apply the interpolation to a 4x4 matrix component.'),
+    to: RequiredField(Matrix, 'End value.'),
     ..._Noise,
 };
 
-const ColorTransition = {
+const TransformationMatrixInterpolation = {
+    target_ref: RequiredField(str, 'Reference to the node.'),
+    property: RequiredField(union(str, list(union(str, int))), 'Value accessor.'),
+    start_ms: OptionalField(float, 0, 'Start time of the transition in milliseconds.'),
+    duration_ms: RequiredField(float, 'End time of the transition in milliseconds.'),
+    pivot: OptionalField(nullable(Vector3), null, 'Pivot point for rotation and scale.'),
+    rotation_from: OptionalField(nullable(Matrix), null, 'Start rotation value. If unset, source value is used.'),
+    rotation_to: OptionalField(nullable(Matrix), null, 'End rotation value.'),
+    rotation_noise_magnitude: OptionalField(float, 0, 'Magnitude of the noise to apply to the rotation.'),
+    rotation_easing: OptionalField(Easing, 'linear', 'Easing function to use for the rotation.'),
+    translation_from: OptionalField(nullable(Vector3), null, 'Start translation value. If unset, source value is used.'),
+    translation_to: OptionalField(nullable(Vector3), null, 'End translation value.'),
+    translation_noise_magnitude: OptionalField(float, 0, 'Magnitude of the noise to apply to the translation.'),
+    translation_easing: OptionalField(Easing, 'linear', 'Easing function to use for the translation.'),
+    scale_from: OptionalField(nullable(Vector3), null, 'Start scale value. If unset, source value is used.'),
+    scale_to: OptionalField(nullable(Vector3), null, 'End scale value.'),
+    scale_noise_magnitude: OptionalField(float, 0, 'Magnitude of the noise to apply to the scale.'),
+    scale_easing: OptionalField(Easing, 'linear', 'Easing function to use for the scale.'),
+};
+
+const ColorInterpolation = {
     ..._Common,
     palette: RequiredField(union(DiscretePalette, ContinuousPalette), 'Palette to sample colors from.'),
 };
@@ -84,10 +102,11 @@ export const MVSAnimationSchema = TreeSchema({
                 'kind',
                 'Interpolation kind',
                 {
-                    scalar: SimpleParamsSchema(ScalarTransition),
-                    vec3: SimpleParamsSchema(Vec3Transition),
-                    rotation_matrix: SimpleParamsSchema(RotationMatrixTransition),
-                    color: SimpleParamsSchema(ColorTransition),
+                    scalar: SimpleParamsSchema(ScalarInterpolation),
+                    vec3: SimpleParamsSchema(Vec3Interpolation),
+                    rotation_matrix: SimpleParamsSchema(RotationMatrixInterpolation),
+                    transform_matrix: SimpleParamsSchema(TransformationMatrixInterpolation),
+                    color: SimpleParamsSchema(ColorInterpolation),
                 },
             )
         }

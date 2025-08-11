@@ -194,7 +194,7 @@ A story showcasing MolViewSpec animation capabilities.`,
 
             primitives.ellipsoid({
                 center: [0, 0, 0],
-                radius: 2,
+                radius: [2, 3, 2.5],
                 color: 'red'
             });
 
@@ -217,12 +217,14 @@ A story showcasing MolViewSpec animation capabilities.`,
             });
 
             anim.interpolate({
-                kind: 'vec3',
+                kind: 'transform_matrix',
                 target_ref: 'primitives',
                 property: ['instances', 0],
-                transform_matrix_target: 'translation',
-                from: [20.24, 29.64, 14.85],
-                to: [21.84, 21.71, 27.04],
+                translation_from: [20.24, 29.64, 14.85],
+                translation_to: [21.84, 21.71, 27.04],
+                pivot: [0, 0, 0],
+                rotation_noise_magnitude: 0.2,
+                scale_to: [0.01, 0.01, 0.01],
                 duration_ms: 1000,
             });
 
