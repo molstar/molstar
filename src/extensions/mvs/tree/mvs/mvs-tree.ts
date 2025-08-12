@@ -117,7 +117,7 @@ export const MVSTreeSchema = TreeSchema({
         },
         /** This node instructs to rotate and/or translate structure coordinates. */
         transform: {
-            description: 'This node instructs to rotate and/or translate coordinates OR provide a transformation matrix.',
+            description: 'This node instructs to rotate and/or translate coordinates OR provide a transformation matrix. If matrix is not defined, this is applied as: (translation . rotation . translate_from_centroid . local_rotation . translate_to_centroid)',
             parent: ['structure', 'component', 'volume'],
             params: TransformParams,
         },
