@@ -23,13 +23,26 @@ uniform float uFar;
     uniform vec3 uLightDirection[dLightCount];
     uniform vec3 uLightColor[dLightCount];
 #endif
+
 uniform vec3 uAmbientColor;
 
 uniform mat4 uProjection;
 uniform mat4 uInvProjection;
 
+uniform bool uHasHeadRotation;
+
 uniform float uMaxDistance;
 uniform float uTolerance;
+
+// Map full [0,1] coords -> eye-local [0,1] coords
+vec2 fullToEye(vec2 uvFull) {
+    return (uvFull - uBounds.xy) / (uBounds.zw - uBounds.xy);
+}
+// Map eye-local [0,1] coords -> full [0,1] coords
+vec2 eyeToFull(vec2 uvEye) {
+    return uBounds.xy + (uBounds.zw - uBounds.xy) * uvEye;
+}
+
 
 bool isBackground(const in float depth) {
     return depth == 1.0;
@@ -78,6 +91,7 @@ vec3 screenSpaceShadow(const in vec3 position, const in vec3 lightDirection, con
 
         rayCoords = uProjection * vec4(rayPos, 1.0);
         rayCoords.xyz = (rayCoords.xyz / rayCoords.w) * 0.5 + 0.5;
+        rayCoords.xy = eyeToFull(rayCoords.xy);                    // scale to eye rect
 
         if (outsideBounds(rayCoords.xy)) {
             return lightColor;
@@ -100,14 +114,19 @@ vec3 screenSpaceShadow(const in vec3 position, const in vec3 lightDirection, con
 void main(void) {
     vec2 invTexSize = 1.0 / uTexSize;
     vec2 selfCoords = gl_FragCoord.xy * invTexSize;
-
     float selfDepth = getDepth(selfCoords);
 
     if (isBackground(selfDepth)) {
         gl_FragColor = vec4(0.0);
         return;
     }
-
+    if (uHasHeadRotation){
+        selfCoords = fullToEye(selfCoords);
+        if (any(lessThan(selfCoords, vec2(0.0))) || any(greaterThan(selfCoords, vec2(1.0)))) {
+            gl_FragColor = vec4(0.0);
+            return;
+        }
+    }
     vec3 selfViewPos = screenSpaceToViewSpace(vec3(selfCoords, selfDepth), uInvProjection);
     float stepLength = uMaxDistance / float(dSteps);
 
