@@ -107,10 +107,10 @@ function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolat
             const offset = transition.params.property[0] === 'custom' ? 1 : 0;
             const startValue: any = transition.params.kind === 'color'
                 ? Color.toHexStyle(paletteFn!(0))
-                : transition.params.from ?? select(target, transition.params.property, offset);
+                : transition.params.start ?? select(target, transition.params.property, offset);
             const endValue: any = transition.params.kind === 'color'
                 ? Color.toHexStyle(paletteFn!(1))
-                : transition.params.to;
+                : transition.params.end;
 
             if (time <= startTime) {
                 assign(target, transition.params.property, startValue, offset);
@@ -157,13 +157,13 @@ function processTransformMatrix(transition: MVSAnimationNode<'interpolate'>, tar
     const offset = transition.params.property[0] === 'custom' ? 1 : 0;
     const transform = select(target, transition.params.property, offset) ?? Mat4.identity();
 
-    const startRotation = transition.params.rotation_from ?? Mat3.fromMat4(Mat3(), transform);
-    const startTranslation = transition.params.translation_from ?? Mat4.getTranslation(Vec3(), transform);
-    const startScale = transition.params.scale_from ?? Mat4.getScaling(Vec3(), transform);
+    const startRotation = transition.params.rotation_start ?? Mat3.fromMat4(Mat3(), transform);
+    const startTranslation = transition.params.translation_start ?? Mat4.getTranslation(Vec3(), transform);
+    const startScale = transition.params.scale_start ?? Mat4.getScaling(Vec3(), transform);
 
-    const endRotation = transition.params.rotation_to ?? startRotation;
-    const endTranslation = transition.params.translation_to ?? startTranslation;
-    const endScale = transition.params.scale_to ?? startScale;
+    const endRotation = transition.params.rotation_end ?? startRotation;
+    const endTranslation = transition.params.translation_end ?? startTranslation;
+    const endScale = transition.params.scale_end ?? startScale;
 
     let easing = EasingFnMap[transition.params.rotation_easing ?? 'linear'] ?? EasingFnMap['linear'];
     const rotation = interpolateRotation(startRotation as Mat3, endRotation as Mat3, easing(t), transition.params.rotation_noise_magnitude ?? 0);

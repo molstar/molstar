@@ -44,7 +44,7 @@ A story showcasing MolViewSpec animation capabilities.`,
                 target_ref: 'prims',
                 duration_ms: 1000,
                 property: 'label_opacity',
-                to: 1,
+                end: 1,
             });
 
 
@@ -115,7 +115,7 @@ A story showcasing MolViewSpec animation capabilities.`,
                 target_ref: 'clip',
                 duration_ms: 2000,
                 property: ['point', 2],
-                to: 55,
+                end: 55,
                 easing: 'sin-in',
             });
 
@@ -124,7 +124,7 @@ A story showcasing MolViewSpec animation capabilities.`,
                 target_ref: 'xform',
                 duration_ms: 2000,
                 property: 'translation',
-                to: [0, 0, 0],
+                end: [0, 0, 0],
                 noise_magnitude: 1,
             });
 
@@ -133,7 +133,7 @@ A story showcasing MolViewSpec animation capabilities.`,
                 target_ref: 'xform',
                 duration_ms: 2000,
                 property: 'local_rotation',
-                to: [1, 0, 0, 0, 1, 0, 0, 0, 1],
+                end: [1, 0, 0, 0, 1, 0, 0, 0, 1],
                 noise_magnitude: 0.2,
             });
 
@@ -206,7 +206,7 @@ A story showcasing MolViewSpec animation capabilities.`,
                 target_ref: 'repr',
                 duration_ms: 1000,
                 property: ['custom', 'molstar_reprepresentation_params', 'emissive'],
-                to: 0.2,
+                end: 0.2,
             });
 
             anim.interpolate({
@@ -214,18 +214,18 @@ A story showcasing MolViewSpec animation capabilities.`,
                 target_ref: 'opacity',
                 duration_ms: 1000,
                 property: 'opacity',
-                to: 0,
+                end: 0,
             });
 
             anim.interpolate({
                 kind: 'transform_matrix',
                 target_ref: 'primitives',
                 property: ['instances', 0],
-                translation_from: [20.24, 29.64, 14.85],
-                translation_to: [21.84, 21.71, 27.04],
+                translation_start: [20.24, 29.64, 14.85],
+                translation_end: [21.84, 21.71, 27.04],
                 pivot: [0, 0, 0],
                 rotation_noise_magnitude: 0.2,
-                scale_to: [0.01, 0.01, 0.01],
+                scale_end: [0.01, 0.01, 0.01],
                 duration_ms: 1000,
             });
 
@@ -234,7 +234,7 @@ A story showcasing MolViewSpec animation capabilities.`,
                 target_ref: 'primitives',
                 duration_ms: 1000,
                 property: 'opacity',
-                to: 1,
+                end: 1,
             });
 
             return builder;
