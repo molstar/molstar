@@ -32,6 +32,8 @@ const _Common = {
     start_ms: OptionalField(float, 0, 'Start time of the transition in milliseconds.'),
     duration_ms: RequiredField(float, 'End time of the transition in milliseconds.'),
     easing: OptionalField(Easing, 'linear', 'Easing function to use for the transition.'),
+    frequency: OptionalField(int, 1, 'Determines how many times the interpolation loops. Current T = frequency * t mod 1.'),
+    alternate_direction: OptionalField(bool, false, 'Whether to alternate the direction of the interpolation for frequency > 1.'),
 };
 
 const ScalarInterpolation = {
@@ -66,14 +68,20 @@ const TransformationMatrixInterpolation = {
     rotation_end: OptionalField(nullable(Matrix), null, 'End rotation value.'),
     rotation_noise_magnitude: OptionalField(float, 0, 'Magnitude of the noise to apply to the rotation.'),
     rotation_easing: OptionalField(Easing, 'linear', 'Easing function to use for the rotation.'),
+    rotation_frequency: OptionalField(int, 1, 'Determines how many times the rotation interpolation loops. Current T = frequency * t mod 1.'),
+    rotation_alternate_direction: OptionalField(bool, false, 'Whether to alternate the direction of the interpolation for frequency > 1.'),
     translation_start: OptionalField(nullable(Vector3), null, 'Start translation value. If unset, parent state value is used.'),
     translation_end: OptionalField(nullable(Vector3), null, 'End translation value.'),
     translation_noise_magnitude: OptionalField(float, 0, 'Magnitude of the noise to apply to the translation.'),
     translation_easing: OptionalField(Easing, 'linear', 'Easing function to use for the translation.'),
+    translation_frequency: OptionalField(int, 1, 'Determines how many times the translation interpolation loops. Current T = frequency * t mod 1.'),
+    translation_alternate_direction: OptionalField(bool, false, 'Whether to alternate the direction of the interpolation for frequency > 1.'),
     scale_start: OptionalField(nullable(Vector3), null, 'Start scale value. If unset, parent state value is used.'),
     scale_end: OptionalField(nullable(Vector3), null, 'End scale value.'),
     scale_noise_magnitude: OptionalField(float, 0, 'Magnitude of the noise to apply to the scale.'),
     scale_easing: OptionalField(Easing, 'linear', 'Easing function to use for the scale.'),
+    scale_frequency: OptionalField(int, 1, 'Determines how many times the scale interpolation loops. Current T = frequency * t mod 1.'),
+    scale_alternate_direction: OptionalField(bool, false, 'Whether to alternate the direction of the interpolation for frequency > 1.'),
 };
 
 const ColorInterpolation = {
