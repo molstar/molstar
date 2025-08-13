@@ -74,7 +74,8 @@ Note that since we don't clearly distinguish between a public and private interf
     - Add `AnimateStateSnapshotTransition` animation
     - Update the snapshots UI to support this feature
 - Use "proper time" in the animation loop to prevent animation skips during blocking operations (e.g., shader complication)
-- Add `Color.interpolateHcl`
+- Add `Hsl` and (normalized) `Rgb` color spaces
+- Add `Color.interpolateHsl`
 - Add `rotationCenter` property to `TransformParam`
 
 ## [v4.18.0] - 2025-06-08
