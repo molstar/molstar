@@ -19,6 +19,7 @@ import { Color } from '../../../mol-util/color';
 import { makeContinuousPaletteCheckpoints, MVSContinuousPaletteProps, MVSDiscretePaletteProps } from '../components/annotation-color-theme';
 import { palettePropsFromMVSPalette } from '../load-helpers';
 import { SortedArray } from '../../../mol-data/int';
+import { ColorT } from '../tree/mvs/param-types';
 
 
 export async function generateStateTransition(ctx: RuntimeContext, snapshot: Snapshot) {
@@ -104,16 +105,18 @@ function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolat
 
             t = applyFrequency(t, transition.params.frequency ?? 1, !!transition.params.alternate_direction);
 
+            const offset = transition.params.property[0] === 'custom' ? 1 : 0;
+            const startBase = transition.params.start ?? select(target, transition.params.property, offset);
+
             if (transition.params.kind === 'color' && !cacheEntry.paletteFn) {
-                cacheEntry.paletteFn = makePaletteFunction(transition);
+                cacheEntry.paletteFn = makePaletteFunction(transition, startBase, transition.params.end as ColorT | undefined);
             }
 
             const paletteFn = cacheEntry.paletteFn!;
 
-            const offset = transition.params.property[0] === 'custom' ? 1 : 0;
             const startValue: any = transition.params.kind === 'color'
                 ? Color.toHexStyle(paletteFn(0))
-                : transition.params.start ?? select(target, transition.params.property, offset);
+                : startBase;
             const endValue: any = transition.params.kind === 'color'
                 ? Color.toHexStyle(paletteFn(1))
                 : transition.params.end;
@@ -387,10 +390,12 @@ function findNode(tree: Tree, ref: string): Tree | undefined {
     return undefined;
 }
 
-function makePaletteFunction(props: MVSAnimationNode<'interpolate'>): ((value: number) => Color) | undefined {
+function makePaletteFunction(props: MVSAnimationNode<'interpolate'>, start: ColorT | undefined | null, end: ColorT | undefined | null): ((value: number) => Color) | undefined {
     if (props.params.kind !== 'color') return undefined;
 
-    const params = palettePropsFromMVSPalette(props.params.palette);
+    const params = props.params.palette
+        ? palettePropsFromMVSPalette(props.params.palette)
+        : palettePropsFromMVSPalette({ kind: 'continuous', colors: [start ?? 'black', end ?? start ?? 'black'] });
     if (params.name === 'discrete') return makePaletteFunctionDiscrete(params.params);
     if (params.name === 'continuous') return makePaletteFunctionContinuous(params.params);
     throw new Error(`NotImplementedError: makePaletteFunction for ${(props as any).name}`);

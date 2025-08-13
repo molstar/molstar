@@ -142,10 +142,7 @@ A story showcasing MolViewSpec animation capabilities.`,
                 target_ref: 'ligand-color',
                 duration_ms: 2000,
                 property: 'color',
-                palette: {
-                    kind: 'continuous',
-                    colors: [Colors['ligand-away'], Colors['ligand-docked']],
-                }
+                end: Colors['ligand-docked'],
             });
 
             return builder;
@@ -170,7 +167,7 @@ A story showcasing MolViewSpec animation capabilities.`,
             poly.representation({
                 type: 'surface',
                 surface_type: 'gaussian'
-            }).opacity({ ref: 'opacity', opacity: 1 });
+            }).opacity({ ref: 'opacity', opacity: 1 }).color({ ref: 'surface-color', color: 'white' });
 
             _1cbs.component({ selector: 'ligand' })
                 .transform({ ref: 'xform', translation: [0, 0, 0] })
@@ -238,6 +235,18 @@ A story showcasing MolViewSpec animation capabilities.`,
                 duration_ms: 1000,
                 property: 'opacity',
                 end: 1,
+            });
+
+
+            anim.interpolate({
+                kind: 'color',
+                target_ref: 'surface-color',
+                duration_ms: 2000,
+                property: 'color',
+                palette: {
+                    kind: 'continuous',
+                    colors: ['white', Colors['1cbs'], 'white'],
+                }
             });
 
             return builder;

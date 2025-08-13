@@ -7,7 +7,7 @@
 import { bool, float, int, list, OptionalField, RequiredField, str, union, nullable, literal, ValueFor } from '../generic/field-schema';
 import { SimpleParamsSchema, UnionParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema } from '../generic/tree-schema';
-import { ContinuousPalette, DiscretePalette, Matrix, Vector3 } from '../mvs/param-types';
+import { ColorT, ContinuousPalette, DiscretePalette, Matrix, Vector3 } from '../mvs/param-types';
 
 const Easing = literal(
     'linear',
@@ -74,7 +74,9 @@ const ColorInterpolation = {
     ..._Common,
     ..._Frequency,
     ..._Easing,
-    palette: RequiredField(union(DiscretePalette, ContinuousPalette), 'Palette to sample colors from.'),
+    start: OptionalField(nullable(ColorT), null, 'Start value. If unset, parent state value is used.'),
+    end: OptionalField(nullable(ColorT), null, 'End value.'),
+    palette: OptionalField(nullable(union(DiscretePalette, ContinuousPalette)), null, 'Palette to sample colors from. Overrides start and end values.'),
 };
 
 const TransformationMatrixInterpolation = {
