@@ -97,6 +97,7 @@ export const MVSAnimationSchema = TreeSchema({
             parent: [],
             params: SimpleParamsSchema({
                 frame_time_ms: OptionalField(float, 1000 / 60, 'Frame time in milliseconds'),
+                duration_ms: OptionalField(nullable(float), null, 'Total duration of the animation. If not specified, computed as maximum of all transitions.'),
                 autoplay: OptionalField(bool, true, 'Determines whether the animation should autoplay when a snapshot is loaded'),
                 loop: OptionalField(bool, false, 'Determines whether the animation should loop when it reaches the end'),
                 include_camera: OptionalField(bool, false, 'Determines whether the camera state should be included in the animation'),

@@ -28,7 +28,10 @@ export async function generateStateTransition(ctx: RuntimeContext, snapshot: Sna
     const transitions = tree.children?.filter(child => child.kind === 'interpolate');
     if (!transitions?.length) return undefined;
 
-    const duration = Math.max(...transitions.map(t => (t.params.start_ms ?? 0) + t.params.duration_ms));
+    const duration = Math.max(
+        snapshot.animation.params?.duration_ms ?? 0,
+        ...transitions.map(t => (t.params.start_ms ?? 0) + t.params.duration_ms)
+    );
 
     const frames: MVSTree[] = [];
     const dt = tree.params?.frame_time_ms ?? (1000 / 60);
