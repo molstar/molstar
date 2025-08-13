@@ -13,7 +13,7 @@ import { AngleData } from '../../mol-repr/shape/loci/angle';
 import { DihedralData } from '../../mol-repr/shape/loci/dihedral';
 import { PlaneData } from '../../mol-repr/shape/loci/plane';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { EPSILON, Mat4, Vec3 } from '../../mol-math/linear-algebra';
+import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 
 export function getDistanceDataFromStructureSelections(s: ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry>): DistanceData {
     const lociA = s[0].loci;
