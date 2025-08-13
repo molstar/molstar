@@ -2,6 +2,7 @@
  * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Ludovic Autin <ludovic.autin@gmail.com>
  */
 
 import { produce } from 'immer';
@@ -33,7 +34,7 @@ export async function generateStateTransition(ctx: RuntimeContext, snapshot: Sna
     const dt = tree.params?.frame_time_ms ?? (1000 / 60);
     const N = Math.ceil(duration / dt);
 
-    const cache = new Map<any, TransitionCacheEntry>();
+    const cache = new Map<any, InterpolationCacheEntry>();
 
     for (let i = 0; i <= N; i++) {
         const t = i * dt;
@@ -70,11 +71,12 @@ const EasingFnMap: Record<MVSAnimationEasing, (t: number) => number> = {
     'sin-in-out': EasingFns.sinInOut,
 };
 
-interface TransitionCacheEntry {
-    paletteFn?: (value: number) => Color
+interface InterpolationCacheEntry {
+    paletteFn?: (value: number) => Color,
+    rotation?: { axis: Vec3, angle: number, start: Quat, end: Quat },
 }
 
-function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolate'>[], time: number, cache: Map<any, TransitionCacheEntry>) {
+function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolate'>[], time: number, cache: Map<any, InterpolationCacheEntry>) {
     return produce(tree, (draft) => {
         for (const transition of transitions) {
             const node = findNode(draft, transition.params.target_ref);
@@ -83,32 +85,34 @@ function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolat
             const target = transition.params.property[0] === 'custom' ? node?.custom : node?.params;
             if (!target) continue;
 
+            if (!cache.has(transition)) {
+                cache.set(transition, {});
+            }
+
+            const cacheEntry: InterpolationCacheEntry = cache.get(transition)!;
+
             const startTime = transition.params.start_ms ?? 0;
             let t = clamp((time - startTime) / transition.params.duration_ms, 0, 1);
 
             if (transition.params.kind === 'transform_matrix') {
-                processTransformMatrix(transition, target, t);
+                processTransformMatrix(transition, target, t, cacheEntry);
                 continue;
             }
 
             t = applyFrequency(t, transition.params.frequency ?? 1, !!transition.params.alternate_direction);
 
-            if (transition.params.kind === 'color') {
-                if (!cache.has(transition)) {
-                    cache.set(transition, {
-                        paletteFn: makePaletteFunction(transition)
-                    });
-                }
+            if (transition.params.kind === 'color' && !cacheEntry.paletteFn) {
+                cacheEntry.paletteFn = makePaletteFunction(transition);
             }
 
-            const paletteFn = cache.get(transition)?.paletteFn;
+            const paletteFn = cacheEntry.paletteFn!;
 
             const offset = transition.params.property[0] === 'custom' ? 1 : 0;
             const startValue: any = transition.params.kind === 'color'
-                ? Color.toHexStyle(paletteFn!(0))
+                ? Color.toHexStyle(paletteFn(0))
                 : transition.params.start ?? select(target, transition.params.property, offset);
             const endValue: any = transition.params.kind === 'color'
-                ? Color.toHexStyle(paletteFn!(1))
+                ? Color.toHexStyle(paletteFn(1))
                 : transition.params.end;
 
             if (time <= startTime) {
@@ -125,9 +129,9 @@ function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolat
             } else if (transition.params.kind === 'vec3') {
                 next = interpolateVectors(startValue, endValue, t, transition.params.noise_magnitude ?? 0, !!transition.params.spherical);
             } else if (transition.params.kind === 'rotation_matrix') {
-                next = interpolateRotation(startValue, endValue, t, transition.params.noise_magnitude ?? 0);
+                next = interpolateRotation(startValue, endValue, t, transition.params.noise_magnitude ?? 0, cacheEntry);
             } else if (transition.params.kind === 'color') {
-                const color = paletteFn!(t);
+                const color = paletteFn(t);
                 next = Color.toHexStyle(color);
             }
 
@@ -161,7 +165,7 @@ const TransformState = {
     pivotNeg: Vec3(),
     temp: Mat4(),
 };
-function processTransformMatrix(transition: MVSAnimationNode<'interpolate'>, target: any, time: number) {
+function processTransformMatrix(transition: MVSAnimationNode<'interpolate'>, target: any, time: number, cache: InterpolationCacheEntry) {
     if (transition.params.kind !== 'transform_matrix') return;
 
     const offset = transition.params.property[0] === 'custom' ? 1 : 0;
@@ -177,7 +181,7 @@ function processTransformMatrix(transition: MVSAnimationNode<'interpolate'>, tar
 
     let t = applyFrequency(time, transition.params.rotation_frequency ?? 1, !!transition.params.rotation_alternate_direction);
     let easing = EasingFnMap[transition.params.rotation_easing ?? 'linear'] ?? EasingFnMap['linear'];
-    const rotation = interpolateRotation(startRotation as Mat3, endRotation as Mat3, easing(t), transition.params.rotation_noise_magnitude ?? 0);
+    const rotation = interpolateRotation(startRotation as Mat3, endRotation as Mat3, easing(t), transition.params.rotation_noise_magnitude ?? 0, cache);
 
     t = applyFrequency(time, transition.params.translation_frequency ?? 1, !!transition.params.translation_alternate_direction);
     easing = EasingFnMap[transition.params.translation_easing ?? 'linear'] ?? EasingFnMap['linear'];
@@ -236,7 +240,7 @@ function interpolateVectors(start: number[], end: number[] | undefined, t: numbe
             v = Vec3.clone(s);
         }
 
-        if (noise) {
+        if (noise && t <= 1 - EPSILON) {
             Vec3.random(Vec3Noise, noise);
             Vec3.add(v, v, Vec3Noise);
         }
@@ -261,7 +265,7 @@ function interpolateVec3(start: Vec3, end: Vec3 | undefined, t: number, noise: n
         v = Vec3.clone(start);
     }
 
-    if (noise) {
+    if (noise && t <= 1 - EPSILON) {
         Vec3.random(Vec3Noise, noise);
         Vec3.add(v, v, Vec3Noise);
     }
@@ -276,27 +280,32 @@ const RotationState = {
     axis: Vec3(),
     temp: Mat4(),
 };
-function interpolateRotation(start: Mat3, end: Mat3 | undefined, t: number, noise: number) {
+function interpolateRotation(start: Mat3, end: Mat3 | undefined, t: number, noise: number, cache: InterpolationCacheEntry) {
     if ((!end || start === end) && !noise) return start;
 
-    // TODO: consider caching the rotation axis
     if (end) {
-        const { axis, angle } = relativeAxisAngle(start, end);
+        if (!cache.rotation) {
+            cache.rotation = {
+                ...relativeAxisAngle(start, end),
+                start: Quat.fromMat3(Quat(), start),
+                end: Quat.fromMat3(Quat(), end),
+            };
+        }
+
+        const { axis, angle, start: startQ, end: endQ } = cache.rotation;
 
         if (angle < 1e-6) {
             // start ≈ end: make a clean spin about the detected (or default) axis
             Quat.setAxisAngle(RotationState.v, axis, t * 2 * Math.PI); // Make a full turn
         } else {
             // Normal case: stick with your existing slerp between start/end
-            Quat.fromMat3(RotationState.start, start);
-            Quat.fromMat3(RotationState.end, end);
-            Quat.slerp(RotationState.v, RotationState.start, RotationState.end, t);
+            Quat.slerp(RotationState.v, startQ, endQ, t);
         }
     } else {
         Quat.fromMat3(RotationState.v, start);
     }
 
-    if (noise) {
+    if (noise && t <= 1 - EPSILON) {
         Vec3.random(RotationState.axis, 1);
         Quat.setAxisAngle(RotationState.noise, RotationState.axis, 2 * Math.PI * noise * (Math.random() - 0.5));
         Quat.multiply(RotationState.v, RotationState.noise, RotationState.v);
