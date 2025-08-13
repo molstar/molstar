@@ -23,7 +23,7 @@ export type MVSAnimationEasing = ValueFor<typeof Easing>;
 
 const _Noise = {
     noise_magnitude: OptionalField(float, 0, 'Magnitude of the noise to apply to the interpolated value.')
-    // TODO: support cummulative noise?
+    // support cummulative noise?
 };
 
 const _Common = {
@@ -39,14 +39,14 @@ const _Common = {
 const ScalarInterpolation = {
     ..._Common,
     start: OptionalField(nullable(float), null, 'Start value. If unset, parent state value is used.'),
-    end: RequiredField(float, 'End value.'),
+    end: OptionalField(nullable(float), null, 'End value. If unset, only noise is applied.'),
     ..._Noise,
 };
 
 const Vec3Interpolation = {
     ..._Common,
     start: OptionalField(nullable(list(float)), null, 'Start value. If unset, parent state value is used. Must be array of length 3N.'),
-    end: RequiredField(list(float), 'End value. Must be array of length 3N.'),
+    end: OptionalField(nullable(list(float)), null, 'End value. Must be array of length 3N. If unset, only noise is applied.'),
     spherical: OptionalField(bool, false, 'Whether to use spherical interpolation.'),
     ..._Noise,
 };
@@ -54,7 +54,7 @@ const Vec3Interpolation = {
 const RotationMatrixInterpolation = {
     ..._Common,
     start: OptionalField(nullable(Matrix), null, 'Start value. If unset, parent state value is used.'),
-    end: RequiredField(Matrix, 'End value.'),
+    end: OptionalField(nullable(Matrix), null, 'End value. If unset, only noise is applied.'),
     ..._Noise,
 };
 
@@ -65,19 +65,19 @@ const TransformationMatrixInterpolation = {
     duration_ms: RequiredField(float, 'End time of the transition in milliseconds.'),
     pivot: OptionalField(nullable(Vector3), null, 'Pivot point for rotation and scale.'),
     rotation_start: OptionalField(nullable(Matrix), null, 'Start rotation value. If unset, parent state value is used.'),
-    rotation_end: OptionalField(nullable(Matrix), null, 'End rotation value.'),
+    rotation_end: OptionalField(nullable(Matrix), null, 'End rotation value. If unset, only noise is applied.'),
     rotation_noise_magnitude: OptionalField(float, 0, 'Magnitude of the noise to apply to the rotation.'),
     rotation_easing: OptionalField(Easing, 'linear', 'Easing function to use for the rotation.'),
     rotation_frequency: OptionalField(int, 1, 'Determines how many times the rotation interpolation loops. Current T = frequency * t mod 1.'),
     rotation_alternate_direction: OptionalField(bool, false, 'Whether to alternate the direction of the interpolation for frequency > 1.'),
     translation_start: OptionalField(nullable(Vector3), null, 'Start translation value. If unset, parent state value is used.'),
-    translation_end: OptionalField(nullable(Vector3), null, 'End translation value.'),
+    translation_end: OptionalField(nullable(Vector3), null, 'End translation value. If unset, only noise is applied.'),
     translation_noise_magnitude: OptionalField(float, 0, 'Magnitude of the noise to apply to the translation.'),
     translation_easing: OptionalField(Easing, 'linear', 'Easing function to use for the translation.'),
     translation_frequency: OptionalField(int, 1, 'Determines how many times the translation interpolation loops. Current T = frequency * t mod 1.'),
     translation_alternate_direction: OptionalField(bool, false, 'Whether to alternate the direction of the interpolation for frequency > 1.'),
     scale_start: OptionalField(nullable(Vector3), null, 'Start scale value. If unset, parent state value is used.'),
-    scale_end: OptionalField(nullable(Vector3), null, 'End scale value.'),
+    scale_end: OptionalField(nullable(Vector3), null, 'End scale value. If unset, only noise is applied.'),
     scale_noise_magnitude: OptionalField(float, 0, 'Magnitude of the noise to apply to the scale.'),
     scale_easing: OptionalField(Easing, 'linear', 'Easing function to use for the scale.'),
     scale_frequency: OptionalField(int, 1, 'Determines how many times the scale interpolation loops. Current T = frequency * t mod 1.'),

@@ -133,7 +133,6 @@ A story showcasing MolViewSpec animation capabilities.`,
                 target_ref: 'xform',
                 duration_ms: 2000,
                 property: 'local_rotation',
-                end: [1, 0, 0, 0, 1, 0, 0, 0, 1],
                 noise_magnitude: 0.2,
             });
 

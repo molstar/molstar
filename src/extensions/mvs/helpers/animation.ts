@@ -171,9 +171,9 @@ function processTransformMatrix(transition: MVSAnimationNode<'interpolate'>, tar
     const startTranslation = transition.params.translation_start ?? Mat4.getTranslation(Vec3(), transform);
     const startScale = transition.params.scale_start ?? Mat4.getScaling(Vec3(), transform);
 
-    const endRotation = transition.params.rotation_end ?? startRotation;
-    const endTranslation = transition.params.translation_end ?? startTranslation;
-    const endScale = transition.params.scale_end ?? startScale;
+    const endRotation = transition.params.rotation_end;
+    const endTranslation = transition.params.translation_end;
+    const endScale = transition.params.scale_end;
 
     let t = applyFrequency(time, transition.params.rotation_frequency ?? 1, !!transition.params.rotation_alternate_direction);
     let easing = EasingFnMap[transition.params.rotation_easing ?? 'linear'] ?? EasingFnMap['linear'];
@@ -181,11 +181,11 @@ function processTransformMatrix(transition: MVSAnimationNode<'interpolate'>, tar
 
     t = applyFrequency(time, transition.params.translation_frequency ?? 1, !!transition.params.translation_alternate_direction);
     easing = EasingFnMap[transition.params.translation_easing ?? 'linear'] ?? EasingFnMap['linear'];
-    const translation = interpolateVec3(startTranslation as Vec3, endTranslation as Vec3, easing(t), transition.params.translation_noise_magnitude ?? 0, false);
+    const translation = interpolateVec3(startTranslation as Vec3, endTranslation as Vec3 | undefined, easing(t), transition.params.translation_noise_magnitude ?? 0, false);
 
     t = applyFrequency(time, transition.params.scale_frequency ?? 1, !!transition.params.scale_alternate_direction);
     easing = EasingFnMap[transition.params.scale_easing ?? 'linear'] ?? EasingFnMap['linear'];
-    const scale = interpolateVec3(startScale as Vec3, endScale as Vec3, easing(t), transition.params.scale_noise_magnitude ?? 0, false);
+    const scale = interpolateVec3(startScale as Vec3, endScale as Vec3 | undefined, easing(t), transition.params.scale_noise_magnitude ?? 0, false);
 
     const pivot = transition.params.pivot ?? Vec3.zero();
 
@@ -196,17 +196,17 @@ function processTransformMatrix(transition: MVSAnimationNode<'interpolate'>, tar
     Mat4.fromTranslation(TransformState.pivotTranslation, pivot as Vec3);
     Mat4.fromTranslation(TransformState.pivotTranslationInv, Vec3.negate(TransformState.pivotNeg, pivot as Vec3));
 
-    // translation . pivot . scale . rotation . pivotInv
+    // translation . pivot . rotation . scale . pivotInv
     const result = Mat4();
-    Mat4.mul(result, TransformState.rotation, TransformState.pivotTranslationInv);
-    Mat4.mul(result, TransformState.scale, result);
+    Mat4.mul(result, TransformState.scale, TransformState.pivotTranslationInv);
+    Mat4.mul(result, TransformState.rotation, result);
     Mat4.mul(result, TransformState.translation, result);
 
     assign(target, transition.params.property, result, offset);
 }
 
-function interpolateScalar(start: number, end: number, t: number, noise: number) {
-    let v = lerp(start, end, t);
+function interpolateScalar(start: number, end: number | undefined, t: number, noise: number) {
+    let v = typeof end === 'number' ? lerp(start, end, t) : start;
     if (noise) {
         v += (Math.random() - 0.5) * noise;
     }
@@ -218,18 +218,23 @@ const InterpolateVectorsState = {
     end: Vec3(),
     v: Vec3(),
 };
-function interpolateVectors(start: number[], end: number[], t: number, noise: number, isSpherical: boolean) {
-    if (start === end && !noise) return start;
+function interpolateVectors(start: number[], end: number[] | undefined, t: number, noise: number, isSpherical: boolean) {
+    if ((!end || start === end) && !noise) return start;
 
     const ret: number[] = Array.from<number>({ length: start.length }).fill(0.1);
 
     for (let i = 0; i < start.length; i += 3) {
         const s = Vec3.fromArray(InterpolateVectorsState.start, start, i);
-        const e = Vec3.fromArray(InterpolateVectorsState.end, end, i);
 
-        const v = isSpherical
-            ? Vec3.slerp(InterpolateVectorsState.v, s, e, t)
-            : Vec3.lerp(InterpolateVectorsState.v, s, e, t);
+        let v: Vec3;
+        if (end) {
+            const e = Vec3.fromArray(InterpolateVectorsState.end, end, i);
+            v = isSpherical
+                ? Vec3.slerp(InterpolateVectorsState.v, s, e, t)
+                : Vec3.lerp(InterpolateVectorsState.v, s, e, t);
+        } else {
+            v = Vec3.clone(s);
+        }
 
         if (noise) {
             Vec3.random(Vec3Noise, noise);
@@ -243,12 +248,18 @@ function interpolateVectors(start: number[], end: number[], t: number, noise: nu
 }
 
 const Vec3Noise = Vec3();
-function interpolateVec3(start: Vec3, end: Vec3, t: number, noise: number, isSpherical: boolean) {
-    if (start === end && !noise) return start;
+function interpolateVec3(start: Vec3, end: Vec3 | undefined, t: number, noise: number, isSpherical: boolean) {
+    if ((!end || start === end) && !noise) return start;
 
-    const v = isSpherical
-        ? Vec3.slerp(Vec3(), start, end, t)
-        : Vec3.lerp(Vec3(), start, end, t);
+    let v: Vec3;
+
+    if (end) {
+        v = isSpherical
+            ? Vec3.slerp(Vec3(), start, end, t)
+            : Vec3.lerp(Vec3(), start, end, t);
+    } else {
+        v = Vec3.clone(start);
+    }
 
     if (noise) {
         Vec3.random(Vec3Noise, noise);
@@ -265,12 +276,26 @@ const RotationState = {
     axis: Vec3(),
     temp: Mat4(),
 };
-function interpolateRotation(start: Mat3, end: Mat3, t: number, noise: number) {
-    if (start === end && !noise) return start;
+function interpolateRotation(start: Mat3, end: Mat3 | undefined, t: number, noise: number) {
+    if ((!end || start === end) && !noise) return start;
 
-    Quat.fromMat3(RotationState.start, start);
-    Quat.fromMat3(RotationState.end, end);
-    Quat.slerp(RotationState.v, RotationState.start, RotationState.end, t);
+    // TODO: consider caching the rotation axis
+    if (end) {
+        const { axis, angle } = relativeAxisAngle(start, end);
+
+        if (angle < 1e-6) {
+            // start ≈ end: make a clean spin about the detected (or default) axis
+            Quat.setAxisAngle(RotationState.v, axis, t * 2 * Math.PI); // Make a full turn
+        } else {
+            // Normal case: stick with your existing slerp between start/end
+            Quat.fromMat3(RotationState.start, start);
+            Quat.fromMat3(RotationState.end, end);
+            Quat.slerp(RotationState.v, RotationState.start, RotationState.end, t);
+        }
+    } else {
+        Quat.fromMat3(RotationState.v, start);
+    }
+
     if (noise) {
         Vec3.random(RotationState.axis, 1);
         Quat.setAxisAngle(RotationState.noise, RotationState.axis, 2 * Math.PI * noise * (Math.random() - 0.5));
@@ -368,4 +393,66 @@ function makePaletteFunctionContinuous(props: MVSContinuousPaletteProps): (value
         const q = (x - checkpoints[gteIdx - 1]) / (checkpoints[gteIdx] - checkpoints[gteIdx - 1]);
         return Color.interpolateHcl(colors[gteIdx - 1], colors[gteIdx], q);
     };
+}
+
+const RelativeAxisAngleState = {
+    Rt: Mat3(),
+    R: Mat3(),
+};
+function relativeAxisAngle(start: Mat3, end: Mat3): { axis: Vec3, angle: number } {
+    // R_rel = end * start^T
+    const R0 = start, R1 = end;
+    const Rt = Mat3.transpose(RelativeAxisAngleState.Rt, R0);
+    const R = Mat3.mul(RelativeAxisAngleState.R, R1, Rt);
+
+    const tr = R[0] + R[4] + R[8]; // trace
+    let angle = Math.acos(clamp((tr - 1) * 0.5, -1, 1)); // in [0, π]
+    const axis = Vec3();
+
+    const eps = 1e-6;
+    const sinA = Math.sin(angle);
+
+    if (angle < eps) {
+        // Near identity: axis undefined; return any unit axis (choose something stable)
+        Vec3.set(axis, 0, 0, 1);
+        angle = 0.0;
+        return { axis, angle };
+    }
+
+    if (Math.PI - angle > 1e-4) {
+        // General case
+        axis[0] = (R[5] - R[7]) / (2 * sinA); // (r32 - r23)
+        axis[1] = (R[6] - R[2]) / (2 * sinA); // (r13 - r31)
+        axis[2] = (R[1] - R[3]) / (2 * sinA); // (r21 - r12)
+        Vec3.normalize(axis, axis);
+        return { axis, angle };
+    }
+
+    // angle ~ π: use diagonal-based extraction for stability
+    // Compute squared components then pick the largest to avoid precision loss
+    const xx = Math.max(0, (R[0] + 1) * 0.5);
+    const yy = Math.max(0, (R[4] + 1) * 0.5);
+    const zz = Math.max(0, (R[8] + 1) * 0.5);
+
+    let x = Math.sqrt(xx), y = Math.sqrt(yy), z = Math.sqrt(zz);
+
+    if (x >= y && x >= z) {
+        x = Math.max(x, 1e-8);
+        y = (R[1] + R[3]) / (4 * x);
+        z = (R[2] + R[6]) / (4 * x);
+        Vec3.set(axis, x, y, z);
+    } else if (y >= x && y >= z) {
+        y = Math.max(y, 1e-8);
+        x = (R[1] + R[3]) / (4 * y);
+        z = (R[5] + R[7]) / (4 * y);
+        Vec3.set(axis, x, y, z);
+    } else {
+        z = Math.max(z, 1e-8);
+        x = (R[2] + R[6]) / (4 * z);
+        y = (R[5] + R[7]) / (4 * z);
+        Vec3.set(axis, x, y, z);
+    }
+
+    Vec3.normalize(axis, axis);
+    return { axis, angle: Math.PI };
 }
