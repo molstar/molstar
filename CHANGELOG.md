@@ -30,7 +30,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Support `matrix` on transform params
   - Support `surface_type` (`molecular` / `gaussian`) on for `surface` representation nodes
   - Add `instance` node type
-  - Add `local_rotation` to `transform` node that enables rotating an object around its centroid
+  - Add `transform.rotation_center` property that enables rotating an object around its centroid or a specific point
   - Support transforming and instancing of structures, components, and volumes
   - Use params hash for node version for more performant tree diffs
   - Add `Snapshot.animation` support that enables animating almost every property in a given tree
@@ -75,6 +75,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Update the snapshots UI to support this feature
 - Use "proper time" in the animation loop to prevent animation skips during blocking operations (e.g., shader complication)
 - Add `Color.interpolateHcl`
+- Add `rotationCenter` property to `TransformParam`
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:
