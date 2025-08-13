@@ -319,6 +319,14 @@ namespace Renderer {
                 } else {
                     r.uncull();
                 }
+            } else {
+                if (r.values.lodLevels) {
+                    const { center, radius } = boundingSphere;
+                    const d = Plane3D.distanceToPoint(cameraPlane, center);
+                    r.cullSimple(d, radius, modelScale);
+                } else {
+                    r.uncull();
+                }
             }
 
             let needUpdate = false;

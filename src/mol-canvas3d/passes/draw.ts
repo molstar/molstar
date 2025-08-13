@@ -430,6 +430,11 @@ export class DrawPass {
         if (helper.handle.isEnabled) {
             renderer.renderBlended(helper.handle.scene, camera);
         }
+        if (helper.pointer.isEnabled) {
+            helper.pointer.setCamera(camera);
+            renderer.update(helper.pointer.camera, helper.pointer.scene);
+            renderer.renderBlended(helper.pointer.scene, helper.pointer.camera);
+        }
         if (helper.camera.isEnabled) {
             helper.camera.update(camera);
             renderer.update(helper.camera.camera, helper.camera.scene);

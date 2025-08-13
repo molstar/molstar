@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -387,16 +387,30 @@ namespace TrackballControls {
             const moveSpeed = deltaT * (60 / 1000) * p.moveSpeed * (keyState.boostMove === 1 ? p.boostMoveFactor : 1);
 
             if (keyState.moveForward === 1) {
-                Vec3.normalize(moveDir, moveEye);
-                Vec3.scaleAndSub(camera.position, camera.position, moveDir, moveSpeed);
+                const cameraDistance = Vec3.distance(camera.position, scene.boundingSphereVisible.center);
+                if (cameraDistance < scene.boundingSphereVisible.radius) {
+                    Vec3.normalize(moveDir, moveEye);
+                    Vec3.scaleAndSub(camera.position, camera.position, moveDir, moveSpeed);
+                } else {
+                    Vec3.sub(moveDir, camera.position, camera.target);
+                    Vec3.scale(moveDir, moveDir, 1 - moveSpeed / 100);
+                    Vec3.add(camera.position, camera.target, moveDir);
+                }
                 if (p.flyMode || input.pointerLock) {
                     Vec3.sub(camera.target, camera.position, moveEye);
                 }
             }
 
             if (keyState.moveBack === 1) {
-                Vec3.normalize(moveDir, moveEye);
-                Vec3.scaleAndAdd(camera.position, camera.position, moveDir, moveSpeed);
+                const cameraDistance = Vec3.distance(camera.position, scene.boundingSphereVisible.center);
+                if (cameraDistance < scene.boundingSphereVisible.radius) {
+                    Vec3.normalize(moveDir, moveEye);
+                    Vec3.scaleAndAdd(camera.position, camera.position, moveDir, moveSpeed);
+                } else {
+                    Vec3.sub(moveDir, camera.position, camera.target);
+                    Vec3.scale(moveDir, moveDir, 1 + moveSpeed / 100);
+                    Vec3.add(camera.position, camera.target, moveDir);
+                }
                 if (p.flyMode || input.pointerLock) {
                     Vec3.sub(camera.target, camera.position, moveEye);
                 }
@@ -538,8 +552,8 @@ namespace TrackballControls {
 
         // listeners
 
-        function onDrag({ x, y, pageX, pageY, buttons, modifiers, isStart }: DragInput) {
-            const isOutside = outsideViewport(x, y);
+        function onDrag({ x, y, dx, dy, pageX, pageY, buttons, modifiers, isStart, useDelta }: DragInput) {
+            const isOutside = !useDelta && outsideViewport(x, y);
 
             if (isStart && isOutside) return;
             if (!isStart && !_isInteracting) return;
@@ -553,6 +567,10 @@ namespace TrackballControls {
             const dragZoom = Binding.match(b.dragZoom, buttons, modifiers);
             const dragFocus = Binding.match(b.dragFocus, buttons, modifiers);
             const dragFocusZoom = Binding.match(b.dragFocusZoom, buttons, modifiers);
+
+            if (useDelta) {
+                Vec2.copy(_rotPrev, getMouseOnCircle(pageX - dx, pageY - dy));
+            }
 
             getMouseOnCircle(pageX, pageY);
             getMouseOnScreen(pageX, pageY);

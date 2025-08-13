@@ -261,21 +261,21 @@ interface InputObserver {
     readonly pixelRatio: number
     readonly pointerLock: boolean
 
-    readonly drag: Observable<DragInput>,
+    readonly drag: Subject<DragInput>,
     // Equivalent to mouseUp and touchEnd
-    readonly interactionEnd: Observable<undefined>,
+    readonly interactionEnd: Subject<undefined>,
     readonly wheel: Observable<WheelInput>,
     readonly pinch: Observable<PinchInput>,
     readonly gesture: Observable<GestureInput>,
-    readonly click: Observable<ClickInput>,
-    readonly move: Observable<MoveInput>,
-    readonly leave: Observable<undefined>,
+    readonly click: Subject<ClickInput>,
+    readonly move: Subject<MoveInput>,
+    readonly leave: Subject<undefined>,
     readonly enter: Observable<undefined>,
     readonly resize: Observable<ResizeInput>,
     readonly modifiers: Observable<ModifiersKeys>
     readonly key: Observable<KeyInput>
-    readonly keyUp: Observable<KeyInput>
-    readonly keyDown: Observable<KeyInput>
+    readonly keyUp: Subject<KeyInput>
+    readonly keyDown: Subject<KeyInput>
     readonly lock: Observable<boolean>
 
     setPixelScale: (pixelScale: number) => void

@@ -46,6 +46,35 @@ canvas3dContext.syncPixelScale();
 canvas3d.requestResize();
 canvas3d.animate();
 
+const xrButton = document.createElement('button');
+Object.assign(xrButton.style, {
+    bottom: '30px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    background: 'grey',
+    zIndex: 1000,
+    position: 'absolute',
+    mixBlendMode: 'luminosity',
+    color: 'white',
+    border: 'white 2px solid',
+    padding: '6px',
+    display: 'none',
+});
+parent.appendChild(xrButton);
+xrButton.onclick = () => {
+    if (canvas3d.xr.isPresenting.value) {
+        canvas3d.xr.end();
+    } else {
+        canvas3d.xr.request();
+    }
+};
+canvas3d.xr.isPresenting.subscribe(value => {
+    xrButton.textContent = value ? 'Exit XR' : 'Enter XR';
+});
+canvas3d.xr.isSupported.subscribe(value => {
+    xrButton.style.display = value ? 'block' : 'none';
+});
+
 const info = document.createElement('div');
 info.style.position = 'absolute';
 info.style.fontFamily = 'sans-serif';

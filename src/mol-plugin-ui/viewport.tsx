@@ -14,7 +14,7 @@ import { PluginConfig } from '../mol-plugin/config';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { PluginUIComponent } from './base';
 import { Button, ControlGroup, IconButton } from './controls/common';
-import { AutorenewSvg, BuildOutlinedSvg, CameraOutlinedSvg, CloseSvg, FullscreenSvg, TuneSvg } from './controls/icons';
+import { AutorenewSvg, BuildOutlinedSvg, CameraOutlinedSvg, CloseSvg, FullscreenSvg, TuneSvg, HeadsetVRSvg } from './controls/icons';
 import { ToggleSelectionModeButton } from './structure/selection';
 import { ViewportCanvas } from './viewport/canvas';
 import { DownloadScreenshotControls } from './viewport/screenshot';
@@ -62,6 +62,16 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
         PluginCommands.Layout.Update(this.plugin, { state: { isExpanded: !this.plugin.layout.state.isExpanded } });
     };
 
+    toggleXR = () => {
+        if (this.plugin.canvas3d) {
+            if (this.plugin.canvas3d.xr.isPresenting.value) {
+                this.plugin.canvas3d.xr.end();
+            } else {
+                this.plugin.canvas3d.xr.request();
+            }
+        }
+    };
+
     setSettings = (p: { param: PD.Base<any>, name: string, value: any }) => {
         PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: { [p.name]: p.value } });
     };
@@ -86,6 +96,8 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                 this.plugin.canvas3d.camera.stateChanged.pipe(throttleTime(500, undefined, { leading: true, trailing: true })),
                 snapshot => this.enableCameraReset(snapshot.radius !== 0 && snapshot.radiusMax !== 0)
             );
+            this.subscribe(this.plugin.canvas3d.xr.isSupported, () => this.forceUpdate());
+            this.subscribe(this.plugin.canvas3d.xr.isPresenting, () => this.forceUpdate());
         }
     }
 
@@ -129,6 +141,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                     {this.plugin.config.get(PluginConfig.Viewport.ShowControls) && this.icon(BuildOutlinedSvg, this.toggleControls, 'Toggle Controls Panel', this.plugin.layout.state.showControls)}
                     {this.plugin.config.get(PluginConfig.Viewport.ShowExpand) && this.icon(FullscreenSvg, this.toggleExpanded, 'Toggle Expanded Viewport', this.plugin.layout.state.isExpanded)}
                     {this.plugin.config.get(PluginConfig.Viewport.ShowSettings) && this.icon(TuneSvg, this.toggleSettingsExpanded, 'Settings / Controls Info', this.state.isSettingsExpanded)}
+                    {this.plugin.config.get(PluginConfig.Viewport.ShowXR) && this.plugin.canvas3d?.xr.isSupported.value && this.icon(HeadsetVRSvg, this.toggleXR, 'XR', this.plugin.canvas3d?.xr.isPresenting.value ?? false)}
                 </div>
                 {this.plugin.config.get(PluginConfig.Viewport.ShowSelectionMode) && <div>
                     <div className='msp-semi-transparent-background' />

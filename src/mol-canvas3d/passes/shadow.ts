@@ -21,7 +21,7 @@ import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { ICamera } from '../../mol-canvas3d/camera';
 import { quad_vert } from '../../mol-gl/shader/quad.vert';
 import { isTimingMode } from '../../mol-util/debug';
-import { Light } from '../../mol-gl/renderer';
+import { getTransformedLightDirection, Light } from '../../mol-gl/renderer';
 import { shadows_frag } from '../../mol-gl/shader/shadows.frag';
 import { PostprocessingProps } from './postprocessing';
 
@@ -41,6 +41,9 @@ export class ShadowPass {
     readonly target: RenderTarget;
     private readonly renderable: ShadowsRenderable;
 
+    private invProjection = Mat4.identity();
+    private invHeadRotation = Mat4.identity();
+
     constructor(readonly webgl: WebGLContext, width: number, height: number, depthTextureOpaque: Texture) {
         this.target = webgl.createRenderTarget(width, height, false);
         this.renderable = getShadowsRenderable(webgl, depthTextureOpaque);
@@ -59,14 +62,11 @@ export class ShadowPass {
 
         const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
 
-        const invProjection = Mat4.identity();
-        Mat4.invert(invProjection, camera.projection);
-
         const [w, h] = this.renderable.values.uTexSize.ref.value;
         const v = camera.viewport;
 
         ValueCell.update(this.renderable.values.uProjection, camera.projection);
-        ValueCell.update(this.renderable.values.uInvProjection, invProjection);
+        ValueCell.update(this.renderable.values.uInvProjection, Mat4.invert(this.invProjection, camera.projection));
 
         Vec4.set(this.renderable.values.uBounds.ref.value,
             v.x / w,
@@ -90,7 +90,12 @@ export class ShadowPass {
             needsUpdateShadows = true;
         }
 
-        ValueCell.update(this.renderable.values.uLightDirection, light.direction);
+        const hasHeadRotation = !Mat4.isZero(camera.headRotation);
+        if (hasHeadRotation) {
+            ValueCell.update(this.renderable.values.uLightDirection, getTransformedLightDirection(light, Mat4.invert(this.invHeadRotation, camera.headRotation)));
+        } else {
+            ValueCell.update(this.renderable.values.uLightDirection, light.direction);
+        }
         ValueCell.update(this.renderable.values.uLightColor, light.color);
         if (this.renderable.values.dLightCount.ref.value !== light.count) {
             ValueCell.update(this.renderable.values.dLightCount, light.count);
@@ -119,6 +124,7 @@ const ShadowsSchema = {
     uProjection: UniformSpec('m4'),
     uInvProjection: UniformSpec('m4'),
     uBounds: UniformSpec('v4'),
+    uInvHeadRotation: UniformSpec('m4'),
 
     dOrthographic: DefineSpec('number'),
     uNear: UniformSpec('f'),
@@ -147,6 +153,7 @@ function getShadowsRenderable(ctx: WebGLContext, depthTexture: Texture): Shadows
         uProjection: ValueCell.create(Mat4.identity()),
         uInvProjection: ValueCell.create(Mat4.identity()),
         uBounds: ValueCell.create(Vec4()),
+        uInvHeadRotation: ValueCell.create(Mat4.identity()),
 
         dOrthographic: ValueCell.create(0),
         uNear: ValueCell.create(1),
