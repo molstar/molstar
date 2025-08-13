@@ -49,18 +49,48 @@ export function getPlaneDataFromStructureSelections(s: ReadonlyArray<PluginState
     return { locis: s.map(v => v.loci) };
 }
 
-export function getTransformFromParams(src:
-    | { name: 'matrix', params: { data: Mat4, transpose?: boolean } }
-    | { name: 'components', params: { translation: Vec3, axis: Vec3, angle: number } }
-) {
+const GetTransformState = {
+    center: Vec3(),
+    rotation: Mat4(),
+    translationToCenter: Mat4(),
+    translationFromCenter: Mat4(),
+    translation: Mat4(),
+    local: Mat4(),
+};
+
+export function transformParamsNeedCentroid(src: TransformParam) {
+    if (src.name === 'components' && src.params.rotationCenter?.name === 'centroid') {
+        return true;
+    }
+    return false;
+}
+
+export function getTransformFromParams(src: TransformParam, centroid: Vec3) {
     if (src.name === 'matrix') {
         const transform = Mat4();
         Mat4.copy(transform, src.params.data);
         if (src.params.transpose) Mat4.transpose(transform, transform);
         return transform;
     } else {
-        const transform = Mat4.fromRotation(Mat4(), src.params.angle * Math.PI / 180, src.params.axis);
-        Mat4.setTranslation(transform, src.params.translation);
+        if (src.params.rotationCenter?.name === 'centroid') {
+            Vec3.copy(GetTransformState.center, centroid);
+        } else if (src.params.rotationCenter?.name === 'point') {
+            Vec3.copy(GetTransformState.center, src.params.rotationCenter.params.point);
+        } else {
+            Vec3.set(GetTransformState.center, 0, 0, 0);
+        }
+
+        Mat4.fromTranslation(GetTransformState.translationToCenter, GetTransformState.center);
+        Mat4.fromRotation(GetTransformState.rotation, src.params.angle * Math.PI / 180, src.params.axis);
+        Mat4.fromTranslation(GetTransformState.translationFromCenter, Vec3.negate(GetTransformState.center, GetTransformState.center));
+        const transform = Mat4.mul3(
+            Mat4(),
+            GetTransformState.translationToCenter,
+            GetTransformState.rotation,
+            GetTransformState.translationFromCenter,
+        );
+        Mat4.fromTranslation(GetTransformState.translation, src.params.translation);
+        Mat4.mul(transform, GetTransformState.translation, transform);
         return transform;
     }
 }
@@ -80,9 +110,15 @@ export const TransformParam = PD.MappedStatic(
                 translation: PD.Vec3(Vec3.create(0, 0, 0)),
                 axis: PD.Vec3(Vec3.create(1, 0, 0)),
                 angle: PD.Numeric(0, { min: -360, max: 360, step: 1 }, { description: 'Angle in Degrees' }),
+                rotationCenter: PD.MappedStatic('point', {
+                    point: PD.Group({ point: PD.Vec3(Vec3.create(0, 0, 0)) }, { isFlat: true }),
+                    centroid: PD.Group({})
+                }),
             },
             { isFlat: true }
         ),
     },
     { label: 'Kind' },
 );
+
+export type TransformParam = (typeof TransformParam)['defaultValue']

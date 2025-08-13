@@ -30,8 +30,8 @@ import { ExampleMol } from './example-data';
 import './index.html';
 import { jsonCifToMolfile } from './molfile';
 import { RGroupName } from './r-groups';
-import { SingleTaskQueue } from './utils';
 import { molfileToJSONCif } from '../../extensions/json-cif/utils';
+import { SingleTaskQueue } from '../../mol-util/single-task-queue';
 
 async function init(target: HTMLElement | string, molfile: string = ExampleMol) {
     const root = typeof target === 'string' ? document.getElementById(target)! : target;

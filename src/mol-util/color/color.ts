@@ -8,6 +8,7 @@ import { NumberArray } from '../../mol-util/type-helpers';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { Hcl } from './spaces/hcl';
 import { Lab } from './spaces/lab';
+import { Hsl } from './spaces/hsl';
 
 /** RGB color triplet expressed as a single number */
 export type Color = { readonly '@type': 'color' } & number
@@ -114,6 +115,17 @@ export namespace Color {
         const b = b1 + (b2 - b1) * t;
 
         return ((r << 16) | (g << 8) | b) as Color;
+    }
+
+    const _interpolateHsl1 = Hsl.zero();
+    const _interpolateHsl2 = Hsl.zero();
+
+    /** Linear interpolation between two colors in HSL space */
+    export function interpolateHsl(c1: Color, c2: Color, t: number): Color {
+        const hsl1 = Hsl.fromColor(_interpolateHsl1, c1);
+        const hsl2 = Hsl.fromColor(_interpolateHsl2, c2);
+        Hsl.interpolate(hsl1, hsl1, hsl2, t);
+        return Hsl.toColor(hsl1);
     }
 
     export function hasHue(c: Color): boolean {

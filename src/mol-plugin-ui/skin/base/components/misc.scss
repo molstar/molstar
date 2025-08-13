@@ -454,6 +454,17 @@
             }
         }
 
+        .msp-state-snapshot-animation-slider {
+            position: relative;
+            display: inline-block;
+            width: 120px;
+            line-height: $row-height;
+        }
+
+        .msp-state-snapshot-animation-button {
+            margin-left: $control-spacing;
+        }
+
         .msp-animation-viewport-controls {
             line-height: $row-height;
             float: left;
@@ -475,6 +486,7 @@
                 left: 0;
                 margin-top: $control-spacing;
                 background: $control-background;
+                z-index: 10001;
 
                 .msp-control-row:first-child {
                     margin-top: 0;

@@ -19,19 +19,31 @@ import { PLUGIN_VERSION } from '../../mol-plugin/version';
 import { canvasToBlob } from '../../mol-canvas3d/util';
 import { Task } from '../../mol-task';
 import { StringLike } from '../../mol-io/common/string-like';
+import { SingleTaskQueue } from '../../mol-util/single-task-queue';
 
 export { PluginStateSnapshotManager };
 
-class PluginStateSnapshotManager extends StatefulPluginComponent<{
-    current?: UUID | undefined,
+interface StateManagerState {
+    current?: UUID,
+    currentAnimationFrame?: number,
     entries: List<PluginStateSnapshotManager.Entry>,
     isPlaying: boolean,
     nextSnapshotDelayInMs: number
-}> {
+}
+
+class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerState> {
     static DefaultNextSnapshotDelayInMs = 1500;
 
     private entryMap = new Map<string, PluginStateSnapshotManager.Entry>();
     private defaultSnapshotId: UUID | undefined = undefined;
+
+    protected updateState(state: Partial<StateManagerState>) {
+        if ('current' in state && !('curentAnimationFrame' in state)) {
+            return super.updateState({ ...state, currentAnimationFrame: 0 });
+        } else {
+            return super.updateState(state);
+        }
+    }
 
     readonly events = {
         changed: this.ev(),
@@ -155,6 +167,21 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         return e && e.snapshot;
     }
 
+    private animationFrameQueue = new SingleTaskQueue();
+    setSnapshotAnimationFrame(frame: number, load = false) {
+        if (this.updateState({ currentAnimationFrame: frame })) {
+            this.events.changed.next(void 0);
+        }
+
+        if (load) {
+            this.animationFrameQueue.run(() => {
+                const entry = this.getEntry(this.state.current);
+                if (!entry) return Promise.resolve();
+                return this.plugin.state.setAnimationSnapshot(entry.snapshot, frame);
+            });
+        }
+    }
+
     getNextId(id: string | undefined, dir: -1 | 1) {
         const len = this.state.entries.size;
         if (!id) {
@@ -183,11 +210,6 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
     }
 
     async setStateSnapshot(snapshot: PluginStateSnapshotManager.StateSnapshot): Promise<PluginState.Snapshot | undefined> {
-        if (snapshot.version !== PLUGIN_VERSION) {
-            // TODO
-            // console.warn('state snapshot version mismatch');
-        }
-
         this.clear();
         const entries = List<PluginStateSnapshotManager.Entry>().asMutable();
         for (const e of snapshot.entries) {

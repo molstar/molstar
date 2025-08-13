@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -32,6 +32,10 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
     get current() { return this._current!; }
 
     get animations() { return this._animations; }
+
+    get isAnimatingStateTransition() {
+        return this._current.anim.name === 'built-in.animate-state-snapshot-transition';
+    }
 
     private triggerUpdate() {
         this.events.updated.next(void 0);
@@ -148,6 +152,11 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
         if (this.context.behaviors.state.isAnimating.value) {
             this.context.behaviors.state.isAnimating.next(false);
         }
+    }
+
+    stopStateTransitionAnimation() {
+        if (!this.isAnimatingStateTransition) return;
+        return this.stop();
     }
 
     get isAnimating() {
