@@ -57,8 +57,8 @@ const TransformParams = SimpleParamsSchema({
     rotation: OptionalField(Matrix, [1, 0, 0, 0, 1, 0, 0, 0, 1], 'Rotation matrix (3x3 matrix flattened in column major format (j*3+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. The default value is the identity matrix (corresponds to no rotation).'),
     /** Translation vector, applied to the structure coordinates after rotation. The default value is the zero vector (corresponds to no translation). */
     translation: OptionalField(Vector3, [0, 0, 0], 'Translation vector, applied to the structure coordinates after rotation. The default value is the zero vector (corresponds to no translation).'),
-    /** Local rotation matrix around object centroid (3x3 matrix flattened in column major format (j*3+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. The default value is the identity matrix (corresponds to no rotation). */
-    local_rotation: OptionalField(Matrix, [1, 0, 0, 0, 1, 0, 0, 0, 1], 'Local rotation matrix around object centroid (3x3 matrix flattened in column major format (j*3+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. The default value is the identity matrix (corresponds to no rotation).'),
+    /** Point to rotate the object around. Can be either a 3D vector or dynamically computed object centroid. */
+    rotation_center: OptionalField(nullable(union(Vector3, literal('centroid'))), null, 'Point to rotate the object around. Can be either a 3D vector or dynamically computed object centroid.'),
     /** Transform matrix (4x4 matrix flattened in column major format (j*4+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. Takes precedence over `rotation` and `translation`. */
     matrix: OptionalField(nullable(Matrix), null, 'Transform matrix (4x4 matrix flattened in column major format (j*4+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. Takes precedence over `rotation` and `translation`.'),
 });
@@ -117,7 +117,7 @@ export const MVSTreeSchema = TreeSchema({
         },
         /** This node instructs to rotate and/or translate structure coordinates. */
         transform: {
-            description: 'This node instructs to rotate and/or translate coordinates OR provide a transformation matrix. If matrix is not defined, this is applied as: (translation . rotation . translate_from_centroid . local_rotation . translate_to_centroid)',
+            description: 'This node instructs to rotate and/or translate coordinates OR provide a transformation matrix.',
             parent: ['structure', 'component', 'volume'],
             params: TransformParams,
         },

@@ -20,7 +20,7 @@ import { Grid, Volume } from '../../mol-model/volume';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateSelection } from '../../mol-state';
 import { volumeFromSegmentationData } from '../../mol-model-formats/volume/segmentation';
-import { getTransformFromParams, TransformParam, transformParamsNeedCenter } from './helpers';
+import { getTransformFromParams, TransformParam, transformParamsNeedCentroid } from './helpers';
 
 export { VolumeFromCcp4 };
 export { VolumeFromDsn6 };
@@ -248,7 +248,7 @@ export const VolumeTransform = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }) {
         // similar to StateTransforms.Model.TransformStructureConformation;
-        const center = Grid.getBoundingSphere(a.data.grid).center;
+        const center = transformParamsNeedCentroid(params.transform) ? Grid.getBoundingSphere(a.data.grid).center : Vec3.unit;
         const transform = getTransformFromParams(params.transform, center);
         const gridTransform = {
             kind: 'matrix' as const,
@@ -282,7 +282,7 @@ export const VolumeInstances = PluginStateTransform.BuiltIn({
         return true;
     },
     apply({ a, params }) {
-        const center = params.transforms.some(t => transformParamsNeedCenter(t.transform)) ? Grid.getBoundingSphere(a.data.grid).center : Vec3.unit;
+        const center = params.transforms.some(t => transformParamsNeedCentroid(t.transform)) ? Grid.getBoundingSphere(a.data.grid).center : Vec3.unit;
         const instances = params.transforms.map(t => ({ transform: getTransformFromParams(t.transform, center) }));
         if (!instances.length) {
             return a;

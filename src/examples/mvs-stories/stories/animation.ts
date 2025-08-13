@@ -95,7 +95,8 @@ A story showcasing MolViewSpec animation capabilities.`,
                 .transform({
                     ref: 'xform',
                     translation: [5, 20, -20],
-                    local_rotation: [1, 0, 0, 0, 1, 0, 0, 0, 1],
+                    rotation: [1, 0, 0, 0, 1, 0, 0, 0, 1],
+                    rotation_center: 'centroid',
                 })
                 .representation({ type: 'ball_and_stick' })
                 .color({ ref: 'ligand-color', color: 'red' });
@@ -132,7 +133,7 @@ A story showcasing MolViewSpec animation capabilities.`,
                 kind: 'rotation_matrix',
                 target_ref: 'xform',
                 duration_ms: 2000,
-                property: 'local_rotation',
+                property: 'rotation',
                 noise_magnitude: 0.2,
             });
 

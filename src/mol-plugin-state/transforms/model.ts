@@ -55,7 +55,7 @@ import { parseNctraj } from '../../mol-io/reader/nctraj/parser';
 import { coordinatesFromNctraj } from '../../mol-model-formats/structure/nctraj';
 import { topologyFromPrmtop } from '../../mol-model-formats/structure/prmtop';
 import { topologyFromTop } from '../../mol-model-formats/structure/top';
-import { getTransformFromParams, TransformParam, transformParamsNeedCenter } from './helpers';
+import { getTransformFromParams, TransformParam, transformParamsNeedCentroid } from './helpers';
 
 export { CoordinatesFromDcd };
 export { CoordinatesFromXtc };
@@ -659,7 +659,7 @@ const TransformStructureConformation = PluginStateTransform.BuiltIn({
         return newParams.transform.name !== 'matrix';
     },
     apply({ a, params }) {
-        const center = transformParamsNeedCenter(params.transform) ? a.data.boundary.sphere.center : Vec3.unit;
+        const center = transformParamsNeedCentroid(params.transform) ? a.data.boundary.sphere.center : Vec3.unit;
         const transform = getTransformFromParams(params.transform, center);
         const s = Structure.transform(a.data, transform);
         return new SO.Molecule.Structure(s, { label: a.label, description: `${a.description} [Transformed]` });
@@ -698,7 +698,7 @@ const StructureInstances = PluginStateTransform.BuiltIn({
         return true;
     },
     apply({ a, params }) {
-        const center = params.transforms.some(t => transformParamsNeedCenter(t.transform)) ? a.data.boundary.sphere.center : Vec3.unit;
+        const center = params.transforms.some(t => transformParamsNeedCentroid(t.transform)) ? a.data.boundary.sphere.center : Vec3.unit;
         const instances = params.transforms.map(t => getTransformFromParams(t.transform, center));
         if (!instances.length) {
             return a;

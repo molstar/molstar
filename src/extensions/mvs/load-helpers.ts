@@ -124,20 +124,20 @@ function transformProps(node: MolstarSubtree, kind: 'transform' | 'instance') {
     for (const transform of transforms) {
         let matrix: Mat4 | undefined = transform.params.matrix as Mat4 | undefined;
         if (!matrix) {
-            const { rotation, translation, local_rotation } = transform.params;
-            if (local_rotation) {
-                const localRot = decomposeRotationMatrix(local_rotation);
-                const globalRot = decomposeRotationMatrix(rotation);
+            const { rotation, translation, rotation_center } = transform.params;
+            if (rotation_center) {
+                const axisAngle = decomposeRotationMatrix(rotation);
                 result.push({
                     params: {
                         transform: {
                             name: 'components',
                             params: {
                                 translation: translation ? Vec3.fromArray(Vec3(), translation, 0) : Vec3.create(0, 0, 0),
-                                angle: globalRot.angle,
-                                axis: globalRot.axis,
-                                localAxis: localRot.axis,
-                                localAngle: localRot.angle,
+                                angle: axisAngle.angle,
+                                axis: axisAngle.axis,
+                                rotationCenter: rotation_center === 'centroid'
+                                    ? { name: 'centroid', params: {} }
+                                    : { name: 'point', params: { point: Vec3.fromArray(Vec3(), rotation_center, 0) } }
                             }
                         }
                     },

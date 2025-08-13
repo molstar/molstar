@@ -52,46 +52,45 @@ export function getPlaneDataFromStructureSelections(s: ReadonlyArray<PluginState
 const GetTransformState = {
     center: Vec3(),
     rotation: Mat4(),
-    translation1: Mat4(),
-    translation2: Mat4(),
+    translationToCenter: Mat4(),
+    translationFromCenter: Mat4(),
+    translation: Mat4(),
     local: Mat4(),
 };
 
-type TransformParams =
-    | { name: 'matrix', params: { data: Mat4, transpose?: boolean } }
-    | { name: 'components', params: { translation: Vec3, axis: Vec3, angle: number, localAxis: Vec3, localAngle: number } }
-
-export function transformParamsNeedCenter(src: TransformParams) {
-    if (src.name === 'components' && src.params.localAngle > EPSILON) {
+export function transformParamsNeedCentroid(src: TransformParam) {
+    if (src.name === 'components' && src.params.rotationCenter?.name === 'centroid') {
         return true;
     }
     return false;
 }
 
-export function getTransformFromParams(src: TransformParams, center: Vec3) {
+export function getTransformFromParams(src: TransformParam, centroid: Vec3) {
     if (src.name === 'matrix') {
         const transform = Mat4();
         Mat4.copy(transform, src.params.data);
         if (src.params.transpose) Mat4.transpose(transform, transform);
         return transform;
     } else {
-        if (src.params.localAngle) {
-            Mat4.fromTranslation(GetTransformState.translation1, center);
-            Mat4.fromRotation(GetTransformState.rotation, src.params.localAngle * Math.PI / 180, src.params.localAxis);
-            Mat4.fromTranslation(GetTransformState.translation2, Vec3.negate(GetTransformState.center, center));
-            Mat4.mul3(
-                GetTransformState.local,
-                GetTransformState.translation1,
-                GetTransformState.rotation,
-                GetTransformState.translation2
-            );
+        if (src.params.rotationCenter?.name === 'centroid') {
+            Vec3.copy(GetTransformState.center, centroid);
+        } else if (src.params.rotationCenter?.name === 'point') {
+            Vec3.copy(GetTransformState.center, src.params.rotationCenter.params.point);
         } else {
-            Mat4.setIdentity(GetTransformState.local);
+            Vec3.set(GetTransformState.center, 0, 0, 0);
         }
 
-        const transform = Mat4.fromRotation(Mat4(), src.params.angle * Math.PI / 180, src.params.axis);
-        Mat4.setTranslation(transform, src.params.translation);
-        Mat4.mul(transform, transform, GetTransformState.local);
+        Mat4.fromTranslation(GetTransformState.translationToCenter, GetTransformState.center);
+        Mat4.fromRotation(GetTransformState.rotation, src.params.angle * Math.PI / 180, src.params.axis);
+        Mat4.fromTranslation(GetTransformState.translationFromCenter, Vec3.negate(GetTransformState.center, GetTransformState.center));
+        const transform = Mat4.mul3(
+            Mat4(),
+            GetTransformState.translationToCenter,
+            GetTransformState.rotation,
+            GetTransformState.translationFromCenter,
+        );
+        Mat4.fromTranslation(GetTransformState.translation, src.params.translation);
+        Mat4.mul(transform, GetTransformState.translation, transform);
         return transform;
     }
 }
@@ -111,11 +110,15 @@ export const TransformParam = PD.MappedStatic(
                 translation: PD.Vec3(Vec3.create(0, 0, 0)),
                 axis: PD.Vec3(Vec3.create(1, 0, 0)),
                 angle: PD.Numeric(0, { min: -360, max: 360, step: 1 }, { description: 'Angle in Degrees' }),
-                localAxis: PD.Vec3(Vec3.create(1, 0, 0)),
-                localAngle: PD.Numeric(0, { min: -360, max: 360, step: 1 }, { description: 'Angle in Degrees' }),
+                rotationCenter: PD.MappedStatic('point', {
+                    point: PD.Group({ point: PD.Vec3(Vec3.create(0, 0, 0)) }, { isFlat: true }),
+                    centroid: PD.Group({})
+                }),
             },
             { isFlat: true }
         ),
     },
     { label: 'Kind' },
 );
+
+export type TransformParam = (typeof TransformParam)['defaultValue']
