@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Ludovic Autin <ludovic.autin@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -29,20 +29,18 @@ uniform vec3 uAmbientColor;
 uniform mat4 uProjection;
 uniform mat4 uInvProjection;
 
-uniform bool uHasHeadRotation;
-
 uniform float uMaxDistance;
 uniform float uTolerance;
 
-// Map full [0,1] coords -> eye-local [0,1] coords
-vec2 fullToEye(vec2 uvFull) {
-    return (uvFull - uBounds.xy) / (uBounds.zw - uBounds.xy);
-}
-// Map eye-local [0,1] coords -> full [0,1] coords
-vec2 eyeToFull(vec2 uvEye) {
-    return uBounds.xy + (uBounds.zw - uBounds.xy) * uvEye;
+// Map full [0,1] coords -> bounds [0,1] coords
+vec2 fullCoordsToBoundsCoords(vec2 fullCoords) {
+    return (fullCoords - uBounds.xy) / (uBounds.zw - uBounds.xy);
 }
 
+// Map bounds [0,1] coords -> full [0,1] coords
+vec2 boundsCoordsToFullCoords(vec2 boundsCoords) {
+    return uBounds.xy + (uBounds.zw - uBounds.xy) * boundsCoords;
+}
 
 bool isBackground(const in float depth) {
     return depth == 1.0;
@@ -91,7 +89,7 @@ vec3 screenSpaceShadow(const in vec3 position, const in vec3 lightDirection, con
 
         rayCoords = uProjection * vec4(rayPos, 1.0);
         rayCoords.xyz = (rayCoords.xyz / rayCoords.w) * 0.5 + 0.5;
-        rayCoords.xy = eyeToFull(rayCoords.xy);                    // scale to eye rect
+        rayCoords.xy = boundsCoordsToFullCoords(rayCoords.xy);
 
         if (outsideBounds(rayCoords.xy)) {
             return lightColor;
@@ -120,14 +118,14 @@ void main(void) {
         gl_FragColor = vec4(0.0);
         return;
     }
-    if (uHasHeadRotation){
-        selfCoords = fullToEye(selfCoords);
-        if (any(lessThan(selfCoords, vec2(0.0))) || any(greaterThan(selfCoords, vec2(1.0)))) {
-            gl_FragColor = vec4(0.0);
-            return;
-        }
+
+    vec2 selfBoundsCoords = fullCoordsToBoundsCoords(selfCoords);
+    if (any(lessThan(selfBoundsCoords, vec2(0.0))) || any(greaterThan(selfBoundsCoords, vec2(1.0)))) {
+        gl_FragColor = vec4(0.0);
+        return;
     }
-    vec3 selfViewPos = screenSpaceToViewSpace(vec3(selfCoords, selfDepth), uInvProjection);
+
+    vec3 selfViewPos = screenSpaceToViewSpace(vec3(selfBoundsCoords, selfDepth), uInvProjection);
     float stepLength = uMaxDistance / float(dSteps);
 
     float l = length(uAmbientColor);

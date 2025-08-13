@@ -92,11 +92,9 @@ export class ShadowPass {
 
         const hasHeadRotation = !Mat4.isZero(camera.headRotation);
         if (hasHeadRotation) {
-            ValueCell.update(this.renderable.values.uHasHeadRotation, true);
             ValueCell.update(this.renderable.values.uLightDirection, getTransformedLightDirection(light, Mat4.invert(this.invHeadRotation, camera.headRotation)));
         } else {
             ValueCell.update(this.renderable.values.uLightDirection, light.direction);
-            ValueCell.update(this.renderable.values.uHasHeadRotation, false);    
         }
         ValueCell.update(this.renderable.values.uLightColor, light.color);
         if (this.renderable.values.dLightCount.ref.value !== light.count) {
@@ -126,8 +124,7 @@ const ShadowsSchema = {
     uProjection: UniformSpec('m4'),
     uInvProjection: UniformSpec('m4'),
     uBounds: UniformSpec('v4'),
-
-    uHasHeadRotation: UniformSpec('b'),
+    uInvHeadRotation: UniformSpec('m4'),
 
     dOrthographic: DefineSpec('number'),
     uNear: UniformSpec('f'),
@@ -156,8 +153,7 @@ function getShadowsRenderable(ctx: WebGLContext, depthTexture: Texture): Shadows
         uProjection: ValueCell.create(Mat4.identity()),
         uInvProjection: ValueCell.create(Mat4.identity()),
         uBounds: ValueCell.create(Vec4()),
-
-        uHasHeadRotation: ValueCell.create(false),
+        uInvHeadRotation: ValueCell.create(Mat4.identity()),
 
         dOrthographic: ValueCell.create(0),
         uNear: ValueCell.create(1),
