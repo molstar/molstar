@@ -46,8 +46,8 @@ const ScalarInterpolation = {
     ..._Common,
     ..._Frequency,
     ..._Easing,
-    start: OptionalField(nullable(float), null, 'Start value. If unset, parent state value is used.'),
-    end: OptionalField(nullable(float), null, 'End value. If unset, only noise is applied.'),
+    start: OptionalField(nullable(union(float, list(float))), null, 'Start value. If a list of values is provided, each element will be interpolated separately. If unset, parent state value is used.'),
+    end: OptionalField(nullable(union(float, list(float))), null, 'End value. If a list of values is provided, each element will be interpolated separately. If unset, only noise is applied.'),
     ..._Noise,
 };
 
@@ -55,8 +55,8 @@ const Vec3Interpolation = {
     ..._Common,
     ..._Frequency,
     ..._Easing,
-    start: OptionalField(nullable(list(float)), null, 'Start value. If unset, parent state value is used. Must be array of length 3N.'),
-    end: OptionalField(nullable(list(float)), null, 'End value. Must be array of length 3N. If unset, only noise is applied.'),
+    start: OptionalField(nullable(list(float)), null, 'Start value. If unset, parent state value is used. Must be array of length 3N (x1, y1, z1, x2, y2, z2, ...).'),
+    end: OptionalField(nullable(list(float)), null, 'End value. Must be array of length 3N (x1, y1, z1, x2, y2, z2, ...). If unset, only noise is applied.'),
     spherical: OptionalField(bool, false, 'Whether to use spherical interpolation.'),
     ..._Noise,
 };
