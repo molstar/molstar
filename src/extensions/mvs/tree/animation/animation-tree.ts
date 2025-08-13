@@ -7,7 +7,7 @@
 import { bool, float, int, list, OptionalField, RequiredField, str, union, nullable, literal, ValueFor } from '../generic/field-schema';
 import { SimpleParamsSchema, UnionParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema } from '../generic/tree-schema';
-import { ContinuousPalette, DiscretePalette, Matrix, Vector3 } from './param-types';
+import { ContinuousPalette, DiscretePalette, Matrix, Vector3 } from '../mvs/param-types';
 
 const Easing = literal(
     'linear',
@@ -30,14 +30,22 @@ const _Common = {
     target_ref: RequiredField(str, 'Reference to the node.'),
     property: RequiredField(union(str, list(union(str, int))), 'Value accessor.'),
     start_ms: OptionalField(float, 0, 'Start time of the transition in milliseconds.'),
-    duration_ms: RequiredField(float, 'End time of the transition in milliseconds.'),
-    easing: OptionalField(Easing, 'linear', 'Easing function to use for the transition.'),
+    duration_ms: RequiredField(float, 'Duration of the transition in milliseconds.'),
+};
+
+const _Frequency = {
     frequency: OptionalField(int, 1, 'Determines how many times the interpolation loops. Current T = frequency * t mod 1.'),
     alternate_direction: OptionalField(bool, false, 'Whether to alternate the direction of the interpolation for frequency > 1.'),
 };
 
+const _Easing = {
+    easing: OptionalField(Easing, 'linear', 'Easing function to use for the transition.'),
+};
+
 const ScalarInterpolation = {
     ..._Common,
+    ..._Frequency,
+    ..._Easing,
     start: OptionalField(nullable(float), null, 'Start value. If unset, parent state value is used.'),
     end: OptionalField(nullable(float), null, 'End value. If unset, only noise is applied.'),
     ..._Noise,
@@ -45,6 +53,8 @@ const ScalarInterpolation = {
 
 const Vec3Interpolation = {
     ..._Common,
+    ..._Frequency,
+    ..._Easing,
     start: OptionalField(nullable(list(float)), null, 'Start value. If unset, parent state value is used. Must be array of length 3N.'),
     end: OptionalField(nullable(list(float)), null, 'End value. Must be array of length 3N. If unset, only noise is applied.'),
     spherical: OptionalField(bool, false, 'Whether to use spherical interpolation.'),
@@ -53,16 +63,22 @@ const Vec3Interpolation = {
 
 const RotationMatrixInterpolation = {
     ..._Common,
+    ..._Frequency,
+    ..._Easing,
     start: OptionalField(nullable(Matrix), null, 'Start value. If unset, parent state value is used.'),
     end: OptionalField(nullable(Matrix), null, 'End value. If unset, only noise is applied.'),
     ..._Noise,
 };
 
+const ColorInterpolation = {
+    ..._Common,
+    ..._Frequency,
+    ..._Easing,
+    palette: RequiredField(union(DiscretePalette, ContinuousPalette), 'Palette to sample colors from.'),
+};
+
 const TransformationMatrixInterpolation = {
-    target_ref: RequiredField(str, 'Reference to the node.'),
-    property: RequiredField(union(str, list(union(str, int))), 'Value accessor.'),
-    start_ms: OptionalField(float, 0, 'Start time of the transition in milliseconds.'),
-    duration_ms: RequiredField(float, 'End time of the transition in milliseconds.'),
+    ..._Common,
     pivot: OptionalField(nullable(Vector3), null, 'Pivot point for rotation and scale.'),
     rotation_start: OptionalField(nullable(Matrix), null, 'Start rotation value. If unset, parent state value is used.'),
     rotation_end: OptionalField(nullable(Matrix), null, 'End rotation value. If unset, only noise is applied.'),
@@ -82,11 +98,6 @@ const TransformationMatrixInterpolation = {
     scale_easing: OptionalField(Easing, 'linear', 'Easing function to use for the scale.'),
     scale_frequency: OptionalField(int, 1, 'Determines how many times the scale interpolation loops. Current T = frequency * t mod 1.'),
     scale_alternate_direction: OptionalField(bool, false, 'Whether to alternate the direction of the interpolation for frequency > 1.'),
-};
-
-const ColorInterpolation = {
-    ..._Common,
-    palette: RequiredField(union(DiscretePalette, ContinuousPalette), 'Palette to sample colors from.'),
 };
 
 export const MVSAnimationSchema = TreeSchema({

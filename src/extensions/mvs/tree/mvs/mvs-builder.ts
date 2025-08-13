@@ -8,7 +8,7 @@
 import { deepClone, pickObjectKeys } from '../../../../mol-util/object';
 import { GlobalMetadata, MVSData_State, Snapshot, SnapshotMetadata } from '../../mvs-data';
 import { CustomProps } from '../generic/tree-schema';
-import { MVSAnimationNodeParams, MVSAnimationSubtree } from './mvs-animation';
+import { MVSAnimationNodeParams, MVSAnimationSubtree } from '../animation/animation-tree';
 import { MVSKind, MVSNode, MVSNodeParams, MVSSubtree } from './mvs-tree';
 
 

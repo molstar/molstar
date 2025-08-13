@@ -9,7 +9,7 @@ import { produce } from 'immer';
 import { Snapshot } from '../mvs-data';
 import { Tree } from '../tree/generic/tree-schema';
 import { clamp, lerp } from '../../../mol-math/interpolate';
-import { MVSAnimationEasing, MVSAnimationNode, MVSAnimationSchema } from '../tree/mvs/mvs-animation';
+import { MVSAnimationEasing, MVSAnimationNode, MVSAnimationSchema } from '../tree/animation/animation-tree';
 import { MVSTree } from '../tree/mvs/mvs-tree';
 import * as EasingFns from '../../../mol-math/easing';
 import { addDefaults } from '../tree/generic/tree-utils';
@@ -403,7 +403,8 @@ function makePaletteFunctionContinuous(props: MVSContinuousPaletteProps): (value
             return overflowColor;
         }
         const q = (x - checkpoints[gteIdx - 1]) / (checkpoints[gteIdx] - checkpoints[gteIdx - 1]);
-        return Color.interpolateHcl(colors[gteIdx - 1], colors[gteIdx], q);
+        // TODO: consider HSL interpolation
+        return Color.interpolate(colors[gteIdx - 1], colors[gteIdx], q);
     };
 }
 

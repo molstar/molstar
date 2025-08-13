@@ -7,7 +7,7 @@
 
 import { treeValidationIssues } from './tree/generic/tree-schema';
 import { treeToString } from './tree/generic/tree-utils';
-import { MVSAnimationSchema, MVSAnimationTree } from './tree/mvs/mvs-animation';
+import { MVSAnimationSchema, MVSAnimationTree } from './tree/animation/animation-tree';
 import { Root, createMVSBuilder } from './tree/mvs/mvs-builder';
 import { MVSTree, MVSTreeSchema } from './tree/mvs/mvs-tree';
 
