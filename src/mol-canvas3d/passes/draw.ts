@@ -201,7 +201,7 @@ export class DrawPass {
                 if (iterations > 1) {
                     target.bind();
                     this.dpoit.renderBlendBack();
-                }          
+                }
                 if (isTimingMode) this.webgl.timer.markEnd('DpoitPass.layer');
             }
 
