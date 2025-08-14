@@ -32,10 +32,11 @@ import { NonCovalentInteractionsExtension } from './load-extensions/non-covalent
 import { LoadingActions, LoadingExtension, loadTreeVirtual, UpdateTarget } from './load-generic';
 import { AnnotationFromSourceKind, AnnotationFromUriKind, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformAndInstantiateStructure, transformAndInstantiateVolume, volumeColorThemeForNode, volumeRepresentationProps } from './load-helpers';
 import { MVSData, MVSData_States, Snapshot, SnapshotMetadata } from './mvs-data';
+import { MVSAnimationNode } from './tree/animation/animation-tree';
 import { validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
 import { MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree, MolstarTreeSchema } from './tree/molstar/molstar-tree';
-import { type MVSTree, MVSTreeSchema } from './tree/mvs/mvs-tree';
+import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 
 export interface MVSLoadOptions {
@@ -80,7 +81,7 @@ async function _loadMVS(ctx: RuntimeContext, plugin: PluginContext, data: MVSDat
             const entry = molstarTreeToEntry(
                 plugin,
                 molstarTree,
-                snapshot.root,
+                snapshot.animation,
                 { ...snapshot.metadata, previousTransitionDurationMs: previousSnapshot.metadata.transition_duration_ms },
                 options
             );
@@ -135,7 +136,7 @@ async function assignStateTransition(ctx: RuntimeContext, plugin: PluginContext,
         const entry = molstarTreeToEntry(
             plugin,
             molstarTree,
-            frame,
+            parent.animation,
             { ...parent.metadata, previousTransitionDurationMs: transitions.frametimeMs },
             options
         );
@@ -160,14 +161,14 @@ async function assignStateTransition(ctx: RuntimeContext, plugin: PluginContext,
 function molstarTreeToEntry(
     plugin: PluginContext,
     tree: MolstarTree,
-    mvsTree: MVSTree,
+    animation: MVSAnimationNode<'animation'> | undefined,
     metadata: SnapshotMetadata & { previousTransitionDurationMs?: number },
     options: { keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[] }
 ) {
     const context = MolstarLoadingContext.create();
     const snapshot = loadTreeVirtual(plugin, tree, MolstarLoadingActions, context, { replaceExisting: true, extensions: options?.extensions ?? BuiltinLoadingExtensions });
     snapshot.canvas3d = {
-        props: plugin.canvas3d ? modifyCanvasProps(plugin.canvas3d.props, context.canvas, mvsTree.custom) : undefined,
+        props: plugin.canvas3d ? modifyCanvasProps(plugin.canvas3d.props, context.canvas, animation) : undefined,
     };
     if (!options?.keepCamera) {
         snapshot.camera = createPluginStateSnapshotCamera(plugin, context, metadata);

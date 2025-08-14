@@ -37,7 +37,13 @@ A story showcasing MolViewSpec animation capabilities.`,
             });
             prims.label({ text: 'Animation Demo', position: { label_asym_id: 'A' }, label_size: 10 });
 
-            const anim = builder.animation();
+            const anim = builder.animation({
+                custom: {
+                    molstar_trackball: {
+                        name: 'rock',
+                    }
+                }
+            });
             anim.interpolate({
                 kind: 'scalar',
                 ref: 'prims-opacity',

@@ -35,6 +35,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Use params hash for node version for more performant tree diffs
   - Add `Snapshot.animation` support that enables animating almost every property in a given tree
   - Add `createMVSX` helper function
+  - Support Mol* trackball animation via `animation.custom.molstar_trackball`
 - Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
 - Snapshot Markdown improvements
   - Add `MarkdownExtensionManager` (`PluginContext.managers.markdownExtensions`)
