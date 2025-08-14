@@ -24,6 +24,7 @@ import { PDBeStructureQualityReport } from '../../extensions/pdbe';
 import { RCSBValidationReport } from '../../extensions/rcsb';
 import { AssemblySymmetry, AssemblySymmetryConfig } from '../../extensions/assembly-symmetry';
 import { SbNcbrPartialCharges, SbNcbrPartialChargesPreset, SbNcbrPartialChargesPropertyProvider, SbNcbrTunnels } from '../../extensions/sb-ncbr';
+import { SequenceColor } from '../../extensions/sequence-color';
 import { wwPDBChemicalComponentDictionary } from '../../extensions/wwpdb/ccd/behavior';
 import { wwPDBStructConnExtensionFunctions } from '../../extensions/wwpdb/struct-conn';
 import { ZenodoImport } from '../../extensions/zenodo';
@@ -60,6 +61,7 @@ import { ObjectKeys } from '../../mol-util/type-helpers';
 import { OpenFiles } from '../../mol-plugin-state/actions/file';
 import { StringLike } from '../../mol-io/common/string-like';
 
+
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { consoleStats, setDebugMode, setProductionMode, setTimingMode, isProductionMode, isDebugMode, isTimingMode } from '../../mol-util/debug';
 
@@ -84,6 +86,7 @@ export const ExtensionMap = {
     'wwpdb-chemical-component-dictionary': PluginSpec.Behavior(wwPDBChemicalComponentDictionary),
     'mvs': PluginSpec.Behavior(MolViewSpec),
     'tunnels': PluginSpec.Behavior(SbNcbrTunnels),
+    'sequence-color': PluginSpec.Behavior(SequenceColor),
 };
 
 const DefaultViewerOptions = {

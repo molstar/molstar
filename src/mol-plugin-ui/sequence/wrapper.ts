@@ -5,6 +5,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { colorForLoci } from '../../extensions/sequence-color';
 import { Interval, OrderedSet } from '../../mol-data/int';
 import { Loci, isEveryLoci } from '../../mol-model/loci';
 import { Structure, StructureElement, Unit } from '../../mol-model/structure';
@@ -65,6 +66,11 @@ abstract class SequenceWrapper<D> {
     /** Return true if the position `seqIndex` in sequence view is focused */
     isFocused(seqIndex: number): boolean {
         return !!(this.focusMarkerArray[seqIndex]);
+    }
+    private lociCache: Loci[] = [];
+    getAnnotationColor(seqIndex: number) {
+        const loci = this.lociCache[seqIndex] ??= this.getLoci(seqIndex);
+        return colorForLoci(loci);
     }
 
     /** Markers for "highlighted" and "selected" (2 bits per position) */

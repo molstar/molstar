@@ -81,6 +81,10 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             this.updateColors();
             this.updateMarker();
         });
+        // this.subscribe(this.plugin.state.events.cell.stateUpdated, s => {
+        //     console.log(s.ref, s.cell.transform.transformer.id)
+        //     this.forceUpdate();
+        // });
     }
 
     updateColors() {
@@ -199,9 +203,12 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
 
     protected getBackgroundColor(seqIdx: number) {
         const seqWrapper = this.props.sequenceWrapper;
-        if (seqWrapper.isHighlighted(seqIdx)) return this.markerColors.highlighted;
-        if (seqWrapper.isSelected(seqIdx)) return this.markerColors.selected;
-        if (seqWrapper.isFocused(seqIdx)) return this.markerColors.focused;
+        if (seqWrapper.isHighlighted(seqIdx) && this.markerColors.highlighted) return this.markerColors.highlighted;
+        if (seqWrapper.isSelected(seqIdx) && this.markerColors.selected) return this.markerColors.selected;
+        if (seqWrapper.isFocused(seqIdx) && this.markerColors.focused) return this.markerColors.focused;
+        const color = seqWrapper.getAnnotationColor(seqIdx);
+        if (color !== undefined) return Color.toHexStyle(color);
+        // TODO refresh on custom struct prop update (similar to validation report?)
         return '';
     }
 
