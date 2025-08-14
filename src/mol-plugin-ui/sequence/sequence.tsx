@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -12,6 +12,7 @@ import { throttleTime } from 'rxjs/operators';
 import { OrderedSet } from '../../mol-data/int';
 import { EveryLoci } from '../../mol-model/loci';
 import { StructureElement, StructureProperties, Unit } from '../../mol-model/structure';
+import { CustomStructureProperties } from '../../mol-plugin-state/transforms/model';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { Representation } from '../../mol-repr/representation';
 import { Color } from '../../mol-util/color';
@@ -81,10 +82,11 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             this.updateColors();
             this.updateMarker();
         });
-        // this.subscribe(this.plugin.state.events.cell.stateUpdated, s => {
-        //     console.log(s.ref, s.cell.transform.transformer.id)
-        //     this.forceUpdate();
-        // });
+        this.subscribe(this.plugin.state.events.cell.stateUpdated, s => {
+            if (s.cell.transform.transformer === CustomStructureProperties) {
+                this.forceUpdate();
+            }
+        });
     }
 
     updateColors() {
@@ -206,9 +208,8 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         if (seqWrapper.isHighlighted(seqIdx) && this.markerColors.highlighted) return this.markerColors.highlighted;
         if (seqWrapper.isSelected(seqIdx) && this.markerColors.selected) return this.markerColors.selected;
         if (seqWrapper.isFocused(seqIdx) && this.markerColors.focused) return this.markerColors.focused;
-        const color = seqWrapper.getAnnotationColor(seqIdx);
-        if (color !== undefined) return Color.toHexStyle(color);
-        // TODO refresh on custom struct prop update (similar to validation report?)
+        const annotColor = seqWrapper.getAnnotationColor(seqIdx);
+        if (annotColor !== undefined) return Color.toHexStyle(annotColor);
         return '';
     }
 

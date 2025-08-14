@@ -1,11 +1,11 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { colorForLoci } from '../../extensions/sequence-color';
+import { sequenceColorForLoci } from '../../extensions/sequence-color';
 import { Interval, OrderedSet } from '../../mol-data/int';
 import { Loci, isEveryLoci } from '../../mol-model/loci';
 import { Structure, StructureElement, Unit } from '../../mol-model/structure';
@@ -67,11 +67,12 @@ abstract class SequenceWrapper<D> {
     isFocused(seqIndex: number): boolean {
         return !!(this.focusMarkerArray[seqIndex]);
     }
-    private lociCache: Loci[] = [];
+    /** Return color assigned to the residue in SequenceColor custom structure property, if any */
     getAnnotationColor(seqIndex: number) {
         const loci = this.lociCache[seqIndex] ??= this.getLoci(seqIndex);
-        return colorForLoci(loci);
+        return sequenceColorForLoci(loci);
     }
+    private lociCache: Loci[] = [];
 
     /** Markers for "highlighted" and "selected" (2 bits per position) */
     readonly markerArray: Uint8Array;

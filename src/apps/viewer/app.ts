@@ -83,10 +83,10 @@ export const ExtensionMap = {
     'ma-quality-assessment': PluginSpec.Behavior(MAQualityAssessment),
     'zenodo-import': PluginSpec.Behavior(ZenodoImport),
     'sb-ncbr-partial-charges': PluginSpec.Behavior(SbNcbrPartialCharges),
+    'sequence-color': PluginSpec.Behavior(SequenceColor),
     'wwpdb-chemical-component-dictionary': PluginSpec.Behavior(wwPDBChemicalComponentDictionary),
     'mvs': PluginSpec.Behavior(MolViewSpec),
     'tunnels': PluginSpec.Behavior(SbNcbrTunnels),
-    'sequence-color': PluginSpec.Behavior(SequenceColor),
 };
 
 const DefaultViewerOptions = {

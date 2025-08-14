@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Adam Midlik <midlik@gmail.com>
+ */
+
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
 import { CustomStructureProperty } from '../../mol-model-props/common/custom-structure-property';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
@@ -79,8 +85,7 @@ export const SequenceColorProvider: CustomStructureProperty.Provider<SequenceCol
     },
 });
 
-export function colorForLocation(location: StructureElement.Location): Color | undefined {
-    if (!location.structure.customPropertyDescriptors.hasReference(SequenceColorProvider.descriptor)) return undefined;
+export function sequenceColorForLocation(location: StructureElement.Location): Color | undefined {
     const colorData = SequenceColorProvider.get(location.structure).value;
     if (!colorData) return undefined;
     for (let i = colorData.length - 1; i >= 0; i--) { // last color matters
@@ -93,9 +98,9 @@ export function colorForLocation(location: StructureElement.Location): Color | u
     return undefined;
 }
 
-export function colorForLoci(loci: Loci): Color | undefined {
+export function sequenceColorForLoci(loci: Loci): Color | undefined {
     if (!StructureElement.Loci.is(loci)) return undefined;
     const location = StructureElement.Loci.getFirstLocation(loci);
     if (location === undefined) return undefined;
-    return colorForLocation(location);
+    return sequenceColorForLocation(location);
 }
