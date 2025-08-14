@@ -237,6 +237,8 @@ function multiplyBy256BitPrime(hash: Uint32Array): void {
     // hash * prime = hash * (2^88 + 2^8 + 0x3b) = (hash << 88) + (hash << 8) + hash * 0x3b
 
     // hash << 88 (shift left by 88 bits = 2 full 32-bit words + 24 bits)
+    MultTmp1[0] = 0;
+    MultTmp1[1] = 0;
     MultTmp1[2] = hash[0] << 24;
     MultTmp1[3] = (hash[0] >>> 8) | (hash[1] << 24);
     MultTmp1[4] = (hash[1] >>> 8) | (hash[2] << 24);
@@ -282,6 +284,7 @@ const _8digit_padding = [
     '0'
 ];
 
+
 function padHexNumber(num: number): string {
     const base = num.toString(16);
     if (base.length >= 8) return base; // No padding needed
@@ -297,4 +300,230 @@ function hashFnv256aToHex(hash: Uint32Array): string {
         result += padHexNumber(hash[i]);
     }
     return result;
+}
+
+/**
+ * 32-bit Murmur hash
+ */
+export function hashMurmur32o(obj: any, seed: number = 42): number {
+    const jsonString = JSON.stringify(obj);
+    return murmurHash3_32(jsonString, seed);
+}
+
+/**
+ * 128-bit Murmur hash
+ */
+export function hashMurmur128o(obj: any, seed: number = 42): string {
+    const jsonString = JSON.stringify(obj);
+    return murmurHash3_128(jsonString, seed);
+}
+
+/**
+ * MurmurHash3 32-bit implementation
+ * @param key - The input string to hash
+ * @param seed - The seed value (default: 0)
+ * @returns The 32-bit hash as a number
+ */
+export function murmurHash3_32(key: string, seed: number): number {
+    let h = seed >>> 0;
+    const remainder = key.length % 4;
+    const bytes = key.length - remainder;
+
+    for (let i = 0; i < bytes; i += 4) {
+        let k = (key.charCodeAt(i) & 0xff) |
+            ((key.charCodeAt(i + 1) & 0xff) << 8) |
+            ((key.charCodeAt(i + 2) & 0xff) << 16) |
+            ((key.charCodeAt(i + 3) & 0xff) << 24);
+
+        k = Math.imul(k, 0xcc9e2d51);
+        k = (k << 15) | (k >>> 17);
+        k = Math.imul(k, 0x1b873593);
+
+        h ^= k;
+        h = (h << 13) | (h >>> 19);
+        h = Math.imul(h, 5) + 0xe6546b64;
+    }
+
+    let k = 0;
+    switch (remainder) {
+        case 3: k ^= (key.charCodeAt(bytes + 2) & 0xff) << 16;
+        case 2: k ^= (key.charCodeAt(bytes + 1) & 0xff) << 8;
+        case 1: k ^= (key.charCodeAt(bytes) & 0xff);
+            k = Math.imul(k, 0xcc9e2d51);
+            k = (k << 15) | (k >>> 17);
+            k = Math.imul(k, 0x1b873593);
+            h ^= k;
+    }
+
+    h ^= key.length;
+    h ^= h >>> 16;
+    h = Math.imul(h, 0x85ebca6b);
+    h ^= h >>> 13;
+    h = Math.imul(h, 0xc2b2ae35);
+    h ^= h >>> 16;
+
+    return h >>> 0;
+}
+
+/**
+ * MurmurHash3 128-bit implementation
+ * @param key - The input string to hash
+ * @param seed - The seed value (default: 0)
+ * @returns The 128-bit hash as a hexadecimal string
+ */
+export function murmurHash3_128(key: string, seed: number): string {
+    let h1 = seed >>> 0;
+    let h2 = seed >>> 0;
+    let h3 = seed >>> 0;
+    let h4 = seed >>> 0;
+
+    const remainder = key.length % 16;
+    const bytes = key.length - remainder;
+
+    for (let i = 0; i < bytes; i += 16) {
+        let k1 = (key.charCodeAt(i) & 0xff) |
+            ((key.charCodeAt(i + 1) & 0xff) << 8) |
+            ((key.charCodeAt(i + 2) & 0xff) << 16) |
+            ((key.charCodeAt(i + 3) & 0xff) << 24);
+
+        let k2 = (key.charCodeAt(i + 4) & 0xff) |
+            ((key.charCodeAt(i + 5) & 0xff) << 8) |
+            ((key.charCodeAt(i + 6) & 0xff) << 16) |
+            ((key.charCodeAt(i + 7) & 0xff) << 24);
+
+        let k3 = (key.charCodeAt(i + 8) & 0xff) |
+            ((key.charCodeAt(i + 9) & 0xff) << 8) |
+            ((key.charCodeAt(i + 10) & 0xff) << 16) |
+            ((key.charCodeAt(i + 11) & 0xff) << 24);
+
+        let k4 = (key.charCodeAt(i + 12) & 0xff) |
+            ((key.charCodeAt(i + 13) & 0xff) << 8) |
+            ((key.charCodeAt(i + 14) & 0xff) << 16) |
+            ((key.charCodeAt(i + 15) & 0xff) << 24);
+
+        k1 = Math.imul(k1, 0x239b961b);
+        k1 = (k1 << 15) | (k1 >>> 17);
+        k1 = Math.imul(k1, 0xab0e9789);
+        h1 ^= k1;
+
+        h1 = (h1 << 19) | (h1 >>> 13);
+        h1 += h2;
+        h1 = Math.imul(h1, 5) + 0x561ccd1b;
+
+        k2 = Math.imul(k2, 0xab0e9789);
+        k2 = (k2 << 16) | (k2 >>> 16);
+        k2 = Math.imul(k2, 0x38b34ae5);
+        h2 ^= k2;
+
+        h2 = (h2 << 17) | (h2 >>> 15);
+        h2 += h3;
+        h2 = Math.imul(h2, 5) + 0x0bcaa747;
+
+        k3 = Math.imul(k3, 0x38b34ae5);
+        k3 = (k3 << 17) | (k3 >>> 15);
+        k3 = Math.imul(k3, 0xa1e38b93);
+        h3 ^= k3;
+
+        h3 = (h3 << 15) | (h3 >>> 17);
+        h3 += h4;
+        h3 = Math.imul(h3, 5) + 0x96cd1c35;
+
+        k4 = Math.imul(k4, 0xa1e38b93);
+        k4 = (k4 << 13) | (k4 >>> 19);
+        k4 = Math.imul(k4, 0x239b961b);
+        h4 ^= k4;
+
+        h4 = (h4 << 13) | (h4 >>> 19);
+        h4 += h1;
+        h4 = Math.imul(h4, 5) + 0x32ac3b17;
+    }
+
+    let k1 = 0, k2 = 0, k3 = 0, k4 = 0;
+
+    switch (remainder) {
+        case 15: k4 ^= key.charCodeAt(bytes + 14) << 16;
+        case 14: k4 ^= key.charCodeAt(bytes + 13) << 8;
+        case 13: k4 ^= key.charCodeAt(bytes + 12);
+            k4 = Math.imul(k4, 0xa1e38b93);
+            k4 = (k4 << 13) | (k4 >>> 19);
+            k4 = Math.imul(k4, 0x239b961b);
+            h4 ^= k4;
+
+        case 12: k3 ^= key.charCodeAt(bytes + 11) << 24;
+        case 11: k3 ^= key.charCodeAt(bytes + 10) << 16;
+        case 10: k3 ^= key.charCodeAt(bytes + 9) << 8;
+        case 9: k3 ^= key.charCodeAt(bytes + 8);
+            k3 = Math.imul(k3, 0x38b34ae5);
+            k3 = (k3 << 17) | (k3 >>> 15);
+            k3 = Math.imul(k3, 0xa1e38b93);
+            h3 ^= k3;
+
+        case 8: k2 ^= key.charCodeAt(bytes + 7) << 24;
+        case 7: k2 ^= key.charCodeAt(bytes + 6) << 16;
+        case 6: k2 ^= key.charCodeAt(bytes + 5) << 8;
+        case 5: k2 ^= key.charCodeAt(bytes + 4);
+            k2 = Math.imul(k2, 0xab0e9789);
+            k2 = (k2 << 16) | (k2 >>> 16);
+            k2 = Math.imul(k2, 0x38b34ae5);
+            h2 ^= k2;
+
+        case 4: k1 ^= key.charCodeAt(bytes + 3) << 24;
+        case 3: k1 ^= key.charCodeAt(bytes + 2) << 16;
+        case 2: k1 ^= key.charCodeAt(bytes + 1) << 8;
+        case 1: k1 ^= key.charCodeAt(bytes);
+            k1 = Math.imul(k1, 0x239b961b);
+            k1 = (k1 << 15) | (k1 >>> 17);
+            k1 = Math.imul(k1, 0xab0e9789);
+            h1 ^= k1;
+    }
+
+    h1 ^= key.length;
+    h2 ^= key.length;
+    h3 ^= key.length;
+    h4 ^= key.length;
+
+    h1 += h2;
+    h1 += h3;
+    h1 += h4;
+    h2 += h1;
+    h3 += h1;
+    h4 += h1;
+
+    h1 ^= h1 >>> 16;
+    h1 = Math.imul(h1, 0x85ebca6b);
+    h1 ^= h1 >>> 13;
+    h1 = Math.imul(h1, 0xc2b2ae35);
+    h1 ^= h1 >>> 16;
+
+    h2 ^= h2 >>> 16;
+    h2 = Math.imul(h2, 0x85ebca6b);
+    h2 ^= h2 >>> 13;
+    h2 = Math.imul(h2, 0xc2b2ae35);
+    h2 ^= h2 >>> 16;
+
+    h3 ^= h3 >>> 16;
+    h3 = Math.imul(h3, 0x85ebca6b);
+    h3 ^= h3 >>> 13;
+    h3 = Math.imul(h3, 0xc2b2ae35);
+    h3 ^= h3 >>> 16;
+
+    h4 ^= h4 >>> 16;
+    h4 = Math.imul(h4, 0x85ebca6b);
+    h4 ^= h4 >>> 13;
+    h4 = Math.imul(h4, 0xc2b2ae35);
+    h4 ^= h4 >>> 16;
+
+    h1 += h2;
+    h1 += h3;
+    h1 += h4;
+    h2 += h1;
+    h3 += h1;
+    h4 += h1;
+
+    return (
+        (h1 >>> 0).toString(16).padStart(8, '0') +
+        (h2 >>> 0).toString(16).padStart(8, '0') +
+        (h3 >>> 0).toString(16).padStart(8, '0') +
+        (h4 >>> 0).toString(16).padStart(8, '0')
+    );
 }

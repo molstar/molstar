@@ -46,7 +46,7 @@ export async function generateStateTransition(ctx: RuntimeContext, snapshot: Sna
         frames.push(root);
 
         if (ctx.shouldUpdate) {
-            await ctx.update({ message: 'Generating transition...' });
+            await ctx.update({ message: 'Generating transition...', current: i + 1, max: N });
         }
     }
 
@@ -435,7 +435,7 @@ function makePaletteFunctionContinuous(props: MVSContinuousPaletteProps): (value
             return overflowColor;
         }
         const q = (x - checkpoints[gteIdx - 1]) / (checkpoints[gteIdx] - checkpoints[gteIdx - 1]);
-        return Color.interpolateHsl(colors[gteIdx - 1], colors[gteIdx], q);
+        return Color.interpolate(colors[gteIdx - 1], colors[gteIdx], q);
     };
 }
 
