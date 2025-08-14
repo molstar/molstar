@@ -41,6 +41,7 @@ A story showcasing MolViewSpec animation capabilities.`,
                 custom: {
                     molstar_trackball: {
                         name: 'rock',
+                        params: { speed: 1.5 },
                     }
                 }
             });
