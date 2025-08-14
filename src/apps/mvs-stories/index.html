@@ -53,6 +53,10 @@
             text-decoration: none;
         }
 
+        #links .sep {
+            color: #aaa;
+        }
+
         @media (orientation:portrait) {
             #viewer {
                 position: absolute;
@@ -90,7 +94,9 @@
     </div>
 
     <div id="links">
-        <a href="#" id="mvs-data">Download MVS State</a> | <a href="https://github.com/molstar/molstar/tree/master/src/apps/mvs-stories" id="mvs-data" target="_blank" rel="noopener noreferrer">Source Code</a>
+        <span id="open-in-stories"><a href="#" id="open-in-stories-link" target="_blank" rel="noopener noreferrer" title="Open and edit the story in the MolViewStories app">Edit in MolViewStories</a>&nbsp;<span class="sep">•</span></span>
+        <span id="open-in-molstar"><a href="#" id="open-in-molstar-link" target="_blank" rel="noopener noreferrer" title="Open the story in the Mol* Viewer app. Enables exporting an animation.">Open in Mol* Viewer</a>&nbsp;<span class="sep">•</span></span>
+        <a href="#" id="mvs-data" title="MolViewSpec State for this story. Can be opened in the Mol* app.">Download MVS</a> <span class="sep">•</span> <a href="https://github.com/molstar/molstar/tree/master/src/apps/mvs-stories" id="mvs-data" target="_blank" rel="noopener noreferrer">Source Code</a>
     </div>
 
     <script>
@@ -104,10 +110,22 @@
         //     storyUrl = 'https://raw.githubusercontent.com/molstar/molstar/master/examples/mvs/kinase-story.mvsj';
         // }
 
+        var molstarDataLink = storyUrl;
+
         if (storyId) {
             mvsStories.loadFromID(storyId, { format: format || 'mvsj', contextName: 'story1' });
+            var storiesUrl = 'https://molstar.org/mol-view-stories/builder?published-session-id=' + storyId;
+            molstarDataLink = 'https://stories.molstar.org/api/story/' + storyId + '/data';
+            document.getElementById('open-in-stories-link').setAttribute('href', storiesUrl);
+            document.getElementById('open-in-stories').style.display = 'inline';
         } else if (storyUrl) {
             mvsStories.loadFromURL(storyUrl, { format: format || 'mvsj', contextName: 'story1' });
+        }
+
+        if (molstarDataLink) {
+            var molstarLink = 'https://molstar.org/viewer?mvs-url=' + encodeURIComponent(molstarDataLink) + '&mvs-format=' + encodeURIComponent(format || 'mvsj'); 
+            document.getElementById('open-in-molstar-link').setAttribute('href', molstarLink);
+            document.getElementById('open-in-molstar').style.display = 'inline';
         }
 
         document.getElementById('mvs-data').addEventListener('click', (e) => {
