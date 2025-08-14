@@ -167,6 +167,7 @@ export class DpoitPass {
         if (isTimingMode) this.webgl.timer.mark('DpoitPass.render');
         const { state, gl } = this.webgl;
 
+        state.blendEquation(gl.FUNC_ADD);
         state.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
         ValueCell.update(this.renderable.values.tDpoitFrontColor, this.colorFrontTextures[this.writeId]);
