@@ -6,7 +6,7 @@
 
 import { StateTransformer } from './transformer';
 import { UUID } from '../mol-util';
-import { hashFnv256o } from '../mol-data/util';
+import { hashMurmur128o } from '../mol-data/util';
 
 export { Transform as StateTransform };
 
@@ -175,12 +175,12 @@ namespace Transform {
     export function setParamsHashVersion(t: Transform) {
         let version: string;
         try {
-            version = hashFnv256o(t.params ?? _emptyParams);
+            version = hashMurmur128o(t.params ?? _emptyParams);
         } catch {
             const pToJson = t.transformer.definition.customSerialization
                 ? t.transformer.definition.customSerialization.toJSON
                 : _id;
-            version = hashFnv256o(pToJson(t.params ?? _emptyParams));
+            version = hashMurmur128o(pToJson(t.params ?? _emptyParams));
         }
         (t as { version: string }).version = version;
     }

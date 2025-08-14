@@ -129,7 +129,8 @@ async function assignStateTransition(ctx: RuntimeContext, plugin: PluginContext,
         frames: [],
     };
 
-    for (const frame of transitions.frames) {
+    for (let i = 0; i < transitions.frames.length; i++) {
+        const frame = transitions.frames[i];
         const molstarTree = convertMvsToMolstar(frame, options.sourceUrl);
         const entry = molstarTreeToEntry(
             plugin,
@@ -149,7 +150,7 @@ async function assignStateTransition(ctx: RuntimeContext, plugin: PluginContext,
         });
 
         if (ctx.shouldUpdate) {
-            await ctx.update({ message: 'Generating transition...' });
+            await ctx.update({ message: 'Loading animation...', current: i + 1, max: transitions.frames.length });
         }
     }
 
