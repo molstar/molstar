@@ -7,8 +7,7 @@
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
 import { CustomStructureProperty } from '../../mol-model-props/common/custom-structure-property';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
-import { Loci } from '../../mol-model/loci';
-import { Structure, StructureElement } from '../../mol-model/structure';
+import { ElementIndex, Structure, StructureElement } from '../../mol-model/structure';
 import { PluginBehavior } from '../../mol-plugin/behavior';
 import { Color } from '../../mol-util/color';
 import { ColorNames } from '../../mol-util/color/names';
@@ -22,7 +21,7 @@ export const SequenceColor = PluginBehavior.create<{ autoAttach: boolean }>({
     category: 'misc',
     display: {
         name: 'Sequence Color',
-        description: 'Sequence Color extension',
+        description: 'Sequence Color extension, allows assigning custom residue colors to be shown in the sequence panel',
     },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
         private readonly provider = SequenceColorProvider;
@@ -51,19 +50,30 @@ export type SequenceColorParams = typeof SequenceColorParams
 export const SequenceColorParams = {
     colors: PD.ObjectList(
         {
-            color: PD.Color(ColorNames.grey, { description: 'Color to apply' }),
+            color: PD.Color(ColorNames.grey, { description: 'Color to apply to a substructure' }),
             selector: SelectorParams,
         },
-        obj => Color.toHexStyle(obj.color)
+        obj => Color.toHexStyle(obj.color),
+        { description: 'List of substructure-color assignments' }
     ),
 };
 
 /** Parameter values of custom structure property "SequenceColor" */
 export type SequenceColorProps = PD.Values<SequenceColorParams>
 
-/** Values of custom structure property "SequenceColor" (and for its params at the same type) */
-export type SequenceColorData = { selector: Selector, color: Color, elementSet?: ElementSet }[]
-
+/** Values of custom structure property "SequenceColor" */
+export interface SequenceColorData {
+    items: {
+        selector: Selector,
+        color: Color,
+        elementSet?: ElementSet,
+    }[],
+    colorCache: {
+        [unitId: number]: {
+            [elemIdx: ElementIndex]: Color | undefined,
+        },
+    },
+}
 
 /** Provider for custom structure property "SequenceColor" */
 export const SequenceColorProvider: CustomStructureProperty.Provider<SequenceColorParams, SequenceColorData> = CustomStructureProperty.createProvider({
@@ -77,30 +87,38 @@ export const SequenceColorProvider: CustomStructureProperty.Provider<SequenceCol
     isApplicable: (data: Structure) => data.root === data,
     obtain: async (ctx: CustomProperty.Context, data: Structure, props: Partial<SequenceColorProps>) => {
         const fullProps = { ...PD.getDefaultValues(SequenceColorParams), ...props };
-        const value = fullProps.colors.map(t => ({
+        const items = fullProps.colors.map(t => ({
             selector: t.selector,
             color: t.color,
-        } satisfies SequenceColorData[number]));
-        return { value: value } satisfies CustomProperty.Data<SequenceColorData>;
+        } satisfies SequenceColorData['items'][number]));
+        return { value: { items, colorCache: {} } } satisfies CustomProperty.Data<SequenceColorData>;
     },
 });
 
-export function sequenceColorForLocation(location: StructureElement.Location): Color | undefined {
-    const colorData = SequenceColorProvider.get(location.structure).value;
-    if (!colorData) return undefined;
-    for (let i = colorData.length - 1; i >= 0; i--) { // last color matters
-        const item = colorData[i];
+/** Get color assigned to a loci in custom structure property "SequenceColor" */
+export function sequenceColorForLoci(loci: StructureElement.Loci): Color | undefined {
+    const colorData = SequenceColorProvider.get(loci.structure).value;
+    if (!colorData || colorData.items.length === 0) return undefined;
+    const location = StructureElement.Loci.getFirstLocation(loci);
+    if (location === undefined) return undefined;
+    return sequenceColorForLocation(colorData, location);
+}
+
+function sequenceColorForLocation(colorData: SequenceColorData, location: StructureElement.Location): Color | undefined {
+    const unitCache = colorData.colorCache[location.unit.id] ??= {};
+    if (!(location.element in unitCache)) { // not using ??= pattern here, because cache may contain undefineds
+        unitCache[location.element] = findSequenceColorForLocation(colorData, location);
+    }
+    return unitCache[location.element];
+}
+
+function findSequenceColorForLocation(colorData: SequenceColorData, location: StructureElement.Location): Color | undefined {
+    for (let i = colorData.items.length - 1; i >= 0; i--) { // last color matters
+        const item = colorData.items[i];
         const elements = item.elementSet ??= ElementSet.fromSelector(location.structure, item.selector);
         if (ElementSet.has(elements, location)) {
             return item.color;
         }
     }
     return undefined;
-}
-
-export function sequenceColorForLoci(loci: Loci): Color | undefined {
-    if (!StructureElement.Loci.is(loci)) return undefined;
-    const location = StructureElement.Loci.getFirstLocation(loci);
-    if (location === undefined) return undefined;
-    return sequenceColorForLocation(location);
 }

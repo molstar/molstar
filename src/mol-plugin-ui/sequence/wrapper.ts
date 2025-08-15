@@ -72,7 +72,7 @@ abstract class SequenceWrapper<D> {
         const loci = this.lociCache[seqIndex] ??= this.getLoci(seqIndex);
         return sequenceColorForLoci(loci);
     }
-    private lociCache: Loci[] = [];
+    private lociCache: StructureElement.Loci[] = [];
 
     /** Markers for "highlighted" and "selected" (2 bits per position) */
     readonly markerArray: Uint8Array;

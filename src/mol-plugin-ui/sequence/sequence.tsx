@@ -84,7 +84,11 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         });
         this.subscribe(this.plugin.state.events.cell.stateUpdated, s => {
             if (s.cell.transform.transformer === CustomStructureProperties) {
-                this.forceUpdate();
+                const updatedStruct = s.cell.obj?.data;
+                const shownStruct = this.props.sequenceWrapper.getLoci(0)?.structure;
+                if (updatedStruct === shownStruct) {
+                    this.forceUpdate();
+                }
             }
         });
     }
