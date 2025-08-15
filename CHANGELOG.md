@@ -12,6 +12,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - [Breaking] Add `Volume.instances` support and a `VolumeInstances` transform to dynamically assign it
   - This change is breaking because all volume objects require the `instances` field now.
 - [Breaking] `Canvas3D.identify` now expects `Vec2` or `Ray3D`
+- [Breaking] `TrackballControlsParams.animate.spin.speed` now means "Number of rotations per second" instead of "radians per second"
 - Update production build to use `esbuild`
 - Emit explicit paths in `import`s in `lib/`
 - Fix outlines on opaque elements using illumination mode
@@ -34,6 +35,8 @@ Note that since we don't clearly distinguish between a public and private interf
   - Support transforming and instancing of structures, components, and volumes
   - Use params hash for node version for more performant tree diffs
   - Add `Snapshot.animation` support that enables animating almost every property in a given tree
+  - Add `createMVSX` helper function
+  - Support Mol* trackball animation via `animation.custom.molstar_trackball`
 - Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
 - Snapshot Markdown improvements
   - Add `MarkdownExtensionManager` (`PluginContext.managers.markdownExtensions`)
@@ -57,7 +60,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `StructureInstances` transform
 - `mvs-stories` app
   - Add `story-id` URL arg support
+  - Add `story-session-url` URL arg support
   - Add "Download MVS State" link
+  - Add "Open in Mol*" link
+  - Add "Edit in MolViewStories" link for story states
 - Add ray-based picking
     - Render narrow view of scene scene from ray origin & direction to a few pixel sized viewport
     - Cast ray on every input as opposed to the standard "whole screen" picking

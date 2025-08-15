@@ -365,6 +365,21 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
         if (this.state.isPlaying) this.timeoutHandle = setTimeout(this.next, delay);
     };
 
+    private async startPlayback() {
+        const { current } = this;
+        if (!current) return;
+
+        // If there is a transition associated with the current snapshot, replay it
+        if (current.snapshot.transition) {
+            const snapshot = this.setCurrent(this.state.current!)!;
+            await this.plugin.state.setSnapshot(snapshot);
+            const delay = typeof snapshot.durationInMs !== 'undefined' ? snapshot.durationInMs : this.state.nextSnapshotDelayInMs;
+            if (this.state.isPlaying) this.timeoutHandle = setTimeout(this.next, delay);
+        } else {
+            return this.next();
+        }
+    }
+
     play(delayFirst: boolean = false) {
         this.updateState({ isPlaying: true });
 
@@ -379,11 +394,12 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
             const delay = typeof snapshot.durationInMs !== 'undefined' ? snapshot.durationInMs : this.state.nextSnapshotDelayInMs;
             this.timeoutHandle = setTimeout(this.next, delay);
         } else {
-            this.next();
+            this.startPlayback();
         }
     }
 
     stop() {
+        this.plugin.managers.animation.stop();
         this.updateState({ isPlaying: false });
         if (typeof this.timeoutHandle !== 'undefined') clearTimeout(this.timeoutHandle);
         this.timeoutHandle = void 0;
