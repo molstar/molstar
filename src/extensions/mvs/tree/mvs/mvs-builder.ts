@@ -191,6 +191,11 @@ export class Parse extends _Base<'parse'> {
     volume(params: MVSNodeParams<'volume'> & CustomAndRef = {}): Volume {
         return new Volume(this._root, this.addChild('volume', params));
     }
+    /** Add a 'coordinates' node indicating the parsed data type */
+    coordinates(params: MVSNodeParams<'coordinates'> & CustomAndRef = {}): Parse {
+        this.addChild('coordinates', params);
+        return this;
+    }
 }
 
 

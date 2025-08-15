@@ -92,6 +92,12 @@ export const MVSTreeSchema = TreeSchema({
                 format: RequiredField(ParseFormatT, 'Format of the input data resource.'),
             }),
         },
+        /** This node instructs to retrieve molecular coordinates from a parsed data resource. */
+        coordinates: {
+            description: 'This node instructs to retrieve molecular coordinates from a parsed data resource.',
+            parent: ['parse'],
+            params: SimpleParamsSchema({}),
+        },
         /** This node instructs to create a structure from a parsed data resource. "Structure" refers to an internal representation of molecular coordinates without any visual representation. */
         structure: {
             description: 'This node instructs to create a structure from a parsed data resource. "Structure" refers to an internal representation of molecular coordinates without any visual representation.',

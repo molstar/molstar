@@ -48,18 +48,17 @@ export const MolstarTreeSchema = TreeSchema({
             }),
         },
         /** Auxiliary node corresponding to Molstar's TrajectoryFrom*. */
-        trajectory_from_model_and_coordinates: {
-            description: "Auxiliary node corresponding to Molstar's TrajectoryFrom*.",
-            parent: ['root'],
+        trajectory_with_coordinates: {
+            description: "Auxiliary node corresponding to assiging a separate coordinates to a trajectory.",
+            parent: ['model'],
             params: SimpleParamsSchema({
-                model_ref: RequiredField(str, 'Model reference'),
                 coordinates_ref: RequiredField(str, 'Coordinates reference'),
             }),
         },
         /** Auxiliary node corresponding to Molstar's ModelFromTrajectory. */
         model: {
             description: "Auxiliary node corresponding to Molstar's ModelFromTrajectory.",
-            parent: ['trajectory', 'trajectory_from_model_and_coordinates'],
+            parent: ['trajectory', 'trajectory_with_coordinates'],
             params: SimpleParamsSchema(
                 pickObjectKeys(FullMVSTreeSchema.nodes.structure.params.fields, ['model_index'] as const)
             ),

@@ -18,7 +18,9 @@ TODO: remove before merging`,
         state: (): Root => {
             const builder = createMVSBuilder();
 
-            builder.download({ url: '/tmp/C2H6.xtc' }).parse({ format: 'xtc', ref: 'coords' });
+            builder.download({ url: '/tmp/C2H6.xtc' })
+                .parse({ format: 'xtc' })
+                .coordinates({ ref: 'coords' });
 
             const s = builder.download({ url: '/tmp/C2H6.xyz' }).parse({ format: 'xyz' })
                 .modelStructure({ coordinates_ref: 'coords', model_index: 2, ref: 'model' });
@@ -33,7 +35,6 @@ TODO: remove before merging`,
                 property: 'model_index',
                 start: 0,
                 end: 7,
-                discrete: true,
                 duration_ms: 1000,
             });
 

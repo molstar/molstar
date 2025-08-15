@@ -578,7 +578,7 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
     isApplicable: a => a.data.frameCount > 0,
     apply({ a, params }) {
         return Task.create('Model from Trajectory', async ctx => {
-            let modelIndex = params.modelIndex % a.data.frameCount;
+            let modelIndex = Math.round(params.modelIndex) % a.data.frameCount;
             if (modelIndex < 0) modelIndex += a.data.frameCount;
             const model = await Task.resolveInContext(a.data.getFrameAtIndex(modelIndex), ctx);
             const label = `Model ${modelIndex + 1}`;

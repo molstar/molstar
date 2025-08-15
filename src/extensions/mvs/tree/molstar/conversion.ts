@@ -31,27 +31,14 @@ export const ParseFormatMvsToMolstar = {
     map: { format: 'map', is_binary: true },
 } satisfies { [p in ParseFormatT]: { format: MolstarParseFormatT, is_binary: boolean } };
 
-export const CoordinateFormats = new Set<MolstarParseFormatT>(['xtc']);
-
 /** Conversion rules for conversion from `MVSTree` (with all parameter values) to `MolstarTree` */
 const mvsToMolstarConversionRules: ConversionRules<FullMVSTree, MolstarTree> = {
-    'download': node => ({ asSubtree: [] }),
+    'download': node => ({ subtree: [] }),
     'parse': (node, parent) => {
         const { format, is_binary } = ParseFormatMvsToMolstar[node.params.format];
-        const isCoordinates = CoordinateFormats.has(format);
         if (parent?.kind === 'download') {
-            if (isCoordinates) {
-                return {
-                    asSubtree: [
-                        { kind: 'download', params: { ...parent.params, is_binary }, custom: parent.custom, ref: parent.ref },
-                        { kind: 'parse', params: { ...node.params, format }, custom: node.custom },
-                        { kind: 'coordinates', params: { format }, custom: node.custom, ref: node.ref }
-                    ] satisfies MolstarNode[]
-                };
-            }
-
             return {
-                asSubtree: [
+                subtree: [
                     { kind: 'download', params: { ...parent.params, is_binary }, custom: parent.custom, ref: parent.ref },
                     { kind: 'parse', params: { ...node.params, format }, custom: node.custom, ref: node.ref }
                 ] satisfies MolstarNode[]
@@ -59,32 +46,38 @@ const mvsToMolstarConversionRules: ConversionRules<FullMVSTree, MolstarTree> = {
         } else {
             console.warn('"parse" node is not being converted, this is suspicious');
             return {
-                asSubtree: [
+                subtree: [
                     { kind: 'parse', params: { ...node.params, format }, custom: node.custom, ref: node.ref }
                 ] satisfies MolstarNode[]
             };
         }
+    },
+    'coordinates': (node, parent) => {
+        if (parent?.kind !== 'parse') throw new Error(`Parent of "coordinates" must be "parse", not "${parent?.kind}".`);
+        const { format } = ParseFormatMvsToMolstar[parent.params.format];
+        return {
+            subtree: [
+                { kind: 'coordinates', params: { format }, custom: node.custom, ref: node.ref }
+            ] satisfies MolstarNode[]
+        };
     },
     'structure': (node, parent) => {
         if (parent?.kind !== 'parse') throw new Error(`Parent of "structure" must be "parse", not "${parent?.kind}".`);
         const { format } = ParseFormatMvsToMolstar[parent.params.format];
 
         if (node.params.coordinates_ref) {
-            const model_ref = `${node.params.coordinates_ref}::model`;
             return {
-                asSubtree: [
+                subtree: [
                     { kind: 'trajectory', params: { format, ...pickObjectKeys(node.params, ['block_header', 'block_index']) } },
-                    { kind: 'model', params: { model_index: 0 }, ref: model_ref },
-                ] satisfies MolstarNode[],
-                asRoot: [
-                    { kind: 'trajectory_from_model_and_coordinates', params: { model_ref, coordinates_ref: node.params.coordinates_ref } },
+                    { kind: 'model', params: { model_index: 0 } },
+                    { kind: 'trajectory_with_coordinates', params: { coordinates_ref: node.params.coordinates_ref } },
                     { kind: 'model', params: pickObjectKeys(node.params, ['model_index']) },
                     { kind: 'structure', params: omitObjectKeys(node.params, ['block_header', 'block_index', 'model_index', 'coordinates_ref']), custom: node.custom, ref: node.ref },
                 ] satisfies MolstarNode[]
             };
         } else {
             return {
-                asSubtree: [
+                subtree: [
                     { kind: 'trajectory', params: { format, ...pickObjectKeys(node.params, ['block_header', 'block_index']) } },
                     { kind: 'model', params: pickObjectKeys(node.params, ['model_index']) },
                     { kind: 'structure', params: omitObjectKeys(node.params, ['block_header', 'block_index', 'model_index', 'coordinates_ref']), custom: node.custom, ref: node.ref },

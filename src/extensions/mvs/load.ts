@@ -26,7 +26,7 @@ import { CustomLabelProps, CustomLabelRepresentationProvider } from './component
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
 import { IsMVSModelProps, IsMVSModelProvider } from './components/is-mvs-model-prop';
 import { getPrimitiveStructureRefs, MVSBuildPrimitiveShape, MVSDownloadPrimitiveData, MVSInlinePrimitiveData, MVSShapeRepresentation3D } from './components/primitives';
-import { MVSTrajectoryFromModelAndCoordinates } from './components/trajectory';
+import { MVSTrajectoryWithCoordinates } from './components/trajectory';
 import { generateStateTransition } from './helpers/animation';
 import { IsHiddenCustomStateExtension } from './load-extensions/is-hidden-custom-state';
 import { NonCovalentInteractionsExtension } from './load-extensions/non-covalent-interactions';
@@ -277,12 +277,11 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
                 return undefined;
         }
     },
-    trajectory_from_model_and_coordinates(updateParent: UpdateTarget, node: MolstarNode<'trajectory_from_model_and_coordinates'>): UpdateTarget | undefined {
-        const result = UpdateTarget.apply(updateParent, MVSTrajectoryFromModelAndCoordinates, {
-            modelRef: node.params.model_ref,
+    trajectory_with_coordinates(updateParent: UpdateTarget, node: MolstarNode<'trajectory_with_coordinates'>): UpdateTarget | undefined {
+        const result = UpdateTarget.apply(updateParent, MVSTrajectoryWithCoordinates, {
             coordinatesRef: node.params.coordinates_ref,
         });
-        return UpdateTarget.setMvsDependencies(result, [node.params.model_ref, node.params.coordinates_ref]);
+        return UpdateTarget.setMvsDependencies(result, [node.params.coordinates_ref]);
     },
     model(updateParent: UpdateTarget, node: MolstarSubtree<'model'>, context: MolstarLoadingContext): UpdateTarget {
         const annotations = collectAnnotationReferences(node, context);

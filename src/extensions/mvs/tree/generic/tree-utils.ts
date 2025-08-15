@@ -86,7 +86,7 @@ export function copyTree<T extends Tree>(root: T): T {
  * nodes of kind `C` will be converted to `Y` with a child `Z` (original children moved to `Z`),
  * nodes of other kinds will just be copied. */
 export type ConversionRules<A extends Tree, B extends Tree> = {
-    [kind in Kind<Subtree<A>>]?: (node: SubtreeOfKind<A, kind>, parent?: Subtree<A>) => { asSubtree: Subtree<B>[], asRoot?: Subtree<B>[] }
+    [kind in Kind<Subtree<A>>]?: (node: SubtreeOfKind<A, kind>, parent?: Subtree<A>) => { subtree: Subtree<B>[] }
 };
 
 /** Apply a set of conversion rules to a tree to change to a different schema. */
@@ -95,26 +95,18 @@ export function convertTree<A extends Tree, B extends Tree>(root: A, conversions
     let convertedRoot: Subtree<B>;
     const newRoots: Subtree<B>[] = [];
     dfs<A>(root, (node, parent) => {
-        const conversion = conversions[node.kind as (typeof node)['kind']] as ((n: typeof node, p?: Subtree<A>) => { asSubtree: Subtree<B>[], asRoot?: Subtree<B>[] }) | undefined;
+        const conversion = conversions[node.kind as (typeof node)['kind']] as ((n: typeof node, p?: Subtree<A>) => { subtree: Subtree<B>[] }) | undefined;
         if (conversion) {
             const converted = conversion(node, parent);
-            if (!parent && converted?.asRoot?.length === 0 && converted?.asSubtree.length === 0) throw new Error('Cannot convert root to empty path');
+            if (!parent && converted?.subtree.length === 0) throw new Error('Cannot convert root to empty path');
             let convParent = parent ? mapping.get(parent) : undefined;
-            for (const conv of converted.asSubtree) {
+            for (const conv of converted.subtree) {
                 if (convParent) {
                     (convParent.children ??= []).push(conv);
                 } else {
                     convertedRoot = conv;
                 }
                 convParent = conv;
-            }
-            if (converted?.asRoot?.length) {
-                convParent = converted.asRoot[0];
-                newRoots.push(convParent);
-                for (let i = 1; i < converted.asRoot.length; i++) {
-                    (convParent!.children ??= []).push(converted.asRoot[i]);
-                    convParent = converted.asRoot[i];
-                }
             }
             mapping.set(node, convParent!);
         } else {
@@ -166,7 +158,7 @@ export function addDefaults<S extends TreeSchema>(tree: TreeFor<S>, treeSchema: 
     const rules: ConversionRules<TTree, TTree> = {};
     for (const kind in treeSchema.nodes) {
         rules[kind as Kind<Subtree<TTree>>] = node => ({
-            asSubtree: [{
+            subtree: [{
                 kind: node.kind,
                 params: addParamDefaults(treeSchema.nodes[kind].params, node.params as any),
                 custom: node.custom,
