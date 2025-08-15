@@ -119,8 +119,8 @@ export const MVSTreeSchema = TreeSchema({
                 ijk_min: OptionalField(tuple([int, int, int]), [-1, -1, -1], 'Miller indices of the bottom-left unit cell to be included (only applies when `kind` is `"symmetry"`).'),
                 /** Miller indices of the top-right unit cell to be included (only applies when `kind` is `"symmetry"`). */
                 ijk_max: OptionalField(tuple([int, int, int]), [1, 1, 1], 'Miller indices of the top-right unit cell to be included (only applies when `kind` is `"symmetry"`).'),
-                /** Reference to the coordinates to be used. */
-                coordinates_ref: OptionalField(nullable(str), null, 'Reference to the coordinates to be used.')
+                /** Reference to a specific set of coordinates. */
+                coordinates_ref: OptionalField(nullable(str), null, 'Reference to a specific set of coordinates.')
             }),
         },
         /** This node instructs to rotate and/or translate structure coordinates. */

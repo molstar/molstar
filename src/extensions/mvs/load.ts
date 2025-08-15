@@ -9,7 +9,7 @@
 import { PluginStateSnapshotManager } from '../../mol-plugin-state/manager/snapshots';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { Download, ParseCif, ParseCcp4 } from '../../mol-plugin-state/transforms/data';
-import { CoordinatesFromXtc, CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromGRO, TrajectoryFromMmCif, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../mol-plugin-state/transforms/model';
+import { CoordinatesFromLammpstraj, CoordinatesFromXtc, CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromGRO, TrajectoryFromLammpsTrajData, TrajectoryFromMmCif, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { VolumeFromCcp4, VolumeFromDensityServerCif } from '../../mol-plugin-state/transforms/volume';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -233,6 +233,7 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
             case 'sdf':
             case 'mol2':
             case 'xtc':
+            case 'lammpstrj':
                 return updateParent;
             case 'map':
                 return UpdateTarget.apply(updateParent, ParseCcp4, {});
@@ -245,7 +246,9 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         const format = node.params.format;
         switch (format) {
             case 'xtc':
-                return UpdateTarget.apply(updateParent, CoordinatesFromXtc, {});
+                return UpdateTarget.apply(updateParent, CoordinatesFromXtc);
+            case 'lammpstrj':
+                return UpdateTarget.apply(updateParent, CoordinatesFromLammpstraj);
             default:
                 console.error(`Unknown format in "coordinates" node: "${format}"`);
                 return undefined;
@@ -272,6 +275,8 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
                 return UpdateTarget.apply(updateParent, TrajectoryFromSDF);
             case 'mol2':
                 return UpdateTarget.apply(updateParent, TrajectoryFromMOL2);
+            case 'lammpstrj':
+                return UpdateTarget.apply(updateParent, TrajectoryFromLammpsTrajData);
             default:
                 console.error(`Unknown format in "trajectory" node: "${format}"`);
                 return undefined;

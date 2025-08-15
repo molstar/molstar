@@ -38,7 +38,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Add `createMVSX` helper function
   - Support Mol* trackball animation via `animation.custom.molstar_trackball`
   - MVSX - use Murmur hash instead of FNV in archive URI
-  - Support additional file formats (pdbqt, gro, xyz, mol, sdf, mol2, xtc)
+  - Support additional file formats (pdbqt, gro, xyz, mol, sdf, mol2, xtc, lammpstrj)
   - Support loading trajectory coordinates from separate nodes
 - Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
 - Snapshot Markdown improvements

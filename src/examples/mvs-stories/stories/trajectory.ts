@@ -18,25 +18,25 @@ TODO: remove before merging`,
         state: (): Root => {
             const builder = createMVSBuilder();
 
-            builder.download({ url: '/tmp/C2H6.xtc' })
-                .parse({ format: 'xtc' })
-                .coordinates({ ref: 'coords' });
+            // builder.download({ url: '/tmp/C2H6.xtc' })
+            //     .parse({ format: 'xtc' })
+            //     .coordinates({ ref: 'coords' });
 
-            const s = builder.download({ url: '/tmp/C2H6.xyz' }).parse({ format: 'xyz' })
-                .modelStructure({ coordinates_ref: 'coords', model_index: 2, ref: 'model' });
+            const s = builder.download({ url: '/tmp/26_293_nvt.lammpstrj' }).parse({ format: 'lammpstrj' })
+                .modelStructure({ model_index: 2, ref: 'model' });
 
             s.component({ selector: 'all' })
                 .representation({ type: 'ball_and_stick' });
 
-            const anim = builder.animation();
-            anim.interpolate({
-                kind: 'scalar',
-                target_ref: 'model',
-                property: 'model_index',
-                start: 0,
-                end: 7,
-                duration_ms: 1000,
-            });
+            // const anim = builder.animation();
+            // anim.interpolate({
+            //     kind: 'scalar',
+            //     target_ref: 'model',
+            //     property: 'model_index',
+            //     start: 0,
+            //     end: 7,
+            //     duration_ms: 1000,
+            // });
 
 
             return builder;

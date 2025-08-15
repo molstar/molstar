@@ -25,6 +25,7 @@ export const ParseFormatMvsToMolstar = {
     mol: { format: 'mol', is_binary: false },
     sdf: { format: 'sdf', is_binary: false },
     mol2: { format: 'mol2', is_binary: false },
+    lammpstrj: { format: 'lammpstrj', is_binary: false },
     // coordinates
     xtc: { format: 'xtc', is_binary: true },
     // maps
@@ -118,6 +119,7 @@ const StructureFormatExtensions: Record<ParseFormatT, (FileExtension | '*')[]> =
     mol: ['.mol'],
     sdf: ['.sdf'],
     mol2: ['.mol2'],
+    lammpstrj: ['.lammpstrj'],
     // coordinates
     xtc: ['.xtc'],
     // volumes

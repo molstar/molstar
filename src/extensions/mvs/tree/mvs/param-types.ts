@@ -22,6 +22,7 @@ export const ParseFormatT = literal(
     'mol',
     'sdf',
     'mol2',
+    'lammpstrj', // + coordinates
     // coordinates
     'xtc',
     // volumes
@@ -40,6 +41,7 @@ export const MolstarParseFormatT = literal(
     'mol',
     'sdf',
     'mol2',
+    'lammpstrj',
     // coordinates
     'xtc',
     // volumes
