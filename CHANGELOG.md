@@ -12,6 +12,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - [Breaking] Add `Volume.instances` support and a `VolumeInstances` transform to dynamically assign it
   - This change is breaking because all volume objects require the `instances` field now.
 - [Breaking] `Canvas3D.identify` now expects `Vec2` or `Ray3D`
+- [Breaking] `TrackballControlsParams.animate.spin.speed` now means "Number of rotations per second" instead of "radians per second"
 - Update production build to use `esbuild`
 - Emit explicit paths in `import`s in `lib/`
 - Fix outlines on opaque elements using illumination mode
