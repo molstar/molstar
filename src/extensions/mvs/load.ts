@@ -8,8 +8,8 @@
 
 import { PluginStateSnapshotManager } from '../../mol-plugin-state/manager/snapshots';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { Download, ParseCcp4, ParseCif } from '../../mol-plugin-state/transforms/data';
-import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromMmCif, TrajectoryFromPDB } from '../../mol-plugin-state/transforms/model';
+import { Download, ParseCif, ParseCcp4 } from '../../mol-plugin-state/transforms/data';
+import { CoordinatesFromXtc, CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromGRO, TrajectoryFromMmCif, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { VolumeFromCcp4, VolumeFromDensityServerCif } from '../../mol-plugin-state/transforms/volume';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -26,6 +26,7 @@ import { CustomLabelProps, CustomLabelRepresentationProvider } from './component
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
 import { IsMVSModelProps, IsMVSModelProvider } from './components/is-mvs-model-prop';
 import { getPrimitiveStructureRefs, MVSBuildPrimitiveShape, MVSDownloadPrimitiveData, MVSInlinePrimitiveData, MVSShapeRepresentation3D } from './components/primitives';
+import { MVSTrajectoryFromModelAndCoordinates } from './components/trajectory';
 import { generateStateTransition } from './helpers/animation';
 import { IsHiddenCustomStateExtension } from './load-extensions/is-hidden-custom-state';
 import { NonCovalentInteractionsExtension } from './load-extensions/non-covalent-interactions';
@@ -221,30 +222,67 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     },
     parse(updateParent: UpdateTarget, node: MolstarNode<'parse'>): UpdateTarget | undefined {
         const format = node.params.format;
-        if (format === 'cif') {
-            return UpdateTarget.apply(updateParent, ParseCif, {});
-        } else if (format === 'pdb') {
-            return updateParent;
-        } else if (format === 'map') {
-            return UpdateTarget.apply(updateParent, ParseCcp4, {});
-        } else {
-            console.error(`Unknown format in "parse" node: "${format}"`);
-            return undefined;
+        switch (format) {
+            case 'cif':
+                return UpdateTarget.apply(updateParent, ParseCif, {});
+            case 'pdb':
+            case 'pdbqt':
+            case 'gro':
+            case 'xyz':
+            case 'mol':
+            case 'sdf':
+            case 'mol2':
+            case 'xtc':
+                return updateParent;
+            case 'map':
+                return UpdateTarget.apply(updateParent, ParseCcp4, {});
+            default:
+                console.error(`Unknown format in "parse" node: "${format}"`);
+                return undefined;
+        }
+    },
+    coordinates(updateParent: UpdateTarget, node: MolstarNode<'coordinates'>): UpdateTarget | undefined {
+        const format = node.params.format;
+        switch (format) {
+            case 'xtc':
+                return UpdateTarget.apply(updateParent, CoordinatesFromXtc, {});
+            default:
+                console.error(`Unknown format in "coordinates" node: "${format}"`);
+                return undefined;
         }
     },
     trajectory(updateParent: UpdateTarget, node: MolstarNode<'trajectory'>): UpdateTarget | undefined {
         const format = node.params.format;
-        if (format === 'cif') {
-            return UpdateTarget.apply(updateParent, TrajectoryFromMmCif, {
-                blockHeader: node.params.block_header ?? '', // Must set to '' because just undefined would get overwritten by createDefaults
-                blockIndex: node.params.block_index ?? undefined,
-            });
-        } else if (format === 'pdb') {
-            return UpdateTarget.apply(updateParent, TrajectoryFromPDB, {});
-        } else {
-            console.error(`Unknown format in "trajectory" node: "${format}"`);
-            return undefined;
+        switch (format) {
+            case 'cif':
+                return UpdateTarget.apply(updateParent, TrajectoryFromMmCif, {
+                    blockHeader: node.params.block_header ?? '', // Must set to '' because just undefined would get overwritten by createDefaults
+                    blockIndex: node.params.block_index ?? undefined,
+                });
+            case 'pdb':
+            case 'pdbqt':
+                return UpdateTarget.apply(updateParent, TrajectoryFromPDB, { isPdbqt: format === 'pdbqt' });
+            case 'gro':
+                return UpdateTarget.apply(updateParent, TrajectoryFromGRO);
+            case 'xyz':
+                return UpdateTarget.apply(updateParent, TrajectoryFromXYZ);
+            case 'mol':
+                return UpdateTarget.apply(updateParent, TrajectoryFromMOL);
+            case 'sdf':
+                return UpdateTarget.apply(updateParent, TrajectoryFromSDF);
+            case 'mol2':
+                return UpdateTarget.apply(updateParent, TrajectoryFromMOL2);
+            default:
+                console.error(`Unknown format in "trajectory" node: "${format}"`);
+                return undefined;
         }
+    },
+    trajectory_from_model_and_coordinates(updateParent: UpdateTarget, node: MolstarNode<'trajectory_from_model_and_coordinates'>): UpdateTarget | undefined {
+        const result = UpdateTarget.apply(updateParent, MVSTrajectoryFromModelAndCoordinates, {
+            modelRef: node.params.model_ref,
+            coordinatesRef: node.params.coordinates_ref,
+        });
+        return UpdateTarget.setMvsDependencies(result, [node.params.model_ref, node.params.coordinates_ref]);
     },
     model(updateParent: UpdateTarget, node: MolstarSubtree<'model'>, context: MolstarLoadingContext): UpdateTarget {
         const annotations = collectAnnotationReferences(node, context);

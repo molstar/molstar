@@ -138,10 +138,10 @@ export class Download extends _Base<'download'> {
 
 /** Subsets of 'structure' node params which will be passed to individual builder functions. */
 const StructureParamsSubsets = {
-    model: ['block_header', 'block_index', 'model_index'],
-    assembly: ['block_header', 'block_index', 'model_index', 'assembly_id'],
-    symmetry: ['block_header', 'block_index', 'model_index', 'ijk_min', 'ijk_max'],
-    symmetry_mates: ['block_header', 'block_index', 'model_index', 'radius'],
+    model: ['block_header', 'block_index', 'model_index', 'coordinates_ref'],
+    assembly: ['block_header', 'block_index', 'model_index', 'assembly_id', 'coordinates_ref'],
+    symmetry: ['block_header', 'block_index', 'model_index', 'ijk_min', 'ijk_max', 'coordinates_ref'],
+    symmetry_mates: ['block_header', 'block_index', 'model_index', 'radius', 'coordinates_ref'],
 } satisfies { [kind in MVSNodeParams<'structure'>['type']]: (keyof MVSNodeParams<'structure'>)[] };
 
 

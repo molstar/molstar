@@ -11,11 +11,40 @@ import { ValueFor, bool, dict, float, int, list, literal, nullable, object, part
 
 
 /** `format` parameter values for `parse` node in MVS tree */
-export const ParseFormatT = literal('mmcif', 'bcif', 'pdb', 'map');
+export const ParseFormatT = literal(
+    // trajectory
+    'mmcif',
+    'bcif', // +volumes
+    'pdb',
+    'pdbqt',
+    'gro',
+    'xyz',
+    'mol',
+    'sdf',
+    'mol2',
+    // coordinates
+    'xtc',
+    // volumes
+    'map',
+);
 export type ParseFormatT = ValueFor<typeof ParseFormatT>
 
 /** `format` parameter values for `parse` node in Molstar tree */
-export const MolstarParseFormatT = literal('cif', 'pdb', 'map');
+export const MolstarParseFormatT = literal(
+    // trajectory
+    'cif', // +volumes
+    'pdb',
+    'pdbqt',
+    'gro',
+    'xyz',
+    'mol',
+    'sdf',
+    'mol2',
+    // coordinates
+    'xtc',
+    // volumes
+    'map'
+);
 export type MolstarParseFormatT = ValueFor<typeof MolstarParseFormatT>
 
 /** `kind` parameter values for `structure` node in MVS tree */

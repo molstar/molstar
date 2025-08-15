@@ -225,7 +225,7 @@ const TopologyFromTop = PluginStateTransform.BuiltIn({
     }
 });
 
-async function getTrajectory(ctx: RuntimeContext, obj: StateObject, coordinates: Coordinates) {
+export async function getTrajectory(ctx: RuntimeContext, obj: StateObject, coordinates: Coordinates) {
     if (obj.type === SO.Molecule.Topology.type) {
         const topology = obj.data as Topology;
         return await Model.trajectoryFromTopologyAndCoordinates(topology, coordinates).runInContext(ctx);

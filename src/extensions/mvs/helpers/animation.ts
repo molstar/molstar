@@ -131,7 +131,7 @@ function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolat
 
             let next: any;
             if (transition.params.kind === 'scalar') {
-                next = interpolateScalars(startValue, endValue, t, transition.params.noise_magnitude ?? 0);
+                next = interpolateScalars(startValue, endValue, t, transition.params.noise_magnitude ?? 0, !!transition.params.discrete);
             } else if (transition.params.kind === 'vec3') {
                 next = interpolateVectors(startValue, endValue, t, transition.params.noise_magnitude ?? 0, !!transition.params.spherical);
             } else if (transition.params.kind === 'rotation_matrix') {
@@ -215,18 +215,18 @@ function processTransformMatrix(transition: MVSAnimationNode<'interpolate'>, tar
     assign(target, transition.params.property, result, offset);
 }
 
-function interpolateScalars(start: number | number[], end: number | number[] | undefined, t: number, noise: number) {
+function interpolateScalars(start: number | number[], end: number | number[] | undefined, t: number, noise: number, discrete: boolean) {
     if (Array.isArray(start)) {
         const ret = Array.from<number>({ length: start.length }).fill(0.1);
         if (!end || !Array.isArray(end)) {
             for (let i = 0; i < start.length; i++) {
-                ret[i] = interpolateScalar(start[i], end, t, noise);
+                ret[i] = interpolateScalar(start[i], end, t, noise, discrete);
             }
             return ret;
         }
 
         for (let i = 0; i < start.length; i++) {
-            ret[i] = interpolateScalar(start[i], end[i], t, noise);
+            ret[i] = interpolateScalar(start[i], end[i], t, noise, discrete);
         }
         return ret;
     }
@@ -234,20 +234,20 @@ function interpolateScalars(start: number | number[], end: number | number[] | u
     if (Array.isArray(end)) {
         const ret = Array.from<number>({ length: end.length }).fill(0.1);
         for (let i = 0; i < end.length; i++) {
-            ret[i] = interpolateScalar(start, end[i], t, noise);
+            ret[i] = interpolateScalar(start, end[i], t, noise, discrete);
         }
         return ret;
     }
 
-    return interpolateScalar(start, end, t, noise);
+    return interpolateScalar(start, end, t, noise, discrete);
 }
 
-function interpolateScalar(start: number, end: number | undefined, t: number, noise: number) {
+function interpolateScalar(start: number, end: number | undefined, t: number, noise: number, discrete: boolean) {
     let v = typeof end === 'number' ? lerp(start, end, t) : start;
     if (noise) {
         v += (Math.random() - 0.5) * noise;
     }
-    return v;
+    return discrete ? Math.round(v) : v;
 }
 
 const InterpolateVectorsState = {
