@@ -37,6 +37,9 @@ Note that since we don't clearly distinguish between a public and private interf
   - Add `Snapshot.animation` support that enables animating almost every property in a given tree
   - Add `createMVSX` helper function
   - Support Mol* trackball animation via `animation.custom.molstar_trackball`
+  - MVSX - use Murmur hash instead of FNV in archive URI
+  - Support additional file formats (pdbqt, gro, xyz, mol, sdf, mol2, xtc, lammpstrj)
+  - Support loading trajectory coordinates from separate nodes
 - Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
 - Snapshot Markdown improvements
   - Add `MarkdownExtensionManager` (`PluginContext.managers.markdownExtensions`)
@@ -87,7 +90,6 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `Hsl` and (normalized) `Rgb` color spaces
 - Add `Color.interpolateHsl`
 - Add `rotationCenter` property to `TransformParam`
-- MVSX - use Murmur hash instead of FNV in archive URI
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:

@@ -86,7 +86,7 @@ export function copyTree<T extends Tree>(root: T): T {
  * nodes of kind `C` will be converted to `Y` with a child `Z` (original children moved to `Z`),
  * nodes of other kinds will just be copied. */
 export type ConversionRules<A extends Tree, B extends Tree> = {
-    [kind in Kind<Subtree<A>>]?: (node: SubtreeOfKind<A, kind>, parent?: Subtree<A>) => Subtree<B>[]
+    [kind in Kind<Subtree<A>>]?: (node: SubtreeOfKind<A, kind>, parent?: Subtree<A>) => { subtree: Subtree<B>[] }
 };
 
 /** Apply a set of conversion rules to a tree to change to a different schema. */
@@ -94,12 +94,12 @@ export function convertTree<A extends Tree, B extends Tree>(root: A, conversions
     const mapping = new Map<Subtree<A>, Subtree<B>>();
     let convertedRoot: Subtree<B>;
     dfs<A>(root, (node, parent) => {
-        const conversion = conversions[node.kind as (typeof node)['kind']] as ((n: typeof node, p?: Subtree<A>) => Subtree<B>[]) | undefined;
+        const conversion = conversions[node.kind as (typeof node)['kind']] as ((n: typeof node, p?: Subtree<A>) => { subtree: Subtree<B>[] }) | undefined;
         if (conversion) {
-            const convertidos = conversion(node, parent);
-            if (!parent && convertidos.length === 0) throw new Error('Cannot convert root to empty path');
+            const converted = conversion(node, parent);
+            if (!parent && converted?.subtree.length === 0) throw new Error('Cannot convert root to empty path');
             let convParent = parent ? mapping.get(parent) : undefined;
-            for (const conv of convertidos) {
+            for (const conv of converted.subtree) {
                 if (convParent) {
                     (convParent.children ??= []).push(conv);
                 } else {
@@ -153,12 +153,14 @@ export function addDefaults<S extends TreeSchema>(tree: TreeFor<S>, treeSchema: 
     type TTree = TreeFor<S>;
     const rules: ConversionRules<TTree, TTree> = {};
     for (const kind in treeSchema.nodes) {
-        rules[kind as Kind<Subtree<TTree>>] = node => [{
-            kind: node.kind,
-            params: addParamDefaults(treeSchema.nodes[kind].params, node.params as any),
-            custom: node.custom,
-            ref: node.ref,
-        } as Node as any];
+        rules[kind as Kind<Subtree<TTree>>] = node => ({
+            subtree: [{
+                kind: node.kind,
+                params: addParamDefaults(treeSchema.nodes[kind].params, node.params as any),
+                custom: node.custom,
+                ref: node.ref,
+            } as Node as any]
+        });
     }
     return convertTree(tree, rules) as any;
 }

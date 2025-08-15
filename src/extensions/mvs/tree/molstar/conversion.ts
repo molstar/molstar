@@ -15,37 +15,76 @@ import { MolstarKind, MolstarNode, MolstarTree } from './molstar-tree';
 /** Convert `format` parameter of `parse` node in `MolstarTree`
  * into `format` and `is_binary` parameters in `MolstarTree` */
 export const ParseFormatMvsToMolstar = {
+    // trajectory
     mmcif: { format: 'cif', is_binary: false },
     bcif: { format: 'cif', is_binary: true },
     pdb: { format: 'pdb', is_binary: false },
+    pdbqt: { format: 'pdbqt', is_binary: false },
+    gro: { format: 'gro', is_binary: false },
+    xyz: { format: 'xyz', is_binary: false },
+    mol: { format: 'mol', is_binary: false },
+    sdf: { format: 'sdf', is_binary: false },
+    mol2: { format: 'mol2', is_binary: false },
+    lammpstrj: { format: 'lammpstrj', is_binary: false },
+    // coordinates
+    xtc: { format: 'xtc', is_binary: true },
+    // maps
     map: { format: 'map', is_binary: true },
 } satisfies { [p in ParseFormatT]: { format: MolstarParseFormatT, is_binary: boolean } };
 
-
 /** Conversion rules for conversion from `MVSTree` (with all parameter values) to `MolstarTree` */
 const mvsToMolstarConversionRules: ConversionRules<FullMVSTree, MolstarTree> = {
-    'download': node => [],
+    'download': node => ({ subtree: [] }),
     'parse': (node, parent) => {
         const { format, is_binary } = ParseFormatMvsToMolstar[node.params.format];
-        const convertedNode: MolstarNode<'parse'> = { kind: 'parse', params: { ...node.params, format }, custom: node.custom, ref: node.ref };
         if (parent?.kind === 'download') {
-            return [
-                { kind: 'download', params: { ...parent.params, is_binary }, custom: parent.custom, ref: parent.ref },
-                convertedNode,
-            ] satisfies MolstarNode[];
+            return {
+                subtree: [
+                    { kind: 'download', params: { ...parent.params, is_binary }, custom: parent.custom, ref: parent.ref },
+                    { kind: 'parse', params: { ...node.params, format }, custom: node.custom, ref: node.ref }
+                ] satisfies MolstarNode[]
+            };
         } else {
             console.warn('"parse" node is not being converted, this is suspicious');
-            return [convertedNode] satisfies MolstarNode[];
+            return {
+                subtree: [
+                    { kind: 'parse', params: { ...node.params, format }, custom: node.custom, ref: node.ref }
+                ] satisfies MolstarNode[]
+            };
         }
+    },
+    'coordinates': (node, parent) => {
+        if (parent?.kind !== 'parse') throw new Error(`Parent of "coordinates" must be "parse", not "${parent?.kind}".`);
+        const { format } = ParseFormatMvsToMolstar[parent.params.format];
+        return {
+            subtree: [
+                { kind: 'coordinates', params: { format }, custom: node.custom, ref: node.ref }
+            ] satisfies MolstarNode[]
+        };
     },
     'structure': (node, parent) => {
         if (parent?.kind !== 'parse') throw new Error(`Parent of "structure" must be "parse", not "${parent?.kind}".`);
         const { format } = ParseFormatMvsToMolstar[parent.params.format];
-        return [
-            { kind: 'trajectory', params: { format, ...pickObjectKeys(node.params, ['block_header', 'block_index']) } },
-            { kind: 'model', params: pickObjectKeys(node.params, ['model_index']) },
-            { kind: 'structure', params: omitObjectKeys(node.params, ['block_header', 'block_index', 'model_index']), custom: node.custom, ref: node.ref },
-        ] satisfies MolstarNode[];
+
+        if (node.params.coordinates_ref) {
+            return {
+                subtree: [
+                    { kind: 'trajectory', params: { format, ...pickObjectKeys(node.params, ['block_header', 'block_index']) } },
+                    { kind: 'model', params: { model_index: 0 } },
+                    { kind: 'trajectory_with_coordinates', params: { coordinates_ref: node.params.coordinates_ref } },
+                    { kind: 'model', params: pickObjectKeys(node.params, ['model_index']) },
+                    { kind: 'structure', params: omitObjectKeys(node.params, ['block_header', 'block_index', 'model_index', 'coordinates_ref']), custom: node.custom, ref: node.ref },
+                ] satisfies MolstarNode[]
+            };
+        } else {
+            return {
+                subtree: [
+                    { kind: 'trajectory', params: { format, ...pickObjectKeys(node.params, ['block_header', 'block_index']) } },
+                    { kind: 'model', params: pickObjectKeys(node.params, ['model_index']) },
+                    { kind: 'structure', params: omitObjectKeys(node.params, ['block_header', 'block_index', 'model_index', 'coordinates_ref']), custom: node.custom, ref: node.ref },
+                ] satisfies MolstarNode[]
+            };
+        }
     },
 };
 
@@ -70,9 +109,20 @@ function fileExtensionMatches(filename: string, extensions: (FileExtension | '*'
 }
 
 const StructureFormatExtensions: Record<ParseFormatT, (FileExtension | '*')[]> = {
+    // trajectory
     mmcif: ['.cif', '.mmif'],
     bcif: ['.bcif'],
     pdb: ['.pdb', '.ent'],
+    pdbqt: ['.pdbqt'],
+    gro: ['.gro'],
+    xyz: ['.xyz'],
+    mol: ['.mol'],
+    sdf: ['.sdf'],
+    mol2: ['.mol2'],
+    lammpstrj: ['.lammpstrj'],
+    // coordinates
+    xtc: ['.xtc'],
+    // volumes
     map: ['.map', '.ccp4', '.mrc', '.mrcs'],
 };
 
