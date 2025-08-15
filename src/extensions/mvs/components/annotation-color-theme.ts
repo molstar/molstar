@@ -241,7 +241,7 @@ function makeNumericPaletteScale(props: MVSContinuousPaletteProps | MVSDiscreteP
     }
 }
 
-function makeContinuousPaletteCheckpoints(props: MVSContinuousPaletteProps) {
+export function makeContinuousPaletteCheckpoints(props: MVSContinuousPaletteProps) {
     if (props.colors.colors.every(x => Array.isArray(x))) {
         // Explicit checkpoints
         const sorted = props.colors.colors.sort((a, b) => a[1] - b[1]);

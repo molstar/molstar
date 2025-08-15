@@ -2,6 +2,7 @@
  * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import type { SizeTheme } from '../size';
@@ -11,7 +12,7 @@ import { LocationSize } from '../../mol-geo/geometry/size-data';
 import { Volume } from '../../mol-model/volume/volume';
 import { Location } from '../../mol-model/location';
 
-const Description = 'Assign size based on the given value of a volume cell.';
+const Description = 'Assign size based on the given value of a volume cell. Negative values are made positive.';
 
 export const VolumeValueSizeThemeParams = {
     scale: PD.Numeric(1, { min: 0.1, max: 5, step: 0.1 }),
@@ -28,7 +29,7 @@ export function VolumeValueSizeTheme(ctx: ThemeDataContext, props: PD.Values<Vol
         const isLocation = Volume.Cell.isLocation;
         const size: LocationSize = (location: Location): number => {
             if (isLocation(location)) {
-                return data[location.cell] * props.scale;
+                return Math.abs(data[location.cell]) * props.scale;
             } else {
                 return 0;
             }

@@ -57,6 +57,8 @@ const TransformParams = SimpleParamsSchema({
     rotation: OptionalField(Matrix, [1, 0, 0, 0, 1, 0, 0, 0, 1], 'Rotation matrix (3x3 matrix flattened in column major format (j*3+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. The default value is the identity matrix (corresponds to no rotation).'),
     /** Translation vector, applied to the structure coordinates after rotation. The default value is the zero vector (corresponds to no translation). */
     translation: OptionalField(Vector3, [0, 0, 0], 'Translation vector, applied to the structure coordinates after rotation. The default value is the zero vector (corresponds to no translation).'),
+    /** Point to rotate the object around. Can be either a 3D vector or dynamically computed object centroid. */
+    rotation_center: OptionalField(nullable(union(Vector3, literal('centroid'))), null, 'Point to rotate the object around. Can be either a 3D vector or dynamically computed object centroid.'),
     /** Transform matrix (4x4 matrix flattened in column major format (j*4+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. Takes precedence over `rotation` and `translation`. */
     matrix: OptionalField(nullable(Matrix), null, 'Transform matrix (4x4 matrix flattened in column major format (j*4+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. Takes precedence over `rotation` and `translation`.'),
 });
@@ -322,7 +324,7 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['root'],
             params: SimpleParamsSchema({
                 /** Color of the canvas background. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`). */
-                background_color: RequiredField(ColorT, 'Color of the canvas background. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
+                background_color: OptionalField(ColorT, 'white', 'Color of the canvas background. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`). Defaults to white.'),
             }),
         },
         primitives: {

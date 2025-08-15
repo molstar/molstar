@@ -1,11 +1,12 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { StateTransformer } from './transformer';
 import { UUID } from '../mol-util';
+import { hashMurmur128o } from '../mol-data/util';
 
 export { Transform as StateTransform };
 
@@ -167,6 +168,21 @@ namespace Transform {
             if (t.tags.indexOf(tag) < 0) return false;
         }
         return true;
+    }
+
+    const _emptyParams = {};
+    /** Updates the version of the transform to be computed as hash of the parameters */
+    export function setParamsHashVersion(t: Transform) {
+        let version: string;
+        try {
+            version = hashMurmur128o(t.params ?? _emptyParams);
+        } catch {
+            const pToJson = t.transformer.definition.customSerialization
+                ? t.transformer.definition.customSerialization.toJSON
+                : _id;
+            version = hashMurmur128o(pToJson(t.params ?? _emptyParams));
+        }
+        (t as { version: string }).version = version;
     }
 
     export interface Serialized {
