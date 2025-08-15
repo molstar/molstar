@@ -17,6 +17,59 @@ David Sehnal, Sebastian Bittrich, Mandar Deshpande, Radka Svobodová, Karel Berk
 
 - [rcsb-molstar](https://github.com/molstar/rcsb-molstar) is the Mol* plugin used by [RCSB PDB](https://www.rcsb.org). The project provides additional presets for the visualization of structure alignments and structure motifs such as ligand binding sites. Furthermore, [rcsb-molstar](https://github.com/molstar/rcsb-molstar) allows to interactively add or hide of (parts of) chains, as seen in the [3D Protein Feature View](https://www.rcsb.org/3d-sequence/4hhb).
 
+## Deno Usage
+
+Mol* now includes initial Deno support with a `deno.json` configuration file. This is currently **experimental** and under active development. See `DENO_MIGRATION.md` for the full migration status and roadmap.
+
+**Current Status**: ⚠️ Partial compatibility - requires Node.js compatibility layer and relaxed TypeScript settings.
+
+### Getting Started with Deno
+
+**Note**: Full Deno compatibility is a work in progress. Current functionality is limited.
+
+```bash
+# Type check (basic functionality)
+deno task check
+
+# Format code
+deno task fmt
+
+# Lint code
+deno task lint
+
+# Serve static files
+deno task serve
+```
+
+For development, we recommend continuing to use Node.js until migration is complete:
+```bash
+npm run dev
+npm run build
+npm test
+```
+
+### Future JSR Usage (not yet available)
+
+Once migration is complete, you'll be able to import from JSR:
+
+```typescript
+// This will be available after full Deno migration
+import { createPluginUI } from "jsr:@molstar/molstar";
+import { DefaultPluginUISpec } from "jsr:@molstar/molstar/plugin";
+```
+
+### Server Applications
+
+Server applications are configured for Deno but may require Node.js compatibility:
+
+```bash
+# These tasks are available but may need Node.js compatibility layer
+deno task model-server
+deno task volume-server-test  
+deno task plugin-state
+```
+
+**Migration Status**: See `DENO_MIGRATION.md` for detailed information about current limitations and the migration roadmap.
 
 ## Project Structure Overview
 
