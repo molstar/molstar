@@ -87,6 +87,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `Hsl` and (normalized) `Rgb` color spaces
 - Add `Color.interpolateHsl`
 - Add `rotationCenter` property to `TransformParam`
+- MVSX - use Murmur hash instead of FNV in archive URI
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:
