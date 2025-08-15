@@ -103,6 +103,7 @@
         var urlParams = new URLSearchParams(window.location.search);
         var storyId = urlParams.get('story-id');
         var storyUrl = urlParams.get('story-url');
+        var storySessionUrl = urlParams.get('story-session-url');
         var format = urlParams.get('data-format');
 
         // For testing purposes:
@@ -111,21 +112,29 @@
         // }
 
         var molstarDataLink = storyUrl;
+        var editInStoriesUrl = undefined;
 
         if (storyId) {
             mvsStories.loadFromID(storyId, { format: format || 'mvsj', contextName: 'story1' });
-            var storiesUrl = 'https://molstar.org/mol-view-stories/builder?published-session-id=' + storyId;
+            editInStoriesUrl = 'https://molstar.org/mol-view-stories/builder?published-session-id=' + storyId;
             molstarDataLink = 'https://stories.molstar.org/api/story/' + storyId + '/data';
-            document.getElementById('open-in-stories-link').setAttribute('href', storiesUrl);
-            document.getElementById('open-in-stories').style.display = 'inline';
         } else if (storyUrl) {
             mvsStories.loadFromURL(storyUrl, { format: format || 'mvsj', contextName: 'story1' });
         }
 
+        if (!editInStoriesUrl && storySessionUrl) {
+            editInStoriesUrl = 'https://molstar.org/mol-view-stories/builder?session-url=' + encodeURIComponent(storySessionUrl);
+        }
+        
         if (molstarDataLink) {
             var molstarLink = 'https://molstar.org/viewer?mvs-url=' + encodeURIComponent(molstarDataLink) + '&mvs-format=' + encodeURIComponent(format || 'mvsj'); 
             document.getElementById('open-in-molstar-link').setAttribute('href', molstarLink);
             document.getElementById('open-in-molstar').style.display = 'inline';
+        }
+        
+        if (editInStoriesUrl) {
+            document.getElementById('open-in-stories-link').setAttribute('href', editInStoriesUrl);
+            document.getElementById('open-in-stories').style.display = 'inline';
         }
 
         document.getElementById('mvs-data').addEventListener('click', (e) => {

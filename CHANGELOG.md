@@ -60,6 +60,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `StructureInstances` transform
 - `mvs-stories` app
   - Add `story-id` URL arg support
+  - Add `story-session-url` URL arg support
   - Add "Download MVS State" link
   - Add "Open in Mol*" link
   - Add "Edit in MolViewStories" link for story states
