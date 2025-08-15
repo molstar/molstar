@@ -93,7 +93,6 @@ export type ConversionRules<A extends Tree, B extends Tree> = {
 export function convertTree<A extends Tree, B extends Tree>(root: A, conversions: ConversionRules<A, B>): Subtree<B> {
     const mapping = new Map<Subtree<A>, Subtree<B>>();
     let convertedRoot: Subtree<B>;
-    const newRoots: Subtree<B>[] = [];
     dfs<A>(root, (node, parent) => {
         const conversion = conversions[node.kind as (typeof node)['kind']] as ((n: typeof node, p?: Subtree<A>) => { subtree: Subtree<B>[] }) | undefined;
         if (conversion) {
@@ -119,9 +118,6 @@ export function convertTree<A extends Tree, B extends Tree>(root: A, conversions
             mapping.set(node, converted);
         }
     });
-    for (const newRoot of newRoots) {
-        (convertedRoot!.children ??= []).push(newRoot);
-    }
     return convertedRoot!;
 }
 
