@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -252,6 +252,10 @@ export class MesoscaleExplorer {
             },
             cameraFog: { name: 'off', params: {} },
             hiZ: { enabled: true },
+            xr: {
+                disablePostprocessing: false,
+                sceneRadiusInMeters: 0.75,
+            },
         });
 
         plugin.representation.structure.registry.clear();

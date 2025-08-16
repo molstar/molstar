@@ -52,6 +52,7 @@ export const XRManagerParams = {
     minTargetDistance: PD.Numeric(0.4, { min: 0.001, max: 1, step: 0.001 }),
     disablePostprocessing: PD.Boolean(true),
     resolutionScale: PD.Numeric(1, { min: 0.1, max: 2, step: 0.1 }),
+    sceneRadiusInMeters: PD.Numeric(0.25, { min: 0.01, max: 2, step: 0.01 }, { description: 'The radius of the scene bounding sphere in meters, used to set the initial camera scale.' }),
 };
 export type XRManagerParams = typeof XRManagerParams
 export type XRManagerProps = PD.Values<XRManagerParams>
@@ -292,7 +293,7 @@ export class XRManager {
             let scale = this.prevScale;
             if (scale === 0) {
                 const { radius } = this.scene.boundingSphereVisible;
-                scale = radius ? 1 / (radius * 3) : 0.01;
+                scale = radius ? (1 / radius) * this.props.sceneRadiusInMeters : 0.01;
             }
             this.camera.setState({
                 forceFull: true,
