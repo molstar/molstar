@@ -230,6 +230,7 @@ namespace Renderer {
             uInvModelViewProjection: ValueCell.create(invModelViewProjection),
             uHasHeadRotation: ValueCell.create(false),
             uInvHeadRotation: ValueCell.create(invHeadRotation),
+            uIsAsymmetricProjection: ValueCell.create(false),
 
             uIsOrtho: ValueCell.create(1),
             uViewOffset: ValueCell.create(viewOffset),
@@ -445,6 +446,8 @@ namespace Renderer {
                 ValueCell.update(globalUniforms.uInvHeadRotation, Mat4.id);
                 ValueCell.update(globalUniforms.uLightDirection, light.direction);
             }
+
+            ValueCell.update(globalUniforms.uIsAsymmetricProjection, camera.isAsymmetricProjection);
         };
 
         const updateInternal = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null, renderMask: Mask, markingDepthTest: boolean) => {
