@@ -384,11 +384,12 @@ namespace TrackballControls {
             const minDistance = Math.max(camera.state.minNear, p.minDistance);
             Vec3.setMagnitude(moveEye, moveEye, minDistance);
 
+            const moveTarget = p.flyMode || input.pointerLock;
             const moveSpeed = deltaT * (60 / 1000) * p.moveSpeed * (keyState.boostMove === 1 ? p.boostMoveFactor : 1);
 
             if (keyState.moveForward === 1) {
                 const cameraDistance = Vec3.distance(camera.position, scene.boundingSphereVisible.center);
-                if (cameraDistance < scene.boundingSphereVisible.radius) {
+                if (cameraDistance < scene.boundingSphereVisible.radius && moveTarget) {
                     Vec3.normalize(moveDir, moveEye);
                     Vec3.scaleAndSub(camera.position, camera.position, moveDir, moveSpeed);
                 } else {
@@ -396,14 +397,14 @@ namespace TrackballControls {
                     Vec3.scale(moveDir, moveDir, 1 - moveSpeed / 100);
                     Vec3.add(camera.position, camera.target, moveDir);
                 }
-                if (p.flyMode || input.pointerLock) {
+                if (moveTarget) {
                     Vec3.sub(camera.target, camera.position, moveEye);
                 }
             }
 
             if (keyState.moveBack === 1) {
                 const cameraDistance = Vec3.distance(camera.position, scene.boundingSphereVisible.center);
-                if (cameraDistance < scene.boundingSphereVisible.radius) {
+                if (cameraDistance < scene.boundingSphereVisible.radius && moveTarget) {
                     Vec3.normalize(moveDir, moveEye);
                     Vec3.scaleAndAdd(camera.position, camera.position, moveDir, moveSpeed);
                 } else {
@@ -411,7 +412,7 @@ namespace TrackballControls {
                     Vec3.scale(moveDir, moveDir, 1 + moveSpeed / 100);
                     Vec3.add(camera.position, camera.target, moveDir);
                 }
-                if (p.flyMode || input.pointerLock) {
+                if (moveTarget) {
                     Vec3.sub(camera.target, camera.position, moveEye);
                 }
             }
@@ -419,7 +420,7 @@ namespace TrackballControls {
             if (keyState.moveLeft === 1) {
                 Vec3.cross(moveDir, moveEye, camera.up);
                 Vec3.normalize(moveDir, moveDir);
-                if (p.flyMode || input.pointerLock) {
+                if (moveTarget) {
                     Vec3.scaleAndAdd(camera.position, camera.position, moveDir, moveSpeed);
                     Vec3.sub(camera.target, camera.position, moveEye);
                 } else {
@@ -431,7 +432,7 @@ namespace TrackballControls {
             if (keyState.moveRight === 1) {
                 Vec3.cross(moveDir, moveEye, camera.up);
                 Vec3.normalize(moveDir, moveDir);
-                if (p.flyMode || input.pointerLock) {
+                if (moveTarget) {
                     Vec3.scaleAndSub(camera.position, camera.position, moveDir, moveSpeed);
                     Vec3.sub(camera.target, camera.position, moveEye);
                 } else {
@@ -442,7 +443,7 @@ namespace TrackballControls {
 
             if (keyState.moveUp === 1) {
                 Vec3.normalize(moveDir, camera.up);
-                if (p.flyMode || input.pointerLock) {
+                if (moveTarget) {
                     Vec3.scaleAndAdd(camera.position, camera.position, moveDir, moveSpeed);
                     Vec3.sub(camera.target, camera.position, moveEye);
                 } else {
@@ -453,7 +454,7 @@ namespace TrackballControls {
 
             if (keyState.moveDown === 1) {
                 Vec3.normalize(moveDir, camera.up);
-                if (p.flyMode || input.pointerLock) {
+                if (moveTarget) {
                     Vec3.scaleAndSub(camera.position, camera.position, moveDir, moveSpeed);
                     Vec3.sub(camera.target, camera.position, moveEye);
                 } else {
@@ -462,7 +463,7 @@ namespace TrackballControls {
                 }
             }
 
-            if (p.flyMode || input.pointerLock) {
+            if (moveTarget) {
                 const cameraDistance = Vec3.distance(camera.position, scene.boundingSphereVisible.center);
                 camera.setState({ minFar: cameraDistance + scene.boundingSphereVisible.radius });
             }
