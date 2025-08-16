@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -12,6 +12,7 @@ import { throttleTime } from 'rxjs/operators';
 import { OrderedSet } from '../../mol-data/int';
 import { EveryLoci } from '../../mol-model/loci';
 import { StructureElement, StructureProperties, Unit } from '../../mol-model/structure';
+import { CustomStructureProperties } from '../../mol-plugin-state/transforms/model';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { Representation } from '../../mol-repr/representation';
 import { Color } from '../../mol-util/color';
@@ -80,6 +81,15 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         PluginCommands.Canvas3D.SetSettings.subscribe(this.plugin, () => {
             this.updateColors();
             this.updateMarker();
+        });
+        this.subscribe(this.plugin.state.events.cell.stateUpdated, s => {
+            if (s.cell.transform.transformer === CustomStructureProperties) {
+                const updatedStruct = s.cell.obj?.data;
+                const shownStruct = this.props.sequenceWrapper.getLoci(0)?.structure;
+                if (updatedStruct === shownStruct) {
+                    this.forceUpdate();
+                }
+            }
         });
     }
 
@@ -199,9 +209,11 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
 
     protected getBackgroundColor(seqIdx: number) {
         const seqWrapper = this.props.sequenceWrapper;
-        if (seqWrapper.isHighlighted(seqIdx)) return this.markerColors.highlighted;
-        if (seqWrapper.isSelected(seqIdx)) return this.markerColors.selected;
-        if (seqWrapper.isFocused(seqIdx)) return this.markerColors.focused;
+        if (seqWrapper.isHighlighted(seqIdx) && this.markerColors.highlighted) return this.markerColors.highlighted;
+        if (seqWrapper.isSelected(seqIdx) && this.markerColors.selected) return this.markerColors.selected;
+        if (seqWrapper.isFocused(seqIdx) && this.markerColors.focused) return this.markerColors.focused;
+        const annotColor = seqWrapper.getAnnotationColor(seqIdx);
+        if (annotColor !== undefined) return Color.toHexStyle(annotColor);
         return '';
     }
 
