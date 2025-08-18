@@ -5,7 +5,7 @@
  */
 
 import { omitObjectKeys, pickObjectKeys } from '../../../../mol-util/object';
-import { RequiredField, bool } from '../generic/field-schema';
+import { RequiredField, bool, str } from '../generic/field-schema';
 import { SimpleParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema } from '../generic/tree-schema';
 import { FullMVSTreeSchema } from '../mvs/mvs-tree';
@@ -30,6 +30,14 @@ export const MolstarTreeSchema = TreeSchema({
                 format: RequiredField(MolstarParseFormatT, 'File format'),
             }),
         },
+        /** Auxiliary node corresponding to Molstar's CoordinatesFrom*. */
+        coordinates: {
+            description: "Auxiliary node corresponding to Molstar's CoordinatesFrom*.",
+            parent: ['parse'],
+            params: SimpleParamsSchema({
+                format: RequiredField(MolstarParseFormatT, 'File format'),
+            }),
+        },
         /** Auxiliary node corresponding to Molstar's TrajectoryFrom*. */
         trajectory: {
             description: "Auxiliary node corresponding to Molstar's TrajectoryFrom*.",
@@ -39,10 +47,18 @@ export const MolstarTreeSchema = TreeSchema({
                 ...pickObjectKeys(FullMVSTreeSchema.nodes.structure.params.fields, ['block_header', 'block_index'] as const),
             }),
         },
+        /** Auxiliary node corresponding to Molstar's TrajectoryFrom*. */
+        trajectory_with_coordinates: {
+            description: "Auxiliary node corresponding to assigning a separate coordinates to a trajectory.",
+            parent: ['model'],
+            params: SimpleParamsSchema({
+                coordinates_ref: RequiredField(str, 'Coordinates reference'),
+            }),
+        },
         /** Auxiliary node corresponding to Molstar's ModelFromTrajectory. */
         model: {
             description: "Auxiliary node corresponding to Molstar's ModelFromTrajectory.",
-            parent: ['trajectory'],
+            parent: ['trajectory', 'trajectory_with_coordinates'],
             params: SimpleParamsSchema(
                 pickObjectKeys(FullMVSTreeSchema.nodes.structure.params.fields, ['model_index'] as const)
             ),
@@ -52,7 +68,7 @@ export const MolstarTreeSchema = TreeSchema({
             ...FullMVSTreeSchema.nodes.structure,
             parent: ['model'],
             params: SimpleParamsSchema(
-                omitObjectKeys(FullMVSTreeSchema.nodes.structure.params.fields, ['block_header', 'block_index', 'model_index'] as const)
+                omitObjectKeys(FullMVSTreeSchema.nodes.structure.params.fields, ['block_header', 'block_index', 'model_index', 'coordinates_ref'] as const)
             ),
         },
     }

@@ -16,7 +16,7 @@ import { PluginCommands } from '../mol-plugin/commands';
 import { StateTransformer } from '../mol-state';
 import { PluginReactContext, PluginUIComponent } from './base';
 import { IconButton } from './controls/common';
-import { Icon, NavigateBeforeSvg, NavigateNextSvg, SkipPreviousSvg, StopSvg, PlayArrowSvg, SubscriptionsOutlinedSvg, BuildSvg } from './controls/icons';
+import { Icon, NavigateBeforeSvg, NavigateNextSvg, SkipPreviousSvg, StopSvg, PlayArrowSvg, SubscriptionsOutlinedSvg, BuildSvg, AnimationSvg, RefreshSvg } from './controls/icons';
 import { AnimationControls } from './state/animation';
 import { StructureComponentControls } from './structure/components';
 import { StructureMeasurementsControls } from './structure/measurements';
@@ -27,6 +27,8 @@ import { PluginConfig } from '../mol-plugin/config';
 import { StructureSuperpositionControls } from './structure/superposition';
 import { StructureQuickStylesControls } from './structure/quick-styles';
 import { Markdown } from './controls/markdown';
+import { Slider } from './controls/slider';
+import { AnimateStateSnapshotTransition } from '../mol-plugin-state/animation/built-in/state-snapshots';
 
 export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: boolean, label: string }> {
     state = { show: false, label: '' };
@@ -102,11 +104,10 @@ export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: bo
     }
 }
 
-export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBusy: boolean, show: boolean }> {
-    state = { isBusy: false, show: true };
+export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBusy: boolean, show: boolean, showAnimation: boolean }> {
+    state = { isBusy: false, show: true, showAnimation: false };
 
     componentDidMount() {
-        // TODO: this needs to be diabled when the state is updating!
         this.subscribe(this.plugin.managers.snapshot.events.changed, () => this.forceUpdate());
         this.subscribe(this.plugin.behaviors.state.isBusy, isBusy => this.setState({ isBusy }));
         this.subscribe(this.plugin.behaviors.state.isAnimating, isBusy => this.setState({ isBusy }));
@@ -168,27 +169,66 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
         this.plugin.managers.snapshot.togglePlay();
     };
 
+    toggleShowAnimation = () => {
+        this.setState({ showAnimation: !this.state.showAnimation });
+    };
+
+    toggleStateAnimation = () => {
+        if (this.state.isBusy) {
+            this.plugin.managers.animation.stop();
+        } else {
+            this.plugin.managers.animation.play(AnimateStateSnapshotTransition, {});
+        }
+    };
+
+    get isStateTransitionPlaying() {
+        return this.plugin.managers.animation.isAnimatingStateTransition;
+    }
+
     render() {
         const snapshots = this.plugin.managers.snapshot;
         const count = snapshots.state.entries.size;
 
-        if (count < 2 || !this.state.show) {
+        if (!count || !this.state.show) {
             return null;
         }
 
         const current = snapshots.state.current;
         const isPlaying = snapshots.state.isPlaying;
+        const entry = snapshots.getEntry(current);
+        const hasAnimation = !!entry?.snapshot.transition;
+
+        const disabled = isPlaying || (this.state.isBusy && !this.isStateTransitionPlaying);
 
         return <div className='msp-state-snapshot-viewport-controls'>
-            <select className='msp-form-control' value={current || 'none'} onChange={this.change} disabled={this.state.isBusy || isPlaying}>
+            <select className='msp-form-control' value={current || 'none'} onChange={this.change} disabled={disabled}>
                 {!current && <option key='none' value='none'></option>}
                 {snapshots.state.entries.valueSeq().map((e, i) => <option key={e!.snapshot.id} value={e!.snapshot.id}>{`[${i! + 1}/${count}]`} {e!.name || new Date(e!.timestamp).toLocaleString()}</option>)}
             </select>
             <IconButton svg={isPlaying ? StopSvg : PlayArrowSvg} title={isPlaying ? 'Pause' : 'Cycle States'} onClick={this.togglePlay}
-                disabled={isPlaying ? false : this.state.isBusy} />
+                disabled={isPlaying ? false : (this.state.isBusy && !this.isStateTransitionPlaying)} />
             {!isPlaying && <>
-                <IconButton svg={NavigateBeforeSvg} title='Previous State' onClick={this.prev} disabled={this.state.isBusy || isPlaying} />
-                <IconButton svg={NavigateNextSvg} title='Next State' onClick={this.next} disabled={this.state.isBusy || isPlaying} />
+                {count > 1 && <IconButton svg={NavigateBeforeSvg} title='Previous State' onClick={this.prev} disabled={disabled} />}
+                {count > 1 && <IconButton svg={NavigateNextSvg} title='Next State' onClick={this.next} disabled={disabled} />}
+                {hasAnimation && <IconButton svg={AnimationSvg} className='msp-state-snapshot-animation-button' title='Animation' onClick={this.toggleShowAnimation} disabled={!hasAnimation} toggleState={this.state.showAnimation} />}
+            </>}
+            {hasAnimation && this.state.showAnimation && !isPlaying && <>
+                <div className='msp-state-snapshot-animation-slider msp-form-control'>
+                    <Slider
+                        value={snapshots.state.currentAnimationFrame ?? 0}
+                        min={1}
+                        step={1}
+                        max={(entry?.snapshot.transition?.frames.length ?? 1)}
+                        onChange={() => { }}
+                        onChangeImmediate={v => {
+                            snapshots.setSnapshotAnimationFrame(v - 1, true);
+                        }}
+                        hideInput
+                        disabled={this.state.isBusy}
+                    />
+                    &nbsp;
+                </div>
+                <IconButton svg={this.state.isBusy ? StopSvg : RefreshSvg} title={this.state.isBusy ? 'Stop' : 'Replay'} onClick={this.toggleStateAnimation} toggleState={false} />
             </>}
         </div>;
     }

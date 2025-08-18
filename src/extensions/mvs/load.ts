@@ -8,15 +8,17 @@
 
 import { PluginStateSnapshotManager } from '../../mol-plugin-state/manager/snapshots';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { Download, ParseCcp4, ParseCif } from '../../mol-plugin-state/transforms/data';
-import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromMmCif, TrajectoryFromPDB } from '../../mol-plugin-state/transforms/model';
+import { Download, ParseCif, ParseCcp4 } from '../../mol-plugin-state/transforms/data';
+import { CoordinatesFromLammpstraj, CoordinatesFromXtc, CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromGRO, TrajectoryFromLammpsTrajData, TrajectoryFromMmCif, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D, VolumeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { VolumeFromCcp4, VolumeFromDensityServerCif } from '../../mol-plugin-state/transforms/volume';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
-import { StateObjectSelector } from '../../mol-state';
+import { PluginState } from '../../mol-plugin/state';
+import { StateObjectSelector, StateTree } from '../../mol-state';
+import { RuntimeContext, Task } from '../../mol-task';
 import { MolViewSpec } from './behavior';
-import { createPluginStateSnapshotCamera, modifyCanvasProps } from './camera';
+import { createPluginStateSnapshotCamera, modifyCanvasProps, resetCanvasProps } from './camera';
 import { MVSAnnotationsProvider } from './components/annotation-prop';
 import { MVSAnnotationStructureComponent } from './components/annotation-structure-component';
 import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-prop';
@@ -24,15 +26,18 @@ import { CustomLabelProps, CustomLabelRepresentationProvider } from './component
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
 import { IsMVSModelProps, IsMVSModelProvider } from './components/is-mvs-model-prop';
 import { getPrimitiveStructureRefs, MVSBuildPrimitiveShape, MVSDownloadPrimitiveData, MVSInlinePrimitiveData, MVSShapeRepresentation3D } from './components/primitives';
+import { MVSTrajectoryWithCoordinates } from './components/trajectory';
+import { generateStateTransition } from './helpers/animation';
 import { IsHiddenCustomStateExtension } from './load-extensions/is-hidden-custom-state';
 import { NonCovalentInteractionsExtension } from './load-extensions/non-covalent-interactions';
 import { LoadingActions, LoadingExtension, loadTreeVirtual, UpdateTarget } from './load-generic';
 import { AnnotationFromSourceKind, AnnotationFromUriKind, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformAndInstantiateStructure, transformAndInstantiateVolume, volumeColorThemeForNode, volumeRepresentationProps } from './load-helpers';
-import { MVSData, MVSData_States, SnapshotMetadata } from './mvs-data';
+import { MVSData, MVSData_States, Snapshot, SnapshotMetadata } from './mvs-data';
+import { MVSAnimationNode } from './tree/animation/animation-tree';
 import { validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
 import { MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree, MolstarTreeSchema } from './tree/molstar/molstar-tree';
-import { type MVSTree, MVSTreeSchema } from './tree/mvs/mvs-tree';
+import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 
 export interface MVSLoadOptions {
@@ -49,12 +54,21 @@ export interface MVSLoadOptions {
     doNotReportErrors?: boolean
 }
 
+export function loadMVS(plugin: PluginContext, data: MVSData, options: MVSLoadOptions = {}) {
+    const task = Task.create('Load MVS', ctx => _loadMVS(ctx, plugin, data, options));
+    return plugin.runTask(task);
+}
+
 /** Load a MolViewSpec (MVS) state(s) into the Mol* plugin as plugin state snapshots. */
-export async function loadMVS(plugin: PluginContext, data: MVSData, options: MVSLoadOptions = {}) {
+async function _loadMVS(ctx: RuntimeContext, plugin: PluginContext, data: MVSData, options: MVSLoadOptions = {}) {
     plugin.errorContext.clear('mvs');
     try {
         const mvsExtensionLoaded = plugin.state.hasBehavior(MolViewSpec);
         if (!mvsExtensionLoaded) throw new Error('MolViewSpec extension is not loaded.');
+
+        // Reset canvas props to default so that modifyCanvasProps works as expected
+        resetCanvasProps(plugin);
+
         // console.log(`MVS tree:\n${MVSData.toPrettyString(data)}`)
         const multiData: MVSData_States = data.kind === 'multiple' ? data : MVSData.stateToStates(data);
         const entries: PluginStateSnapshotManager.Entry[] = [];
@@ -68,11 +82,16 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: MVS
             const entry = molstarTreeToEntry(
                 plugin,
                 molstarTree,
-                snapshot.root,
+                snapshot.animation,
                 { ...snapshot.metadata, previousTransitionDurationMs: previousSnapshot.metadata.transition_duration_ms },
                 options
             );
+            await assignStateTransition(ctx, plugin, entry, snapshot, options);
             entries.push(entry);
+
+            if (ctx.shouldUpdate) {
+                await ctx.update({ message: 'Loading MVS...', current: i, max: multiData.snapshots.length });
+            }
         }
         if (!options.appendSnapshots) {
             plugin.managers.snapshot.clear();
@@ -80,6 +99,7 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: MVS
         for (const entry of entries) {
             plugin.managers.snapshot.add(entry);
         }
+
         if (entries.length > 0) {
             await PluginCommands.State.Snapshots.Apply(plugin, { id: entries[0].snapshot.id });
         }
@@ -101,18 +121,55 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: MVS
     }
 }
 
+async function assignStateTransition(ctx: RuntimeContext, plugin: PluginContext, parentEntry: PluginStateSnapshotManager.Entry, parent: Snapshot, options: MVSLoadOptions = {}) {
+    const transitions = await generateStateTransition(ctx, parent);
+    if (!transitions?.frames.length) return;
+
+    const animation: PluginState.StateTransition = {
+        autoplay: !!transitions.tree.params?.autoplay,
+        loop: !!transitions.tree.params?.loop,
+        frames: [],
+    };
+
+    for (let i = 0; i < transitions.frames.length; i++) {
+        const frame = transitions.frames[i];
+        const molstarTree = convertMvsToMolstar(frame, options.sourceUrl);
+        const entry = molstarTreeToEntry(
+            plugin,
+            molstarTree,
+            parent.animation,
+            { ...parent.metadata, previousTransitionDurationMs: transitions.frametimeMs },
+            options
+        );
+
+        StateTree.reuseTransformParams(entry.snapshot.data!.tree, parentEntry.snapshot.data!.tree);
+
+        animation.frames.push({
+            durationInMs: transitions.frametimeMs,
+            data: entry.snapshot.data!,
+            camera: transitions.tree.params?.include_camera ? entry.snapshot.camera : undefined,
+            canvas3d: transitions.tree.params?.include_canvas ? entry.snapshot.canvas3d : undefined,
+        });
+
+        if (ctx.shouldUpdate) {
+            await ctx.update({ message: 'Loading animation...', current: i + 1, max: transitions.frames.length });
+        }
+    }
+
+    parentEntry.snapshot.transition = animation;
+}
 
 function molstarTreeToEntry(
     plugin: PluginContext,
     tree: MolstarTree,
-    mvsTree: MVSTree,
+    animation: MVSAnimationNode<'animation'> | undefined,
     metadata: SnapshotMetadata & { previousTransitionDurationMs?: number },
     options: { keepCamera?: boolean, extensions?: MolstarLoadingExtension<any>[] }
 ) {
     const context = MolstarLoadingContext.create();
     const snapshot = loadTreeVirtual(plugin, tree, MolstarLoadingActions, context, { replaceExisting: true, extensions: options?.extensions ?? BuiltinLoadingExtensions });
     snapshot.canvas3d = {
-        props: plugin.canvas3d ? modifyCanvasProps(plugin.canvas3d.props, context.canvas, mvsTree.custom) : undefined,
+        props: plugin.canvas3d ? modifyCanvasProps(plugin.canvas3d.props, context.canvas, animation) : undefined,
     };
     if (!options?.keepCamera) {
         snapshot.camera = createPluginStateSnapshotCamera(plugin, context, metadata);
@@ -165,30 +222,71 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     },
     parse(updateParent: UpdateTarget, node: MolstarNode<'parse'>): UpdateTarget | undefined {
         const format = node.params.format;
-        if (format === 'cif') {
-            return UpdateTarget.apply(updateParent, ParseCif, {});
-        } else if (format === 'pdb') {
-            return updateParent;
-        } else if (format === 'map') {
-            return UpdateTarget.apply(updateParent, ParseCcp4, {});
-        } else {
-            console.error(`Unknown format in "parse" node: "${format}"`);
-            return undefined;
+        switch (format) {
+            case 'cif':
+                return UpdateTarget.apply(updateParent, ParseCif, {});
+            case 'pdb':
+            case 'pdbqt':
+            case 'gro':
+            case 'xyz':
+            case 'mol':
+            case 'sdf':
+            case 'mol2':
+            case 'xtc':
+            case 'lammpstrj':
+                return updateParent;
+            case 'map':
+                return UpdateTarget.apply(updateParent, ParseCcp4, {});
+            default:
+                console.error(`Unknown format in "parse" node: "${format}"`);
+                return undefined;
+        }
+    },
+    coordinates(updateParent: UpdateTarget, node: MolstarNode<'coordinates'>): UpdateTarget | undefined {
+        const format = node.params.format;
+        switch (format) {
+            case 'xtc':
+                return UpdateTarget.apply(updateParent, CoordinatesFromXtc);
+            case 'lammpstrj':
+                return UpdateTarget.apply(updateParent, CoordinatesFromLammpstraj);
+            default:
+                console.error(`Unknown format in "coordinates" node: "${format}"`);
+                return undefined;
         }
     },
     trajectory(updateParent: UpdateTarget, node: MolstarNode<'trajectory'>): UpdateTarget | undefined {
         const format = node.params.format;
-        if (format === 'cif') {
-            return UpdateTarget.apply(updateParent, TrajectoryFromMmCif, {
-                blockHeader: node.params.block_header ?? '', // Must set to '' because just undefined would get overwritten by createDefaults
-                blockIndex: node.params.block_index ?? undefined,
-            });
-        } else if (format === 'pdb') {
-            return UpdateTarget.apply(updateParent, TrajectoryFromPDB, {});
-        } else {
-            console.error(`Unknown format in "trajectory" node: "${format}"`);
-            return undefined;
+        switch (format) {
+            case 'cif':
+                return UpdateTarget.apply(updateParent, TrajectoryFromMmCif, {
+                    blockHeader: node.params.block_header ?? '', // Must set to '' because just undefined would get overwritten by createDefaults
+                    blockIndex: node.params.block_index ?? undefined,
+                });
+            case 'pdb':
+            case 'pdbqt':
+                return UpdateTarget.apply(updateParent, TrajectoryFromPDB, { isPdbqt: format === 'pdbqt' });
+            case 'gro':
+                return UpdateTarget.apply(updateParent, TrajectoryFromGRO);
+            case 'xyz':
+                return UpdateTarget.apply(updateParent, TrajectoryFromXYZ);
+            case 'mol':
+                return UpdateTarget.apply(updateParent, TrajectoryFromMOL);
+            case 'sdf':
+                return UpdateTarget.apply(updateParent, TrajectoryFromSDF);
+            case 'mol2':
+                return UpdateTarget.apply(updateParent, TrajectoryFromMOL2);
+            case 'lammpstrj':
+                return UpdateTarget.apply(updateParent, TrajectoryFromLammpsTrajData);
+            default:
+                console.error(`Unknown format in "trajectory" node: "${format}"`);
+                return undefined;
         }
+    },
+    trajectory_with_coordinates(updateParent: UpdateTarget, node: MolstarNode<'trajectory_with_coordinates'>): UpdateTarget | undefined {
+        const result = UpdateTarget.apply(updateParent, MVSTrajectoryWithCoordinates, {
+            coordinatesRef: node.params.coordinates_ref,
+        });
+        return UpdateTarget.setMvsDependencies(result, [node.params.coordinates_ref]);
     },
     model(updateParent: UpdateTarget, node: MolstarSubtree<'model'>, context: MolstarLoadingContext): UpdateTarget {
         const annotations = collectAnnotationReferences(node, context);

@@ -55,7 +55,7 @@ import { parseNctraj } from '../../mol-io/reader/nctraj/parser';
 import { coordinatesFromNctraj } from '../../mol-model-formats/structure/nctraj';
 import { topologyFromPrmtop } from '../../mol-model-formats/structure/prmtop';
 import { topologyFromTop } from '../../mol-model-formats/structure/top';
-import { getTransformFromParams, TransformParam } from './helpers';
+import { getTransformFromParams, TransformParam, transformParamsNeedCentroid } from './helpers';
 
 export { CoordinatesFromDcd };
 export { CoordinatesFromXtc };
@@ -225,7 +225,7 @@ const TopologyFromTop = PluginStateTransform.BuiltIn({
     }
 });
 
-async function getTrajectory(ctx: RuntimeContext, obj: StateObject, coordinates: Coordinates) {
+export async function getTrajectory(ctx: RuntimeContext, obj: StateObject, coordinates: Coordinates) {
     if (obj.type === SO.Molecule.Topology.type) {
         const topology = obj.data as Topology;
         return await Model.trajectoryFromTopologyAndCoordinates(topology, coordinates).runInContext(ctx);
@@ -578,7 +578,7 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
     isApplicable: a => a.data.frameCount > 0,
     apply({ a, params }) {
         return Task.create('Model from Trajectory', async ctx => {
-            let modelIndex = params.modelIndex % a.data.frameCount;
+            let modelIndex = Math.round(params.modelIndex) % a.data.frameCount;
             if (modelIndex < 0) modelIndex += a.data.frameCount;
             const model = await Task.resolveInContext(a.data.getFrameAtIndex(modelIndex), ctx);
             const label = `Model ${modelIndex + 1}`;
@@ -644,8 +644,6 @@ const StructureFromModel = PluginStateTransform.BuiltIn({
     }
 });
 
-const _translation = Vec3(), _m = Mat4(), _n = Mat4();
-
 type TransformStructureConformation = typeof TransformStructureConformation
 const TransformStructureConformation = PluginStateTransform.BuiltIn({
     name: 'transform-structure-conformation',
@@ -661,23 +659,8 @@ const TransformStructureConformation = PluginStateTransform.BuiltIn({
         return newParams.transform.name !== 'matrix';
     },
     apply({ a, params }) {
-        // TODO: optimze
-        // TODO: think of ways how to fast-track changes to this for animations
-
-        const transform = Mat4();
-
-        if (params.transform.name === 'components') {
-            const { axis, angle, translation } = params.transform.params;
-            const center = a.data.boundary.sphere.center;
-            Mat4.fromTranslation(_m, Vec3.negate(_translation, center));
-            Mat4.fromTranslation(_n, Vec3.add(_translation, center, translation));
-            const rot = Mat4.fromRotation(Mat4(), Math.PI / 180 * angle, Vec3.normalize(Vec3(), axis));
-            Mat4.mul3(transform, _n, rot, _m);
-        } else if (params.transform.name === 'matrix') {
-            Mat4.copy(transform, params.transform.params.data);
-            if (params.transform.params.transpose) Mat4.transpose(transform, transform);
-        }
-
+        const center = transformParamsNeedCentroid(params.transform) ? a.data.boundary.sphere.center : Vec3.unit;
+        const transform = getTransformFromParams(params.transform, center);
         const s = Structure.transform(a.data, transform);
         return new SO.Molecule.Structure(s, { label: a.label, description: `${a.description} [Transformed]` });
     },
@@ -715,7 +698,8 @@ const StructureInstances = PluginStateTransform.BuiltIn({
         return true;
     },
     apply({ a, params }) {
-        const instances = params.transforms.map(t => getTransformFromParams(t.transform));
+        const center = params.transforms.some(t => transformParamsNeedCentroid(t.transform)) ? a.data.boundary.sphere.center : Vec3.unit;
+        const instances = params.transforms.map(t => getTransformFromParams(t.transform, center));
         if (!instances.length) {
             return a;
         }

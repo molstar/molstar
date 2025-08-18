@@ -57,6 +57,8 @@ const TransformParams = SimpleParamsSchema({
     rotation: OptionalField(Matrix, [1, 0, 0, 0, 1, 0, 0, 0, 1], 'Rotation matrix (3x3 matrix flattened in column major format (j*3+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. The default value is the identity matrix (corresponds to no rotation).'),
     /** Translation vector, applied to the structure coordinates after rotation. The default value is the zero vector (corresponds to no translation). */
     translation: OptionalField(Vector3, [0, 0, 0], 'Translation vector, applied to the structure coordinates after rotation. The default value is the zero vector (corresponds to no translation).'),
+    /** Point to rotate the object around. Can be either a 3D vector or dynamically computed object centroid. */
+    rotation_center: OptionalField(nullable(union(Vector3, literal('centroid'))), null, 'Point to rotate the object around. Can be either a 3D vector or dynamically computed object centroid.'),
     /** Transform matrix (4x4 matrix flattened in column major format (j*4+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. Takes precedence over `rotation` and `translation`. */
     matrix: OptionalField(nullable(Matrix), null, 'Transform matrix (4x4 matrix flattened in column major format (j*4+i indexing), this is equivalent to Fortran-order in numpy). This matrix will multiply the structure coordinates from the left. Takes precedence over `rotation` and `translation`.'),
 });
@@ -90,6 +92,12 @@ export const MVSTreeSchema = TreeSchema({
                 format: RequiredField(ParseFormatT, 'Format of the input data resource.'),
             }),
         },
+        /** This node instructs to retrieve molecular coordinates from a parsed data resource. */
+        coordinates: {
+            description: 'This node instructs to retrieve molecular coordinates from a parsed data resource.',
+            parent: ['parse'],
+            params: SimpleParamsSchema({}),
+        },
         /** This node instructs to create a structure from a parsed data resource. "Structure" refers to an internal representation of molecular coordinates without any visual representation. */
         structure: {
             description: 'This node instructs to create a structure from a parsed data resource. "Structure" refers to an internal representation of molecular coordinates without any visual representation.',
@@ -111,6 +119,8 @@ export const MVSTreeSchema = TreeSchema({
                 ijk_min: OptionalField(tuple([int, int, int]), [-1, -1, -1], 'Miller indices of the bottom-left unit cell to be included (only applies when `kind` is `"symmetry"`).'),
                 /** Miller indices of the top-right unit cell to be included (only applies when `kind` is `"symmetry"`). */
                 ijk_max: OptionalField(tuple([int, int, int]), [1, 1, 1], 'Miller indices of the top-right unit cell to be included (only applies when `kind` is `"symmetry"`).'),
+                /** Reference to a specific set of coordinates. */
+                coordinates_ref: OptionalField(nullable(str), null, 'Reference to a specific set of coordinates.')
             }),
         },
         /** This node instructs to rotate and/or translate structure coordinates. */
@@ -322,7 +332,7 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['root'],
             params: SimpleParamsSchema({
                 /** Color of the canvas background. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`). */
-                background_color: RequiredField(ColorT, 'Color of the canvas background. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
+                background_color: OptionalField(ColorT, 'white', 'Color of the canvas background. Can be either an X11 color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`). Defaults to white.'),
             }),
         },
         primitives: {

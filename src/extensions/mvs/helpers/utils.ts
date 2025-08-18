@@ -100,7 +100,10 @@ export type ElementOfSet<S> = S extends Set<infer T> ? T : never
 
 /** Convert `colorString` (either X11 color name like 'magenta' or hex code like '#ff00ff') to Color.
  * Return `undefined` if `colorString` cannot be converted. */
-export function decodeColor(colorString: string | undefined | null): Color | undefined {
+export function decodeColor(colorString: string | number | undefined | null): Color | undefined {
+    if (typeof colorString === 'number') {
+        return Color(colorString);
+    }
     return _decodeColor(colorString);
 }
 
@@ -149,4 +152,25 @@ export function collectMVSReferences<T extends StateObject.Ctor>(type: T[], depe
     }
 
     return ret;
+}
+
+export function getMVSReferenceObject<T extends StateObject.Ctor>(type: T[], dependencies: Record<string, StateObject> | undefined, ref: string): StateObject | undefined {
+    if (!dependencies) return undefined;
+
+    for (const key of Object.keys(dependencies)) {
+        const o = dependencies[key];
+        let okType = false;
+        for (const t of type) {
+            if (t.is(o)) {
+                okType = true;
+                break;
+            }
+        }
+        if (!okType || !o.tags) continue;
+        for (const tag of o.tags) {
+            if (tag.startsWith('mvs-ref:')) {
+                if (tag.substring(8) === ref) return o;
+            }
+        }
+    }
 }

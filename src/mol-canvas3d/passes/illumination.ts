@@ -171,13 +171,15 @@ export class IlluminationPass {
                 const dpoitTextures = this.drawPass.dpoit.bind();
                 renderer.renderDpoitTransparent(scene.primitives, camera, this.drawPass.depthTextureOpaque, dpoitTextures);
 
-                for (let i = 0, il = props.dpoitIterations; i < il; i++) {
+                for (let i = 0, iterations = props.dpoitIterations; i < iterations; i++) {
                     if (isTimingMode) this.webgl.timer.mark('DpoitPass.layer');
                     const dpoitTextures = this.drawPass.dpoit.bindDualDepthPeeling();
                     renderer.renderDpoitTransparent(scene.primitives, camera, this.drawPass.depthTextureOpaque, dpoitTextures);
 
-                    this.transparentTarget.bind();
-                    this.drawPass.dpoit.renderBlendBack();
+                    if (iterations > 1) {
+                        this.transparentTarget.bind();
+                        this.drawPass.dpoit.renderBlendBack();
+                    }
                     if (isTimingMode) this.webgl.timer.markEnd('DpoitPass.layer');
                 }
 

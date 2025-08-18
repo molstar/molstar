@@ -126,6 +126,7 @@ export class SsaoPass {
     private nSamples: number;
     private blurKernelSize: number;
     private texSize: [number, number];
+    private invProjection = Mat4.identity();
 
     private ssaoScale: number;
     private calcSsaoScale(resolutionScale: number) {
@@ -276,9 +277,7 @@ export class SsaoPass {
         let needsUpdateDepthHalf = false;
 
         const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
-
-        const invProjection = Mat4.identity();
-        Mat4.invert(invProjection, camera.projection);
+        const invProjection = Mat4.invert(this.invProjection, camera.projection);
 
         const [w, h] = this.texSize;
         const v = camera.viewport;

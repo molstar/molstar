@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Adam Midlik <midlik@gmail.com>
@@ -41,9 +41,34 @@ namespace StateBuilder {
         | { kind: 'delete', ref: string }
         | { kind: 'insert', ref: string, transform: StateTransform }
 
-    function buildTree(state: BuildState) {
+    function getAffectedRefs(state: BuildState): string[] {
+        const refs = new Set<string>();
+        for (const a of state.actions) {
+            switch (a.kind) {
+                case 'add': refs.add(a.transform.ref); break;
+                case 'update': refs.add(a.ref); break;
+                case 'delete': refs.add(a.ref); break;
+                case 'insert': {
+                    refs.add(a.ref);
+                    refs.add(a.transform.ref);
+                    const children = state.tree.children.get(a.ref).toArray();
+                    for (const c of children) {
+                        refs.add(c);
+                    }
+                    break;
+                }
+            }
+        }
+        return Array.from(refs);
+    }
+
+    function buildTree(state: BuildState, options?: { useHashVersion?: boolean }) {
         if (!state.state || state.state.tree === state.editInfo.sourceTree) {
-            return state.tree.asImmutable();
+            const ret = state.tree.asImmutable();
+            if (options?.useHashVersion) {
+                StateTree.setParamHashVersion(ret, getAffectedRefs(state));
+            }
+            return ret;
         }
 
         // The tree has changed in the meantime, we need to reapply the changes!
@@ -64,7 +89,11 @@ namespace StateBuilder {
             }
         }
         state.editInfo.sourceTree = state.tree;
-        return tree.asImmutable();
+        const ret = tree.asImmutable();
+        if (options?.useHashVersion) {
+            StateTree.setParamHashVersion(ret, getAffectedRefs(state));
+        }
+        return ret;
     }
 
     export function is(obj: any): obj is StateBuilder {
@@ -103,7 +132,7 @@ namespace StateBuilder {
             this.state.actions.push({ kind: 'delete', ref });
             return this;
         }
-        getTree(): StateTree { return buildTree(this.state); }
+        getTree(options?: { useHashVersion?: boolean }): StateTree { return buildTree(this.state, options); }
 
         commit(options?: Partial<State.UpdateOptions>) {
             if (!this.state.state) throw new Error('Cannot commit template tree');
@@ -287,7 +316,7 @@ namespace StateBuilder {
         toRoot<A extends StateObject>() { return this.root.toRoot<A>(); }
         delete(ref: StateObjectRef) { return this.root.delete(ref); }
 
-        getTree(): StateTree { return buildTree(this.state); }
+        getTree(options?: { useHashVersion?: boolean }): StateTree { return buildTree(this.state, options); }
 
         /** Returns selector to this node. */
         commit(options?: Partial<State.UpdateOptions>): Promise<StateObjectSelector<A>> {

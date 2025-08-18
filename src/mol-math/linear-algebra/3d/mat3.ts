@@ -126,6 +126,11 @@ namespace Mat3 {
         return fromMat4(out, _m4);
     }
 
+    export function fromRotation(out: Mat3, rad: number, axis: Vec3) {
+        Mat4.fromRotation(_m4, rad, axis);
+        return fromMat4(out, _m4);
+    }
+
     export function create(a00: number, a01: number, a02: number, a10: number, a11: number, a12: number, a20: number, a21: number, a22: number): Mat3 {
         const out = zero();
         out[0] = a00;
