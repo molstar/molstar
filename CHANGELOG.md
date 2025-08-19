@@ -92,6 +92,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `rotationCenter` property to `TransformParam`
 - Add Monolayer transparency (exploiting dpoit).
 - Add plugin config item ShowReset (shows/hides "Reset Zoom" button)
+- Fix transform params not being normalized when used together with param hash version
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:

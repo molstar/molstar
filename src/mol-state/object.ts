@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -79,8 +79,6 @@ interface StateObjectCell<T extends StateObject = StateObject, F extends StateTr
         definition: ParamDefinition.Params,
         values: any
     } | undefined,
-
-    paramsNormalizedVersion: string,
 
     dependencies: {
         dependentBy: StateObjectCell[],

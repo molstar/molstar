@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -381,7 +381,6 @@ class State {
                 definition: {},
                 values: {}
             },
-            paramsNormalizedVersion: root.version,
             dependencies: { dependentBy: [], dependsOn: [] },
             cache: { }
         });
@@ -666,7 +665,6 @@ function addCellsVisitor(transform: StateTransform, _: any, { ctx, added, visite
         state: { ...transform.state },
         errorText: void 0,
         params: void 0,
-        paramsNormalizedVersion: '',
         dependencies: { dependentBy: [], dependsOn: [] },
         cache: void 0
     };
@@ -849,9 +847,9 @@ function resolveParams(ctx: UpdateContext, transform: StateTransform, src: State
     const prms = transform.transformer.definition.params;
     const definition = prms ? prms(src, ctx.parent.globalContext) : {};
 
-    if (cell.paramsNormalizedVersion !== transform.version) {
+    if (transform.version !== (transform as any)._normalized_param_version) {
         (transform.params as any) = ParamDefinition.normalizeParams(definition, transform.params, 'all');
-        cell.paramsNormalizedVersion = transform.version;
+        (transform as any)._normalized_param_version = transform.version;
     } else {
         const defaultValues = ParamDefinition.getDefaultValues(definition);
         (transform.params as any) = transform.params
