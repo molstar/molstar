@@ -11,7 +11,7 @@ import { StateObject, StateObjectCell, StateObjectSelector, StateObjectRef } fro
 import { StateTransform } from '../transform';
 import { StateTransformer } from '../transformer';
 import { State } from '../state';
-import { produce } from 'immer';
+import { create as produce } from 'mutative';
 
 export { StateBuilder };
 

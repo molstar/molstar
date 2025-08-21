@@ -16,7 +16,7 @@ import { addCylinder } from '../../mol-geo/geometry/mesh/builder/cylinder';
 import { ValueCell } from '../../mol-util';
 import { Sphere3D } from '../../mol-math/geometry';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { produce } from 'immer';
+import { create as produce } from 'mutative';
 import { Shape } from '../../mol-model/shape';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Camera } from '../camera';

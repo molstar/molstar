@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { produce, setAutoFreeze } from 'immer';
+import { create as produce } from 'mutative';
 import { List } from 'immutable';
 import { merge, Subscription } from 'rxjs';
 import { debounceTime, filter, take, throttleTime } from 'rxjs/operators';
@@ -529,11 +529,6 @@ export class PluginContext {
     }
 
     constructor(public spec: PluginSpec) {
-        // the reason for this is that sometimes, transform params get modified inline (i.e. palette.valueLabel)
-        // and freezing the params object causes "read-only exception"
-        // TODO: is this the best place to do it?
-        setAutoFreeze(false);
-
         setSaccharideCompIdMapType(this.config.get(PluginConfig.Structure.SaccharideCompIdMapType) ?? 'default');
     }
 }
