@@ -34,7 +34,7 @@ import { ImagePass, ImageProps } from './passes/image';
 import { Sphere3D } from '../mol-math/geometry';
 import { addConsoleStatsProvider, isDebugMode, isTimingMode, removeConsoleStatsProvider } from '../mol-util/debug';
 import { CameraHelperParams } from './helper/camera-helper';
-import { produce } from 'immer';
+import { create as produce } from 'mutative';
 import { HandleHelperParams } from './helper/handle-helper';
 import { StereoCamera, StereoCameraParams } from './camera/stereo';
 import { Helper } from './helper/helper';

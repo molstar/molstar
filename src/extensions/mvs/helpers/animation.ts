@@ -5,7 +5,7 @@
  * @author Ludovic Autin <ludovic.autin@gmail.com>
  */
 
-import { produce } from 'immer';
+import { create } from 'mutative';
 import { Snapshot } from '../mvs-data';
 import { Tree } from '../tree/generic/tree-schema';
 import { clamp, lerp } from '../../../mol-math/interpolate';
@@ -21,8 +21,7 @@ import { palettePropsFromMVSPalette } from '../load-helpers';
 import { SortedArray } from '../../../mol-data/int';
 import { ColorT } from '../tree/mvs/param-types';
 
-
-export async function generateStateTransition(ctx: RuntimeContext, snapshot: Snapshot) {
+export async function generateStateTransition(ctx: RuntimeContext, snapshot: Snapshot, snapshotIndex: number, snapshotCount: number) {
     if (!snapshot.animation) return undefined;
 
     const tree = addDefaults(snapshot.animation, MVSAnimationSchema);
@@ -38,15 +37,16 @@ export async function generateStateTransition(ctx: RuntimeContext, snapshot: Sna
     const dt = tree.params?.frame_time_ms ?? (1000 / 60);
     const N = Math.ceil(duration / dt);
 
+    const nodeMap = makeNodeMap(snapshot.root, new Map(), []);
     const cache = new Map<any, InterpolationCacheEntry>();
 
     for (let i = 0; i <= N; i++) {
         const t = i * dt;
-        const root = createSnapshot(snapshot.root, transitions, t, cache);
+        const root = createSnapshot(snapshot.root, transitions, t, cache, nodeMap);
         frames.push(root);
 
         if (ctx.shouldUpdate) {
-            await ctx.update({ message: 'Generating transition...', current: i + 1, max: N });
+            await ctx.update({ message: `Generating transition for snapshot ${snapshotIndex + 1}/${snapshotCount}`, current: i + 1, max: N });
         }
     }
 
@@ -80,12 +80,13 @@ interface InterpolationCacheEntry {
     rotation?: { axis: Vec3, angle: number, start: Quat, end: Quat },
 }
 
-function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolate'>[], time: number, cache: Map<any, InterpolationCacheEntry>) {
-    return produce(tree, (draft) => {
+function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolate'>[], time: number, cache: Map<any, InterpolationCacheEntry>, nodeMap: Map<string, (string | number)[]>) {
+    return create(tree, (draft) => {
         for (const transition of transitions) {
-            const node = findNode(draft, transition.params.target_ref);
-            if (!node) continue;
+            const nodePath = nodeMap.get(transition.params.target_ref);
+            if (!nodePath) continue;
 
+            const node = select(draft, nodePath, 0);
             const target = transition.params.property[0] === 'custom' ? node?.custom : node?.params;
             if (!target) continue;
 
@@ -380,14 +381,23 @@ function assign(params: any, path: string | (string | number)[], value: any, off
     }
 }
 
-function findNode(tree: Tree, ref: string): Tree | undefined {
-    if (tree.ref === ref) return tree;
-    if (!tree.children) return undefined;
-    for (const child of tree.children) {
-        const result = findNode(child, ref);
-        if (result) return result;
+function makeNodeMap(tree: Tree, map: Map<string, (string | number)[]>, currentPath: (string | number)[]) {
+    if (tree.ref) {
+        map.set(tree.ref, [...currentPath]);
     }
-    return undefined;
+
+    if (!tree.children) return map;
+
+    currentPath.push('children');
+    for (let i = 0; i < tree.children.length; i++) {
+        const child = tree.children[i];
+        currentPath.push(i);
+        makeNodeMap(child, map, currentPath);
+        currentPath.pop();
+    }
+    currentPath.pop();
+
+    return map;
 }
 
 function makePaletteFunction(props: MVSAnimationNode<'interpolate'>, start: ColorT | undefined | null, end: ColorT | undefined | null): ((value: number) => Color) | undefined {
