@@ -10,6 +10,7 @@ import { StateObjectCell } from '../../mol-state';
 import { PluginContext } from '../../mol-plugin/context';
 import { Script } from '../../mol-script/script';
 import { QueryContext, QueryFn, StructureElement, StructureSelection } from '../../mol-model/structure';
+import { BehaviorSubject } from 'rxjs';
 
 export type MarkdownExtensionEvent = 'click' | 'mouse-enter' | 'mouse-leave';
 
@@ -150,9 +151,46 @@ export const BuiltInMarkdownExtension: MarkdownExtension[] = [
             }
         },
     },
+    {
+        name: 'play-audio',
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click') return;
+
+            const src = args['play-audio'];
+            if (!src?.length) return;
+            manager.audio.play(src);
+        }
+    },
+    {
+        name: 'toggle-audio',
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click' || !('toggle-audio' in args)) return;
+
+            const src = args['toggle-audio'];
+            manager.audio.play(src, { toggle: true });
+        }
+    },
+    {
+        name: 'pause-audio',
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click' || !('pause-audio' in args)) return;
+            manager.audio.pause();
+        }
+    },
+    {
+        name: 'stop-audio',
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click' || !('stop-audio' in args)) return;
+            manager.audio.stop();
+        }
+    },
 ];
 
 export class MarkdownExtensionManager {
+    state = {
+        audioPlayer: new BehaviorSubject<HTMLAudioElement | null>(null),
+    };
+
     private extension: MarkdownExtension[] = [];
     private refResolvers: Record<string, (plugin: PluginContext, refs: string[]) => StateObjectCell[]> = {
         default: (plugin: PluginContext, refs: string[]) => refs
@@ -285,6 +323,75 @@ export class MarkdownExtensionManager {
         }
         return ret;
     }
+
+    private resolveAudioPlayer() {
+        if (this.state.audioPlayer.value) {
+            return this.state.audioPlayer.value;
+        }
+
+        const audio = document.createElement('audio');
+        audio.controls = true;
+        audio.preload = 'auto';
+        audio.style.width = '100%';
+        audio.style.height = '32px';
+        this.state.audioPlayer.next(audio);
+        return audio;
+    }
+
+    get audioPlayer() {
+        return this.state.audioPlayer.value;
+    }
+
+    audio = {
+        play: async (src: string, options?: { toggle?: boolean }) => {
+            try {
+                const audio = this.resolveAudioPlayer();
+
+                let newSource = false;
+                if (src?.trim()) {
+                    const resolved = this.tryResolveUri(src);
+                    let uri: string = src;
+                    if (typeof (resolved as Promise<string>)?.then === 'function') {
+                        uri = (await resolved) as string;
+                    } else if (resolved) {
+                        uri = resolved as string;
+                    }
+                    newSource = audio.src !== uri;
+                    if (newSource) {
+                        audio.src = uri;
+                        audio.load();
+                    }
+                }
+
+                if (newSource && options?.toggle) {
+                    if (audio.paused) {
+                        await audio.play();
+                    } else {
+                        audio.pause();
+                    }
+                } else {
+                    await audio.play();
+                }
+            } catch (e) {
+                console.error('Failed to play audio', e);
+            }
+        },
+        pause: () => {
+            this.audioPlayer?.pause();
+        },
+        stop: () => {
+            if (!this.audioPlayer) return;
+            this.audioPlayer.pause();
+            this.audioPlayer.currentTime = 0;
+        },
+        dispose: () => {
+            if (this.audioPlayer) {
+                this.audioPlayer.pause();
+                this.audioPlayer.currentTime = 0;
+                this.state.audioPlayer.next(null);
+            }
+        }
+    };
 
     constructor(public plugin: PluginContext) {
         for (const command of BuiltInMarkdownExtension) {

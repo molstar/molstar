@@ -66,6 +66,9 @@ async function _loadMVS(ctx: RuntimeContext, plugin: PluginContext, data: MVSDat
         const mvsExtensionLoaded = plugin.state.hasBehavior(MolViewSpec);
         if (!mvsExtensionLoaded) throw new Error('MolViewSpec extension is not loaded.');
 
+        // Stop any currently running audio
+        plugin.managers.markdownExtensions.audio.dispose();
+
         // Reset canvas props to default so that modifyCanvasProps works as expected
         resetCanvasProps(plugin);
 

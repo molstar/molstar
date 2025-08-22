@@ -382,6 +382,7 @@ export class PluginContext {
         }
         this.subs = [];
 
+        this.managers.markdownExtensions.audio.dispose();
         this.animationLoop.stop();
         this.commands.dispose();
         this.canvas3d?.dispose();
