@@ -28,6 +28,7 @@ Generally, the command should be URL encoded, e.g., `a b` => `a%20b` (in JS, `en
   - (optional) `action` is an array of `highlight` (default), `focus` (multiple actions can be specified)
   - (optional) `focus-radius` is extra distance applied when focusing the selection (default is `3`)
   - Example: `[HEM](!query%3Dresn%20HEM%26lang%3Dpymol%26action%3Dhighlight%2Cfocus)` highlights or focuses the HEM residue (the command must be URL encoded because it contains spaces and possibly other special characters)
+- `play-audio=src`, `toggle-audio[=str]`, `stop-audio`, `pause-audio` - Audio playback support
 
 ## Custom Content
 
