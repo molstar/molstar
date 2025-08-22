@@ -26,6 +26,8 @@ const Steps = [
 
 A simple example showcasing audio playback.
 
+Basic controls:
+
 [Play](${encodeURIComponent(`!play-audio=${_Audio}`)})
 [Pause](!pause-audio)
 [Stop](!stop-audio)
@@ -43,7 +45,7 @@ A simple example showcasing audio playback.
                 label_opacity: 1,
                 custom: {
                     molstar_markdown_commands: {
-                        'apply-snapshot': 'playback',
+                        'apply-snapshot': 'interlude',
                         'play-audio': _Audio,
                     }
                 }
@@ -60,8 +62,10 @@ A simple example showcasing audio playback.
     },
     {
         header: 'Audio Demo',
-        key: 'playback',
-        description: `### Auto Playback
+        key: 'interlude',
+        description: `### Interlude
+
+If you clicked "Click to Play" in the previous snapshot, the audio should be playing now.
 
 [Stop](!stop-audio)
         `,
@@ -83,6 +87,37 @@ A simple example showcasing audio playback.
                 }
             });
             prims.label({ text: 'Stop', position: { label_asym_id: 'A' }, label_size: 10 });
+
+            return builder;
+        },
+        camera: {
+            position: [-11.49, -37.05, 15.78],
+            target: [15.85, 17.26, 24.32],
+            up: [-0.88, 0.4, 0.26],
+        } satisfies MVSNodeParams<'camera'>,
+    },
+     {
+        header: 'Audio Demo',
+        key: 'interlude',
+        description: `### Autoplay
+
+If you browser security permissions allow it, the audio should start playing automatically when the snapshot gets loaded
+
+[Stop](!stop-audio)
+        `,
+        linger_duration_ms: 2000,
+        transition_duration_ms: 500,
+        state: (): Root => {
+            const builder = createMVSBuilder();
+
+            builder.extendRootCustomState({
+                molstar_on_load_markdown_commands: {
+                    'play-audio': _Audio,
+                }
+            });
+
+            const _1cbs = structure(builder, '1cbs');
+            polymer(_1cbs, { color: 'violet' });
 
             return builder;
         },

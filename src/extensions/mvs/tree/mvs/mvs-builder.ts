@@ -98,6 +98,12 @@ export class Root extends _Base<'root'> implements FocusMixin, PrimitivesMixin {
         this._animation ??= new Animation(params);
         return this._animation;
     }
+
+    /** Modifies custom state of the root */
+    extendRootCustomState(custom: Record<string, any>): this {
+        this._node.custom = { ...this._node.custom, ...custom };
+        return this;
+    }
 }
 
 export class Animation {

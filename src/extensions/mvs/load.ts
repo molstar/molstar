@@ -179,6 +179,10 @@ function molstarTreeToEntry(
     }
     snapshot.durationInMs = metadata.linger_duration_ms + (metadata.previousTransitionDurationMs ?? 0);
 
+    if (tree.custom?.molstar_on_load_markdown_commands) {
+        snapshot.onLoadMarkdownCommands = tree.custom.molstar_on_load_markdown_commands;
+    }
+
     const entryParams: PluginStateSnapshotManager.EntryParams = {
         key: metadata.key,
         name: metadata.title,
