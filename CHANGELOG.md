@@ -41,14 +41,16 @@ Note that since we don't clearly distinguish between a public and private interf
   - MVSX - use Murmur hash instead of FNV in archive URI
   - Support additional file formats (pdbqt, gro, xyz, mol, sdf, mol2, xtc, lammpstrj)
   - Support loading trajectory coordinates from separate nodes
+  - Trigger markdown commands from primitives using `molstar_markdown_commands` custom extensions
 - Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
 - Snapshot Markdown improvements
   - Add `MarkdownExtensionManager` (`PluginContext.managers.markdownExtensions`)
   - Support custom markdown commands to control the plugin via the `[link](!command)` pattern
   - Support rendering custom elements via the `![alt](!parameters)` pattern
   - Support tables
-  - Support loading images from MVSX files
+  - Support loading images and audio from MVSX files
   - Indicate external links with ⤴
+  - Audio support
 - Avoid calculating rings for coarse-grained structures
 - Fix isosurface compute shader normals when transformation matrix is applied to volume
 - Symmetry operator naming for spacegroup symmetry - parenthesize multi-character indices (1_111-1 -> 1_(11)1(-1))

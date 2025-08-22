@@ -6,7 +6,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { create as produce } from 'mutative';
+import { produce } from '../mol-util/produce';
 import { merge } from 'rxjs';
 import { Camera } from '../mol-canvas3d/camera';
 import { Canvas3DContext, Canvas3DParams, Canvas3DProps } from '../mol-canvas3d/canvas3d';

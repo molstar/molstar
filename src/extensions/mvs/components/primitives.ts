@@ -149,6 +149,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
         const context: PrimitiveBuilderContext = { ...a.data, structureRefs };
 
         const snapshotKey = { snapshotKey: { ...SnapshotKey, defaultValue: a.data.options?.snapshot_key ?? '' } };
+        const markdownCommands = { markdownCommands: { ...MarkdownCommands, defaultValue: a.data.node?.custom?.molstar_markdown_commands } };
 
         const label = capitalize(params.kind);
         if (params.kind === 'mesh') {
@@ -161,6 +162,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
                 params: {
                     ...PD.withDefaults(Mesh.Params, { alpha: a.data.options?.opacity ?? 1, ...customMeshParams }),
                     ...snapshotKey,
+                    ...markdownCommands,
                 },
                 getShape: (_, data, __, prev: any) => buildPrimitiveMesh(data, prev?.geometry),
                 geometryUtils: Mesh.Utils,
@@ -185,6 +187,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
                         ...customLabelParams,
                     }),
                     ...snapshotKey,
+                    ...markdownCommands,
                 },
                 getShape: (_, data, props, prev: any) => buildPrimitiveLabels(data, prev?.geometry, props),
                 geometryUtils: Text.Utils,
@@ -199,6 +202,7 @@ export const MVSBuildPrimitiveShape = MVSTransform({
                 params: {
                     ...PD.withDefaults(Lines.Params, { alpha: a.data.options?.opacity ?? 1, ...customLineParams }),
                     ...snapshotKey,
+                    ...markdownCommands,
                 },
                 getShape: (_, data, __, prev: any) => buildPrimitiveLines(data, prev?.geometry),
                 geometryUtils: Lines.Utils,
@@ -227,7 +231,7 @@ export const MVSShapeRepresentation3D = MVSTransform({
             const repr = ShapeRepresentation(a.data.getShape, a.data.geometryUtils);
             await repr.createOrUpdate(props, a.data.data).runInContext(ctx);
 
-            const pickable = !!(params as any).snapshotKey?.trim();
+            const pickable = !!(params as any).snapshotKey?.trim() || !!(params as any).markdownCommands;
             if (pickable) {
                 repr.setState({ pickable, markerActions: MarkerActions.Highlighting });
             }
@@ -241,7 +245,7 @@ export const MVSShapeRepresentation3D = MVSTransform({
             await b.data.repr.createOrUpdate(props, a.data.data).runInContext(ctx);
             b.data.sourceData = a.data;
 
-            const pickable = !!(newParams as any).snapshotKey?.trim();
+            const pickable = !!(newParams as any).snapshotKey?.trim() || !!(newParams as any).markdownCommands;
             if (pickable) {
                 b.data.repr.setState({ pickable, markerActions: MarkerActions.Highlighting });
             }
@@ -252,6 +256,7 @@ export const MVSShapeRepresentation3D = MVSTransform({
 });
 
 const SnapshotKey = PD.Text('', { isEssential: true, disableInteractiveUpdates: true, description: 'Activate the snapshot with the provided key when clicking on the label' });
+const MarkdownCommands = PD.Value<any>(undefined, { isHidden: true });
 
 /* **************************************************** */
 
