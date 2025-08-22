@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { create as produce } from 'mutative';
+import { produce } from '../../mol-util/produce';
 import { throttleTime } from 'rxjs';
 import { Canvas3DContext, Canvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';
 import { PluginCommands } from '../../mol-plugin/commands';

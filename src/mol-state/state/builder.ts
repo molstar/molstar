@@ -11,7 +11,7 @@ import { StateObject, StateObjectCell, StateObjectSelector, StateObjectRef } fro
 import { StateTransform } from '../transform';
 import { StateTransformer } from '../transformer';
 import { State } from '../state';
-import { create as produce } from 'mutative';
+import { produce } from '../../mol-util/produce';
 
 export { StateBuilder };
 

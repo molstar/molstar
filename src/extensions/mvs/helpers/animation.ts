@@ -5,7 +5,6 @@
  * @author Ludovic Autin <ludovic.autin@gmail.com>
  */
 
-import { create } from 'mutative';
 import { Snapshot } from '../mvs-data';
 import { Tree } from '../tree/generic/tree-schema';
 import { clamp, lerp } from '../../../mol-math/interpolate';
@@ -20,6 +19,7 @@ import { makeContinuousPaletteCheckpoints, MVSContinuousPaletteProps, MVSDiscret
 import { palettePropsFromMVSPalette } from '../load-helpers';
 import { SortedArray } from '../../../mol-data/int';
 import { ColorT } from '../tree/mvs/param-types';
+import { produce } from '../../../mol-util/produce';
 
 export async function generateStateTransition(ctx: RuntimeContext, snapshot: Snapshot, snapshotIndex: number, snapshotCount: number) {
     if (!snapshot.animation) return undefined;
@@ -81,7 +81,7 @@ interface InterpolationCacheEntry {
 }
 
 function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolate'>[], time: number, cache: Map<any, InterpolationCacheEntry>, nodeMap: Map<string, (string | number)[]>) {
-    return create(tree, (draft) => {
+    return produce(tree, (draft) => {
         for (const transition of transitions) {
             const nodePath = nodeMap.get(transition.params.target_ref);
             if (!nodePath) continue;

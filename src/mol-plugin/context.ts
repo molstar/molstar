@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { create as produce } from 'mutative';
+import { produce } from '../mol-util/produce';
 import { List } from 'immutable';
 import { merge, Subscription } from 'rxjs';
 import { debounceTime, filter, take, throttleTime } from 'rxjs/operators';
