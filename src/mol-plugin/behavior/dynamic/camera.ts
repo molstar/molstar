@@ -79,6 +79,13 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
                     return;
                 }
 
+                // Prevent when interaction props are set
+                const snapshotKey = current.repr?.props?.snapshotKey?.trim() ?? '';
+                const markdownCommands = current.repr?.props?.markdownCommands;
+                if (snapshotKey || (typeof markdownCommands === 'object' && Object.keys(markdownCommands).length > 0)) {
+                    return;
+                }
+
                 if (Binding.match(binding, button, modifiers)) {
                     const loci = Loci.normalize(current.loci, this.ctx.managers.interactivity.props.granularity);
                     this.ctx.managers.camera.focusLoci(loci, this.params);

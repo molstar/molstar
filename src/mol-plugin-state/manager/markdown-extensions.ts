@@ -363,13 +363,14 @@ export class MarkdownExtensionManager {
                     }
                 }
 
-                if (newSource && options?.toggle) {
+                if (!newSource && options?.toggle) {
                     if (audio.paused) {
                         await audio.play();
                     } else {
                         audio.pause();
                     }
                 } else {
+                    audio.currentTime = 0;
                     await audio.play();
                 }
             } catch (e) {
