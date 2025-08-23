@@ -304,6 +304,8 @@ const Steps = [
             const builder = createMVSBuilder();
             // use alignement and translation ?
             const _1mbn = structure(builder, '1mbn');
+            // TODO: align the two structure and animate the separation
+            // to show the difference in charged amino acids
 
             _1mbn.component({ selector: { label_asym_id: 'A' } })
             .transform({ translation: [0, 0, 0] })
@@ -405,6 +407,7 @@ const Steps = [
         state: (): Root => {
             const builder = createMVSBuilder();
             const _1mbo = structure(builder, '1mbo');
+            // TODO: find a way to illustrate the breathing
             _1mbo.component({ selector: { label_asym_id: 'A' } })
             .transform({ translation: [0, 0, 0] })
             .representation({ type: 'spacefill' })
@@ -466,6 +469,7 @@ const Steps = [
         state: (): Root => {
             const builder = createMVSBuilder();
             const _1mbn = structure(builder, '1mbn');
+            // TODO:
             // select all carbon rich
             // resn ALA+VAL+LEU+ILE+MET+PHE+TRP+PRO
             // resn LYS+ARG+HIS+ASP+GLU
