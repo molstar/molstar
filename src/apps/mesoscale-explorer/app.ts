@@ -261,7 +261,6 @@ export class MesoscaleExplorer {
             image: true,
             componentManager: false,
             structureSelection: true,
-            behavior: true,
         });
 
         plugin.managers.lociLabels.clearProviders();
