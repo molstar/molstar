@@ -106,8 +106,8 @@ export class XRManager {
         const { xrSession, xrRefSpace, input, camera, stereoCamera, pointerHelper } = this;
         if (!xrFrame || !xrSession || !xrRefSpace) return false;
 
-        camera.setState({ scale: camera.state.scale * this.scaleFactor });
-        this.prevScale = camera.state.scale;
+        camera.scale = camera.scale * this.scaleFactor;
+        this.prevScale = camera.scale;
         const camDirUnscaled = Vec3.sub(Vec3(), camera.position, camera.target);
         Vec3.scaleAndAdd(camera.position, camera.position, camDirUnscaled, 1 - this.scaleFactor);
         this.scaleFactor = 1;
@@ -136,7 +136,7 @@ export class XRManager {
         stereoCamera.update({ pose: xrPose, layer: baseLayer });
         const camLeft = stereoCamera.left;
 
-        const cameraTarget = Vec3.scale(Vec3(), camLeft.state.target, camLeft.state.scale);
+        const cameraTarget = Vec3.scale(Vec3(), camLeft.state.target, camLeft.scale);
         const cameraPosition = Mat4.getTranslation(Vec3(), Mat4.invert(Mat4(), camLeft.view));
         const cameraDirection = Vec3.sub(Vec3(), cameraPosition, cameraTarget);
         const cameraPlane = Plane3D.fromNormalAndCoplanarPoint(Plane3D(), cameraDirection, cameraTarget);
@@ -158,7 +158,7 @@ export class XRManager {
                 const ray = getRayFromPose(targetRayPose, camera.view);
                 pointers.push(ray);
 
-                const sceneBoundingSphere = Sphere3D.scaleNX(Sphere3D(), this.scene.boundingSphereVisible, camLeft.state.scale);
+                const sceneBoundingSphere = Sphere3D.scaleNX(Sphere3D(), this.scene.boundingSphereVisible, camLeft.scale);
 
                 const si = Vec3();
                 if (Ray3D.intersectSphere3D(si, ray, sceneBoundingSphere)) {
@@ -295,21 +295,17 @@ export class XRManager {
                 const { radius } = this.scene.boundingSphereVisible;
                 scale = radius ? (1 / radius) * this.props.sceneRadiusInMeters : 0.01;
             }
-            this.camera.setState({
-                forceFull: true,
-                scale,
-                minTargetDistance: this.props.minTargetDistance,
-            });
+            this.camera.forceFull = true;
+            this.camera.scale = scale;
+            this.camera.minTargetDistance = this.props.minTargetDistance;
             this.prevScale = scale;
         } else {
             this.xrRefSpace = undefined;
             Mat4.setZero(this.camera.headRotation);
             this.pointerHelper.setProps({ enabled: 'off' });
-            this.camera.setState({
-                forceFull: false,
-                scale: 1,
-                minTargetDistance: 0,
-            });
+            this.camera.forceFull = false;
+            this.camera.scale = 1;
+            this.camera.minTargetDistance = 0;
         }
     }
 

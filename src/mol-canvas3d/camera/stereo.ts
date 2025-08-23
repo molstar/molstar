@@ -74,6 +74,10 @@ class EyeCamera implements ICamera {
     near: number = 0;
     fogFar: number = 0;
     fogNear: number = 0;
+
+    forceFull: boolean = false;
+    scale: number = 0;
+    minTargetDistance: number = 0;
 }
 
 const tmpEyeLeft = Mat4.identity();
@@ -90,6 +94,10 @@ function copyStates(parent: Camera, eye: EyeCamera) {
     eye.near = parent.near;
     eye.fogFar = parent.fogFar;
     eye.fogNear = parent.fogNear;
+
+    eye.forceFull = parent.forceFull;
+    eye.scale = parent.scale;
+    eye.minTargetDistance = parent.minTargetDistance;
 }
 
 //

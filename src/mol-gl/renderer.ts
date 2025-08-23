@@ -414,10 +414,10 @@ namespace Renderer {
 
             ValueCell.updateIfChanged(globalUniforms.uIsOrtho, camera.state.mode === 'orthographic' ? 1 : 0);
             ValueCell.update(globalUniforms.uViewOffset, camera.viewOffset.enabled ? Vec2.set(viewOffset, camera.viewOffset.offsetX * 16, camera.viewOffset.offsetY * 16) : Vec2.set(viewOffset, 0, 0));
-            ValueCell.updateIfChanged(globalUniforms.uModelScale, camera.state.scale);
+            ValueCell.updateIfChanged(globalUniforms.uModelScale, camera.scale);
 
             ValueCell.update(globalUniforms.uCameraPosition, Mat4.getTranslation(cameraPosition, invView));
-            const cameraTarget = Vec3.scale(Vec3(), camera.state.target, camera.state.scale);
+            const cameraTarget = Vec3.scale(Vec3(), camera.state.target, camera.scale);
             Vec3.normalize(cameraDir, Vec3.sub(cameraDir, cameraTarget, cameraPosition));
             ValueCell.update(globalUniforms.uCameraDir, cameraDir);
 
@@ -453,9 +453,9 @@ namespace Renderer {
         const updateInternal = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null, renderMask: Mask, markingDepthTest: boolean) => {
             arrayMapUpsert(sharedTexturesList, 'tDepth', depthTexture || emptyDepthTexture);
 
-            modelScale = camera.state.scale;
+            modelScale = camera.scale;
 
-            ValueCell.update(globalUniforms.uModel, Mat4.scaleUniformly(model, group.view, camera.state.scale));
+            ValueCell.update(globalUniforms.uModel, Mat4.scaleUniformly(model, group.view, camera.scale));
             ValueCell.update(globalUniforms.uModelView, Mat4.mul(modelView, camera.view, model));
             ValueCell.update(globalUniforms.uInvModelView, Mat4.invert(invModelView, modelView));
             ValueCell.update(globalUniforms.uModelViewProjection, Mat4.mul(modelViewProjection, modelView, camera.projection));

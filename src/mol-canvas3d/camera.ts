@@ -29,6 +29,10 @@ interface ICamera {
     readonly fogNear: number,
     readonly headRotation: Mat4,
     readonly isAsymmetricProjection: boolean,
+
+    readonly forceFull: boolean;
+    readonly scale: number;
+    readonly minTargetDistance: number;
 }
 
 const tmpClip = Vec4();
@@ -50,6 +54,10 @@ export class Camera implements ICamera {
     fogNear = 5000;
     fogFar = 10000;
     zoom = 1;
+
+    forceFull = false;
+    scale = 1;
+    minTargetDistance = 0;
 
     readonly transition: CameraTransitionManager = new CameraTransitionManager(this);
     readonly stateChanged = new BehaviorSubject<Partial<Camera.Snapshot>>(this.state);
@@ -74,7 +82,15 @@ export class Camera implements ICamera {
             return false;
         }
 
-        const height = 2 * Math.tan(snapshot.fov / 2) * Vec3.distance(snapshot.position, snapshot.target) * this.state.scale;
+        const distance = Vec3.distance(snapshot.position, snapshot.target);
+        const minTargetDistance = this.minTargetDistance / this.scale;
+        if (distance < minTargetDistance) {
+            Vec3.sub(this.deltaDirection, snapshot.target, snapshot.position);
+            Vec3.setMagnitude(this.deltaDirection, this.deltaDirection, minTargetDistance);
+            Vec3.sub(snapshot.position, snapshot.target, this.deltaDirection);
+        }
+
+        const height = 2 * Math.tan(snapshot.fov / 2) * Vec3.distance(snapshot.position, snapshot.target) * this.scale;
         this.zoom = this.viewport.height / height;
 
         updateClip(this);
@@ -113,7 +129,7 @@ export class Camera implements ICamera {
     }
 
     getTargetDistance(radius: number) {
-        return Math.max(this.state.minTargetDistance / this.state.scale, Camera.targetDistance(radius, this.state.mode, this.state.fov, this.viewport.width, this.viewport.height));
+        return Math.max(this.minTargetDistance / this.scale, Camera.targetDistance(radius, this.state.mode, this.state.fov, this.viewport.width, this.viewport.height));
     }
 
     getFocus(target: Vec3, radius: number, up?: Vec3, dir?: Vec3, snapshot?: Partial<Camera.Snapshot>): Partial<Camera.Snapshot> {
@@ -204,7 +220,7 @@ export class Camera implements ICamera {
             Vec3.scaleAndAdd(out.origin, out.origin, out.direction, -this.near);
         } else {
             Vec3.copy(out.origin, this.state.position);
-            Vec3.scale(out.origin, out.origin, this.state.scale);
+            Vec3.scale(out.origin, out.origin, this.scale);
             Vec3.set(out.direction, x, y, 0.5);
             this.unproject(out.direction, out.direction);
             Vec3.normalize(out.direction, Vec3.sub(out.direction, out.direction, out.origin));
@@ -291,10 +307,6 @@ export namespace Camera {
             clipFar: true,
             minNear: 5,
             minFar: 0,
-
-            forceFull: false,
-            scale: 1,
-            minTargetDistance: 0.3,
         };
     }
 
@@ -312,10 +324,6 @@ export namespace Camera {
         clipFar: boolean
         minNear: number
         minFar: number
-
-        forceFull: boolean
-        scale: number
-        minTargetDistance: number
     }
 
     export function copySnapshot(out: Snapshot, source?: Partial<Snapshot>) {
@@ -335,10 +343,6 @@ export namespace Camera {
         if (typeof source.minNear !== 'undefined') out.minNear = source.minNear;
         if (typeof source.minFar !== 'undefined') out.minFar = source.minFar;
 
-        if (typeof source.forceFull !== 'undefined') out.forceFull = source.forceFull;
-        if (typeof source.scale !== 'undefined') out.scale = source.scale;
-        if (typeof source.minTargetDistance !== 'undefined') out.minTargetDistance = source.minTargetDistance;
-
         return out;
     }
 
@@ -351,9 +355,6 @@ export namespace Camera {
             && a.clipFar === b.clipFar
             && a.minNear === b.minNear
             && a.minFar === b.minFar
-            && a.forceFull === b.forceFull
-            && a.scale === b.scale
-            && a.minTargetDistance === b.minTargetDistance
             && Vec3.exactEquals(a.position, b.position)
             && Vec3.exactEquals(a.up, b.up)
             && Vec3.exactEquals(a.target, b.target);
@@ -364,11 +365,11 @@ const tmpPosition = Vec3();
 const tmpTarget = Vec3();
 
 function updateView(camera: Camera) {
-    if (camera.state.scale === 1) {
+    if (camera.scale === 1) {
         Mat4.lookAt(camera.view, camera.state.position, camera.state.target, camera.state.up);
     } else {
-        Vec3.scale(tmpPosition, camera.state.position, camera.state.scale);
-        Vec3.scale(tmpTarget, camera.state.target, camera.state.scale);
+        Vec3.scale(tmpPosition, camera.state.position, camera.scale);
+        Vec3.scale(tmpTarget, camera.state.target, camera.scale);
         Mat4.lookAt(camera.view, tmpPosition, tmpTarget, camera.state.up);
     }
 }
@@ -434,7 +435,8 @@ function updatePers(camera: Camera) {
 }
 
 function updateClip(camera: Camera) {
-    let { radius, radiusMax, mode, fog, clipFar, minNear, minFar, forceFull, scale } = camera.state;
+    const { forceFull, scale } = camera;
+    let { radius, radiusMax, mode, fog, clipFar, minNear, minFar } = camera.state;
     radiusMax *= scale;
     minFar *= scale;
     minNear *= scale;

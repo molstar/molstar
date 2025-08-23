@@ -64,7 +64,6 @@ export const Canvas3DParams = {
             off: PD.Group({})
         }, { cycle: true, hideIf: p => p?.mode !== 'perspective' }),
         fov: PD.Numeric(45, { min: 10, max: 130, step: 1 }, { label: 'Field of View' }),
-        scale: PD.Numeric(1, { min: 0.001, max: 1, step: 0.001 }, { label: 'Scene scale' }),
         manualReset: PD.Boolean(false, { isHidden: true }),
     }, { pivot: 'mode' }),
     cameraFog: PD.MappedStatic('on', {
@@ -75,7 +74,6 @@ export const Canvas3DParams = {
         radius: PD.Numeric(100, { min: 0, max: 99, step: 1 }, { label: 'Clipping', description: 'How much of the scene to show.' }),
         far: PD.Boolean(true, { description: 'Hide scene in the distance' }),
         minNear: PD.Numeric(5, { min: 0.1, max: 100, step: 0.1 }, { description: 'Note, may cause performance issues rendering impostors when set too small and cause issues with outline rendering when too close to 0.' }),
-        forceFull: PD.Boolean(false, { description: 'Force showing full scene.' }),
     }, { pivot: 'radius' }),
     viewport: PD.MappedStatic('canvas', {
         canvas: PD.Group({}),
@@ -436,9 +434,7 @@ namespace Canvas3D {
             fog: p.cameraFog.name === 'on' ? p.cameraFog.params.intensity : 0,
             clipFar: p.cameraClipping.far,
             minNear: p.cameraClipping.minNear,
-            forceFull: p.cameraClipping.forceFull,
             fov: degToRad(p.camera.fov),
-            scale: p.camera.scale,
         }, { x, y, width, height });
         const stereoCamera = new StereoCamera(camera, p.camera.stereo.params);
 
@@ -993,7 +989,6 @@ namespace Canvas3D {
                     helper: { ...helper.camera.props },
                     stereo: { ...p.camera.stereo },
                     fov: Math.round(radToDeg(camera.state.fov)),
-                    scale: camera.state.scale,
                     manualReset: !!p.camera.manualReset
                 },
                 cameraFog: camera.state.fog > 0
@@ -1003,7 +998,6 @@ namespace Canvas3D {
                     far: camera.state.clipFar,
                     radius,
                     minNear: camera.state.minNear,
-                    forceFull: camera.state.forceFull,
                 },
                 cameraResetDurationMs: p.cameraResetDurationMs,
                 sceneRadiusFactor: p.sceneRadiusFactor,
@@ -1229,9 +1223,6 @@ namespace Canvas3D {
                 if (props.camera && props.camera.fov !== undefined && props.camera.fov !== oldFov) {
                     cameraState.fov = degToRad(props.camera.fov);
                 }
-                if (props.camera && props.camera.scale !== undefined && props.camera.scale !== cameraState.scale) {
-                    cameraState.scale = props.camera.scale;
-                }
                 if (props.cameraFog !== undefined && props.cameraFog.params) {
                     const newFog = props.cameraFog.name === 'on' ? props.cameraFog.params.intensity : 0;
                     if (newFog !== camera.state.fog) cameraState.fog = newFog;
@@ -1249,9 +1240,6 @@ namespace Canvas3D {
                             // if radius = 0, NaNs happen
                             cameraState.radius = Math.max(radius, 0.01);
                         }
-                    }
-                    if (props.cameraClipping.forceFull !== undefined && props.cameraClipping.forceFull !== camera.state.forceFull) {
-                        cameraState.forceFull = props.cameraClipping.forceFull;
                     }
                 }
                 if (Object.keys(cameraState).length > 0) camera.setState(cameraState);

@@ -83,8 +83,8 @@ export class ShadowPass {
             needsUpdateShadows = true;
         }
 
-        ValueCell.updateIfChanged(this.renderable.values.uMaxDistance, props.maxDistance * camera.state.scale);
-        ValueCell.updateIfChanged(this.renderable.values.uTolerance, props.tolerance * camera.state.scale);
+        ValueCell.updateIfChanged(this.renderable.values.uMaxDistance, props.maxDistance * camera.scale);
+        ValueCell.updateIfChanged(this.renderable.values.uTolerance, props.tolerance * camera.scale);
         if (this.renderable.values.dSteps.ref.value !== props.steps) {
             ValueCell.update(this.renderable.values.dSteps, props.steps);
             needsUpdateShadows = true;

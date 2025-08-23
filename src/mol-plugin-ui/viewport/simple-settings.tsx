@@ -166,7 +166,6 @@ const SimpleSettingsMapping = ParamMapping({
             radius: s.clipping.radius,
             far: s.clipping.far,
             minNear: s.clipping.minNear,
-            forceFull: s.clipping.forceFull,
         };
         canvas.illumination = s.advanced.illumination;
         canvas.multiSample = s.advanced.multiSample;
