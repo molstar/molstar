@@ -412,8 +412,8 @@ export function representationProps(node: MolstarSubtree<'representation'>): Par
     if (clip) {
         base.type!.params = { ...base.type?.params, clip };
     }
-    if (node.custom?.molstar_reprepresentation_params) {
-        base.type!.params = { ...base.type!.params, ...node.custom.molstar_reprepresentation_params };
+    if (node.custom?.molstar_representation_params) {
+        base.type!.params = { ...base.type!.params, ...node.custom.molstar_representation_params };
     }
     return base;
 }

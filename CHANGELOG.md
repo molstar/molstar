@@ -20,7 +20,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - MolViewSpec extension:
   - Generic color schemes (`palette` parameter for color_from_* nodes)
   - Annotation field remapping (`field_remapping` parameter for color_from_* nodes)
-  - `representation` node: support custom property `molstar_reprepresentation_params`
+  - `representation` node: support custom property `molstar_representation_params`
   - Add `backbone` and `line` representation types
   - `primitives` node: support custom property `molstar_mesh/label/line_params`
   - `canvas` node: support custom property `molstar_postprocessing` with the ability to customize outline, depth of field, bloom, shadow, occlusion (SSAO), and fog

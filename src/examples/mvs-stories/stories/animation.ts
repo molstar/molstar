@@ -182,7 +182,7 @@ A story showcasing MolViewSpec animation capabilities.`,
                     ref: 'repr',
                     type: 'ball_and_stick',
                     custom: {
-                        molstar_reprepresentation_params: {
+                        molstar_representation_params: {
                             emissive: 0,
                         }
                     }
@@ -209,7 +209,7 @@ A story showcasing MolViewSpec animation capabilities.`,
                 kind: 'scalar',
                 target_ref: 'repr',
                 duration_ms: 1000,
-                property: ['custom', 'molstar_reprepresentation_params', 'emissive'],
+                property: ['custom', 'molstar_representation_params', 'emissive'],
                 end: 0.2,
             });
 
