@@ -493,6 +493,10 @@ namespace Canvas3D {
             ctx.setProps({ transparency: 'blended' });
             hiZ.setProps({ enabled: false });
             helper.camera.setProps({ axes: { name: 'off', params: {} } });
+
+            if (xrManager.session?.environmentBlendMode === 'alpha-blend') {
+                p.transparentBackground = xrPassthrough;
+            }
         }
 
         const xrManager = new XRManager(webgl, input, scene, camera, stereoCamera, helper.pointer, interactionHelper);
@@ -512,11 +516,13 @@ namespace Canvas3D {
             requestFailed: new Subject<string>(),
         };
 
+        let xrPassthrough = false;
+
         const xrSubs = [
             xrManager.isSupported.subscribe(e => xr.isSupported.next(e)),
             xrManager.togglePassthrough.subscribe(() => {
                 if (xrManager.session?.environmentBlendMode === 'alpha-blend') {
-                    p.transparentBackground = !p.transparentBackground;
+                    xrPassthrough = !p.transparentBackground;
                 }
             }),
             xrManager.sessionChanged.subscribe(() => {
@@ -524,6 +530,7 @@ namespace Canvas3D {
                 resizeRequested = true;
                 if (xrManager.session) {
                     saveNonXRProps();
+                    xrPassthrough = xrManager.session?.environmentBlendMode === 'alpha-blend';
                     setXRProps();
                 } else {
                     loadNonXRProps();
@@ -622,6 +629,11 @@ namespace Canvas3D {
                 } else {
                     return false;
                 }
+            }
+
+            if (xrFrame) {
+                setXRProps();
+                p.transparentBackground = xrPassthrough;
             }
 
             const markingUpdated = resolveMarking() && (renderer.props.colorMarker || p.marking.enabled);

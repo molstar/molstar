@@ -273,6 +273,7 @@ export class XRManager {
             }
         }
 
+        pointerHelper.ensureEnabled();
         pointerHelper.update(pointers, points, this.hit);
 
         return true;

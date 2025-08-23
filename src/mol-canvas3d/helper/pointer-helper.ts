@@ -48,6 +48,10 @@ export class PointerHelper {
         if (this.isEnabled) this.update(this.pointers, this.points, this.hit);
     }
 
+    ensureEnabled() {
+        if (this.props.enabled !== 'on') this.props.enabled = 'on';
+    }
+
     get isEnabled() {
         return this.props.enabled === 'on';
     }
