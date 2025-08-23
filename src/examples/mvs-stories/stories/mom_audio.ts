@@ -189,8 +189,10 @@ Basic controls for the audio comments :
 [Pause](!pause-audio)
 [Stop](!stop-audio)
 
-A later structure of myoglobin, PDB entry 1mbo, shows that oxygen binds to 
-the iron atom deep inside the protein. So how does it get in and out? The 
+A later structure of myoglobin, PDB entry [1mbo](https://www.rcsb.org/structure/1mbo), 
+shows that [oxygen](${q('index 1276+1277')}) binds to 
+the [iron](${q('index 1275')}) atom deep inside the protein. 
+So how does it get in and out? The 
 answer is that the structure in the PDB is only one snapshot of the 
 protein, caught when it is in a tightly-closed form. In reality, 
 myoglobin (and all other proteins) is constantly in motion, performing 
@@ -208,15 +210,18 @@ Basic controls for the audio comments :
 The atomic structure of myoglobin revealed many of the basic principles 
 of protein structure and stability. For instance, the structure showed 
 that when the protein chain folds into a globular structure, 
-[carbon-rich amino acids]() are sheltered inside and [charged amino acids]() 
-are most often found on the surface, occasionally forming salt bridges 
+[carbon-rich amino acids](${q('resn ALA+VAL+LEU+ILE+MET+PHE+TRP+PRO')}) are sheltered 
+inside and charged amino acids [positively](${q('resn LYS+ARG+HIS')}) 
+and [negatively](${q('resn GLU+ASP')}) are most often found on the surface, 
+occasionally forming [salt bridges](${q('chain A and resi 44+47+77+18')}) 
 that pair two opposite charges (shown here with circles). 
 
 To explore some of these principles, eplxore freely in the interactive view.
 
 # Topics for Further Discussion
-You can use the sequence comparison tool to align the sequences of different myoglobins, looking for mutations. For instance, here is the alignment of whale and pig myoglobin used to create the illustration in this column.
-PDB entry 2jho includes myoglobin poisoned by cyanide. Take a look and you'll see that the cyanide blocks the binding site for oxygen.
+You can use the sequence comparison tool to align the sequences of different 
+myoglobins, looking for mutations. For instance, [here is the alignment of whale and pig myoglobin](https://www.rcsb.org/alignment?request-body=eJyljrsOwjAMRf%2FFcxgqxNKN7kXsqKpC4pZIeZTEVamq%2FDtOGRAzm%2BPje3I3eM4YV6g3CBOZ4FMZI9IcfZ%2BQoVfYa0kS6kHahFmACp7wReXQBY1QwyRNXExCEOCQHkEX5qUrjNxBWjN64GSiOCtWI%2F9y2wA9xbU3fA1V21w4ndCiKjWKQKbVfeiZ0R3HUmhfVIKz%2Bvs8HXMWv75r2%2Fzn61gJg7F71y6%2FARZEZL8%3D&response-body=eJzlU11vmzAU%2FS88Q2RsjKFv7iCA7GRJQFRVVUU0uClSQjo%2BtkVV%2FvuuyUdTadMeurcJIXF97j33HN%2FLm1HVzzvj5s3o%2B6o0bgzlUaZoyaynwvUshznPll8UpVVgRUr1hAkrmWEabVd0fQv5X75OZjLMQuNgGlvVFZqq2FTreqvqbrndlQqSXouq%2BVG1CgqvMNW97HTLbmsNp5qiUW2%2F6YD44Q16NP2q6%2BFoCKGm2S8HkfbkdqpFqI1addWuHpq2%2B%2B0R5QA9qfWyVd%2BGA9uE2vI9pORwMD%2FyzSa3n%2BN7NN%2FlLi8eB92NWgOl9vDwF1YdVnWpfho3yDQ2ql53L0f%2BR%2FMTtaCta4q6fd4126I7a7FNdHp%2B%2BwUd0chxCXY9xjA2LTRiNkWMONT2TDSimDi%2Bz1yHQDaAmGCbeTbxXR25rodsG%2FvHiCGGEHE9D2vukUcpdgnBlEGAEfU9RrFPdKbDqOMT2x8yLYpH1MWOQxzP9U3CRi5lBCGKoKlFR77j2Rg5iNkgVw%2Bg326LZq%2BH165257X5Xmx62EFo68I97F%2F1PsK99apeKasqYUpVtzf0QlwyXeeSuZikwUfQ9y5gNrGGRoYefw1jr5fQtSp7tdQb3w73rxH9G2xUeUa1MI3Aq2XDEHUpzOxUoKPV7rtqirXSqQjmgdDjcctO0v%2B4ZJ%2FYsQs5lOYyDaPwbi5zGed3XOQhD3IexdE8SGSykGORxrMwk6EYB4uxiKXIQh5OBE%2FDQAoRR3mWy4zLiCcQiiiOAZZiJvk8jXkmYpHMEnEvw3GShjxJYuiTLuJZFIwjHvB5xCdTwWUoxwsRJJyLexHK6H4eDdP453YjmQYnu9P8LrqyG%2BZHu9HFrhjsgs9ru9OT3ejabvbBbn5ld57LeSo%2B2E1PdqfB5Gx3rO3%2BH5t9%2BAU7Kf5z&encoded=true) used to create the illustration in this column.
+PDB entry [2jho](https://www.rcsb.org/structure/2jho) includes myoglobin poisoned by cyanide. Take a look and you'll see that the cyanide blocks the binding site for oxygen.
 
 
 # References
@@ -555,7 +560,33 @@ const Steps = [
             // resn LYS+ARG+HIS+ASP+GLU
             const chargedp = ['LYS', 'ARG', 'HIS'].map(amk => ({ label_comp_id: amk }));
             const chargedn = ['ASP', 'GLU'].map(amk => ({ label_comp_id: amk }));
-            // select all charged residues
+
+            // salt bridge
+            // ASP44-OD1-356-LYS47-NZ-388
+            // LYS77-NZ-613-GLU18-OE1-149
+            // use primitve distance_measurement
+            // and ellipse or ellipsoid with transparancy
+            _1mbn.primitives({})
+            .distance({
+                start: { label_asym_id: 'A', auth_seq_id: 44, atom_id: 356 },
+                end: { label_asym_id: 'A', auth_seq_id: 47, atom_id: 388 },
+                radius: 0.1, dash_length: 0.1,
+                label_size: 2
+                // color: '#cccccc',
+            })
+            .distance({
+                start: { label_asym_id: 'A', auth_seq_id: 77, atom_id: 613 },
+                end: { label_asym_id: 'A', auth_seq_id: 18, atom_id: 149 },
+                radius: 0.1, dash_length: 0.1,
+                label_size: 2
+            });
+            // _1mbn.primitives({ opacity: 0.33 }).ellipsoid({
+            //     center: [1, 1, 1],
+            //     major_axis: [1, 0, 0],
+            //     minor_axis: [0, 1, 0],
+            //     radius: [1.5, 2, 1],
+            //     color: '#cccccc',
+            //     });
             const a = _1mbn.component({ selector: carb });
             a.representation({ type: 'ball_and_stick' })
             .color({ color: '#c8c8c7' });
