@@ -124,7 +124,6 @@ const ShadowsSchema = {
     uProjection: UniformSpec('m4'),
     uInvProjection: UniformSpec('m4'),
     uBounds: UniformSpec('v4'),
-    uInvHeadRotation: UniformSpec('m4'),
 
     dOrthographic: DefineSpec('number'),
     uNear: UniformSpec('f'),
@@ -153,7 +152,6 @@ function getShadowsRenderable(ctx: WebGLContext, depthTexture: Texture): Shadows
         uProjection: ValueCell.create(Mat4.identity()),
         uInvProjection: ValueCell.create(Mat4.identity()),
         uBounds: ValueCell.create(Vec4()),
-        uInvHeadRotation: ValueCell.create(Mat4.identity()),
 
         dOrthographic: ValueCell.create(0),
         uNear: ValueCell.create(1),
