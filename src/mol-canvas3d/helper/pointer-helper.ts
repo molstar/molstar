@@ -56,6 +56,7 @@ export class PointerHelper {
         Viewport.copy(this.camera.viewport, camera.viewport);
         Mat4.copy(this.camera.view, camera.view);
         Mat4.copy(this.camera.projection, camera.projection);
+        Mat4.copy(this.camera.projectionView, camera.projectionView);
         Mat4.copy(this.camera.headRotation, camera.headRotation);
         Camera.copyViewOffset(this.camera.viewOffset, camera.viewOffset);
         this.camera.far = camera.far;
@@ -63,7 +64,8 @@ export class PointerHelper {
         this.camera.fogFar = camera.fogFar;
         this.camera.fogNear = camera.fogNear;
 
-        (this.camera.state.scale as any) = 1;
+        this.camera.forceFull = camera.forceFull;
+        this.camera.scale = 1;
     }
 
     update(pointers: Ray3D[], points: Vec3[], hit: Vec3 | undefined) {
