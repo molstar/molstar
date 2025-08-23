@@ -12,6 +12,9 @@ import { MVSNodeParams } from '../../../extensions/mvs/tree/mvs/mvs-tree';
 import { ColorT } from '../../../extensions/mvs/tree/mvs/param-types';
 import { Mat4 } from '../../../mol-math/linear-algebra/3d/mat4';
 import { Vec3 } from '../../../mol-math/linear-algebra/3d/vec3';
+import { MolScriptBuilder as MS } from '../../../mol-script/language/builder';
+import { formatMolScript } from '../../../mol-script/language/expression-formatter';
+
 
 // 1pmb->1mbn
 const align = Mat4.fromArray(Mat4.zero(), [0.4634187130865737,-0.7131589697034304,0.5259728687171936,0,-0.22944227902330105,-0.6698811108214233,-0.7061273127008398,0,0.8559202154942049,0.2065522332899299,-0.4740643150728161,0,-52.54880970106205,37.49099778180445,-6.133850309914719,1], 0);
@@ -79,6 +82,7 @@ const GColors3 = {
                     }
                 }
             } as unknown as MVSNodeParams<'color_from_source'>;
+
 // Python script
 // import base64
 // def convert(fname):
@@ -87,11 +91,15 @@ const GColors3 = {
 //     print(f"data:audio/mp4;base64,{b64}")
 //     return b64 
 
+// const path = "https://raw.githubusercontent.com/molstar/molstar/master/";
+const path = "";
+const _Audio1 = path + "/examples/audio/AudioMOM1_A.mp3";
+const _Audio2 = path + "/examples/audio/AudioMOM1_B.mp3";
+const _Audio3 = path + "/examples/audio/AudioMOM1_C.mp3";
+const _Audio4 = path + "/examples/audio/AudioMOM1_D.mp3";
 
-const _Audio1 = "https://raw.githubusercontent.com/molstar/molstar/master/examples/audio/AudioMOM1_A.mp3";
-const _Audio2 = "https://raw.githubusercontent.com/molstar/molstar/master/examples/audio/AudioMOM1_B.mp3";
-const _Audio3 = "https://raw.githubusercontent.com/molstar/molstar/master/examples/audio/AudioMOM1_C.mp3";
-const _Audio4 = "https://raw.githubusercontent.com/molstar/molstar/master/examples/audio/AudioMOM1_D.mp3";
+const q = (expr: string, lang = 'pymol') =>
+  `!query=${encodeURIComponent(expr)}&lang=${lang}&action=highlight,focus`;
 
 const description_intro = `
 # Molecule of the Month: Myoglobin
@@ -137,6 +145,19 @@ Used with permission from the Howard Hughes Medical Institute, Copyright 2015.*
 
 `;
 
+// const firstEntity1 = q('(sel.atom.atom-groups (sel.atom.all))', 'mol-script');
+// const firstEntity1 = q('(sel.atom.atom-groups :entity-test (= atom.entry_id 1))', 'mol-script');
+const firstEntity2 = q('(sel.atom.atom-groups :entity-test (= atom.key.entity 1))', 'mol-script');
+// Build the query programmatically
+const query = MS.struct.generator.atomGroups({  
+    'atom-test': MS.core.rel.eq([  
+        MS.struct.atomProperty.core.modelLabel(),  
+        '1PMB'  
+    ])  
+});
+const firstEntity1 = q(formatMolScript(query), 'mol-script');
+console.log(firstEntity1);
+
 const description_p1=`
 # Myoglobin and Whales
 Basic controls for the audio comments :
@@ -148,10 +169,17 @@ If you look at John Kendrew's PDB file, you'll notice that the myoglobin he used
 from sperm whale muscles. Whales and dolphin have a great need for myoglobin, so that they can 
 store extra oxygen for use in their deep undersea dives. Typically, they have about 30 
 times more than in animals that live on land. A recent study revealed that a few special 
-modifications are needed to make this possible. Comparing [whale myoglobin](!query%3Dmodel%201mbn%26lang%3Dpymol%26action%3Dhighlight%2Cfocus) (PDB entry [1mbn](https://www.rcsb.org/structure/1mbn)) with 
-[pig myoglobin](!query%3Dmodel%201pmb%26lang%3Dpymol%26action%3Dhighlight%2Cfocus) (PDB entry [1pmb](https://www.rcsb.org/structure/1pmb)), we find that there are several mutations that add extra positively-charged 
-amino acids to the surface. Marine animals typically have these extra charges on the surface of their myoglobin 
-to help repel neighboring molecules and prevent aggregation when myoglobin is at high concentrations.
+modifications are needed to make this possible.
+Comparing [whale myoglobin](${firstEntity1})
+Comparing [whale myoglobin](${firstEntity2})
+(PDB entry [1mbn](https://www.rcsb.org/structure/1mbn)) with 
+[pig myoglobin](${q('model 1PMB')})
+(PDB entry [1pmb](https://www.rcsb.org/structure/1pmb)), we find that there are 
+several mutations that add [extra positively-charged 
+amino acids](${q('index 96+1114+695')}) to the surface. Marine animals typically have these extra charges on 
+the surface of their myoglobin 
+to help repel neighboring molecules and prevent aggregation when myoglobin is at 
+high concentrations.
 `;
 
 const description_p2=`
@@ -447,24 +475,36 @@ const Steps = [
             const builder = createMVSBuilder();
             const _1mbo = structure(builder, '1mbo');
             // TODO: find a way to illustrate the breathing
+            const red1 = '#d3a4a6';
+            const red2 = '#d75354';
+            const red3 = '#f90c0b';
+            const blue1 = '#02d1d1';
             _1mbo.component({ selector: { label_asym_id: 'A' } })
             .transform({ translation: [0, 0, 0] })
             .representation({ type: 'spacefill' })
             // .color({ custom: { molstar_color_theme_name: "illustrative" } })
-            .color({ custom: GColors2 })
+            .color({ color: red1 })
             .opacity({ ref: 'spo', opacity: 1.0 });
 
             _1mbo.component({ selector: { label_asym_id: 'C', auth_seq_id: 155 } })
             .representation({ type: 'spacefill' })
-            .color({ custom: GColors2 });
+            .color({ custom: {
+                    molstar_color_theme_name: 'element-symbol',
+                    molstar_color_theme_params: {
+                        carbonColor: {
+                            name: 'uniform',
+                            params: { value: decodeColor(red2) }
+                        },
+                    }
+            } });
 
             _1mbo.component({ selector: { label_asym_id: 'A' } })
             .representation({ type: 'backbone' })
-            .color({ color: '#919191' });
+            .color({ color: red1 });
 
             _1mbo.component({ selector: { label_asym_id: 'D', auth_seq_id: 555 } })
             .representation({ type: 'spacefill' })
-            .color({ color: '#8670f0' });
+            .color({ color: blue1 });
 
             builder.extendRootCustomState({
                 molstar_on_load_markdown_commands: {
