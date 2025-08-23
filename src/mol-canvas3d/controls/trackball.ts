@@ -56,8 +56,6 @@ export const DefaultTrackballBindings = {
 };
 
 export const TrackballControlsParams = {
-    noScroll: PD.Boolean(true, { isHidden: true }),
-
     rotateSpeed: PD.Numeric(5.0, { min: 1, max: 10, step: 1 }),
     zoomSpeed: PD.Numeric(7.0, { min: 1, max: 15, step: 1 }),
     panSpeed: PD.Numeric(1.0, { min: 0.1, max: 5, step: 0.1 }),
