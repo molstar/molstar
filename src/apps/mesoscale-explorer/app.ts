@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -147,6 +147,7 @@ export class MesoscaleExplorer {
             behaviors: [
                 PluginSpec.Behavior(PluginBehaviors.Camera.CameraAxisHelper),
                 PluginSpec.Behavior(PluginBehaviors.Camera.CameraControls),
+                PluginSpec.Behavior(PluginBehaviors.State.SnapshotControls),
 
                 PluginSpec.Behavior(MesoFocusLoci),
                 PluginSpec.Behavior(MesoSelectLoci),
