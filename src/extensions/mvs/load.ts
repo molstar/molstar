@@ -66,6 +66,9 @@ async function _loadMVS(ctx: RuntimeContext, plugin: PluginContext, data: MVSDat
         const mvsExtensionLoaded = plugin.state.hasBehavior(MolViewSpec);
         if (!mvsExtensionLoaded) throw new Error('MolViewSpec extension is not loaded.');
 
+        // Stop any currently running audio
+        plugin.managers.markdownExtensions.audio.dispose();
+
         // Reset canvas props to default so that modifyCanvasProps works as expected
         resetCanvasProps(plugin);
 
@@ -86,7 +89,7 @@ async function _loadMVS(ctx: RuntimeContext, plugin: PluginContext, data: MVSDat
                 { ...snapshot.metadata, previousTransitionDurationMs: previousSnapshot.metadata.transition_duration_ms },
                 options
             );
-            await assignStateTransition(ctx, plugin, entry, snapshot, options);
+            await assignStateTransition(ctx, plugin, entry, snapshot, options, i, multiData.snapshots.length);
             entries.push(entry);
 
             if (ctx.shouldUpdate) {
@@ -121,8 +124,8 @@ async function _loadMVS(ctx: RuntimeContext, plugin: PluginContext, data: MVSDat
     }
 }
 
-async function assignStateTransition(ctx: RuntimeContext, plugin: PluginContext, parentEntry: PluginStateSnapshotManager.Entry, parent: Snapshot, options: MVSLoadOptions = {}) {
-    const transitions = await generateStateTransition(ctx, parent);
+async function assignStateTransition(ctx: RuntimeContext, plugin: PluginContext, parentEntry: PluginStateSnapshotManager.Entry, parent: Snapshot, options: MVSLoadOptions, snapshotIndex: number, snapshotCount: number) {
+    const transitions = await generateStateTransition(ctx, parent, snapshotIndex, snapshotCount);
     if (!transitions?.frames.length) return;
 
     const animation: PluginState.StateTransition = {
@@ -152,7 +155,7 @@ async function assignStateTransition(ctx: RuntimeContext, plugin: PluginContext,
         });
 
         if (ctx.shouldUpdate) {
-            await ctx.update({ message: 'Loading animation...', current: i + 1, max: transitions.frames.length });
+            await ctx.update({ message: `Loading animation for snapshot ${snapshotIndex + 1}/${snapshotCount}...`, current: i + 1, max: transitions.frames.length });
         }
     }
 
@@ -175,6 +178,10 @@ function molstarTreeToEntry(
         snapshot.camera = createPluginStateSnapshotCamera(plugin, context, metadata);
     }
     snapshot.durationInMs = metadata.linger_duration_ms + (metadata.previousTransitionDurationMs ?? 0);
+
+    if (tree.custom?.molstar_on_load_markdown_commands) {
+        snapshot.onLoadMarkdownCommands = tree.custom.molstar_on_load_markdown_commands;
+    }
 
     const entryParams: PluginStateSnapshotManager.EntryParams = {
         key: metadata.key,

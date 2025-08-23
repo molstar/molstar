@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { produce } from 'immer';
+import { produce } from '../../mol-util/produce';
 import { Interval } from '../../mol-data/int/interval';
 import { addCylinder } from '../../mol-geo/geometry/mesh/builder/cylinder';
 import { addSphere } from '../../mol-geo/geometry/mesh/builder/sphere';

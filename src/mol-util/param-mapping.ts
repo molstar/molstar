@@ -5,7 +5,7 @@
  */
 
 import { ParamDefinition as PD } from './param-definition';
-import { produce } from 'immer';
+import { produce } from './produce';
 import { Mutable } from './type-helpers';
 
 export interface ParamMapping<S, T, Ctx> {

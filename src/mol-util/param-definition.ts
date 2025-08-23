@@ -534,7 +534,7 @@ export namespace ParamDefinition {
         if (a === undefined) return { ...b };
         if (b === undefined) return { ...a };
 
-        const o = Object.create(null);
+        const o = {} as any;
         for (const k of Object.keys(params)) {
             o[k] = mergeParam(params[k], a[k], b[k]);
         }
@@ -587,7 +587,7 @@ export namespace ParamDefinition {
         if (p.type === 'value') {
             return value;
         } else if (p.type === 'group') {
-            const ret = Object.create(null);
+            const ret = {} as any;
             for (const key of Object.keys(p.params)) {
                 const param = p.params[key];
                 if (value[key] === void 0) {
@@ -638,7 +638,7 @@ export namespace ParamDefinition {
             return defaultIfUndefined ? getDefaultValues(p) : value;
         }
 
-        const ret = Object.create(null);
+        const ret = {} as any;
         for (const key of Object.keys(p)) {
             const param = p[key];
             if (value[key] === void 0) {

@@ -15,7 +15,19 @@ const Cartoon = {
     tubular_helices: OptionalField(bool, false, 'Simplify corkscrew helices to tubes.'),
 };
 
+const Backbone = {
+    /** Scales the corresponding visuals */
+    size_factor: OptionalField(float, 1, 'Scales the corresponding visuals.'),
+};
+
 const BallAndStick = {
+    /** Scales the corresponding visuals */
+    size_factor: OptionalField(float, 1, 'Scales the corresponding visuals.'),
+    /** Controls whether hydrogen atoms are drawn. */
+    ignore_hydrogens: OptionalField(bool, false, 'Controls whether hydrogen atoms are drawn.'),
+};
+
+const Line = {
     /** Scales the corresponding visuals */
     size_factor: OptionalField(float, 1, 'Scales the corresponding visuals.'),
     /** Controls whether hydrogen atoms are drawn. */
@@ -48,7 +60,9 @@ export const MVSRepresentationParams = UnionParamsSchema(
     'Representation type',
     {
         cartoon: SimpleParamsSchema(Cartoon),
+        backbone: SimpleParamsSchema(Backbone),
         ball_and_stick: SimpleParamsSchema(BallAndStick),
+        line: SimpleParamsSchema(Line),
         spacefill: SimpleParamsSchema(Spacefill),
         carbohydrate: SimpleParamsSchema(Carbohydrate),
         surface: SimpleParamsSchema(Surface),

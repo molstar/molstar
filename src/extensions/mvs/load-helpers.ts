@@ -369,9 +369,19 @@ function representationPropsBase(node: MolstarSubtree<'representation'>): Partia
                 type: { name: 'cartoon', params: { alpha, tubularHelices: params.tubular_helices } },
                 sizeTheme: { name: 'uniform', params: { value: params.size_factor } },
             };
+        case 'backbone':
+            return {
+                type: { name: 'backbone', params: { alpha } },
+                sizeTheme: { name: 'uniform', params: { value: params.size_factor } },
+            };
         case 'ball_and_stick':
             return {
                 type: { name: 'ball-and-stick', params: { sizeFactor: (params.size_factor ?? 1) * 0.5, sizeAspectRatio: 0.5, alpha, ignoreHydrogens: params.ignore_hydrogens } },
+            };
+        case 'line':
+            return {
+                type: { name: 'line', params: { alpha, ignoreHydrogens: params.ignore_hydrogens } },
+                sizeTheme: { name: 'uniform', params: { value: params.size_factor } },
             };
         case 'spacefill':
             return {
@@ -402,8 +412,8 @@ export function representationProps(node: MolstarSubtree<'representation'>): Par
     if (clip) {
         base.type!.params = { ...base.type?.params, clip };
     }
-    if (node.custom?.molstar_reprepresentation_params) {
-        base.type!.params = { ...base.type!.params, ...node.custom.molstar_reprepresentation_params };
+    if (node.custom?.molstar_representation_params) {
+        base.type!.params = { ...base.type!.params, ...node.custom.molstar_representation_params };
     }
     return base;
 }

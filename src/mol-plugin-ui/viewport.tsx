@@ -108,30 +108,32 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
     render() {
         return <div className={'msp-viewport-controls'}>
             <div className='msp-viewport-controls-buttons'>
-                <div className='msp-hover-box-wrapper'>
-                    <div className='msp-semi-transparent-background' />
-                    {this.icon(AutorenewSvg, this.resetCamera, 'Reset Zoom')}
-                    <div className='msp-hover-box-body'>
-                        <div className='msp-flex-column'>
-                            <div className='msp-flex-row'>
-                                <Button onClick={() => this.resetCamera()} disabled={!this.state.isCameraResetEnabled} title='Set camera zoom to fit the visible scene into view'>
-                                    Reset Zoom
-                                </Button>
-                            </div>
-                            <div className='msp-flex-row'>
-                                <Button onClick={() => PluginCommands.Camera.OrientAxes(this.plugin)} disabled={!this.state.isCameraResetEnabled} title='Align principal component axes of the loaded structures to the screen axes (“lay flat”)'>
-                                    Orient Axes
-                                </Button>
-                            </div>
-                            <div className='msp-flex-row'>
-                                <Button onClick={() => PluginCommands.Camera.ResetAxes(this.plugin)} disabled={!this.state.isCameraResetEnabled} title='Align Cartesian axes to the screen axes'>
-                                    Reset Axes
-                                </Button>
+                {this.plugin.config.get(PluginConfig.Viewport.ShowReset) &&
+                    <div className='msp-hover-box-wrapper'>
+                        <div className='msp-semi-transparent-background' />
+                        {this.icon(AutorenewSvg, this.resetCamera, 'Reset Zoom')}
+                        <div className='msp-hover-box-body'>
+                            <div className='msp-flex-column'>
+                                <div className='msp-flex-row'>
+                                    <Button onClick={() => this.resetCamera()} disabled={!this.state.isCameraResetEnabled} title='Set camera zoom to fit the visible scene into view'>
+                                        Reset Zoom
+                                    </Button>
+                                </div>
+                                <div className='msp-flex-row'>
+                                    <Button onClick={() => PluginCommands.Camera.OrientAxes(this.plugin)} disabled={!this.state.isCameraResetEnabled} title='Align principal component axes of the loaded structures to the screen axes (“lay flat”)'>
+                                        Orient Axes
+                                    </Button>
+                                </div>
+                                <div className='msp-flex-row'>
+                                    <Button onClick={() => PluginCommands.Camera.ResetAxes(this.plugin)} disabled={!this.state.isCameraResetEnabled} title='Align Cartesian axes to the screen axes'>
+                                        Reset Axes
+                                    </Button>
+                                </div>
                             </div>
                         </div>
+                        <div className='msp-hover-box-spacer'></div>
                     </div>
-                    <div className='msp-hover-box-spacer'></div>
-                </div>
+                }
                 {this.plugin.config.get(PluginConfig.Viewport.ShowScreenshotControls) && <div>
                     <div className='msp-semi-transparent-background' />
                     {this.icon(CameraOutlinedSvg, this.toggleScreenshotExpanded, 'Screenshot / State Snapshot', this.state.isScreenshotExpanded)}

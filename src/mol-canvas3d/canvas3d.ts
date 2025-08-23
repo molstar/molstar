@@ -34,7 +34,6 @@ import { ImagePass, ImageProps } from './passes/image';
 import { Sphere3D } from '../mol-math/geometry';
 import { addConsoleStatsProvider, isDebugMode, isTimingMode, removeConsoleStatsProvider } from '../mol-util/debug';
 import { CameraHelperParams } from './helper/camera-helper';
-import { produce } from 'immer';
 import { HandleHelperParams } from './helper/handle-helper';
 import { StereoCamera, StereoCameraParams } from './camera/stereo';
 import { Helper } from './helper/helper';
@@ -51,6 +50,7 @@ import { PointerHelperParams } from './helper/pointer-helper';
 import { XRManager, XRManagerParams } from './helper/xr-manager';
 import { Ray3D } from '../mol-math/geometry/primitives/ray3d';
 import { RayHelper } from './helper/ray-helper';
+import { produce } from '../mol-util/produce';
 
 export const CameraFogParams = {
     intensity: PD.Numeric(15, { min: 1, max: 100, step: 1 }),

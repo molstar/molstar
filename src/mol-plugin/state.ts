@@ -6,7 +6,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { produce } from 'immer';
+import { produce } from '../mol-util/produce';
 import { merge } from 'rxjs';
 import { Camera } from '../mol-canvas3d/camera';
 import { Canvas3DContext, Canvas3DParams, Canvas3DProps } from '../mol-canvas3d/canvas3d';
@@ -118,6 +118,11 @@ class PluginState extends PluginComponent {
                 durationMs: snapshot.camera.transitionStyle === 'animate' ? snapshot.camera.transitionDurationInMs : undefined,
             });
         }
+
+        if (typeof snapshot?.onLoadMarkdownCommands === 'object' && Object.keys(snapshot.onLoadMarkdownCommands).length > 0) {
+            this.plugin.managers.markdownExtensions.tryExecute('click', snapshot.onLoadMarkdownCommands);
+        }
+
         if (snapshot.startAnimation) {
             this.animation.start();
             return;
@@ -146,6 +151,10 @@ class PluginState extends PluginComponent {
                 snapshot: frame.camera.current,
                 durationMs: frame.camera.transitionStyle === 'animate' ? frame.camera.transitionDurationInMs : undefined,
             });
+        }
+
+        if (typeof snapshot?.onLoadMarkdownCommands === 'object' && Object.keys(snapshot.onLoadMarkdownCommands).length > 0) {
+            this.plugin.managers.markdownExtensions.tryExecute('click', snapshot.onLoadMarkdownCommands);
         }
     }
 
@@ -241,6 +250,7 @@ namespace PluginState {
         },
         durationInMs?: number,
         transition?: StateTransition,
+        onLoadMarkdownCommands?: Record<string, any>
     }
 
     export interface StateTransition {

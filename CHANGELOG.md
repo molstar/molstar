@@ -20,9 +20,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - MolViewSpec extension:
   - Generic color schemes (`palette` parameter for color_from_* nodes)
   - Annotation field remapping (`field_remapping` parameter for color_from_* nodes)
-  - Representation node: support custom property `molstar_reprepresentation_params`
-  - Primitives node: support custom property `molstar_mesh/label/line_params`
-  - Canvas node: support custom property `molstar_postprocessing` with the ability to customize outline, depth of field, bloom, shadow, occlusion (SSAO), and fog
+  - `representation` node: support custom property `molstar_representation_params`
+  - Add `backbone` and `line` representation types
+  - `primitives` node: support custom property `molstar_mesh/label/line_params`
+  - `canvas` node: support custom property `molstar_postprocessing` with the ability to customize outline, depth of field, bloom, shadow, occlusion (SSAO), and fog
   - `clip` node support for structure and volume representations
   - `grid_slice` representation support for volumes
   - Support tethers and background for primitive labels
@@ -40,14 +41,18 @@ Note that since we don't clearly distinguish between a public and private interf
   - MVSX - use Murmur hash instead of FNV in archive URI
   - Support additional file formats (pdbqt, gro, xyz, mol, sdf, mol2, xtc, lammpstrj)
   - Support loading trajectory coordinates from separate nodes
+  - Trigger markdown commands from primitives using `molstar_markdown_commands` custom extensions
+  - Support `molstar_on_load_markdown_commands` custom state on the `root` node
 - Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
 - Snapshot Markdown improvements
   - Add `MarkdownExtensionManager` (`PluginContext.managers.markdownExtensions`)
   - Support custom markdown commands to control the plugin via the `[link](!command)` pattern
   - Support rendering custom elements via the `![alt](!parameters)` pattern
   - Support tables
-  - Support loading images from MVSX files
+  - Support loading images and audio from MVSX files
   - Indicate external links with ⤴
+  - Audio support
+  - Add `PluginState.Snapshot.onLoadMarkdownCommands`
 - Avoid calculating rings for coarse-grained structures
 - Fix isosurface compute shader normals when transformation matrix is applied to volume
 - Symmetry operator naming for spacegroup symmetry - parenthesize multi-character indices (1_111-1 -> 1_(11)1(-1))
@@ -90,7 +95,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `Hsl` and (normalized) `Rgb` color spaces
 - Add `Color.interpolateHsl`
 - Add `rotationCenter` property to `TransformParam`
-- Add Monolayer transparency (exploiting dpoit)
+- Add Monolayer transparency (exploiting dpoit).
+- Add plugin config item ShowReset (shows/hides "Reset Zoom" button)
+- Fix transform params not being normalized when used together with param hash version
+- Replace `immer` with `mutative`
 - Add WebXR support
     - Requires immersive AR/VR headset
     - Supplements non-XR: enter/exit XR anytime and see (mostly) the same scene
