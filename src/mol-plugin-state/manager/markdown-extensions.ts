@@ -6,7 +6,7 @@
 
 import { getCellBoundingSphere } from '../../mol-plugin-state/manager/focus-camera/focus-object';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { StateObjectCell } from '../../mol-state';
+import { StateObjectCell, StateSelection } from '../../mol-state';
 import { PluginContext } from '../../mol-plugin/context';
 import { Script } from '../../mol-script/script';
 import { QueryContext, QueryFn, StructureElement, StructureSelection } from '../../mol-model/structure';
@@ -136,7 +136,8 @@ export const BuiltInMarkdownExtension: MarkdownExtension[] = [
                 if (!action.includes('focus')) {
                     return;
                 }
-                const spheres = structures.map(s => {
+                const decorated = structures.map(s => StateSelection.getDecorated<PluginStateObject.Molecule.Structure>(manager.plugin.state.data, s.transform.ref));
+                const spheres = decorated.map(s => {
                     if (!s.obj?.data) return undefined;
                     const selection = query(new QueryContext(s.obj.data));
                     if (StructureSelection.isEmpty(selection)) return;
