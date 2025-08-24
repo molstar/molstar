@@ -140,22 +140,35 @@ You can learn more about the work of Irving Geis at the **[Geis Archive on PDB-1
 ![Alt Text](https://cdn.rcsb.org/pdb101/motm/1/1-Myoglobin-geis-0218-myoglobin.png)
 *Illustration of myoglobin by Irving Geis. You can learn more about this painting at the Geis Archive on PDB-101.  
 Used with permission from the Howard Hughes Medical Institute, Copyright 2015.*
-
-
 `;
 
-// const firstEntity1 = q('(sel.atom.atom-groups (sel.atom.all))', 'mol-script');
-// const firstEntity1 = q('(sel.atom.atom-groups :entity-test (= atom.entry_id 1))', 'mol-script');
-const firstEntity2 = q('(sel.atom.atom-groups :entity-test (= atom.key.entity 1))', 'mol-script');
-// Build the query programmatically
-const query = MS.struct.generator.atomGroups({  
-    'atom-test': MS.core.rel.eq([  
-        MS.struct.atomProperty.core.modelLabel(),  
-        '1PMB'  
-    ])  
+
+const query1 = MS.struct.generator.atomGroups({
+    'atom-test': MS.core.rel.eq([
+        MS.struct.atomProperty.core.modelEntryId(),
+        '1MBN'
+    ])
 });
-const firstEntity1 = q(formatMolScript(query), 'mol-script');
-console.log(firstEntity1);
+const firstEntity1 = q(formatMolScript(query1), 'mol-script');
+const query2 = MS.struct.generator.atomGroups({
+    'atom-test': MS.core.rel.eq([
+        MS.struct.atomProperty.core.modelEntryId(),
+        '1PMB'
+    ])
+});
+const firstEntity2 = q(formatMolScript(query2), 'mol-script');
+
+const query3 = MS.struct.generator.atomGroups({
+    'atom-test': MS.core.rel.eq([
+        MS.struct.atomProperty.core.modelEntryId(),
+        '1MBN'
+    ]),
+    'residue-test': MS.core.set.has([
+        MS.set(12, 240, 87),
+        MS.struct.atomProperty.macromolecular.auth_seq_id()
+    ])
+});
+const charged_residues = q(formatMolScript(query3), 'mol-script');
 
 const description_p1=`
 # Myoglobin and Whales
@@ -170,12 +183,11 @@ store extra oxygen for use in their deep undersea dives. Typically, they have ab
 times more than in animals that live on land. A recent study revealed that a few special 
 modifications are needed to make this possible.
 Comparing [whale myoglobin](${firstEntity1})
-Comparing [whale myoglobin](${firstEntity2})
 (PDB entry [1mbn](https://www.rcsb.org/structure/1mbn)) with 
-[pig myoglobin](${q('model 1PMB')})
+[pig myoglobin](${firstEntity2})
 (PDB entry [1pmb](https://www.rcsb.org/structure/1pmb)), we find that there are 
 several mutations that add [extra positively-charged 
-amino acids](${q('index 96+1114+695')}) to the surface. Marine animals typically have these extra charges on 
+amino acids](${charged_residues}) to the surface. Marine animals typically have these extra charges on 
 the surface of their myoglobin 
 to help repel neighboring molecules and prevent aggregation when myoglobin is at 
 high concentrations.
