@@ -111,36 +111,11 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
         this.subscribe(this.plugin.managers.snapshot.events.changed, () => this.forceUpdate());
         this.subscribe(this.plugin.behaviors.state.isBusy, isBusy => this.setState({ isBusy }));
         this.subscribe(this.plugin.behaviors.state.isAnimating, isBusy => this.setState({ isBusy }));
-
-        window.addEventListener('keyup', this.keyUp, false);
     }
 
     componentWillUnmount() {
         super.componentWillUnmount();
-        window.removeEventListener('keyup', this.keyUp, false);
     }
-
-    keyUp = (e: KeyboardEvent) => {
-        if (!e.ctrlKey || this.state.isBusy || e.target !== document.body) return;
-        const snapshots = this.plugin.managers.snapshot;
-        if (e.keyCode === 37 || e.key === 'ArrowLeft') {
-            if (snapshots.state.isPlaying) snapshots.stop();
-            this.prev();
-        } else if (e.keyCode === 38 || e.key === 'ArrowUp') {
-            if (snapshots.state.isPlaying) snapshots.stop();
-            if (snapshots.state.entries.size === 0) return;
-            const e = snapshots.state.entries.get(0)!;
-            this.update(e.snapshot.id);
-        } else if (e.keyCode === 39 || e.key === 'ArrowRight') {
-            if (snapshots.state.isPlaying) snapshots.stop();
-            this.next();
-        } else if (e.keyCode === 40 || e.key === 'ArrowDown') {
-            if (snapshots.state.isPlaying) snapshots.stop();
-            if (snapshots.state.entries.size === 0) return;
-            const e = snapshots.state.entries.get(snapshots.state.entries.size - 1)!;
-            this.update(e.snapshot.id);
-        }
-    };
 
     async update(id: string) {
         this.setState({ isBusy: true });
