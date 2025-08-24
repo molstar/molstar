@@ -13,7 +13,7 @@ import { Loci } from '../../../mol-model/loci';
 import { Structure } from '../../../mol-model/structure';
 import { PluginContext } from '../../../mol-plugin/context';
 import { PluginState } from '../../../mol-plugin/state';
-import { StateObject, StateTransform } from '../../../mol-state';
+import { StateObjectCell, StateSelection, StateTransform } from '../../../mol-state';
 import { PluginStateObject } from '../../objects';
 
 
@@ -65,7 +65,7 @@ export function getCellBoundingSphere(plugin: PluginContext, cellRef: StateTrans
 /** Push bounding spheres within cell `cellRef` to `out`. If a cell does not define bounding spheres, collect bounding spheres from subtree. */
 function collectCellBoundingSpheres(out: Sphere3D[], plugin: PluginContext, cellRef: StateTransform.Ref): Sphere3D[] {
     const cell = plugin.state.data.cells.get(cellRef);
-    const spheres = getStateObjectBoundingSpheres(cell?.obj);
+    const spheres = getStateObjectBoundingSpheres(plugin, cell);
     if (spheres) {
         out.push(...spheres);
     } else {
@@ -76,14 +76,17 @@ function collectCellBoundingSpheres(out: Sphere3D[], plugin: PluginContext, cell
 }
 
 /** Return a set of bounding spheres of a plugin state object. Return `undefined` if this plugin state object type does not define bounding spheres. */
-function getStateObjectBoundingSpheres(obj: StateObject | undefined): Sphere3D[] | undefined {
+function getStateObjectBoundingSpheres(plugin: PluginContext, cell: StateObjectCell | undefined): Sphere3D[] | undefined {
+    const obj = cell?.obj;
     if (!obj) return undefined;
     if (!obj.data) {
         console.warn('Focus: no data');
         return undefined;
     }
     if (obj.data instanceof Structure) {
-        const sphere = Loci.getBoundingSphere(Structure.Loci(obj.data));
+        const decorated = StateSelection.getDecorated<PluginStateObject.Molecule.Structure>(plugin.state.data, cell.transform.ref);
+        const data = decorated?.obj?.data ?? obj?.data;
+        const sphere = Loci.getBoundingSphere(Structure.Loci(data));
         return sphere ? [sphere] : [];
     } else if (PluginStateObject.isRepresentation3D(obj)) {
         const out: Sphere3D[] = [];

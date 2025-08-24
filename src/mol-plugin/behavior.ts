@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 export * from './behavior/behavior';
@@ -13,6 +14,7 @@ import * as StaticMisc from './behavior/static/misc';
 
 import * as DynamicRepresentation from './behavior/dynamic/representation';
 import * as DynamicCamera from './behavior/dynamic/camera';
+import * as DynamicState from './behavior/dynamic/state';
 import * as DynamicCustomProps from './behavior/dynamic/custom-props';
 
 export const BuiltInPluginBehaviors = {
@@ -25,5 +27,6 @@ export const BuiltInPluginBehaviors = {
 export const PluginBehaviors = {
     Representation: DynamicRepresentation,
     Camera: DynamicCamera,
+    State: DynamicState,
     CustomProps: DynamicCustomProps
 };

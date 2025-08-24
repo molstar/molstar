@@ -147,6 +147,7 @@ export class MesoscaleExplorer {
             behaviors: [
                 PluginSpec.Behavior(PluginBehaviors.Camera.CameraAxisHelper),
                 PluginSpec.Behavior(PluginBehaviors.Camera.CameraControls),
+                PluginSpec.Behavior(PluginBehaviors.State.SnapshotControls),
 
                 PluginSpec.Behavior(MesoFocusLoci),
                 PluginSpec.Behavior(MesoSelectLoci),
@@ -265,7 +266,6 @@ export class MesoscaleExplorer {
             image: true,
             componentManager: false,
             structureSelection: true,
-            behavior: true,
         });
 
         plugin.managers.lociLabels.clearProviders();

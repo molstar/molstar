@@ -56,8 +56,6 @@ export const DefaultTrackballBindings = {
 };
 
 export const TrackballControlsParams = {
-    noScroll: PD.Boolean(true, { isHidden: true }),
-
     rotateSpeed: PD.Numeric(5.0, { min: 1, max: 10, step: 1 }),
     zoomSpeed: PD.Numeric(7.0, { min: 1, max: 15, step: 1 }),
     panSpeed: PD.Numeric(1.0, { min: 0.1, max: 5, step: 0.1 }),
@@ -85,8 +83,6 @@ export const TrackballControlsParams = {
     gestureScaleFactor: PD.Numeric(1, {}, { isHidden: true }),
     maxWheelDelta: PD.Numeric(0.02, {}, { isHidden: true }),
 
-    bindings: PD.Value(DefaultTrackballBindings, { isHidden: true }),
-
     /**
      * minDistance = minDistanceFactor * boundingSphere.radius + minDistancePadding
      * maxDistance = max(maxDistanceFactor * boundingSphere.radius, maxDistanceMin)
@@ -103,6 +99,11 @@ export const TrackballControlsParams = {
 };
 export type TrackballControlsProps = PD.Values<typeof TrackballControlsParams>
 
+export const DefaultTrackballControlsAttribs = {
+    bindings: DefaultTrackballBindings,
+};
+export type TrackballControlsAttribs = typeof DefaultTrackballControlsAttribs
+
 export { TrackballControls };
 interface TrackballControls {
     readonly viewport: Viewport
@@ -112,20 +113,25 @@ interface TrackballControls {
     readonly props: Readonly<TrackballControlsProps>
     setProps: (props: Partial<TrackballControlsProps>) => void
 
+    readonly attribs: Readonly<TrackballControlsAttribs>
+    setAttribs: (attribs: Partial<TrackballControlsAttribs>) => void
+
     start: (t: number) => void
     update: (t: number) => void
     reset: () => void
     dispose: () => void
 }
 namespace TrackballControls {
-    export function create(input: InputObserver, camera: Camera, scene: Scene, props: Partial<TrackballControlsProps> = {}): TrackballControls {
+    export function create(input: InputObserver, camera: Camera, scene: Scene, props: Partial<TrackballControlsProps> = {}, attribs: Partial<TrackballControlsAttribs> = {}): TrackballControls {
         const p: TrackballControlsProps = {
             ...PD.getDefaultValues(TrackballControlsParams),
             ...props,
-            // include default bindings for backwards state compatibility
-            bindings: { ...DefaultTrackballBindings, ...props.bindings }
         };
-        const b = p.bindings;
+        const a: TrackballControlsAttribs = {
+            ...DefaultTrackballControlsAttribs,
+            ...attribs
+        };
+        const b = a.bindings;
 
         const viewport = Viewport.clone(camera.viewport);
 
@@ -904,7 +910,12 @@ namespace TrackballControls {
                     }
                 }
                 Object.assign(p, props);
-                Object.assign(b, props.bindings);
+            },
+
+            get attribs() { return a as Readonly<TrackballControlsAttribs>; },
+            setAttribs: (attribs: Partial<TrackballControlsAttribs>) => {
+                Object.assign(a, attribs);
+                Object.assign(b, a.bindings);
             },
 
             start,

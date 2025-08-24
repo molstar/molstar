@@ -13,7 +13,7 @@ import { Vec3, Vec2 } from '../mol-math/linear-algebra';
 import { InputObserver, ModifiersKeys, ButtonsType } from '../mol-util/input/input-observer';
 import { Renderer, RendererStats, RendererParams } from '../mol-gl/renderer';
 import { GraphicsRenderObject } from '../mol-gl/render-object';
-import { TrackballControls, TrackballControlsParams } from './controls/trackball';
+import { DefaultTrackballControlsAttribs, TrackballControls, TrackballControlsParams } from './controls/trackball';
 import { Viewport } from './camera/util';
 import { createContext, WebGLContext, getGLContext } from '../mol-gl/webgl/context';
 import { Representation } from '../mol-repr/representation';
@@ -116,6 +116,11 @@ export type Canvas3DProps = PD.Values<typeof Canvas3DParams>
 export type PartialCanvas3DProps = {
     [K in keyof Canvas3DProps]?: Canvas3DProps[K] extends { name: string, params: any } ? Canvas3DProps[K] : Partial<Canvas3DProps[K]>
 }
+
+export const DefaultCanvas3DAttribs = {
+    trackball: DefaultTrackballControlsAttribs,
+};
+export type Canvas3DAttribs = typeof DefaultCanvas3DAttribs
 
 export { Canvas3DContext };
 
@@ -370,6 +375,7 @@ interface Canvas3D {
 
     /** Returns a copy of the current Canvas3D instance props */
     readonly props: Readonly<Canvas3DProps>
+    readonly attribs: Readonly<Canvas3DAttribs>
     readonly input: InputObserver
     readonly stats: RendererStats
     readonly interaction: Canvas3dInteractionHelper['events']
@@ -397,9 +403,10 @@ namespace Canvas3D {
     export interface DragEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, pageStart: Vec2, pageEnd: Vec2 }
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, page?: Vec2, position?: Vec3 }
 
-    export function create(ctx: Canvas3DContext, props: Partial<Canvas3DProps> = {}): Canvas3D {
+    export function create(ctx: Canvas3DContext, props: Partial<Canvas3DProps> = {}, attribs: Partial<Canvas3DAttribs> = {}): Canvas3D {
         const { webgl, input, passes, assetManager, canvas, contextLost } = ctx;
         const p: Canvas3DProps = { ...deepClone(DefaultCanvas3DParams), ...deepClone(props) };
+        const a = { ...deepClone(DefaultCanvas3DAttribs), ...deepClone(attribs) };
 
         const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>();
         const reprUpdatedSubscriptions = new Map<Representation.Any, Subscription>();
@@ -438,7 +445,7 @@ namespace Canvas3D {
         }, { x, y, width, height });
         const stereoCamera = new StereoCamera(camera, p.camera.stereo.params);
 
-        const controls = TrackballControls.create(input, camera, scene, p.trackball);
+        const controls = TrackballControls.create(input, camera, scene, p.trackball, a.trackball);
         const helper = new Helper(webgl, scene, p);
         const hiZ = new HiZPass(webgl, passes.draw, canvas, p.hiZ);
 
@@ -1319,6 +1326,9 @@ namespace Canvas3D {
 
             get props() {
                 return getProps();
+            },
+            get attribs() {
+                return a;
             },
             get input() {
                 return input;
