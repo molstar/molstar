@@ -37,7 +37,7 @@ export const SnapshotControls = PluginBehavior.create<SnapshotControlsProps>({
     ctor: class extends PluginBehavior.Handler<SnapshotControlsProps> {
         register(): void {
             this.subscribeObservable(this.ctx.behaviors.interaction.keyReleased, ({ code, modifiers, key }) => {
-                if (!this.ctx.canvas3d) return;
+                if (!this.ctx.canvas3d || this.ctx.isBusy) return;
 
                 // include defaults for backwards state compatibility
                 const b = this.params.bindings;
