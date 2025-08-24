@@ -24,7 +24,10 @@ const Trigger = Binding.Trigger;
 const Key = Binding.TriggerKey;
 
 export const DefaultTrackballBindings = {
-    dragRotate: Binding([Trigger(B.Flag.Primary, M.create())], 'Rotate', 'Drag using ${triggers}'),
+    dragRotate: Binding([
+        Trigger(B.Flag.Primary, M.create()),
+        Trigger(B.Flag.Trigger)
+    ], 'Rotate', 'Drag using ${triggers}'),
     dragRotateZ: Binding([Trigger(B.Flag.Primary, M.create({ shift: true, control: true }))], 'Rotate around z-axis (roll)', 'Drag using ${triggers}'),
     dragPan: Binding([
         Trigger(B.Flag.Secondary, M.create()),
@@ -38,8 +41,14 @@ export const DefaultTrackballBindings = {
     scrollFocus: Binding([Trigger(B.Flag.Auxilary, M.create({ shift: true }))], 'Clip', 'Scroll using ${triggers}'),
     scrollFocusZoom: Binding.Empty,
 
-    keyMoveForward: Binding([Key('KeyW')], 'Move forward', 'Press ${triggers}'),
-    keyMoveBack: Binding([Key('KeyS')], 'Move back', 'Press ${triggers}'),
+    keyMoveForward: Binding([
+        Key('KeyW'),
+        Key('GamepadUp'),
+    ], 'Move forward', 'Press ${triggers}'),
+    keyMoveBack: Binding([
+        Key('KeyS'),
+        Key('GamepadDown'),
+    ], 'Move back', 'Press ${triggers}'),
     keyMoveLeft: Binding([Key('KeyA')], 'Move left', 'Press ${triggers}'),
     keyMoveRight: Binding([Key('KeyD')], 'Move right', 'Press ${triggers}'),
     keyMoveUp: Binding([Key('KeyR')], 'Move up', 'Press ${triggers}'),
@@ -575,7 +584,7 @@ namespace TrackballControls {
             const dragFocus = Binding.match(b.dragFocus, buttons, modifiers);
             const dragFocusZoom = Binding.match(b.dragFocusZoom, buttons, modifiers);
 
-            if (useDelta) {
+            if (useDelta && dragRotate) {
                 Vec2.copy(_rotPrev, getMouseOnCircle(pageX - dx, pageY - dy));
             }
 
