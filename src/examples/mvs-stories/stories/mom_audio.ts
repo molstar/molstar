@@ -88,7 +88,7 @@ const GColors3 = {
 //     with open(fname, "rb") as f:
 //         b64 = base64.b64encode(f.read()).decode("utf-8")
 //     print(f"data:audio/mp4;base64,{b64}")
-//     return b64 
+//     return b64
 
 // const path = "https://raw.githubusercontent.com/molstar/molstar/master/";
 const path = "";
@@ -287,7 +287,7 @@ const Steps = [
             .opacity({ ref: 'lineopa', opacity: 0.0 });
 
             chA.representation({ type: 'cartoon' })
-            .color({ custom: { molstar_color_theme_name: "secondary-structure" } })
+            .color({ custom: { molstar_color_theme_name: "secondary-structure" } });
 
             const prims = _1mbn.primitives({
                 ref: 'prims',
@@ -679,6 +679,7 @@ const Steps = [
                 start: 0.0,
                 end: 1.0,
             });
+
             anim.interpolate({
                 kind: 'scalar',
                 target_ref: 'chargedn',
