@@ -507,7 +507,7 @@ namespace Representation {
 }
 
 let _EmptyRepresentation: Representation.Any | undefined = undefined;
-Object.defineProperty(Representation, "Empty", {
+Object.defineProperty(Representation, 'Empty', {
     get: () => {
         return _EmptyRepresentation ??= Representation.createEmpty();
     }

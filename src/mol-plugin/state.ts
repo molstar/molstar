@@ -153,7 +153,7 @@ class PluginState extends PluginComponent {
             });
         }
 
-        if (typeof snapshot?.onLoadMarkdownCommands === 'object' && Object.keys(snapshot.onLoadMarkdownCommands).length > 0) {
+        if (!frameIndex && typeof snapshot?.onLoadMarkdownCommands === 'object' && Object.keys(snapshot.onLoadMarkdownCommands).length > 0) {
             this.plugin.managers.markdownExtensions.tryExecute('click', snapshot.onLoadMarkdownCommands);
         }
     }

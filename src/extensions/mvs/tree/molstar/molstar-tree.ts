@@ -49,7 +49,7 @@ export const MolstarTreeSchema = TreeSchema({
         },
         /** Auxiliary node corresponding to Molstar's TrajectoryFrom*. */
         trajectory_with_coordinates: {
-            description: "Auxiliary node corresponding to assigning a separate coordinates to a trajectory.",
+            description: 'Auxiliary node corresponding to assigning a separate coordinates to a trajectory.',
             parent: ['model'],
             params: SimpleParamsSchema({
                 coordinates_ref: RequiredField(str, 'Coordinates reference'),
