@@ -85,6 +85,9 @@ const q = (expr: string, lang = 'pymol') =>
 
 const description_intro = `
 # Molecule of the Month: Myoglobin
+A story based on the orginal [first Molecule of the Month](https://pdb101.rcsb.org/motm/1) made by David Goodsell in January 2000.
+
+
 Basic controls for the audio comments :
 [Play](${encodeURIComponent(`!play-audio=${_Audio1}`)})
 [Pause](!pause-audio)
