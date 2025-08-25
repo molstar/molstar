@@ -80,6 +80,8 @@ export class RayHelper {
         this.camera.near = cam.near;
         this.camera.fogFar = cam.fogFar;
         this.camera.fogNear = cam.fogNear;
+        this.camera.forceFull = cam.forceFull;
+        this.camera.scale = cam.scale;
         Viewport.copy(this.camera.viewport, this.viewport);
         Camera.copySnapshot(this.camera.state, { ...cam.state, mode: 'orthographic' });
 
@@ -104,7 +106,7 @@ export class RayHelper {
     }
 
     identify(ray: Ray3D, cam: Camera): PickData | undefined {
-        if (!this.intersectsScene(ray, cam.state.scale)) return;
+        if (!this.intersectsScene(ray, cam.scale)) return;
 
         this.prepare(ray, cam);
 
@@ -117,7 +119,7 @@ export class RayHelper {
     }
 
     asyncIdentify(ray: Ray3D, cam: Camera): AsyncPickData | undefined {
-        if (!this.intersectsScene(ray, cam.state.scale)) return;
+        if (!this.intersectsScene(ray, cam.scale)) return;
 
         this.prepare(ray, cam);
 
@@ -171,7 +173,7 @@ export class RayHelper {
 function updateOrthoRayCamera(camera: Camera, ray: Ray3D) {
     const { near, far, viewport } = camera;
 
-    const height = 2 * Math.tan(degToRad(0.1) / 2) * Vec3.distance(camera.position, camera.target) * camera.state.scale;
+    const height = 2 * Math.tan(degToRad(0.1) / 2) * Vec3.distance(camera.position, camera.target) * camera.scale;
     const zoom = viewport.height / height;
 
     const fullLeft = -viewport.width / 2;

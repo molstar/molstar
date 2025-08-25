@@ -99,6 +99,13 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add plugin config item ShowReset (shows/hides "Reset Zoom" button)
 - Fix transform params not being normalized when used together with param hash version
 - Replace `immer` with `mutative`
+- Add WebXR support
+    - Requires immersive AR/VR headset
+    - Supplements non-XR: enter/exit XR anytime and see (mostly) the same scene
+    - Add `Canvas3D.xr` for managing XR sessions
+    - Add `PointerHelper` for XR input devices
+    - Add XR button to Viewer and Mesoscale Explorer
+    - Add XR button to render-structure in tests/browser
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:

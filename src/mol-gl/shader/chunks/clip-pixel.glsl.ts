@@ -1,6 +1,6 @@
 export const clip_pixel = `
 #if defined(dClipVariant_pixel) && dClipObjectCount != 0
-    if (clipTest(vModelPosition))
+    if (clipTest(vModelPosition / uModelScale))
         discard;
 #endif
 `;

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -21,6 +21,7 @@ const Key = Binding.TriggerKey;
 const DefaultMesoFocusLociBindings = {
     clickCenter: Binding([
         Trigger(B.Flag.Primary, M.create()),
+        Trigger(B.Flag.Trigger),
     ], 'Camera center', 'Click element using ${triggers}'),
     clickCenterFocus: Binding([
         Trigger(B.Flag.Secondary, M.create()),

@@ -313,6 +313,8 @@ export class PluginContext {
             this.subs.push(this.canvas3d!.input.resize.pipe(debounceTime(50), throttleTime(100, undefined, { leading: false, trailing: true })).subscribe(() => this.handleResize()));
             this.subs.push(this.canvas3d!.input.keyDown.subscribe(e => this.behaviors.interaction.key.next(e)));
             this.subs.push(this.canvas3d!.input.keyUp.subscribe(e => this.behaviors.interaction.keyReleased.next(e)));
+            this.subs.push(this.canvas3d!.xr.isPresenting.subscribe(e => this.log.info(`WebXR ${e ? 'enabled' : 'disabled'}`)));
+            this.subs.push(this.canvas3d!.xr.requestFailed.subscribe(e => this.log.error(`WebXR request failed: ${e}`)));
             this.subs.push(this.layout.events.updated.subscribe(() => requestAnimationFrame(() => this.handleResize())));
 
             this.handleResize();

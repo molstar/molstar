@@ -47,7 +47,8 @@ export function getErrorDescription(gl: GLRenderingContext, error: number) {
 export function checkError(gl: GLRenderingContext, message?: string) {
     const error = gl.getError();
     if (error !== gl.NO_ERROR) {
-        throw new Error(`WebGL error: '${getErrorDescription(gl, error)}'${message ? ` (${message})` : ''}`);
+        console.log(`WebGL error: '${getErrorDescription(gl, error)}'${message ? ` (${message})` : ''}`);
+        // throw new Error(`WebGL error: '${getErrorDescription(gl, error)}'${message ? ` (${message})` : ''}`);
     }
 }
 
@@ -87,6 +88,10 @@ function unbindResources(gl: GLRenderingContext) {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
     gl.bindRenderbuffer(gl.RENDERBUFFER, null);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    if (isWebGL2(gl)) {
+        gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+    }
 }
 
 const tmpPixel = new Uint8Array(1 * 4);
@@ -146,13 +151,17 @@ export function readPixels(gl: GLRenderingContext, x: number, y: number, width: 
     if (isDebugMode) checkError(gl);
 }
 
-function bindDrawingBuffer(gl: GLRenderingContext) {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+function bindDrawingBuffer(gl: GLRenderingContext, xrLayer?: XRWebGLLayer) {
+    if (xrLayer) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, xrLayer.framebuffer);
+    } else {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
 }
 
-function getDrawingBufferSize(gl: GLRenderingContext) {
-    const width = gl.drawingBufferWidth;
-    const height = gl.drawingBufferHeight;
+function getDrawingBufferSize(gl: GLRenderingContext, xrLayer?: XRWebGLLayer) {
+    const width = xrLayer?.framebufferWidth ?? gl.drawingBufferWidth;
+    const height = xrLayer?.framebufferHeight ?? gl.drawingBufferHeight;
     return { width, height };
 }
 
@@ -240,6 +249,13 @@ export interface WebGLContext {
     setContextLost: () => void
     handleContextRestored: (extraResets?: () => void) => void
 
+    readonly xr: {
+        readonly session?: XRSession
+        readonly changed: Subject<void>
+        set: (session: XRSession | undefined, options?: { resolutionScale?: number }) => Promise<void>
+        end: () => Promise<void>
+    }
+
     setPixelScale: (value: number) => void
 
     /** Cache for compute renderables, managed by consumers */
@@ -304,6 +320,17 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
 
     let pixelScale = props.pixelScale || 1;
 
+    const xr = {
+        session: undefined as XRSession | undefined,
+        layer: undefined as XRWebGLLayer | undefined,
+        changed: new Subject<void>(),
+        clear: () => {
+            xr.layer = undefined;
+            xr.session = undefined;
+            xr.changed.next();
+        }
+    };
+
     const renderTargets = new Set<RenderTarget>();
 
     return {
@@ -355,6 +382,45 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
             contextRestored.next(now());
         },
 
+        xr: {
+            get session() {
+                return xr.session;
+            },
+            changed: xr.changed,
+            set: async (session: XRSession | undefined, options?: { resolutionScale?: number }) => {
+                if (xr.session === session) return;
+
+                await xr.session?.end();
+                if (session === undefined) return;
+
+                try {
+                    await gl.makeXRCompatible();
+                    xr.session = session;
+                    xr.layer = new XRWebGLLayer(xr.session, gl, {
+                        antialias: true,
+                        alpha: true,
+                        depth: true,
+                        framebufferScaleFactor: pixelScale * (options?.resolutionScale ?? 1),
+                    });
+                    await xr.session.updateRenderState({ baseLayer: xr.layer });
+
+                    xr.session.addEventListener('end', xr.clear);
+                    xr.changed.next();
+                } catch (err) {
+                    if (session) {
+                        await session.end();
+                    } else {
+                        xr.layer = undefined;
+                        xr.session = undefined;
+                    }
+                    throw err;
+                }
+            },
+            end: async () => {
+                return xr.session?.end();
+            },
+        },
+
         setPixelScale: (value: number) => {
             pixelScale = value;
         },
@@ -377,18 +443,18 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
                 framebuffer: createNullFramebuffer(),
                 depthRenderbuffer: null,
 
-                getWidth: () => getDrawingBufferSize(gl).width,
-                getHeight: () => getDrawingBufferSize(gl).height,
+                getWidth: () => getDrawingBufferSize(gl, xr.layer).width,
+                getHeight: () => getDrawingBufferSize(gl, xr.layer).height,
                 bind: () => {
-                    bindDrawingBuffer(gl);
+                    bindDrawingBuffer(gl, xr.layer);
                 },
                 setSize: () => {},
                 reset: () => {},
                 destroy: () => {}
             };
         },
-        bindDrawingBuffer: () => bindDrawingBuffer(gl),
-        getDrawingBufferSize: () => getDrawingBufferSize(gl),
+        bindDrawingBuffer: () => bindDrawingBuffer(gl, xr.layer),
+        getDrawingBufferSize: () => getDrawingBufferSize(gl, xr.layer),
         readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array | Int32Array) => {
             readPixels(gl, x, y, width, height, buffer);
         },
@@ -411,8 +477,8 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
             if (isWebGL2(gl)) gl.deleteSync(sync);
         },
         clear: (red: number, green: number, blue: number, alpha: number) => {
-            const drs = getDrawingBufferSize(gl);
-            bindDrawingBuffer(gl);
+            const drs = getDrawingBufferSize(gl, xr.layer);
+            bindDrawingBuffer(gl, xr.layer);
             state.enable(gl.SCISSOR_TEST);
             state.depthMask(true);
             state.colorMask(true, true, true, true);
@@ -432,6 +498,12 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         destroy: (options?: Partial<{ doNotForceWebGLContextLoss: boolean }>) => {
             resources.destroy();
             unbindResources(gl);
+
+            xr.session?.removeEventListener('end', xr.clear);
+            xr.session?.end();
+
+            contextRestored.complete();
+            xr.changed.complete();
 
             // to aid GC
             if (!options?.doNotForceWebGLContextLoss) {

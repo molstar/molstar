@@ -124,7 +124,7 @@ void main(void){
 
     #if defined(dRenderVariant_color) || defined(dRenderVariant_tracing)
         if (uRenderMask == MaskTransparent && uAlphaThickness > 0.0) {
-            material.a *= min(1.0, vRadius / uAlphaThickness);
+            material.a *= min(1.0, vRadius / (uAlphaThickness * uModelScale));
         }
     #endif
 

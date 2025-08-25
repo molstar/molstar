@@ -253,6 +253,10 @@ export class MesoscaleExplorer {
             },
             cameraFog: { name: 'off', params: {} },
             hiZ: { enabled: true },
+            xr: {
+                disablePostprocessing: false,
+                sceneRadiusInMeters: 0.75,
+            },
         });
 
         plugin.representation.structure.registry.clear();

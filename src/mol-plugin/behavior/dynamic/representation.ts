@@ -241,6 +241,7 @@ export const DefaultLociLabelProvider = PluginBehavior.create({
 export const DefaultFocusLociBindings = {
     clickFocus: Binding([
         Trigger(B.Flag.Primary, M.create()),
+        Trigger(B.Flag.Trigger),
     ], 'Representation Focus', 'Click element using ${triggers}'),
     clickFocusAdd: Binding([
         Trigger(B.Flag.Primary, M.create({ control: true })),
