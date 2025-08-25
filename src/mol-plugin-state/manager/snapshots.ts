@@ -233,7 +233,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
         const next = entry && entry.snapshot;
         if (!next) return;
         await this.plugin.state.setSnapshot(next);
-        if (snapshot.playback && snapshot.playback.isPlaying) this.play(true);
+        if (snapshot.playback?.isPlaying) this.play({ delayFirst: true });
         return next;
     }
 
@@ -380,10 +380,18 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
         }
     }
 
-    play(delayFirst: boolean = false) {
+    async play(options?: { delayFirst?: boolean, restart?: boolean }) {
+        if (this.state.isPlaying && !options?.delayFirst) {
+            if (options?.restart) {
+                await this.stop();
+            } else {
+                return;
+            }
+        }
+
         this.updateState({ isPlaying: true });
 
-        if (delayFirst) {
+        if (options?.delayFirst) {
             const e = this.getEntry(this.state.current);
             if (!e) {
                 this.next();
@@ -398,21 +406,20 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
         }
     }
 
-    stop() {
-        this.plugin.managers.animation.stop();
+    async stop() {
+        await this.plugin.managers.animation.stop();
         this.updateState({ isPlaying: false });
         if (typeof this.timeoutHandle !== 'undefined') clearTimeout(this.timeoutHandle);
         this.timeoutHandle = void 0;
         this.events.changed.next(void 0);
     }
 
-    togglePlay() {
+    async togglePlay() {
         if (this.state.isPlaying) {
-            this.stop();
-            this.plugin.managers.animation.stop();
+            await this.stop();
             this.plugin.managers.markdownExtensions.audio.pause();
         } else {
-            this.play();
+            await this.play();
         }
     }
 

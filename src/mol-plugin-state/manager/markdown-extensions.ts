@@ -11,6 +11,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { Script } from '../../mol-script/script';
 import { QueryContext, QueryFn, StructureElement, StructureSelection } from '../../mol-model/structure';
 import { BehaviorSubject } from 'rxjs';
+import { AnimateStateSnapshotTransition } from '../animation/built-in/state-snapshots';
 
 export type MarkdownExtensionEvent = 'click' | 'mouse-enter' | 'mouse-leave';
 
@@ -185,6 +186,27 @@ export const BuiltInMarkdownExtension: MarkdownExtension[] = [
             manager.audio.stop();
         }
     },
+    {
+        name: 'dispose-audio',
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click' || !('dispose-audio' in args)) return;
+            manager.audio.dispose();
+        }
+    },
+    {
+        name: 'play-transition',
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click' || !('play-transition' in args)) return;
+            manager.plugin.managers.animation.play(AnimateStateSnapshotTransition, {});
+        }
+    },
+    {
+        name: 'play-snapshots',
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click' || !('play-snapshots' in args)) return;
+            manager.plugin.managers.snapshot.play({ restart: true });
+        }
+    }
 ];
 
 export class MarkdownExtensionManager {

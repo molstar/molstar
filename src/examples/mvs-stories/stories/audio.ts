@@ -22,15 +22,16 @@ const Steps = [
     {
         header: 'Audio Demo',
         key: 'intro',
-        description: `### Audio Playback
+        description: `
+**Audio**
+[‹ **▶ Play** ›](${encodeURIComponent(`!play-audio=${_Audio}`)})
+[‹ **⏸ Pause** ›](!pause-audio)
+[‹ **⏹ Stop** ›](!stop-audio) 
+[‹ **Hide** ›](!dispose-audio)
+
+### Audio Playback
 
 A simple example showcasing audio playback.
-
-Basic controls:
-
-[Play](${encodeURIComponent(`!play-audio=${_Audio}`)})
-[Pause](!pause-audio)
-[Stop](!stop-audio)
         `,
         linger_duration_ms: 2000,
         transition_duration_ms: 500,
@@ -50,7 +51,7 @@ Basic controls:
                     }
                 }
             });
-            prims.label({ text: 'Click to Play', position: { label_asym_id: 'A' }, label_size: 10 });
+            prims.label({ text: '▶ Click to Play', position: { label_asym_id: 'A' }, label_size: 10 });
 
             return builder;
         },
@@ -67,7 +68,7 @@ Basic controls:
 
 If you clicked "Click to Play" in the previous snapshot, the audio should be playing now.
 
-[Stop](!stop-audio)
+[Stop Audio](!stop-audio)
         `,
         linger_duration_ms: 2000,
         transition_duration_ms: 500,
@@ -103,7 +104,7 @@ If you clicked "Click to Play" in the previous snapshot, the audio should be pla
 
 If you browser security permissions allow it, the audio should start playing automatically when the snapshot gets loaded
 
-[Stop](!stop-audio)
+[Stop Audio](!stop-audio)
         `,
         linger_duration_ms: 2000,
         transition_duration_ms: 500,
