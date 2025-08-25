@@ -380,39 +380,33 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
         }
     }
 
-    play(delayFirst: boolean = false) {
-        this.updateState({ isPlaying: true });
-
-        if (delayFirst) {
-            const e = this.getEntry(this.state.current);
-            if (!e) {
-                this.next();
+    async play(options?: { restart?: boolean }) {
+        if (this.state.isPlaying) {
+            if (options?.restart) {
+                await this.stop();
+            } else {
                 return;
             }
-            this.events.changed.next(void 0);
-            const snapshot = e.snapshot;
-            const delay = typeof snapshot.durationInMs !== 'undefined' ? snapshot.durationInMs : this.state.nextSnapshotDelayInMs;
-            this.timeoutHandle = setTimeout(this.next, delay);
-        } else {
-            this.startPlayback();
         }
+
+        this.updateState({ isPlaying: true });
+        this.startPlayback();
     }
 
-    stop() {
-        this.plugin.managers.animation.stop();
+    async stop() {
+        await this.plugin.managers.animation.stop();
         this.updateState({ isPlaying: false });
         if (typeof this.timeoutHandle !== 'undefined') clearTimeout(this.timeoutHandle);
         this.timeoutHandle = void 0;
         this.events.changed.next(void 0);
     }
 
-    togglePlay() {
+    async togglePlay() {
         if (this.state.isPlaying) {
-            this.stop();
-            this.plugin.managers.animation.stop();
+            await this.stop();
             this.plugin.managers.markdownExtensions.audio.pause();
         } else {
-            this.play();
+            await this.play();
         }
     }
 

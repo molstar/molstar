@@ -22,7 +22,12 @@ const Steps = [
         header: 'Animation Demo',
         key: 'intro',
         description: `### Molecular Animation
-A story showcasing MolViewSpec animation capabilities.`,
+A story showcasing MolViewSpec animation capabilities.
+
+[🔄 Replay Intro](!play-transition)
+[⏵ Play Snapshots](!play-snapshots)
+
+`,
         linger_duration_ms: 2000,
         transition_duration_ms: 500,
         state: (): Root => {

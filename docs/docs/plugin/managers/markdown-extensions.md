@@ -20,6 +20,8 @@ Generally, the command should be URL encoded, e.g., `a b` => `a%20b` (in JS, `en
 
 - `center-camera` - Centers the camera
 - `apply-snapshot=key` - Loads snapshots with the provided key
+- `play-snapshots` - Starts playback of state snapshots
+- `play-transition` - Plays an animation associated with the given snapshot
 - `focus-refs=ref1,ref2,...` - On click, focuses nodes with the provided refs
 - `highlight-refs=ref1,ref2,...` - On mouse over, highlights the provided refs
 - `query=...&lang=...&action=highlight,focus&focus-radius=...`
@@ -28,7 +30,7 @@ Generally, the command should be URL encoded, e.g., `a b` => `a%20b` (in JS, `en
     - (optional) `action` is an array of `highlight` (default), `focus` (multiple actions can be specified)
     - (optional) `focus-radius` is extra distance applied when focusing the selection (default is `3`)
     - Example: `[HEM](!query=resn%20HEM%26lang=pymol&action=highlight,focus)` highlights or focuses the HEM residue (the query must be URL encoded because it contains spaces and possibly other special characters)
-- `play-audio=src`, `toggle-audio[=str]`, `stop-audio`, `pause-audio` - Audio playback support
+- `play-audio=src`, `toggle-audio[=src]`, `stop-audio`, `pause-audio`, `dispose-audio` - Audio playback support
 
 ## Custom Content
 
