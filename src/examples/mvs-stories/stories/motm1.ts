@@ -668,6 +668,7 @@ const Steps = [
                 frequency: 4,
                 alternate_direction: true,
                 property: 'model_index',
+                discrete: true,
                 start: 0,
                 end: 11,
             });

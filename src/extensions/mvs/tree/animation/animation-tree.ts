@@ -48,6 +48,7 @@ const ScalarInterpolation = {
     ..._Easing,
     start: OptionalField(nullable(union(float, list(float))), null, 'Start value. If a list of values is provided, each element will be interpolated separately. If unset, parent state value is used.'),
     end: OptionalField(nullable(union(float, list(float))), null, 'End value. If a list of values is provided, each element will be interpolated separately. If unset, only noise is applied.'),
+    discrete: OptionalField(bool, false, 'Whether to round the values to the closest integer. Useful for example for trajectory animation.'),
     ..._Noise,
 };
 
