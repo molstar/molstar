@@ -73,12 +73,13 @@ const GColors3 = {
     }
 } as unknown as MVSNodeParams<'color_from_source'>;
 
-// const path = "https://raw.githubusercontent.com/molstar/molstar/master";
-const path = '';
-const _Audio1 = path + '/examples/audio/AudioMOM1_A.mp3';
-const _Audio2 = path + '/examples/audio/AudioMOM1_B.mp3';
-const _Audio3 = path + '/examples/audio/AudioMOM1_C.mp3';
-const _Audio4 = path + '/examples/audio/AudioMOM1_D.mp3';
+const audioPathBase = 'https://raw.githubusercontent.com/molstar/molstar/master';
+// For local debug
+// const audioPathBase = '';
+const _Audio1 = audioPathBase + '/examples/audio/AudioMOM1_A.mp3';
+const _Audio2 = audioPathBase + '/examples/audio/AudioMOM1_B.mp3';
+const _Audio3 = audioPathBase + '/examples/audio/AudioMOM1_C.mp3';
+const _Audio4 = audioPathBase + '/examples/audio/AudioMOM1_D.mp3';
 
 const q = (expr: string, lang = 'pymol') =>
     `!query=${encodeURIComponent(expr)}&lang=${lang}&action=highlight,focus`;
