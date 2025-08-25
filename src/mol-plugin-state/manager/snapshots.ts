@@ -233,7 +233,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
         const next = entry && entry.snapshot;
         if (!next) return;
         await this.plugin.state.setSnapshot(next);
-        if (snapshot.playback && snapshot.playback.isPlaying) this.play(true);
+        if (snapshot.playback?.isPlaying) this.play({ delayFirst: true });
         return next;
     }
 
@@ -380,8 +380,8 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
         }
     }
 
-    async play(options?: { restart?: boolean }) {
-        if (this.state.isPlaying) {
+    async play(options?: { delayFirst?: boolean, restart?: boolean }) {
+        if (this.state.isPlaying && !options?.delayFirst) {
             if (options?.restart) {
                 await this.stop();
             } else {
@@ -390,7 +390,20 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
         }
 
         this.updateState({ isPlaying: true });
-        this.startPlayback();
+
+        if (options?.delayFirst) {
+            const e = this.getEntry(this.state.current);
+            if (!e) {
+                this.next();
+                return;
+            }
+            this.events.changed.next(void 0);
+            const snapshot = e.snapshot;
+            const delay = typeof snapshot.durationInMs !== 'undefined' ? snapshot.durationInMs : this.state.nextSnapshotDelayInMs;
+            this.timeoutHandle = setTimeout(this.next, delay);
+        } else {
+            this.startPlayback();
+        }
     }
 
     async stop() {
