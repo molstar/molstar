@@ -53,10 +53,10 @@ export const DefaultXRManagerBindings = {
     togglePassthrough: Binding([Key('GamepadA')]),
     gestureScale: Binding([Trigger(B.Flag.Trigger)]),
 };
-export const DefaultXRManagerBindingsAttribs = {
+export const DefaultXRManagerAttribs = {
     bindings: DefaultXRManagerBindings,
 };
-export type XRManagerBindingsAttribs = typeof DefaultXRManagerBindingsAttribs
+export type XRManagerAttribs = typeof DefaultXRManagerAttribs
 
 export const XRManagerParams = {
     minTargetDistance: PD.Numeric(0.4, { min: 0.001, max: 1, step: 0.001 }),
@@ -293,7 +293,7 @@ export class XRManager {
         navigator.xr?.removeEventListener('devicechange', this.checkSupported);
     }
 
-    constructor(private webgl: WebGLContext, private input: InputObserver, private scene: Scene, private camera: Camera, private stereoCamera: StereoCamera, private pointerHelper: PointerHelper, private interactionHelper: Canvas3dInteractionHelper, props: Partial<XRManagerProps> = {}, attribs: Partial<XRManagerBindingsAttribs> = {}) {
+    constructor(private webgl: WebGLContext, private input: InputObserver, private scene: Scene, private camera: Camera, private stereoCamera: StereoCamera, private pointerHelper: PointerHelper, private interactionHelper: Canvas3dInteractionHelper, props: Partial<XRManagerProps> = {}, attribs: Partial<XRManagerAttribs> = {}) {
         this.props = { ...PD.getDefaultValues(XRManagerParams), ...props };
 
         this.hoverSub = this.interactionHelper.events.hover.subscribe(({ position }) => {
