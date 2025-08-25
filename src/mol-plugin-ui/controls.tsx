@@ -105,7 +105,7 @@ export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: bo
 }
 
 export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBusy: boolean, show: boolean, showAnimation: boolean }> {
-    state = { isBusy: false, show: true, showAnimation: true };
+    state = { isBusy: false, show: true, showAnimation: false };
 
     componentDidMount() {
         this.subscribe(this.plugin.managers.snapshot.events.changed, () => this.forceUpdate());
