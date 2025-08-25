@@ -8,12 +8,12 @@ import { buildStory as kinase } from './kinase';
 import { buildStory as tbp } from './tbp';
 import { buildStory as animation } from './animation';
 import { buildStory as audio } from './audio';
-import { buildStory as mom_audio } from './mom_audio';
+import { buildStory as motm1 } from './motm1';
 
 export const Stories = [
     { id: 'kinase', name: 'BCR-ABL: A Kinase Out of Control', buildStory: kinase },
     { id: 'tata', name: 'TATA-Binding Protein and its Role in Transcription Initiation ', buildStory: tbp },
-    { id: 'animation', name: 'Molecular Animation', buildStory: animation },
-    { id: 'audio', name: 'Audio Playback', buildStory: audio },
-    { id: 'mom_audio', name: 'MOM Audio Playback', buildStory: mom_audio },
+    { id: 'motm1', name: 'RCSB Molecule of the Month #1', buildStory: motm1 },
+    { id: 'animation-example', name: 'Molecular Animation Example', buildStory: animation },
+    { id: 'audio-example', name: 'Audio Playback Example', buildStory: audio },
 ] as const;
