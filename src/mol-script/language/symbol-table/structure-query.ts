@@ -276,7 +276,8 @@ const atomProperty = {
         instanceId: atomProp(Type.Str, 'Canonical name of the symmetry operator applied to this element.'),
         operatorKey: atomProp(Type.Num, 'Key of the symmetry operator applied to this element.'),
         modelIndex: atomProp(Type.Num, 'Index of the model in the input file.'),
-        modelLabel: atomProp(Type.Str, 'Label/header of the model in the input file.')
+        modelLabel: atomProp(Type.Str, 'Label/header of the model in the input file.'),
+        modelEntryId: atomProp(Type.Str, 'Entry ID of the model (e.g., PDB ID).')
     },
 
     topology: {

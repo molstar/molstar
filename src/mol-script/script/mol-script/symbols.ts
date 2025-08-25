@@ -215,6 +215,7 @@ export const SymbolTable = [
             Alias(MolScript.structureQuery.atomProperty.core.operatorKey, 'atom.op-key'),
             Alias(MolScript.structureQuery.atomProperty.core.modelIndex, 'atom.model-index'),
             Alias(MolScript.structureQuery.atomProperty.core.modelLabel, 'atom.model-label'),
+            Alias(MolScript.structureQuery.atomProperty.core.modelEntryId, 'atom.model-entry-id'),
             Alias(MolScript.structureQuery.atomProperty.core.atomKey, 'atom.key'),
             Alias(MolScript.structureQuery.atomProperty.core.bondCount, 'atom.bond-count'),
 

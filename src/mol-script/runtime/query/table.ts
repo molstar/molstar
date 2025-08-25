@@ -309,6 +309,7 @@ const symbols = [
     D(MolScript.structureQuery.atomProperty.core.operatorKey, atomProp(StructureProperties.unit.operator_key)),
     D(MolScript.structureQuery.atomProperty.core.modelIndex, atomProp(StructureProperties.unit.model_index)),
     D(MolScript.structureQuery.atomProperty.core.modelLabel, atomProp(StructureProperties.unit.model_label)),
+    D(MolScript.structureQuery.atomProperty.core.modelEntryId, atomProp(StructureProperties.unit.model_entry_id)),
     D(MolScript.structureQuery.atomProperty.core.atomKey, (ctx, xs) => {
         const e = (xs && xs[0] && xs[0](ctx) as any) || ctx.element;
         return cantorPairing(e.unit.id, e.element);
