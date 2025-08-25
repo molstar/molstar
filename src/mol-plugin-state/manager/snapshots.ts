@@ -410,6 +410,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
         if (this.state.isPlaying) {
             this.stop();
             this.plugin.managers.animation.stop();
+            this.plugin.managers.markdownExtensions.audio.pause();
         } else {
             this.play();
         }

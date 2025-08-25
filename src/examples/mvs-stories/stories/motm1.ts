@@ -88,7 +88,7 @@ const description_intro = `
 A story based on the orginal [first Molecule of the Month](https://pdb101.rcsb.org/motm/1) made by David Goodsell in January 2000.
 
 
-Basic controls for the audio comments :
+Basic controls for the audio comments:
 [Play](${encodeURIComponent(`!play-audio=${_Audio1}`)})
 [Pause](!pause-audio)
 [Stop](!stop-audio)
@@ -159,7 +159,7 @@ const charged_residues = q(formatMolScript(query3), 'mol-script');
 
 const description_p1 = `
 # Myoglobin and Whales
-Basic controls for the audio comments :
+Basic controls for the audio comments:
 [Play](${encodeURIComponent(`!play-audio=${_Audio2}`)})
 [Pause](!pause-audio)
 [Stop](!stop-audio)
@@ -182,7 +182,7 @@ high concentrations.
 
 const description_p2 = `
 # Oxygen Bound to Myoglobin
-Basic controls for the audio comments :
+Basic controls for the audio comments:
 [Play](${encodeURIComponent(`!play-audio=${_Audio3}`)})
 [Pause](!pause-audio)
 [Stop](!stop-audio)
@@ -200,7 +200,7 @@ appear and disappear, allowing oxygen in and out.
 
 const description_p3 = `
 # Molecule of the Month: Myoglobin
-Basic controls for the audio comments :
+Basic controls for the audio comments:
 [Play](${encodeURIComponent(`!play-audio=${_Audio1}`)})
 [Pause](!pause-audio)
 [Stop](!stop-audio)
@@ -238,7 +238,7 @@ const Steps = [
         header: 'Molecule of the Month: Myoglobin',
         key: 'intro',
         description: description_intro,
-        linger_duration_ms: 2000,
+        linger_duration_ms: 45000,
         transition_duration_ms: 500,
         state: (): Root => {
             const builder = createMVSBuilder();
@@ -394,7 +394,7 @@ const Steps = [
         header: 'Myoglobin and Whales',
         key: 'whale',
         description: description_p1,
-        linger_duration_ms: 2000,
+        linger_duration_ms: 41000,
         transition_duration_ms: 500,
         state: (): Root => {
             const builder = createMVSBuilder();
@@ -575,7 +575,7 @@ const Steps = [
         header: 'Oxygen Bound',
         key: 'oxygen',
         description: description_p2,
-        linger_duration_ms: 2000,
+        linger_duration_ms: 18000,
         transition_duration_ms: 500,
         state: (): Root => {
             const builder = createMVSBuilder();
@@ -724,7 +724,7 @@ const Steps = [
         header: 'Conclusion',
         key: 'end',
         description: description_p3,
-        linger_duration_ms: 2000,
+        linger_duration_ms: 20000,
         transition_duration_ms: 500,
         state: (): Root => {
             const builder = createMVSBuilder();

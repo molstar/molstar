@@ -61,7 +61,7 @@ export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: bo
                 count++;
                 if (!label) {
                     const idx = (m.transform.params! as StateTransformer.Params<ModelFromTrajectory>).modelIndex;
-                    label = `Model ${idx + 1} / ${parent.data.frameCount}`;
+                    label = `Model ${Math.round(idx + 1)} / ${parent.data.frameCount}`;
                 }
             }
         }
@@ -105,7 +105,7 @@ export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: bo
 }
 
 export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBusy: boolean, show: boolean, showAnimation: boolean }> {
-    state = { isBusy: false, show: true, showAnimation: false };
+    state = { isBusy: false, show: true, showAnimation: true };
 
     componentDidMount() {
         this.subscribe(this.plugin.managers.snapshot.events.changed, () => this.forceUpdate());
@@ -151,6 +151,7 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
     toggleStateAnimation = () => {
         if (this.state.isBusy) {
             this.plugin.managers.animation.stop();
+            this.plugin.managers.markdownExtensions.audio.pause();
         } else {
             this.plugin.managers.animation.play(AnimateStateSnapshotTransition, {});
         }
