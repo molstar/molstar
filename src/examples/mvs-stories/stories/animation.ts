@@ -24,8 +24,11 @@ const Steps = [
         description: `### Molecular Animation
 A story showcasing MolViewSpec animation capabilities.
 
-[🔄 Replay Intro](!play-transition)
-[⏵ Play Snapshots](!play-snapshots)
+[\[**🔄 Replay Intro**\]](!play-transition)
+[\[**⏵ Play Snapshots**\]](!play-snapshots)
+[\[**⏹ Stop Animation**\]](!stop-animation)
+
+[\[**➡️ Next Snapshot**\]](!next-snapshot)
 
 `,
         linger_duration_ms: 2000,
