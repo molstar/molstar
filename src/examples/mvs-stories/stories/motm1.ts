@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ludovic Autin <autin@scripps.edu>
+ * @author Victoria Doshchenko <doshchenko.victoria@gmail.com>
  */
 
 import { decodeColor } from '../../../extensions/mvs/helpers/utils';
@@ -84,15 +85,21 @@ const _Audio4 = audioPathBase + '/examples/audio/AudioMOM1_D.mp3';
 const q = (expr: string, lang = 'pymol') =>
     `!query=${encodeURIComponent(expr)}&lang=${lang}&action=highlight,focus`;
 
-const description_intro = `
-# Molecule of the Month: Myoglobin
+const desc_intro = `
+# Introduction
+
 A story based on the orginal [first Molecule of the Month](https://pdb101.rcsb.org/motm/1) made by David Goodsell in January 2000.
 
+🔊 *This story includes short audio commentaries to guide you through the structures.*  
+For the best experience, please keep your sound on or use headphones.  
+
+`;
+
+const description_p0 = `
+# Molecule of the Month: Myoglobin
 
 Basic controls for the audio comments:
-[Play](${encodeURIComponent(`!play-audio=${_Audio1}`)})
-[Pause](!pause-audio)
-[Stop](!stop-audio)
+${createAudioControls(_Audio1)}
 
 Myoglobin was the first protein to have its atomic structure determined, revealing how it stores oxygen in muscle cells.
 
@@ -161,9 +168,7 @@ const charged_residues = q(formatMolScript(query3), 'mol-script');
 const description_p1 = `
 # Myoglobin and Whales
 Basic controls for the audio comments:
-[Play](${encodeURIComponent(`!play-audio=${_Audio2}`)})
-[Pause](!pause-audio)
-[Stop](!stop-audio)
+${createAudioControls(_Audio2)}
 
 If you look at John Kendrew's PDB file, you'll notice that the myoglobin he used was taken 
 from sperm whale muscles. Whales and dolphin have a great need for myoglobin, so that they can 
@@ -184,9 +189,7 @@ high concentrations.
 const description_p2 = `
 # Oxygen Bound to Myoglobin
 Basic controls for the audio comments:
-[Play](${encodeURIComponent(`!play-audio=${_Audio3}`)})
-[Pause](!pause-audio)
-[Stop](!stop-audio)
+${createAudioControls(_Audio3)}
 
 A later structure of myoglobin, PDB entry [1mbo](https://www.rcsb.org/structure/1mbo), 
 shows that [oxygen](${q('index 1276+1277')}) binds to 
@@ -202,9 +205,7 @@ appear and disappear, allowing oxygen in and out.
 const description_p3 = `
 # Molecule of the Month: Myoglobin
 Basic controls for the audio comments:
-[Play](${encodeURIComponent(`!play-audio=${_Audio1}`)})
-[Pause](!pause-audio)
-[Stop](!stop-audio)
+${createAudioControls(_Audio4)}
 
 The atomic structure of myoglobin revealed many of the basic principles 
 of protein structure and stability. For instance, the structure showed 
@@ -236,9 +237,66 @@ PDB entry [2jho](https://www.rcsb.org/structure/2jho) includes myoglobin poisone
 
 const Steps = [
     {
+        header: 'Introduction',
+        key: 'first-slide',
+        description: desc_intro,
+        linger_duration_ms: 0,
+        state: (): Root => {
+            const builder = createMVSBuilder();
+            const _1mbn = build1mbn(builder, '1MBN');
+
+            builder.extendRootCustomState({
+                molstar_on_load_markdown_commands: {
+                    'dispose-audio': _Audio1,
+                }
+            });
+
+            const anim = builder.animation(
+                {
+                    custom: {
+                        molstar_trackball: {
+                            name: 'spin',
+                            params: { speed: -0.05 },
+                        }
+                    }
+                }
+            );
+
+            const prims = _1mbn.struct.primitives({
+                ref: 'start-story',
+                label_opacity: 0,
+                label_background_color: 'grey',
+                snapshot_key: 'intro'
+            });
+            prims.label({
+                text: 'Start story',
+                position: [13.5, -4, 7.7],
+                label_size: 8
+            });
+
+            anim.interpolate({
+                kind: 'scalar',
+                target_ref: 'start-story',
+                duration_ms: 1000,
+                start_ms: 1,
+                property: 'label_opacity',
+                start: 0.0,
+                end: 1.0,
+            });
+
+
+            return builder;
+        },
+        camera: {
+            position: [13.5, 21.1, 73.1],
+            target: [13.5, 21.1, 7.7],
+            up: [0, 1, 0],
+        } satisfies MVSNodeParams<'camera'>,
+    },
+    {
         header: 'Molecule of the Month: Myoglobin',
         key: 'intro',
-        description: description_intro,
+        description: description_p0,
         linger_duration_ms: 45000,
         transition_duration_ms: 500,
         state: (): Root => {
@@ -247,39 +305,10 @@ const Steps = [
 
             builder.canvas({ custom: { molstar_postprocessing: { enable_outline: false } } });
 
-            const _1mbn = structure(builder, '1MBN');
-
-            _1mbn.component({ selector: 'ligand' })
-                .representation({ ref: 'ligand', type: 'ball_and_stick' })
-                .color({ color: 'orange' });
-            // FE and O should be spacefill
-
-            _1mbn.component({ selector: { auth_seq_id: 155, label_atom_id: 'F' } })
-                .representation({ type: 'spacefill' })
-                .color({ color: 'yellow' });
-
-            _1mbn.component({ selector: { auth_seq_id: 154 } })
-                .representation({ type: 'spacefill' })
-                .color({ color: 'blue' });
-
-            _1mbn.component({ selector: { auth_seq_id: 154 } })
-                .representation({ type: 'spacefill' })
-                .color({ color: 'blue' });
-
-            const chA = _1mbn.component({ selector: { label_asym_id: 'A' } });
-            chA.representation({ type: 'surface', surface_type: 'gaussian' })
-                .color({ color: '#ff0303' })
-                .opacity({ ref: 'surfopa', opacity: 0.0 });
-
-            chA.representation({ type: 'line' })
-                .color({ custom: { molstar_color_theme_name: 'element-symbol' } })
-                .opacity({ ref: 'lineopa', opacity: 0.0 });
-
-            chA.representation({ type: 'cartoon' })
-                .color({ custom: { molstar_color_theme_name: 'secondary-structure' } });
+            const _1mbn = build1mbn(builder, '1MBN');
 
             // whale
-            _1mbn.component({ selector: { label_asym_id: 'A' } })
+            _1mbn.struct.component({ selector: { label_asym_id: 'A' } })
                 .representation({ type: 'spacefill', custom: { molstar_representation_params: { ignoreLight: true } } })
                 .colorFromSource({
                     schema: 'all_atomic',
@@ -296,29 +325,12 @@ const Steps = [
                     }
                 }).opacity({ ref: 'cpkopa1', opacity: 0.0 });
 
-            _1mbn.component({ selector: { auth_seq_id: 155 } })
+            _1mbn.struct.component({ selector: { auth_seq_id: 155 } })
                 .representation({ type: 'spacefill', custom: { molstar_representation_params: { ignoreLight: true } } })
                 .color({ custom: GColors2 }).opacity({ ref: 'cpkopa2', opacity: 0.0 });
 
-            const prims = _1mbn.primitives({
-                ref: 'prims',
-                label_opacity: 1,
-                label_background_color: 'grey',
-                custom: {
-                    molstar_markdown_commands: {
-                        // 'apply-snapshot': 'interlude',
-                        'play-audio': _Audio1,
-                    }
-                }
-            });
-            prims.label({
-                text: 'Start Comments',
-                position: [13.5, 45.1, 7.7],
-                label_size: 5
-            });
-            addNextButton(builder, 'whale', [13.5, 0, 7.7]);
+            addNextButton(builder, 'whale', [13.5, -4, 7.7]);
 
-            // doesnt work for first slide, but work afterward
             builder.extendRootCustomState({
                 molstar_on_load_markdown_commands: {
                     'play-audio': _Audio1,
@@ -543,7 +555,7 @@ const Steps = [
                 start: 0.0,
                 end: 1.0,
             });
-            addNextButton(builder, 'oxygen', [-18.9, 10, 7.3]);
+            addNextButton(builder, 'oxygen', [-18.9, -4, 7.3]);
             anim.interpolate({
                 kind: 'scalar',
                 target_ref: 'next',
@@ -897,7 +909,7 @@ function addNextButton(builder: any, snapshotKey: string, position: [number, num
         .label({
             ref: 'next_label',
             position: position,
-            text: 'Click me to go next',
+            text: 'Next Scene →',
             label_color: 'white',
             label_size: 5
         });
@@ -955,4 +967,54 @@ export function buildStory(): MVSData_States {
             timestamp: new Date().toISOString(),
         }
     };
+}
+
+function build1mbn(builder: any, pdbId: string) {
+    const struct = structure(builder, '1MBN');
+
+    struct.component({ selector: 'ligand' })
+        .representation({ ref: 'ligand', type: 'ball_and_stick' })
+        .color({ color: 'orange' });
+
+    // FE and O should be spacefill
+    struct.component({ selector: { auth_seq_id: 155, label_atom_id: 'FE' } })
+        .representation({ type: 'spacefill' })
+        .color({ color: 'yellow' });
+
+    struct.component({ selector: { auth_seq_id: 154 } })
+        .representation({ type: 'spacefill' })
+        .color({ color: 'blue' });
+
+    struct.component({ selector: { auth_seq_id: 154 } })
+        .representation({ type: 'spacefill' })
+        .color({ color: 'blue' });
+
+    const chA = struct.component({ selector: { label_asym_id: 'A' } });
+    chA.representation({ type: 'surface', surface_type: 'gaussian' })
+        .color({ color: '#ff0303' })
+        .opacity({ ref: 'surfopa', opacity: 0.0 });
+
+    chA.representation({ type: 'line' })
+        .color({ custom: { molstar_color_theme_name: 'element-symbol' } })
+        .opacity({ ref: 'lineopa', opacity: 0.0 });
+
+    chA.representation({ type: 'cartoon' })
+        .color({ custom: { molstar_color_theme_name: 'secondary-structure' } });
+
+    return {
+        struct,
+        refs: {
+            surfaceOpacity: 'surfopa',
+            lineOpacity: 'lineopa',
+        }
+    };
+}
+
+function createAudioControls(url: string) {
+    return `
+  [‹ **▶ Play** ›](${encodeURIComponent(`!play-audio=${url}`)})
+  [‹ **⏸ Pause** ›](!pause-audio)
+  [‹ **⏹ Stop** ›](!stop-audio)
+  [‹ **Hide** ›](!dispose-audio)
+  `;
 }
