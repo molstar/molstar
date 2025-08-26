@@ -152,7 +152,6 @@ A story showcasing MolViewSpec animation capabilities.
                 start_ms: 600,
                 duration_ms: 800,
                 property: ['point', 2],
-                start: 55,
                 end: 0,
                 easing: 'sin-out',
             });
@@ -163,7 +162,6 @@ A story showcasing MolViewSpec animation capabilities.
                 start_ms: 1500,
                 duration_ms: 500,
                 property: ['point', 2],
-                start: 0,
                 end: 55,
             });
 

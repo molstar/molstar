@@ -192,16 +192,12 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
             {hasAnimation && this.state.showAnimation && !isPlaying && <>
                 <div className='msp-state-snapshot-animation-slider msp-form-control'>
                     <Slider
-                        value={PluginState.getStateTransitionFrameTime(entry?.snapshot, snapshots.state.currentAnimationFrame)}
+                        value={Math.round(100 * (snapshots.state.currentAnimationTimeMs ?? 0)) /100}
                         min={0}
                         step={PluginState.getMinFrameDuration(entry?.snapshot)}
                         max={PluginState.getStateTransitionDuration(entry?.snapshot) ?? 1000}
                         onChange={() => { }}
-                        onChangeImmediate={v => {
-                            const frameIndex = PluginState.getStateTransitionFrameIndex(entry?.snapshot, v);
-                            if (frameIndex === undefined) return;
-                            snapshots.setSnapshotAnimationFrame(frameIndex, true);
-                        }}
+                        onChangeImmediate={v => snapshots.setSnapshotAnimationFrame(v, true)}
                         hideInput
                         disabled={this.state.isBusy}
                     />
