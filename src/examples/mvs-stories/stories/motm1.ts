@@ -98,10 +98,7 @@ const description_p0 = `
 # Molecule of the Month: Myoglobin
 
 Basic controls for the audio comments:
-[‹ **▶ Play** ›](${encodeURIComponent(`!play-audio=${_Audio1}`)})
-[‹ **⏸ Pause** ›](!pause-audio)
-[‹ **⏹ Stop** ›](!stop-audio)
-[‹ **Hide** ›](!dispose-audio)
+${createAudioControls(_Audio1)}
 
 Myoglobin was the first protein to have its atomic structure determined, revealing how it stores oxygen in muscle cells.
 
@@ -170,10 +167,7 @@ const charged_residues = q(formatMolScript(query3), 'mol-script');
 const description_p1 = `
 # Myoglobin and Whales
 Basic controls for the audio comments:
-[‹ **▶ Play** ›](${encodeURIComponent(`!play-audio=${_Audio2}`)})
-[‹ **⏸ Pause** ›](!pause-audio)
-[‹ **⏹ Stop** ›](!stop-audio)
-[‹ **Hide** ›](!dispose-audio)
+${createAudioControls(_Audio2)}
 
 If you look at John Kendrew's PDB file, you'll notice that the myoglobin he used was taken 
 from sperm whale muscles. Whales and dolphin have a great need for myoglobin, so that they can 
@@ -194,10 +188,7 @@ high concentrations.
 const description_p2 = `
 # Oxygen Bound to Myoglobin
 Basic controls for the audio comments:
-[‹ **▶ Play** ›](${encodeURIComponent(`!play-audio=${_Audio3}`)})
-[‹ **⏸ Pause** ›](!pause-audio)
-[‹ **⏹ Stop** ›](!stop-audio)
-[‹ **Hide** ›](!dispose-audio)
+${createAudioControls(_Audio3)}
 
 A later structure of myoglobin, PDB entry [1mbo](https://www.rcsb.org/structure/1mbo), 
 shows that [oxygen](${q('index 1276+1277')}) binds to 
@@ -213,10 +204,7 @@ appear and disappear, allowing oxygen in and out.
 const description_p3 = `
 # Molecule of the Month: Myoglobin
 Basic controls for the audio comments:
-[‹ **▶ Play** ›](${encodeURIComponent(`!play-audio=${_Audio1}`)})
-[‹ **⏸ Pause** ›](!pause-audio)
-[‹ **⏹ Stop** ›](!stop-audio)
-[‹ **Hide** ›](!dispose-audio)
+${createAudioControls(_Audio4)}
 
 The atomic structure of myoglobin revealed many of the basic principles 
 of protein structure and stability. For instance, the structure showed 
@@ -983,34 +971,34 @@ export function buildStory(): MVSData_States {
 function build1mbn(builder: any, pdbId: string) {
     const struct = structure(builder, '1MBN');
 
-            struct.component({ selector: 'ligand' })
-                .representation({ ref: 'ligand', type: 'ball_and_stick' })
-                .color({ color: 'orange' });
+    struct.component({ selector: 'ligand' })
+        .representation({ ref: 'ligand', type: 'ball_and_stick' })
+        .color({ color: 'orange' });
 
-            // FE and O should be spacefill
-            struct.component({ selector: { auth_seq_id: 155, label_atom_id: 'FE' } })
-                .representation({ type: 'spacefill' })
-                .color({ color: 'yellow' });
+    // FE and O should be spacefill
+    struct.component({ selector: { auth_seq_id: 155, label_atom_id: 'FE' } })
+        .representation({ type: 'spacefill' })
+        .color({ color: 'yellow' });
 
-            struct.component({ selector: { auth_seq_id: 154 } })
-                .representation({ type: 'spacefill' })
-                .color({ color: 'blue' });
+    struct.component({ selector: { auth_seq_id: 154 } })
+        .representation({ type: 'spacefill' })
+        .color({ color: 'blue' });
 
-            struct.component({ selector: { auth_seq_id: 154 } })
-                .representation({ type: 'spacefill' })
-                .color({ color: 'blue' });
+    struct.component({ selector: { auth_seq_id: 154 } })
+        .representation({ type: 'spacefill' })
+        .color({ color: 'blue' });
 
-            const chA = struct.component({ selector: { label_asym_id: 'A' } });
-            chA.representation({ type: 'surface', surface_type: 'gaussian' })
-                .color({ color: '#ff0303' })
-                .opacity({ ref: 'surfopa', opacity: 0.0 });
+    const chA = struct.component({ selector: { label_asym_id: 'A' } });
+    chA.representation({ type: 'surface', surface_type: 'gaussian' })
+        .color({ color: '#ff0303' })
+        .opacity({ ref: 'surfopa', opacity: 0.0 });
 
-            chA.representation({ type: 'line' })
-                .color({ custom: { molstar_color_theme_name: 'element-symbol' } })
-                .opacity({ ref: 'lineopa', opacity: 0.0 });
+    chA.representation({ type: 'line' })
+        .color({ custom: { molstar_color_theme_name: 'element-symbol' } })
+        .opacity({ ref: 'lineopa', opacity: 0.0 });
 
-            chA.representation({ type: 'cartoon' })
-                .color({ custom: { molstar_color_theme_name: 'secondary-structure' } });
+    chA.representation({ type: 'cartoon' })
+        .color({ custom: { molstar_color_theme_name: 'secondary-structure' } });
 
     return {
         struct,
@@ -1019,4 +1007,13 @@ function build1mbn(builder: any, pdbId: string) {
             lineOpacity: 'lineopa',
         }
     };
+}
+
+function createAudioControls(url: string) {
+    return `
+  [‹ **▶ Play** ›](${encodeURIComponent(`!play-audio=${url}`)})
+  [‹ **⏸ Pause** ›](!pause-audio)
+  [‹ **⏹ Stop** ›](!stop-audio)
+  [‹ **Hide** ›](!dispose-audio)
+  `;
 }
