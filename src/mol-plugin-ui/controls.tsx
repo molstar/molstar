@@ -29,6 +29,7 @@ import { StructureQuickStylesControls } from './structure/quick-styles';
 import { Markdown } from './controls/markdown';
 import { Slider } from './controls/slider';
 import { AnimateStateSnapshotTransition } from '../mol-plugin-state/animation/built-in/state-snapshots';
+import { PluginState } from '../mol-plugin/state';
 
 export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: boolean, label: string }> {
     state = { show: false, label: '' };
@@ -191,14 +192,12 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
             {hasAnimation && this.state.showAnimation && !isPlaying && <>
                 <div className='msp-state-snapshot-animation-slider msp-form-control'>
                     <Slider
-                        value={snapshots.state.currentAnimationFrame ?? 0}
-                        min={1}
-                        step={1}
-                        max={(entry?.snapshot.transition?.frames.length ?? 1)}
+                        value={Math.round(100 * (snapshots.state.currentAnimationTimeMs ?? 0)) /100}
+                        min={0}
+                        step={PluginState.getMinFrameDuration(entry?.snapshot)}
+                        max={PluginState.getStateTransitionDuration(entry?.snapshot) ?? 1000}
                         onChange={() => { }}
-                        onChangeImmediate={v => {
-                            snapshots.setSnapshotAnimationFrame(v - 1, true);
-                        }}
+                        onChangeImmediate={v => snapshots.setSnapshotAnimationFrame(v, true)}
                         hideInput
                         disabled={this.state.isBusy}
                     />
