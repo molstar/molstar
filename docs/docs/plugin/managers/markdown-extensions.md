@@ -20,8 +20,10 @@ Generally, the command should be URL encoded, e.g., `a b` => `a%20b` (in JS, `en
 
 - `center-camera` - Centers the camera
 - `apply-snapshot=key` - Loads snapshots with the provided key
+- `next-snapshot[=-1|1]` - Loads next/previous snapshot, the direction is optional and default to `1`
 - `play-snapshots` - Starts playback of state snapshots
 - `play-transition` - Plays an animation associated with the given snapshot
+- `stop-animation` - Stops currently playing animation
 - `focus-refs=ref1,ref2,...` - On click, focuses nodes with the provided refs
 - `highlight-refs=ref1,ref2,...` - On mouse over, highlights the provided refs
 - `query=...&lang=...&action=highlight,focus&focus-radius=...`

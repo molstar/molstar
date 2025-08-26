@@ -48,6 +48,17 @@ export const BuiltInMarkdownExtension: MarkdownExtension[] = [
         }
     },
     {
+        name: 'next-snapshot',
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click' || !('next-snapshot' in args)) return;
+            let dir: -1 | 1 = (+args['next-snapshot'] || 1) as -1 | 1;
+            if (!dir) return;
+            if (dir < 0) dir = -1;
+            else dir = 1;
+            manager.plugin.managers.snapshot.applyNext(dir);
+        }
+    },
+    {
         name: 'focus-refs',
         execute: ({ event, args, manager }) => {
             if (event !== 'click') return;
@@ -206,7 +217,14 @@ export const BuiltInMarkdownExtension: MarkdownExtension[] = [
             if (event !== 'click' || !('play-snapshots' in args)) return;
             manager.plugin.managers.snapshot.play({ restart: true });
         }
-    }
+    },
+    {
+        name: 'stop-animation',
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click' || !('stop-animation' in args)) return;
+            manager.plugin.managers.snapshot.stop();
+        }
+    },
 ];
 
 export class MarkdownExtensionManager {
