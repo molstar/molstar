@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Ludovic Autin <autin@scripps.edu>
+ * @author Victoria Doshchenko <doshchenko.victoria@gmail.com>
  */
 
 import { decodeColor } from '../../../extensions/mvs/helpers/utils';
