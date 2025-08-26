@@ -49,7 +49,7 @@ A story showcasing MolViewSpec animation capabilities.
                 custom: {
                     molstar_trackball: {
                         name: 'rock',
-                        params: { speed: 1.5 },
+                        params: { speed: 0.5 },
                     }
                 }
             });
@@ -57,9 +57,21 @@ A story showcasing MolViewSpec animation capabilities.
                 kind: 'scalar',
                 ref: 'prims-opacity',
                 target_ref: 'prims',
-                duration_ms: 1000,
+                start_ms: 500,
+                duration_ms: 500,
                 property: 'label_opacity',
                 end: 1,
+            });
+
+            anim.interpolate({
+                kind: 'scalar',
+                ref: 'prims-opacity',
+                target_ref: 'prims',
+                start_ms: 1500,
+                duration_ms: 500,
+                property: 'label_opacity',
+                start: 1,
+                end: 0.66,
             });
 
 
@@ -127,12 +139,32 @@ A story showcasing MolViewSpec animation capabilities.
 
             anim.interpolate({
                 kind: 'scalar',
-                ref: 'clip-transition',
                 target_ref: 'clip',
-                duration_ms: 2000,
+                duration_ms: 500,
                 property: ['point', 2],
                 end: 55,
                 easing: 'sin-in',
+            });
+
+            anim.interpolate({
+                kind: 'scalar',
+                target_ref: 'clip',
+                start_ms: 600,
+                duration_ms: 800,
+                property: ['point', 2],
+                start: 55,
+                end: 0,
+                easing: 'sin-out',
+            });
+
+            anim.interpolate({
+                kind: 'scalar',
+                target_ref: 'clip',
+                start_ms: 1500,
+                duration_ms: 500,
+                property: ['point', 2],
+                start: 0,
+                end: 55,
             });
 
             anim.interpolate({

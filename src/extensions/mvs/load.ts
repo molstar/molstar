@@ -136,7 +136,7 @@ async function assignStateTransition(ctx: RuntimeContext, plugin: PluginContext,
 
     for (let i = 0; i < transitions.frames.length; i++) {
         const frame = transitions.frames[i];
-        const molstarTree = convertMvsToMolstar(frame, options.sourceUrl);
+        const molstarTree = convertMvsToMolstar(frame[0], options.sourceUrl);
         const entry = molstarTreeToEntry(
             plugin,
             molstarTree,
@@ -148,7 +148,7 @@ async function assignStateTransition(ctx: RuntimeContext, plugin: PluginContext,
         StateTree.reuseTransformParams(entry.snapshot.data!.tree, parentEntry.snapshot.data!.tree);
 
         animation.frames.push({
-            durationInMs: transitions.frametimeMs,
+            durationInMs: frame[1],
             data: entry.snapshot.data!,
             camera: transitions.tree.params?.include_camera ? entry.snapshot.camera : undefined,
             canvas3d: transitions.tree.params?.include_canvas ? entry.snapshot.canvas3d : undefined,
