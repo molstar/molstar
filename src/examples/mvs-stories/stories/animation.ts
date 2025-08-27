@@ -22,7 +22,15 @@ const Steps = [
         header: 'Animation Demo',
         key: 'intro',
         description: `### Molecular Animation
-A story showcasing MolViewSpec animation capabilities.`,
+A story showcasing MolViewSpec animation capabilities.
+
+[\[**🔄 Replay Intro**\]](!play-transition)
+[\[**⏵ Play Snapshots**\]](!play-snapshots)
+[\[**⏹ Stop Animation**\]](!stop-animation)
+
+[\[**➡️ Next Snapshot**\]](!next-snapshot)
+
+`,
         linger_duration_ms: 2000,
         transition_duration_ms: 500,
         state: (): Root => {
@@ -37,14 +45,33 @@ A story showcasing MolViewSpec animation capabilities.`,
             });
             prims.label({ text: 'Animation Demo', position: { label_asym_id: 'A' }, label_size: 10 });
 
-            const anim = builder.animation();
+            const anim = builder.animation({
+                custom: {
+                    molstar_trackball: {
+                        name: 'rock',
+                        params: { speed: 0.5 },
+                    }
+                }
+            });
             anim.interpolate({
                 kind: 'scalar',
                 ref: 'prims-opacity',
                 target_ref: 'prims',
-                duration_ms: 1000,
+                start_ms: 500,
+                duration_ms: 500,
                 property: 'label_opacity',
                 end: 1,
+            });
+
+            anim.interpolate({
+                kind: 'scalar',
+                ref: 'prims-opacity',
+                target_ref: 'prims',
+                start_ms: 1500,
+                duration_ms: 500,
+                property: 'label_opacity',
+                start: 1,
+                end: 0.66,
             });
 
 
@@ -112,12 +139,30 @@ A story showcasing MolViewSpec animation capabilities.`,
 
             anim.interpolate({
                 kind: 'scalar',
-                ref: 'clip-transition',
                 target_ref: 'clip',
-                duration_ms: 2000,
+                duration_ms: 500,
                 property: ['point', 2],
                 end: 55,
                 easing: 'sin-in',
+            });
+
+            anim.interpolate({
+                kind: 'scalar',
+                target_ref: 'clip',
+                start_ms: 600,
+                duration_ms: 800,
+                property: ['point', 2],
+                end: 0,
+                easing: 'sin-out',
+            });
+
+            anim.interpolate({
+                kind: 'scalar',
+                target_ref: 'clip',
+                start_ms: 1500,
+                duration_ms: 500,
+                property: ['point', 2],
+                end: 55,
             });
 
             anim.interpolate({
@@ -175,7 +220,7 @@ A story showcasing MolViewSpec animation capabilities.`,
                     ref: 'repr',
                     type: 'ball_and_stick',
                     custom: {
-                        molstar_reprepresentation_params: {
+                        molstar_representation_params: {
                             emissive: 0,
                         }
                     }
@@ -202,7 +247,7 @@ A story showcasing MolViewSpec animation capabilities.`,
                 kind: 'scalar',
                 target_ref: 'repr',
                 duration_ms: 1000,
-                property: ['custom', 'molstar_reprepresentation_params', 'emissive'],
+                property: ['custom', 'molstar_representation_params', 'emissive'],
                 end: 0.2,
             });
 

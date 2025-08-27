@@ -153,3 +153,24 @@ export function collectMVSReferences<T extends StateObject.Ctor>(type: T[], depe
 
     return ret;
 }
+
+export function getMVSReferenceObject<T extends StateObject.Ctor>(type: T[], dependencies: Record<string, StateObject> | undefined, ref: string): StateObject | undefined {
+    if (!dependencies) return undefined;
+
+    for (const key of Object.keys(dependencies)) {
+        const o = dependencies[key];
+        let okType = false;
+        for (const t of type) {
+            if (t.is(o)) {
+                okType = true;
+                break;
+            }
+        }
+        if (!okType || !o.tags) continue;
+        for (const tag of o.tags) {
+            if (tag.startsWith('mvs-ref:')) {
+                if (tag.substring(8) === ref) return o;
+            }
+        }
+    }
+}

@@ -290,6 +290,15 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
                     return;
                 }
 
+                // Support executing markdown commands associated with a visual
+                const markdownCommands = current.repr?.props?.markdownCommands;
+                if (!this.ctx.selectionMode && matched && typeof markdownCommands === 'object') {
+                    if (Object.keys(markdownCommands).length > 0) {
+                        this.ctx.managers.markdownExtensions.tryExecute('click', markdownCommands);
+                        return;
+                    }
+                }
+
                 // only apply structure focus for appropriate granularity
                 const { granularity } = this.ctx.managers.interactivity.props;
                 if (granularity !== 'residue' && granularity !== 'element') return;

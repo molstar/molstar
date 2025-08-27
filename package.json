@@ -1,6 +1,6 @@
 {
   "name": "molstar",
-  "version": "5.0.0-dev.6",
+  "version": "5.0.0-dev.10",
   "description": "A comprehensive macromolecular library.",
   "homepage": "https://github.com/molstar/molstar#readme",
   "repository": {
@@ -122,7 +122,8 @@
     "Lukáš Polák <admin@lukaspolak.cz>",
     "Chetan Mishra <chetan.s115@gmail.com>",
     "Zach Charlop-Powers <zach.charlop.powers@gmail.com>",
-    "Kim Juho <juho_kim@outlook.com>"
+    "Kim Juho <juho_kim@outlook.com>",
+    "Victoria Doshchenko <doshchenko.victoria@gmail.com>"
   ],
   "license": "MIT",
   "devDependencies": {
@@ -166,9 +167,9 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "h264-mp4-encoder": "^1.0.12",
-    "immer": "^10.1.1",
     "immutable": "^5.1.2",
     "io-ts": "^2.2.22",
+    "mutative": "^1.2.0",
     "node-fetch": "^2.7.0",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",

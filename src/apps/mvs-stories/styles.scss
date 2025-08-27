@@ -182,6 +182,15 @@
         max-width: 100%;
         height: auto;
     }
+
+    a {
+        text-decoration: none;
+        color: #1d4ed7;
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
 }
 
 @media (orientation:portrait) {

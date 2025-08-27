@@ -7,6 +7,7 @@
 
 import { Camera } from '../../mol-canvas3d/camera';
 import { CameraFogParams, Canvas3DParams, Canvas3DProps, DefaultCanvas3DParams } from '../../mol-canvas3d/canvas3d';
+import { TrackballControlsParams } from '../../mol-canvas3d/controls/trackball';
 import { BloomParams } from '../../mol-canvas3d/passes/bloom';
 import { DofParams } from '../../mol-canvas3d/passes/dof';
 import { OutlineParams } from '../../mol-canvas3d/passes/outline';
@@ -24,6 +25,7 @@ import { ParamDefinition } from '../../mol-util/param-definition';
 import { decodeColor } from './helpers/utils';
 import { MolstarLoadingContext } from './load';
 import { SnapshotMetadata } from './mvs-data';
+import { MVSAnimationNode } from './tree/animation/animation-tree';
 import { MolstarNode, MolstarNodeParams } from './tree/molstar/molstar-tree';
 import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
@@ -121,22 +123,17 @@ export function createPluginStateSnapshotCamera(plugin: PluginContext, context: 
     return camera;
 }
 
-/** Set canvas properties based on a canvas node. */
-export function setCanvas(plugin: PluginContext, node: MolstarNode<'canvas'> | undefined) {
-    plugin.canvas3d?.setProps(old => modifyCanvasProps(old, node));
-}
-
 function optionalParams(enable: boolean | undefined, values: any, params: ParamDefinition.Params, fallback: any) {
     if (typeof enable === 'boolean') {
         return enable
             ? { name: 'on', params: { ...ParamDefinition.getDefaultValues(params), ...values } }
-            : { name: 'off', params: { } };
+            : { name: 'off', params: {} };
     }
     return fallback;
 }
 
 /** Create a deep copy of `oldCanvasProps` with values modified according to a canvas node params. */
-export function modifyCanvasProps(oldCanvasProps: Canvas3DProps, canvasNode: MolstarNode<'canvas'> | undefined, custom?: Record<string, any>): Canvas3DProps {
+export function modifyCanvasProps(oldCanvasProps: Canvas3DProps, canvasNode: MolstarNode<'canvas'> | undefined, animationNode: MVSAnimationNode<'animation'> | undefined): Canvas3DProps {
     const params = canvasNode?.params;
     const backgroundColor = decodeColor(params?.background_color) ?? DefaultCanvasBackgroundColor;
 
@@ -160,6 +157,10 @@ export function modifyCanvasProps(oldCanvasProps: Canvas3DProps, canvasNode: Mol
     const bloom = molstar_postprocessing?.enable_bloom;
     const bloomParams = molstar_postprocessing?.bloom_params;
 
+    const trackballAnimation = animationNode?.custom?.molstar_trackball;
+    const trackballAnimationName = trackballAnimation?.name;
+    const trackballAnimationParams = trackballAnimation?.params ?? {};
+
     return {
         ...oldCanvasProps,
         postprocessing: {
@@ -175,6 +176,21 @@ export function modifyCanvasProps(oldCanvasProps: Canvas3DProps, canvasNode: Mol
             ...oldCanvasProps.renderer,
             backgroundColor: backgroundColor,
         },
+        trackball: {
+            ...oldCanvasProps?.trackball,
+            ...(trackballAnimationName
+                ? {
+                    animate: {
+                        name: trackballAnimationName,
+                        params: {
+                            ...TrackballControlsParams.animate.map(trackballAnimationName)?.defaultValue,
+                            ...trackballAnimationParams
+                        }
+                    }
+                }
+                : {}
+            ),
+        }
     };
 }
 
@@ -191,5 +207,9 @@ export function resetCanvasProps(plugin: PluginContext) {
             bloom: DefaultCanvas3DParams.postprocessing.bloom,
         },
         cameraFog: DefaultCanvas3DParams.cameraFog,
+        trackball: {
+            ...old?.trackball,
+            animate: { name: 'off', params: {} },
+        }
     });
 }

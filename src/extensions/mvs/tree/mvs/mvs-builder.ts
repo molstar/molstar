@@ -98,6 +98,12 @@ export class Root extends _Base<'root'> implements FocusMixin, PrimitivesMixin {
         this._animation ??= new Animation(params);
         return this._animation;
     }
+
+    /** Modifies custom state of the root */
+    extendRootCustomState(custom: Record<string, any>): this {
+        this._node.custom = { ...this._node.custom, ...custom };
+        return this;
+    }
 }
 
 export class Animation {
@@ -138,10 +144,10 @@ export class Download extends _Base<'download'> {
 
 /** Subsets of 'structure' node params which will be passed to individual builder functions. */
 const StructureParamsSubsets = {
-    model: ['block_header', 'block_index', 'model_index'],
-    assembly: ['block_header', 'block_index', 'model_index', 'assembly_id'],
-    symmetry: ['block_header', 'block_index', 'model_index', 'ijk_min', 'ijk_max'],
-    symmetry_mates: ['block_header', 'block_index', 'model_index', 'radius'],
+    model: ['block_header', 'block_index', 'model_index', 'coordinates_ref'],
+    assembly: ['block_header', 'block_index', 'model_index', 'assembly_id', 'coordinates_ref'],
+    symmetry: ['block_header', 'block_index', 'model_index', 'ijk_min', 'ijk_max', 'coordinates_ref'],
+    symmetry_mates: ['block_header', 'block_index', 'model_index', 'radius', 'coordinates_ref'],
 } satisfies { [kind in MVSNodeParams<'structure'>['type']]: (keyof MVSNodeParams<'structure'>)[] };
 
 
@@ -190,6 +196,11 @@ export class Parse extends _Base<'parse'> {
     /** Add a 'volume' node representing raw volume data */
     volume(params: MVSNodeParams<'volume'> & CustomAndRef = {}): Volume {
         return new Volume(this._root, this.addChild('volume', params));
+    }
+    /** Add a 'coordinates' node indicating the parsed data type */
+    coordinates(params: MVSNodeParams<'coordinates'> & CustomAndRef = {}): Parse {
+        this.addChild('coordinates', params);
+        return this;
     }
 }
 

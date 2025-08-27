@@ -6,10 +6,12 @@
 
 import { getCellBoundingSphere } from '../../mol-plugin-state/manager/focus-camera/focus-object';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { StateObjectCell } from '../../mol-state';
+import { StateObjectCell, StateSelection } from '../../mol-state';
 import { PluginContext } from '../../mol-plugin/context';
 import { Script } from '../../mol-script/script';
 import { QueryContext, QueryFn, StructureElement, StructureSelection } from '../../mol-model/structure';
+import { BehaviorSubject } from 'rxjs';
+import { AnimateStateSnapshotTransition } from '../animation/built-in/state-snapshots';
 
 export type MarkdownExtensionEvent = 'click' | 'mouse-enter' | 'mouse-leave';
 
@@ -43,6 +45,17 @@ export const BuiltInMarkdownExtension: MarkdownExtension[] = [
             const key = args['apply-snapshot'];
             if (!key) return;
             manager.plugin.managers.snapshot.applyKey(key);
+        }
+    },
+    {
+        name: 'next-snapshot',
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click' || !('next-snapshot' in args)) return;
+            let dir: -1 | 1 = (+args['next-snapshot'] || 1) as -1 | 1;
+            if (!dir) return;
+            if (dir < 0) dir = -1;
+            else dir = 1;
+            manager.plugin.managers.snapshot.applyNext(dir);
         }
     },
     {
@@ -135,7 +148,8 @@ export const BuiltInMarkdownExtension: MarkdownExtension[] = [
                 if (!action.includes('focus')) {
                     return;
                 }
-                const spheres = structures.map(s => {
+                const decorated = structures.map(s => StateSelection.getDecorated<PluginStateObject.Molecule.Structure>(manager.plugin.state.data, s.transform.ref));
+                const spheres = decorated.map(s => {
                     if (!s.obj?.data) return undefined;
                     const selection = query(new QueryContext(s.obj.data));
                     if (StructureSelection.isEmpty(selection)) return;
@@ -150,9 +164,74 @@ export const BuiltInMarkdownExtension: MarkdownExtension[] = [
             }
         },
     },
+    {
+        name: 'play-audio',
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click') return;
+
+            const src = args['play-audio'];
+            if (!src?.length) return;
+            manager.audio.play(src);
+        }
+    },
+    {
+        name: 'toggle-audio',
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click' || !('toggle-audio' in args)) return;
+
+            const src = args['toggle-audio'];
+            manager.audio.play(src, { toggle: true });
+        }
+    },
+    {
+        name: 'pause-audio',
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click' || !('pause-audio' in args)) return;
+            manager.audio.pause();
+        }
+    },
+    {
+        name: 'stop-audio',
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click' || !('stop-audio' in args)) return;
+            manager.audio.stop();
+        }
+    },
+    {
+        name: 'dispose-audio',
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click' || !('dispose-audio' in args)) return;
+            manager.audio.dispose();
+        }
+    },
+    {
+        name: 'play-transition',
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click' || !('play-transition' in args)) return;
+            manager.plugin.managers.animation.play(AnimateStateSnapshotTransition, {});
+        }
+    },
+    {
+        name: 'play-snapshots',
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click' || !('play-snapshots' in args)) return;
+            manager.plugin.managers.snapshot.play({ restart: true });
+        }
+    },
+    {
+        name: 'stop-animation',
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click' || !('stop-animation' in args)) return;
+            manager.plugin.managers.snapshot.stop();
+        }
+    },
 ];
 
 export class MarkdownExtensionManager {
+    state = {
+        audioPlayer: new BehaviorSubject<HTMLAudioElement | null>(null),
+    };
+
     private extension: MarkdownExtension[] = [];
     private refResolvers: Record<string, (plugin: PluginContext, refs: string[]) => StateObjectCell[]> = {
         default: (plugin: PluginContext, refs: string[]) => refs
@@ -285,6 +364,76 @@ export class MarkdownExtensionManager {
         }
         return ret;
     }
+
+    private resolveAudioPlayer() {
+        if (this.state.audioPlayer.value) {
+            return this.state.audioPlayer.value;
+        }
+
+        const audio = document.createElement('audio');
+        audio.controls = true;
+        audio.preload = 'auto';
+        audio.style.width = '100%';
+        audio.style.height = '32px';
+        this.state.audioPlayer.next(audio);
+        return audio;
+    }
+
+    get audioPlayer() {
+        return this.state.audioPlayer.value;
+    }
+
+    audio = {
+        play: async (src: string, options?: { toggle?: boolean }) => {
+            try {
+                const audio = this.resolveAudioPlayer();
+
+                let newSource = false;
+                if (src?.trim()) {
+                    const resolved = this.tryResolveUri(src);
+                    let uri: string = src;
+                    if (typeof (resolved as Promise<string>)?.then === 'function') {
+                        uri = (await resolved) as string;
+                    } else if (resolved) {
+                        uri = resolved as string;
+                    }
+                    newSource = audio.src !== uri;
+                    if (newSource) {
+                        audio.src = uri;
+                        audio.load();
+                    }
+                }
+
+                if (!newSource && options?.toggle) {
+                    if (audio.paused) {
+                        await audio.play();
+                    } else {
+                        audio.pause();
+                    }
+                } else {
+                    audio.currentTime = 0;
+                    await audio.play();
+                }
+            } catch (e) {
+                console.error('Failed to play audio', e);
+            }
+        },
+        pause: () => {
+            this.audioPlayer?.pause();
+        },
+        stop: () => {
+            if (!this.audioPlayer) return;
+            this.audioPlayer.pause();
+            this.audioPlayer.currentTime = 0;
+        },
+        dispose: () => {
+            if (this.audioPlayer) {
+                this.audioPlayer.pause();
+                this.audioPlayer.currentTime = 0;
+                this.state.audioPlayer.next(null);
+            }
+        }
+    };
 
     constructor(public plugin: PluginContext) {
         for (const command of BuiltInMarkdownExtension) {

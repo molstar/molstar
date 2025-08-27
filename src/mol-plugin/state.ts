@@ -6,7 +6,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { produce } from 'immer';
+import { produce } from '../mol-util/produce';
 import { merge } from 'rxjs';
 import { Camera } from '../mol-canvas3d/camera';
 import { Canvas3DContext, Canvas3DParams, Canvas3DProps } from '../mol-canvas3d/canvas3d';
@@ -27,6 +27,7 @@ import { PluginConfig } from './config';
 import { PluginContext } from './context';
 import { AnimateStateSnapshotTransition } from '../mol-plugin-state/animation/built-in/state-snapshots';
 import { Scheduler } from '../mol-task';
+import { memoizeLatest } from '../mol-util/memoize';
 
 export { PluginState };
 
@@ -118,6 +119,11 @@ class PluginState extends PluginComponent {
                 durationMs: snapshot.camera.transitionStyle === 'animate' ? snapshot.camera.transitionDurationInMs : undefined,
             });
         }
+
+        if (typeof snapshot?.onLoadMarkdownCommands === 'object' && Object.keys(snapshot.onLoadMarkdownCommands).length > 0) {
+            this.plugin.managers.markdownExtensions.tryExecute('click', snapshot.onLoadMarkdownCommands);
+        }
+
         if (snapshot.startAnimation) {
             this.animation.start();
             return;
@@ -146,6 +152,10 @@ class PluginState extends PluginComponent {
                 snapshot: frame.camera.current,
                 durationMs: frame.camera.transitionStyle === 'animate' ? frame.camera.transitionDurationInMs : undefined,
             });
+        }
+
+        if (!frameIndex && typeof snapshot?.onLoadMarkdownCommands === 'object' && Object.keys(snapshot.onLoadMarkdownCommands).length > 0) {
+            this.plugin.managers.markdownExtensions.tryExecute('click', snapshot.onLoadMarkdownCommands);
         }
     }
 
@@ -241,6 +251,7 @@ namespace PluginState {
         },
         durationInMs?: number,
         transition?: StateTransition,
+        onLoadMarkdownCommands?: Record<string, any>
     }
 
     export interface StateTransition {
@@ -254,7 +265,23 @@ namespace PluginState {
         }[],
     }
 
-    export function getStateTransitionDuration(snapshot: Snapshot): number | undefined {
+    export const getMinFrameDuration = memoizeLatest((snapshot: Snapshot | undefined): number => {
+        if (!snapshot) return 1000 / 60;
+        const { transition } = snapshot;
+        if (!transition) return 1000 / 60;
+
+        let minDuration = Infinity;
+        for (const frame of transition.frames) {
+            if (frame.durationInMs > 0 && frame.durationInMs < minDuration) {
+                minDuration = frame.durationInMs;
+            }
+        }
+        if (!Number.isFinite(minDuration)) return 1000 / 60;
+        return minDuration;
+    });
+
+    export const getStateTransitionDuration = memoizeLatest((snapshot: Snapshot | undefined): number | undefined => {
+        if (!snapshot) return undefined;
         const { transition } = snapshot;
         if (!transition) return undefined;
         let totalDuration = 0;
@@ -263,7 +290,20 @@ namespace PluginState {
             totalDuration += frame.durationInMs;
         }
         return totalDuration;
-    }
+    });
+
+    export const getStateTransitionFrameTime = memoizeLatest((snapshot: Snapshot | undefined, frameIndex: number | undefined): number => {
+        if (!snapshot || frameIndex === undefined) return 0;
+        const { transition } = snapshot;
+        if (!transition) return 0;
+        let currentDuration = 0;
+        for (let i = 0; i < frameIndex; i++) {
+            if (transition.frames.length <= i) break;
+            const frame = transition.frames[i];
+            currentDuration += frame.durationInMs;
+        }
+        return currentDuration;
+    });
 
     export function getStateTransitionFrameIndex(snapshot: Snapshot, timestamp: number): number | undefined {
         const { transition } = snapshot;

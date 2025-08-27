@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { PluginReactContext } from '../base';
@@ -13,9 +13,11 @@ import { PluginContext } from '../../mol-plugin/context';
 import { MarkdownExtension } from '../../mol-plugin-state/manager/markdown-extensions';
 import { ColorLists } from '../../mol-util/color/lists';
 import { getColorGradient, getColorGradientBanded, parseColorList } from '../../mol-util/color/utils';
+import { useBehavior } from '../hooks/use-behavior';
 
 export function Markdown({ children, components }: { children?: string, components?: Components }) {
     return <div className='msp-markdown'>
+        <MarkdownAudioPlayer />
         <ReactMarkdown
             skipHtml
             components={{ a: MarkdownAnchor, img: MarkdownImg, ...components }}
@@ -24,6 +26,21 @@ export function Markdown({ children, components }: { children?: string, componen
             {children}
         </ReactMarkdown>
     </div>;
+}
+
+export function MarkdownAudioPlayer() {
+    const parent = useRef<HTMLDivElement>(null);
+    const plugin: PluginUIContext | undefined = useContext(PluginReactContext);
+    const audio = useBehavior(plugin?.managers.markdownExtensions.state.audioPlayer);
+
+    useEffect(() => {
+        if (!parent.current) return;
+        parent.current.appendChild(audio!);
+        return () => { audio?.remove(); };
+    }, [audio]);
+    if (!audio) return null;
+
+    return <div className='msp-markdown-audio-player' ref={parent} />;
 }
 
 export function MarkdownImg({ src, element, alt }: { src?: string, element?: any, alt?: string }) {

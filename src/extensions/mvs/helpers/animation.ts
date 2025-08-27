@@ -5,24 +5,24 @@
  * @author Ludovic Autin <ludovic.autin@gmail.com>
  */
 
-import { produce } from 'immer';
-import { Snapshot } from '../mvs-data';
-import { Tree } from '../tree/generic/tree-schema';
-import { clamp, lerp } from '../../../mol-math/interpolate';
-import { MVSAnimationEasing, MVSAnimationNode, MVSAnimationSchema } from '../tree/animation/animation-tree';
-import { MVSTree } from '../tree/mvs/mvs-tree';
+import { SortedArray } from '../../../mol-data/int';
 import * as EasingFns from '../../../mol-math/easing';
-import { addDefaults } from '../tree/generic/tree-utils';
-import { RuntimeContext } from '../../../mol-task';
+import { clamp, lerp } from '../../../mol-math/interpolate';
 import { EPSILON, Mat3, Mat4, Quat, Vec3 } from '../../../mol-math/linear-algebra';
+import { RuntimeContext } from '../../../mol-task';
+import { deepEqual } from '../../../mol-util';
 import { Color } from '../../../mol-util/color';
+import { produce } from '../../../mol-util/produce';
 import { makeContinuousPaletteCheckpoints, MVSContinuousPaletteProps, MVSDiscretePaletteProps } from '../components/annotation-color-theme';
 import { palettePropsFromMVSPalette } from '../load-helpers';
-import { SortedArray } from '../../../mol-data/int';
+import { Snapshot } from '../mvs-data';
+import { MVSAnimationEasing, MVSAnimationNode, MVSAnimationSchema } from '../tree/animation/animation-tree';
+import { Tree } from '../tree/generic/tree-schema';
+import { addDefaults } from '../tree/generic/tree-utils';
+import { MVSTree } from '../tree/mvs/mvs-tree';
 import { ColorT } from '../tree/mvs/param-types';
 
-
-export async function generateStateTransition(ctx: RuntimeContext, snapshot: Snapshot) {
+export async function generateStateTransition(ctx: RuntimeContext, snapshot: Snapshot, snapshotIndex: number, snapshotCount: number) {
     if (!snapshot.animation) return undefined;
 
     const tree = addDefaults(snapshot.animation, MVSAnimationSchema);
@@ -34,19 +34,30 @@ export async function generateStateTransition(ctx: RuntimeContext, snapshot: Sna
         ...transitions.map(t => (t.params.start_ms ?? 0) + t.params.duration_ms)
     );
 
-    const frames: MVSTree[] = [];
+    const frames: [tree: MVSTree, time: number][] = [];
     const dt = tree.params?.frame_time_ms ?? (1000 / 60);
     const N = Math.ceil(duration / dt);
 
+    const nodeMap = makeNodeMap(snapshot.root, new Map(), []);
     const cache = new Map<any, InterpolationCacheEntry>();
 
+    const transitionGroups = groupTranstions(transitions);
+
+    let prevRoot: MVSTree | undefined;
     for (let i = 0; i <= N; i++) {
         const t = i * dt;
-        const root = createSnapshot(snapshot.root, transitions, t, cache);
-        frames.push(root);
+        const root = createSnapshot(snapshot.root, transitionGroups, t, cache, nodeMap);
+
+        if (root === prevRoot || (prevRoot && deepEqual(root, prevRoot))) {
+            frames[frames.length - 1][1] += dt;
+        } else {
+            frames.push([root, dt]);
+        }
+
+        prevRoot = root;
 
         if (ctx.shouldUpdate) {
-            await ctx.update({ message: 'Generating transition...', current: i + 1, max: N });
+            await ctx.update({ message: `Generating transition for snapshot ${snapshotIndex + 1}/${snapshotCount}`, current: i + 1, max: N });
         }
     }
 
@@ -80,14 +91,64 @@ interface InterpolationCacheEntry {
     rotation?: { axis: Vec3, angle: number, start: Quat, end: Quat },
 }
 
-function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolate'>[], time: number, cache: Map<any, InterpolationCacheEntry>) {
-    return produce(tree, (draft) => {
-        for (const transition of transitions) {
-            const node = findNode(draft, transition.params.target_ref);
-            if (!node) continue;
+function getTransitionKey(transition: MVSAnimationNode<'interpolate'>) {
+    const prop = transition.params.property;
+    if (Array.isArray(prop)) {
+        return `${transition.params.target_ref}:${prop.join('.')}`;
+    }
+    return `${transition.params.target_ref}:${prop}`;
+}
 
-            const target = transition.params.property[0] === 'custom' ? node?.custom : node?.params;
+function groupTranstions(transitions: MVSAnimationNode<'interpolate'>[]) {
+    const map = new Map<string, MVSAnimationNode<'interpolate'>[]>();
+    const groups: MVSAnimationNode<'interpolate'>[][] = [];
+    for (const t of transitions) {
+        const key = getTransitionKey(t);
+        if (!map.has(key)) {
+            const group: MVSAnimationNode<'interpolate'>[] = [];
+            map.set(key, group);
+            groups.push(group);
+        }
+        map.get(key)!.push(t);
+    }
+    for (const group of groups) {
+        group.sort((a, b) => {
+            const s = (a.params.start_ms ?? 0) - (b.params.start_ms ?? 0);
+            if (s !== 0) return s;
+            return a.params.duration_ms - b.params.duration_ms;
+        });
+    }
+    return groups;
+}
+
+function createSnapshot(tree: MVSTree, transitionGroups: MVSAnimationNode<'interpolate'>[][], time: number, cache: Map<any, InterpolationCacheEntry>, nodeMap: Map<string, (string | number)[]>) {
+    let modified = false;
+    const ret = produce(tree, (draft) => {
+        for (const transitionGroup of transitionGroups) {
+
+            const pivot = transitionGroup[0];
+            const nodePath = nodeMap.get(pivot.params.target_ref);
+            if (!nodePath) continue;
+
+            const node = select(draft, nodePath, 0);
+            const target = pivot.params.property[0] === 'custom' ? node?.custom : node?.params;
             if (!target) continue;
+
+
+            const offset = pivot.params.property[0] === 'custom' ? 1 : 0;
+
+            let transition: MVSAnimationNode<'interpolate'> = pivot;
+            let previous: MVSAnimationNode<'interpolate'> | undefined;
+
+            for (let i = transitionGroup.length - 1; i > 0; i--) {
+                const current = transitionGroup[i];
+                const currentStart = current.params.start_ms ?? 0;
+                if (time >= currentStart) {
+                    transition = current;
+                    previous = i > 0 ? transitionGroup[i - 1] : undefined;
+                    break;
+                }
+            }
 
             if (!cache.has(transition)) {
                 cache.set(transition, {});
@@ -95,55 +156,26 @@ function createSnapshot(tree: MVSTree, transitions: MVSAnimationNode<'interpolat
 
             const cacheEntry: InterpolationCacheEntry = cache.get(transition)!;
 
-            const startTime = transition.params.start_ms ?? 0;
-            let t = clamp((time - startTime) / transition.params.duration_ms, 0, 1);
-
-            if (transition.params.kind === 'transform_matrix') {
-                processTransformMatrix(transition, target, t, cacheEntry);
-                continue;
-            }
-
-            t = applyFrequency(t, transition.params.frequency ?? 1, !!transition.params.alternate_direction);
-
-            const offset = transition.params.property[0] === 'custom' ? 1 : 0;
-            const startBase = transition.params.start ?? select(target, transition.params.property, offset);
-
-            if (transition.params.kind === 'color' && !cacheEntry.paletteFn) {
-                cacheEntry.paletteFn = makePaletteFunction(transition, startBase, transition.params.end as ColorT | undefined);
-            }
-
-            const paletteFn = cacheEntry.paletteFn!;
-
-            const startValue: any = transition.params.kind === 'color'
-                ? Color.toHexStyle(paletteFn(0))
-                : startBase;
-            const endValue: any = transition.params.kind === 'color'
-                ? Color.toHexStyle(paletteFn(1))
-                : transition.params.end;
-
-            if (time <= startTime) {
-                assign(target, transition.params.property, startValue, offset);
-                continue;
-            }
-
-            const easing = EasingFnMap[transition.params.easing ?? 'linear'] ?? EasingFnMap['linear'];
-            t = easing(t);
+            const startTime: number = transition.params.start_ms ?? 0;
+            const durationMs: number = transition.params.duration_ms ?? 0;
+            const t = (time - startTime) / durationMs;
 
             let next: any;
-            if (transition.params.kind === 'scalar') {
-                next = interpolateScalars(startValue, endValue, t, transition.params.noise_magnitude ?? 0);
-            } else if (transition.params.kind === 'vec3') {
-                next = interpolateVectors(startValue, endValue, t, transition.params.noise_magnitude ?? 0, !!transition.params.spherical);
-            } else if (transition.params.kind === 'rotation_matrix') {
-                next = interpolateRotation(startValue, endValue, t, transition.params.noise_magnitude ?? 0, cacheEntry);
-            } else if (transition.params.kind === 'color') {
-                const color = paletteFn(t);
-                next = Color.toHexStyle(color);
+            if (transition.params.kind === 'transform_matrix') {
+                next = processTransformMatrix(transition, target, clamp(t, 0, 1), cacheEntry, offset, previous);
+            } else {
+                next = processScalarLike(transition, target, t, cacheEntry, offset, previous);
             }
 
+            if (next === undefined) {
+                continue;
+            }
+
+            modified = true;
             assign(target, transition.params.property, next, offset);
         }
     });
+    return modified ? ret : tree;
 }
 
 function applyFrequency(t: number, frequency: number, alternate: boolean) {
@@ -162,6 +194,55 @@ function applyFrequency(t: number, frequency: number, alternate: boolean) {
     return v;
 }
 
+function getPreviousScalarEnd(previous: MVSAnimationNode<'interpolate'> | undefined) {
+    if (!previous || previous.params.kind === 'transform_matrix') return undefined;
+    return previous.params.end;
+}
+
+function processScalarLike(transition: MVSAnimationNode<'interpolate'>, target: any, time: number, cacheEntry: InterpolationCacheEntry, offset: number, previous: MVSAnimationNode<'interpolate'> | undefined) {
+    if (transition.params.kind === 'transform_matrix') return;
+    if (previous && previous.params.kind === 'transform_matrix') return;
+
+    const startBase = transition.params.start ?? getPreviousScalarEnd(previous) ?? select(target, transition.params.property, offset);
+    if (transition.params.kind === 'color' && !cacheEntry.paletteFn) {
+        cacheEntry.paletteFn = makePaletteFunction(transition, startBase, transition.params.end as ColorT | undefined);
+    }
+
+    const paletteFn = cacheEntry.paletteFn!;
+
+    const startValue: any = transition.params.kind === 'color'
+        ? Color.toHexStyle(paletteFn(0))
+        : startBase;
+    const endValue: any = transition.params.kind === 'color'
+        ? Color.toHexStyle(paletteFn(1))
+        : transition.params.end;
+
+    if (time <= 0) return startValue;
+    else if (time >= 1 - EPSILON && !transition.params.alternate_direction) return endValue;
+
+    let t = clamp(time, 0, 1);
+    t = applyFrequency(t, transition.params.frequency ?? 1, !!transition.params.alternate_direction);
+
+    const easing = EasingFnMap[transition.params.easing ?? 'linear'] ?? EasingFnMap['linear'];
+    t = easing(t);
+
+    if (transition.params.kind === 'scalar') {
+        return interpolateScalars(startValue, endValue, t, transition.params.noise_magnitude ?? 0, !!transition.params.discrete);
+    } else if (transition.params.kind === 'vec3') {
+        return interpolateVectors(startValue, endValue, t, transition.params.noise_magnitude ?? 0, !!transition.params.spherical);
+    } else if (transition.params.kind === 'rotation_matrix') {
+        return interpolateRotation(startValue, endValue, t, transition.params.noise_magnitude ?? 0, cacheEntry);
+    } else if (transition.params.kind === 'color') {
+        const color = paletteFn(t);
+        return Color.toHexStyle(color);
+    }
+}
+
+function getPreviousMatrixEnd(previous: MVSAnimationNode<'interpolate'> | undefined, prop: 'rotation_start' | 'translation_start' | 'scale_start') {
+    if (!previous || previous.params.kind !== 'transform_matrix') return undefined;
+    return previous.params[prop];
+}
+
 const TransformState = {
     pivotTranslation: Mat4(),
     pivotTranslationInv: Mat4(),
@@ -171,31 +252,41 @@ const TransformState = {
     pivotNeg: Vec3(),
     temp: Mat4(),
 };
-function processTransformMatrix(transition: MVSAnimationNode<'interpolate'>, target: any, time: number, cache: InterpolationCacheEntry) {
+function processTransformMatrix(transition: MVSAnimationNode<'interpolate'>, target: any, time: number, cache: InterpolationCacheEntry, offset: number, previous: MVSAnimationNode<'interpolate'> | undefined) {
     if (transition.params.kind !== 'transform_matrix') return;
+    if (previous && previous.params.kind !== 'transform_matrix') return;
 
-    const offset = transition.params.property[0] === 'custom' ? 1 : 0;
     const transform = select(target, transition.params.property, offset) ?? Mat4.identity();
 
-    const startRotation = transition.params.rotation_start ?? Mat3.fromMat4(Mat3(), transform);
-    const startTranslation = transition.params.translation_start ?? Mat4.getTranslation(Vec3(), transform);
-    const startScale = transition.params.scale_start ?? Mat4.getScaling(Vec3(), transform);
+    const startRotation = transition.params.rotation_start ?? getPreviousMatrixEnd(previous, 'rotation_start') ?? Mat3.fromMat4(Mat3(), transform);
+    const startTranslation = transition.params.translation_start ?? getPreviousMatrixEnd(previous, 'translation_start') ?? Mat4.getTranslation(Vec3(), transform);
+    const startScale = transition.params.scale_start ?? getPreviousMatrixEnd(previous, 'scale_start') ?? Mat4.getScaling(Vec3(), transform);
 
     const endRotation = transition.params.rotation_end;
     const endTranslation = transition.params.translation_end;
     const endScale = transition.params.scale_end;
 
-    let t = applyFrequency(time, transition.params.rotation_frequency ?? 1, !!transition.params.rotation_alternate_direction);
-    let easing = EasingFnMap[transition.params.rotation_easing ?? 'linear'] ?? EasingFnMap['linear'];
-    const rotation = interpolateRotation(startRotation as Mat3, endRotation as Mat3, easing(t), transition.params.rotation_noise_magnitude ?? 0, cache);
+    let rotation, translation, scale;
 
-    t = applyFrequency(time, transition.params.translation_frequency ?? 1, !!transition.params.translation_alternate_direction);
-    easing = EasingFnMap[transition.params.translation_easing ?? 'linear'] ?? EasingFnMap['linear'];
-    const translation = interpolateVec3(startTranslation as Vec3, endTranslation as Vec3 | undefined, easing(t), transition.params.translation_noise_magnitude ?? 0, false);
+    if (time <= 0) {
+        rotation = startRotation as Mat3;
+        translation = startTranslation as Vec3;
+        scale = startScale as Vec3;
+    } else {
+        const clampedTime = clamp(time, 0, 1);
 
-    t = applyFrequency(time, transition.params.scale_frequency ?? 1, !!transition.params.scale_alternate_direction);
-    easing = EasingFnMap[transition.params.scale_easing ?? 'linear'] ?? EasingFnMap['linear'];
-    const scale = interpolateVec3(startScale as Vec3, endScale as Vec3 | undefined, easing(t), transition.params.scale_noise_magnitude ?? 0, false);
+        let t = applyFrequency(clampedTime, transition.params.rotation_frequency ?? 1, !!transition.params.rotation_alternate_direction);
+        let easing = EasingFnMap[transition.params.rotation_easing ?? 'linear'] ?? EasingFnMap['linear'];
+        rotation = interpolateRotation(startRotation as Mat3, endRotation as Mat3, easing(t), transition.params.rotation_noise_magnitude ?? 0, cache);
+
+        t = applyFrequency(clampedTime, transition.params.translation_frequency ?? 1, !!transition.params.translation_alternate_direction);
+        easing = EasingFnMap[transition.params.translation_easing ?? 'linear'] ?? EasingFnMap['linear'];
+        translation = interpolateVec3(startTranslation as Vec3, endTranslation as Vec3 | undefined, easing(t), transition.params.translation_noise_magnitude ?? 0, false);
+
+        t = applyFrequency(clampedTime, transition.params.scale_frequency ?? 1, !!transition.params.scale_alternate_direction);
+        easing = EasingFnMap[transition.params.scale_easing ?? 'linear'] ?? EasingFnMap['linear'];
+        scale = interpolateVec3(startScale as Vec3, endScale as Vec3 | undefined, easing(t), transition.params.scale_noise_magnitude ?? 0, false);
+    }
 
     const pivot = transition.params.pivot ?? Vec3.zero();
 
@@ -212,21 +303,21 @@ function processTransformMatrix(transition: MVSAnimationNode<'interpolate'>, tar
     Mat4.mul(result, TransformState.rotation, result);
     Mat4.mul(result, TransformState.translation, result);
 
-    assign(target, transition.params.property, result, offset);
+    return result;
 }
 
-function interpolateScalars(start: number | number[], end: number | number[] | undefined, t: number, noise: number) {
+function interpolateScalars(start: number | number[], end: number | number[] | undefined, t: number, noise: number, discrete: boolean) {
     if (Array.isArray(start)) {
         const ret = Array.from<number>({ length: start.length }).fill(0.1);
         if (!end || !Array.isArray(end)) {
             for (let i = 0; i < start.length; i++) {
-                ret[i] = interpolateScalar(start[i], end, t, noise);
+                ret[i] = interpolateScalar(start[i], end, t, noise, discrete);
             }
             return ret;
         }
 
         for (let i = 0; i < start.length; i++) {
-            ret[i] = interpolateScalar(start[i], end[i], t, noise);
+            ret[i] = interpolateScalar(start[i], end[i], t, noise, discrete);
         }
         return ret;
     }
@@ -234,18 +325,21 @@ function interpolateScalars(start: number | number[], end: number | number[] | u
     if (Array.isArray(end)) {
         const ret = Array.from<number>({ length: end.length }).fill(0.1);
         for (let i = 0; i < end.length; i++) {
-            ret[i] = interpolateScalar(start, end[i], t, noise);
+            ret[i] = interpolateScalar(start, end[i], t, noise, discrete);
         }
         return ret;
     }
 
-    return interpolateScalar(start, end, t, noise);
+    return interpolateScalar(start, end, t, noise, discrete);
 }
 
-function interpolateScalar(start: number, end: number | undefined, t: number, noise: number) {
+function interpolateScalar(start: number, end: number | undefined, t: number, noise: number, discrete: boolean) {
     let v = typeof end === 'number' ? lerp(start, end, t) : start;
     if (noise) {
         v += (Math.random() - 0.5) * noise;
+    }
+    if (discrete) {
+        v = Math.round(v);
     }
     return v;
 }
@@ -380,14 +474,23 @@ function assign(params: any, path: string | (string | number)[], value: any, off
     }
 }
 
-function findNode(tree: Tree, ref: string): Tree | undefined {
-    if (tree.ref === ref) return tree;
-    if (!tree.children) return undefined;
-    for (const child of tree.children) {
-        const result = findNode(child, ref);
-        if (result) return result;
+function makeNodeMap(tree: Tree, map: Map<string, (string | number)[]>, currentPath: (string | number)[]) {
+    if (tree.ref) {
+        map.set(tree.ref, [...currentPath]);
     }
-    return undefined;
+
+    if (!tree.children) return map;
+
+    currentPath.push('children');
+    for (let i = 0; i < tree.children.length; i++) {
+        const child = tree.children[i];
+        currentPath.push(i);
+        makeNodeMap(child, map, currentPath);
+        currentPath.pop();
+    }
+    currentPath.pop();
+
+    return map;
 }
 
 function makePaletteFunction(props: MVSAnimationNode<'interpolate'>, start: ColorT | undefined | null, end: ColorT | undefined | null): ((value: number) => Color) | undefined {

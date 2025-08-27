@@ -20,14 +20,19 @@ Generally, the command should be URL encoded, e.g., `a b` => `a%20b` (in JS, `en
 
 - `center-camera` - Centers the camera
 - `apply-snapshot=key` - Loads snapshots with the provided key
+- `next-snapshot[=-1|1]` - Loads next/previous snapshot, the direction is optional and default to `1`
+- `play-snapshots` - Starts playback of state snapshots
+- `play-transition` - Plays an animation associated with the given snapshot
+- `stop-animation` - Stops currently playing animation
 - `focus-refs=ref1,ref2,...` - On click, focuses nodes with the provided refs
 - `highlight-refs=ref1,ref2,...` - On mouse over, highlights the provided refs
 - `query=...&lang=...&action=highlight,focus&focus-radius=...`
-  - `query` is an expression (e.g., `resn HEM` when using PyMol syntax)
-  - (optional) `lang` is one of `mol-script` (default), `pymol`, `vmd`, `jmol`
-  - (optional) `action` is an array of `highlight` (default), `focus` (multiple actions can be specified)
-  - (optional) `focus-radius` is extra distance applied when focusing the selection (default is `3`)
-  - Example: `[HEM](!query%3Dresn%20HEM%26lang%3Dpymol%26action%3Dhighlight%2Cfocus)` highlights or focuses the HEM residue (the command must be URL encoded because it contains spaces and possibly other special characters)
+    - `query` is an expression (e.g., `resn HEM` when using PyMol syntax)
+    - (optional) `lang` is one of `mol-script` (default), `pymol`, `vmd`, `jmol`
+    - (optional) `action` is an array of `highlight` (default), `focus` (multiple actions can be specified)
+    - (optional) `focus-radius` is extra distance applied when focusing the selection (default is `3`)
+    - Example: `[HEM](!query=resn%20HEM%26lang=pymol&action=highlight,focus)` highlights or focuses the HEM residue (the query must be URL encoded because it contains spaces and possibly other special characters)
+- `play-audio=src`, `toggle-audio[=src]`, `stop-audio`, `pause-audio`, `dispose-audio` - Audio playback support
 
 ## Custom Content
 
@@ -36,11 +41,11 @@ Extends Markdown Image syntax to support expressions of the form `![alt](!c1=v1&
 ### Built-in Custom Content
 - `color-swatch=color` - Renders a box with the provided color
 -  Color palettes:
-  - `color-palette-name=name` - Renders a gradient with the provided named color palette (see `mol-util/color/lists.ts` for supported color schemes)
-  - `color-palette-colors=color1,color2` - Renders a gradient with the provided colors
-  - `color-palette-width=CCS-value` - Specifies the width of the element, defaults to `150px`
-  - `color-palette-height=CCS-value` - Specified the height of the element, defaults to `0.5em`
-  - `color-palette-discrete` - Renders discrete color list instead of interpolating
+    - `color-palette-name=name` - Renders a gradient with the provided named color palette (see `mol-util/color/lists.ts` for supported color schemes)
+    - `color-palette-colors=color1,color2` - Renders a gradient with the provided colors
+    - `color-palette-width=CCS-value` - Specifies the width of the element, defaults to `150px`
+    - `color-palette-height=CCS-value` - Specified the height of the element, defaults to `0.5em`
+    - `color-palette-discrete` - Renders discrete color list instead of interpolating
 
 
 ## Example

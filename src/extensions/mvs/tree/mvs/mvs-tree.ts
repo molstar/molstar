@@ -92,6 +92,12 @@ export const MVSTreeSchema = TreeSchema({
                 format: RequiredField(ParseFormatT, 'Format of the input data resource.'),
             }),
         },
+        /** This node instructs to retrieve molecular coordinates from a parsed data resource. */
+        coordinates: {
+            description: 'This node instructs to retrieve molecular coordinates from a parsed data resource.',
+            parent: ['parse'],
+            params: SimpleParamsSchema({}),
+        },
         /** This node instructs to create a structure from a parsed data resource. "Structure" refers to an internal representation of molecular coordinates without any visual representation. */
         structure: {
             description: 'This node instructs to create a structure from a parsed data resource. "Structure" refers to an internal representation of molecular coordinates without any visual representation.',
@@ -113,6 +119,8 @@ export const MVSTreeSchema = TreeSchema({
                 ijk_min: OptionalField(tuple([int, int, int]), [-1, -1, -1], 'Miller indices of the bottom-left unit cell to be included (only applies when `kind` is `"symmetry"`).'),
                 /** Miller indices of the top-right unit cell to be included (only applies when `kind` is `"symmetry"`). */
                 ijk_max: OptionalField(tuple([int, int, int]), [1, 1, 1], 'Miller indices of the top-right unit cell to be included (only applies when `kind` is `"symmetry"`).'),
+                /** Reference to a specific set of coordinates. */
+                coordinates_ref: OptionalField(nullable(str), null, 'Reference to a specific set of coordinates.')
             }),
         },
         /** This node instructs to rotate and/or translate structure coordinates. */

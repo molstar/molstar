@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 // from http://burtleburtle.net/bob/hash/integer.html
@@ -363,6 +364,21 @@ export function murmurHash3_32(key: string, seed: number): number {
     h ^= h >>> 16;
 
     return h >>> 0;
+}
+
+/**
+ * MurmurHash3 128-bit implementation
+ * @param key - The input data to hash
+ * @param seed - The seed value (default: 0)
+ * @returns The 128-bit hash as a hexadecimal string
+ */
+export function murmurHash3_128_fromBytes(key: Uint8Array, seed: number): string {
+    // This fakeString approach is much faster than `new TextDecoder('ascii').decode(key)`
+    const fakeString = {
+        length: key.length,
+        charCodeAt(i: number) { return key[i]; },
+    };
+    return murmurHash3_128(fakeString as string, seed);
 }
 
 /**

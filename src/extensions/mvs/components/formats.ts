@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { hashFnv32a } from '../../../mol-data/util';
+import { murmurHash3_128_fromBytes } from '../../../mol-data/util';
 import { StringLike } from '../../../mol-io/common/string-like';
 import { DataFormatProvider } from '../../../mol-plugin-state/formats/provider';
 import { PluginStateObject as SO } from '../../../mol-plugin-state/objects';
@@ -118,7 +118,7 @@ export async function loadMVSX(plugin: PluginContext, runtimeCtx: RuntimeContext
     // states.
     clearMVSXFileAssets(plugin);
 
-    const archiveId = `ni,fnv1a;${hashFnv32a(data)}`;
+    const archiveId = `ni,MurmurHash3_128;${murmurHash3_128_fromBytes(data, 42)}`;
     let files: { [path: string]: Uint8Array };
     try {
         files = await unzip(runtimeCtx, data) as typeof files;
@@ -182,7 +182,7 @@ function tryGetDownloadUrl(pso: SO.Data.String, plugin: PluginContext): string |
 }
 
 /** Return a URI referencing a file within an archive, using ARCP scheme (https://arxiv.org/pdf/1809.06935.pdf).
- * `archiveId` corresponds to the `authority` part of URI (e.g. 'uuid,EYVwjDiZhM20PWbF1OWWvQ' or 'ni,fnv1a;938511930')
+ * `archiveId` corresponds to the `authority` part of URI (e.g. 'uuid,EYVwjDiZhM20PWbF1OWWvQ' or 'ni,MurmurHash3_128;e6494f6be71f34c556f3de73d306780c')
  * `path` corresponds to the path to a file within the archive */
 function arcpUri(archiveId: string, path: string): string {
     return new URL(path, `arcp://${archiveId}/`).href;
