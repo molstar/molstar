@@ -47,7 +47,7 @@ export class ChainSequenceWrapper extends SequenceWrapper<StructureUnit> {
         return Interval.Empty;
     }
 
-    _getLoci(seqIdx: number) {
+    protected override _getLoci(seqIdx: number) {
         return this.loci;
     }
 

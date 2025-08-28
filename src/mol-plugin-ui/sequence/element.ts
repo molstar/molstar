@@ -50,7 +50,7 @@ export class ElementSequenceWrapper extends SequenceWrapper<StructureUnit> {
         return Interval.Empty;
     }
 
-    _getLoci(seqIdx: number) {
+    protected override _getLoci(seqIdx: number) {
         const { units } = this.data;
         const lociElements: StructureElement.Loci['elements'][0][] = [];
         let offset = 0;
