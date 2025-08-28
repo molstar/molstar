@@ -209,7 +209,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         if (seqWrapper.isSelected(seqIdx) && this.markerColors.selected) return this.markerColors.selected;
         if (seqWrapper.isFocused(seqIdx) && this.markerColors.focused) return this.markerColors.focused;
         for (const provider of this.plugin.customSequenceColoringRegistry.providers()) {
-            const customColor = provider.color(seqWrapper.getLoci_cached(seqIdx));
+            const customColor = provider.color(seqWrapper.getLoci(seqIdx));
             if (customColor !== undefined) return Color.toHexStyle(customColor);
         }
         return '';

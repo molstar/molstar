@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Adam Midlik <midlik@gmail.com>
+ */
+
 import { OrderedMap } from 'immutable';
 import { Observable, Subject, Unsubscribable } from 'rxjs';
 import { Structure, StructureElement } from '../../mol-model/structure';
@@ -8,7 +14,7 @@ import { Color } from '../../mol-util/color';
 export namespace SequenceColoring {
     export interface Provider {
         readonly name: string,
-        color: (loci: StructureElement.Loci) => Color | undefined, // TODO change to Location, to align with color themes?, or have Theme directly here?
+        color: (loci: StructureElement.Loci) => Color | undefined, // TODO change Loci to Location, to align with color themes?, or have Theme directly here?
         subcribeForUpdates?: (plugin: PluginContext, requestUpdate: (structure: Structure) => void) => Unsubscribable,
     }
 

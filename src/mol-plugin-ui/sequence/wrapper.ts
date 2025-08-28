@@ -20,7 +20,9 @@ abstract class SequenceWrapper<D> {
     abstract residueColor(seqIdx: number): Color
     abstract residueClass(seqIdx: number): string
 
-    abstract getLoci(seqIdx: number): StructureElement.Loci
+    protected abstract _getLoci(seqIdx: number): StructureElement.Loci
+    private lociCache: StructureElement.Loci[] = [];
+    getLoci(seqIndex: number) { return this.lociCache[seqIndex] ??= this._getLoci(seqIndex); } // TODO check if it's generally safe to cache this
 
     /** Return list of sequence viewer positions that correspond to `loci` */
     abstract getSeqIndices(loci: Loci): OrderedSet;
@@ -65,10 +67,6 @@ abstract class SequenceWrapper<D> {
     /** Return true if the position `seqIndex` in sequence view is focused */
     isFocused(seqIndex: number): boolean {
         return !!(this.focusMarkerArray[seqIndex]);
-    }
-    private lociCache: StructureElement.Loci[] = [];
-    getLoci_cached(seqIndex: number) { // TODO cache by default?
-        return this.lociCache[seqIndex] ??= this.getLoci(seqIndex);
     }
 
     /** Markers for "highlighted" and "selected" (2 bits per position) */
