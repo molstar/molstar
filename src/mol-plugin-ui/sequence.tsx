@@ -24,6 +24,8 @@ import { elementLabel } from '../mol-theme/label';
 import { Icon, HelpOutlineSvg } from './controls/icons';
 import { StructureSelectionManager } from '../mol-plugin-state/manager/structure/selection';
 import { arrayEqual } from '../mol-util/array';
+import { Observable } from 'rxjs';
+import { ThemeProvider } from '../mol-theme/theme';
 
 const MaxDisplaySequenceLength = 5000;
 // TODO: add virtualized Select controls (at best with a search box)?
@@ -243,6 +245,13 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
                 this.sync();
             }
         });
+
+        const experimentalSequenceTheme = this.plugin.customUIState.experimentalSequenceTheme as Observable<ThemeProvider<any, any> | undefined> | undefined;
+        if (experimentalSequenceTheme) {
+            this.subscribe(experimentalSequenceTheme as Observable<ThemeProvider<any, any>>, theme => {
+                // do stuff
+            });
+        }
 
         const modeOptions = this.plugin.spec.components?.sequenceViewer?.modeOptions;
         if (modeOptions) {
