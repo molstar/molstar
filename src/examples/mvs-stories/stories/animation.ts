@@ -111,12 +111,28 @@ A story showcasing MolViewSpec animation capabilities.
             const builder = createMVSBuilder();
 
             const _1cbs = structure(builder, '1cbs');
-            const [poly,] = polymer(_1cbs, { color: Colors['1cbs'] });
+            const [poly, repr] = polymer(_1cbs, { color: Colors['1cbs'] });
+
+            repr.colorFromSource({
+                ref: 'residue_colors',
+                schema: 'residue',
+                category_name: 'atom_site',
+                field_name: 'label_comp_id',
+                palette: {
+                    kind: 'categorical',
+                    missing_color: 'white',
+                    colors: {
+                        ALA: 'red',
+                        ILE: 'white',
+                        LYS: 'white',
+                    }
+                }
+            });
 
             const surface = poly.representation({
                 type: 'surface',
                 surface_type: 'gaussian',
-            });
+            }).opacity({ opacity: 0.33 });
 
             _1cbs.component({ selector: 'ligand' })
                 .transform({
@@ -188,6 +204,17 @@ A story showcasing MolViewSpec animation capabilities.
                 duration_ms: 2000,
                 property: 'color',
                 end: Colors['ligand-docked'],
+            });
+
+            anim.interpolate({
+                kind: 'color',
+                target_ref: 'residue_colors',
+                duration_ms: 2000,
+                property: ['palette', 'colors'],
+                end: {
+                    ILE: 'blue',
+                    LYS: 'purple',
+                },
             });
 
             return builder;
@@ -311,10 +338,12 @@ function structure(builder: Root, id: string): MVSStructure {
         .modelStructure();
 }
 
-function polymer(structure: MVSStructure, options: { color: ColorT }) {
+function polymer(structure: MVSStructure, options?: { color?: ColorT }) {
     const component = structure.component({ selector: { label_asym_id: 'A' } });
     const reprensentation = component.representation({ type: 'cartoon' });
-    reprensentation.color({ color: options.color });
+    if (options?.color) {
+        reprensentation.color({ color: options.color });
+    }
     return [component, reprensentation] as const;
 }
 
