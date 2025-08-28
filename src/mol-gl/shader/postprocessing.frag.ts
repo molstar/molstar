@@ -169,13 +169,25 @@ void main(void) {
             float viewDist = abs(getViewZ(closestTexel));
             float fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
             if (!uTransparentBackground) {
+                if (isTransparentOutline > 0.0) {
+                    float outlineAlpha = clamp(isTransparentOutline * 2.0, 0.0, 1.0);
+                    color.rgb = mix(color.rgb, mix(uOutlineColor, uFogColor, fogFactor), outlineAlpha);
+                } else {
                     color.rgb = mix(uOutlineColor, uFogColor, fogFactor);
+                }                    
             } else {
-                color.a = 1.0 - fogFactor;
-                color.rgb = mix(uOutlineColor, vec3(0.0), fogFactor);
+                if (isTransparentOutline > 0.0) {
+                    float outlineAlpha = clamp(isTransparentOutline * 2.0, 0.0, 1.0);
+                    vec3 outlineColor = mix(uOutlineColor, uFogColor, fogFactor);                    
+                    color.a = color.a + outlineAlpha * (1.0 - color.a); 
+                    color.rgb = mix(color.rgb, outlineColor, outlineAlpha);
+                } else {
+                    color.a = 1.0 - fogFactor;
+                    color.rgb = mix(uOutlineColor, vec3(0.0), fogFactor);
+                }                
             }
             #ifdef dBlendTransparency
-                if (isTransparentOutline == 1.0 || transparentDepth > closestTexel) {
+                if (isTransparentOutline > 0.0 || transparentDepth > closestTexel) {
                     blendTransparency = false;
                 }
             #endif
