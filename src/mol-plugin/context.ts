@@ -56,6 +56,7 @@ import { PluginCommands } from './commands';
 import { PluginConfig, PluginConfigManager } from './config';
 import { PluginSpec } from './spec';
 import { PluginState } from './state';
+import { SequenceColoring } from './util/sequence-coloring';
 import { SubstructureParentHelper } from './util/substructure-parent-helper';
 import { TaskManager } from './util/task-manager';
 import { PluginToastManager } from './util/toast';
@@ -80,9 +81,9 @@ export class PluginContext {
     };
 
     protected subs: Subscription[] = [];
-    private initCanvas3dPromiseCallbacks: [res: () => void, rej: (err: any) => void] = [() => {}, () => {}];
+    private initCanvas3dPromiseCallbacks: [res: () => void, rej: (err: any) => void] = [() => { }, () => { }];
     private _isInitialized = false;
-    private initializedPromiseCallbacks: [res: () => void, rej: (err: any) => void] = [() => {}, () => {}];
+    private initializedPromiseCallbacks: [res: () => void, rej: (err: any) => void] = [() => { }, () => { }];
 
     private disposed = false;
     private container: PluginContainer | undefined = void 0;
@@ -209,6 +210,7 @@ export class PluginContext {
     readonly customStructureControls = new Map<string, { new(): any /* constructible react components with <action.customControl /> */ }>();
     readonly customImportControls = new Map<string, { new(): any /* constructible react components with <action.customControl /> */ }>();
     readonly genericRepresentationControls = new Map<string, (selection: StructureHierarchyManager['selection']) => [StructureHierarchyRef[], string]>();
+    readonly customSequenceColoringRegistry = new SequenceColoring.Registry(this);
 
     /**
      * A helper for collecting and notifying errors

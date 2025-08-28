@@ -12,7 +12,6 @@ import { throttleTime } from 'rxjs/operators';
 import { OrderedSet } from '../../mol-data/int';
 import { EveryLoci } from '../../mol-model/loci';
 import { StructureElement, StructureProperties, Unit } from '../../mol-model/structure';
-import { CustomStructureProperties } from '../../mol-plugin-state/transforms/model';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { Representation } from '../../mol-repr/representation';
 import { Color } from '../../mol-util/color';
@@ -82,13 +81,10 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             this.updateColors();
             this.updateMarker();
         });
-        this.subscribe(this.plugin.state.events.cell.stateUpdated, s => {
-            if (s.cell.transform.transformer === CustomStructureProperties) {
-                const updatedStruct = s.cell.obj?.data;
-                const shownStruct = this.props.sequenceWrapper.getLoci(0)?.structure;
-                if (updatedStruct === shownStruct) {
-                    this.forceUpdate();
-                }
+        this.subscribe(this.plugin.customSequenceColoringRegistry.updates, updatedStruct => {
+            const displayedStruct = this.props.sequenceWrapper.getLoci(0)?.structure;
+            if (updatedStruct === displayedStruct) {
+                this.forceUpdate();
             }
         });
     }
@@ -212,8 +208,10 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         if (seqWrapper.isHighlighted(seqIdx) && this.markerColors.highlighted) return this.markerColors.highlighted;
         if (seqWrapper.isSelected(seqIdx) && this.markerColors.selected) return this.markerColors.selected;
         if (seqWrapper.isFocused(seqIdx) && this.markerColors.focused) return this.markerColors.focused;
-        const annotColor = seqWrapper.getAnnotationColor(seqIdx);
-        if (annotColor !== undefined) return Color.toHexStyle(annotColor);
+        for (const provider of this.plugin.customSequenceColoringRegistry.providers()) {
+            const customColor = provider.color(seqWrapper.getLoci_cached(seqIdx));
+            if (customColor !== undefined) return Color.toHexStyle(customColor);
+        }
         return '';
     }
 

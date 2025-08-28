@@ -5,7 +5,6 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { sequenceColorForLoci } from '../../extensions/sequence-color';
 import { Interval, OrderedSet } from '../../mol-data/int';
 import { Loci, isEveryLoci } from '../../mol-model/loci';
 import { Structure, StructureElement, Unit } from '../../mol-model/structure';
@@ -67,12 +66,10 @@ abstract class SequenceWrapper<D> {
     isFocused(seqIndex: number): boolean {
         return !!(this.focusMarkerArray[seqIndex]);
     }
-    /** Return color assigned to the residue in SequenceColor custom structure property, if any */
-    getAnnotationColor(seqIndex: number) {
-        const loci = this.lociCache[seqIndex] ??= this.getLoci(seqIndex);
-        return sequenceColorForLoci(loci);
-    }
     private lociCache: StructureElement.Loci[] = [];
+    getLoci_cached(seqIndex: number) { // TODO cache by default?
+        return this.lociCache[seqIndex] ??= this.getLoci(seqIndex);
+    }
 
     /** Markers for "highlighted" and "selected" (2 bits per position) */
     readonly markerArray: Uint8Array;
