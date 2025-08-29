@@ -370,7 +370,15 @@ export function buildStory(): MVSData_States {
                             topColor: 0x777777,
                             bottomColor: 0xffffff,
                         }
-                    }
+                    },
+                    // Example with background image:
+                    // background: {
+                    //     name: 'image',
+                    //     params: {
+                    //         // URL can also be filename in MVSX archive
+                    //         source: { name: 'url', params: 'URL' }
+                    //     }
+                    // }
                 }
             }
         });
