@@ -37,7 +37,7 @@ export const VolumeLinesParams = {
     ...Lines.Params,
     ...Cylinders.Params,
     ...VolumeGradientParams,
-    useCylinder: PD.Boolean(false),
+    useCylinder: PD.Boolean(true),
     detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
     seedDensity: PD.Numeric(20, { min: 1, max: 100, step: 1 }, { description: 'Seeds per dimension for gradient lines.' }),
     maxSteps: PD.Numeric(1000, { min: 1, max: 2000, step: 1 }, { description: 'Maximum number of steps for gradient lines.' }),
@@ -127,43 +127,80 @@ function getRandomOffsetFromBasis({ x, y, z, maxScale }: Basis): Vec3 {
 export function createVolumeCylindersImpostor(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: VolumeLinesProps, cylinders?: Cylinders): Cylinders {
     const { cells: { space, data }, stats } = volume.grid;
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
-    const isoVal = Volume.IsoValue.toAbsolute(props.isoValue, stats).absoluteValue;
+    // const isoVal = Volume.IsoValue.toAbsolute(props.isoValue, stats).absoluteValue;
 
-    const p = Vec3();
+    // const { min, max } = stats;
+    const [nx, ny, nz] = space.dimensions as Vec3;
+
+    const { hx, hy, hz } = getCellSize(gridToCartn);
+
+    // seeds
+    const seedDensity = props.seedDensity ?? 8;
+    const maxSteps = props.maxSteps ?? 2000; // more steps
+    const ds = (props.stepSize ?? 0.35); // in index units; 0.2–0.5 works well
+    const eps = props.minSpeed ?? 1e-6; // MUCH smaller for APBS
+
+    // Create color scale
+    // const colorScale = ColorScale.create({
+    //     domain: [min, max],
+    //     listOrName: [Color(0x0000ff), Color(0xff0000)] // blue to red
+    // });
+
+    // Generate seed points
+    const seedStep = Math.max(1, Math.floor(Math.min(nx, ny, nz) / seedDensity));
+
+    // const p = Vec3();
     const [xn, yn, zn] = space.dimensions;
 
     const count = Math.ceil((xn * yn * zn) / 10);
-    const builder = CylindersBuilder.create(count, Math.ceil(count / 2), cylinders);
+    const builder = CylindersBuilder.create(count, Math.ceil(count / 2), points);
 
-    const invert = isoVal < 0;
+    // const invert = isoVal < 0;
 
     // Precompute basis vectors and largest cell axis length
-    const basis = getBasis(gridToCartn);
+    // const basis = getBasis(gridToCartn);
 
-    for (let z = 0; z < zn; ++z) {
-        for (let y = 0; y < yn; ++y) {
-            for (let x = 0; x < xn; ++x) {
-                const value = space.get(data, x, y, z);
-                if (!invert && value < isoVal || invert && value > isoVal) continue;
+    for (let z = seedStep; z < nz - seedStep; z += seedStep) {
+        for (let y = seedStep; y < ny - seedStep; y += seedStep) {
+            for (let x = seedStep; x < nx - seedStep; x += seedStep) {
 
+                const pos = Vec3.create(x, y, z);
+
+                // Filtrage par potentiel et champ
+                const phi = getInterpolatedValue(space, data, pos);
+                const g = getInterpolatedGradient(space, data, pos, hx, hy, hz);
+                const mag = Vec3.magnitude(g);
+
+                // seuils à ajuster selon tes cartes APBS
+                if (Math.abs(phi) > 0.2 || mag < 1e-6) continue;
+
+                // si ok, on trace la streamline
+                const streamline = traceStreamlineBothDirs(
+                    space, data, pos,
+                    maxSteps, ds, eps, hx, hy, hz
+                );
+
+                if (streamline.length < 2) continue;
                 const cellIdx = space.dataOffset(x, y, z);
-                if (basis) {
-                    Vec3.set(p, x, y, z);
-                    Vec3.transformMat4(p, p, gridToCartn);
-                    const offset = getRandomOffsetFromBasis(basis);
-                    Vec3.add(p, p, offset);
-                } else {
-                    Vec3.set(p, x, y, z);
-                    Vec3.transformMat4(p, p, gridToCartn);
+
+                for (let i = 0; i < streamline.length - 1; i++) {
+                    const start = Vec3();
+                    const end = Vec3();
+                    Vec3.transformMat4(start, streamline[i].position, gridToCartn);
+                    Vec3.transformMat4(end, streamline[i + 1].position, gridToCartn);
+                    builder.add(start[0], start[1], start[2],
+                                end[0], end[1], end[2],
+                                2.0, true, true, 2, cellIdx);
+                    // builder.addVec(start, end, cellIdx);
                 }
-                // builder.add(p[0], p[1], p[2], cellIdx);
             }
         }
     }
 
-    const s = builder.getCylinders();
-    s.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
-    return s;
+
+    const pt = builder.getCylinders();
+    pt.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
+    return pt;
 }
 
 
