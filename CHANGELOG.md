@@ -44,6 +44,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Support loading trajectory coordinates from separate nodes
   - Trigger markdown commands from primitives using `molstar_markdown_commands` custom extensions
   - Support `molstar_on_load_markdown_commands` custom state on the `root` node
+  - Print tree validation errors to plugin log
 - Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
 - Snapshot Markdown improvements
   - Add `MarkdownExtensionManager` (`PluginContext.managers.markdownExtensions`)
