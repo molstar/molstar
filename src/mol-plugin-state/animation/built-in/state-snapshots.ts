@@ -13,9 +13,11 @@ async function setPartialSnapshot(plugin: PluginContext, entry: Partial<PluginSt
     if (entry.data) {
         await plugin.runTask(plugin.state.data.setSnapshot(entry.data));
         // update the canvas3d trackball with the snapshot
-        plugin.canvas3d?.setProps({
-            trackball: entry.canvas3d?.props?.trackball
-        });
+        if (entry.canvas3d?.props?.trackball) {
+            plugin.canvas3d?.setProps({
+                trackball: entry.canvas3d?.props?.trackball
+            });
+        }
 
     }
 

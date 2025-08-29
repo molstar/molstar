@@ -12,6 +12,7 @@ import { EPSILON, Mat3, Mat4, Quat, Vec3 } from '../../../mol-math/linear-algebr
 import { RuntimeContext } from '../../../mol-task';
 import { deepEqual } from '../../../mol-util';
 import { Color } from '../../../mol-util/color';
+import { decodeColor } from '../../../mol-util/color/utils';
 import { produce } from '../../../mol-util/produce';
 import { makeContinuousPaletteCheckpoints, MVSContinuousPaletteProps, MVSDiscretePaletteProps } from '../components/annotation-color-theme';
 import { palettePropsFromMVSPalette } from '../load-helpers';
@@ -88,6 +89,8 @@ const EasingFnMap: Record<MVSAnimationEasing, (t: number) => number> = {
 
 interface InterpolationCacheEntry {
     paletteFn?: (value: number) => Color,
+    startColor?: Color | Record<number | string, Color>,
+    endColor?: Color | Record<number | string, Color>,
     rotation?: { axis: Vec3, angle: number, start: Quat, end: Quat },
 }
 
@@ -203,22 +206,15 @@ function processScalarLike(transition: MVSAnimationNode<'interpolate'>, target: 
     if (transition.params.kind === 'transform_matrix') return;
     if (previous && previous.params.kind === 'transform_matrix') return;
 
-    const startBase = transition.params.start ?? getPreviousScalarEnd(previous) ?? select(target, transition.params.property, offset);
+    const startValue = transition.params.start ?? getPreviousScalarEnd(previous) ?? select(target, transition.params.property, offset);
     if (transition.params.kind === 'color' && !cacheEntry.paletteFn) {
-        cacheEntry.paletteFn = makePaletteFunction(transition, startBase, transition.params.end as ColorT | undefined);
+        cacheEntry.paletteFn = makePaletteFunction(transition);
     }
 
-    const paletteFn = cacheEntry.paletteFn!;
-
-    const startValue: any = transition.params.kind === 'color'
-        ? Color.toHexStyle(paletteFn(0))
-        : startBase;
-    const endValue: any = transition.params.kind === 'color'
-        ? Color.toHexStyle(paletteFn(1))
-        : transition.params.end;
+    const endValue: any = transition.params.end;
 
     if (time <= 0) return startValue;
-    else if (time >= 1 - EPSILON && !transition.params.alternate_direction) return endValue;
+    else if (time >= 1 - EPSILON && !transition.params.alternate_direction && transition.params.kind !== 'color') return endValue;
 
     let t = clamp(time, 0, 1);
     t = applyFrequency(t, transition.params.frequency ?? 1, !!transition.params.alternate_direction);
@@ -233,8 +229,13 @@ function processScalarLike(transition: MVSAnimationNode<'interpolate'>, target: 
     } else if (transition.params.kind === 'rotation_matrix') {
         return interpolateRotation(startValue, endValue, t, transition.params.noise_magnitude ?? 0, cacheEntry);
     } else if (transition.params.kind === 'color') {
-        const color = paletteFn(t);
-        return Color.toHexStyle(color);
+        if (cacheEntry.paletteFn) {
+            const color = cacheEntry.paletteFn(t);
+            return Color.toHexStyle(color);
+        }
+
+        const baseColors = typeof startValue === 'object' ? select(target, transition.params.property, offset) : undefined;
+        return interpolateColors(startValue, endValue, t, cacheEntry, baseColors);
     }
 }
 
@@ -441,6 +442,76 @@ function interpolateRotation(start: Mat3, end: Mat3 | undefined, t: number, nois
     return Mat3.fromMat4(Mat3(), RotationState.temp);
 }
 
+function decodeColors(color: ColorT | Record<number | string, ColorT> | undefined, baseColors: Record<number | string, ColorT> | undefined) {
+    if (color === undefined || color === null) return undefined;
+
+    if (typeof color === 'object') {
+        const ret: Record<number | string, Color> = {};
+        if (baseColors) {
+            for (const key of Object.keys(baseColors)) {
+                const decoded = decodeColor(baseColors[key]);
+                if (decoded !== undefined) {
+                    ret[key] = decoded;
+                }
+            }
+        }
+        for (const key of Object.keys(color)) {
+            const decoded = decodeColor(color[key]);
+            if (decoded !== undefined) {
+                ret[key] = decoded;
+            }
+        }
+        return ret;
+    }
+
+    return decodeColor(color);
+}
+
+function interpolateColors(start: ColorT | Record<number, ColorT>, end: ColorT | Record<number, ColorT> | undefined, time: number, cacheEntry: InterpolationCacheEntry, baseColors: Record<number, ColorT> | undefined) {
+    const t = clamp(time, 0, 1);
+
+    if (cacheEntry.paletteFn) {
+        const c = cacheEntry.paletteFn(t);
+        return Color.toHexStyle(c);
+    }
+
+    if (cacheEntry.startColor === undefined) {
+        cacheEntry.startColor = decodeColors(start, baseColors);
+    }
+    if (cacheEntry.endColor === undefined) {
+        cacheEntry.endColor = decodeColors(end, undefined);
+    }
+
+    const { startColor, endColor } = cacheEntry;
+
+    if (typeof startColor === 'object') {
+        if (typeof baseColors !== 'object') {
+            throw new Error('Cannot interpolate from scalar color to color mapping');
+        }
+
+        const ret = { ...baseColors as any, ...startColor as any };
+        if (typeof endColor === 'object') {
+            for (const key of Object.keys(endColor)) {
+                ret[key] = Color.toHexStyle(Color.interpolate(startColor[key], endColor[key], t));
+            }
+        } else if (typeof endColor === 'number') {
+            for (const key of Object.keys(startColor)) {
+                ret[key] = Color.toHexStyle(Color.interpolate(startColor[key], endColor, t));
+            }
+        }
+        return ret;
+    }
+    if (typeof endColor === 'object') {
+        throw new Error('Cannot interpolate from scalar color to color mapping');
+    }
+
+    if (typeof endColor === 'number' && typeof startColor === 'number') {
+        return Color.toHexStyle(Color.interpolate(startColor, endColor, t));
+    }
+
+    return start;
+}
+
 function select(params: any, path: string | (string | number)[], offset: number) {
     if (typeof path === 'string') {
         return params?.[path];
@@ -493,12 +564,10 @@ function makeNodeMap(tree: Tree, map: Map<string, (string | number)[]>, currentP
     return map;
 }
 
-function makePaletteFunction(props: MVSAnimationNode<'interpolate'>, start: ColorT | undefined | null, end: ColorT | undefined | null): ((value: number) => Color) | undefined {
-    if (props.params.kind !== 'color') return undefined;
+function makePaletteFunction(props: MVSAnimationNode<'interpolate'>): ((value: number) => Color) | undefined {
+    if (props.params.kind !== 'color' || !props.params.palette) return undefined;
 
-    const params = props.params.palette
-        ? palettePropsFromMVSPalette(props.params.palette)
-        : palettePropsFromMVSPalette({ kind: 'continuous', colors: [start ?? 'black', end ?? start ?? 'black'] });
+    const params = palettePropsFromMVSPalette(props.params.palette);
     if (params.name === 'discrete') return makePaletteFunctionDiscrete(params.params);
     if (params.name === 'continuous') return makePaletteFunctionContinuous(params.params);
     throw new Error(`NotImplementedError: makePaletteFunction for ${(props as any).name}`);

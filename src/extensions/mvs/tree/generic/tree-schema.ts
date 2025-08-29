@@ -4,6 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { PluginContext } from '../../../../mol-plugin/context';
 import { onelinerJsonString } from '../../../../mol-util/json';
 import { isPlainObject, mapObjectMap } from '../../../../mol-util/object';
 import { Field } from './field-schema';
@@ -145,13 +146,15 @@ export function treeValidationIssues(schema: TreeSchema, tree: Tree, options: { 
 /** Validate a tree against the given schema.
  * Do nothing if OK; print validation issues on console and throw an error is the tree does not conform.
  * Include `label` in the printed output. */
-export function validateTree(schema: TreeSchema, tree: Tree, label: string): void {
+export function validateTree(schema: TreeSchema, tree: Tree, label: string, plugin: PluginContext): void {
     const issues = treeValidationIssues(schema, tree, { noExtra: true });
     if (issues) {
         console.warn(`Invalid ${label} tree:\n${treeToString(tree)}`);
         console.error(`${label} tree validation issues:`);
+        plugin.log.error(`${label} tree validation issues:`);
         for (const line of issues) {
             console.error(' ', line);
+            plugin.log.error(line);
         }
         throw new Error('FormatError');
     }

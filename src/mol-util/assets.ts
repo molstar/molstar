@@ -83,6 +83,15 @@ class AssetManager {
         }
     }
 
+    tryFindFilename(name: string): Asset | undefined {
+        const it = this._assets.values();
+        while (true) {
+            const { done, value } = it.next();
+            if (done) break;
+            if (value.file.name === name) return value.asset;
+        }
+    }
+
     set(asset: Asset, file: File, options?: { isStatic?: boolean, tag?: string }) {
         this._assets.set(asset.id, { asset, file, refCount: 0, tag: options?.tag, isStatic: options?.isStatic });
     }
