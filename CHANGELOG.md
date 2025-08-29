@@ -24,7 +24,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - `representation` node: support custom property `molstar_representation_params`
   - Add `backbone` and `line` representation types
   - `primitives` node: support custom property `molstar_mesh/label/line_params`
-  - `canvas` node: support custom property `molstar_postprocessing` with the ability to customize outline, depth of field, bloom, shadow, occlusion (SSAO), and fog
+  - `canvas` node: support custom property `molstar_postprocessing` with the ability to customize outline, depth of field, bloom, shadow, occlusion (SSAO), fog, and background
   - `clip` node support for structure and volume representations
   - `grid_slice` representation support for volumes
   - Support tethers and background for primitive labels

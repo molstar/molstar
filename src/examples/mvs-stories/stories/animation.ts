@@ -364,6 +364,13 @@ export function buildStory(): MVSData_States {
                 molstar_postprocessing: {
                     enable_outline: true,
                     enable_ssao: true,
+                    background: {
+                        name: 'horizontalGradient',
+                        params: {
+                            topColor: 0x777777,
+                            bottomColor: 0xffffff,
+                        }
+                    }
                 }
             }
         });
