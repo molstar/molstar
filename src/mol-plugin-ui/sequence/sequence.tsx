@@ -213,6 +213,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         this.mouseDownLoci = undefined;
     };
 
+    private _themeLocation = StructureElement.Location.create();
     protected getBackgroundColor(seqIdx: number) {
         const seqWrapper = this.props.sequenceWrapper;
         if (seqWrapper.isHighlighted(seqIdx) && this.markerColors.highlighted) return this.markerColors.highlighted;
@@ -220,7 +221,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         if (seqWrapper.isFocused(seqIdx) && this.markerColors.focused) return this.markerColors.focused;
         if (this.customColorFunction) {
             const loci = seqWrapper.getLoci(seqIdx);
-            const location = StructureElement.Loci.getFirstLocation(loci);
+            const location = StructureElement.Loci.getFirstLocation(loci, this._themeLocation);
             if (location) {
                 const customColor = this.customColorFunction(location, false);
                 if (customColor >= 0) return Color.toHexStyle(customColor); // Color(-1) is used as special value NoColor
