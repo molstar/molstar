@@ -319,7 +319,7 @@ const GradientVisuals = {
 export const GradientParams = {
     ...VolumeLinesParams,
     ...VolumeCylindersParams,
-    visuals: PD.MultiSelect(['gradient'], PD.objectToOptions(GradientVisuals)),
+    visuals: PD.MultiSelect(['lines'], PD.objectToOptions(GradientVisuals)),
 };
 export type GradientParams = typeof GradientParams;
 
