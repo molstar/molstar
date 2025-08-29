@@ -13,22 +13,20 @@ import { ElementSet } from '../mvs/components/selector';
 import { SequenceColorProperty } from './prop';
 
 
+/** Special color value meaning "no color assigned" */
+const NoColor = Color(-1);
+
 export namespace CustomSequenceColorTheme {
     export const Params = {};
-    export type Params = typeof Params
-    export type Props = PD.Values<Params>
-
-    const NoColor = Color(-1);
+    export type Params = typeof Params;
+    export type Props = PD.Values<Params>;
 
     export function Theme(ctx: ThemeDataContext, props: Props): ColorTheme<Props> {
         let color: LocationColor = () => NoColor;
         if (ctx.structure && !ctx.structure.isEmpty) {
             const colorData = SequenceColorProperty.Provider.get(ctx.structure).value;
-            if (colorData?.items.length) {
-                color = (location) => {
-                    if (StructureElement.Location.is(location)) return sequenceColorForLocation(colorData, location) ?? NoColor;
-                    return NoColor;
-                }
+            if (colorData && colorData.items.length > 0) {
+                color = location => StructureElement.Location.is(location) ? sequenceColorForLocation(colorData, location) : NoColor;
             }
         }
         return {
@@ -53,15 +51,12 @@ export namespace CustomSequenceColorTheme {
 }
 
 
-function sequenceColorForLocation(colorData: SequenceColorProperty.Data, location: StructureElement.Location): Color | undefined {
+function sequenceColorForLocation(colorData: SequenceColorProperty.Data, location: StructureElement.Location): Color {
     const unitCache = colorData.colorCache[location.unit.id] ??= {};
-    if (!(location.element in unitCache)) { // not using ??= pattern here, because cache may contain undefineds
-        unitCache[location.element] = findSequenceColorForLocation(colorData, location);
-    }
-    return unitCache[location.element];
+    return unitCache[location.element] ??= findSequenceColorForLocation(colorData, location);
 }
 
-function findSequenceColorForLocation(colorData: SequenceColorProperty.Data, location: StructureElement.Location): Color | undefined {
+function findSequenceColorForLocation(colorData: SequenceColorProperty.Data, location: StructureElement.Location): Color {
     for (let i = colorData.items.length - 1; i >= 0; i--) { // last color matters
         const item = colorData.items[i];
         const elements = item.elementSet ??= ElementSet.fromSelector(location.structure, item.selector);
@@ -69,5 +64,5 @@ function findSequenceColorForLocation(colorData: SequenceColorProperty.Data, loc
             return item.color;
         }
     }
-    return undefined;
+    return NoColor;
 }

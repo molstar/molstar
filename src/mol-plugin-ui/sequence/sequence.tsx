@@ -73,7 +73,6 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     }
 
     componentDidMount() {
-        console.log('componentDidMount')
         this.plugin.managers.interactivity.lociHighlights.addProvider(this.lociHighlightProvider);
         this.plugin.managers.interactivity.lociSelects.addProvider(this.lociSelectionProvider);
 
@@ -94,7 +93,6 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         const experimentalSequenceColorTheme: BehaviorSubject<ColorThemeProvider> | undefined = this.plugin.customUIState.experimentalSequenceColorTheme;
         if (experimentalSequenceColorTheme) {
             this.subscribe(experimentalSequenceColorTheme, theme => {
-                console.log('changed theme', theme)
                 if (!theme && !this.customColorFunction) return;
                 this.forceUpdate();
             });
@@ -360,7 +358,6 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             if (theme.ensureCustomProperties) {
                 const isAttached = this.attachedCustomPropertiesFor?.theme === theme && this.attachedCustomPropertiesFor?.structure === structure;
                 if (!isAttached) {
-                    console.log('ensuring', structure.model.entryId, structure.elementCount)
                     this.attachedCustomPropertiesFor = { theme, structure };
                     this.plugin.runTask(Task.create('Ensure custom properties for coloring theme', async runtime => {
                         await theme.ensureCustomProperties?.attach({ assetManager: this.plugin.managers.asset, runtime }, themeContext);
@@ -374,7 +371,6 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     }
 
     render() {
-        console.log('render')
         this.updateCustomColorFunction();
 
         const sw = this.props.sequenceWrapper;

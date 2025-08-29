@@ -40,7 +40,7 @@ export namespace SequenceColorProperty {
         }[],
         colorCache: {
             [unitId: number]: {
-                [elemIdx: ElementIndex]: Color | undefined,
+                [elemIdx: ElementIndex]: Color,
             },
         },
     }
