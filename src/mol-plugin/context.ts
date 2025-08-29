@@ -80,9 +80,9 @@ export class PluginContext {
     };
 
     protected subs: Subscription[] = [];
-    private initCanvas3dPromiseCallbacks: [res: () => void, rej: (err: any) => void] = [() => { }, () => { }];
+    private initCanvas3dPromiseCallbacks: [res: () => void, rej: (err: any) => void] = [() => {}, () => {}];
     private _isInitialized = false;
-    private initializedPromiseCallbacks: [res: () => void, rej: (err: any) => void] = [() => { }, () => { }];
+    private initializedPromiseCallbacks: [res: () => void, rej: (err: any) => void] = [() => {}, () => {}];
 
     private disposed = false;
     private container: PluginContainer | undefined = void 0;

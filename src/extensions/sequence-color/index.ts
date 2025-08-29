@@ -6,13 +6,12 @@
 
 import { BehaviorSubject, Unsubscribable } from 'rxjs';
 import { ColorTypeLocation } from '../../mol-geo/geometry/color-data';
-import { AccessibleSurfaceAreaColorThemeProvider } from '../../mol-model-props/computed/themes/accessible-surface-area';
 import { CustomStructureProperties } from '../../mol-plugin-state/transforms/model';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { PluginBehavior } from '../../mol-plugin/behavior';
 import { ColorTheme } from '../../mol-theme/color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { CustomSequenceColorThemeProvider } from './coloring-provider';
+import { CustomSequenceColorTheme } from './color-theme';
 import { SequenceColorProperty } from './prop';
 
 
@@ -32,12 +31,10 @@ export const SequenceColor = PluginBehavior.create<{ autoAttach: boolean }>({
         register(): void {
             this.ctx.customStructureProperties.register(SequenceColorProperty.Provider, this.params.autoAttach);
             if (this.ctx instanceof PluginUIContext) {
-                console.log('register with PluginUIContext')
                 const theme: BehaviorSubject<ColorThemeProvider> = this.ctx.customUIState.experimentalSequenceColorTheme ??= new BehaviorSubject<ColorThemeProvider>(undefined);
                 this.sub = this.ctx.state.events.cell.stateUpdated.subscribe(s => {
                     if (s.cell.transform.transformer === CustomStructureProperties) {
-                        theme.next(CustomSequenceColorThemeProvider);
-                        // theme.next(AccessibleSurfaceAreaColorThemeProvider);
+                        theme.next(CustomSequenceColorTheme.Provider);
                     }
                 });
             }
@@ -53,7 +50,6 @@ export const SequenceColor = PluginBehavior.create<{ autoAttach: boolean }>({
             this.sub?.unsubscribe();
             this.sub = undefined;
             if (this.ctx instanceof PluginUIContext) {
-                console.log('unregister with PluginUIContext')
                 const theme: BehaviorSubject<ColorThemeProvider> | undefined = this.ctx.customUIState.experimentalSequenceColorTheme;
                 theme?.next(undefined);
             }

@@ -7,13 +7,15 @@
  */
 
 import * as React from 'react';
-import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
 import { throttleTime } from 'rxjs/operators';
 import { OrderedSet } from '../../mol-data/int';
+import { ColorTypeLocation } from '../../mol-geo/geometry/color-data';
 import { EveryLoci } from '../../mol-model/loci';
-import { StructureElement, StructureProperties, Unit } from '../../mol-model/structure';
+import { Structure, StructureElement, StructureProperties, Unit } from '../../mol-model/structure';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { Representation } from '../../mol-repr/representation';
+import { Task } from '../../mol-task';
 import { ColorTheme, LocationColor } from '../../mol-theme/color';
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { Color } from '../../mol-util/color';
@@ -21,8 +23,6 @@ import { ButtonsType, getButton, getButtons, getModifiers, ModifiersKeys } from 
 import { MarkerAction } from '../../mol-util/marker-action';
 import { PluginUIComponent } from '../base';
 import { SequenceWrapper } from './wrapper';
-import { Task } from '../../mol-task';
-import { ColorTypeLocation } from '../../mol-geo/geometry/color-data';
 
 
 type SequenceProps = {
@@ -216,7 +216,6 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     };
 
     protected getBackgroundColor(seqIdx: number) {
-        if (seqIdx === 0) console.log('getBackgroundColor')
         const seqWrapper = this.props.sequenceWrapper;
         if (seqWrapper.isHighlighted(seqIdx) && this.markerColors.highlighted) return this.markerColors.highlighted;
         if (seqWrapper.isSelected(seqIdx) && this.markerColors.selected) return this.markerColors.selected;
@@ -347,30 +346,38 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         this.highlightQueue.next({ seqIdx: -1, buttons, button, modifiers });
     };
 
+    /** This is to avoid infinite loop of attaching custom properties and forcing update */
+    private attachedCustomPropertiesFor?: { theme: ColorThemeProvider, structure: Structure };
+    private updateCustomColorFunction() {
+        const experimentalSequenceColorTheme: BehaviorSubject<ColorThemeProvider> | undefined = this.plugin.customUIState.experimentalSequenceColorTheme;
+        if (!experimentalSequenceColorTheme) return;
+
+        const theme = experimentalSequenceColorTheme.value;
+        if (theme) {
+            const structure = this.props.sequenceWrapper.getLoci(0)?.structure;
+            const themeContext: ThemeDataContext = { structure };
+            this.customColorFunction = theme.factory(themeContext, theme.defaultValues).color;
+            if (theme.ensureCustomProperties) {
+                const isAttached = this.attachedCustomPropertiesFor?.theme === theme && this.attachedCustomPropertiesFor?.structure === structure;
+                if (!isAttached) {
+                    console.log('ensuring', structure.model.entryId, structure.elementCount)
+                    this.attachedCustomPropertiesFor = { theme, structure };
+                    this.plugin.runTask(Task.create('Ensure custom properties for coloring theme', async runtime => {
+                        await theme.ensureCustomProperties?.attach({ assetManager: this.plugin.managers.asset, runtime }, themeContext);
+                        this.forceUpdate();
+                    }));
+                }
+            }
+        } else {
+            this.customColorFunction = undefined;
+        }
+    }
+
     render() {
         console.log('render')
+        this.updateCustomColorFunction();
+
         const sw = this.props.sequenceWrapper;
-
-        const experimentalSequenceColorTheme: BehaviorSubject<ColorThemeProvider> | undefined = this.plugin.customUIState.experimentalSequenceColorTheme;
-        if (experimentalSequenceColorTheme) {
-            const theme = experimentalSequenceColorTheme.value;
-            if (theme) {
-                const displayedStruct = this.props.sequenceWrapper.getLoci(0)?.structure;
-                const ctx: ThemeDataContext = { structure: displayedStruct };
-                // if (theme.ensureCustomProperties) {
-                //     await this.plugin.runTask(
-                //         Task.create('ensureCustomProperties', async runtime => {
-                //             await theme.ensureCustomProperties?.attach({ assetManager: this.plugin.managers.asset, runtime }, ctx);
-                //         })
-                //     );
-                // }
-                this.customColorFunction = theme.factory(ctx, theme.defaultValues).color;
-                // TODO ensureCustomProperties
-            } else {
-                this.customColorFunction = undefined;
-            }
-        }
-
         const elems: JSX.Element[] = [];
 
         const hasNumbers = !this.props.hideSequenceNumbers, period = this.sequenceNumberPeriod;
