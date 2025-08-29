@@ -122,22 +122,26 @@ export function createVolumeCylindersImpostor(ctx: VisualContext, volume: Volume
 
     const count = Math.ceil((xn * yn * zn) / 10);
     const builder = CylindersBuilder.create(count, Math.ceil(count / 2), geometry);
-
+    // initialize the Vec3
+    const pos = Vec3();
+    const start = Vec3();
+    const end = Vec3();
+    const g = Vec3();
     for (let z = seedStep; z < nz - seedStep; z += seedStep) {
         for (let y = seedStep; y < ny - seedStep; y += seedStep) {
             for (let x = seedStep; x < nx - seedStep; x += seedStep) {
 
-                const pos = Vec3.create(x, y, z);
+                Vec3.set(pos, x, y, z);
 
-                // Filtrage par potentiel et champ
+                // filtering
                 const phi = getInterpolatedValue(space, data, pos);
-                const g = getInterpolatedGradient(space, data, pos, hx, hy, hz);
+                getInterpolatedGradient(g, space, data, pos, hx, hy, hz);
                 const mag = Vec3.magnitude(g);
 
-                // seuils à ajuster selon tes cartes APBS
+                // thresholds to adjust according to your APBS maps
                 if (Math.abs(phi) > 0.2 || mag < 1e-6) continue;
 
-                // si ok, on trace la streamline
+                // if ok, we trace the streamline
                 const streamline = traceStreamlineBothDirs(
                     space, data, pos,
                     maxSteps, ds, eps, hx, hy, hz
@@ -147,10 +151,10 @@ export function createVolumeCylindersImpostor(ctx: VisualContext, volume: Volume
                 const cellIdx = space.dataOffset(x, y, z);
 
                 for (let i = 0; i < streamline.length - 1; i++) {
-                    const start = Vec3();
-                    const end = Vec3();
-                    Vec3.transformMat4(start, streamline[i].position, gridToCartn);
-                    Vec3.transformMat4(end, streamline[i + 1].position, gridToCartn);
+                    Vec3.set(start, streamline[i].x, streamline[i].y, streamline[i].z);
+                    Vec3.set(end, streamline[i + 1].x, streamline[i + 1].y, streamline[i + 1].z);
+                    Vec3.transformMat4(start, start, gridToCartn);
+                    Vec3.transformMat4(end, end, gridToCartn);
                     builder.add(start[0], start[1], start[2],
                                 end[0], end[1], end[2],
                                 props.radius, true, true, 2, cellIdx);
@@ -158,8 +162,6 @@ export function createVolumeCylindersImpostor(ctx: VisualContext, volume: Volume
             }
         }
     }
-
-
     const pt = builder.getCylinders();
     pt.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
     return pt;
@@ -191,22 +193,27 @@ export function createVolumeLinesMesh(ctx: VisualContext, volume: Volume, key: n
 
     // Precompute basis vectors and largest cell axis length
     // const basis = getBasis(gridToCartn);
-
+    const pos = Vec3();
+    const start = Vec3();
+    const end = Vec3();
+    const start1 = Vec3();
+    const end1 = Vec3();
+    const g = Vec3();
     for (let z = seedStep; z < nz - seedStep; z += seedStep) {
         for (let y = seedStep; y < ny - seedStep; y += seedStep) {
             for (let x = seedStep; x < nx - seedStep; x += seedStep) {
 
-                const pos = Vec3.create(x, y, z);
+                Vec3.set(pos, x, y, z);
 
-                // Filtrage par potentiel et champ
+                // filtering
                 const phi = getInterpolatedValue(space, data, pos);
-                const g = getInterpolatedGradient(space, data, pos, hx, hy, hz);
+                getInterpolatedGradient(g, space, data, pos, hx, hy, hz);
                 const mag = Vec3.magnitude(g);
 
-                // seuils à ajuster selon tes cartes APBS
+                // thresholds to adjust according to your APBS maps
                 if (Math.abs(phi) > 0.2 || mag < 1e-6) continue;
 
-                // si ok, on trace la streamline
+                // if ok, we trace the streamline
                 const streamline = traceStreamlineBothDirs(
                     space, data, pos,
                     maxSteps, ds, eps, hx, hy, hz
@@ -216,16 +223,15 @@ export function createVolumeLinesMesh(ctx: VisualContext, volume: Volume, key: n
                 const cellIdx = space.dataOffset(x, y, z);
 
                 for (let i = 0; i < streamline.length - 1; i++) {
-                    const start = Vec3();
-                    const end = Vec3();
-                    Vec3.transformMat4(start, streamline[i].position, gridToCartn);
-                    Vec3.transformMat4(end, streamline[i + 1].position, gridToCartn);
+                    Vec3.set(start1, streamline[i].x, streamline[i].y, streamline[i].z);
+                    Vec3.set(end1, streamline[i + 1].x, streamline[i + 1].y, streamline[i + 1].z);
+                    Vec3.transformMat4(start, start1, gridToCartn);
+                    Vec3.transformMat4(end, end1, gridToCartn);
                     builder.addVec(start, end, cellIdx);
                 }
             }
         }
     }
-
 
     const pt = builder.getLines();
     pt.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
@@ -297,58 +303,89 @@ export const GradientRepresentationProvider = VolumeRepresentationProvider({
 });
 
 interface StreamlinePoint {
-    position: Vec3;
+    x: number;
+    y: number;
+    z: number;
     value: number;
 }
 
 function traceOneDirection(
+    out: StreamlinePoint[],
     space: Tensor.Space, data: ArrayLike<number>, seed: Vec3,
     maxSteps: number, ds: number, eps: number,
-    hx: number, hy: number, hz: number, dirSign: 1 | -1
-): StreamlinePoint[] {
+    hx: number, hy: number, hz: number, dirSign: 1 | -1, skipFirst: boolean,
+    traceState: {
+        p: Vec3,
+        g: Vec3, g2: Vec3, g3: Vec3, g4: Vec3,
+        v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3,
+        k1: Vec3, k2: Vec3, k3: Vec3, k4: Vec3,
+        dp: Vec3, t1: Vec3, t2: Vec3
+    }
+): number {
 
-    const line: StreamlinePoint[] = [];
+    // const line: StreamlinePoint[] = [];
     const [nx, ny, nz] = space.dimensions as Vec3;
-    const p = Vec3.clone(seed);
+    const p = traceState.p;
+    Vec3.copy(p, seed);
+    const inv6 = 1 / 6;
+    let written = 0;
 
     for (let step = 0; step < maxSteps; step++) {
         if (p[0] < 1 || p[0] > (nx as number) - 2 ||
             p[1] < 1 || p[1] > (ny as number) - 2 ||
             p[2] < 1 || p[2] > (nz as number) - 2) break;
 
-        const g = getInterpolatedGradient(space, data, p, hx, hy, hz);
-        const m = Vec3.magnitude(g);
+        getInterpolatedGradient(traceState.g, space, data, p, hx, hy, hz);
+        const m = Vec3.magnitude(traceState.g);
         if (!(m > eps)) break;
 
         // direction only, signed
-        const v = Vec3.scale(Vec3(), g, dirSign / m);
+        Vec3.scale(traceState.v1, traceState.g, dirSign / m);
 
         // RK4 with constant arc-length ds
-        const k1 = Vec3.scale(Vec3(), v, ds);
-        const g2 = getInterpolatedGradient(space, data, Vec3.add(Vec3(), p, Vec3.scale(Vec3(), k1, 0.5)), hx, hy, hz);
-        const v2 = Vec3.scale(Vec3(), g2, dirSign / Math.max(Vec3.magnitude(g2), eps));
-        const k2 = Vec3.scale(Vec3(), v2, ds);
+        Vec3.scale(traceState.k1, traceState.v1, ds);
 
-        const g3 = getInterpolatedGradient(space, data, Vec3.add(Vec3(), p, Vec3.scale(Vec3(), k2, 0.5)), hx, hy, hz);
-        const v3 = Vec3.scale(Vec3(), g3, dirSign / Math.max(Vec3.magnitude(g3), eps));
-        const k3 = Vec3.scale(Vec3(), v3, ds);
+        Vec3.add(traceState.t1, p, Vec3.scale(traceState.t2, traceState.k1, 0.5));
+        getInterpolatedGradient(traceState.g2, space, data, traceState.t1, hx, hy, hz);
+        Vec3.scale(traceState.v2, traceState.g2, dirSign / Math.max(Vec3.magnitude(traceState.g2), eps));
+        Vec3.scale(traceState.k2, traceState.v2, ds);
 
-        const g4 = getInterpolatedGradient(space, data, Vec3.add(Vec3(), p, k3), hx, hy, hz);
-        const v4 = Vec3.scale(Vec3(), g4, dirSign / Math.max(Vec3.magnitude(g4), eps));
-        const k4 = Vec3.scale(Vec3(), v4, ds);
+        Vec3.add(traceState.t1, p, Vec3.scale(traceState.t2, traceState.k2, 0.5));
+        getInterpolatedGradient(traceState.g3, space, data, traceState.t1, hx, hy, hz);
+        Vec3.scale(traceState.v3, traceState.g3, dirSign / Math.max(Vec3.magnitude(traceState.g3), eps));
+        Vec3.scale(traceState.k3, traceState.v3, ds);
 
-        const dp = Vec3.scale(Vec3(),
-            Vec3.add(Vec3(),
-                Vec3.add(Vec3(), k1, Vec3.scale(Vec3(), k2, 2)),
-                Vec3.add(Vec3(), Vec3.scale(Vec3(), k3, 2), k4)
-            ), 1 / 6);
+        Vec3.add(traceState.t1, p, traceState.k3);
+        getInterpolatedGradient(traceState.g4, space, data, traceState.t1, hx, hy, hz);
+        Vec3.scale(traceState.v4, traceState.g4, dirSign / Math.max(Vec3.magnitude(traceState.g4), eps));
+        Vec3.scale(traceState.k4, traceState.v4, ds);
 
-        const value = getInterpolatedValue(space, data, p);
-        line.push({ position: Vec3.clone(p), value });
+        // dp = (k1 + 2*k2 + 2*k3 + k4) / 6, with zero allocs
+        Vec3.copy(traceState.dp, traceState.k1);
 
-        Vec3.add(p, p, dp);
+        Vec3.scale(traceState.t1, traceState.k2, 2);
+        Vec3.add(traceState.dp, traceState.dp, traceState.t1);
+
+        Vec3.scale(traceState.t2, traceState.k3, 2);
+        Vec3.add(traceState.dp, traceState.dp, traceState.t2);
+
+        Vec3.add(traceState.dp, traceState.dp, traceState.k4);
+        Vec3.scale(traceState.dp, traceState.dp, inv6);
+
+        if (!(skipFirst && step === 0)) {
+            const value = getInterpolatedValue(space, data, p);
+            out.push({ x: p[0], y: p[1], z: p[2], value });
+            written++;
+        }
+        Vec3.add(p, p, traceState.dp);
     }
-    return line;
+    return written;
+}
+
+function reverseSegmentInPlace<T>(arr: T[], start: number, end: number) {
+    for (let i = start, j = end; i < j; i++, j--) {
+        const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    }
 }
 
 function traceStreamlineBothDirs(
@@ -356,25 +393,57 @@ function traceStreamlineBothDirs(
     maxSteps: number, ds: number, eps: number,
     hx: number, hy: number, hz: number
 ): StreamlinePoint[] {
-    const back = traceOneDirection(space, data, seed, maxSteps, ds, eps, hx, hy, hz, -1);
-    const fwd = traceOneDirection(space, data, seed, maxSteps, ds, eps, hx, hy, hz, +1);
-    return back.reverse().concat(fwd.length ? fwd.slice(1) : []);
+    const line: StreamlinePoint[] = [];
+    // one shared scratch block to avoid per-call allocations
+    const traceState = {
+        p: Vec3(),
+        g: Vec3(), g2: Vec3(), g3: Vec3(), g4: Vec3(),
+        v1: Vec3(), v2: Vec3(), v3: Vec3(), v4: Vec3(),
+        k1: Vec3(), k2: Vec3(), k3: Vec3(), k4: Vec3(),
+        dp: Vec3(), t1: Vec3(), t2: Vec3()
+    };
+    // 1) trace BACKWARD, including the seed
+    const nBack = traceOneDirection(line,
+        space, data, seed, maxSteps, ds, eps, hx, hy, hz, -1,
+        /* skipFirst */ false, traceState
+    );
+
+    // 2) reverse that segment IN PLACE so it's ordered from farthest->seed
+    if (nBack > 1) reverseSegmentInPlace(line, 0, nBack - 1);
+
+    // 3) trace FORWARD, skipping the seed to avoid duplication; append directly
+    traceOneDirection(line,
+        space, data, seed, maxSteps, ds, eps, hx, hy, hz, +1,
+        /* skipFirst */ true, traceState
+    );
+    return line;
 }
 
-function getInterpolatedGradient(space: Tensor.Space, data: ArrayLike<number>, pos: Vec3, hx: number, hy: number, hz: number): Vec3 {
+function getInterpolatedGradient(out: Vec3, space: Tensor.Space, data: ArrayLike<number>,
+                                 pos: Vec3, hx: number, hy: number, hz: number): Vec3 {
     const x = Math.floor(pos[0]), y = Math.floor(pos[1]), z = Math.floor(pos[2]);
     const fx = pos[0] - x, fy = pos[1] - y, fz = pos[2] - z;
 
-    const grads: Vec3[] = [];
+    // reset accumulator
+    out[0] = 0; out[1] = 0; out[2] = 0;
+
+    let i = 0;
+    const grads: Vec3[] = [
+        Vec3(), Vec3(), Vec3(), Vec3(),
+        Vec3(), Vec3(), Vec3(), Vec3(),
+    ];
     for (let dz = 0; dz <= 1; dz++) {
         for (let dy = 0; dy <= 1; dy++) {
             for (let dx = 0; dx <= 1; dx++) {
-                grads.push(calculateGradient(space, data, x + dx, y + dy, z + dz, hx, hy, hz));
+                calculateGradient(
+                    grads[i], // write directly into existing Vec3
+                    space, data, x + dx, y + dy, z + dz, hx, hy, hz
+                );
+                i++;
             }
         }
     }
 
-    const out = Vec3();
     for (let i = 0; i < 8; i++) {
         const wx = (i & 1) ? fx : (1 - fx);
         const wy = (i & 2) ? fy : (1 - fy);
@@ -411,7 +480,7 @@ function getInterpolatedValue(space: Tensor.Space, data: ArrayLike<number>, pos:
     return result;
 }
 
-function calculateGradient(space: Tensor.Space, data: ArrayLike<number>, x: number, y: number, z: number, hx: number, hy: number, hz: number): Vec3 {
+function calculateGradient(out: Vec3, space: Tensor.Space, data: ArrayLike<number>, x: number, y: number, z: number, hx: number, hy: number, hz: number): Vec3 {
     // clamp indices inside [1..N-2] to avoid border reads
     const xi = Math.max(1, Math.min(x, (space.dimensions[0] as number) - 2));
     const yi = Math.max(1, Math.min(y, (space.dimensions[1] as number) - 2));
@@ -422,7 +491,10 @@ function calculateGradient(space: Tensor.Space, data: ArrayLike<number>, x: numb
     const gz = (data[space.dataOffset(xi, yi, zi + 1)] - data[space.dataOffset(xi, yi, zi - 1)]) / (2 * hz);
 
     // Electric field E = -∇φ
-    return Vec3.create(-gx, -gy, -gz);
+    out[0] = -gx;
+    out[1] = -gy;
+    out[2] = -gz;
+    return out;
 }
 
 
