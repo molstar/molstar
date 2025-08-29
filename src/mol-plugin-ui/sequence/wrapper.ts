@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Adam Midlik <midlik@gmail.com>
@@ -20,7 +20,9 @@ abstract class SequenceWrapper<D> {
     abstract residueColor(seqIdx: number): Color
     abstract residueClass(seqIdx: number): string
 
-    abstract getLoci(seqIdx: number): StructureElement.Loci
+    protected abstract _getLoci(seqIdx: number): StructureElement.Loci
+    private lociCache: StructureElement.Loci[] = [];
+    getLoci(seqIndex: number) { return this.lociCache[seqIndex] ??= this._getLoci(seqIndex); } // TODO check if it's generally safe to cache this
 
     /** Return list of sequence viewer positions that correspond to `loci` */
     abstract getSeqIndices(loci: Loci): OrderedSet;

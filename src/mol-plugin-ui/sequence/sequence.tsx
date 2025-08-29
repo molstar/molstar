@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2024 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -7,13 +7,17 @@
  */
 
 import * as React from 'react';
-import { Subject } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
 import { throttleTime } from 'rxjs/operators';
 import { OrderedSet } from '../../mol-data/int';
+import { ColorTypeLocation } from '../../mol-geo/geometry/color-data';
 import { EveryLoci } from '../../mol-model/loci';
-import { StructureElement, StructureProperties, Unit } from '../../mol-model/structure';
+import { Structure, StructureElement, StructureProperties, Unit } from '../../mol-model/structure';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { Representation } from '../../mol-repr/representation';
+import { Task } from '../../mol-task';
+import { ColorTheme, LocationColor } from '../../mol-theme/color';
+import { ThemeDataContext } from '../../mol-theme/theme';
 import { Color } from '../../mol-util/color';
 import { ButtonsType, getButton, getButtons, getModifiers, ModifiersKeys } from '../../mol-util/input/input-observer';
 import { MarkerAction } from '../../mol-util/marker-action';
@@ -36,12 +40,17 @@ const DefaultMarkerColors = {
     focused: '',
 };
 
+type ColorThemeProvider = ColorTheme.Provider<any, string, ColorTypeLocation> | undefined
+
+
 // TODO: this is somewhat inefficient and should be done using a canvas.
 export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     protected parentDiv = React.createRef<HTMLDivElement>();
     protected lastMouseOverSeqIdx = -1;
     protected highlightQueue = new Subject<{ seqIdx: number, buttons: number, button: number, modifiers: ModifiersKeys }>();
     protected markerColors = { ...DefaultMarkerColors };
+    /** @experimental Custom function that assigns color to residues in the Sequence component (unless highlighted or selected) */
+    private customColorFunction: LocationColor | undefined = undefined;
 
     protected lociHighlightProvider = (loci: Representation.Loci, action: MarkerAction) => {
         const changed = this.props.sequenceWrapper.markResidue(loci.loci, action);
@@ -81,6 +90,13 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             this.updateColors();
             this.updateMarker();
         });
+        const experimentalSequenceColorTheme: BehaviorSubject<ColorThemeProvider> | undefined = this.plugin.customUIState.experimentalSequenceColorTheme;
+        if (experimentalSequenceColorTheme) {
+            this.subscribe(experimentalSequenceColorTheme, theme => {
+                if (!theme && !this.customColorFunction) return;
+                this.forceUpdate();
+            });
+        }
     }
 
     updateColors() {
@@ -197,11 +213,20 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         this.mouseDownLoci = undefined;
     };
 
+    private _themeLocation = StructureElement.Location.create();
     protected getBackgroundColor(seqIdx: number) {
         const seqWrapper = this.props.sequenceWrapper;
-        if (seqWrapper.isHighlighted(seqIdx)) return this.markerColors.highlighted;
-        if (seqWrapper.isSelected(seqIdx)) return this.markerColors.selected;
-        if (seqWrapper.isFocused(seqIdx)) return this.markerColors.focused;
+        if (seqWrapper.isHighlighted(seqIdx) && this.markerColors.highlighted) return this.markerColors.highlighted;
+        if (seqWrapper.isSelected(seqIdx) && this.markerColors.selected) return this.markerColors.selected;
+        if (seqWrapper.isFocused(seqIdx) && this.markerColors.focused) return this.markerColors.focused;
+        if (this.customColorFunction) {
+            const loci = seqWrapper.getLoci(seqIdx);
+            const location = StructureElement.Loci.getFirstLocation(loci, this._themeLocation);
+            if (location) {
+                const customColor = this.customColorFunction(location, false);
+                if (customColor >= 0) return Color.toHexStyle(customColor); // Color(-1) is used as special value NoColor
+            }
+        }
         return '';
     }
 
@@ -320,9 +345,36 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         this.highlightQueue.next({ seqIdx: -1, buttons, button, modifiers });
     };
 
-    render() {
-        const sw = this.props.sequenceWrapper;
+    /** This is to avoid infinite loop of attaching custom properties and forcing update */
+    private attachedCustomPropertiesFor?: { theme: ColorThemeProvider, structure: Structure };
+    private updateCustomColorFunction() {
+        const experimentalSequenceColorTheme: BehaviorSubject<ColorThemeProvider> | undefined = this.plugin.customUIState.experimentalSequenceColorTheme;
+        if (!experimentalSequenceColorTheme) return;
 
+        const theme = experimentalSequenceColorTheme.value;
+        if (theme) {
+            const structure = this.props.sequenceWrapper.getLoci(0)?.structure;
+            const themeContext: ThemeDataContext = { structure };
+            this.customColorFunction = theme.factory(themeContext, theme.defaultValues).color;
+            if (theme.ensureCustomProperties) {
+                const isAttached = this.attachedCustomPropertiesFor?.theme === theme && this.attachedCustomPropertiesFor?.structure === structure;
+                if (!isAttached) {
+                    this.attachedCustomPropertiesFor = { theme, structure };
+                    this.plugin.runTask(Task.create('Ensure custom properties for coloring theme', async runtime => {
+                        await theme.ensureCustomProperties?.attach({ assetManager: this.plugin.managers.asset, runtime }, themeContext);
+                        this.forceUpdate();
+                    }));
+                }
+            }
+        } else {
+            this.customColorFunction = undefined;
+        }
+    }
+
+    render() {
+        this.updateCustomColorFunction();
+
+        const sw = this.props.sequenceWrapper;
         const elems: JSX.Element[] = [];
 
         const hasNumbers = !this.props.hideSequenceNumbers, period = this.sequenceNumberPeriod;
