@@ -27,7 +27,11 @@ import { Interval, OrderedSet } from '../../mol-data/int';
 import { RepresentationContext, RepresentationParamsGetter, Representation } from '../representation';
 
 export const VolumeGradientParams = {
-    isoValue: Volume.IsoValueParam
+    isoValue: Volume.IsoValueParam,
+    seedDensity: PD.Numeric(20, { min: 1, max: 100, step: 1 }, { description: 'Seeds per dimension for gradient lines.' }),
+    maxSteps: PD.Numeric(1000, { min: 1, max: 2000, step: 1 }, { description: 'Maximum number of steps for gradient lines.' }),
+    stepSize: PD.Numeric(0.35, { min: 0.01, max: 10, step: 0.01 }, { description: 'Step size for gradient lines.' }),
+    minSpeed: PD.Numeric(0.001, { min: 0, max: 1, step: 1e-6 }, { description: 'Minimum speed for gradient lines.' }),
 };
 
 export type VolumeGradientParams = typeof VolumeGradientParams
@@ -35,47 +39,11 @@ export type VolumeGradientProps = PD.Values<VolumeGradientParams>
 
 export const VolumeLinesParams = {
     ...Lines.Params,
-    ...Cylinders.Params,
     ...VolumeGradientParams,
-    useCylinder: PD.Boolean(true),
     detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
-    seedDensity: PD.Numeric(20, { min: 1, max: 100, step: 1 }, { description: 'Seeds per dimension for gradient lines.' }),
-    maxSteps: PD.Numeric(1000, { min: 1, max: 2000, step: 1 }, { description: 'Maximum number of steps for gradient lines.' }),
-    stepSize: PD.Numeric(0.35, { min: 0.01, max: 10, step: 0.01 }, { description: 'Step size for gradient lines.' }),
-    minSpeed: PD.Numeric(0.001, { min: 0, max: 1, step: 1e-6 }, { description: 'Minimum speed for gradient lines.' }),
 };
 export type VolumeLinesParams = typeof VolumeLinesParams
 export type VolumeLinesProps = PD.Values<VolumeLinesParams>
-
-export function VolumeGradientVisual(materialId: number, volume: Volume, key: number, props: PD.Values<VolumeLinesParams>) {
-    return props.useCylinder
-        ? VolumeCylindersImpostorVisual(materialId)
-        : VolumeLinesVisual(materialId);
-}
-
-
-export function VolumeCylindersImpostorVisual(materialId: number): VolumeVisual<VolumeLinesParams> {
-    return VolumeVisual<Cylinders, VolumeLinesParams>({
-        defaultProps: PD.getDefaultValues(VolumeLinesParams),
-        createGeometry: createVolumeCylindersImpostor,
-        createLocationIterator: createVolumeCellLocationIterator,
-        getLoci: getGradientLoci,
-        eachLocation: eachGradient,
-        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<VolumeLinesParams>, currentProps: PD.Values<VolumeLinesParams>, newTheme: Theme, currentTheme: Theme) => {
-            state.createGeometry = (
-                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats)||
-                newProps.seedDensity !== currentProps.seedDensity ||
-                newProps.maxSteps !== currentProps.maxSteps ||
-                newProps.stepSize !== currentProps.stepSize ||
-                newProps.minSpeed !== currentProps.minSpeed
-            );
-        },
-        geometryUtils: Cylinders.Utils,
-        mustRecreate: (volumekey: VolumeKey, props: PD.Values<VolumeLinesParams>, webgl?: WebGLContext) => {
-            return !props.useCylinder || !webgl;
-        }
-    }, materialId);
-}
 
 
 export function VolumeLinesVisual(materialId: number): VolumeVisual<VolumeLinesParams> {
@@ -97,6 +65,38 @@ export function VolumeLinesVisual(materialId: number): VolumeVisual<VolumeLinesP
         geometryUtils: Lines.Utils,
         mustRecreate: (volumekey: VolumeKey, props: PD.Values<VolumeLinesParams>, webgl?: WebGLContext) => {
             return props.useCylinder && !!webgl;
+        }
+    }, materialId);
+}
+
+export const VolumeCylindersParams = {
+    ...Cylinders.Params,
+    ...VolumeGradientParams,
+    radius: PD.Numeric(1.0, { min: 0.1, max: 5, step: 0.1 }, { description: 'Radius scale of the cylinders.' }),
+};
+export type VolumeCylindersParams = typeof VolumeCylindersParams
+export type VolumeCylindersProps = PD.Values<VolumeCylindersParams>
+
+export function VolumeCylindersImpostorVisual(materialId: number): VolumeVisual<VolumeCylindersParams> {
+    return VolumeVisual<Cylinders, VolumeCylindersParams>({
+        defaultProps: PD.getDefaultValues(VolumeCylindersParams),
+        createGeometry: createVolumeCylindersImpostor,
+        createLocationIterator: createVolumeCellLocationIterator,
+        getLoci: getGradientLoci,
+        eachLocation: eachGradient,
+        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<VolumeCylindersParams>, currentProps: PD.Values<VolumeCylindersParams>, newTheme: Theme, currentTheme: Theme) => {
+            state.createGeometry = (
+                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats)||
+                newProps.seedDensity !== currentProps.seedDensity ||
+                newProps.maxSteps !== currentProps.maxSteps ||
+                newProps.stepSize !== currentProps.stepSize ||
+                newProps.minSpeed !== currentProps.minSpeed ||
+                newProps.radius !== currentProps.radius
+            );
+        },
+        geometryUtils: Cylinders.Utils,
+        mustRecreate: (volumekey: VolumeKey, props: PD.Values<VolumeCylindersParams>, webgl?: WebGLContext) => {
+            return !webgl;
         }
     }, materialId);
 }
@@ -124,7 +124,7 @@ function getRandomOffsetFromBasis({ x, y, z, maxScale }: Basis): Vec3 {
 }
 
 
-export function createVolumeCylindersImpostor(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: VolumeLinesProps, cylinders?: Cylinders): Cylinders {
+export function createVolumeCylindersImpostor(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: VolumeCylindersProps, geometry?: Cylinders): Cylinders {
     const { cells: { space, data }, stats } = volume.grid;
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
     // const isoVal = Volume.IsoValue.toAbsolute(props.isoValue, stats).absoluteValue;
@@ -153,7 +153,7 @@ export function createVolumeCylindersImpostor(ctx: VisualContext, volume: Volume
     const [xn, yn, zn] = space.dimensions;
 
     const count = Math.ceil((xn * yn * zn) / 10);
-    const builder = CylindersBuilder.create(count, Math.ceil(count / 2), points);
+    const builder = CylindersBuilder.create(count, Math.ceil(count / 2), geometry);
 
     // const invert = isoVal < 0;
 
@@ -190,7 +190,7 @@ export function createVolumeCylindersImpostor(ctx: VisualContext, volume: Volume
                     Vec3.transformMat4(end, streamline[i + 1].position, gridToCartn);
                     builder.add(start[0], start[1], start[2],
                                 end[0], end[1], end[2],
-                                2.0, true, true, 2, cellIdx);
+                                props.radius, true, true, 2, cellIdx);
                     // builder.addVec(start, end, cellIdx);
                 }
             }
@@ -311,14 +311,15 @@ function eachGradient(loci: Loci, volume: Volume, key: number, props: VolumeGrad
 
 const GradientVisuals = {
     'lines': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, VolumeLinesParams>) => VolumeRepresentation('Gradient lines', ctx, getParams, VolumeLinesVisual, getLoci),
+    'cylinders': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, VolumeCylindersParams>) => VolumeRepresentation('Gradient cylinders', ctx, getParams, VolumeCylindersImpostorVisual, getLoci),
 };
 
 
 
 export const GradientParams = {
     ...VolumeLinesParams,
+    ...VolumeCylindersParams,
     visuals: PD.MultiSelect(['gradient'], PD.objectToOptions(GradientVisuals)),
-    bumpFrequency: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
 };
 export type GradientParams = typeof GradientParams;
 
