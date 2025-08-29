@@ -101,31 +101,8 @@ export function VolumeCylindersImpostorVisual(materialId: number): VolumeVisual<
     }, materialId);
 }
 
-type Basis = { x: Vec3, y: Vec3, z: Vec3, maxScale: number }
-function getBasis(m: Mat4): Basis {
-    return {
-        ...Mat4.extractBasis(m),
-        maxScale: Mat4.getMaxScaleOnAxis(m)
-    };
-}
-
-
-const offset = Vec3();
-function getRandomOffsetFromBasis({ x, y, z, maxScale }: Basis): Vec3 {
-    const rx = (Math.random() - 0.5) * maxScale;
-    const ry = (Math.random() - 0.5) * maxScale;
-    const rz = (Math.random() - 0.5) * maxScale;
-
-    Vec3.scale(offset, x, rx);
-    Vec3.scaleAndAdd(offset, offset, y, ry);
-    Vec3.scaleAndAdd(offset, offset, z, rz);
-
-    return offset;
-}
-
-
 export function createVolumeCylindersImpostor(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: VolumeCylindersProps, geometry?: Cylinders): Cylinders {
-    const { cells: { space, data }, stats } = volume.grid;
+    const { cells: { space, data } } = volume.grid;
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
     // const isoVal = Volume.IsoValue.toAbsolute(props.isoValue, stats).absoluteValue;
 
@@ -191,7 +168,6 @@ export function createVolumeCylindersImpostor(ctx: VisualContext, volume: Volume
                     builder.add(start[0], start[1], start[2],
                                 end[0], end[1], end[2],
                                 props.radius, true, true, 2, cellIdx);
-                    // builder.addVec(start, end, cellIdx);
                 }
             }
         }
@@ -205,7 +181,7 @@ export function createVolumeCylindersImpostor(ctx: VisualContext, volume: Volume
 
 
 export function createVolumeLinesMesh(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: VolumeLinesProps, points?: Lines): Lines {
-    const { cells: { space, data }, stats } = volume.grid;
+    const { cells: { space, data } } = volume.grid;
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
     // const isoVal = Volume.IsoValue.toAbsolute(props.isoValue, stats).absoluteValue;
 
