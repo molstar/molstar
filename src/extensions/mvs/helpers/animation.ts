@@ -229,7 +229,13 @@ function processScalarLike(transition: MVSAnimationNode<'interpolate'>, target: 
     } else if (transition.params.kind === 'rotation_matrix') {
         return interpolateRotation(startValue, endValue, t, transition.params.noise_magnitude ?? 0, cacheEntry);
     } else if (transition.params.kind === 'color') {
-        return interpolateColors(startValue, endValue, t, cacheEntry);
+        if (cacheEntry.paletteFn) {
+            const color = cacheEntry.paletteFn(t);
+            return Color.toHexStyle(color);
+        }
+
+        const baseColors = typeof startValue === 'object' ? select(target, transition.params.property, offset) : undefined;
+        return interpolateColors(startValue, endValue, t, cacheEntry, baseColors);
     }
 }
 
@@ -436,11 +442,19 @@ function interpolateRotation(start: Mat3, end: Mat3 | undefined, t: number, nois
     return Mat3.fromMat4(Mat3(), RotationState.temp);
 }
 
-function decodeColors(color: ColorT | Record<number | string, ColorT> | undefined) {
+function decodeColors(color: ColorT | Record<number | string, ColorT> | undefined, baseColors: Record<number | string, ColorT> | undefined) {
     if (color === undefined || color === null) return undefined;
 
     if (typeof color === 'object') {
         const ret: Record<number | string, Color> = {};
+        if (baseColors) {
+            for (const key of Object.keys(baseColors)) {
+                const decoded = decodeColor(baseColors[key]);
+                if (decoded !== undefined) {
+                    ret[key] = decoded;
+                }
+            }
+        }
         for (const key of Object.keys(color)) {
             const decoded = decodeColor(color[key]);
             if (decoded !== undefined) {
@@ -453,7 +467,7 @@ function decodeColors(color: ColorT | Record<number | string, ColorT> | undefine
     return decodeColor(color);
 }
 
-function interpolateColors(start: ColorT | Record<number, ColorT>, end: ColorT | Record<number, ColorT> | undefined, time: number, cacheEntry: InterpolationCacheEntry) {
+function interpolateColors(start: ColorT | Record<number, ColorT>, end: ColorT | Record<number, ColorT> | undefined, time: number, cacheEntry: InterpolationCacheEntry, baseColors: Record<number, ColorT> | undefined) {
     const t = clamp(time, 0, 1);
 
     if (cacheEntry.paletteFn) {
@@ -462,16 +476,20 @@ function interpolateColors(start: ColorT | Record<number, ColorT>, end: ColorT |
     }
 
     if (cacheEntry.startColor === undefined) {
-        cacheEntry.startColor = decodeColors(start);
+        cacheEntry.startColor = decodeColors(start, baseColors);
     }
     if (cacheEntry.endColor === undefined) {
-        cacheEntry.endColor = decodeColors(end);
+        cacheEntry.endColor = decodeColors(end, undefined);
     }
 
     const { startColor, endColor } = cacheEntry;
 
     if (typeof startColor === 'object') {
-        const ret = { ...start as any };
+        if (typeof baseColors !== 'object') {
+            throw new Error('Cannot interpolate from scalar color to color mapping');
+        }
+
+        const ret = { ...baseColors as any, ...startColor as any };
         if (typeof endColor === 'object') {
             for (const key of Object.keys(endColor)) {
                 ret[key] = Color.toHexStyle(Color.interpolate(startColor[key], endColor[key], t));
@@ -479,10 +497,6 @@ function interpolateColors(start: ColorT | Record<number, ColorT>, end: ColorT |
         } else if (typeof endColor === 'number') {
             for (const key of Object.keys(startColor)) {
                 ret[key] = Color.toHexStyle(Color.interpolate(startColor[key], endColor, t));
-            }
-        } else {
-            for (const key of Object.keys(startColor)) {
-                ret[key] = Color.toHexStyle(startColor[key]);
             }
         }
         return ret;

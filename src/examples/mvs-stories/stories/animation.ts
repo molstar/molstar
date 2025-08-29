@@ -211,6 +211,9 @@ A story showcasing MolViewSpec animation capabilities.
                 target_ref: 'residue_colors',
                 duration_ms: 2000,
                 property: ['palette', 'colors'],
+                start: {
+                    ALA: 'yellow',
+                },
                 end: {
                     ILE: 'blue',
                     LYS: 'purple',
