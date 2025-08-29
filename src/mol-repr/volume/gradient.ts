@@ -11,8 +11,6 @@ import { Cylinders } from '../../mol-geo/geometry/cylinders/cylinders';
 import { Lines } from '../../mol-geo/geometry/lines/lines';
 import { LinesBuilder } from '../../mol-geo/geometry/lines/lines-builder';
 import { Volume, Grid } from '../../mol-model/volume';
-// import { Color } from '../../mol-util/color';
-// import { ColorScale } from '../../mol-util/color';
 import { BaseGeometry } from '../../mol-geo/geometry/base';
 import { VolumeVisual, VolumeRepresentation, VolumeRepresentationProvider, VolumeKey } from './representation';
 import { VisualUpdateState } from '../util';
@@ -104,9 +102,7 @@ export function VolumeCylindersImpostorVisual(materialId: number): VolumeVisual<
 export function createVolumeCylindersImpostor(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: VolumeCylindersProps, geometry?: Cylinders): Cylinders {
     const { cells: { space, data } } = volume.grid;
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
-    // const isoVal = Volume.IsoValue.toAbsolute(props.isoValue, stats).absoluteValue;
 
-    // const { min, max } = stats;
     const [nx, ny, nz] = space.dimensions as Vec3;
 
     const { hx, hy, hz } = getCellSize(gridToCartn);
@@ -117,11 +113,6 @@ export function createVolumeCylindersImpostor(ctx: VisualContext, volume: Volume
     const ds = (props.stepSize ?? 0.35); // in index units; 0.2–0.5 works well
     const eps = props.minSpeed ?? 1e-6; // MUCH smaller for APBS
 
-    // Create color scale
-    // const colorScale = ColorScale.create({
-    //     domain: [min, max],
-    //     listOrName: [Color(0x0000ff), Color(0xff0000)] // blue to red
-    // });
 
     // Generate seed points
     const seedStep = Math.max(1, Math.floor(Math.min(nx, ny, nz) / seedDensity));
@@ -131,11 +122,6 @@ export function createVolumeCylindersImpostor(ctx: VisualContext, volume: Volume
 
     const count = Math.ceil((xn * yn * zn) / 10);
     const builder = CylindersBuilder.create(count, Math.ceil(count / 2), geometry);
-
-    // const invert = isoVal < 0;
-
-    // Precompute basis vectors and largest cell axis length
-    // const basis = getBasis(gridToCartn);
 
     for (let z = seedStep; z < nz - seedStep; z += seedStep) {
         for (let y = seedStep; y < ny - seedStep; y += seedStep) {
@@ -183,9 +169,7 @@ export function createVolumeCylindersImpostor(ctx: VisualContext, volume: Volume
 export function createVolumeLinesMesh(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: VolumeLinesProps, points?: Lines): Lines {
     const { cells: { space, data } } = volume.grid;
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
-    // const isoVal = Volume.IsoValue.toAbsolute(props.isoValue, stats).absoluteValue;
 
-    // const { min, max } = stats;
     const [nx, ny, nz] = space.dimensions as Vec3;
 
     const { hx, hy, hz } = getCellSize(gridToCartn);
@@ -196,12 +180,6 @@ export function createVolumeLinesMesh(ctx: VisualContext, volume: Volume, key: n
     const ds = (props.stepSize ?? 0.35); // in index units; 0.2–0.5 works well
     const eps = props.minSpeed ?? 1e-6; // MUCH smaller for APBS
 
-    // Create color scale
-    // const colorScale = ColorScale.create({
-    //     domain: [min, max],
-    //     listOrName: [Color(0x0000ff), Color(0xff0000)] // blue to red
-    // });
-
     // Generate seed points
     const seedStep = Math.max(1, Math.floor(Math.min(nx, ny, nz) / seedDensity));
 
@@ -210,8 +188,6 @@ export function createVolumeLinesMesh(ctx: VisualContext, volume: Volume, key: n
 
     const count = Math.ceil((xn * yn * zn) / 10);
     const builder = LinesBuilder.create(count, Math.ceil(count / 2), points);
-
-    // const invert = isoVal < 0;
 
     // Precompute basis vectors and largest cell axis length
     // const basis = getBasis(gridToCartn);
@@ -284,12 +260,10 @@ function eachGradient(loci: Loci, volume: Volume, key: number, props: VolumeGrad
     return eachVolumeLoci(loci, volume, { isoValue: props.isoValue }, apply);
 }
 
-
 const GradientVisuals = {
     'lines': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, VolumeLinesParams>) => VolumeRepresentation('Gradient lines', ctx, getParams, VolumeLinesVisual, getLoci),
     'cylinders': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, VolumeCylindersParams>) => VolumeRepresentation('Gradient cylinders', ctx, getParams, VolumeCylindersImpostorVisual, getLoci),
 };
-
 
 
 export const GradientParams = {
@@ -343,7 +317,7 @@ function traceOneDirection(
             p[2] < 1 || p[2] > (nz as number) - 2) break;
 
         const g = getInterpolatedGradient(space, data, p, hx, hy, hz);
-        let m = Vec3.magnitude(g);
+        const m = Vec3.magnitude(g);
         if (!(m > eps)) break;
 
         // direction only, signed
@@ -383,7 +357,7 @@ function traceStreamlineBothDirs(
     hx: number, hy: number, hz: number
 ): StreamlinePoint[] {
     const back = traceOneDirection(space, data, seed, maxSteps, ds, eps, hx, hy, hz, -1);
-    const fwd  = traceOneDirection(space, data, seed, maxSteps, ds, eps, hx, hy, hz, +1);
+    const fwd = traceOneDirection(space, data, seed, maxSteps, ds, eps, hx, hy, hz, +1);
     return back.reverse().concat(fwd.length ? fwd.slice(1) : []);
 }
 
