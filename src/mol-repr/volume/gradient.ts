@@ -37,12 +37,12 @@ export const VolumeLinesParams = {
     ...Lines.Params,
     ...Cylinders.Params,
     ...VolumeGradientParams,
-    useCylinder: PD.Boolean(true),
+    useCylinder: PD.Boolean(false),
     detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
-    seedDensity: PD.Numeric(8, { min: 1, max: 100, step: 1 }, { description: 'Seeds per dimension for gradient lines.' }),
-    maxSteps: PD.Numeric(100, { min: 1, max: 1000, step: 1 }, { description: 'Maximum number of steps for gradient lines.' }),
-    stepSize: PD.Numeric(0.5, { min: 0.01, max: 10, step: 0.01 }, { description: 'Step size for gradient lines.' }),
-    minSpeed: PD.Numeric(0.001, { min: 0, max: 1, step: 0.0001 }, { description: 'Minimum speed for gradient lines.' }),
+    seedDensity: PD.Numeric(20, { min: 1, max: 100, step: 1 }, { description: 'Seeds per dimension for gradient lines.' }),
+    maxSteps: PD.Numeric(1000, { min: 1, max: 2000, step: 1 }, { description: 'Maximum number of steps for gradient lines.' }),
+    stepSize: PD.Numeric(0.35, { min: 0.01, max: 10, step: 0.01 }, { description: 'Step size for gradient lines.' }),
+    minSpeed: PD.Numeric(0.001, { min: 0, max: 1, step: 1e-6 }, { description: 'Minimum speed for gradient lines.' }),
 };
 export type VolumeLinesParams = typeof VolumeLinesParams
 export type VolumeLinesProps = PD.Values<VolumeLinesParams>
@@ -63,7 +63,11 @@ export function VolumeCylindersImpostorVisual(materialId: number): VolumeVisual<
         eachLocation: eachGradient,
         setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<VolumeLinesParams>, currentProps: PD.Values<VolumeLinesParams>, newTheme: Theme, currentTheme: Theme) => {
             state.createGeometry = (
-                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats)
+                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats)||
+                newProps.seedDensity !== currentProps.seedDensity ||
+                newProps.maxSteps !== currentProps.maxSteps ||
+                newProps.stepSize !== currentProps.stepSize ||
+                newProps.minSpeed !== currentProps.minSpeed
             );
         },
         geometryUtils: Cylinders.Utils,
@@ -84,9 +88,10 @@ export function VolumeLinesVisual(materialId: number): VolumeVisual<VolumeLinesP
         setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<VolumeLinesParams>, currentProps: PD.Values<VolumeSphereParams>, newTheme: Theme, currentTheme: Theme) => {
             state.createGeometry = (
                 !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats) ||
-                // newProps.perturbPositions !== currentProps.perturbPositions ||
-                newProps.sizeFactor !== currentProps.sizeFactor ||
-                newProps.detail !== currentProps.detail
+                newProps.seedDensity !== currentProps.seedDensity ||
+                newProps.maxSteps !== currentProps.maxSteps ||
+                newProps.stepSize !== currentProps.stepSize ||
+                newProps.minSpeed !== currentProps.minSpeed
             );
         },
         geometryUtils: Lines.Utils,
@@ -170,11 +175,13 @@ export function createVolumeLinesMesh(ctx: VisualContext, volume: Volume, key: n
     // const { min, max } = stats;
     const [nx, ny, nz] = space.dimensions as Vec3;
 
-    // Streamline parameters
-    const seedDensity = props.seedDensity || 8; // seeds per dimension
-    const maxSteps = props.maxSteps || 100;
-    const stepSize = props.stepSize || 0.5;
-    const minSpeed = props.minSpeed || 0.001;
+    const { hx, hy, hz } = getCellSize(gridToCartn);
+
+    // seeds
+    const seedDensity = props.seedDensity ?? 8;
+    const maxSteps = props.maxSteps ?? 2000; // more steps
+    const ds = (props.stepSize ?? 0.35); // in index units; 0.2–0.5 works well
+    const eps = props.minSpeed ?? 1e-6; // MUCH smaller for APBS
 
     // Create color scale
     // const colorScale = ColorScale.create({
@@ -199,32 +206,37 @@ export function createVolumeLinesMesh(ctx: VisualContext, volume: Volume, key: n
     for (let z = seedStep; z < nz - seedStep; z += seedStep) {
         for (let y = seedStep; y < ny - seedStep; y += seedStep) {
             for (let x = seedStep; x < nx - seedStep; x += seedStep) {
-                // Trace streamline from this seed point
-                const streamline = traceStreamline(
-                    space, data, Vec3.create(x, y, z), 
-                    maxSteps, stepSize, minSpeed
+
+                const pos = Vec3.create(x, y, z);
+
+                // Filtrage par potentiel et champ
+                const phi = getInterpolatedValue(space, data, pos);
+                const g = getInterpolatedGradient(space, data, pos, hx, hy, hz);
+                const mag = Vec3.magnitude(g);
+
+                // seuils à ajuster selon tes cartes APBS
+                if (Math.abs(phi) > 0.2 || mag < 1e-6) continue;
+
+                // si ok, on trace la streamline
+                const streamline = traceStreamlineBothDirs(
+                    space, data, pos,
+                    maxSteps, ds, eps, hx, hy, hz
                 );
 
                 if (streamline.length < 2) continue;
                 const cellIdx = space.dataOffset(x, y, z);
 
-                // Convert to cartesian coordinates and add to builder
                 for (let i = 0; i < streamline.length - 1; i++) {
                     const start = Vec3();
                     const end = Vec3();
-
                     Vec3.transformMat4(start, streamline[i].position, gridToCartn);
                     Vec3.transformMat4(end, streamline[i + 1].position, gridToCartn);
-
-                    // Color based on volume value at start point
-                    // const color = colorScale.color(streamline[i].value);
-                    // const group = Color.toRgb(color)[0] * 255; // Use red component as group
-
                     builder.addVec(start, end, cellIdx);
                 }
             }
         }
     }
+
 
     const pt = builder.getLines();
     pt.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
@@ -301,102 +313,88 @@ interface StreamlinePoint {
     value: number;
 }
 
-function traceStreamline(
-    space: Tensor.Space,
-    data: ArrayLike<number>,
-    seedPoint: Vec3,
-    maxSteps: number,
-    stepSize: number,
-    minSpeed: number
+function traceOneDirection(
+    space: Tensor.Space, data: ArrayLike<number>, seed: Vec3,
+    maxSteps: number, ds: number, eps: number,
+    hx: number, hy: number, hz: number, dirSign: 1 | -1
 ): StreamlinePoint[] {
-    const streamline: StreamlinePoint[] = [];
-    const [nx, ny, nz] = space.dimensions as Vec3;
 
-    const currentPos = Vec3.clone(seedPoint);
+    const line: StreamlinePoint[] = [];
+    const [nx, ny, nz] = space.dimensions as Vec3;
+    const p = Vec3.clone(seed);
 
     for (let step = 0; step < maxSteps; step++) {
-        // Check bounds
-        if (currentPos[0] < 1 || currentPos[0] >= nx - 1 ||
-            currentPos[1] < 1 || currentPos[1] >= ny - 1 ||
-            currentPos[2] < 1 || currentPos[2] >= nz - 1) {
-            break;
-        }
+        if (p[0] < 1 || p[0] > (nx as number) - 2 ||
+            p[1] < 1 || p[1] > (ny as number) - 2 ||
+            p[2] < 1 || p[2] > (nz as number) - 2) break;
 
-        // Get interpolated gradient at current position
-        const gradient = getInterpolatedGradient(space, data, currentPos);
-        const speed = Vec3.magnitude(gradient);
+        const g = getInterpolatedGradient(space, data, p, hx, hy, hz);
+        let m = Vec3.magnitude(g);
+        if (!(m > eps)) break;
 
-        // Stop if speed is too low
-        if (speed < minSpeed) break;
+        // direction only, signed
+        const v = Vec3.scale(Vec3(), g, dirSign / m);
 
-        // Add current point to streamline
-        const value = getInterpolatedValue(space, data, currentPos);
-        streamline.push({
-            position: Vec3.clone(currentPos),
-            value: value
-        });
+        // RK4 with constant arc-length ds
+        const k1 = Vec3.scale(Vec3(), v, ds);
+        const g2 = getInterpolatedGradient(space, data, Vec3.add(Vec3(), p, Vec3.scale(Vec3(), k1, 0.5)), hx, hy, hz);
+        const v2 = Vec3.scale(Vec3(), g2, dirSign / Math.max(Vec3.magnitude(g2), eps));
+        const k2 = Vec3.scale(Vec3(), v2, ds);
 
-        // Runge-Kutta 4th order integration
-        const k1 = Vec3.scale(Vec3(), gradient, stepSize / speed);
+        const g3 = getInterpolatedGradient(space, data, Vec3.add(Vec3(), p, Vec3.scale(Vec3(), k2, 0.5)), hx, hy, hz);
+        const v3 = Vec3.scale(Vec3(), g3, dirSign / Math.max(Vec3.magnitude(g3), eps));
+        const k3 = Vec3.scale(Vec3(), v3, ds);
 
-        const pos2 = Vec3.add(Vec3(), currentPos, Vec3.scale(Vec3(), k1, 0.5));
-        const grad2 = getInterpolatedGradient(space, data, pos2);
-        const k2 = Vec3.scale(Vec3(), grad2, stepSize / Vec3.magnitude(grad2));
+        const g4 = getInterpolatedGradient(space, data, Vec3.add(Vec3(), p, k3), hx, hy, hz);
+        const v4 = Vec3.scale(Vec3(), g4, dirSign / Math.max(Vec3.magnitude(g4), eps));
+        const k4 = Vec3.scale(Vec3(), v4, ds);
 
-        const pos3 = Vec3.add(Vec3(), currentPos, Vec3.scale(Vec3(), k2, 0.5));
-        const grad3 = getInterpolatedGradient(space, data, pos3);
-        const k3 = Vec3.scale(Vec3(), grad3, stepSize / Vec3.magnitude(grad3));
-
-        const pos4 = Vec3.add(Vec3(), currentPos, k3);
-        const grad4 = getInterpolatedGradient(space, data, pos4);
-        const k4 = Vec3.scale(Vec3(), grad4, stepSize / Vec3.magnitude(grad4));
-
-        // Update position using RK4
-        const deltaPos = Vec3.scale(Vec3(), 
-            Vec3.add(Vec3(), 
+        const dp = Vec3.scale(Vec3(),
+            Vec3.add(Vec3(),
                 Vec3.add(Vec3(), k1, Vec3.scale(Vec3(), k2, 2)),
                 Vec3.add(Vec3(), Vec3.scale(Vec3(), k3, 2), k4)
-            ), 
-            1/6
-        );
+            ), 1 / 6);
 
-        Vec3.add(currentPos, currentPos, deltaPos);
+        const value = getInterpolatedValue(space, data, p);
+        line.push({ position: Vec3.clone(p), value });
+
+        Vec3.add(p, p, dp);
     }
-
-    return streamline;
+    return line;
 }
 
-function getInterpolatedGradient(space: Tensor.Space, data: ArrayLike<number>, pos: Vec3): Vec3 {
-    // Trilinear interpolation of gradient
-    const x = Math.floor(pos[0]);
-    const y = Math.floor(pos[1]);
-    const z = Math.floor(pos[2]);
+function traceStreamlineBothDirs(
+    space: Tensor.Space, data: ArrayLike<number>, seed: Vec3,
+    maxSteps: number, ds: number, eps: number,
+    hx: number, hy: number, hz: number
+): StreamlinePoint[] {
+    const back = traceOneDirection(space, data, seed, maxSteps, ds, eps, hx, hy, hz, -1);
+    const fwd  = traceOneDirection(space, data, seed, maxSteps, ds, eps, hx, hy, hz, +1);
+    return back.reverse().concat(fwd.length ? fwd.slice(1) : []);
+}
 
-    const fx = pos[0] - x;
-    const fy = pos[1] - y;
-    const fz = pos[2] - z;
+function getInterpolatedGradient(space: Tensor.Space, data: ArrayLike<number>, pos: Vec3, hx: number, hy: number, hz: number): Vec3 {
+    const x = Math.floor(pos[0]), y = Math.floor(pos[1]), z = Math.floor(pos[2]);
+    const fx = pos[0] - x, fy = pos[1] - y, fz = pos[2] - z;
 
-    // Sample gradients at 8 corners of the cell
-    const gradients = [];
+    const grads: Vec3[] = [];
     for (let dz = 0; dz <= 1; dz++) {
         for (let dy = 0; dy <= 1; dy++) {
             for (let dx = 0; dx <= 1; dx++) {
-                gradients.push(calculateGradient(space, data, x + dx, y + dy, z + dz));
+                grads.push(calculateGradient(space, data, x + dx, y + dy, z + dz, hx, hy, hz));
             }
         }
     }
 
-    // Trilinear interpolation
-    const result = Vec3();
+    const out = Vec3();
     for (let i = 0; i < 8; i++) {
-        const weight = 
-            ((i & 1) ? fx : (1 - fx)) *
-            ((i & 2) ? fy : (1 - fy)) *
-            ((i & 4) ? fz : (1 - fz));
-        Vec3.scaleAndAdd(result, result, gradients[i], weight);
+        const wx = (i & 1) ? fx : (1 - fx);
+        const wy = (i & 2) ? fy : (1 - fy);
+        const wz = (i & 4) ? fz : (1 - fz);
+        const w = wx * wy * wz;
+        Vec3.scaleAndAdd(out, out, grads[i], w);
     }
-
-    return result;
+    return out;
 }
 
 function getInterpolatedValue(space: Tensor.Space, data: ArrayLike<number>, pos: Vec3): number {
@@ -413,7 +411,7 @@ function getInterpolatedValue(space: Tensor.Space, data: ArrayLike<number>, pos:
     for (let dz = 0; dz <= 1; dz++) {
         for (let dy = 0; dy <= 1; dy++) {
             for (let dx = 0; dx <= 1; dx++) {
-                const weight = 
+                const weight =
                     (dx ? fx : (1 - fx)) *
                     (dy ? fy : (1 - fy)) *
                     (dz ? fz : (1 - fz));
@@ -425,13 +423,26 @@ function getInterpolatedValue(space: Tensor.Space, data: ArrayLike<number>, pos:
     return result;
 }
 
-function calculateGradient(space: Tensor.Space, data: ArrayLike<number>, x: number, y: number, z: number): Vec3 {
-    const gradient = Vec3();
+function calculateGradient(space: Tensor.Space, data: ArrayLike<number>, x: number, y: number, z: number, hx: number, hy: number, hz: number): Vec3 {
+    // clamp indices inside [1..N-2] to avoid border reads
+    const xi = Math.max(1, Math.min(x, (space.dimensions[0] as number) - 2));
+    const yi = Math.max(1, Math.min(y, (space.dimensions[1] as number) - 2));
+    const zi = Math.max(1, Math.min(z, (space.dimensions[2] as number) - 2));
 
-    // Central differences for gradient calculation
-    gradient[0] = data[space.dataOffset(x + 1, y, z)] - data[space.dataOffset(x - 1, y, z)];
-    gradient[1] = data[space.dataOffset(x, y + 1, z)] - data[space.dataOffset(x, y - 1, z)];
-    gradient[2] = data[space.dataOffset(x, y, z + 1)] - data[space.dataOffset(x, y, z - 1)];
+    const gx = (data[space.dataOffset(xi + 1, yi, zi)] - data[space.dataOffset(xi - 1, yi, zi)]) / (2 * hx);
+    const gy = (data[space.dataOffset(xi, yi + 1, zi)] - data[space.dataOffset(xi, yi - 1, zi)]) / (2 * hy);
+    const gz = (data[space.dataOffset(xi, yi, zi + 1)] - data[space.dataOffset(xi, yi, zi - 1)]) / (2 * hz);
 
-    return gradient;
+    // Electric field E = -∇φ
+    return Vec3.create(-gx, -gy, -gz);
+}
+
+
+function getCellSize(gridToCartn: Mat4) {
+    const b = Mat4.extractBasis(gridToCartn);
+    return {
+        hx: Vec3.magnitude(b.x),
+        hy: Vec3.magnitude(b.y),
+        hz: Vec3.magnitude(b.z)
+    };
 }
