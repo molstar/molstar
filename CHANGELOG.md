@@ -100,6 +100,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add plugin config item ShowReset (shows/hides "Reset Zoom" button)
 - Fix transform params not being normalized when used together with param hash version
 - Replace `immer` with `mutative`
+- Fix renderer transparency check
 
 ## [v4.18.0] - 2025-06-08
 - MolViewSpec extension:

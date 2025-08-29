@@ -38,11 +38,11 @@ float getDepthOpaque(const in vec2 coords) {
     #endif
 }
 
-float getDepthTransparent(const in vec2 coords) {
+vec2 getDepthTransparentWithAlpha(const in vec2 coords) {
     #ifdef dTransparentOutline
-        return unpackRGBAToDepthWithAlpha(texture2D(tDepthTransparent, coords)).x;
+        return unpackRGBAToDepthWithAlpha(texture2D(tDepthTransparent, coords));
     #else
-        return 1.0;
+        return vec2(1.0, 1.0);
     #endif
 }
 
@@ -66,7 +66,7 @@ void main(void) {
     float selfViewZOpaque = isBackground(selfDepthOpaque) ? backgroundViewZ : getViewZ(selfDepthOpaque);
     float pixelSizeOpaque = getPixelSize(coords, selfDepthOpaque) * uOutlineThreshold;
 
-    float selfDepthTransparent = getDepthTransparent(coords);
+    float selfDepthTransparent = getDepthTransparentWithAlpha(coords).x;
     float selfViewZTransparent = isBackground(selfDepthTransparent) ? backgroundViewZ : getViewZ(selfDepthTransparent);
     float pixelSizeTransparent = getPixelSize(coords, selfDepthTransparent) * uOutlineThreshold;
 
@@ -79,12 +79,15 @@ void main(void) {
             vec2 sampleCoords = coords + vec2(float(x), float(y)) * invTexSize;
 
             float sampleDepthOpaque = getDepthOpaque(sampleCoords);
-            float sampleDepthTransparent = getDepthTransparent(sampleCoords);
+            vec2 sampleDepthTransparentWithAlpha = getDepthTransparentWithAlpha(sampleCoords);
+            float sampleDepthTransparent = sampleDepthTransparentWithAlpha.x;
+            float sampleAlphaTransparent = sampleDepthTransparentWithAlpha.y;
 
             float sampleViewZOpaque = isBackground(sampleDepthOpaque) ? backgroundViewZ : getViewZ(sampleDepthOpaque);
             if (abs(selfViewZOpaque - sampleViewZOpaque) > pixelSizeOpaque && selfDepthOpaque > sampleDepthOpaque && sampleDepthOpaque <= bestDepth) {
                 outline = 0.0;
                 bestDepth = sampleDepthOpaque;
+                transparentFlag = 0.0;
             }
 
             if (sampleDepthTransparent < sampleDepthOpaque) {
@@ -92,7 +95,7 @@ void main(void) {
                 if (abs(selfViewZTransparent - sampleViewZTransparent) > pixelSizeTransparent && selfDepthTransparent > sampleDepthTransparent && sampleDepthTransparent <= bestDepth) {
                     outline = 0.0;
                     bestDepth = sampleDepthTransparent;
-                    transparentFlag = 1.0;
+                    transparentFlag = sampleAlphaTransparent;
                 }
             }
         }

@@ -483,13 +483,13 @@ namespace Renderer {
             const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
             const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
             return (
-                (alpha < 1 && alpha !== 0) ||
+                alpha !== 0 && (alpha < 1 ||
                 r.values.transparencyAverage.ref.value > 0 ||
                 r.values.dGeometryType.ref.value === 'directVolume' ||
                 r.values.dPointStyle?.ref.value === 'fuzzy' ||
                 r.values.dGeometryType.ref.value === 'text' ||
                 r.values.dGeometryType.ref.value === 'image' ||
-                xrayShaded
+                xrayShaded)
             );
         };
 
