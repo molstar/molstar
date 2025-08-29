@@ -51,7 +51,7 @@ export function VolumeLinesVisual(materialId: number): VolumeVisual<VolumeLinesP
         createLocationIterator: createVolumeCellLocationIterator,
         getLoci: getGradientLoci,
         eachLocation: eachGradient,
-        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<VolumeLinesParams>, currentProps: PD.Values<VolumeSphereParams>, newTheme: Theme, currentTheme: Theme) => {
+        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<VolumeLinesParams>, currentProps: PD.Values<VolumeLinesParams>, newTheme: Theme, currentTheme: Theme) => {
             state.createGeometry = (
                 !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats) ||
                 newProps.seedDensity !== currentProps.seedDensity ||
@@ -62,7 +62,7 @@ export function VolumeLinesVisual(materialId: number): VolumeVisual<VolumeLinesP
         },
         geometryUtils: Lines.Utils,
         mustRecreate: (volumekey: VolumeKey, props: PD.Values<VolumeLinesParams>, webgl?: WebGLContext) => {
-            return props.useCylinder && !!webgl;
+            return !!webgl;
         }
     }, materialId);
 }
