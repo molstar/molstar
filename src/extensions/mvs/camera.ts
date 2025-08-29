@@ -22,6 +22,7 @@ import { PluginState } from '../../mol-plugin/state';
 import { StateObjectSelector } from '../../mol-state';
 import { fovAdjustedPosition } from '../../mol-util/camera';
 import { ColorNames } from '../../mol-util/color/names';
+import { deepClone } from '../../mol-util/object';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { decodeColor } from './helpers/utils';
 import { MolstarLoadingContext } from './load';
@@ -209,14 +210,14 @@ export function resetCanvasProps(plugin: PluginContext) {
         ...old,
         postprocessing: {
             ...old,
-            outline: DefaultCanvas3DParams.postprocessing.outline,
-            shadow: DefaultCanvas3DParams.postprocessing.shadow,
-            occlusion: DefaultCanvas3DParams.postprocessing.occlusion,
-            dof: DefaultCanvas3DParams.postprocessing.dof,
-            bloom: DefaultCanvas3DParams.postprocessing.bloom,
-            background: DefaultCanvas3DParams.postprocessing.background,
+            outline: deepClone(DefaultCanvas3DParams.postprocessing.outline),
+            shadow: deepClone(DefaultCanvas3DParams.postprocessing.shadow),
+            occlusion: deepClone(DefaultCanvas3DParams.postprocessing.occlusion),
+            dof: deepClone(DefaultCanvas3DParams.postprocessing.dof),
+            bloom: deepClone(DefaultCanvas3DParams.postprocessing.bloom),
+            background: deepClone(DefaultCanvas3DParams.postprocessing.background),
         },
-        cameraFog: DefaultCanvas3DParams.cameraFog,
+        cameraFog: deepClone(DefaultCanvas3DParams.cameraFog),
         trackball: {
             ...old?.trackball,
             animate: { name: 'off', params: {} },
