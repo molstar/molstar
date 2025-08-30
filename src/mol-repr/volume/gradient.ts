@@ -23,7 +23,6 @@ import { PickingId } from '../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../mol-model/loci';
 import { Interval, OrderedSet } from '../../mol-data/int';
 import { RepresentationContext, RepresentationParamsGetter, Representation } from '../representation';
-import Stream from 'stream';
 
 // Constants
 // const DEFAULT_FILTER_THRESHOLD = 0.2;
@@ -32,13 +31,16 @@ const OBLATION_SPACING = 2;
 
 export const VolumeGradientParams = {
     isoValue: Volume.IsoValueParam,
-    seedDensity: PD.Numeric(10, { min: 1, max: 100, step: 1 }, { description: 'Seeds per dimension for streamlines.' }),  
-    maxSteps: PD.Numeric(1000, { min: 1, max: 2000, step: 1 }, { description: 'Maximum number of steps for streamlines.' }),  
-    stepSize: PD.Numeric(0.35, { min: 0.01, max: 10, step: 0.01 }, { description: 'Step size for streamlines.' }),  
-    minSpeed: PD.Numeric(0.001, { min: 0, max: 1, step: 1e-6 }, { description: 'Minimum speed for streamlines.' }),  
-    minLevel: PD.Numeric(-2.0, { min: -10, max: 10, step: 0.1 }, { description: 'Minimum level for streamline tracing.' }),  
-    maxLevel: PD.Numeric(2.0, { min: -10, max: 10, step: 0.1 }, { description: 'Maximum level for streamline tracing.' }),  
-    algorithm: PD.Select('simple', PD.arrayToOptions(['simple', 'advanced'] as const), { description: 'Streamline algorithm to use.' }),  
+    seedDensity: PD.Numeric(10, { min: 1, max: 100, step: 1 }, { description: 'Seeds per dimension for streamlines.' }),
+    maxSteps: PD.Numeric(1000, { min: 1, max: 2000, step: 1 }, { description: 'Maximum number of steps for streamlines.' }),
+    stepSize: PD.Numeric(0.35, { min: 0.01, max: 10, step: 0.01 }, { description: 'Step size for streamlines.' }),
+    minSpeed: PD.Numeric(0.001, { min: 0, max: 1, step: 1e-6 }, { description: 'Minimum speed for streamlines.' }),
+    minLevel: PD.Numeric(-5.0, { min: -10, max: 10, step: 0.1 }, { description: 'Minimum level for streamline tracing.' }),
+    maxLevel: PD.Numeric(5.0, { min: -10, max: 10, step: 0.1 }, { description: 'Maximum level for streamline tracing.' }),
+    algorithm: PD.Select('simple', PD.arrayToOptions(['simple', 'advanced'] as const), { description: 'Streamline algorithm to use.' }),
+    mid_interpolation: PD.Boolean(true, { description: 'Use mid interpolation for streamline tracing.' }),
+    writeStride: PD.Numeric(4, { min: 1, max: 50, step: 1 }, { description: 'Write stride for streamline tracing.' }),
+    geomStride: PD.Numeric(1, { min: 1, max: 10, step: 1 }, { description: 'Geometry stride for streamline tracing.' }),
 };
 
 export type VolumeGradientParams = typeof VolumeGradientParams
@@ -68,7 +70,9 @@ export function VolumeLinesVisual(materialId: number): VolumeVisual<VolumeLinesP
                 newProps.stepSize !== currentProps.stepSize ||
                 newProps.minSpeed !== currentProps.minSpeed ||
                 newProps.minLevel !== currentProps.minLevel ||
-                newProps.maxLevel !== currentProps.maxLevel
+                newProps.maxLevel !== currentProps.maxLevel ||
+                newProps.writeStride !== currentProps.writeStride ||
+                newProps.geomStride !== currentProps.geomStride
             );
         },
         geometryUtils: Lines.Utils,
@@ -102,7 +106,9 @@ export function VolumeCylindersImpostorVisual(materialId: number): VolumeVisual<
                 newProps.minSpeed !== currentProps.minSpeed ||
                 newProps.radius !== currentProps.radius ||
                 newProps.minLevel !== currentProps.minLevel ||
-                newProps.maxLevel !== currentProps.maxLevel
+                newProps.maxLevel !== currentProps.maxLevel ||
+                newProps.writeStride !== currentProps.writeStride ||
+                newProps.geomStride !== currentProps.geomStride
             );
         },
         geometryUtils: Cylinders.Utils,
@@ -127,15 +133,18 @@ export function createVolumeCylindersImpostor(ctx: VisualContext, volume: Volume
     const start1 = Vec3();
     const end = Vec3();
     const end1 = Vec3();
+    const writeStride = props.geomStride;
     for (let s=0; s< stream_lines.length; s++) {
         for (let i=0; i< stream_lines[s].length -1; i++) {
-            Vec3.set(start1, stream_lines[s][i].x, stream_lines[s][i].y, stream_lines[s][i].z);
-            Vec3.set(end1, stream_lines[s][i + 1].x, stream_lines[s][i + 1].y, stream_lines[s][i + 1].z);
-            Vec3.transformMat4(start, start1, gridToCartn);
-            Vec3.transformMat4(end, end1, gridToCartn);
-            builder.add(start[0], start[1], start[2],
-                        end[0], end[1], end[2],
-                        props.radius, true, true, 2, s);
+            if (i % writeStride === 0) {
+                Vec3.set(start1, stream_lines[s][i].x, stream_lines[s][i].y, stream_lines[s][i].z);
+                Vec3.set(end1, stream_lines[s][i + 1].x, stream_lines[s][i + 1].y, stream_lines[s][i + 1].z);
+                Vec3.transformMat4(start, start1, gridToCartn);
+                Vec3.transformMat4(end, end1, gridToCartn);
+                builder.add(start[0], start[1], start[2],
+                            end[0], end[1], end[2],
+                            props.radius, true, true, 2, s);
+            }
         }
     }
     const pt = builder.getCylinders();
@@ -158,13 +167,17 @@ export function createVolumeLinesMesh(ctx: VisualContext, volume: Volume, key: n
     const start1 = Vec3();
     const end = Vec3();
     const end1 = Vec3();
+    // we can use a writeStride to avoid create all points
+    const writeStride = props.geomStride;
     for (let s=0; s< stream_lines.length; s++) {
         for (let i=0; i< stream_lines[s].length -1; i++) {
-            Vec3.set(start1, stream_lines[s][i].x, stream_lines[s][i].y, stream_lines[s][i].z);
-            Vec3.set(end1, stream_lines[s][i + 1].x, stream_lines[s][i + 1].y, stream_lines[s][i + 1].z);
-            Vec3.transformMat4(start, start1, gridToCartn);
-            Vec3.transformMat4(end, end1, gridToCartn);
-            builder.addVec(start, end, s);
+            if (i % writeStride === 0) {
+                Vec3.set(start1, stream_lines[s][i].x, stream_lines[s][i].y, stream_lines[s][i].z);
+                Vec3.set(end1, stream_lines[s][i + 1].x, stream_lines[s][i + 1].y, stream_lines[s][i + 1].z);
+                Vec3.transformMat4(start, start1, gridToCartn);
+                Vec3.transformMat4(end, end1, gridToCartn);
+                builder.addVec(start, end, s);
+            }
         }
     }
     const pt = builder.getLines();
@@ -252,10 +265,15 @@ function traceOneDirection(
         g: Vec3, g2: Vec3, g3: Vec3, g4: Vec3,
         v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3,
         k1: Vec3, k2: Vec3, k3: Vec3, k4: Vec3,
-        dp: Vec3, t1: Vec3, t2: Vec3
-    }
+        dp: Vec3, t1: Vec3, t2: Vec3, t3: Vec3
+    },
+    writeStride = 2 // write every N steps (2–3 is good)
 ): number {
-
+    // we do RK4 but could also do RK2
+    // midpoint RK2, constant step ds
+    // v1 at p
+    // v2 at p + 0.5*ds*v1
+    // dp = ds * v2
     // const line: StreamlinePoint[] = [];
     const [nx, ny, nz] = space.dimensions as Vec3;
     const p = traceState.p;
@@ -268,7 +286,8 @@ function traceOneDirection(
             p[1] < 1 || p[1] > (ny as number) - 2 ||
             p[2] < 1 || p[2] > (nz as number) - 2) break;
 
-        getInterpolatedGradient(traceState.g, space, data, p, hx, hy, hz);
+        // getInterpolatedGradient(traceState.g, space, data, p, hx, hy, hz);
+        gradientAtP_fast(traceState.g, space, data, p, hx, hy, hz, traceState.t3);
         const m = Vec3.magnitude(traceState.g);
         if (!(m > eps)) break;
 
@@ -279,17 +298,17 @@ function traceOneDirection(
         Vec3.scale(traceState.k1, traceState.v1, ds);
 
         Vec3.add(traceState.t1, p, Vec3.scale(traceState.t2, traceState.k1, 0.5));
-        getInterpolatedGradient(traceState.g2, space, data, traceState.t1, hx, hy, hz);
+        gradientAtP_fast(traceState.g2, space, data, traceState.t1, hx, hy, hz, traceState.t3);
         Vec3.scale(traceState.v2, traceState.g2, dirSign / Math.max(Vec3.magnitude(traceState.g2), eps));
         Vec3.scale(traceState.k2, traceState.v2, ds);
 
         Vec3.add(traceState.t1, p, Vec3.scale(traceState.t2, traceState.k2, 0.5));
-        getInterpolatedGradient(traceState.g3, space, data, traceState.t1, hx, hy, hz);
+        gradientAtP_fast(traceState.g3, space, data, traceState.t1, hx, hy, hz, traceState.t3);
         Vec3.scale(traceState.v3, traceState.g3, dirSign / Math.max(Vec3.magnitude(traceState.g3), eps));
         Vec3.scale(traceState.k3, traceState.v3, ds);
 
         Vec3.add(traceState.t1, p, traceState.k3);
-        getInterpolatedGradient(traceState.g4, space, data, traceState.t1, hx, hy, hz);
+        gradientAtP_fast(traceState.g4, space, data, traceState.t1, hx, hy, hz, traceState.t3);
         Vec3.scale(traceState.v4, traceState.g4, dirSign / Math.max(Vec3.magnitude(traceState.g4), eps));
         Vec3.scale(traceState.k4, traceState.v4, ds);
 
@@ -305,12 +324,70 @@ function traceOneDirection(
         Vec3.add(traceState.dp, traceState.dp, traceState.k4);
         Vec3.scale(traceState.dp, traceState.dp, inv6);
 
-        if (!(skipFirst && step === 0)) {
+        if ((!(skipFirst && step === 0)) && (step % writeStride === 0)) {
             const value = getInterpolatedValue(space, data, p);
             out.push({ x: p[0], y: p[1], z: p[2], value });
             written++;
         }
         Vec3.add(p, p, traceState.dp);
+    }
+    return written;
+}
+
+function traceOneDirectionRK2(
+    out: StreamlinePoint[],
+    space: Tensor.Space, data: ArrayLike<number>, seed: Vec3,
+    maxSteps: number, ds: number, eps: number,
+    hx: number, hy: number, hz: number, dirSign: 1 | -1, skipFirst: boolean,
+    traceState: {
+        p: Vec3,
+        g: Vec3, g2: Vec3, g3: Vec3, g4: Vec3,
+        v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3,
+        k1: Vec3, k2: Vec3, k3: Vec3, k4: Vec3,
+        dp: Vec3, t1: Vec3, t2: Vec3, t3: Vec3
+    },
+    writeStride = 2 // write every N steps (2–3 is good)
+): number {
+    const [nx, ny, nz] = space.dimensions as Vec3;
+    const p = traceState.p;
+    Vec3.copy(p, seed);
+    const g = traceState.g, v1 = traceState.v1, mid = traceState.t1, gmid = traceState.t2, v2 = traceState.v2, dp = traceState.dp;
+    let written = 0;
+
+    for (let step = 0; step < maxSteps; step++) {
+        // bounds in index space
+        if (p[0] < 1 || p[0] > (nx as number) - 2 ||
+            p[1] < 1 || p[1] > (ny as number) - 2 ||
+            p[2] < 1 || p[2] > (nz as number) - 2) break;
+
+        // v1 at p
+        gradientAtP_fast(g, space, data, p, hx, hy, hz);
+        let m = Math.hypot(g[0], g[1], g[2]);
+        if (!(m > eps)) break;
+        v1[0] = dirSign * g[0] / m; v1[1] = dirSign * g[1] / m; v1[2] = dirSign * g[2] / m;
+
+        // midpoint
+        mid[0] = p[0] + 0.5 * ds * v1[0];
+        mid[1] = p[1] + 0.5 * ds * v1[1];
+        mid[2] = p[2] + 0.5 * ds * v1[2];
+
+        // v2 at midpoint
+        gradientAtP_fast(gmid, space, data, mid, hx, hy, hz);
+        m = Math.hypot(gmid[0], gmid[1], gmid[2]);
+        if (!(m > eps)) break;
+        v2[0] = dirSign * gmid[0] / m; v2[1] = dirSign * gmid[1] / m; v2[2] = dirSign * gmid[2] / m;
+
+        // step
+        dp[0] = ds * v2[0]; dp[1] = ds * v2[1]; dp[2] = ds * v2[2];
+
+        // write less often for speed
+        if ((!(skipFirst && step === 0)) && (step % writeStride === 0)) {
+            const value = getInterpolatedValue(space, data, p);
+            out.push({ x: p[0], y: p[1], z: p[2], value });
+            written++;
+        }
+        // advance
+        p[0] += dp[0]; p[1] += dp[1]; p[2] += dp[2];
     }
     return written;
 }
@@ -324,7 +401,8 @@ function reverseSegmentInPlace<T>(arr: T[], start: number, end: number) {
 function traceStreamlineBothDirs(
     space: Tensor.Space, data: ArrayLike<number>, seed: Vec3,
     maxSteps: number, ds: number, eps: number,
-    hx: number, hy: number, hz: number
+    hx: number, hy: number, hz: number,
+    writeStride: number
 ): StreamlinePoint[] {
     const line: StreamlinePoint[] = [];
     // one shared scratch block to avoid per-call allocations
@@ -333,12 +411,12 @@ function traceStreamlineBothDirs(
         g: Vec3(), g2: Vec3(), g3: Vec3(), g4: Vec3(),
         v1: Vec3(), v2: Vec3(), v3: Vec3(), v4: Vec3(),
         k1: Vec3(), k2: Vec3(), k3: Vec3(), k4: Vec3(),
-        dp: Vec3(), t1: Vec3(), t2: Vec3()
+        dp: Vec3(), t1: Vec3(), t2: Vec3(), t3: Vec3()
     };
     // 1) trace BACKWARD, including the seed
     const nBack = traceOneDirection(line,
         space, data, seed, maxSteps, ds, eps, hx, hy, hz, -1,
-        /* skipFirst */ false, traceState
+        /* skipFirst */ false, traceState, writeStride
     );
 
     // 2) reverse that segment IN PLACE so it's ordered from farthest->seed
@@ -347,91 +425,45 @@ function traceStreamlineBothDirs(
     // 3) trace FORWARD, skipping the seed to avoid duplication; append directly
     traceOneDirection(line,
         space, data, seed, maxSteps, ds, eps, hx, hy, hz, +1,
-        /* skipFirst */ true, traceState
+        /* skipFirst */ true, traceState, writeStride
     );
     return line;
 }
 
-function getInterpolatedGradient(out: Vec3, space: Tensor.Space, data: ArrayLike<number>,
-                                 pos: Vec3, hx: number, hy: number, hz: number): Vec3 {
-    const x = Math.floor(pos[0]), y = Math.floor(pos[1]), z = Math.floor(pos[2]);
-    const fx = pos[0] - x, fy = pos[1] - y, fz = pos[2] - z;
+function traceStreamlineBothDirsK2(
+    space: Tensor.Space, data: ArrayLike<number>, seed: Vec3,
+    maxSteps: number, ds: number, eps: number,
+    hx: number, hy: number, hz: number,
+    writeStride: number
+): StreamlinePoint[] {
+    const line: StreamlinePoint[] = [];
+    // one shared scratch block to avoid per-call allocations
+    const traceState = {
+        p: Vec3(),
+        g: Vec3(), g2: Vec3(), g3: Vec3(), g4: Vec3(),
+        v1: Vec3(), v2: Vec3(), v3: Vec3(), v4: Vec3(),
+        k1: Vec3(), k2: Vec3(), k3: Vec3(), k4: Vec3(),
+        dp: Vec3(), t1: Vec3(), t2: Vec3(), t3: Vec3()
+    };
+    // 1) trace BACKWARD, including the seed
+    const nBack = traceOneDirectionRK2(line,
+        space, data, seed, maxSteps, ds, eps, hx, hy, hz, -1,
+        /* skipFirst */ false, traceState, writeStride
+    );
 
-    // reset accumulator
-    out[0] = 0; out[1] = 0; out[2] = 0;
+    // 2) reverse that segment IN PLACE so it's ordered from farthest->seed
+    if (nBack > 1) reverseSegmentInPlace(line, 0, nBack - 1);
 
-    let i = 0;
-    const grads: Vec3[] = [
-        Vec3(), Vec3(), Vec3(), Vec3(),
-        Vec3(), Vec3(), Vec3(), Vec3(),
-    ];
-    for (let dz = 0; dz <= 1; dz++) {
-        for (let dy = 0; dy <= 1; dy++) {
-            for (let dx = 0; dx <= 1; dx++) {
-                calculateGradient(
-                    grads[i], // write directly into existing Vec3
-                    space, data, x + dx, y + dy, z + dz, hx, hy, hz
-                );
-                i++;
-            }
-        }
-    }
-
-    for (let i = 0; i < 8; i++) {
-        const wx = (i & 1) ? fx : (1 - fx);
-        const wy = (i & 2) ? fy : (1 - fy);
-        const wz = (i & 4) ? fz : (1 - fz);
-        const w = wx * wy * wz;
-        Vec3.scaleAndAdd(out, out, grads[i], w);
-    }
-    return out;
-}
-
-function getInterpolatedValue(space: Tensor.Space, data: ArrayLike<number>, pos: Vec3): number {
-    // Trilinear interpolation of scalar value
-    const x = Math.floor(pos[0]);
-    const y = Math.floor(pos[1]);
-    const z = Math.floor(pos[2]);
-
-    const fx = pos[0] - x;
-    const fy = pos[1] - y;
-    const fz = pos[2] - z;
-
-    let result = 0;
-    for (let dz = 0; dz <= 1; dz++) {
-        for (let dy = 0; dy <= 1; dy++) {
-            for (let dx = 0; dx <= 1; dx++) {
-                const weight =
-                    (dx ? fx : (1 - fx)) *
-                    (dy ? fy : (1 - fy)) *
-                    (dz ? fz : (1 - fz));
-                result += data[space.dataOffset(x + dx, y + dy, z + dz)] * weight;
-            }
-        }
-    }
-
-    return result;
-}
-
-function calculateGradient(out: Vec3, space: Tensor.Space, data: ArrayLike<number>, x: number, y: number, z: number, hx: number, hy: number, hz: number): Vec3 {
-    // clamp indices inside [1..N-2] to avoid border reads
-    const xi = Math.max(1, Math.min(x, (space.dimensions[0] as number) - 2));
-    const yi = Math.max(1, Math.min(y, (space.dimensions[1] as number) - 2));
-    const zi = Math.max(1, Math.min(z, (space.dimensions[2] as number) - 2));
-
-    const gx = (data[space.dataOffset(xi + 1, yi, zi)] - data[space.dataOffset(xi - 1, yi, zi)]) / (2 * hx);
-    const gy = (data[space.dataOffset(xi, yi + 1, zi)] - data[space.dataOffset(xi, yi - 1, zi)]) / (2 * hy);
-    const gz = (data[space.dataOffset(xi, yi, zi + 1)] - data[space.dataOffset(xi, yi, zi - 1)]) / (2 * hz);
-
-    // Electric field E = -∇φ
-    out[0] = -gx;
-    out[1] = -gy;
-    out[2] = -gz;
-    return out;
+    // 3) trace FORWARD, skipping the seed to avoid duplication; append directly
+    traceOneDirectionRK2(line,
+        space, data, seed, maxSteps, ds, eps, hx, hy, hz, +1,
+        /* skipFirst */ true, traceState, writeStride
+    );
+    return line;
 }
 
 // Simple RK4 streamlines implementation
-function getStreamLineSimple(volume: Volume, props: VolumeLinesProps, out: StreamlinePoint[][]) {
+function getStreamLineSimple(volume: Volume, props: VolumeLinesProps | VolumeCylindersProps, out: StreamlinePoint[][]) {
     const { cells: { space, data } } = volume.grid;
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
     const seedDensity = props.seedDensity ?? 8;
@@ -442,20 +474,28 @@ function getStreamLineSimple(volume: Volume, props: VolumeLinesProps, out: Strea
     const maxSteps = props.maxSteps ?? 2000; // more steps
     const ds = (props.stepSize ?? 0.35); // in index units; 0.2–0.5 works well
     const eps = props.minSpeed ?? 1e-6; // MUCH smaller for APBS
-
+    const K2 = props.mid_interpolation;
+    const writeStride = props.writeStride;
     const pos = Vec3();
     const g = Vec3();
     const xStart = 1, xEnd = nx - 2;
     const yStart = 1, yEnd = ny - 2;
     const zStart = 1, zEnd = nz - 2;
     // --- build seed list ---
-    const seedPoints: number[] = [];
+    const npx = Math.floor((xEnd - xStart) / seedStep) + 1;
+    const npy = Math.floor((yEnd - yStart) / seedStep) + 1;
+    const npz = Math.floor((zEnd - zStart) / seedStep) + 1;
+
+    const totalPoints = npx * npy * npz;
+    const seedPoints = new Array<number>(totalPoints * 3);
+
+    let i = 0;
     for (let z = zStart; z <= zEnd; z += seedStep) {
         for (let y = yStart; y <= yEnd; y += seedStep) {
             for (let x = xStart; x <= xEnd; x += seedStep) {
-                seedPoints.push(x);
-                seedPoints.push(y);
-                seedPoints.push(z);
+                seedPoints[i++] = x;
+                seedPoints[i++] = y;
+                seedPoints[i++] = z;
             }
         }
     }
@@ -471,20 +511,30 @@ function getStreamLineSimple(volume: Volume, props: VolumeLinesProps, out: Strea
 
         // filtering
         const phi = getInterpolatedValue(space, data, pos);
-        getInterpolatedGradient(g, space, data, pos, hx, hy, hz);
+        gradientAtP_fast(g, space, data, pos, hx, hy, hz);
         const mag = Vec3.magnitude(g);
 
         // thresholds to adjust according to your APBS maps
         if ((phi < props.minLevel || phi > props.maxLevel) || mag < 1e-6) continue;
 
         // if ok, we trace the streamline
-        const streamline = traceStreamlineBothDirs(
-            space, data, pos,
-            maxSteps, ds, eps, hx, hy, hz
-        );
+        if (K2) {
+            const streamline = traceStreamlineBothDirsK2(
+                space, data, pos,
+                maxSteps, ds, eps, hx, hy, hz, writeStride
+            );
+            if (streamline.length < 2) continue;
+            out.push(streamline);
+        }
+        else {
+            const streamline = traceStreamlineBothDirs(
+                space, data, pos,
+                maxSteps, ds, eps, hx, hy, hz, writeStride
+            );
 
-        if (streamline.length < 2) continue;
-        out.push(streamline);
+            if (streamline.length < 2) continue;
+            out.push(streamline);
+        }
     }
 }
 
@@ -508,56 +558,8 @@ function seededRand(seed: number) {
 }
 
 
-// Interpolate gradient & position in *index space* (cell units)
-function interpolateValue(space: Tensor.Space, data: ArrayLike<number>, i: number, j: number, k: number, fx: number, fy: number, fz: number) {
-  let acc = 0;
-  for (let dz = 0; dz <= 1; dz++) for (let dy = 0; dy <= 1; dy++) for (let dx = 0; dx <= 1; dx++) {
-    const w = (dx ? fx : 1 - fx) * (dy ? fy : 1 - fy) * (dz ? fz : 1 - fz);
-    acc += data[space.dataOffset(i + dx, j + dy, k + dz)] * w;
-  }
-  return acc;
-}
 
-// precompute gradient field in *index units* (like IsofieldComputeGradients)
-// NOTE: this is centered diff; PyMOL stores gradient in separate field
-function buildGradientField(space: Tensor.Space, data: ArrayLike<number>) {
-  const [nx, ny, nz] = space.dimensions as Vec3;
-  const gx = new Float32Array(nx * ny * nz);
-  const gy = new Float32Array(nx * ny * nz);
-  const gz = new Float32Array(nx * ny * nz);
-  const idx = (x: number, y: number, z: number) => space.dataOffset(x, y, z);
-
-  for (let x = 0; x < nx; x++) {
-    for (let y = 0; y < ny; y++) {
-      for (let z = 0; z < nz; z++) {
-        const xi0 = Math.max(0, x - 1), xi1 = Math.min(nx - 1, x + 1);
-        const yi0 = Math.max(0, y - 1), yi1 = Math.min(ny - 1, y + 1);
-        const zi0 = Math.max(0, z - 1), zi1 = Math.min(nz - 1, z + 1);
-        gx[idx(x, y, z)] = (data[idx(xi1, y, z)] - data[idx(xi0, y, z)]) * 0.5;
-        gy[idx(x, y, z)] = (data[idx(x, yi1, z)] - data[idx(x, yi0, z)]) * 0.5;
-        gz[idx(x, y, z)] = (data[idx(x, y, zi1)] - data[idx(x, y, zi0)]) * 0.5;
-      }
-    }
-  }
-  return { gx, gy, gz };
-}
-
-function interpolateGradient(space: Tensor.Space, grad: {gx: Float32Array, gy: Float32Array, gz: Float32Array},
-                             i: number, j: number, k: number, fx: number, fy: number, fz: number, out: Vec3) {
-  const { gx, gy, gz } = grad;
-  let vx=0, vy=0, vz=0;
-  for (let dz = 0; dz <= 1; dz++) for (let dy = 0; dy <= 1; dy++) for (let dx = 0; dx <= 1; dx++) {
-    const w = (dx ? fx : 1 - fx) * (dy ? fy : 1 - fy) * (dz ? fz : 1 - fz);
-    const off = space.dataOffset(i + dx, j + dy, k + dz);
-    vx += gx[off] * w;
-    vy += gy[off] * w;
-    vz += gz[off] * w;
-  }
-  out[0] = vx; out[1] = vy; out[2] = vz;
-  return out;
-}
-
-function getStreamLineAdvanced(volume: Volume, props: VolumeLinesProps, out: StreamlinePoint[][]) {
+function getStreamLineAdvanced(volume: Volume, props: VolumeLinesProps | VolumeCylindersProps, out: StreamlinePoint[][]) {
     // PYMOL algo
     const { cells: { space, data } } = volume.grid;
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
@@ -768,4 +770,171 @@ function getStreamLineAdvanced(volume: Volume, props: VolumeLinesProps, out: Str
     // terminate like PyMOL
     num[nSeg] = 0;
     // return { positions, num, v };
+}
+
+
+/* all the gradient function goes here */
+
+function gradientAtP_fast(
+    out: Vec3,
+    space: Tensor.Space, data: ArrayLike<number>,
+    p: Vec3,
+    hx: number, hy: number, hz: number,
+    tmp: Vec3 = Vec3() // optional scratch, reused inside
+) {
+    // shift coords manually into tmp (avoid Vec3.create)
+    const tmp0 = Vec3();
+    tmp0[0] = p[0] + 1; tmp0[1] = p[1]; tmp0[2] = p[2];
+    const phi_xp = getInterpolatedValue(space, data, tmp0);
+
+    tmp0[0] = p[0] - 1; tmp0[1] = p[1]; tmp0[2] = p[2];
+    const phi_xm = getInterpolatedValue(space, data, tmp0);
+
+    tmp0[0] = p[0]; tmp0[1] = p[1] + 1; tmp0[2] = p[2];
+    const phi_yp = getInterpolatedValue(space, data, tmp0);
+
+    tmp0[0] = p[0]; tmp0[1] = p[1] - 1; tmp0[2] = p[2];
+    const phi_ym = getInterpolatedValue(space, data, tmp0);
+
+    tmp0[0] = p[0]; tmp0[1] = p[1]; tmp0[2] = p[2] + 1;
+    const phi_zp = getInterpolatedValue(space, data, tmp0);
+
+    tmp0[0] = p[0]; tmp0[1] = p[1]; tmp0[2] = p[2] - 1;
+    const phi_zm = getInterpolatedValue(space, data, tmp0);
+
+    // E = -∇φ
+    out[0] = -(phi_xp - phi_xm) / (2 * hx);
+    out[1] = -(phi_yp - phi_ym) / (2 * hy);
+    out[2] = -(phi_zp - phi_zm) / (2 * hz);
+    return out;
+}
+
+// VTK STYLE
+
+function getInterpolatedGradient(out: Vec3, space: Tensor.Space, data: ArrayLike<number>,
+                                 pos: Vec3, hx: number, hy: number, hz: number): Vec3 {
+    const x = Math.floor(pos[0]), y = Math.floor(pos[1]), z = Math.floor(pos[2]);
+    const fx = pos[0] - x, fy = pos[1] - y, fz = pos[2] - z;
+
+    // reset accumulator
+    out[0] = 0; out[1] = 0; out[2] = 0;
+
+    let i = 0;
+    const grads: Vec3[] = [
+        Vec3(), Vec3(), Vec3(), Vec3(),
+        Vec3(), Vec3(), Vec3(), Vec3(),
+    ];
+    for (let dz = 0; dz <= 1; dz++) {
+        for (let dy = 0; dy <= 1; dy++) {
+            for (let dx = 0; dx <= 1; dx++) {
+                calculateGradient(
+                    grads[i], // write directly into existing Vec3
+                    space, data, x + dx, y + dy, z + dz, hx, hy, hz
+                );
+                i++;
+            }
+        }
+    }
+
+    for (let i = 0; i < 8; i++) {
+        const wx = (i & 1) ? fx : (1 - fx);
+        const wy = (i & 2) ? fy : (1 - fy);
+        const wz = (i & 4) ? fz : (1 - fz);
+        const w = wx * wy * wz;
+        Vec3.scaleAndAdd(out, out, grads[i], w);
+    }
+    return out;
+}
+
+function getInterpolatedValue(space: Tensor.Space, data: ArrayLike<number>, pos: Vec3): number {
+    // Trilinear interpolation of scalar value
+    const x = Math.floor(pos[0]);
+    const y = Math.floor(pos[1]);
+    const z = Math.floor(pos[2]);
+
+    const fx = pos[0] - x;
+    const fy = pos[1] - y;
+    const fz = pos[2] - z;
+
+    let result = 0;
+    for (let dz = 0; dz <= 1; dz++) {
+        for (let dy = 0; dy <= 1; dy++) {
+            for (let dx = 0; dx <= 1; dx++) {
+                const weight =
+                    (dx ? fx : (1 - fx)) *
+                    (dy ? fy : (1 - fy)) *
+                    (dz ? fz : (1 - fz));
+                result += data[space.dataOffset(x + dx, y + dy, z + dz)] * weight;
+            }
+        }
+    }
+
+    return result;
+}
+
+function calculateGradient(out: Vec3, space: Tensor.Space, data: ArrayLike<number>, x: number, y: number, z: number, hx: number, hy: number, hz: number): Vec3 {
+    // clamp indices inside [1..N-2] to avoid border reads
+    const xi = Math.max(1, Math.min(x, (space.dimensions[0] as number) - 2));
+    const yi = Math.max(1, Math.min(y, (space.dimensions[1] as number) - 2));
+    const zi = Math.max(1, Math.min(z, (space.dimensions[2] as number) - 2));
+
+    const gx = (data[space.dataOffset(xi + 1, yi, zi)] - data[space.dataOffset(xi - 1, yi, zi)]) / (2 * hx);
+    const gy = (data[space.dataOffset(xi, yi + 1, zi)] - data[space.dataOffset(xi, yi - 1, zi)]) / (2 * hy);
+    const gz = (data[space.dataOffset(xi, yi, zi + 1)] - data[space.dataOffset(xi, yi, zi - 1)]) / (2 * hz);
+
+    // Electric field E = -∇φ
+    out[0] = -gx;
+    out[1] = -gy;
+    out[2] = -gz;
+    return out;
+}
+
+// PYMOL STYLE
+// Interpolate gradient & position in *index space* (cell units)
+function interpolateValue(space: Tensor.Space, data: ArrayLike<number>, i: number, j: number, k: number, fx: number, fy: number, fz: number) {
+  let acc = 0;
+  for (let dz = 0; dz <= 1; dz++) for (let dy = 0; dy <= 1; dy++) for (let dx = 0; dx <= 1; dx++) {
+    const w = (dx ? fx : 1 - fx) * (dy ? fy : 1 - fy) * (dz ? fz : 1 - fz);
+    acc += data[space.dataOffset(i + dx, j + dy, k + dz)] * w;
+  }
+  return acc;
+}
+
+// precompute gradient field in *index units* (like IsofieldComputeGradients)
+// NOTE: this is centered diff; PyMOL stores gradient in separate field
+function buildGradientField(space: Tensor.Space, data: ArrayLike<number>) {
+  const [nx, ny, nz] = space.dimensions as Vec3;
+  const gx = new Float32Array(nx * ny * nz);
+  const gy = new Float32Array(nx * ny * nz);
+  const gz = new Float32Array(nx * ny * nz);
+  const idx = (x: number, y: number, z: number) => space.dataOffset(x, y, z);
+
+  for (let x = 0; x < nx; x++) {
+    for (let y = 0; y < ny; y++) {
+      for (let z = 0; z < nz; z++) {
+        const xi0 = Math.max(0, x - 1), xi1 = Math.min(nx - 1, x + 1);
+        const yi0 = Math.max(0, y - 1), yi1 = Math.min(ny - 1, y + 1);
+        const zi0 = Math.max(0, z - 1), zi1 = Math.min(nz - 1, z + 1);
+        gx[idx(x, y, z)] = (data[idx(xi1, y, z)] - data[idx(xi0, y, z)]) * 0.5;
+        gy[idx(x, y, z)] = (data[idx(x, yi1, z)] - data[idx(x, yi0, z)]) * 0.5;
+        gz[idx(x, y, z)] = (data[idx(x, y, zi1)] - data[idx(x, y, zi0)]) * 0.5;
+      }
+    }
+  }
+  return { gx, gy, gz };
+}
+
+function interpolateGradient(space: Tensor.Space, grad: {gx: Float32Array, gy: Float32Array, gz: Float32Array},
+                             i: number, j: number, k: number, fx: number, fy: number, fz: number, out: Vec3) {
+  const { gx, gy, gz } = grad;
+  let vx=0, vy=0, vz=0;
+  for (let dz = 0; dz <= 1; dz++) for (let dy = 0; dy <= 1; dy++) for (let dx = 0; dx <= 1; dx++) {
+    const w = (dx ? fx : 1 - fx) * (dy ? fy : 1 - fy) * (dz ? fz : 1 - fz);
+    const off = space.dataOffset(i + dx, j + dy, k + dz);
+    vx += gx[off] * w;
+    vy += gy[off] * w;
+    vz += gz[off] * w;
+  }
+  out[0] = vx; out[1] = vy; out[2] = vz;
+  return out;
 }
