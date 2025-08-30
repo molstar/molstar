@@ -181,7 +181,8 @@ function writeSegmentsToBuilder(
 
 function getLoci(volume: Volume, props: VolumeGradientProps) {
     const instances = Interval.ofLength(volume.instances.length as Volume.InstanceIndex);
-    return Volume.Isosurface.Loci(volume, props.isoValue, instances);
+    return Volume.Loci(volume, instances); //
+    // return Volume.Isosurface.Loci(volume, props.isoValue, instances);
 }
 
 function getGradientLoci(pickingId: PickingId, volume: Volume, _key: number, props: VolumeGradientProps, id: number) {
@@ -190,7 +191,7 @@ function getGradientLoci(pickingId: PickingId, volume: Volume, _key: number, pro
         const granularity = Volume.PickingGranularity.get(volume);
         const instances = OrderedSet.ofSingleton(instanceId as Volume.InstanceIndex);
         if (granularity === 'volume') return Volume.Loci(volume, instances);
-        if (granularity === 'object') return Volume.Isosurface.Loci(volume, props.isoValue, instances);
+        // if (granularity === 'object') return Volume.Isosurface.Loci(volume, props.isoValue, instances);
         const indices = Interval.ofSingleton(groupId as Volume.CellIndex);
         return Volume.Cell.Loci(volume, [{ indices, instances }]);
     }
