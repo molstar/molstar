@@ -23,6 +23,10 @@ import { PickingId } from '../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../mol-model/loci';
 import { Interval, OrderedSet } from '../../mol-data/int';
 import { RepresentationContext, RepresentationParamsGetter, Representation } from '../representation';
+import { Points } from '../../mol-geo/geometry/points/points';
+import { PointsBuilder } from '../../mol-geo/geometry/points/points-builder';
+import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
+import { SpheresBuilder } from '../../mol-geo/geometry/spheres/spheres-builder';
 
 // ---------------------------------------------------------------------------------------
 // Shared params
@@ -44,6 +48,8 @@ export const VolumeGradientParams = {
 export type VolumeGradientParams = typeof VolumeGradientParams
 export type VolumeGradientProps = PD.Values<VolumeGradientParams>
 
+
+// LINES
 export const VolumeLinesParams = {
     ...Lines.Params,
     ...VolumeGradientParams,
@@ -52,13 +58,30 @@ export const VolumeLinesParams = {
 export type VolumeLinesParams = typeof VolumeLinesParams
 export type VolumeLinesProps = PD.Values<VolumeLinesParams>
 
-export const VolumeCylindersParams = {
+// CYLINDERS
+export const VolumeCylindersLinesParams = {
     ...Cylinders.Params,
     ...VolumeGradientParams,
     radius: PD.Numeric(1.0, { min: 0.1, max: 5, step: 0.1 }, { description: 'Cylinder radius (Å).' }),
 };
-export type VolumeCylindersParams = typeof VolumeCylindersParams
-export type VolumeCylindersProps = PD.Values<VolumeCylindersParams>
+export type VolumeCylindersLinesParams = typeof VolumeCylindersLinesParams
+export type VolumeCylindersLinesProps = PD.Values<VolumeCylindersLinesParams>
+
+// POINTS
+export const VolumePointsLinesParams = {
+    ...Points.Params,
+    ...VolumeGradientParams,
+};
+export type VolumePointsLinesParams = typeof VolumePointsLinesParams
+export type VolumePointsLinesProps = PD.Values<VolumePointsLinesParams>
+
+// SPHERES
+export const VolumeSpheresLinesParams = {
+    ...Spheres.Params,
+    ...VolumeGradientParams,
+};
+export type VolumeSpheresLinesParams = typeof VolumeSpheresLinesParams
+export type VolumeSpheresLinesProps = PD.Values<VolumeSpheresLinesParams>
 
 // ---------------------------------------------------------------------------------------
 // Visuals
@@ -81,7 +104,9 @@ export function VolumeLinesVisual(materialId: number): VolumeVisual<VolumeLinesP
                 newProps.minLevel !== currentProps.minLevel ||
                 newProps.maxLevel !== currentProps.maxLevel ||
                 newProps.writeStride !== currentProps.writeStride ||
-                newProps.geomStride !== currentProps.geomStride
+                newProps.geomStride !== currentProps.geomStride||
+                newProps.mid_interpolation !== currentProps.mid_interpolation ||
+                newProps.algorithm !== currentProps.algorithm
             );
         },
         geometryUtils: Lines.Utils,
@@ -89,9 +114,9 @@ export function VolumeLinesVisual(materialId: number): VolumeVisual<VolumeLinesP
     }, materialId);
 }
 
-export function VolumeCylindersImpostorVisual(materialId: number): VolumeVisual<VolumeCylindersParams> {
-    return VolumeVisual<Cylinders, VolumeCylindersParams>({
-        defaultProps: PD.getDefaultValues(VolumeCylindersParams),
+export function VolumeCylindersImpostorVisual(materialId: number): VolumeVisual<VolumeCylindersLinesParams> {
+    return VolumeVisual<Cylinders, VolumeCylindersLinesParams>({
+        defaultProps: PD.getDefaultValues(VolumeCylindersLinesParams),
         createGeometry: createVolumeCylindersGeometry,
         createLocationIterator: createVolumeCellLocationIterator,
         getLoci: getGradientLoci,
@@ -107,14 +132,71 @@ export function VolumeCylindersImpostorVisual(materialId: number): VolumeVisual<
                 newProps.minLevel !== currentProps.minLevel ||
                 newProps.maxLevel !== currentProps.maxLevel ||
                 newProps.writeStride !== currentProps.writeStride ||
-                newProps.geomStride !== currentProps.geomStride
+                newProps.geomStride !== currentProps.geomStride||
+                newProps.mid_interpolation !== currentProps.mid_interpolation ||
+                newProps.algorithm !== currentProps.algorithm
             );
         },
         geometryUtils: Cylinders.Utils,
-        mustRecreate: (_: VolumeKey, __: PD.Values<VolumeCylindersParams>, webgl?: WebGLContext) => !webgl,
+        mustRecreate: (_: VolumeKey, __: PD.Values<VolumeCylindersLinesParams>, webgl?: WebGLContext) => !webgl,
     }, materialId);
 }
 
+export function VolumePointsLinesVisual(materialId: number): VolumeVisual<VolumePointsLinesParams> {
+    return VolumeVisual<Points, VolumePointsLinesParams>({
+        defaultProps: PD.getDefaultValues(VolumePointsLinesParams),
+        createGeometry: createVolumePointsGeometry,
+        createLocationIterator: createVolumeCellLocationIterator,
+        getLoci: getGradientLoci,
+        eachLocation: eachGradient,
+        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps, currentProps, _newTheme, _currentTheme) => {
+            state.createGeometry = (
+                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats) ||
+                newProps.seedDensity !== currentProps.seedDensity ||
+                newProps.maxSteps !== currentProps.maxSteps ||
+                newProps.stepSize !== currentProps.stepSize ||
+                newProps.minSpeed !== currentProps.minSpeed ||
+                newProps.minLevel !== currentProps.minLevel ||
+                newProps.maxLevel !== currentProps.maxLevel ||
+                newProps.writeStride !== currentProps.writeStride ||
+                newProps.geomStride !== currentProps.geomStride ||
+                newProps.mid_interpolation !== currentProps.mid_interpolation ||
+                newProps.algorithm !== currentProps.algorithm
+
+            );
+        },
+        geometryUtils: Points.Utils,
+        mustRecreate: (_: VolumeKey, __: PD.Values<VolumePointsLinesParams>, webgl?: WebGLContext) => !webgl,
+    }, materialId);
+}
+
+export function VolumeSpheresLinesVisual(materialId: number): VolumeVisual<VolumeSpheresLinesParams> {
+    return VolumeVisual<Spheres, VolumeSpheresLinesParams>({
+            defaultProps: PD.getDefaultValues(VolumeSpheresLinesParams),
+            createGeometry: createVolumeSpheresLinesGeometry,
+            createLocationIterator: createVolumeCellLocationIterator,
+            getLoci: getGradientLoci,
+            eachLocation: eachGradient,
+            setUpdateState: (state: VisualUpdateState, volume: Volume, newProps, currentProps, _newTheme, _currentTheme) => {
+                state.createGeometry = (
+                    !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats) ||
+                    newProps.seedDensity !== currentProps.seedDensity ||
+                    newProps.maxSteps !== currentProps.maxSteps ||
+                    newProps.stepSize !== currentProps.stepSize ||
+                    newProps.minSpeed !== currentProps.minSpeed ||
+                    newProps.minLevel !== currentProps.minLevel ||
+                    newProps.maxLevel !== currentProps.maxLevel ||
+                    newProps.writeStride !== currentProps.writeStride ||
+                    newProps.geomStride !== currentProps.geomStride ||
+                    newProps.mid_interpolation !== currentProps.mid_interpolation ||
+                    newProps.algorithm !== currentProps.algorithm
+
+                );
+            },
+            geometryUtils: Spheres.Utils,
+            mustRecreate: (_: VolumeKey, __: PD.Values<VolumeSpheresLinesParams>, webgl?: WebGLContext) => !webgl,
+        }, materialId);
+}
 // ---------------------------------------------------------------------------------------
 // Geometry builders (shared streamline collection)
 // ---------------------------------------------------------------------------------------
@@ -133,7 +215,7 @@ function createVolumeLinesGeometry(ctx: VisualContext, volume: Volume, _key: num
     return g;
 }
 
-function createVolumeCylindersGeometry(ctx: VisualContext, volume: Volume, _key: number, _theme: Theme, props: VolumeCylindersProps, cylinders?: Cylinders): Cylinders {
+function createVolumeCylindersGeometry(ctx: VisualContext, volume: Volume, _key: number, _theme: Theme, props: VolumeCylindersLinesProps, cylinders?: Cylinders): Cylinders {
     const streamLines = collectStreamlines(volume, props);
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
 
@@ -145,6 +227,37 @@ function createVolumeCylindersGeometry(ctx: VisualContext, volume: Volume, _key:
     });
 
     const g = builder.getCylinders();
+    g.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
+    return g;
+}
+
+function createVolumePointsGeometry(ctx: VisualContext, volume: Volume, _key: number, _theme: Theme, props: VolumePointsLinesProps, points?: Points): Points {
+    const streamLines = collectStreamlines(volume, props);
+    const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
+
+    const builder = PointsBuilder.create(streamLines.length, Math.ceil(streamLines.length / 2), points);
+
+    writeSegmentsToBuilder(streamLines, gridToCartn, props.geomStride, (a, b, id) => {
+        builder.add(a[0], a[1], a[2], id);
+    });
+
+    const g = builder.getPoints();
+    g.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
+    return g;
+}
+
+function createVolumeSpheresLinesGeometry(ctx: VisualContext, volume: Volume, _key: number, _theme: Theme, props: VolumeSpheresLinesProps, spheres?: Spheres): Spheres {
+    const streamLines = collectStreamlines(volume, props);
+    const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
+
+    const segCount = countSegments(streamLines, props.geomStride);
+    const builder = SpheresBuilder.create(segCount, Math.ceil(segCount / 2), spheres);
+
+    writeSegmentsToBuilder(streamLines, gridToCartn, props.geomStride, (a, b, id) => {
+        builder.add(a[0], a[1], a[2], id);
+    });
+
+    const g = builder.getSpheres();
     g.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
     return g;
 }
@@ -204,12 +317,14 @@ function eachGradient(loci: Loci, volume: Volume, _key: number, props: VolumeGra
 
 const GradientVisuals = {
     'lines': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, VolumeLinesParams>) => VolumeRepresentation('Gradient lines', ctx, getParams, VolumeLinesVisual, getLoci),
-    'cylinders': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, VolumeCylindersParams>) => VolumeRepresentation('Gradient cylinders', ctx, getParams, VolumeCylindersImpostorVisual, getLoci),
+    'cylinders': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, VolumeCylindersLinesParams>) => VolumeRepresentation('Gradient cylinders', ctx, getParams, VolumeCylindersImpostorVisual, getLoci),
+    'points': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, VolumePointsLinesParams>) => VolumeRepresentation('Gradient points', ctx, getParams, VolumePointsLinesVisual, getLoci),
+    'spheres': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, VolumeSpheresLinesParams>) => VolumeRepresentation('Gradient spheres', ctx, getParams, VolumeSpheresLinesVisual, getLoci),
 };
 
 export const GradientParams = {
     ...VolumeLinesParams,
-    ...VolumeCylindersParams,
+    ...VolumeCylindersLinesParams,
     visuals: PD.MultiSelect(['lines'], PD.objectToOptions(GradientVisuals)),
 };
 export type GradientParams = typeof GradientParams;
@@ -243,7 +358,7 @@ export const GradientRepresentationProvider = VolumeRepresentationProvider({
 
 interface StreamlinePoint { x: number; y: number; z: number; value: number; }
 
-function collectStreamlines(volume: Volume, props: VolumeLinesProps | VolumeCylindersProps): StreamlinePoint[][] {
+function collectStreamlines(volume: Volume, props: VolumeLinesProps | VolumeCylindersLinesProps | VolumePointsLinesProps | VolumeSpheresLinesProps): StreamlinePoint[][] {
     const out: StreamlinePoint[][] = [];
     if (props.algorithm === 'advanced') getStreamLineAdvanced(volume, props, out);
     else getStreamLineSimple(volume, props, out);
@@ -347,7 +462,7 @@ function traceStreamlineBothDirs(space: Tensor.Space, data: ArrayLike<number>, s
     return line;
 }
 
-function getStreamLineSimple(volume: Volume, props: VolumeLinesProps | VolumeCylindersProps, out: StreamlinePoint[][]) {
+function getStreamLineSimple(volume: Volume, props: VolumeLinesProps | VolumeCylindersLinesProps | VolumePointsLinesProps | VolumeSpheresLinesProps, out: StreamlinePoint[][]) {
     const { cells: { space, data } } = volume.grid;
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
     const [nx, ny, nz] = space.dimensions as Vec3;
@@ -398,7 +513,7 @@ function getStreamLineSimple(volume: Volume, props: VolumeLinesProps | VolumeCyl
 
 const OBLATION_SPACING = 2; // cells
 
-function getStreamLineAdvanced(volume: Volume, props: VolumeLinesProps | VolumeCylindersProps, out: StreamlinePoint[][]) {
+function getStreamLineAdvanced(volume: Volume, props: VolumeLinesProps | VolumeCylindersLinesProps | VolumePointsLinesProps | VolumeSpheresLinesProps, out: StreamlinePoint[][]) {
     const { cells: { space, data } } = volume.grid;
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
     const [nx, ny, nz] = space.dimensions as Vec3;
