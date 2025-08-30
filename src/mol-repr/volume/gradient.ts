@@ -525,8 +525,7 @@ function getStreamLineSimple(volume: Volume, props: VolumeLinesProps | VolumeCyl
             );
             if (streamline.length < 2) continue;
             out.push(streamline);
-        }
-        else {
+        } else {
             const streamline = traceStreamlineBothDirs(
                 space, data, pos,
                 maxSteps, ds, eps, hx, hy, hz, writeStride
