@@ -2,7 +2,7 @@
  * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Ludovic Autin <autin@scripps.edu>
- *
+ * @maintainer ChatGPT5
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -24,25 +24,23 @@ import { EmptyLoci, Loci } from '../../mol-model/loci';
 import { Interval, OrderedSet } from '../../mol-data/int';
 import { RepresentationContext, RepresentationParamsGetter, Representation } from '../representation';
 
-// Constants
-// const DEFAULT_FILTER_THRESHOLD = 0.2;
-// const MIN_GRADIENT_MAGNITUDE = 1e-6;
-const OBLATION_SPACING = 2;
+// ---------------------------------------------------------------------------------------
+// Shared params
+// ---------------------------------------------------------------------------------------
 
 export const VolumeGradientParams = {
     isoValue: Volume.IsoValueParam,
     seedDensity: PD.Numeric(10, { min: 1, max: 100, step: 1 }, { description: 'Seeds per dimension for streamlines.' }),
     maxSteps: PD.Numeric(1000, { min: 1, max: 2000, step: 1 }, { description: 'Maximum number of steps for streamlines.' }),
-    stepSize: PD.Numeric(0.35, { min: 0.01, max: 10, step: 0.01 }, { description: 'Step size for streamlines.' }),
-    minSpeed: PD.Numeric(0.001, { min: 0, max: 1, step: 1e-6 }, { description: 'Minimum speed for streamlines.' }),
-    minLevel: PD.Numeric(-5.0, { min: -10, max: 10, step: 0.1 }, { description: 'Minimum level for streamline tracing.' }),
-    maxLevel: PD.Numeric(5.0, { min: -10, max: 10, step: 0.1 }, { description: 'Maximum level for streamline tracing.' }),
+    stepSize: PD.Numeric(0.35, { min: 0.01, max: 10, step: 0.01 }, { description: 'Step size (Å) for streamlines.' }),
+    minSpeed: PD.Numeric(0.001, { min: 0, max: 1, step: 1e-6 }, { description: 'Minimum |E| (in 1/Å) to continue tracing.' }),
+    minLevel: PD.Numeric(-5.0, { min: -10, max: 10, step: 0.1 }, { description: 'Minimum map value (φ) allowed when tracing.' }),
+    maxLevel: PD.Numeric(5.0, { min: -10, max: 10, step: 0.1 }, { description: 'Maximum map value (φ) allowed when tracing.' }),
     algorithm: PD.Select('simple', PD.arrayToOptions(['simple', 'advanced'] as const), { description: 'Streamline algorithm to use.' }),
-    mid_interpolation: PD.Boolean(true, { description: 'Use mid interpolation for streamline tracing.' }),
-    writeStride: PD.Numeric(4, { min: 1, max: 50, step: 1 }, { description: 'Write stride for streamline tracing.' }),
-    geomStride: PD.Numeric(1, { min: 1, max: 10, step: 1 }, { description: 'Geometry stride for streamline tracing.' }),
+    mid_interpolation: PD.Boolean(true, { description: 'Use RK2 (midpoint) instead of RK4 for the simple tracer.' }),
+    writeStride: PD.Numeric(4, { min: 1, max: 50, step: 1 }, { description: 'Sample every N integration steps.' }),
+    geomStride: PD.Numeric(1, { min: 1, max: 10, step: 1 }, { description: 'Emit every Nth segment to geometry.' }),
 };
-
 export type VolumeGradientParams = typeof VolumeGradientParams
 export type VolumeGradientProps = PD.Values<VolumeGradientParams>
 
@@ -54,15 +52,26 @@ export const VolumeLinesParams = {
 export type VolumeLinesParams = typeof VolumeLinesParams
 export type VolumeLinesProps = PD.Values<VolumeLinesParams>
 
+export const VolumeCylindersParams = {
+    ...Cylinders.Params,
+    ...VolumeGradientParams,
+    radius: PD.Numeric(1.0, { min: 0.1, max: 5, step: 0.1 }, { description: 'Cylinder radius (Å).' }),
+};
+export type VolumeCylindersParams = typeof VolumeCylindersParams
+export type VolumeCylindersProps = PD.Values<VolumeCylindersParams>
+
+// ---------------------------------------------------------------------------------------
+// Visuals
+// ---------------------------------------------------------------------------------------
 
 export function VolumeLinesVisual(materialId: number): VolumeVisual<VolumeLinesParams> {
     return VolumeVisual<Lines, VolumeLinesParams>({
         defaultProps: PD.getDefaultValues(VolumeLinesParams),
-        createGeometry: createVolumeLinesMesh,
+        createGeometry: createVolumeLinesGeometry,
         createLocationIterator: createVolumeCellLocationIterator,
         getLoci: getGradientLoci,
         eachLocation: eachGradient,
-        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<VolumeLinesParams>, currentProps: PD.Values<VolumeLinesParams>, newTheme: Theme, currentTheme: Theme) => {
+        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps, currentProps, _newTheme, _currentTheme) => {
             state.createGeometry = (
                 !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats) ||
                 newProps.seedDensity !== currentProps.seedDensity ||
@@ -76,30 +85,20 @@ export function VolumeLinesVisual(materialId: number): VolumeVisual<VolumeLinesP
             );
         },
         geometryUtils: Lines.Utils,
-        mustRecreate: (volumekey: VolumeKey, props: PD.Values<VolumeLinesParams>, webgl?: WebGLContext) => {
-            return !!webgl;
-        }
+        mustRecreate: (_: VolumeKey, __: PD.Values<VolumeLinesParams>, webgl?: WebGLContext) => !!webgl,
     }, materialId);
 }
-
-export const VolumeCylindersParams = {
-    ...Cylinders.Params,
-    ...VolumeGradientParams,
-    radius: PD.Numeric(1.0, { min: 0.1, max: 5, step: 0.1 }, { description: 'Radius scale of the cylinders.' }),
-};
-export type VolumeCylindersParams = typeof VolumeCylindersParams
-export type VolumeCylindersProps = PD.Values<VolumeCylindersParams>
 
 export function VolumeCylindersImpostorVisual(materialId: number): VolumeVisual<VolumeCylindersParams> {
     return VolumeVisual<Cylinders, VolumeCylindersParams>({
         defaultProps: PD.getDefaultValues(VolumeCylindersParams),
-        createGeometry: createVolumeCylindersImpostor,
+        createGeometry: createVolumeCylindersGeometry,
         createLocationIterator: createVolumeCellLocationIterator,
         getLoci: getGradientLoci,
         eachLocation: eachGradient,
-        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps: PD.Values<VolumeCylindersParams>, currentProps: PD.Values<VolumeCylindersParams>, newTheme: Theme, currentTheme: Theme) => {
+        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps, currentProps, _newTheme, _currentTheme) => {
             state.createGeometry = (
-                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats)||
+                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats) ||
                 newProps.seedDensity !== currentProps.seedDensity ||
                 newProps.maxSteps !== currentProps.maxSteps ||
                 newProps.stepSize !== currentProps.stepSize ||
@@ -112,103 +111,93 @@ export function VolumeCylindersImpostorVisual(materialId: number): VolumeVisual<
             );
         },
         geometryUtils: Cylinders.Utils,
-        mustRecreate: (volumekey: VolumeKey, props: PD.Values<VolumeCylindersParams>, webgl?: WebGLContext) => {
-            return !webgl;
-        }
+        mustRecreate: (_: VolumeKey, __: PD.Values<VolumeCylindersParams>, webgl?: WebGLContext) => !webgl,
     }, materialId);
 }
 
-export function createVolumeCylindersImpostor(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: VolumeCylindersProps, points?: Cylinders): Cylinders {
+// ---------------------------------------------------------------------------------------
+// Geometry builders (shared streamline collection)
+// ---------------------------------------------------------------------------------------
+
+function createVolumeLinesGeometry(ctx: VisualContext, volume: Volume, _key: number, _theme: Theme, props: VolumeLinesProps, lines?: Lines): Lines {
+    const streamLines = collectStreamlines(volume, props);
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
-    const stream_lines : StreamlinePoint[][] = [];
-    if (props.algorithm === 'advanced') {
-        getStreamLineAdvanced(volume, props, stream_lines);
-    } else {
-        getStreamLineSimple(volume, props, stream_lines);
-    }
-    const count = stream_lines.length;
-    const builder = CylindersBuilder.create(count, Math.ceil(count / 2), points);
-    // --- iterate streamlines ---
-    const start = Vec3();
-    const start1 = Vec3();
-    const end = Vec3();
-    const end1 = Vec3();
-    const writeStride = props.geomStride;
-    for (let s=0; s< stream_lines.length; s++) {
-        for (let i=0; i< stream_lines[s].length -1; i++) {
-            if (i % writeStride === 0) {
-                Vec3.set(start1, stream_lines[s][i].x, stream_lines[s][i].y, stream_lines[s][i].z);
-                Vec3.set(end1, stream_lines[s][i + 1].x, stream_lines[s][i + 1].y, stream_lines[s][i + 1].z);
-                Vec3.transformMat4(start, start1, gridToCartn);
-                Vec3.transformMat4(end, end1, gridToCartn);
-                builder.add(start[0], start[1], start[2],
-                            end[0], end[1], end[2],
-                            props.radius, true, true, 2, s);
-            }
-        }
-    }
-    const pt = builder.getCylinders();
-    pt.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
-    return pt;
+
+    const segCount = countSegments(streamLines, props.geomStride);
+    const builder = LinesBuilder.create(segCount, Math.ceil(segCount / 2), lines);
+
+    writeSegmentsToBuilder(streamLines, gridToCartn, props.geomStride, (a, b, id) => builder.addVec(a, b, id));
+
+    const g = builder.getLines();
+    g.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
+    return g;
 }
 
-export function createVolumeLinesMesh(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: VolumeLinesProps, points?: Lines): Lines {
+function createVolumeCylindersGeometry(ctx: VisualContext, volume: Volume, _key: number, _theme: Theme, props: VolumeCylindersProps, cylinders?: Cylinders): Cylinders {
+    const streamLines = collectStreamlines(volume, props);
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
-    const stream_lines : StreamlinePoint[][] = [];
-    if (props.algorithm === 'advanced') {
-        getStreamLineAdvanced(volume, props, stream_lines);
-    } else {
-        getStreamLineSimple(volume, props, stream_lines);
-    }
-    const count = stream_lines.length;
-    const builder = LinesBuilder.create(count, Math.ceil(count / 2), points);
-    // --- iterate streamlines ---
-    const start = Vec3();
-    const start1 = Vec3();
-    const end = Vec3();
-    const end1 = Vec3();
-    // we can use a writeStride to avoid create all points
-    const writeStride = props.geomStride;
-    for (let s=0; s< stream_lines.length; s++) {
-        for (let i=0; i< stream_lines[s].length -1; i++) {
-            if (i % writeStride === 0) {
-                Vec3.set(start1, stream_lines[s][i].x, stream_lines[s][i].y, stream_lines[s][i].z);
-                Vec3.set(end1, stream_lines[s][i + 1].x, stream_lines[s][i + 1].y, stream_lines[s][i + 1].z);
-                Vec3.transformMat4(start, start1, gridToCartn);
-                Vec3.transformMat4(end, end1, gridToCartn);
-                builder.addVec(start, end, s);
-            }
+
+    const segCount = countSegments(streamLines, props.geomStride);
+    const builder = CylindersBuilder.create(segCount, Math.ceil(segCount / 2), cylinders);
+
+    writeSegmentsToBuilder(streamLines, gridToCartn, props.geomStride, (a, b, id) => {
+        builder.add(a[0], a[1], a[2], b[0], b[1], b[2], props.radius, true, true, 2, id);
+    });
+
+    const g = builder.getCylinders();
+    g.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
+    return g;
+}
+
+function countSegments(lines: StreamlinePoint[][], stride: number) {
+    let c = 0;
+    for (let s = 0; s < lines.length; s++) c += Math.max(0, Math.floor((lines[s].length - 1) / Math.max(1, stride)));
+    return c;
+}
+
+function writeSegmentsToBuilder(
+    streamLines: StreamlinePoint[][],
+    gridToCartn: Mat4,
+    geomStride: number,
+    emit: (a: Vec3, b: Vec3, id: number) => void
+) {
+    const a = Vec3(), b = Vec3(), ai = Vec3(), bi = Vec3();
+    for (let s = 0; s < streamLines.length; s++) {
+        const L = streamLines[s];
+        for (let i = 0, n = L.length - 1; i < n; i++) {
+            if (i % Math.max(1, geomStride) !== 0) continue;
+            ai[0] = L[i].x; ai[1] = L[i].y; ai[2] = L[i].z;
+            bi[0] = L[i+1].x; bi[1] = L[i+1].y; bi[2] = L[i+1].z;
+            Vec3.transformMat4(a, ai, gridToCartn);
+            Vec3.transformMat4(b, bi, gridToCartn);
+            emit(a, b, s);
         }
     }
-    const pt = builder.getLines();
-    pt.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
-    return pt;
 }
+
+// ---------------------------------------------------------------------------------------
+// Loci plumbing
+// ---------------------------------------------------------------------------------------
 
 function getLoci(volume: Volume, props: VolumeGradientProps) {
     const instances = Interval.ofLength(volume.instances.length as Volume.InstanceIndex);
     return Volume.Isosurface.Loci(volume, props.isoValue, instances);
 }
 
-function getGradientLoci(pickingId: PickingId, volume: Volume, key: number, props: VolumeGradientProps, id: number) {
+function getGradientLoci(pickingId: PickingId, volume: Volume, _key: number, props: VolumeGradientProps, id: number) {
     const { objectId, groupId, instanceId } = pickingId;
-
     if (id === objectId) {
         const granularity = Volume.PickingGranularity.get(volume);
         const instances = OrderedSet.ofSingleton(instanceId as Volume.InstanceIndex);
-        if (granularity === 'volume') {
-            return Volume.Loci(volume, instances);
-        } else if (granularity === 'object') {
-            return Volume.Isosurface.Loci(volume, props.isoValue, instances);
-        } else {
-            const indices = Interval.ofSingleton(groupId as Volume.CellIndex);
-            return Volume.Cell.Loci(volume, [{ indices, instances }]);
-        }
+        if (granularity === 'volume') return Volume.Loci(volume, instances);
+        if (granularity === 'object') return Volume.Isosurface.Loci(volume, props.isoValue, instances);
+        const indices = Interval.ofSingleton(groupId as Volume.CellIndex);
+        return Volume.Cell.Loci(volume, [{ indices, instances }]);
     }
     return EmptyLoci;
 }
 
-function eachGradient(loci: Loci, volume: Volume, key: number, props: VolumeGradientProps, apply: (interval: Interval) => boolean) {
+function eachGradient(loci: Loci, volume: Volume, _key: number, props: VolumeGradientProps, apply: (interval: Interval) => boolean) {
     return eachVolumeLoci(loci, volume, { isoValue: props.isoValue }, apply);
 }
 
@@ -216,7 +205,6 @@ const GradientVisuals = {
     'lines': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, VolumeLinesParams>) => VolumeRepresentation('Gradient lines', ctx, getParams, VolumeLinesVisual, getLoci),
     'cylinders': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, VolumeCylindersParams>) => VolumeRepresentation('Gradient cylinders', ctx, getParams, VolumeCylindersImpostorVisual, getLoci),
 };
-
 
 export const GradientParams = {
     ...VolumeLinesParams,
@@ -248,692 +236,385 @@ export const GradientRepresentationProvider = VolumeRepresentationProvider({
     isApplicable: (volume: Volume) => !Volume.isEmpty(volume) && !Volume.Segmentation.get(volume)
 });
 
-interface StreamlinePoint {
-    x: number;
-    y: number;
-    z: number;
-    value: number;
+// ---------------------------------------------------------------------------------------
+// Streamline integrators
+// ---------------------------------------------------------------------------------------
+
+interface StreamlinePoint { x: number; y: number; z: number; value: number; }
+
+function collectStreamlines(volume: Volume, props: VolumeLinesProps | VolumeCylindersProps): StreamlinePoint[][] {
+    const out: StreamlinePoint[][] = [];
+    if (props.algorithm === 'advanced') getStreamLineAdvanced(volume, props, out);
+    else getStreamLineSimple(volume, props, out);
+    return out;
 }
+
+function getCellSize(gridToCartn: Mat4) {
+    const b = Mat4.extractBasis(gridToCartn);
+    return { hx: Vec3.magnitude(b.x), hy: Vec3.magnitude(b.y), hz: Vec3.magnitude(b.z) };
+}
+
+// ---------------- Simple tracer (RK2/RK4) in index space ----------------
 
 function traceOneDirection(
     out: StreamlinePoint[],
     space: Tensor.Space, data: ArrayLike<number>, seed: Vec3,
-    maxSteps: number, ds: number, eps: number,
+    maxSteps: number, dsWorld: number, eps: number,
     hx: number, hy: number, hz: number, dirSign: 1 | -1, skipFirst: boolean,
-    traceState: {
-        p: Vec3,
-        g: Vec3, g2: Vec3, g3: Vec3, g4: Vec3,
-        v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3,
-        k1: Vec3, k2: Vec3, k3: Vec3, k4: Vec3,
-        dp: Vec3, t1: Vec3, t2: Vec3, t3: Vec3
-    },
-    writeStride = 2 // write every N steps (2–3 is good)
+    S: { p: Vec3, g: Vec3, g2: Vec3, g3: Vec3, g4: Vec3, v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3, k1: Vec3, k2: Vec3, k3: Vec3, k4: Vec3, dp: Vec3, t1: Vec3, t2: Vec3, t3: Vec3 },
+    writeStride = 2,
+    order: 2 | 4
 ): number {
-    // we do RK4 but could also do RK2
-    // midpoint RK2, constant step ds
-    // v1 at p
-    // v2 at p + 0.5*ds*v1
-    // dp = ds * v2
-    // const line: StreamlinePoint[] = [];
     const [nx, ny, nz] = space.dimensions as Vec3;
-    const p = traceState.p;
-    Vec3.copy(p, seed);
-    const inv6 = 1 / 6;
+    const p = S.p; Vec3.copy(p, seed);
+
+    // convert a world step to index steps per-axis
+    const sIx = dirSign * (dsWorld / hx), sIy = dirSign * (dsWorld / hy), sIz = dirSign * (dsWorld / hz);
+
     let written = 0;
-
     for (let step = 0; step < maxSteps; step++) {
-        if (p[0] < 1 || p[0] > (nx as number) - 2 ||
-            p[1] < 1 || p[1] > (ny as number) - 2 ||
-            p[2] < 1 || p[2] > (nz as number) - 2) break;
+        if (p[0] < 1 || p[0] > (nx as number) - 2 || p[1] < 1 || p[1] > (ny as number) - 2 || p[2] < 1 || p[2] > (nz as number) - 2) break;
 
-        // getInterpolatedGradient(traceState.g, space, data, p, hx, hy, hz);
-        gradientAtP_fast(traceState.g, space, data, p, hx, hy, hz, traceState.t3);
-        const m = Vec3.magnitude(traceState.g);
+        // gW = -∇φ in WORLD units (1/Å)
+        gradientAtP_world(S.g, space, data, p, hx, hy, hz, S.t3);
+        const m = Vec3.magnitude(S.g);
         if (!(m > eps)) break;
+        Vec3.scale(S.v1, S.g, 1 / m); // unit world
 
-        // direction only, signed
-        Vec3.scale(traceState.v1, traceState.g, dirSign / m);
+        if (order === 2) {
+            // RK2 midpoint in world, converted to index steps
+            S.t1[0] = p[0] + 0.5 * sIx * S.v1[0];
+            S.t1[1] = p[1] + 0.5 * sIy * S.v1[1];
+            S.t1[2] = p[2] + 0.5 * sIz * S.v1[2];
 
-        // RK4 with constant arc-length ds
-        Vec3.scale(traceState.k1, traceState.v1, ds);
+            gradientAtP_world(S.g2, space, data, S.t1, hx, hy, hz, S.t3);
+            const m2 = Math.max(Vec3.magnitude(S.g2), eps);
+            S.v2[0] = S.g2[0] / m2; S.v2[1] = S.g2[1] / m2; S.v2[2] = S.g2[2] / m2;
 
-        Vec3.add(traceState.t1, p, Vec3.scale(traceState.t2, traceState.k1, 0.5));
-        gradientAtP_fast(traceState.g2, space, data, traceState.t1, hx, hy, hz, traceState.t3);
-        Vec3.scale(traceState.v2, traceState.g2, dirSign / Math.max(Vec3.magnitude(traceState.g2), eps));
-        Vec3.scale(traceState.k2, traceState.v2, ds);
+            S.dp[0] = sIx * S.v2[0]; S.dp[1] = sIy * S.v2[1]; S.dp[2] = sIz * S.v2[2];
+        } else {
+            // RK4 in world, converted to index
+            Vec3.set(S.k1, sIx * S.v1[0], sIy * S.v1[1], sIz * S.v1[2]);
 
-        Vec3.add(traceState.t1, p, Vec3.scale(traceState.t2, traceState.k2, 0.5));
-        gradientAtP_fast(traceState.g3, space, data, traceState.t1, hx, hy, hz, traceState.t3);
-        Vec3.scale(traceState.v3, traceState.g3, dirSign / Math.max(Vec3.magnitude(traceState.g3), eps));
-        Vec3.scale(traceState.k3, traceState.v3, ds);
+            S.t1[0] = p[0] + 0.5 * S.k1[0]; S.t1[1] = p[1] + 0.5 * S.k1[1]; S.t1[2] = p[2] + 0.5 * S.k1[2];
+            gradientAtP_world(S.g2, space, data, S.t1, hx, hy, hz, S.t3);
+            const m2 = Math.max(Vec3.magnitude(S.g2), eps);
+            S.v2[0] = S.g2[0] / m2; S.v2[1] = S.g2[1] / m2; S.v2[2] = S.g2[2] / m2;
+            Vec3.set(S.k2, sIx * S.v2[0], sIy * S.v2[1], sIz * S.v2[2]);
 
-        Vec3.add(traceState.t1, p, traceState.k3);
-        gradientAtP_fast(traceState.g4, space, data, traceState.t1, hx, hy, hz, traceState.t3);
-        Vec3.scale(traceState.v4, traceState.g4, dirSign / Math.max(Vec3.magnitude(traceState.g4), eps));
-        Vec3.scale(traceState.k4, traceState.v4, ds);
+            S.t1[0] = p[0] + 0.5 * S.k2[0]; S.t1[1] = p[1] + 0.5 * S.k2[1]; S.t1[2] = p[2] + 0.5 * S.k2[2];
+            gradientAtP_world(S.g3, space, data, S.t1, hx, hy, hz, S.t3);
+            const m3 = Math.max(Vec3.magnitude(S.g3), eps);
+            S.v3[0] = S.g3[0] / m3; S.v3[1] = S.g3[1] / m3; S.v3[2] = S.g3[2] / m3;
+            Vec3.set(S.k3, sIx * S.v3[0], sIy * S.v3[1], sIz * S.v3[2]);
 
-        // dp = (k1 + 2*k2 + 2*k3 + k4) / 6, with zero allocs
-        Vec3.copy(traceState.dp, traceState.k1);
+            S.t1[0] = p[0] + S.k3[0]; S.t1[1] = p[1] + S.k3[1]; S.t1[2] = p[2] + S.k3[2];
+            gradientAtP_world(S.g4, space, data, S.t1, hx, hy, hz, S.t3);
+            const m4 = Math.max(Vec3.magnitude(S.g4), eps);
+            S.v4[0] = S.g4[0] / m4; S.v4[1] = S.g4[1] / m4; S.v4[2] = S.g4[2] / m4;
+            Vec3.set(S.k4, sIx * S.v4[0], sIy * S.v4[1], sIz * S.v4[2]);
 
-        Vec3.scale(traceState.t1, traceState.k2, 2);
-        Vec3.add(traceState.dp, traceState.dp, traceState.t1);
+            // dp = (k1 + 2*k2 + 2*k3 + k4) / 6
+            Vec3.copy(S.dp, S.k1);
+            Vec3.scaleAndAdd(S.dp, S.dp, S.k2, 2);
+            Vec3.scaleAndAdd(S.dp, S.dp, S.k3, 2);
+            Vec3.add(S.dp, S.dp, S.k4);
+            Vec3.scale(S.dp, S.dp, 1 / 6);
+        }
 
-        Vec3.scale(traceState.t2, traceState.k3, 2);
-        Vec3.add(traceState.dp, traceState.dp, traceState.t2);
-
-        Vec3.add(traceState.dp, traceState.dp, traceState.k4);
-        Vec3.scale(traceState.dp, traceState.dp, inv6);
-
-        if ((!(skipFirst && step === 0)) && (step % writeStride === 0)) {
+        if (!(skipFirst && step === 0) && (step % writeStride === 0)) {
             const value = getInterpolatedValue(space, data, p);
             out.push({ x: p[0], y: p[1], z: p[2], value });
             written++;
         }
-        Vec3.add(p, p, traceState.dp);
-    }
-    return written;
-}
-
-function traceOneDirectionRK2(
-    out: StreamlinePoint[],
-    space: Tensor.Space, data: ArrayLike<number>, seed: Vec3,
-    maxSteps: number, ds: number, eps: number,
-    hx: number, hy: number, hz: number, dirSign: 1 | -1, skipFirst: boolean,
-    traceState: {
-        p: Vec3,
-        g: Vec3, g2: Vec3, g3: Vec3, g4: Vec3,
-        v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3,
-        k1: Vec3, k2: Vec3, k3: Vec3, k4: Vec3,
-        dp: Vec3, t1: Vec3, t2: Vec3, t3: Vec3
-    },
-    writeStride = 2 // write every N steps (2–3 is good)
-): number {
-    const [nx, ny, nz] = space.dimensions as Vec3;
-    const p = traceState.p;
-    Vec3.copy(p, seed);
-    const g = traceState.g, v1 = traceState.v1, mid = traceState.t1, gmid = traceState.t2, v2 = traceState.v2, dp = traceState.dp;
-    let written = 0;
-
-    for (let step = 0; step < maxSteps; step++) {
-        // bounds in index space
-        if (p[0] < 1 || p[0] > (nx as number) - 2 ||
-            p[1] < 1 || p[1] > (ny as number) - 2 ||
-            p[2] < 1 || p[2] > (nz as number) - 2) break;
-
-        // v1 at p
-        gradientAtP_fast(g, space, data, p, hx, hy, hz);
-        let m = Math.hypot(g[0], g[1], g[2]);
-        if (!(m > eps)) break;
-        v1[0] = dirSign * g[0] / m; v1[1] = dirSign * g[1] / m; v1[2] = dirSign * g[2] / m;
-
-        // midpoint
-        mid[0] = p[0] + 0.5 * ds * v1[0];
-        mid[1] = p[1] + 0.5 * ds * v1[1];
-        mid[2] = p[2] + 0.5 * ds * v1[2];
-
-        // v2 at midpoint
-        gradientAtP_fast(gmid, space, data, mid, hx, hy, hz);
-        m = Math.hypot(gmid[0], gmid[1], gmid[2]);
-        if (!(m > eps)) break;
-        v2[0] = dirSign * gmid[0] / m; v2[1] = dirSign * gmid[1] / m; v2[2] = dirSign * gmid[2] / m;
-
-        // step
-        dp[0] = ds * v2[0]; dp[1] = ds * v2[1]; dp[2] = ds * v2[2];
-
-        // write less often for speed
-        if ((!(skipFirst && step === 0)) && (step % writeStride === 0)) {
-            const value = getInterpolatedValue(space, data, p);
-            out.push({ x: p[0], y: p[1], z: p[2], value });
-            written++;
-        }
-        // advance
-        p[0] += dp[0]; p[1] += dp[1]; p[2] += dp[2];
+        Vec3.add(p, p, S.dp);
     }
     return written;
 }
 
 function reverseSegmentInPlace<T>(arr: T[], start: number, end: number) {
-    for (let i = start, j = end; i < j; i++, j--) {
-        const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
-    }
+    for (let i = start, j = end; i < j; i++, j--) { const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp; }
 }
 
-function traceStreamlineBothDirs(
-    space: Tensor.Space, data: ArrayLike<number>, seed: Vec3,
-    maxSteps: number, ds: number, eps: number,
-    hx: number, hy: number, hz: number,
-    writeStride: number
-): StreamlinePoint[] {
+function traceStreamlineBothDirs(space: Tensor.Space, data: ArrayLike<number>, seed: Vec3, maxSteps: number, dsWorld: number, eps: number, hx: number, hy: number, hz: number, writeStride: number, order: 2 | 4): StreamlinePoint[] {
     const line: StreamlinePoint[] = [];
-    // one shared scratch block to avoid per-call allocations
-    const traceState = {
-        p: Vec3(),
-        g: Vec3(), g2: Vec3(), g3: Vec3(), g4: Vec3(),
-        v1: Vec3(), v2: Vec3(), v3: Vec3(), v4: Vec3(),
-        k1: Vec3(), k2: Vec3(), k3: Vec3(), k4: Vec3(),
-        dp: Vec3(), t1: Vec3(), t2: Vec3(), t3: Vec3()
-    };
-    // 1) trace BACKWARD, including the seed
-    const nBack = traceOneDirection(line,
-        space, data, seed, maxSteps, ds, eps, hx, hy, hz, -1,
-        /* skipFirst */ false, traceState, writeStride
-    );
+    const S = { p: Vec3(), g: Vec3(), g2: Vec3(), g3: Vec3(), g4: Vec3(), v1: Vec3(), v2: Vec3(), v3: Vec3(), v4: Vec3(), k1: Vec3(), k2: Vec3(), k3: Vec3(), k4: Vec3(), dp: Vec3(), t1: Vec3(), t2: Vec3(), t3: Vec3() };
 
-    // 2) reverse that segment IN PLACE so it's ordered from farthest->seed
+    const nBack = traceOneDirection(line, space, data, seed, maxSteps, dsWorld, eps, hx, hy, hz, -1, false, S, writeStride, order);
     if (nBack > 1) reverseSegmentInPlace(line, 0, nBack - 1);
-
-    // 3) trace FORWARD, skipping the seed to avoid duplication; append directly
-    traceOneDirection(line,
-        space, data, seed, maxSteps, ds, eps, hx, hy, hz, +1,
-        /* skipFirst */ true, traceState, writeStride
-    );
+    traceOneDirection(line, space, data, seed, maxSteps, dsWorld, eps, hx, hy, hz, +1, true, S, writeStride, order);
     return line;
 }
 
-function traceStreamlineBothDirsK2(
-    space: Tensor.Space, data: ArrayLike<number>, seed: Vec3,
-    maxSteps: number, ds: number, eps: number,
-    hx: number, hy: number, hz: number,
-    writeStride: number
-): StreamlinePoint[] {
-    const line: StreamlinePoint[] = [];
-    // one shared scratch block to avoid per-call allocations
-    const traceState = {
-        p: Vec3(),
-        g: Vec3(), g2: Vec3(), g3: Vec3(), g4: Vec3(),
-        v1: Vec3(), v2: Vec3(), v3: Vec3(), v4: Vec3(),
-        k1: Vec3(), k2: Vec3(), k3: Vec3(), k4: Vec3(),
-        dp: Vec3(), t1: Vec3(), t2: Vec3(), t3: Vec3()
-    };
-    // 1) trace BACKWARD, including the seed
-    const nBack = traceOneDirectionRK2(line,
-        space, data, seed, maxSteps, ds, eps, hx, hy, hz, -1,
-        /* skipFirst */ false, traceState, writeStride
-    );
-
-    // 2) reverse that segment IN PLACE so it's ordered from farthest->seed
-    if (nBack > 1) reverseSegmentInPlace(line, 0, nBack - 1);
-
-    // 3) trace FORWARD, skipping the seed to avoid duplication; append directly
-    traceOneDirectionRK2(line,
-        space, data, seed, maxSteps, ds, eps, hx, hy, hz, +1,
-        /* skipFirst */ true, traceState, writeStride
-    );
-    return line;
-}
-
-// Simple RK4 streamlines implementation
 function getStreamLineSimple(volume: Volume, props: VolumeLinesProps | VolumeCylindersProps, out: StreamlinePoint[][]) {
     const { cells: { space, data } } = volume.grid;
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
-    const seedDensity = props.seedDensity ?? 8;
     const [nx, ny, nz] = space.dimensions as Vec3;
     const { hx, hy, hz } = getCellSize(gridToCartn);
-    // Generate seed points
+
+    const seedDensity = props.seedDensity ?? 8;
     const seedStep = Math.max(1, Math.floor(Math.min(nx, ny, nz) / seedDensity));
-    const maxSteps = props.maxSteps ?? 2000; // more steps
-    const ds = (props.stepSize ?? 0.35); // in index units; 0.2–0.5 works well
-    const eps = props.minSpeed ?? 1e-6; // MUCH smaller for APBS
-    const K2 = props.mid_interpolation;
-    const writeStride = props.writeStride;
-    const pos = Vec3();
-    const g = Vec3();
+
+    const maxSteps = props.maxSteps ?? 2000;
+    const dsWorld = props.stepSize ?? 0.35; // Å
+    const eps = props.minSpeed ?? 1e-6; // |E| threshold in 1/Å
+    const writeStride = Math.max(1, props.writeStride | 0);
+    const order: 2 | 4 = props.mid_interpolation ? 2 : 4;
+
+    const pos = Vec3(), g = Vec3();
+
+    // bounds in index space avoiding edges
     const xStart = 1, xEnd = nx - 2;
     const yStart = 1, yEnd = ny - 2;
     const zStart = 1, zEnd = nz - 2;
-    // --- build seed list ---
-    const npx = Math.floor((xEnd - xStart) / seedStep) + 1;
-    const npy = Math.floor((yEnd - yStart) / seedStep) + 1;
-    const npz = Math.floor((zEnd - zStart) / seedStep) + 1;
 
-    const totalPoints = npx * npy * npz;
-    const seedPoints = new Array<number>(totalPoints * 3);
-
-    let i = 0;
-    for (let z = zStart; z <= zEnd; z += seedStep) {
-        for (let y = yStart; y <= yEnd; y += seedStep) {
-            for (let x = xStart; x <= xEnd; x += seedStep) {
-                seedPoints[i++] = x;
-                seedPoints[i++] = y;
-                seedPoints[i++] = z;
-            }
-        }
+    // seeds on a coarse lattice, shuffled
+    const seeds: number[] = [];
+    for (let z = zStart; z <= zEnd; z += seedStep)
+        for (let y = yStart; y <= yEnd; y += seedStep)
+            for (let x = xStart; x <= xEnd; x += seedStep) { seeds.push(x, y, z); }
+    for (let i = seeds.length - 3; i > 0; i -= 3) {
+        const j = (Math.floor(Math.random() * (i / 3 + 1)) * 3) | 0;
+        const tx = seeds[i], ty = seeds[i+1], tz = seeds[i+2];
+        seeds[i] = seeds[j]; seeds[i+1] = seeds[j+1]; seeds[i+2] = seeds[j+2];
+        seeds[j] = tx; seeds[j+1] = ty; seeds[j+2] = tz;
     }
-    // --- shuffle (Fisher–Yates) ---
-    for (let i = seedPoints.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        const tmp = seedPoints[i];
-        seedPoints[i] = seedPoints[j];
-        seedPoints[j] = tmp;
-    }
-    for (let i = 0; i < seedPoints.length; i += 3) {
-        Vec3.set(pos, seedPoints[i], seedPoints[i + 1], seedPoints[i + 2]);
 
-        // filtering
+    for (let i = 0; i < seeds.length; i += 3) {
+        Vec3.set(pos, seeds[i], seeds[i + 1], seeds[i + 2]);
+
         const phi = getInterpolatedValue(space, data, pos);
-        gradientAtP_fast(g, space, data, pos, hx, hy, hz);
+        gradientAtP_world(g, space, data, pos, hx, hy, hz);
         const mag = Vec3.magnitude(g);
+        if ((phi < props.minLevel || phi > props.maxLevel) || mag < eps) continue;
 
-        // thresholds to adjust according to your APBS maps
-        if ((phi < props.minLevel || phi > props.maxLevel) || mag < 1e-6) continue;
-
-        // if ok, we trace the streamline
-        if (K2) {
-            const streamline = traceStreamlineBothDirsK2(
-                space, data, pos,
-                maxSteps, ds, eps, hx, hy, hz, writeStride
-            );
-            if (streamline.length < 2) continue;
-            out.push(streamline);
-        } else {
-            const streamline = traceStreamlineBothDirs(
-                space, data, pos,
-                maxSteps, ds, eps, hx, hy, hz, writeStride
-            );
-
-            if (streamline.length < 2) continue;
-            out.push(streamline);
-        }
+        const line = traceStreamlineBothDirs(space, data, pos, maxSteps, dsWorld, eps, hx, hy, hz, writeStride, order);
+        if (line.length >= 2) out.push(line);
     }
 }
 
-function getCellSize(gridToCartn: Mat4) {
-    const b = Mat4.extractBasis(gridToCartn);
-    return {
-        hx: Vec3.magnitude(b.x),
-        hy: Vec3.magnitude(b.y),
-        hz: Vec3.magnitude(b.z)
-    };
-}
+// ---------------- Advanced (PyMOL-style) tracer ----------------
 
-// tiny LCG for reproducible shuffles (like std::mt19937 seeded with range_size)
-function seededRand(seed: number) {
-  let s = seed >>> 0;
-  return () => {
-    // xorshift32
-    s ^= s << 13; s ^= s >>> 17; s ^= s << 5;
-    return ((s >>> 0) / 4294967296);
-  };
-}
-
-
+const OBLATION_SPACING = 2; // cells
 
 function getStreamLineAdvanced(volume: Volume, props: VolumeLinesProps | VolumeCylindersProps, out: StreamlinePoint[][]) {
-    // PYMOL algo
     const { cells: { space, data } } = volume.grid;
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
-
     const [nx, ny, nz] = space.dimensions as Vec3;
-    const range: [number,number,number,number,number,number] = [0,0,0, nx,ny,nz];
-    const seed = (nx * ny * nz) | 0;
-    const i0 = Math.max(0, range[0]|0), j0 = Math.max(0, range[1]|0), k0 = Math.max(0, range[2]|0);
-    const i1 = Math.min(nx, range[3]|0), j1 = Math.min(ny, range[4]|0), k1 = Math.min(nz, range[5]|0);
+    const { hx, hy, hz } = getCellSize(gridToCartn);
 
-    const dx = Vec3.magnitude(Mat4.extractBasis(gridToCartn).x);
-    const dy = Vec3.magnitude(Mat4.extractBasis(gridToCartn).y);
-    const dz = Vec3.magnitude(Mat4.extractBasis(gridToCartn).z);
-    const avgCell = (dx + dy + dz) / 3;
+    // map range (full grid)
+    const i0 = 0, j0 = 0, k0 = 0;
+    const i1 = nx, j1 = ny, k1 = nz;
 
-    // scale params into *index (cell) units* like C++
-    const stepSize = Math.max(props.stepSize / avgCell, 0.01);
-    const maxWalk = 10; // props.maxSteps / avgCell; // 20
-    const minWalk = 2;
-    const minSlope = Math.max(props.minSpeed * avgCell, 1e-5);
-    const minDot = 0.0;
-    let symmetry = 0.0;
-    const symmetryFlag = symmetry !== 0;
-    if (symmetry > 1) symmetry = 1 / symmetry;
+    // precompute WORLD gradients (units: 1/Å) on the whole grid
+    const grad = buildGradientFieldWorld(space, data, hx, hy, hz);
 
-    // gradients (index units, like PyMOL's IsofieldComputeGradients)
-    const grad = buildGradientField(space, data);
-    const pointsToWorld = (i:number,j:number,k:number, fx:number,fy:number,fz:number, out:Vec3) => {
-        // trilinear in index space → then transform to world
-        Vec3.set(out, i + fx, j + fy, k + fz);
-        // return Vec3.transformMat4(out, out, gridToCartn);
-    };
+    // index → world (we store index coords and transform at geometry stage)
+    const toIndexPoint = (i:number, j:number, k:number, fx:number, fy:number, fz:number, outV:Vec3) => { Vec3.set(outV, i + fx, j + fy, k + fz); };
 
-    // randomized order of all cells in range
+    // randomized order of cells
     const rx = i1 - i0, ry = j1 - j0, rz = k1 - k0;
     const rangeSize = rx * ry * rz;
     const order = new Int32Array(rangeSize * 3);
     {
         let t = 0;
-        for (let k = k0; k < k1; k++) for (let j = j0; j < j1; j++) for (let i = i0; i < i1; i++) {
-        order[t++] = i; order[t++] = j; order[t++] = k;
-        }
-        const rand = seededRand(seed || rangeSize);
+        for (let k = k0; k < k1; k++) for (let j = j0; j < j1; j++) for (let i = i0; i < i1; i++) { order[t++] = i; order[t++] = j; order[t++] = k; }
+        // deterministic but good shuffle
+        let s = (nx * ny * nz) >>> 0; const rnd = () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return (s >>> 0) / 4294967296; };
         for (let a = 0; a < rangeSize; a++) {
-        const p = (Math.floor(rand() * rangeSize) * 3) | 0;
-        const q = (Math.floor(rand() * rangeSize) * 3) | 0;
-        const t0 = order[p], t1 = order[p+1], t2 = order[p+2];
-        order[p] = order[q]; order[p+1] = order[q+1]; order[p+2] = order[q+2];
-        order[q] = t0; order[q+1] = t1; order[q+2] = t2;
+            const p = (Math.floor(rnd() * rangeSize) * 3) | 0;
+            const q = (Math.floor(rnd() * rangeSize) * 3) | 0;
+            const t0 = order[p], t1 = order[p+1], t2 = order[p+2]; order[p] = order[q]; order[p+1] = order[q+1]; order[p+2] = order[q+2]; order[q] = t0; order[q+1] = t1; order[q+2] = t2;
         }
     }
 
-    // flag array for oblation
-    const flag = new Uint8Array(rx * ry * rz); // 0/1
-    const stride0 = 1, stride1 = rx, stride2 = rx * ry;
-    const flagIndex = (i:number,j:number,k:number) => ((i - i0) * stride0) + ((j - j0) * stride1) + ((k - k0) * stride2);
+    // oblation flags
+    const flag = new Uint8Array(rx * ry * rz);
+    const strideX = 1, strideY = rx, strideZ = rx * ry;
+    const flagIndex = (i:number, j:number, k:number) => ((i - i0) * strideX) + ((j - j0) * strideY) + ((k - k0) * strideZ);
 
-    // outputs like PyMOL
-    // const positions: number[] = [];
-    const num: number[] = [];
-    // const v: number[] = [];
-    let nLine = 0;
-    let nSeg = 0;
-    num[nSeg] = nLine;
+    const minDot = 0.0; // disallow sharp reversals
+    const maxSteps = Math.max(1, props.maxSteps | 0);
+    const dsWorld = props.stepSize; // Å
+    const writeStride = Math.max(1, props.writeStride | 0);
+    const minSlope = Math.max(props.minSpeed, 1e-6); // 1/Å
 
-    // scratch
-    const g = Vec3();
-    const prevG = Vec3();
-    out.push([]); // first segment
-    // walk both directions from each start cell
+    // helpers to keep (fx,fy,fz) in [0,1) while moving voxel indices
+    function normalizeFrac(f:number, l:number, lo:number, hi:number) {
+        while (f < 0) { f += 1; l--; }
+        while (f >= 1) { f -= 1; l++; }
+        return (l < lo || l > hi) ? { f, l, done: true } : { f, l, done: false };
+    }
+
+    // emit segments similar to PyMOL bookkeeping but directly into out as separate polylines
+    const pushNewPolyline = () => { out.push([]); return out.length - 1; };
+
     for (let a = 0; a < rangeSize; a++) {
-        let walkRemain = maxWalk;
-        const abortNLine = nLine;
-        const abortNSeg = nSeg;
-        let symmetryMin = Number.POSITIVE_INFINITY;
-        let symmetryMax = Number.NEGATIVE_INFINITY;
-
-        // track active cells visited for oblation
         const activeCells: number[] = [];
 
-        const doPass = (sign: 1|-1) => {
-        let havePrev = false;
-        let li = order[a*3], lj = order[a*3+1], lk = order[a*3+2];
-        let fx = 0, fy = 0, fz = 0; // start at cell corner (like C++)
-        let nVert = 0;
+        const walk = (sign: 1 | -1) => {
+            let li = order[a*3], lj = order[a*3+1], lk = order[a*3+2];
+            let fx = 0.5, fy = 0.5, fz = 0.5; // start at voxel center (stabler)
+            let nVert = 0; let havePrev = false; const prev = Vec3();
+            const segIdx = pushNewPolyline();
 
-        for (;;) {
-            // normalize fract and adjust locus
-            // keep fx,fy,fz in [0,1), move cell indices accordingly
-            // if out of range, break
-            const normComp = (f:number, l:number, lo:number, hi:number) => {
-            while (f < 0) { f += 1; l--; }
-            while (f >= 1) { f -= 1; l++; }
-            if (l < lo || l > hi) return { f, l, done: true };
-            return { f, l, done: false };
-            };
-            let r = normComp(fx, li, i0, i1-2); fx = r.f; li = r.l; if (r.done) break;
-            r = normComp(fy, lj, j0, j1-2); fy = r.f; lj = r.l; if (r.done) break;
-            r = normComp(fz, lk, k0, k1-2); fz = r.f; lk = r.l; if (r.done) break;
+            for (let step = 0; step < maxSteps; step++) {
+                // keep within valid trilinear range [0..N-2]
+                let r = normalizeFrac(fx, li, i0, i1 - 2); fx = r.f; li = r.l; if (r.done) break;
+                r = normalizeFrac(fy, lj, j0, j1 - 2); fy = r.f; lj = r.l; if (r.done) break;
+                r = normalizeFrac(fz, lk, k0, k1 - 2); fz = r.f; lk = r.l; if (r.done) break;
 
-            // stop if flagged cell
-            if (flag[flagIndex(li, lj, lk)]) break;
+                if (flag[flagIndex(li, lj, lk)]) break;
 
-            // level test
-            const level = interpolateValue(space, data, li, lj, lk, fx, fy, fz);
-            if (level < props.minLevel || level > props.maxLevel) break;
-            if (symmetryFlag) {
-                if (level < symmetryMin) symmetryMin = level;
-                if (level > symmetryMax) symmetryMax = level;
+                const level = interpolateValueFrac(space, data, li, lj, lk, fx, fy, fz);
+                if (level < props.minLevel || level > props.maxLevel) break;
+
+                const gW = Vec3();
+                interpolateGradientWorld(space, grad, li, lj, lk, fx, fy, fz, gW);
+                const gm = Vec3.magnitude(gW);
+                if (gm < minSlope) break;
+                Vec3.scale(gW, gW, sign / gm); // unit world dir with sign
+
+                // decimate writes in tracer: only record every Nth step
+                if ((step % writeStride) === 0) {
+                    // add point (index coords; geometry stage does gridToCartn)
+                    const pw = Vec3();
+                    toIndexPoint(li, lj, lk, fx, fy, fz, pw);
+                    out[segIdx].push({ x: pw[0], y: pw[1], z: pw[2], value: level });
+                    nVert++;
+                }
+
+                // record visited cell for oblation (store once per change)
+                const n = activeCells.length;
+                if (n < 3 || activeCells[n-3] !== li || activeCells[n-2] !== lj || activeCells[n-1] !== lk) {
+                    activeCells.push(li, lj, lk);
+                }
+
+                // directional coherence (avoid flip-flop)
+                if (havePrev) {
+                    const dp = gW[0]*prev[0] + gW[1]*prev[1] + gW[2]*prev[2];
+                    if (dp < minDot) break;
+                }
+                Vec3.copy(prev, gW); havePrev = true;
+
+                // advance in INDEX coordinates using a world step
+                fx += gW[0] * (dsWorld / hx);
+                fy += gW[1] * (dsWorld / hy);
+                fz += gW[2] * (dsWorld / hz);
+
+                // decimate writes
+                if ((step % writeStride) !== 0) {
+                    // nothing; sampling throttled by outer segment build
+                }
             }
 
-            // gradient
-            interpolateGradient(space, grad, li, lj, lk, fx, fy, fz, g);
-            const gm = Vec3.magnitude(g);
-            if (gm < minSlope) break;
-
-            // add vertex (world coords, like PyMOL)
-            {
-            const pw = Vec3();
-            pointsToWorld(li, lj, lk, fx, fy, fz, pw);
-            // positions.push(pw[0], pw[1], pw[2]);
-            // v.push(level);
-            out[nSeg].push({ x: pw[0], y: pw[1], z: pw[2], value: level });
-            nLine++; nVert++;
+            // discard degenerate polylines
+            if (nVert < 2) {
+                out[segIdx] = [] as StreamlinePoint[]; // keep slot empty; harmless to geometry stage
             }
-
-            // record active cell when it changes
-            if (!havePrev || havePrev && activeCells.length >= 3) {
-            const n = activeCells.length;
-            if (n < 3 || activeCells[n-3] !== li || activeCells[n-2] !== lj || activeCells[n-1] !== lk) {
-                activeCells.push(li, lj, lk);
-            }
-            }
-
-            // normalize and turn into step
-            Vec3.scale(g, g, 1 / gm);
-            if (havePrev) {
-            const dp = g[0]*prevG[0] + g[1]*prevG[1] + g[2]*prevG[2];
-            if (dp < minDot) break;
-            }
-            prevG[0] = g[0]; prevG[1] = g[1]; prevG[2] = g[2];
-
-            // forward/backward
-            const s = sign * stepSize;
-            fx += g[0] * s;
-            fy += g[1] * s;
-            fz += g[2] * s;
-
-            walkRemain -= stepSize;
-            if (walkRemain < 0) break;
-            havePrev = true;
-        }
-
-        // segment bookkeeping
-        if (nVert < 2) {
-            if (nVert) nLine = num[nSeg]; // revert last lone point
-        } else if (nLine !== num[nSeg]) {
-            num[nSeg] = nLine - num[nSeg];
-            nSeg++;
-            num[nSeg] = nLine;
-            out.push([]);
-        }
         };
 
-        // pass 0: down gradient (+)
-        doPass(+1);
-        // pass 1: up gradient (-)
-        doPass(-1);
+        walk(+1);
+        walk(-1);
 
-        // symmetry/min length checks
-        let abort = false;
-        if (symmetryFlag) {
-        if (symmetryMax * symmetryMin >= 0) abort = true;
-        else {
-            let ratio = Math.abs(symmetryMax) / Math.abs(symmetryMin);
-            if (ratio > 1) ratio = 1 / ratio;
-            if (ratio < symmetry) abort = true;
-        }
-        }
-        if ((maxWalk / avgCell - walkRemain) < minWalk) abort = true;
-
-        if (abort) {
-            // rollback
-            nSeg = abortNSeg;
-            nLine = abortNLine;
-            num[nSeg] = nLine;
-        } else {
-            // oblation (flag spherical neighborhood with radius = spacing)
-            const R = OBLATION_SPACING|0;
-            const R2 = R*R;
-            for (let t = 0; t < activeCells.length; t += 3) {
-                const ii = activeCells[t], jj = activeCells[t+1], kk = activeCells[t+2];
-                for (let k = Math.max(k0, kk-R); k <= Math.min(k1-1, kk+R); k++) {
-                    const dz2 = (kk-k)*(kk-k);
-                    for (let j = Math.max(j0, jj-R); j <= Math.min(j1-1, jj+R); j++) {
-                        const dy2 = (jj-j)*(jj-j) + dz2;
-                        if (dy2 > R2) continue;
-                        for (let i = Math.max(i0, ii-R); i <= Math.min(i1-1, ii+R); i++) {
-                            const d2 = (ii-i)*(ii-i) + dy2;
-                            if (d2 <= R2) flag[flagIndex(i,j,k)] = 1;
-                        }
+        // oblation (flag cells in a sphere of radius R around visited cells)
+        const R = OBLATION_SPACING|0; const R2 = R*R;
+        for (let t = 0; t < activeCells.length; t += 3) {
+            const ii = activeCells[t], jj = activeCells[t+1], kk = activeCells[t+2];
+            for (let k = Math.max(k0, kk-R); k <= Math.min(k1-1, kk+R); k++) {
+                const dz2 = (kk-k)*(kk-k);
+                for (let j = Math.max(j0, jj-R); j <= Math.min(j1-1, jj+R); j++) {
+                    const dy2 = (jj-j)*(jj-j) + dz2; if (dy2 > R2) continue;
+                    for (let i = Math.max(i0, ii-R); i <= Math.min(i1-1, ii+R); i++) {
+                        const d2 = (ii-i)*(ii-i) + dy2; if (d2 <= R2) flag[flagIndex(i,j,k)] = 1;
                     }
                 }
             }
         }
     }
-
-    // terminate like PyMOL
-    num[nSeg] = 0;
-    // return { positions, num, v };
 }
 
+// ---------------------------------------------------------------------------------------
+// Field sampling (clamped + world-aware gradients)
+// ---------------------------------------------------------------------------------------
 
-/* all the gradient function goes here */
-
-function gradientAtP_fast(
-    out: Vec3,
-    space: Tensor.Space, data: ArrayLike<number>,
-    p: Vec3,
-    hx: number, hy: number, hz: number,
-    tmp: Vec3 = Vec3() // optional scratch, reused inside
-) {
-    // shift coords manually into tmp (avoid Vec3.create)
-    const tmp0 = Vec3();
-    tmp0[0] = p[0] + 1; tmp0[1] = p[1]; tmp0[2] = p[2];
-    const phi_xp = getInterpolatedValue(space, data, tmp0);
-
-    tmp0[0] = p[0] - 1; tmp0[1] = p[1]; tmp0[2] = p[2];
-    const phi_xm = getInterpolatedValue(space, data, tmp0);
-
-    tmp0[0] = p[0]; tmp0[1] = p[1] + 1; tmp0[2] = p[2];
-    const phi_yp = getInterpolatedValue(space, data, tmp0);
-
-    tmp0[0] = p[0]; tmp0[1] = p[1] - 1; tmp0[2] = p[2];
-    const phi_ym = getInterpolatedValue(space, data, tmp0);
-
-    tmp0[0] = p[0]; tmp0[1] = p[1]; tmp0[2] = p[2] + 1;
-    const phi_zp = getInterpolatedValue(space, data, tmp0);
-
-    tmp0[0] = p[0]; tmp0[1] = p[1]; tmp0[2] = p[2] - 1;
-    const phi_zm = getInterpolatedValue(space, data, tmp0);
-
-    // E = -∇φ
-    out[0] = -(phi_xp - phi_xm) / (2 * hx);
-    out[1] = -(phi_yp - phi_ym) / (2 * hy);
-    out[2] = -(phi_zp - phi_zm) / (2 * hz);
-    return out;
+function clampIndex(space: Tensor.Space, x: number, y: number, z: number) {
+    const nx = space.dimensions[0] as number, ny = space.dimensions[1] as number, nz = space.dimensions[2] as number;
+    return [Math.max(0, Math.min(nx - 1, x)), Math.max(0, Math.min(ny - 1, y)), Math.max(0, Math.min(nz - 1, z))] as [number, number, number];
 }
 
-// VTK STYLE
-
-function getInterpolatedGradient(out: Vec3, space: Tensor.Space, data: ArrayLike<number>,
-                                 pos: Vec3, hx: number, hy: number, hz: number): Vec3 {
+// Trilinear interpolation from a Vec3 pos (index coords)
+function getInterpolatedValue(space: Tensor.Space, data: ArrayLike<number>, pos: Vec3): number {
     const x = Math.floor(pos[0]), y = Math.floor(pos[1]), z = Math.floor(pos[2]);
     const fx = pos[0] - x, fy = pos[1] - y, fz = pos[2] - z;
-
-    // reset accumulator
-    out[0] = 0; out[1] = 0; out[2] = 0;
-
-    let i = 0;
-    const grads: Vec3[] = [
-        Vec3(), Vec3(), Vec3(), Vec3(),
-        Vec3(), Vec3(), Vec3(), Vec3(),
-    ];
-    for (let dz = 0; dz <= 1; dz++) {
-        for (let dy = 0; dy <= 1; dy++) {
-            for (let dx = 0; dx <= 1; dx++) {
-                calculateGradient(
-                    grads[i], // write directly into existing Vec3
-                    space, data, x + dx, y + dy, z + dz, hx, hy, hz
-                );
-                i++;
-            }
-        }
+    let acc = 0;
+    for (let dz = 0; dz <= 1; dz++) for (let dy = 0; dy <= 1; dy++) for (let dx = 0; dx <= 1; dx++) {
+        const w = (dx ? fx : 1 - fx) * (dy ? fy : 1 - fy) * (dz ? fz : 1 - fz);
+        acc += data[space.dataOffset(x + dx, y + dy, z + dz)] * w;
     }
+    return acc;
+}
 
-    for (let i = 0; i < 8; i++) {
-        const wx = (i & 1) ? fx : (1 - fx);
-        const wy = (i & 2) ? fy : (1 - fy);
-        const wz = (i & 4) ? fz : (1 - fz);
-        const w = wx * wy * wz;
-        Vec3.scaleAndAdd(out, out, grads[i], w);
+// Same but with explicit (i,j,k) + fractional offsets
+function interpolateValueFrac(space: Tensor.Space, data: ArrayLike<number>, i: number, j: number, k: number, fx: number, fy: number, fz: number) {
+    let acc = 0;
+    for (let dz = 0; dz <= 1; dz++) for (let dy = 0; dy <= 1; dy++) for (let dx = 0; dx <= 1; dx++) {
+        const w = (dx ? fx : 1 - fx) * (dy ? fy : 1 - fy) * (dz ? fz : 1 - fz);
+        acc += data[space.dataOffset(i + dx, j + dy, k + dz)] * w;
     }
+    return acc;
+}
+
+// Central-diff gradient of φ in WORLD units (1/Å), then E = -∇φ
+function gradientAtP_world(out: Vec3, space: Tensor.Space, data: ArrayLike<number>, p: Vec3, hx: number, hy: number, hz: number, tmp?: Vec3) {
+    const tmp0 = tmp ?? Vec3();
+    // sample neighbors with clamping
+    tmp0[0] = p[0] + 1; tmp0[1] = p[1]; tmp0[2] = p[2]; let [x1,y1,z1] = clampIndex(space, tmp0[0]|0, tmp0[1]|0, tmp0[2]|0); const φxp = data[space.dataOffset(x1,y1,z1)];
+    tmp0[0] = p[0] - 1; tmp0[1] = p[1]; tmp0[2] = p[2]; [x1,y1,z1] = clampIndex(space, tmp0[0]|0, tmp0[1]|0, tmp0[2]|0); const φxm = data[space.dataOffset(x1,y1,z1)];
+    tmp0[0] = p[0]; tmp0[1] = p[1] + 1; tmp0[2] = p[2]; [x1,y1,z1] = clampIndex(space, tmp0[0]|0, tmp0[1]|0, tmp0[2]|0); const φyp = data[space.dataOffset(x1,y1,z1)];
+    tmp0[0] = p[0]; tmp0[1] = p[1] - 1; tmp0[2] = p[2]; [x1,y1,z1] = clampIndex(space, tmp0[0]|0, tmp0[1]|0, tmp0[2]|0); const φym = data[space.dataOffset(x1,y1,z1)];
+    tmp0[0] = p[0]; tmp0[1] = p[1]; tmp0[2] = p[2] + 1; [x1,y1,z1] = clampIndex(space, tmp0[0]|0, tmp0[1]|0, tmp0[2]|0); const φzp = data[space.dataOffset(x1,y1,z1)];
+    tmp0[0] = p[0]; tmp0[1] = p[1]; tmp0[2] = p[2] - 1; [x1,y1,z1] = clampIndex(space, tmp0[0]|0, tmp0[1]|0, tmp0[2]|0); const φzm = data[space.dataOffset(x1,y1,z1)];
+
+    out[0] = - (φxp - φxm) / (2 * hx);
+    out[1] = - (φyp - φym) / (2 * hy);
+    out[2] = - (φzp - φzm) / (2 * hz);
     return out;
 }
 
-function getInterpolatedValue(space: Tensor.Space, data: ArrayLike<number>, pos: Vec3): number {
-    // Trilinear interpolation of scalar value
-    const x = Math.floor(pos[0]);
-    const y = Math.floor(pos[1]);
-    const z = Math.floor(pos[2]);
+// Precompute WORLD gradient field (E = -∇φ) at voxel centers
+function buildGradientFieldWorld(space: Tensor.Space, data: ArrayLike<number>, hx: number, hy: number, hz: number) {
+    const nx = space.dimensions[0] as number, ny = space.dimensions[1] as number, nz = space.dimensions[2] as number;
+    const gx = new Float32Array(nx * ny * nz);
+    const gy = new Float32Array(nx * ny * nz);
+    const gz = new Float32Array(nx * ny * nz);
+    const idx = (x: number, y: number, z: number) => space.dataOffset(x, y, z);
 
-    const fx = pos[0] - x;
-    const fy = pos[1] - y;
-    const fz = pos[2] - z;
-
-    let result = 0;
-    for (let dz = 0; dz <= 1; dz++) {
-        for (let dy = 0; dy <= 1; dy++) {
-            for (let dx = 0; dx <= 1; dx++) {
-                const weight =
-                    (dx ? fx : (1 - fx)) *
-                    (dy ? fy : (1 - fy)) *
-                    (dz ? fz : (1 - fz));
-                result += data[space.dataOffset(x + dx, y + dy, z + dz)] * weight;
+    for (let x = 0; x < nx; x++) {
+        const xm = Math.max(0, x - 1), xp = Math.min(nx - 1, x + 1);
+        for (let y = 0; y < ny; y++) {
+            const ym = Math.max(0, y - 1), yp = Math.min(ny - 1, y + 1);
+            for (let z = 0; z < nz; z++) {
+                const zm = Math.max(0, z - 1), zp = Math.min(nz - 1, z + 1);
+                const off = idx(x,y,z);
+                gx[off] = - (data[idx(xp, y, z)] - data[idx(xm, y, z)]) / (2 * hx);
+                gy[off] = - (data[idx(x, yp, z)] - data[idx(x, ym, z)]) / (2 * hy);
+                gz[off] = - (data[idx(x, y, zp)] - data[idx(x, y, zm)]) / (2 * hz);
             }
         }
     }
-
-    return result;
+    return { gx, gy, gz };
 }
 
-function calculateGradient(out: Vec3, space: Tensor.Space, data: ArrayLike<number>, x: number, y: number, z: number, hx: number, hy: number, hz: number): Vec3 {
-    // clamp indices inside [1..N-2] to avoid border reads
-    const xi = Math.max(1, Math.min(x, (space.dimensions[0] as number) - 2));
-    const yi = Math.max(1, Math.min(y, (space.dimensions[1] as number) - 2));
-    const zi = Math.max(1, Math.min(z, (space.dimensions[2] as number) - 2));
-
-    const gx = (data[space.dataOffset(xi + 1, yi, zi)] - data[space.dataOffset(xi - 1, yi, zi)]) / (2 * hx);
-    const gy = (data[space.dataOffset(xi, yi + 1, zi)] - data[space.dataOffset(xi, yi - 1, zi)]) / (2 * hy);
-    const gz = (data[space.dataOffset(xi, yi, zi + 1)] - data[space.dataOffset(xi, yi, zi - 1)]) / (2 * hz);
-
-    // Electric field E = -∇φ
-    out[0] = -gx;
-    out[1] = -gy;
-    out[2] = -gz;
-    return out;
-}
-
-// PYMOL STYLE
-// Interpolate gradient & position in *index space* (cell units)
-function interpolateValue(space: Tensor.Space, data: ArrayLike<number>, i: number, j: number, k: number, fx: number, fy: number, fz: number) {
-  let acc = 0;
-  for (let dz = 0; dz <= 1; dz++) for (let dy = 0; dy <= 1; dy++) for (let dx = 0; dx <= 1; dx++) {
-    const w = (dx ? fx : 1 - fx) * (dy ? fy : 1 - fy) * (dz ? fz : 1 - fz);
-    acc += data[space.dataOffset(i + dx, j + dy, k + dz)] * w;
-  }
-  return acc;
-}
-
-// precompute gradient field in *index units* (like IsofieldComputeGradients)
-// NOTE: this is centered diff; PyMOL stores gradient in separate field
-function buildGradientField(space: Tensor.Space, data: ArrayLike<number>) {
-  const [nx, ny, nz] = space.dimensions as Vec3;
-  const gx = new Float32Array(nx * ny * nz);
-  const gy = new Float32Array(nx * ny * nz);
-  const gz = new Float32Array(nx * ny * nz);
-  const idx = (x: number, y: number, z: number) => space.dataOffset(x, y, z);
-
-  for (let x = 0; x < nx; x++) {
-    for (let y = 0; y < ny; y++) {
-      for (let z = 0; z < nz; z++) {
-        const xi0 = Math.max(0, x - 1), xi1 = Math.min(nx - 1, x + 1);
-        const yi0 = Math.max(0, y - 1), yi1 = Math.min(ny - 1, y + 1);
-        const zi0 = Math.max(0, z - 1), zi1 = Math.min(nz - 1, z + 1);
-        gx[idx(x, y, z)] = (data[idx(xi1, y, z)] - data[idx(xi0, y, z)]) * 0.5;
-        gy[idx(x, y, z)] = (data[idx(x, yi1, z)] - data[idx(x, yi0, z)]) * 0.5;
-        gz[idx(x, y, z)] = (data[idx(x, y, zi1)] - data[idx(x, y, zi0)]) * 0.5;
-      }
+// Trilinear interpolation of the WORLD gradient
+function interpolateGradientWorld(space: Tensor.Space, grad: { gx: Float32Array, gy: Float32Array, gz: Float32Array }, i: number, j: number, k: number, fx: number, fy: number, fz: number, out: Vec3) {
+    const { gx, gy, gz } = grad;
+    let vx = 0, vy = 0, vz = 0;
+    for (let dz = 0; dz <= 1; dz++) for (let dy = 0; dy <= 1; dy++) for (let dx = 0; dx <= 1; dx++) {
+        const w = (dx ? fx : 1 - fx) * (dy ? fy : 1 - fy) * (dz ? fz : 1 - fz);
+        const off = space.dataOffset(i + dx, j + dy, k + dz);
+        vx += gx[off] * w; vy += gy[off] * w; vz += gz[off] * w;
     }
-  }
-  return { gx, gy, gz };
-}
-
-function interpolateGradient(space: Tensor.Space, grad: {gx: Float32Array, gy: Float32Array, gz: Float32Array},
-                             i: number, j: number, k: number, fx: number, fy: number, fz: number, out: Vec3) {
-  const { gx, gy, gz } = grad;
-  let vx=0, vy=0, vz=0;
-  for (let dz = 0; dz <= 1; dz++) for (let dy = 0; dy <= 1; dy++) for (let dx = 0; dx <= 1; dx++) {
-    const w = (dx ? fx : 1 - fx) * (dy ? fy : 1 - fy) * (dz ? fz : 1 - fz);
-    const off = space.dataOffset(i + dx, j + dy, k + dz);
-    vx += gx[off] * w;
-    vy += gy[off] * w;
-    vz += gz[off] * w;
-  }
-  out[0] = vx; out[1] = vy; out[2] = vz;
-  return out;
+    out[0] = vx; out[1] = vy; out[2] = vz; return out;
 }
