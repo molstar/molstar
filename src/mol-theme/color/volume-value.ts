@@ -15,6 +15,7 @@ import { clamp, normalize } from '../../mol-math/interpolate';
 import { Color } from '../../mol-util/color/color';
 import { Grid } from '../../mol-model/volume/grid';
 import { isPositionLocation } from '../../mol-geo/util/location-iterator';
+import { ColorScale } from '../../mol-util/color';
 
 const Description = 'Assign color based on the given value of a volume cell.';
 
@@ -37,6 +38,7 @@ export const VolumeValueColorThemeParams = {
     }),
     isRelative: PD.Boolean(false, { description: 'If true the value is treated as relative to the volume mean and sigma.' }),
     defaultColor: PD.Color(Color(0xcccccc)),
+    usePalette: PD.Boolean(false, { description: 'Use a palette to color at the pixel level.' }),
 };
 export type VolumeValueColorThemeParams = typeof VolumeValueColorThemeParams
 export function getVolumeValueColorThemeParams(ctx: ThemeDataContext) {
@@ -47,7 +49,7 @@ export function VolumeValueColorTheme(ctx: ThemeDataContext, props: PD.Values<Vo
     if (ctx.volume) {
         const { min, max, mean, sigma } = ctx.volume.grid.stats;
         const domain: [number, number] = props.domain.name === 'custom' ? props.domain.params : [min, max];
-        const { colorList, defaultColor } = props;
+        const { colorList, defaultColor, usePalette } = props;
 
         if (props.domain.name === 'auto' && props.isRelative) {
             domain[0] = (domain[0] - mean) / sigma;
@@ -79,6 +81,8 @@ export function VolumeValueColorTheme(ctx: ThemeDataContext, props: PD.Values<Vo
                 palette,
             };
         } else {
+            const scale = ColorScale.create({ domain, listOrName: colorList.colors });
+
             const getTrilinearlyInterpolated = Grid.makeGetTrilinearlyInterpolated(ctx.volume.grid, 'none');
 
             const color = (location: Location): Color => {
@@ -89,11 +93,18 @@ export function VolumeValueColorTheme(ctx: ThemeDataContext, props: PD.Values<Vo
                 const value = getTrilinearlyInterpolated(location.position);
                 if (isNaN(value)) return props.defaultColor;
 
-                return (clamp((value - domain[0]) / (domain[1] - domain[0]), 0, 1) * ColorTheme.PaletteScale) as Color;
+                if (usePalette) {
+                    return (clamp((value - domain[0]) / (domain[1] - domain[0]), 0, 1) * ColorTheme.PaletteScale) as Color;
+                } else {
+                    return scale.color(value);
+                }
             };
 
-            const palette = ColorTheme.Palette(colorList.colors, colorList.kind, undefined, defaultColor);
-
+            // const palette = ColorTheme.Palette(colorList.colors, colorList.kind, undefined, defaultColor);
+            const palette = usePalette ? {
+                colors: colorList.colors.map(e => Array.isArray(e) ? e[0] : e),
+                filter: (colorList.kind === 'set' ? 'nearest' : 'linear') as 'nearest' | 'linear'
+            } : undefined;
             return {
                 factory: VolumeValueColorTheme as any,
                 granularity: 'vertex',
