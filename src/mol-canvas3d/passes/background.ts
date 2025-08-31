@@ -445,8 +445,9 @@ function areImageTexturePropsEqual(sourceA: ImageProps['source'], sourceB: Image
 
 function getImageTexture(ctx: WebGLContext, assetManager: AssetManager, source: ImageProps['source'], onload?: (errored?: boolean) => void): { texture: Texture, asset: Asset } {
     const asset = source.name === 'url'
-        ? Asset.getUrlAsset(assetManager, source.params)
+        ? assetManager.tryFindFilename(source.params) ?? Asset.getUrlAsset(assetManager, source.params)
         : source.params!;
+
     if (typeof HTMLImageElement === 'undefined') {
         console.error(`Missing "HTMLImageElement" required for background image`);
         onload?.(true);

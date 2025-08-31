@@ -53,7 +53,7 @@ const LinesParams = {
     vertices: RequiredField(FloatList, '3*n_vertices length array of floats with vertex position (x1, y1, z1, ...).'),
     /** 2*n_lines length array of indices into vertices that form lines (l1_1, l1_2, ...). */
     indices: RequiredField(IntList, '2*n_lines length array of indices into vertices that form lines (l1_1, l1_2, ...).'),
-    /** Assign a number to each triangle to group them. If not specified, each line is considered a separate group (line i = group i). */
+    /** Assign a number to each line to group them. If not specified, each line is considered a separate group (line i = group i). */
     line_groups: OptionalField(nullable(IntList), null, 'Assign a number to each triangle to group them. If not specified, each line is considered a separate group (line i = group i).'),
     /** Assign a color to each group. Where not assigned, uses `color`. */
     group_colors: OptionalField(dict(int, ColorT), {}, 'Assign a color to each group. Where not assigned, uses `color`.'),

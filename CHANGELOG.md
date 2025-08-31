@@ -24,7 +24,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - `representation` node: support custom property `molstar_representation_params`
   - Add `backbone` and `line` representation types
   - `primitives` node: support custom property `molstar_mesh/label/line_params`
-  - `canvas` node: support custom property `molstar_postprocessing` with the ability to customize outline, depth of field, bloom, shadow, occlusion (SSAO), and fog
+  - `canvas` node: support custom property `molstar_postprocessing` with the ability to customize outline, depth of field, bloom, shadow, occlusion (SSAO), fog, and background
   - `clip` node support for structure and volume representations
   - `grid_slice` representation support for volumes
   - Support tethers and background for primitive labels
@@ -44,6 +44,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Support loading trajectory coordinates from separate nodes
   - Trigger markdown commands from primitives using `molstar_markdown_commands` custom extensions
   - Support `molstar_on_load_markdown_commands` custom state on the `root` node
+  - Print tree validation errors to plugin log
 - Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
 - Snapshot Markdown improvements
   - Add `MarkdownExtensionManager` (`PluginContext.managers.markdownExtensions`)
