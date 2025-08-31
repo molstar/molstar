@@ -34,7 +34,7 @@ import { LoadingActions, LoadingExtension, loadTreeVirtual, UpdateTarget } from 
 import { AnnotationFromSourceKind, AnnotationFromUriKind, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformAndInstantiateStructure, transformAndInstantiateVolume, volumeColorThemeForNode, volumeRepresentationProps } from './load-helpers';
 import { MVSData, MVSData_States, Snapshot, SnapshotMetadata } from './mvs-data';
 import { MVSAnimationNode, MVSAnimationSchema } from './tree/animation/animation-tree';
-import { validateTree } from './tree/generic/tree-schema';
+import { validateTree } from './tree/generic/tree-validation';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
 import { MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree, MolstarTreeSchema } from './tree/molstar/molstar-tree';
 import { MVSTreeSchema } from './tree/mvs/mvs-tree';
