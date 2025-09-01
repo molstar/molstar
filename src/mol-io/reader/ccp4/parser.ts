@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+* @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Task, RuntimeContext } from '../../../mol-task';
@@ -11,7 +12,7 @@ import { FileHandle } from '../../common/file-handle';
 import { SimpleBuffer } from '../../../mol-io/common/simple-buffer';
 import { TypedArrayValueType, getElementByteSize, TypedArrayBufferContext, readTypedArray, createTypedArrayBufferContext } from '../../../mol-io/common/typed-array';
 
-export async function readCcp4Header(file: FileHandle): Promise<{ header: Ccp4Header, littleEndian: boolean }> {
+export async function readCcp4Header(file: FileHandle, options?: { defaultToP1?: boolean }): Promise<{ header: Ccp4Header, littleEndian: boolean }> {
     const headerSize = 1024;
     const { buffer } = await file.readBuffer(0, headerSize);
 
@@ -96,6 +97,10 @@ export async function readCcp4Header(file: FileHandle): Promise<{ header: Ccp4He
         // TODO bytes 56 NLABL
         // TODO bytes 57-256 LABEL
     };
+
+    if (options?.defaultToP1 && !header.ISPG) {
+        header.ISPG = 1; // default to P 1
+    }
 
     return { header, littleEndian };
 }

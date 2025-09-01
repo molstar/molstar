@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -12,7 +12,7 @@ import { getCcp4Origin } from '../../../../mol-model-formats/volume/ccp4';
 import { Ccp4Header } from '../../../../mol-io/reader/ccp4/schema';
 
 async function readHeader(name: string, file: FileHandle) {
-    const { header: ccp4Header, littleEndian } = await readCcp4Header(file);
+    const { header: ccp4Header, littleEndian } = await readCcp4Header(file, { defaultToP1: true });
 
     const header: Header = {
         name,
