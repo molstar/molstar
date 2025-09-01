@@ -36,9 +36,12 @@ export class PointerHelper {
     readonly camera: Camera;
     readonly props: PointerHelperProps;
 
+    pixelScale = 1;
+
     private renderObject: GraphicsRenderObject<'mesh'>;
     private shape: Shape<Mesh>;
 
+    private modelScale = 1;
     private pointers: Ray3D[] = [];
     private points: Vec3[] = [];
     private hit: Vec3 | undefined = undefined;
@@ -57,6 +60,7 @@ export class PointerHelper {
     }
 
     setCamera(camera: ICamera) {
+        Camera.copySnapshot(this.camera.state, camera.state);
         Viewport.copy(this.camera.viewport, camera.viewport);
         Mat4.copy(this.camera.view, camera.view);
         Mat4.copy(this.camera.projection, camera.projection);
@@ -70,6 +74,8 @@ export class PointerHelper {
 
         this.camera.forceFull = camera.forceFull;
         this.camera.scale = 1;
+
+        this.modelScale = camera.scale;
     }
 
     update(pointers: Ray3D[], points: Vec3[], hit: Vec3 | undefined) {
@@ -103,6 +109,9 @@ export class PointerHelper {
             pointers: this.pointers,
             points: this.points,
             hit: this.hit,
+            modelScale: this.modelScale,
+            camera: this.camera,
+            pixels: 12,
         };
     }
 
@@ -122,6 +131,9 @@ type PointerData = {
     pointers: Ray3D[]
     points: Vec3[]
     hit?: Vec3
+    modelScale: number
+    camera: ICamera
+    pixels: number
 }
 
 export enum PointerHelperGroup {
@@ -129,24 +141,35 @@ export enum PointerHelperGroup {
     Hit,
 }
 
+const tmpV = Vec3();
+function getSizeForPixels(position: Vec3, pixels: number, camera: ICamera, modelScale: number) {
+    const cameraPosition = Vec3.scale(tmpV, camera.state.position, modelScale);
+    const d = Vec3.distance(position, cameraPosition);
+    const height = 2 * Math.tan(camera.state.fov / 2) * d;
+    return (height / camera.viewport.height) * pixels;
+};
+
 function createPointerMesh(data: PointerData, mesh?: Mesh) {
-    const scale = 1; // 1 / 0.01;
     const state = MeshBuilder.createState(512, 256, mesh);
-    const radius = 0.0005 * scale;
+    const radius = 0.0005;
     const cylinderProps = { radiusTop: radius, radiusBottom: radius, radialSegments: 32 };
+    const { modelScale, camera, pixels } = data;
 
     state.currentGroup = PointerHelperGroup.None;
     for (const pointer of data.pointers) {
-        addCylinderFromRay3D(state, pointer, 0.2 * scale, cylinderProps);
-        addSphere(state, pointer.origin, 0.001 * scale, 1);
+        addCylinderFromRay3D(state, pointer, 0.2, cylinderProps);
+        const size = getSizeForPixels(pointer.origin, pixels, camera, modelScale);
+        addSphere(state, pointer.origin, size, 1);
     }
     for (const point of data.points) {
-        addSphere(state, point, 0.0025 * scale, 1);
+        const size = getSizeForPixels(point, pixels, camera, modelScale);
+        addSphere(state, point, size, 1);
     }
 
     if (data.hit) {
         state.currentGroup = PointerHelperGroup.Hit;
-        addSphere(state, data.hit, 0.0025 * scale, 1);
+        const size = getSizeForPixels(data.hit, pixels, camera, modelScale);
+        addSphere(state, data.hit, size, 1);
     }
 
     return MeshBuilder.getMesh(state);
