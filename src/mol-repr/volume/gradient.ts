@@ -33,7 +33,6 @@ import { SpheresBuilder } from '../../mol-geo/geometry/spheres/spheres-builder';
 // ---------------------------------------------------------------------------------------
 
 export const VolumeGradientParams = {
-    isoValue: Volume.IsoValueParam,
     seedDensity: PD.Numeric(10, { min: 1, max: 100, step: 1 }, { description: 'Seeds per dimension for streamlines.' }),
     maxSteps: PD.Numeric(1000, { min: 1, max: 2000, step: 1 }, { description: 'Maximum number of steps for streamlines.' }),
     stepSize: PD.Numeric(0.35, { min: 0.01, max: 10, step: 0.01 }, { description: 'Step size (Å) for streamlines.' }),
@@ -96,7 +95,6 @@ export function VolumeLinesVisual(materialId: number): VolumeVisual<VolumeLinesP
         eachLocation: eachGradient,
         setUpdateState: (state: VisualUpdateState, volume: Volume, newProps, currentProps, _newTheme, _currentTheme) => {
             state.createGeometry = (
-                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats) ||
                 newProps.seedDensity !== currentProps.seedDensity ||
                 newProps.maxSteps !== currentProps.maxSteps ||
                 newProps.stepSize !== currentProps.stepSize ||
@@ -123,7 +121,6 @@ export function VolumeCylindersImpostorVisual(materialId: number): VolumeVisual<
         eachLocation: eachGradient,
         setUpdateState: (state: VisualUpdateState, volume: Volume, newProps, currentProps, _newTheme, _currentTheme) => {
             state.createGeometry = (
-                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats) ||
                 newProps.seedDensity !== currentProps.seedDensity ||
                 newProps.maxSteps !== currentProps.maxSteps ||
                 newProps.stepSize !== currentProps.stepSize ||
@@ -151,7 +148,6 @@ export function VolumePointsLinesVisual(materialId: number): VolumeVisual<Volume
         eachLocation: eachGradient,
         setUpdateState: (state: VisualUpdateState, volume: Volume, newProps, currentProps, _newTheme, _currentTheme) => {
             state.createGeometry = (
-                !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats) ||
                 newProps.seedDensity !== currentProps.seedDensity ||
                 newProps.maxSteps !== currentProps.maxSteps ||
                 newProps.stepSize !== currentProps.stepSize ||
@@ -179,7 +175,6 @@ export function VolumeSpheresLinesVisual(materialId: number): VolumeVisual<Volum
             eachLocation: eachGradient,
             setUpdateState: (state: VisualUpdateState, volume: Volume, newProps, currentProps, _newTheme, _currentTheme) => {
                 state.createGeometry = (
-                    !Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats) ||
                     newProps.seedDensity !== currentProps.seedDensity ||
                     newProps.maxSteps !== currentProps.maxSteps ||
                     newProps.stepSize !== currentProps.stepSize ||
@@ -211,7 +206,6 @@ function createVolumeLinesGeometry(ctx: VisualContext, volume: Volume, _key: num
     writeSegmentsToBuilder(streamLines, gridToCartn, props.geomStride, (a, b, id) => builder.addVec(a, b, id));
 
     const g = builder.getLines();
-    g.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
     return g;
 }
 
@@ -227,7 +221,6 @@ function createVolumeCylindersGeometry(ctx: VisualContext, volume: Volume, _key:
     });
 
     const g = builder.getCylinders();
-    g.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
     return g;
 }
 
@@ -242,7 +235,6 @@ function createVolumePointsGeometry(ctx: VisualContext, volume: Volume, _key: nu
     });
 
     const g = builder.getPoints();
-    g.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
     return g;
 }
 
@@ -258,7 +250,6 @@ function createVolumeSpheresLinesGeometry(ctx: VisualContext, volume: Volume, _k
     });
 
     const g = builder.getSpheres();
-    g.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
     return g;
 }
 
@@ -294,8 +285,7 @@ function writeSegmentsToBuilder(
 
 function getLoci(volume: Volume, props: VolumeGradientProps) {
     const instances = Interval.ofLength(volume.instances.length as Volume.InstanceIndex);
-    return Volume.Loci(volume, instances); //
-    // return Volume.Isosurface.Loci(volume, props.isoValue, instances);
+    return Volume.Loci(volume, instances);
 }
 
 function getGradientLoci(pickingId: PickingId, volume: Volume, _key: number, props: VolumeGradientProps, id: number) {
@@ -304,7 +294,6 @@ function getGradientLoci(pickingId: PickingId, volume: Volume, _key: number, pro
         const granularity = Volume.PickingGranularity.get(volume);
         const instances = OrderedSet.ofSingleton(instanceId as Volume.InstanceIndex);
         if (granularity === 'volume') return Volume.Loci(volume, instances);
-        // if (granularity === 'object') return Volume.Isosurface.Loci(volume, props.isoValue, instances);
         const indices = Interval.ofSingleton(groupId as Volume.CellIndex);
         return Volume.Cell.Loci(volume, [{ indices, instances }]);
     }
@@ -312,7 +301,7 @@ function getGradientLoci(pickingId: PickingId, volume: Volume, _key: number, pro
 }
 
 function eachGradient(loci: Loci, volume: Volume, _key: number, props: VolumeGradientProps, apply: (interval: Interval) => boolean) {
-    return eachVolumeLoci(loci, volume, { isoValue: props.isoValue }, apply);
+    return eachVolumeLoci(loci, volume, { }, apply);
 }
 
 const GradientVisuals = {
@@ -331,7 +320,6 @@ export type GradientParams = typeof GradientParams;
 
 export function getGradientParams(ctx: ThemeRegistryContext, volume: Volume) {
     const p = PD.clone(GradientParams);
-    p.isoValue = Volume.createIsoValueParam(Volume.IsoValue.relative(2), volume.grid.stats);
     return p;
 }
 
@@ -510,6 +498,8 @@ function getStreamLineSimple(volume: Volume, props: VolumeLinesProps | VolumeCyl
 }
 
 // ---------------- Advanced (PyMOL-style) tracer ----------------
+// Algorithm based on PyMOL’s isosurface gradient tracing (Schrödinger LLC),
+// reimplemented independently.
 
 const OBLATION_SPACING = 2; // cells
 
