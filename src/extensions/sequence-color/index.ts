@@ -13,6 +13,7 @@ import { ColorTheme } from '../../mol-theme/color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { CustomSequenceColorTheme } from './color-theme';
 import { SequenceColorProperty } from './prop';
+// import { AccessibleSurfaceAreaColorThemeProvider } from '../../mol-model-props/computed/themes/accessible-surface-area';
 
 
 type ColorThemeProvider = ColorTheme.Provider<any, string, ColorTypeLocation> | undefined;
@@ -33,8 +34,11 @@ export const SequenceColor = PluginBehavior.create<{ autoAttach: boolean }>({
             if (this.ctx instanceof PluginUIContext) {
                 const theme: BehaviorSubject<ColorThemeProvider> = this.ctx.customUIState.experimentalSequenceColorTheme ??= new BehaviorSubject<ColorThemeProvider>(undefined);
                 this.sub = this.ctx.state.events.cell.stateUpdated.subscribe(s => {
+                    console.log('sub')
                     if (s.cell.transform.transformer === CustomStructureProperties) {
+                        console.log('sub2')
                         theme.next(CustomSequenceColorTheme.Provider);
+                        // theme.next(AccessibleSurfaceAreaColorThemeProvider);
                     }
                 });
             }
