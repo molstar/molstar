@@ -71,9 +71,7 @@ export const assign_material_color = `
 
         #if defined(dPointStyle_fuzzy)
             alpha *= fuzzyAlpha;
-        #endif
-
-        #ifdef dXrayShaded
+        #elif defined(dXrayShaded)
             alpha = calcXrayShadedAlpha(alpha, normal);
         #else
             if (alpha == 1.0) {
