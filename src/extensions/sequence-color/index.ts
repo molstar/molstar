@@ -34,9 +34,7 @@ export const SequenceColor = PluginBehavior.create<{ autoAttach: boolean }>({
             if (this.ctx instanceof PluginUIContext) {
                 const theme: BehaviorSubject<ColorThemeProvider> = this.ctx.customUIState.experimentalSequenceColorTheme ??= new BehaviorSubject<ColorThemeProvider>(undefined);
                 this.sub = this.ctx.state.events.cell.stateUpdated.subscribe(s => {
-                    console.log('sub')
                     if (s.cell.transform.transformer === CustomStructureProperties) {
-                        console.log('sub2')
                         theme.next(CustomSequenceColorTheme.Provider);
                         // theme.next(AccessibleSurfaceAreaColorThemeProvider);
                     }
