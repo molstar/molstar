@@ -65,7 +65,7 @@ function traceOneDirection(
         if (p[0] < 1 || p[0] > (nx as number) - 2 || p[1] < 1 || p[1] > (ny as number) - 2 || p[2] < 1 || p[2] > (nz as number) - 2) break;
 
         // gW = -∇φ in WORLD units (1/Å)
-        gradientAtP_world(S.g, space, data, p, hx, hy, hz, S.t3);
+        gradientAtP_world(S.g, space, data, p, hx, hy, hz);
         const m = Vec3.magnitude(S.g);
         if (!(m > eps)) break;
         Vec3.scale(S.v1, S.g, 1 / m); // unit world
@@ -76,7 +76,7 @@ function traceOneDirection(
             S.t1[1] = p[1] + 0.5 * sIy * S.v1[1];
             S.t1[2] = p[2] + 0.5 * sIz * S.v1[2];
 
-            gradientAtP_world(S.g2, space, data, S.t1, hx, hy, hz, S.t3);
+            gradientAtP_world(S.g2, space, data, S.t1, hx, hy, hz);
             const m2 = Math.max(Vec3.magnitude(S.g2), eps);
             S.v2[0] = S.g2[0] / m2; S.v2[1] = S.g2[1] / m2; S.v2[2] = S.g2[2] / m2;
 
@@ -86,19 +86,19 @@ function traceOneDirection(
             Vec3.set(S.k1, sIx * S.v1[0], sIy * S.v1[1], sIz * S.v1[2]);
 
             S.t1[0] = p[0] + 0.5 * S.k1[0]; S.t1[1] = p[1] + 0.5 * S.k1[1]; S.t1[2] = p[2] + 0.5 * S.k1[2];
-            gradientAtP_world(S.g2, space, data, S.t1, hx, hy, hz, S.t3);
+            gradientAtP_world(S.g2, space, data, S.t1, hx, hy, hz);
             const m2 = Math.max(Vec3.magnitude(S.g2), eps);
             S.v2[0] = S.g2[0] / m2; S.v2[1] = S.g2[1] / m2; S.v2[2] = S.g2[2] / m2;
             Vec3.set(S.k2, sIx * S.v2[0], sIy * S.v2[1], sIz * S.v2[2]);
 
             S.t1[0] = p[0] + 0.5 * S.k2[0]; S.t1[1] = p[1] + 0.5 * S.k2[1]; S.t1[2] = p[2] + 0.5 * S.k2[2];
-            gradientAtP_world(S.g3, space, data, S.t1, hx, hy, hz, S.t3);
+            gradientAtP_world(S.g3, space, data, S.t1, hx, hy, hz);
             const m3 = Math.max(Vec3.magnitude(S.g3), eps);
             S.v3[0] = S.g3[0] / m3; S.v3[1] = S.g3[1] / m3; S.v3[2] = S.g3[2] / m3;
             Vec3.set(S.k3, sIx * S.v3[0], sIy * S.v3[1], sIz * S.v3[2]);
 
             S.t1[0] = p[0] + S.k3[0]; S.t1[1] = p[1] + S.k3[1]; S.t1[2] = p[2] + S.k3[2];
-            gradientAtP_world(S.g4, space, data, S.t1, hx, hy, hz, S.t3);
+            gradientAtP_world(S.g4, space, data, S.t1, hx, hy, hz);
             const m4 = Math.max(Vec3.magnitude(S.g4), eps);
             S.v4[0] = S.g4[0] / m4; S.v4[1] = S.g4[1] / m4; S.v4[2] = S.g4[2] / m4;
             Vec3.set(S.k4, sIx * S.v4[0], sIy * S.v4[1], sIz * S.v4[2]);
