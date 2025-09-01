@@ -39,6 +39,7 @@ export default defineConfig([{
         "comma-spacing": "off",
         "space-infix-ops": "off",
         "comma-dangle": "off",
+        quotes: ["warn", "single", { "allowTemplateLiterals": true, "avoidEscape": true }],
         eqeqeq: ["error", "smart"],
         "import/order": "off",
         "no-eval": "warn",

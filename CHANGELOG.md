@@ -13,6 +13,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - This change is breaking because all volume objects require the `instances` field now.
 - [Breaking] `Canvas3D.identify` now expects `Vec2` or `Ray3D`
 - [Breaking] `TrackballControlsParams.animate.spin.speed` now means "Number of rotations per second" instead of "radians per second"
+- [Breaking] `PluginStateSnapshotManager.play` now accepts an options object instead of a single boolean value
 - Update production build to use `esbuild`
 - Emit explicit paths in `import`s in `lib/`
 - Fix outlines on opaque elements using illumination mode
@@ -23,7 +24,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - `representation` node: support custom property `molstar_representation_params`
   - Add `backbone` and `line` representation types
   - `primitives` node: support custom property `molstar_mesh/label/line_params`
-  - `canvas` node: support custom property `molstar_postprocessing` with the ability to customize outline, depth of field, bloom, shadow, occlusion (SSAO), and fog
+  - `canvas` node: support custom property `molstar_postprocessing` with the ability to customize outline, depth of field, bloom, shadow, occlusion (SSAO), fog, and background
   - `clip` node support for structure and volume representations
   - `grid_slice` representation support for volumes
   - Support tethers and background for primitive labels
@@ -43,6 +44,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - Support loading trajectory coordinates from separate nodes
   - Trigger markdown commands from primitives using `molstar_markdown_commands` custom extensions
   - Support `molstar_on_load_markdown_commands` custom state on the `root` node
+  - Print tree validation errors to plugin log
 - Added new color schemes, synchronized with D3.js ('inferno', 'magma', 'turbo', 'rainbow', 'sinebow', 'warm', 'cool', 'cubehelix-default', 'category-10', 'observable-10', 'tableau-10')
 - Snapshot Markdown improvements
   - Add `MarkdownExtensionManager` (`PluginContext.managers.markdownExtensions`)
@@ -99,6 +101,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add plugin config item ShowReset (shows/hides "Reset Zoom" button)
 - Fix transform params not being normalized when used together with param hash version
 - Replace `immer` with `mutative`
+- Fix renderer transparency check
 - Add WebXR support
     - Requires immersive AR/VR headset
     - Supplements non-XR: enter/exit XR anytime and see (mostly) the same scene

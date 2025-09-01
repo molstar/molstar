@@ -7,14 +7,14 @@
 
 const git = require('simple-git');
 const path = require('path');
-const fs = require("fs");
-const fse = require("fs-extra");
+const fs = require('fs');
+const fse = require('fs-extra');
 const argparse = require('argparse');
 
 const VERSION = require(path.resolve(__dirname, '../package.json')).version;
 const MVS_STORIES_VERSION = require(path.resolve(__dirname, '../src/apps/mvs-stories/version.ts')).VERSION;
 
-const remoteUrl = "https://github.com/molstar/molstar.github.io.git";
+const remoteUrl = 'https://github.com/molstar/molstar.github.io.git';
 const dataDir = path.resolve(__dirname, '../data/');
 const buildDir = path.resolve(__dirname, '../build/');
 const deployDir = path.resolve(__dirname, '../deploy/');

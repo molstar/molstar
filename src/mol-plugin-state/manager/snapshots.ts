@@ -25,7 +25,7 @@ export { PluginStateSnapshotManager };
 
 interface StateManagerState {
     current?: UUID,
-    currentAnimationFrame?: number,
+    currentAnimationTimeMs?: number,
     entries: List<PluginStateSnapshotManager.Entry>,
     isPlaying: boolean,
     nextSnapshotDelayInMs: number
@@ -38,8 +38,8 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
     private defaultSnapshotId: UUID | undefined = undefined;
 
     protected updateState(state: Partial<StateManagerState>) {
-        if ('current' in state && !('curentAnimationFrame' in state)) {
-            return super.updateState({ ...state, currentAnimationFrame: 0 });
+        if ('current' in state && !('currentAnimationTimeMs' in state)) {
+            return super.updateState({ ...state, currentAnimationTimeMs: 0 });
         } else {
             return super.updateState(state);
         }
@@ -168,18 +168,23 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
     }
 
     private animationFrameQueue = new SingleTaskQueue();
-    setSnapshotAnimationFrame(frame: number, load = false) {
-        if (this.updateState({ currentAnimationFrame: frame })) {
+    setSnapshotAnimationFrame(currentAnimationTimeMs: number, load = false) {
+        const entry = this.getEntry(this.state.current);
+        if (!entry) return;
+
+        const frameIndex = PluginState.getStateTransitionFrameIndex(entry.snapshot, currentAnimationTimeMs) ?? 0;
+
+        if (this.updateState({ currentAnimationTimeMs })) {
             this.events.changed.next(void 0);
         }
 
         if (load) {
             this.animationFrameQueue.run(() => {
-                const entry = this.getEntry(this.state.current);
-                if (!entry) return Promise.resolve();
-                return this.plugin.state.setAnimationSnapshot(entry.snapshot, frame);
+                return this.plugin.state.setAnimationSnapshot(entry.snapshot, frameIndex ?? 0);
             });
         }
+
+        return frameIndex;
     }
 
     getNextId(id: string | undefined, dir: -1 | 1) {
@@ -233,7 +238,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
         const next = entry && entry.snapshot;
         if (!next) return;
         await this.plugin.state.setSnapshot(next);
-        if (snapshot.playback && snapshot.playback.isPlaying) this.play(true);
+        if (snapshot.playback?.isPlaying) this.play({ delayFirst: true });
         return next;
     }
 
@@ -380,10 +385,18 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
         }
     }
 
-    play(delayFirst: boolean = false) {
+    async play(options?: { delayFirst?: boolean, restart?: boolean }) {
+        if (this.state.isPlaying && !options?.delayFirst) {
+            if (options?.restart) {
+                await this.stop();
+            } else {
+                return;
+            }
+        }
+
         this.updateState({ isPlaying: true });
 
-        if (delayFirst) {
+        if (options?.delayFirst) {
             const e = this.getEntry(this.state.current);
             if (!e) {
                 this.next();
@@ -398,20 +411,20 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<StateManagerSta
         }
     }
 
-    stop() {
-        this.plugin.managers.animation.stop();
+    async stop() {
+        await this.plugin.managers.animation.stop();
         this.updateState({ isPlaying: false });
         if (typeof this.timeoutHandle !== 'undefined') clearTimeout(this.timeoutHandle);
         this.timeoutHandle = void 0;
         this.events.changed.next(void 0);
     }
 
-    togglePlay() {
+    async togglePlay() {
         if (this.state.isPlaying) {
-            this.stop();
-            this.plugin.managers.animation.stop();
+            await this.stop();
+            this.plugin.managers.markdownExtensions.audio.pause();
         } else {
-            this.play();
+            await this.play();
         }
     }
 

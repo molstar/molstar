@@ -13,9 +13,11 @@ async function setPartialSnapshot(plugin: PluginContext, entry: Partial<PluginSt
     if (entry.data) {
         await plugin.runTask(plugin.state.data.setSnapshot(entry.data));
         // update the canvas3d trackball with the snapshot
-        plugin.canvas3d?.setProps({
-            trackball: entry.canvas3d?.props?.trackball
-        });
+        if (entry.canvas3d?.props?.trackball) {
+            plugin.canvas3d?.setProps({
+                trackball: entry.canvas3d?.props?.trackball
+            });
+        }
 
     }
 
@@ -175,7 +177,7 @@ export const AnimateStateSnapshotTransition = PluginStateAnimation.create({
         if (t.current >= animState.totalDuration) {
             if (snapshot?.transition && animState.isInitial) {
                 const frameIndex = snapshot.transition.frames.length - 1;
-                ctx.plugin.managers.snapshot.setSnapshotAnimationFrame(frameIndex, false);
+                ctx.plugin.managers.snapshot.setSnapshotAnimationFrame(animState.totalDuration, false);
                 await setPartialSnapshot(ctx.plugin, snapshot.transition.frames[frameIndex]);
             }
             return { kind: 'finished' };
@@ -193,7 +195,7 @@ export const AnimateStateSnapshotTransition = PluginStateAnimation.create({
             return { kind: 'skip' };
         }
 
-        ctx.plugin.managers.snapshot.setSnapshotAnimationFrame(frameIndex, false);
+        ctx.plugin.managers.snapshot.setSnapshotAnimationFrame(t.current, false);
         if (frameIndex === 0) {
             await setPartialSnapshot(ctx.plugin, {
                 ...transition.frames[frameIndex],

@@ -33,8 +33,8 @@ import { NonCovalentInteractionsExtension } from './load-extensions/non-covalent
 import { LoadingActions, LoadingExtension, loadTreeVirtual, UpdateTarget } from './load-generic';
 import { AnnotationFromSourceKind, AnnotationFromUriKind, collectAnnotationReferences, collectAnnotationTooltips, collectInlineLabels, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformAndInstantiateStructure, transformAndInstantiateVolume, volumeColorThemeForNode, volumeRepresentationProps } from './load-helpers';
 import { MVSData, MVSData_States, Snapshot, SnapshotMetadata } from './mvs-data';
-import { MVSAnimationNode } from './tree/animation/animation-tree';
-import { validateTree } from './tree/generic/tree-schema';
+import { MVSAnimationNode, MVSAnimationSchema } from './tree/animation/animation-tree';
+import { validateTree } from './tree/generic/tree-validation';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
 import { MolstarNode, MolstarNodeParams, MolstarSubtree, MolstarTree, MolstarTreeSchema } from './tree/molstar/molstar-tree';
 import { MVSTreeSchema } from './tree/mvs/mvs-tree';
@@ -51,6 +51,7 @@ export interface MVSLoadOptions {
     sanityChecks?: boolean,
     /** Base for resolving relative URLs/URIs. May itself be a relative URL (relative to the window URL). */
     sourceUrl?: string,
+
     doNotReportErrors?: boolean
 }
 
@@ -78,10 +79,13 @@ async function _loadMVS(ctx: RuntimeContext, plugin: PluginContext, data: MVSDat
         for (let i = 0; i < multiData.snapshots.length; i++) {
             const snapshot = multiData.snapshots[i];
             const previousSnapshot = i > 0 ? multiData.snapshots[i - 1] : multiData.snapshots[multiData.snapshots.length - 1];
-            validateTree(MVSTreeSchema, snapshot.root, 'MVS');
+            validateTree(MVSTreeSchema, snapshot.root, 'MVS', plugin);
+            if (snapshot.animation) {
+                validateTree(MVSAnimationSchema, snapshot.animation, 'Animation', plugin);
+            }
             if (options.sanityChecks) mvsSanityCheck(snapshot.root);
             const molstarTree = convertMvsToMolstar(snapshot.root, options.sourceUrl);
-            validateTree(MolstarTreeSchema, molstarTree, 'Converted Molstar');
+            validateTree(MolstarTreeSchema, molstarTree, 'Converted Molstar', plugin);
             const entry = molstarTreeToEntry(
                 plugin,
                 molstarTree,
@@ -136,7 +140,7 @@ async function assignStateTransition(ctx: RuntimeContext, plugin: PluginContext,
 
     for (let i = 0; i < transitions.frames.length; i++) {
         const frame = transitions.frames[i];
-        const molstarTree = convertMvsToMolstar(frame, options.sourceUrl);
+        const molstarTree = convertMvsToMolstar(frame[0], options.sourceUrl);
         const entry = molstarTreeToEntry(
             plugin,
             molstarTree,
@@ -148,7 +152,7 @@ async function assignStateTransition(ctx: RuntimeContext, plugin: PluginContext,
         StateTree.reuseTransformParams(entry.snapshot.data!.tree, parentEntry.snapshot.data!.tree);
 
         animation.frames.push({
-            durationInMs: transitions.frametimeMs,
+            durationInMs: frame[1],
             data: entry.snapshot.data!,
             camera: transitions.tree.params?.include_camera ? entry.snapshot.camera : undefined,
             canvas3d: transitions.tree.params?.include_canvas ? entry.snapshot.canvas3d : undefined,

@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { treeValidationIssues } from './tree/generic/tree-schema';
+import { treeValidationIssues } from './tree/generic/tree-validation';
 import { treeToString } from './tree/generic/tree-utils';
 import { MVSAnimationSchema, MVSAnimationTree } from './tree/animation/animation-tree';
 import { Root, createMVSBuilder } from './tree/mvs/mvs-builder';

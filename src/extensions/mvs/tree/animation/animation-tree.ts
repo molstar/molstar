@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { bool, float, int, list, OptionalField, RequiredField, str, union, nullable, literal, ValueFor } from '../generic/field-schema';
+import { bool, float, int, list, OptionalField, RequiredField, str, union, nullable, literal, ValueFor, dict } from '../generic/field-schema';
 import { SimpleParamsSchema, UnionParamsSchema } from '../generic/params-schema';
 import { NodeFor, ParamsOfKind, SubtreeOfKind, TreeFor, TreeSchema } from '../generic/tree-schema';
 import { ColorT, ContinuousPalette, DiscretePalette, Matrix, Vector3 } from '../mvs/param-types';
@@ -48,6 +48,7 @@ const ScalarInterpolation = {
     ..._Easing,
     start: OptionalField(nullable(union(float, list(float))), null, 'Start value. If a list of values is provided, each element will be interpolated separately. If unset, parent state value is used.'),
     end: OptionalField(nullable(union(float, list(float))), null, 'End value. If a list of values is provided, each element will be interpolated separately. If unset, only noise is applied.'),
+    discrete: OptionalField(bool, false, 'Whether to round the values to the closest integer. Useful for example for trajectory animation.'),
     ..._Noise,
 };
 
@@ -74,8 +75,8 @@ const ColorInterpolation = {
     ..._Common,
     ..._Frequency,
     ..._Easing,
-    start: OptionalField(nullable(ColorT), null, 'Start value. If unset, parent state value is used.'),
-    end: OptionalField(nullable(ColorT), null, 'End value.'),
+    start: OptionalField(union(nullable(ColorT), dict(union(int, str), ColorT)), null, 'Start value. If unset, parent state value is used.'),
+    end: OptionalField(union(nullable(ColorT), dict(union(int, str), ColorT)), null, 'End value.'),
     palette: OptionalField(nullable(union(DiscretePalette, ContinuousPalette)), null, 'Palette to sample colors from. Overrides start and end values.'),
 };
 

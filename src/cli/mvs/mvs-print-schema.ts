@@ -11,7 +11,7 @@
  */
 
 import { ArgumentParser } from 'argparse';
-import { treeSchemaToMarkdown, treeSchemaToString } from '../../extensions/mvs/tree/generic/tree-schema';
+import { treeSchemaToMarkdown, treeSchemaToString } from '../../extensions/mvs/tree/generic/tree-validation';
 import { MVSTreeSchema } from '../../extensions/mvs/tree/mvs/mvs-tree';
 
 

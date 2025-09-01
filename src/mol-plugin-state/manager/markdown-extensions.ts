@@ -11,6 +11,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { Script } from '../../mol-script/script';
 import { QueryContext, QueryFn, StructureElement, StructureSelection } from '../../mol-model/structure';
 import { BehaviorSubject } from 'rxjs';
+import { AnimateStateSnapshotTransition } from '../animation/built-in/state-snapshots';
 
 export type MarkdownExtensionEvent = 'click' | 'mouse-enter' | 'mouse-leave';
 
@@ -44,6 +45,17 @@ export const BuiltInMarkdownExtension: MarkdownExtension[] = [
             const key = args['apply-snapshot'];
             if (!key) return;
             manager.plugin.managers.snapshot.applyKey(key);
+        }
+    },
+    {
+        name: 'next-snapshot',
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click' || !('next-snapshot' in args)) return;
+            let dir: -1 | 1 = (+args['next-snapshot'] || 1) as -1 | 1;
+            if (!dir) return;
+            if (dir < 0) dir = -1;
+            else dir = 1;
+            manager.plugin.managers.snapshot.applyNext(dir);
         }
     },
     {
@@ -183,6 +195,34 @@ export const BuiltInMarkdownExtension: MarkdownExtension[] = [
         execute: ({ event, args, manager }) => {
             if (event !== 'click' || !('stop-audio' in args)) return;
             manager.audio.stop();
+        }
+    },
+    {
+        name: 'dispose-audio',
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click' || !('dispose-audio' in args)) return;
+            manager.audio.dispose();
+        }
+    },
+    {
+        name: 'play-transition',
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click' || !('play-transition' in args)) return;
+            manager.plugin.managers.animation.play(AnimateStateSnapshotTransition, {});
+        }
+    },
+    {
+        name: 'play-snapshots',
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click' || !('play-snapshots' in args)) return;
+            manager.plugin.managers.snapshot.play({ restart: true });
+        }
+    },
+    {
+        name: 'stop-animation',
+        execute: ({ event, args, manager }) => {
+            if (event !== 'click' || !('stop-animation' in args)) return;
+            manager.plugin.managers.snapshot.stop();
         }
     },
 ];

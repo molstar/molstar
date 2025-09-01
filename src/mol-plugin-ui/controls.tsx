@@ -29,6 +29,7 @@ import { StructureQuickStylesControls } from './structure/quick-styles';
 import { Markdown } from './controls/markdown';
 import { Slider } from './controls/slider';
 import { AnimateStateSnapshotTransition } from '../mol-plugin-state/animation/built-in/state-snapshots';
+import { PluginState } from '../mol-plugin/state';
 
 export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: boolean, label: string }> {
     state = { show: false, label: '' };
@@ -61,7 +62,7 @@ export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: bo
                 count++;
                 if (!label) {
                     const idx = (m.transform.params! as StateTransformer.Params<ModelFromTrajectory>).modelIndex;
-                    label = `Model ${idx + 1} / ${parent.data.frameCount}`;
+                    label = `Model ${Math.round(idx + 1)} / ${parent.data.frameCount}`;
                 }
             }
         }
@@ -151,6 +152,7 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
     toggleStateAnimation = () => {
         if (this.state.isBusy) {
             this.plugin.managers.animation.stop();
+            this.plugin.managers.markdownExtensions.audio.pause();
         } else {
             this.plugin.managers.animation.play(AnimateStateSnapshotTransition, {});
         }
@@ -185,19 +187,17 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
             {!isPlaying && <>
                 {count > 1 && <IconButton svg={NavigateBeforeSvg} title='Previous State' onClick={this.prev} disabled={disabled} />}
                 {count > 1 && <IconButton svg={NavigateNextSvg} title='Next State' onClick={this.next} disabled={disabled} />}
-                {hasAnimation && <IconButton svg={AnimationSvg} className='msp-state-snapshot-animation-button' title='Animation' onClick={this.toggleShowAnimation} disabled={!hasAnimation} toggleState={this.state.showAnimation} />}
+                {hasAnimation && <IconButton svg={AnimationSvg} className='msp-state-snapshot-animation-button' title='Snapshot Transition' onClick={this.toggleShowAnimation} disabled={!hasAnimation} toggleState={this.state.showAnimation} />}
             </>}
             {hasAnimation && this.state.showAnimation && !isPlaying && <>
                 <div className='msp-state-snapshot-animation-slider msp-form-control'>
                     <Slider
-                        value={snapshots.state.currentAnimationFrame ?? 0}
-                        min={1}
-                        step={1}
-                        max={(entry?.snapshot.transition?.frames.length ?? 1)}
+                        value={Math.round(100 * (snapshots.state.currentAnimationTimeMs ?? 0)) /100}
+                        min={0}
+                        step={PluginState.getMinFrameDuration(entry?.snapshot)}
+                        max={PluginState.getStateTransitionDuration(entry?.snapshot) ?? 1000}
                         onChange={() => { }}
-                        onChangeImmediate={v => {
-                            snapshots.setSnapshotAnimationFrame(v - 1, true);
-                        }}
+                        onChangeImmediate={v => snapshots.setSnapshotAnimationFrame(v, true)}
                         hideInput
                         disabled={this.state.isBusy}
                     />

@@ -1,6 +1,6 @@
 {
   "name": "molstar",
-  "version": "5.0.0-dev.8",
+  "version": "5.0.0-dev.12",
   "description": "A comprehensive macromolecular library.",
   "homepage": "https://github.com/molstar/molstar#readme",
   "repository": {
@@ -122,7 +122,8 @@
     "Lukáš Polák <admin@lukaspolak.cz>",
     "Chetan Mishra <chetan.s115@gmail.com>",
     "Zach Charlop-Powers <zach.charlop.powers@gmail.com>",
-    "Kim Juho <juho_kim@outlook.com>"
+    "Kim Juho <juho_kim@outlook.com>",
+    "Victoria Doshchenko <doshchenko.victoria@gmail.com>"
   ],
   "license": "MIT",
   "devDependencies": {
