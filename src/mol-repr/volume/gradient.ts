@@ -164,7 +164,10 @@ namespace VolumeStreamlinesProp {
       volume._propertyData[name] = { key: '', lines: [] } as Stored;
       volume.customProperties.add(descriptor);
       // no GPU resources to dispose, but register a noop so remove() works cleanly
-      volume.customProperties.assets(descriptor, [{ dispose: () => {/* noop */} }]);
+      volume.customProperties.assets(descriptor, [{ dispose: () => {
+            // this runs when the volume is disposed
+            delete (volume as any)._propertyData?.[name];
+       } }]);
     }
 
     const store = volume._propertyData[name] as Stored;
