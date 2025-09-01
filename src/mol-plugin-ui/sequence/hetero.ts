@@ -53,7 +53,7 @@ export class HeteroSequenceWrapper extends SequenceWrapper<StructureUnit> {
         return Interval.Empty;
     }
 
-    protected override _getLoci(seqIdx: number) {
+    override getLoci(seqIdx: number) {
         const elements: StructureElement.Loci['elements'][0][] = [];
         const rI = this.residueIndices.get(seqIdx);
         if (rI !== undefined) {

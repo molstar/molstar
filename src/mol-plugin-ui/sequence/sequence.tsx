@@ -22,7 +22,6 @@ import { Color } from '../../mol-util/color';
 import { ButtonsType, getButton, getButtons, getModifiers, ModifiersKeys } from '../../mol-util/input/input-observer';
 import { MarkerAction } from '../../mol-util/marker-action';
 import { memoizeLatest } from '../../mol-util/memoize';
-import { sleep } from '../../mol-util/sleep';
 import { PluginUIComponent } from '../base';
 import { SequenceWrapper } from './wrapper';
 
@@ -407,9 +406,7 @@ function ColorThemeWrapper(plugin: PluginContext, theme: ColorThemeProvider, for
         if (theme.ensureCustomProperties) {
             // The following task runs asynchronously
             plugin.runTask(Task.create('Attach custom properties for coloring theme', async runtime => {
-                console.log('attaching')
                 try {
-                    await sleep(1000)
                     await theme.ensureCustomProperties?.attach({ assetManager: plugin.managers.asset, runtime }, { structure });
                 } catch (err) {
                     console.warn(`Failed to attach custom properties needed for coloring theme ${theme.name}:`, err);
@@ -430,7 +427,7 @@ function ColorThemeWrapper(plugin: PluginContext, theme: ColorThemeProvider, for
             } else { // custom properties not ready
                 return '';
             }
-        }
+        };
     });
 
     return {
