@@ -2,13 +2,14 @@
  * Copyright (c) 2025 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Ludovic Autin <autin@scripps.edu>
- * @maintainer ChatGPT5
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Mat4, Tensor, Vec3 } from '../../mol-math/linear-algebra';
 import { Cylinders } from '../../mol-geo/geometry/cylinders/cylinders';
 import { Lines } from '../../mol-geo/geometry/lines/lines';
+import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
+import { addSphere } from '../../mol-geo/geometry/mesh/builder/sphere';
 import { LinesBuilder } from '../../mol-geo/geometry/lines/lines-builder';
 import { Volume, Grid } from '../../mol-model/volume';
 import { BaseGeometry } from '../../mol-geo/geometry/base';
@@ -27,6 +28,9 @@ import { Points } from '../../mol-geo/geometry/points/points';
 import { PointsBuilder } from '../../mol-geo/geometry/points/points-builder';
 import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
 import { SpheresBuilder } from '../../mol-geo/geometry/spheres/spheres-builder';
+import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
+import { sphereVertexCount } from '../../mol-geo/primitive/sphere';
+import { addCylinder, BasicCylinderProps } from '../../mol-geo/geometry/mesh/builder/cylinder';
 
 // ---------------------------------------------------------------------------------------
 // Shared params
@@ -40,7 +44,7 @@ export const VolumeGradientParams = {
     minLevel: PD.Numeric(-5.0, { min: -10, max: 10, step: 0.1 }, { description: 'Minimum map value (φ) allowed when tracing.' }),
     maxLevel: PD.Numeric(5.0, { min: -10, max: 10, step: 0.1 }, { description: 'Maximum map value (φ) allowed when tracing.' }),
     algorithm: PD.Select('simple', PD.arrayToOptions(['simple', 'advanced'] as const), { description: 'Streamline algorithm to use.' }),
-    mid_interpolation: PD.Boolean(true, { description: 'Use RK2 (midpoint) instead of RK4 for the simple tracer.' }),
+    mid_interpolation: PD.Boolean(true, { description: 'Use RK2 (midpoint) instead of RK4 for the simple tracer.', hideIf: (o) => o.algorithm !== 'simple' }),
     writeStride: PD.Numeric(4, { min: 1, max: 50, step: 1 }, { description: 'Sample every N integration steps.' }),
     geomStride: PD.Numeric(1, { min: 1, max: 10, step: 1 }, { description: 'Emit every Nth segment to geometry.' }),
 };
@@ -52,7 +56,6 @@ export type VolumeGradientProps = PD.Values<VolumeGradientParams>
 export const VolumeLinesParams = {
     ...Lines.Params,
     ...VolumeGradientParams,
-    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
 };
 export type VolumeLinesParams = typeof VolumeLinesParams
 export type VolumeLinesProps = PD.Values<VolumeLinesParams>
@@ -60,8 +63,11 @@ export type VolumeLinesProps = PD.Values<VolumeLinesParams>
 // CYLINDERS
 export const VolumeCylindersLinesParams = {
     ...Cylinders.Params,
+    ...Mesh.Params,
     ...VolumeGradientParams,
     radius: PD.Numeric(1.0, { min: 0.1, max: 5, step: 0.1 }, { description: 'Cylinder radius (Å).' }),
+    tryUseImpostor: PD.Boolean(true),
+    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
 };
 export type VolumeCylindersLinesParams = typeof VolumeCylindersLinesParams
 export type VolumeCylindersLinesProps = PD.Values<VolumeCylindersLinesParams>
@@ -77,7 +83,10 @@ export type VolumePointsLinesProps = PD.Values<VolumePointsLinesParams>
 // SPHERES
 export const VolumeSpheresLinesParams = {
     ...Spheres.Params,
+    ...Mesh.Params,
     ...VolumeGradientParams,
+    tryUseImpostor: PD.Boolean(true),
+    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
 };
 export type VolumeSpheresLinesParams = typeof VolumeSpheresLinesParams
 export type VolumeSpheresLinesProps = PD.Values<VolumeSpheresLinesParams>
@@ -108,8 +117,13 @@ export function VolumeLinesVisual(materialId: number): VolumeVisual<VolumeLinesP
             );
         },
         geometryUtils: Lines.Utils,
-        mustRecreate: (_: VolumeKey, __: PD.Values<VolumeLinesParams>, webgl?: WebGLContext) => !!webgl,
     }, materialId);
+}
+
+export function VolumeCylindersLinesVisual(materialId: number, volume: Volume, key: number, props: PD.Values<VolumeCylindersLinesParams>, webgl?: WebGLContext) {
+    return props.tryUseImpostor && webgl && webgl.extensions.fragDepth && webgl.extensions.textureFloat
+        ? VolumeCylindersImpostorVisual(materialId)
+        : VolumeCylindersMeshLinesVisual(materialId);
 }
 
 export function VolumeCylindersImpostorVisual(materialId: number): VolumeVisual<VolumeCylindersLinesParams> {
@@ -136,6 +150,37 @@ export function VolumeCylindersImpostorVisual(materialId: number): VolumeVisual<
         },
         geometryUtils: Cylinders.Utils,
         mustRecreate: (_: VolumeKey, __: PD.Values<VolumeCylindersLinesParams>, webgl?: WebGLContext) => !webgl,
+    }, materialId);
+}
+
+export function VolumeCylindersMeshLinesVisual(materialId: number): VolumeVisual<VolumeCylindersLinesParams> {
+    return VolumeVisual<Mesh, VolumeCylindersLinesParams>({
+        defaultProps: PD.getDefaultValues(VolumeCylindersLinesParams),
+        createGeometry: createVolumeCylindersMeshGeometry,
+        createLocationIterator: createVolumeCellLocationIterator,
+        getLoci: getGradientLoci,
+        eachLocation: eachGradient,
+        setUpdateState: (state: VisualUpdateState, volume: Volume, newProps, currentProps, _newTheme, _currentTheme) => {
+            state.createGeometry = (
+                newProps.seedDensity !== currentProps.seedDensity ||
+                newProps.maxSteps !== currentProps.maxSteps ||
+                newProps.stepSize !== currentProps.stepSize ||
+                newProps.minSpeed !== currentProps.minSpeed ||
+                newProps.radius !== currentProps.radius ||
+                newProps.minLevel !== currentProps.minLevel ||
+                newProps.maxLevel !== currentProps.maxLevel ||
+                newProps.writeStride !== currentProps.writeStride ||
+                newProps.geomStride !== currentProps.geomStride||
+                newProps.mid_interpolation !== currentProps.mid_interpolation ||
+                newProps.algorithm !== currentProps.algorithm ||
+                newProps.detail !== currentProps.detail
+
+            );
+        },
+        geometryUtils: Mesh.Utils,
+        mustRecreate: (volumekey: VolumeKey, props: PD.Values<VolumeCylindersLinesParams>, webgl?: WebGLContext) => {
+            return props.tryUseImpostor && !!webgl;
+        }
     }, materialId);
 }
 
@@ -166,7 +211,13 @@ export function VolumePointsLinesVisual(materialId: number): VolumeVisual<Volume
     }, materialId);
 }
 
-export function VolumeSpheresLinesVisual(materialId: number): VolumeVisual<VolumeSpheresLinesParams> {
+export function VolumeSphereLinesVisual(materialId: number, volume: Volume, key: number, props: PD.Values<VolumeSpheresLinesParams>, webgl?: WebGLContext) {
+    return props.tryUseImpostor && webgl && webgl.extensions.fragDepth && webgl.extensions.textureFloat
+        ? VolumeSpheresImpostorLinesVisual(materialId)
+        : VolumeSphereMeshLinesVisual(materialId);
+}
+
+export function VolumeSpheresImpostorLinesVisual(materialId: number): VolumeVisual<VolumeSpheresLinesParams> {
     return VolumeVisual<Spheres, VolumeSpheresLinesParams>({
             defaultProps: PD.getDefaultValues(VolumeSpheresLinesParams),
             createGeometry: createVolumeSpheresLinesGeometry,
@@ -191,6 +242,35 @@ export function VolumeSpheresLinesVisual(materialId: number): VolumeVisual<Volum
             geometryUtils: Spheres.Utils,
             mustRecreate: (_: VolumeKey, __: PD.Values<VolumeSpheresLinesParams>, webgl?: WebGLContext) => !webgl,
         }, materialId);
+}
+
+export function VolumeSphereMeshLinesVisual(materialId: number): VolumeVisual<VolumeSpheresLinesParams> {
+    return VolumeVisual<Mesh, VolumeSpheresLinesParams>({
+            defaultProps: PD.getDefaultValues(VolumeSpheresLinesParams),
+            createGeometry: createVolumeSpheresMeshLinesGeometry,
+            createLocationIterator: createVolumeCellLocationIterator,
+            getLoci: getGradientLoci,
+            eachLocation: eachGradient,
+            setUpdateState: (state: VisualUpdateState, volume: Volume, newProps, currentProps, _newTheme, _currentTheme) => {
+                state.createGeometry = (
+                    newProps.seedDensity !== currentProps.seedDensity ||
+                    newProps.maxSteps !== currentProps.maxSteps ||
+                    newProps.stepSize !== currentProps.stepSize ||
+                    newProps.minSpeed !== currentProps.minSpeed ||
+                    newProps.minLevel !== currentProps.minLevel ||
+                    newProps.maxLevel !== currentProps.maxLevel ||
+                    newProps.writeStride !== currentProps.writeStride ||
+                    newProps.geomStride !== currentProps.geomStride ||
+                    newProps.mid_interpolation !== currentProps.mid_interpolation ||
+                    newProps.algorithm !== currentProps.algorithm ||
+                    newProps.detail !== currentProps.detail
+                );
+            },
+            geometryUtils: Mesh.Utils,
+            mustRecreate: (volumekey: VolumeKey, props: PD.Values<VolumeSpheresLinesParams>, webgl?: WebGLContext) => {
+                return props.tryUseImpostor && !!webgl;
+            }
+}, materialId);
 }
 // ---------------------------------------------------------------------------------------
 // Geometry builders (shared streamline collection)
@@ -224,6 +304,27 @@ function createVolumeCylindersGeometry(ctx: VisualContext, volume: Volume, _key:
     return g;
 }
 
+
+function createVolumeCylindersMeshGeometry(ctx: VisualContext, volume: Volume, _key: number, _theme: Theme, props: VolumeCylindersLinesProps, mesh?: Mesh): Mesh {
+    const streamLines = collectStreamlines(volume, props);
+    const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
+
+    const segCount = countSegments(streamLines, props.geomStride);
+    const builder = MeshBuilder.createState(segCount, Math.ceil(segCount / 2), mesh);
+    const cylProps: BasicCylinderProps = {
+        radiusBottom: props.radius,
+        radiusTop: props.radius,
+        topCap: true,
+        bottomCap: true,
+    };
+    writeSegmentsToBuilder(streamLines, gridToCartn, props.geomStride, (a, b, id) => {
+        addCylinder(builder, a, b, 1.0, cylProps);
+    });
+
+    const g = MeshBuilder.getMesh(builder);
+    return g;
+}
+
 function createVolumePointsGeometry(ctx: VisualContext, volume: Volume, _key: number, _theme: Theme, props: VolumePointsLinesProps, points?: Points): Points {
     const streamLines = collectStreamlines(volume, props);
     const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
@@ -250,6 +351,23 @@ function createVolumeSpheresLinesGeometry(ctx: VisualContext, volume: Volume, _k
     });
 
     const g = builder.getSpheres();
+    return g;
+}
+
+function createVolumeSpheresMeshLinesGeometry(ctx: VisualContext, volume: Volume, _key: number, _theme: Theme, props: VolumeSpheresLinesProps, mesh?: Mesh): Mesh {
+    const { detail, sizeFactor } = props;
+
+    const streamLines = collectStreamlines(volume, props);
+    const gridToCartn = Grid.getGridToCartesianTransform(volume.grid);
+
+    const segCount = countSegments(streamLines, props.geomStride) * sphereVertexCount(detail);
+    const builder = MeshBuilder.createState(segCount, Math.ceil(segCount / 2), mesh);
+
+    writeSegmentsToBuilder(streamLines, gridToCartn, props.geomStride, (a, b, id) => {
+        addSphere(builder, a, sizeFactor, id);
+    });
+
+    const g = MeshBuilder.getMesh(builder);
     return g;
 }
 
@@ -306,9 +424,9 @@ function eachGradient(loci: Loci, volume: Volume, _key: number, props: VolumeGra
 
 const GradientVisuals = {
     'lines': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, VolumeLinesParams>) => VolumeRepresentation('Gradient lines', ctx, getParams, VolumeLinesVisual, getLoci),
-    'cylinders': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, VolumeCylindersLinesParams>) => VolumeRepresentation('Gradient cylinders', ctx, getParams, VolumeCylindersImpostorVisual, getLoci),
+    'cylinders': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, VolumeCylindersLinesParams>) => VolumeRepresentation('Gradient cylinders', ctx, getParams, VolumeCylindersLinesVisual, getLoci),
     'points': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, VolumePointsLinesParams>) => VolumeRepresentation('Gradient points', ctx, getParams, VolumePointsLinesVisual, getLoci),
-    'spheres': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, VolumeSpheresLinesParams>) => VolumeRepresentation('Gradient spheres', ctx, getParams, VolumeSpheresLinesVisual, getLoci),
+    'spheres': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Volume, VolumeSpheresLinesParams>) => VolumeRepresentation('Gradient spheres', ctx, getParams, VolumeSphereLinesVisual, getLoci),
 };
 
 export const GradientParams = {
@@ -440,9 +558,19 @@ function reverseSegmentInPlace<T>(arr: T[], start: number, end: number) {
     for (let i = start, j = end; i < j; i++, j--) { const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp; }
 }
 
-function traceStreamlineBothDirs(space: Tensor.Space, data: ArrayLike<number>, seed: Vec3, maxSteps: number, dsWorld: number, eps: number, hx: number, hy: number, hz: number, writeStride: number, order: 2 | 4): StreamlinePoint[] {
+// safe to hoist once at module level
+const Scratch = {
+  p: Vec3(), g: Vec3(), g2: Vec3(), g3: Vec3(), g4: Vec3(),
+  v1: Vec3(), v2: Vec3(), v3: Vec3(), v4: Vec3(),
+  k1: Vec3(), k2: Vec3(), k3: Vec3(), k4: Vec3(),
+  dp: Vec3(), t1: Vec3(), t2: Vec3(), t3: Vec3()
+};
+
+function traceStreamlineBothDirs(space: Tensor.Space, data: ArrayLike<number>,
+    seed: Vec3, maxSteps: number, dsWorld: number, eps: number, hx: number,
+    hy: number, hz: number, writeStride: number, order: 2 | 4): StreamlinePoint[] {
     const line: StreamlinePoint[] = [];
-    const S = { p: Vec3(), g: Vec3(), g2: Vec3(), g3: Vec3(), g4: Vec3(), v1: Vec3(), v2: Vec3(), v3: Vec3(), v4: Vec3(), k1: Vec3(), k2: Vec3(), k3: Vec3(), k4: Vec3(), dp: Vec3(), t1: Vec3(), t2: Vec3(), t3: Vec3() };
+    const S = Scratch;
 
     const nBack = traceOneDirection(line, space, data, seed, maxSteps, dsWorld, eps, hx, hy, hz, -1, false, S, writeStride, order);
     if (nBack > 1) reverseSegmentInPlace(line, 0, nBack - 1);
@@ -555,14 +683,20 @@ function getStreamLineAdvanced(volume: Volume, props: VolumeLinesProps | VolumeC
 
     // emit segments similar to PyMOL bookkeeping but directly into out as separate polylines
     const pushNewPolyline = () => { out.push([]); return out.length - 1; };
+    // scratch (NO allocations in the inner loop)
+    const prev = Vec3();
+    const gW = Vec3();
+    const pw = Vec3();
+    const activeCells: number[] = [];
 
     for (let a = 0; a < rangeSize; a++) {
-        const activeCells: number[] = [];
-
-        const walk = (sign: 1 | -1) => {
+        activeCells.length = 0; // reuse
+        // two passes: +gradient, -gradient (no closures)
+        for (let pass = 0; pass < 2; pass++) {
+            const sign: 1 | -1 = pass === 0 ? +1 : -1;
             let li = order[a*3], lj = order[a*3+1], lk = order[a*3+2];
             let fx = 0.5, fy = 0.5, fz = 0.5; // start at voxel center (stabler)
-            let nVert = 0; let havePrev = false; const prev = Vec3();
+            let nVert = 0; let havePrev = false;
             const segIdx = pushNewPolyline();
 
             for (let step = 0; step < maxSteps; step++) {
@@ -576,7 +710,7 @@ function getStreamLineAdvanced(volume: Volume, props: VolumeLinesProps | VolumeC
                 const level = interpolateValueFrac(space, data, li, lj, lk, fx, fy, fz);
                 if (level < props.minLevel || level > props.maxLevel) break;
 
-                const gW = Vec3();
+                // world gradient (unit dir with sign)
                 interpolateGradientWorld(space, grad, li, lj, lk, fx, fy, fz, gW);
                 const gm = Vec3.magnitude(gW);
                 if (gm < minSlope) break;
@@ -585,7 +719,6 @@ function getStreamLineAdvanced(volume: Volume, props: VolumeLinesProps | VolumeC
                 // decimate writes in tracer: only record every Nth step
                 if ((step % writeStride) === 0) {
                     // add point (index coords; geometry stage does gridToCartn)
-                    const pw = Vec3();
                     toIndexPoint(li, lj, lk, fx, fy, fz, pw);
                     out[segIdx].push({ x: pw[0], y: pw[1], z: pw[2], value: level });
                     nVert++;
@@ -608,22 +741,13 @@ function getStreamLineAdvanced(volume: Volume, props: VolumeLinesProps | VolumeC
                 fx += gW[0] * (dsWorld / hx);
                 fy += gW[1] * (dsWorld / hy);
                 fz += gW[2] * (dsWorld / hz);
-
-                // decimate writes
-                if ((step % writeStride) !== 0) {
-                    // nothing; sampling throttled by outer segment build
-                }
             }
 
             // discard degenerate polylines
             if (nVert < 2) {
                 out[segIdx] = [] as StreamlinePoint[]; // keep slot empty; harmless to geometry stage
             }
-        };
-
-        walk(+1);
-        walk(-1);
-
+        }
         // oblation (flag cells in a sphere of radius R around visited cells)
         const R = OBLATION_SPACING|0; const R2 = R*R;
         for (let t = 0; t < activeCells.length; t += 3) {
@@ -644,11 +768,6 @@ function getStreamLineAdvanced(volume: Volume, props: VolumeLinesProps | VolumeC
 // ---------------------------------------------------------------------------------------
 // Field sampling (clamped + world-aware gradients)
 // ---------------------------------------------------------------------------------------
-
-function clampIndex(space: Tensor.Space, x: number, y: number, z: number) {
-    const nx = space.dimensions[0] as number, ny = space.dimensions[1] as number, nz = space.dimensions[2] as number;
-    return [Math.max(0, Math.min(nx - 1, x)), Math.max(0, Math.min(ny - 1, y)), Math.max(0, Math.min(nz - 1, z))] as [number, number, number];
-}
 
 // Trilinear interpolation from a Vec3 pos (index coords)
 function getInterpolatedValue(space: Tensor.Space, data: ArrayLike<number>, pos: Vec3): number {
@@ -673,20 +792,44 @@ function interpolateValueFrac(space: Tensor.Space, data: ArrayLike<number>, i: n
 }
 
 // Central-diff gradient of φ in WORLD units (1/Å), then E = -∇φ
-function gradientAtP_world(out: Vec3, space: Tensor.Space, data: ArrayLike<number>, p: Vec3, hx: number, hy: number, hz: number, tmp?: Vec3) {
-    const tmp0 = tmp ?? Vec3();
-    // sample neighbors with clamping
-    tmp0[0] = p[0] + 1; tmp0[1] = p[1]; tmp0[2] = p[2]; let [x1,y1,z1] = clampIndex(space, tmp0[0]|0, tmp0[1]|0, tmp0[2]|0); const φxp = data[space.dataOffset(x1,y1,z1)];
-    tmp0[0] = p[0] - 1; tmp0[1] = p[1]; tmp0[2] = p[2]; [x1,y1,z1] = clampIndex(space, tmp0[0]|0, tmp0[1]|0, tmp0[2]|0); const φxm = data[space.dataOffset(x1,y1,z1)];
-    tmp0[0] = p[0]; tmp0[1] = p[1] + 1; tmp0[2] = p[2]; [x1,y1,z1] = clampIndex(space, tmp0[0]|0, tmp0[1]|0, tmp0[2]|0); const φyp = data[space.dataOffset(x1,y1,z1)];
-    tmp0[0] = p[0]; tmp0[1] = p[1] - 1; tmp0[2] = p[2]; [x1,y1,z1] = clampIndex(space, tmp0[0]|0, tmp0[1]|0, tmp0[2]|0); const φym = data[space.dataOffset(x1,y1,z1)];
-    tmp0[0] = p[0]; tmp0[1] = p[1]; tmp0[2] = p[2] + 1; [x1,y1,z1] = clampIndex(space, tmp0[0]|0, tmp0[1]|0, tmp0[2]|0); const φzp = data[space.dataOffset(x1,y1,z1)];
-    tmp0[0] = p[0]; tmp0[1] = p[1]; tmp0[2] = p[2] - 1; [x1,y1,z1] = clampIndex(space, tmp0[0]|0, tmp0[1]|0, tmp0[2]|0); const φzm = data[space.dataOffset(x1,y1,z1)];
+function gradientAtP_world(
+  out: Vec3,
+  space: Tensor.Space,
+  data: ArrayLike<number>,
+  p: Vec3,
+  hx: number, hy: number, hz: number
+): Vec3 {
+  // grid dims
+  const nx = space.dimensions[0] as number;
+  const ny = space.dimensions[1] as number;
+  const nz = space.dimensions[2] as number;
 
-    out[0] = - (φxp - φxm) / (2 * hx);
-    out[1] = - (φyp - φym) / (2 * hy);
-    out[2] = - (φzp - φzm) / (2 * hz);
-    return out;
+  // base voxel (clamped)
+  // |0 is a fast floor for non-negative numbers; we clamp right after anyway.
+  let x0 = p[0] | 0; if (x0 < 0) x0 = 0; else if (x0 > nx - 1) x0 = nx - 1;
+  let y0 = p[1] | 0; if (y0 < 0) y0 = 0; else if (y0 > ny - 1) y0 = ny - 1;
+  let z0 = p[2] | 0; if (z0 < 0) z0 = 0; else if (z0 > nz - 1) z0 = nz - 1;
+
+  // neighbor indices (clamped)
+  const xp = x0 + 1 <= nx - 1 ? x0 + 1 : nx - 1;
+  const xm = x0 - 1 >= 0 ? x0 - 1 : 0;
+  const yp = y0 + 1 <= ny - 1 ? y0 + 1 : ny - 1;
+  const ym = y0 - 1 >= 0 ? y0 - 1 : 0;
+  const zp = z0 + 1 <= nz - 1 ? z0 + 1 : nz - 1;
+  const zm = z0 - 1 >= 0 ? z0 - 1 : 0;
+
+  // central differences of φ, then E = -∇φ (world units)
+  const φxp = data[space.dataOffset(xp, y0, z0)];
+  const φxm = data[space.dataOffset(xm, y0, z0)];
+  const φyp = data[space.dataOffset(x0, yp, z0)];
+  const φym = data[space.dataOffset(x0, ym, z0)];
+  const φzp = data[space.dataOffset(x0, y0, zp)];
+  const φzm = data[space.dataOffset(x0, y0, zm)];
+
+  out[0] = - (φxp - φxm) / (2 * hx);
+  out[1] = - (φyp - φym) / (2 * hy);
+  out[2] = - (φzp - φzm) / (2 * hz);
+  return out;
 }
 
 // Precompute WORLD gradient field (E = -∇φ) at voxel centers
